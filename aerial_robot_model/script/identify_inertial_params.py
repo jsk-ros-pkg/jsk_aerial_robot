@@ -1,4 +1,3 @@
-from __future__ import print_function, annotations
 import argparse
 from pathlib import Path
 from rosbags.highlevel import AnyReader
@@ -7,17 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 
 
-class RelatedParams:
-    def __init__(self):
-        self.flag_plot = False
-        self.flag_verbose = True
-        self.L = 1.920  # m
-        self.D = 0.176  # m
-        self.m = 1.086  # kg
-        self.g = 9.798  # m/s^2  Tokyo
-
-
-def _plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_deg_list):
+def plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_deg_list):
     plt.figure()
 
     plt.subplot(2, 3, 1)
@@ -62,15 +51,7 @@ def _plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_
     plt.show()
 
 
-def _process_data(
-    params: RelatedParams,
-    rosbag_name: str,
-    data_name: str,
-    time_list: list,
-    data_list: list,
-    alpha_value: float,
-    static_value: float = None,
-):
+def process_data(rosbag_name, data_name, time_list, data_list, alpha_value, static_value=None):
     # low pass filter
     x_org = np.array(data_list)
     x_filtered = np.zeros_like(x_org)
@@ -112,12 +93,11 @@ def _process_data(
     time_np = np.array(time_list)
     intersection_time = (time_np[intersection_index] + time_np[intersection_index + 1]) / 2
 
-    if params.flag_verbose:
+    if flag_verbose:
         for i in range(len(intersection_time) - 1):
             print(f"{data_name} intersection time interval {i}: {intersection_time[i + 1] - intersection_time[i]} s")
     average_half_interval = np.mean(intersection_time[1:] - intersection_time[:-1])
-    if params.flag_verbose:
-        print(f"{data_name} average half interval: {average_half_interval} s")
+    print(f"{data_name} average half interval: {average_half_interval} s")
 
     # check all the intervals is greater than the average_half_interval/2
     for i in range(len(intersection_time) - 1):
@@ -130,11 +110,29 @@ def _process_data(
 
     # calculate the inertia
     T = 2 * average_half_interval
-    I = params.m * params.g * (params.D**2) * (T**2) / (16 * (np.pi**2) * params.L)
+    I = m * g * (D**2) * (T**2) / (16 * (np.pi**2) * L)
     print(f"Calculate inertial parameters through {rosbag_name} with {data_name}:\n" f"I: {I} kg*m^2")
 
 
-def calculate_inertial(bag_file_path: str, params: RelatedParams, data_name: str, alpha_value: float):
+L = 1.920  # m
+D = 0.176  # m
+m = 1.086  # kg
+g = 9.798  # m/s^2  Tokyo
+
+flag_plot = False
+flag_verbose = False
+
+# Press the green button in the gutter to run the script.
+if __name__ == "__main__":
+    # get rosbag file path
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rosbag_file_path",
+        help="rosbag file path",
+        default="/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/Ixx_data.bag",
+    )
+    args = parser.parse_args()
+
     time_list = []
     x_list = []
     y_list = []
@@ -146,7 +144,7 @@ def calculate_inertial(bag_file_path: str, params: RelatedParams, data_name: str
     time_start = None
 
     # create reader instance and open for reading
-    with AnyReader([Path(bag_file_path)]) as reader:
+    with AnyReader([Path(args.rosbag_file_path)]) as reader:
         connections = [x for x in reader.connections if x.topic == "/mocap/pose"]
         for connection, timestamp, rawdata in reader.messages(connections=connections):
             msg = reader.deserialize(rawdata, connection.msgtype)
@@ -170,42 +168,8 @@ def calculate_inertial(bag_file_path: str, params: RelatedParams, data_name: str
             yaw_deg_list.append(rot_euler[2])
 
     # plot all data in one figure
-    if params.flag_plot:
-        _plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_deg_list)
+    if flag_plot:
+        plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_deg_list)
 
-    # process_data(args.rosbag_file_path, "pos_x", time_list, x_list, 0.8)
-    if data_name == "pos_x":
-        _process_data(params, bag_file_path, data_name, time_list, x_list, alpha_value)
-    elif data_name == "pos_y":
-        _process_data(params, bag_file_path, data_name, time_list, y_list, alpha_value)
-
-
-if __name__ == "__main__":
-    """Identify procedure
-    1. Attach the robot to a bifilar pendulum
-    2. Rotate it along the vertical axis
-    3. Use MoCap to estimate state, and use rosbag to save the COG data
-    4. Measure the parameters of the bifilar pendulum
-    5. Tell the path-to-rosbag to this script and calculate the inertial parameter
-    """
-
-    related_params = RelatedParams()
-    related_params.flag_plot = False
-    related_params.flag_verbose = False
-
-    # ================================  mini_qd_w_battery_lidar_Ixx.bag  ================================
-    file_path_1 = "/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/mini_qd_w_battery_lidar_Ixx.bag"
-    calculate_inertial(file_path_1, related_params, data_name="pos_x", alpha_value=0.90)
-    calculate_inertial(file_path_1, related_params, data_name="pos_y", alpha_value=0.40)
-
-    file_path_2 = "/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/mini_qd_w_battery_lidar_Ixx_2.bag"
-    calculate_inertial(file_path_2, related_params, data_name="pos_x", alpha_value=0.95)
-    calculate_inertial(file_path_2, related_params, data_name="pos_y", alpha_value=0.40)
-
-    # ================================  mini_qd_w_battery_lidar_Iyy.bag  ================================
-    file_path_3 = "/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/mini_qd_w_battery_lidar_Iyy.bag"
-    calculate_inertial(file_path_3, related_params, data_name="pos_x", alpha_value=0.80)
-
-    file_path_4 = "/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/mini_qd_w_battery_lidar_Iyy_2.bag"
-    # calculate_inertial(file_path_4, related_params, data_name="pos_x", alpha_value=0.93)  # bad data
-    calculate_inertial(file_path_4, related_params, data_name="pos_y", alpha_value=0.95)
+    process_data(args.rosbag_file_path, "pos_x", time_list, x_list, 0.80)
+    process_data(args.rosbag_file_path, "pos_y", time_list, y_list, 0.80)
