@@ -51,7 +51,7 @@ def plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_d
     plt.show()
 
 
-def process_data(inertial_name, data_name, time_list, data_list, alpha_value, static_value=None):
+def process_data(rosbag_name, data_name, time_list, data_list, alpha_value, static_value=None):
     # low pass filter
     x_org = np.array(data_list)
     x_filtered = np.zeros_like(x_org)
@@ -93,8 +93,9 @@ def process_data(inertial_name, data_name, time_list, data_list, alpha_value, st
     time_np = np.array(time_list)
     intersection_time = (time_np[intersection_index] + time_np[intersection_index + 1]) / 2
 
-    for i in range(len(intersection_time) - 1):
-        print(f"{data_name} intersection time interval {i}: {intersection_time[i + 1] - intersection_time[i]} s")
+    if flag_verbose:
+        for i in range(len(intersection_time) - 1):
+            print(f"{data_name} intersection time interval {i}: {intersection_time[i + 1] - intersection_time[i]} s")
     average_half_interval = np.mean(intersection_time[1:] - intersection_time[:-1])
     print(f"{data_name} average half interval: {average_half_interval} s")
 
@@ -110,7 +111,7 @@ def process_data(inertial_name, data_name, time_list, data_list, alpha_value, st
     # calculate the inertia
     T = 2 * average_half_interval
     I = m * g * (D**2) * (T**2) / (16 * (np.pi**2) * L)
-    print(f"{inertial_name} calculating by {data_name}: {I} kg*m^2")
+    print(f"Calculate inertial parameters through {rosbag_name} with {data_name}:\n" f"I: {I} kg*m^2")
 
 
 L = 1.920  # m
@@ -119,6 +120,7 @@ m = 1.086  # kg
 g = 9.798  # m/s^2  Tokyo
 
 flag_plot = False
+flag_verbose = False
 
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
@@ -169,6 +171,5 @@ if __name__ == "__main__":
     if flag_plot:
         plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_deg_list)
 
-    # process_data("Ixx", "pos_x", time_list, x_list, 0.20)
-    # process_data("Ixx", "pos_y", time_list, y_list, 0.80)
-    process_data("Ixx", "roll_deg", time_list, roll_deg_list, 0.80)
+    process_data(args.rosbag_file_path, "pos_x", time_list, x_list, 0.80)
+    process_data(args.rosbag_file_path, "pos_y", time_list, y_list, 0.80)
