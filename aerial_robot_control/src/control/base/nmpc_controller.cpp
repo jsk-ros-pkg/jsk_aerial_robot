@@ -167,13 +167,17 @@ void aerial_robot_control::NMPCController::controlCore()
   flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);
 
   // - thrust
-  double thrust = mpc_solver_.x_u_out_.u.data.at(3) * mass_;
+  double acc_body_z = mpc_solver_.x_u_out_.u.data.at(3);
+
+  Eigen::VectorXd static_thrust = robot_model_->getStaticThrust();
+  Eigen::VectorXd g = robot_model_->getGravity();
+  Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / gravity_const_;
 
   std::vector<float> target_base_thrust_;
   target_base_thrust_.resize(motor_num_);
   for (int i = 0; i < motor_num_; i++)
   {
-    target_base_thrust_.at(i) = static_cast<float>(thrust / motor_num_);
+    target_base_thrust_.at(i) = target_thrusts(i);
   }
   flight_cmd_.base_thrust = target_base_thrust_;
 }
