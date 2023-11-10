@@ -554,10 +554,12 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   if(!pre_assembled_  && current_assembled){ //assembly process
     tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
     tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
+    ROS_INFO_STREAM("orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
+    tf::Matrix3x3 att_err_mat = tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z()));
     tf::Vector3 corrected_target_pos =  tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z())) * pos_cog;
-    setTargetPosCandX(corrected_target_pos.x() + com_conversion.x());
-    setTargetPosCandY(corrected_target_pos.y() + com_conversion.y());
-    setTargetPosCandZ(corrected_target_pos.z() + com_conversion.z());
+    setTargetPosCandX(pos_cog.x() + (att_err_mat.inverse() * com_conversion).x());
+    setTargetPosCandY(pos_cog.y() + (att_err_mat.inverse() * com_conversion).y());
+    setTargetPosCandZ(pos_cog.z() + (att_err_mat.inverse() * com_conversion).z());
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
   }
