@@ -4,7 +4,8 @@ BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double
   GimbalrotorRobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon),
   tfBuffer_(),
   tfListener_(tfBuffer_),
-  current_assembled_(false)
+  current_assembled_(false),
+  module_state_(SEPARATED)
 {
   for(int i = 0; i < max_modules_num_; i++){
     assembly_flags_.insert(std::make_pair(i+1,false));
@@ -35,11 +36,13 @@ void BeetleRobotModel::calcCenterOfMoving()
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
   Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
   int assembled_module = 0;
+  std::vector<int> assembled_modules_ids;
   geometry_msgs::Point cog_com_dist_msg;
   for(const auto & item : assembly_flags_){
     geometry_msgs::TransformStamped transformStamped;
     int id = item.first;
     bool value = item.second;
+    assembled_modules_ids.push_back(id);
     if(!value) continue;
     try
       {
@@ -54,19 +57,28 @@ void BeetleRobotModel::calcCenterOfMoving()
         ROS_ERROR_STREAM("not exist module is mentioned. ID is "<<id );
         return;
       }
-  }  
-
+  }
   if(!assembled_module || !assembly_flags_[my_id_]){
     pre_assembled_modules_ = assembled_module;
     KDL::Frame com_frame;
     setCog2CoM(com_frame);
     current_assembled_ = false;
+    module_state_ = SEPARATED;
     cog_com_dist_msg.x = Cog2CoM_.p.x();
     cog_com_dist_msg.y = Cog2CoM_.p.y();
     cog_com_dist_msg.z = Cog2CoM_.p.z();
     cog_com_dist_pub_.publish(cog_com_dist_msg);
     return;
   }
+
+  //define module with minimum id as the leader
+  int minID = *(std::min_element(assembled_modules_ids.begin(), assembled_modules_ids.end()));
+  if(my_id_ == minID && hovering_flag_){
+    module_state_ = LEADER;
+  }else if(hovering_flag_){
+    module_state_ = FOLLOWER;
+  }
+
 
   center_of_moving = center_of_moving / assembled_module;
 
@@ -92,7 +104,7 @@ void BeetleRobotModel::calcCenterOfMoving()
     tf.transform.translation.z = cog_com_dist.z();
     setCog2CoM(tf2::transformToKDL(tf));
     pre_assembled_modules_ = assembled_module;
-}
+  }
     cog_com_dist_msg.x = Cog2CoM_.p.x();
     cog_com_dist_msg.y = Cog2CoM_.p.y();
     cog_com_dist_msg.z = Cog2CoM_.p.z();

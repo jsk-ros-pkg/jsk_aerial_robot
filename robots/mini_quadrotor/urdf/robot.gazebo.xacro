@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="mini_quadrotor" >
+
+  <xacro:arg name="robot_name" default="quadrotor" />
+
+  <!-- robot urdf -->
+  <xacro:include filename="$(find mini_quadrotor)/urdf/robot.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
+
+  <gazebo reference="main_body">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+
+</robot>

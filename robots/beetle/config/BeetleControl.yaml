@@ -8,10 +8,13 @@ controller:
   momentum_observer_force_weight: 3
   momentum_observer_torque_weight: 2.5
 
-  external_force_upper_limit: 0.5
-  external_force_lower_limit: -0.5
-  external_torque_lower_limit: 0.01
-  external_torque_lower_limit: -0.01
+  external_force_upper_limit: 0.0
+  external_force_lower_limit: 0.0
+  external_torque_lower_limit: 0.0
+  external_torque_lower_limit: 0.0
+
+  cutoff_freq: 1.0
+  sample_freq: 40.0
 
   xy:
     p_gain: 10.0

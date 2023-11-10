@@ -12,18 +12,14 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   tf_conversions
   std_srvs
-  dynamic_reconfigure
   )
 
 find_package(Eigen3 REQUIRED)
 
-generate_dynamic_reconfigure_options(
-  cfg/LQI.cfg)
-
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs dynamic_reconfigure
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs
 )
 
 # Eigen requires optimization to get good performance
@@ -59,7 +55,7 @@ add_library(hydrus_controller_pluginlib
   src/hydrus_lqi_controller.cpp
   src/hydrus_tilted_lqi_controller.cpp)
 target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
 
 # test
 # pre-build test code
