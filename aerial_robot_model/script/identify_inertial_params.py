@@ -171,8 +171,15 @@ def calculate_inertial(bag_file_path: str, params: RelatedParams, data_name: str
         _process_data(params, bag_file_path, data_name, time_list, y_list, alpha_value)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == "__main__":
+    """Identify procedure
+    1. Attach the robot to a bifilar pendulum
+    2. Rotate it along the vertical axis
+    3. Use MoCap to estimate state, and use rosbag to save the COG data
+    4. Measure the parameters of the bifilar pendulum
+    5. Tell the path-to-rosbag to this script and calculate the inertial parameter
+    """
+    
     related_params = RelatedParams()
     related_params.flag_plot = False
     related_params.flag_verbose = False
@@ -191,7 +198,5 @@ if __name__ == "__main__":
     calculate_inertial(file_path_3, related_params, data_name="pos_x", alpha_value=0.80)
 
     file_path_4 = "/home/lijinjie/ROS1/jsk_aerial_robot_ws/rosbags/mini_qd_w_battery_lidar_Iyy_2.bag"
-    # calculate_inertial(file_path_4, related_params, data_name="pos_x", alpha_value=0.93)
+    # calculate_inertial(file_path_4, related_params, data_name="pos_x", alpha_value=0.93)  # bad data
     calculate_inertial(file_path_4, related_params, data_name="pos_y", alpha_value=0.95)
-
-    # mini_qd_w_battery_lidar_Ixx_2.bag   y is good   alpha_value = 0.40
