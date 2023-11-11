@@ -6,6 +6,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/Point.h>
+#include <algorithm>
 using namespace aerial_robot_model;
 
 enum module_state

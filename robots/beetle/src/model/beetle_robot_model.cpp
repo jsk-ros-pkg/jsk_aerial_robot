@@ -42,7 +42,6 @@ void BeetleRobotModel::calcCenterOfMoving()
     geometry_msgs::TransformStamped transformStamped;
     int id = item.first;
     bool value = item.second;
-    assembled_modules_ids.push_back(id);
     if(!value) continue;
     try
       {
@@ -51,6 +50,7 @@ void BeetleRobotModel::calcCenterOfMoving()
         Eigen::Vector3f module_root(trans.x,trans.y,trans.z); 
         center_of_moving += module_root;
         assembled_module ++;
+        assembled_modules_ids.push_back(id);
       }
     catch (tf2::TransformException& ex)
       {
@@ -71,9 +71,11 @@ void BeetleRobotModel::calcCenterOfMoving()
     return;
   }
 
-  //define module with minimum id as the leader
-  int minID = *(std::min_element(assembled_modules_ids.begin(), assembled_modules_ids.end()));
-  if(my_id_ == minID && hovering_flag_){
+  //define a module closest to the center as leader
+  std::sort(assembled_modules_ids.rbegin(), assembled_modules_ids.rend());
+  int leader_index = std::round((assembled_modules_ids.size())/2.0) -1;
+  int leader_id = assembled_modules_ids[leader_index];
+  if(my_id_ == leader_id && hovering_flag_){
     module_state_ = LEADER;
   }else if(hovering_flag_){
     module_state_ = FOLLOWER;
@@ -104,6 +106,8 @@ void BeetleRobotModel::calcCenterOfMoving()
     tf.transform.translation.z = cog_com_dist.z();
     setCog2CoM(tf2::transformToKDL(tf));
     pre_assembled_modules_ = assembled_module;
+    Eigen::VectorXi id_vector = Eigen::Map<Eigen::VectorXi>(assembled_modules_ids.data(), assembled_modules_ids.size());
+    ROS_INFO_STREAM("Leader's ID is " <<leader_id);
   }
     cog_com_dist_msg.x = Cog2CoM_.p.x();
     cog_com_dist_msg.y = Cog2CoM_.p.y();
