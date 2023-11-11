@@ -34,10 +34,10 @@ private:
 		uint8_t status;
 		int16_t current;
 		uint8_t error;
-		CANServoData(uint16_t angle, uint8_t temperature, uint8_t moving, bool force_servo_disable, int16_t current, uint8_t error)
+		CANServoData(uint16_t angle, uint8_t temperature, uint8_t moving, bool force_servo_disable, bool send_target_postion, int16_t current, uint8_t error)
 		:angle(angle), temperature(temperature), current(current), error(error)
           {
-            status = (force_servo_disable? 1 : 0) | moving << 1;
+            status = (force_servo_disable? 1 : 0) | moving << 1 | send_target_postion << 2;
           }
 	};
 

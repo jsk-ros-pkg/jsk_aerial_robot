@@ -27,6 +27,7 @@ private:
 	uint8_t error_;
 	bool send_data_flag_;
 	bool torque_enable_;
+	bool goal_position_valid_flag_;
 	bool force_servo_off_;
 	bool external_encoder_flag_;
 	uint16_t joint_resolution_;
@@ -35,7 +36,7 @@ private:
 	friend class CANServo;
 	friend class CANInitializer;
 public:
-	Servo():torque_enable_(true) {}
+  Servo():torque_enable_(true), goal_position_valid_flag_(false) {}
 	uint8_t getId() const {return id_;}
 	uint8_t getIndex () const {return index_;}
 	uint16_t getPGain() const {return p_gain_;}
