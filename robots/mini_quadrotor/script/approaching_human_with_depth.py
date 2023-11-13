@@ -31,10 +31,15 @@ class Approaching_human():
         self.n = 0
         self.rotate_cnt = 0
         self.rotate_flag = True
+        self.offset_yaw = 2*math.pi
 
-        self.camera_height = 480
-        self.camera_width = 640
-        self.camera_param = 0.8
+        self.camera_info_sub = rospy.Subscriber('/camera/color/camera_info',CameraInfo,self.camera_info_cb)
+        self.camera_info = CameraInfo()
+        self.target_pos = Vector3()
+        self.target_pos_pub = rospy.Publisher('/3D_pos',Vector3,queue_size = 1)
+        self.camera_height = 720
+        self.camera_width = 1280
+        self.camera_param = 0.5
         #rect(ROS image)
         self.rect_sub = rospy.Subscriber('/human',RectArray,self.rect_cb)
         self.rects = RectArray()
@@ -44,6 +49,11 @@ class Approaching_human():
         self.max_rect_pixel_pos = Vector3()
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
+
+        self.Kp = 0.05
+        self.Ki = 0.0001
+        self.Kd = 0.01
+        #self.offset = 0.09/(0.08*abs(self.degree[2]-self.initial_position[2])+0.3) + 1
 
         #depth(OpenCV image)
         self.depth_sub = rospy.Subscriber('/camera/depth/image_rect_raw',Image,self.camera_depth_cb)
@@ -132,6 +142,14 @@ class Approaching_human():
         rospy.loginfo("depth: %s",self.depth)
         rospy.loginfo("prev_depth: %s",self.prev_depth)
 
+
+# distribute depth to x and y
+    def PID_control(self):
+        self.output = self.depth * self.Kp + (self.depth - self.prev_depth) * self.Kd + self.depth_sum*self.Ki
+        self.prev_depth = self.depth
+        self.depth_sum += self.depth
+        #rospy.loginfo("vel: %s",self.)
+
     def approaching_human(self):
         if self.max_thresh_area > self.max_rect_area:
             self.move_msg.target_pos_y = self.max_rect_area*0.001
@@ -140,8 +158,8 @@ class Approaching_human():
             self.move_msg.target_pos_y = 0.0
             self.move_pub.publish(self.move_msg)
             self.land_pub.publish()
-
-    #最初に飛行開始、人物見つけたら近づいていく　ある程度近づいたらlandする
+    #add PID control to approach human slowly (relative pos -> acc, vel)
+    
     def timerCallback(self,event):
         self.flight_state()
         if self.flight_state_flag:
@@ -149,10 +167,41 @@ class Approaching_human():
                 self.finding_max_rect()
                 if self_rotate_flag:
                     self.rotate_yaw()
-                self.approaching_human()
+                    rospy.loginfo("rotate!")
+                self.relative_pos()
+                self.pos_cal()
+                if self.depth > 0:
+                    self.PID_control()
+                    self.move_msg.yaw_nav_mode = 0
+                    self.move_msg.pos_xy_nav_mode = 1
+                    self.move_msg.target_vel_x = self.output
+                    self.move_pub.publish(self.move_msg)
+                    rospy.loginfo("go!")
+                    rospy.loginfo("cmd_vel: %s",self.output)
+                    self.move_msg.pos_xy_nav_mode = 0
+                    self.rotate_cnt += 1
+                    self.flight_start_flag = False
+                else:
+                    self.move_msg.yaw_nav_mode = 0
+                    self.move_msg.pos_xy_nav_mode = 1
+                    self.move_msg.target_vel_x = 0.0
+                    self.move_pub.publish(self.move_msg)
+                    rospy.loginfo("stop!")
+                    self.move_msg.pos_xy_nav_mode = 0
+                    self.rotate_cnt += 1
             else:
-                self.move_msg.target_yaw = 0.4
+                rospy.loginfo("don't see people")
+                self.move_msg.yaw_nav_mode = 0
+                self.move_msg.pos_xy_nav_mode = 1
+                self.move_msg.target_vel_x = 0.0
                 self.move_pub.publish(self.move_msg)
+                rospy.loginfo("stop! because not see people")
+                # self.move_msg.yaw_nav_mode = 2
+                # self.move_msg.target_yaw = self.euler.z + self.offset_yaw
+                # self.move_pub.publish(self.move_msg)
+                # rospy.loginfo("not see yaw: %s",self.move_msg.target_yaw)
+                # self.move_msg.yaw_nav_mode = 0
+            rospy.sleep(1.0)
 
 if __name__ == '__main__':
     rospy.init_node("Approaching_human")
