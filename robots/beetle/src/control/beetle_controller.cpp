@@ -63,7 +63,7 @@ namespace aerial_robot_control
     Eigen::Matrix3d inertia_inv = (beetle_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
 
     int module_state = beetle_robot_model_-> getModuleState();
-    if(module_state == FOLLOWER){
+    if(module_state == FOLLOWER && navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE){
       feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_compensation_term.head(3);
       feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_compensation_term.tail(3);
       geometry_msgs::WrenchStamped wrench_msg;
@@ -92,16 +92,15 @@ namespace aerial_robot_control
         ErrI_Yaw_ = pid_controllers_.at(YAW).getErrI();
         pre_module_state_ = FOLLOWER;
       }
-      if(navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE){
-        //fix i_term
-        pid_controllers_.at(X).setErrI(ErrI_X_); 
-        pid_controllers_.at(Y).setErrI(ErrI_Y_);
-        pid_controllers_.at(Z).setErrI(ErrI_Z_);
-        pid_controllers_.at(YAW).setErrI(ErrI_Yaw_);
-      }
+      //fix i_term
+      pid_controllers_.at(X).setErrI(ErrI_X_); 
+      pid_controllers_.at(Y).setErrI(ErrI_Y_);
+      pid_controllers_.at(Z).setErrI(ErrI_Z_);
+      pid_controllers_.at(YAW).setErrI(ErrI_Yaw_);
+
     }else{
+      feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
       GimbalrotorController::controlCore();
-      pre_module_state_ = module_state;
     }
   }
 
@@ -140,6 +139,9 @@ namespace aerial_robot_control
       {
         prev_est_wrench_timestamp_ = 0;
         integrate_term_ = Eigen::VectorXd::Zero(6);
+        filterd_est_external_wrench_ = Eigen::VectorXd::Zero(6);
+        est_external_wrench_ = Eigen::VectorXd::Zero(6);
+        lpf_init_flag_ = false;
         return;
       }
 
@@ -150,7 +152,6 @@ namespace aerial_robot_control
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), cog_rot);
     Eigen::Matrix3d inertia = beetle_robot_model_->getInertia<Eigen::Matrix3d>();
-
     double mass = beetle_robot_model_->getMass();
     Eigen::VectorXd sum_momentum = Eigen::VectorXd::Zero(6);
     sum_momentum.head(3) = mass * vel_w;
