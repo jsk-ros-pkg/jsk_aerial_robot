@@ -86,6 +86,7 @@ class Approaching_human():
 
     def flight_state_cb(self,msg):
         self.flight_state_msg = msg
+        #print(self.flight_state_msg)
 
     def camera_depth_cb(self,msg):
         #self.camera_depth_image = msg
@@ -104,19 +105,21 @@ class Approaching_human():
         self.euler.z = euler[2]
 
     def flight_rotate_state(self):
-        if self.flight_state_msg == 3:
-            self.flight_start_flag = True
-        if self.flight_state_msg == 5:
+        # if self.flight_state_msg.data == 3:
+        #     self.flight_start_flag = True
+            # print(self.flight_start_flag.data)
+        if self.flight_state_msg.data == 5:
             self.flight_state_flag = True
         else:
             self.flight_state_flag = False
-        if self.flight_state_flag:
-            if self.flight_start_flag:
-                rospy.sleep(2.0)
-                self.flight_start_flag = False
+
+        # if self.flight_state_flag:
+        #     if self.flight_start_flag:
+        #         rospy.sleep(2.0)
+        #         self.flight_start_flag = False
         if self.rotate_cnt >= 4:
-                self.rotate_flag = True
-                self.rotate_cnt = 0
+            self.rotate_flag = True
+            self.rotate_cnt = 0
 
     def finding_max_rect(self):
         max_area = 0
@@ -150,9 +153,17 @@ class Approaching_human():
         self.target_pos.x,self.target_pos.y,self.target_pos.z = target_pos[0],target_pos[1],target_pos[2]
         self.target_pos_pub.publish(self.target_pos)
 
+    def rotate_yaw(self):
+        yaw = 0
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
-        self.move_msg.target_yaw = yaw
-        self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001
+        rospy.loginfo("max_rect_pos: %s",self.max_rect_pos.x)
+        rospy.loginfo("euler: %s",self.euler.z)
+        rospy.loginfo("yaw: %s",yaw)
+        self.move_msg.target_yaw = self.euler.z + yaw
+        rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
+        # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
+        self.move_msg.pos_xy_nav_mode = 0
+        self.move_msg.yaw_nav_mode = 2
         self.move_pub.publish(self.move_msg)
         self.rotate_flag = False
 
@@ -192,11 +203,11 @@ class Approaching_human():
     #add PID control to approach human slowly (relative pos -> acc, vel)
     
     def timerCallback(self,event):
-        self.flight_state()
+        self.flight_rotate_state()
         if self.flight_state_flag:
             if self.n >= 1:
                 self.finding_max_rect()
-                if self_rotate_flag:
+                if self.rotate_flag:
                     self.rotate_yaw()
                     rospy.loginfo("rotate!")
                 self.relative_pos()
