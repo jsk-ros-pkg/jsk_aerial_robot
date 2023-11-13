@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
 import rospy
+import roslib
+roslib.load_manifest('learning_tf')
 import math
 import numpy as np
 import cv2
+import tf
 from jsk_recognition_msgs.msg import RectArray
 from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import tf2_
+from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import Empty
 from std_msgs.msg import UInt8
 from aerial_robot_msgs.msg import FlightNav
@@ -18,7 +24,7 @@ class Approaching_human():
     def __init__(self):
         self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
         self.flight_state_msg = UInt8()
-        self.flight_start_flag = False
+        self.flight_start_flag = True
         self.flight_state_flag = False
         self.approaching_flag = False
 
@@ -35,6 +41,7 @@ class Approaching_human():
         self.max_index = 0
         self.max_rect = RectArray()
         self.max_rect_pos = Vector3()
+        self.max_rect_pixel_pos = Vector3()
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
 
@@ -44,6 +51,9 @@ class Approaching_human():
         self.bridge = CvBridge()
         self.cv_image = np.empty((self.camera_height,self.camera_width))
         self.depth = 0
+        self.prev_depth = 0
+        self.depth_sum = 0
+        self.depth_thresh = 5000
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -105,11 +115,27 @@ class Approaching_human():
         self.move_pub.publish(self.move_msg)
         self.rotate_flag = False
 
+    def relative_pos(self):
+        self.max_rect_pixel_pos.x = int(self.max_rect.x + (self.max_rect.width/2))
+        self.max_rect_pixel_pos.y = int(self.max_rect.y + (self.max_rect.height/2))
+        depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
+        print(depth)
+        if self.flight_start_flag:
+            self.depth = depth/1000 - 0.3 #############
+        else:
+            if depth <= self.depth_thresh and 0 < depth:
+                self.depth = depth/1000 - 0.3 #############
+                self.depth_thresh = self.prev_depth*1000 + 800 
+            else:
+                self.depth = 0
+                print("else")
+        rospy.loginfo("depth: %s",self.depth)
+        rospy.loginfo("prev_depth: %s",self.prev_depth)
+
     def approaching_human(self):
         if self.max_thresh_area > self.max_rect_area:
             self.move_msg.target_pos_y = self.max_rect_area*0.001
-            self.move_pub.publish(self.move_msg)
-            self.rotate_cnt += 1
+
         else:
             self.move_msg.target_pos_y = 0.0
             self.move_pub.publish(self.move_msg)
