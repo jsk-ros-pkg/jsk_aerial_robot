@@ -50,6 +50,10 @@ class Approaching_human():
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
 
+        self.mocap_sub = rospy.Subscriber('/quadrotor/mocap/pose',PoseStamped,self.mocap_cb)
+        self.pose_msg = PoseStamped()
+        self.euler = Vector3()
+
         self.Kp = 0.05
         self.Ki = 0.0001
         self.Kd = 0.01
@@ -67,9 +71,14 @@ class Approaching_human():
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
+        self.move_msg.target = 1
         self.land_pub =rospy.Publisher('/quadrotor/teleop_command/land',Empty,queue_size = 10)
         self.timer = rospy.Timer(rospy.Duration(0.05), self.timerCallback)
 
+    def camera_info_cb(self,msg):
+        self.camera_info = msg
+        self.camera_height = self.camera_info.height
+        self.camera_width = self.camera_info.width
 
     def rect_cb(self,msg):
         self.rects = msg
@@ -81,6 +90,18 @@ class Approaching_human():
     def camera_depth_cb(self,msg):
         #self.camera_depth_image = msg
         self.cv_image = self.bridge.imgmsg_to_cv2(msg)
+
+    def mocap_cb(self,msg):
+        self.pose_msg = msg
+        self.height = self.pose_msg.pose.position.z
+        quaternion_x = self.pose_msg.pose.orientation.x
+        quaternion_y = self.pose_msg.pose.orientation.y
+        quaternion_z = self.pose_msg.pose.orientation.z
+        quaternion_w = self.pose_msg.pose.orientation.w
+        euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
+        self.euler.x = euler[0]
+        self.euler.y = euler[1]
+        self.euler.z = euler[2]
 
     def flight_rotate_state(self):
         if self.flight_state_msg == 3:
@@ -108,17 +129,27 @@ class Approaching_human():
         self.max_rect = self.rects.rects[self.max_index]
         self.max_rect_area = max_area
 
-    def rotate_yaw(self):
-        yaw = 0
-        #画面中心から見たrectの中心位置
+    def pos_cal(self):
         self.max_rect_pos.x = (self.max_rect.x + (self.max_rect.width/2)) - (self.camera_width/2)
         self.max_rect_pos.y = (self.max_rect.y + (self.max_rect.height/2)) + (self.camera_height/2)
-        #ピクセル指定したいときのrectの中心位置
-        self.max_rect_pos.x = self.max_rect.x + (self.max_rect.width/2)
-        self.max_rect_pos.y = self.max_rect.y + (self.max_rect.height/2)
-        self.depth = self.cv_image.item(self.max_rect_pos.x,self.max_rect_pos.y)
-        depth = self.camera_depth.data(self.max_rect_pos.x,self.max_rect_pos.y)
-        print(depth)
+        self.camera_height = self.camera_info.height
+        self.camera_width = self.camera_info.width
+        fx,cx = self.camera_info.K[0],self.camera_info.K[2]
+        fy,cy = self.camera_info.K[4],self.camera_info.K[5]
+        target_pos_x = (self.max_rect.x - cx)  / fx
+        target_pos_y = (self.max_rect.y - cy) * self.depth / fy
+        rospy.loginfo("target_pos: %s",target_pos_x)
+        # self.target_pos.z = self.depth
+
+        camera_K = np.reshape(self.camera_info.K,(3,3))
+        target_camera_pos = np.array([self.max_rect_pos.x,self.max_rect_pos.y,1])
+        print(target_camera_pos)
+        K_inv = np.linalg.inv(camera_K.T)
+        
+        target_pos = np.dot(target_camera_pos,K_inv)#*self.depth
+        self.target_pos.x,self.target_pos.y,self.target_pos.z = target_pos[0],target_pos[1],target_pos[2]
+        self.target_pos_pub.publish(self.target_pos)
+
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
         self.move_msg.target_yaw = yaw
         self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001
