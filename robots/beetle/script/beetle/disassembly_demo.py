@@ -56,9 +56,6 @@ class SwitchState(smach.State):
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '0'
         self.flag_pub.publish(self.flag_msg)
-        self.flag_msg.key = str(self.neighboring_id)
-        self.flag_msg.value = '0'
-        self.flag_pub_neighboring.publish(self.flag_msg)
         if self.real_machine:
             self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
             self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
