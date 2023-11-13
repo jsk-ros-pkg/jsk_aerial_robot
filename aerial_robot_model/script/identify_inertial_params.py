@@ -1,3 +1,4 @@
+from __future__ import print_function, annotations
 import argparse
 from pathlib import Path
 from rosbags.highlevel import AnyReader
@@ -61,7 +62,15 @@ def _plot_all_curves(x_list, y_list, z_list, roll_deg_list, pitch_deg_list, yaw_
     plt.show()
 
 
-def _process_data(params: RelatedParams, rosbag_name, data_name, time_list, data_list, alpha_value, static_value=None):
+def _process_data(
+    params: RelatedParams,
+    rosbag_name: str,
+    data_name: str,
+    time_list: list,
+    data_list: list,
+    alpha_value: float,
+    static_value: float = None,
+):
     # low pass filter
     x_org = np.array(data_list)
     x_filtered = np.zeros_like(x_org)
@@ -179,7 +188,7 @@ if __name__ == "__main__":
     4. Measure the parameters of the bifilar pendulum
     5. Tell the path-to-rosbag to this script and calculate the inertial parameter
     """
-    
+
     related_params = RelatedParams()
     related_params.flag_plot = False
     related_params.flag_verbose = False
