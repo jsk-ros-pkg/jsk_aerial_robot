@@ -25,28 +25,49 @@ class Filter(logging.Filter):
 
 class SwitchState(smach.State):
     # release docking mechanism and switch control mode
-    def __init__(self):
+    def __init__(self,
+                 robot_name = 'beetle1',
+                 robot_id = 1,
+                 male_servo_id = 5,
+                 real_machine = False,
+                 unlock_servo_angle_male = 7000,
+                 lock_servo_angle_male = 8800,
+                 unlock_servo_angle_female = 11000,
+                 lock_servo_angle_female = 5000,
+                 neighboring = 'beetle2',
+                 neighboring_id = 2,
+                 female_servo_id = 6,
+                 separate_dir = -1):
         smach.State.__init__(self, outcomes=['done'])
 
-        #TODO: change these into pamameters
-        self.robot_name = 'beetle1'
-        self.robot_id = 1
-        self.servo_id = 5
-        self.real_machine = False
-        self.unlock_servo_angle_male = 7000
-        self.lock_servo_angle_male = 8800
-        self.unlock_servo_angle_female = 11000 #todo
-        self.lock_servo_angle_female = 5000 #todo
-        self.neighboring = 'beetle2'
-        self.neighboring_id = 2
-        self.neighboring_servo_id = 6
+        self.robot_name = robot_name 
+        self.robot_id = robot_id 
+        self.male_servo_id = male_servo_id
+        self.real_machine = real_machine
+        self.unlock_servo_angle_male = unlock_servo_angle_male
+        self.lock_servo_angle_male = lock_servo_angle_male
+        self.unlock_servo_angle_female = unlock_servo_angle_female
+        self.lock_servo_angle_female = lock_servo_angle_female
+        self.neighboring = neighboring
+        self.neighboring_id = neighboring_id
+        self.female_servo_id = female_servo_id
+        self.separate_dir = separate_dir
 
-        self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.servo_id,self.real_machine)
-        self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.neighboring_servo_id,self.real_machine)
-
+        if(separate_dir > 0):
+            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.female_servo_id,self.real_machine)
+            self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.male_servo_id,self.real_machine)
+        else:
+            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
+            self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.female_servo_id,self.real_machine)
+            
         self.flag_pub = rospy.Publisher('/' + self.robot_name + '/assembly_flag', KeyValue, queue_size = 1)
         self.flag_pub_neighboring = rospy.Publisher('/' + self.neighboring + '/assembly_flag', KeyValue, queue_size = 1)
-        self.docking_pub = rospy.Publisher('/' + self.robot_name  + '/docking_cmd', Bool, queue_size = 1)
+
+        if(separate_dir > 0):
+            self.docking_pub = rospy.Publisher('/' + self.neighboring  + '/docking_cmd', Bool, queue_size = 1)
+        else:
+            self.docking_pub = rospy.Publisher('/' + self.robot_name  + '/docking_cmd', Bool, queue_size = 1)
+
         #messeges
         self.flag_msg = KeyValue()
         self.docking_msg = Bool()
@@ -67,15 +88,20 @@ class SwitchState(smach.State):
 
 class SeparateState(smach.State):
     # keep away target robot from leader
-    def __init__(self):
+    def __init__(self,
+                 robot_name = 'beetle1',
+                 robot_id = 1,
+                 separate_vel = -0.12,
+                 neighboring = 'beetle2',
+                 target_dist_from_neighboring = 1.8):
+
         smach.State.__init__(self, outcomes=['done','in_process'])
 
-        #TODO: change these into pamameters
-        self.robot_name = 'beetle1'
-        self.robot_id = 1
-        self.separate_vel = -0.12
-        self.neighboring = 'beetle2'
-        self.target_dist_from_neighboring = 1.8
+        self.robot_name = robot_name
+        self.robot_id = robot_id
+        self.separate_vel = separate_vel
+        self.neighboring = neighboring
+        self.target_dist_from_neighboring = target_dist_from_neighboring
 
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
