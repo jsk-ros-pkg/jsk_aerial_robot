@@ -50,9 +50,9 @@ class Approaching_human():
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
 
-        self.mocap_sub = rospy.Subscriber('/quadrotor/mocap/pose',PoseStamped,self.mocap_cb)
-        self.pose_msg = PoseStamped()
-        self.euler = Vector3()
+        # self.mocap_sub = rospy.Subscriber('/quadrotor/mocap/pose',PoseStamped,self.mocap_cb)
+        # self.pose_msg = PoseStamped()
+        # self.euler = Vector3()
 
         self.Kp = 0.05
         self.Ki = 0.0001
@@ -71,6 +71,7 @@ class Approaching_human():
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
+        self.move_msg.control_frame = 1
         self.move_msg.target = 1
         self.land_pub =rospy.Publisher('/quadrotor/teleop_command/land',Empty,queue_size = 10)
         self.timer = rospy.Timer(rospy.Duration(0.05), self.timerCallback)
@@ -92,17 +93,17 @@ class Approaching_human():
         #self.camera_depth_image = msg
         self.cv_image = self.bridge.imgmsg_to_cv2(msg)
 
-    def mocap_cb(self,msg):
-        self.pose_msg = msg
-        self.height = self.pose_msg.pose.position.z
-        quaternion_x = self.pose_msg.pose.orientation.x
-        quaternion_y = self.pose_msg.pose.orientation.y
-        quaternion_z = self.pose_msg.pose.orientation.z
-        quaternion_w = self.pose_msg.pose.orientation.w
-        euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
-        self.euler.x = euler[0]
-        self.euler.y = euler[1]
-        self.euler.z = euler[2]
+    # def mocap_cb(self,msg):
+    #     self.pose_msg = msg
+    #     self.height = self.pose_msg.pose.position.z
+    #     quaternion_x = self.pose_msg.pose.orientation.x
+    #     quaternion_y = self.pose_msg.pose.orientation.y
+    #     quaternion_z = self.pose_msg.pose.orientation.z
+    #     quaternion_w = self.pose_msg.pose.orientation.w
+    #     euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
+    #     self.euler.x = euler[0]
+    #     self.euler.y = euler[1]
+    #     self.euler.z = euler[2]
 
     def flight_rotate_state(self):
         # if self.flight_state_msg.data == 3:
@@ -137,29 +138,28 @@ class Approaching_human():
         self.max_rect_pos.y = (self.max_rect.y + (self.max_rect.height/2)) + (self.camera_height/2)
         self.camera_height = self.camera_info.height
         self.camera_width = self.camera_info.width
-        fx,cx = self.camera_info.K[0],self.camera_info.K[2]
-        fy,cy = self.camera_info.K[4],self.camera_info.K[5]
-        target_pos_x = (self.max_rect.x - cx)  / fx
-        target_pos_y = (self.max_rect.y - cy) * self.depth / fy
-        rospy.loginfo("target_pos: %s",target_pos_x)
+        # fx,cx = self.camera_info.K[0],self.camera_info.K[2]
+        # fy,cy = self.camera_info.K[4],self.camera_info.K[5]
+        # target_pos_x = (self.max_rect.x - cx)  / fx
+        # target_pos_y = (self.max_rect.y - cy) * self.depth / fy
+        # rospy.loginfo("target_pos: %s",target_pos_x)
         # self.target_pos.z = self.depth
 
-        camera_K = np.reshape(self.camera_info.K,(3,3))
-        target_camera_pos = np.array([self.max_rect_pos.x,self.max_rect_pos.y,1])
-        print(target_camera_pos)
-        K_inv = np.linalg.inv(camera_K.T)
+        # camera_K = np.reshape(self.camera_info.K,(3,3))
+        # target_camera_pos = np.array([self.max_rect_pos.x,self.max_rect_pos.y,1])
+        # print(target_camera_pos)
+        # K_inv = np.linalg.inv(camera_K.T)
         
-        target_pos = np.dot(target_camera_pos,K_inv)#*self.depth
-        self.target_pos.x,self.target_pos.y,self.target_pos.z = target_pos[0],target_pos[1],target_pos[2]
-        self.target_pos_pub.publish(self.target_pos)
+        # target_pos = np.dot(target_camera_pos,K_inv)*self.depth
+        # self.target_pos.x,self.target_pos.y,self.target_pos.z = target_pos[0],target_pos[1],target_pos[2]
+        # self.target_pos_pub.publish(self.target_pos)
 
     def rotate_yaw(self):
         yaw = 0
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
         rospy.loginfo("max_rect_pos: %s",self.max_rect_pos.x)
-        rospy.loginfo("euler: %s",self.euler.z)
-        rospy.loginfo("yaw: %s",yaw)
-        self.move_msg.target_yaw = self.euler.z + yaw
+        self.move_msg.target_yaw = yaw
+        # self.move_msg.target_yaw = self.euler.z + yaw
         rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
         # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
         self.move_msg.pos_xy_nav_mode = 0
@@ -192,14 +192,14 @@ class Approaching_human():
         self.depth_sum += self.depth
         #rospy.loginfo("vel: %s",self.)
 
-    def approaching_human(self):
-        if self.max_thresh_area > self.max_rect_area:
-            self.move_msg.target_pos_y = self.max_rect_area*0.001
+    # def approaching_human(self):
+    #     if self.max_thresh_area > self.max_rect_area:
+    #         self.move_msg.target_pos_y = self.max_rect_area*0.001
 
-        else:
-            self.move_msg.target_pos_y = 0.0
-            self.move_pub.publish(self.move_msg)
-            self.land_pub.publish()
+    #     else:
+    #         self.move_msg.target_pos_y = 0.0
+    #         self.move_pub.publish(self.move_msg)
+    #         self.land_pub.publish()
     #add PID control to approach human slowly (relative pos -> acc, vel)
     
     def timerCallback(self,event):
