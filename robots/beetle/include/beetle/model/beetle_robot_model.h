@@ -29,6 +29,8 @@ public:
   template<class T> T getCog2CoM();
   bool getCurrentAssembled(){return current_assembled_;}
   int getModuleState(){return module_state_;}
+  int getReconfigFlag(){return reconfig_flag_;}
+  int getMyID(){return my_id_;}
 
   void setContactFrame(const KDL::Frame contact_frame){contact_frame_ = contact_frame;}
   void setCog2Cp(const KDL::Frame Cog2Cp){Cog2Cp_ = Cog2Cp;}
@@ -59,6 +61,7 @@ private:
   int pre_assembled_modules_;
   int my_id_;
   std::map<int, bool> assembly_flags_;
+  bool reconfig_flag_;
   bool current_assembled_;
   bool hovering_flag_;
   int module_state_;

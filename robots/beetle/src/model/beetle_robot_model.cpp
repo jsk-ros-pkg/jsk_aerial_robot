@@ -27,12 +27,11 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
   KDL::Frame Cog2Cp;
   setCog2Cp(getCog<KDL::Frame>().Inverse() * variable_cp_frame);
 
-  calcCenterOfMoving();
+  // calcCenterOfMoving();
 }
 
 void BeetleRobotModel::calcCenterOfMoving()
 {
-
   std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
   Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
   int assembled_module = 0;
@@ -98,7 +97,8 @@ void BeetleRobotModel::calcCenterOfMoving()
   br_.sendTransform(tf);
 
   //update com-cog distance only during hovering
-  if(pre_assembled_modules_ != assembled_module && hovering_flag_){
+  reconfig_flag_ =  (pre_assembled_modules_ != assembled_module) ? true : false;
+  if(reconfig_flag_ && hovering_flag_){
     Eigen::Vector3f cog_com_dist(center_of_moving.norm() * center_of_moving.x()/fabs(center_of_moving.x()),0,0);
     ROS_INFO_STREAM("cog_com_dist is " << cog_com_dist.transpose());
     tf.transform.translation.x = cog_com_dist.x();
@@ -107,6 +107,14 @@ void BeetleRobotModel::calcCenterOfMoving()
     setCog2CoM(tf2::transformToKDL(tf));
     pre_assembled_modules_ = assembled_module;
     Eigen::VectorXi id_vector = Eigen::Map<Eigen::VectorXi>(assembled_modules_ids.data(), assembled_modules_ids.size());
+    for(const auto & item : assembly_flags_){
+      if(item.second)
+        {
+          std::cout << "id: " << item.first << " -> assembled"<< std::endl;
+        } else {
+        std::cout << "id: " << item.first << " -> separated"<< std::endl;
+      }
+    }
     ROS_INFO_STREAM("Leader's ID is " <<leader_id);
   }
     cog_com_dist_msg.x = Cog2CoM_.p.x();

@@ -504,21 +504,12 @@ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg
   int module_id = std::stoi(msg.key);
   int assembly_flag = std::stoi(msg.value);
   beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
-  beetle_robot_model_->calcCenterOfMoving();
-  map<int, bool> flags = beetle_robot_model_->getAssemblyFlags();
-  for(const auto & item : flags){
-    if(item.second)
-      {
-        std::cout << "id: " << item.first << " -> assembled"<< std::endl;
-      } else {
-      std::cout << "id: " << item.first << " -> separated"<< std::endl;
-    }
-  }
 }
 
 void BeetleNavigator::update()
 {
   rotateContactPointFrame();
+  beetle_robot_model_->calcCenterOfMoving();
   convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
   beetle_robot_model_->setHoveringFlag((getNaviState() == HOVER_STATE) ? true : false);
@@ -542,6 +533,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   tf::matrixEigenToTF(beetle_robot_model_->getCogDesireOrientation<Eigen::Matrix3d>(),cog_orientation_tf);
   tf::Vector3 com_conversion = cog_orientation_tf *  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
   bool current_assembled = beetle_robot_model_->getCurrentAssembled();
+  bool reconfig_flag = beetle_robot_model_->getReconfigFlag();
 
   if(pre_assembled_  && !current_assembled){ //disassembly process
     setTargetPosCandX(getTargetPos().x());
@@ -551,10 +543,11 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
     pre_assembled_ = current_assembled;
   }
 
-  if(!pre_assembled_  && current_assembled){ //assembly process
+  if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
+    int my_id = beetle_robot_model_->getMyID();
     tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
     tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
-    ROS_INFO_STREAM("orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
+    ROS_INFO_STREAM("ID: " << my_id << "'s orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
     tf::Matrix3x3 att_err_mat = tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z()));
     tf::Vector3 corrected_target_pos =  tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z())) * pos_cog;
     setTargetPosCandX(pos_cog.x() + (att_err_mat.inverse() * com_conversion).x());
@@ -563,7 +556,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
   }
-  pre_assembled_ = current_assembled;
+
 
   /* Check whether the target value was changed by someway other than uav nav */
   /* Target pos candidate represents a target pos in a assembly frame */
