@@ -78,8 +78,12 @@ class SwitchState(smach.State):
         self.flag_msg.value = '0'
         self.flag_pub.publish(self.flag_msg)
         if self.real_machine:
-            self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
-            self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
+            if(separate_dir > 0):
+                self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_female)
+                self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_male)
+            else:
+                self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
+                self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
         else:
             self.docking_msg.data = False
             self.docking_pub.publish(self.docking_msg)

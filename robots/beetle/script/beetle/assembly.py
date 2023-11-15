@@ -23,32 +23,56 @@ Standby -> Approach -> Assembly
 """
 
 class StandbyState(smach.State):
-    def __init__(self):
+    def __init__(self,
+                 robot_name = 'beetle1',
+                 robot_id = 1,
+                 male_servo_id = 5,
+                 female_servo_id = 6,
+                 real_machine = False,
+                 unlock_servo_angle_male = 7000,
+                 lock_servo_angle_male = 8800,
+                 unlock_servo_angle_female = 11000,
+                 lock_servo_angle_female = 5000,
+                 leader = 'beetle2',
+                 leader_id = 2,
+                 airframe_size = 0.52,
+                 x_offset = 0.1,
+                 y_offset = 0,
+                 z_offset = 0,
+                 x_tol = 0.01,
+                 y_tol = 0.01,
+                 z_tol = 0.01,
+                 roll_tol = 0.08,
+                 pitch_tol = 0.08,
+                 yaw_tol = 0.08,
+                 root_fc_dis = 0.129947,
+                 attach_dir = -1):
+
         smach.State.__init__(self, outcomes=['done','in_process','emergency'])
 
-        #TODO: change these into pamameters
-        self.robot_name = 'beetle1'
-        self.robot_id = 1
-        self.male_servo_id = 5
-        self.female_servo_id = 6
-        self.real_machine = False
-        self.unlock_servo_angle_male = 7000
-        self.lock_servo_angle_male = 8800
-        self.unlock_servo_angle_female = 11000 #todo
-        self.lock_servo_angle_female = 5000 #todo
-        self.leader = 'beetle2'
-        self.leader_id = 2
-        self.airframe_size = 0.52
-        self.x_offset = 0.2
-        self.y_offset = 0
-        self.z_offset = 0
-        self.x_tol = 0.01
-        self.y_tol = 0.01
-        self.z_tol = 0.01
-        self.roll_tol = 0.08
-        self.pich_tol = 0.08
-        self.yaw_tol = 0.08
-        self.root_fc_dis = 0.129947 #set from urdf
+        self.robot_name = robot_name
+        self.robot_id = robot_id
+        self.male_servo_id = male_servo_id
+        self.female_servo_id = female_servo_id
+        self.real_machine = real_machine
+        self.unlock_servo_angle_male = unlock_servo_angle_male
+        self.lock_servo_angle_male = lock_servo_angle_male
+        self.unlock_servo_angle_female = unlock_servo_angle_female
+        self.lock_servo_angle_female = lock_servo_angle_female
+        self.leader = leader
+        self.leader_id = leader_id
+        self.airframe_size = airframe_size
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.z_offset = z_offset
+        self.x_tol = x_tol
+        self.y_tol = y_tol
+        self.z_tol = z_tol
+        self.roll_tol = roll_tol
+        self.pitch_tol = pitch_tol
+        self.yaw_tol = yaw_tol
+        self.root_fc_dis = root_fc_dis
+        self.attach_dir = attach_dir
 
         # flags
         self.emergency_flag = False
@@ -60,24 +84,32 @@ class StandbyState(smach.State):
 
         # publisher
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
-        self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, )
-        self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
-        self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
-
+        self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
+        if(self.attach_dir < 0):
+            self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
+            self.kondo_servo = KondoControl(self.leader,self.leader_id,self.female_servo_id,self.real_machine)
+        else:
+            self.follower_docking_pub = rospy.Publisher(self.leader+"/docking_cmd", Bool, queue_size=10)
+            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.female_servo_id,self.real_machine)
+            
         # subscriber
         self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)
 
         # messages
         self.docking_msg = Bool()
 
-        self.target_offset = np.array([-(self.airframe_size + self.x_offset), self.y_offset, self.z_offset]) # position offset while StandbyState
+        # position offset while StandbyState
+        if(self.attach_dir < 0):
+            self.target_offset = np.array([-(self.airframe_size + self.x_offset), self.y_offset, self.z_offset]) 
+        else:
+            self.target_offset = np.array([(self.airframe_size + self.x_offset), self.y_offset, self.z_offset])
         self.pos_error_tol = np.array([self.x_tol, self.y_tol, self.z_tol]) # position error torelance
-        self.att_error_tol = np.array([self.roll_tol, self.pich_tol, self.yaw_tol]) # attitude error torelance
+        self.att_error_tol = np.array([self.roll_tol, self.pitch_tol, self.yaw_tol]) # attitude error torelance
 
     def execute(self, userdata):
         if not self.follower_male_mech_activated:
             if self.real_machine:
-                self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
+                self.kondo_servo.sendTargetAngle(self.lock_servo_angle_female)
             else:
                 self.docking_msg.data = True
                 self.follower_docking_pub.publish(self.docking_msg)
@@ -149,38 +181,68 @@ class StandbyState(smach.State):
         self.emergency_flag = True
         
 class ApproachState(smach.State):
-    def __init__(self):
+    def __init__(self,
+                 robot_name = 'beetle1',
+                 robot_id = 1,
+                 male_servo_id = 5,
+                 female_servo_id = 6,
+                 real_machine = False,
+                 unlock_servo_angle_male = 7000,
+                 lock_servo_angle_male = 8800,
+                 unlock_servo_angle_female = 11000,
+                 lock_servo_angle_female = 5000,
+                 leader = 'beetle2',
+                 leader_id = 2,
+                 airframe_size = 0.52,
+                 x_offset = 0,
+                 y_offset = 0,
+                 z_offset = 0,
+                 x_tol = 0.02,
+                 y_tol = 0.02,
+                 z_tol = 0.02,
+                 roll_tol = 0.08,
+                 pitch_tol = 0.08,
+                 yaw_tol = 0.08,
+                 root_fc_dis = 0.129947,
+                 x_danger_thre = 0.02,
+                 y_danger_thre = 0.1,
+                 z_danger_thre = 0.1,
+                 roll_danger_thre = 0.35,
+                 pitch_danger_thre = 0.35,
+                 yaw_danger_thre = 0.35,
+                 attach_dir = -1):
+
         smach.State.__init__(self, outcomes=['done','in_process','fail','emergency'])
-        #TODO: change these into pamameters
-        self.robot_name = 'beetle1'
-        self.robot_id = 1
-        self.servo_id = 1
-        self.unlock_servo_angle_male = 7000
-        self.lock_servo_angle_male = 8800
-        self.unlock_servo_angle_female = 11000 #todo
-        self.lock_servo_angle_female = 5000 #todo
-        self.leader = 'beetle2'
-        self.leader_id = 2
-        self.airframe_size = 0.52
-        self.x_offset = 0
-        self.y_offset = 0
-        self.z_offset = 0
-        self.x_tol = 0.02
-        self.y_tol = 0.02
-        self.z_tol = 0.02
-        self.roll_tol = 0.08
-        self.pich_tol = 0.08
-        self.yaw_tol = 0.08
-        self.roll_tol = 0.08
-        self.pich_tol = 0.08
-        self.yaw_tol = 0.08
-        self.root_fc_dis = 0.129947
-        self.x_danger_thre = 0.02
-        self.y_danger_thre = 0.1
-        self.z_danger_thre = 0.1
-        self.roll_danger_thre = 0.35
-        self.pich_danger_thre = 0.35
-        self.yaw_danger_thre = 0.35
+
+        self.robot_name = robot_name
+        self.robot_id = robot_id
+        self.male_servo_id = male_servo_id
+        self.female_servo_id = female_servo_id
+        self.real_machine = real_machine
+        self.unlock_servo_angle_male = unlock_servo_angle_male
+        self.lock_servo_angle_male = lock_servo_angle_male
+        self.unlock_servo_angle_female = unlock_servo_angle_female
+        self.lock_servo_angle_female = lock_servo_angle_female
+        self.leader = leader
+        self.leader_id = leader_id
+        self.airframe_size = airframe_size
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.z_offset = z_offset
+        self.x_tol = x_tol
+        self.y_tol = y_tol
+        self.z_tol = z_tol
+        self.roll_tol = roll_tol
+        self.pitch_tol = pitch_tol
+        self.yaw_tol = yaw_tol
+        self.root_fc_dis = root_fc_dis
+        self.x_danger_thre = x_danger_thre
+        self.y_danger_thre = y_danger_thre
+        self.z_danger_thre = z_danger_thre
+        self.roll_danger_thre = roll_danger_thre
+        self.pitch_danger_thre = pitch_danger_thre
+        self.yaw_danger_thre = yaw_danger_thre
+        self.attach_dir = attach_dir
 
         # flags
         self.emergency_flag = False        
@@ -197,15 +259,18 @@ class ApproachState(smach.State):
         self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)        
 
         # position offset while ApproachState
-        self.target_offset = np.array([-(self.airframe_size + self.x_offset), self.y_offset, self.z_offset])
+        if(self.attach_dir < 0):
+            self.target_offset = np.array([-(self.airframe_size + self.x_offset), self.y_offset, self.z_offset]) 
+        else:
+            self.target_offset = np.array([(self.airframe_size + self.x_offset), self.y_offset, self.z_offset])
         # position error torelance
         self.pos_error_tol = np.array([self.x_tol, self.y_tol, self.z_tol])
         # attitude error torelance
-        self.att_error_tol = np.array([self.roll_tol, self.pich_tol, self.yaw_tol])
+        self.att_error_tol = np.array([self.roll_tol, self.pitch_tol, self.yaw_tol])
         # position danger threshold
         self.pos_danger_thre = np.array([self.x_danger_thre, self.y_danger_thre, self.z_danger_thre]) 
         # attitude danger threshold
-        self.att_danger_thre = np.array([self.roll_danger_thre, self.pich_danger_thre, self.yaw_danger_thre]) 
+        self.att_danger_thre = np.array([self.roll_danger_thre, self.pitch_danger_thre, self.yaw_danger_thre]) 
 
     def execute(self, userdata):
         # calculate now follower position in leader coordinate
@@ -276,20 +341,33 @@ class ApproachState(smach.State):
         self.emergency_flag = True
 
 class AssemblyState(smach.State):
-    def __init__(self):
+    def __init__(self,
+                 robot_name = 'beetle1',
+                 robot_id = 1,
+                 male_servo_id = 5,
+                 female_servo_id = 6,
+                 real_machine = False,
+                 unlock_servo_angle_male = 7000,
+                 lock_servo_angle_male = 8800,
+                 unlock_servo_angle_female = 11000,
+                 lock_servo_angle_female = 5000,
+                 leader = 'beetle2',
+                 leader_id = 2,
+                 attach_dir = -1):
         smach.State.__init__(self, outcomes=['done','emergency'])
-        #TODO: change these into pamameters
-        self.robot_name = 'beetle1'
-        self.robot_id = 1
-        self.male_servo_id = 5
-        self.female_servo_id = 6
-        self.real_machine = False
-        self.unlock_servo_angle_male = 7000
-        self.lock_servo_angle_male = 8800
-        self.unlock_servo_angle_female = 11000 #todo
-        self.lock_servo_angle_female = 5000 #todo
-        self.leader = 'beetle2'
-        self.leader_id = 2
+
+        self.robot_name = robot_name
+        self.robot_id = robot_id
+        self.male_servo_id = male_servo_id
+        self.female_servo_id = female_servo_id
+        self.real_machine = real_machine
+        self.unlock_servo_angle_male = unlock_servo_angle_male
+        self.lock_servo_angle_male = lock_servo_angle_male
+        self.unlock_servo_angle_female = unlock_servo_angle_female
+        self.lock_servo_angle_female = lock_servo_angle_female
+        self.leader = leader
+        self.leader_id = leader_id
+        self.attach_dir = attach_dir
 
         # flags
         self.emergency_flag = False
@@ -298,8 +376,10 @@ class AssemblyState(smach.State):
         self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
-        self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
-        self.kondo_servo_leader = KondoControl(self.leader,self.leader_id,self.female_servo_id,self.real_machine)
+        if(self.attach_dir < 0):
+            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
+        else:
+            self.kondo_servo = KondoControl(self.leader,self.leader_id,self.male_servo_id,self.real_machine)
         self.flag_pub = rospy.Publisher('/' + self.robot_name + '/assembly_flag', KeyValue, queue_size = 1)
         self.flag_pub_leader = rospy.Publisher('/' + self.leader + '/assembly_flag', KeyValue, queue_size = 1)
 
@@ -317,7 +397,7 @@ class AssemblyState(smach.State):
         if self.emergency_flag:
             return 'emergency'
         if self.real_machine:
-            self.kondo_servo_leader.sendTargetAngle(self.lock_servo_angle_female)
+            self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
         time.sleep(2.0)
         self.nav_msg.pos_xy_nav_mode= 6
         self.follower_nav_pub.publish(self.nav_msg)
