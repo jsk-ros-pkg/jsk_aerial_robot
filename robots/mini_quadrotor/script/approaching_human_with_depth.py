@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import rospy
-import roslib
-roslib.load_manifest('learning_tf')
 import math
 import numpy as np
 import cv2
@@ -10,11 +8,11 @@ import tf
 from jsk_recognition_msgs.msg import RectArray
 from geometry_msgs.msg import Vector3
 from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import tf2_
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import Empty
 from std_msgs.msg import UInt8
 from aerial_robot_msgs.msg import FlightNav
+from nav_msgs.msg import Odometry
 
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -50,9 +48,9 @@ class Approaching_human():
         self.max_rect_area = 0.0
         self.max_thresh_area  = 370000 #rospy.get_param("~max_thresh_area",370000)
 
-        # self.mocap_sub = rospy.Subscriber('/quadrotor/mocap/pose',PoseStamped,self.mocap_cb)
-        # self.pose_msg = PoseStamped()
-        # self.euler = Vector3()
+        self.odom_sub = rospy.Subscriber('/quadrotor/uav/cog/odom',Odometry,self.odom_cb)
+        self.pose = Odometry()
+        self.euler = Vector3()
 
         self.Kp = 0.05
         self.Ki = 0.0001
@@ -93,17 +91,15 @@ class Approaching_human():
         #self.camera_depth_image = msg
         self.cv_image = self.bridge.imgmsg_to_cv2(msg)
 
-    # def mocap_cb(self,msg):
-    #     self.pose_msg = msg
-    #     self.height = self.pose_msg.pose.position.z
-    #     quaternion_x = self.pose_msg.pose.orientation.x
-    #     quaternion_y = self.pose_msg.pose.orientation.y
-    #     quaternion_z = self.pose_msg.pose.orientation.z
-    #     quaternion_w = self.pose_msg.pose.orientation.w
-    #     euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
-    #     self.euler.x = euler[0]
-    #     self.euler.y = euler[1]
-    #     self.euler.z = euler[2]
+    def odom_cb(self,msg):
+        self.pose = msg.pose.pose
+        self.height = self.pose.position.z
+        quaternion_x = self.pose.orientation.x
+        quaternion_y = self.pose.orientation.y
+        quaternion_z = self.pose.orientation.z
+        quaternion_w = self.pose.orientation.w
+        euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
+        self.euler = Vector3(x=euler[0],y=euler[1],z=euler[2])
 
     def flight_rotate_state(self):
         # if self.flight_state_msg.data == 3:
@@ -118,7 +114,7 @@ class Approaching_human():
         #     if self.flight_start_flag:
         #         rospy.sleep(2.0)
         #         self.flight_start_flag = False
-        if self.rotate_cnt >= 4:
+        if self.rotate_cnt >= 10:
             self.rotate_flag = True
             self.rotate_cnt = 0
 
@@ -158,8 +154,8 @@ class Approaching_human():
         yaw = 0
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
         rospy.loginfo("max_rect_pos: %s",self.max_rect_pos.x)
-        self.move_msg.target_yaw = yaw
-        # self.move_msg.target_yaw = self.euler.z + yaw
+        self.move_msg.target_yaw = - yaw + self.euler.z
+        # self.move_msg.target_yaw = yaw
         rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
         # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
         self.move_msg.pos_xy_nav_mode = 0
@@ -185,7 +181,6 @@ class Approaching_human():
         rospy.loginfo("prev_depth: %s",self.prev_depth)
 
 
-# distribute depth to x and y
     def PID_control(self):
         self.output = self.depth * self.Kp + (self.depth - self.prev_depth) * self.Kd + self.depth_sum*self.Ki
         self.prev_depth = self.depth
@@ -243,7 +238,6 @@ class Approaching_human():
                 # self.move_pub.publish(self.move_msg)
                 # rospy.loginfo("not see yaw: %s",self.move_msg.target_yaw)
                 # self.move_msg.yaw_nav_mode = 0
-            rospy.sleep(1.0)
 
 if __name__ == '__main__':
     rospy.init_node("Approaching_human")
