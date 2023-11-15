@@ -65,7 +65,8 @@ class Approaching_human():
         self.depth = 0
         self.prev_depth = 0
         self.depth_sum = 0
-        self.depth_thresh = 5000
+        self.depth_thresh_max = 10000
+        self.depth_thresh_min = 0
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -131,7 +132,7 @@ class Approaching_human():
 
     def pos_cal(self):
         self.max_rect_pos.x = (self.max_rect.x + (self.max_rect.width/2)) - (self.camera_width/2)
-        self.max_rect_pos.y = (self.max_rect.y + (self.max_rect.height/2)) + (self.camera_height/2)
+        self.max_rect_pos.y = -(self.max_rect.y + (self.max_rect.height/2)) + (self.camera_height/2)
         self.camera_height = self.camera_info.height
         self.camera_width = self.camera_info.width
         # fx,cx = self.camera_info.K[0],self.camera_info.K[2]
@@ -171,9 +172,12 @@ class Approaching_human():
         if self.flight_start_flag:
             self.depth = depth/1000 - 0.3 #############
         else:
-            if depth <= self.depth_thresh and 0 < depth:
+            if depth <= self.depth_thresh_max and self.depth_thresh_min <= depth:
                 self.depth = depth/1000 - 0.3 #############
-                self.depth_thresh = self.prev_depth*1000 + 800 
+                self.depth_thresh_max = self.prev_depth*1000 + 800
+                self.depth_thresh_min = self.prev_depth*1000 - 800
+            elif depth <= 0:
+                self.depth = 0
             else:
                 self.depth = 0
                 print("else")
