@@ -84,6 +84,9 @@ void aerial_robot_control::NMPCController::reset()
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
 
   mpc_solver_.reset(x_u_ref_);
+
+  /* reset flight_cmd, only focus on the thrust cmd to prevent sudden change when taking off */
+  flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 }
 
 nav_msgs::Odometry aerial_robot_control::NMPCController::getOdom()
@@ -178,13 +181,28 @@ void aerial_robot_control::NMPCController::controlCore()
   Eigen::VectorXd g = robot_model_->getGravity();
   Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / g.norm();
 
-  std::vector<float> target_base_thrust_;
-  target_base_thrust_.resize(motor_num_);
   for (int i = 0; i < motor_num_; i++)
   {
-    target_base_thrust_.at(i) = target_thrusts(i);
+    if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+    {
+      // constraint the change of thrust, preventing sudden thrust increasing during taking off
+      float max_thrust_change = 10.0 / 40.0;
+
+      if (target_thrusts(i) > flight_cmd_.base_thrust[i] + max_thrust_change)
+      {
+        flight_cmd_.base_thrust[i] = flight_cmd_.base_thrust[i] + max_thrust_change;
+        continue;
+      }
+
+      if (target_thrusts(i) < flight_cmd_.base_thrust[i] - max_thrust_change)
+      {
+        flight_cmd_.base_thrust[i] = flight_cmd_.base_thrust[i] - max_thrust_change;
+        continue;
+      }
+    }
+
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
   }
-  flight_cmd_.base_thrust = target_base_thrust_;
 }
 
 void aerial_robot_control::NMPCController::sendCmd()
