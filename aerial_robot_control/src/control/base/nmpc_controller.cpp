@@ -36,6 +36,9 @@ void aerial_robot_control::NMPCController::initialize(
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
   mpc_solver_.initialize(physical_params);
 
+  getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);
+  getParam<double>(control_nh, "nmpc/yaw_d_gain", yaw_d_gain, 1.0);
+
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
 
@@ -167,9 +170,9 @@ void aerial_robot_control::NMPCController::controlCore()
   double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
   target_yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
   error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
-  yaw_p_term = 40 * error_yaw;
+  yaw_p_term = yaw_p_gain * error_yaw;
   error_yaw_rate = mpc_solver_.x_u_out_.x.data.at(9) - mpc_solver_.x_u_out_.x.data.at(9 + NX);
-  yaw_d_term = 1 * error_yaw_rate;
+  yaw_d_term = yaw_d_gain * error_yaw_rate;
   candidate_yaw_term_ = -yaw_p_term - yaw_d_term;
 
   flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);

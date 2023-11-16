@@ -60,6 +60,8 @@ private:
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
+  double yaw_p_gain, yaw_d_gain;  // TODO: no need to use these parameters in the future
+
   double target_roll_, target_pitch_;
   double candidate_yaw_term_;
 

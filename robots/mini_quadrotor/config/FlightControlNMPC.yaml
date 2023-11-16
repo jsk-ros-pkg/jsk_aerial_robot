@@ -28,6 +28,9 @@ controller:
     Rw: 10  # 10
     Rc: 5
 
+    yaw_p_gain: 40.0  # temp
+    yaw_d_gain: 1.0
+
 
   # LQI gain generator
   lqi:
