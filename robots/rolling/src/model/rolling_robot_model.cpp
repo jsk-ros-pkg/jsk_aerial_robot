@@ -4,10 +4,12 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   RobotModel(init_with_rosparam, verbose, fc_f_min_thre, fc_t_min_thre, epsilon)
 {
   const int rotor_num = getRotorNum();
-  rotors_coord_rotation_from_cog_.resize(rotor_num);
+  // rotors_coord_rotation_from_cog_.resize(rotor_num);
   links_rotation_from_cog_.resize(rotor_num);
-  gimbal_nominal_angles_.resize(rotor_num);
+  links_rotation_from_target_frame_.resize(rotor_num);
+  // gimbal_nominal_angles_.resize(rotor_num);
   rotors_origin_from_contact_point_.resize(rotor_num);
+  rotors_origin_from_target_frame_.resize(rotor_num);
   rotors_normal_from_contact_point_.resize(rotor_num);
   rotors_x_axis_from_cog_.resize(rotor_num);
   rotors_y_axis_from_cog_.resize(rotor_num);
@@ -20,6 +22,90 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   feasible_control_torque_radius_pub_ = nh.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
   rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
+
+  additional_frame_["cp"] = &contact_point_;
+
+}
+
+void RollingRobotModel::calcRobotModelFromFrame(std::string frame_name)
+{
+  target_frame_name_ = frame_name;
+
+  if(frame_name == "cog")
+    {
+      links_rotation_from_target_frame_ = links_rotation_from_cog_;
+      link_inertia_from_target_frame_ = getInertia<KDL::RotationalInertia>();
+      rotors_origin_from_target_frame_ = getRotorsOriginFromCog<KDL::Vector>();
+      return;
+    }
+
+  const std::map<std::string, KDL::Frame> seg_tf_map = getSegmentsTf();
+  // KDL::TreeFkSolverPos_recursive fk_solver(getTree());
+
+  if(seg_tf_map.find(frame_name) == seg_tf_map.end() && additional_frame_.find(frame_name) == additional_frame_.end())
+    {
+      ROS_ERROR_STREAM("[model] there is not frame named " << frame_name);
+      return;
+    }
+
+  KDL::Frame target_frame;
+  if(seg_tf_map.find(frame_name) == seg_tf_map.end())
+    {
+      target_frame = *(additional_frame_.at(frame_name));
+    }
+  else
+    {
+      target_frame = seg_tf_map.at(frame_name);
+    }
+
+  /* get cog */
+  KDL::Frame cog = getCog<KDL::Frame>();
+
+  /* calculate link rotation from target frame */
+  for(int i = 0;  i < getRotorNum(); i++)
+    {
+      links_rotation_from_target_frame_.at(i) = target_frame.M.Inverse() *  cog.M * links_rotation_from_cog_.at(i);
+    }
+
+  /* calculate inertia from target frame */
+  KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
+  std::map<std::string, KDL::RigidBodyInertia> inertia_map = RobotModel::getInertiaMap();
+  for(const auto& inertia : inertia_map)
+    {
+      KDL::Frame f = seg_tf_map.at(inertia.first);
+      link_inertia = link_inertia + f * inertia.second;
+    }
+  link_inertia_from_target_frame_ = (target_frame.Inverse() * link_inertia).getRotationalInertia();
+
+  // Eigen::Matrix3d cog_inertia = kdlToEigen((cog.Inverse() * link_inertia).getRotationalInertia());
+  // std::cout << "manually calced cog inertia = " << cog_inertia << std::endl;
+  // std::cout << std::endl;
+  // std::cout << "cog inerira = " << getInertia<Eigen::Matrix3d>() << std::endl;
+
+  /* origin of rotor */
+  for(int i = 0 ; i < getRotorNum(); i++)
+    {
+      std::string rotor = thrust_link_ + std::to_string(i + 1);
+      KDL::Frame f = seg_tf_map.at(rotor);
+      rotors_origin_from_target_frame_.at(i) = (target_frame.Inverse() * f).p;
+    }
+
+  /* torque by gravity in target frame */
+  // std::cout << "cog p = [" << cog.p.x() << " " << cog.p.y() << " " << cog.p.z() << "] " <<std::endl;
+  // std::cout << target_frame_name_ << " p = [" << target_frame.p.x() << " " << target_frame.p.y() << " " << target_frame.p.z() << "] " <<std::endl;
+  target_to_cog_frame_ = target_frame.Inverse() * cog;
+  cog_to_target_frame_ = cog.Inverse() * target_frame;
+  Eigen::Vector3d target_to_cog_p = aerial_robot_model::kdlToEigen(target_to_cog_frame_.p);
+  Eigen::MatrixXd skew_mat = aerial_robot_model::skew(target_to_cog_p);
+  Eigen::VectorXd gravity = getGravity3d();
+  gravity_torque_from_target_frame_ = getMass() * skew_mat * gravity;
+
+  // std::cout << "from target to cog in target frame = [" << target_to_cog_p.x() << " " << target_to_cog_p.y() << " " << target_to_cog_p.z() << "] " << std::endl;
+  // std::cout << "gravity torque in target frame = [" << gravity_torque_from_target_frame_(0) << " " << gravity_torque_from_target_frame_(1) << " " << gravity_torque_from_target_frame_(2) << "] " << std::endl;
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -30,11 +116,17 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
 
   KDL::TreeFkSolverPos_recursive fk_solver(getTree());
 
-  /* special process */
-  KDL::Frame f_baselink;
+  /* get cog */
   KDL::Frame cog = getCog<KDL::Frame>();
-  fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
-  const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
+
+  /* calculate inertia */
+  // KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
+  // std::map<std::string, KDL::RigidBodyInertia> inertia_map = RobotModel::getInertiaMap();
+  // for(const auto& inertia : inertia_map)
+  //   {
+  //     KDL::Frame f = seg_tf_map.at(inertia.first);
+  //     link_inertia = link_inertia + f * inertia.second;
+  //   }
 
   /* link based on COG */
   for(int i = 0; i < getRotorNum(); ++i)
@@ -42,7 +134,7 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       std::string s = std::to_string(i + 1);
       KDL::Frame f;
       fk_solver.JntToCart(joint_positions, f, std::string("link") + s);
-      links_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
+      links_rotation_from_cog_[i] = cog.M.Inverse() * f.M;
     }
 
   // rotor's y and z axis
@@ -54,22 +146,22 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       rotors_y_axis_from_cog_.at(i) = (cog.Inverse() * f).M * KDL::Vector(0, 1, 0);
     }
 
-  /* rotor's neutral coordinate */
-  for(int i = 0; i < getRotorNum(); ++i)
-    {
-      std::string s = std::to_string(i + 1);
-      KDL::Frame f;
-      fk_solver.JntToCart(joint_positions, f, std::string("rotor_coord") + s);
-      rotors_coord_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
-    }
+  // /* rotor's neutral coordinate */
+  // for(int i = 0; i < getRotorNum(); ++i)
+  //   {
+  //     std::string s = std::to_string(i + 1);
+  //     KDL::Frame f;
+  //     fk_solver.JntToCart(joint_positions, f, std::string("rotor_coord") + s);
+  //     rotors_coord_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
+  //   }
 
-  /* gimbal nominal angle */
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      double r, p, y;
-      links_rotation_from_cog_.at(i).GetRPY(r, p, y);
-      gimbal_nominal_angles_.at(i) = -r;
-    }
+  // /* gimbal nominal angle */
+  // for(int i = 0; i < getRotorNum(); i++)
+  //   {
+  //     double r, p, y;
+  //     links_rotation_from_cog_.at(i).GetRPY(r, p, y);
+  //     gimbal_nominal_angles_.at(i) = -r;
+  //   }
 
   /* center point */
   KDL::Frame link2;
@@ -82,14 +174,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   center_point_.M = cog.M;
 
   /* contact point */
-  KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-  std::map<std::string, KDL::RigidBodyInertia> inertia_map = RobotModel::getInertiaMap();
-  for(const auto& inertia : inertia_map)
-    {
-      KDL::Frame f = seg_tf_map.at(inertia.first);
-      link_inertia = link_inertia + f * inertia.second;
-    }
-
   double target_baselink_roll = getCogDesireOrientation<Eigen::Matrix3d>().eulerAngles(0, 1, 2)(0);
   double target_baselink_pitch = getCogDesireOrientation<Eigen::Matrix3d>().eulerAngles(0, 1, 2)(1);
   KDL::Frame cog2baselink = getCog2Baselink<KDL::Frame>();
@@ -98,15 +182,15 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   contact_point_.p = center_point_.p + cog.M * contact_point_offset;
   contact_point_.M = cog.M;
 
-  link_inertia_contact_point_ = (contact_point_.Inverse() * link_inertia).getRotationalInertia();
+  // link_inertia_contact_point_ = (contact_point_.Inverse() * link_inertia).getRotationalInertia();
 
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      std::string rotor = thrust_link_ + std::to_string(i + 1);
-      KDL::Frame f = seg_tf_map.at(rotor);
-      rotors_origin_from_contact_point_.at(i) = (contact_point_.Inverse() * f).p;
-      rotors_normal_from_contact_point_.at(i) = (contact_point_.Inverse() * f).M * KDL::Vector(0, 0, 1);
-    }
+  // for(int i = 0; i < getRotorNum(); i++)
+  //   {
+  //     std::string rotor = thrust_link_ + std::to_string(i + 1);
+  //     KDL::Frame f = seg_tf_map.at(rotor);
+  //     rotors_origin_from_contact_point_.at(i) = (contact_point_.Inverse() * f).p;
+  //     rotors_normal_from_contact_point_.at(i) = (contact_point_.Inverse() * f).M * KDL::Vector(0, 0, 1);
+  //   }
 
   // publish origin and normal for debug
   geometry_msgs::PoseArray rotor_origin_msg;

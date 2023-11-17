@@ -18,15 +18,24 @@ public:
                     double epsilon = 10);
   virtual ~RollingRobotModel() = default;
 
-  std::vector<double> getGimbalNominalAngles(){return gimbal_nominal_angles_;}
+  // std::vector<double> getGimbalNominalAngles(){return gimbal_nominal_angles_;}
+  void calcRobotModelFromFrame(std::string frame_name);
   template <class T> T getContactPoint();
-  template <class T> std::vector<T> getRotorsCoordFromCog();
+  // template <class T> std::vector<T> getRotorsCoordFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
   template <class T> std::vector<T> getRotorsOriginFromContactPoint();
   template <class T> std::vector<T> getRotorsNormalFromContactPoint();
   template <class T> T getInertiaContactPoint();
   template <class T> T getCenterPoint();
+  template <class T> T getCogToTargetFrame();
+  template <class T> T getTargetToCogFrame();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
+
+  std::string geTargetFrameName() {return target_frame_name_;}
+  template <class T> std::vector<T> getLinksRotationFromTargetFrame();
+  template <class T> std::vector<T> getRotorsOriginFromTargetFrame();
+  template <class T> T getInertiaFromTargetFrame();
+  Eigen::Vector3d getGravityTorqueFromTargetFrame() {return gravity_torque_from_target_frame_;}
 
   Eigen::VectorXd calcFeasibleControlFDists(std::vector<Eigen::Vector3d>&u);
   Eigen::VectorXd calcFeasibleControlTDists(std::vector<Eigen::Vector3d>&v);
@@ -36,34 +45,47 @@ private:
   ros::Publisher feasible_control_force_radius_pub_, feasible_control_torque_radius_pub_;
   ros::Publisher rotor_origin_pub_;
   ros::Publisher rotor_normal_pub_;
-  std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
+  // std::vector<KDL::Rotation> rotors_coord_rotation_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
   std::vector<KDL::Vector> rotors_origin_from_contact_point_;
   std::vector<KDL::Vector> rotors_normal_from_contact_point_;
   std::vector<KDL::Vector> rotors_x_axis_from_cog_;
   std::vector<KDL::Vector> rotors_y_axis_from_cog_;
   KDL::Frame contact_point_;
-  std::vector<double> gimbal_nominal_angles_;
-  std::mutex rotors_coord_rotation_mutex_;
+  // std::vector<double> gimbal_nominal_angles_;
+  // std::mutex rotors_coord_rotation_mutex_;
   std::mutex links_rotation_mutex_;
+  std::mutex links_rotation_target_frame_mutex_;
+  std::mutex contact_point_mutex_;
+  std::mutex center_point_mutex_;
   std::string thrust_link_;
   double circle_radius_;
   KDL::RotationalInertia link_inertia_contact_point_;
   KDL::Frame center_point_;
 
+  /* robot model from target frame */
+  std::map<std::string, KDL::Frame*> additional_frame_;
+  std::string target_frame_name_;
+  std::vector<KDL::Rotation> links_rotation_from_target_frame_;
+  KDL::RotationalInertia link_inertia_from_target_frame_;
+  std::vector<KDL::Vector> rotors_origin_from_target_frame_;
+  Eigen::Vector3d gravity_torque_from_target_frame_;
+  KDL::Frame cog_to_target_frame_;
+  KDL::Frame target_to_cog_frame_;
+
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };
-template<> inline std::vector<KDL::Rotation> RollingRobotModel::getRotorsCoordFromCog()
-{
-  std::lock_guard<std::mutex> lock(rotors_coord_rotation_mutex_);
-  return rotors_coord_rotation_from_cog_;
-}
+// template<> inline std::vector<KDL::Rotation> RollingRobotModel::getRotorsCoordFromCog()
+// {
+//   std::lock_guard<std::mutex> lock(rotors_coord_rotation_mutex_);
+//   return rotors_coord_rotation_from_cog_;
+// }
 
-template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getRotorsCoordFromCog()
-{
-  return aerial_robot_model::kdlToEigen(getRotorsCoordFromCog<KDL::Rotation>());
-}
+// template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getRotorsCoordFromCog()
+// {
+//   return aerial_robot_model::kdlToEigen(getRotorsCoordFromCog<KDL::Rotation>());
+// }
 
 template<> inline std::vector<KDL::Rotation> RollingRobotModel::getLinksRotationFromCog()
 {
@@ -76,6 +98,19 @@ template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getLinksRotati
   return aerial_robot_model::kdlToEigen(getLinksRotationFromCog<KDL::Rotation>());
 }
 
+template<> inline std::vector<KDL::Rotation> RollingRobotModel::getLinksRotationFromTargetFrame()
+{
+  std::lock_guard<std::mutex> lock(links_rotation_target_frame_mutex_);
+  return links_rotation_from_target_frame_;
+}
+
+template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getLinksRotationFromTargetFrame()
+{
+  return aerial_robot_model::kdlToEigen(getLinksRotationFromTargetFrame<KDL::Rotation>());
+}
+
+
+
 template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsOriginFromContactPoint()
 {
   return rotors_origin_from_contact_point_;
@@ -84,6 +119,16 @@ template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsOriginFro
 template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getRotorsOriginFromContactPoint()
 {
   return aerial_robot_model::kdlToEigen(RollingRobotModel::getRotorsOriginFromContactPoint<KDL::Vector>());
+}
+
+template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsOriginFromTargetFrame()
+{
+  return rotors_origin_from_target_frame_;
+}
+
+template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getRotorsOriginFromTargetFrame()
+{
+  return aerial_robot_model::kdlToEigen(RollingRobotModel::getRotorsOriginFromTargetFrame<KDL::Vector>());
 }
 
 template<> inline std::vector<KDL::Vector> RollingRobotModel::getRotorsNormalFromContactPoint()
@@ -98,6 +143,7 @@ template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getRotorsNorma
 
 template<> inline KDL::Frame RollingRobotModel::getContactPoint()
 {
+  std::lock_guard<std::mutex> lock(contact_point_mutex_);
   return contact_point_;
 }
 
@@ -108,12 +154,33 @@ template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactP
 
 template<> inline KDL::Frame RollingRobotModel::getCenterPoint()
 {
+  std::lock_guard<std::mutex> lock(center_point_mutex_);
   return center_point_;
 }
 
 template<> inline geometry_msgs::TransformStamped RollingRobotModel::getCenterPoint()
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getCenterPoint<KDL::Frame>());
+}
+
+template<> inline KDL::Frame RollingRobotModel::getCogToTargetFrame()
+{
+  return cog_to_target_frame_;
+}
+
+template<> inline geometry_msgs::TransformStamped RollingRobotModel::getCogToTargetFrame()
+{
+  return aerial_robot_model::kdlToMsg(RollingRobotModel::getCogToTargetFrame<KDL::Frame>());
+}
+
+template<> inline KDL::Frame RollingRobotModel::getTargetToCogFrame()
+{
+  return target_to_cog_frame_;
+}
+
+template<> inline geometry_msgs::TransformStamped RollingRobotModel::getTargetToCogFrame()
+{
+  return aerial_robot_model::kdlToMsg(RollingRobotModel::getTargetToCogFrame<KDL::Frame>());
 }
 
 template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaContactPoint()
@@ -125,4 +192,16 @@ template<> inline Eigen::Matrix3d RollingRobotModel::getInertiaContactPoint()
 {
   return aerial_robot_model::kdlToEigen(RollingRobotModel::getInertiaContactPoint<KDL::RotationalInertia>());
 }
+
+template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaFromTargetFrame()
+{
+  return link_inertia_from_target_frame_;
+}
+
+template<> inline Eigen::Matrix3d RollingRobotModel::getInertiaFromTargetFrame()
+{
+  return aerial_robot_model::kdlToEigen(RollingRobotModel::getInertiaFromTargetFrame<KDL::RotationalInertia>());
+}
+
+
 
