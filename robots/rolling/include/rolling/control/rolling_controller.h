@@ -56,6 +56,9 @@ namespace aerial_robot_control
     ros::Subscriber joint_state_sub_;
 
     tf2_ros::TransformBroadcaster br_;
+    KDL::Frame contact_point_alined_;
+
+    std::mutex contact_point_alined_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
@@ -68,6 +71,7 @@ namespace aerial_robot_control
     std::vector<double> target_acc_cog_;
     std::vector<double> target_acc_dash_;
     Eigen::VectorXd target_wrench_acc_cog_;
+    Eigen::VectorXd target_wrench_acc_target_frame_;
     Eigen::VectorXd controlled_wrench_acc_cog_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
@@ -75,6 +79,9 @@ namespace aerial_robot_control
     Eigen::MatrixXd full_q_mat_;
     Eigen::MatrixXd full_q_trans_;
     Eigen::MatrixXd full_q_rot_;
+    Eigen::MatrixXd full_q_mat_target_frame_;
+    Eigen::MatrixXd full_q_trans_target_frame_;
+    Eigen::MatrixXd full_q_rot_target_frame_;
     Eigen::MatrixXd controlled_q_mat_;
     Eigen::MatrixXd controlled_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
@@ -106,7 +113,6 @@ namespace aerial_robot_control
     double standing_target_phi_;
     double standing_target_baselink_pitch_;
     double standing_feed_forward_z_compensate_roll_thresh_;
-
     double steering_z_acc_min_;
     double steering_mu_;
 
@@ -115,7 +121,9 @@ namespace aerial_robot_control
     void rosParamInit();
     void targetStatePlan();
     void calcAccFromCog();
+    void calcAccFromTargetFrame();
     void calcWrenchAllocationMatrix();
+    void calcWrenchAllocationMatrixFromTargetFrame();
     void calcFullLambda();
     void wrenchAllocation();
     void calcYawTerm();
@@ -133,6 +141,9 @@ namespace aerial_robot_control
     void osqpPractice();
     void calcSteeringTargetLambda();
     void steeringControlWrenchAllocation();
+    void standingInitialize();
+    void calcStandingFullLambda();
+    void standingPlanning();
 
     void setControlAxis(int axis, int mode)
     {

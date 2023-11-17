@@ -36,6 +36,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_lambda_trans_.resize(2 * motor_num_);
   full_lambda_rot_.resize(2 * motor_num_);
   full_lambda_all_.resize(2 * motor_num_);
+
   full_q_mat_.resize(6, 2 * motor_num_);
 
   rosParamInit();
@@ -56,7 +57,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
-  exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench", 1);
+  exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench_cog", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
 
@@ -144,21 +145,46 @@ void RollingController::rosParamInit()
 
 void RollingController::controlCore()
 {
+  PoseLinearController::controlCore();
+
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
-  targetStatePlan();
-  calcAccFromCog();
+  setControllerParams("standing_controller");
+  setAttitudeGains();
+
+  rolling_robot_model_->calcRobotModelFromFrame("cp");
+  control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
+
+  standingPlanning();
+  // std::cout << "standing planning" <<  std::endl;
+
+  calcWrenchAllocationMatrixFromTargetFrame();
+  // std::cout << "calc WrenchAllocationMatrix from target frame" << std::endl;
+
+  calcStandingFullLambda();
+  // std::cout << "calc standing full lambda" << std::endl;
+
+  // calcAccFromTargetFrame();
+
+
+  // targetStatePlan();
+  // calcAccFromCog();
   calcWrenchAllocationMatrix();
   // if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
   //   {
-  calcFullLambda();
+  // calcFullLambda();
   wrenchAllocation();
+
+  // std::cout << "wrench allocation" << std::endl;
   //   }
   // else if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
   //   {
   // steeringControlWrenchAllocation();
   // }
   calcYawTerm();
+
+    // std::cout << "calc yaw term" << std::endl;
+
   // osqpPractice();
   // calcSteeringTargetLambda();
   rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
@@ -223,7 +249,6 @@ void RollingController::targetStatePlan()
         spinal::DesireCoord desire_coordinate_msg;
         desire_coordinate_msg.roll = standing_target_phi_;
         desire_coordinate_msg.pitch = standing_target_baselink_pitch_;
-
         if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
           {
             // ROS_WARN_STREAM("[control] update target baselink pitch angle to " << baselink_pitch);
@@ -345,7 +370,6 @@ void RollingController::targetStatePlan()
 void RollingController::calcAccFromCog()
 {
       ROS_WARN_ONCE("[control] calc acc for flying state");
-      PoseLinearController::controlCore();
       control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
       tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
@@ -464,20 +488,20 @@ void RollingController::calcWrenchAllocationMatrix()
   full_q_rot_ = full_q_mat_.bottomRows(3);
 
   /* extract controlled axis */
-  Eigen::MatrixXd controlled_axis_mask_ = Eigen::MatrixXd::Zero(control_dof_, 6);
+  Eigen::MatrixXd controlled_axis_mask = Eigen::MatrixXd::Zero(control_dof_, 6);
   int last_row = 0;
   for(int i = 0; i < controlled_axis_.size(); i++)
     {
       if(controlled_axis_.at(i))
         {
-          controlled_axis_mask_(last_row, i) = 1;
+          controlled_axis_mask(last_row, i) = 1;
           last_row++;
         }
     }
 
-  controlled_q_mat_ = controlled_axis_mask_ * full_q_mat_;
+  controlled_q_mat_ = controlled_axis_mask * full_q_mat_;
   controlled_q_mat_inv_ = aerial_robot_model::pseudoinverse(controlled_q_mat_);
-  controlled_wrench_acc_cog_ = controlled_axis_mask_ * target_wrench_acc_cog_;
+  controlled_wrench_acc_cog_ = controlled_axis_mask * target_wrench_acc_cog_;
 
   if(use_sr_inv_)
     {
@@ -714,17 +738,41 @@ void RollingController::setAttitudeGains()
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
 {
   sensor_msgs::JointState joint_state = *state;
+
+  /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
   contact_point_tf.header = state->header;
   contact_point_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   contact_point_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
   br_.sendTransform(contact_point_tf);
 
+  /* tf of center point */
   geometry_msgs::TransformStamped center_point_tf = rolling_robot_model_->getCenterPoint<geometry_msgs::TransformStamped>();
   center_point_tf.header = state->header;
   center_point_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   center_point_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("center_point"));
   br_.sendTransform(center_point_tf);
+
+  /* tf of contact point alined to ground plane */
+  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+  KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
+  double baselink_roll = estimator_->getEuler(Frame::COG, estimate_mode_).x();
+  double baselink_pitch = estimator_->getEuler(Frame::COG, estimate_mode_).y();
+
+  if(true)
+    {
+      std::lock_guard<std::mutex> lock(contact_point_alined_mutex_);
+      contact_point_alined_.p = contact_point.p;
+      contact_point_alined_.M = cog.M;
+      contact_point_alined_.M.DoRotX(-baselink_roll);
+      contact_point_alined_.M.DoRotY(-baselink_pitch);
+    }
+  geometry_msgs::TransformStamped contact_point_alined_tf = kdlToMsg(contact_point_alined_);
+  contact_point_alined_tf.header = state->header;
+  contact_point_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  contact_point_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point_alined"));
+  br_.sendTransform(contact_point_alined_tf);
+
 }
 
 
