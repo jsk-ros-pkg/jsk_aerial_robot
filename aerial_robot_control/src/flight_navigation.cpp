@@ -23,7 +23,8 @@ BaseNavigator::BaseNavigator():
   gps_waypoint_time_(0),
   joy_stick_heart_beat_(false),
   joy_stick_prev_time_(0),
-  teleop_flag_(true)
+  teleop_flag_(true),
+  land_check_start_time_(0)
 {
   setNaviState(ARM_OFF_STATE);
 }
