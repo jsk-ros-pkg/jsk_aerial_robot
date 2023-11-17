@@ -5,8 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Status1
-        - /RobotModel1
         - /TF1
       Splitter Ratio: 0.5411764979362488
     Tree Height: 713
@@ -106,18 +104,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        rotor_coord1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_coord2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_coord3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         rotor_parent1:
           Alpha: 1
           Show Axes: false
@@ -155,9 +141,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        rolling/center_point:
+          Value: true
         rolling/cog:
           Value: true
-        rolling/cp:
+        rolling/contact_point:
+          Value: true
+        rolling/contact_point_alined:
           Value: true
         rolling/cylinder_collision:
           Value: true
@@ -177,18 +167,18 @@ Visualization Manager:
           Value: false
         rolling/root:
           Value: true
-        rolling/rotor_coord1:
-          Value: true
-        rolling/rotor_coord2:
-          Value: true
-        rolling/rotor_coord3:
-          Value: true
         rolling/rotor_parent1:
           Value: false
         rolling/rotor_parent2:
           Value: false
         rolling/rotor_parent3:
           Value: false
+        rolling/thrust1:
+          Value: true
+        rolling/thrust2:
+          Value: true
+        rolling/thrust3:
+          Value: true
         world:
           Value: true
       Marker Alpha: 1
@@ -200,14 +190,19 @@ Visualization Manager:
       Tree:
         world:
           rolling/root:
+            rolling/center_point:
+              {}
             rolling/cog:
               {}
-            rolling/cp:
+            rolling/contact_point:
+              {}
+            rolling/contact_point_alined:
               {}
             rolling/link1:
               rolling/gimbal_link1:
                 rolling/rotor_parent1:
-                  {}
+                  rolling/thrust1:
+                    {}
               rolling/link2:
                 rolling/cylinder_collision:
                   {}
@@ -215,19 +210,84 @@ Visualization Manager:
                   {}
                 rolling/gimbal_link2:
                   rolling/rotor_parent2:
-                    {}
+                    rolling/thrust2:
+                      {}
                 rolling/link3:
                   rolling/gimbal_link3:
                     rolling/rotor_parent3:
-                      {}
-                  rolling/rotor_coord3:
-                    {}
-                rolling/rotor_coord2:
-                  {}
-              rolling/rotor_coord1:
-                {}
+                      rolling/thrust3:
+                        {}
       Update Interval: 0
       Value: true
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: PieChart
+      Topic: /rolling/debug/motor_pwm/motor1
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: false
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 25; 255; 240
+      left: 0
+      max color: 255; 0; 0
+      max color change threthold: 0
+      max value: 2000
+      med color: 255; 0; 0
+      med color change threthold: 0
+      min value: 1000
+      show caption: true
+      size: 128
+      text size: 14
+      top: 0
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: PieChart
+      Topic: /rolling/debug/motor_pwm/motor2
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: false
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 25; 255; 240
+      left: 128
+      max color: 255; 0; 0
+      max color change threthold: 0
+      max value: 2000
+      med color: 255; 0; 0
+      med color change threthold: 0
+      min value: 1000
+      show caption: true
+      size: 128
+      text size: 14
+      top: 0
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: PieChart
+      Topic: /rolling/debug/motor_pwm/motor3
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: false
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 25; 255; 240
+      left: 256
+      max color: 255; 0; 0
+      max color change threthold: 0
+      max value: 2000
+      med color: 255; 0; 0
+      med color change threthold: 0
+      min value: 1000
+      show caption: true
+      size: 128
+      text size: 14
+      top: 0
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
