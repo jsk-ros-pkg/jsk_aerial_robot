@@ -93,8 +93,12 @@ target_link_libraries (trajectory_generation_node ${catkin_LIBRARIES} trajectory
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS control_utils flight_control_pluginlib flight_navigation
+install(TARGETS control_utils flight_control_pluginlib flight_navigation trajectory_generation
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(TARGETS trajectory_generation_node
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(DIRECTORY scripts plugins
