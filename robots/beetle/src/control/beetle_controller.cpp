@@ -7,6 +7,7 @@ namespace aerial_robot_control
   BeetleController::BeetleController():
     GimbalrotorController(),
     lpf_init_flag_(false),
+    pd_wrench_comp_mode_(false),
     pre_module_state_(SEPARATED)
   {
   }
@@ -24,6 +25,7 @@ namespace aerial_robot_control
     external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
     external_wrench_upper_limit_ = Eigen::VectorXd::Zero(6);
     rosParamInit();
+    if(pd_wrench_comp_mode_) ROS_ERROR("PD & Wrench comp mode");
     lpf_est_external_wrench_ = IirFilter(sample_freq_, cutoff_freq_, 6);
     estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench", 1);
     external_wrench_compensation_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("external_wrench_compensation", 1);
@@ -63,9 +65,14 @@ namespace aerial_robot_control
     Eigen::Matrix3d inertia_inv = (beetle_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
 
     int module_state = beetle_robot_model_-> getModuleState();
-    if(module_state == FOLLOWER && navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE){
+    if(module_state == FOLLOWER && navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE && pd_wrench_comp_mode_){
       feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_compensation_term.head(3);
       feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_compensation_term.tail(3);
+
+      /*regarding to torque, only use yaw term */
+      feedforward_wrench_acc_cog_term_(3) = 0;
+      feedforward_wrench_acc_cog_term_(4) = 0;
+      
       geometry_msgs::WrenchStamped wrench_msg;
       wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
       wrench_msg.wrench.force.x = feedforward_wrench_acc_cog_term_(0);
@@ -74,12 +81,6 @@ namespace aerial_robot_control
       wrench_msg.wrench.torque.x = feedforward_wrench_acc_cog_term_(3);
       wrench_msg.wrench.torque.y = feedforward_wrench_acc_cog_term_(4);
       wrench_msg.wrench.torque.z = feedforward_wrench_acc_cog_term_(5);
-      // wrench_msg.wrench.force.x = filterd_est_external_wrench_(0);
-      // wrench_msg.wrench.force.y = filterd_est_external_wrench_(1);
-      // wrench_msg.wrench.force.z = filterd_est_external_wrench_(2);
-      // wrench_msg.wrench.torque.x = filterd_est_external_wrench_(3);
-      // wrench_msg.wrench.torque.y = filterd_est_external_wrench_(4);
-      // wrench_msg.wrench.torque.z = filterd_est_external_wrench_(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
 
       GimbalrotorController::controlCore();
@@ -89,14 +90,18 @@ namespace aerial_robot_control
         ErrI_X_ = pid_controllers_.at(X).getErrI();
         ErrI_Y_ = pid_controllers_.at(Y).getErrI();
         ErrI_Z_ = pid_controllers_.at(Z).getErrI();
-        ErrI_Yaw_ = pid_controllers_.at(YAW).getErrI();
+        // ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
+        // ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
+        ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
         pre_module_state_ = FOLLOWER;
       }
       //fix i_term
-      pid_controllers_.at(X).setErrI(ErrI_X_); 
+      pid_controllers_.at(X).setErrI(ErrI_X_);
       pid_controllers_.at(Y).setErrI(ErrI_Y_);
       pid_controllers_.at(Z).setErrI(ErrI_Z_);
-      pid_controllers_.at(YAW).setErrI(ErrI_Yaw_);
+      // pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
+      // pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
+      pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
 
     }else{
       feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
@@ -110,6 +115,7 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6,6);
     double force_weight, torque_weight;
+    getParam<bool>(control_nh, "pd_wrench_comp_mode", pd_wrench_comp_mode_, false);
     getParam<double>(control_nh, "momentum_observer_force_weight", force_weight, 10.0);
     getParam<double>(control_nh, "momentum_observer_torque_weight", torque_weight, 10.0);
     momentum_observer_matrix_.topRows(3) *= force_weight;

@@ -52,7 +52,7 @@ namespace aerial_robot_control
 
   bool GimbalrotorController::update()
   {
-    sendGimbalCommand();
+    // sendGimbalCommand();
     if(gimbal_calc_in_fc_){
       std_msgs::UInt8 msg;
       msg.data = gimbal_dof_;
@@ -162,7 +162,7 @@ namespace aerial_robot_control
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
       last_col += 2;
     }
-    candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+    candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale + feedforward_wrench_acc_cog_term_(5);
 
     /* calculate target full thrusts and  gimbal angles (considering full components)*/
     last_col = 0;
@@ -190,16 +190,15 @@ namespace aerial_robot_control
         for(int i = 0; i < motor_num_; i++){
           gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
         }
-        gimbal_control_pub_.publish(gimbal_control_msg);
-        
-        std_msgs::Float32MultiArray target_vectoring_force_msg;
-        for(int i = 0; i < target_vectoring_f_.size(); i++){
-          target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
-          target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
-        }
-        target_vectoring_force_pub_.publish(target_vectoring_force_msg);
-        
+        gimbal_control_pub_.publish(gimbal_control_msg); 
       }
+    std_msgs::Float32MultiArray target_vectoring_force_msg;
+    target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
+    for(int i = 0; i < target_vectoring_f_.size(); i++){
+      target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
+    }
+    target_vectoring_force_pub_.publish(target_vectoring_force_msg);
+        
   }
 
   void GimbalrotorController::sendFourAxisCommand()

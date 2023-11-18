@@ -44,6 +44,7 @@ namespace aerial_robot_control
     Eigen::VectorXd filterd_est_external_wrench_;
 
     /* external wrench compensation */
+    bool pd_wrench_comp_mode_;
     Eigen::VectorXd external_wrench_upper_limit_;
     Eigen::VectorXd external_wrench_lower_limit_;
 
@@ -51,7 +52,9 @@ namespace aerial_robot_control
     double ErrI_X_;
     double ErrI_Y_;
     double ErrI_Z_;
-    double ErrI_Yaw_;
+    double ErrI_ROLL_;
+    double ErrI_PITCH_;
+    double ErrI_YAW_;
     
     void controlCore() override;
     void externalWrenchEstimate();

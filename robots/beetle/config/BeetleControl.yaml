@@ -8,6 +8,8 @@ controller:
   momentum_observer_force_weight: 3
   momentum_observer_torque_weight: 2.5
 
+  pd_wrench_comp_mode: true
+
   external_force_upper_limit: 0.0
   external_force_lower_limit: 0.0
   external_torque_lower_limit: 0.0
