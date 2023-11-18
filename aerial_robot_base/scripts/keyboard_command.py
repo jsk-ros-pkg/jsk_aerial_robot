@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+from __future__ import print_function # for print function in python2
 import sys, select, termios, tty
 
 import rospy
 from std_msgs.msg import Empty
 from aerial_robot_msgs.msg import FlightNav
 import rosgraph
+
+
+
 
 msg = """
 Instruction:
