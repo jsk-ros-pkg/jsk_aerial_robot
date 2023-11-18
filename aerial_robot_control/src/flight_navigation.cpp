@@ -11,13 +11,12 @@ BaseNavigator::BaseNavigator():
   target_omega_(0, 0, 0),
   init_height_(0), land_height_(0),
   force_att_control_flag_(false),
+  trajectory_mode_(false),
+  trajectory_reset_time_(0),
+  teleop_reset_time_(0),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
-  vel_control_flag_(false),
-  pos_control_flag_(false),
   xy_control_flag_(false),
-  z_control_flag_(false),
-  yaw_control_flag_(false),
   vel_based_waypoint_(false),
   gps_waypoint_(false),
   gps_waypoint_time_(0),
@@ -143,12 +142,41 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(0);
+      setTargetOmegaZ(0);
+    }
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      setTargetOmegaZ(msg->target_omega_z);
+
+      teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(msg->target_omega_z);
+      setTargetOmegaZ(msg->target_omega_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
+    }
+
+  /* z */
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      setTargetVelZ(msg->target_vel_z);
+      teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(msg->target_vel_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
     }
 
   /* xy control */
@@ -157,14 +185,6 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
     case aerial_robot_msgs::FlightNav::POS_MODE:
       {
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            /* check the transformation */
-            tf::Transform cog2baselink_tf;
-            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
-              * cog2baselink_tf.getOrigin();
-          }
 
         tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
         target_delta.setZ(0);
@@ -188,13 +208,11 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       }
     case aerial_robot_msgs::FlightNav::VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do vel nav for baselink");
-            return;
-          }
-        /* should be in COG frame */
-        xy_control_mode_ = VEL_CONTROL_MODE;
+        /* do not switch to pure vel mode */
+        xy_control_mode_ = POS_CONTROL_MODE;
+
+        teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
         switch(msg->control_frame)
           {
           case WORLD_FRAME:
@@ -205,7 +223,8 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -219,17 +238,14 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       }
     case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
-            return;
-          }
-
         xy_control_mode_ = POS_CONTROL_MODE;
         setTargetPosX(msg->target_pos_x);
         setTargetPosY(msg->target_pos_y);
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
+
+        trajectory_mode_ = true;
+        trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
 
         break;
       }
@@ -243,12 +259,14 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
           {
           case WORLD_FRAME:
             {
-              target_acc_.setValue(msg->target_acc_x, msg->target_acc_y, 0);
+              setTargetAccX(msg->target_acc_x);
+              setTargetAccY(msg->target_acc_y);
               break;
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
               break;
@@ -268,25 +286,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
         break;
       }
     }
-  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) target_acc_.setValue(0,0,0);
-
-  /* z */
-  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
-    {
-      /* special */
-      addTargetPosZ(msg->target_pos_diff_z);
-      setTargetVelZ(0);
-    }
-  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
-    {
-      setTargetPosZ(msg->target_pos_z);
-      setTargetVelZ(0);
-    }
-  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
-    {
-      setTargetPosZ(msg->target_pos_z);
-      setTargetVelZ(msg->target_vel_z);
-    }
+  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) setTargetZeroAcc();
 }
 
 const sensor_msgs::Joy BaseNavigator::ps4joyToPs3joyConvert(const sensor_msgs::Joy& ps4_joy_msg)
@@ -419,149 +419,154 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       return;
     }
 
-  /* Motion: Up/Down */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_z_deadzone_)
+  teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
+  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
+  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
+  double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+
+  /* Motion: Z (Height) */
+  if(getNaviState() == HOVER_STATE)
     {
-      if(getNaviState() == HOVER_STATE)
+      if(fabs(raw_z_cmd) > joy_stick_deadzone_)
         {
-          z_control_flag_ = true;
-          if(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] >= 0)
-            addTargetPosZ(joy_target_z_interval_);
-          else
-            addTargetPosZ(-joy_target_z_interval_);
+          setTargetVelZ(raw_z_cmd * max_teleop_z_vel_);
+          //ROS_INFO("raw_z_cmd: %f, max_tleeop_z_vel: %f, target_vel_z: %f", raw_z_cmd, max_teleop_z_vel_, target_vel_.z());
         }
-    }
-  else
-    {
-      if(z_control_flag_)
+      else
         {
-          z_control_flag_= false;
-          setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: fixed z state, target pos z is %f",target_pos_.z());
+          setTargetVelZ(0);
         }
     }
 
   /* Motion: Yaw */
-  /* this is the yaw_angle control */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
+  if(getNaviState() == HOVER_STATE)
     {
-      double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
-        + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-      setTargetYaw(angles::normalize_angle(target_yaw));
-      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
-
-      yaw_control_flag_ = true;
-    }
-  else
-    {
-      if(yaw_control_flag_)
+      if(fabs(raw_yaw_cmd) > joy_stick_deadzone_)
         {
-          yaw_control_flag_= false;
-          setTargetYawFromCurrentState();
-          setTargetOmageZ(0);
-          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
+          setTargetOmegaZ(raw_yaw_cmd * max_teleop_yaw_vel_);
+        }
+      else
+        {
+          setTargetOmegaZ(0);
         }
     }
 
-  /* turn to ACC_CONTROL_MODE */
+  /* Motion: XY */
+
+  /* mode selection */
+  /* switch to acc model */
   if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
     {
-      ROS_WARN("Foce change to attitude control");
-      force_att_control_flag_ = true;
-      estimator_->setForceAttControlFlag(force_att_control_flag_);
-      xy_control_mode_ = ACC_CONTROL_MODE;
+      if (xy_control_mode_ != ACC_CONTROL_MODE)
+        {
+          ROS_WARN("Force siwtch to attitude control mode");
+          force_att_control_flag_ = true;
+          estimator_->setForceAttControlFlag(force_att_control_flag_);
+          xy_control_mode_ = ACC_CONTROL_MODE;
+        }
     }
 
-  /* change to vel control mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && !vel_control_flag_)
+  /* switch to pure vel mode */
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1)
     {
-      ROS_INFO("change to vel pos-based control");
-      vel_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = VEL_CONTROL_MODE;
-      target_vel_.setValue(0, 0, 0);
-      target_acc_.setValue(0, 0, 0);
+      if (xy_control_mode_ != VEL_CONTROL_MODE)
+        {
+          ROS_INFO("switch to pure vel control mode");
+          force_att_control_flag_ = false;
+          setTargetZeroVel();
+          setTargetZeroAcc();
+          xy_control_mode_ = VEL_CONTROL_MODE;
+        }
     }
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 0 && vel_control_flag_)
-    vel_control_flag_ = false;
 
-  /* change to pos control mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1 && !pos_control_flag_)
+  /* siwthc to pos mode */
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1)
     {
-      ROS_INFO("change to pos control");
-      pos_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = POS_CONTROL_MODE;
-      setTargetXyFromCurrentState();
-      target_acc_.setValue(0, 0, 0);
+      if (xy_control_mode_ != POS_CONTROL_MODE)
+        {
+          ROS_INFO("change to pos control");
+          force_att_control_flag_ = false;
+          setTargetXyFromCurrentState();
+          xy_control_mode_ = POS_CONTROL_MODE;
+        }
     }
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 0 && pos_control_flag_)
-    pos_control_flag_ = false;
+
+  /* finish if teleop flag is not true */
+  if(!teleop_flag_) return;
 
   /* mode oriented state */
+  control_frame_ = WORLD_FRAME;
+  tf::Matrix3x3 local_frame_rot;
+  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2])
+    {
+      control_frame_ = LOCAL_FRAME;
+
+      /* convert the frame */
+      const auto segments_tf = robot_model_->getSegmentsTf();
+      if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
+        {
+          ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
+          setTargetZeroAcc();
+          return;
+        }
+
+      tf::Transform teleop_local_frame_tf;
+      std::string baselink = robot_model_->getBaselinkName();
+      tf::transformKDLToTF(segments_tf.at(baselink).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+
+      double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      local_frame_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(yaw_angle)) * teleop_local_frame_tf.getBasis();
+    }
+
+
   switch (xy_control_mode_)
     {
-    case ACC_CONTROL_MODE:
+    case POS_CONTROL_MODE:
       {
-        if(teleop_flag_)
+        if(fabs(raw_x_cmd) < joy_stick_deadzone_) raw_x_cmd = 0;
+        if(fabs(raw_y_cmd) < joy_stick_deadzone_) raw_y_cmd = 0;
+
+        /* vel command */
+        setTargetVelX(raw_x_cmd * max_teleop_xy_vel_);
+        setTargetVelY(raw_y_cmd * max_teleop_xy_vel_);
+
+        if(control_frame_ == LOCAL_FRAME)
           {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
-
-            /* acc command */
-            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
-
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_acc = target_acc_;
-                /* convert the frame */
-                const auto segments_tf = robot_model_->getSegmentsTf();
-                if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
-                  {
-                    ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
-                    target_acc.setValue(0,0,0);
-                  }
-                tf::Transform teleop_local_frame_tf;
-                tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
-
-                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
-              }
+            tf::Vector3 target_vel = frameConversion(getTargetVel(), local_frame_rot);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
           }
         break;
       }
     case VEL_CONTROL_MODE:
       {
-        if(teleop_flag_)
+        /* vel command */
+        setTargetVelX(raw_x_cmd * fabs(raw_x_cmd) * max_teleop_xy_vel_);
+        setTargetVelY(raw_y_cmd * fabs(raw_y_cmd) * max_teleop_xy_vel_);
+
+        if(control_frame_ == LOCAL_FRAME)
           {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
+            tf::Vector3 target_vel = frameConversion(getTargetVel(), local_frame_rot);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
+          }
 
-            tf::Vector3 target_vel(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS]) * max_target_vel_,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS]) * max_target_vel_, 0);
+        break;
+      }
+    case ACC_CONTROL_MODE:
+      {
+        /* acc command */
+        double acc_scale = max_teleop_rp_angle_ * aerial_robot_estimation::G;
+        setTargetAccX(raw_x_cmd * acc_scale);
+        setTargetAccY(raw_y_cmd * acc_scale);
 
-            /* defualt: world frame control */
-            /* L2 trigger: fc(cog/ baselink frame) frame control */
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_vel_tmp = target_vel;
-                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
-              }
-
-            /* interpolation for vel target */
-            if(target_vel.x() - target_vel_.x() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else if (target_vel.x() - target_vel_.x() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else
-              target_vel_.setX(target_vel.x());
-
-            if(target_vel.y() - target_vel_.y() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(0, joy_target_vel_interval_, 0);
-            else if (target_vel.y() - target_vel_.y() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(0, joy_target_vel_interval_, 0);
-            else
-              target_vel_.setY(target_vel.y());
+        if(control_frame_ == LOCAL_FRAME)
+          {
+            tf::Vector3 target_acc = frameConversion(getTargetAcc(), local_frame_rot);
+            setTargetAccX(target_acc.x());
+            setTargetAccY(target_acc.y());
           }
         break;
       }
@@ -645,6 +650,32 @@ void BaseNavigator::update()
           setTargetXyFromCurrentState();
           setTargetYawFromCurrentState();
         }
+    }
+
+  /* update the target pos and velocity */
+  if (trajectory_mode_)
+    {
+      if (ros::Time::now().toSec() > trajectory_reset_time_)
+        {
+          setTargetZeroVel();
+
+          trajectory_mode_ = false;
+
+          ROS_INFO("[Flight nav] stop trajectory mode");
+        }
+    }
+  else
+    {
+      /* force reset velocity in idling mode */
+      if (ros::Time::now().toSec() > teleop_reset_time_)
+        {
+          setTargetZeroVel();
+          setTargetOmegaZ(0);
+        }
+
+      /* uniform linear motion */
+      addTargetPos(getTargetVel() * loop_du_);
+      addTargetYaw(getTargetOmega().z() * loop_du_);
     }
 
   tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
@@ -802,9 +833,7 @@ void BaseNavigator::update()
 
                 xy_control_mode_ = POS_CONTROL_MODE;
                 vel_based_waypoint_ = false;
-                setTargetVelX(0);
-                setTargetVelY(0);
-                setTargetVelZ(0);
+                setTargetZeroVel();
               }
           }
         break;
@@ -858,13 +887,12 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.3);
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 1.0);
+  getParam<double>(nh, "trajectory_reset_duration", trajectory_reset_duration_, 0.5);
+  getParam<double>(nh, "teleop_reset_duration", teleop_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
   getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);
   getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.01);
-  getParam<double>(nh, "max_target_vel", max_target_vel_, 0.0);
-  getParam<double>(nh, "max_target_yaw_rate", max_target_yaw_rate_, 0.0);
-  getParam<double>(nh, "max_target_tilt_angle", max_target_tilt_angle_, 1.0);
 
   //*** auto vel nav
   getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);
@@ -876,10 +904,11 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "gps_waypoint_check_du", gps_waypoint_check_du_, 1.0);
 
   //*** teleop navigation
-  getParam<double>(nh, "joy_target_vel_interval", joy_target_vel_interval_, 0.0);
-  getParam<double>(nh, "joy_target_z_interval", joy_target_z_interval_, 0.0);
-  getParam<double>(nh, "joy_z_deadzone", joy_z_deadzone_, 0.2);
-  getParam<double>(nh, "joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
+  getParam<double>(nh, "max_teleop_xy_vel", max_teleop_xy_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_z_vel", max_teleop_z_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_yaw_vel", max_teleop_yaw_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_rp_angle", max_teleop_rp_angle_, 0.2);
+  getParam<double>(nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(nh, "joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
   getParam<double>(nh, "force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
   getParam<bool>(nh, "force_landing_auto_stop_flag", force_landing_auto_stop_flag_, true);
