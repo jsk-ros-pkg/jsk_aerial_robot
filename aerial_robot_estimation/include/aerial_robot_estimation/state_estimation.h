@@ -382,18 +382,9 @@ namespace aerial_robot_estimation
     //start flying flag (~takeoff)
     virtual bool getFlyingFlag() {  return  flying_flag_;}
     virtual void setFlyingFlag(bool flag){  flying_flag_ = flag;}
-    //start landing mode
-    virtual bool getLandingMode() {  return  landing_mode_flag_;}
-    virtual void setLandingMode(bool flag){  landing_mode_flag_ = flag;}
-    // landed flag (acc_z check, ground shock)
-    virtual bool getLandedFlag() {  return  landed_flag_;}
-    virtual void setLandedFlag(bool flag){  landed_flag_ = flag;}
     /* when takeoff, should use the undescend mode be true */
     inline void setUnDescendMode(bool flag){un_descend_flag_ = flag;  }
     inline bool getUnDescendMode(){return un_descend_flag_; }
-    /* landing height is set for landing to different terrain */
-    virtual void setLandingHeight(float landing_height){ landing_height_ = landing_height;}
-    virtual float getLandingHeight(){ return landing_height_;}
     /* att control mode is for user to manually control x and y motion by attitude control */
     inline void setForceAttControlFlag (bool flag) {force_att_control_flag_ = flag; }
     inline bool getForceAttControlFlag () {return force_att_control_flag_;}
@@ -480,10 +471,7 @@ namespace aerial_robot_estimation
 
     /* height related var */
     bool flying_flag_;
-    bool landing_mode_flag_;
-    bool landed_flag_;
     bool un_descend_flag_;
-    float landing_height_;
     bool force_att_control_flag_;
 
     /* latitude & longitude point */

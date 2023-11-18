@@ -130,14 +130,6 @@ namespace sensor_plugin
     acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, aerial_robot_estimation::G);
 #endif
 
-    if(estimator_->getLandingMode() &&
-       !estimator_->getLandedFlag() &&
-       acc_l_.z() > landing_shock_force_thre_)
-      {
-        ROS_WARN("imu: touch to ground");
-        estimator_->setLandedFlag(true);
-      }
-
     /* base link */
     /* roll & pitch */
     estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[0]);
@@ -457,7 +449,6 @@ namespace sensor_plugin
     getParam<double>("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
     getParam<double>("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
     getParam<double>("calib_time", calib_time_, 2.0 );
-    getParam<double>("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
 
     /* important scale, record here
        {

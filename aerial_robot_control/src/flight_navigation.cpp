@@ -9,6 +9,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  init_height_(0), land_height_(0),
   force_att_control_flag_(false),
   low_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
@@ -22,14 +23,16 @@ BaseNavigator::BaseNavigator():
   gps_waypoint_time_(0),
   joy_stick_heart_beat_(false),
   joy_stick_prev_time_(0),
-  teleop_flag_(true)
+  teleop_flag_(true),
+  land_check_start_time_(0)
 {
   setNaviState(ARM_OFF_STATE);
 }
 
 void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                               double loop_du)
 {
   nh_ = nh;
   nhp_ = nhp;
@@ -38,6 +41,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   robot_model_ = robot_model;
   estimator_ = estimator;
+  loop_du_ = loop_du;
 
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -410,7 +414,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //update
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
       ROS_INFO("Joy Control: Land state");
 
       return;
@@ -575,6 +578,7 @@ void BaseNavigator::update()
     {
       if(getNaviState() == LAND_STATE)
         {
+          // reset to hover state and do manually landing
           setTargetZFromCurrentState();
           setNaviState(HOVER_STATE);
         }
@@ -640,21 +644,17 @@ void BaseNavigator::update()
           setNaviState(LAND_STATE);
           setTargetXyFromCurrentState();
           setTargetYawFromCurrentState();
-          setTargetPosZ(estimator_->getLandingHeight());
         }
     }
 
-  tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 curr_vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  tf::Vector3 delta = target_pos_ - curr_pos;
 
   /* check the hard landing in force_landing model */
   if(force_landing_flag_)
     {
-      if(!estimator_->getLandingMode()) estimator_->setLandingMode(true);
-      if(estimator_->getLandedFlag() && force_landing_auto_stop_flag_)
-        {
-          ROS_WARN("hard touch to the ground in force landing mode, disarm motor");
-          setNaviState(STOP_STATE);
-        }
+      // TODO: check from altitude if possible (with sanity of estimator)
     }
 
   switch(getNaviState())
@@ -687,39 +687,47 @@ void BaseNavigator::update()
         if(xy_control_mode_ == POS_CONTROL_MODE)
           {
             if (fabs(delta.z()) > z_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_)
-              convergent_start_time_ = ros::Time::now().toSec();
+              hover_convergent_start_time_ = ros::Time::now().toSec();
           }
         else
           {
-            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            if (fabs(delta.z()) > z_convergent_thresh_) hover_convergent_start_time_ = ros::Time::now().toSec();
           }
-        if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+        if (ros::Time::now().toSec() - hover_convergent_start_time_ > hover_convergent_duration_)
           {
-            convergent_start_time_ = ros::Time::now().toSec();
+            hover_convergent_start_time_ = ros::Time::now().toSec();
             setNaviState(HOVER_STATE);
-            ROS_WARN("Hovering!");
-
+            ROS_INFO("\n \n ======================  \n Hover!!! \n ====================== \n");
           }
         break;
       }
     case LAND_STATE:
       {
-        //for estimator landing mode
-        estimator_->setLandingMode(true);
-
         if (getNaviState() > START_STATE)
           {
-            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            updateLandCommand();
 
-            if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+            if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
               {
-                convergent_start_time_ = ros::Time::now().toSec();
+                double delta = curr_pos.z() - land_height_;
+                double vel = curr_vel.z();
 
-                ROS_ERROR("disarm motors");
-                setNaviState(STOP_STATE);
+                ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
 
-                setTargetXyFromCurrentState();
-                setTargetYawFromCurrentState();
+                if (fabs(delta) < land_pos_convergent_thresh_ &&
+                    fabs(vel) < land_vel_convergent_thresh_)
+                  {
+                    ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
+                    ROS_INFO("Start disarming motors");
+                    setNaviState(STOP_STATE);
+                  }
+                else
+                  {
+                    // not staedy, update the land height
+                    land_height_ = curr_pos.z();
+                  }
+
+                land_check_start_time_ = ros::Time::now().toSec();
               }
           }
         else
@@ -831,6 +839,14 @@ void BaseNavigator::update()
   flight_state_pub_.publish(state_msg);
 }
 
+void BaseNavigator::updateLandCommand()
+{
+  // update pos and vel for z
+  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+
+  addTargetPosZ(land_descend_vel_ * loop_du_);
+  setTargetVelZ(land_descend_vel_);
+}
 
 void BaseNavigator::rosParamInit()
 {
@@ -839,9 +855,13 @@ void BaseNavigator::rosParamInit()
   ros::NodeHandle nh(nh_, "navigation");
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);
   getParam<double>(nh, "takeoff_height", takeoff_height_, 0.0);
-  getParam<double>(nh, "convergent_duration", convergent_duration_, 1.0);
+  getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.3);
+  getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
+  getParam<double>(nh, "land_check_duration", land_check_duration_, 1.0);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
+  getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);
+  getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.01);
   getParam<double>(nh, "max_target_vel", max_target_vel_, 0.0);
   getParam<double>(nh, "max_target_yaw_rate", max_target_yaw_rate_, 0.0);
   getParam<double>(nh, "max_target_tilt_angle", max_target_tilt_angle_, 1.0);
