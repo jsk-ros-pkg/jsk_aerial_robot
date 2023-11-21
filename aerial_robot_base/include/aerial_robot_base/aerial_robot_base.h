@@ -19,6 +19,9 @@ public:
   void mainFunc(const ros::TimerEvent& e);
 
 private:
+  bool param_verbose_;
+  double main_rate_;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
   ros::Timer main_timer_;
