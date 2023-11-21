@@ -74,8 +74,8 @@ install(DIRECTORY config launch plugins scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(TARGETS opt full_search fc_t_output optimal_design mapping_optimization
-  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+install(TARGETS opt full_search fc_t_output optimal_design mapping_optimization pwm_republisher
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
 # add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
