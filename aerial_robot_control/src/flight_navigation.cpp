@@ -178,6 +178,12 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       trajectory_mode_ = true;
       trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
     }
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      ROS_INFO("ok2");
+      // setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(msg->target_omega_z);
+    }
 
   /* xy control */
   switch(msg->pos_xy_nav_mode)
