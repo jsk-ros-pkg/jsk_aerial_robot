@@ -146,6 +146,12 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
       setTargetOmageZ(msg->target_omega_z);
     }
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      ROS_INFO("ok2");
+      // setTargetYaw(angles::normalize_angle(msg->target_yaw));
+      setTargetOmageZ(msg->target_omega_z);
+    }
 
   /* xy control */
   switch(msg->pos_xy_nav_mode)
