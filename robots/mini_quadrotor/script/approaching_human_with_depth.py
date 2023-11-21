@@ -28,6 +28,7 @@ class Approaching_human():
 
         self.n = 0
         self.rotate_cnt = 0
+        self.land_cnt = 0
         self.rotate_flag = True
         self.offset_yaw = 2*math.pi
 
@@ -213,27 +214,23 @@ class Approaching_human():
                 self.pos_cal()
                 if self.depth > 0:
                     self.PID_control()
-                    self.move_msg.yaw_nav_mode = 0
-                    self.move_msg.pos_xy_nav_mode = 1
                     self.move_msg.target_vel_x = self.output
                     self.move_pub.publish(self.move_msg)
                     rospy.loginfo("go!")
-                    rospy.loginfo("cmd_vel: %s",self.output)
-                    self.move_msg.pos_xy_nav_mode = 0
-                    self.rotate_cnt += 1
+                    #rospy.loginfo("cmd_vel: %s",self.output)
+                    self.land_cnt = 0
                     self.flight_start_flag = False
                 else:
-                    self.move_msg.yaw_nav_mode = 0
-                    self.move_msg.pos_xy_nav_mode = 1
                     self.move_msg.target_vel_x = 0.0
                     self.move_pub.publish(self.move_msg)
                     rospy.loginfo("stop!")
-                    self.move_msg.pos_xy_nav_mode = 0
-                    self.rotate_cnt += 1
+                    self.land_cnt += 1
+                    if self.land_cnt >= 10:
+                        rospy.loginfo("land!")
+                        self.land_pub.publish()
+                self.rotate_cnt += 1
             else:
                 rospy.loginfo("don't see people")
-                self.move_msg.yaw_nav_mode = 0
-                self.move_msg.pos_xy_nav_mode = 1
                 self.move_msg.target_vel_x = 0.0
                 self.move_pub.publish(self.move_msg)
                 rospy.loginfo("stop! because not see people")
