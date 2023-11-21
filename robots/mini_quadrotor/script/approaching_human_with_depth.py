@@ -38,7 +38,7 @@ class Approaching_human():
         self.target_pos_pub = rospy.Publisher('/3D_pos',Vector3,queue_size = 1)
         self.camera_height = 720
         self.camera_width = 1280
-        self.camera_param = 0.5
+        self.camera_param = 0.3
         #rect(ROS image)
         self.rect_sub = rospy.Subscriber('/human',RectArray,self.rect_cb)
         self.rects = RectArray()
@@ -73,6 +73,8 @@ class Approaching_human():
         self.move_msg = FlightNav()
         self.move_msg.control_frame = 1
         self.move_msg.target = 1
+        self.move_msg.pos_xy_nav_mode = 1
+        self.move_msg.yaw_nav_mode = 2
         self.land_pub =rospy.Publisher('/quadrotor/teleop_command/land',Empty,queue_size = 10)
         self.timer = rospy.Timer(rospy.Duration(0.05), self.timerCallback)
 
@@ -116,7 +118,7 @@ class Approaching_human():
         #     if self.flight_start_flag:
         #         rospy.sleep(2.0)
         #         self.flight_start_flag = False
-        if self.rotate_cnt >= 10:
+        if self.rotate_cnt >= 20:
             self.rotate_flag = True
             self.rotate_cnt = 0
 
@@ -160,8 +162,6 @@ class Approaching_human():
         # self.move_msg.target_yaw = yaw
         rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
         # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
-        self.move_msg.pos_xy_nav_mode = 0
-        self.move_msg.yaw_nav_mode = 2
         self.move_pub.publish(self.move_msg)
         self.rotate_flag = False
 
@@ -171,10 +171,10 @@ class Approaching_human():
         depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
         print(depth)
         if self.flight_start_flag:
-            self.depth = depth/1000 - 0.3 #############
+            self.depth = depth/1000 - 0.6 #############
         else:
             if depth <= self.depth_thresh_max and self.depth_thresh_min <= depth:
-                self.depth = depth/1000 - 0.3 #############
+                self.depth = depth/1000 - 0.6 #############
                 self.depth_thresh_max = self.prev_depth*1000 + 800
                 self.depth_thresh_min = self.prev_depth*1000 - 800
             elif depth <= 0:
@@ -183,14 +183,14 @@ class Approaching_human():
                 self.depth = 0
                 print("else")
         rospy.loginfo("depth: %s",self.depth)
-        rospy.loginfo("prev_depth: %s",self.prev_depth)
+        #rospy.loginfo("prev_depth: %s",self.prev_depth)
 
 
     def PID_control(self):
         self.output = self.depth * self.Kp + (self.depth - self.prev_depth) * self.Kd + self.depth_sum*self.Ki
         self.prev_depth = self.depth
         self.depth_sum += self.depth
-        #rospy.loginfo("vel: %s",self.)
+        rospy.loginfo("vel: %s",self.output)
 
     # def approaching_human(self):
     #     if self.max_thresh_area > self.max_rect_area:
