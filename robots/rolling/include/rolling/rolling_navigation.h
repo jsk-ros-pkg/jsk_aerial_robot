@@ -89,6 +89,7 @@ namespace aerial_robot_navigation
     double prev_rotation_stamp_;
     std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
+    bool baselink_rot_force_update_mode_;
 
     /* landing process */
     bool landing_flag_;

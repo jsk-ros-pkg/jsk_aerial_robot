@@ -29,6 +29,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   prev_ground_navigation_mode_ = -1;
   current_ground_navigation_mode_ = 0;
+  baselink_rot_force_update_mode_ = false;
 }
 
 void RollingNavigator::update()
@@ -58,6 +59,7 @@ void RollingNavigator::reset()
   curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
   landing_flag_ = false;
+  baselink_rot_force_update_mode_ = false;
 
   ROS_INFO_STREAM("[navigation] reset navigator");
 
@@ -65,20 +67,38 @@ void RollingNavigator::reset()
 
 void RollingNavigator::baselinkRotationProcess()
 {
-  if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
+  // if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
 
+  spinal::DesireCoord target_baselink_rot_msg;
+
+  /* publish desire coord with constant timestep */
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
     {
-      if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
-        curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+      /* force update mode */
+      if(baselink_rot_force_update_mode_)
+        {
+          // std::cout << "force update" << std::endl;
+          target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+          target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+          final_target_baselink_rot_.setValue(curr_target_baselink_rot_.x(), curr_target_baselink_rot_.y(), curr_target_baselink_rot_.z());
+        }
+      /* linear interpolation */
       else
-        curr_target_baselink_rot_ = final_target_baselink_rot_;
+        {
+          // std::cout << "interpolation" << std::endl;
+          if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
+            {
+              curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+            }
+          else
+            {
+              curr_target_baselink_rot_ = final_target_baselink_rot_;
+            }
+          target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+          target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+        }
 
-      spinal::DesireCoord target_baselink_rot_msg;
-      target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-      target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
       curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
-
       prev_rotation_stamp_ = ros::Time::now().toSec();
     }
 }
