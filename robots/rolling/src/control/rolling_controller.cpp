@@ -84,11 +84,6 @@ void RollingController::reset()
   standing_baselink_ref_pitch_last_update_time_ = -1;
   standing_target_baselink_pitch_ = 0.0;
 
-  spinal::DesireCoord desire_coordinate_msg;
-  desire_coordinate_msg.roll = 0.0;
-  desire_coordinate_msg.pitch = 0.0;
-  desire_coordinate_msg.yaw = 0.0;
-  desire_coordinate_pub_.publish(desire_coordinate_msg);
 
   ROS_INFO_STREAM("[control] reset controller");
 }

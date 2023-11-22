@@ -38,11 +38,7 @@ void RollingController::standingPlanning()
   //       }
   //   }
 
-
-  // spinal::DesireCoord desire_coordinate_msg;
-  // desire_coordinate_msg.roll = standing_target_phi_;
-  // desire_coordinate_msg.pitch = baselink_pitch;
-  // desire_coordinate_pub_.publish(desire_coordinate_msg);
+  rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
 
   pid_msg_.roll.total.at(0) = pid_controllers_.at(ROLL).result();
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
