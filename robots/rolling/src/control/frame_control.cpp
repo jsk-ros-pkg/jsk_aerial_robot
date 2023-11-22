@@ -16,6 +16,16 @@ void RollingController::standingPlanning()
   double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
   double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
 
+  if(!start_rp_integration_)
+    {
+      start_rp_integration_ = true;
+      spinal::FlightConfigCmd flight_config_cmd;
+      flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+      navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
+      ROS_WARN_ONCE("start roll/pitch I control");
+    }
+
+
   // if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
   //   {
   //     if(baselink_roll < M_PI / 2.0)
