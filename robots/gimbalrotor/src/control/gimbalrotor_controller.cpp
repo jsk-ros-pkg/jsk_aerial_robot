@@ -52,7 +52,7 @@ namespace aerial_robot_control
 
   bool GimbalrotorController::update()
   {
-    // sendGimbalCommand();
+    sendGimbalCommand();
     if(gimbal_calc_in_fc_){
       std_msgs::UInt8 msg;
       msg.data = gimbal_dof_;
