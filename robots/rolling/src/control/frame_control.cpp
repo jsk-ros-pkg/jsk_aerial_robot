@@ -58,7 +58,6 @@ void RollingController::calcStandingFullLambda()
   int n_variables = 2 * motor_num_;
   int n_constraints = 3 + 1 + 2 + 2;
   double epsilon = 0.0001;
-  double large_epsilon = 0.1;
 
   Eigen::MatrixXd H(n_variables, n_variables);
   H <<
@@ -145,7 +144,7 @@ void RollingController::calcStandingFullLambda()
     <<
     target_wrench_acc_target_frame(ROLL) - epsilon,
     target_wrench_acc_target_frame(PITCH) - epsilon,
-    target_wrench_acc_target_frame(YAW) - large_epsilon,
+    target_wrench_acc_target_frame(YAW) - epsilon,
     -INFINITY,
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
@@ -157,7 +156,7 @@ void RollingController::calcStandingFullLambda()
   upper_bound <<
     target_wrench_acc_target_frame(ROLL) + epsilon,
     target_wrench_acc_target_frame(PITCH) + epsilon,
-    target_wrench_acc_target_frame(YAW) + large_epsilon,
+    target_wrench_acc_target_frame(YAW) + epsilon,
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
