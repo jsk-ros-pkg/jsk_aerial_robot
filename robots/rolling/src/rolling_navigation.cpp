@@ -186,11 +186,6 @@ void RollingNavigator::setGroundNavigationMode(int state)
     }
 }
 
-void RollingNavigator::setFinalTargetBaselinkRot(tf::Vector3 rot)
-{
-  final_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());
-}
-
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
 {
   ROS_WARN_STREAM("[navigation] set ground navigation mode to " << msg->data);
@@ -199,6 +194,7 @@ void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & m
 
 void RollingNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
+  ROS_WARN_STREAM("[navigation] baselink rotation callback. RPY: " << msg->roll << " " << msg->pitch << " " << msg->yaw);
   setFinalTargetBaselinkRot(tf::Vector3(msg->roll, msg->pitch, msg->yaw));
 }
 
@@ -211,6 +207,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
       ROS_INFO("[joy] change to standing state");
       setGroundNavigationMode(STANDING_STATE);
     }
+
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != STEERING_STATE)
     {
       ROS_INFO("[joy] change to steering state");

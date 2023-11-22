@@ -41,6 +41,12 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getSteeringInitialEuler() {return steering_initial_euler_;}
     inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
     inline tf::Vector3 getRollingInitialEuler() {return rolling_initial_euler_;}
+    void setFinalTargetBaselinkRot(tf::Vector3 rot) {final_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());}
+    void setFinalTargetBaselinkRotRoll(double rad) {final_target_baselink_rot_.setX(rad);}
+    void setFinalTargetBaselinkRotPitch(double rad) {final_target_baselink_rot_.setY(rad);}
+    void setCurrentTargetBaselinkRot(tf::Vector3 rot) {curr_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());}
+    void setCurrentTargetBaselinkRotRoll(double rad) {curr_target_baselink_rot_.setX(rad);}
+    void setCurrentTargetBaselinkRotPitch(double rad) {curr_target_baselink_rot_.setY(rad);}
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
@@ -56,7 +62,6 @@ namespace aerial_robot_navigation
     void groundModeProcess();
 
     void rosParamInit() override;
-    void setFinalTargetBaselinkRot(tf::Vector3 rot);
 
     void groundNavigationModeCallback(const std_msgs::Int16Ptr & msg);
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
