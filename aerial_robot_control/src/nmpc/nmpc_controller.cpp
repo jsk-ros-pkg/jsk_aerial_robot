@@ -178,23 +178,26 @@ void aerial_robot_control::NMPCController::controlCore()
   tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
   tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
 
-  // - roll, pitch
+  // - roll, pitch angles
   target_roll_ = (t_nmpc_samp_ * rpy0[0] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[0]) / t_nmpc_integ_;
   target_pitch_ = (t_nmpc_samp_ * rpy0[1] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[1]) / t_nmpc_integ_;
 
   flight_cmd_.angles[0] = static_cast<float>(target_roll_);
   flight_cmd_.angles[1] = static_cast<float>(target_pitch_);
 
-  // - yaw
+  // - yaw angle
   double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
   target_yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
   error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
   yaw_p_term = yaw_p_gain * error_yaw;
-  error_yaw_rate = mpc_solver_.x_u_out_.x.data.at(9) - mpc_solver_.x_u_out_.x.data.at(9 + NX);
-  yaw_d_term = yaw_d_gain * error_yaw_rate;
-  candidate_yaw_term_ = -yaw_p_term - yaw_d_term;
+  candidate_yaw_term_ = -yaw_p_term;
 
   flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);
+
+  // - body rates
+  flight_cmd_.body_rates[0] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(0));
+  flight_cmd_.body_rates[1] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(1));
+  flight_cmd_.body_rates[2] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(2));
 
   // - thrust
   double acc_body_z = mpc_solver_.x_u_out_.u.data.at(3);
