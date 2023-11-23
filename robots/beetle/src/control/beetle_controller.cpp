@@ -69,6 +69,9 @@ namespace aerial_robot_control
       feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_compensation_term.head(3);
       feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_compensation_term.tail(3);
 
+      /*regarding to force, only use xy term */
+      feedforward_wrench_acc_cog_term_(2) = 0;
+
       /*regarding to torque, only use yaw term */
       feedforward_wrench_acc_cog_term_(3) = 0;
       feedforward_wrench_acc_cog_term_(4) = 0;
@@ -89,7 +92,7 @@ namespace aerial_robot_control
       if(pre_module_state_ != FOLLOWER){
         ErrI_X_ = pid_controllers_.at(X).getErrI();
         ErrI_Y_ = pid_controllers_.at(Y).getErrI();
-        ErrI_Z_ = pid_controllers_.at(Z).getErrI();
+        // ErrI_Z_ = pid_controllers_.at(Z).getErrI();
         // ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
         // ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
         ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
@@ -98,7 +101,7 @@ namespace aerial_robot_control
       //fix i_term
       pid_controllers_.at(X).setErrI(ErrI_X_);
       pid_controllers_.at(Y).setErrI(ErrI_Y_);
-      pid_controllers_.at(Z).setErrI(ErrI_Z_);
+      // pid_controllers_.at(Z).setErrI(ErrI_Z_);
       // pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
       // pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
       pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
