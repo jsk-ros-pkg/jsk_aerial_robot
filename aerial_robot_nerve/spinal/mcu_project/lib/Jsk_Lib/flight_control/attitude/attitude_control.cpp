@@ -288,60 +288,68 @@ void AttitudeController::update(void)
         std_msgs::Float32MultiArray anti_gyro_msg;
 #endif
 
-        float error_angle[3];
-        for(int axis = 0; axis < 3; axis++)
-          {
-            error_angle[axis] = target_angle_[axis] - angles[axis];
-            if(integrate_flag_) error_angle_i_[axis] += error_angle[axis] * DELTA_T;
+      float error_angle[3];
+      float error_ang_vel[3];
+      for (int axis = 0; axis < 3; axis++)
+      {
+        error_angle[axis] = target_angle_[axis] - angles[axis];
 
-            if(axis == X)
-              {
-                control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
-                control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.roll_d = ang_vel[axis] * 1000;
-              }
-            if(axis == Y)
-              {
-                control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
-                control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.pitch_d = ang_vel[axis] * 1000;
-              }
-            if(axis == Z)
-              {
-                control_feedback_state_msg_.yaw_d = ang_vel[axis] * 1000;
-              }
+        if (is_body_rate_ctrl_)
+          error_ang_vel[axis] = target_ang_vel_[axis] - ang_vel[axis];
+        else
+          error_ang_vel[axis] = 0 - ang_vel[axis];
+
+        if (integrate_flag_)
+          error_angle_i_[axis] += error_angle[axis] * DELTA_T;
+
+        if (axis == X)
+        {
+          control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
+          control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
+          control_feedback_state_msg_.roll_d = error_ang_vel[axis] * 1000;
+        }
+        if (axis == Y)
+        {
+          control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
+          control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
+          control_feedback_state_msg_.pitch_d = error_ang_vel[axis] * 1000;
+        }
+        if (axis == Z)
+        {
+          control_feedback_state_msg_.yaw_d = error_ang_vel[axis] * 1000;
+        }
+      }
+
+      float p_term = 0;
+      float i_term = 0;
+      float d_term = 0;
+      for (int i = 0; i < motor_number_; i++)
+      {
+        for (int axis = 0; axis < 3; axis++)
+        {
+          p_term = error_angle[axis] * thrust_p_gain_[i][axis];
+          i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
+          d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
+          if (axis == X)
+          {
+            roll_pitch_term_[i] = p_term + i_term + d_term;  // [N]
+            control_term_msg_.motors[i].roll_p = p_term * 1000;
+            control_term_msg_.motors[i].roll_i = i_term * 1000;
+            control_term_msg_.motors[i].roll_d = d_term * 1000;
           }
-
-        float p_term = 0;
-        float i_term = 0;
-        float d_term = 0;
-        for(int i = 0; i < motor_number_; i++)
+          if (axis == Y)
           {
-            for(int axis = 0; axis < 3; axis++)
-              {
-                p_term = error_angle[axis] * thrust_p_gain_[i][axis];
-                i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-                d_term = -ang_vel[axis] * thrust_d_gain_[i][axis];
-                if(axis == X)
-                  {
-                    roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
-                    control_term_msg_.motors[i].roll_p = p_term * 1000;
-                    control_term_msg_.motors[i].roll_i = i_term * 1000;
-                    control_term_msg_.motors[i].roll_d = d_term * 1000;
-                  }
-                if(axis == Y)
-                  {
-                    roll_pitch_term_[i] += (p_term + i_term + d_term); // [N]
-                    control_term_msg_.motors[i].pitch_p = p_term * 1000;
-                    control_term_msg_.motors[i].pitch_i = i_term * 1000;
-                    control_term_msg_.motors[i].pitch_d = d_term * 1000;
-                  }
-                if(axis == Z)
-                  {
-                    yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
-                    control_term_msg_.motors[i].yaw_d = d_term * 1000; //d_term;
-                  }
-              }
+            roll_pitch_term_[i] += (p_term + i_term + d_term);  // [N]
+            control_term_msg_.motors[i].pitch_p = p_term * 1000;
+            control_term_msg_.motors[i].pitch_i = i_term * 1000;
+            control_term_msg_.motors[i].pitch_d = d_term * 1000;
+          }
+          if (axis == Z)
+          {
+            yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
+            control_term_msg_.motors[i].yaw_d = d_term * 1000;  // d_term;
+          }
+        }
 
             /* gyro moment compensation */
             float gyro_moment_compensate =
@@ -402,10 +410,11 @@ void AttitudeController::reset(void)
         }
     }
 
-  for(int i = 0; i < 3; i++)
-    {
-      target_angle_[i] = 0;
-      error_angle_i_[i] = 0;
+  for (int i = 0; i < 3; i++)
+  {
+    target_angle_[i] = 0;
+    target_ang_vel_[i] = 0;
+    error_angle_i_[i] = 0;
 
       torque_p_gain_[i] = 0;
       torque_i_gain_[i] = 0;
@@ -474,13 +483,21 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
   if(!failsafe_) failsafe_ = true;
   flight_command_last_stamp_ = HAL_GetTick();
 
+  // get msg data from spinal::FourAxisCommand
   target_angle_[X] = cmd_msg.angles[0];
   target_angle_[Y] = cmd_msg.angles[1];
 
-  for(int i = 0; i < motor_number_; i++)
-    {
-      // base thrust is about the z control
-      base_thrust_term_[i] = cmd_msg.base_thrust[i];
+  if (is_body_rate_ctrl_)
+  {
+    target_ang_vel_[X] = cmd_msg.body_rates[0];
+    target_ang_vel_[Y] = cmd_msg.body_rates[1];
+    target_ang_vel_[Z] = cmd_msg.body_rates[2];
+  }
+
+  for (int i = 0; i < motor_number_; i++)
+  {
+    // base thrust is about the z control
+    base_thrust_term_[i] = cmd_msg.base_thrust[i];
 
       // reconstruct the pi term for yaw (temporary measure for pwm saturation avoidance)
       if(max_yaw_term_index_ != -1)
