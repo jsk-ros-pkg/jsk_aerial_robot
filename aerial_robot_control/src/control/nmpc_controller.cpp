@@ -3,7 +3,7 @@
 // Created by lijinjie on 23/10/27.
 //
 
-#include "aerial_robot_control/control/base/nmpc_controller.h"
+#include "aerial_robot_control/control/nmpc_controller.h"
 
 aerial_robot_control::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
@@ -49,6 +49,10 @@ void aerial_robot_control::NMPCController::initialize(
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
 
+  pub_rpy_gain_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);  // tmp
+  pub_p_matrix_pseudo_inverse_inertia_ =
+      nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);  // tmp
+
   reset();
 
   ROS_INFO("MPC Controller initialized!");
@@ -69,13 +73,16 @@ void aerial_robot_control::NMPCController::reset()
 {
   ControlBase::reset();
 
+  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
+  sendRotationalInertiaComp();  // tmp for inertia
+
+  /* reset controller using odom */
   tf::Vector3 pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel_ = estimator_->getVel(Frame::COG, estimate_mode_);
   tf::Vector3 rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
   tf::Quaternion q;
   q.setRPY(rpy_.x(), rpy_.y(), rpy_.z());
 
-  /* reset controller using odom */
   double x[NX] = { pos_.x(), pos_.y(), pos_.z(), vel_.x(), vel_.y(), vel_.z(), q.w(), q.x(), q.y(), q.z() };
   double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
   MPC::initPredXU(x_u_ref_);
@@ -217,7 +224,6 @@ void aerial_robot_control::NMPCController::sendCmd()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-
 void aerial_robot_control::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
@@ -255,3 +261,79 @@ void aerial_robot_control::NMPCController::callbackViz(const ros::TimerEvent& ev
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
+void aerial_robot_control::NMPCController::sendRPYGain()
+{
+  spinal::RollPitchYawTerms rpy_gain_msg;
+  rpy_gain_msg.motors.resize(motor_num_);
+
+  rpy_gain_msg.motors[0].roll_p = -2303;
+  rpy_gain_msg.motors[0].roll_i = -354;
+  rpy_gain_msg.motors[0].roll_d = -395;
+  rpy_gain_msg.motors[0].pitch_p = 2297;
+  rpy_gain_msg.motors[0].pitch_i = 353;
+  rpy_gain_msg.motors[0].pitch_d = 393;
+  rpy_gain_msg.motors[0].yaw_d = 1423;
+
+  rpy_gain_msg.motors[1].roll_p = -2291;
+  rpy_gain_msg.motors[1].roll_i = -352;
+  rpy_gain_msg.motors[1].roll_d = -390;
+  rpy_gain_msg.motors[1].pitch_p = -2297;
+  rpy_gain_msg.motors[1].pitch_i = -353;
+  rpy_gain_msg.motors[1].pitch_d = -393;
+  rpy_gain_msg.motors[1].yaw_d = -1426;
+
+  rpy_gain_msg.motors[2].roll_p = 2291;
+  rpy_gain_msg.motors[2].roll_i = 352;
+  rpy_gain_msg.motors[2].roll_d = 390;
+  rpy_gain_msg.motors[2].pitch_p = -2297;
+  rpy_gain_msg.motors[2].pitch_i = -353;
+  rpy_gain_msg.motors[2].pitch_d = -393;
+  rpy_gain_msg.motors[2].yaw_d = 1426;
+
+  rpy_gain_msg.motors[3].roll_p = 2303;
+  rpy_gain_msg.motors[3].roll_i = 354;
+  rpy_gain_msg.motors[3].roll_d = 395;
+  rpy_gain_msg.motors[3].pitch_p = 2297;
+  rpy_gain_msg.motors[3].pitch_i = 353;
+  rpy_gain_msg.motors[3].pitch_d = 393;
+  rpy_gain_msg.motors[3].yaw_d = -1423;
+
+  pub_rpy_gain_.publish(rpy_gain_msg);
+}
+
+void aerial_robot_control::NMPCController::sendRotationalInertiaComp()
+{
+  int lqi_mode_ = 4;
+
+  Eigen::MatrixXd P = robot_model_->calcWrenchMatrixOnCoG();
+  Eigen::MatrixXd p_mat_pseudo_inv_ = aerial_robot_model::pseudoinverse(P.middleRows(2, lqi_mode_));
+
+  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;  // to spinal
+  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(motor_num_);
+
+  for (int i = 0; i < motor_num_; ++i)
+  {
+    /* the p matrix pseudo inverse and inertia */
+    p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = p_mat_pseudo_inv_(i, 1) * 1000;
+    p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = p_mat_pseudo_inv_(i, 2) * 1000;
+    if (lqi_mode_ == 4)
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = p_mat_pseudo_inv_(i, 3) * 1000;
+    else
+      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = 0;
+  }
+
+  /* the articulated inertia */
+  Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
+  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
+  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
+
+  pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
+}
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::NMPCController, aerial_robot_control::ControlBase);

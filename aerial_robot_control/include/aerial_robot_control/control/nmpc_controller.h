@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "base.h"
-#include "mpc_solver.h"
+#include "aerial_robot_control/control/base/base.h"
+#include "aerial_robot_control/control/base/mpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
 
@@ -20,6 +20,8 @@
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "spinal/FourAxisCommand.h"
+#include <spinal/RollPitchYawTerms.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
 
 /* action */
 #include "actionlib/server/simple_action_server.h"
@@ -45,11 +47,16 @@ public:
   void reset() override;
   void callbackViz(const ros::TimerEvent& event);
 
+  void sendRPYGain();
+  void sendRotationalInertiaComp();
+
 protected:
-  ros::Publisher pub_flight_cmd_;  // for spinal
-  ros::Publisher pub_viz_pred_;    // for viz predictions
-  ros::Publisher pub_viz_ref_;     // for viz reference
-  ros::Timer tmr_viz_;             // for viz
+  ros::Publisher pub_flight_cmd_;                       // for spinal
+  ros::Publisher pub_viz_pred_;                         // for viz predictions
+  ros::Publisher pub_viz_ref_;                          // for viz reference
+  ros::Publisher pub_rpy_gain_;                         // for angular gains
+  ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
+  ros::Timer tmr_viz_;                                  // for viz
 
   virtual void controlCore();
   virtual void sendCmd();
