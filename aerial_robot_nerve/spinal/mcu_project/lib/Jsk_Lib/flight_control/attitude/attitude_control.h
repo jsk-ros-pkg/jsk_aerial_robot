@@ -45,6 +45,7 @@
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/SetControlMode.h>
 
 #define IDLE_DUTY 0.5f
 #define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.0025 = 1.25 N / sec
@@ -129,6 +130,20 @@ private:
   void setSimVolCallback(const std_msgs::Float32 vol_msg) { sim_voltage_ = vol_msg.data; }
   float sim_voltage_;
 
+  ros::ServiceServer control_mode_srv_;
+  bool setControlModeCallback(spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res)
+  {
+    if (req.is_attitude == false && req.is_body_rate==false)
+    {
+      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
+      return false;
+    }
+
+    is_attitude_ctrl_ = req.is_attitude;
+    is_body_rate_ctrl_ = req.is_body_rate;
+    return true;
+  }
+
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -139,6 +154,16 @@ private:
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+
+  ros::ServiceServer<spinal::SetControlMode::Request, spinal::SetControlMode::Response, AttitudeController> control_mode_srv_;
+  void setControlModeCallback(const spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res) {
+    if (req.is_attitude == false && req.is_body_rate == false)
+    {
+      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
+    }
+    is_attitude_ctrl_ = req.is_attitude;
+    is_body_rate_ctrl_ = req.is_body_rate;
+  }
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
@@ -175,6 +200,10 @@ private:
   // Gyro Moment Compensation
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
   ap::Matrix3f inertia_;
+
+  // control level
+  bool is_attitude_ctrl_;
+  bool is_body_rate_ctrl_;
 
   // Failsafe
   bool failsafe_;

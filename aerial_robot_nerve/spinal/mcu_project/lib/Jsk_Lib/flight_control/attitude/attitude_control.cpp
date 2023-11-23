@@ -31,6 +31,8 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+  control_mode_srv_ = nh_->advertiseService("set_control_mode", &AttitudeController::setControlModeCallback, this);
+
   baseInit();
 }
 
@@ -46,7 +48,8 @@ AttitudeController::AttitudeController():
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  control_mode_srv_("set_control_mode", &AttitudeController::setControlModeCallback, this)
 {
 }
 
@@ -82,6 +85,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe(torque_allocation_matrix_inv_sub_);
 
   nh_->advertiseService(att_control_srv_);
+  nh_->advertiseService(control_mode_srv_);
 
   baseInit();
 }
@@ -115,6 +119,10 @@ void AttitudeController::baseInit()
 
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
+
+  // control mode: attitude or body rate
+  is_attitude_ctrl_ = true;
+  is_body_rate_ctrl_ = false;
 
   reset();
 }
