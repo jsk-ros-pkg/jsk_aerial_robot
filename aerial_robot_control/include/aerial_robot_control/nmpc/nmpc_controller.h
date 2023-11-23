@@ -6,7 +6,7 @@
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/control/base/mpc_solver.h"
+#include "aerial_robot_control/nmpc/unactuated_body_rate//mpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
 

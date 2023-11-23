@@ -18,7 +18,7 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/control/base/nmpc_body_rate/c_generated_code/acados_solver_qd_body_rate_model.h"
+#include "aerial_robot_control/nmpc/unactuated_body_rate/c_generated_code/acados_solver_qd_body_rate_model.h"
 
 #define NN QD_BODY_RATE_MODEL_N
 #define NX QD_BODY_RATE_MODEL_NX

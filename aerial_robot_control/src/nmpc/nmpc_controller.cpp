@@ -3,7 +3,7 @@
 // Created by lijinjie on 23/10/27.
 //
 
-#include "aerial_robot_control/control/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/nmpc_controller.h"
 
 aerial_robot_control::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {

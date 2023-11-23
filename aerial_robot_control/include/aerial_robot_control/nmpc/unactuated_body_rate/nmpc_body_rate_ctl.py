@@ -37,7 +37,7 @@ class NMPCBodyRateController(object):
 
         # get file path for acados
         os.chdir(os.path.dirname(os.path.realpath(__file__)))
-        acados_models_dir = "./acados_models"
+        acados_models_dir = "acados_models"
         safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
         acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
         sys.path.insert(0, acados_source_path)
