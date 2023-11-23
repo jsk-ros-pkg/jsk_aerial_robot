@@ -254,9 +254,14 @@ private:
 public:
   void useGroundTruth(bool flag) { use_ground_truth_ = flag; }
   void setTrueRPY(float r, float p, float y) {true_angles_.x = r; true_angles_.y = p; true_angles_.z = y; }
-  void setTrueAngular(float wx, float wy, float wz) {true_vel_.x = wx; true_vel_.y = wy; true_vel_.z = wz; }
+  void setTrueAngular(float wx, float wy, float wz)
+  {
+    true_ang_vel_.x = wx;
+    true_ang_vel_.y = wy;
+    true_ang_vel_.z = wz;
+  }
   ap::Vector3f true_angles_;
-  ap::Vector3f true_vel_;
+  ap::Vector3f true_ang_vel_;
   float DELTA_T;
   double prev_time_;
 #endif

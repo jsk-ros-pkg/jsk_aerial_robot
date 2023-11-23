@@ -233,20 +233,20 @@ void AttitudeController::update(void)
         }
 
       ap::Vector3f angles;
-      ap::Vector3f vel;
+      ap::Vector3f ang_vel;
 #ifdef SIMULATION
       if(use_ground_truth_)
         {
           angles = true_angles_;
-          vel = true_vel_;
+          ang_vel = true_ang_vel_;
         }
       else
         {
           angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-          vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
+          ang_vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
         }
 
-      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_vel_.x, vel.x, true_vel_.y, vel.y, true_vel_.z, vel.z);
+      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_ang_vel_.x, ang_vel.x, true_ang_vel_.y, ang_vel.y, true_ang_vel_.z, ang_vel.z);
 
       if(prev_time_ < 0) DELTA_T = 0;
       else DELTA_T = ros::Time::now().toSec() - prev_time_;
@@ -283,7 +283,7 @@ void AttitudeController::update(void)
       // linear control method
       {
         /* gyro moment */
-        ap::Vector3f gyro_moment = vel % (inertia_ * vel);
+        ap::Vector3f gyro_moment = ang_vel % (inertia_ * ang_vel);
 #ifdef SIMULATION
         std_msgs::Float32MultiArray anti_gyro_msg;
 #endif
@@ -298,18 +298,17 @@ void AttitudeController::update(void)
               {
                 control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
+                control_feedback_state_msg_.roll_d = ang_vel[axis] * 1000;
               }
             if(axis == Y)
               {
                 control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
-
+                control_feedback_state_msg_.pitch_d = ang_vel[axis] * 1000;
               }
             if(axis == Z)
               {
-                control_feedback_state_msg_.yaw_d = vel[axis] * 1000;
+                control_feedback_state_msg_.yaw_d = ang_vel[axis] * 1000;
               }
           }
 
@@ -322,12 +321,12 @@ void AttitudeController::update(void)
               {
                 p_term = error_angle[axis] * thrust_p_gain_[i][axis];
                 i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-                d_term = -vel[axis] * thrust_d_gain_[i][axis];
+                d_term = -ang_vel[axis] * thrust_d_gain_[i][axis];
                 if(axis == X)
                   {
                     roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
                     control_term_msg_.motors[i].roll_p = p_term * 1000;
-                    control_term_msg_.motors[i].roll_i= i_term * 1000;
+                    control_term_msg_.motors[i].roll_i = i_term * 1000;
                     control_term_msg_.motors[i].roll_d = d_term * 1000;
                   }
                 if(axis == Y)
