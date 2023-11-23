@@ -42,8 +42,6 @@ void aerial_robot_control::NMPCController::initialize(
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
 
-  /* subscribers */
-
   /* publishers */
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
@@ -53,7 +51,21 @@ void aerial_robot_control::NMPCController::initialize(
   pub_p_matrix_pseudo_inverse_inertia_ =
       nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);  // tmp
 
+  /* services */
+  srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
+
   reset();
+
+  // set control mode
+  spinal::SetControlMode set_control_mode_srv;
+  set_control_mode_srv.request.is_attitude = true;
+  set_control_mode_srv.request.is_body_rate = true;
+  while (!srv_set_control_mode_.call(set_control_mode_srv))
+    ROS_WARN_THROTTLE(1,
+                      "Waiting for set_control_mode service.... If you always see this message, the robot cannot fly.");
+
+  ROS_INFO("Set control mode: attitude = %d and body rate = %d", set_control_mode_srv.request.is_attitude,
+           set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
 }

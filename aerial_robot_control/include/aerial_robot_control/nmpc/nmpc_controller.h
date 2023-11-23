@@ -20,8 +20,9 @@
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "spinal/FourAxisCommand.h"
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/PMatrixPseudoInverseWithInertia.h>
+#include "spinal/RollPitchYawTerms.h"
+#include "spinal/PMatrixPseudoInverseWithInertia.h"
+#include "spinal/SetControlMode.h"
 
 /* action */
 #include "actionlib/server/simple_action_server.h"
@@ -51,12 +52,15 @@ public:
   void sendRotationalInertiaComp();
 
 protected:
+  ros::Timer tmr_viz_;
+
   ros::Publisher pub_flight_cmd_;                       // for spinal
   ros::Publisher pub_viz_pred_;                         // for viz predictions
   ros::Publisher pub_viz_ref_;                          // for viz reference
-  ros::Publisher pub_rpy_gain_;                         // for angular gains
+  ros::Publisher pub_rpy_gain_;                         // for gains of attitude controller
   ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
-  ros::Timer tmr_viz_;                                  // for viz
+
+  ros::ServiceClient srv_set_control_mode_;
 
   virtual void controlCore();
   virtual void sendCmd();
