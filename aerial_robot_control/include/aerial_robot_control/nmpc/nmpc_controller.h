@@ -61,6 +61,8 @@ protected:
   ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
 
   ros::ServiceClient srv_set_control_mode_;
+  bool is_attitude_ctrl_;
+  bool is_body_rate_ctrl_;
 
   virtual void controlCore();
   virtual void sendCmd();

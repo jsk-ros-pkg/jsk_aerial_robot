@@ -39,6 +39,9 @@ void aerial_robot_control::NMPCController::initialize(
   getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);
   getParam<double>(control_nh, "nmpc/yaw_d_gain", yaw_d_gain, 1.0);
 
+  getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
+  getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
+
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
 
@@ -58,8 +61,8 @@ void aerial_robot_control::NMPCController::initialize(
 
   // set control mode
   spinal::SetControlMode set_control_mode_srv;
-  set_control_mode_srv.request.is_attitude = true;
-  set_control_mode_srv.request.is_body_rate = true;
+  set_control_mode_srv.request.is_attitude = is_attitude_ctrl_;
+  set_control_mode_srv.request.is_body_rate = is_body_rate_ctrl_;
   while (!srv_set_control_mode_.call(set_control_mode_srv))
     ROS_WARN_THROTTLE(1,
                       "Waiting for set_control_mode service.... If you always see this message, the robot cannot fly.");
@@ -206,11 +209,11 @@ void aerial_robot_control::NMPCController::controlCore()
   Eigen::VectorXd g = robot_model_->getGravity();
   Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / g.norm();
 
+  // constraint the change of thrust, preventing sudden thrust increasing during taking off
   for (int i = 0; i < motor_num_; i++)
   {
     if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
     {
-      // constraint the change of thrust, preventing sudden thrust increasing during taking off
       float max_thrust_change = 10.0 / 40.0;
 
       if (target_thrusts(i) > flight_cmd_.base_thrust[i] + max_thrust_change)

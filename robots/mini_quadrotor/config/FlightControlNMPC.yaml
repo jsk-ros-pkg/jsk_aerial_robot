@@ -31,6 +31,9 @@ controller:
     yaw_p_gain: 40.0  # temp
     yaw_d_gain: 1.0
 
+    is_attitude_ctrl: true
+    is_body_rate_ctrl: true
+
 
   # LQI gain generator
   lqi:
