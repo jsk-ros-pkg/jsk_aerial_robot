@@ -3,13 +3,16 @@
 // Created by lijinjie on 23/10/27.
 //
 
-#include "aerial_robot_control/nmpc/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/unactuated_body_rate/nmpc_controller.h"
 
-aerial_robot_control::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
+using namespace aerial_robot_control;
+
+nmpc_underactuated_body_rate::NMPCController::NMPCController()
+  : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
 }
 
-void aerial_robot_control::NMPCController::initialize(
+void nmpc_underactuated_body_rate::NMPCController::initialize(
     ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
@@ -23,7 +26,7 @@ void aerial_robot_control::NMPCController::initialize(
   gravity_const_ = robot_model_->getGravity()[2];
 
   // get params and initialize nmpc solver
-  MPC::PhysicalParams physical_params{};
+  PhysicalParams physical_params{};
   physical_params.mass = robot_model_->getMass();
   physical_params.gravity = robot_model_->getGravity()[2];
   physical_params.c_thrust_max = robot_model_->getThrustUpperLimit() * robot_model_->getRotorNum();
@@ -71,9 +74,37 @@ void aerial_robot_control::NMPCController::initialize(
            set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
+  //
+  //  // print these value
+  //  //  robot_model_->getMass();
+  //  //  robot_model_->getGravity();
+  //  //  robot_model_->getRotorNum();
+  //  //  robot_model_->getInertia<Eigen::Matrix3d>();
+  //  //  robot_model_->getThrustLowerLimit();
+  //  //  robot_model_->getThrustUpperLimit();
+  //  //  robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  //  cout << "mass: " << robot_model_->getMass() << endl;
+  //  cout << "gravity: " << robot_model_->getGravity() << endl;
+  //  cout << "inertia: " << robot_model_->getInertia<Eigen::Matrix3d>() << endl;
+  //  cout << "rotor num: " << robot_model_->getRotorNum() << endl;
+  //  for (const auto& dir : robot_model_->getRotorDirection())
+  //  {
+  //    std::cout << "Key: " << dir.first << ", Value: " << dir.second << std::endl;
+  //  }
+  //  for (const auto& vec : robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>())
+  //  {
+  //    std::cout << "rotor origin from cog: " << vec << std::endl;
+  //  }
+  //  cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
+  //  cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
+  //  robot_model_->getThrustWrenchUnits();
+  //  for (const auto& vec : robot_model_->getThrustWrenchUnits())
+  //  {
+  //    std::cout << "thrust wrench units: " << vec << std::endl;
+  //  }
 }
 
-bool aerial_robot_control::NMPCController::update()
+bool nmpc_underactuated_body_rate::NMPCController::update()
 {
   if (!ControlBase::update())
     return false;
@@ -84,7 +115,7 @@ bool aerial_robot_control::NMPCController::update()
   return true;
 }
 
-void aerial_robot_control::NMPCController::reset()
+void nmpc_underactuated_body_rate::NMPCController::reset()
 {
   ControlBase::reset();
 
@@ -100,7 +131,7 @@ void aerial_robot_control::NMPCController::reset()
 
   double x[NX] = { pos_.x(), pos_.y(), pos_.z(), vel_.x(), vel_.y(), vel_.z(), q.w(), q.x(), q.y(), q.z() };
   double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
-  MPC::initPredXU(x_u_ref_);
+  initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
   {
     std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
@@ -114,7 +145,7 @@ void aerial_robot_control::NMPCController::reset()
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 }
 
-nav_msgs::Odometry aerial_robot_control::NMPCController::getOdom()
+nav_msgs::Odometry nmpc_underactuated_body_rate::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -141,7 +172,7 @@ nav_msgs::Odometry aerial_robot_control::NMPCController::getOdom()
   return odom;
 }
 
-void aerial_robot_control::NMPCController::controlCore()
+void nmpc_underactuated_body_rate::NMPCController::controlCore()
 {
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
@@ -233,7 +264,7 @@ void aerial_robot_control::NMPCController::controlCore()
   }
 }
 
-void aerial_robot_control::NMPCController::sendCmd()
+void nmpc_underactuated_body_rate::NMPCController::sendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
 }
@@ -242,7 +273,7 @@ void aerial_robot_control::NMPCController::sendCmd()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void aerial_robot_control::NMPCController::callbackViz(const ros::TimerEvent& event)
+void nmpc_underactuated_body_rate::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -279,7 +310,7 @@ void aerial_robot_control::NMPCController::callbackViz(const ros::TimerEvent& ev
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
-void aerial_robot_control::NMPCController::sendRPYGain()
+void nmpc_underactuated_body_rate::NMPCController::sendRPYGain()
 {
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
@@ -319,7 +350,7 @@ void aerial_robot_control::NMPCController::sendRPYGain()
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
 
-void aerial_robot_control::NMPCController::sendRotationalInertiaComp()
+void nmpc_underactuated_body_rate::NMPCController::sendRotationalInertiaComp()
 {
   int lqi_mode_ = 4;
 
@@ -354,4 +385,5 @@ void aerial_robot_control::NMPCController::sendRotationalInertiaComp()
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_underactuated_body_rate::NMPCController,
+                       aerial_robot_control::ControlBase);

@@ -51,7 +51,10 @@
 #define NPHIN QD_BODY_RATE_MODEL_NPHIN
 #define NR QD_BODY_RATE_MODEL_NR
 
-namespace MPC
+namespace aerial_robot_control
+{
+
+namespace nmpc_underactuated_body_rate
 {
 
 struct PhysicalParams
@@ -101,4 +104,6 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace MPC
+}  // namespace nmpc_underactuated_body_rate
+
+}  // namespace aerial_robot_control

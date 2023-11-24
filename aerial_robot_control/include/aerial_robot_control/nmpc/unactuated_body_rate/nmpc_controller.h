@@ -34,6 +34,8 @@
 
 namespace aerial_robot_control
 {
+namespace nmpc_underactuated_body_rate
+{
 
 class NMPCController : public ControlBase
 {
@@ -82,9 +84,11 @@ private:
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;
 
-  MPC::MPCSolver mpc_solver_;
+  MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
 };
+
+};  // namespace nmpc_underactuated_body_rate
 
 };  // namespace aerial_robot_control
