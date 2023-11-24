@@ -13,10 +13,11 @@ RollingNavigator::RollingNavigator():
 
 void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                  double loop_du)
 {
   /* initialize the flight control */
-  BaseNavigator::initialize(nh, nhp, robot_model, estimator);
+  BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
 
@@ -139,7 +140,7 @@ void RollingNavigator::landingProcess()
         {
           ROS_WARN("[navigation][landing] back to land state");
           setNaviState(LAND_STATE);
-          setTargetPosZ(estimator_->getLandingHeight());
+          // setTargetPosZ(estimator_->getLandingHeight());
           setTeleopFlag(true);
         }
     }
