@@ -453,7 +453,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
-1
+
   double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
   double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
@@ -479,26 +479,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       else
         {
           setTargetVelZ(0);
-
-  /* Motion: Up/Down */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_z_deadzone_)
-    {
-      if(getNaviState() == HOVER_STATE)
-        {
-          z_control_flag_ = true;
-          if(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] >= 0)
-            addTargetPosZ(joy_target_z_interval_);
-          else
-            addTargetPosZ(-joy_target_z_interval_);
-        }
-    }
-  else
-    {
-      if(z_control_flag_)
-        {
-          z_control_flag_= false;
-          setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: fixed z state, target pos z is %f",target_pos_.z());
         }
     }
 
@@ -599,92 +579,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             tf::Vector3 target_vel = frameConversion(getTargetVel(), local_frame_rot);
             setTargetVelX(target_vel.x());
             setTargetVelY(target_vel.y());
-
-  /* this is the yaw_angle control */
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
-    {
-      double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
-        + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-      setTargetYaw(angles::normalize_angle(target_yaw));
-      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
-
-      yaw_control_flag_ = true;
-    }
-  else
-    {
-      if(yaw_control_flag_)
-        {
-          yaw_control_flag_= false;
-          setTargetYawFromCurrentState();
-          setTargetOmageZ(0);
-          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
-        }
-    }
-
-  /* turn to ACC_CONTROL_MODE */
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
-    {
-      ROS_WARN("Foce change to attitude control");
-      force_att_control_flag_ = true;
-      estimator_->setForceAttControlFlag(force_att_control_flag_);
-      xy_control_mode_ = ACC_CONTROL_MODE;
-    }
-
-  /* change to vel control mode */
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && !vel_control_flag_)
-    {
-      ROS_INFO("change to vel pos-based control");
-      vel_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = VEL_CONTROL_MODE;
-      target_vel_.setValue(0, 0, 0);
-      target_acc_.setValue(0, 0, 0);
-    }
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 0 && vel_control_flag_)
-    vel_control_flag_ = false;
-
-  /* change to pos control mode */
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1 && !pos_control_flag_)
-    {
-      ROS_INFO("change to pos control");
-      pos_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = POS_CONTROL_MODE;
-      setTargetXyFromCurrentState();
-      target_acc_.setValue(0, 0, 0);
-    }
-  if(!joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 0 && pos_control_flag_)
-    pos_control_flag_ = false;
-
-  /* mode oriented state */
-  switch (xy_control_mode_)
-    {
-    case ACC_CONTROL_MODE:
-      {
-        if(teleop_flag_)
-          {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
-
-            /* acc command */
-            target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
-
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_acc = target_acc_;
-                /* convert the frame */
-                const auto segments_tf = robot_model_->getSegmentsTf();
-                if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
-                  {
-                    ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
-                    target_acc.setValue(0,0,0);
-                  }
-                tf::Transform teleop_local_frame_tf;
-                tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
-
-                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
-              }
           }
         break;
       }
@@ -715,37 +609,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             tf::Vector3 target_acc = frameConversion(getTargetAcc(), local_frame_rot);
             setTargetAccX(target_acc.x());
             setTargetAccY(target_acc.y());
-=======
-        if(teleop_flag_)
-          {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
-
-            tf::Vector3 target_vel(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS]) * max_target_vel_,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS]) * max_target_vel_, 0);
-
-            /* defualt: world frame control */
-            /* L2 trigger: fc(cog/ baselink frame) frame control */
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_vel_tmp = target_vel;
-                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
-              }
-
-            /* interpolation for vel target */
-            if(target_vel.x() - target_vel_.x() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else if (target_vel.x() - target_vel_.x() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else
-              target_vel_.setX(target_vel.x());
-
-            if(target_vel.y() - target_vel_.y() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(0, joy_target_vel_interval_, 0);
-            else if (target_vel.y() - target_vel_.y() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(0, joy_target_vel_interval_, 0);
-            else
-              target_vel_.setY(target_vel.y());
           }
         break;
       }
@@ -753,8 +616,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       {
         break;
       }
-    }
-}
+    }}
 
 void BaseNavigator::update()
 {
