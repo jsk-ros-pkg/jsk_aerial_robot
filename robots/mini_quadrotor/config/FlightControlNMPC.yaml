@@ -12,7 +12,7 @@ controller:
     # constraint
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
-    c_max: 43.1  # 7 * 4 / 0.65  TODO: should be adjusted by physical constraints
+    c_max: 43.1  # 7 * 4 / 0.65  This value will be adjusted by physical constraints
     c_min: 0
 
     v_max: 1

@@ -4,7 +4,7 @@
 Author: LI Jinjie
 File: nmpc_body_rate_ctl.py
 Date: 2023/4/16 9:50 AM
-Description:
+Description: the output of the NMPC controller is the body rate and collective acceleration
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -27,9 +27,9 @@ nmpc_params = param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
 
-class NMPCBodyRateController(object):
+class NMPCController(object):
     def __init__(self):
-        opt_model = BodyRateModel().model
+        opt_model = QdBodyRateModel().model
 
         nx = opt_model.x.size()[0]
         nu = opt_model.u.size()[0]
@@ -119,7 +119,7 @@ class NMPCBodyRateController(object):
         self.solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
 
-class BodyRateModel(object):
+class QdBodyRateModel(object):
     def __init__(self):
         model_name = "qd_body_rate_model"
 
@@ -202,20 +202,7 @@ class BodyRateModel(object):
         model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
         model.cost_y_expr_e = state_y
 
-        # constraint
-        constraint = ca.types.SimpleNamespace()
-
-        constraint.w_max = nmpc_params["w_max"]
-        constraint.w_min = nmpc_params["w_min"]
-        constraint.c_max = nmpc_params["c_max"]
-        constraint.c_min = nmpc_params["c_min"]
-
-        constraint.v_max = nmpc_params["v_max"]
-        constraint.v_min = nmpc_params["v_min"]
-        constraint.expr = ca.vcat([wx, wy, wz, c])
-
         self.model = model
-        self.constraint = constraint
 
 
 def safe_mkdir_recursive(directory, overwrite=False):
@@ -237,7 +224,7 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    mpc_ctl = NMPCBodyRateController()
+    mpc_ctl = NMPCController()
 
     print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
     print("T_samp: ", nmpc_params["T_samp"])
