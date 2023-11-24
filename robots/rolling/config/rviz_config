@@ -238,7 +238,7 @@ Visualization Manager:
       med color: 255; 0; 0
       med color change threthold: 0
       min value: 1000
-      show caption: true
+      show caption: false
       size: 128
       text size: 14
       top: 0
@@ -261,7 +261,7 @@ Visualization Manager:
       med color: 255; 0; 0
       med color change threthold: 0
       min value: 1000
-      show caption: true
+      show caption: false
       size: 128
       text size: 14
       top: 0
@@ -284,10 +284,60 @@ Visualization Manager:
       med color: 255; 0; 0
       med color change threthold: 0
       min value: 1000
-      show caption: true
+      show caption: false
       size: 128
       text size: 14
       top: 0
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Name: Plotter2D
+      Show Value: true
+      Topic: /rolling/debug/desire_coordinate/roll
+      Value: true
+      auto color change: false
+      auto scale: true
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 245; 121; 0
+      height: 80
+      left: 0
+      linewidth: 1
+      max color: 255; 0; 0
+      max value: 1
+      min value: -1
+      show caption: false
+      text size: 12
+      top: 128
+      update interval: 0.03999999910593033
+      width: 128
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Name: Plotter2D
+      Show Value: true
+      Topic: /rolling/debug/desire_coordinate/pitch
+      Value: true
+      auto color change: false
+      auto scale: true
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 245; 121; 0
+      height: 80
+      left: 128
+      linewidth: 1
+      max color: 255; 0; 0
+      max value: 1
+      min value: -1
+      show caption: false
+      text size: 12
+      top: 128
+      update interval: 0.03999999910593033
+      width: 128
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
