@@ -16,7 +16,7 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="config_dir" default="$(find beetle)/config"/>
-  <arg name="robot_id" default="" />
+  <arg name="robot_id" default="1" />
   <arg name="robot_ns" value="beetle$(arg robot_id)" />
 
   ###########  Parameters  ###########
@@ -28,7 +28,7 @@
     ###########  Basic Param  ###########
     <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
-
+    <param name = "robot_id" value="$(arg robot_id)"/>
    ###########  Robot Model  ###########
    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
@@ -78,6 +78,7 @@
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="robot_id" value="$(arg robot_id)"/>
   </include >
 
   ###########  Servo Bridge  ###########

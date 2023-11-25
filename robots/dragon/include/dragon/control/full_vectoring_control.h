@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <spinal/FourAxisCommand.h>

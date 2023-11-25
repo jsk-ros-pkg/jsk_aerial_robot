@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
   <arg name="headless" default="false"/>
-  <arg name="spawn_x_1" default="0.0"/>
-  <arg name="spawn_y_1" default="1.5"/>
+  <arg name="spawn_x_1" default="-2.0"/>
+  <arg name="spawn_y_1" default="0.0"/>
   <arg name="spawn_yaw_1" default="0.0"/>
-  <arg name="spawn_x_2" default="0.0"/>
+  <arg name="spawn_x_2" default="-1.0"/>
   <arg name="spawn_y_2" default="0.0"/>
   <arg name="spawn_yaw_2" default="0.0"/>
-  <arg name="spawn_x_3" default="1.0"/>
+  <arg name="spawn_x_3" default="0.0"/>
   <arg name="spawn_y_3" default="0.0"/>
   <arg name="spawn_yaw_3" default="0.0"/>
-  <arg name="spawn_x_4" default="3.5"/>
-  <arg name="spawn_y_4" default="1.5"/>
+  <arg name="spawn_x_4" default="1.0"/>
+  <arg name="spawn_y_4" default="0.0"/>
   <arg name="spawn_yaw_4" default="0.0"/>
   <group>
     <include file="$(find beetle)/launch/bringup.launch">
@@ -24,7 +24,6 @@
       <arg name="spawn_x" default="$(arg spawn_x_1)"/>
       <arg name="spawn_y" default="$(arg spawn_y_1)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_1)"/>
-      <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
     <include file="$(find beetle)/launch/bringup.launch">
@@ -37,7 +36,6 @@
       <arg name="spawn_x" default="$(arg spawn_x_2)"/>
       <arg name="spawn_y" default="$(arg spawn_y_2)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_2)"/>
-      <!-- <arg name="airframe" default="tri"/> -->
     </include>
 
     <include file="$(find beetle)/launch/bringup.launch">
@@ -50,7 +48,6 @@
       <arg name="spawn_x" default="$(arg spawn_x_3)"/>
       <arg name="spawn_y" default="$(arg spawn_y_3)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_3)"/>
-      <!-- <arg name="airframe" value="tri"/> -->
     </include>
 
     <include file="$(find beetle)/launch/bringup.launch">
@@ -63,7 +60,6 @@
       <arg name="spawn_x" default="$(arg spawn_x_4)"/>
       <arg name="spawn_y" default="$(arg spawn_y_4)"/>
       <arg name="spawn_yaw" default="$(arg spawn_yaw_4)"/>
-      <!-- <arg name="airframe" default="tri"/> -->
     </include>
   </group>
 

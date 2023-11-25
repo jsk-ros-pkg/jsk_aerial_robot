@@ -23,6 +23,8 @@ namespace aerial_robot_control
     target_full_thrust_.resize(motor_num_);
     target_gimbal_angles_.resize(motor_num_, 0);
 
+    feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
+
     GimbalrotorController::rosParamInit();
 
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
@@ -76,6 +78,12 @@ namespace aerial_robot_control
     double target_ang_acc_y = pid_controllers_.at(PITCH).result();
     double target_ang_acc_z = pid_controllers_.at(YAW).result();
     target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+    
+    setTargetWrenchAccCog(target_wrench_acc_cog);
+
+    //feedforward process
+    target_wrench_acc_cog += feedforward_wrench_acc_cog_term_;
+
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -154,7 +162,7 @@ namespace aerial_robot_control
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
       last_col += 2;
     }
-    candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+    candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale + feedforward_wrench_acc_cog_term_(5);
 
     /* calculate target full thrusts and  gimbal angles (considering full components)*/
     last_col = 0;
@@ -182,16 +190,15 @@ namespace aerial_robot_control
         for(int i = 0; i < motor_num_; i++){
           gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
         }
-        gimbal_control_pub_.publish(gimbal_control_msg);
-        
-        std_msgs::Float32MultiArray target_vectoring_force_msg;
-        for(int i = 0; i < target_vectoring_f_.size(); i++){
-          target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
-          target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
-        }
-        target_vectoring_force_pub_.publish(target_vectoring_force_msg);
-        
+        gimbal_control_pub_.publish(gimbal_control_msg); 
       }
+    std_msgs::Float32MultiArray target_vectoring_force_msg;
+    target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
+    for(int i = 0; i < target_vectoring_f_.size(); i++){
+      target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
+    }
+    target_vectoring_force_pub_.publish(target_vectoring_force_msg);
+        
   }
 
   void GimbalrotorController::sendFourAxisCommand()

@@ -1,6 +1,6 @@
 #include <hydrus/hydrus_robot_model.h>
 
-using namespace aerial_robot_model;
+using namespace aerial_robot_model::transformable;
 
 HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double fc_rp_min_thre, double epsilon, int wrench_dof):
   RobotModel(init_with_rosparam, verbose, 0, fc_t_min_thre, epsilon),
@@ -17,6 +17,9 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double
   fc_rp_dists_.resize(getRotorNum());
   approx_fc_rp_dists_.resize(getRotorNum());
 
+  if (getJointNum() == 0) {
+    updateRobotModel(); // workaround for tilt quadrotor robot model
+  }
 }
 
 void HydrusRobotModel::calcFeasibleControlRollPitchDists()
@@ -48,6 +51,8 @@ void HydrusRobotModel::calcFeasibleControlRollPitchDists()
 
 void HydrusRobotModel::calcFeasibleControlRollPitchDistsJacobian()
 {
+  using namespace aerial_robot_model;
+
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
   const int ndof = 6 + joint_num;
@@ -193,7 +198,7 @@ void HydrusRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
 void HydrusRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)
 {
-  aerial_robot_model::RobotModel::updateJacobians(joint_positions, update_model);
+  aerial_robot_model::transformable::RobotModel::updateJacobians(joint_positions, update_model);
 
   calcFeasibleControlRollPitchDistsJacobian();
 }

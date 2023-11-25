@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <launch>
   ###########  launch config  ###########
-  <arg name="real_machine" default="True" />
-  <arg name="simulation" default="False" />
+  <arg name="rm" default="True" />
+  <arg name="sim" default="False" />
+  <arg name="real_machine" default="$(arg rm)" />
+  <arg name="simulation" default="$(arg sim)" />
   <arg name="control_mode" default="0" />
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />

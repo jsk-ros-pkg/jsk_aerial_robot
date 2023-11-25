@@ -585,7 +585,7 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
 {
-  if(motor_number_ == 0) return;
+  if(motor_number_ == 0 || !start_control_flag_) return;
 
 #ifdef SIMULATION
   if(msg.rows.size() != motor_number_)
@@ -947,7 +947,7 @@ void AttitudeController::pwmConversion()
             }
         }
     }
-
+  
   for(int i = 0; i < motor_number_; i++)
     target_thrust_[i] = roll_pitch_term_[i] + (1 + base_thrust_decreasing_rate) * base_thrust_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
 
@@ -962,13 +962,10 @@ void AttitudeController::pwmConversion()
             f_i.x = target_thrust_[i*2];
             f_i.z = target_thrust_[i*2+1];
             target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
-
-            if(integrate_flag_){
-              target_gimbal_angles_[i] = atan2f(-f_i.x, f_i.z);
-            }
-            else
+            float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+            if(std::isfinite(gimbal_candidate))
               {
-                target_gimbal_angles_[i] = 0.0;
+                target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
               }
           }
 
@@ -1003,6 +1000,8 @@ void AttitudeController::pwmConversion()
         }
       else
         {
+          // gimbal_map[i+1] = 0;
+          // int target_angle = (int)(0);          
           gimbal_map[i+1] = 100.0;
         }
     }

@@ -19,12 +19,17 @@ namespace aerial_robot_navigation
 
     void update() override;
 
+    tf::Vector3 getCurrTargetBaselinkRot(){return curr_target_baselink_rot_;}
+    tf::Vector3 getFinalTargetBaselinkRot(){return final_target_baselink_rot_;}
+ 
+    void setFinalTargetBaselinkRot(tf::Vector3 final_target_baselink_rot){final_target_baselink_rot_ = final_target_baselink_rot;}
+  protected:
+    void rosParamInit() override;
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
 
     void baselinkRotationProcess();
-    void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
 
     /* target baselink rotation */

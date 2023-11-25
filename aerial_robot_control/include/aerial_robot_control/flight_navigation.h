@@ -296,7 +296,7 @@ namespace aerial_robot_navigation
 
     virtual void rosParamInit();
     virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
-    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
+    virtual void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 
     virtual void halt() {}
@@ -478,6 +478,7 @@ namespace aerial_robot_navigation
 
     void setTargetXyFromCurrentState()
     {
+      setXyControlMode(POS_CONTROL_MODE);
       tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
       target_pos_.setX(pos_cog.x());
       target_pos_.setY(pos_cog.y());
@@ -485,6 +486,10 @@ namespace aerial_robot_navigation
       // set the velocty to zero
       target_vel_.setX(0);
       target_vel_.setY(0);
+
+      // set the acceleration to zero
+      setTargetAccX(0);
+      setTargetAccY(0);
     }
 
     void setTargetZFromCurrentState()
