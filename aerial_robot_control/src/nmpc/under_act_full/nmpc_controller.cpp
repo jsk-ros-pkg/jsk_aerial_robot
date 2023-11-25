@@ -205,11 +205,9 @@ void nmpc_under_act_full::NMPCController::controlCore()
   double ft2 = mpc_solver_.x_u_out_.u.data.at(1);
   double ft3 = mpc_solver_.x_u_out_.u.data.at(2);
   double ft4 = mpc_solver_.x_u_out_.u.data.at(3);
-  double f_c = ft1 + ft2 + ft3 + ft4;
 
-  Eigen::VectorXd static_thrust = robot_model_->getStaticThrust();
-  Eigen::VectorXd g = robot_model_->getGravity();
-  Eigen::VectorXd target_thrusts = f_c / (mass_ * g.norm()) * static_thrust;
+  Eigen::VectorXd target_thrusts(4);
+  target_thrusts << ft1, ft2, ft3, ft4;
 
   // constraint the change of thrust, preventing sudden thrust increasing during taking off
   for (int i = 0; i < motor_num_; i++)
