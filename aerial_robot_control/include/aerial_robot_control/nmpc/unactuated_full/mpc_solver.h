@@ -51,7 +51,7 @@
 #define NPHIN QD_FULL_MODEL_NPHIN
 #define NR QD_FULL_MODEL_NR
 
-namespace MPC
+namespace NMPCUnderactuatedFull
 {
 
 struct Constraints
@@ -96,4 +96,4 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace MPC
+}  // namespace NMPCUnderactuatedFull
