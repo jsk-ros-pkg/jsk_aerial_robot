@@ -6,11 +6,8 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
     navigator_loader_("aerial_robot_control", "aerial_robot_navigation::BaseNavigator")
 {
 
-  bool param_verbose;
-  nhp_.param ("param_verbose", param_verbose, true);
-
-  double main_rate;
-  nhp_.param ("main_rate", main_rate, 0.0);
+  nhp_.param ("param_verbose", param_verbose_, true);
+  nhp_.param ("main_rate", main_rate_, 0.0);
 
   // robot model
   robot_model_ros_ = boost::make_shared<aerial_robot_model::RobotModelRos>(nh_, nhp_);
@@ -46,21 +43,21 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       std::string aerial_robot_control_name;
       nh_.param ("aerial_robot_control_name", aerial_robot_control_name, std::string("aerial_robot_control/flatness_pid"));
       controller_ = controller_loader_.createInstance(aerial_robot_control_name);
-      controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_rate);
+      controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_rate_);
     }
   catch(pluginlib::PluginlibException& ex)
     {
       ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
     }
 
-  if(param_verbose) cout << nhp_.getNamespace() << ": main_rate is " << main_rate << endl;
-  if(main_rate <= 0)
+  if(param_verbose_) cout << nhp_.getNamespace() << ": main_rate is " << main_rate_ << endl;
+  if(main_rate_ <= 0)
     ROS_ERROR_STREAM("mian rate is negative, can not run the main timer");
   else
     {
       // note1: separate the thread for main control (including navigation) loop to guarantee a relatively stable loop rate
 
-      ros::TimerOptions ops(ros::Duration(1.0 / main_rate),
+      ros::TimerOptions ops(ros::Duration(1.0 / main_rate_),
                             boost::bind(&AerialRobotBase::mainFunc, this, _1),
                             &main_loop_queue_);
       main_timer_ = nhp_.createTimer(ops);
@@ -87,6 +84,17 @@ AerialRobotBase::~AerialRobotBase()
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
 {
+  if (~e.last_real.isZero())
+  {
+      double dt_real = e.current_real.toSec() - e.last_real.toSec();
+      double tolerance = 0.05;
+      double dt_desire = (1.0 + tolerance) * 1.0 / main_rate_;
+      if (dt_real > dt_desire)
+      {
+          ROS_WARN("main loop rate is too low: (ts_real) %f s > (ts_desire with %2f%% tolerance) %f s ", dt_real,
+                   tolerance * 100, dt_desire);
+      }
+  }
   navigator_->update();
   controller_->update();
 }
