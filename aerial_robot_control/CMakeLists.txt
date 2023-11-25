@@ -66,13 +66,11 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
   src/control/under_actuated_tilted_lqi_controller.cpp
-  src/nmpc/unactuated_body_rate/mpc_solver.cpp
-  src/nmpc/unactuated_body_rate/nmpc_controller.cpp
-  src/nmpc/unactuated_full/mpc_solver.cpp
+  src/nmpc/under_act_body_rate/mpc_solver.cpp
+  src/nmpc/under_act_body_rate/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/unactuated_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/unactuated_full/c_generated_code/libacados_ocp_solver_qd_full_model.so)
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation

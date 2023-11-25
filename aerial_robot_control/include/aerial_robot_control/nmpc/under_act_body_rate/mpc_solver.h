@@ -3,10 +3,10 @@
 // Created by lijinjie on 23/10/22.
 //
 
-#ifndef AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
-#define AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
+#ifndef UNDER_ACT_BODY_RATE_MPC_SOLVER_H
+#define UNDER_ACT_BODY_RATE_MPC_SOLVER_H
 
-#endif  // AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
+#endif  // UNDER_ACT_BODY_RATE_MPC_SOLVER_H
 
 #include <ros/console.h>
 #include <aerial_robot_msgs/PredXU.h>
@@ -18,7 +18,7 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/nmpc/unactuated_body_rate/c_generated_code/acados_solver_qd_body_rate_model.h"
+#include "aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/acados_solver_qd_body_rate_model.h"
 
 #define NN QD_BODY_RATE_MODEL_N
 #define NX QD_BODY_RATE_MODEL_NX
@@ -54,7 +54,7 @@
 namespace aerial_robot_control
 {
 
-namespace nmpc_underactuated_body_rate
+namespace nmpc_under_act_body_rate
 {
 
 struct PhysicalParams
@@ -104,6 +104,6 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace nmpc_underactuated_body_rate
+}  // namespace nmpc_under_act_body_rate
 
 }  // namespace aerial_robot_control

@@ -3,10 +3,15 @@
 // Created by lijinjie on 23/10/27.
 //
 
+#ifndef UNDER_ACT_BODY_RATE_NMPC_CONTROLLER_H
+#define UNDER_ACT_BODY_RATE_NMPC_CONTROLLER_H
+
+#endif  // UNDER_ACT_BODY_RATE_NMPC_CONTROLLER_H
+
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/nmpc/unactuated_body_rate//mpc_solver.h"
+#include "aerial_robot_control/nmpc/under_act_body_rate/mpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
 
@@ -34,7 +39,7 @@
 
 namespace aerial_robot_control
 {
-namespace nmpc_underactuated_body_rate
+namespace nmpc_under_act_body_rate
 {
 
 class NMPCController : public ControlBase
@@ -89,6 +94,6 @@ private:
   nav_msgs::Odometry getOdom();
 };
 
-};  // namespace nmpc_underactuated_body_rate
+};  // namespace nmpc_under_act_body_rate
 
 };  // namespace aerial_robot_control

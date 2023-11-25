@@ -3,16 +3,15 @@
 // Created by lijinjie on 23/10/27.
 //
 
-#include "aerial_robot_control/nmpc/unactuated_body_rate/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/under_act_body_rate/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-nmpc_underactuated_body_rate::NMPCController::NMPCController()
-  : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
+nmpc_under_act_body_rate::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
 }
 
-void nmpc_underactuated_body_rate::NMPCController::initialize(
+void nmpc_under_act_body_rate::NMPCController::initialize(
     ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
@@ -104,7 +103,7 @@ void nmpc_underactuated_body_rate::NMPCController::initialize(
   //  }
 }
 
-bool nmpc_underactuated_body_rate::NMPCController::update()
+bool nmpc_under_act_body_rate::NMPCController::update()
 {
   if (!ControlBase::update())
     return false;
@@ -115,7 +114,7 @@ bool nmpc_underactuated_body_rate::NMPCController::update()
   return true;
 }
 
-void nmpc_underactuated_body_rate::NMPCController::reset()
+void nmpc_under_act_body_rate::NMPCController::reset()
 {
   ControlBase::reset();
 
@@ -145,7 +144,7 @@ void nmpc_underactuated_body_rate::NMPCController::reset()
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 }
 
-nav_msgs::Odometry nmpc_underactuated_body_rate::NMPCController::getOdom()
+nav_msgs::Odometry nmpc_under_act_body_rate::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -172,7 +171,7 @@ nav_msgs::Odometry nmpc_underactuated_body_rate::NMPCController::getOdom()
   return odom;
 }
 
-void nmpc_underactuated_body_rate::NMPCController::controlCore()
+void nmpc_under_act_body_rate::NMPCController::controlCore()
 {
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
@@ -264,7 +263,7 @@ void nmpc_underactuated_body_rate::NMPCController::controlCore()
   }
 }
 
-void nmpc_underactuated_body_rate::NMPCController::sendCmd()
+void nmpc_under_act_body_rate::NMPCController::sendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
 }
@@ -273,7 +272,7 @@ void nmpc_underactuated_body_rate::NMPCController::sendCmd()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc_underactuated_body_rate::NMPCController::callbackViz(const ros::TimerEvent& event)
+void nmpc_under_act_body_rate::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -310,7 +309,7 @@ void nmpc_underactuated_body_rate::NMPCController::callbackViz(const ros::TimerE
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
-void nmpc_underactuated_body_rate::NMPCController::sendRPYGain()
+void nmpc_under_act_body_rate::NMPCController::sendRPYGain()
 {
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
@@ -350,7 +349,7 @@ void nmpc_underactuated_body_rate::NMPCController::sendRPYGain()
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
 
-void nmpc_underactuated_body_rate::NMPCController::sendRotationalInertiaComp()
+void nmpc_under_act_body_rate::NMPCController::sendRotationalInertiaComp()
 {
   int lqi_mode_ = 4;
 
@@ -385,5 +384,5 @@ void nmpc_underactuated_body_rate::NMPCController::sendRotationalInertiaComp()
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_underactuated_body_rate::NMPCController,
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_under_act_body_rate::NMPCController,
                        aerial_robot_control::ControlBase);
