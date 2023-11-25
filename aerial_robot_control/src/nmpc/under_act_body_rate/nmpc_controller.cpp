@@ -220,7 +220,7 @@ void nmpc_under_act_body_rate::NMPCController::controlCore()
 
   // - yaw angle
   double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
-  target_yaw = (0.025 * rpy0[2] + (0.1 - 0.025) * rpy1[2]) / 0.1;
+  target_yaw = (t_nmpc_samp_ * rpy0[2] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[2]) / t_nmpc_integ_;
   error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
   yaw_p_term = yaw_p_gain * error_yaw;
   candidate_yaw_term_ = -yaw_p_term;
