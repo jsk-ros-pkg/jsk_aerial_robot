@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/under_act_full/nmpc_controller
 
 controller:
   physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in this section
@@ -42,33 +42,7 @@ controller:
     Qq_z: 100
     Qw_xy: 5
     Qw_z: 5
-    Rt: 5  # 10
+    Rt: 1
 
-    yaw_p_gain: 40.0  # temp
-    yaw_d_gain: 1.0
-
-    is_attitude_ctrl: true
+    is_attitude_ctrl: false
     is_body_rate_ctrl: true
-
-
-  # LQI gain generator
-  lqi:
-    gain_generate_rate: 15.0
-    gyro_moment_compensation: true
-    clamp_gain: true
-
-    roll_pitch_p: 20
-    roll_pitch_i: 0.5
-    roll_pitch_d: 0.15
-
-    yaw_p: 60
-    yaw_i: 0.5
-    yaw_d: 1.0
-
-    r1: 1.0
-    r2: 1.0
-    r3: 1.0
-    r4: 1.0
-
-    trans_constraint_weight: 100
-    att_control_weight: 1

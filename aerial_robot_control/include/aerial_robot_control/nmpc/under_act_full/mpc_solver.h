@@ -3,10 +3,10 @@
 // Created by lijinjie on 23/11/25.
 //
 
-#ifndef AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
-#define AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
+#ifndef UNDER_ACT_FULL_MPC_SOLVER_H
+#define UNDER_ACT_FULL_MPC_SOLVER_H
 
-#endif  // AERIAL_ROBOT_CONTROL_MPC_SOLVER_H
+#endif  // UNDER_ACT_FULL_MPC_SOLVER_H
 
 #include <ros/console.h>
 #include <aerial_robot_msgs/PredXU.h>
@@ -18,7 +18,7 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/nmpc/unactuated_full/c_generated_code/acados_solver_qd_full_model.h"
+#include "aerial_robot_control/nmpc/under_act_full/c_generated_code/acados_solver_qd_full_model.h"
 
 #define NN QD_FULL_MODEL_N
 #define NX QD_FULL_MODEL_NX
@@ -51,7 +51,10 @@
 #define NPHIN QD_FULL_MODEL_NPHIN
 #define NR QD_FULL_MODEL_NR
 
-namespace NMPCUnderactuatedFull
+namespace aerial_robot_control
+{
+
+namespace nmpc_under_act_full
 {
 
 struct Constraints
@@ -96,4 +99,6 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace NMPCUnderactuatedFull
+}  // namespace nmpc_under_act_full
+
+}  // namespace aerial_robot_control

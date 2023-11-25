@@ -3,13 +3,15 @@
 // Created by lijinjie on 23/11/25.
 //
 
-#include "aerial_robot_control/nmpc/unactuated_full/mpc_solver.h"
+#include "aerial_robot_control/nmpc/under_act_full/mpc_solver.h"
 
-NMPCUnderactuatedFull::MPCSolver::MPCSolver()
+using namespace aerial_robot_control;
+
+nmpc_under_act_full::MPCSolver::MPCSolver()
 {
 }
 
-void NMPCUnderactuatedFull::MPCSolver::initialize(Constraints& constraints)
+void nmpc_under_act_full::MPCSolver::initialize(Constraints& constraints)
 {
   /* Allocate the array and fill it accordingly */
   acados_ocp_capsule_ = qd_full_model_acados_create_capsule();
@@ -78,7 +80,7 @@ void NMPCUnderactuatedFull::MPCSolver::initialize(Constraints& constraints)
   initPredXU(x_u_out_);
 }
 
-NMPCUnderactuatedFull::MPCSolver::~MPCSolver()
+nmpc_under_act_full::MPCSolver::~MPCSolver()
 {
   // 1. free solver
   int status = qd_full_model_acados_free(acados_ocp_capsule_);
@@ -91,7 +93,7 @@ NMPCUnderactuatedFull::MPCSolver::~MPCSolver()
     std::cout << "qd_full_model_acados_free_capsule() returned status " << status << ".\n";
 }
 
-void NMPCUnderactuatedFull::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
+void nmpc_under_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
 {
   const unsigned int x_stride = x_u.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u.u.layout.dim[1].stride;
@@ -111,8 +113,7 @@ void NMPCUnderactuatedFull::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_
   ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
-int NMPCUnderactuatedFull::MPCSolver::solve(const nav_msgs::Odometry& odom_now,
-                                            const aerial_robot_msgs::PredXU& x_u_ref)
+int nmpc_under_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
@@ -137,7 +138,7 @@ int NMPCUnderactuatedFull::MPCSolver::solve(const nav_msgs::Odometry& odom_now,
   return 0;
 }
 
-void NMPCUnderactuatedFull::initPredXU(aerial_robot_msgs::PredXU& x_u)
+void nmpc_under_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
 {
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim.emplace_back();
@@ -162,8 +163,8 @@ void NMPCUnderactuatedFull::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.u.data.resize(NN * NU);
 }
 
-void NMPCUnderactuatedFull::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref,
-                                                    const unsigned int x_stride, const unsigned int u_stride)
+void nmpc_under_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
+                                                  const unsigned int u_stride)
 {
   double yr[NX + NU];
   double qr[4];
@@ -188,7 +189,7 @@ void NMPCUnderactuatedFull::MPCSolver::setReference(const aerial_robot_msgs::Pre
   qd_full_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
 }
 
-void NMPCUnderactuatedFull::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
+void nmpc_under_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
 {
   double bx0[NBX0];
   bx0[0] = odom_now.pose.pose.position.x;
@@ -209,7 +210,7 @@ void NMPCUnderactuatedFull::MPCSolver::setFeedbackConstraints(const nav_msgs::Od
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
 }
 
-double NMPCUnderactuatedFull::MPCSolver::solveOCPInLoop(const int N_timings)
+double nmpc_under_act_full::MPCSolver::solveOCPInLoop(const int N_timings)
 {
   double min_time = 1e12;
   double elapsed_time;
@@ -229,7 +230,7 @@ double NMPCUnderactuatedFull::MPCSolver::solveOCPInLoop(const int N_timings)
   return min_time;
 }
 
-void NMPCUnderactuatedFull::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
+void nmpc_under_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
 {
   for (int i = 0; i < NN; i++)
   {
@@ -239,7 +240,7 @@ void NMPCUnderactuatedFull::MPCSolver::getSolution(const unsigned int x_stride, 
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x_u_out_.x.data.data() + x_stride * NN);
 }
 
-void NMPCUnderactuatedFull::MPCSolver::printSolution()
+void nmpc_under_act_full::MPCSolver::printSolution()
 {
   std::cout << "\n--- x_traj ---\n" << std::endl;
 
@@ -268,7 +269,7 @@ void NMPCUnderactuatedFull::MPCSolver::printSolution()
   }
 }
 
-void NMPCUnderactuatedFull::MPCSolver::printStatus(const int N_timings, const double min_time)
+void nmpc_under_act_full::MPCSolver::printStatus(const int N_timings, const double min_time)
 {
   double kkt_norm_inf;
   int sqp_iter;
