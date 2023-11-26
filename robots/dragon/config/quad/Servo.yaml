@@ -17,7 +17,7 @@ servo_controller:
     # for simulation
     simulation:
       pid: {p: 50.0, i: 0.01, d: 2.0}
-      init_value: 0
+      init_value: 0.0
       type: effort_controllers/JointPositionController
 
     # should be in order in terms of kinematics model
@@ -58,7 +58,7 @@ servo_controller:
 
     simulation:
       pid: {p: 50.0, i: 0.01, d: 0.0}
-      init_value: 0
+      init_value: 0.0
       type: effort_controllers/JointPositionController
 
     controller1:

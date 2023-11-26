@@ -19,6 +19,7 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
+  <arg name="mujoco" default="False" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -82,10 +83,12 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" ns="$(arg robot_ns)" output="screen" />
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" ns="$(arg robot_ns)" output="screen" >
+    <param name="use_mujoco" value="true" if="$(arg mujoco)"/>
+  </node>
 
   ########## Simulation in Gazebo #########
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') and not arg('real_machine'))" >
+  <include file="$(find aerial_robot_simulation)/launch/gazebo.launch" if = "$(eval arg('simulation') and not arg('real_machine') and not arg('mujoco'))" >
     <arg name="robot_ns" default="$(arg robot_ns)" />
     <arg name="gui" default="false" if="$(arg headless)" />
     <arg name="headless" default="$(arg headless)" />
@@ -95,6 +98,13 @@
     <arg name="spawn_y" value="$(arg spawn_y)" />
     <arg name="spawn_z" value="$(arg spawn_z)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
+  </include>
+
+  ########## Simulation in Mujoco #########
+  <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="mujoco_model" value="$(find hydrus)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
 
 </launch>

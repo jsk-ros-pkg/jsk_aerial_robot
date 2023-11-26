@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   angles
   hydrus
+  mujoco_ros_control
   roscpp
   rospy
   spinal
@@ -67,6 +68,9 @@ install(FILES flight_navigation_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
