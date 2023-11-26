@@ -51,7 +51,8 @@ namespace aerial_robot_navigation
 
     virtual void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator);
+                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                            double loop_du);
     virtual void update();
 
     ros::Publisher& getFlightConfigPublisher() { return flight_config_pub_; }
@@ -75,12 +76,24 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
 
+    inline void setTargetPos(tf::Vector3 pos) { target_pos_ = pos; }
+    inline void setTargetPos(double x, double y, double z) { setTargetPos(tf::Vector3(x, y, z)); }
+    inline void addTargetPos(tf::Vector3 diff_pos) { target_pos_ += diff_pos; }
+    inline void addTargetPos(double x, double y, double z) { addTargetPos(tf::Vector3(x, y, z)); }
+    inline void setTargetVel(tf::Vector3 vel) { target_vel_ = vel; }
+    inline void setTargetVel(double x, double y, double z) { setTargetVel(tf::Vector3(x, y, z)); }
+    inline void setTargetZeroVel() { setTargetVel(0,0,0); }
+    inline void setTargetAcc(tf::Vector3 vel) { target_acc_ = vel; }
+    inline void setTargetAcc(double x, double y, double z) { setTargetAcc(tf::Vector3(x, y, z)); }
+    inline void setTargetZeroAcc() { setTargetAcc(tf::Vector3(0,0,0)); }
+
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
-    inline void setTargetOmageX(float value) { target_omega_.setX(value); }
+    inline void setTargetOmegaX(float value) { target_omega_.setX(value); }
     inline void setTargetPitch(float value) { target_rpy_.setY(value); }
-    inline void setTargetOmageY(float value) { target_omega_.setY(value); }
+    inline void setTargetOmegaY(float value) { target_omega_.setY(value); }
     inline void setTargetYaw(float value) { target_rpy_.setZ(value); }
-    inline void setTargetOmageZ(float value) { target_omega_.setZ(value); }
+    inline void addTargetYaw(float value) { setTargetYaw(angles::normalize_angle(target_rpy_.z() + value)); }
+    inline void setTargetOmegaZ(float value) { target_omega_.setZ(value); }
     inline void setTargetPosX( float value){  target_pos_.setX(value);}
     inline void setTargetVelX( float value){  target_vel_.setX(value);}
     inline void setTargetAccX( float value){  target_acc_.setX(value);}
@@ -94,6 +107,9 @@ namespace aerial_robot_navigation
 
     inline void setTeleopFlag(bool teleop_flag) { teleop_flag_ = teleop_flag; }
     inline bool getTeleopFlag() { return teleop_flag_; }
+
+    inline const double getInitHeight() const { return init_height_;  }
+    inline void setInitHeight(double height) { init_height_ = height; }
 
     void tfPublish();
 
@@ -221,29 +237,41 @@ namespace aerial_robot_navigation
 
     bool param_verbose_;
 
-    bool start_able_;
     uint8_t navi_state_;
 
     int  xy_control_mode_;
     int  prev_xy_control_mode_;
     bool xy_vel_mode_pos_ctrl_takeoff_;
 
+    double loop_du_;
     int  control_frame_;
     int estimate_mode_;
     bool  force_att_control_flag_;
+    bool trajectory_mode_;
     bool lock_teleop_;
     ros::Time force_landing_start_time_;
 
-    double convergent_start_time_;
-    double convergent_duration_;
+    double hover_convergent_start_time_;
+    double hover_convergent_duration_;
+    double land_check_start_time_;
+    double land_check_duration_;
+    double trajectory_reset_time_;
+    double trajectory_reset_duration_;
+    double teleop_reset_time_;
+    double teleop_reset_duration_;
     double z_convergent_thresh_;
     double xy_convergent_thresh_;
+    double land_pos_convergent_thresh_;
+    double land_vel_convergent_thresh_;
 
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
     tf::Vector3 target_rpy_, target_omega_;
 
     double takeoff_height_;
+    double init_height_;
+    double land_height_;
+    double land_descend_vel_;
 
     /* auto vel nav */
     bool vel_based_waypoint_;
@@ -260,25 +288,18 @@ namespace aerial_robot_navigation
 
     /* teleop */
     bool teleop_flag_;
-    bool  vel_control_flag_;
-    bool  pos_control_flag_;
-    bool  xy_control_flag_;
-    bool  z_control_flag_;
-    bool  yaw_control_flag_;
+    bool xy_control_flag_;
     bool force_landing_flag_;
     bool joy_udp_;
     bool check_joy_stick_heart_beat_;
     bool joy_stick_heart_beat_;
 
-    double joy_target_vel_interval_;
-    double joy_target_z_interval_;
-    double max_target_vel_;
-    double max_target_tilt_angle_;
-    double max_target_yaw_rate_;
+    double max_teleop_xy_vel_;
+    double max_teleop_z_vel_;
+    double max_teleop_yaw_vel_;
+    double max_teleop_rp_angle_;
 
-    double joy_z_deadzone_;
-    double joy_yaw_deadzone_;
-
+    double joy_stick_deadzone_;
     double joy_stick_prev_time_;
     double joy_stick_heart_beat_du_;
     double force_landing_to_halt_du_;
@@ -303,9 +324,11 @@ namespace aerial_robot_navigation
     virtual void reset()
     {
       estimator_->setSensorFusionFlag(false);
-      estimator_->setLandingMode(false);
-      estimator_->setLandedFlag(false);
       estimator_->setFlyingFlag(false);
+
+      trajectory_mode_ = false;
+      init_height_ = 0;
+      land_height_ = 0;
     }
 
     void startTakeoff()
@@ -335,25 +358,31 @@ namespace aerial_robot_navigation
             {
               ros::NodeHandle nh(nh_, "navigation");
               nh.param("outdoor_takeoff_height", takeoff_height_, 1.2);
-              nh.param("outdorr_convergent_duration", convergent_duration_, 0.5);
+              nh.param("outdoor_hover_convergent_duration", hover_convergent_duration_, 0.5);
               nh.param("outdoor_xy_convergent_thresh", xy_convergent_thresh_, 0.6);
               nh.param("outdoor_z_convergent_thresh", z_convergent_thresh_, 0.05);
 
-              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdorr_convergent_duration: " << convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_z_convergent_thresh: " << z_convergent_thresh_);
+              ROS_WARN_STREAM("update the navigation parameters for outdoor flight, takeoff height: " << takeoff_height_ << "; outdoor_hover_convergent_duration: " << hover_convergent_duration_ << "; outdoor_xy_convergent_thresh: " << xy_convergent_thresh_ << "; outdoor_z_convergent_thresh: " << z_convergent_thresh_);
 
               break;
             }
         }
 
       setNaviState(START_STATE);
+      trajectory_mode_ = false;
       setTargetXyFromCurrentState();
-      estimator_->setLandingHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetPosZ(takeoff_height_);
-
+      setTargetVelZ(0);
+      setTargetAccZ(0);
+      setInitHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetYawFromCurrentState();
+
+      ROS_INFO_STREAM("init height for takeoff: " << init_height_);
 
       ROS_INFO("Start state");
     }
+
+    virtual void updateLandCommand();
 
     tf::Vector3 frameConversion(tf::Vector3 origin_val,  tf::Matrix3x3 r)
     {
@@ -407,7 +436,6 @@ namespace aerial_robot_navigation
 
       setTargetXyFromCurrentState();
       setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
       ROS_INFO("Land state");
     }
 
@@ -416,11 +444,7 @@ namespace aerial_robot_navigation
       if(!teleop_flag_) return;
 
       force_landing_flag_ = true;
-
       setNaviState(STOP_STATE);
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
 
       ROS_INFO("Halt state");
     }
@@ -442,15 +466,15 @@ namespace aerial_robot_navigation
           if(msg->data == 0)
             {
               setTargetXyFromCurrentState();
-              target_vel_.setValue(0, 0, 0);
-              target_acc_.setValue(0, 0, 0);
+              setTargetZeroVel();
+              setTargetZeroAcc();
               xy_control_mode_ = POS_CONTROL_MODE;
               ROS_INFO("x/y position control mode");
             }
           if(msg->data == 1)
             {
-              target_vel_.setValue(0, 0, 0);
-              target_acc_.setValue(0, 0, 0);
+              setTargetZeroVel();
+              setTargetZeroAcc();
               xy_control_mode_ = VEL_CONTROL_MODE;
               ROS_INFO("x/y velocity control mode");
             }
@@ -480,12 +504,12 @@ namespace aerial_robot_navigation
     {
       setXyControlMode(POS_CONTROL_MODE);
       tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
-      target_pos_.setX(pos_cog.x());
-      target_pos_.setY(pos_cog.y());
+      setTargetPosX(pos_cog.x());
+      setTargetPosY(pos_cog.y());
 
       // set the velocty to zero
-      target_vel_.setX(0);
-      target_vel_.setY(0);
+      setTargetVelX(0);
+      setTargetVelY(0);
 
       // set the acceleration to zero
       setTargetAccX(0);
@@ -494,18 +518,23 @@ namespace aerial_robot_navigation
 
     void setTargetZFromCurrentState()
     {
-      target_pos_.setZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
+      tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+      setTargetPosZ(pos_cog.z());
 
       // set the velocty to zero
-      target_vel_.setZ(0);
+      setTargetVelZ(0);
+
+      // set the acceleration to zero
+      setTargetAccZ(0);
     }
 
     void setTargetYawFromCurrentState()
     {
-      target_rpy_.setZ(estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+      double yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      setTargetYaw(yaw);
 
       // set the velocty to zero
-      target_omega_.setZ(0);
+      setTargetOmegaZ(0);
     }
 
     template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)

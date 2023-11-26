@@ -43,10 +43,7 @@ StateEstimator::StateEstimator()
   : sensor_fusion_flag_(false),
     qu_size_(0),
     flying_flag_(false),
-    landing_mode_flag_(false),
-    landed_flag_(false),
     un_descend_flag_(false),
-    landing_height_(0),
     force_att_control_flag_(false),
     imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
 {
