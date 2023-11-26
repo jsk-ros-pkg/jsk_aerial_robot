@@ -29,11 +29,11 @@ class SwitchState(smach.State):
                  robot_name = 'beetle1',
                  robot_id = 1,
                  male_servo_id = 5,
-                 real_machine = False,
+                 real_machine = True,
                  unlock_servo_angle_male = 7000,
-                 lock_servo_angle_male = 8800,
+                 lock_servo_angle_male = 8300,
                  unlock_servo_angle_female = 11000,
-                 lock_servo_angle_female = 5000,
+                 lock_servo_angle_female = 5600,
                  neighboring = 'beetle2',
                  neighboring_id = 2,
                  female_servo_id = 6,
@@ -77,11 +77,14 @@ class SwitchState(smach.State):
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '0'
         self.flag_pub.publish(self.flag_msg)
+        rospy.loginfo("ok-1")
         if self.real_machine:
-            if(separate_dir > 0):
+            if(self.separate_dir > 0):
+                rospy.loginfo("ok0")
                 self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_female)
                 self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_male)
             else:
+                rospy.loginfo("ok-1")
                 self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
                 self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
         else:
@@ -95,9 +98,9 @@ class SeparateState(smach.State):
     def __init__(self,
                  robot_name = 'beetle1',
                  robot_id = 1,
-                 separate_vel = -0.12,
+                 separate_vel = -0.5,
                  neighboring = 'beetle2',
-                 target_dist_from_neighboring = 1.8):
+                 target_dist_from_neighboring = 1.0):
 
         smach.State.__init__(self, outcomes=['done','in_process'])
 

@@ -5,9 +5,9 @@
   <arg name = "male_servo_id" default="5"/>
   <arg name = "female_servo_id" default="6" />
   <arg name = "unlock_servo_angle_male" default="7000"/>
-  <arg name = "lock_servo_angle_male" default="8800"/>
-  <arg name = "unlock_servo_angle_female" default="11000"/>
-  <arg name = "lock_servo_angle_female" default="5000"/>
+  <arg name = "lock_servo_angle_male" default="8400"/>
+  <arg name = "unlock_servo_angle_female" default="5600"/>
+  <arg name = "lock_servo_angle_female" default="11000"/>
   <arg name = "left_edge_id" default="1"/>
   <arg name = "right_edge_id" default="3"/>
 
@@ -16,8 +16,8 @@
     <param name = "switch_type" value="$(arg switch_type)"/>
     <param name = "male_servo_id" value="$(arg male_servo_id)"/>
     <param name = "female_servo_id" value="$(arg female_servo_id)"/>
-    <param name = "unlock_servo_angle_male" value="$(arg male_servo_id)"/>
-    <param name = "lock_servo_angle_male" value="$(arg male_servo_id)"/>
+    <param name = "unlock_servo_angle_male" value="$(arg unlock_servo_angle_male)"/>
+    <param name = "lock_servo_angle_male" value="$(arg lock_servo_angle_male)"/>
     <param name = "unlock_servo_angle_female" value="$(arg unlock_servo_angle_female)"/>
     <param name = "lock_servo_angle_female" value="$(arg lock_servo_angle_female)"/>
     <param name = "left_edge_id" value="$(arg left_edge_id)"/>
