@@ -15,10 +15,11 @@ DragonNavigator::DragonNavigator():
 
 void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                 boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                                 boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                 double loop_du)
 {
   /* initialize the flight control */
-  BaseNavigator::initialize(nh, nhp, robot_model, estimator);
+  BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
   curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
@@ -106,6 +107,8 @@ void DragonNavigator::landingProcess()
           landing_flag_ = true;
           setTeleopFlag(false);
           setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
+          setTargetVelZ(0);
+          land_height_ = 0; // reset the land height, since it is updated in the first land_state which is forced to change to hover state to level the orientation. Thus, it is possible to have the same land height just after switching back to land state and thus stop in midair
           setNaviState(HOVER_STATE);
         }
     }
@@ -130,7 +133,6 @@ void DragonNavigator::landingProcess()
         {
           ROS_WARN("gimbal control: back to land state");
           setNaviState(LAND_STATE);
-          setTargetPosZ(estimator_->getLandingHeight());
           setTeleopFlag(true);
         }
     }

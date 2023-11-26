@@ -51,7 +51,8 @@ namespace aerial_robot_navigation
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    double loop_du) override;
 
     inline boost::shared_ptr<HydrusTiltedRobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
     inline OsqpEigen::Solver& getYawRangeLPSolver() { return yaw_range_lp_solver_;}

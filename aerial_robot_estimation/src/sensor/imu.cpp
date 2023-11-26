@@ -39,6 +39,7 @@ namespace
 {
   int bias_calib = 0;
   ros::Time prev_time;
+  bool first_flag = true;
 }
 
 namespace sensor_plugin
@@ -81,11 +82,21 @@ namespace sensor_plugin
     imu_sub_ = nh_.subscribe<spinal::Imu>(topic_name, 10, &Imu::ImuCallback, this);
     imu_pub_ = indexed_nhp_.advertise<sensor_msgs::Imu>(string("ros_converted"), 1);
     acc_pub_ = indexed_nhp_.advertise<aerial_robot_msgs::Acc>("acc_only", 2);
+
+    //low pass filter
+    double sample_freq, cutoff_freq;
+    getParam<double>("cutoff_freq", cutoff_freq, 20.0);
+    getParam<double>("sample_freq", sample_freq, 200.0);
+    lpf_omega_ = IirFilter(sample_freq, cutoff_freq, 3);
+
+    // debug
+    omega_filter_pub_ = indexed_nhp_.advertise<geometry_msgs::Vector3Stamped>(string("filter_angular_velocity"), 1);
   }
 
   void Imu::ImuCallback(const spinal::ImuConstPtr& imu_msg)
   {
     imu_stamp_ = imu_msg->stamp;
+    tf::Vector3 filtered_omega;
 
     for(int i = 0; i < 3; i++)
       {
@@ -101,6 +112,30 @@ namespace sensor_plugin
         omega_[i] = imu_msg->gyro_data[i];
         mag_[i] = imu_msg->mag_data[i];
       }
+
+    if(first_flag)
+      {
+        lpf_omega_.setInitValues(omega_);
+        first_flag = false;
+      }
+    filtered_omega = lpf_omega_.filterFunction(omega_);
+    geometry_msgs::Vector3Stamped omega_msg;
+    omega_msg.header.stamp = imu_msg->stamp;
+    tf::vector3TFToMsg(filtered_omega, omega_msg.vector);
+    omega_filter_pub_.publish(omega_msg);
+
+    // workaround: use raw roll&pitch omega (not filtered in spinal) for both angular and linear CoG velocity estimation, yaw is still filtered
+    // note: this is different with hydrus-like control which use filtered omega for CoG estimation
+    omega_.setZ(filtered_omega.z());
+
+    // get filtered angular and linear velocity of CoG
+    tf::Transform cog2baselink_tf;
+    tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+    int estimate_mode = estimator_->getEstimateMode();
+    setFilteredOmegaCog(cog2baselink_tf.getBasis() * filtered_omega);
+    setFilteredVelCog(estimator_->getVel(Frame::BASELINK, estimate_mode)
+                      + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                      * (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
 
     estimateProcess();
     updateHealthStamp();
@@ -129,14 +164,6 @@ namespace sensor_plugin
 #else  // use approximation
     acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, aerial_robot_estimation::G);
 #endif
-
-    if(estimator_->getLandingMode() &&
-       !estimator_->getLandedFlag() &&
-       acc_l_.z() > landing_shock_force_thre_)
-      {
-        ROS_WARN("imu: touch to ground");
-        estimator_->setLandedFlag(true);
-      }
 
     /* base link */
     /* roll & pitch */
@@ -457,7 +484,6 @@ namespace sensor_plugin
     getParam<double>("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
     getParam<double>("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
     getParam<double>("calib_time", calib_time_, 2.0 );
-    getParam<double>("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
 
     /* important scale, record here
        {
