@@ -11,10 +11,7 @@ namespace aerial_robot_control
   {
   public:
     BeetleController();
-    ~BeetleController(){
-      wrench_estimate_thread_.interrupt();
-      wrench_estimate_thread_.join();
-    }
+    ~BeetleController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -25,23 +22,7 @@ namespace aerial_robot_control
   private:
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     
-    ros::Publisher estimate_external_wrench_pub_;
     ros::Publisher external_wrench_compensation_pub_;
-
-    /* external wrench */
-    boost::thread wrench_estimate_thread_;
-    Eigen::VectorXd init_sum_momentum_;
-    Eigen::VectorXd est_external_wrench_;
-    Eigen::MatrixXd momentum_observer_matrix_;
-    Eigen::VectorXd integrate_term_;
-    double prev_est_wrench_timestamp_;
-
-    /*low-pass filter*/
-    IirFilter lpf_est_external_wrench_;
-    double sample_freq_;
-    double cutoff_freq_;
-    bool lpf_init_flag_;
-    Eigen::VectorXd filterd_est_external_wrench_;
 
     /* external wrench compensation */
     bool pd_wrench_comp_mode_;
@@ -57,7 +38,6 @@ namespace aerial_robot_control
     double ErrI_YAW_;
     
     void controlCore() override;
-    void externalWrenchEstimate();
 
   protected:
     void rosParamInit() override; 
