@@ -14,10 +14,11 @@ GimbalrotorNavigator::GimbalrotorNavigator():
 
 void GimbalrotorNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                                      boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                      double loop_du)
 {
   /* initialize the flight control */
-  BaseNavigator::initialize(nh, nhp, robot_model, estimator);
+  BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
   curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &GimbalrotorNavigator::setFinalTargetBaselinkRotCallback, this);
