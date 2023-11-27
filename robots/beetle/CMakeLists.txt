@@ -10,16 +10,27 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   gimbalrotor
   diagnostic_msgs
+  std_msgs
+  geometry_msgs
+  message_generation
   )
 
 find_package(Eigen3 REQUIRED)
 
+add_message_files(FILES
+  TaggedWrench.msg
+  )
+
 catkin_python_setup()
+
+## Generate added messages and services
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES beetle_robot_model beetle_controller beetle_navigation
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs pluginlib roscpp gimbalrotor diagnostic_msgs
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs pluginlib roscpp gimbalrotor diagnostic_msgs std_msgs geometry_msgs message_runtime
 )
 
 include_directories(
@@ -30,7 +41,7 @@ include_directories(
 
 add_library(beetle_sensor_pluginlib  src/sensor/imu.cpp)
 target_link_libraries(beetle_sensor_pluginlib ${catkin_LIBRARIES})
-add_dependencies(beetle_sensor_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
+add_dependencies(beetle_sensor_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp beetle_generate_messages_cpp)
 
 add_library(beetle_controller src/control/beetle_controller.cpp)
 target_link_libraries(beetle_controller beetle_sensor_pluginlib ${catkin_LIBRARIES})
