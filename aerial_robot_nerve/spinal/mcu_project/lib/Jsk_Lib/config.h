@@ -39,7 +39,7 @@
 //2.1.2 Barometer Sensor
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
-#define GPS_FLAG 1
+#define GPS_FLAG 0
 
 
 //2.2 State Estimate
