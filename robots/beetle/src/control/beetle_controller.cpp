@@ -20,10 +20,19 @@ namespace aerial_robot_control
   {
     GimbalrotorController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
     beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
+    external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
+    external_wrench_upper_limit_ = Eigen::VectorXd::Zero(6);
     rosParamInit();
     if(pd_wrench_comp_mode_) ROS_ERROR("PD & Wrench comp mode");
     external_wrench_compensation_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("external_wrench_compensation", 1);
-    startWrenchEstimation();
+    tagged_external_wrench_pub_ = nh_.advertise<beetle::TaggedWrench>("tagged_wrench_compensation", 1);
+    int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+    for(int i = 0; i < max_modules_num; i++){
+      std::string module_name  = string("/beetle") + std::to_string(i+1);
+      est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench_compensation"), 1, &BeetleController::estExternalWrenchCallback, this)));
+      Eigen::VectorXd ex_wrench = Eigen::VectorXd::Zero(6);
+      ex_wrench_list_.insert(make_pair(i, ex_wrench));
+    }
   }
 
   void BeetleController::controlCore()
@@ -106,6 +115,95 @@ namespace aerial_robot_control
     external_wrench_lower_limit_.tail(3) = Eigen::Vector3d::Constant(external_torque_lower_limit);
     ROS_INFO_STREAM("upper limit of external wrench : "<<external_wrench_upper_limit_.transpose());
     ROS_INFO_STREAM("lower limit of external wrench : "<<external_wrench_lower_limit_.transpose());
+  }
+
+  void BeetleController::externalWrenchEstimate()
+  {
+    const Eigen::VectorXd target_wrench_acc_cog = getTargetWrenchAccCog();
+
+    if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
+       navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
+      {
+        prev_est_wrench_timestamp_ = 0;
+        integrate_term_ = Eigen::VectorXd::Zero(6);
+        return;
+      }else if(target_wrench_acc_cog.size() == 0){
+        ROS_WARN("Target wrench value for wrench estimation is not setted.");
+        prev_est_wrench_timestamp_ = 0;
+        integrate_term_ = Eigen::VectorXd::Zero(6);
+        return;
+      }
+
+    Eigen::Vector3d vel_w, omega_cog; // workaround: use the filtered value
+    auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu>(estimator_->getImuHandler(0));
+    tf::vectorTFToEigen(imu_handler->getFilteredVelCog(), vel_w);
+    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCog(), omega_cog);
+    Eigen::Matrix3d cog_rot;
+    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), cog_rot);
+
+    Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
+    double mass = robot_model_->getMass();
+
+    Eigen::VectorXd sum_momentum = Eigen::VectorXd::Zero(6);
+    sum_momentum.head(3) = mass * vel_w;
+    sum_momentum.tail(3) = inertia * omega_cog;
+
+    Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
+    target_wrench_cog.head(3) = mass * target_wrench_acc_cog.head(3);
+    target_wrench_cog.tail(3) = inertia * target_wrench_acc_cog.tail(3);
+
+    Eigen::MatrixXd J_t = Eigen::MatrixXd::Identity(6,6);
+    J_t.topLeftCorner(3,3) = cog_rot;
+
+    Eigen::VectorXd N = mass * robot_model_->getGravity();
+    N.tail(3) = aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
+
+    if(prev_est_wrench_timestamp_ == 0)
+      {
+        prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+        init_sum_momentum_ = sum_momentum; // not good
+      }
+
+    double dt = ros::Time::now().toSec() - prev_est_wrench_timestamp_;
+
+    integrate_term_ += (J_t * target_wrench_cog - N + est_external_wrench_) * dt;
+
+    est_external_wrench_ = momentum_observer_matrix_ * (sum_momentum - init_sum_momentum_ - integrate_term_);
+
+    Eigen::VectorXd est_external_wrench_cog = est_external_wrench_;
+    est_external_wrench_cog.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
+
+    geometry_msgs::WrenchStamped wrench_msg;
+    wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.wrench.force.x = est_external_wrench_(0);
+    wrench_msg.wrench.force.y = est_external_wrench_(1);
+    wrench_msg.wrench.force.z = est_external_wrench_(2);
+    wrench_msg.wrench.torque.x = est_external_wrench_(3);
+    wrench_msg.wrench.torque.y = est_external_wrench_(4);
+    wrench_msg.wrench.torque.z = est_external_wrench_(5);
+    estimate_external_wrench_pub_.publish(wrench_msg);
+
+    beetle::TaggedWrench tagged_wrench;
+    tagged_wrench.index = beetle_robot_model_->getMyID();
+    tagged_wrench.wrench = wrench_msg;
+    tagged_external_wrench_pub_.publish(tagged_wrench);
+
+    prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+  }
+
+  void BeetleController::estExternalWrenchCallback(const beetle::TaggedWrench & msg)
+  {
+    int id = msg.index;
+    geometry_msgs::Wrench wrench_msg = msg.wrench.wrench;
+    double time_stamp = msg.wrench.header.stamp.toSec();
+    Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
+    wrench(0) =  wrench_msg.force.x;
+    wrench(1) =  wrench_msg.force.y;
+    wrench(2) =  wrench_msg.force.z;
+    wrench(3) =  wrench_msg.torque.x;
+    wrench(4) =  wrench_msg.torque.y;
+    wrench(5) =  wrench_msg.torque.z;
+    ex_wrench_list_[id] = wrench;
   }
 
 } //namespace aerial_robot_controller

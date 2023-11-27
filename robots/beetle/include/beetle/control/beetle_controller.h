@@ -2,6 +2,7 @@
 
 #pragma once
 #include <beetle/model/beetle_robot_model.h>
+#include <beetle/TaggedWrench.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
 #include <beetle/sensor/imu.h>
 
@@ -23,6 +24,8 @@ namespace aerial_robot_control
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     
     ros::Publisher external_wrench_compensation_pub_;
+    ros::Publisher tagged_external_wrench_pub_;
+    map<string, ros::Subscriber> est_wrench_subs_;
 
     /* external wrench compensation */
     bool pd_wrench_comp_mode_;
@@ -36,10 +39,14 @@ namespace aerial_robot_control
     double ErrI_ROLL_;
     double ErrI_PITCH_;
     double ErrI_YAW_;
+
+    std::map<int, Eigen::VectorXd> ex_wrench_list_;
     
     void controlCore() override;
+    void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:
-    void rosParamInit() override; 
+    void rosParamInit() override;
+    void externalWrenchEstimate() override;
   };
 };
