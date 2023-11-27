@@ -1,12 +1,14 @@
 aerial_robot_control_name: aerial_robot_control/beetle_controller
 
 controller:
+  exter
   torque_allocation_matrix_inv_pub_interval: 0.05
   wrench_allocation_matrix_pub_interval: 0.1
   gimbal_calc_in_fc : true
   wrench_estimate_update_rate: 100
   momentum_observer_force_weight: 3
   momentum_observer_torque_weight: 2.5
+  wrench_estimate_flag: true
 
   pd_wrench_comp_mode: true
 
