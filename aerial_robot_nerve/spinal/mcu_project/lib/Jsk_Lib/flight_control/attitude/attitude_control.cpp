@@ -327,9 +327,19 @@ void AttitudeController::update(void)
       {
         for (int axis = 0; axis < 3; axis++)
         {
-          p_term = error_angle[axis] * thrust_p_gain_[i][axis];
-          i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-          d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
+          if (is_attitude_ctrl_)
+          {
+            p_term = error_angle[axis] * thrust_p_gain_[i][axis];
+            i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
+            d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
+          }
+          else
+          {
+            p_term = 0;
+            i_term = 0;
+            d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
+          }
+
           if (axis == X)
           {
             roll_pitch_term_[i] = p_term + i_term + d_term;  // [N]
