@@ -17,7 +17,7 @@ namespace aerial_robot_control
                                          )
   {
     PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
-    gimbalerotor_robot_model_ = boost::dynamic_pointer_cast<GimbalrotorRobotModel>(robot_model);
+    gimbalrotor_robot_model_ = boost::dynamic_pointer_cast<GimbalrotorRobotModel>(robot_model);
 
     target_base_thrust_.resize(motor_num_ * 2);
     target_full_thrust_.resize(motor_num_);
@@ -95,14 +95,13 @@ namespace aerial_robot_control
 
     Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
 
-    double mass_inv = 1 / gimbalerotor_robot_model_->getMass();
+    double mass_inv = 1 / gimbalrotor_robot_model_->getMass();
 
-    Eigen::Matrix3d inertia_inv = (gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+    Eigen::Matrix3d inertia_inv = (gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
 
     double t = ros::Time::now().toSec();
-    
 
-    std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalerotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+    std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalrotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
 
     Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
     wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
@@ -119,7 +118,7 @@ namespace aerial_robot_control
     full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
 
     /* calculate masked rotation matrix */
-    std::vector<KDL::Rotation> thrust_coords_rot = gimbalerotor_robot_model_->getThrustCoordRot<KDL::Rotation>();
+    std::vector<KDL::Rotation> thrust_coords_rot = gimbalrotor_robot_model_->getThrustCoordRot<KDL::Rotation>();
     std::vector<Eigen::MatrixXd> masked_rot;
     for(int i = 0; i < motor_num_; i++){
       tf::Quaternion r;  tf::quaternionKDLToTF(thrust_coords_rot.at(i), r);
@@ -171,7 +170,7 @@ namespace aerial_robot_control
     PoseLinearController::sendCmd();
 
     sendFourAxisCommand();
-    
+
     if(gimbal_calc_in_fc_){
       sendTorqueAllocationMatrixInv();
     }
@@ -215,7 +214,7 @@ namespace aerial_robot_control
     gimbal_state_pub_.publish(gimbal_state_msg);
 
   }
-  
+
   void GimbalrotorController::sendTorqueAllocationMatrixInv()
   {
     spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;

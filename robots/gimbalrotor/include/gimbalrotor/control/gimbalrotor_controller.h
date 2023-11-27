@@ -33,7 +33,7 @@ namespace aerial_robot_control
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
     ros::Publisher gimbal_dof_pub_; //for spinal
 
-    boost::shared_ptr<GimbalrotorRobotModel> gimbalerotor_robot_model_;
+    boost::shared_ptr<GimbalrotorRobotModel> gimbalrotor_robot_model_;
     std::vector<float> target_base_thrust_;
     std::vector<float> target_full_thrust_;
     std::vector<double> target_gimbal_angles_;
