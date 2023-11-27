@@ -91,6 +91,7 @@ private:
   MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
+  void printPhysicalParams();
 };
 
 };  // namespace nmpc_under_act_full

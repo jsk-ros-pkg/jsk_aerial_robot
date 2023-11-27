@@ -73,34 +73,6 @@ void nmpc_under_act_body_rate::NMPCController::initialize(
            set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
-  //
-  //  // print these value
-  //  //  robot_model_->getMass();
-  //  //  robot_model_->getGravity();
-  //  //  robot_model_->getRotorNum();
-  //  //  robot_model_->getInertia<Eigen::Matrix3d>();
-  //  //  robot_model_->getThrustLowerLimit();
-  //  //  robot_model_->getThrustUpperLimit();
-  //  //  robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  //  cout << "mass: " << robot_model_->getMass() << endl;
-  //  cout << "gravity: " << robot_model_->getGravity() << endl;
-  //  cout << "inertia: " << robot_model_->getInertia<Eigen::Matrix3d>() << endl;
-  //  cout << "rotor num: " << robot_model_->getRotorNum() << endl;
-  //  for (const auto& dir : robot_model_->getRotorDirection())
-  //  {
-  //    std::cout << "Key: " << dir.first << ", Value: " << dir.second << std::endl;
-  //  }
-  //  for (const auto& vec : robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>())
-  //  {
-  //    std::cout << "rotor origin from cog: " << vec << std::endl;
-  //  }
-  //  cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
-  //  cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
-  //  robot_model_->getThrustWrenchUnits();
-  //  for (const auto& vec : robot_model_->getThrustWrenchUnits())
-  //  {
-  //    std::cout << "thrust wrench units: " << vec << std::endl;
-  //  }
 }
 
 bool nmpc_under_act_body_rate::NMPCController::update()

@@ -69,6 +69,12 @@ void nmpc_under_act_full::NMPCController::initialize(
            set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
+
+  // print physical parameters if needed
+  bool is_print_physical_params;
+  getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
+  if (is_print_physical_params)
+    printPhysicalParams();
 }
 
 bool nmpc_under_act_full::NMPCController::update()
@@ -350,6 +356,28 @@ void nmpc_under_act_full::NMPCController::sendRotationalInertiaComp()
   p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
 
   pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
+}
+void nmpc_under_act_full::NMPCController::printPhysicalParams()
+{
+  cout << "mass: " << robot_model_->getMass() << endl;
+  cout << "gravity: " << robot_model_->getGravity() << endl;
+  cout << "inertia: " << robot_model_->getInertia<Eigen::Matrix3d>() << endl;
+  cout << "rotor num: " << robot_model_->getRotorNum() << endl;
+  for (const auto& dir : robot_model_->getRotorDirection())
+  {
+    std::cout << "Key: " << dir.first << ", Value: " << dir.second << std::endl;
+  }
+  for (const auto& vec : robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>())
+  {
+    std::cout << "rotor origin from cog: " << vec << std::endl;
+  }
+  cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
+  cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
+  robot_model_->getThrustWrenchUnits();
+  for (const auto& vec : robot_model_->getThrustWrenchUnits())
+  {
+    std::cout << "thrust wrench units: " << vec << std::endl;
+  }
 }
 
 /* plugin registration */
