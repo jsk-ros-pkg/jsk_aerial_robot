@@ -356,7 +356,11 @@ void AttitudeController::update(void)
           }
           if (axis == Z)
           {
-            yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
+            if (is_attitude_ctrl_)
+              yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
+            else
+              yaw_term_[i] = d_term;
+
             control_term_msg_.motors[i].yaw_d = d_term * 1000;  // d_term;
           }
         }
