@@ -40,9 +40,12 @@ namespace aerial_robot_control
     double ErrI_PITCH_;
     double ErrI_YAW_;
 
-    std::map<int, Eigen::VectorXd> ex_wrench_list_;
+    std::map<int, Eigen::VectorXd> est_wrench_list_;
+    std::map<int, Eigen::VectorXd> inter_wrench_list_;
+    std::map<int, Eigen::VectorXd> wrench_comp_list_;
     
     void controlCore() override;
+    void calcInteractionWrench();
     void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:

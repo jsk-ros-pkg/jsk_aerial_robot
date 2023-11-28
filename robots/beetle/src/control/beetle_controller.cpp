@@ -30,13 +30,17 @@ namespace aerial_robot_control
     for(int i = 0; i < max_modules_num; i++){
       std::string module_name  = string("/beetle") + std::to_string(i+1);
       est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench_compensation"), 1, &BeetleController::estExternalWrenchCallback, this)));
-      Eigen::VectorXd ex_wrench = Eigen::VectorXd::Zero(6);
-      ex_wrench_list_.insert(make_pair(i, ex_wrench));
+      Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
+      est_wrench_list_.insert(make_pair(i, wrench));
+      inter_wrench_list_.insert(make_pair(i, wrench));
+      wrench_comp_list_.insert(make_pair(i, wrench));
     }
   }
 
   void BeetleController::controlCore()
   {
+    calcInteractionWrench();
+
     Eigen::VectorXd wrench_compensation_term = Eigen::VectorXd::Zero(6);
 
     //positive wrench compensation
@@ -78,26 +82,77 @@ namespace aerial_robot_control
       if(pre_module_state_ != FOLLOWER){
         ErrI_X_ = pid_controllers_.at(X).getErrI();
         ErrI_Y_ = pid_controllers_.at(Y).getErrI();
-        // ErrI_Z_ = pid_controllers_.at(Z).getErrI();
-        // ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
-        // ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
+        ErrI_Z_ = pid_controllers_.at(Z).getErrI();
+        ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
+        ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
         ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
         pre_module_state_ = FOLLOWER;
       }
       //fix i_term
       pid_controllers_.at(X).setErrI(ErrI_X_);
       pid_controllers_.at(Y).setErrI(ErrI_Y_);
-      // pid_controllers_.at(Z).setErrI(ErrI_Z_);
-      // pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
-      // pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
+      pid_controllers_.at(Z).setErrI(ErrI_Z_);
+      pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
+      pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
       pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
-
     }else{
       feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
       GimbalrotorController::controlCore();
     }
   }
 
+  void BeetleController::calcInteractionWrench()
+  {
+    // note: Currently, this process doesn't include torque elements.
+
+    /* 1. calculate external wrench W_w for whole system (e.g. ground effects, model error and etc..)*/
+    Eigen::VectorXd W_w = Eigen::VectorXd::Zero(6);
+    Eigen::VectorXd W_sum = Eigen::VectorXd::Zero(6);
+    int module_num = 0;
+    std::map<int, bool> assembly_flag = beetle_robot_model_->getAssemblyFlags();
+    for(const auto & item : est_wrench_list_){
+      if(assembly_flag[item.first]){
+        W_sum += item.second;
+        module_num ++;
+      }
+    }
+    if(!module_num) return;
+    W_w = W_sum / module_num;
+
+    /* 2. calculate interactional wrench for each module*/
+    Eigen::VectorXd left_inter_wrench = Eigen::VectorXd::Zero(6);
+    for(const auto & item : est_wrench_list_){
+      if(assembly_flag[item.first]){
+        Eigen::VectorXd right_inter_wrench = item.second - W_w + left_inter_wrench;
+        inter_wrench_list_[item.first] = right_inter_wrench;
+        left_inter_wrench = right_inter_wrench;
+      }else{
+        inter_wrench_list_[item.first] = Eigen::VectorXd::Zero(6);
+      }
+    }
+
+    /* 3. calculate wrench compensation term for each module*/
+    int leader_id = beetle_robot_model_->getLeaderID();
+    /* 3.1. process from leader to left*/
+    int right_module_id = leader_id;
+    Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
+    for(int i = leader_id-1; i > 0; i--){
+      if(assembly_flag[i]){
+        wrench_comp_sum_left -= inter_wrench_list_[right_module_id];
+        wrench_comp_list_[i] = wrench_comp_sum_left;
+        right_module_id = i;
+      }
+    }
+    /* 3.2. process from leader to right*/
+    int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+    Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
+    for(int i = leader_id+1; i < max_modules_num; i++){
+      if(assembly_flag[i]){
+        wrench_comp_sum_right += inter_wrench_list_[i];
+        wrench_comp_list_[i] = wrench_comp_sum_right;
+      }
+    }
+  }
   void BeetleController::rosParamInit()
   {
     GimbalrotorController::rosParamInit();
@@ -122,6 +177,7 @@ namespace aerial_robot_control
     const Eigen::VectorXd target_wrench_acc_cog = getTargetWrenchAccCog();
 
     if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
+       navigator_->getNaviState() != aerial_robot_navigation::TAKEOFF_STATE &&
        navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
       {
         prev_est_wrench_timestamp_ = 0;
@@ -203,7 +259,7 @@ namespace aerial_robot_control
     wrench(3) =  wrench_msg.torque.x;
     wrench(4) =  wrench_msg.torque.y;
     wrench(5) =  wrench_msg.torque.z;
-    ex_wrench_list_[id] = wrench;
+    est_wrench_list_[id] = wrench;
   }
 
 } //namespace aerial_robot_controller
