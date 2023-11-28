@@ -66,6 +66,7 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
   src/control/under_actuated_tilted_lqi_controller.cpp
+  src/nmpc/base_mpc_solver.cpp
   src/nmpc/under_act_body_rate/mpc_solver.cpp
   src/nmpc/under_act_body_rate/nmpc_controller.cpp
   src/nmpc/under_act_full/mpc_solver.cpp

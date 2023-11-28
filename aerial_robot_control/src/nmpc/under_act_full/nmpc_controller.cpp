@@ -18,15 +18,17 @@ void nmpc_under_act_full::NMPCController::initialize(
 
   ros::NodeHandle control_nh(nh_, "controller");
 
+  mpc_solver_.initialize();
+
   // get params and initialize nmpc solver
-  Constraints constraints{};
-  constraints.thrust_max = robot_model_->getThrustUpperLimit();
-  constraints.thrust_min = robot_model_->getThrustLowerLimit();
-  getParam<double>(control_nh, "nmpc/v_max", constraints.v_max, 0.5);
-  getParam<double>(control_nh, "nmpc/v_min", constraints.v_min, -0.5);
-  getParam<double>(control_nh, "nmpc/w_max", constraints.w_max, 3.0);
-  getParam<double>(control_nh, "nmpc/w_min", constraints.w_min, -3.0);
-  mpc_solver_.initialize(constraints);
+  double v_max, v_min, w_max, w_min, thrust_max, thrust_min;
+  thrust_max = robot_model_->getThrustUpperLimit();
+  thrust_min = robot_model_->getThrustLowerLimit();
+  getParam<double>(control_nh, "nmpc/v_max", v_max, 0.5);
+  getParam<double>(control_nh, "nmpc/v_min", v_min, -0.5);
+  getParam<double>(control_nh, "nmpc/w_max", w_max, 3.0);
+  getParam<double>(control_nh, "nmpc/w_min", w_min, -3.0);
+  mpc_solver_.updateConstraints(v_max, v_min, w_max, w_min, thrust_max, thrust_min);
 
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
@@ -103,17 +105,17 @@ void nmpc_under_act_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  double x[NX] = { pos.x(), pos.y(), pos.z(), vel.x(),   vel.y(),   vel.z(),  q.w(),
-                   q.x(),   q.y(),   q.z(),   omega.x(), omega.y(), omega.z() };
+  double x[] = { pos.x(), pos.y(), pos.z(), vel.x(),   vel.y(),   vel.z(),  q.w(),
+                 q.x(),   q.y(),   q.z(),   omega.x(), omega.y(), omega.z() };
   double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
-  initPredXU(x_u_ref_);
-  for (int i = 0; i < NN; i++)
+  double u[] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  mpc_solver_.initPredXU(x_u_ref_);
+  for (int i = 0; i < mpc_solver_.NN_; i++)
   {
-    std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
-    std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * i);
+    std::copy(x, x + mpc_solver_.NX_, x_u_ref_.x.data.begin() + mpc_solver_.NX_ * i);
+    std::copy(u, u + mpc_solver_.NU_, x_u_ref_.u.data.begin() + mpc_solver_.NU_ * i);
   }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
+  std::copy(x, x + mpc_solver_.NX_, x_u_ref_.x.data.begin() + mpc_solver_.NX_ * mpc_solver_.NN_);
 
   mpc_solver_.reset(x_u_ref_);
 
@@ -155,22 +157,20 @@ void nmpc_under_act_full::NMPCController::controlCore()
 
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  double x[NX] = {
-    target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-  };
+  double x[] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  double u[] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
 
-  for (int i = 0; i < NN; i++)
+  for (int i = 0; i < mpc_solver_.NN_; i++)
   {
     // shift one step
-    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
-              x_u_ref_.x.data.begin() + NX * i);
-    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
-              x_u_ref_.u.data.begin() + NU * i);
+    std::copy(x_u_ref_.x.data.begin() + mpc_solver_.NX_ * (i + 1), x_u_ref_.x.data.begin() + mpc_solver_.NX_ * (i + 2),
+              x_u_ref_.x.data.begin() + mpc_solver_.NX_ * i);
+    std::copy(x_u_ref_.u.data.begin() + mpc_solver_.NU_ * (i + 1), x_u_ref_.u.data.begin() + mpc_solver_.NU_ * (i + 2),
+              x_u_ref_.u.data.begin() + mpc_solver_.NU_ * i);
   }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
+  std::copy(x, x + mpc_solver_.NX_, x_u_ref_.x.data.begin() + mpc_solver_.NX_ * mpc_solver_.NN_);
+  std::copy(u, u + mpc_solver_.NU_, x_u_ref_.u.data.begin() + mpc_solver_.NU_ * mpc_solver_.NN_);
 
   /* solve */
   mpc_solver_.solve(odom_now, x_u_ref_);
@@ -182,10 +182,10 @@ void nmpc_under_act_full::NMPCController::controlCore()
   q0.setX(mpc_solver_.x_u_out_.x.data.at(7));
   q0.setY(mpc_solver_.x_u_out_.x.data.at(8));
   q0.setZ(mpc_solver_.x_u_out_.x.data.at(9));
-  q1.setW(mpc_solver_.x_u_out_.x.data.at(6 + NX));
-  q1.setX(mpc_solver_.x_u_out_.x.data.at(7 + NX));
-  q1.setY(mpc_solver_.x_u_out_.x.data.at(8 + NX));
-  q1.setZ(mpc_solver_.x_u_out_.x.data.at(9 + NX));
+  q1.setW(mpc_solver_.x_u_out_.x.data.at(6 + mpc_solver_.NX_));
+  q1.setX(mpc_solver_.x_u_out_.x.data.at(7 + mpc_solver_.NX_));
+  q1.setY(mpc_solver_.x_u_out_.x.data.at(8 + mpc_solver_.NX_));
+  q1.setZ(mpc_solver_.x_u_out_.x.data.at(9 + mpc_solver_.NX_));
 
   double rpy0[3], rpy1[3];
   tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
@@ -194,13 +194,13 @@ void nmpc_under_act_full::NMPCController::controlCore()
   // - for the full model, roll, pitch and yaw cannot be used as control input.
   // - body rates
   double target_roll_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(10) +
-                             (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(10 + NX)) /
+                             (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(10 + mpc_solver_.NX_)) /
                             t_nmpc_integ_;
   double target_pitch_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(11) +
-                              (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(11 + NX)) /
+                              (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(11 + mpc_solver_.NX_)) /
                              t_nmpc_integ_;
   double target_yaw_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(12) +
-                            (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(12 + NX)) /
+                            (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(12 + mpc_solver_.NX_)) /
                            t_nmpc_integ_;
   flight_cmd_.body_rates[0] = static_cast<float>(target_roll_rate);
   flight_cmd_.body_rates[1] = static_cast<float>(target_pitch_rate);
@@ -254,26 +254,26 @@ void nmpc_under_act_full::NMPCController::callbackViz(const ros::TimerEvent& eve
   geometry_msgs::PoseArray pred_poses;
   geometry_msgs::PoseArray ref_poses;
 
-  for (int i = 0; i < NN; ++i)
+  for (int i = 0; i < mpc_solver_.NN_; ++i)
   {
     geometry_msgs::Pose pred_pose;
-    pred_pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
-    pred_pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
-    pred_pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
-    pred_pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
-    pred_pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
-    pred_pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
-    pred_pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
+    pred_pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_);
+    pred_pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 1);
+    pred_pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 2);
+    pred_pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 6);
+    pred_pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 7);
+    pred_pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 8);
+    pred_pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * mpc_solver_.NX_ + 9);
     pred_poses.poses.push_back(pred_pose);
 
     geometry_msgs::Pose ref_pose;
-    ref_pose.position.x = x_u_ref_.x.data.at(i * NX);
-    ref_pose.position.y = x_u_ref_.x.data.at(i * NX + 1);
-    ref_pose.position.z = x_u_ref_.x.data.at(i * NX + 2);
-    ref_pose.orientation.w = x_u_ref_.x.data.at(i * NX + 6);
-    ref_pose.orientation.x = x_u_ref_.x.data.at(i * NX + 7);
-    ref_pose.orientation.y = x_u_ref_.x.data.at(i * NX + 8);
-    ref_pose.orientation.z = x_u_ref_.x.data.at(i * NX + 9);
+    ref_pose.position.x = x_u_ref_.x.data.at(i * mpc_solver_.NX_);
+    ref_pose.position.y = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 1);
+    ref_pose.position.z = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 2);
+    ref_pose.orientation.w = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 6);
+    ref_pose.orientation.x = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 7);
+    ref_pose.orientation.y = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 8);
+    ref_pose.orientation.z = x_u_ref_.x.data.at(i * mpc_solver_.NX_ + 9);
     ref_poses.poses.push_back(ref_pose);
   }
 

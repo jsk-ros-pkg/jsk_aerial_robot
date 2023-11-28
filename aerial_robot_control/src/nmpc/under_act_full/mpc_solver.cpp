@@ -7,191 +7,45 @@
 
 using namespace aerial_robot_control;
 
-nmpc_under_act_full::MPCSolver::MPCSolver()
+void nmpc_under_act_full::MPCSolver::initAcadosVariables()
 {
+  // acados related variables should be initialized here
+  NN_ = QD_FULL_MODEL_N, NX_ = QD_FULL_MODEL_NX, NZ_ = QD_FULL_MODEL_NZ, NU_ = QD_FULL_MODEL_NU, NP_ = QD_FULL_MODEL_NP,
+  NBX_ = QD_FULL_MODEL_NBX, NBX0_ = QD_FULL_MODEL_NBX0, NBU_ = QD_FULL_MODEL_NBU, NSBX_ = QD_FULL_MODEL_NSBX,
+  NSBU_ = QD_FULL_MODEL_NSBU, NSH_ = QD_FULL_MODEL_NSH, NSG_ = QD_FULL_MODEL_NSG, NSPHI_ = QD_FULL_MODEL_NSPHI,
+  NSHN_ = QD_FULL_MODEL_NSHN, NSGN_ = QD_FULL_MODEL_NSGN, NSPHIN_ = QD_FULL_MODEL_NSPHIN, NSBXN_ = QD_FULL_MODEL_NSBXN,
+  NS_ = QD_FULL_MODEL_NS, NSN_ = QD_FULL_MODEL_NSN, NG_ = QD_FULL_MODEL_NG, NBXN_ = QD_FULL_MODEL_NBXN,
+  NGN_ = QD_FULL_MODEL_NGN, NY0_ = QD_FULL_MODEL_NY0, NY_ = QD_FULL_MODEL_NY, NYN_ = QD_FULL_MODEL_NYN,
+  NH_ = QD_FULL_MODEL_NH, NPHI_ = QD_FULL_MODEL_NPHI, NHN_ = QD_FULL_MODEL_NHN, NPHIN_ = QD_FULL_MODEL_NPHIN,
+  NR_ = QD_FULL_MODEL_NR;
+
+  // acados related function pointers should be initialized here
+  acados_create_capsule = reinterpret_cast<void* (*)()>(qd_full_model_acados_create_capsule);
+  acados_get_nlp_config = reinterpret_cast<ocp_nlp_config* (*)(void*)>(qd_full_model_acados_get_nlp_config);
+  acados_get_nlp_dims = reinterpret_cast<ocp_nlp_dims* (*)(void*)>(qd_full_model_acados_get_nlp_dims);
+  acados_get_nlp_in = reinterpret_cast<ocp_nlp_in* (*)(void*)>(qd_full_model_acados_get_nlp_in);
+  acados_get_nlp_out = reinterpret_cast<ocp_nlp_out* (*)(void*)>(qd_full_model_acados_get_nlp_out);
+  acados_get_nlp_solver = reinterpret_cast<ocp_nlp_solver* (*)(void*)>(qd_full_model_acados_get_nlp_solver);
+  acados_get_nlp_opts = reinterpret_cast<void* (*)(void*)>(qd_full_model_acados_get_nlp_opts);
+  acados_create_with_discretization = reinterpret_cast<int (*)(void*, int, double*)>(qd_full_model_acados_create);
+  acados_solve = reinterpret_cast<int (*)(void*)>(qd_full_model_acados_solve);
+  acados_update_params = reinterpret_cast<int (*)(void*, int, double*, int)>(qd_full_model_acados_update_params);
+  acados_update_params_sparse =
+      reinterpret_cast<int (*)(void*, int, int*, double*, int)>(qd_full_model_acados_update_params_sparse);
+  acados_free = reinterpret_cast<int (*)(void*)>(qd_full_model_acados_free);
+  acados_free_capsule = reinterpret_cast<int (*)(void*)>(qd_full_model_acados_free_capsule);
+  acados_print_stats = reinterpret_cast<void (*)(void*)>(qd_full_model_acados_print_stats);
 }
 
-void nmpc_under_act_full::MPCSolver::initialize(Constraints& constraints)
+void nmpc_under_act_full::MPCSolver::initialize()
 {
-  /* Allocate the array and fill it accordingly */
-  acados_ocp_capsule_ = qd_full_model_acados_create_capsule();
-
-  new_time_steps = nullptr;
-
-  int status = qd_full_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
-  if (status)
-  {
-    printf("qd_full_model_acados_create() returned status %d. Exiting.\n", status);
-    exit(1);
-  }
-
-  nlp_config_ = qd_full_model_acados_get_nlp_config(acados_ocp_capsule_);
-  nlp_dims_ = qd_full_model_acados_get_nlp_dims(acados_ocp_capsule_);
-  nlp_in_ = qd_full_model_acados_get_nlp_in(acados_ocp_capsule_);
-  nlp_out_ = qd_full_model_acados_get_nlp_out(acados_ocp_capsule_);
-  nlp_solver_ = qd_full_model_acados_get_nlp_solver(acados_ocp_capsule_);
-  nlp_opts_ = qd_full_model_acados_get_nlp_opts(acados_ocp_capsule_);
-
-  /* Set rti_phase */
-  int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
-  ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
-
-  /* Set constraints */
-  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
-  // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints
-  // bx
-  double lbx[NBX] = { constraints.v_min, constraints.v_min, constraints.v_min,
-                      constraints.w_min, constraints.w_min, constraints.w_min };
-  double ubx[NBX] = { constraints.v_max, constraints.v_max, constraints.v_max,
-                      constraints.w_max, constraints.w_max, constraints.w_max };
-  for (int i = 1; i < NN; i++)
-  {
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
-  }
-  // bx_e: terminal state
-  double lbx_e[NBXN] = { constraints.v_min, constraints.v_min, constraints.v_min,
-                         constraints.w_min, constraints.w_min, constraints.w_min };
-  double ubx_e[NBXN] = { constraints.v_max, constraints.v_max, constraints.v_max,
-                         constraints.w_max, constraints.w_max, constraints.w_max };
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
-
-  // bu
-  double lbu[NBU] = { constraints.thrust_min, constraints.thrust_min, constraints.thrust_min, constraints.thrust_min };
-  double ubu[NBU] = { constraints.thrust_max, constraints.thrust_max, constraints.thrust_max, constraints.thrust_max };
-  for (int i = 0; i < NN; i++)
-  {
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
-  }
-
-  /* Set parameters */
-  // Note that the code here initializes all parameters, including variables and constants.
-  // Constants are initialized only once, while variables are initialized in every iteration
-  double p[NP] = { 1.0, 0.0, 0.0, 0.0 };
-  for (int i = 0; i < NN; i++)
-  {
-    qd_full_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
-  }
-  qd_full_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
-
-  /* Initialize output value */
-  initPredXU(x_u_out_);
-}
-
-nmpc_under_act_full::MPCSolver::~MPCSolver()
-{
-  // 1. free solver
-  int status = qd_full_model_acados_free(acados_ocp_capsule_);
-  if (status)
-    std::cout << "qd_full_model_acados_free() returned status " << status << ".\n";
-
-  // 2. free solver capsule
-  status = qd_full_model_acados_free_capsule(acados_ocp_capsule_);
-  if (status)
-    std::cout << "qd_full_model_acados_free_capsule() returned status " << status << ".\n";
-}
-
-void nmpc_under_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
-{
-  const unsigned int x_stride = x_u.x.layout.dim[1].stride;
-  const unsigned int u_stride = x_u.u.layout.dim[1].stride;
-
-  // reset initial guess
-  double x[NX];
-  double u[NU];
-  for (int i = 0; i < NN; i++)
-  {
-    std::copy(x_u.x.data.begin() + x_stride * i, x_u.x.data.begin() + x_stride * (i + 1), x);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", x);
-
-    std::copy(x_u.u.data.begin() + u_stride * i, x_u.u.data.begin() + u_stride * (i + 1), u);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", u);
-  }
-  std::copy(x_u.x.data.begin() + x_stride * NN, x_u.x.data.begin() + x_stride * (NN + 1), x);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
-}
-
-int nmpc_under_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref)
-{
-  const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
-  const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
-
-  /* prepare evaluation */
-  int N_timings = 1;
-
-  setReference(x_u_ref, x_stride, u_stride);
-
-  setFeedbackConstraints(odom_now);
-
-  double min_time = solveOCPInLoop(N_timings);
-
-  getSolution(x_stride, u_stride);
-
-  if (getenv("ROS_DEBUG"))
-  {
-    printSolution();
-    printStatus(N_timings, min_time);
-  }
-
-  return 0;
-}
-
-void nmpc_under_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
-{
-  x_u.x.layout.dim.emplace_back();
-  x_u.x.layout.dim.emplace_back();
-  x_u.x.layout.dim[0].label = "horizon";
-  x_u.x.layout.dim[0].size = NN + 1;
-  x_u.x.layout.dim[0].stride = (NN + 1) * NX;
-  x_u.x.layout.dim[1].label = "state";
-  x_u.x.layout.dim[1].size = NX;
-  x_u.x.layout.dim[1].stride = NX;
-  x_u.x.layout.data_offset = 0;
-  x_u.x.data.resize((NN + 1) * NX);
-
-  x_u.u.layout.dim.emplace_back();
-  x_u.u.layout.dim.emplace_back();
-  x_u.u.layout.dim[0].label = "horizon";
-  x_u.u.layout.dim[0].size = NN;
-  x_u.u.layout.dim[0].stride = NN * NU;
-  x_u.u.layout.dim[1].label = "input";
-  x_u.u.layout.dim[1].size = NU;
-  x_u.u.layout.dim[1].stride = NU;
-  x_u.u.layout.data_offset = 0;
-  x_u.u.data.resize(NN * NU);
-}
-
-void nmpc_under_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
-                                                  const unsigned int u_stride)
-{
-  double yr[NX + NU];
-  double qr[4];
-  int qr_idx[] = { 0, 1, 2, 3 };
-  for (int i = 0; i < NN; i++)
-  {
-    // yr = np.concatenate((xr[i, :], ur[i, :]))
-    std::copy(x_u_ref.x.data.begin() + x_stride * i, x_u_ref.x.data.begin() + x_stride * (i + 1), yr);
-    std::copy(x_u_ref.u.data.begin() + u_stride * i, x_u_ref.u.data.begin() + u_stride * (i + 1), yr + NX);
-    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", yr);
-
-    // quaternions
-    std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
-    qd_full_model_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
-  }
-  // final x and p, no u
-  double xr[NX];
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN, x_u_ref.x.data.begin() + x_stride * (NN + 1), xr);
-  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
-
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, qr);
-  qd_full_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
+  initAcadosVariables();
+  BaseMPCSolver::initialize();
 }
 
 void nmpc_under_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
 {
-  double bx0[NBX0];
+  double bx0[NBX0_];
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
   bx0[2] = odom_now.pose.pose.position.z;
@@ -210,76 +64,40 @@ void nmpc_under_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odom
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
 }
 
-double nmpc_under_act_full::MPCSolver::solveOCPInLoop(const int N_timings)
+void nmpc_under_act_full::MPCSolver::updateConstraints(double v_max, double v_min, double w_max, double w_min,
+                                                       double thrust_max, double thrust_min)
 {
-  double min_time = 1e12;
-  double elapsed_time;
-
-  for (int i = 0; i < N_timings; i++)
+  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
+  // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints bx
+  double lbx[] = { v_min, v_min, v_min, w_min, w_min, w_min };
+  double ubx[] = { v_max, v_max, v_max, w_max, w_max, w_max };
+  for (int i = 1; i < NN_; i++)
   {
-    int status = qd_full_model_acados_solve(acados_ocp_capsule_);
-    if (status != ACADOS_SUCCESS)
-    {
-      std::cout << "qd_full_model_acados_solve() returned status " << status << ".\n";
-    }
-
-    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
-    min_time = MIN(elapsed_time, min_time);
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
   }
+  // bx_e: terminal state
+  double lbx_e[] = { v_min, v_min, v_min, w_min, w_min, w_min };
+  double ubx_e[] = { v_max, v_max, v_max, w_max, w_max, w_max };
+  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "lbx", lbx_e);
+  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "ubx", ubx_e);
 
-  return min_time;
-}
-
-void nmpc_under_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
-{
-  for (int i = 0; i < NN; i++)
+  // bu
+  double lbu[] = { thrust_min, thrust_min, thrust_min, thrust_min };
+  double ubu[] = { thrust_max, thrust_max, thrust_max, thrust_max };
+  for (int i = 0; i < NN_; i++)
   {
-    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_u_out_.x.data.data() + x_stride * i);
-    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", x_u_out_.u.data.data() + u_stride * i);
-  }
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x_u_out_.x.data.data() + x_stride * NN);
-}
-
-void nmpc_under_act_full::MPCSolver::printSolution()
-{
-  std::cout << "\n--- x_traj ---\n" << std::endl;
-
-  for (int i = 0; i <= NN; i++)
-  {
-    std::cout << "X Row " << i << ":" << std::endl;
-    for (int j = 0; j < NX; j++)
-    {
-      int index = i * NX + j;
-      std::cout << x_u_out_.x.data[index] << " ";
-    }
-    std::cout << std::endl;
-  }
-
-  std::cout << "\n--- u_traj ---\n" << std::endl;
-
-  for (int i = 0; i < NN; i++)
-  {
-    std::cout << "U Row " << i << ":" << std::endl;
-    for (int j = 0; j < NU; j++)
-    {
-      int index = i * NU + j;
-      std::cout << x_u_out_.u.data[index] << " ";
-    }
-    std::cout << std::endl;
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
   }
 }
 
-void nmpc_under_act_full::MPCSolver::printStatus(const int N_timings, const double min_time)
+void nmpc_under_act_full::MPCSolver::initParameters()
 {
-  double kkt_norm_inf;
-  int sqp_iter;
-
-  ROS_DEBUG("\nsolved ocp %d times, solution printed above\n\n", N_timings);
-
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
-  ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
-  qd_full_model_acados_print_stats(acados_ocp_capsule_);
-  ROS_DEBUG("\nSolver info:\n");
-  ROS_DEBUG(" SQP iterations %2d\n minimum time for %d solve %f [ms]\n KKT %e\n", sqp_iter, N_timings, min_time * 1000,
-            kkt_norm_inf);
+  double p[] = { 1.0, 0.0, 0.0, 0.0 };
+  for (int i = 0; i < NN_; i++)
+  {
+    acados_update_params(acados_ocp_capsule_, i, p, NP_);
+  }
+  acados_update_params(acados_ocp_capsule_, NN_, p, NP_);
 }
