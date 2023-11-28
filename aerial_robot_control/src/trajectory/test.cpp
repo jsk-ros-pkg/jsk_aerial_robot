@@ -5,7 +5,7 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <eigen_conversions/eigen_msg.h>
-#include "aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp"
+#include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
 
 
 int main (int argc, char **argv)

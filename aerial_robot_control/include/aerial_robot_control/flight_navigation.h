@@ -6,6 +6,7 @@
 #include <aerial_robot_msgs/FlightNav.h>
 #include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <spinal/FlightConfigCmd.h>
@@ -13,6 +14,8 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
+#include <nav_msgs/Path.h>
+#include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
 
 namespace aerial_robot_navigation
 {
@@ -115,6 +118,8 @@ namespace aerial_robot_navigation
 
     uint8_t getEstimateMode(){ return estimate_mode_;}
     void setEstimateMode(uint8_t estimate_mode){ estimate_mode_ = estimate_mode;}
+
+    void generateNewTrajectory(geometry_msgs::PoseStamped pose);
 
     static constexpr uint8_t POS_CONTROL_COMMAND = 0;
     static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
@@ -219,7 +224,9 @@ namespace aerial_robot_navigation
     ros::Publisher  flight_config_pub_;
     ros::Publisher  power_info_pub_;
     ros::Publisher  flight_state_pub_;
+    ros::Publisher  path_pub_;
     ros::Subscriber navi_sub_;
+    ros::Subscriber pose_sub_;
     ros::Subscriber battery_sub_;
     ros::Subscriber flight_status_ack_sub_;
     ros::Subscriber takeoff_sub_;
@@ -307,6 +314,11 @@ namespace aerial_robot_navigation
 
     std::string teleop_local_frame_;
 
+    /* trajectory */
+    double trajectory_mean_vel_;
+    double start_state_vel_thresh_;
+    std::shared_ptr<agi::MinSnapTrajectory> traj_generator_ptr_;
+
     /* battery info */
     double low_voltage_thre_;
     bool low_voltage_flag_;
@@ -316,6 +328,7 @@ namespace aerial_robot_navigation
     double hovering_current_;
 
     virtual void rosParamInit();
+    void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
