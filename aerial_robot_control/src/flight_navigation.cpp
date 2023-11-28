@@ -9,6 +9,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  target_ang_acc_(0, 0, 0),
   init_height_(0), land_height_(0),
   force_att_control_flag_(false),
   trajectory_mode_(false),
@@ -42,6 +43,8 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   estimator_ = estimator;
   loop_du_ = loop_du;
 
+  pose_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::poseCallback, this, ros::TransportHints().tcpNoDelay());
+  simple_move_base_goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &BaseNavigator::simpleMoveBaseGoalCallback, this, ros::TransportHints().tcpNoDelay());
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe("battery_voltage_status", 1, &BaseNavigator::batteryCheckCallback, this);
@@ -68,6 +71,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
+  path_pub_ = nh_.advertise<nav_msgs::Path>("trajectory", 1);
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
@@ -129,6 +133,28 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   power_info_pub_.publish(power_info_msgs);
 
 }
+
+void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+{
+  if (traj_generator_ptr_.get() == nullptr)
+    {
+      ROS_DEBUG("traj_generator_ptr_ is null");
+    }
+
+  generateNewTrajectory(*msg);
+}
+
+void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+{
+  if (traj_generator_ptr_.get() == nullptr)
+    {
+      ROS_DEBUG("traj_generator_ptr_ is null");
+    }
+  geometry_msgs::PoseStamped target_pose = *msg;
+  target_pose.pose.position.z = getTargetPos().z();
+  generateNewTrajectory(target_pose);
+}
+
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
@@ -655,13 +681,58 @@ void BaseNavigator::update()
   /* update the target pos and velocity */
   if (trajectory_mode_)
     {
-      if (ros::Time::now().toSec() > trajectory_reset_time_)
+      if (traj_generator_ptr_.get() == nullptr)
         {
-          setTargetZeroVel();
+          if (ros::Time::now().toSec() > trajectory_reset_time_)
+            {
+              setTargetZeroVel();
+              setTargetZeroAcc();
 
-          trajectory_mode_ = false;
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
 
-          ROS_INFO("[Flight nav] stop trajectory mode");
+              trajectory_mode_ = false;
+
+              ROS_INFO("[Flight nav] stop trajectory mode in POS-VEL mode");
+            }
+        }
+      else
+        {
+          // trajectory following mode
+          double t = ros::Time::now().toSec();
+          double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
+          if (t > end_t)
+            {
+              ROS_INFO("[Nav] reach the end of trajectory");
+
+              setTargetZeroVel();
+              setTargetZeroAcc();
+
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
+
+              trajectory_mode_ = false;
+
+              traj_generator_ptr_.reset();
+            }
+          else
+            {
+              agi::QuadState target_state = traj_generator_ptr_->getState(t);
+              setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
+              setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
+              setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
+
+              double target_yaw = target_state.getYaw();
+              double target_omega_z = target_state.w(2);
+              double target_ang_acc_z = target_state.tau(2);
+              setTargetYaw(target_yaw);
+              setTargetOmegaZ(target_omega_z);
+              setTargetAngAccZ(target_ang_acc_z);
+
+              tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+            }
         }
     }
   else
@@ -877,6 +948,90 @@ void BaseNavigator::updateLandCommand()
   setTargetVelZ(land_descend_vel_);
 }
 
+
+void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
+{
+  if (traj_generator_ptr_.get() != nullptr)
+    {
+      ROS_WARN("[Nav] force to finish the last trajectory following");
+      traj_generator_ptr_.reset();
+    }
+
+  agi::QuadState start_state;
+  start_state.setZero();
+  tf::Vector3 last_target_pos = getTargetPos();
+  start_state.p = agi::Vector<3>(last_target_pos.x(), last_target_pos.y(), last_target_pos.z());
+  tf::Vector3 last_target_vel = getTargetVel();
+  start_state.v = agi::Vector<3>(last_target_vel.x(), last_target_vel.y(), last_target_vel.z());
+  tf::Vector3 last_target_acc = getTargetAcc();
+  start_state.a = agi::Vector<3>(last_target_acc.x(), last_target_acc.y(), last_target_acc.z());
+
+  double last_target_yaw_angle = getTargetRPY().z();
+  start_state.setYaw(last_target_yaw_angle);
+  double last_target_omega_z = getTargetOmega().z();
+  start_state.w(2) = last_target_omega_z;
+  start_state.t = ros::Time::now().toSec();
+
+  agi::QuadState end_state;
+  end_state.setZero();
+  Eigen::Vector3d p;
+  tf::pointMsgToEigen(pose.pose.position, p);
+  end_state.p = p;
+  agi::Quaternion q;
+  tf::quaternionMsgToEigen(pose.pose.orientation, q);
+  if (std::fabs(1 - q.squaredNorm())  < 1e-6)
+    {
+      end_state.q(q);
+    }
+  else
+    {
+      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f], reset as the start state", q.x(), q.y(), q.z(), q.w());
+      end_state.q(start_state.q());
+
+    }
+
+  double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
+  double du_rot = fabs(end_state.getYaw() - start_state.getYaw()) / trajectory_mean_yaw_rate_;
+  double du = std::max(du_tran, trajectory_min_du_);
+  if (!enable_latch_yaw_trajectory_)
+    {
+      du = std::max(du_rot, du);
+    }
+
+  end_state.t = start_state.t + du;
+
+  ROS_INFO_STREAM("[Nav] revceive the new target pose of " << end_state.p.transpose()
+                  << " (yaw: " << end_state.getYaw() << ")"
+                  << " which starts with the last target pose: " << start_state.p.transpose()
+                  << " (yaw: " << start_state.getYaw() << ")"
+                  << " and target vel: " << start_state.v.transpose()
+                  << " (omega z: " << start_state.w(2) << ")"
+                  << " and target acc: " << start_state.a.transpose());
+
+  traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(start_state, end_state);
+
+  trajectory_mode_ = true;
+
+  double dt = 0.02;
+  nav_msgs::Path msg;
+  msg.header.stamp.fromSec(start_state.t);
+  msg.header.frame_id = "world";
+
+  for (double t = 0; t <= du; t += dt) {
+    geometry_msgs::PoseStamped pose_stamp;
+    pose_stamp.header.stamp = msg.header.stamp + ros::Duration(t);
+    pose_stamp.header.frame_id = msg.header.frame_id;
+
+    agi::QuadState state = traj_generator_ptr_->getState(start_state.t + t);
+
+    tf::pointEigenToMsg(state.p, pose_stamp.pose.position);
+    tf::quaternionEigenToMsg(state.q(), pose_stamp.pose.orientation);
+    msg.poses.push_back(pose_stamp);
+  }
+  path_pub_.publish(msg);
+
+}
+
 void BaseNavigator::rosParamInit()
 {
   getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
@@ -893,6 +1048,12 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
   getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);
   getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.01);
+
+  //*** trajectory
+  getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.5);
+  getParam<double>(nh, "trajectory_mean_yaw_rate", trajectory_mean_yaw_rate_, 0.3);
+  getParam<double>(nh, "trajectory_min_du", trajectory_min_du_, 2.0);
+  getParam<bool>(nh, "enable_latch_yaw_trajectory", enable_latch_yaw_trajectory_, false);
 
   //*** auto vel nav
   getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);
