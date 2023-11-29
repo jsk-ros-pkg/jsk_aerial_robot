@@ -285,6 +285,7 @@ void nmpc_under_act_full::NMPCController::callbackViz(const ros::TimerEvent& eve
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
+
 void nmpc_under_act_full::NMPCController::sendRPYGain()
 {
   spinal::RollPitchYawTerms rpy_gain_msg;
@@ -357,6 +358,7 @@ void nmpc_under_act_full::NMPCController::sendRotationalInertiaComp()
 
   pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
 }
+
 void nmpc_under_act_full::NMPCController::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;

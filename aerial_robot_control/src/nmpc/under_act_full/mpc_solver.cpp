@@ -70,7 +70,9 @@ void nmpc_under_act_full::MPCSolver::updateConstraints(double v_max, double v_mi
   // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
   // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints bx
   double lbx[] = { v_min, v_min, v_min, w_min, w_min, w_min };
+  assert(sizeof lbx / sizeof lbx[0] == NBX_);
   double ubx[] = { v_max, v_max, v_max, w_max, w_max, w_max };
+  assert(sizeof ubx / sizeof ubx[0] == NBX_);
   for (int i = 1; i < NN_; i++)
   {
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
@@ -78,13 +80,17 @@ void nmpc_under_act_full::MPCSolver::updateConstraints(double v_max, double v_mi
   }
   // bx_e: terminal state
   double lbx_e[] = { v_min, v_min, v_min, w_min, w_min, w_min };
+  assert(sizeof lbx_e / sizeof lbx_e[0] == NBXN_);
   double ubx_e[] = { v_max, v_max, v_max, w_max, w_max, w_max };
+  assert(sizeof ubx_e / sizeof ubx_e[0] == NBXN_);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "lbx", lbx_e);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "ubx", ubx_e);
 
   // bu
   double lbu[] = { thrust_min, thrust_min, thrust_min, thrust_min };
+  assert(sizeof lbu / sizeof lbu[0] == NBU_);
   double ubu[] = { thrust_max, thrust_max, thrust_max, thrust_max };
+  assert(sizeof ubu / sizeof ubu[0] == NBU_);
   for (int i = 0; i < NN_; i++)
   {
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
@@ -95,6 +101,7 @@ void nmpc_under_act_full::MPCSolver::updateConstraints(double v_max, double v_mi
 void nmpc_under_act_full::MPCSolver::initParameters()
 {
   double p[] = { 1.0, 0.0, 0.0, 0.0 };
+  assert(sizeof p / sizeof p[0] == NP_);
   for (int i = 0; i < NN_; i++)
   {
     acados_update_params(acados_ocp_capsule_, i, p, NP_);
