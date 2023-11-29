@@ -9,3 +9,4 @@ sensor_plugin:
 
                 angle_bias_noise_sigma: 0.0002 #good for EKF
                 calib_time: 2.0
+                cutoff_freq: 10.0
