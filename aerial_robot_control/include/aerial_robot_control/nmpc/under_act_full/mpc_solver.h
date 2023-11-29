@@ -21,13 +21,11 @@ namespace nmpc_under_act_full
 class MPCSolver : public base_nmpc::BaseMPCSolver
 {
 public:
-  MPCSolver() = default;
+  MPCSolver();
   ~MPCSolver() = default;
-  void initialize() override;
   void updateConstraints(double v_max, double v_min, double w_max, double w_min, double thrust_max, double thrust_min);
 
 private:
-  void initAcadosVariables() override;
   void initParameters() override;
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now) override;
 };

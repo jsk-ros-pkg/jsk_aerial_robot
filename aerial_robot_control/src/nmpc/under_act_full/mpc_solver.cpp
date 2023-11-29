@@ -7,7 +7,7 @@
 
 using namespace aerial_robot_control;
 
-void nmpc_under_act_full::MPCSolver::initAcadosVariables()
+nmpc_under_act_full::MPCSolver::MPCSolver()
 {
   // acados related variables should be initialized here
   NN_ = QD_FULL_MODEL_N, NX_ = QD_FULL_MODEL_NX, NZ_ = QD_FULL_MODEL_NZ, NU_ = QD_FULL_MODEL_NU, NP_ = QD_FULL_MODEL_NP,
@@ -35,12 +35,6 @@ void nmpc_under_act_full::MPCSolver::initAcadosVariables()
   acados_free = reinterpret_cast<int (*)(void*)>(qd_full_model_acados_free);
   acados_free_capsule = reinterpret_cast<int (*)(void*)>(qd_full_model_acados_free_capsule);
   acados_print_stats = reinterpret_cast<void (*)(void*)>(qd_full_model_acados_print_stats);
-}
-
-void nmpc_under_act_full::MPCSolver::initialize()
-{
-  initAcadosVariables();
-  BaseMPCSolver::initialize();
 }
 
 void nmpc_under_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)

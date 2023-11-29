@@ -6,29 +6,29 @@
 
 using namespace aerial_robot_control;
 
-void base_nmpc::BaseMPCSolver::initAcadosVariables()
+base_nmpc::BaseMPCSolver::BaseMPCSolver()
 {
-  // acados related variables should be initialized here
-  NN_ = int(), NX_ = int(), NZ_ = int(), NU_ = int(), NP_ = int(), NBX_ = int(), NBX0_ = int(), NBU_ = int(),
-  NSBX_ = int(), NSBU_ = int(), NSH_ = int(), NSG_ = int(), NSPHI_ = int(), NSHN_ = int(), NSGN_ = int(),
-  NSPHIN_ = int(), NSBXN_ = int(), NS_ = int(), NSN_ = int(), NG_ = int(), NBXN_ = int(), NGN_ = int(), NY0_ = int(),
-  NY_ = int(), NYN_ = int(), NH_ = int(), NPHI_ = int(), NHN_ = int(), NPHIN_ = int(), NR_ = int();
-
-  // acados related function pointers should be initialized here
-  acados_create_capsule = nullptr;
-  acados_get_nlp_config = nullptr;
-  acados_get_nlp_dims = nullptr;
-  acados_get_nlp_in = nullptr;
-  acados_get_nlp_out = nullptr;
-  acados_get_nlp_solver = nullptr;
-  acados_get_nlp_opts = nullptr;
-  acados_create_with_discretization = nullptr;
-  acados_solve = nullptr;
-  acados_update_params = nullptr;
-  acados_update_params_sparse = nullptr;
-  acados_free = nullptr;
-  acados_free_capsule = nullptr;
-  acados_print_stats = nullptr;
+  //  // acados related variables should be initialized here
+  //  NN_ = int(), NX_ = int(), NZ_ = int(), NU_ = int(), NP_ = int(), NBX_ = int(), NBX0_ = int(), NBU_ = int(),
+  //  NSBX_ = int(), NSBU_ = int(), NSH_ = int(), NSG_ = int(), NSPHI_ = int(), NSHN_ = int(), NSGN_ = int(),
+  //  NSPHIN_ = int(), NSBXN_ = int(), NS_ = int(), NSN_ = int(), NG_ = int(), NBXN_ = int(), NGN_ = int(), NY0_ =
+  //  int(), NY_ = int(), NYN_ = int(), NH_ = int(), NPHI_ = int(), NHN_ = int(), NPHIN_ = int(), NR_ = int();
+  //
+  //  // acados related function pointers should be initialized here
+  //  acados_create_capsule = nullptr;
+  //  acados_get_nlp_config = nullptr;
+  //  acados_get_nlp_dims = nullptr;
+  //  acados_get_nlp_in = nullptr;
+  //  acados_get_nlp_out = nullptr;
+  //  acados_get_nlp_solver = nullptr;
+  //  acados_get_nlp_opts = nullptr;
+  //  acados_create_with_discretization = nullptr;
+  //  acados_solve = nullptr;
+  //  acados_update_params = nullptr;
+  //  acados_update_params_sparse = nullptr;
+  //  acados_free = nullptr;
+  //  acados_free_capsule = nullptr;
+  //  acados_print_stats = nullptr;
 }
 
 void base_nmpc::BaseMPCSolver::initialize()

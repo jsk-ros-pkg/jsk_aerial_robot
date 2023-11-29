@@ -33,9 +33,9 @@ public:
 
   aerial_robot_msgs::PredXU x_u_out_;
 
-  BaseMPCSolver() = default;
+  BaseMPCSolver();
   ~BaseMPCSolver();
-  virtual void initialize();
+  void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
   int solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref);
 
@@ -70,7 +70,6 @@ protected:
   double* new_time_steps;
 
 private:
-  virtual void initAcadosVariables();
   virtual void initParameters() = 0;
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
