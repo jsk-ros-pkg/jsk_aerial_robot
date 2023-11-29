@@ -25,6 +25,8 @@ namespace aerial_robot_control
     
     ros::Publisher external_wrench_compensation_pub_;
     ros::Publisher tagged_external_wrench_pub_;
+    ros::Publisher whole_external_wrench_pub_;
+    ros::Publisher internal_wrench_pub_;
     map<string, ros::Subscriber> est_wrench_subs_;
 
     /* external wrench compensation */
@@ -43,6 +45,9 @@ namespace aerial_robot_control
     std::map<int, Eigen::VectorXd> est_wrench_list_;
     std::map<int, Eigen::VectorXd> inter_wrench_list_;
     std::map<int, Eigen::VectorXd> wrench_comp_list_;
+
+    double comp_term_update_freq_;
+    double prev_comp_update_time_;
     
     void controlCore() override;
     void calcInteractionWrench();

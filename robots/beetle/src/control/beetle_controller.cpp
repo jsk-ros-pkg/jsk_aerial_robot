@@ -25,46 +25,47 @@ namespace aerial_robot_control
     rosParamInit();
     if(pd_wrench_comp_mode_) ROS_ERROR("PD & Wrench comp mode");
     external_wrench_compensation_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("external_wrench_compensation", 1);
-    tagged_external_wrench_pub_ = nh_.advertise<beetle::TaggedWrench>("tagged_wrench_compensation", 1);
+    tagged_external_wrench_pub_ = nh_.advertise<beetle::TaggedWrench>("tagged_wrench", 1);
+    whole_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("whole_wrench", 1);
+    internal_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("internal_wrench", 1);
     int max_modules_num = beetle_robot_model_->getMaxModuleNum();
     for(int i = 0; i < max_modules_num; i++){
       std::string module_name  = string("/beetle") + std::to_string(i+1);
-      est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench_compensation"), 1, &BeetleController::estExternalWrenchCallback, this)));
+      est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench"), 1, &BeetleController::estExternalWrenchCallback, this)));
       Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
-      est_wrench_list_.insert(make_pair(i, wrench));
-      inter_wrench_list_.insert(make_pair(i, wrench));
-      wrench_comp_list_.insert(make_pair(i, wrench));
+      est_wrench_list_.insert(make_pair(i+1, wrench));
+      inter_wrench_list_.insert(make_pair(i+1, wrench));
+      wrench_comp_list_.insert(make_pair(i+1, wrench));
     }
+    prev_comp_update_time_ = 0;
   }
 
   void BeetleController::controlCore()
   {
-    calcInteractionWrench();
-
-    Eigen::VectorXd wrench_compensation_term = Eigen::VectorXd::Zero(6);
+    double comp_update_interval = 1  / comp_term_update_freq_;
+    if(navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE && ros::Time::now().toSec() - prev_comp_update_time_ > comp_update_interval){
+      calcInteractionWrench();
+      prev_comp_update_time_ = ros::Time::now().toSec();
+    }
 
     //positive wrench compensation
-    Eigen::VectorXd external_wrench_upper_check = (external_wrench_upper_limit_.array() < est_external_wrench_.array()).cast<double>();
-    wrench_compensation_term = (est_external_wrench_ - external_wrench_upper_limit_).cwiseProduct(external_wrench_upper_check);
+    // Eigen::VectorXd external_wrench_upper_check = (external_wrench_upper_limit_.array() < est_external_wrench_.array()).cast<double>();
+    // wrench_comp_term = (est_external_wrench_ - external_wrench_upper_limit_).cwiseProduct(external_wrench_upper_check);
 
     //negative wrench compensation
-    Eigen::VectorXd external_wrench_lower_check = (est_external_wrench_.array() < external_wrench_lower_limit_.array()).cast<double>();
-    wrench_compensation_term += (est_external_wrench_ - external_wrench_lower_limit_).cwiseProduct(external_wrench_lower_check);
+    // Eigen::VectorXd external_wrench_lower_check = (est_external_wrench_.array() < external_wrench_lower_limit_.array()).cast<double>();
+    // wrench_comp_term += (est_external_wrench_ - external_wrench_lower_limit_).cwiseProduct(external_wrench_lower_check);
 
     double mass_inv = 1 / beetle_robot_model_->getMass();
     Eigen::Matrix3d inertia_inv = (beetle_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
 
     int module_state = beetle_robot_model_-> getModuleState();
+    int my_id = beetle_robot_model_->getMyID();
+    
     if(module_state == FOLLOWER && navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE && pd_wrench_comp_mode_){
-      feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_compensation_term.head(3);
-      feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_compensation_term.tail(3);
-
-      /*regarding to force, only use xy term */
-      feedforward_wrench_acc_cog_term_(2) = 0;
-
-      /*regarding to torque, only use yaw term */
-      feedforward_wrench_acc_cog_term_(3) = 0;
-      feedforward_wrench_acc_cog_term_(4) = 0;
+      Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
+      feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_comp_term.head(3);
+      // feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_comp_term.tail(3); //inavailable
       
       geometry_msgs::WrenchStamped wrench_msg;
       wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
@@ -83,18 +84,18 @@ namespace aerial_robot_control
         ErrI_X_ = pid_controllers_.at(X).getErrI();
         ErrI_Y_ = pid_controllers_.at(Y).getErrI();
         ErrI_Z_ = pid_controllers_.at(Z).getErrI();
-        ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
-        ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
-        ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
+        // ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
+        // ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
+        // ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
         pre_module_state_ = FOLLOWER;
       }
       //fix i_term
       pid_controllers_.at(X).setErrI(ErrI_X_);
       pid_controllers_.at(Y).setErrI(ErrI_Y_);
       pid_controllers_.at(Z).setErrI(ErrI_Z_);
-      pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
-      pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
-      pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
+      // pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
+      // pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
+      // pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
     }else{
       feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
       GimbalrotorController::controlCore();
@@ -118,6 +119,15 @@ namespace aerial_robot_control
     }
     if(!module_num) return;
     W_w = W_sum / module_num;
+    geometry_msgs::WrenchStamped wrench_msg;
+    wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.wrench.force.x = W_w(0);
+    wrench_msg.wrench.force.y = W_w(1);
+    wrench_msg.wrench.force.z = W_w(2);
+    wrench_msg.wrench.torque.x = W_w(3);
+    wrench_msg.wrench.torque.y = W_w(4);
+    wrench_msg.wrench.torque.z = W_w(5);
+    whole_external_wrench_pub_.publish(wrench_msg);
 
     /* 2. calculate interactional wrench for each module*/
     Eigen::VectorXd left_inter_wrench = Eigen::VectorXd::Zero(6);
@@ -130,6 +140,14 @@ namespace aerial_robot_control
         inter_wrench_list_[item.first] = Eigen::VectorXd::Zero(6);
       }
     }
+    int my_id = beetle_robot_model_->getMyID();
+    wrench_msg.wrench.force.x = inter_wrench_list_[my_id](0);
+    wrench_msg.wrench.force.y = inter_wrench_list_[my_id](1);
+    wrench_msg.wrench.force.z = inter_wrench_list_[my_id](2);
+    wrench_msg.wrench.torque.x = inter_wrench_list_[my_id](3);
+    wrench_msg.wrench.torque.y = inter_wrench_list_[my_id](4);
+    wrench_msg.wrench.torque.z = inter_wrench_list_[my_id](5);
+    internal_wrench_pub_.publish(wrench_msg);
 
     /* 3. calculate wrench compensation term for each module*/
     int leader_id = beetle_robot_model_->getLeaderID();
@@ -138,8 +156,8 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
-        wrench_comp_sum_left -= inter_wrench_list_[right_module_id];
-        wrench_comp_list_[i] = wrench_comp_sum_left;
+        wrench_comp_sum_left += inter_wrench_list_[right_module_id];
+        wrench_comp_list_[i] += wrench_comp_sum_left;
         right_module_id = i;
       }
     }
@@ -148,8 +166,8 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i < max_modules_num; i++){
       if(assembly_flag[i]){
-        wrench_comp_sum_right += inter_wrench_list_[i];
-        wrench_comp_list_[i] = wrench_comp_sum_right;
+        wrench_comp_sum_right -= inter_wrench_list_[i-1];
+        wrench_comp_list_[i] += wrench_comp_sum_right;
       }
     }
   }
@@ -170,6 +188,8 @@ namespace aerial_robot_control
     external_wrench_lower_limit_.tail(3) = Eigen::Vector3d::Constant(external_torque_lower_limit);
     ROS_INFO_STREAM("upper limit of external wrench : "<<external_wrench_upper_limit_.transpose());
     ROS_INFO_STREAM("lower limit of external wrench : "<<external_wrench_lower_limit_.transpose());
+
+    getParam<double>(control_nh, "comp_term_update_freq", comp_term_update_freq_, 10);
   }
 
   void BeetleController::externalWrenchEstimate()
