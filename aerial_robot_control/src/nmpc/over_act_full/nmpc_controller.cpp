@@ -217,25 +217,32 @@ void nmpc_over_act_full::NMPCController::controlCore()
   target_thrusts << ft1, ft2, ft3, ft4;
 
   // constraint the change of thrust, preventing sudden thrust increasing during taking off
-  for (int i = 0; i < motor_num_; i++)
+  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
   {
-    if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+    double thrust_scale_ratio = 1.0;
+    float permitted_max_thrust_change = 10.0 / 40.0;
+    double real_max_thrust_change = 0.0;
+    for (int i = 0; i < motor_num_; i++)
     {
-      float max_thrust_change = 10.0 / 40.0;
+      double thrust_change = fabs(target_thrusts(i) - flight_cmd_.base_thrust[i]);
+      if (thrust_change > real_max_thrust_change)
+        real_max_thrust_change = thrust_change;
+    }
+    if (real_max_thrust_change > permitted_max_thrust_change)
+      thrust_scale_ratio = permitted_max_thrust_change / real_max_thrust_change;
 
-      if (target_thrusts(i) > flight_cmd_.base_thrust[i] + max_thrust_change)
-      {
-        flight_cmd_.base_thrust[i] = flight_cmd_.base_thrust[i] + max_thrust_change;
-        continue;
-      }
-
-      if (target_thrusts(i) < flight_cmd_.base_thrust[i] - max_thrust_change)
-      {
-        flight_cmd_.base_thrust[i] = flight_cmd_.base_thrust[i] - max_thrust_change;
-        continue;
-      }
+    // scale the thrust
+    for (int i = 0; i < motor_num_; i++)
+    {
+      flight_cmd_.base_thrust[i] = static_cast<float>(
+          flight_cmd_.base_thrust[i] + (target_thrusts(i) - flight_cmd_.base_thrust[i]) * thrust_scale_ratio);
     }
 
+    return;
+  }
+
+  for (int i = 0; i < motor_num_; i++)
+  {
     flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
   }
 }
@@ -291,37 +298,41 @@ void nmpc_over_act_full::NMPCController::sendRPYGain()
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
 
-  rpy_gain_msg.motors[0].roll_p = -2303;
-  rpy_gain_msg.motors[0].roll_i = -354;
-  rpy_gain_msg.motors[0].roll_d = -395;
-  rpy_gain_msg.motors[0].pitch_p = 2297;
-  rpy_gain_msg.motors[0].pitch_i = 353;
-  rpy_gain_msg.motors[0].pitch_d = 393;
-  rpy_gain_msg.motors[0].yaw_d = 1423;
+  //  rpy_gain_msg.motors[0].roll_p = 8000;
+  //  rpy_gain_msg.motors[0].roll_i = 1000;
+  //  rpy_gain_msg.motors[0].roll_d = -5000;
+  rpy_gain_msg.motors[0].roll_d = -400;
+  //  rpy_gain_msg.motors[0].pitch_p = 8000;
+  //  rpy_gain_msg.motors[0].pitch_i = 1000;
+  //  rpy_gain_msg.motors[0].pitch_d = -6000;
+  rpy_gain_msg.motors[0].pitch_d = -400;
 
-  rpy_gain_msg.motors[1].roll_p = -2291;
-  rpy_gain_msg.motors[1].roll_i = -352;
-  rpy_gain_msg.motors[1].roll_d = -390;
-  rpy_gain_msg.motors[1].pitch_p = -2297;
-  rpy_gain_msg.motors[1].pitch_i = -353;
-  rpy_gain_msg.motors[1].pitch_d = -393;
-  rpy_gain_msg.motors[1].yaw_d = -1426;
+  //  rpy_gain_msg.motors[0].yaw_d = -5000;
+  rpy_gain_msg.motors[0].yaw_d = -1000;
 
-  rpy_gain_msg.motors[2].roll_p = 2291;
-  rpy_gain_msg.motors[2].roll_i = 352;
-  rpy_gain_msg.motors[2].roll_d = 390;
-  rpy_gain_msg.motors[2].pitch_p = -2297;
-  rpy_gain_msg.motors[2].pitch_i = -353;
-  rpy_gain_msg.motors[2].pitch_d = -393;
-  rpy_gain_msg.motors[2].yaw_d = 1426;
-
-  rpy_gain_msg.motors[3].roll_p = 2303;
-  rpy_gain_msg.motors[3].roll_i = 354;
-  rpy_gain_msg.motors[3].roll_d = 395;
-  rpy_gain_msg.motors[3].pitch_p = 2297;
-  rpy_gain_msg.motors[3].pitch_i = 353;
-  rpy_gain_msg.motors[3].pitch_d = 393;
-  rpy_gain_msg.motors[3].yaw_d = -1423;
+  //  rpy_gain_msg.motors[1].roll_p = -2291;
+  //  rpy_gain_msg.motors[1].roll_i = -352;
+  //  rpy_gain_msg.motors[1].roll_d = -390;
+  //  rpy_gain_msg.motors[1].pitch_p = -2297;
+  //  rpy_gain_msg.motors[1].pitch_i = -353;
+  //  rpy_gain_msg.motors[1].pitch_d = -393;
+  //  rpy_gain_msg.motors[1].yaw_d = -1426;
+  //
+  //  rpy_gain_msg.motors[2].roll_p = 2291;
+  //  rpy_gain_msg.motors[2].roll_i = 352;
+  //  rpy_gain_msg.motors[2].roll_d = 390;
+  //  rpy_gain_msg.motors[2].pitch_p = -2297;
+  //  rpy_gain_msg.motors[2].pitch_i = -353;
+  //  rpy_gain_msg.motors[2].pitch_d = -393;
+  //  rpy_gain_msg.motors[2].yaw_d = 1426;
+  //
+  //  rpy_gain_msg.motors[3].roll_p = 2303;
+  //  rpy_gain_msg.motors[3].roll_i = 354;
+  //  rpy_gain_msg.motors[3].roll_d = 395;
+  //  rpy_gain_msg.motors[3].pitch_p = 2297;
+  //  rpy_gain_msg.motors[3].pitch_i = 353;
+  //  rpy_gain_msg.motors[3].pitch_d = 393;
+  //  rpy_gain_msg.motors[3].yaw_d = -1423;
 
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
