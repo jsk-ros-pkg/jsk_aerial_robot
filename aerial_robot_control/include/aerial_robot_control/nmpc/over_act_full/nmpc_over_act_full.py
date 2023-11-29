@@ -19,7 +19,7 @@ import casadi as ca
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "FlightControlNMPCFullModel.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCControl_sim.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -47,7 +47,7 @@ t_servo = 0.1  # time constant of servo
 
 class NMPCController(object):
     def __init__(self):
-        opt_model = QdFullModel().model
+        opt_model = BeetleFullModel().model
 
         nx = opt_model.x.size()[0]
         nu = opt_model.u.size()[0]
@@ -176,9 +176,9 @@ class NMPCController(object):
         self.solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
 
-class QdFullModel(object):
+class BeetleFullModel(object):
     def __init__(self):
-        model_name = "qd_full_model"
+        model_name = "beetle_full_model"
 
         # model states
         x = ca.SX.sym("x")
@@ -198,12 +198,7 @@ class QdFullModel(object):
         wy = ca.SX.sym("wy")
         wz = ca.SX.sym("wz")
 
-        a1 = ca.SX.sym("a1")
-        a2 = ca.SX.sym("a2")
-        a3 = ca.SX.sym("a3")
-        a4 = ca.SX.sym("a4")
-
-        states = ca.vertcat(x, y, z, vx, vy, vz, qw, qx, qy, qz, wx, wy, wz, a1, a2, a3, a4)
+        states = ca.vertcat(x, y, z, vx, vy, vz, qw, qx, qy, qz, wx, wy, wz)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -217,13 +212,7 @@ class QdFullModel(object):
         ft2 = ca.SX.sym("ft2")
         ft3 = ca.SX.sym("ft3")
         ft4 = ca.SX.sym("ft4")
-
-        a1c = ca.SX.sym("a1c")
-        a2c = ca.SX.sym("a2c")
-        a3c = ca.SX.sym("a3c")
-        a4c = ca.SX.sym("a4c")
-
-        controls = ca.vertcat(ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c)
+        controls = ca.vertcat(ft1, ft2, ft3, ft4)
 
         c = (ft1 + ft2 + ft3 + ft4) / mass
 
@@ -242,10 +231,6 @@ class QdFullModel(object):
             (Iyy * wy * wz - Izz * wy * wz) / Ixx + (ft1 * p1[1] + ft2 * p2[1] + ft3 * p3[1] + ft4 * p4[1]) / Ixx,
             (-Ixx * wx * wz + Izz * wx * wz) / Iyy + (-ft1 * p1[0] - ft2 * p2[0] - ft3 * p3[0] - ft4 * p4[0]) / Iyy,
             (Ixx * wx * wy - Iyy * wx * wy) / Izz + (-dr1 * ft1 - dr2 * ft2 - dr3 * ft3 - dr4 * ft4) * kq_d_kt / Izz,
-            (a1 - a1c) / t_servo,
-            (a2 - a2c) / t_servo,
-            (a3 - a3c) / t_servo,
-            (a4 - a4c) / t_servo,
         )
 
         # function
@@ -270,10 +255,6 @@ class QdFullModel(object):
             wx,
             wy,
             wz,
-            a1,
-            a2,
-            a3,
-            a4,
         )
         control_y = controls
 
