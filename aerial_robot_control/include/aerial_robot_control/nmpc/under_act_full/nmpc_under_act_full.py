@@ -33,13 +33,13 @@ Ixx = physical_params["inertia_diag"][0]
 Iyy = physical_params["inertia_diag"][1]
 Izz = physical_params["inertia_diag"][2]
 dr1 = physical_params["dr1"]
-p1 = physical_params["p1"]
+p1_b = physical_params["p1"]
 dr2 = physical_params["dr2"]
-p2 = physical_params["p2"]
+p2_b = physical_params["p2"]
 dr3 = physical_params["dr3"]
-p3 = physical_params["p3"]
+p3_b = physical_params["p3"]
 dr4 = physical_params["dr4"]
-p4 = physical_params["p4"]
+p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 
@@ -179,24 +179,21 @@ class QdFullModel(object):
         model_name = "qd_full_model"
 
         # model states
-        x = ca.SX.sym("x")
-        y = ca.SX.sym("y")
-        z = ca.SX.sym("z")
-
-        vx = ca.SX.sym("vx")
-        vy = ca.SX.sym("vy")
-        vz = ca.SX.sym("vz")
+        p = ca.SX.sym("p", 3)
+        v = ca.SX.sym("v", 3)
 
         qw = ca.SX.sym("qw")
         qx = ca.SX.sym("qx")
         qy = ca.SX.sym("qy")
         qz = ca.SX.sym("qz")
+        q = ca.vertcat(qw, qx, qy, qz)
 
         wx = ca.SX.sym("wx")
         wy = ca.SX.sym("wy")
         wz = ca.SX.sym("wz")
+        w = ca.vertcat(wx, wy, wz)
 
-        states = ca.vertcat(x, y, z, vx, vy, vz, qw, qx, qy, qz, wx, wy, wz)
+        states = ca.vertcat(p, v, q, w)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -212,27 +209,76 @@ class QdFullModel(object):
         ft4 = ca.SX.sym("ft4")
         controls = ca.vertcat(ft1, ft2, ft3, ft4)
 
-        c = (ft1 + ft2 + ft3 + ft4) / mass
+        # transformation matrix
+        row_1 = ca.horzcat(
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+        )
+        row_2 = ca.horzcat(
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+        )
+        row_3 = ca.horzcat(
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+        )
+        rot_ib = ca.vertcat(row_1, row_2, row_3)
+
+        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        rot_br1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+
+        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        rot_br2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+
+        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        rot_br3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+
+        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        rot_br4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
+
+        # inertial
+        iv = ca.diag([Ixx, Iyy, Izz])
+        inv_iv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        g_i = np.array([0, 0, -gravity])
+
+        # wrench
+        ft_r1 = ca.vertcat(0, 0, ft1)
+        ft_r2 = ca.vertcat(0, 0, ft2)
+        ft_r3 = ca.vertcat(0, 0, ft3)
+        ft_r4 = ca.vertcat(0, 0, ft4)
+
+        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
+
+        f_u_b = (
+            ca.mtimes(rot_br1, ft_r1)
+            + ca.mtimes(rot_br2, ft_r2)
+            + ca.mtimes(rot_br3, ft_r3)
+            + ca.mtimes(rot_br4, ft_r4)
+        )
+        tau_u_b = (
+            ca.mtimes(rot_br1, tau_r1)
+            + ca.mtimes(rot_br2, tau_r2)
+            + ca.mtimes(rot_br3, tau_r3)
+            + ca.mtimes(rot_br4, tau_r4)
+            + ca.cross(np.array(p1_b), ft_r1)
+            + ca.cross(np.array(p2_b), ft_r2)
+            + ca.cross(np.array(p3_b), ft_r3)
+            + ca.cross(np.array(p4_b), ft_r4)
+        )
 
         # dynamic model
         ds = ca.vertcat(
-            vx,
-            vy,
-            vz,
-            2 * (qx * qz + qw * qy) * c,
-            2 * (qy * qz - qw * qx) * c,
-            (1 - 2 * qx**2 - 2 * qy**2) * c - gravity,
+            v,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            (Iyy * wy * wz - Izz * wy * wz) / Ixx + (ft1 * p1[1] + ft2 * p2[1] + ft3 * p3[1] + ft4 * p4[1]) / Ixx,
-            (-Ixx * wx * wz + Izz * wx * wz) / Iyy + (-ft1 * p1[0] - ft2 * p2[0] - ft3 * p3[0] - ft4 * p4[0]) / Iyy,
-            (Ixx * wx * wy - Iyy * wx * wy) / Izz + (-dr1 * ft1 - dr2 * ft2 - dr3 * ft3 - dr4 * ft4) * kq_d_kt / Izz,
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
         )
 
         # function
-        f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
@@ -240,29 +286,23 @@ class QdFullModel(object):
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
         state_y = ca.vertcat(
-            x,
-            y,
-            z,
-            vx,
-            vy,
-            vz,
+            p,
+            v,
             qwr,
             qe_x + qxr,
             qe_y + qyr,
             qe_z + qzr,
-            wx,
-            wy,
-            wz,
+            w,
         )
         control_y = controls
 
         # acados model
         x_dot = ca.SX.sym("x_dot", 13)
-        f_impl = x_dot - f(states, controls)
+        f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
+        model.f_expl_expr = func(states, controls)  # CasADi expression for the explicit dynamics
         model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
