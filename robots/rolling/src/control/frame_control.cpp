@@ -3,11 +3,6 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
-// void RollingController::standingInitialize()
-// {
-// }
-
-
 void RollingController::standingPlanning()
 {
   /* set target roll of baselink */
@@ -84,16 +79,6 @@ void RollingController::calcStandingFullLambda()
                                                            pid_controllers_.at(PITCH).result(),
                                                            pid_controllers_.at(YAW).result());
 
-  // std::cout << "pid result = [" << target_wrench_acc_target_frame(ROLL) << " " << target_wrench_acc_target_frame(PITCH) << " " << target_wrench_acc_target_frame(YAW) << "] " << std::endl;
-
-  /* consider gravity force as feed-forward compensation
-     this torque is described based on desired baselink angle */
-  Eigen::Vector3d gravity_torque_from_target_frame = rolling_robot_model_->getGravityTorqueFromTargetFrame();
-  Eigen::Vector3d gravity_ang_acc_from_target_frame = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * gravity_torque_from_target_frame;
-
-  // std::cout << "gravity torque from target frame [" << gravity_torque_from_target_frame(0) << " " << gravity_torque_from_target_frame(1) << " " << gravity_torque_from_target_frame(2) << "] " << std::endl;
-  // std::cout << "gravity ang acc from target frame [" << gravity_ang_acc_from_target_frame(0) << " " << gravity_ang_acc_from_target_frame(1) << " " << gravity_ang_acc_from_target_frame(2) << "] " << std::endl;
-
   /* calculate gravity compensation term based on realtime orientation */
   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
   KDL::Frame contact_point_alined_to_cog = contact_point_alined_.Inverse() * cog;
@@ -102,28 +87,8 @@ void RollingController::calcStandingFullLambda()
   Eigen::VectorXd gravity = robot_model_->getGravity3d();
   Eigen::Vector3d gravity_ang_acc_from_contact_point_alined = robot_model_->getMass() * contact_point_alined_to_cog_p_skew * gravity;
 
-  // std::cout << "gravity ang acc from contact point alined = [" << gravity_ang_acc_from_contact_point_alined(0) << " " << gravity_ang_acc_from_contact_point_alined(1) << " " << gravity_ang_acc_from_contact_point_alined(2) << " " << std::endl;
-
-  // tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  // tf::Matrix3x3 uav_rp_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z())).inverse() * uav_rot;
-  // tf::Matrix3x3 uav_yaw_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()));
-  // Eigen::Matrix3d uav_rot_eigen;
-  // Eigen::Matrix3d uav_rp_rot_eigen;
-  // Eigen::Matrix3d uav_yaw_rot_eigen;
-  // matrixTFToEigen(uav_rot, uav_rot_eigen);
-  // matrixTFToEigen(uav_rp_rot, uav_rp_rot_eigen);
-  // matrixTFToEigen(uav_yaw_rot, uav_yaw_rot_eigen);
-  // std::cout << "uav_rot = \n" << uav_rot_eigen << std::endl;
-  // std::cout << "uav_rp_rot = \n" << uav_rp_rot_eigen << std::endl;
-  // std::cout << "uav_yaw_rot = \n" << uav_yaw_rot_eigen << std::endl;
-
   /* use sum of pid result and gravity compensation torque for attitude control */
   target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_ang_acc_from_contact_point_alined;
-
-  // std::cout << "target ang acc in target frame [" << target_wrench_acc_target_frame(ROLL) << " " << target_wrench_acc_target_frame(PITCH) << " " << target_wrench_acc_target_frame(YAW) << " " << std::endl;
-
-  // Eigen::VectorXd full_lambda_rot = aerial_robot_model::pseudoinverse(full_q_mat_target_frame_.bottomRows(3)) * target_wrench_acc_cog.tail(3);
-  // std::cout << "calced full_lambda_rot" << std::endl;
 
   Eigen::MatrixXd full_q_mat_trans = robot_model_->getMass() * full_q_trans_target_frame_;
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
@@ -134,17 +99,12 @@ void RollingController::calcStandingFullLambda()
   A.block(6, 0, 1, n_variables) = full_q_mat_trans.row(Y) - steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
   A.block(7, 0, 1, n_variables) = full_q_mat_trans.row(Y) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
 
-  // std::cout << "set A" << std::endl;
-  // std::cout << A << std::endl;
-
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
   Eigen::VectorXd gradient = Eigen::VectorXd::Ones(n_variables);
 
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
-
-  // std::cout << lower_bound << std::endl;
 
   lower_bound
     <<
@@ -157,8 +117,6 @@ void RollingController::calcStandingFullLambda()
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY;
 
-  // std::cout << lower_bound << std::endl;
-
   upper_bound <<
     target_wrench_acc_target_frame(ROLL) + epsilon,
     target_wrench_acc_target_frame(PITCH) + epsilon,
@@ -169,7 +127,6 @@ void RollingController::calcStandingFullLambda()
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
-  // std::cout << "set boundarys" << std::endl;
 
   OsqpEigen::Solver solver;
 
@@ -194,82 +151,7 @@ void RollingController::calcStandingFullLambda()
   full_lambda_all_ = solution;
   full_lambda_trans_ = solution;
 
-  // std::cout << "exerted wrench in target frame = [";
-  Eigen::VectorXd exerted_wrench_target_frame = full_q_mat_target_frame_ * solution;
-  // for(int i = 0; i < exerted_wrench_target_frame.size(); i++)
-  //   {
-  //     std::cout << exerted_wrench_target_frame(i) << " ";
-  //   }
-  // std::cout << std::endl;
-
-  /* confirm wrench on cog is correct */
-  KDL::Frame cog_to_target_frame = rolling_robot_model_->getCogToTargetFrame<KDL::Frame>();
-  Eigen::Vector3d cog_to_target_frame_p = Eigen::Vector3d(cog_to_target_frame.p.x(),
-                                                          cog_to_target_frame.p.y(),
-                                                          cog_to_target_frame.p.z());
-  Eigen::Matrix3d cog_to_target_frame_p_skew = skew(cog_to_target_frame_p);
-  Eigen::Vector3d exerted_force_target_frame = exerted_wrench_target_frame.head(3) * robot_model_->getMass();
-  Eigen::Vector3d compensate_torque = cog_to_target_frame_p_skew * exerted_force_target_frame;
-  Eigen::Matrix3d cog_inertia = robot_model_->getInertia<Eigen::Matrix3d>();
-  Eigen::Matrix3d target_frame_inertia = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>();
-  Eigen::Vector3d exerted_ang_acc_in_cog = cog_inertia.inverse() * (target_frame_inertia * exerted_wrench_target_frame.tail(3) + compensate_torque);
-
-  // std::cout << "exerted ang acc in cog = [";
-  // for(int i = 0; i < exerted_ang_acc_in_cog.size(); i++)
-  //   {
-  //     std::cout << exerted_ang_acc_in_cog(i) << " ";
-  //   }
-  // std::cout << std::endl;
-  // std::cout << std::endl;
-  // std::cout << std::endl;
-  // - full_lambda_rot;
-
 }
-
-// void RollingController::calcAccFromTargetFrame()
-// {
-//   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
-
-//   tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
-//   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
-//                            pid_controllers_.at(Y).result(),
-//                            pid_controllers_.at(Z).result());
-//   tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
-
-//   Eigen::Vector3d target_force_cog = robot_model_->getMass() * Eigen::Vector3d(target_acc_cog.x(),
-//                                                                                target_acc_cog.y(),
-//                                                                                target_acc_cog.z());
-
-//   KDL::Frame target_to_cog_frame = rolling_robot_model_->getTargetToCogFrame<KDL::Frame>();
-//   std::cout << "target to cog frame p = [" << target_to_cog_frame.p.x() << " " << target_to_cog_frame.p.y() << " " << target_to_cog_frame.p.z() << "]" << std::endl;
-
-//   Eigen::Vector3d target_to_cog_frame_p = Eigen::Vector3d(target_to_cog_frame.p.x(),
-//                                                           target_to_cog_frame.p.y(),
-//                                                           target_to_cog_frame.p.z());
-//   Eigen::Matrix3d target_to_cog_frame_p_skew = skew(target_to_cog_frame_p);
-//   Eigen::Vector3d force_compensate_torque = target_to_cog_frame_p_skew * target_force_cog;
-//   // std::cout << "force compensate torque = [" << force_compensate_torque(0) << " " << force_compensate_torque(1) << " " << force_compensate_torque(2) << "] " << std::endl;
-
-//   Eigen::Matrix3d cog_inertia = robot_model_->getInertia<Eigen::Matrix3d>();
-//   Eigen::Matrix3d target_frame_inertia = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>();
-//   Eigen::Vector3d target_torque_cog = cog_inertia * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
-//                                                                     pid_controllers_.at(PITCH).result(),
-//                                                                     pid_controllers_.at(YAW).result());
-
-//   Eigen::Vector3d target_torque_target_frame = target_torque_cog + force_compensate_torque;
-//   // std::cout << "target torque in target frame: =[" << target_torque_target_frame(0) << " " << target_torque_target_frame(1) << " " << target_torque_target_frame(2) << "] " << std::endl;
-
-//   Eigen::VectorXd target_wrench_acc_target_frame = Eigen::VectorXd::Zero(6);
-//   target_wrench_acc_target_frame.head(3) = Eigen::Vector3d(target_acc_cog.x(),
-//                                                            target_acc_cog.y(),
-//                                                            target_acc_cog.z());
-//   target_wrench_acc_target_frame.tail(3) = target_frame_inertia.inverse() * target_torque_target_frame;
-
-//   target_wrench_acc_target_frame_ = target_wrench_acc_target_frame;
-
-//   // Eigen::Vector3d gravity_torque_from_target_frame = rolling_robot_model_->getGravityTorqueFromTargetFrame();
-
-// }
 
 void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
 {
@@ -306,27 +188,4 @@ void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
   full_q_mat_target_frame_ = wrench_matrix * integrated_rot;
   full_q_trans_target_frame_ = full_q_mat_target_frame_.topRows(3);
   full_q_rot_target_frame_ = full_q_mat_target_frame_.bottomRows(3);
-
-  /* extract controlled axis */
-  Eigen::MatrixXd controlled_axis_mask = Eigen::MatrixXd::Zero(control_dof_, 6);
-  int last_row = 0;
-  for(int i = 0; i < controlled_axis_.size(); i++)
-    {
-      if(controlled_axis_.at(i))
-        {
-          controlled_axis_mask(last_row, i) = 1;
-          last_row++;
-        }
-    }
-
-  // Eigen::VectorXd full_lambda = aerial_robot_model::pseudoinverse(full_q_mat) * target_wrench_acc_target_frame_get_frame_;
-
-  // std::cout << "full_lambda = [";
-  // for(int i = 0; i < full_lambda.size(); i++)
-  //   {
-  //     std::cout << full_lambda(i) << " ";
-  //   }
-  // std::cout << " ]"  << std::endl;
-  // std::cout << std::endl;
-
 }
