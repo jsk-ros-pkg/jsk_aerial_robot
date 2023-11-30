@@ -89,6 +89,7 @@ void RollingController::calcStandingFullLambda()
 
   /* use sum of pid result and gravity compensation torque for attitude control */
   target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_ang_acc_from_contact_point_alined;
+  target_wrench_acc_target_frame_ = target_wrench_acc_target_frame;
 
   Eigen::MatrixXd full_q_mat_trans = robot_model_->getMass() * full_q_trans_target_frame_;
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);

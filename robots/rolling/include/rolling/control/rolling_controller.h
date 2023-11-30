@@ -39,7 +39,11 @@ namespace aerial_robot_control
     Eigen::MatrixXd getFullQ() {return full_q_mat_;}
     Eigen::MatrixXd getFullQTrans() {return full_q_trans_;}
     Eigen::MatrixXd getFullQRot() {return full_q_rot_;}
-
+    Eigen::MatrixXd getFullQTargetFrame() {return full_q_mat_target_frame_;}
+    Eigen::VectorXd getTargetWrenchAccTargetFrame() {return target_wrench_acc_target_frame_;}
+    double getRobotMassForOpt() {return robot_mass_for_opt_;}
+    double getGravityForOpt() {return gravity_for_opt_;}
+    double getSteeringMu() {return steering_mu_;}
 
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
@@ -105,6 +109,9 @@ namespace aerial_robot_control
     int control_dof_;
     double default_z_i_gain_;
 
+    double robot_mass_for_opt_;
+    double gravity_for_opt_;
+
     double standing_converged_baselink_roll_thresh_;
     double standing_converged_z_i_term_min_;
     double standing_converged_z_i_term_descend_ratio_;
@@ -146,6 +153,7 @@ namespace aerial_robot_control
     void standingInitialize();
     void calcStandingFullLambda();
     void standingPlanning();
+    void slsqpSolve();
 
     void setControlAxis(int axis, int mode)
     {
