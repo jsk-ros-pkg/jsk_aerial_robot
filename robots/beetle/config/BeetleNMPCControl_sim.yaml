@@ -15,6 +15,8 @@ controller:
     p4: [ 0.132585, -0.137979, -0.0154202 ] # position of motor 4
     kq_d_kt: 0.0171998
 
+    t_servo: 0.1 # sec  TODO: check
+
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
     T_pred: 2.0  # seconds
@@ -33,6 +35,9 @@ controller:
     thrust_max: 30 # N
     thrust_min: 0 # N
 
+    a_max: PI / 2
+    a_min: -PI / 2
+
     # params for the cost function
     Qp_xy: 300  # 0
     Qp_z: 400  # 500
@@ -42,7 +47,9 @@ controller:
     Qq_z: 100
     Qw_xy: 5
     Qw_z: 5
+    Qa: 5
     Rt: 1
+    Rac: 1
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: true
