@@ -18,6 +18,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <OsqpEigen/OsqpEigen.h>
 #include <nlopt.hpp>
+#include <osqp_slsqp/slsqp.h>
+#include <rolling/control/osqp_solver.h>
 
 namespace aerial_robot_control
 {
