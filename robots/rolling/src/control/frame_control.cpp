@@ -151,6 +151,11 @@ void RollingController::calcStandingFullLambda()
   full_lambda_all_ = solution;
   full_lambda_trans_ = solution;
 
+  slsqpSolver slsqp_solver = slsqpSolver(n_variables, n_constraints,
+                                         target_wrench_acc_target_frame, full_q_mat_target_frame_,
+                                         Eigen::VectorXd::Ones(n_variables) * 4.0,
+                                         robot_model_->getMass(), robot_model_->getGravity()(Z), steering_mu_);
+  slsqp_solver.solve();
 }
 
 void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
