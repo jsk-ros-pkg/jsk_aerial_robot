@@ -142,15 +142,10 @@ namespace aerial_robot_control
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void hoge();
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
     void setControlAxisWithNameSpace(std::string ns);
     void rosoutControlAxis(std::string ns);
-    void osqpPractice();
-    void calcSteeringTargetLambda();
-    void steeringControlWrenchAllocation();
-    void standingInitialize();
     void calcStandingFullLambda();
     void standingPlanning();
     void slsqpSolve();

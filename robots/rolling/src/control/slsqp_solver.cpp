@@ -226,8 +226,6 @@ double yUpperBoundConstraint(const std::vector<double> &x, std::vector<double> &
 
 void RollingController::slsqpSolve()
 {
-  if(!once_solved_) return;
-
   int n_variables = 2 * motor_num_;
   double epsilon = 0.000001;
 
@@ -274,13 +272,6 @@ void RollingController::slsqpSolve()
   try
     {
       nlopt::result result = nl_solver.optimize(x, minf);
-      std::cout << "nlopt solution " << sqrt(minf) << "\n";
-      for(int i = 0; i < x.size(); i++)
-        {
-          std::cout << x.at(i) << " ";
-        }
-      std::cout << std::endl;
-      std::cout << std::endl;
     }
   catch(std::exception &e)
     {
