@@ -21,6 +21,13 @@ MotorPWMRepublisher::MotorPWMRepublisher(ros::NodeHandle nh, ros::NodeHandle nhp
   desire_coordinate_roll_ = 0.0;
   desire_coordinate_pitch_ = 0.0;
 
+  /* gimbal angles */
+  gimbals_control_sub_ = nh_.subscribe("gimbals_ctrl", 1, &MotorPWMRepublisher::gimbalsControlCallback, this);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      gimbal_control_pubs_.push_back(nh_.advertise<std_msgs::Float32>("debug/gimbals_ctrl/gimbal" + std::to_string(i + 1), 1));
+    }
+
   /* timer */
   timer_ = nh_.createTimer(ros::Duration(0.1), &MotorPWMRepublisher::timerCallback, this);
 }
@@ -40,6 +47,16 @@ void MotorPWMRepublisher::desireCoordinateCallback(const spinal::DesireCoordPtr 
 {
   desire_coordinate_roll_ =  desire_coordinate_msg->roll;
   desire_coordinate_pitch_ =  desire_coordinate_msg->pitch;
+}
+
+void MotorPWMRepublisher::gimbalsControlCallback(const sensor_msgs::JointState & joint_state_msg)
+{
+  for(int i = 0; i < motor_num_; i++)
+    {
+      std_msgs::Float32 msg;
+      msg.data = joint_state_msg.position.at(i);
+      gimbal_control_pubs_.at(i).publish(msg);
+    }
 }
 
 void MotorPWMRepublisher::timerCallback(const ros::TimerEvent& e)
