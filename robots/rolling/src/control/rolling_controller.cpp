@@ -1,6 +1,5 @@
 #include <rolling/control/rolling_controller.h>
 
-
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
@@ -529,12 +528,6 @@ void RollingController::calcFullLambda()
       full_lambda_rot_ = controlled_q_mat_inv_.rightCols(rot_dof) * controlled_wrench_acc_cog_.tail(rot_dof);
       full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
     }
-
-  if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
-    {
-      calcSteeringTargetLambda();
-    }
-
 }
 
 void RollingController::wrenchAllocation()
