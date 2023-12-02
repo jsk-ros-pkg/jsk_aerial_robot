@@ -19,6 +19,7 @@ namespace aerial_robot_control
                                          )
   {
     GimbalrotorController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+
     beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
     external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
     external_wrench_upper_limit_ = Eigen::VectorXd::Zero(6);
@@ -42,10 +43,13 @@ namespace aerial_robot_control
 
   void BeetleController::controlCore()
   {
+    bool comp_update_flag = false;
     double comp_update_interval = 1  / comp_term_update_freq_;
-    if(navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE && ros::Time::now().toSec() - prev_comp_update_time_ > comp_update_interval){
+    if(navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE &&
+       ros::Time::now().toSec() - prev_comp_update_time_ > comp_update_interval){
       calcInteractionWrench();
       prev_comp_update_time_ = ros::Time::now().toSec();
+      comp_update_flag = true;
     }
 
     //positive wrench compensation
@@ -61,43 +65,37 @@ namespace aerial_robot_control
 
     int module_state = beetle_robot_model_-> getModuleState();
     int my_id = beetle_robot_model_->getMyID();
-    
-    if(module_state == FOLLOWER && navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE && pd_wrench_comp_mode_){
+
+    if(module_state == FOLLOWER &&
+       pd_wrench_comp_mode_ &&
+       navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE){
       Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
-      feedforward_wrench_acc_cog_term_.head(3) = mass_inv * wrench_comp_term.head(3);
-      // feedforward_wrench_acc_cog_term_.tail(3) = -inertia_inv * wrench_comp_term.tail(3); //inavailable
+
+      /* current version: I term reconfig mehod */
+      Eigen::VectorXd I_reconfig_acc_cog_term = Eigen::VectorXd::Zero(6);
+      I_reconfig_acc_cog_term.head(3) = mass_inv * wrench_comp_term.head(3);
+      I_reconfig_acc_cog_term.tail(3) = -inertia_inv * wrench_comp_term.tail(3); //inavailable
+      double IGain_X = pid_controllers_.at(X).getIGain();
+      double IGain_Y = pid_controllers_.at(Y).getIGain();
+      double IGain_Z = pid_controllers_.at(Z).getIGain();
+      double I_comp_x = I_reconfig_acc_cog_term(0) / IGain_X;
+      double I_comp_y = I_reconfig_acc_cog_term(1) / IGain_Y;
+      double I_comp_z = I_reconfig_acc_cog_term(2) / IGain_Z;
+      pid_controllers_.at(X).setICompTerm(I_comp_x);
+      pid_controllers_.at(Y).setICompTerm(I_comp_y);
+      pid_controllers_.at(Z).setICompTerm(I_comp_z);
       
       geometry_msgs::WrenchStamped wrench_msg;
       wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
-      wrench_msg.wrench.force.x = feedforward_wrench_acc_cog_term_(0);
-      wrench_msg.wrench.force.y = feedforward_wrench_acc_cog_term_(1);
-      wrench_msg.wrench.force.z = feedforward_wrench_acc_cog_term_(2);
-      wrench_msg.wrench.torque.x = feedforward_wrench_acc_cog_term_(3);
-      wrench_msg.wrench.torque.y = feedforward_wrench_acc_cog_term_(4);
-      wrench_msg.wrench.torque.z = feedforward_wrench_acc_cog_term_(5);
+      wrench_msg.wrench.force.x = I_reconfig_acc_cog_term(0);
+      wrench_msg.wrench.force.y = I_reconfig_acc_cog_term(1);
+      wrench_msg.wrench.force.z = I_reconfig_acc_cog_term(2);
+      wrench_msg.wrench.torque.x = I_reconfig_acc_cog_term(3);
+      wrench_msg.wrench.torque.y = I_reconfig_acc_cog_term(4);
+      wrench_msg.wrench.torque.z = I_reconfig_acc_cog_term(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
-
       GimbalrotorController::controlCore();
-
-      //turn control mode into PD
-      if(pre_module_state_ != FOLLOWER){
-        ErrI_X_ = pid_controllers_.at(X).getErrI();
-        ErrI_Y_ = pid_controllers_.at(Y).getErrI();
-        ErrI_Z_ = pid_controllers_.at(Z).getErrI();
-        // ErrI_ROLL_ = pid_controllers_.at(ROLL).getErrI();
-        // ErrI_PITCH_ = pid_controllers_.at(PITCH).getErrI();
-        // ErrI_YAW_ = pid_controllers_.at(YAW).getErrI();
-        pre_module_state_ = FOLLOWER;
-      }
-      //fix i_term
-      pid_controllers_.at(X).setErrI(ErrI_X_);
-      pid_controllers_.at(Y).setErrI(ErrI_Y_);
-      pid_controllers_.at(Z).setErrI(ErrI_Z_);
-      // pid_controllers_.at(ROLL).setErrI(ErrI_ROLL_);
-      // pid_controllers_.at(PITCH).setErrI(ErrI_PITCH_);
-      // pid_controllers_.at(YAW).setErrI(ErrI_YAW_);
     }else{
-      feedforward_wrench_acc_cog_term_ = Eigen::VectorXd::Zero(6);
       GimbalrotorController::controlCore();
     }
   }
@@ -148,7 +146,6 @@ namespace aerial_robot_control
     wrench_msg.wrench.torque.y = inter_wrench_list_[my_id](4);
     wrench_msg.wrench.torque.z = inter_wrench_list_[my_id](5);
     internal_wrench_pub_.publish(wrench_msg);
-
     /* 3. calculate wrench compensation term for each module*/
     int leader_id = beetle_robot_model_->getLeaderID();
     /* 3.1. process from leader to left*/

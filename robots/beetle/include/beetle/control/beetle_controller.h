@@ -5,6 +5,7 @@
 #include <beetle/TaggedWrench.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
 #include <beetle/sensor/imu.h>
+#include <beetle/control/beetle_pid.h>
 
 namespace aerial_robot_control
 {
@@ -35,12 +36,6 @@ namespace aerial_robot_control
     Eigen::VectorXd external_wrench_lower_limit_;
 
     int pre_module_state_;
-    double ErrI_X_;
-    double ErrI_Y_;
-    double ErrI_Z_;
-    double ErrI_ROLL_;
-    double ErrI_PITCH_;
-    double ErrI_YAW_;
 
     std::map<int, Eigen::VectorXd> est_wrench_list_;
     std::map<int, Eigen::VectorXd> inter_wrench_list_;

@@ -8,7 +8,7 @@ controller:
   momentum_observer_force_weight: 3
   momentum_observer_torque_weight: 2.5
   wrench_estimate_flag: true
-  comp_term_update_freq: 1
+  comp_term_update_freq: 5
 
   pd_wrench_comp_mode: true
 
