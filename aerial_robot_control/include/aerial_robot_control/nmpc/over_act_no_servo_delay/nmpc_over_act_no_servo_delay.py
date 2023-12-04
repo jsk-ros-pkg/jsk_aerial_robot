@@ -47,7 +47,7 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 
 class NMPCController(object):
     def __init__(self):
-        opt_model = BeetleFullModel().model
+        opt_model = BeetleNoServoDelayModel().model
 
         nx = opt_model.x.size()[0]
         nu = opt_model.u.size()[0]
@@ -88,10 +88,6 @@ class NMPCController(object):
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_z"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
             ]
         )
         R = np.diag(
@@ -114,7 +110,7 @@ class NMPCController(object):
         # set constraints
         # # bx
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
         ocp.constraints.lbx = np.array(
             [
                 nmpc_params["v_min"],
@@ -123,10 +119,6 @@ class NMPCController(object):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx = np.array(
@@ -137,16 +129,12 @@ class NMPCController(object):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
 
         # # bx_e
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
         ocp.constraints.lbx_e = np.array(
             [
                 nmpc_params["v_min"],
@@ -155,10 +143,6 @@ class NMPCController(object):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx_e = np.array(
@@ -169,10 +153,6 @@ class NMPCController(object):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
 
@@ -228,9 +208,9 @@ class NMPCController(object):
         self.solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
 
-class BeetleFullModel(object):
+class BeetleNoServoDelayModel(object):
     def __init__(self):
-        model_name = "beetle_full_model"
+        model_name = "beetle_no_servo_delay_model"
 
         # model states
         p = ca.SX.sym("p", 3)
@@ -247,13 +227,7 @@ class BeetleFullModel(object):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1 = ca.SX.sym("a1")
-        a2 = ca.SX.sym("a2")
-        a3 = ca.SX.sym("a3")
-        a4 = ca.SX.sym("a4")
-        a = ca.vertcat(a1, a2, a3, a4)
-
-        states = ca.vertcat(p, v, q, w, a)
+        states = ca.vertcat(p, v, q, w)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -268,11 +242,11 @@ class BeetleFullModel(object):
         ft3 = ca.SX.sym("ft3")
         ft4 = ca.SX.sym("ft4")
         ft = ca.vertcat(ft1, ft2, ft3, ft4)
-        a1c = ca.SX.sym("a1c")
-        a2c = ca.SX.sym("a2c")
-        a3c = ca.SX.sym("a3c")
-        a4c = ca.SX.sym("a4c")
-        ac = ca.vertcat(a1c, a2c, a3c, a4c)
+        a1 = ca.SX.sym("a1")
+        a2 = ca.SX.sym("a2")
+        a3 = ca.SX.sym("a3")
+        a4 = ca.SX.sym("a4")
+        ac = ca.vertcat(a1, a2, a3, a4)
         controls = ca.vertcat(ft, ac)
 
         # transformation matrix
@@ -354,7 +328,6 @@ class BeetleFullModel(object):
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
-            1 / t_servo * (ac - a),
         )
 
         # function
@@ -365,11 +338,11 @@ class BeetleFullModel(object):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w)
         control_y = controls
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 17)
+        x_dot = ca.SX.sym("x_dot", 13)
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
