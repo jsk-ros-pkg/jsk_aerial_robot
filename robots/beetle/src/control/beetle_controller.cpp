@@ -153,18 +153,20 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
-        wrench_comp_sum_left += inter_wrench_list_[right_module_id];
+        wrench_comp_sum_left += inter_wrench_list_[i];
         wrench_comp_list_[i] += wrench_comp_sum_left;
         right_module_id = i;
       }
     }
     /* 3.2. process from leader to right*/
     int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+    int left_module_id = leader_id;
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i < max_modules_num; i++){
       if(assembly_flag[i]){
-        wrench_comp_sum_right -= inter_wrench_list_[i-1];
+        wrench_comp_sum_right -= inter_wrench_list_[left_module_id];
         wrench_comp_list_[i] += wrench_comp_sum_right;
+        left_module_id = i;
       }
     }
   }
