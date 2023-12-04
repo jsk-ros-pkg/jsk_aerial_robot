@@ -209,6 +209,7 @@ namespace aerial_robot_control
     omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
     target_rpy_ = navigator_->getTargetRPY();
     target_omega_ = navigator_->getTargetOmega();
+    target_ang_acc_ = navigator_->getTargetAngAcc();
 
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
@@ -276,8 +277,8 @@ namespace aerial_robot_control
           }
         du_rp = 0;
       }
-    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x());
-    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y());
+    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
+    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
 
     // yaw
     double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
@@ -286,7 +287,7 @@ namespace aerial_robot_control
       {
         err_omega_z = target_omega_.z(); // part of the control in spinal
       }
-    pid_controllers_.at(YAW).update(err_yaw, du, err_omega_z);
+    pid_controllers_.at(YAW).update(err_yaw, du, err_omega_z, target_ang_acc_.z());
 
     // update
     control_timestamp_ = ros::Time::now().toSec();

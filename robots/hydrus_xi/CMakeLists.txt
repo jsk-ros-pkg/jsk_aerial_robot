@@ -1,19 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(hydrus_xi)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
-  aerial_robot_base
-  aerial_robot_control
-  aerial_robot_model
-  aerial_robot_msgs
   angles
   hydrus
   mujoco_ros_control
   roscpp
-  rospy
-  spinal
   )
 
 find_package(NLopt REQUIRED)
@@ -22,7 +16,7 @@ find_package(OsqpEigen REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS  aerial_robot_base aerial_robot_control aerial_robot_model aerial_robot_msgs angles hydrus roscpp rospy spinal
+  CATKIN_DEPENDS  angles hydrus roscpp
   )
 
 if(NOT CMAKE_BUILD_TYPE)

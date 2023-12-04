@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_python_setup()
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 catkin_package(
   INCLUDE_DIRS include
