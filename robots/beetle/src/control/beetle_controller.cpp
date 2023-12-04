@@ -45,7 +45,7 @@ namespace aerial_robot_control
   {
     bool comp_update_flag = false;
     double comp_update_interval = 1  / comp_term_update_freq_;
-    if(navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE &&
+    if(beetle_robot_model_->getControlFlag() &&
        ros::Time::now().toSec() - prev_comp_update_time_ > comp_update_interval){
       calcInteractionWrench();
       prev_comp_update_time_ = ros::Time::now().toSec();
@@ -68,7 +68,7 @@ namespace aerial_robot_control
 
     if(module_state == FOLLOWER &&
        pd_wrench_comp_mode_ &&
-       navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE){
+       beetle_robot_model_->getControlFlag()){
       Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
 
       /* current version: I term reconfig mehod */

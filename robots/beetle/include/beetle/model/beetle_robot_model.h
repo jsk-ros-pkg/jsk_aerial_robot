@@ -33,6 +33,7 @@ public:
   int getMyID(){return my_id_;}
   int getLeaderID(){return leader_id_;}
   std::vector<int> getModuleIDs(){return assembled_modules_ids_;}
+  bool getControlFlag(){return control_flag_;}
   
 
   void setContactFrame(const KDL::Frame contact_frame){contact_frame_ = contact_frame;}
@@ -41,7 +42,7 @@ public:
   void setAssemblyFlag(const int key, const bool value){
     assembly_flags_[key] = value;
   }
-  void setHoveringFlag(const bool hovering_flag){hovering_flag_ = hovering_flag;}
+  void setControlFlag(const bool control_flag){control_flag_ = control_flag;}
 
   std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
   int getMaxModuleNum(){return max_modules_num_;}
@@ -67,7 +68,7 @@ private:
   std::map<int, bool> assembly_flags_;
   bool reconfig_flag_;
   bool current_assembled_;
-  bool hovering_flag_;
+  bool control_flag_;
   std::vector<int> assembled_modules_ids_;
   int module_state_;
   

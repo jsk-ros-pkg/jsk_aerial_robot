@@ -74,9 +74,9 @@ void BeetleRobotModel::calcCenterOfMoving()
   std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
   int leader_index = std::round((assembled_modules_ids_.size())/2.0) -1;
   leader_id_ = assembled_modules_ids_[leader_index];
-  if(my_id_ == leader_id_ && hovering_flag_){
+  if(my_id_ == leader_id_ && control_flag_){
     module_state_ = LEADER;
-  }else if(hovering_flag_){
+  }else if(control_flag_){
     module_state_ = FOLLOWER;
   }
 
@@ -98,7 +98,7 @@ void BeetleRobotModel::calcCenterOfMoving()
 
   //update com-cog distance only during hovering
   reconfig_flag_ =  (pre_assembled_modules_ != assembled_module) ? true : false;
-  if(reconfig_flag_ && hovering_flag_){
+  if(reconfig_flag_ && control_flag_){
     Eigen::Vector3f cog_com_dist(center_of_moving.norm() * center_of_moving.x()/fabs(center_of_moving.x()),0,0);
     ROS_INFO_STREAM("cog_com_dist is " << cog_com_dist.transpose());
     tf.transform.translation.x = cog_com_dist.x();
@@ -122,7 +122,7 @@ void BeetleRobotModel::calcCenterOfMoving()
     cog_com_dist_msg.y = Cog2CoM_.p.y();
     cog_com_dist_msg.z = Cog2CoM_.p.z();
     cog_com_dist_pub_.publish(cog_com_dist_msg);
-    if(hovering_flag_) current_assembled_ = true;
+    if(control_flag_) current_assembled_ = true;
 }
 
 /* plugin registration */

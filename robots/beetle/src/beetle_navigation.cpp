@@ -294,7 +294,7 @@ void BeetleNavigator::update()
   beetle_robot_model_->calcCenterOfMoving();
   convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
-  beetle_robot_model_->setHoveringFlag((getNaviState() == HOVER_STATE) ? true : false);
+  beetle_robot_model_->setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE) ? true : false);
 }
 
 void BeetleNavigator::rotateContactPointFrame()
@@ -309,6 +309,7 @@ void BeetleNavigator::rotateContactPointFrame()
 void BeetleNavigator::convertTargetPosFromCoG2CoM()
 {
   //TODO: considering correct rotaion axis
+
   tf::Transform cog2com_tf;
   tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
   tf::Matrix3x3 cog_orientation_tf;
@@ -317,26 +318,30 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   bool current_assembled = beetle_robot_model_->getCurrentAssembled();
   bool reconfig_flag = beetle_robot_model_->getReconfigFlag();
 
+  KDL::Frame empty_frame;
+
   if(pre_assembled_  && !current_assembled){ //disassembly process
     setTargetPosCandX(getTargetPos().x());
     setTargetPosCandY(getTargetPos().y());
     setTargetPosCandZ(getTargetPos().z());
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
-  }
-
-  if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
+  } else if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
     int my_id = beetle_robot_model_->getMyID();
     tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
     tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
     ROS_INFO_STREAM("ID: " << my_id << "'s orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
     tf::Matrix3x3 att_err_mat = tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z()));
     tf::Vector3 corrected_target_pos =  tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z())) * pos_cog;
-    setTargetPosCandX(pos_cog.x() + (att_err_mat.inverse() * com_conversion).x());
-    setTargetPosCandY(pos_cog.y() + (att_err_mat.inverse() * com_conversion).y());
-    setTargetPosCandZ(pos_cog.z() + (att_err_mat.inverse() * com_conversion).z());
+    if(getNaviState() == HOVER_STATE){
+      setTargetPosCandX(pos_cog.x() + (att_err_mat.inverse() * com_conversion).x());
+      setTargetPosCandY(pos_cog.y() + (att_err_mat.inverse() * com_conversion).y());
+      setTargetPosCandZ(pos_cog.z() + (att_err_mat.inverse() * com_conversion).z());
+    }
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
+  }else if(beetle_robot_model_->getCog2CoM<KDL::Frame>() == empty_frame && getNaviState() != HOVER_STATE){
+    return;
   }
 
 
@@ -360,7 +365,8 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
   tf::Vector3 target_cog_pos = getTargetPosCand();
   target_cog_pos -=  com_conversion;
 
-  if( getNaviState() == HOVER_STATE){
+  if( getNaviState() == HOVER_STATE ||
+      getNaviState() == TAKEOFF_STATE){
     setTargetPosX(target_cog_pos.x());
     setTargetPosY(target_cog_pos.y());
     setTargetPosZ(target_cog_pos.z());
