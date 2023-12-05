@@ -325,6 +325,32 @@ void nmpc_under_act_body_rate::NMPCController::sendRPYGain()
   rpy_gain_msg.motors[3].pitch_d = 393;
   rpy_gain_msg.motors[3].yaw_d = -1423;
 
+  /* debug why body rate controller is slow */
+  if (!is_attitude_ctrl_ && is_body_rate_ctrl_)
+  {
+    ros::NodeHandle control_nh(nh_, "controller");
+    double roll_rate_p_gain, pitch_rate_p_gain, yaw_rate_p_gain;
+    getParam<double>(control_nh, "nmpc/roll_rate_p_gain", roll_rate_p_gain, 0.4);
+    getParam<double>(control_nh, "nmpc/pitch_rate_p_gain", pitch_rate_p_gain, 0.4);
+    getParam<double>(control_nh, "nmpc/yaw_rate_p_gain", yaw_rate_p_gain, 1.5);
+
+    rpy_gain_msg.motors[0].roll_d = (short)(-roll_rate_p_gain * 1000);
+    rpy_gain_msg.motors[0].pitch_d = (short)(pitch_rate_p_gain * 1000);
+    rpy_gain_msg.motors[0].yaw_d = (short)(yaw_rate_p_gain * 1000);
+
+    rpy_gain_msg.motors[1].roll_d = (short)(-roll_rate_p_gain * 1000);
+    rpy_gain_msg.motors[1].pitch_d = (short)(-pitch_rate_p_gain * 1000);
+    rpy_gain_msg.motors[1].yaw_d = (short)(-yaw_rate_p_gain * 1000);
+
+    rpy_gain_msg.motors[2].roll_d = (short)(roll_rate_p_gain * 1000);
+    rpy_gain_msg.motors[2].pitch_d = (short)(-pitch_rate_p_gain * 1000);
+    rpy_gain_msg.motors[2].yaw_d = (short)(yaw_rate_p_gain * 1000);
+
+    rpy_gain_msg.motors[3].roll_d = (short)(roll_rate_p_gain * 1000);
+    rpy_gain_msg.motors[3].pitch_d = (short)(pitch_rate_p_gain * 1000);
+    rpy_gain_msg.motors[3].yaw_d = (short)(-yaw_rate_p_gain * 1000);
+  }
+
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
 
