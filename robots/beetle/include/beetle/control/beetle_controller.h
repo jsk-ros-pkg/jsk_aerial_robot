@@ -5,7 +5,6 @@
 #include <beetle/TaggedWrench.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
 #include <beetle/sensor/imu.h>
-#include <beetle/control/beetle_pid.h>
 
 namespace aerial_robot_control
 {
