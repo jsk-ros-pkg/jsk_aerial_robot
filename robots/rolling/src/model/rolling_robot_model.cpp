@@ -8,9 +8,8 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   links_rotation_from_cog_.resize(rotor_num);
   links_rotation_from_target_frame_.resize(rotor_num);
   // gimbal_nominal_angles_.resize(rotor_num);
-  rotors_origin_from_contact_point_.resize(rotor_num);
   rotors_origin_from_target_frame_.resize(rotor_num);
-  rotors_normal_from_contact_point_.resize(rotor_num);
+  rotors_normal_from_target_frame_.resize(rotor_num);
   rotors_x_axis_from_cog_.resize(rotor_num);
   rotors_y_axis_from_cog_.resize(rotor_num);
   thrust_link_ = "thrust";
@@ -24,13 +23,12 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 
   additional_frame_["cp"] = &contact_point_;
-
 }
 
 void RollingRobotModel::calcRobotModelFromFrame(std::string frame_name)
 {
+  /* get target frame from name */
   target_frame_name_ = frame_name;
-
   if(frame_name == "cog")
     {
       links_rotation_from_target_frame_ = links_rotation_from_cog_;
@@ -40,23 +38,14 @@ void RollingRobotModel::calcRobotModelFromFrame(std::string frame_name)
     }
 
   const std::map<std::string, KDL::Frame> seg_tf_map = getSegmentsTf();
-  // KDL::TreeFkSolverPos_recursive fk_solver(getTree());
-
   if(seg_tf_map.find(frame_name) == seg_tf_map.end() && additional_frame_.find(frame_name) == additional_frame_.end())
     {
       ROS_ERROR_STREAM("[model] there is not frame named " << frame_name);
       return;
     }
-
   KDL::Frame target_frame;
-  if(seg_tf_map.find(frame_name) == seg_tf_map.end())
-    {
-      target_frame = *(additional_frame_.at(frame_name));
-    }
-  else
-    {
-      target_frame = seg_tf_map.at(frame_name);
-    }
+  if(seg_tf_map.find(frame_name) == seg_tf_map.end()) target_frame = *(additional_frame_.at(frame_name));
+  else target_frame = seg_tf_map.at(frame_name);
 
   /* get cog */
   KDL::Frame cog = getCog<KDL::Frame>();
@@ -77,34 +66,22 @@ void RollingRobotModel::calcRobotModelFromFrame(std::string frame_name)
     }
   link_inertia_from_target_frame_ = (target_frame.Inverse() * link_inertia).getRotationalInertia();
 
-  // Eigen::Matrix3d cog_inertia = kdlToEigen((cog.Inverse() * link_inertia).getRotationalInertia());
-  // std::cout << "manually calced cog inertia = " << cog_inertia << std::endl;
-  // std::cout << std::endl;
-  // std::cout << "cog inerira = " << getInertia<Eigen::Matrix3d>() << std::endl;
-
-  /* origin of rotor */
+  /* origin and normal of rotor */
   for(int i = 0 ; i < getRotorNum(); i++)
     {
       std::string rotor = thrust_link_ + std::to_string(i + 1);
       KDL::Frame f = seg_tf_map.at(rotor);
       rotors_origin_from_target_frame_.at(i) = (target_frame.Inverse() * f).p;
+      rotors_normal_from_target_frame_.at(i) = (target_frame.Inverse() * f).M * KDL::Vector(0, 0, 1);
     }
 
   /* torque by gravity in target frame */
-  // std::cout << "cog p = [" << cog.p.x() << " " << cog.p.y() << " " << cog.p.z() << "] " <<std::endl;
-  // std::cout << target_frame_name_ << " p = [" << target_frame.p.x() << " " << target_frame.p.y() << " " << target_frame.p.z() << "] " <<std::endl;
   target_to_cog_frame_ = target_frame.Inverse() * cog;
   cog_to_target_frame_ = cog.Inverse() * target_frame;
   Eigen::Vector3d target_to_cog_p = aerial_robot_model::kdlToEigen(target_to_cog_frame_.p);
   Eigen::MatrixXd skew_mat = aerial_robot_model::skew(target_to_cog_p);
   Eigen::VectorXd gravity = getGravity3d();
   gravity_torque_from_target_frame_ = getMass() * skew_mat * gravity;
-
-  // std::cout << "from target to cog in target frame = [" << target_to_cog_p.x() << " " << target_to_cog_p.y() << " " << target_to_cog_p.z() << "] " << std::endl;
-  // std::cout << "gravity torque in target frame = [" << gravity_torque_from_target_frame_(0) << " " << gravity_torque_from_target_frame_(1) << " " << gravity_torque_from_target_frame_(2) << "] " << std::endl;
-  // std::cout << std::endl;
-  // std::cout << std::endl;
-  // std::cout << std::endl;
 
 }
 
@@ -118,15 +95,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
 
   /* get cog */
   KDL::Frame cog = getCog<KDL::Frame>();
-
-  /* calculate inertia */
-  // KDL::RigidBodyInertia link_inertia = KDL::RigidBodyInertia::Zero();
-  // std::map<std::string, KDL::RigidBodyInertia> inertia_map = RobotModel::getInertiaMap();
-  // for(const auto& inertia : inertia_map)
-  //   {
-  //     KDL::Frame f = seg_tf_map.at(inertia.first);
-  //     link_inertia = link_inertia + f * inertia.second;
-  //   }
 
   /* link based on COG */
   for(int i = 0; i < getRotorNum(); ++i)
@@ -146,23 +114,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       rotors_y_axis_from_cog_.at(i) = (cog.Inverse() * f).M * KDL::Vector(0, 1, 0);
     }
 
-  // /* rotor's neutral coordinate */
-  // for(int i = 0; i < getRotorNum(); ++i)
-  //   {
-  //     std::string s = std::to_string(i + 1);
-  //     KDL::Frame f;
-  //     fk_solver.JntToCart(joint_positions, f, std::string("rotor_coord") + s);
-  //     rotors_coord_rotation_from_cog_[i] = cog_frame.Inverse() * f.M;
-  //   }
-
-  // /* gimbal nominal angle */
-  // for(int i = 0; i < getRotorNum(); i++)
-  //   {
-  //     double r, p, y;
-  //     links_rotation_from_cog_.at(i).GetRPY(r, p, y);
-  //     gimbal_nominal_angles_.at(i) = -r;
-  //   }
-
   /* center point */
   KDL::Frame link2;
   KDL::Frame link3;
@@ -181,16 +132,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   // contact_point_.p = cog.p + cog.M * cog2baselink.M * contact_point_offset;
   contact_point_.p = center_point_.p + cog.M * contact_point_offset;
   contact_point_.M = cog.M;
-
-  // link_inertia_contact_point_ = (contact_point_.Inverse() * link_inertia).getRotationalInertia();
-
-  // for(int i = 0; i < getRotorNum(); i++)
-  //   {
-  //     std::string rotor = thrust_link_ + std::to_string(i + 1);
-  //     KDL::Frame f = seg_tf_map.at(rotor);
-  //     rotors_origin_from_contact_point_.at(i) = (contact_point_.Inverse() * f).p;
-  //     rotors_normal_from_contact_point_.at(i) = (contact_point_.Inverse() * f).M * KDL::Vector(0, 0, 1);
-  //   }
 
   // publish origin and normal for debug
   geometry_msgs::PoseArray rotor_origin_msg;
@@ -212,7 +153,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
     }
   rotor_origin_pub_.publish(rotor_origin_msg);
   rotor_normal_pub_.publish(rotor_normal_msg);
-
 
   // feasible wrench
   geometry_msgs::PoseArray feasible_force_array_msg;
