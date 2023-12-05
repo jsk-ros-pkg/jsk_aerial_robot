@@ -34,14 +34,17 @@ void nmpc_over_act_no_servo_delay::NMPCController::initialize(
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
 
-  mass_ = robot_model_->getMass();
-  gravity_const_ = robot_model_->getGravity()[2];
+  //  mass_ = robot_model_->getMass();
+  //  gravity_const_ = robot_model_->getGravity()[2];
+  getParam<double>(control_nh, "nmpc/mass", mass_, 0.5);
+  getParam<double>(control_nh, "nmpc/gravity_const", gravity_const_, 9.81);
 
   getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);
   getParam<double>(control_nh, "nmpc/yaw_d_gain", yaw_d_gain, 1.0);
 
   getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
+  getParam<bool>(control_nh, "nmpc/is_debug", is_debug, false);
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
@@ -108,7 +111,7 @@ void nmpc_over_act_no_servo_delay::NMPCController::reset()
 
   double x[NX] = { pos.x(), pos.y(), pos.z(), vel.x(),   vel.y(),   vel.z(),  q.w(),
                    q.x(),   q.y(),   q.z(),   omega.x(), omega.y(), omega.z() };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4;
+  double each_thrust_hovering = mass_ * gravity_const_ / 4.0;
   double u[NU] = {
     each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
   };
@@ -180,7 +183,7 @@ void nmpc_over_act_no_servo_delay::NMPCController::controlCore()
   std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 
   /* solve */
-  mpc_solver_.solve(odom_now, x_u_ref_);
+  mpc_solver_.solve(odom_now, x_u_ref_, is_debug);
 
   /* get result */
   // convert quaternion to rpy

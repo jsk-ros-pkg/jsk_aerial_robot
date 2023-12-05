@@ -186,7 +186,9 @@ class NMPCController(object):
 
         # initial state
         x_ref = np.zeros(nx)
+        x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
+        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref

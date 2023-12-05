@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/over_act_full/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/over_act_no_servo_delay/nmpc_controller
 
 controller:
   physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in this section
@@ -55,6 +55,7 @@ controller:
     is_body_rate_ctrl: true
 
     is_print_physical_params: false
+    is_debug: false
 
 #  original ----------------------------------------
 

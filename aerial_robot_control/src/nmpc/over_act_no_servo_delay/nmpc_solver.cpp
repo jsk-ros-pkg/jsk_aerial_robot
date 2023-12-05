@@ -114,7 +114,7 @@ void nmpc_over_act_no_servo_delay::MPCSolver::reset(const aerial_robot_msgs::Pre
 }
 
 int nmpc_over_act_no_servo_delay::MPCSolver::solve(const nav_msgs::Odometry& odom_now,
-                                                   const aerial_robot_msgs::PredXU& x_u_ref)
+                                                   const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
@@ -130,7 +130,7 @@ int nmpc_over_act_no_servo_delay::MPCSolver::solve(const nav_msgs::Odometry& odo
 
   getSolution(x_stride, u_stride);
 
-  if (getenv("ROS_DEBUG"))
+  if (is_debug)
   {
     printSolution();
     printStatus(N_timings, min_time);

@@ -69,6 +69,7 @@ protected:
   ros::ServiceClient srv_set_control_mode_;
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
+  bool is_debug;
 
   virtual void controlCore();
   virtual void sendCmd();
