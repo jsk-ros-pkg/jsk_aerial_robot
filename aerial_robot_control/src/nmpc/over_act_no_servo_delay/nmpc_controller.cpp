@@ -53,6 +53,7 @@ void nmpc_over_act_no_servo_delay::NMPCController::initialize(
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  pub_gimbal_control_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
 
   pub_rpy_gain_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);  // tmp
   pub_p_matrix_pseudo_inverse_inertia_ =
@@ -89,7 +90,7 @@ bool nmpc_over_act_no_servo_delay::NMPCController::update()
     return false;
 
   this->controlCore();
-  this->sendCmd();
+  this->sendFlightCmd();
 
   return true;
 }
@@ -253,7 +254,13 @@ void nmpc_over_act_no_servo_delay::NMPCController::controlCore()
     double a3 = mpc_solver_.x_u_out_.u.data.at(6);
     double a4 = mpc_solver_.x_u_out_.u.data.at(7);
 
-    // TODO: send to spinal
+    sensor_msgs::JointState gimbal_control_msg;
+    gimbal_control_msg.header.stamp = ros::Time::now();
+    gimbal_control_msg.position.push_back(a1);
+    gimbal_control_msg.position.push_back(a2);
+    gimbal_control_msg.position.push_back(a3);
+    gimbal_control_msg.position.push_back(a4);
+    pub_gimbal_control_.publish(gimbal_control_msg);
 
     return;
   }
@@ -264,7 +271,7 @@ void nmpc_over_act_no_servo_delay::NMPCController::controlCore()
   }
 }
 
-void nmpc_over_act_no_servo_delay::NMPCController::sendCmd()
+void nmpc_over_act_no_servo_delay::NMPCController::sendFlightCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
 }

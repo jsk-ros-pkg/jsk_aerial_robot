@@ -35,8 +35,10 @@ controller:
     thrust_max: 30 # N
     thrust_min: 0 # N
 
-    a_max: PI / 2
-    a_min: -PI / 2
+#    a_max: PI / 2
+#    a_min: -PI / 2
+    a_max: 0.0
+    a_min: 0.0
 
     # params for the cost function
     Qp_xy: 300  # 0

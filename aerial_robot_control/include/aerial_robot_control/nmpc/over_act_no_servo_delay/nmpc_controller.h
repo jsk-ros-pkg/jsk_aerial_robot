@@ -65,6 +65,7 @@ protected:
   ros::Publisher pub_viz_ref_;                          // for viz reference
   ros::Publisher pub_rpy_gain_;                         // for gains of attitude controller
   ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
+  ros::Publisher pub_gimbal_control_;                   // for gimbal control
 
   ros::ServiceClient srv_set_control_mode_;
   bool is_attitude_ctrl_;
@@ -72,7 +73,7 @@ protected:
   bool is_debug;
 
   virtual void controlCore();
-  virtual void sendCmd();
+  virtual void sendFlightCmd();
 
 private:
   double mass_;
