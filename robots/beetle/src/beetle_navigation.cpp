@@ -153,13 +153,11 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
       }
     case aerial_robot_msgs::FlightNav::VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do vel nav for baselink");
-            return;
-          }
-        /* should be in COG frame */
-        xy_control_mode_ = VEL_CONTROL_MODE;
+        /* do not switch to pure vel mode */
+        xy_control_mode_ = POS_CONTROL_MODE;
+
+        teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
         switch(msg->control_frame)
           {
           case WORLD_FRAME:
@@ -170,7 +168,8 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -184,17 +183,14 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
       }
     case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
-            return;
-          }
-
         xy_control_mode_ = POS_CONTROL_MODE;
         setTargetPosCandX(msg->target_pos_x);
         setTargetPosCandY(msg->target_pos_y);
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
+
+        trajectory_mode_ = true;
+        trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
 
         break;
       }
