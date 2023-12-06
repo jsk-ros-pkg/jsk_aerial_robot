@@ -87,12 +87,12 @@ namespace aerial_robot_control
       
       geometry_msgs::WrenchStamped wrench_msg;
       wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
-      wrench_msg.wrench.force.x = I_reconfig_acc_cog_term(0);
-      wrench_msg.wrench.force.y = I_reconfig_acc_cog_term(1);
-      wrench_msg.wrench.force.z = I_reconfig_acc_cog_term(2);
-      wrench_msg.wrench.torque.x = I_reconfig_acc_cog_term(3);
-      wrench_msg.wrench.torque.y = I_reconfig_acc_cog_term(4);
-      wrench_msg.wrench.torque.z = I_reconfig_acc_cog_term(5);
+      wrench_msg.wrench.force.x = wrench_comp_term(0);
+      wrench_msg.wrench.force.y = wrench_comp_term(1);
+      wrench_msg.wrench.force.z = wrench_comp_term(2);
+      wrench_msg.wrench.torque.x = wrench_comp_term(3);
+      wrench_msg.wrench.torque.y = wrench_comp_term(4);
+      wrench_msg.wrench.torque.z = wrench_comp_term(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
       GimbalrotorController::controlCore();
     }else{
@@ -154,7 +154,7 @@ namespace aerial_robot_control
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
         wrench_comp_sum_left += inter_wrench_list_[i];
-        wrench_comp_list_[i] += wrench_comp_sum_left;
+        wrench_comp_list_[i] += wrench_comp_gain_ *  wrench_comp_sum_left;
         right_module_id = i;
       }
     }
@@ -165,7 +165,7 @@ namespace aerial_robot_control
     for(int i = leader_id+1; i < max_modules_num; i++){
       if(assembly_flag[i]){
         wrench_comp_sum_right -= inter_wrench_list_[left_module_id];
-        wrench_comp_list_[i] += wrench_comp_sum_right;
+        wrench_comp_list_[i] += wrench_comp_gain_ * wrench_comp_sum_right;
         left_module_id = i;
       }
     }
@@ -189,6 +189,7 @@ namespace aerial_robot_control
     ROS_INFO_STREAM("lower limit of external wrench : "<<external_wrench_lower_limit_.transpose());
 
     getParam<double>(control_nh, "comp_term_update_freq", comp_term_update_freq_, 10);
+    getParam<double>(control_nh, "wrench_comp_gain", wrench_comp_gain_, 0.2);
   }
 
   void BeetleController::externalWrenchEstimate()

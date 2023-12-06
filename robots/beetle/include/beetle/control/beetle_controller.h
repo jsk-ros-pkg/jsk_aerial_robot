@@ -42,6 +42,7 @@ namespace aerial_robot_control
 
     double comp_term_update_freq_;
     double prev_comp_update_time_;
+    double wrench_comp_gain_;
     
     void controlCore() override;
     void calcInteractionWrench();
