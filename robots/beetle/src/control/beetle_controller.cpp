@@ -74,25 +74,37 @@ namespace aerial_robot_control
       /* current version: I term reconfig mehod */
       Eigen::VectorXd I_reconfig_acc_cog_term = Eigen::VectorXd::Zero(6);
       I_reconfig_acc_cog_term.head(3) = mass_inv * wrench_comp_term.head(3);
-      I_reconfig_acc_cog_term.tail(3) = -inertia_inv * wrench_comp_term.tail(3); //inavailable
-      double IGain_X = pid_controllers_.at(X).getIGain();
-      double IGain_Y = pid_controllers_.at(Y).getIGain();
-      double IGain_Z = pid_controllers_.at(Z).getIGain();
-      double I_comp_x = I_reconfig_acc_cog_term(0) / IGain_X;
-      double I_comp_y = I_reconfig_acc_cog_term(1) / IGain_Y;
-      double I_comp_z = I_reconfig_acc_cog_term(2) / IGain_Z;
-      pid_controllers_.at(X).setICompTerm(I_comp_x);
-      pid_controllers_.at(Y).setICompTerm(I_comp_y);
-      pid_controllers_.at(Z).setICompTerm(I_comp_z);
+      I_reconfig_acc_cog_term.tail(3) = inertia_inv * wrench_comp_term.tail(3); //inavailable
+
+      double IGain_Fx = pid_controllers_.at(X).getIGain();
+      double IGain_Fy = pid_controllers_.at(Y).getIGain();
+      double IGain_Fz = pid_controllers_.at(Z).getIGain();
+      double IGain_Tx = pid_controllers_.at(ROLL).getIGain();
+      double IGain_Ty = pid_controllers_.at(PITCH).getIGain();
+      double IGain_Tz = pid_controllers_.at(YAW).getIGain();
+
+      double I_comp_Fx = I_reconfig_acc_cog_term(0) / IGain_Fx;
+      double I_comp_Fy = I_reconfig_acc_cog_term(1) / IGain_Fy;
+      double I_comp_Fz = I_reconfig_acc_cog_term(2) / IGain_Fz;
+      double I_comp_Tx = I_reconfig_acc_cog_term(3) / IGain_Tx;
+      double I_comp_Ty = I_reconfig_acc_cog_term(4) / IGain_Ty;
+      double I_comp_Tz = I_reconfig_acc_cog_term(5) / IGain_Tz;
+
+      pid_controllers_.at(X).setICompTerm(I_comp_Fx);
+      pid_controllers_.at(Y).setICompTerm(I_comp_Fy);
+      pid_controllers_.at(Z).setICompTerm(I_comp_Fz);
+      pid_controllers_.at(ROLL).setICompTerm(I_comp_Tx);
+      pid_controllers_.at(PITCH).setICompTerm(I_comp_Ty);
+      pid_controllers_.at(YAW).setICompTerm(I_comp_Tz);
       
       geometry_msgs::WrenchStamped wrench_msg;
       wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
-      wrench_msg.wrench.force.x = wrench_comp_term(0);
-      wrench_msg.wrench.force.y = wrench_comp_term(1);
-      wrench_msg.wrench.force.z = wrench_comp_term(2);
-      wrench_msg.wrench.torque.x = wrench_comp_term(3);
-      wrench_msg.wrench.torque.y = wrench_comp_term(4);
-      wrench_msg.wrench.torque.z = wrench_comp_term(5);
+      wrench_msg.wrench.force.x = I_reconfig_acc_cog_term(0);
+      wrench_msg.wrench.force.y = I_reconfig_acc_cog_term(1);
+      wrench_msg.wrench.force.z = I_reconfig_acc_cog_term(2);
+      wrench_msg.wrench.torque.x = I_reconfig_acc_cog_term(3);
+      wrench_msg.wrench.torque.y = I_reconfig_acc_cog_term(4);
+      wrench_msg.wrench.torque.z = I_reconfig_acc_cog_term(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
       GimbalrotorController::controlCore();
     }else{
@@ -102,8 +114,6 @@ namespace aerial_robot_control
 
   void BeetleController::calcInteractionWrench()
   {
-    // note: Currently, this process doesn't include torque elements.
-
     /* 1. calculate external wrench W_w for whole system (e.g. ground effects, model error and etc..)*/
     Eigen::VectorXd W_w = Eigen::VectorXd::Zero(6);
     Eigen::VectorXd W_sum = Eigen::VectorXd::Zero(6);
