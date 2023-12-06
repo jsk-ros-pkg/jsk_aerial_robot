@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://rolling/urdf/mesh/20231013_frame/link1_base.stl" />
+          <mesh filename="package://rolling/urdf/mesh/20231013_frame/link1_base.dae" />
         </geometry>
       </visual>
       <collision>
