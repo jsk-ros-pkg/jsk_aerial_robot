@@ -290,7 +290,7 @@ void BeetleNavigator::update()
   beetle_robot_model_->calcCenterOfMoving();
   convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
-  beetle_robot_model_->setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE) ? true : false);
+  beetle_robot_model_->setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
 }
 
 void BeetleNavigator::rotateContactPointFrame()

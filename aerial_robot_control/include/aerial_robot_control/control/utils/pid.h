@@ -68,12 +68,11 @@ namespace aerial_robot_control
       err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
 
       /* special process for I term */
-      double err_i_rec;
       err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
-      err_i_rec = err_i_ + i_comp_term_;
+      err_i_rec_ = err_i_ + i_comp_term_;
 
       p_term_ = clamp(err_p_ * p_gain_, -limit_p_, limit_p_);
-      i_term_ = clamp(err_i_rec * i_gain_, -limit_i_, limit_i_);
+      i_term_ = clamp(err_i_rec_ * i_gain_, -limit_i_, limit_i_);
       d_term_ = clamp(err_d_ * d_gain_, -limit_d_, limit_d_);
 
       result_ = clamp(p_term_ + i_term_ + d_term_ + feedforward_term, -limit_sum_, limit_sum_);
@@ -126,6 +125,8 @@ namespace aerial_robot_control
       setLimitErrD(limit_err_d);
     }
     void setICompTerm(const double i_comp_term){ i_comp_term_ = i_comp_term; }
+    void setErrIRec(const double err_i_rec){ err_i_rec_ = err_i_rec; }
+    const double& getErrIRec() const { return err_i_rec_; }
 
     const std::string getName() const { return name_;}
     const double& getErrP() const { return err_p_; }
@@ -146,11 +147,12 @@ namespace aerial_robot_control
     double p_gain_, i_gain_, d_gain_;
     double p_term_, i_term_, d_term_;
     double err_p_, err_i_, err_i_prev_, err_d_;
+    double err_i_rec_;
     double limit_sum_, limit_p_, limit_i_, limit_d_;
     double limit_err_p_, limit_err_i_, limit_err_d_;
     double target_p_, target_d_;
     double val_p_, val_d_;
-    double i_comp_term_;    
+    double i_comp_term_;
 
   };
 
