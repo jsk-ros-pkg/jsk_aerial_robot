@@ -38,6 +38,13 @@ namespace aerial_robot_control
       inter_wrench_list_.insert(make_pair(i+1, wrench));
       wrench_comp_list_.insert(make_pair(i+1, wrench));
     }
+    pid_controllers_.at(X).setLimitErrI(pid_controllers_.at(X).getLimitI() / pid_controllers_.at(X).getIGain());
+    pid_controllers_.at(Y).setLimitErrI(pid_controllers_.at(Y).getLimitI() / pid_controllers_.at(Y).getIGain());
+    pid_controllers_.at(Z).setLimitErrI(pid_controllers_.at(Z).getLimitI() / pid_controllers_.at(Z).getIGain());
+    pid_controllers_.at(ROLL).setLimitErrI(pid_controllers_.at(ROLL).getLimitI() / pid_controllers_.at(ROLL).getIGain());
+    pid_controllers_.at(PITCH).setLimitErrI(pid_controllers_.at(PITCH).getLimitI() / pid_controllers_.at(PITCH).getIGain());
+    pid_controllers_.at(YAW).setLimitErrI(pid_controllers_.at(YAW).getLimitI() / pid_controllers_.at(YAW).getIGain());
+
     prev_comp_update_time_ = 0;
   }
 
@@ -109,7 +116,7 @@ namespace aerial_robot_control
       wrench_msg.wrench.torque.y = I_reconfig_acc_cog_term(4);
       wrench_msg.wrench.torque.z = I_reconfig_acc_cog_term(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
-      GimbalrotorController::controlCore();
+
     }else{
       if(pre_module_state_ == FOLLOWER && module_state == SEPARATED)
         {
@@ -127,8 +134,9 @@ namespace aerial_robot_control
           pid_controllers_.at(PITCH).setErrI(pid_controllers_.at(PITCH).getErrIRec());
           pid_controllers_.at(YAW).setErrI(pid_controllers_.at(YAW).getErrIRec());
         }
-      GimbalrotorController::controlCore();
     }
+      
+    GimbalrotorController::controlCore();
     pre_module_state_ = module_state;
   }
 
@@ -283,9 +291,6 @@ namespace aerial_robot_control
     Eigen::VectorXd est_external_wrench_cog = est_external_wrench_;
     est_external_wrench_cog.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
 
-    // Eigen::Matrix3d uav_rot;
-    // tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), uav_rot);
-    // est_external_wrench_cog.head(3) = uav_rot.inverse() * est_external_wrench_cog.head(3);
     geometry_msgs::WrenchStamped wrench_msg;
     wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
     wrench_msg.wrench.force.x = est_external_wrench_cog(0);
