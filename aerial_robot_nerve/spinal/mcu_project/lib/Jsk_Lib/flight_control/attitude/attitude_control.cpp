@@ -987,7 +987,11 @@ void AttitudeController::pwmConversion()
     for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++){
       gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
     }
-    gimbal_control_pub_.publish(gimbal_control_msg);
+    if(HAL_GetTick() - gimbal_control_pub_last_time_ > GIMBAL_CONTROL_PUB_INTERVAL)
+      {
+        gimbal_control_pub_last_time_ = HAL_GetTick();
+        gimbal_control_pub_.publish(gimbal_control_msg);
+      }
   }
 #else
   if(gimbal_dof_){
