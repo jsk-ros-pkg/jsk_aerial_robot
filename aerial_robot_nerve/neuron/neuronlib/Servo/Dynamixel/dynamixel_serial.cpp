@@ -472,9 +472,7 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   transmit_data[transmit_data_index] = (chksum >> 8) & 0xFF; //CRC_H
   transmit_data_index++;
   /* send data */
-  WE;
   HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS. 
-  RE;
 }
 
 /* Receive status packet to Dynamixel */
@@ -1100,7 +1098,14 @@ HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
 
   while (true)
     {
+#if defined(STM32F413xx)
       uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
+#elif defined(STM32G473xx)
+      uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->CNDTR) % (RX_BUFFER_SIZE);
+#else
+#error "please specify the STM32 series"
+#endif
+
       if(rd_ptr_ != dma_write_ptr)
         {
           *data = (int)rx_buf_[rd_ptr_++];
