@@ -290,6 +290,7 @@ namespace aerial_robot_control
       rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
       rpy_gain_pub_.publish(rpy_gain_msg);
     }
+  }
 } //namespace aerial_robot_controller
 
 
