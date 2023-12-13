@@ -8,6 +8,16 @@
 
 namespace aerial_robot_control
 {
+  enum
+    {
+     FX = YAW +1,
+     FY,
+     FZ,
+     TX,
+     TY,
+     TZ,
+    };
+
   class BeetleController: public GimbalrotorController
   {
   public:
@@ -42,7 +52,9 @@ namespace aerial_robot_control
 
     double comp_term_update_freq_;
     double prev_comp_update_time_;
-    double wrench_comp_gain_;
+    double wrench_comp_p_gain_;
+    double wrench_comp_i_gain_;
+    double wrench_comp_d_gain_;
     double I_comp_Fx_;
     double I_comp_Fy_;
     double I_comp_Fz_;
