@@ -57,6 +57,7 @@ void BeetleRobotModel::calcCenterOfMoving()
         return;
       }
   }
+  setModuleNum(assembled_module);
   if(!assembled_module || assembled_module == 1 || !assembly_flags_[my_id_]){
     pre_assembled_modules_ = assembled_module;
     KDL::Frame com_frame;

@@ -45,6 +45,12 @@ namespace aerial_robot_control
     pid_controllers_.push_back(PID("t_y", wrench_comp_p_gain_, wrench_comp_i_gain_, wrench_comp_d_gain_));
     pid_controllers_.push_back(PID("t_z", wrench_comp_p_gain_, wrench_comp_i_gain_, wrench_comp_d_gain_));
 
+    ros::NodeHandle control_nh(nh_, "controller");
+    ros::NodeHandle wrench_nh(control_nh, "wrench_comp");
+    std::vector<int> indices = {FX, FY, FZ, TX, TY, TZ};
+    pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(wrench_nh));
+    pid_reconf_servers_.back()->setCallback(boost::bind(&BeetleController::cfgPidCallback, this, _1, _2, indices));
+
     prev_comp_update_time_ = -1;
   }
 
@@ -74,6 +80,23 @@ namespace aerial_robot_control
     if(module_state == FOLLOWER &&
        pd_wrench_comp_mode_ &&
        beetle_robot_model_->getControlFlag()){
+
+      /* set proper gains for wrench comp */
+      int module_num;
+      for(const auto & item : est_wrench_list_){
+        if(assembly_flag[item.first]){
+          module_num ++;
+        }
+      }
+      // std::vector<int> wrench_indices = {FX, FY, FZ, TX, TY, TZ};
+      // ROS_INFO_STREAM(wrench_comp_p_gain_ / (module_num) * 2);
+      // for(const auto& index: wrench_indices)
+      //   {
+      //     pid_controllers_.at(index).setPGain(wrench_comp_p_gain_ / (module_num) * 2);
+      //     pid_controllers_.at(index).setDGain(wrench_comp_d_gain_ / (module_num) * 2);
+      //     pid_controllers_.at(index).setIGain(wrench_comp_i_gain_ / (module_num) * 2);
+      //   }
+
       Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
 
       /* current version: I term reconfig mehod */
@@ -154,12 +177,14 @@ namespace aerial_robot_control
     Eigen::VectorXd W_sum = Eigen::VectorXd::Zero(6);
     int module_num = 0;
     std::map<int, bool> assembly_flag = beetle_robot_model_->getAssemblyFlags();
+
     for(const auto & item : est_wrench_list_){
       if(assembly_flag[item.first]){
-        W_sum += item.second;
-        module_num ++;
+      W_sum += item.second;
+      module_num ++;
       }
     }
+
     if(!module_num) return;
     W_w = W_sum / module_num;
     geometry_msgs::WrenchStamped wrench_msg;
@@ -240,9 +265,11 @@ namespace aerial_robot_control
     ROS_INFO_STREAM("lower limit of external wrench : "<<external_wrench_lower_limit_.transpose());
 
     getParam<double>(control_nh, "comp_term_update_freq", comp_term_update_freq_, 10);
-    getParam<double>(control_nh, "wrench_comp_p_gain", wrench_comp_p_gain_, 0.1);
-    getParam<double>(control_nh, "wrench_comp_i_gain", wrench_comp_i_gain_, 0.005);
-    getParam<double>(control_nh, "wrench_comp_d_gain", wrench_comp_d_gain_, 0.05);
+
+    ros::NodeHandle wrench_nh(control_nh, "wrench_comp");
+    getParam<double>(wrench_nh, "p_gain", wrench_comp_p_gain_, 0.1);
+    getParam<double>(wrench_nh, "i_gain", wrench_comp_i_gain_, 0.005);
+    getParam<double>(wrench_nh, "d_gain", wrench_comp_d_gain_, 0.07);
   }
 
   void BeetleController::externalWrenchEstimate()
