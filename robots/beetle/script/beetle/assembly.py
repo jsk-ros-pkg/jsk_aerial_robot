@@ -46,7 +46,7 @@ class StandbyState(smach.State):
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
                  root_fc_dis = 0.129947,
-                 attach_dir = -1):
+                 attach_dir = -1.0):
 
         smach.State.__init__(self, outcomes=['done','in_process','emergency'])
 
@@ -142,6 +142,8 @@ class StandbyState(smach.State):
         target_att = tf.transformations.euler_from_quaternion(homo_transformed_target_odom[1])
 
         pos_error = np.array(self.target_offset - follower_from_leader[0])
+        if(pos_error[0] * self.attach_dir > 0):
+            pos_error[0] = 0.0
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
         rospy.loginfo(pos_error)
         #check if pos and att error are within the torrelance
@@ -210,7 +212,7 @@ class ApproachState(smach.State):
                  roll_danger_thre = 0.35,
                  pitch_danger_thre = 0.35,
                  yaw_danger_thre = 0.35,
-                 attach_dir = -1):
+                 attach_dir = -1.0):
 
         smach.State.__init__(self, outcomes=['done','in_process','fail','emergency'])
 
@@ -282,7 +284,7 @@ class ApproachState(smach.State):
 
         # set target odom in leader coordinate
         #TODO: determine leader namespace dynamically
-        self.br.sendTransform((self.target_offset[0] + 0.05, self.target_offset[1] , self.target_offset[2] + self.root_fc_dis),
+        self.br.sendTransform((self.target_offset[0] - 0.05 * self.attach_dir, self.target_offset[1] , self.target_offset[2] + self.root_fc_dis),
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
@@ -353,7 +355,7 @@ class AssemblyState(smach.State):
                  lock_servo_angle_female = 5600,
                  leader = 'beetle2',
                  leader_id = 2,
-                 attach_dir = -1):
+                 attach_dir = -1.0):
         smach.State.__init__(self, outcomes=['done','emergency'])
 
         self.robot_name = robot_name
@@ -398,17 +400,19 @@ class AssemblyState(smach.State):
             return 'emergency'
         if self.real_machine:
             self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
-        time.sleep(2.0)
+        time.sleep(1.0)
         self.nav_msg.pos_xy_nav_mode= 6
         self.follower_nav_pub.publish(self.nav_msg)
         self.leader_nav_pub.publish(self.nav_msg)
-        rospy.sleep(5.0)
+        rospy.sleep(1.0)
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '1'
         self.flag_pub.publish(self.flag_msg)
         self.flag_msg.key = str(self.leader_id)
         self.flag_msg.value = '1'
         self.flag_pub_leader.publish(self.flag_msg)
+        if not self.real_machine:
+            rospy.sleep(5.0)
         return 'done'
 
     def emergencyCb(self,msg):
