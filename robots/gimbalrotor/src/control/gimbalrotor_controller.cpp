@@ -269,7 +269,7 @@ namespace aerial_robot_control
   {
     spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
     /* to flight controller via rosserial scaling by 1000 */
-    if(i_term_rp_calc_in_pc_){
+    if(i_term_rp_calc_in_pc_ && gimbal_calc_in_fc_){
       rpy_gain_msg.motors.resize(1);
       rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
       rpy_gain_msg.motors.at(0).roll_i = 0;
