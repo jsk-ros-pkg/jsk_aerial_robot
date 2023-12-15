@@ -107,21 +107,19 @@ namespace aerial_robot_control
        beetle_robot_model_->getControlFlag()){
 
       /* set proper gains for wrench comp */
-      int module_num;
+      int module_num = 0;
       for(const auto & item : est_wrench_list_){
         if(assembly_flag[item.first]){
           module_num ++;
         }
       }
-      // std::vector<int> wrench_indices = {FX, FY, FZ, TX, TY, TZ};
-      // ROS_INFO_STREAM(wrench_comp_p_gain_ / (module_num) * 2);
-      // for(const auto& index: wrench_indices)
-      //   {
-      //     pid_controllers_.at(index).setPGain(wrench_comp_p_gain_ / (module_num) * 2);
-      //     pid_controllers_.at(index).setDGain(wrench_comp_d_gain_ / (module_num) * 2);
-      //     pid_controllers_.at(index).setIGain(wrench_comp_i_gain_ / (module_num) * 2);
-      //   }
-
+      std::vector<int> wrench_indices = {FX, FY, FZ, TX, TY, TZ};
+      for(const auto& index: wrench_indices)
+        {
+          pid_controllers_.at(index).setPGain(wrench_comp_p_gain_ / std::pow(2, module_num -2) );
+          pid_controllers_.at(index).setDGain(wrench_comp_d_gain_ / std::pow(2, module_num -2) );
+          pid_controllers_.at(index).setIGain(wrench_comp_i_gain_ / std::pow(2, module_num -2) );
+        }
       Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
 
       /* current version: I term reconfig mehod */
