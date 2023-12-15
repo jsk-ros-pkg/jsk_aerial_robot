@@ -9,7 +9,6 @@ controller:
   momentum_observer_torque_weight: 2.5
   wrench_estimate_flag: true
   comp_term_update_freq: 40
-  wrench_comp_gain: 0.2
 
   pd_wrench_comp_mode: true
 
@@ -21,6 +20,10 @@ controller:
   cutoff_freq: 1.0
   sample_freq: 40.0
 
+  wrench_comp:
+    p_gain: 0.1
+    d_gain: 0.07
+    i_gain: 0.008
   xy:
     p_gain: 10.0
     i_gain: 0.2
