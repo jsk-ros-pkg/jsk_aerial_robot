@@ -12,13 +12,37 @@ namespace aerial_robot_control
   }
 
   void BeetleController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                                         boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                         boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                         boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                                         double ctrl_loop_rate
-                                         )
+                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                                    double ctrl_loop_rate
+                                    )
   {
     GimbalrotorController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+    wrench_pid_msg_.x.total.resize(1);
+    wrench_pid_msg_.x.p_term.resize(1);
+    wrench_pid_msg_.x.i_term.resize(1);
+    wrench_pid_msg_.x.d_term.resize(1);
+    wrench_pid_msg_.y.total.resize(1);
+    wrench_pid_msg_.y.p_term.resize(1);
+    wrench_pid_msg_.y.i_term.resize(1);
+    wrench_pid_msg_.y.d_term.resize(1);
+    wrench_pid_msg_.z.total.resize(1);
+    wrench_pid_msg_.z.p_term.resize(1);
+    wrench_pid_msg_.z.i_term.resize(1);
+    wrench_pid_msg_.z.d_term.resize(1);
+    wrench_pid_msg_.roll.total.resize(1);
+    wrench_pid_msg_.roll.p_term.resize(1);
+    wrench_pid_msg_.roll.i_term.resize(1);
+    wrench_pid_msg_.roll.d_term.resize(1);
+    wrench_pid_msg_.pitch.total.resize(1);
+    wrench_pid_msg_.pitch.p_term.resize(1);
+    wrench_pid_msg_.pitch.i_term.resize(1);
+    wrench_pid_msg_.pitch.d_term.resize(1);
+    wrench_pid_msg_.yaw.total.resize(1);
+    wrench_pid_msg_.yaw.p_term.resize(1);
+    wrench_pid_msg_.yaw.i_term.resize(1);
+    wrench_pid_msg_.yaw.d_term.resize(1);
 
     beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
     external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
@@ -29,6 +53,7 @@ namespace aerial_robot_control
     tagged_external_wrench_pub_ = nh_.advertise<beetle::TaggedWrench>("tagged_wrench", 1);
     whole_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("whole_wrench", 1);
     internal_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("internal_wrench", 1);
+    wrench_comp_pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/wrench_comp/pid", 1);
     int max_modules_num = beetle_robot_model_->getMaxModuleNum();
     for(int i = 0; i < max_modules_num; i++){
       std::string module_name  = string("/beetle") + std::to_string(i+1);
@@ -151,6 +176,40 @@ namespace aerial_robot_control
       wrench_msg.wrench.torque.z = I_reconfig_acc_cog_term(5);
       external_wrench_compensation_pub_.publish(wrench_msg);
 
+      /* publish wrench comp pid value*/
+      wrench_pid_msg_.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+      wrench_pid_msg_.x.total.at(0) = pid_controllers_.at(FX).result();
+      wrench_pid_msg_.x.p_term.at(0) = pid_controllers_.at(FX).getPTerm();
+      wrench_pid_msg_.x.i_term.at(0) = pid_controllers_.at(FX).getITerm();
+      wrench_pid_msg_.x.d_term.at(0) = pid_controllers_.at(FX).getDTerm();
+
+      wrench_pid_msg_.y.total.at(0) = pid_controllers_.at(FY).result();
+      wrench_pid_msg_.y.p_term.at(0) = pid_controllers_.at(FY).getPTerm();
+      wrench_pid_msg_.y.i_term.at(0) = pid_controllers_.at(FY).getITerm();
+      wrench_pid_msg_.y.d_term.at(0) = pid_controllers_.at(FY).getDTerm();
+
+      wrench_pid_msg_.z.total.at(0) = pid_controllers_.at(FZ).result();
+      wrench_pid_msg_.z.p_term.at(0) = pid_controllers_.at(FZ).getPTerm();
+      wrench_pid_msg_.z.i_term.at(0) = pid_controllers_.at(FZ).getITerm();
+      wrench_pid_msg_.z.d_term.at(0) = pid_controllers_.at(FZ).getDTerm();
+      
+      wrench_pid_msg_.roll.total.at(0) = pid_controllers_.at(TX).result();
+      wrench_pid_msg_.roll.p_term.at(0) = pid_controllers_.at(TX).getPTerm();
+      wrench_pid_msg_.roll.i_term.at(0) = pid_controllers_.at(TX).getITerm();
+      wrench_pid_msg_.roll.d_term.at(0) = pid_controllers_.at(TX).getDTerm();
+
+      wrench_pid_msg_.pitch.total.at(0) = pid_controllers_.at(TY).result();
+      wrench_pid_msg_.pitch.p_term.at(0) = pid_controllers_.at(TY).getPTerm();
+      wrench_pid_msg_.pitch.i_term.at(0) = pid_controllers_.at(TY).getITerm();
+      wrench_pid_msg_.pitch.d_term.at(0) = pid_controllers_.at(TY).getDTerm();
+
+      wrench_pid_msg_.yaw.total.at(0) = pid_controllers_.at(TZ).result();
+      wrench_pid_msg_.yaw.p_term.at(0) = pid_controllers_.at(TZ).getPTerm();
+      wrench_pid_msg_.yaw.i_term.at(0) = pid_controllers_.at(TZ).getITerm();
+      wrench_pid_msg_.yaw.d_term.at(0) = pid_controllers_.at(TZ).getDTerm();
+
+      wrench_comp_pid_pub_.publish(wrench_pid_msg_);
+
     }else{
       pid_controllers_.at(FX).reset();
       pid_controllers_.at(FY).reset();
@@ -168,6 +227,24 @@ namespace aerial_robot_control
       
     GimbalrotorController::controlCore();
     pre_module_state_ = module_state;
+    
+  }
+
+  void BeetleController::reset()
+  {
+    GimbalrotorController::reset();
+    pid_controllers_.at(FX).reset();
+    pid_controllers_.at(FY).reset();
+    pid_controllers_.at(FZ).reset();
+    pid_controllers_.at(TX).reset();
+    pid_controllers_.at(TY).reset();
+    pid_controllers_.at(TZ).reset();
+    pid_controllers_.at(X).setICompTerm(0.0);
+    pid_controllers_.at(Y).setICompTerm(0.0);
+    pid_controllers_.at(Z).setICompTerm(0.0);
+    pid_controllers_.at(ROLL).setICompTerm(0.0);
+    pid_controllers_.at(PITCH).setICompTerm(0.0);
+    pid_controllers_.at(YAW).setICompTerm(0.0);
   }
 
   void BeetleController::calcInteractionWrench()

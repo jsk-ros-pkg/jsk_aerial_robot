@@ -58,7 +58,6 @@ namespace aerial_robot_control
     int gimbal_dof_;
 
     bool update() override;
-    virtual void reset() override;
     void sendCmd() override;
     void sendFourAxisCommand();
     void sendGimbalCommand();
@@ -67,6 +66,7 @@ namespace aerial_robot_control
     bool gimbal_calc_in_fc_;
     bool i_term_rp_calc_in_pc_;
     ros::Publisher rpy_gain_pub_; //for spinal
+    virtual void reset() override;
     virtual void setAttitudeGains();
     virtual void rosParamInit();
     virtual void controlCore() override;

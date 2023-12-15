@@ -37,6 +37,10 @@ namespace aerial_robot_control
     ros::Publisher tagged_external_wrench_pub_;
     ros::Publisher whole_external_wrench_pub_;
     ros::Publisher internal_wrench_pub_;
+    ros::Publisher wrench_comp_pid_pub_;
+
+    aerial_robot_msgs::PoseControlPid wrench_pid_msg_;
+
     map<string, ros::Subscriber> est_wrench_subs_;
 
     /* external wrench compensation */
@@ -69,5 +73,6 @@ namespace aerial_robot_control
   protected:
     void rosParamInit() override;
     void externalWrenchEstimate() override;
+    void reset() override;
   };
 };
