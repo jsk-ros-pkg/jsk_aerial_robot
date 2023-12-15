@@ -16,8 +16,8 @@ if __name__=="__main__":
     female_servo_id = rospy.get_param("female_serve_id",6)
     unlock_servo_angle_male = rospy.get_param("unlock_servo_angle_male",7000)
     lock_servo_angle_male = rospy.get_param("lock_servo_angle_male",8300)
-    unlock_servo_angle_female = rospy.get_param("unlock_servo_angle_female",5600)
-    lock_servo_angle_female = rospy.get_param("unlock_servo_angle_female",11000)
+    unlock_servo_angle_female = rospy.get_param("unlock_servo_angle_female",11000)
+    lock_servo_angle_female = rospy.get_param("lock_servo_angle_female",5600)
 
     left_edge_id = rospy.get_param("left_edge_id",1)
     right_edge_id = rospy.get_param("right_edge_id",3)
