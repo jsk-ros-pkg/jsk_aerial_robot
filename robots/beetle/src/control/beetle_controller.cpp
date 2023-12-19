@@ -62,6 +62,8 @@ namespace aerial_robot_control
       est_wrench_list_.insert(make_pair(i+1, wrench));
       inter_wrench_list_.insert(make_pair(i+1, wrench));
       wrench_comp_list_.insert(make_pair(i+1, wrench));
+      ff_inter_wrench_list_.insert(make_pair(i+1, wrench));
+      ff_inter_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/ff_inter_wrench"), 1, &BeetleController::ffInterWrenchCallback, this)));
     }
     pid_controllers_.push_back(PID("f_x", wrench_comp_p_gain_, wrench_comp_i_gain_, wrench_comp_d_gain_));
     pid_controllers_.push_back(PID("f_y", wrench_comp_p_gain_, wrench_comp_i_gain_, wrench_comp_d_gain_));
@@ -298,7 +300,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
-        wrench_comp_sum_left += inter_wrench_list_[i];
+        wrench_comp_sum_left += ff_inter_wrench_list_[i] + inter_wrench_list_[i];
         // wrench_comp_list_[i] += wrench_comp_gain_ *  wrench_comp_sum_left;
         wrench_comp_list_[i] = wrench_comp_sum_left;
         right_module_id = i;
@@ -312,7 +314,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i <= max_modules_num; i++){
       if(assembly_flag[i]){
-        wrench_comp_sum_right -= inter_wrench_list_[left_module_id];
+        wrench_comp_sum_right -= -ff_inter_wrench_list_[left_module_id] + inter_wrench_list_[left_module_id];
         // wrench_comp_list_[i] += wrench_comp_gain_ * wrench_comp_sum_right;
         wrench_comp_list_[i] = wrench_comp_sum_right;
         left_module_id = i;
@@ -435,6 +437,21 @@ namespace aerial_robot_control
     wrench(4) =  wrench_msg.torque.y;
     wrench(5) =  wrench_msg.torque.z;
     est_wrench_list_[id] = wrench;
+  }
+
+  void BeetleController::ffInterWrenchCallback(const beetle::TaggedWrench & msg)
+  {
+    int id = msg.index;
+    geometry_msgs::Wrench wrench_msg = msg.wrench.wrench;
+    double time_stamp = msg.wrench.header.stamp.toSec();
+    Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
+    wrench(0) =  wrench_msg.force.x;
+    wrench(1) =  wrench_msg.force.y;
+    wrench(2) =  wrench_msg.force.z;
+    wrench(3) =  wrench_msg.torque.x;
+    wrench(4) =  wrench_msg.torque.y;
+    wrench(5) =  wrench_msg.torque.z;
+    ff_inter_wrench_list_[id] = wrench;
   }
 
 } //namespace aerial_robot_controller

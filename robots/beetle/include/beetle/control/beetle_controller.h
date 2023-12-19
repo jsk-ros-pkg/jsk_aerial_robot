@@ -38,6 +38,7 @@ namespace aerial_robot_control
     ros::Publisher whole_external_wrench_pub_;
     ros::Publisher internal_wrench_pub_;
     ros::Publisher wrench_comp_pid_pub_;
+    map<string, ros::Subscriber> ff_inter_wrench_subs_;
 
     aerial_robot_msgs::PoseControlPid wrench_pid_msg_;
 
@@ -53,6 +54,7 @@ namespace aerial_robot_control
     std::map<int, Eigen::VectorXd> est_wrench_list_;
     std::map<int, Eigen::VectorXd> inter_wrench_list_;
     std::map<int, Eigen::VectorXd> wrench_comp_list_;
+    std::map<int, Eigen::VectorXd> ff_inter_wrench_list_;
 
     double comp_term_update_freq_;
     double prev_comp_update_time_;
@@ -71,6 +73,7 @@ namespace aerial_robot_control
     void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:
+    virtual void ffInterWrenchCallback(const beetle::TaggedWrench & msg);
     void rosParamInit() override;
     void externalWrenchEstimate() override;
     void reset() override;
