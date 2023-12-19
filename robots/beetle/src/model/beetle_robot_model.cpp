@@ -5,7 +5,8 @@ BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double
   tfBuffer_(),
   tfListener_(tfBuffer_),
   current_assembled_(false),
-  module_state_(SEPARATED)
+  module_state_(SEPARATED),
+  leader_fix_flag_(false)
 {
   for(int i = 0; i < max_modules_num_; i++){
     assembly_flags_.insert(std::make_pair(i+1,false));
@@ -74,7 +75,7 @@ void BeetleRobotModel::calcCenterOfMoving()
   //define a module closest to the center as leader
   std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
   int leader_index = std::round((assembled_modules_ids_.size())/2.0) -1;
-  leader_id_ = assembled_modules_ids_[leader_index];
+  if(!leader_fix_flag_) leader_id_ = assembled_modules_ids_[leader_index];
   if(my_id_ == leader_id_ && control_flag_){
     module_state_ = LEADER;
   }else if(control_flag_){

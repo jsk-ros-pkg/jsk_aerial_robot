@@ -45,6 +45,14 @@ public:
     assembly_flags_[key] = value;
   }
   void setControlFlag(const bool control_flag){control_flag_ = control_flag;}
+  void setLeaderID(const int leader_id){
+    leader_id_ = leader_id;
+    leader_fix_flag_ = true;
+  }
+
+  void setLeaderFixFlag(const bool leader_fix_flag){
+    leader_fix_flag_ = leader_fix_flag;
+  }
 
   std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
   int getMaxModuleNum(){return max_modules_num_;}
@@ -71,6 +79,7 @@ private:
   bool reconfig_flag_;
   bool current_assembled_;
   bool control_flag_;
+  bool leader_fix_flag_;
   std::vector<int> assembled_modules_ids_;
   int module_state_;
   int module_num_;
