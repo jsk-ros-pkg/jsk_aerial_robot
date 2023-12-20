@@ -238,13 +238,13 @@ int main(void)
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   battery_status_.init(&hadc1, &nh_);
 
-// #if GPS_FLAG
-//   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
-//   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-// # elif KONDO_FLAG
+#if GPS_FLAG
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+# elif KONDO_FLAG
   kondo_servo_.init(&huart3, &nh_);
   estimator_.init(&imu_, &baro_, NULL, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-// #endif
+#endif
   controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
@@ -1029,6 +1029,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_coreTaskFunc */
 void coreTaskFunc(void const * argument)
 {
+  /* init code for LWIP */
+  /* MX_LWIP_Init(); */
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
