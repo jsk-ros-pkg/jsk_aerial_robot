@@ -139,6 +139,8 @@ namespace aerial_robot_control
       }
 
     /* z */
+    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.1);
+    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.1;
     loadParam(z_nh);
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
     pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
