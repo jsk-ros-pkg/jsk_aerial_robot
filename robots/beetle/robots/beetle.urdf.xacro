@@ -86,5 +86,53 @@
     </visual>
   </link>
 
+  <!-- battery -->
+  <joint name="battery1_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="battery1"/>
+    <origin xyz="0 0.044 0.055" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <link name="battery1">
+    <inertial>
+      <origin xyz="0 0 -0.017" rpy="0 0 0"/>
+      <mass value="0.41"/>
+      <inertia
+          ixx="0.00060259" ixy="0.0" ixz="0.0"
+          iyy="0.00062827" iyz="0.0"
+          izz="0.00010170"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 -0.017"/>
+      <geometry>
+        <box size="0.13 0.044 0.034"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="battery2_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="battery2"/>
+    <origin xyz="0 -0.044 0.055" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <link name="battery2">
+    <inertial>
+      <origin xyz="0 0 -0.017" rpy="0 0 0"/>
+      <mass value="0.41"/>
+      <inertia
+          ixx="0.00060259" ixy="0.0" ixz="0.0"
+          iyy="0.00062827" iyz="0.0"
+          izz="0.00010170"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 -0.017"/>
+      <geometry>
+        <box size="0.13 0.044 0.034"/>
+      </geometry>
+    </visual>
+  </link>
+  
+
     
 </robot>
