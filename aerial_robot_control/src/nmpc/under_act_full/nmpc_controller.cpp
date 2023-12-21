@@ -176,22 +176,6 @@ void nmpc_under_act_full::NMPCController::controlCore()
   mpc_solver_.solve(odom_now, x_u_ref_);
 
   /* get result */
-  // convert quaternion to rpy
-  tf::Quaternion q0, q1;
-  q0.setW(mpc_solver_.x_u_out_.x.data.at(6));
-  q0.setX(mpc_solver_.x_u_out_.x.data.at(7));
-  q0.setY(mpc_solver_.x_u_out_.x.data.at(8));
-  q0.setZ(mpc_solver_.x_u_out_.x.data.at(9));
-  q1.setW(mpc_solver_.x_u_out_.x.data.at(6 + NX));
-  q1.setX(mpc_solver_.x_u_out_.x.data.at(7 + NX));
-  q1.setY(mpc_solver_.x_u_out_.x.data.at(8 + NX));
-  q1.setZ(mpc_solver_.x_u_out_.x.data.at(9 + NX));
-
-  double rpy0[3], rpy1[3];
-  tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
-  tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
-
-  // - for the full model, roll, pitch and yaw cannot be used as control input.
   // - body rates
   double target_roll_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(10) +
                              (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(10 + NX)) /
