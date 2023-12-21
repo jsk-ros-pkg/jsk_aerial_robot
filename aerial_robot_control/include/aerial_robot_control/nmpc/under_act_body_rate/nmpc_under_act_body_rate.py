@@ -19,7 +19,7 @@ import casadi as ca
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("mini_quadrotor"), "config", "FlightControlNMPC.yaml")
+param_path = os.path.join(rospack.get_path("mini_quadrotor"), "config", "FlightControlNMPCBodyRate.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
