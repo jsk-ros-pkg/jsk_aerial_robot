@@ -44,6 +44,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_pitch_ = 0.0;
   target_thrust_z_term_.resize(2 * motor_num_);
 
+  rolling_control_timestamp_ = -1;
+
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
@@ -82,7 +84,9 @@ void RollingController::reset()
   standing_target_phi_ = 0.0;
   standing_baselink_ref_pitch_last_update_time_ = -1;
   standing_target_baselink_pitch_ = 0.0;
+  rolling_control_timestamp_ = -1;
 
+  setControllerParams("standing_controller");
 
   ROS_INFO_STREAM("[control] reset controller");
 }
@@ -143,44 +147,44 @@ void RollingController::controlCore()
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
-  setControllerParams("standing_controller");
   setAttitudeGains();
 
-  rolling_robot_model_->calcRobotModelFromFrame("cp");
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
+  /* for stand */
+  rolling_robot_model_->calcRobotModelFromFrame("cp");
   standingPlanning();
-  // std::cout << "standing planning" <<  std::endl;
-
   calcWrenchAllocationMatrixFromTargetFrame();
-  // std::cout << "calc WrenchAllocationMatrix from target frame" << std::endl;
-
   calcStandingFullLambda();
-  // std::cout << "calc standing full lambda" << std::endl;
+  /* for stand */
 
-  // calcAccFromTargetFrame();
+
+  // slsqpSolve();
 
 
   // targetStatePlan();
-  // calcAccFromCog();
-  calcWrenchAllocationMatrix();
   // if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
   //   {
+
+  /* for flight */
+  // setControllerParams("controller");
+  // calcAccFromCog();
   // calcFullLambda();
+  /* for flight */
+
+
+  calcWrenchAllocationMatrix();
   wrenchAllocation();
+
+  // nonlinearQP();
 
   // std::cout << "wrench allocation" << std::endl;
   //   }
   // else if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
   //   {
-  // steeringControlWrenchAllocation();
   // }
   calcYawTerm();
 
-    // std::cout << "calc yaw term" << std::endl;
-
-  // osqpPractice();
-  // calcSteeringTargetLambda();
   rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
 }
 
@@ -538,12 +542,13 @@ void RollingController::wrenchAllocation()
       Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
       Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
 
-      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
-      prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
-      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
-
+      /* calculate base thrusts */
       target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+
+      /* calculate gimbal angles */
+      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
+      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
 
       last_col += 2;
     }
@@ -553,12 +558,12 @@ void RollingController::wrenchAllocation()
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray gimbal_processed_joint = robot_model_->getJointPositions();
-  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
   for(int i = 0; i < motor_num_; i++)
     {
       std::string s = std::to_string(i + 1);
       gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
     }
+  robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
 
   /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
