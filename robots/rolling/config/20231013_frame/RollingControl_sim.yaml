@@ -152,17 +152,17 @@ standing_controller:
     d_gain: 2.5
 
   roll:
-    p_gain: 8.0
-    i_gain: 1.0
+    p_gain: 7.0
+    i_gain: 0.025
     d_gain: 2.0
 
   pitch:
-    p_gain: 5.0
-    i_gain: 0.0
+    p_gain: 6.0
+    i_gain: 0.1
     d_gain: 3.0
 
   yaw:
     p_gain: 2.0
-    i_gain: 0.0
+    i_gain: 0.1
     d_gain: 1.0
 
