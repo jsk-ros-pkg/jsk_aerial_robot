@@ -108,6 +108,7 @@ namespace aerial_robot_control
     std::vector<int> controlled_axis_;
     int control_dof_;
     double default_z_i_gain_;
+    double rolling_control_timestamp_;
 
     double robot_mass_for_opt_;
     double gravity_for_opt_;
@@ -170,6 +171,3 @@ namespace aerial_robot_control
     }
   };
 };
-
-double steeringControlWrenchAllocationObject(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
-double steeringControlWrenchAllocationConstraint(const std::vector<double> &x, std::vector<double> &grad, void *ptr);

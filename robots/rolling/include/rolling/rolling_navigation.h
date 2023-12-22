@@ -42,17 +42,32 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getSteeringInitialEuler() {return steering_initial_euler_;}
     inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
     inline tf::Vector3 getRollingInitialEuler() {return rolling_initial_euler_;}
+    double getTargetPitchAngVel() {return target_pitch_ang_vel_;}
+    double getTargetyawAngVel() {return target_yaw_ang_vel_;}
+    bool getPitchAngVelUpdating() {return pitch_ang_vel_updating_;}
+    bool getYawAngVelUpdating() {return yaw_ang_vel_updating_;}
     void setFinalTargetBaselinkRot(tf::Vector3 rot) {final_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());}
     void setFinalTargetBaselinkRotRoll(double rad) {final_target_baselink_rot_.setX(rad);}
     void setFinalTargetBaselinkRotPitch(double rad) {final_target_baselink_rot_.setY(rad);}
     void setCurrentTargetBaselinkRot(tf::Vector3 rot) {curr_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());}
     void setCurrentTargetBaselinkRotRoll(double rad) {curr_target_baselink_rot_.setX(rad);}
     void setCurrentTargetBaselinkRotPitch(double rad) {curr_target_baselink_rot_.setY(rad);}
+    double getCurrTargetBaselinkRotRoll() {return curr_target_baselink_rot_roll_;}
+    double getCurrTargetBaselinkRotPitch() {return curr_target_baselink_rot_pitch_;}
+    double getFinalTargetBaselinkRotRoll() {return final_target_baselink_rot_roll_;}
+    double getFinalTargetBaselinkRotPitch() {return final_target_baselink_rot_pitch_;}
+    void setBaselinkRotForceUpdateMode(bool flag) {baselink_rot_force_update_mode_ = flag;}
+    bool getBaselinkRotForceUpdateMode() {return baselink_rot_force_update_mode_;}
 
   private:
+    /* baselink rotation process */
     ros::Publisher curr_target_baselink_rot_pub_;
     ros::Subscriber final_target_baselink_rot_sub_;
+
+    /* joy */
     ros::Subscriber joy_sub_;
+
+    /* ground mode */
     ros::Subscriber ground_navigation_mode_sub_;
     ros::Publisher ground_navigation_mode_pub_;
 
@@ -61,6 +76,7 @@ namespace aerial_robot_navigation
     void baselinkRotationProcess();
     void landingProcess();
     void groundModeProcess();
+    void rosPublishProcess();
 
     void rosParamInit() override;
 
@@ -79,24 +95,30 @@ namespace aerial_robot_navigation
     /* steering mode variable */
     tf::Vector3 steering_initial_pos_;
     tf::Vector3 steering_initial_euler_;
-    double steering_joy_stick_deadzone_;
 
     /* rolling mode variable */
     tf::Vector3 rolling_initial_pos_;
     tf::Vector3 rolling_initial_euler_;
-    double rolling_joy_sitck_deadzone_;
+    double target_pitch_ang_vel_;
+    double target_yaw_ang_vel_;
+    double rolling_max_pitch_ang_vel_;
+    double rolling_max_yaw_ang_vel_;
+    bool pitch_ang_vel_updating_;
+    bool yaw_ang_vel_updating_;
+
+    /* param for joy stick control */
+    double joy_stick_deadzone_;
 
     /* target baselink rotation */
     double prev_rotation_stamp_;
-    std::vector<double> target_gimbal_angles_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
+    double curr_target_baselink_rot_roll_, curr_target_baselink_rot_pitch_, final_target_baselink_rot_roll_, final_target_baselink_rot_pitch_;
+    double baselink_rot_change_thresh_;
+    double baselink_rot_pub_interval_;
     bool baselink_rot_force_update_mode_;
 
     /* landing process */
     bool landing_flag_;
 
-    /* rosparam */
-    double baselink_rot_change_thresh_;
-    double baselink_rot_pub_interval_;
   };
 };

@@ -31,6 +31,11 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   prev_ground_navigation_mode_ = -1;
   current_ground_navigation_mode_ = 0;
   baselink_rot_force_update_mode_ = false;
+
+  target_pitch_ang_vel_ = 0.0;
+  target_yaw_ang_vel_ = 0.0;
+  pitch_ang_vel_updating_ = false;
+  yaw_ang_vel_updating_ = false;
 }
 
 void RollingNavigator::update()
@@ -61,6 +66,11 @@ void RollingNavigator::reset()
 
   landing_flag_ = false;
   baselink_rot_force_update_mode_ = false;
+
+  target_pitch_ang_vel_ = 0.0;
+  target_yaw_ang_vel_ = 0.0;
+  pitch_ang_vel_updating_ = false;
+  yaw_ang_vel_updating_ = false;
 
   ROS_INFO_STREAM("[navigation] reset navigator");
 
@@ -102,6 +112,12 @@ void RollingNavigator::baselinkRotationProcess()
       curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
       prev_rotation_stamp_ = ros::Time::now().toSec();
     }
+
+  curr_target_baselink_rot_roll_ = curr_target_baselink_rot_.x();
+  curr_target_baselink_rot_pitch_ = curr_target_baselink_rot_.y();
+  final_target_baselink_rot_roll_ = final_target_baselink_rot_.x();
+  final_target_baselink_rot_pitch_ = final_target_baselink_rot_.y();
+
 }
 
 void RollingNavigator::landingProcess()
@@ -153,6 +169,7 @@ void RollingNavigator::groundModeProcess()
   ground_navigation_mode_pub_.publish(msg);
 }
 
+
 void RollingNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
@@ -161,8 +178,9 @@ void RollingNavigator::rosParamInit()
 
   getParam<double>(navi_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
   getParam<double>(navi_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
-  getParam<double>(navi_nh, "rolling_joy_stick_deadzone", rolling_joy_sitck_deadzone_, 0.2);
-  getParam<double>(navi_nh, "steering_joy_stick_deadzone", steering_joy_stick_deadzone_, 0.2);
+  getParam<double>(navi_nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
+  getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);
+  getParam<double>(navi_nh, "rolling_max_yaw_ang_vel", rolling_max_yaw_ang_vel_, 0.0);
 
 }
 
@@ -246,21 +264,38 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
   //     ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
   //   }
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > steering_joy_stick_deadzone_)
+  /* set target angular velocity around yaw based on R-stick hilizontal */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
     {
-      ROS_WARN_STREAM("[joy] set target yaw angle to ");
+      target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
+      yaw_ang_vel_updating_ = true;
+      // ROS_WARN_STREAM("[joy] set target yaw ang vel to " << target_yaw_ang_vel_ << " rad/s");
+    }
+  else
+    {
+      if(yaw_ang_vel_updating_)
+        {
+          target_yaw_ang_vel_ = 0.0;
+          // ROS_WARN_STREAM("[joy] set target yaw ang vel to  0");
+          yaw_ang_vel_updating_ = false;
+        }
     }
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > rolling_joy_sitck_deadzone_)
+  /* set target angular velocity around pitch based on L-stick vertical */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
     {
-      ROS_WARN_STREAM("[joy] set rolling speed");
+      target_pitch_ang_vel_ = rolling_max_pitch_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
+      pitch_ang_vel_updating_ = true;
+      // ROS_WARN_STREAM("[joy] set target pitch ang vel to " << target_pitch_ang_vel_ << " rad/s");
     }
-
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1])
+  else
     {
-      final_target_baselink_rot_.setX(0);
-      final_target_baselink_rot_.setY(0);
-      ROS_WARN("[joy] set target final baselink to horizon");
+      if(pitch_ang_vel_updating_)
+        {
+          target_pitch_ang_vel_ = 0.0;
+          // ROS_WARN_STREAM("[joy] set target pitch ang vel to 0");
+          pitch_ang_vel_updating_ = false;
+        }
     }
 
 }

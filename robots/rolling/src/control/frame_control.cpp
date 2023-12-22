@@ -10,6 +10,8 @@ void RollingController::standingPlanning()
 
   double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
   double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
+  double target_baselink_roll = rolling_navigator_->getCurrTargetBaselinkRotRoll();
+  double target_baselink_pitch = rolling_navigator_->getCurrTargetBaselinkRotPitch();
 
   if(!start_rp_integration_)
     {
@@ -19,6 +21,11 @@ void RollingController::standingPlanning()
       navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
       ROS_WARN_ONCE("start roll/pitch I control");
     }
+
+  /* get target ang vel and desired baselink pitch from rolling navigator */
+
+
+  /* set target ang vel and desired baselink pitch to navigator and spinal */
 
 
   // if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
@@ -33,7 +40,30 @@ void RollingController::standingPlanning()
   //       }
   //   }
 
-  rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
+  double du = ros::Time::now().toSec() - rolling_control_timestamp_;
+  if(!rolling_navigator_->getPitchAngVelUpdating())
+    {
+      rolling_navigator_->setBaselinkRotForceUpdateMode(false);
+      rolling_navigator_->setCurrentTargetBaselinkRotPitch(target_baselink_pitch);
+      navigator_->setTargetOmegaY(0);
+    }
+  else
+    {
+      rolling_navigator_->setBaselinkRotForceUpdateMode(true);
+      double target_pitch_ang_vel = rolling_navigator_->getTargetPitchAngVel();
+      rolling_navigator_->setCurrentTargetBaselinkRotPitch(target_baselink_pitch + du * target_pitch_ang_vel);
+
+      navigator_->setTargetOmegaY(target_pitch_ang_vel);
+
+      rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+      omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+      target_rpy_ = navigator_->getTargetRPY();
+      target_omega_ = navigator_->getTargetOmega();
+
+      pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du, target_omega_.y() - omega_.y());
+
+    }
+  rolling_control_timestamp_ = ros::Time::now().toSec();
 
   pid_msg_.roll.total.at(0) = pid_controllers_.at(ROLL).result();
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
