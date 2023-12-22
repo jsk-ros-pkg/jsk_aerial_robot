@@ -91,10 +91,10 @@ private:
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now);
-  double solveOCPInLoop(int N_timings);
+  double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
 
-  void printStatus(int N_timings, double min_time);
+  void printStatus(double min_time);
   void printSolution();
 };
 

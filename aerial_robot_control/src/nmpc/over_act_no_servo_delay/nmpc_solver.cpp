@@ -118,22 +118,18 @@ int nmpc_over_act_no_servo_delay::MPCSolver::solve(const nav_msgs::Odometry& odo
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
-
-  /* prepare evaluation */
-  int N_timings = 1;
-
   setReference(x_u_ref, x_stride, u_stride);
 
   setFeedbackConstraints(odom_now);
 
-  double min_time = solveOCPInLoop(N_timings);
+  double min_time = solveOCPOnce();
 
   getSolution(x_stride, u_stride);
 
   if (is_debug)
   {
     printSolution();
-    printStatus(N_timings, min_time);
+    printStatus(min_time);
   }
 
   return 0;
@@ -211,22 +207,19 @@ void nmpc_over_act_no_servo_delay::MPCSolver::setFeedbackConstraints(const nav_m
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
 }
 
-double nmpc_over_act_no_servo_delay::MPCSolver::solveOCPInLoop(const int N_timings)
+double nmpc_over_act_no_servo_delay::MPCSolver::solveOCPOnce()
 {
   double min_time = 1e12;
   double elapsed_time;
 
-  for (int i = 0; i < N_timings; i++)
+  int status = beetle_no_servo_delay_model_acados_solve(acados_ocp_capsule_);
+  if (status != ACADOS_SUCCESS)
   {
-    int status = beetle_no_servo_delay_model_acados_solve(acados_ocp_capsule_);
-    if (status != ACADOS_SUCCESS)
-    {
-      std::cout << "beetle_no_servo_delay_model_acados_solve() returned status " << status << ".\n";
-    }
-
-    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
-    min_time = MIN(elapsed_time, min_time);
+    std::cout << "beetle_no_servo_delay_model_acados_solve() returned status " << status << ".\n";
   }
+
+  ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
+  min_time = MIN(elapsed_time, min_time);
 
   return min_time;
 }
@@ -270,17 +263,15 @@ void nmpc_over_act_no_servo_delay::MPCSolver::printSolution()
   }
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::printStatus(const int N_timings, const double min_time)
+void nmpc_over_act_no_servo_delay::MPCSolver::printStatus(const double min_time)
 {
   double kkt_norm_inf;
   int sqp_iter;
-
-  ROS_DEBUG("\nsolved ocp %d times, solution printed above\n\n", N_timings);
 
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
   ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
   beetle_no_servo_delay_model_acados_print_stats(acados_ocp_capsule_);
   ROS_DEBUG("\nSolver info:\n");
-  ROS_DEBUG(" SQP iterations %2d\n minimum time for %d solve %f [ms]\n KKT %e\n", sqp_iter, N_timings, min_time * 1000,
+  ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
             kkt_norm_inf);
 }
