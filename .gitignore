@@ -109,7 +109,5 @@ tags
 *cmake-build-debug/
 
 # acados
-*/c_generated_code/
+*c_generated_code/
 *acados_ocp.json
-/aerial_robot_control/include/aerial_robot_control/nmpc/over_act_full/c_generated_code/
-/aerial_robot_control/include/aerial_robot_control/nmpc/over_act_no_servo_delay/c_generated_code/
