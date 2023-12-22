@@ -306,41 +306,15 @@ void nmpc_over_act_no_servo_delay::NMPCController::sendRPYGain()
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
 
-  //  rpy_gain_msg.motors[0].roll_p = 8000;
-  //  rpy_gain_msg.motors[0].roll_i = 1000;
-  //  rpy_gain_msg.motors[0].roll_d = -5000;
-  rpy_gain_msg.motors[0].roll_d = -400;
-  //  rpy_gain_msg.motors[0].pitch_p = 8000;
-  //  rpy_gain_msg.motors[0].pitch_i = 1000;
-  //  rpy_gain_msg.motors[0].pitch_d = -6000;
-  rpy_gain_msg.motors[0].pitch_d = -400;
+  ros::NodeHandle control_nh(nh_, "controller");
+  double roll_rate_p_gain, pitch_rate_p_gain, yaw_rate_p_gain;
+  getParam<double>(control_nh, "nmpc/roll_rate_p_gain", roll_rate_p_gain, 0.4);
+  getParam<double>(control_nh, "nmpc/pitch_rate_p_gain", pitch_rate_p_gain, 0.4);
+  getParam<double>(control_nh, "nmpc/yaw_rate_p_gain", yaw_rate_p_gain, 1.0);
 
-  //  rpy_gain_msg.motors[0].yaw_d = -5000;
-  rpy_gain_msg.motors[0].yaw_d = -1000;
-
-  //  rpy_gain_msg.motors[1].roll_p = -2291;
-  //  rpy_gain_msg.motors[1].roll_i = -352;
-  //  rpy_gain_msg.motors[1].roll_d = -390;
-  //  rpy_gain_msg.motors[1].pitch_p = -2297;
-  //  rpy_gain_msg.motors[1].pitch_i = -353;
-  //  rpy_gain_msg.motors[1].pitch_d = -393;
-  //  rpy_gain_msg.motors[1].yaw_d = -1426;
-  //
-  //  rpy_gain_msg.motors[2].roll_p = 2291;
-  //  rpy_gain_msg.motors[2].roll_i = 352;
-  //  rpy_gain_msg.motors[2].roll_d = 390;
-  //  rpy_gain_msg.motors[2].pitch_p = -2297;
-  //  rpy_gain_msg.motors[2].pitch_i = -353;
-  //  rpy_gain_msg.motors[2].pitch_d = -393;
-  //  rpy_gain_msg.motors[2].yaw_d = 1426;
-  //
-  //  rpy_gain_msg.motors[3].roll_p = 2303;
-  //  rpy_gain_msg.motors[3].roll_i = 354;
-  //  rpy_gain_msg.motors[3].roll_d = 395;
-  //  rpy_gain_msg.motors[3].pitch_p = 2297;
-  //  rpy_gain_msg.motors[3].pitch_i = 353;
-  //  rpy_gain_msg.motors[3].pitch_d = 393;
-  //  rpy_gain_msg.motors[3].yaw_d = -1423;
+  rpy_gain_msg.motors[0].roll_d = (short)(-roll_rate_p_gain * 1000);
+  rpy_gain_msg.motors[0].pitch_d = (short)(-pitch_rate_p_gain * 1000);
+  rpy_gain_msg.motors[0].yaw_d = (short)(-yaw_rate_p_gain * 1000);
 
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
