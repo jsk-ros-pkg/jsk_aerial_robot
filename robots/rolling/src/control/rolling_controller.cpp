@@ -19,6 +19,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   rolling_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::RollingNavigator>(navigator_);
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
+  rolling_robot_model_for_opt_ = boost::make_shared<RollingRobotModel>();
   robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   rotor_tilt_.resize(motor_num_);
@@ -105,6 +106,7 @@ void RollingController::rosParamInit()
 
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
+  rolling_robot_model_for_opt_->setCircleRadius(circle_radius_);
 
   getParam<double>(z_nh, "i_gain", default_z_i_gain_, 0.0);
 
