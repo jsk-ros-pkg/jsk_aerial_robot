@@ -75,6 +75,20 @@ void RollingRobotModel::calcRobotModelFromFrame(std::string frame_name)
       rotors_normal_from_target_frame_.at(i) = (target_frame.Inverse() * f).M * KDL::Vector(0, 0, 1);
     }
 
+  /* wrench allocation matrix from target frame */
+  const std::vector<Eigen::Vector3d> p = getRotorsOriginFromTargetFrame<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> u = getRotorsNormalFromTargetFrame<Eigen::Vector3d>();
+  const int rotor_num = getRotorNum();
+  const auto& sigma = getRotorDirection();
+  const double m_f_rate = getMFRate();
+
+  wrench_allocation_matrix_from_target_frame_.resize(6, rotor_num);
+  for(int i = 0; i < rotor_num; i++)
+    {
+      wrench_allocation_matrix_from_target_frame_.block(0, i, 3, 1) = u.at(i);
+      wrench_allocation_matrix_from_target_frame_.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
+    }
+
   /* torque by gravity in target frame */
   target_to_cog_frame_ = target_frame.Inverse() * cog;
   cog_to_target_frame_ = cog.Inverse() * target_frame;

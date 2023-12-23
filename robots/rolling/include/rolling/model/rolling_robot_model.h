@@ -30,6 +30,7 @@ public:
   template <class T> std::vector<T> getLinksRotationFromTargetFrame();
   template <class T> std::vector<T> getRotorsOriginFromTargetFrame();
   template <class T> std::vector<T> getRotorsNormalFromTargetFrame();
+  Eigen::MatrixXd getWrenchAllocationMatrixFromTargetFrame() {return wrench_allocation_matrix_from_target_frame_;}
   template <class T> T getInertiaFromTargetFrame();
   Eigen::Vector3d getGravityTorqueFromTargetFrame() {return gravity_torque_from_target_frame_;}
 
@@ -63,6 +64,7 @@ private:
   Eigen::Vector3d gravity_torque_from_target_frame_;
   KDL::Frame cog_to_target_frame_;
   KDL::Frame target_to_cog_frame_;
+  Eigen::MatrixXd wrench_allocation_matrix_from_target_frame_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
