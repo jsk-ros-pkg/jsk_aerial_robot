@@ -35,6 +35,10 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
 
+    boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModel() {return robot_model_;}
+    boost::shared_ptr<RollingRobotModel> getRollingRobotModel() {return rolling_robot_model_;}
+    boost::shared_ptr<RollingRobotModel> getRollingRobotModelForOpt() {return rolling_robot_model_for_opt_;}
+
     Eigen::VectorXd getTargetWrenchAccCog() {return target_wrench_acc_cog_;}
     Eigen::MatrixXd getFullQ() {return full_q_mat_;}
     Eigen::MatrixXd getFullQTrans() {return full_q_trans_;}
@@ -68,6 +72,7 @@ namespace aerial_robot_control
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
+    boost::shared_ptr<RollingRobotModel> rolling_robot_model_for_opt_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
 
     std::vector<double> rotor_tilt_;
