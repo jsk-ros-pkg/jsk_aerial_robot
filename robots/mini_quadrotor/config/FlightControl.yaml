@@ -40,7 +40,7 @@ controller:
     roll_pitch_i: 0.5
     roll_pitch_d: 0.15
 
-    yaw_p: 60
+    yaw_p: 50
     yaw_i: 0.5
     yaw_d: 1.0
 
