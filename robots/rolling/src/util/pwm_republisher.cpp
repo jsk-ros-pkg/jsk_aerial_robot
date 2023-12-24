@@ -51,7 +51,12 @@ void MotorPWMRepublisher::desireCoordinateCallback(const spinal::DesireCoordPtr 
 
 void MotorPWMRepublisher::gimbalsControlCallback(const sensor_msgs::JointState & joint_state_msg)
 {
-  for(int i = 0; i < motor_num_; i++)
+  if(joint_state_msg.name.size() != joint_state_msg.position.size())
+    {
+      ROS_ERROR("size of gimbal names and positions is not same");
+      return;
+    }
+  for(int i = 0; i < joint_state_msg.name.size(); i++)
     {
       std_msgs::Float32 msg;
       msg.data = joint_state_msg.position.at(i);
