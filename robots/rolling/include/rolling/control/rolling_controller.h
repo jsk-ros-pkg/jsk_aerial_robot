@@ -69,6 +69,7 @@ namespace aerial_robot_control
     KDL::Frame contact_point_alined_;
 
     std::mutex contact_point_alined_mutex_;
+    std::mutex current_gimbal_angles_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
@@ -79,6 +80,7 @@ namespace aerial_robot_control
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     std::vector<double> prev_target_gimbal_angles_;
+    std::vector<double> current_gimbal_angles_;
     std::vector<double> target_acc_cog_;
     std::vector<double> target_acc_dash_;
     Eigen::VectorXd target_wrench_acc_cog_;

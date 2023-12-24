@@ -26,6 +26,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_base_thrust_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_, 0);
   prev_target_gimbal_angles_.resize(motor_num_, 0);
+  current_gimbal_angles_.resize(motor_num_, 0);
 
   target_wrench_acc_cog_.resize(6);
   controlled_wrench_acc_cog_.resize(6);
@@ -103,7 +104,6 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
-
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius_);
   rolling_robot_model_for_opt_->setCircleRadius(circle_radius_);
@@ -514,7 +514,6 @@ void RollingController::calcWrenchAllocationMatrix()
     {
       ROS_WARN_ONCE("[control] use MP-Inverse");
     }
-
 }
 
 void RollingController::calcFullLambda()
@@ -570,7 +569,6 @@ void RollingController::wrenchAllocation()
   /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
-
 }
 
 void RollingController::calcYawTerm()
@@ -733,6 +731,22 @@ void RollingController::setAttitudeGains()
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
 {
   sensor_msgs::JointState joint_state = *state;
+
+  /* get current gimbal angles */
+  for(int i = 0; i < joint_state.name.size(); i++)
+    {
+      if(joint_state.name.at(i).find("gimbal") != string::npos)
+        {
+          for(int j = 0; j < motor_num_; j++)
+            {
+              if(joint_state.name.at(i) == std::string("gimbal") + std::to_string(j + 1))
+                {
+                  std::lock_guard<std::mutex> lock(current_gimbal_angles_mutex_);
+                  current_gimbal_angles_.at(j) = joint_state.position.at(i);
+                }
+            }
+        }
+    }
 
   /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
