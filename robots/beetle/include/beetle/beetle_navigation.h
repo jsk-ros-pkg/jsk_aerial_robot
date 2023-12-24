@@ -43,6 +43,7 @@ namespace aerial_robot_navigation
     tf::Vector3 pre_target_pos_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
+    ros::Subscriber assembly_nav_sub_;
 
     double max_target_roll_pitch_rate_;
 
@@ -50,6 +51,7 @@ namespace aerial_robot_navigation
     bool pre_assembled_ ; 
 
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+    void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();
     tf2_ros::TransformBroadcaster br_;
