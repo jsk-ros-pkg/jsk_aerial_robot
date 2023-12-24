@@ -135,6 +135,8 @@ namespace aerial_robot_navigation
     static constexpr float VOLTAGE_20P =  3.747;
     static constexpr float VOLTAGE_10P =  3.683;
     static constexpr float VOLTAGE_0P =  3.209;
+    float pre_battery_percentage_;
+    
 
 
     /* playstation dualschock 3 joystick */
