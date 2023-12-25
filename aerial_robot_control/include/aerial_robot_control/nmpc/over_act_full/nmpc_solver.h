@@ -64,6 +64,8 @@ struct Constraints
   double w_min;
   double thrust_max;
   double thrust_min;
+  double a_max;
+  double a_min;
 };
 
 class MPCSolver
@@ -73,9 +75,10 @@ public:
 
   MPCSolver();
   ~MPCSolver();
-  void initialize(Constraints& constraints);
+  void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
-  int solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref);
+  int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
+            bool is_debug);
 
 private:
   double* new_time_steps;
@@ -88,11 +91,11 @@ private:
   void* nlp_opts_;
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
-  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now);
-  double solveOCPInLoop(int N_timings);
+  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
+  double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
 
-  void printStatus(int N_timings, double min_time);
+  void printStatus(double min_time);
   void printSolution();
 };
 

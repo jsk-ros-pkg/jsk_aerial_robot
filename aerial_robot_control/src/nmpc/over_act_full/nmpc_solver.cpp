@@ -10,7 +10,7 @@ nmpc_over_act_full::MPCSolver::MPCSolver()
 {
 }
 
-void nmpc_over_act_full::MPCSolver::initialize(Constraints& constraints)
+void nmpc_over_act_full::MPCSolver::initialize()
 {
   /* Allocate the array and fill it accordingly */
   acados_ocp_capsule_ = beetle_full_model_acados_create_capsule();
@@ -35,35 +35,36 @@ void nmpc_over_act_full::MPCSolver::initialize(Constraints& constraints)
   int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
 
-  /* Set constraints */
-  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are needed.
-  // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints
-  // bx
-  double lbx[NBX] = { constraints.v_min, constraints.v_min, constraints.v_min,
-                      constraints.w_min, constraints.w_min, constraints.w_min };
-  double ubx[NBX] = { constraints.v_max, constraints.v_max, constraints.v_max,
-                      constraints.w_max, constraints.w_max, constraints.w_max };
-  for (int i = 1; i < NN; i++)
-  {
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
-  }
-  // bx_e: terminal state
-  double lbx_e[NBXN] = { constraints.v_min, constraints.v_min, constraints.v_min,
-                         constraints.w_min, constraints.w_min, constraints.w_min };
-  double ubx_e[NBXN] = { constraints.v_max, constraints.v_max, constraints.v_max,
-                         constraints.w_max, constraints.w_max, constraints.w_max };
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
-
-  // bu
-  double lbu[NBU] = { constraints.thrust_min, constraints.thrust_min, constraints.thrust_min, constraints.thrust_min };
-  double ubu[NBU] = { constraints.thrust_max, constraints.thrust_max, constraints.thrust_max, constraints.thrust_max };
-  for (int i = 0; i < NN; i++)
-  {
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
-  }
+  //  /* Set constraints */
+  //  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are
+  //  needed.
+  //  // bx_0: initial state. Note that the value of lbx0 and ubx0 will be set in solve() function, feedback constraints
+  //  // bx
+  //  double lbx[NBX] = { constraints.v_min, constraints.v_min, constraints.v_min,
+  //                      constraints.w_min, constraints.w_min, constraints.w_min };
+  //  double ubx[NBX] = { constraints.v_max, constraints.v_max, constraints.v_max,
+  //                      constraints.w_max, constraints.w_max, constraints.w_max };
+  //  for (int i = 1; i < NN; i++)
+  //  {
+  //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
+  //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
+  //  }
+  //  // bx_e: terminal state
+  //  double lbx_e[NBXN] = { constraints.v_min, constraints.v_min, constraints.v_min,
+  //                         constraints.w_min, constraints.w_min, constraints.w_min };
+  //  double ubx_e[NBXN] = { constraints.v_max, constraints.v_max, constraints.v_max,
+  //                         constraints.w_max, constraints.w_max, constraints.w_max };
+  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
+  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
+  //
+  //  // bu
+  //  double lbu[NBU] = { constraints.thrust_min, constraints.thrust_min, constraints.thrust_min, constraints.thrust_min
+  //  }; double ubu[NBU] = { constraints.thrust_max, constraints.thrust_max, constraints.thrust_max,
+  //  constraints.thrust_max }; for (int i = 0; i < NN; i++)
+  //  {
+  //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
+  //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
+  //  }
 
   /* Set parameters */
   // Note that the code here initializes all parameters, including variables and constants.
@@ -112,26 +113,23 @@ void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
   ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
-int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const aerial_robot_msgs::PredXU& x_u_ref)
+int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
+                                         const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
-
-  /* prepare evaluation */
-  int N_timings = 1;
-
   setReference(x_u_ref, x_stride, u_stride);
 
-  setFeedbackConstraints(odom_now);
+  setFeedbackConstraints(odom_now, joint_angles);
 
-  double min_time = solveOCPInLoop(N_timings);
+  double min_time = solveOCPOnce();
 
   getSolution(x_stride, u_stride);
 
-  if (getenv("ROS_DEBUG"))
+  if (is_debug)
   {
     printSolution();
-    printStatus(N_timings, min_time);
+    printStatus(min_time);
   }
 
   return 0;
@@ -188,8 +186,10 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
   beetle_full_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
 }
 
-void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
+void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
+                                                           const double joint_angles[4])
 {
+  // TODO: 改为传入可变数组
   double bx0[NBX0];
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
@@ -204,27 +204,28 @@ void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odome
   bx0[10] = odom_now.twist.twist.angular.x;
   bx0[11] = odom_now.twist.twist.angular.y;
   bx0[12] = odom_now.twist.twist.angular.z;
+  bx0[13] = joint_angles[0];
+  bx0[14] = joint_angles[1];
+  bx0[15] = joint_angles[2];
+  bx0[16] = joint_angles[3];
 
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", bx0);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
 }
 
-double nmpc_over_act_full::MPCSolver::solveOCPInLoop(const int N_timings)
+double nmpc_over_act_full::MPCSolver::solveOCPOnce()
 {
   double min_time = 1e12;
   double elapsed_time;
 
-  for (int i = 0; i < N_timings; i++)
+  int status = beetle_full_model_acados_solve(acados_ocp_capsule_);
+  if (status != ACADOS_SUCCESS)
   {
-    int status = beetle_full_model_acados_solve(acados_ocp_capsule_);
-    if (status != ACADOS_SUCCESS)
-    {
-      std::cout << "beetle_full_model_acados_solve() returned status " << status << ".\n";
-    }
-
-    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
-    min_time = MIN(elapsed_time, min_time);
+    std::cout << "beetle_full_model_acados_solve() returned status " << status << ".\n";
   }
+
+  ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
+  min_time = MIN(elapsed_time, min_time);
 
   return min_time;
 }
@@ -268,17 +269,15 @@ void nmpc_over_act_full::MPCSolver::printSolution()
   }
 }
 
-void nmpc_over_act_full::MPCSolver::printStatus(const int N_timings, const double min_time)
+void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
 {
   double kkt_norm_inf;
   int sqp_iter;
-
-  ROS_DEBUG("\nsolved ocp %d times, solution printed above\n\n", N_timings);
 
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
   ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
   beetle_full_model_acados_print_stats(acados_ocp_capsule_);
   ROS_DEBUG("\nSolver info:\n");
-  ROS_DEBUG(" SQP iterations %2d\n minimum time for %d solve %f [ms]\n KKT %e\n", sqp_iter, N_timings, min_time * 1000,
+  ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
             kkt_norm_inf);
 }

@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_control;
 
-nmpc_over_act_full::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
+nmpc_over_act_full::NMPCController::NMPCController()
 {
 }
 
@@ -19,27 +19,18 @@ void nmpc_over_act_full::NMPCController::initialize(
 
   ros::NodeHandle control_nh(nh_, "controller");
 
-  // get params and initialize nmpc solver
-  Constraints constraints{};
-  constraints.thrust_max = robot_model_->getThrustUpperLimit();
-  constraints.thrust_min = robot_model_->getThrustLowerLimit();
-  getParam<double>(control_nh, "nmpc/v_max", constraints.v_max, 0.5);
-  getParam<double>(control_nh, "nmpc/v_min", constraints.v_min, -0.5);
-  getParam<double>(control_nh, "nmpc/w_max", constraints.w_max, 3.0);
-  getParam<double>(control_nh, "nmpc/w_min", constraints.w_min, -3.0);
-  mpc_solver_.initialize(constraints);
+  // initialize nmpc solver
+  mpc_solver_.initialize();
 
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
 
-  mass_ = robot_model_->getMass();
-  gravity_const_ = robot_model_->getGravity()[2];
-
-  getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);
-  getParam<double>(control_nh, "nmpc/yaw_d_gain", yaw_d_gain, 1.0);
+  getParam<double>(control_nh, "nmpc/mass", mass_, 0.5);
+  getParam<double>(control_nh, "nmpc/gravity_const", gravity_const_, 9.81);
 
   getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
+  getParam<bool>(control_nh, "nmpc/is_debug", is_debug, false);
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
@@ -48,6 +39,7 @@ void nmpc_over_act_full::NMPCController::initialize(
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  pub_gimbal_control_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
 
   pub_rpy_gain_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);  // tmp
   pub_p_matrix_pseudo_inverse_inertia_ =
@@ -55,6 +47,9 @@ void nmpc_over_act_full::NMPCController::initialize(
 
   /* services */
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
+
+  /* subscribers */
+  sub_joint_states_ = nh_.subscribe("joint_states", 5, &NMPCController::callbackJointStates, this);
 
   reset();
 
@@ -84,7 +79,7 @@ bool nmpc_over_act_full::NMPCController::update()
     return false;
 
   this->controlCore();
-  this->sendCmd();
+  this->sendFlightCmd();
 
   return true;
 }
@@ -104,10 +99,29 @@ void nmpc_over_act_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  double x[NX] = { pos.x(), pos.y(), pos.z(), vel.x(),   vel.y(),   vel.z(),  q.w(),
-                   q.x(),   q.y(),   q.z(),   omega.x(), omega.y(), omega.z() };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  double x[NX] = {
+    pos.x(),
+    pos.y(),
+    pos.z(),
+    vel.x(),
+    vel.y(),
+    vel.z(),
+    q.w(),
+    q.x(),
+    q.y(),
+    q.z(),
+    omega.x(),
+    omega.y(),
+    omega.z(),
+    joint_angles_[0],
+    joint_angles_[1],
+    joint_angles_[2],
+    joint_angles_[3],
+  };
+  double each_thrust_hovering = mass_ * gravity_const_ / 4.0;
+  double u[NU] = {
+    each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
+  };
   initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
   {
@@ -157,10 +171,12 @@ void nmpc_over_act_full::NMPCController::controlCore()
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
   double x[NX] = {
-    target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
   };
   double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  double u[NU] = {
+    each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
+  };
 
   for (int i = 0; i < NN; i++)
   {
@@ -174,7 +190,7 @@ void nmpc_over_act_full::NMPCController::controlCore()
   std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 
   /* solve */
-  mpc_solver_.solve(odom_now, x_u_ref_);
+  mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug);
 
   /* get result */
   // - body rates
@@ -222,6 +238,20 @@ void nmpc_over_act_full::NMPCController::controlCore()
           flight_cmd_.base_thrust[i] + (target_thrusts(i) - flight_cmd_.base_thrust[i]) * thrust_scale_ratio);
     }
 
+    // - servo angle
+    double a1c = mpc_solver_.x_u_out_.u.data.at(4);
+    double a2c = mpc_solver_.x_u_out_.u.data.at(5);
+    double a3c = mpc_solver_.x_u_out_.u.data.at(6);
+    double a4c = mpc_solver_.x_u_out_.u.data.at(7);
+
+    sensor_msgs::JointState gimbal_control_msg;
+    gimbal_control_msg.header.stamp = ros::Time::now();
+    gimbal_control_msg.position.push_back(a1c);
+    gimbal_control_msg.position.push_back(a2c);
+    gimbal_control_msg.position.push_back(a3c);
+    gimbal_control_msg.position.push_back(a4c);
+    pub_gimbal_control_.publish(gimbal_control_msg);
+
     return;
   }
 
@@ -231,7 +261,7 @@ void nmpc_over_act_full::NMPCController::controlCore()
   }
 }
 
-void nmpc_over_act_full::NMPCController::sendCmd()
+void nmpc_over_act_full::NMPCController::sendFlightCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
 }
@@ -277,46 +307,29 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
+
+void nmpc_over_act_full::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+{
+  joint_angles_[0] = msg->position[0];
+  joint_angles_[1] = msg->position[1];
+  joint_angles_[2] = msg->position[2];
+  joint_angles_[3] = msg->position[3];
+}
+
 void nmpc_over_act_full::NMPCController::sendRPYGain()
 {
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
 
-  //  rpy_gain_msg.motors[0].roll_p = 8000;
-  //  rpy_gain_msg.motors[0].roll_i = 1000;
-  //  rpy_gain_msg.motors[0].roll_d = -5000;
-  rpy_gain_msg.motors[0].roll_d = -400;
-  //  rpy_gain_msg.motors[0].pitch_p = 8000;
-  //  rpy_gain_msg.motors[0].pitch_i = 1000;
-  //  rpy_gain_msg.motors[0].pitch_d = -6000;
-  rpy_gain_msg.motors[0].pitch_d = -400;
+  ros::NodeHandle control_nh(nh_, "controller");
+  double roll_rate_p_gain, pitch_rate_p_gain, yaw_rate_p_gain;
+  getParam<double>(control_nh, "nmpc/roll_rate_p_gain", roll_rate_p_gain, 1.0);
+  getParam<double>(control_nh, "nmpc/pitch_rate_p_gain", pitch_rate_p_gain, 1.0);
+  getParam<double>(control_nh, "nmpc/yaw_rate_p_gain", yaw_rate_p_gain, 1.0);
 
-  //  rpy_gain_msg.motors[0].yaw_d = -5000;
-  rpy_gain_msg.motors[0].yaw_d = -1000;
-
-  //  rpy_gain_msg.motors[1].roll_p = -2291;
-  //  rpy_gain_msg.motors[1].roll_i = -352;
-  //  rpy_gain_msg.motors[1].roll_d = -390;
-  //  rpy_gain_msg.motors[1].pitch_p = -2297;
-  //  rpy_gain_msg.motors[1].pitch_i = -353;
-  //  rpy_gain_msg.motors[1].pitch_d = -393;
-  //  rpy_gain_msg.motors[1].yaw_d = -1426;
-  //
-  //  rpy_gain_msg.motors[2].roll_p = 2291;
-  //  rpy_gain_msg.motors[2].roll_i = 352;
-  //  rpy_gain_msg.motors[2].roll_d = 390;
-  //  rpy_gain_msg.motors[2].pitch_p = -2297;
-  //  rpy_gain_msg.motors[2].pitch_i = -353;
-  //  rpy_gain_msg.motors[2].pitch_d = -393;
-  //  rpy_gain_msg.motors[2].yaw_d = 1426;
-  //
-  //  rpy_gain_msg.motors[3].roll_p = 2303;
-  //  rpy_gain_msg.motors[3].roll_i = 354;
-  //  rpy_gain_msg.motors[3].roll_d = 395;
-  //  rpy_gain_msg.motors[3].pitch_p = 2297;
-  //  rpy_gain_msg.motors[3].pitch_i = 353;
-  //  rpy_gain_msg.motors[3].pitch_d = 393;
-  //  rpy_gain_msg.motors[3].yaw_d = -1423;
+  rpy_gain_msg.motors[0].roll_d = (short)(-roll_rate_p_gain * 1000);
+  rpy_gain_msg.motors[0].pitch_d = (short)(-pitch_rate_p_gain * 1000);
+  rpy_gain_msg.motors[0].yaw_d = (short)(-yaw_rate_p_gain * 1000);
 
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
@@ -353,6 +366,7 @@ void nmpc_over_act_full::NMPCController::sendRotationalInertiaComp()
 
   pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
 }
+
 void nmpc_over_act_full::NMPCController::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;

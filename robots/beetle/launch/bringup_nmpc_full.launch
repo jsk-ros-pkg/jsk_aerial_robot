@@ -43,7 +43,7 @@
 
    ###########  Control  ###########
    <rosparam file="$(arg config_dir)/BeetleNMPCControl.yaml" command="load" if="$(eval not simulation)"/>
-   <rosparam file="$(arg config_dir)/BeetleNMPCControl_sim.yaml" command="load" if="$(eval simulation)"/>
+   <rosparam file="$(arg config_dir)/BeetleNMPCFull_sim.yaml" command="load" if="$(eval simulation)"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />

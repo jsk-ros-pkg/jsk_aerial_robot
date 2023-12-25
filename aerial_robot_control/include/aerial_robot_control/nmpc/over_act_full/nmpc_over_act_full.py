@@ -19,7 +19,7 @@ import casadi as ca
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCControl_sim.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull_sim.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -94,6 +94,8 @@ class NMPCController(object):
                 nmpc_params["Qa"],
             ]
         )
+        print("Q: \n", Q)
+
         R = np.diag(
             [
                 nmpc_params["Rt"],
@@ -106,6 +108,8 @@ class NMPCController(object):
                 nmpc_params["Rac"],
             ]
         )
+        print("R: \n", R)
+
         ocp.cost.cost_type = "NONLINEAR_LS"
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W = np.block([[Q, np.zeros((nx, nu))], [np.zeros((nu, nx)), R]])
@@ -143,6 +147,8 @@ class NMPCController(object):
                 nmpc_params["a_max"],
             ]
         )
+        print("lbx: ", ocp.constraints.lbx)
+        print("ubx: ", ocp.constraints.ubx)
 
         # # bx_e
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
@@ -175,6 +181,8 @@ class NMPCController(object):
                 nmpc_params["a_max"],
             ]
         )
+        print("lbx_e: ", ocp.constraints.lbx_e)
+        print("ubx_e: ", ocp.constraints.ubx_e)
 
         # # bu
         # ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c
@@ -203,10 +211,14 @@ class NMPCController(object):
                 nmpc_params["a_max"],
             ]
         )
+        print("lbu: ", ocp.constraints.lbu)
+        print("ubu: ", ocp.constraints.ubu)
 
         # initial state
         x_ref = np.zeros(nx)
+        x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
+        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref

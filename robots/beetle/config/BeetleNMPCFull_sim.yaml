@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/over_act_no_servo_delay/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/over_act_full/nmpc_controller
 
 controller:
   physical:
@@ -22,9 +22,6 @@ controller:
     T_pred: 2.0  # seconds
     T_integ: 0.1  # seconds
 
-    n_states: 13
-    n_controls: 4
-
     # constraint
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
@@ -37,8 +34,8 @@ controller:
 
 #    a_max: PI / 2
 #    a_min: -PI / 2    30 degree ~ 0.5
-    a_max: 0.0
-    a_min: -0.0
+    a_max: 0.5
+    a_min: -0.5
 
     # params for the cost function
     Qp_xy: 300  # 0
@@ -54,9 +51,9 @@ controller:
     Rac: 1
 
     # for body_rate controller
-    roll_rate_p_gain: 1.0
-    pitch_rate_p_gain: 1.0
-    yaw_rate_p_gain: 1.0
+    roll_rate_p_gain: 0.0
+    pitch_rate_p_gain: 0.0
+    yaw_rate_p_gain: 0.0
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: true

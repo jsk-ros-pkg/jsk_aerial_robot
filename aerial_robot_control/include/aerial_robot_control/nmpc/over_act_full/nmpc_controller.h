@@ -53,6 +53,7 @@ public:
   bool update() override;
   void reset() override;
   void callbackViz(const ros::TimerEvent& event);
+  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
 
   void sendRPYGain();
   void sendRotationalInertiaComp();
@@ -65,13 +66,18 @@ protected:
   ros::Publisher pub_viz_ref_;                          // for viz reference
   ros::Publisher pub_rpy_gain_;                         // for gains of attitude controller
   ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
+  ros::Publisher pub_gimbal_control_;                   // for gimbal control
 
   ros::ServiceClient srv_set_control_mode_;
+
+  ros::Subscriber sub_joint_states_;
+
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
+  bool is_debug;
 
   virtual void controlCore();
-  virtual void sendCmd();
+  virtual void sendFlightCmd();
 
 private:
   double mass_;
@@ -79,10 +85,7 @@ private:
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
-  double yaw_p_gain, yaw_d_gain;  // TODO: no need to use these parameters in the future
-
-  double target_roll_, target_pitch_;
-  double candidate_yaw_term_;
+  double joint_angles_[4] = { 0.0, 0.0, 0.0, 0.0 };
 
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
