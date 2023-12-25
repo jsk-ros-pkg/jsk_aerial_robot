@@ -16,8 +16,8 @@ def callback(rects,classes):
     msg.header = rects.header
     pub.publish(msg)
 
-Rect_sub = message_filters.Subscriber('/edgetpu_panorama_object_detector/output/rects', RectArray)
-Class_sub = message_filters.Subscriber('/edgetpu_panorama_object_detector/output/class', ClassificationResult)
+Rect_sub = message_filters.Subscriber('/edgetpu_object_detector/output/rects', RectArray)
+Class_sub = message_filters.Subscriber('/edgetpu_object_detector/output/class', ClassificationResult)
 
 ts = message_filters.TimeSynchronizer([Rect_sub, Class_sub], 10)
 ts.registerCallback(callback)
