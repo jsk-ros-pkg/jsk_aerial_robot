@@ -16,6 +16,7 @@ BaseNavigator::BaseNavigator():
   trajectory_reset_time_(0),
   teleop_reset_time_(0),
   low_voltage_flag_(false),
+  high_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
   xy_control_flag_(false),
   vel_based_waypoint_(false),
@@ -96,6 +97,7 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
     voltage += ( (bat_resistance_voltage_rate_ * voltage +  bat_resistance_) * hovering_current_);
 
   float average_voltage = voltage / bat_cell_;
+  float input_cell = voltage / VOLTAGE_100P;
   float percentage = 0;
   if(average_voltage  > VOLTAGE_90P) percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
   else if (average_voltage  > VOLTAGE_80P) percentage = (average_voltage - VOLTAGE_80P) / (VOLTAGE_90P - VOLTAGE_80P) * 10 + 80;
@@ -123,6 +125,13 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
     }
   else
     low_voltage_flag_  = false;
+
+  if(input_cell - bat_cell_ > 1.0)
+    {
+      high_voltage_flag_ = true;
+    }
+  else
+    high_voltage_flag_ = false;
 
   if(power_info_pub_.getNumSubscribers() == 0) return;
 
@@ -767,6 +776,12 @@ void BaseNavigator::update()
         if(low_voltage_flag_)
           {
             setNaviState(ARM_OFF_STATE);
+            break;
+          }
+        if(high_voltage_flag_)
+          {
+            setNaviState(ARM_OFF_STATE);
+            ROS_ERROR("high voltage!");
             break;
           }
 
