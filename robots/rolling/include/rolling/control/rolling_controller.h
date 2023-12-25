@@ -116,6 +116,7 @@ namespace aerial_robot_control
     int control_dof_;
     double default_z_i_gain_;
     double rolling_control_timestamp_;
+    bool realtime_gimbal_allocation_;
 
     double robot_mass_for_opt_;
     double gravity_for_opt_;

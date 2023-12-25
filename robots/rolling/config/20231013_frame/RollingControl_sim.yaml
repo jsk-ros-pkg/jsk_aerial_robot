@@ -8,6 +8,7 @@ controller:
   sr_inv_weight: 0.1
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
+  realtime_gimbal_allocation: true
 
   standing_converged_baselink_roll_thresh: 0.15
   standing_converged_z_i_term_min: 4.0
