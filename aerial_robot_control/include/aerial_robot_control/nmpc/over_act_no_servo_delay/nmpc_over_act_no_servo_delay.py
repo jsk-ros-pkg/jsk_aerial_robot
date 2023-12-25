@@ -42,8 +42,6 @@ dr4 = physical_params["dr4"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
-t_servo = physical_params["t_servo"]  # time constant of servo
-
 
 class NMPCController(object):
     def __init__(self):

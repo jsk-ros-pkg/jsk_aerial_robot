@@ -15,7 +15,7 @@ controller:
     p4: [ 0.132585, -0.137979, -0.0154202 ] # position of motor 4
     kq_d_kt: 0.0171998
 
-    t_servo: 0.1 # sec  TODO: check
+    t_servo: 0.15 # sec  TODO: check
 
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
@@ -43,7 +43,7 @@ controller:
     Qv_xy: 10  # 0
     Qv_z: 10  # 100
     Qq_xy: 10  # 400
-    Qq_z: 100
+    Qq_z: 300
     Qw_xy: 5
     Qw_z: 5
     Qa: 5
