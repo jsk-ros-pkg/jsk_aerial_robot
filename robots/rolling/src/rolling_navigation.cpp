@@ -88,7 +88,6 @@ void RollingNavigator::baselinkRotationProcess()
       /* force update mode */
       if(baselink_rot_force_update_mode_)
         {
-          // std::cout << "force update" << std::endl;
           target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
           target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
           final_target_baselink_rot_.setValue(curr_target_baselink_rot_.x(), curr_target_baselink_rot_.y(), curr_target_baselink_rot_.z());
@@ -96,10 +95,18 @@ void RollingNavigator::baselinkRotationProcess()
       /* linear interpolation */
       else
         {
-          // std::cout << "interpolation" << std::endl;
           if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
             {
-              curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+              double curr_cog_roll = estimator_->getEuler(Frame::COG, estimate_mode_).x();
+              double curr_cog_pitch = estimator_->getEuler(Frame::COG, estimate_mode_).y();
+              if(abs(curr_cog_roll) < baselink_rotation_stop_error_ && abs(curr_cog_pitch) < baselink_rotation_stop_error_)
+                {
+                  curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+                }
+              else
+                {
+                  ROS_WARN_STREAM("[navigation] do not update desire coord because rp error [" << curr_cog_roll << ", " << curr_cog_pitch << "] is larger than " << baselink_rotation_stop_error_);
+                }
             }
           else
             {
@@ -178,6 +185,7 @@ void RollingNavigator::rosParamInit()
 
   getParam<double>(navi_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
   getParam<double>(navi_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
+  getParam<double>(navi_nh, "baselink_rotation_stop_error", baselink_rotation_stop_error_, 3.14);
   getParam<double>(navi_nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);
   getParam<double>(navi_nh, "rolling_max_yaw_ang_vel", rolling_max_yaw_ang_vel_, 0.0);

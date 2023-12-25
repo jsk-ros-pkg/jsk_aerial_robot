@@ -110,6 +110,7 @@ namespace aerial_robot_navigation
     double joy_stick_deadzone_;
 
     /* target baselink rotation */
+    double baselink_rotation_stop_error_;
     double prev_rotation_stamp_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
     double curr_target_baselink_rot_roll_, curr_target_baselink_rot_pitch_, final_target_baselink_rot_roll_, final_target_baselink_rot_pitch_;
