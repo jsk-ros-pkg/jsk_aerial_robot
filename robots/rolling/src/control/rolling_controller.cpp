@@ -105,6 +105,7 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
+  getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
   rolling_robot_model_->setCircleRadius(circle_radius_);
   rolling_robot_model_for_opt_->setCircleRadius(circle_radius_);
 
@@ -562,7 +563,16 @@ void RollingController::wrenchAllocation()
   for(int i = 0; i < motor_num_; i++)
     {
       std::string s = std::to_string(i + 1);
-      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+      if(realtime_gimbal_allocation_)
+        {
+          ROS_WARN_STREAM_ONCE("[control] use actual gimbal angle for realtime allocation");
+          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = current_gimbal_angles_.at(i);
+        }
+      else
+        {
+          ROS_WARN_STREAM_ONCE("[control] use target gimbal angle for realtime allocation");
+          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
+        }
     }
   robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
 
