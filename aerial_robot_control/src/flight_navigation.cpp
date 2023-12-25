@@ -126,7 +126,7 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   else
     low_voltage_flag_  = false;
 
-  if(input_cell - bat_cell_ > 1.0)
+  if(input_cell - bat_cell_ > high_voltage_cell_thre_)
     {
       high_voltage_flag_ = true;
     }
@@ -1095,6 +1095,7 @@ void BaseNavigator::rosParamInit()
   ros::NodeHandle bat_nh(nh_, "bat_info");
   getParam<int>(bat_nh, "bat_cell", bat_cell_, 0); // Lipo battery cell
   getParam<double>(bat_nh, "low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
+  getParam<double>(bat_nh, "high_voltage_cell_thre", high_voltage_cell_thre_, 1.0);
   getParam<double>(bat_nh, "bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
   getParam<double>(bat_nh, "bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
   getParam<double>(bat_nh, "hovering_current", hovering_current_, 0.0); // current at hovering state
