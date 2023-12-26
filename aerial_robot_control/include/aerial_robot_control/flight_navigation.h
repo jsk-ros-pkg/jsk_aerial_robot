@@ -336,6 +336,8 @@ namespace aerial_robot_navigation
     /* battery info */
     double low_voltage_thre_;
     bool low_voltage_flag_;
+    double high_voltage_cell_thre_;
+    bool high_voltage_flag_;
     int bat_cell_;
     double bat_resistance_;
     double bat_resistance_voltage_rate_;
