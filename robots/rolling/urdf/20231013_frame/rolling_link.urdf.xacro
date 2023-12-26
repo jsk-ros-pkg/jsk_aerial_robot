@@ -63,7 +63,7 @@
 
     <!-- gimbal joint -->
     <joint name="gimbal${self}" type="continuous">
-      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <limit effort="3" velocity="12.5"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>
       <axis xyz="1 0 0"/>
