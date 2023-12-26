@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
   <arg name="headless" default="false"/>
-  <arg name="spawn_x_1" default="-2.0"/>
+  <arg name="spawn_x_1" default="-0.6"/>
   <arg name="spawn_y_1" default="0.0"/>
   <arg name="spawn_yaw_1" default="0.0"/>
   <arg name="spawn_x_2" default="0.0"/>
   <arg name="spawn_y_2" default="0.0"/>
   <arg name="spawn_yaw_2" default="0.0"/>
-  <arg name="spawn_x_3" default="2.0"/>
+  <arg name="spawn_x_3" default="0.6"/>
   <arg name="spawn_y_3" default="0.0"/>
   <arg name="spawn_yaw_3" default="0.0"/>
   <group>
