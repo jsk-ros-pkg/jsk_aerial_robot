@@ -32,8 +32,8 @@ controller:
 
 #    a_max: PI / 2
 #    a_min: -PI / 2    30 degree ~ 0.5
-    a_max: 0.2
-    a_min: -0.2
+    a_max: 0.5
+    a_min: -0.5
 
     # params for the cost function
     Qp_xy: 300  # 0

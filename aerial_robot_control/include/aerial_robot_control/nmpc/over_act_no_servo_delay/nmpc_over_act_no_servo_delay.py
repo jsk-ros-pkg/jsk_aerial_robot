@@ -42,6 +42,11 @@ dr4 = physical_params["dr4"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
+x_init = np.zeros(13)  # TODO: make the number of states adjustable
+x_init[6] = 1.0  # qw
+u_init = np.zeros(8)
+u_init[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
+
 
 def create_acados_ocp() -> AcadosOcp:
     ocp_model = create_acados_model()
@@ -192,13 +197,9 @@ def create_acados_ocp() -> AcadosOcp:
     print("ubu: ", ocp.constraints.ubu)
 
     # initial state
-    x_ref = np.zeros(nx)
-    x_ref[6] = 1.0  # qw
-    u_ref = np.zeros(nu)
-    u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
-    ocp.constraints.x0 = x_ref
-    ocp.cost.yref = np.concatenate((x_ref, u_ref))
-    ocp.cost.yref_e = x_ref
+    ocp.constraints.x0 = x_init
+    ocp.cost.yref = np.concatenate((x_init, u_init))
+    ocp.cost.yref_e = x_init
 
     # solver options
     ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
@@ -386,10 +387,107 @@ def safe_mkdir_recursive(directory, overwrite=False):
                 print("Error while removing directory {}".format(directory))
 
 
+def closed_loop_simulation(ocp: AcadosOcp):
+    acados_ocp_solver = AcadosOcpSolver(ocp, json_file="acados_ocp_" + ocp.model.name + ".json")
+    acados_integrator = AcadosSimSolver(ocp, json_file="acados_ocp_" + ocp.model.name + ".json")
+    # TODO: change to AcadosSim
+
+    N_sim = 100
+    nx = ocp.model.x.size()[0]
+    nu = ocp.model.u.size()[0]
+
+    x_sim_all = np.ndarray((N_sim + 1, nx))
+    u_sim_all = np.ndarray((N_sim, nu))
+
+    x_current = x_init
+    x_sim_all[0, :] = x_current
+
+    # ============ initialize =============
+    for stage in range(acados_ocp_solver.N + 1):
+        acados_ocp_solver.set(stage, "x", 0.0 * np.ones(x_current.shape))
+    for stage in range(acados_ocp_solver.N):
+        acados_ocp_solver.set(stage, "u", np.zeros((nu,)))
+
+    # ============ update =============
+    # get x and u, set reference
+    xr = np.zeros([acados_ocp_solver.N + 1, 13])
+    xr[:, 6] = 1.0  # qw
+    xr[:, 2] = 1.0  # z
+    ur = np.zeros([acados_ocp_solver.N, 8])
+    ur[:, 0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4   # TODO: consider remove this line
+
+    for i in range(N_sim):
+
+        # -------- update solver --------
+        for j in range(acados_ocp_solver.N):
+            yr = np.concatenate((xr[j, :], ur[j, :]))
+            acados_ocp_solver.set(j, "yref", yr)
+
+            quaternion_r = xr[j, 6:10]
+            acados_ocp_solver.set(j, "p", quaternion_r)  # for nonlinear quaternion error
+        acados_ocp_solver.set(acados_ocp_solver.N, "yref", xr[acados_ocp_solver.N, :])  # final state of x, no u
+
+        quaternion_r = xr[acados_ocp_solver.N, 6:10]
+        acados_ocp_solver.set(acados_ocp_solver.N, "p", quaternion_r)  # for nonlinear quaternion error
+
+        # feedback, take the first action
+        u0 = acados_ocp_solver.solve_for_x0(x_current)
+        if acados_ocp_solver.status != 0:
+            raise Exception("acados acados_ocp_solver returned status {}. Exiting.".format(acados_ocp_solver.status))
+        u_sim_all[i, :] = u0
+
+        # --------- update simulation ----------
+        acados_integrator.set("x", x_current)
+        acados_integrator.set("u", u0)
+        status = acados_integrator.solve()
+        if status != 0:
+            raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
+
+        # update state
+        x_current = acados_integrator.get("x")
+        x_sim_all[i + 1, :] = x_current
+
+    # plot
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    fig.suptitle("NMPC closed-loop simulation")
+
+    plt.subplot(3, 1, 1)
+    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 0], label="x")
+    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 1], label="y")
+    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 2], label="z")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("position (m)")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 2)
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 0], label="ft1")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 1], label="ft2")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 2], label="ft3")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 3], label="ft4")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("thrust (N)")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 3)
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 4], label="a1")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 5], label="a2")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 6], label="a3")
+    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 7], label="a4")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("servo angle (rad)")
+    plt.grid(True)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     # read parameters from launch file
     acados_ocp = create_acados_ocp()
-
     print("Successfully initialized acados ocp: ", acados_ocp)
     print("number of states: ", acados_ocp.dims.nx)
     print("number of controls: ", acados_ocp.dims.nu)
@@ -398,3 +496,5 @@ if __name__ == "__main__":
     print("T_pred: ", nmpc_params["T_pred"])
     print("T_integ: ", nmpc_params["T_integ"])
     print("N_node: ", nmpc_params["N_node"])
+
+    closed_loop_simulation(acados_ocp)
