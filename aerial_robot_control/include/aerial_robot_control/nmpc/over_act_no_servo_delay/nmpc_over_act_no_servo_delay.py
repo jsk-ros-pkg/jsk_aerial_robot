@@ -450,8 +450,8 @@ def closed_loop_simulation(ocp: AcadosOcp):
     # plot
     import matplotlib.pyplot as plt
 
-    fig = plt.figure()
-    fig.suptitle("NMPC closed-loop simulation")
+    fig = plt.figure(figsize=(10, 10))
+    fig.suptitle(f"NMPC closed-loop sim no servo delay with servo angle limit {nmpc_params['a_max']} rad")
 
     plt.subplot(3, 1, 1)
     plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 0], label="x")
@@ -481,6 +481,8 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("servo angle (rad)")
     plt.grid(True)
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     plt.show()
 
