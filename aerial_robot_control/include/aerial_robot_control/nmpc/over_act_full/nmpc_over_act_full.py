@@ -52,7 +52,7 @@ u_init[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
 
 # sim
 ts_sim = 0.005
-t_total_sim = 2.0
+t_total_sim = 5.0
 
 
 def create_acados_ocp() -> AcadosOcp:
@@ -388,7 +388,7 @@ def create_acados_model() -> AcadosModel:
     qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
     state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
-    control_y = controls
+    control_y = ca.vertcat(ft, (ac - a) / t_servo)  # ac_ref must be zero!
 
     # acados model
     x_dot = ca.SX.sym("x_dot", 17)
@@ -510,7 +510,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     fig = plt.figure(figsize=(20, 10))
     ts_ctrl = nmpc_params["T_samp"]
     fig.suptitle(
-        f"NMPC closed-loop sim with ts_sim = {ts_sim} s and ts_ctrl = {ts_ctrl} s\n"
+        f"New u cost NMPC closed-loop sim with ts_sim = {ts_sim} s and ts_ctrl = {ts_ctrl} s\n"
         f"servo delay {t_servo} s and servo angle limit {nmpc_params['a_max']} rad"
     )
 
