@@ -404,9 +404,9 @@ def closed_loop_simulation(ocp: AcadosOcp):
 
     # ============ initialize =============
     for stage in range(acados_ocp_solver.N + 1):
-        acados_ocp_solver.set(stage, "x", 0.0 * np.ones(x_current.shape))
+        acados_ocp_solver.set(stage, "x", x_init)
     for stage in range(acados_ocp_solver.N):
-        acados_ocp_solver.set(stage, "u", np.zeros((nu,)))
+        acados_ocp_solver.set(stage, "u", u_init)
 
     # ============ update =============
     # get x and u, set reference
