@@ -32,10 +32,8 @@ controller:
     thrust_max: 30 # N
     thrust_min: 0 # N
 
-#    a_max: PI / 2
-#    a_min: -PI / 2    30 degree ~ 0.5
-    a_max: 0.5
-    a_min: -0.5
+    a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
+    a_min: -1.5708
 
     # params for the cost function
     Qp_xy: 300  # 0
