@@ -14,7 +14,8 @@ import errno
 import numpy as np
 import yaml
 import rospkg
-from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
+from tf_conversions import transformations as tf
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
 # read parameters from yaml
@@ -48,6 +49,10 @@ x_init = np.zeros(17)  # TODO: make the number of states adjustable
 x_init[6] = 1.0  # qw
 u_init = np.zeros(8)
 u_init[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
+
+# sim
+ts_sim = 0.005
+t_total_sim = 2.0
 
 
 def create_acados_ocp() -> AcadosOcp:
@@ -422,25 +427,36 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 def closed_loop_simulation(ocp: AcadosOcp):
     acados_ocp_solver = AcadosOcpSolver(ocp, json_file="acados_ocp_" + ocp.model.name + ".json")
-    acados_integrator = AcadosSimSolver(ocp, json_file="acados_ocp_" + ocp.model.name + ".json")
-    # TODO: change to AcadosSim with different time step
 
-    N_sim = 100
+    acados_sim = AcadosSim()
+    acados_sim.model = create_acados_model()
+    acados_sim.dims.N = nmpc_params["N_node"]
+    n_params = acados_sim.model.p.size()[0]
+    acados_sim.dims.np = n_params
+    acados_sim.parameter_values = np.zeros(n_params)
+    acados_sim.solver_options.T = ts_sim
+    acados_sim_solver = AcadosSimSolver(acados_sim, json_file="acados_ocp_" + ocp.model.name + ".json")
+
     nx = ocp.model.x.size()[0]
     nu = ocp.model.u.size()[0]
+
+    N_sim = int(t_total_sim / ts_sim)
 
     x_sim_all = np.ndarray((N_sim + 1, nx))
     u_sim_all = np.ndarray((N_sim, nu))
 
     x_current = x_init
     x_sim_all[0, :] = x_current
+    u0 = np.zeros((nu,))
 
     # ============ initialize =============
+    # - ocp
     for stage in range(acados_ocp_solver.N + 1):
-        acados_ocp_solver.set(stage, "x", 0.0 * np.ones(x_current.shape))
+        acados_ocp_solver.set(stage, "x", x_current)
     for stage in range(acados_ocp_solver.N):
-        acados_ocp_solver.set(stage, "u", np.zeros((nu,)))
+        acados_ocp_solver.set(stage, "u", u0)
 
+    # - sim is initialized during the while loop
     # ============ update =============
     # get x and u, set reference
     xr = np.zeros([acados_ocp_solver.N + 1, 17])
@@ -449,77 +465,133 @@ def closed_loop_simulation(ocp: AcadosOcp):
     ur = np.zeros([acados_ocp_solver.N, 8])
     ur[:, 0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4   # TODO: consider remove this line
 
+    t_ctl = 0.0
     for i in range(N_sim):
+        t_ctl += ts_sim
 
         # -------- update solver --------
-        for j in range(acados_ocp_solver.N):
-            yr = np.concatenate((xr[j, :], ur[j, :]))
-            acados_ocp_solver.set(j, "yref", yr)
+        if t_ctl >= nmpc_params["T_samp"]:
+            t_ctl = 0.0
 
-            quaternion_r = xr[j, 6:10]
-            acados_ocp_solver.set(j, "p", quaternion_r)  # for nonlinear quaternion error
-        acados_ocp_solver.set(acados_ocp_solver.N, "yref", xr[acados_ocp_solver.N, :])  # final state of x, no u
+            for j in range(acados_ocp_solver.N):
+                yr = np.concatenate((xr[j, :], ur[j, :]))
+                acados_ocp_solver.set(j, "yref", yr)
 
-        quaternion_r = xr[acados_ocp_solver.N, 6:10]
-        acados_ocp_solver.set(acados_ocp_solver.N, "p", quaternion_r)  # for nonlinear quaternion error
+                quaternion_r = xr[j, 6:10]
+                acados_ocp_solver.set(j, "p", quaternion_r)  # for nonlinear quaternion error
+            acados_ocp_solver.set(acados_ocp_solver.N, "yref", xr[acados_ocp_solver.N, :])  # final state of x, no u
 
-        # feedback, take the first action
-        u0 = acados_ocp_solver.solve_for_x0(x_current)
-        if acados_ocp_solver.status != 0:
-            raise Exception("acados acados_ocp_solver returned status {}. Exiting.".format(acados_ocp_solver.status))
+            quaternion_r = xr[acados_ocp_solver.N, 6:10]
+            acados_ocp_solver.set(acados_ocp_solver.N, "p", quaternion_r)  # for nonlinear quaternion error
+
+            # feedback, take the first action
+            u0 = acados_ocp_solver.solve_for_x0(x_current)
+            if acados_ocp_solver.status != 0:
+                raise Exception(
+                    "acados acados_ocp_solver returned status {}. Exiting.".format(acados_ocp_solver.status)
+                )
+
         u_sim_all[i, :] = u0
 
         # --------- update simulation ----------
-        acados_integrator.set("x", x_current)
-        acados_integrator.set("u", u0)
-        status = acados_integrator.solve()
+        acados_sim_solver.set("x", x_current)
+        acados_sim_solver.set("u", u0)
+        status = acados_sim_solver.solve()
         if status != 0:
             raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
 
         # update state
-        x_current = acados_integrator.get("x")
+        x_current = acados_sim_solver.get("x")
         x_sim_all[i + 1, :] = x_current
 
     # plot
     import matplotlib.pyplot as plt
 
-    fig = plt.figure(figsize=(10, 10))
-    fig.suptitle(f"NMPC closed-loop sim with servo delay {t_servo} s and servo angle limit {nmpc_params['a_max']} rad")
+    fig = plt.figure(figsize=(20, 10))
+    ts_ctrl = nmpc_params["T_samp"]
+    fig.suptitle(
+        f"NMPC closed-loop sim with ts_sim = {ts_sim} s and ts_ctrl = {ts_ctrl} s\n"
+        f"servo delay {t_servo} s and servo angle limit {nmpc_params['a_max']} rad"
+    )
 
-    plt.subplot(4, 1, 1)
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 0], label="x")
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 1], label="y")
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 2], label="z")
+    plt.subplot(4, 2, 1)
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 0], label="x")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 1], label="y")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 2], label="z")
     plt.legend()
     plt.xlabel("time (s)")
     plt.ylabel("position (m)")
     plt.grid(True)
 
-    plt.subplot(4, 1, 2)
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 13], label="a1")
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 14], label="a2")
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 15], label="a3")
-    plt.plot(np.arange(x_sim_all.shape[0]) * nmpc_params["T_samp"], x_sim_all[:, 16], label="a4")
+    plt.subplot(4, 2, 3)
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 3], label="vx")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 4], label="vy")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 5], label="vz")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("velocity (m/s)")
+    plt.grid(True)
+
+    plt.subplot(4, 2, 5)
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 6], label="qw")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 7], label="qx")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 8], label="qy")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 9], label="qz")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("quaternion")
+    plt.grid(True)
+
+    plt.subplot(4, 2, 7)
+    # use tf2 to convert x_sim_all[:, 6:10] to euler angle
+    euler = np.zeros((x_sim_all.shape[0], 3))
+    for i in range(x_sim_all.shape[0]):
+        qwxyz = x_sim_all[i, 6:10]
+        qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
+        euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, euler[:, 0], label="roll")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, euler[:, 1], label="pitch")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, euler[:, 2], label="yaw")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("euler angle (rad)")
+    plt.grid(True)
+
+    plt.subplot(4, 2, 2)
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 10], label="wx")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 11], label="wy")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 12], label="wz")
+    plt.legend()
+    plt.xlabel("time (s)")
+    plt.ylabel("body rate (rad/s)")
+    plt.grid(True)
+
+    plt.subplot(4, 2, 4)
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 13], label="a1")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 14], label="a2")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 15], label="a3")
+    plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 16], label="a4")
     plt.legend()
     plt.xlabel("time (s)")
     plt.ylabel("servo angle (rad)")
     plt.grid(True)
 
-    plt.subplot(4, 1, 3)
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 0], label="ft1")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 1], label="ft2")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 2], label="ft3")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 3], label="ft4")
+    plt.subplot(4, 2, 6)
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 0], label="ft1")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 1], label="ft2")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 2], label="ft3")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 3], label="ft4")
     plt.legend()
     plt.xlabel("time (s)")
     plt.ylabel("thrust (N)")
     plt.grid(True)
 
-    plt.subplot(4, 1, 4)
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 4], label="a1c")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 5], label="a2c")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 6], label="a3c")
-    plt.plot(np.arange(u_sim_all.shape[0]) * nmpc_params["T_samp"], u_sim_all[:, 7], label="a4c")
+    plt.subplot(4, 2, 8)
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 4], label="a1c")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 5], label="a2c")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 6], label="a3c")
+    plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 7], label="a4c")
     plt.legend()
     plt.xlabel("time (s)")
     plt.ylabel("servo angle cmd (rad)")
