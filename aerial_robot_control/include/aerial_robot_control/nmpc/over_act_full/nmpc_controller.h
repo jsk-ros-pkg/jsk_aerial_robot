@@ -77,7 +77,7 @@ protected:
   bool is_debug;
 
   virtual void controlCore();
-  virtual void sendFlightCmd();
+  virtual void SendCmd();
 
 private:
   double mass_;
@@ -90,6 +90,7 @@ private:
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;
+  sensor_msgs::JointState gimbal_ctrl_cmd_;
 
   MPCSolver mpc_solver_;
 

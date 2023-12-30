@@ -79,7 +79,7 @@ bool nmpc_over_act_full::NMPCController::update()
     return false;
 
   this->controlCore();
-  this->sendFlightCmd();
+  this->SendCmd();
 
   return true;
 }
@@ -237,33 +237,33 @@ void nmpc_over_act_full::NMPCController::controlCore()
       flight_cmd_.base_thrust[i] = static_cast<float>(
           flight_cmd_.base_thrust[i] + (target_thrusts(i) - flight_cmd_.base_thrust[i]) * thrust_scale_ratio);
     }
-
-    // - servo angle
-    double a1c = mpc_solver_.x_u_out_.u.data.at(4);
-    double a2c = mpc_solver_.x_u_out_.u.data.at(5);
-    double a3c = mpc_solver_.x_u_out_.u.data.at(6);
-    double a4c = mpc_solver_.x_u_out_.u.data.at(7);
-
-    sensor_msgs::JointState gimbal_control_msg;
-    gimbal_control_msg.header.stamp = ros::Time::now();
-    gimbal_control_msg.position.push_back(a1c);
-    gimbal_control_msg.position.push_back(a2c);
-    gimbal_control_msg.position.push_back(a3c);
-    gimbal_control_msg.position.push_back(a4c);
-    pub_gimbal_control_.publish(gimbal_control_msg);
-
-    return;
   }
-
-  for (int i = 0; i < motor_num_; i++)
+  else
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
+    for (int i = 0; i < motor_num_; i++)
+    {
+      flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
+    }
   }
+
+  // - servo angle
+  double a1c = mpc_solver_.x_u_out_.u.data.at(4);
+  double a2c = mpc_solver_.x_u_out_.u.data.at(5);
+  double a3c = mpc_solver_.x_u_out_.u.data.at(6);
+  double a4c = mpc_solver_.x_u_out_.u.data.at(7);
+
+  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
+  gimbal_ctrl_cmd_.position.clear();
+  gimbal_ctrl_cmd_.position.push_back(a1c);
+  gimbal_ctrl_cmd_.position.push_back(a2c);
+  gimbal_ctrl_cmd_.position.push_back(a3c);
+  gimbal_ctrl_cmd_.position.push_back(a4c);
 }
 
-void nmpc_over_act_full::NMPCController::sendFlightCmd()
+void nmpc_over_act_full::NMPCController::SendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
+  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 /**
