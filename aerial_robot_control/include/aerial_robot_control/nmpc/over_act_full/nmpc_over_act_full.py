@@ -52,7 +52,7 @@ u_init[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
 
 # sim
 ts_sim = 0.005
-t_total_sim = 5.0
+t_total_sim = 15.0
 
 t_sqp_start = 2.5
 t_sqp_end = 3.0
@@ -114,10 +114,10 @@ def create_acados_ocp() -> AcadosOcp:
             nmpc_params["Rt"],
             nmpc_params["Rt"],
             nmpc_params["Rt"],
-            nmpc_params["Rac"],
-            nmpc_params["Rac"],
-            nmpc_params["Rac"],
-            nmpc_params["Rac"],
+            nmpc_params["Rac_v"],
+            nmpc_params["Rac_v"],
+            nmpc_params["Rac_v"],
+            nmpc_params["Rac_v"],
         ]
     )
     print("R: \n", R)
@@ -479,6 +479,21 @@ def closed_loop_simulation(ocp: AcadosOcp):
 
         if t_now >= t_sqp_end:
             acados_ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
+
+        if t_now >= 3.0:
+            assert t_sqp_end <= 3.0
+            xr[:, 0] = 1.0  # x -> 1.0 m
+            xr[:, 1] = 1.0  # y -> 1.0 m
+
+        if t_now >= 5.5:
+            roll = 30.0 / 180.0 * np.pi
+            pitch = 0.0 / 180.0 * np.pi
+            yaw = 0.0 / 180.0 * np.pi
+            q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+            xr[:, 6] = q[3]  # qw
+            xr[:, 7] = q[0]  # qx
+            xr[:, 8] = q[1]  # qy
+            xr[:, 9] = q[2]  # qz
 
         # -------- update solver --------
         if t_ctl >= nmpc_params["T_samp"]:

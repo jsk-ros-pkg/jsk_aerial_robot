@@ -36,17 +36,17 @@ controller:
     a_min: -1.5708
 
     # params for the cost function
-    Qp_xy: 300  # 0
-    Qp_z: 400  # 500
-    Qv_xy: 10  # 0
-    Qv_z: 10  # 100
-    Qq_xy: 300  # 400
+    Qp_xy: 300
+    Qp_z: 400
+    Qv_xy: 10
+    Qv_z: 10
+    Qq_xy: 300
     Qq_z: 300
     Qw_xy: 5
     Qw_z: 5
-    Qa: 5
+    Qa: 0
     Rt: 1
-    Rac: 1
+    Rac_v: 10
 
     # for body_rate controller
     roll_rate_p_gain: 0.0
