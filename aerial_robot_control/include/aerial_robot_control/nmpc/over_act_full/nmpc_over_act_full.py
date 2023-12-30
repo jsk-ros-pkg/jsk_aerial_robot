@@ -54,6 +54,9 @@ u_init[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
 ts_sim = 0.005
 t_total_sim = 5.0
 
+t_sqp_start = 2.5
+t_sqp_end = 3.0
+
 
 def create_acados_ocp() -> AcadosOcp:
     opt_model = create_acados_model()
@@ -467,7 +470,15 @@ def closed_loop_simulation(ocp: AcadosOcp):
 
     t_ctl = 0.0
     for i in range(N_sim):
+        t_now = i * ts_sim
         t_ctl += ts_sim
+
+        # -------- update solver --------
+        if t_now >= t_sqp_start:
+            acados_ocp_solver.solver_options["nlp_solver_type"] = "SQP"
+
+        if t_now >= t_sqp_end:
+            acados_ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
 
         # -------- update solver --------
         if t_ctl >= nmpc_params["T_samp"]:
@@ -521,6 +532,10 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.legend()
     plt.xlabel("time (s)")
     plt.ylabel("position (m)")
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+    plt.text(1.5, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
+    plt.text((t_sqp_start + t_sqp_end) / 2, 0.5, "SQP", horizontalalignment="center", verticalalignment="center")
+    plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
     plt.grid(True)
 
     plt.subplot(4, 2, 3)
@@ -531,6 +546,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("velocity (m/s)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 5)
     plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 6], label="qw")
@@ -541,6 +557,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("quaternion")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 7)
     # use tf2 to convert x_sim_all[:, 6:10] to euler angle
@@ -557,6 +574,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("euler angle (rad)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 2)
     plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 10], label="wx")
@@ -566,6 +584,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("body rate (rad/s)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 4)
     plt.plot(np.arange(x_sim_all.shape[0]) * ts_sim, x_sim_all[:, 13], label="a1")
@@ -576,6 +595,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("servo angle (rad)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 6)
     plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 0], label="ft1")
@@ -586,6 +606,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("thrust (N)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.subplot(4, 2, 8)
     plt.plot(np.arange(u_sim_all.shape[0]) * ts_sim, u_sim_all[:, 4], label="a1c")
@@ -596,6 +617,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     plt.xlabel("time (s)")
     plt.ylabel("servo angle cmd (rad)")
     plt.grid(True)
+    plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
