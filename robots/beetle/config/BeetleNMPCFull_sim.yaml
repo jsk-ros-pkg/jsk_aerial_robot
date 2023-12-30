@@ -15,7 +15,8 @@ controller:
     p4: [ 0.132585, -0.137979, -0.0154202 ] # position of motor 4
     kq_d_kt: 0.0171998
 
-    t_servo: 0.15 # sec  TODO: check
+    # the identified parameters are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
+    t_servo: 0.63 # sec
 
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
@@ -46,7 +47,7 @@ controller:
     Qw_z: 5
     Qa: 0
     Rt: 1
-    Rac_v: 10
+    Rac_d: 50  # difference of ac
 
     # for body_rate controller
     roll_rate_p_gain: 0.0

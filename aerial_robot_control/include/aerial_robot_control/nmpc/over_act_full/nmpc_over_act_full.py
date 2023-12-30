@@ -114,10 +114,10 @@ def create_acados_ocp() -> AcadosOcp:
             nmpc_params["Rt"],
             nmpc_params["Rt"],
             nmpc_params["Rt"],
-            nmpc_params["Rac_v"],
-            nmpc_params["Rac_v"],
-            nmpc_params["Rac_v"],
-            nmpc_params["Rac_v"],
+            nmpc_params["Rac_d"],
+            nmpc_params["Rac_d"],
+            nmpc_params["Rac_d"],
+            nmpc_params["Rac_d"],
         ]
     )
     print("R: \n", R)
