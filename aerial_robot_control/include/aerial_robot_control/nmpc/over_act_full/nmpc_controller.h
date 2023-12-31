@@ -27,6 +27,7 @@
 #include "spinal/RollPitchYawTerms.h"
 #include "spinal/PMatrixPseudoInverseWithInertia.h"
 #include "spinal/SetControlMode.h"
+#include "spinal/DesireCoord.h"
 
 /* action */
 #include "actionlib/server/simple_action_server.h"
@@ -54,6 +55,7 @@ public:
   void reset() override;
   void callbackViz(const ros::TimerEvent& event);
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
+  void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
 
   void sendRPYGain();
   void sendRotationalInertiaComp();
@@ -71,6 +73,7 @@ protected:
   ros::ServiceClient srv_set_control_mode_;
 
   ros::Subscriber sub_joint_states_;
+  ros::Subscriber sub_set_rpy_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;

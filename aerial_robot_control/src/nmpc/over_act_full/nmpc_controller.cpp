@@ -50,6 +50,7 @@ void nmpc_over_act_full::NMPCController::initialize(
 
   /* subscribers */
   sub_joint_states_ = nh_.subscribe("joint_states", 5, &NMPCController::callbackJointStates, this);
+  sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &NMPCController::callbackSetRPY, this);
 
   reset();
 
@@ -170,9 +171,30 @@ void nmpc_over_act_full::NMPCController::controlCore()
 
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  double x[NX] = {
-    target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-  };
+  tf::Vector3 target_vel_ = navigator_->getTargetVel();
+  tf::Vector3 target_rpy = navigator_->getTargetRPY();
+  tf::Vector3 target_omega = navigator_->getTargetOmega();
+
+  tf::Quaternion q;
+  q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+
+  double x[NX] = { target_pos_.x(),
+                   target_pos_.y(),
+                   target_pos_.z(),
+                   0.0,  // target_vel_.x(),
+                   0.0,  // target_vel_.y(),
+                   0.0,  // target_vel_.z(),
+                   q.w(),
+                   q.x(),
+                   q.y(),
+                   q.z(),
+                   0.0,  // target_omega.x(),
+                   0.0,  // target_omega.y(),
+                   0.0,  // target_omega.z(),
+                   0.0,
+                   0.0,
+                   0.0,
+                   0.0 };
   double each_thrust_hovering = mass_ * gravity_const_ / 4;
   double u[NU] = {
     each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
@@ -314,6 +336,14 @@ void nmpc_over_act_full::NMPCController::callbackJointStates(const sensor_msgs::
   joint_angles_[1] = msg->position[1];
   joint_angles_[2] = msg->position[2];
   joint_angles_[3] = msg->position[3];
+}
+
+/* TODO: this function is just for test. We may need a more general function to set all kinds of state */
+void nmpc_over_act_full::NMPCController::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
+{
+  navigator_->setTargetRoll(msg->roll);
+  navigator_->setTargetPitch(msg->pitch);
+  navigator_->setTargetYaw(msg->yaw);
 }
 
 void nmpc_over_act_full::NMPCController::sendRPYGain()
