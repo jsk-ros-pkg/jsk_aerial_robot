@@ -324,10 +324,10 @@ def create_acados_model() -> AcadosModel:
         + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
         + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
         + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-        + ca.cross(np.array(p1_b), ft_r1)
-        + ca.cross(np.array(p2_b), ft_r2)
-        + ca.cross(np.array(p3_b), ft_r3)
-        + ca.cross(np.array(p4_b), ft_r4)
+        + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+        + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+        + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+        + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
     )
 
     # dynamic model
