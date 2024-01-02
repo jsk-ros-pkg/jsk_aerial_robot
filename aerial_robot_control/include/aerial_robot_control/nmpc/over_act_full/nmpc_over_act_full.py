@@ -428,10 +428,9 @@ def safe_mkdir_recursive(directory, overwrite=False):
                 print("Error while removing directory {}".format(directory))
 
 
-def get_xr_ur_from_target(ocp_N, alloc_mat, target_pos, target_qwxyz, target_wrench):
-    # alloc_mat_pinv = np.linalg.pinv(alloc_mat)
-    # x = alloc_mat_pinv @ target_wrench
-    x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+def get_xr_ur_from_target(ocp_N, alloc_mat_pinv, target_pos, target_qwxyz, target_wrench):
+    # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+    x = alloc_mat_pinv @ target_wrench
 
     a1_ref = np.arctan2(x[0, 0], x[1, 0])
     ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
@@ -554,10 +553,12 @@ def closed_loop_simulation(ocp: AcadosOcp):
     alloc_mat[4, 7] = -p4_b[0]
     alloc_mat[5, 7] = -dr4 * kq_d_kt
 
+    alloc_mat_pinv = np.linalg.pinv(alloc_mat)
+
     target_pos = np.array([[0, 0, 1]]).T
     target_qwxyz = np.array([[1, 0, 0, 0]]).T
     target_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
-    xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat, target_pos, target_qwxyz, target_wrench)
+    xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat_pinv, target_pos, target_qwxyz, target_wrench)
 
     t_ctl = 0.0
     for i in range(N_sim):
@@ -575,7 +576,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
             assert t_sqp_end <= 3.0
             target_pos = np.array([[1.0, 1.0, 1.0]]).T
             target_qwxyz = np.array([[1, 0, 0, 0]]).T
-            xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat, target_pos, target_qwxyz, target_wrench)
+            xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat_pinv, target_pos, target_qwxyz, target_wrench)
 
         if t_now >= 5.5:
             roll = 30.0 / 180.0 * np.pi
@@ -592,7 +593,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
             fg_b = rot @ fg_i
             target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
-            xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat, target_pos, target_qwxyz, target_wrench)
+            xr, ur = get_xr_ur_from_target(acados_ocp_solver.N, alloc_mat_pinv, target_pos, target_qwxyz, target_wrench)
 
         # -------- update solver --------
         if t_ctl >= nmpc_params["T_samp"]:
