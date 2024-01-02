@@ -3,7 +3,7 @@ aerial_robot_control_name: aerial_robot_control/over_act_full/nmpc_controller
 controller:
   physical:
     mass: 2.99194 # kg
-    gravity: 9.798 # m/s^2
+    gravity: 9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
     inertia_diag: [ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
     dr1: -1  # direction of motor 1
     p1: [ 0.132567, 0.137668, -0.0154203 ] # position of motor 1

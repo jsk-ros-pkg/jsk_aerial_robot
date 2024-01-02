@@ -25,8 +25,8 @@ void nmpc_over_act_full::NMPCController::initialize(
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
 
-  getParam<double>(control_nh, "nmpc/mass", mass_, 0.5);
-  getParam<double>(control_nh, "nmpc/gravity_const", gravity_const_, 9.81);
+  getParam<double>(control_nh, "physical/mass", mass_, 0.5);
+  getParam<double>(control_nh, "physical/gravity_const", gravity_const_, 9.81);
 
   getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
@@ -119,10 +119,7 @@ void nmpc_over_act_full::NMPCController::reset()
     joint_angles_[2],
     joint_angles_[3],
   };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4.0;
-  double u[NU] = {
-    each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
-  };
+  double u[NU] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
   initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
   {
