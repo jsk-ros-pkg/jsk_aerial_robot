@@ -79,6 +79,14 @@ bool nmpc_over_act_full::NMPCController::update()
   if (!ControlBase::update())
     return false;
 
+  /* TODO: these code should be initialized in init(). put here because of beetle's slow parameter init */
+  if (!is_init_alloc_mat_)
+  {
+    is_init_alloc_mat_ = true;
+    alloc_mat_.setZero();
+    initAllocMat();
+  }
+
   this->controlCore();
   this->SendCmd();
 
@@ -140,46 +148,28 @@ void nmpc_over_act_full::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
 
   /* set target */
-  tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  tf::Vector3 target_vel_ = navigator_->getTargetVel();
+  tf::Vector3 target_pos = navigator_->getTargetPos();
+  tf::Vector3 target_vel = navigator_->getTargetVel();
   tf::Vector3 target_rpy = navigator_->getTargetRPY();
   tf::Vector3 target_omega = navigator_->getTargetOmega();
 
+  /* calc target wrench in the body frame */
+  Eigen::VectorXd fg_i = Eigen::VectorXd::Zero(3);
+  fg_i(2) = mass_ * gravity_const_;
+
+  // coordinate transformation
   tf::Quaternion q;
   q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+  tf::Quaternion q_inv = q.inverse();
 
-  double x[NX] = { target_pos_.x(),
-                   target_pos_.y(),
-                   target_pos_.z(),
-                   0.0,  // target_vel_.x(),
-                   0.0,  // target_vel_.y(),
-                   0.0,  // target_vel_.z(),
-                   q.w(),
-                   q.x(),
-                   q.y(),
-                   q.z(),
-                   0.0,  // target_omega.x(),
-                   0.0,  // target_omega.y(),
-                   0.0,  // target_omega.z(),
-                   0.0,
-                   0.0,
-                   0.0,
-                   0.0 };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = {
-    each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, 0.0, 0.0, 0.0, 0.0
-  };
+  Eigen::Matrix3d rot;
+  tf::matrixTFToEigen(tf::Transform(q_inv).getBasis(), rot);
+  Eigen::VectorXd fg_b = rot * fg_i;
 
-  for (int i = 0; i < NN; i++)
-  {
-    // shift one step
-    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
-              x_u_ref_.x.data.begin() + NX * i);
-    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
-              x_u_ref_.u.data.begin() + NU * i);
-  }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
+  Eigen::VectorXd target_wrench(6);
+  target_wrench << fg_b(0), fg_b(1), fg_b(2), 0, 0, 0;
+
+  calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
 
   /* solve */
   mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug);
@@ -392,6 +382,116 @@ void nmpc_over_act_full::NMPCController::sendRotationalInertiaComp()
   p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
 
   pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
+}
+
+void nmpc_over_act_full::NMPCController::initAllocMat()
+{
+  const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  Eigen::Vector3d p1_b = rotor_p[0];
+  Eigen::Vector3d p2_b = rotor_p[1];
+  Eigen::Vector3d p3_b = rotor_p[2];
+  Eigen::Vector3d p4_b = rotor_p[3];
+
+  const map<int, int> rotor_dr = robot_model_->getRotorDirection();
+  int dr1 = rotor_dr.find(1)->second;
+  int dr2 = rotor_dr.find(2)->second;
+  int dr3 = rotor_dr.find(3)->second;
+  int dr4 = rotor_dr.find(4)->second;
+
+  double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
+
+  double sqrt_p1b_xy = sqrt(p1_b.x() * p1_b.x() + p1_b.y() * p1_b.y());
+  double sqrt_p2b_xy = sqrt(p2_b.x() * p2_b.x() + p2_b.y() * p2_b.y());
+  double sqrt_p3b_xy = sqrt(p3_b.x() * p3_b.x() + p3_b.y() * p3_b.y());
+  double sqrt_p4b_xy = sqrt(p4_b.x() * p4_b.x() + p4_b.y() * p4_b.y());
+
+  // - force
+  alloc_mat_(0, 0) = p1_b.y() / sqrt_p1b_xy;
+  alloc_mat_(1, 0) = -p1_b.x() / sqrt_p1b_xy;
+  alloc_mat_(2, 1) = 1;
+
+  alloc_mat_(0, 2) = p2_b.y() / sqrt_p2b_xy;
+  alloc_mat_(1, 2) = -p2_b.x() / sqrt_p2b_xy;
+  alloc_mat_(2, 3) = 1;
+
+  alloc_mat_(0, 4) = p3_b.y() / sqrt_p3b_xy;
+  alloc_mat_(1, 4) = -p3_b.x() / sqrt_p3b_xy;
+  alloc_mat_(2, 5) = 1;
+
+  alloc_mat_(0, 6) = p4_b.y() / sqrt_p4b_xy;
+  alloc_mat_(1, 6) = -p4_b.x() / sqrt_p4b_xy;
+  alloc_mat_(2, 7) = 1;
+
+  // - torque
+  alloc_mat_(3, 0) = -dr1 * kq_d_kt * p1_b.y() / sqrt_p1b_xy + p1_b.x() * p1_b.z() / sqrt_p1b_xy;
+  alloc_mat_(4, 0) = dr1 * kq_d_kt * p1_b.x() / sqrt_p1b_xy + p1_b.y() * p1_b.z() / sqrt_p1b_xy;
+  alloc_mat_(5, 0) = -p1_b.x() * p1_b.x() / sqrt_p1b_xy - p1_b.y() * p1_b.y() / sqrt_p1b_xy;
+
+  alloc_mat_(3, 1) = p1_b.y();
+  alloc_mat_(4, 1) = -p1_b.x();
+  alloc_mat_(5, 1) = -dr1 * kq_d_kt;
+
+  alloc_mat_(3, 2) = -dr2 * kq_d_kt * p2_b.y() / sqrt_p2b_xy + p2_b.x() * p2_b.z() / sqrt_p2b_xy;
+  alloc_mat_(4, 2) = dr2 * kq_d_kt * p2_b.x() / sqrt_p2b_xy + p2_b.y() * p2_b.z() / sqrt_p2b_xy;
+  alloc_mat_(5, 2) = -p2_b.x() * p2_b.x() / sqrt_p2b_xy - p2_b.y() * p2_b.y() / sqrt_p2b_xy;
+
+  alloc_mat_(3, 3) = p2_b.y();
+  alloc_mat_(4, 3) = -p2_b.x();
+  alloc_mat_(5, 3) = -dr2 * kq_d_kt;
+
+  alloc_mat_(3, 4) = -dr3 * kq_d_kt * p3_b.y() / sqrt_p3b_xy + p3_b.x() * p3_b.z() / sqrt_p3b_xy;
+  alloc_mat_(4, 4) = dr3 * kq_d_kt * p3_b.x() / sqrt_p3b_xy + p3_b.y() * p3_b.z() / sqrt_p3b_xy;
+  alloc_mat_(5, 4) = -p3_b.x() * p3_b.x() / sqrt_p3b_xy - p3_b.y() * p3_b.y() / sqrt_p3b_xy;
+
+  alloc_mat_(3, 5) = p3_b.y();
+  alloc_mat_(4, 5) = -p3_b.x();
+  alloc_mat_(5, 5) = -dr3 * kq_d_kt;
+
+  alloc_mat_(3, 6) = -dr4 * kq_d_kt * p4_b.y() / sqrt_p4b_xy + p4_b.x() * p4_b.z() / sqrt_p4b_xy;
+  alloc_mat_(4, 6) = dr4 * kq_d_kt * p4_b.x() / sqrt_p4b_xy + p4_b.y() * p4_b.z() / sqrt_p4b_xy;
+  alloc_mat_(5, 6) = -p4_b.x() * p4_b.x() / sqrt_p4b_xy - p4_b.y() * p4_b.y() / sqrt_p4b_xy;
+
+  alloc_mat_(3, 7) = p4_b.y();
+  alloc_mat_(4, 7) = -p4_b.x();
+  alloc_mat_(5, 7) = -dr4 * kq_d_kt;
+
+  alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
+}
+
+void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
+                                                    const Eigen::VectorXd& target_wrench)
+{
+  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
+  double a1_ref = atan2(x_lambda(0), x_lambda(1));
+  double ft1_ref = sqrt(x_lambda(0) * x_lambda(0) + x_lambda(1) * x_lambda(1));
+  double a2_ref = atan2(x_lambda(2), x_lambda(3));
+  double ft2_ref = sqrt(x_lambda(2) * x_lambda(2) + x_lambda(3) * x_lambda(3));
+  double a3_ref = atan2(x_lambda(4), x_lambda(5));
+  double ft3_ref = sqrt(x_lambda(4) * x_lambda(4) + x_lambda(5) * x_lambda(5));
+  double a4_ref = atan2(x_lambda(6), x_lambda(7));
+  double ft4_ref = sqrt(x_lambda(6) * x_lambda(6) + x_lambda(7) * x_lambda(7));
+
+  tf::Quaternion q;
+  q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+
+  double x[NX] = {
+    target_pos.x(), target_pos.y(), target_pos.z(), target_vel.x(),   target_vel.y(),   target_vel.z(),   q.w(),
+    q.x(),          q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,
+    a2_ref,         a3_ref,         a4_ref
+  };
+  double u[NU] = { ft1_ref, ft2_ref, ft3_ref, ft4_ref, 0.0, 0.0, 0.0, 0.0 };
+
+  for (int i = 0; i < NN; i++)
+  {
+    // shift one step
+    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
+              x_u_ref_.x.data.begin() + NX * i);
+    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
+              x_u_ref_.u.data.begin() + NU * i);
+  }
+  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
+  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 }
 
 void nmpc_over_act_full::NMPCController::printPhysicalParams()

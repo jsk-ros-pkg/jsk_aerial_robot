@@ -15,6 +15,7 @@
 // #include <aerial_robot_control/PIDConfig.h>
 
 #include "angles/angles.h"
+#include "tf_conversions/tf_eigen.h"
 #include "dynamic_reconfigure/server.h"
 // using PidControlDynamicConfig =
 // dynamic_reconfigure::Server<aerial_robot_control::PIDConfig>;
@@ -84,6 +85,10 @@ private:
 
   double joint_angles_[4] = { 0.0, 0.0, 0.0, 0.0 };
 
+  bool is_init_alloc_mat_ = false;  // TODO: tmp values
+  Eigen::Matrix<double, 6, 8> alloc_mat_;
+  Eigen::MatrixXd alloc_mat_pinv_;
+
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;
@@ -98,6 +103,11 @@ private:
 
   void sendRPYGain();
   void sendRotationalInertiaComp();
+
+  void initAllocMat();
+  void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
+                  const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
+
   void printPhysicalParams();
 };
 
