@@ -137,33 +137,6 @@ void nmpc_over_act_full::NMPCController::reset()
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 }
 
-nav_msgs::Odometry nmpc_over_act_full::NMPCController::getOdom()
-{
-  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
-  tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
-  tf::Quaternion q;
-  q.setRPY(rpy.x(), rpy.y(), rpy.z());
-
-  nav_msgs::Odometry odom;
-  odom.pose.pose.position.x = pos.x();
-  odom.pose.pose.position.y = pos.y();
-  odom.pose.pose.position.z = pos.z();
-  odom.pose.pose.orientation.w = q.w();
-  odom.pose.pose.orientation.x = q.x();
-  odom.pose.pose.orientation.y = q.y();
-  odom.pose.pose.orientation.z = q.z();
-  odom.twist.twist.linear.x = vel.x();
-  odom.twist.twist.linear.y = vel.y();
-  odom.twist.twist.linear.z = vel.z();
-  odom.twist.twist.angular.x = omega.x();
-  odom.twist.twist.angular.y = omega.y();
-  odom.twist.twist.angular.z = omega.z();
-
-  return odom;
-}
-
 void nmpc_over_act_full::NMPCController::controlCore()
 {
   /* get odom information */
@@ -286,6 +259,33 @@ void nmpc_over_act_full::NMPCController::SendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
+}
+
+nav_msgs::Odometry nmpc_over_act_full::NMPCController::getOdom()
+{
+  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
+  tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+  tf::Quaternion q;
+  q.setRPY(rpy.x(), rpy.y(), rpy.z());
+
+  nav_msgs::Odometry odom;
+  odom.pose.pose.position.x = pos.x();
+  odom.pose.pose.position.y = pos.y();
+  odom.pose.pose.position.z = pos.z();
+  odom.pose.pose.orientation.w = q.w();
+  odom.pose.pose.orientation.x = q.x();
+  odom.pose.pose.orientation.y = q.y();
+  odom.pose.pose.orientation.z = q.z();
+  odom.twist.twist.linear.x = vel.x();
+  odom.twist.twist.linear.y = vel.y();
+  odom.twist.twist.linear.z = vel.z();
+  odom.twist.twist.angular.x = omega.x();
+  odom.twist.twist.angular.y = omega.y();
+  odom.twist.twist.angular.z = omega.z();
+
+  return odom;
 }
 
 /**

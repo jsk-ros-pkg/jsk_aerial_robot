@@ -53,12 +53,6 @@ public:
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
   bool update() override;
   void reset() override;
-  void callbackViz(const ros::TimerEvent& event);
-  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
-  void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
-
-  void sendRPYGain();
-  void sendRotationalInertiaComp();
 
 protected:
   ros::Timer tmr_viz_;
@@ -98,6 +92,12 @@ private:
   MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
+  void callbackViz(const ros::TimerEvent& event);
+  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
+  void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
+
+  void sendRPYGain();
+  void sendRotationalInertiaComp();
   void printPhysicalParams();
 };
 

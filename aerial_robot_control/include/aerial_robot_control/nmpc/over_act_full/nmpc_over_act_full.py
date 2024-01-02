@@ -503,6 +503,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
     sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
     sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
     sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+
     # - force
     alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
     alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
