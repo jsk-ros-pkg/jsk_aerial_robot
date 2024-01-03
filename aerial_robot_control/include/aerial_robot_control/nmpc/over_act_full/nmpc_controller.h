@@ -69,10 +69,11 @@ protected:
 
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
+  ros::Subscriber sub_set_ref_traj_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
-  bool is_debug;
+  bool is_debug_;
 
   virtual void controlCore();
   virtual void SendCmd();
@@ -85,9 +86,11 @@ private:
 
   double joint_angles_[4] = { 0.0, 0.0, 0.0, 0.0 };
 
-  bool is_init_alloc_mat_ = false;  // TODO: tmp values
+  bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
   Eigen::Matrix<double, 6, 8> alloc_mat_;
   Eigen::MatrixXd alloc_mat_pinv_;
+
+  bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
 
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
@@ -100,6 +103,7 @@ private:
   void callbackViz(const ros::TimerEvent& event);
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
+  void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
 
   void sendRPYGain();
   void sendRotationalInertiaComp();

@@ -30,7 +30,7 @@ void nmpc_over_act_full::NMPCController::initialize(
 
   getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
-  getParam<bool>(control_nh, "nmpc/is_debug", is_debug, false);
+  getParam<bool>(control_nh, "nmpc/is_debug", is_debug_, false);
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
@@ -51,6 +51,7 @@ void nmpc_over_act_full::NMPCController::initialize(
   /* subscribers */
   sub_joint_states_ = nh_.subscribe("joint_states", 5, &NMPCController::callbackJointStates, this);
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &NMPCController::callbackSetRPY, this);
+  sub_set_ref_traj_ = nh_.subscribe("set_ref_traj", 5, &NMPCController::callbackSetRefTraj, this);
 
   reset();
 
@@ -144,35 +145,38 @@ void nmpc_over_act_full::NMPCController::reset()
 
 void nmpc_over_act_full::NMPCController::controlCore()
 {
+  if (!is_traj_tracking_)
+  {
+    /* point mode --> set target  */
+    tf::Vector3 target_pos = navigator_->getTargetPos();
+    tf::Vector3 target_vel = navigator_->getTargetVel();
+    tf::Vector3 target_rpy = navigator_->getTargetRPY();
+    tf::Vector3 target_omega = navigator_->getTargetOmega();
+
+    /* calc target wrench in the body frame */
+    Eigen::VectorXd fg_i = Eigen::VectorXd::Zero(3);
+    fg_i(2) = mass_ * gravity_const_;
+
+    // coordinate transformation
+    tf::Quaternion q;
+    q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+    tf::Quaternion q_inv = q.inverse();
+
+    Eigen::Matrix3d rot;
+    tf::matrixTFToEigen(tf::Transform(q_inv).getBasis(), rot);
+    Eigen::VectorXd fg_b = rot * fg_i;
+
+    Eigen::VectorXd target_wrench(6);
+    target_wrench << fg_b(0), fg_b(1), fg_b(2), 0, 0, 0;
+
+    calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
+  }
+
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
-  /* set target */
-  tf::Vector3 target_pos = navigator_->getTargetPos();
-  tf::Vector3 target_vel = navigator_->getTargetVel();
-  tf::Vector3 target_rpy = navigator_->getTargetRPY();
-  tf::Vector3 target_omega = navigator_->getTargetOmega();
-
-  /* calc target wrench in the body frame */
-  Eigen::VectorXd fg_i = Eigen::VectorXd::Zero(3);
-  fg_i(2) = mass_ * gravity_const_;
-
-  // coordinate transformation
-  tf::Quaternion q;
-  q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-  tf::Quaternion q_inv = q.inverse();
-
-  Eigen::Matrix3d rot;
-  tf::matrixTFToEigen(tf::Transform(q_inv).getBasis(), rot);
-  Eigen::VectorXd fg_b = rot * fg_i;
-
-  Eigen::VectorXd target_wrench(6);
-  target_wrench << fg_b(0), fg_b(1), fg_b(2), 0, 0, 0;
-
-  calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
-
   /* solve */
-  mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug);
+  mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug_);
 
   /* get result */
   // - body rates
@@ -331,6 +335,12 @@ void nmpc_over_act_full::NMPCController::callbackSetRPY(const spinal::DesireCoor
   navigator_->setTargetRoll(msg->roll);
   navigator_->setTargetPitch(msg->pitch);
   navigator_->setTargetYaw(msg->yaw);
+}
+
+void nmpc_over_act_full::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
+{
+  x_u_ref_ = *msg;
+  is_traj_tracking_ = true;
 }
 
 void nmpc_over_act_full::NMPCController::sendRPYGain()
