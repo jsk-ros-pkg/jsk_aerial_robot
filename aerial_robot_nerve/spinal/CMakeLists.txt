@@ -52,6 +52,7 @@ add_service_files(
   SetAttitudeGains.srv
   ImuCalib.srv
   MagDeclination.srv
+  SetControlMode.srv
 )
 
 generate_messages(
