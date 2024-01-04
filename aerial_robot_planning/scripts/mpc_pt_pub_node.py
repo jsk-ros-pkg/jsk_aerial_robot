@@ -146,6 +146,22 @@ def construct_allocation_mat_pinv():
     return alloc_mat_pinv, alloc_mat
 
 
+class CircleTraj:
+    def __init__(self) -> None:
+        self.r = 1  # radius in meters
+        self.T = 15  # period in seconds
+        self.omega = 2 * np.pi / self.T  # angular velocity
+
+    def get_2d_traj(self, t: float) -> Tuple[float, float, float, float, float, float]:
+        x = self.r * np.cos(self.omega * t) - 1.0
+        y = self.r * np.sin(self.omega * t)
+        vx = -self.r * self.omega * np.sin(self.omega * t)
+        vy = self.r * self.omega * np.cos(self.omega * t)
+        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
+        return x, y, vx, vy, ax, ay
+
+
 class MPCPtPubNode:
     def __init__(self) -> None:
         self.node_name = "mpc_pt_pub_node"
@@ -167,12 +183,18 @@ class MPCPtPubNode:
         self.alloc_mat_pinv, self.alloc_mat = construct_allocation_mat_pinv()
         self.N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
+        # traj
+        self.traj = CircleTraj()
+        self.start_time = rospy.Time.now().to_sec()
+
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
-    def get_xr_ur_from_target(
+    def get_xr_ur_from_one_target(
         self,
         target_pos,
+        target_vel=np.array([[0.0, 0.0, 0.0]]).T,
         target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
+        target_omega=np.array([[0.0, 0.0, 0.0]]).T,
         target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
     ):
         anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
@@ -194,10 +216,16 @@ class MPCPtPubNode:
         xr[:, 0] = target_pos.item(0)  # x
         xr[:, 1] = target_pos.item(1)  # y
         xr[:, 2] = target_pos.item(2)  # z
+        xr[:, 3] = target_vel.item(0)
+        xr[:, 4] = target_vel.item(1)
+        xr[:, 5] = target_vel.item(2)
         xr[:, 6] = target_qwxyz.item(0)  # qw
         xr[:, 7] = target_qwxyz.item(1)  # qx
         xr[:, 8] = target_qwxyz.item(2)  # qy
         xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 10] = target_omega.item(0)
+        xr[:, 11] = target_omega.item(1)
+        xr[:, 12] = target_omega.item(2)
         xr[:, 13] = a1_ref
         xr[:, 14] = a2_ref
         xr[:, 15] = a3_ref
@@ -220,10 +248,18 @@ class MPCPtPubNode:
             )
 
         # 2. calculate the reference points
-        target_pos = np.array([[0, 0, 0.5]]).T
+        x, y, vx, vy, ax, ay = self.traj.get_2d_traj(rospy.Time.now().to_sec() - self.start_time)
+
+        target_pos = np.array([[x, y, 1.0]]).T
+        target_vel = np.array([[vx, vy, 0.0]]).T
         target_qwxyz = np.array([[1, 0, 0, 0]]).T
-        target_non_gravity_wrench = np.array([[0, 0, 0, 0, 0, 0]]).T
-        x_ref, u_ref = self.get_xr_ur_from_target(target_pos, target_qwxyz, target_non_gravity_wrench)
+        target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
+        x_ref, u_ref = self.get_xr_ur_from_one_target(
+            target_pos=target_pos,
+            target_vel=target_vel,
+            target_qwxyz=target_qwxyz,
+            target_non_gravity_wrench=target_non_gravity_wrench,
+        )
 
         # 3. send the reference points to the controller
         ros_x_u = prepare_x_u(self.N_nmpc, x_ref, u_ref)
