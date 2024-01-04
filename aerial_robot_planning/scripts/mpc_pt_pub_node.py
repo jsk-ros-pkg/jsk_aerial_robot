@@ -8,7 +8,6 @@ import os
 current_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, current_path)
 
-import time
 import numpy as np
 import rospy
 import rospkg
@@ -34,16 +33,31 @@ param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull_
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = param_dict["controller"]["nmpc"]
-N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
+
+physical_params = param_dict["controller"]["physical"]
+mass = physical_params["mass"]
+gravity = physical_params["gravity"]
+Ixx = physical_params["inertia_diag"][0]
+Iyy = physical_params["inertia_diag"][1]
+Izz = physical_params["inertia_diag"][2]
+dr1 = physical_params["dr1"]
+p1_b = physical_params["p1"]
+dr2 = physical_params["dr2"]
+p2_b = physical_params["p2"]
+dr3 = physical_params["dr3"]
+p3_b = physical_params["p3"]
+dr4 = physical_params["dr4"]
+p4_b = physical_params["p4"]
+kq_d_kt = physical_params["kq_d_kt"]
 
 
-def prepare_x_u(x_ref: np.array, u_ref: np.array):
+def prepare_x_u(n_nmpc: int, x_ref: np.array, u_ref: np.array):
     x_u = PredXU()
 
     x_dim_1 = MultiArrayDimension()
     x_dim_1.label = "horizon"
-    x_dim_1.size = N_nmpc + 1
-    x_dim_1.stride = (N_nmpc + 1) * 17
+    x_dim_1.size = n_nmpc + 1
+    x_dim_1.stride = (n_nmpc + 1) * 17
     x_u.x.layout.dim.append(x_dim_1)
     x_dim_2 = MultiArrayDimension()
     x_dim_2.label = "state"
@@ -51,12 +65,12 @@ def prepare_x_u(x_ref: np.array, u_ref: np.array):
     x_dim_2.stride = 17
     x_u.x.layout.dim.append(x_dim_2)
     x_u.x.layout.data_offset = 0
-    x_u.x.data = np.resize(x_ref, (N_nmpc + 1) * 17).astype(np.float64).tolist()
+    x_u.x.data = np.resize(x_ref, (n_nmpc + 1) * 17).astype(np.float64).tolist()
 
     u_dim_1 = MultiArrayDimension()
     u_dim_1.label = "horizon"
-    u_dim_1.size = N_nmpc
-    u_dim_1.stride = N_nmpc * 8
+    u_dim_1.size = n_nmpc
+    u_dim_1.stride = n_nmpc * 8
     x_u.u.layout.dim.append(u_dim_1)
     u_dim_2 = MultiArrayDimension()
     u_dim_2.label = "input"
@@ -64,9 +78,72 @@ def prepare_x_u(x_ref: np.array, u_ref: np.array):
     u_dim_2.stride = 8
     x_u.u.layout.dim.append(u_dim_2)
     x_u.u.layout.data_offset = 0
-    x_u.u.data = np.resize(u_ref, N_nmpc * 8).astype(np.float64).tolist()
+    x_u.u.data = np.resize(u_ref, n_nmpc * 8).astype(np.float64).tolist()
 
     return x_u
+
+
+def construct_allocation_mat_pinv():
+    # get allocation matrix
+    alloc_mat = np.zeros((6, 8))
+    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+
+    # - force
+    alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
+    alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
+    alloc_mat[2, 1] = 1
+
+    alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
+    alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
+    alloc_mat[2, 3] = 1
+
+    alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
+    alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
+    alloc_mat[2, 5] = 1
+
+    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
+    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
+    alloc_mat[2, 7] = 1
+
+    # - torque
+    alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
+    alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
+    alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
+
+    alloc_mat[3, 1] = p1_b[1]
+    alloc_mat[4, 1] = -p1_b[0]
+    alloc_mat[5, 1] = -dr1 * kq_d_kt
+
+    alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
+    alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
+    alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
+
+    alloc_mat[3, 3] = p2_b[1]
+    alloc_mat[4, 3] = -p2_b[0]
+    alloc_mat[5, 3] = -dr2 * kq_d_kt
+
+    alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
+    alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
+    alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
+
+    alloc_mat[3, 5] = p3_b[1]
+    alloc_mat[4, 5] = -p3_b[0]
+    alloc_mat[5, 5] = -dr3 * kq_d_kt
+
+    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
+    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
+    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
+
+    alloc_mat[3, 7] = p4_b[1]
+    alloc_mat[4, 7] = -p4_b[0]
+    alloc_mat[5, 7] = -dr4 * kq_d_kt
+
+    alloc_mat_pinv = np.linalg.pinv(alloc_mat)
+
+    return alloc_mat_pinv, alloc_mat
 
 
 class MPCPtPubNode:
@@ -86,7 +163,52 @@ class MPCPtPubNode:
         # Pub
         self.pub_ref_traj = rospy.Publisher("/beetle1/set_ref_traj", PredXU, queue_size=5)
 
+        # nmpc and robot related
+        self.alloc_mat_pinv, self.alloc_mat = construct_allocation_mat_pinv()
+        self.N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
+
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
+
+    def get_xr_ur_from_target(
+        self,
+        target_pos,
+        target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
+        target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
+    ):
+        anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
+        target_wrench = anti_gravity_wrench + target_non_gravity_wrench
+
+        x = self.alloc_mat_pinv @ target_wrench
+
+        a1_ref = np.arctan2(x[0, 0], x[1, 0])
+        ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
+        a2_ref = np.arctan2(x[2, 0], x[3, 0])
+        ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
+        a3_ref = np.arctan2(x[4, 0], x[5, 0])
+        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
+        a4_ref = np.arctan2(x[6, 0], x[7, 0])
+        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
+
+        # get x and u, set reference
+        xr = np.zeros([self.N_nmpc + 1, 17])
+        xr[:, 0] = target_pos.item(0)  # x
+        xr[:, 1] = target_pos.item(1)  # y
+        xr[:, 2] = target_pos.item(2)  # z
+        xr[:, 6] = target_qwxyz.item(0)  # qw
+        xr[:, 7] = target_qwxyz.item(1)  # qx
+        xr[:, 8] = target_qwxyz.item(2)  # qy
+        xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 13] = a1_ref
+        xr[:, 14] = a2_ref
+        xr[:, 15] = a3_ref
+        xr[:, 16] = a4_ref
+        ur = np.zeros([self.N_nmpc, 8])
+        ur[:, 0] = ft1_ref
+        ur[:, 1] = ft2_ref
+        ur[:, 2] = ft3_ref
+        ur[:, 3] = ft4_ref
+
+        return xr, ur
 
     def callback_tmr_pt_pub(self, timer: rospy.timer.TimerEvent):
         """publish the reference points to the controller"""
@@ -97,18 +219,17 @@ class MPCPtPubNode:
                 f"ts_pt_pub: {self.ts_pt_pub * 1000:.3f} ms < ts_one_round: {timer.last_duration * 1000:.3f} ms"
             )
 
-        # 2. send the reference points to the controller
-        x_init = np.array([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        x_ref = np.tile(x_init, (1, N_nmpc + 1)).reshape(-1, x_init.shape[0])
+        # 2. calculate the reference points
+        target_pos = np.array([[0, 0, 0.5]]).T
+        target_qwxyz = np.array([[1, 0, 0, 0]]).T
+        target_non_gravity_wrench = np.array([[0, 0, 0, 0, 0, 0]]).T
+        x_ref, u_ref = self.get_xr_ur_from_target(target_pos, target_qwxyz, target_non_gravity_wrench)
 
-        u_init = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        u_ref = np.tile(u_init, (1, N_nmpc)).reshape(-1, u_init.shape[0])
-
-        ref_x_u = prepare_x_u(x_ref, u_ref)
-
-        ref_x_u.header.stamp = rospy.Time.now()
-        ref_x_u.header.frame_id = "map"
-        self.pub_ref_traj.publish(ref_x_u)
+        # 3. send the reference points to the controller
+        ros_x_u = prepare_x_u(self.N_nmpc, x_ref, u_ref)
+        ros_x_u.header.stamp = rospy.Time.now()
+        ros_x_u.header.frame_id = "map"
+        self.pub_ref_traj.publish(ros_x_u)
 
     def sub_odom_callback(self, msg: Odometry):
         self.uav_odom = msg
