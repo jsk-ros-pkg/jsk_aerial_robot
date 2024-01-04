@@ -171,6 +171,26 @@ void nmpc_over_act_full::NMPCController::controlCore()
 
     calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
   }
+  else
+  {
+    if (ros::Time::now() - receive_time_ > ros::Duration(t_nmpc_samp_ * 2.0))
+    {
+      ROS_INFO("Trajectory tracking mode is off!");
+      is_traj_tracking_ = false;
+      navigator_->setTargetPosX(estimator_->getPos(Frame::COG, estimate_mode_).x());
+      navigator_->setTargetPosY(estimator_->getPos(Frame::COG, estimate_mode_).y());
+      navigator_->setTargetPosZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
+      navigator_->setTargetVelX(0.0);
+      navigator_->setTargetVelY(0.0);
+      navigator_->setTargetVelZ(0.0);
+      navigator_->setTargetRoll(estimator_->getEuler(Frame::COG, estimate_mode_).x());
+      navigator_->setTargetPitch(estimator_->getEuler(Frame::COG, estimate_mode_).y());
+      navigator_->setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z());
+      navigator_->setTargetOmageX(0.0);
+      navigator_->setTargetOmageY(0.0);
+      navigator_->setTargetOmageZ(0.0);
+    }
+  }
 
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
@@ -337,10 +357,23 @@ void nmpc_over_act_full::NMPCController::callbackSetRPY(const spinal::DesireCoor
   navigator_->setTargetYaw(msg->yaw);
 }
 
+/* TODO: this function should be combined with the inner planning framework */
 void nmpc_over_act_full::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
+  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  {
+    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    return;
+  }
+
   x_u_ref_ = *msg;
-  is_traj_tracking_ = true;
+  receive_time_ = ros::Time::now();
+
+  if (!is_traj_tracking_)
+  {
+    ROS_INFO("Trajectory tracking mode is on!");
+    is_traj_tracking_ = true;
+  }
 }
 
 void nmpc_over_act_full::NMPCController::sendRPYGain()

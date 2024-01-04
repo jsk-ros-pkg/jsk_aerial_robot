@@ -91,6 +91,7 @@ private:
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
+  ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
 
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
