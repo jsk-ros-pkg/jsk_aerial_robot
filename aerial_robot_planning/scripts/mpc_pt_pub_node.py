@@ -12,7 +12,7 @@ import numpy as np
 import rospy
 import rospkg
 import yaml
-import tf2_ros
+import tf_conversions as tf
 import actionlib
 from typing import List, Tuple
 
@@ -214,27 +214,27 @@ class MPCPtPubNode:
         # get x and u, set reference
         xr = np.zeros([1, 17])
         ur = np.zeros([1, 8])
-        xr[:, 0] = target_pos.item(0)  # x
-        xr[:, 1] = target_pos.item(1)  # y
-        xr[:, 2] = target_pos.item(2)  # z
-        xr[:, 3] = target_vel.item(0)
-        xr[:, 4] = target_vel.item(1)
-        xr[:, 5] = target_vel.item(2)
-        xr[:, 6] = target_qwxyz.item(0)  # qw
-        xr[:, 7] = target_qwxyz.item(1)  # qx
-        xr[:, 8] = target_qwxyz.item(2)  # qy
-        xr[:, 9] = target_qwxyz.item(3)  # qz
-        xr[:, 10] = target_omega.item(0)
-        xr[:, 11] = target_omega.item(1)
-        xr[:, 12] = target_omega.item(2)
-        xr[:, 13] = a1_ref
-        xr[:, 14] = a2_ref
-        xr[:, 15] = a3_ref
-        xr[:, 16] = a4_ref
-        ur[:, 0] = ft1_ref
-        ur[:, 1] = ft2_ref
-        ur[:, 2] = ft3_ref
-        ur[:, 3] = ft4_ref
+        xr[0, 0] = target_pos.item(0)  # x
+        xr[0, 1] = target_pos.item(1)  # y
+        xr[0, 2] = target_pos.item(2)  # z
+        xr[0, 3] = target_vel.item(0)
+        xr[0, 4] = target_vel.item(1)
+        xr[0, 5] = target_vel.item(2)
+        xr[0, 6] = target_qwxyz.item(0)  # qw
+        xr[0, 7] = target_qwxyz.item(1)  # qx
+        xr[0, 8] = target_qwxyz.item(2)  # qy
+        xr[0, 9] = target_qwxyz.item(3)  # qz
+        xr[0, 10] = target_omega.item(0)
+        xr[0, 11] = target_omega.item(1)
+        xr[0, 12] = target_omega.item(2)
+        xr[0, 13] = a1_ref
+        xr[0, 14] = a2_ref
+        xr[0, 15] = a3_ref
+        xr[0, 16] = a4_ref
+        ur[0, 0] = ft1_ref
+        ur[0, 1] = ft2_ref
+        ur[0, 2] = ft3_ref
+        ur[0, 3] = ft4_ref
 
         return xr, ur
 
@@ -253,12 +253,15 @@ class MPCPtPubNode:
 
         is_ref_different = True  # TODO: consider remove ref_no_difference condition
 
+        # convert rpy to quaternion
+        q = tf.transformations.quaternion_from_euler(0.5, 0, 0)
+        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
+
         if not is_ref_different:
             # -- case 1: all future reference points are the same
             x, y, vx, vy, ax, ay = self.traj.get_2d_traj(rospy.Time.now().to_sec() - self.start_time)
             target_pos = np.array([[x, y, 1.0]]).T
             target_vel = np.array([[vx, vy, 0.0]]).T
-            target_qwxyz = np.array([[1, 0, 0, 0]]).T
             target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
 
             xr, ur = self.get_one_xr_ur_from_target(
@@ -277,7 +280,6 @@ class MPCPtPubNode:
                 x, y, vx, vy, ax, ay = self.traj.get_2d_traj(rospy.Time.now().to_sec() - self.start_time + t_pred)
                 target_pos = np.array([[x, y, 1.0]]).T
                 target_vel = np.array([[vx, vy, 0.0]]).T
-                target_qwxyz = np.array([[1, 0, 0, 0]]).T
                 target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
 
                 xr, ur = self.get_one_xr_ur_from_target(
