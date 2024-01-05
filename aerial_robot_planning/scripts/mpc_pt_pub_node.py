@@ -15,6 +15,7 @@ import yaml
 import tf_conversions as tf
 import actionlib
 from typing import List, Tuple
+from trajs import CircleTraj2D, LemniscateTraj2D
 
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray, MultiArrayDimension
@@ -146,22 +147,6 @@ def construct_allocation_mat_pinv():
     return alloc_mat_pinv, alloc_mat
 
 
-class CircleTraj:
-    def __init__(self) -> None:
-        self.r = 1  # radius in meters
-        self.T = 10  # period in seconds
-        self.omega = 2 * np.pi / self.T  # angular velocity
-
-    def get_2d_traj(self, t: float) -> Tuple[float, float, float, float, float, float]:
-        x = self.r * np.cos(self.omega * t) - 1.0
-        y = self.r * np.sin(self.omega * t)
-        vx = -self.r * self.omega * np.sin(self.omega * t)
-        vy = self.r * self.omega * np.cos(self.omega * t)
-        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
-        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
-        return x, y, vx, vy, ax, ay
-
-
 class MPCPtPubNode:
     def __init__(self) -> None:
         self.node_name = "mpc_pt_pub_node"
@@ -184,7 +169,7 @@ class MPCPtPubNode:
         self.N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
         # traj
-        self.traj = CircleTraj()
+        self.traj = LemniscateTraj2D()  # CircleTraj2D() or LemniscateTraj2D()
         self.start_time = rospy.Time.now().to_sec()
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
@@ -259,7 +244,7 @@ class MPCPtPubNode:
 
         if not is_ref_different:
             # -- case 1: all future reference points are the same
-            x, y, vx, vy, ax, ay = self.traj.get_2d_traj(rospy.Time.now().to_sec() - self.start_time)
+            x, y, vx, vy, ax, ay = self.traj.get_2d_pt(rospy.Time.now().to_sec() - self.start_time)
             target_pos = np.array([[x, y, 1.0]]).T
             target_vel = np.array([[vx, vy, 0.0]]).T
             target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
@@ -277,7 +262,7 @@ class MPCPtPubNode:
             # -- case 2: all future reference points are different
             for i in range(self.N_nmpc + 1):
                 t_pred = i * nmpc_params["T_integ"]
-                x, y, vx, vy, ax, ay = self.traj.get_2d_traj(rospy.Time.now().to_sec() - self.start_time + t_pred)
+                x, y, vx, vy, ax, ay = self.traj.get_2d_pt(rospy.Time.now().to_sec() - self.start_time + t_pred)
                 target_pos = np.array([[x, y, 1.0]]).T
                 target_vel = np.array([[vx, vy, 0.0]]).T
                 target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
