@@ -27,9 +27,13 @@ class Perching():
 
         self.joy_sub = rospy.Subscriber('/quadrotor/joy', Joy, self.joy_cb)
         self.joy = Joy()
-        self.ready_perching_flag = false
-        self.perching_flag = false
-        
+        self.ready_perching_flag = False
+        self.perching_flag = False
+        self.stop_flag = False
+
+        self.takeoff_wainting_time = 5.0
+        self.perching_time_before_halt = 0.5
+        self.perching_time_after_halt = 3.0
         ##self.timer = rospy.Timer(rospy.Duration(0.05),self.timerCallback)
 
     def flight_state_cb(self,msg):
@@ -54,7 +58,7 @@ class Perching():
     def start_pump(self):
         # PWM of pump
         self.PWM_msg.index = [4]
-        self.PWM_msg.percentage = [0.6]
+        self.PWM_msg.percentage = [0.8]
 
         print(self.PWM_msg.percentage)
         self.PWM_pub.publish(self.PWM_msg)
@@ -82,6 +86,9 @@ class Perching():
 
         print(self.PWM_msg.percentage)
         self.PWM_pub.publish(self.PWM_msg)
+
+    def wait(self):
+        rospy.sleep(0.3)
 
 
     def main(self):
