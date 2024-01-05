@@ -99,6 +99,33 @@ class Perching():
             if self.flight_state_flag:
                 rospy.sleep(self.takeoff_wainting_time)
                 self.stop_solenoid_valve()
+                print("stop_solenoid")
+                rospy.sleep(1.0)
+                self.takeoff_pub.publish(Empty())
+                break
+            else:
+                if self.ready_perching_flag:
+                    print("ready perching")
+                    self.wait()
+                    self.stop_solenoid_valve()
+                    self.wait()
+                    self.start_pump() 
+                    if self.perching_flag:
+                        print("start perching")
+                        self.wait()
+                        self.start_solenoid_valve()
+                        rospy.sleep(self.perching_time_before_halt) #2.0
+                        self.halt_pub.publish(Empty())
+                        #self.forceland_pub.publish(Empty())
+                        print("halt")
+                        rospy.sleep(0.1)
+                        self.start_solenoid_valve()
+                        rospy.sleep(0.1)
+                        self.start_pump()
+                        rospy.sleep(self.perching_time_after_halt)
+                        self.stop_pump() #push button and stop
+                        self.wait()
+                        self.ready_perching_flag = False
                     if self.stop_flag:
                         print("stop perching")
                         rospy.sleep(0.1)
