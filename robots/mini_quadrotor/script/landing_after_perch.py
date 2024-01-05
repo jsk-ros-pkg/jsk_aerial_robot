@@ -8,9 +8,9 @@ from sensor_msgs.msg import Joy
 
 class Perching():
     def __init__(self):
-        # self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
-        # self.flight_state_msg = UInt8()
-        # self.flight_state_flag = False
+        self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
+        self.flight_state_msg = UInt8()
+        self.flight_state_flag = False
 
         self.PWM_pub = rospy.Publisher('/quadrotor/pwm_indiv_test',PwmState,queue_size=1)
         self.PWM_msg = PwmState()
@@ -22,6 +22,7 @@ class Perching():
         self.PWM_msg.percentage = [1.0]
 
         self.halt_pub = rospy.Publisher('/quadrotor/teleop_command/halt',Empty, queue_size=1)
+        self.takeoff_pub = rospy.Publisher('/quadrotor/teleop_command/takeoff',Empty, queue_size=1)
         #self.forceland_pub = rospy.Publisher('/quadrotor/teleop_command/forcelanding',Empty, queue_size=1)
 
         self.joy_sub = rospy.Subscriber('/quadrotor/joy', Joy, self.joy_cb)
@@ -85,8 +86,9 @@ class Perching():
 
     def main(self):
         while not rospy.is_shutdown():
-            if self.ready_perching_flag:
-                rospy.sleep(0.3)
+            self.flight_state()
+            if self.flight_state_flag:
+                rospy.sleep(self.takeoff_wainting_time)
                 self.stop_solenoid_valve()
                 rospy.sleep(0.3)
                 self.start_pump() 
