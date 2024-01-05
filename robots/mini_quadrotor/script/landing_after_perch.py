@@ -48,11 +48,13 @@ class Perching():
 
         if self.joy.buttons[0] == 1:
             self.ready_perching_flag = True
-    # def flight_state(self):
-    #     if self.flight_state_msg.data == 5:
-    #         self.flight_state_flag = True
-    #     else:
-    #         self.flight_state_flag = False
+        if self.joy.buttons[7] == 1:
+            self.stop_flag = True
+    def flight_state(self):
+        if self.flight_state_msg.data == 2:
+            self.flight_state_flag = True
+        else:
+            self.flight_state_flag = False
 
 
     def start_pump(self):
@@ -97,28 +99,11 @@ class Perching():
             if self.flight_state_flag:
                 rospy.sleep(self.takeoff_wainting_time)
                 self.stop_solenoid_valve()
-                rospy.sleep(0.3)
-                self.start_pump() 
-                if self.perching_flag:
-                    rospy.sleep(0.3)
-                    self.start_solenoid_valve()
-                    rospy.sleep(2.0)
-                    self.halt_pub.publish(Empty())
-                    #self.forceland_pub.publish(Empty())
-                    print("halt")
-                    rospy.sleep(0.1)
-                    self.start_solenoid_valve()
-                    rospy.sleep(0.1)
-                    self.start_pump()
-                    self.
-                    rospy.sleep(3.0)
-                    self.stop_solenoid_valve() #push button and stop 
-                    rospy.sleep(1.0)
-                    break
-                else:
-                    rospy.sleep(0.1)
-                    self.stop_solenoid_valve() #push button and stop
-                    rospy.sleep(0.1)
+                    if self.stop_flag:
+                        print("stop perching")
+                        rospy.sleep(0.1)
+                        self.stop_solenoid_valve() #push button and stop
+                        rospy.sleep(0.1)
 
 if __name__ == '__main__':
     rospy.init_node("Perching")
