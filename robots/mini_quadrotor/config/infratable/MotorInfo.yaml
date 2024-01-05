@@ -1,5 +1,5 @@
 motor_info: # TODO: update
-        min_pwm: 0.6 # 1200 [ms]
+        min_pwm: 0.5 # 1200 [ms]
         max_pwm: 0.975 # 1950 [ms]
         min_thrust: 0 #  [N]
         force_landing_thrust: 1.1 #[N]
