@@ -550,6 +550,32 @@ void RollingController::wrenchAllocation()
       /* calculate gimbal angles */
       double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
       target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
+
+      /* solve round offset */
+      if(abs(target_gimbal_angles_.at(i) - current_gimbal_angles_.at(i)) > M_PI)
+        {
+          bool converge_flag = false;
+          double gimbal_candidate_plus = target_gimbal_angles_.at(i);
+          double gimbal_candidate_minus = target_gimbal_angles_.at(i);
+          while(!converge_flag)
+            {
+              gimbal_candidate_plus += 2 * M_PI;
+              gimbal_candidate_minus -= 2 * M_PI;
+              if(abs(current_gimbal_angles_.at(i) - gimbal_candidate_plus) < M_PI)
+                {
+                  ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  target_gimbal_angles_.at(i) = gimbal_candidate_plus;
+                  converge_flag = true;
+                }
+              else if(abs(current_gimbal_angles_.at(i) - gimbal_candidate_minus) < M_PI)
+                {
+                  ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  target_gimbal_angles_.at(i) = gimbal_candidate_minus;
+                  converge_flag = true;
+                }
+            }
+        }
+
       ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
 
       last_col += 2;
