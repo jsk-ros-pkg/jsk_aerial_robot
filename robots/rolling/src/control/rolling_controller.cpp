@@ -113,6 +113,7 @@ void RollingController::rosParamInit()
 
   getParam<double>(z_nh, "i_gain", default_z_i_gain_, 0.0);
 
+  getParam<bool>(control_nh, "standing_baselink_pitch_update", standing_baselink_pitch_update_, false);
   getParam<double>(control_nh, "standing_converged_baselink_roll_thresh", standing_converged_baselink_roll_thresh_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_min", standing_converged_z_i_term_min_, 0.0);
   getParam<double>(control_nh, "standing_converged_z_i_term_descend_ratio", standing_converged_z_i_term_descend_ratio_, 0.0);

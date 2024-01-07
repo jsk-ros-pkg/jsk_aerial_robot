@@ -11,6 +11,7 @@ controller:
   realtime_gimbal_allocation: true
   gravity_compensate_ratio: 1.00
 
+  standing_baselink_pitch_update: false
   standing_converged_baselink_roll_thresh: 0.15
   standing_converged_z_i_term_min: 4.0
   standing_converged_z_i_term_descend_ratio: 0.01

@@ -40,6 +40,15 @@ void RollingController::standingPlanning()
   //       }
   //   }
 
+  if(standing_baselink_pitch_update_)
+    {
+      if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
+        {
+          standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
+          rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
+        }
+    }
+
   double du = ros::Time::now().toSec() - rolling_control_timestamp_;
   if(!rolling_navigator_->getPitchAngVelUpdating())
     {

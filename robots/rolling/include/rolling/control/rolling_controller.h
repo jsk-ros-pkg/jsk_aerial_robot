@@ -122,6 +122,7 @@ namespace aerial_robot_control
     double robot_mass_for_opt_;
     double gravity_for_opt_;
 
+    bool standing_baselink_pitch_update_;
     double standing_converged_baselink_roll_thresh_;
     double standing_converged_z_i_term_min_;
     double standing_converged_z_i_term_descend_ratio_;
