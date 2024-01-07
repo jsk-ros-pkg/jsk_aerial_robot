@@ -99,7 +99,7 @@ void RollingNavigator::baselinkRotationProcess()
             {
               double curr_cog_roll = estimator_->getEuler(Frame::COG, estimate_mode_).x();
               double curr_cog_pitch = estimator_->getEuler(Frame::COG, estimate_mode_).y();
-              if(abs(curr_cog_roll) < baselink_rotation_stop_error_ && abs(curr_cog_pitch) < baselink_rotation_stop_error_)
+              if(fabs(curr_cog_roll) < baselink_rotation_stop_error_ && fabs(curr_cog_pitch) < baselink_rotation_stop_error_)
                 {
                   curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
                 }
