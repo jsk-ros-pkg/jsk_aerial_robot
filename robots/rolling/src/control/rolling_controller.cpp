@@ -555,7 +555,7 @@ void RollingController::wrenchAllocation()
       target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
 
       /* solve round offset */
-      if(abs(target_gimbal_angles_.at(i) - current_gimbal_angles_.at(i)) > M_PI)
+      if(fabs(target_gimbal_angles_.at(i) - current_gimbal_angles_.at(i)) > M_PI)
         {
           bool converge_flag = false;
           double gimbal_candidate_plus = target_gimbal_angles_.at(i);
@@ -564,13 +564,13 @@ void RollingController::wrenchAllocation()
             {
               gimbal_candidate_plus += 2 * M_PI;
               gimbal_candidate_minus -= 2 * M_PI;
-              if(abs(current_gimbal_angles_.at(i) - gimbal_candidate_plus) < M_PI)
+              if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_plus) < M_PI)
                 {
                   ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_plus;
                   converge_flag = true;
                 }
-              else if(abs(current_gimbal_angles_.at(i) - gimbal_candidate_minus) < M_PI)
+              else if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_minus) < M_PI)
                 {
                   ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_minus;
