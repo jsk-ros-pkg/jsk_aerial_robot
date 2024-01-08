@@ -1,6 +1,7 @@
 aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_controller
 
 controller:
+  wrench_estimate_flag: true
   xy:
     p_gain: 2.3
     i_gain: 0.02
