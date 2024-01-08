@@ -2,16 +2,16 @@ aerial_robot_control_name: aerial_robot_control/rolling_controller
 
 controller:
   control_verbose: false
-  torque_allocation_matrix_inv_pub_interval: 0.05
+  torque_allocation_matrix_inv_pub_interval: 0.02
   wrench_allocation_matrix_pub_interval: 0.1
   use_sr_inv: false
   sr_inv_weight: 0.1
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
-  gravity_compensate_ratio: 1.00
+  gravity_compensate_ratio: 1.1
 
-  standing_baselink_pitch_update: false
+  standing_baselink_pitch_update: true
   standing_converged_baselink_roll_thresh: 0.15
   standing_converged_z_i_term_min: 4.0
   standing_converged_z_i_term_descend_ratio: 0.01
@@ -155,9 +155,9 @@ standing_controller:
     d_gain: 2.5
 
   roll:
-    p_gain: 8.0
-    i_gain: 1.0
-    d_gain: 2.0
+    p_gain: 14.0
+    i_gain: 0.025
+    d_gain: 5.0
 
   pitch:
     p_gain: 5.0
