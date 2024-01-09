@@ -11,6 +11,7 @@ navigation:
   takeoff_height: 1.0 #1.0
   outdoor_takeoff_height: 1.5
   convergent_duration: 10.0
+  land_descend_vel: 0.15
 
   # teleop operation
   max_target_vel: 0.5
@@ -19,6 +20,7 @@ navigation:
   max_target_yaw_rate: 0.1 #  0.05
   max_target_roll_pitch_rate: 0.0005 #  0.05
   teleop_local_frame: fc
+  force_landing_to_halt_du: 0.01
 
   cmd_vel_lev2_gain : 2.0
   nav_vel_limit : 0.2
