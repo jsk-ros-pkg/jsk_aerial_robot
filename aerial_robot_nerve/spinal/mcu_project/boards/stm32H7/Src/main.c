@@ -48,6 +48,9 @@
 
 #include <Spine/spine.h>
 
+/* Servo Motors */
+#include "kondo_servo/kondo_servo.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,6 +92,7 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
+osThreadId kondoServoTaskHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -105,6 +109,8 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* sevo instances */
+KondoServo kondo_servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -131,6 +137,7 @@ void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
+void kondoServoFunc(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -230,11 +237,16 @@ int main(void)
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
-  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
+#if GPS_FLAG
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+# elif KONDO_FLAG
+  kondo_servo_.init(&huart3, &nh_);
+  estimator_.init(&imu_, &baro_, NULL, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+#endif
+  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
 #if NERVE_COMM        
@@ -313,6 +325,10 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of kondoServoTask */
+  osThreadDef(kondoServoTask, kondoServoFunc, osPriorityLow, 0, 256);
+  kondoServoTaskHandle = osThreadCreate(osThread(kondoServoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -904,17 +920,17 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 19200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_9B;
   huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Parity = UART_PARITY_EVEN;
   huart3.Init.Mode = UART_MODE_TX_RX;
   huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart3.Init.OverSampling = UART_OVERSAMPLING_16;
   huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
   huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
+  if (HAL_HalfDuplex_Init(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1017,6 +1033,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_coreTaskFunc */
 void coreTaskFunc(void const * argument)
 {
+  /* init code for LWIP */
+  /* MX_LWIP_Init(); */
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
@@ -1058,7 +1076,9 @@ void coreTaskFunc(void const * argument)
 
       imu_.update();
       baro_.update();
+#if GPS_FLAG
       gps_.update();
+#endif
       estimator_.update();
       controller_.update();
 
@@ -1185,6 +1205,29 @@ __weak void canRxTask(void const * argument)
   /* USER CODE END canRxTask */
 }
 
+/* USER CODE BEGIN Header_kondoServoFunc */
+/**
+* @brief Function implementing the kondoServoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_kondoServoFunc */
+void kondoServoFunc(void const * argument)
+{
+  /* USER CODE BEGIN kondoServoFunc */
+  /* Infinite loop */
+  for(;;)
+  {
+#ifdef KONDO_FLAG    
+    kondo_servo_.update();
+    osDelay(KONDO_SERVO_UPDATE_INTERVAL);
+#else
+    osDelay(1);
+#endif
+  }
+  /* USER CODE END kondoServoFunc */
+}
+
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
 {
@@ -1291,6 +1334,21 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER6;
+  MPU_InitStruct.BaseAddress = 0x24048400;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */
