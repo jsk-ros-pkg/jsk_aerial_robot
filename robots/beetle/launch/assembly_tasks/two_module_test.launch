@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-  <arg name="spawn_x_1" default="-1.5"/>
+  <arg name="spawn_x_1" default="-0.3"/>
   <arg name="spawn_y_1" default="0.0"/>
   <arg name="spawn_yaw_1" default="0.0"/>
-  <arg name="spawn_x_2" default="1.5"/>
+  <arg name="spawn_x_2" default="0.3"/>
   <arg name="spawn_y_2" default="0.0"/>
   <arg name="spawn_yaw_2" default="0.0"/>
   <arg name="headless" default="true"/>
