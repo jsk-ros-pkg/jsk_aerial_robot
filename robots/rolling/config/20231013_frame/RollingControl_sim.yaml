@@ -9,9 +9,9 @@ controller:
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
-  gravity_compensate_ratio: 1.00
+  gravity_compensate_ratio: 1.1
 
-  standing_baselink_pitch_update: false
+  standing_baselink_pitch_update: true
   standing_converged_baselink_roll_thresh: 0.15
   standing_converged_z_i_term_min: 4.0
   standing_converged_z_i_term_descend_ratio: 0.01
@@ -155,9 +155,9 @@ standing_controller:
     d_gain: 2.5
 
   roll:
-    p_gain: 7.0
+    p_gain: 10.0
     i_gain: 0.025
-    d_gain: 2.0
+    d_gain: 4.0
 
   pitch:
     p_gain: 6.0
