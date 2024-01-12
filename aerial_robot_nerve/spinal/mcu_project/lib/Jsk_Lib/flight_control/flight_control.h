@@ -226,6 +226,7 @@ void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
   {
     setUavModel(config_msg.uav_model);
     setMotorNumber(config_msg.motor_num);
+    att_controller_.setInitialMotorNumber(config_msg.motor_num);
   }
 
 };
