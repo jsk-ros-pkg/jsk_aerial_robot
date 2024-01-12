@@ -34,7 +34,7 @@ MotorPWMRepublisher::MotorPWMRepublisher(ros::NodeHandle nh, ros::NodeHandle nhp
 
 void MotorPWMRepublisher::motorPwmCallback(const spinal::PwmsPtr & pwm_msg)
 {
-  if(pwm_msg->motor_value.size() != motor_num_) return;
+  if(pwm_msg->motor_value.size() < motor_num_) return;
   for(int i = 0; i < motor_num_; i++)
     {
       std_msgs::Float32 msg;
@@ -53,8 +53,21 @@ void MotorPWMRepublisher::gimbalsControlCallback(const sensor_msgs::JointState &
 {
   if(joint_state_msg.name.size() != joint_state_msg.position.size())
     {
-      ROS_ERROR("size of gimbal names and positions is not same");
-      return;
+      if(joint_state_msg.name.size() == 0 && joint_state_msg.position.size() == motor_num_)
+        {
+          for(int i = 0; i < motor_num_; i++)
+            {
+              std_msgs::Float32 msg;
+              msg.data = joint_state_msg.position.at(i);
+              gimbal_control_pubs_.at(i).publish(msg);
+            }
+          return;
+        }
+      else
+        {
+          ROS_ERROR("size of gimbal names and positions is not same");
+          return;
+        }
     }
   for(int i = 0; i < joint_state_msg.name.size(); i++)
     {
