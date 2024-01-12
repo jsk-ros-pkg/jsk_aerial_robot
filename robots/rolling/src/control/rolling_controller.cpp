@@ -176,38 +176,24 @@ void RollingController::controlCore()
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
   /* for stand */
-  rolling_robot_model_->calcRobotModelFromFrame("cp");
-  standingPlanning();
-  calcWrenchAllocationMatrixFromTargetFrame();
-  calcStandingFullLambda();
+  // rolling_robot_model_->calcRobotModelFromFrame("cp");
+  // standingPlanning();
+  // calcWrenchAllocationMatrixFromTargetFrame();
+  // calcStandingFullLambda();
   /* for stand */
 
 
-  // slsqpSolve();
-
-
-  // targetStatePlan();
-  // if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
-  //   {
-
   /* for flight */
-  // setControllerParams("controller");
-  // calcAccFromCog();
-  // calcFullLambda();
-  /* for flight */
-
-
+  setControllerParams("controller");
+  calcAccFromCog();
   calcWrenchAllocationMatrix();
+  calcFullLambda();
+  /* for flight */
+
+  /* common part */
   wrenchAllocation();
-
-  // nonlinearQP();
-
-  // std::cout << "wrench allocation" << std::endl;
-  //   }
-  // else if(ground_navigation_mode_ == aerial_robot_navigation::STEERING_STATE)
-  //   {
-  // }
   calcYawTerm();
+  /* common part */
 
   rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
 }

@@ -154,7 +154,7 @@ void RollingController::setControlAxisWithNameSpace(std::string ns)
     {
       setControlAxis(i, controlled_axis.at(i));
     }
-  ROS_ERROR_STREAM("[control] set control axis for " << ns);
+  ROS_WARN_STREAM("[control] set control axis for " << ns);
 }
 
 void RollingController::rosoutControlAxis(std::string ns)
