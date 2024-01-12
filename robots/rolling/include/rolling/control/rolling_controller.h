@@ -14,6 +14,8 @@
 #include <rolling/model/rolling_robot_model.h>
 #include <rolling/rolling_navigation.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/UInt8.h>
+#include <std_msgs/UInt8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <OsqpEigen/OsqpEigen.h>
@@ -55,6 +57,8 @@ namespace aerial_robot_control
     ros::Publisher gimbal_control_pub_;               // for servo bridge
     ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
     ros::Publisher desire_coordinate_pub_;            // for spinal
+    ros::Publisher gimbal_dof_pub_;                   // for spinal
+    ros::Publisher gimbal_indices_pub_;               // for spinal
     ros::Publisher target_vectoring_force_pub_;       // for debug
     ros::Publisher target_wrench_acc_cog_pub_;        // for debug
     ros::Publisher wrench_allocation_matrix_pub_;     // for debug
@@ -64,6 +68,7 @@ namespace aerial_robot_control
     ros::Publisher target_acc_dash_pub_;              // for debug
     ros::Publisher exerted_wrench_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber calc_gimbal_in_fc_sub_;
 
     tf2_ros::TransformBroadcaster br_;
     KDL::Frame contact_point_alined_;
@@ -110,6 +115,7 @@ namespace aerial_robot_control
     Eigen::VectorXd target_thrust_z_term_;
     double target_roll_, target_pitch_; //for under actuated control
     bool hovering_approximate_;
+    bool calc_gimbal_in_fc_;
     double gimbal_lpf_factor_;
     int ground_navigation_mode_;
     std::vector<int> controlled_axis_;
@@ -153,6 +159,7 @@ namespace aerial_robot_control
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
+    void calcGimbalInFcCallback(const std_msgs::BoolPtr & msg);
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
     void setControlAxisWithNameSpace(std::string ns);
