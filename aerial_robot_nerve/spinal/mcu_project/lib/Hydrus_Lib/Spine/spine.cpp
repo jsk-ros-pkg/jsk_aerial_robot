@@ -107,6 +107,10 @@ namespace Spine
       servo_.at(control_msg.index[i]).get().setGoalCurrent(control_msg.angles[i]);
       // TODO: change angles -> commands
     }
+
+  void setTargetServoPosition(uint8_t index, int16_t position)
+  {
+    servo_.at(index).get().setGoalPosition(position);
   }
 
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
