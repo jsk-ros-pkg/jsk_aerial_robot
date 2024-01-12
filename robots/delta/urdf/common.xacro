@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_common" >
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <m_f_rate value="-0.0142" /> <!-- drug torque rate -->
+  <xacro:property name="max_force" value="22.0" /> <!-- [N] -->
+  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="link">
+    <gazebo reference="${link}">
+      <mu1>0.4</mu1>
+      <mu2>0.4</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- large friction -->
+  <xacro:macro name="large_friction" params="link">
+    <gazebo reference="${link}">
+      <mu1>100</mu1>
+      <mu2>100</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="glay">
+    <material name="glay" >
+      <color rgba="0.5 0.5 0.5 1.0" />
+    </material>
+  </xacro:macro>
+
+  <xacro:macro name="black">
+    <material name="black" >
+      <color rgba="0 0 0 1.0" />
+    </material>
+  </xacro:macro>
+
+</robot>

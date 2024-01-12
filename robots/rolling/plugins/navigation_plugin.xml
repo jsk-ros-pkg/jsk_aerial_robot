@@ -1,5 +1,0 @@
-<library path="lib/librolling_navigation">
-  <class name="aerial_robot_navigation/rolling_navigation" type="aerial_robot_navigation::RollingNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
-    <description> rolling navigation plugin</description>
-  </class>
-</library>
