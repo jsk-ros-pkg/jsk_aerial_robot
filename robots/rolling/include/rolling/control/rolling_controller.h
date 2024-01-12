@@ -167,6 +167,7 @@ namespace aerial_robot_control
     void calcStandingFullLambda();
     void standingPlanning();
     void slsqpSolve();
+    void nonlinearQP();
 
     void setControlAxis(int axis, int mode)
     {
