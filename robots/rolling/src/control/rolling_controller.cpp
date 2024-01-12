@@ -52,6 +52,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+  gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
+  gimbal_indices_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("gimbal_indices", 1);
+
   desire_coordinate_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
@@ -63,6 +66,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench_cog", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
+  calc_gimbal_in_fc_sub_ = nh_.subscribe("calc_gimbal_in_fc", 1, &RollingController::calcGimbalInFcCallback, this);
 
   ground_navigation_mode_ = aerial_robot_navigation::FLYING_STATE;
 
@@ -88,9 +92,22 @@ void RollingController::reset()
   standing_target_baselink_pitch_ = 0.0;
   rolling_control_timestamp_ = -1;
 
+  calc_gimbal_in_fc_ = false;
+
+  std_msgs::UInt8 gimbal_dof_msg;
+  gimbal_dof_msg.data = 0;
+  gimbal_dof_pub_.publish(gimbal_dof_msg);
+
+  std_msgs::UInt8MultiArray gimbal_indices_msg;
+  gimbal_indices_msg.data.resize(motor_num_);
+  gimbal_indices_msg.data.at(0) = 0;
+  gimbal_indices_msg.data.at(1) = 2;
+  gimbal_indices_msg.data.at(2) = 4;
+  gimbal_indices_pub_.publish(gimbal_indices_msg);
+
   setControllerParams("standing_controller");
 
-  ROS_INFO_STREAM("[control] reset controller");
+  ROS_INFO_STREAM("[control] reset controller\n");
 }
 
 void RollingController::rosParamInit()
@@ -103,6 +120,7 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "use_sr_inv", use_sr_inv_, false);
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
+  getParam<bool>(control_nh, "calc_gimbal_in_fc", calc_gimbal_in_fc_, false);
   getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
@@ -614,9 +632,20 @@ void RollingController::calcYawTerm()
 {
   // special process for yaw since the bandwidth between PC and spinal
   double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
-  for (unsigned int i = 0; i < motor_num_; i++)
+  Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat_);
+  int torque_allocation_matrix_inv_rows;
+  if(calc_gimbal_in_fc_) torque_allocation_matrix_inv_rows = 2 * motor_num_;
+  else torque_allocation_matrix_inv_rows = motor_num_;
+  for (unsigned int i = 0; i < torque_allocation_matrix_inv_rows; i++)
     {
-      if(q_mat_inv_(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, control_dof_ - 1);
+      if(calc_gimbal_in_fc_)
+        {
+          if(full_q_mat_inv(i, YAW) > max_yaw_scale) max_yaw_scale = full_q_mat_inv(i, YAW);
+        }
+      else
+        {
+          if(q_mat_inv_(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, control_dof_ - 1);
+        }
     }
   candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 
@@ -697,7 +726,8 @@ void RollingController::sendCmd()
   operability_msg.data =sqrt(det);
   operability_pub_.publish(operability_msg);
 
-  sendGimbalAngles();
+  if(!calc_gimbal_in_fc_)
+    sendGimbalAngles();
 
   sendFourAxisCommand();
 
@@ -719,7 +749,17 @@ void RollingController::sendFourAxisCommand()
 {
   spinal::FourAxisCommand flight_command_data;
   flight_command_data.angles[2] = candidate_yaw_term_;
-  flight_command_data.base_thrust = target_base_thrust_;
+  if(calc_gimbal_in_fc_)
+    {
+      flight_command_data.base_thrust.resize(2 * motor_num_);
+      for(int i = 0; i < 2 * motor_num_; i++)
+        {
+          flight_command_data.base_thrust.at(i) = full_lambda_trans_(i);
+        }
+    }
+  else
+    flight_command_data.base_thrust = target_base_thrust_;
+
   if(!controlled_axis_[0])
     {
       flight_command_data.angles[1] = target_pitch_;
@@ -738,11 +778,24 @@ void RollingController::sendTorqueAllocationMatrixInv()
       torque_allocation_matrix_inv_pub_stamp_ = ros::Time::now().toSec();
 
       spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
-      torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
-      Eigen::MatrixXd torque_allocation_matrix_inv = q_mat_inv_.rightCols(3);
+      Eigen::MatrixXd torque_allocation_matrix_inv;
+      int torque_allocation_matrix_inv_msg_rows;
+      if(calc_gimbal_in_fc_)
+        {
+          torque_allocation_matrix_inv_msg.rows.resize(2 * motor_num_);
+          torque_allocation_matrix_inv = aerial_robot_model::pseudoinverse(full_q_mat_).rightCols(3);
+          torque_allocation_matrix_inv_msg_rows = 2 * motor_num_;
+        }
+      else
+        {
+          torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
+          torque_allocation_matrix_inv = q_mat_inv_.rightCols(3);
+          torque_allocation_matrix_inv_msg_rows = motor_num_;
+        }
+
       if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
         ROS_ERROR("Torque Allocation Matrix overflow");
-      for (unsigned int i = 0; i < motor_num_; i++)
+      for (unsigned int i = 0; i < torque_allocation_matrix_inv_msg_rows; i++)
         {
           torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
           torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;
@@ -823,7 +876,29 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
 
 }
 
-
+void RollingController::calcGimbalInFcCallback(const std_msgs::BoolPtr & msg)
+{
+  if(calc_gimbal_in_fc_ != msg->data)
+    {
+      std_msgs::UInt8 gimbal_dof_msg;
+      if(msg->data)
+        {
+          gimbal_dof_msg.data = 1;
+          ROS_WARN("[control] calc gimbal in fc.");
+        }
+      else
+        {
+          gimbal_dof_msg.data = 0;
+          ROS_WARN("[control] not calc gimbal in fc.");
+        }
+      gimbal_dof_pub_.publish(gimbal_dof_msg);
+      calc_gimbal_in_fc_ = msg->data ? true : false;
+    }
+  else
+    {
+      return;
+    }
+}
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
