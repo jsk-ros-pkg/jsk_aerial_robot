@@ -382,10 +382,12 @@ void AttitudeController::reset(void)
   for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
     {
       target_thrust_[i] = 0;
-      if (i != 4){
+      if (i < 4){
         target_pwm_[i] = IDLE_DUTY;
       }else{
-        target_pwm_[4] = 0.0;
+	target_pwm_[4] = 0.0;
+        target_pwm_[5] = 1.0;
+	
       }
 
       base_thrust_term_[i] = 0;
