@@ -9,8 +9,9 @@
   <!-- kinematics [m] -->
   <xacro:property name="rotor_x" value="0.090" />
   <xacro:property name="rotor_y" value="0.090" />
-  <xacro:property name="rotor_z" value="0.060" />
+  <!-- <xacro:property name="rotor_z" value="0.330" /> -->
   <!-- <xacro:property name="rotor_z" value="0.055" /> -->
+  <xacro:property name="rotor_z" value="0.180" />
 
   <!-- dynamics -->
   <m_f_rate value="-0.011" /> <!-- drag torque rate -->
