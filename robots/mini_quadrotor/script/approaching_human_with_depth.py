@@ -224,7 +224,19 @@ class Approaching_human():
     #         self.move_pub.publish(self.move_msg)
     #         self.land_pub.publish()
     #add PID control to approach human slowly (relative pos -> acc, vel)
-    
+
+    def ready_for_perching(self):
+        pixel_cnt = 0
+        depth_sum = 0
+        for i in range 100:
+            x = np.random.randint(0,(self.camera_width -1))
+            y = np.random.randint(0,(self.camera_height -1))
+            depth_tmp = self.cv_image.item(y,x)
+            depth_sum += depth_tmp
+        if depth_sum < 100:
+            self.perching_cnt += 1
+
+
     def timerCallback(self,event):
         self.flight_rotate_state()
         if self.flight_state_flag:
@@ -264,6 +276,15 @@ class Approaching_human():
                 # self.move_msg.yaw_nav_mode = 0
 
                     if self.min_depth < 0.5:
+                        self.lamd_cnt += 1
+            if self.land_cnt >= 30:
+                self.ready_for_perching()
+                if self.perching_cnt >= 10:
+                    self.perching_data = 1
+                    self.perching_pub.publish(self.perching_data)
+                    rospy.loginfo("land!")
+                    self.land_pub.publish()
+
 if __name__ == '__main__':
     rospy.init_node("Approaching_human")
     node = Approaching_human()
