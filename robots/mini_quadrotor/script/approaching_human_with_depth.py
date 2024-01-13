@@ -68,6 +68,8 @@ class Approaching_human():
         self.depth_sum = 0
         self.depth_thresh_max = 10000
         self.depth_thresh_min = 0
+        self.min_depth = 10.0
+
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -177,6 +179,8 @@ class Approaching_human():
                 self.depth = depth/1000 - 0.6 #############
                 self.depth_thresh_max = self.prev_depth*1000 + 800
                 self.depth_thresh_min = self.prev_depth*1000 - 800
+                if self.min_depth >= self.depth:
+                    self.min_depth = self.depth
             elif depth <= 0:
                 self.depth = 0
             else:
@@ -240,6 +244,7 @@ class Approaching_human():
                 # rospy.loginfo("not see yaw: %s",self.move_msg.target_yaw)
                 # self.move_msg.yaw_nav_mode = 0
 
+                    if self.min_depth < 0.5:
 if __name__ == '__main__':
     rospy.init_node("Approaching_human")
     node = Approaching_human()
