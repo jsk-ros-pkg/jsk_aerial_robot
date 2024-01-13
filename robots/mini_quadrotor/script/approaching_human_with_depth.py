@@ -70,6 +70,9 @@ class Approaching_human():
         self.depth_thresh_min = 0
         self.min_depth = 10.0
 
+        self.perching_cnt = 0
+        self.perching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
+        self.perching_data = UInt8()
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -172,6 +175,22 @@ class Approaching_human():
         self.max_rect_pixel_pos.y = int(self.max_rect.y + (self.max_rect.height/2))
         depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
         print(depth)
+        # pixel_cnt = 0
+        # depth_sum = 0
+        # depth_tmp = 0
+        # for i in range 10:
+        #     x = np.random.randint(-30,30)
+        #     y = np.random.randint(-30,30)
+        #     pixel_x = self.max_rect_pixel_pos.x + x
+        #     pixel_y = self.max_rect_pixel_pos.y + y
+        #     depth_center = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
+        #     depth_tmp = self.cv_image.item(pixel_y,pixel_x)
+        #     if depth_tmp <= (depth_center + 200) and (depth_center- 200) <= depth_tmp:
+        #         depth_sum += depth_tmp
+        #         pixel_cnt += 1
+        # depth = depth_sum /pixel_cnt
+        # print(depth)
+        
         if self.flight_start_flag:
             self.depth = depth/1000 - 0.6 #############
         else:
