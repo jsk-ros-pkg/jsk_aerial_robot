@@ -8,9 +8,9 @@ from sensor_msgs.msg import Joy
 
 class Perching():
     def __init__(self):
-        # self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
-        # self.flight_state_msg = UInt8()
-        # self.flight_state_flag = False
+        self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
+        self.flight_state_msg = UInt8()
+        self.flight_state_flag = False
 
         self.PWM_pub = rospy.Publisher('/quadrotor/pwm_indiv_test',PwmState,queue_size=1)
         self.PWM_msg = PwmState()
@@ -22,13 +22,18 @@ class Perching():
         self.PWM_msg.percentage = [1.0]
 
         self.halt_pub = rospy.Publisher('/quadrotor/teleop_command/halt',Empty, queue_size=1)
+        self.takeoff_pub = rospy.Publisher('/quadrotor/teleop_command/takeoff',Empty, queue_size=1)
         #self.forceland_pub = rospy.Publisher('/quadrotor/teleop_command/forcelanding',Empty, queue_size=1)
 
         self.joy_sub = rospy.Subscriber('/quadrotor/joy', Joy, self.joy_cb)
         self.joy = Joy()
-        self.ready_perching_flag = false
-        self.perching_flag = false
-        
+        self.ready_perching_flag = False
+        self.perching_flag = False
+        self.stop_flag = False
+
+        self.takeoff_wainting_time = 5.0
+        self.perching_time_before_halt = 0.5
+        self.perching_time_after_halt = 3.0
         ##self.timer = rospy.Timer(rospy.Duration(0.05),self.timerCallback)
 
     def flight_state_cb(self,msg):
@@ -43,17 +48,19 @@ class Perching():
 
         if self.joy.buttons[0] == 1:
             self.ready_perching_flag = True
-    # def flight_state(self):
-    #     if self.flight_state_msg.data == 5:
-    #         self.flight_state_flag = True
-    #     else:
-    #         self.flight_state_flag = False
+        if self.joy.buttons[7] == 1:
+            self.stop_flag = True
+    def flight_state(self):
+        if self.flight_state_msg.data == 2:
+            self.flight_state_flag = True
+        else:
+            self.flight_state_flag = False
 
 
     def start_pump(self):
         # PWM of pump
         self.PWM_msg.index = [4]
-        self.PWM_msg.percentage = [0.6]
+        self.PWM_msg.percentage = [0.8]
 
         print(self.PWM_msg.percentage)
         self.PWM_pub.publish(self.PWM_msg)
@@ -82,34 +89,48 @@ class Perching():
         print(self.PWM_msg.percentage)
         self.PWM_pub.publish(self.PWM_msg)
 
+    def wait(self):
+        rospy.sleep(0.3)
+
 
     def main(self):
         while not rospy.is_shutdown():
-            if self.ready_perching_flag:
-                rospy.sleep(0.3)
+            self.flight_state()
+            if self.flight_state_flag:
+                rospy.sleep(self.takeoff_wainting_time)
                 self.stop_solenoid_valve()
-                rospy.sleep(0.3)
-                self.start_pump() 
-                if self.perching_flag:
-                    rospy.sleep(0.3)
-                    self.start_solenoid_valve()
-                    rospy.sleep(2.0)
-                    self.halt_pub.publish(Empty())
-                    #self.forceland_pub.publish(Empty())
-                    print("halt")
-                    rospy.sleep(0.1)
-                    self.start_solenoid_valve()
-                    rospy.sleep(0.1)
-                    self.start_pump()
-                    self.
-                    rospy.sleep(3.0)
-                    self.stop_solenoid_valve() #push button and stop 
-                    rospy.sleep(1.0)
-                    break
-                else:
-                    rospy.sleep(0.1)
-                    self.stop_solenoid_valve() #push button and stop
-                    rospy.sleep(0.1)
+                print("stop_solenoid")
+                rospy.sleep(1.0)
+                self.takeoff_pub.publish(Empty())
+                break
+            else:
+                if self.ready_perching_flag:
+                    print("ready perching")
+                    self.wait()
+                    self.stop_solenoid_valve()
+                    self.wait()
+                    self.start_pump() 
+                    if self.perching_flag:
+                        print("start perching")
+                        self.wait()
+                        self.start_solenoid_valve()
+                        rospy.sleep(self.perching_time_before_halt) #2.0
+                        self.halt_pub.publish(Empty())
+                        #self.forceland_pub.publish(Empty())
+                        print("halt")
+                        rospy.sleep(0.1)
+                        self.start_solenoid_valve()
+                        rospy.sleep(0.1)
+                        self.start_pump()
+                        rospy.sleep(self.perching_time_after_halt)
+                        self.stop_pump() #push button and stop
+                        self.wait()
+                        self.ready_perching_flag = False
+                    if self.stop_flag:
+                        print("stop perching")
+                        rospy.sleep(0.1)
+                        self.stop_solenoid_valve() #push button and stop
+                        rospy.sleep(0.1)
 
 if __name__ == '__main__':
     rospy.init_node("Perching")

@@ -53,9 +53,9 @@ class Approaching_human():
         self.pose = Odometry()
         self.euler = Vector3()
 
-        self.Kp = 0.05
+        self.Kp = 0.1
         self.Ki = 0.0001
-        self.Kd = 0.01
+        self.Kd = 0.07
         #self.offset = 0.09/(0.08*abs(self.degree[2]-self.initial_position[2])+0.3) + 1
 
         #depth(OpenCV image)
@@ -262,7 +262,7 @@ class Approaching_human():
                     self.land_cnt += 1
                     if self.land_cnt >= 10:
                         rospy.loginfo("land!")
-                        self.land_pub.publish()
+                        #self.land_pub.publish()
                 self.rotate_cnt += 1
             else:
                 rospy.loginfo("don't see people")
