@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/rolling_controller
+aerial_robot_control_name: aerial_robot_control/delta_controller
 
 controller:
   control_verbose: false

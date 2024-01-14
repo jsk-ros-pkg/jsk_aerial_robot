@@ -29,19 +29,19 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
-add_library(rolling_controller
+add_library(delta_controller
   src/control/delta_controller_common.cpp
   src/control/delta_controller_utils.cpp
   src/control/delta_flight_controller.cpp
   src/control/delta_ground_controller.cpp
   )
-target_link_libraries(rolling_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(delta_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
-add_library(rolling_robot_model src/model/rolling_robot_model.cpp)
-target_link_libraries(rolling_robot_model ${catkin_LIBRARIES})
+add_library(delta_robot_model src/model/delta_robot_model.cpp)
+target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
 
-add_library(rolling_navigation src/rolling_navigation.cpp)
-target_link_libraries(rolling_navigation ${catkin_LIBRARIES})
+add_library(delta_navigation src/delta_navigation.cpp)
+target_link_libraries(delta_navigation ${catkin_LIBRARIES})
 
 add_executable(opt src/design/opt.cpp)
 target_link_libraries(opt

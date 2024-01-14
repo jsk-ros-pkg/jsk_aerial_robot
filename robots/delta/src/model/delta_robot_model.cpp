@@ -1,4 +1,4 @@
-#include <delta/model/rolling_robot_model.h>
+#include <delta/model/delta_robot_model.h>
 
 RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_thre, double fc_t_min_thre, double epsilon) :
   RobotModel(init_with_rosparam, verbose, fc_f_min_thre, fc_t_min_thre, epsilon)

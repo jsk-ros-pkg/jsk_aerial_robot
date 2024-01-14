@@ -1,4 +1,4 @@
-#include <delta/rolling_navigation.h>
+#include <delta/delta_navigation.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;

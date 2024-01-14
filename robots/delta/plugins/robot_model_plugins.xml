@@ -1,5 +1,5 @@
-<library path="lib/librolling_robot_model">
-  <class name="rolling_robot_model" type="RollingRobotModel" base_class_type="aerial_robot_model::RobotModel">
+<library path="lib/libdelta_robot_model">
+  <class name="delta_robot_model" type="RollingRobotModel" base_class_type="aerial_robot_model::RobotModel">
     <description>plugin for rolling robot model </description>
   </class>
 </library>
