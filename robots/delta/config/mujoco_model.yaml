@@ -4,4 +4,4 @@ package:
 delta:
   input: ["robots/20230808_frameless/rolling.urdf.xacro", "robots/shelled_tri/rolling.urdf.xacro", "robots/20231013_frame/rolling.urdf.xacro"]
   filename: ["20230808_frameless", "shelled_tri", "20231013_frame"]
-  meshdir: "urdf/mesh"
+  meshdir: urdf/mesh
