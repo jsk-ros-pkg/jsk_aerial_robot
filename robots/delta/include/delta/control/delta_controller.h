@@ -6,8 +6,8 @@
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <delta/control/osqp_solver.h>
-#include <delta/model/rolling_robot_model.h>
-#include <delta/rolling_navigation.h>
+#include <delta/model/delta_robot_model.h>
+#include <delta/delta_navigation.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>

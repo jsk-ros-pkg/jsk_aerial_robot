@@ -2,7 +2,7 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
-#include <delta/model/rolling_robot_model.h>
+#include <delta/model/delta_robot_model.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Int16.h>
 
