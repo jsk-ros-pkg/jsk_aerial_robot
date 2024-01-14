@@ -30,10 +30,11 @@ include_directories(
   )
 
 add_library(rolling_controller
-  src/control/rolling_controller.cpp
-  src/control/frame_control.cpp
-  src/control/pid_param_setter.cpp
-  src/control/slsqp_solver.cpp)
+  src/control/delta_controller_common.cpp
+  src/control/delta_controller_utils.cpp
+  src/control/delta_flight_controller.cpp
+  src/control/delta_ground_controller.cpp
+  )
 target_link_libraries(rolling_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(rolling_robot_model src/model/rolling_robot_model.cpp)

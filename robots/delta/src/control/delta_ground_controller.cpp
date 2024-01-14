@@ -1,4 +1,4 @@
-#include <delta/control/rolling_controller.h>
+#include <delta/control/delta_controller.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
@@ -21,24 +21,6 @@ void RollingController::standingPlanning()
       navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
       ROS_WARN_ONCE("start roll/pitch I control");
     }
-
-  /* get target ang vel and desired baselink pitch from rolling navigator */
-
-
-  /* set target ang vel and desired baselink pitch to navigator and spinal */
-
-
-  // if(std::abs(cog_pos.z() / circle_radius_) < 1.0 && std::asin(cog_pos.z() / circle_radius_) > standing_target_phi_)
-  //   {
-  //     if(baselink_roll < M_PI / 2.0)
-  //       {
-  //         standing_target_phi_ = std::asin(cog_pos.z() / circle_radius_) + 0.1;
-  //       }
-  //     else
-  //       {
-  //         standing_target_phi_ = std::asin(cog_pos.z() / circle_radius_) - 0.1;
-  //       }
-  //   }
 
   if(standing_baselink_pitch_update_)
     {
@@ -130,9 +112,11 @@ void RollingController::calcStandingFullLambda()
   target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
   target_wrench_acc_target_frame_ = target_wrench_acc_target_frame;
 
-  Eigen::MatrixXd full_q_mat_trans = robot_model_->getMass() * full_q_trans_target_frame_;
+  Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
+  Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
+  Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
-  A.topRows(3) = full_q_rot_target_frame_;                                                           //    eq constraint about rpy torque
+  A.topRows(3) = full_q_mat_rot;                                                           //    eq constraint about rpy torque
   A.block(3, 0, 1, n_variables) = full_q_mat_trans.row(Z);                                           // in eq constraint about z
   A.block(4, 0, 1, n_variables) = full_q_mat_trans.row(X) - steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
   A.block(5, 0, 1, n_variables) = full_q_mat_trans.row(X) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
@@ -152,20 +136,20 @@ void RollingController::calcStandingFullLambda()
     target_wrench_acc_target_frame(PITCH) - epsilon,
     target_wrench_acc_target_frame(YAW) - epsilon,
     -INFINITY,
-    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    -steering_mu_ * robot_model_->getGravity()(Z),
     -INFINITY,
-    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    -steering_mu_ * robot_model_->getGravity()(Z),
     -INFINITY;
 
   upper_bound <<
     target_wrench_acc_target_frame(ROLL) + epsilon,
     target_wrench_acc_target_frame(PITCH) + epsilon,
     target_wrench_acc_target_frame(YAW) + epsilon,
-    robot_model_->getMass() * robot_model_->getGravity()(Z),
+    robot_model_->getGravity()(Z),
     INFINITY,
-    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
+    steering_mu_ * robot_model_->getGravity()(Z),
     INFINITY,
-    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
+    steering_mu_ * robot_model_->getGravity()(Z);
 
 
   OsqpEigen::Solver solver;
@@ -192,39 +176,39 @@ void RollingController::calcStandingFullLambda()
   full_lambda_trans_ = solution;
 }
 
-void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
-{
-  /* calculate normal allocation */
-  Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
-  Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
-  wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
+// void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
+// {
+//   /* calculate normal allocation */
+//   Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
+//   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
+//   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
 
-  int last_col = 0;
-  std::vector<Eigen::Vector3d> rotors_origin_from_target_frame = rolling_robot_model_->getRotorsOriginFromTargetFrame<Eigen::Vector3d>();
-  for(int i = 0; i < motor_num_; i++)
-    {
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_target_frame.at(i));
-      wrench_matrix.middleCols(last_col, 3) = wrench_map;
-      last_col += 3;
-    }
+//   int last_col = 0;
+//   std::vector<Eigen::Vector3d> rotors_origin_from_target_frame = rolling_robot_model_->getRotorsOriginFromTargetFrame<Eigen::Vector3d>();
+//   for(int i = 0; i < motor_num_; i++)
+//     {
+//       wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_target_frame.at(i));
+//       wrench_matrix.middleCols(last_col, 3) = wrench_map;
+//       last_col += 3;
+//     }
 
-  Eigen::Matrix3d inertia_from_target_frame_inv = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / robot_model_->getMass();
-  wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
-  wrench_matrix.bottomRows(3) = inertia_from_target_frame_inv * wrench_matrix.bottomRows(3);
+//   Eigen::Matrix3d inertia_from_target_frame_inv = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse();
+//   double mass_inv = 1 / robot_model_->getMass();
+//   wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
+//   wrench_matrix.bottomRows(3) = inertia_from_target_frame_inv * wrench_matrix.bottomRows(3);
 
-  /* calculate masked and integrated rotaion matrix */
-  Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
-  const auto links_rotation_from_target_frame = rolling_robot_model_->getLinksRotationFromTargetFrame<Eigen::Matrix3d>();
-  Eigen::MatrixXd mask(3, 2);
-  mask << 0, 0, 1, 0, 0, 1;
-  for(int i = 0; i < motor_num_; i++)
-    {
-      integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_target_frame.at(i) * mask;
-    }
+//   /* calculate masked and integrated rotaion matrix */
+//   Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
+//   const auto links_rotation_from_target_frame = rolling_robot_model_->getLinksRotationFromTargetFrame<Eigen::Matrix3d>();
+//   Eigen::MatrixXd mask(3, 2);
+//   mask << 0, 0, 1, 0, 0, 1;
+//   for(int i = 0; i < motor_num_; i++)
+//     {
+//       integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_target_frame.at(i) * mask;
+//     }
 
-  /* calculate integarated allocation */
-  full_q_mat_target_frame_ = wrench_matrix * integrated_rot;
-  full_q_trans_target_frame_ = full_q_mat_target_frame_.topRows(3);
-  full_q_rot_target_frame_ = full_q_mat_target_frame_.bottomRows(3);
-}
+//   /* calculate integarated allocation */
+//   full_q_mat_target_frame_ = wrench_matrix * integrated_rot;
+//   full_q_trans_target_frame_ = full_q_mat_target_frame_.topRows(3);
+//   full_q_rot_target_frame_ = full_q_mat_target_frame_.bottomRows(3);
+// }

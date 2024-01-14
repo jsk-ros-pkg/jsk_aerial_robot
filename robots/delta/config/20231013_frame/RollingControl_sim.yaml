@@ -82,66 +82,6 @@ controller:
 
     need_d_control: true
 
-ground_controller:
-  controlled_axis: [1, 1, 1, 1, 0, 1]
-  xy:
-    p_gain: 1.5
-    i_gain: 0.0
-    d_gain: 2.5
-
-  z:
-    p_gain: 20.0
-    i_gain: 1.5
-    d_gain: 2.5
-
-  roll_pitch:
-    start_rp_integration_height: 0.01
-
-  roll:
-    p_gain: 25.0
-    i_gain: 0.0
-    d_gain: 3.0
-
-  pitch:
-    p_gain: 15.0
-    i_gain: 0.0
-    d_gain: 2.0
-
-  yaw:
-    p_gain: 10.0
-    i_gain: 0.0
-    d_gain: 4.0
-
-steering_controller:
-  controlled_axis: [1, 1, 1, 1, 1, 1]
-  xy:
-    p_gain: 1.5
-    i_gain: 0.0
-    d_gain: 2.5
-
-  z:
-    p_gain: 20.0
-    i_gain: 1.5
-    d_gain: 2.5
-
-  roll_pitch:
-    start_rp_integration_height: 0.01
-
-  roll:
-    p_gain: 25.0
-    i_gain: 0.0
-    d_gain: 3.0
-
-  pitch:
-    p_gain: 15.0
-    i_gain: 0.0
-    d_gain: 2.0
-
-  yaw:
-    p_gain: 10.0
-    i_gain: 0.0
-    d_gain: 4.0
-
 standing_controller:
   controlled_axis: [1, 1, 1, 1, 1, 1]
   xy:

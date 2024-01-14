@@ -1,6 +1,6 @@
 #pragma once
 
-#include <delta/control/rolling_controller.h>
+#include <delta/control/delta_controller.h>
 #include <osqp_slsqp/slsqp.h>
 
 class slsqpSolver
