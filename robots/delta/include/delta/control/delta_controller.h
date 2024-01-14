@@ -41,16 +41,6 @@ namespace aerial_robot_control
     boost::shared_ptr<RollingRobotModel> getRollingRobotModel() {return rolling_robot_model_;}
     boost::shared_ptr<RollingRobotModel> getRollingRobotModelForOpt() {return rolling_robot_model_for_opt_;}
 
-    Eigen::VectorXd getTargetWrenchAccCog() {return target_wrench_acc_cog_;}
-    Eigen::MatrixXd getFullQ() {return full_q_mat_;}
-    Eigen::MatrixXd getFullQTrans() {return full_q_trans_;}
-    Eigen::MatrixXd getFullQRot() {return full_q_rot_;}
-    Eigen::MatrixXd getFullQTargetFrame() {return full_q_mat_target_frame_;}
-    Eigen::VectorXd getTargetWrenchAccTargetFrame() {return target_wrench_acc_target_frame_;}
-    double getRobotMassForOpt() {return robot_mass_for_opt_;}
-    double getGravityForOpt() {return gravity_for_opt_;}
-    double getSteeringMu() {return steering_mu_;}
-
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
     ros::Publisher flight_cmd_pub_;                   // for spinal
@@ -81,6 +71,7 @@ namespace aerial_robot_control
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_for_opt_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
 
+    /* common part */
     std::vector<double> rotor_tilt_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
@@ -97,13 +88,17 @@ namespace aerial_robot_control
     Eigen::MatrixXd full_q_mat_;
     Eigen::MatrixXd full_q_trans_;
     Eigen::MatrixXd full_q_rot_;
-    Eigen::MatrixXd full_q_mat_target_frame_;
-    Eigen::MatrixXd full_q_trans_target_frame_;
-    Eigen::MatrixXd full_q_rot_target_frame_;
+    // Eigen::MatrixXd full_q_mat_target_frame_;
+    // Eigen::MatrixXd full_q_trans_target_frame_;
+    // Eigen::MatrixXd full_q_rot_target_frame_;
     Eigen::MatrixXd controlled_q_mat_;
     Eigen::MatrixXd controlled_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
+
+    /* flight mode */
+
+    /* rolling mode */
 
     double candidate_yaw_term_;
     double torque_allocation_matrix_inv_pub_stamp_;
@@ -120,7 +115,7 @@ namespace aerial_robot_control
     int ground_navigation_mode_;
     std::vector<int> controlled_axis_;
     int control_dof_;
-    double default_z_i_gain_;
+    // double default_z_i_gain_;
     double rolling_control_timestamp_;
     bool realtime_gimbal_allocation_;
     double gravity_compensate_ratio_;
@@ -129,43 +124,43 @@ namespace aerial_robot_control
     double gravity_for_opt_;
 
     bool standing_baselink_pitch_update_;
-    double standing_converged_baselink_roll_thresh_;
-    double standing_converged_z_i_term_min_;
-    double standing_converged_z_i_term_descend_ratio_;
-    double standing_baselink_roll_restart_z_i_control_thresh_;
     double standing_baselink_ref_pitch_last_update_time_;
     double standing_baselink_ref_pitch_update_thresh_;
-    double standing_minimum_z_i_term_;
-    double standing_target_phi_;
-    double standing_target_baselink_pitch_;
-    double standing_feed_forward_z_compensate_roll_thresh_;
-    double steering_z_acc_min_;
     double steering_mu_;
 
+    /* common part */
     void reset() override;
     void controlCore() override;
     void rosParamInit();
-    void targetStatePlan();
-    void calcAccFromCog();
-    void calcAccFromTargetFrame();
-    void calcWrenchAllocationMatrix();
-    void calcWrenchAllocationMatrixFromTargetFrame();
-    void calcFullLambda();
     void wrenchAllocation();
     void calcYawTerm();
+
+    /* flight mode */
+    void calcAccFromCog();
+    void calcWrenchAllocationMatrix();
+    void calcFullLambda();
+
+    /* rolling mode */
+    void standingPlanning();
+    void calcStandingFullLambda();
+
+    /* send command */
     void sendCmd();
     void sendGimbalAngles();
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
+
+    /* ros callbacks */
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
     void calcGimbalInFcCallback(const std_msgs::BoolPtr & msg);
+
+    /* utils */
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
     void setControlAxisWithNameSpace(std::string ns);
     void rosoutControlAxis(std::string ns);
-    void calcStandingFullLambda();
-    void standingPlanning();
+
     void slsqpSolve();
     void nonlinearQP();
 
