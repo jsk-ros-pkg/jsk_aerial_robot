@@ -77,56 +77,39 @@ namespace aerial_robot_control
     std::vector<double> target_gimbal_angles_;
     std::vector<double> prev_target_gimbal_angles_;
     std::vector<double> current_gimbal_angles_;
-    std::vector<double> target_acc_cog_;
-    std::vector<double> target_acc_dash_;
-    Eigen::VectorXd target_wrench_acc_cog_;
-    Eigen::VectorXd target_wrench_acc_target_frame_;
-    Eigen::VectorXd controlled_wrench_acc_cog_;
+    Eigen::VectorXd full_lambda_all_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
-    Eigen::VectorXd full_lambda_all_;
-    Eigen::MatrixXd full_q_mat_;
-    Eigen::MatrixXd full_q_trans_;
-    Eigen::MatrixXd full_q_rot_;
-    // Eigen::MatrixXd full_q_mat_target_frame_;
-    // Eigen::MatrixXd full_q_trans_target_frame_;
-    // Eigen::MatrixXd full_q_rot_target_frame_;
-    Eigen::MatrixXd controlled_q_mat_;
-    Eigen::MatrixXd controlled_q_mat_inv_;
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
-
-    /* flight mode */
-
-    /* rolling mode */
-
     double candidate_yaw_term_;
-    double torque_allocation_matrix_inv_pub_stamp_;
-    double torque_allocation_matrix_inv_pub_interval_;
-    double circle_radius_;
-    std::string tf_prefix_;
     bool use_sr_inv_;
     double sr_inv_weight_;
-    Eigen::VectorXd target_thrust_z_term_;
-    double target_roll_, target_pitch_; //for under actuated control
-    bool hovering_approximate_;
-    bool calc_gimbal_in_fc_;
+    double circle_radius_;
+    std::string tf_prefix_;
     double gimbal_lpf_factor_;
     int ground_navigation_mode_;
-    std::vector<int> controlled_axis_;
-    int control_dof_;
-    // double default_z_i_gain_;
     double rolling_control_timestamp_;
     bool realtime_gimbal_allocation_;
-    double gravity_compensate_ratio_;
+    double torque_allocation_matrix_inv_pub_stamp_;
+    double torque_allocation_matrix_inv_pub_interval_;
 
-    double robot_mass_for_opt_;
-    double gravity_for_opt_;
+    /* flight mode */
+    Eigen::VectorXd target_wrench_acc_cog_;
+    std::vector<int> controlled_axis_;
+    std::vector<double> target_acc_cog_;
+    std::vector<double> target_acc_dash_;
+    double target_roll_, target_pitch_; // for under actuated control
+    int control_dof_;
+    bool calc_gimbal_in_fc_;
+    bool hovering_approximate_;
 
+    /* rolling mode */
     bool standing_baselink_pitch_update_;
     double standing_baselink_ref_pitch_last_update_time_;
     double standing_baselink_ref_pitch_update_thresh_;
     double steering_mu_;
+    double gravity_compensate_ratio_;
 
     /* common part */
     void reset() override;
@@ -137,8 +120,7 @@ namespace aerial_robot_control
 
     /* flight mode */
     void calcAccFromCog();
-    void calcWrenchAllocationMatrix();
-    void calcFullLambda();
+    void calcFlightFullLambda();
 
     /* rolling mode */
     void standingPlanning();

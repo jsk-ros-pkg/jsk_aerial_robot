@@ -110,7 +110,6 @@ void RollingController::calcStandingFullLambda()
 
   /* use sum of pid result and gravity compensation torque for attitude control */
   target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
-  target_wrench_acc_target_frame_ = target_wrench_acc_target_frame;
 
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
@@ -175,40 +174,3 @@ void RollingController::calcStandingFullLambda()
   full_lambda_all_ = solution;
   full_lambda_trans_ = solution;
 }
-
-// void RollingController::calcWrenchAllocationMatrixFromTargetFrame()
-// {
-//   /* calculate normal allocation */
-//   Eigen::MatrixXd wrench_matrix = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
-//   Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
-//   wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
-
-//   int last_col = 0;
-//   std::vector<Eigen::Vector3d> rotors_origin_from_target_frame = rolling_robot_model_->getRotorsOriginFromTargetFrame<Eigen::Vector3d>();
-//   for(int i = 0; i < motor_num_; i++)
-//     {
-//       wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_target_frame.at(i));
-//       wrench_matrix.middleCols(last_col, 3) = wrench_map;
-//       last_col += 3;
-//     }
-
-//   Eigen::Matrix3d inertia_from_target_frame_inv = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse();
-//   double mass_inv = 1 / robot_model_->getMass();
-//   wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
-//   wrench_matrix.bottomRows(3) = inertia_from_target_frame_inv * wrench_matrix.bottomRows(3);
-
-//   /* calculate masked and integrated rotaion matrix */
-//   Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, 2 * motor_num_);
-//   const auto links_rotation_from_target_frame = rolling_robot_model_->getLinksRotationFromTargetFrame<Eigen::Matrix3d>();
-//   Eigen::MatrixXd mask(3, 2);
-//   mask << 0, 0, 1, 0, 0, 1;
-//   for(int i = 0; i < motor_num_; i++)
-//     {
-//       integrated_rot.block(3 * i, 2 * i, 3, 2) = links_rotation_from_target_frame.at(i) * mask;
-//     }
-
-//   /* calculate integarated allocation */
-//   full_q_mat_target_frame_ = wrench_matrix * integrated_rot;
-//   full_q_trans_target_frame_ = full_q_mat_target_frame_.topRows(3);
-//   full_q_rot_target_frame_ = full_q_mat_target_frame_.bottomRows(3);
-// }
