@@ -83,12 +83,12 @@ nmpc_under_act_body_rate::MPCSolver::~MPCSolver()
   // 1. free solver
   int status = qd_body_rate_model_acados_free(acados_ocp_capsule_);
   if (status)
-    std::cout << "qd_body_rate_model_acados_free() returned status " << status << ".\n";
+    ROS_WARN("qd_body_rate_model_acados_free() returned status %d. \n", status);
 
   // 2. free solver capsule
   status = qd_body_rate_model_acados_free_capsule(acados_ocp_capsule_);
   if (status)
-    std::cout << "qd_body_rate_model_acados_free_capsule() returned status " << status << ".\n";
+    ROS_WARN("qd_body_rate_model_acados_free_capsule() returned status %d. \n", status);
 }
 
 void nmpc_under_act_body_rate::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
@@ -238,31 +238,34 @@ void nmpc_under_act_body_rate::MPCSolver::getSolution(const unsigned int x_strid
 
 void nmpc_under_act_body_rate::MPCSolver::printSolution()
 {
-  std::cout << "\n--- x_traj ---\n" << std::endl;
+  std::stringstream ss;
 
+  ss << "\n--- x_traj ---\n";
   for (int i = 0; i <= NN; i++)
   {
-    std::cout << "X Row " << i << ":" << std::endl;
+    ss << "X Row " << i << ":\n";
     for (int j = 0; j < NX; j++)
     {
       int index = i * NX + j;
-      std::cout << x_u_out_.x.data[index] << " ";
+      ss << x_u_out_.x.data[index] << " ";
     }
-    std::cout << std::endl;
+    ss << "\n";
   }
+  ROS_INFO_STREAM(ss.str());  // Logging the x_traj
+  ss.str("");                 // Clearing the stringstream
 
-  std::cout << "\n--- u_traj ---\n" << std::endl;
-
+  ss << "\n--- u_traj ---\n";
   for (int i = 0; i < NN; i++)
   {
-    std::cout << "U Row " << i << ":" << std::endl;
+    ss << "U Row " << i << ":\n";
     for (int j = 0; j < NU; j++)
     {
       int index = i * NU + j;
-      std::cout << x_u_out_.u.data[index] << " ";
+      ss << x_u_out_.u.data[index] << " ";
     }
-    std::cout << std::endl;
+    ss << "\n";
   }
+  ROS_INFO_STREAM(ss.str());  // Logging the u_traj
 }
 
 void nmpc_under_act_body_rate::MPCSolver::printStatus(const int N_timings, const double min_time)
