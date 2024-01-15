@@ -8,7 +8,7 @@ navigation:
   # Attitude Control Mode: 4
 
 
-  takeoff_height: 0.6 #1.0
+  takeoff_height: 0.8 #1.0
   outdoor_takeoff_height: 1.5
 
   # teleop operation
@@ -30,4 +30,4 @@ navigation:
   gps_waypoint_check_du: 1.0
 
   #landing
-  land_check_duration: 0.01
+  land_check_duration: 0.05
