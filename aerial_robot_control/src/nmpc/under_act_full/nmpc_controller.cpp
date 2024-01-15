@@ -205,31 +205,6 @@ void nmpc_under_act_full::NMPCController::controlCore()
   Eigen::VectorXd target_thrusts(4);
   target_thrusts << ft1, ft2, ft3, ft4;
 
-  // constraint the change of thrust, preventing sudden thrust increasing during taking off
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
-  {
-    double thrust_scale_ratio = 1.0;
-    float permitted_max_thrust_change = 10.0 / 40.0;
-    double real_max_thrust_change = 0.0;
-    for (int i = 0; i < motor_num_; i++)
-    {
-      double thrust_change = fabs(target_thrusts(i) - flight_cmd_.base_thrust[i]);
-      if (thrust_change > real_max_thrust_change)
-        real_max_thrust_change = thrust_change;
-    }
-    if (real_max_thrust_change > permitted_max_thrust_change)
-      thrust_scale_ratio = permitted_max_thrust_change / real_max_thrust_change;
-
-    // scale the thrust
-    for (int i = 0; i < motor_num_; i++)
-    {
-      flight_cmd_.base_thrust[i] = static_cast<float>(
-          flight_cmd_.base_thrust[i] + (target_thrusts(i) - flight_cmd_.base_thrust[i]) * thrust_scale_ratio);
-    }
-
-    return;
-  }
-
   for (int i = 0; i < motor_num_; i++)
   {
     flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));

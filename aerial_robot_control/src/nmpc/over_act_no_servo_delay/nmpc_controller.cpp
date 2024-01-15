@@ -217,45 +217,6 @@ void nmpc_over_act_no_servo_delay::NMPCController::controlCore()
   Eigen::VectorXd target_thrusts(4);
   target_thrusts << ft1, ft2, ft3, ft4;
 
-  // constraint the change of thrust, preventing sudden thrust increasing during taking off
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
-  {
-    double thrust_scale_ratio = 1.0;
-    float permitted_max_thrust_change = 10.0 / 40.0;
-    double real_max_thrust_change = 0.0;
-    for (int i = 0; i < motor_num_; i++)
-    {
-      double thrust_change = fabs(target_thrusts(i) - flight_cmd_.base_thrust[i]);
-      if (thrust_change > real_max_thrust_change)
-        real_max_thrust_change = thrust_change;
-    }
-    if (real_max_thrust_change > permitted_max_thrust_change)
-      thrust_scale_ratio = permitted_max_thrust_change / real_max_thrust_change;
-
-    // scale the thrust
-    for (int i = 0; i < motor_num_; i++)
-    {
-      flight_cmd_.base_thrust[i] = static_cast<float>(
-          flight_cmd_.base_thrust[i] + (target_thrusts(i) - flight_cmd_.base_thrust[i]) * thrust_scale_ratio);
-    }
-
-    // - servo angle
-    double a1 = mpc_solver_.x_u_out_.u.data.at(4);
-    double a2 = mpc_solver_.x_u_out_.u.data.at(5);
-    double a3 = mpc_solver_.x_u_out_.u.data.at(6);
-    double a4 = mpc_solver_.x_u_out_.u.data.at(7);
-
-    sensor_msgs::JointState gimbal_control_msg;
-    gimbal_control_msg.header.stamp = ros::Time::now();
-    gimbal_control_msg.position.push_back(a1);
-    gimbal_control_msg.position.push_back(a2);
-    gimbal_control_msg.position.push_back(a3);
-    gimbal_control_msg.position.push_back(a4);
-    pub_gimbal_control_.publish(gimbal_control_msg);
-
-    return;
-  }
-
   for (int i = 0; i < motor_num_; i++)
   {
     flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
