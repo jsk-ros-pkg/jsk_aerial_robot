@@ -61,10 +61,17 @@ void nmpc_over_act_no_servo_delay::NMPCController::initialize(
 
   /* services */
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
+  bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
 
   reset();
 
   // set control mode
+  if (!res)
+  {
+    ROS_ERROR("cannot find service named set_control_mode");
+  }
+  ros::Duration(2.0).sleep();
+
   spinal::SetControlMode set_control_mode_srv;
   set_control_mode_srv.request.is_attitude = is_attitude_ctrl_;
   set_control_mode_srv.request.is_body_rate = is_body_rate_ctrl_;
