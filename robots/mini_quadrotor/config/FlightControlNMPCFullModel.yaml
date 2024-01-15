@@ -44,6 +44,11 @@ controller:
     Qw_z: 5
     Rt: 1
 
+    # for body_rate controller
+    roll_rate_p_gain: 0.4
+    pitch_rate_p_gain: 0.4
+    yaw_rate_p_gain: 1.5
+
     is_attitude_ctrl: false
     is_body_rate_ctrl: true
 

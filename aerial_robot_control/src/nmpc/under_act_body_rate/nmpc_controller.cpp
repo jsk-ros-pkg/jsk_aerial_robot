@@ -306,7 +306,6 @@ void nmpc_under_act_body_rate::NMPCController::sendRPYGain()
   rpy_gain_msg.motors[3].pitch_d = 393;
   rpy_gain_msg.motors[3].yaw_d = -1423;
 
-  /* debug why body rate controller is slow */
   if (!is_attitude_ctrl_ && is_body_rate_ctrl_)
   {
     ros::NodeHandle control_nh(nh_, "controller");

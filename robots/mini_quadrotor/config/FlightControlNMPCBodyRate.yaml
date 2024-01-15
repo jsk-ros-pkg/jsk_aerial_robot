@@ -36,3 +36,5 @@ controller:
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: true
+
+    is_print_physical_params: false
