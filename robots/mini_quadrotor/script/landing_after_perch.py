@@ -57,11 +57,12 @@ class Perching():
             self.ready_perching_flag = True
         if self.joy.buttons[7] == 1:
             self.stop_flag = True
+
     def flight_state(self):
-        if self.flight_state_msg.data == 2:
+        if self.flight_state_msg.data == 1: #2
             self.flight_state_flag = True
-        else:
-            self.flight_state_flag = False
+        #else:
+            #self.flight_state_flag = False
 
 
     def start_pump(self):
