@@ -36,8 +36,8 @@ class Perching():
         self.stop_flag = False
 
         self.takeoff_wainting_time = 5.0
-        self.perching_time_before_halt = 1.5
-        self.perching_time_after_halt = 2.0
+        self.perching_time_before_halt = 1.0
+        self.perching_time_after_halt = 4.0
         ##self.timer = rospy.Timer(rospy.Duration(0.05),self.timerCallback)
 
     def flight_state_cb(self,msg):
