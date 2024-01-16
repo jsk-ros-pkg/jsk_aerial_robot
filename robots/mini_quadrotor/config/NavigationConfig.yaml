@@ -30,4 +30,4 @@ navigation:
   gps_waypoint_check_du: 1.0
 
   #landing
-  land_check_duration: 0.05
+  land_check_duration: 0.1
