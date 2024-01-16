@@ -55,7 +55,7 @@ class Approaching_human():
 
         self.Kp = 0.1
         self.Ki = 0.0001
-        self.Kd = 0.07
+        self.Kd = 0.01
         #self.offset = 0.09/(0.08*abs(self.degree[2]-self.initial_position[2])+0.3) + 1
 
         #depth(OpenCV image)
