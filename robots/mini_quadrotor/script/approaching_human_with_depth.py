@@ -174,6 +174,7 @@ class Approaching_human():
         yaw = self.max_rect_pos.x * (math.pi/self.camera_width)* self.camera_param
         rospy.loginfo("max_rect_pos: %s",self.max_rect_pos.x)
         self.move_msg.target_yaw = -yaw + self.euler.z
+        self.target_pos.z = self.move_msg.target_yaw
         # self.move_msg.target_yaw = yaw
         rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
         # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
@@ -183,6 +184,8 @@ class Approaching_human():
     def relative_pos(self):
         self.max_rect_pixel_pos.x = int(self.max_rect.x + (self.max_rect.width/2))
         self.max_rect_pixel_pos.y = int(self.max_rect.y + (self.max_rect.height/2))
+        self.target_pos.x = self.max_rect_pixel_pos.x
+        self.target_pos.y = self.max_rect_pixel_pos.y
         depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
         print(depth)
         # pixel_cnt = 0
@@ -295,32 +298,7 @@ class Approaching_human():
         if self.flight_state_flag:
             while self.land_cnt < 30:
                 print(self.land_cnt)
-                self.rotate_state()
-                self.perching_data = 0
-                self.perching_pub.publish(self.perching_data)
-                if self.n >= 1:
-                    self.finding_max_rect()
-                    if self.rotate_flag:
-                        self.rotate_yaw()
-                        rospy.loginfo("rotate!")
-                    self.relative_pos()
-                    self.pos_cal()
-                    if self.depth > 0:
-                        self.PID_control()
-                        self.move_msg.target_vel_x = self.output
-                        self.move_pub.publish(self.move_msg)
-                        rospy.loginfo("go!")
-                        #rospy.loginfo("cmd_vel: %s",self.output)
-                        self.land_cnt = 0
-                        self.flight_start_flag = False
-                    else:
-                        self.move_msg.target_vel_x = 0.0
-                        self.move_pub.publish(self.move_msg)
-                        rospy.loginfo("stop!")
-                        self.land_cnt += 1
-                    self.rotate_cnt += 1
-                else:
-                    rospy.loginfo("don't see people")
+                self.target_pos_pub.publish(self.target_pos)
                     self.move_msg.target_vel_x = 0.0
                     self.move_pub.publish(self.move_msg)
                     rospy.loginfo("stop!")
