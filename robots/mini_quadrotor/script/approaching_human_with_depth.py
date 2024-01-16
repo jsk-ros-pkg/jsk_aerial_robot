@@ -110,32 +110,32 @@ class Approaching_human():
         euler = tf.transformations.euler_from_quaternion((quaternion_x,quaternion_y,quaternion_z,quaternion_w))
         self.euler = Vector3(x=euler[0],y=euler[1],z=euler[2])
 
-    # def flight_rotate_state(self):
-    #     # if self.flight_state_msg.data == 3:
-    #     #     self.flight_start_flag = True
-    #         # print(self.flight_start_flag.data)
-    #     if self.flight_state_msg.data == 5:#5
-    #         self.flight_state_flag = True
-    #     else:
-    #         self.flight_state_flag = False
-
-    #     # if self.flight_state_flag:
-    #     #     if self.flight_start_flag:
-    #     #         rospy.sleep(2.0)
-    #     #         self.flight_start_flag = False
-    #     if self.rotate_cnt >= 20:
-    #         self.rotate_flag = True
-    #         self.rotate_cnt = 0
-    
-    def flight_state(self):
+    def flight_rotate_state(self):
+        # if self.flight_state_msg.data == 3:
+        #     self.flight_start_flag = True
+            # print(self.flight_start_flag.data)
         if self.flight_state_msg.data == 5:#5
             self.flight_state_flag = True
         else:
             self.flight_state_flag = False
-    def rotate_state(self):
+
+        # if self.flight_state_flag:
+        #     if self.flight_start_flag:
+        #         rospy.sleep(2.0)
+        #         self.flight_start_flag = False
         if self.rotate_cnt >= 20:
             self.rotate_flag = True
             self.rotate_cnt = 0
+    
+    # def flight_state(self):
+    #     if self.flight_state_msg.data == 5:#5
+    #         self.flight_state_flag = True
+    #     else:
+    #         self.flight_state_flag = False
+    # def rotate_state(self):
+    #     if self.rotate_cnt >= 20:
+    #         self.rotate_flag = True
+    #         self.rotate_cnt = 0
 
     def finding_max_rect(self):
         max_area = 0
@@ -183,23 +183,26 @@ class Approaching_human():
     def relative_pos(self):
         self.max_rect_pixel_pos.x = int(self.max_rect.x + (self.max_rect.width/2))
         self.max_rect_pixel_pos.y = int(self.max_rect.y + (self.max_rect.height/2))
-        # depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
-        # print(depth)
-        pixel_cnt = 0
-        depth_sum = 0
-        depth_tmp = 0
-        for i in range (10):
-            x = np.random.randint(-30,30)
-            y = np.random.randint(-30,30)
-            pixel_x = self.max_rect_pixel_pos.x + x
-            pixel_y = self.max_rect_pixel_pos.y + y
-            depth_center = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
-            depth_tmp = self.cv_image.item(pixel_y,pixel_x)
-            if depth_tmp <= (depth_center + 200) and (depth_center- 200) <= depth_tmp:
-                depth_sum += depth_tmp
-                pixel_cnt += 1
-        depth = depth_sum /pixel_cnt
+        depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
         print(depth)
+        # pixel_cnt = 0
+        # depth_sum = 0
+        # depth_tmp = 0
+        # for i in range (10):
+        #     x = np.random.randint(-30,30)
+        #     y = np.random.randint(-30,30)
+        #     pixel_x = self.max_rect_pixel_pos.x + x
+        #     pixel_y = self.max_rect_pixel_pos.y + y
+        #     depth_center = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
+        #     depth_tmp = self.cv_image.item(pixel_y,pixel_x)
+        #     if depth_tmp <= (depth_center + 200) and (depth_center- 200) <= depth_tmp:
+        #         depth_sum += depth_tmp
+        #         pixel_cnt += 1
+        # if pixel_cnt > 0:
+        #     depth = depth_sum /pixel_cnt
+        # else:
+        #     depth = depth_center
+        # print(depth)
         
         if self.flight_start_flag:
             self.depth = depth/1000 - 0.5 #############
@@ -320,16 +323,73 @@ class Approaching_human():
                     rospy.loginfo("don't see people")
                     self.move_msg.target_vel_x = 0.0
                     self.move_pub.publish(self.move_msg)
-                    rospy.loginfo("stop! because not see people")
-                    if self.min_depth < 0.5:
-                        self.land_cnt += 1
-            if self.land_cnt >= 30:
-                self.ready_for_perching()
-                if self.perching_cnt >= 10:
-                    self.perching_data = 1
-                    self.perching_pub.publish(self.perching_data)
-                    rospy.loginfo("land!")
-                    self.land_pub.publish()
+                    rospy.loginfo("stop!")
+                    self.land_cnt += 1
+                    if self.land_cnt >= 10:
+                        for i in range (10):
+                            self.perching_data = 1
+                            self.perching_pub.publish(self.perching_data)
+                        #rospy.loginfo("land!")
+                        #self.land_pub.publish()
+                        rospy.sleep(5.0)
+                        self.land_cnt = 0
+                self.rotate_cnt += 1
+            else:
+                rospy.loginfo("don't see people")
+                self.move_msg.target_vel_x = 0.0
+                self.move_pub.publish(self.move_msg)
+                rospy.loginfo("stop! because not see people")
+                if self.min_depth > 2.0:
+                    self.move_msg.target_yaw = self.euler.z + 0.01
+                    self.move_pub.publish(self.move_msg)
+                    rospy.loginfo("not see yaw: %s",self.move_msg.target_yaw)
+                    rospy.sleep(1.0)
+                # self.move_msg.yaw_nav_mode = 0
+
+
+        # self.flight_state()
+        # if self.flight_state_flag:
+        #     while self.land_cnt < 30:
+        #         print(self.land_cnt)
+        #         self.rotate_state()
+        #         self.perching_data = 0
+        #         self.perching_pub.publish(self.perching_data)
+        #         if self.n >= 1:
+        #             self.finding_max_rect()
+        #             if self.rotate_flag:
+        #                 self.rotate_yaw()
+        #                 rospy.loginfo("rotate!")
+        #             self.relative_pos()
+        #             self.pos_cal()
+        #             self.target_pos_pub.publish(self.target_pos)
+        #             if self.depth > 0:
+        #                 self.PID_control()
+        #                 self.move_msg.target_vel_x = self.output
+        #                 self.move_pub.publish(self.move_msg)
+        #                 rospy.loginfo("go!")
+        #                 #rospy.loginfo("cmd_vel: %s",self.output)
+        #                 self.land_cnt = 0
+        #                 self.flight_start_flag = False
+        #             else:
+        #                 self.move_msg.target_vel_x = 0.0
+        #                 self.move_pub.publish(self.move_msg)
+        #                 rospy.loginfo("stop!")
+        #                 self.land_cnt += 1
+        #             self.rotate_cnt += 1
+        #         else:
+        #             rospy.loginfo("don't see people")
+        #             self.move_msg.target_vel_x = 0.0
+        #             self.move_pub.publish(self.move_msg)
+        #             rospy.loginfo("stop! because not see people")
+        #             if self.min_depth < 0.1:
+        #                 self.land_cnt += 1
+        #     if self.land_cnt >= 30:
+        #         self.ready_for_perching()
+        #         if self.perching_cnt >= 10:
+        #             self.perching_data = 1
+        #             self.perching_pub.publish(self.perching_data)
+        #             rospy.loginfo("land!")
+        #             self.land_pub.publish()
 
 if __name__ == '__main__':
     rospy.init_node("Approaching_human")
