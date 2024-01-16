@@ -43,7 +43,7 @@ controller:
 
     yaw_p: 50 #50
     yaw_i: 0.5
-    yaw_d: 1.0
+    yaw_d: 2.0 #1.0
 
     r1: 1.0
     r2: 1.0
