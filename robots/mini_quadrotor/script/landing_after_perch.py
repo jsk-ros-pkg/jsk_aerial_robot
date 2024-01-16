@@ -12,9 +12,9 @@ class Perching():
         self.flight_state_msg = UInt8()
         self.flight_state_flag = False
 
-        self.perching_state_sub = rospy.Subscriber('/quadrotor/perching_state',UInt8,self.perching_state_cb)
+        self.perching_state_sub = rospy.Subscriber('/perching_state',UInt8,self.perching_state_cb)
         self.perching_state_msg = UInt8()
-        self.perching_state_flag = False
+        self.perching_flag = False
 
         self.PWM_pub = rospy.Publisher('/quadrotor/pwm_indiv_test',PwmState,queue_size=1)
         self.PWM_msg = PwmState()
@@ -32,7 +32,7 @@ class Perching():
         self.joy_sub = rospy.Subscriber('/quadrotor/joy', Joy, self.joy_cb)
         self.joy = Joy()
         self.ready_perching_flag = False
-        self.perching_flag = False
+        self.perching_flag = 0
         self.stop_flag = False
 
         self.takeoff_wainting_time = 5.0
@@ -45,15 +45,13 @@ class Perching():
 
     def perching_state_cb(self,msg):
         self.perching_state_msg = msg
-        if self.perching_state_msg == 1:
-            self.perching_flag = True
+        if self.perching_state_msg.data == 1:
+            self.perching_flag = 1
 
     def joy_cb(self,msg):
         self.joy = msg
-        if self.joy.buttons[2] == 1:
-            self.perching_flag = True
-        else:
-            self.perching_flag = False
+        # if self.joy.buttons[2] == 1:
+        #     self.perching_flag = True
 
         if self.joy.buttons[0] == 1:
             self.ready_perching_flag = True
