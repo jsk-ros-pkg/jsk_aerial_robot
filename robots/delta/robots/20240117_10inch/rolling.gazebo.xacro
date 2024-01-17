@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta" >
   <xacro:arg name="robot_name" default="delta" />
 
-  <xacro:include filename="$(find delta)/robots/20231013_frame/rolling.urdf.xacro" />
+  <xacro:include filename="$(find delta)/robots/20240117_10inch/rolling.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
   <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />

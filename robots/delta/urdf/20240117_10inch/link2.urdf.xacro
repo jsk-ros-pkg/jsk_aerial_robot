@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20231013_frame/link2_base.dae" />
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/link2_base.dae" />
         </geometry>
       </visual>
       <collision>
@@ -35,7 +35,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20231013_frame/link2_gimbal.dae" />
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/link2_gimbal.dae" />
         </geometry>
       </visual>
     </link>
