@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20231013_frame/battery_module.dae" />
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/battery_module.dae" />
         </geometry>
       </visual>
     </link>

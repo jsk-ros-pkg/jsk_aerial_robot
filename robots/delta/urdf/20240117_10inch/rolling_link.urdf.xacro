@@ -2,10 +2,10 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link" >
 
-  <xacro:include filename="$(find delta)/urdf/20231013_frame/link1.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20231013_frame/link2.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20231013_frame/link3.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20231013_frame/battery.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240117_10inch/link1.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240117_10inch/link2.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240117_10inch/link3.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240117_10inch/battery.urdf.xacro" />
 
   <xacro:macro name="delta_module" params="self child rotor_direction battery">
 
