@@ -6,6 +6,7 @@
   <xacro:include filename="$(find delta)/urdf/20231013_frame/link2.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20231013_frame/link3.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20231013_frame/battery.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20231013_frame/thrust.urdf.xacro" />
 
   <xacro:macro name="delta_module" params="self child rotor_direction battery">
 

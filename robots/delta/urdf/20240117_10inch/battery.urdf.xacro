@@ -2,8 +2,8 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="battery" >
 
+  <!-- 6S ZIPPY 3000 6S (blue) -->
   <xacro:macro name="battery" params="index">
-
     <link name="battery${index}">
       <inertial>
         <origin xyz="0.00017558 0.00003980 -0.02919025" rpy="0 0 0"/>
@@ -19,4 +19,41 @@
       </visual>
     </link>
   </xacro:macro>
+
+  <!-- 6S Turningy high lipo 1300 (silver) x1 -->
+  <xacro:macro name="high_lipo_single" params="index">
+    <link name="high_lipo_single${index}">
+      <inertial>
+        <origin xyz="0.04390043 -0.02150000 0.00000000" rpy="0 0 0"/>
+        <mass value="0.22649093"/>
+        <inertia
+            ixx="0.00005005"  iyy="0.00017334"  izz="0.00016934"
+            ixy="-0.00000034" ixz="0.00000000"  iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_single_module.STL" />
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
+  <!-- 6S Turningy high lipo 1300 (silver) x2 -->
+  <xacro:macro name="high_lipo_double" params="index">
+    <link name="high_lipo_double${index}">
+      <inertial>
+        <origin xyz="0.4390043 0.00000000 0.00000000" rpy="0 0 0"/>
+        <mass value="0.45298185"/>
+        <inertia
+            ixx="0.00044266" iyy="0.00068125"  izz="0.00034667"
+            ixy="0.00000000" ixz="0.00000000" iyz="-0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_double_module.STL" />
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
 </robot>

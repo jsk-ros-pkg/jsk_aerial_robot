@@ -5,10 +5,6 @@
   <baselink name="fc" />
   <thrust_link name="thrust" />
 
-  <m_f_rate value="-0.0142" /> <!-- drug torque rate -->
-  <xacro:property name="max_force" value="22.0" /> <!-- [N] -->
-  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
-
   <!-- friction -->
   <xacro:macro name="friction" params="link">
     <gazebo reference="${link}">

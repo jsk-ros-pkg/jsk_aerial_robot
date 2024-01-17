@@ -5,7 +5,10 @@
   <xacro:include filename="$(find delta)/urdf/20240117_10inch/rolling_link.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/common.xacro" />
 
-  <xacro:delta_module self="1" child="2" rotor_direction="1"  battery="true"/>
-  <xacro:delta_module self="2" child="3" rotor_direction="-1" battery="true"/>
-  <xacro:delta_module self="3" child="3" rotor_direction="1"  battery="true"/>
+  <!-- battery: 1 = 6S ZIPPY 3000 (blue)              -->
+  <!-- battery: 2 = 6S Turningy high lipo (silver) x1 -->
+  <!-- battery: 3 = 6S Turningy high lipo (silver) x2 -->
+  <xacro:delta_module self="1" child="2" rotor_direction="1"  battery="2"/>
+  <xacro:delta_module self="2" child="3" rotor_direction="-1" battery="2"/>
+  <xacro:delta_module self="3" child="3" rotor_direction="1"  battery="2"/>
 </robot>

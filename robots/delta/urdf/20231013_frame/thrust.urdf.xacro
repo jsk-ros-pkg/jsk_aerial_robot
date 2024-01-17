@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_common" >
+
+  <m_f_rate value="-0.0134" /> <!-- drug torque rate -->
+  <xacro:property name="max_force" value="24.4" /> <!-- [N] -->
+  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
+
+</robot>
