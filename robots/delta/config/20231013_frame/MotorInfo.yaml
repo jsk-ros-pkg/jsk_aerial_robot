@@ -1,40 +1,48 @@
 motor_info:
         min_pwm: 0.6 # 1200 [ms]
-        max_pwm: 0.95 # 1900 [ms]
-        min_thrust: 1.65 #  [N]
+        max_pwm: 0.925 # 1850 [ms]
+        min_thrust: 0.0 #  [N]
         force_landing_thrust: 5.0 #[N]
-        m_f_rate: -0.014
+        m_f_rate: -0.0134
         pwm_conversion_mode: 1 # Polynominal Mode
-        vel_ref_num: 4
+        vel_ref_num: 5
         ref1:
-                voltage: 24.0
-                max_thrust: 22 # N 
-                polynominal4: 3.772162    # x 10^3
-                polynominal3: -16.144636  # x 10^3
-                polynominal2: 18.100195   # x 10^2
-                polynominal1: 15.412193   # x 10
-                polynominal0: 57.120667   # x 1
+                voltage: 26.2
+                max_thrust: 24.4 # N 
+                polynominal4: 2.6374697    # x 10^4
+                polynominal3: -13.588596   # x 10^3
+                polynominal2: 19.442409    # x 10^2
+                polynominal1: 9.5308610    # x 10
+                polynominal0: 57.541709    # x 1
         ref2:
-                voltage: 23.0
-                max_thrust: 21 # N 
-                polynominal4: 4.216383    # x 10^3
-                polynominal3: -17.173002  # x 10^3
-                polynominal2: 17.560656   # x 10^2
-                polynominal1: 18.136279   # x 10
-                polynominal0: 56.788201   # x 1
+                voltage: 25.2
+                max_thrust: 23.2 # N 
+                polynominal4: 2.8932558   # x 10^4
+                polynominal3: -14.738371  # x 10^3
+                polynominal2: 20.857811   # x 10^2
+                polynominal1: 9.8227477   # x 10
+                polynominal0: 57.705457   # x 1
         ref3:
-                voltage: 22.0
-                max_thrust: 19.7 # N 
-                polynominal4: 5.689161    # x 10^3
-                polynominal3: -22.479359  # x 10^3
-                polynominal2: 23.323647   # x 10^2
-                polynominal1: 17.030281   # x 10
-                polynominal0: 57.297451   # x 1
+                voltage: 24.2
+                max_thrust: 21.6 # N 
+                polynominal4: 4.0569161   # x 10^4
+                polynominal3: -19.001922  # x 10^3
+                polynominal2: 24.781381   # x 10^2
+                polynominal1: 10.423286   # x 10
+                polynominal0: 57.660644   # x 1
         ref4:
-                voltage: 21.0
-                max_thrust: 18.5 # N 
-                polynominal4: 8.512876    # x 10^
-                polynominal3: -32.003340  # x 10^3
-                polynominal2: 32.575218   # x 10^2
-                polynominal1: 15.671618   # x 10
-                polynominal0: 57.683157   # x 1
+                voltage: 23.2
+                max_thrust: 20.3 # N 
+                polynominal4: 4.7340846    # x 10^4
+                polynominal3: -21.661921  # x 10^3
+                polynominal2: 27.980902   # x 10^2
+                polynominal1: 9.8488811   # x 10
+                polynominal0: 58.125480   # x 1
+        ref5:
+                voltage: 22.2
+                max_thrust: 18.8 # N 
+                polynominal4: 6.9273301    # x 10^4
+                polynominal3: -29.412858  # x 10^3
+                polynominal2: 35.616376   # x 10^2
+                polynominal1: 9.1384463   # x 10
+                polynominal0: 58.265317   # x 1 
