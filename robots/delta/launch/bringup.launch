@@ -37,7 +37,7 @@
     <rosparam file="$(arg config_dir)/$(arg type)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
-    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/Servo.yaml" command="load" />
@@ -48,6 +48,7 @@
    ###########  Control  ###########
    <rosparam file="$(arg config_dir)/$(arg type)/RollingControl_sim.yaml" command="load" if="$(eval arg ('simulation') and not arg('real_machine'))"/>
    <rosparam file="$(arg config_dir)/$(arg type)/RollingControl.yaml" command="load" if="$(eval arg ('real_machine') and not arg ('simulation'))"/>
+   <param name="aerial_robot_control_name" value="aerial_robot_control/delta_controller"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
