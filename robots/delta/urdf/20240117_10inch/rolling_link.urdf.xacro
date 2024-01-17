@@ -6,6 +6,7 @@
   <xacro:include filename="$(find delta)/urdf/20240117_10inch/link2.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20240117_10inch/link3.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20240117_10inch/battery.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240117_10inch/thrust.urdf.xacro" />
 
   <xacro:macro name="delta_module" params="self child rotor_direction battery">
 
@@ -97,7 +98,7 @@
     </xacro:unless>
 
     <!-- battery -->
-    <xacro:if value="${battery}">
+    <xacro:if value="${battery == 1}">
       <xacro:battery index="${self}"/>
       <joint name="battery_joint${self}" type="fixed">
         <parent link="link${self}"/>
@@ -110,6 +111,38 @@
         </xacro:if>
         <xacro:if value="${self == 3}">
           <origin xyz="0.3535 0 0"/>
+        </xacro:if>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${battery == 2}">
+      <xacro:high_lipo_single index="${self}"/>
+      <joint name="battery_joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="high_lipo_single${self}"/>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0.28 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0.3135 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0.3135 0 0"/>
+        </xacro:if>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${battery == 3}">
+      <xacro:high_lipo_double index="${self}"/>
+      <joint name="battery_joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="high_lipo_double${self}"/>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0.310 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0.3435 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0.3435 0 0"/>
         </xacro:if>
       </joint>
     </xacro:if>
