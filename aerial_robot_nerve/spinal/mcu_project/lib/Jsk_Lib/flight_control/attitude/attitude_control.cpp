@@ -272,7 +272,7 @@ void AttitudeController::update(void)
     prev_time_ = ros::Time::now().toSec();
 #else
     angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-    vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
+    ang_vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
 #endif
 
     /* failsafe 3: too large tile angle */

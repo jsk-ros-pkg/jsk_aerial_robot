@@ -106,6 +106,9 @@ GPS gps_;
 BatteryStatus battery_status_;
 
 
+/* driver instances */
+KondoServo kondo_servo_;
+
 StateEstimate estimator_;
 FlightControl controller_;
 
@@ -233,7 +236,7 @@ int main(void)
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim4, &estimator_, &kondo_servo_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 

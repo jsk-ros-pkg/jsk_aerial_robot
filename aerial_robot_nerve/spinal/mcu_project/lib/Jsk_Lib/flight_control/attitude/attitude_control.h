@@ -210,7 +210,7 @@ private:
   {
     if (req.is_attitude == false && req.is_body_rate == false)
     {
-      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
+    	nh_->logerror("invalid: attitude and body rate control mode can not be set both to false.");
     }
     is_attitude_ctrl_ = req.is_attitude;
     is_body_rate_ctrl_ = req.is_body_rate;
