@@ -148,24 +148,26 @@ void RollingController::controlCore()
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
-  setAttitudeGains();
-
-  control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
-
-  /* for stand */
-  // rolling_robot_model_->setTargetFrameName("cp");
-  // setControllerParams("standing_controller");
-  // standingPlanning();
-  // calcStandingFullLambda();
-  /* for stand */
-
-
-  /* for flight */
-  rolling_robot_model_->setTargetFrameName("cog");
-  setControllerParams("controller");
-  calcAccFromCog();
-  calcFlightFullLambda();
-  /* for flight */
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
+    {
+      /* for flight */
+      rolling_robot_model_->setTargetFrame("cog");
+      control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
+      setControllerParams("controller");
+      calcAccFromCog();
+      calcFlightFullLambda();
+      /* for flight */
+    }
+  else
+    {
+      /* for stand */
+      rolling_robot_model_->setTargetFrame("cp");
+      setControllerParams("standing_controller");
+      gimbalPlanner();
+      standingPlanning();
+      calcStandingFullLambda();
+      /* for stand */
+    }
 
   /* common part */
   wrenchAllocation();
@@ -203,13 +205,13 @@ void RollingController::wrenchAllocation()
               gimbal_candidate_minus -= 2 * M_PI;
               if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_plus) < M_PI)
                 {
-                  ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_plus;
                   converge_flag = true;
                 }
               else if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_minus) < M_PI)
                 {
-                  ROS_WARN_STREAM("[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_minus;
                   converge_flag = true;
                 }
@@ -355,6 +357,8 @@ void RollingController::sendCmd()
 
   sendFourAxisCommand();
 
+  setAttitudeGains();
+
   sendTorqueAllocationMatrixInv();
 }
 
@@ -384,11 +388,11 @@ void RollingController::sendFourAxisCommand()
   else
     flight_command_data.base_thrust = target_base_thrust_;
 
-  if(!controlled_axis_[0])
+  if(!controlled_axis_.at(X))
     {
       flight_command_data.angles[1] = target_pitch_;
     }
-  if(!controlled_axis_[1])
+  if(!controlled_axis_.at(Y))
     {
       flight_command_data.angles[0] = target_roll_;
     }
