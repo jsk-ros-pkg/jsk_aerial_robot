@@ -9,18 +9,11 @@ controller:
   hovering_approximate: false
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
-  gravity_compensate_ratio: 1.1
 
+  gravity_compensate_ratio: 1.0
+  rolling_minimum_lateral_force: 0.4
   standing_baselink_pitch_update: true
-  standing_converged_baselink_roll_thresh: 0.15
-  standing_converged_z_i_term_min: 4.0
-  standing_converged_z_i_term_descend_ratio: 0.01
-  standing_baselink_roll_restart_z_i_control_thresh: 0.3
   standing_baselink_ref_pitch_update_thresh: 0.05
-  standing_minimum_z_i_term: 7.0
-  standing_feed_forward_z_compensate_roll_thresh: 0.6
-
-  steering_z_acc_min: 2.0
   steering_mu: 0.5
 
   controlled_axis: [1, 1, 1, 1, 1, 1]
