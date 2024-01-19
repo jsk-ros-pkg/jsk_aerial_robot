@@ -16,8 +16,8 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 
   target_frame_name_ = "cog";
-  setTargetFrameName(target_frame_name_);
   additional_frame_["cp"] = &contact_point_;
+  setTargetFrame(target_frame_name_);
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -89,15 +89,18 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   rotor_normal_pub_.publish(rotor_normal_msg);
 }
 
-void RollingRobotModel::setTargetFrameName(std::string frame_name)
+void RollingRobotModel::setTargetFrame(std::string frame_name)
 {
+  KDL::Frame frame;
+  const std::map<std::string, KDL::Frame> seg_tf_map = getSegmentsTf();
   if(frame_name == "cog")
     {
-      target_frame_name_ = "cog";
+      frame = getCog<KDL::Frame>();
+      setTargetFrame(frame);
+      target_frame_name_ = frame_name;
       return;
     }
 
-  const std::map<std::string, KDL::Frame> seg_tf_map = getSegmentsTf();
   if(seg_tf_map.find(frame_name) == seg_tf_map.end() && additional_frame_.find(frame_name) == additional_frame_.end())
     {
       ROS_ERROR_STREAM("[model] there is not frame named " << frame_name);
@@ -106,29 +109,17 @@ void RollingRobotModel::setTargetFrameName(std::string frame_name)
   else
     {
       target_frame_name_ = frame_name;
+      if(seg_tf_map.find(target_frame_name_) == seg_tf_map.end())
+        {
+          frame = *(additional_frame_.at(target_frame_name_));
+        }
+      else
+        {
+          frame = seg_tf_map.at(target_frame_name_);
+        }
+      setTargetFrame(frame);
       return;
     }
-}
-
-KDL::Frame RollingRobotModel::getTargetFrame()
-{
-  KDL::Frame frame;
-  const std::map<std::string, KDL::Frame> seg_tf_map = getSegmentsTf();
-  if(target_frame_name_ == "cog")
-    {
-      frame = getCog<KDL::Frame>();
-      return frame;
-    }
-
-  if(seg_tf_map.find(target_frame_name_) == seg_tf_map.end())
-    {
-      frame = *(additional_frame_.at(target_frame_name_));
-    }
-  else
-    {
-      frame = seg_tf_map.at(target_frame_name_);
-    }
-  return frame;
 }
 
 Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame()
@@ -173,9 +164,13 @@ Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame
 Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame(std::string frame_name)
 {
   std::string prev_target_frame_name = getTargetFrameName();
-  setTargetFrameName(frame_name);
+  if(prev_target_frame_name == frame_name)
+    {
+      return getFullWrenchAllocationMatrixFromControlFrame();
+    }
+  setTargetFrame(frame_name);
   Eigen::MatrixXd full_q_mat = getFullWrenchAllocationMatrixFromControlFrame();
-  setTargetFrameName(prev_target_frame_name);
+  setTargetFrame(prev_target_frame_name);
   return full_q_mat;
 }
 
