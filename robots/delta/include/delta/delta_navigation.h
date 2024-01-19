@@ -12,9 +12,7 @@ namespace aerial_robot_navigation
     {
      FLYING_STATE,
      STANDING_STATE,
-     STEERING_STATE,
-     ROLLING_STATE,
-     RECOVERING_STATE
+     ROLLING_STATE
     };
 
   class RollingNavigator : public BaseNavigator
@@ -36,12 +34,6 @@ namespace aerial_robot_navigation
     inline int getPrevGroundNavigationMode() {return prev_ground_navigation_mode_;}
     void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
     void setGroundNavigationMode(int state);
-    inline tf::Vector3 getStandingInitialPos() {return standing_initial_pos_;}
-    inline tf::Vector3 getStandingInitialEuler() {return standing_initial_euler_;}
-    inline tf::Vector3 getSteeringInitialPos() {return steering_initial_pos_;}
-    inline tf::Vector3 getSteeringInitialEuler() {return steering_initial_euler_;}
-    inline tf::Vector3 getRollingInitialPos() {return rolling_initial_pos_;}
-    inline tf::Vector3 getRollingInitialEuler() {return rolling_initial_euler_;}
     double getTargetPitchAngVel() {return target_pitch_ang_vel_;}
     double getTargetyawAngVel() {return target_yaw_ang_vel_;}
     bool getPitchAngVelUpdating() {return pitch_ang_vel_updating_;}
@@ -88,17 +80,7 @@ namespace aerial_robot_navigation
     int current_ground_navigation_mode_;
     int prev_ground_navigation_mode_;
 
-    /* standing mode variable */
-    tf::Vector3 standing_initial_pos_;
-    tf::Vector3 standing_initial_euler_;
-
-    /* steering mode variable */
-    tf::Vector3 steering_initial_pos_;
-    tf::Vector3 steering_initial_euler_;
-
     /* rolling mode variable */
-    tf::Vector3 rolling_initial_pos_;
-    tf::Vector3 rolling_initial_euler_;
     double target_pitch_ang_vel_;
     double target_yaw_ang_vel_;
     double rolling_max_pitch_ang_vel_;
@@ -121,5 +103,22 @@ namespace aerial_robot_navigation
     /* landing process */
     bool landing_flag_;
 
+    std::string indexToGroundNavigationModeString(int index)
+    {
+      switch(index){
+      case aerial_robot_navigation::FLYING_STATE:
+        return "FLYING_STATE";
+        break;
+      case aerial_robot_navigation::STANDING_STATE:
+        return "STANDING_STATE";
+        break;
+      case aerial_robot_navigation::ROLLING_STATE:
+        return "ROLLING_STATE";
+        break;
+      default:
+        return "";
+        break;
+      }
+    }
   };
 };

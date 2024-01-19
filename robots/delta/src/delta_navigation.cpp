@@ -124,7 +124,6 @@ void RollingNavigator::baselinkRotationProcess()
   curr_target_baselink_rot_pitch_ = curr_target_baselink_rot_.y();
   final_target_baselink_rot_roll_ = final_target_baselink_rot_.x();
   final_target_baselink_rot_pitch_ = final_target_baselink_rot_.y();
-
 }
 
 void RollingNavigator::landingProcess()
@@ -197,24 +196,12 @@ void RollingNavigator::setGroundNavigationMode(int state)
   if(state == aerial_robot_navigation::FLYING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
     {
       ROS_WARN_STREAM("[navigation] switch to flying state");
+      current_ground_navigation_mode_ = state;
     }
 
   if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
-      standing_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
-      standing_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
       ROS_WARN_STREAM("[navigation] switch to staning mode");
-      ROS_WARN_STREAM("[navigation] standing inital pos = [" << standing_initial_pos_.x() << " " << standing_initial_pos_.y() << " " << standing_initial_pos_.z() << "]");
-      ROS_WARN_STREAM("[navigation] standing inital euler = [" << standing_initial_euler_.x() << " " << standing_initial_euler_.y() << " " << standing_initial_euler_.z() << "]");
-      current_ground_navigation_mode_ = state;
-    }
-
-  if(state == aerial_robot_navigation::STEERING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STEERING_STATE)
-    {
-      ROS_WARN_STREAM("[navigation] switch to steering mode");
-
-      steering_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
-      steering_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
       current_ground_navigation_mode_ = state;
     }
 
@@ -222,20 +209,12 @@ void RollingNavigator::setGroundNavigationMode(int state)
     {
       ROS_WARN_STREAM("[navigation] switch to rolling mode");
       current_ground_navigation_mode_ = state;
-      rolling_initial_pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
-      rolling_initial_euler_ = estimator_->getEuler(Frame::COG, estimate_mode_);
-    }
-
-  if(state == aerial_robot_navigation::RECOVERING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::RECOVERING_STATE)
-    {
-      current_ground_navigation_mode_ = state;
-      ROS_ERROR_STREAM("[navigation] recovery state");
     }
 }
 
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
 {
-  ROS_WARN_STREAM("[navigation] set ground navigation mode to " << msg->data);
+  ROS_WARN_STREAM("[navigation] ground navigation command callback: switch mode to " << indexToGroundNavigationModeString(msg->data));
   setGroundNavigationMode(msg->data);
 }
 
@@ -249,42 +228,36 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
 {
   sensor_msgs::Joy joy_cmd = (*joy_msg);
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != STANDING_STATE)
+  /* change ground navigation state */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
       ROS_INFO("[joy] change to standing state");
-      setGroundNavigationMode(STANDING_STATE);
+      setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != STEERING_STATE)
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
     {
-      ROS_INFO("[joy] change to steering state");
-      setGroundNavigationMode(STEERING_STATE);
+      ROS_INFO("[joy] change to rolling state");
+      setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
     }
 
-  // if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0)
-  //   {
-  //     final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() - 0.1);
-  //     ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
-  //   }
-  // if(joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0)
-  //   {
-  //     final_target_baselink_rot_.setX(curr_target_baselink_rot_.x() + 0.1);
-  //     ROS_WARN_STREAM("[joy] set target final baselink roll: " << final_target_baselink_rot_.x());
-  //   }
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
+    {
+      ROS_INFO("[joy] change to flying state");
+      setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+    }
 
   /* set target angular velocity around yaw based on R-stick hilizontal */
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
     {
       target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
       yaw_ang_vel_updating_ = true;
-      // ROS_WARN_STREAM("[joy] set target yaw ang vel to " << target_yaw_ang_vel_ << " rad/s");
     }
   else
     {
       if(yaw_ang_vel_updating_)
         {
           target_yaw_ang_vel_ = 0.0;
-          // ROS_WARN_STREAM("[joy] set target yaw ang vel to  0");
           yaw_ang_vel_updating_ = false;
         }
     }
@@ -294,18 +267,15 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       target_pitch_ang_vel_ = rolling_max_pitch_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
       pitch_ang_vel_updating_ = true;
-      // ROS_WARN_STREAM("[joy] set target pitch ang vel to " << target_pitch_ang_vel_ << " rad/s");
     }
   else
     {
       if(pitch_ang_vel_updating_)
         {
           target_pitch_ang_vel_ = 0.0;
-          // ROS_WARN_STREAM("[joy] set target pitch ang vel to 0");
           pitch_ang_vel_updating_ = false;
         }
     }
-
 }
 
 /* plugin registration */
