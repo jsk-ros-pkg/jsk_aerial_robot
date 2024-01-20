@@ -192,6 +192,14 @@ PROVIDE ( _end = . );
 *(.ServoRxBufferSection)
 . = ABSOLUTE(0x24044C00);
 *(.EscRxBufferSection)
+. = ABSOLUTE(0x24045000);
+*(.DShotBufferSection1)
+. = ABSOLUTE(0x24045080);
+*(.DShotBufferSection2)
+. = ABSOLUTE(0x24045100);
+*(.DShotBufferSection3)
+. = ABSOLUTE(0x24045180);
+*(.DShotBufferSection4)
 } >RAM_D1 AT> FLASH
 
 
