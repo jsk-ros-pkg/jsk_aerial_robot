@@ -57,9 +57,13 @@ void DMA1_Stream0_IRQHandler(void);
 void DMA1_Stream1_IRQHandler(void);
 void DMA1_Stream2_IRQHandler(void);
 void DMA1_Stream3_IRQHandler(void);
+void DMA1_Stream4_IRQHandler(void);
+void DMA1_Stream5_IRQHandler(void);
+void DMA1_Stream6_IRQHandler(void);
 void FDCAN1_IT0_IRQHandler(void);
 void USART1_IRQHandler(void);
 void TIM8_BRK_TIM12_IRQHandler(void);
+void DMA1_Stream7_IRQHandler(void);
 void ETH_IRQHandler(void);
 void ETH_WKUP_IRQHandler(void);
 /* USER CODE BEGIN EFP */
