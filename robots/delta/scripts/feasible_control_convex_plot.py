@@ -128,7 +128,7 @@ class FeasibleControlConvexPlot():
         r = rospy.Rate(10) # 10hz
         while not rospy.is_shutdown():
             if self.fc_torque_convex and self.fc_torque_radius and self.fc_force_convex and self.fc_force_radius:
-
+                print("start process")
                 if not self.only_torque:
                     self.lock.acquire()
                     force_vertices = deepcopy(self.force_vertices)
@@ -260,25 +260,29 @@ class FeasibleControlConvexPlot():
 
     def fc_torque_convex_cb(self, data):
         cnt = 0
-        unidirection = (data.header.frame_id == "unidirection")
-        if unidirection:
-            cnt = 1
+        # unidirection = (data.header.frame_id == "unidirection")
+        # if unidirection:
+        #     cnt = 1
 
-        cnt = 1
+        # cnt = 1
 
         self.lock.acquire()
         self.torque_vertices = np.empty((0,3), float)
         while cnt < 2 ** len(data.poses):
+            if cnt % 1000 == 0:
+                self.torque_vertices = np.unique(self.torque_vertices, axis=0)
+                print(cnt)
             vertice = np.array([0.0, 0.0, 0.0])
             for i in range(len(data.poses)):
                 if 2 ** i & cnt:
                     vertice += [data.poses[i].position.x, data.poses[i].position.y, data.poses[i].position.z] # positive
-                else:
-                    if not unidirection: # bidirection
-                        vertice -= [data.poses[i].position.x, data.poses[i].position.y, data.poses[i].position.z] # negative
+                # else:
+                #     if not unidirection: # bidirection
+                #         vertice -= [data.poses[i].position.x, data.poses[i].position.y, data.poses[i].position.z] # negative
 
             self.torque_vertices = np.append(self.torque_vertices, np.array([vertice]), axis=0)
             cnt += 1
+        self.torque_vertices = np.unique(self.torque_vertices, axis=0)
         self.lock.release()
 
         self.fc_torque_convex = True

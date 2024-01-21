@@ -17,6 +17,10 @@ DeltaOptimalDesign::DeltaOptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp):
   direction_.at(0) = 1;
   direction_.at(1) = -1;
   direction_.at(2) = 1;
+
+  feasible_control_torque_convex_pub_ = nh_.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
+  feasible_control_torque_radius_pub_ = nh_.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
+
 }
 
 std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const std::vector<double>& theta)
@@ -48,7 +52,6 @@ std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const st
       u.push_back(y_axis);
       u.push_back(z_axis);
 
-      v.push_back(p.at(i).cross(x_axis) + m_f_rate_ * direction_.at(i) * x_axis);
       v.push_back(p.at(i).cross(x_axis) + m_f_rate_ * direction_.at(i) * x_axis);
       v.push_back(p.at(i).cross(y_axis) + m_f_rate_ * direction_.at(i) * y_axis);
       v.push_back(p.at(i).cross(z_axis) + m_f_rate_ * direction_.at(i) * z_axis);
@@ -141,11 +144,13 @@ void DeltaOptimalDesign::run()
 
   std::vector<double> lb(rotor_num_);
   std::vector<double> ub(rotor_num_);
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      lb.at(i) = -fabs(theta_max_);
-      ub.at(i) = fabs(theta_max_);
-    }
+  lb.at(0) = -fabs(theta_max_);
+  ub.at(0) = 0.0;
+  lb.at(1) = 0.0;
+  ub.at(1) = fabs(theta_max_);
+  lb.at(2) = -fabs(theta_max_);
+  ub.at(2) = 0.0;
+
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
   optimizer_solver.set_xtol_rel(1e-4); //1e-4
@@ -169,6 +174,29 @@ void DeltaOptimalDesign::run()
     }
   std::cout << std::endl;
   std::cout << "objective: " << max_val << std::endl;
+
+  ros::Rate rate(10);
+  while(ros::ok())
+    {
+      std::vector<Eigen::Vector3d> v = calcRotorConfiguration(opt_x);
+      geometry_msgs::PoseArray feasible_control_torque_convex_msg;
+      feasible_control_torque_convex_msg.poses.resize(0);
+      for(int i = 0; i < v.size(); i++)
+        {
+          geometry_msgs::Pose pose_msg;
+          pose_msg.position.x = max_thrust_ * v.at(i)(0);
+          pose_msg.position.y = max_thrust_ * v.at(i)(1);
+          pose_msg.position.z = max_thrust_ * v.at(i)(2);
+          feasible_control_torque_convex_msg.poses.push_back(pose_msg);
+        }
+      feasible_control_torque_convex_pub_.publish(feasible_control_torque_convex_msg);
+
+      std_msgs::Float32 feasible_control_torque_radius_msg;
+      feasible_control_torque_radius_msg.data = max_thrust_ * calcFeasibleControlTDists(v);
+      feasible_control_torque_radius_pub_.publish(feasible_control_torque_radius_msg);
+
+      rate.sleep();
+    }
 }
 
 int main(int argc, char **argv)
