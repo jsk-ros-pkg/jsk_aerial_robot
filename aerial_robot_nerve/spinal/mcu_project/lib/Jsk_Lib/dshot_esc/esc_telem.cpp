@@ -4,10 +4,6 @@
 
 #include "esc_telem.h"
 
-ESCReader::ESCReader()
-{
-}
-
 void ESCReader::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
 {
   huart_ = huart;
@@ -27,7 +23,7 @@ void ESCReader::update()
   {
     int data = ESCReader::read();
     if (data < 0)
-      return; // finish
+      return;  // finish
 
     printf("%d\n", data);
   }
