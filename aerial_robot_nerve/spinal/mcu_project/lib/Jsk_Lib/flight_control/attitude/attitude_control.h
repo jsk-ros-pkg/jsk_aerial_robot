@@ -181,8 +181,7 @@ private:
   {
     if (req.is_attitude == false && req.is_body_rate == false)
     {
-      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
-      return false;
+      ROS_WARN("Note: attitude mode and body rate mode are both set to false. Use only thrust cmd now!");
     }
 
     is_attitude_ctrl_ = req.is_attitude;
@@ -210,7 +209,7 @@ private:
   {
     if (req.is_attitude == false && req.is_body_rate == false)
     {
-    	nh_->logerror("invalid: attitude and body rate control mode can not be set both to false.");
+    	nh_->logwarn("Note: attitude mode and body rate mode are both set to false, use only thrust cmd now!");
     }
     is_attitude_ctrl_ = req.is_attitude;
     is_body_rate_ctrl_ = req.is_body_rate;
