@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="delta" type="delta_optimal_design" name="delta_optimal_design" output="screen">
+    <rosparam file="$(find delta)/config/20240117_10inch/optimal_design.yaml" command="load"/>
+  </node>
+</launch>

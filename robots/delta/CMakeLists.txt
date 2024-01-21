@@ -43,6 +43,10 @@ target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
 add_library(delta_navigation src/delta_navigation.cpp)
 target_link_libraries(delta_navigation ${catkin_LIBRARIES})
 
+add_executable(delta_optimal_design src/design/delta_optimal_design.cpp)
+target_link_libraries(delta_optimal_design
+  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
 add_executable(opt src/design/opt.cpp)
 target_link_libraries(opt
   ${catkin_LIBRARIES})
