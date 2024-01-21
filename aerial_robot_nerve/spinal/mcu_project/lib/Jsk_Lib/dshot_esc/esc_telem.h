@@ -30,7 +30,7 @@ namespace
 class ESCReader
 {
 public:
-  ESCReader();
+  ESCReader(){};
   ~ESCReader(){};
 
   UART_HandleTypeDef *huart_;
