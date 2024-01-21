@@ -1,0 +1,8 @@
+rotor_num: 3
+mass: 4.3
+max_thrust: 28.0
+theta_max: 0.6
+max_eval: 500000 # 500000 is good
+m_f_rate: -0.146
+fct_min_weight: 2.0
+gimbal_penalty_weight: 1.0
