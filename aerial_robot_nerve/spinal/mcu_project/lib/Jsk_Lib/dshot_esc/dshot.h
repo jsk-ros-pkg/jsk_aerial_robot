@@ -10,30 +10,14 @@
 #ifndef DSHOT_H
 #define DSHOT_H
 
-#include "stm32h7xx_hal_dma.h"
-#include "stm32h7xx_hal_tim.h"
+//#include <stm32h7xx_hal_dma.h>
+//#include <stm32h7xx_hal_tim.h>
 #include <stdbool.h>
 #include <math.h>  // lrintf
 
 /* User Configuration */
 // Timer Clock
 #define TIMER_CLOCK 100000000  // 100MHz
-
-//// MOTOR 1 (PA3) - TIM5 Channel 4, DMA1 Stream 3
-// #define MOTOR_1_TIM             (&htim5)
-// #define MOTOR_1_TIM_CHANNEL     TIM_CHANNEL_4
-//
-//// MOTOR 2 (PA2) - TIM2 Channel 3, DMA1 Stream 1
-// #define MOTOR_2_TIM             (&htim2)
-// #define MOTOR_2_TIM_CHANNEL     TIM_CHANNEL_3
-//
-//// MOTOR 3 (PA0) - TIM2 Channel 1, DMA1 Stream 5
-// #define MOTOR_3_TIM             (&htim2)
-// #define MOTOR_3_TIM_CHANNEL     TIM_CHANNEL_1
-//
-//// MOTOR 4 (PA1) - TIM5 Channel 2, DMA1 Stream 4
-// #define MOTOR_4_TIM             (&htim5)
-// #define MOTOR_4_TIM_CHANNEL     TIM_CHANNEL_2
 
 /* Definition */
 #define MHZ_TO_HZ(x) ((x) * 1000000)
@@ -83,25 +67,32 @@ private:
   TIM_HandleTypeDef* htim_motor_4_;
   uint32_t channel_motor_4_;
 
-  static uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  static uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  static uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  static uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+#ifdef STM32H7
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection1")));
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection2")));
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection3")));
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection4")));
+#else
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+#endif
 
   /* Static functions */
   // dshot init
-  static uint32_t dshot_choose_type(dshot_type_e dshot_type);
-  static void dshot_set_timer(dshot_type_e dshot_type);
-  static void dshot_dma_tc_callback(DMA_HandleTypeDef* hdma);
-  static void dshot_put_tc_callback_function();
-  static void dshot_start_pwm();
+  uint32_t dshot_choose_type(dshot_type_e dshot_type);
+  void dshot_set_timer(dshot_type_e dshot_type);
+  void dshot_dma_tc_callback(DMA_HandleTypeDef* hdma);
+  void dshot_put_tc_callback_function();
+  void dshot_start_pwm();
 
   // dshot write
-  static uint16_t dshot_prepare_packet(uint16_t value);
-  static void dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value);
-  static void dshot_prepare_dmabuffer_all(uint16_t* motor_value);
-  static void dshot_dma_start();
-  static void dshot_enable_dma_request();
+  uint16_t dshot_prepare_packet(uint16_t value);
+  void dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value);
+  void dshot_prepare_dmabuffer_all(uint16_t* motor_value);
+  void dshot_dma_start();
+  void dshot_enable_dma_request();
 };
 
 #endif  // DSHOT_H
