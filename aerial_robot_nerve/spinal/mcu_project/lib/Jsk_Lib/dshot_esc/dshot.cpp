@@ -56,20 +56,20 @@ void DShot::dshot_set_timer(dshot_type_e dshot_type)
   dshot_prescaler = lrintf((float)timer_clock / dshot_choose_type(dshot_type) + 0.01f) - 1;
 
   // motor1
-  __HAL_TIM_SET_PRESCALER(&htim_motor_1_, dshot_prescaler);
-  __HAL_TIM_SET_AUTORELOAD(&htim_motor_1_, MOTOR_BITLENGTH);
+  __HAL_TIM_SET_PRESCALER(htim_motor_1_, dshot_prescaler);
+  __HAL_TIM_SET_AUTORELOAD(htim_motor_1_, MOTOR_BITLENGTH);
 
   // motor2
-  __HAL_TIM_SET_PRESCALER(&htim_motor_2_, dshot_prescaler);
-  __HAL_TIM_SET_AUTORELOAD(&htim_motor_2_, MOTOR_BITLENGTH);
+  __HAL_TIM_SET_PRESCALER(htim_motor_2_, dshot_prescaler);
+  __HAL_TIM_SET_AUTORELOAD(htim_motor_2_, MOTOR_BITLENGTH);
 
   // motor3
-  __HAL_TIM_SET_PRESCALER(&htim_motor_3_, dshot_prescaler);
-  __HAL_TIM_SET_AUTORELOAD(&htim_motor_3_, MOTOR_BITLENGTH);
+  __HAL_TIM_SET_PRESCALER(htim_motor_3_, dshot_prescaler);
+  __HAL_TIM_SET_AUTORELOAD(htim_motor_3_, MOTOR_BITLENGTH);
 
   // motor4
-  __HAL_TIM_SET_PRESCALER(&htim_motor_4_, dshot_prescaler);
-  __HAL_TIM_SET_AUTORELOAD(&htim_motor_4_, MOTOR_BITLENGTH);
+  __HAL_TIM_SET_PRESCALER(htim_motor_4_, dshot_prescaler);
+  __HAL_TIM_SET_AUTORELOAD(htim_motor_4_, MOTOR_BITLENGTH);
 }
 
 // __HAL_TIM_DISABLE_DMA is needed to eliminate the delay between different dshot signals
@@ -99,20 +99,20 @@ void DShot::dshot_dma_tc_callback(DMA_HandleTypeDef* hdma)
 void DShot::dshot_put_tc_callback_function()
 {
   // TIM_DMA_ID_CCx depends on timer channel
-  &htim_motor_1_->hdma[TIM_DMA_ID_CC4]->XferCpltCallback = dshot_dma_tc_callback;
-  &htim_motor_2_->hdma[TIM_DMA_ID_CC3]->XferCpltCallback = dshot_dma_tc_callback;
-  &htim_motor_3_->hdma[TIM_DMA_ID_CC1]->XferCpltCallback = dshot_dma_tc_callback;
-  &htim_motor_4_->hdma[TIM_DMA_ID_CC2]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_1_->hdma[TIM_DMA_ID_CC4]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_2_->hdma[TIM_DMA_ID_CC3]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_3_->hdma[TIM_DMA_ID_CC1]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_4_->hdma[TIM_DMA_ID_CC2]->XferCpltCallback = dshot_dma_tc_callback;
 }
 
 void DShot::dshot_start_pwm()
 {
   // Start the timer channel now.
   // Enabling/disabling DMA request can restart a new cycle without PWM start/stop.
-  HAL_TIM_PWM_Start(&htim_motor_1_, channel_motor_1_);
-  HAL_TIM_PWM_Start(&htim_motor_2_, channel_motor_2_);
-  HAL_TIM_PWM_Start(&htim_motor_3_, channel_motor_3_);
-  HAL_TIM_PWM_Start(&htim_motor_4_, channel_motor_4_);
+  HAL_TIM_PWM_Start(htim_motor_1_, channel_motor_1_);
+  HAL_TIM_PWM_Start(htim_motor_2_, channel_motor_2_);
+  HAL_TIM_PWM_Start(htim_motor_3_, channel_motor_3_);
+  HAL_TIM_PWM_Start(htim_motor_4_, channel_motor_4_);
 }
 
 uint16_t DShot::dshot_prepare_packet(uint16_t value)
@@ -164,20 +164,20 @@ void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value)
 
 void DShot::dshot_dma_start()
 {
-  HAL_DMA_Start_IT(&htim_motor_1_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor1_dmabuffer,
-                   (uint32_t) && htim_motor_1_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(&htim_motor_2_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor2_dmabuffer,
-                   (uint32_t) && htim_motor_2_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(&htim_motor_3_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor3_dmabuffer,
-                   (uint32_t) && htim_motor_3_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(&htim_motor_4_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor4_dmabuffer,
-                   (uint32_t) && htim_motor_4_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_1_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor1_dmabuffer_,
+                   (uint32_t)&htim_motor_1_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_2_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor2_dmabuffer_,
+                   (uint32_t)&htim_motor_2_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_3_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor3_dmabuffer_,
+                   (uint32_t)&htim_motor_3_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_4_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor4_dmabuffer_,
+                   (uint32_t)&htim_motor_4_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
 }
 
 void DShot::dshot_enable_dma_request()
 {
-  __HAL_TIM_ENABLE_DMA(&htim_motor_1_, TIM_DMA_CC4);
-  __HAL_TIM_ENABLE_DMA(&htim_motor_2_, TIM_DMA_CC3);
-  __HAL_TIM_ENABLE_DMA(&htim_motor_3_, TIM_DMA_CC1);
-  __HAL_TIM_ENABLE_DMA(&htim_motor_4_, TIM_DMA_CC2);
+  __HAL_TIM_ENABLE_DMA(htim_motor_1_, TIM_DMA_CC4);
+  __HAL_TIM_ENABLE_DMA(htim_motor_2_, TIM_DMA_CC3);
+  __HAL_TIM_ENABLE_DMA(htim_motor_3_, TIM_DMA_CC1);
+  __HAL_TIM_ENABLE_DMA(htim_motor_4_, TIM_DMA_CC2);
 }
