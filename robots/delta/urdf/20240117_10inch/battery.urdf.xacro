@@ -32,7 +32,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_single_module.STL" />
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_single_module.stl" />
         </geometry>
       </visual>
     </link>
@@ -50,7 +50,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_double_module.STL" />
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_double_module.stl" />
         </geometry>
       </visual>
     </link>
