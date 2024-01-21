@@ -34,7 +34,10 @@
 #include "cmsis_os.h"
 /* gimbal servo*/
 #include <kondo_servo/kondo_servo.h>
+/* dshot esc */
+#include "dshot_esc/dshot.h"
 #endif
+
 #include "state_estimate/state_estimate.h"
 
 #include <std_msgs/UInt8.h>
@@ -142,6 +145,7 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
+  DShot dshot_;
 #endif
 
   ros::NodeHandle* nh_;

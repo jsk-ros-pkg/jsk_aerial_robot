@@ -74,10 +74,12 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   bat_ = bat;
   mutex_ = mutex;
 
-  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
+//  /* TODO: be compatible with PWM */
+  dshot_.init(DSHOT600_HZ, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
+  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
+  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
+  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
+  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
 
   HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_2);
@@ -205,10 +207,18 @@ void AttitudeController::pwmsControl(void)
 #endif
 
   /* direct pwm type */
-  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+  uint16_t motor_value[4] = { 0, 0, 0, 0 };
+  for (int i = 0; i < motor_number_; i++)
+  {
+    // TODO: find the range of target_pwm
+//    motor_value[i] = (uint16_t)(target_pwm_[i] / 100 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
+  }
+  dshot_.write(motor_value);
+
+  //  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+  //  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
+  //  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
+  //  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
 
   pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
