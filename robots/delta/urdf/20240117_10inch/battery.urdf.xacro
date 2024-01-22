@@ -42,7 +42,7 @@
   <xacro:macro name="high_lipo_double" params="index">
     <link name="high_lipo_double${index}">
       <inertial>
-        <origin xyz="0.4390043 0.00000000 0.00000000" rpy="0 0 0"/>
+        <origin xyz="0.04390043 0.00000000 0.00000000" rpy="0 0 0"/>
         <mass value="0.45298185"/>
         <inertia
             ixx="0.00044266" iyy="0.00068125"  izz="0.00034667"
@@ -60,7 +60,7 @@
   <xacro:macro name="high_lipo_single_under" params="index">
     <link name="high_lipo_single${index}">
       <inertial>
-        <origin xyz="0.4390043 0.00000000 -0.02750000" rpy="0 0 0"/>
+        <origin xyz="0.04390043 0.00000000 -0.02750000" rpy="0 0 0"/>
         <mass value="0.22649093"/>
         <inertia
             ixx="0.00005005"  iyy="0.00016934"  izz="0.00017334"
