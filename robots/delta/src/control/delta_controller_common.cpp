@@ -163,7 +163,6 @@ void RollingController::controlCore()
       /* for stand */
       rolling_robot_model_->setTargetFrame("cp");
       setControllerParams("standing_controller");
-      gimbalPlanner();
       standingPlanning();
       calcStandingFullLambda();
       /* for stand */
