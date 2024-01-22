@@ -22,9 +22,9 @@ controller:
   rotor_tilt3: 0.083
 
   xy:
-    p_gain: 3.0
-    i_gain: 0.5
-    d_gain: 2.5
+    p_gain: 5.0
+    i_gain: 1.0
+    d_gain: 3.0
     limit_sum: 4.0
     limit_p: 12.0
     limit_i: 12.0
@@ -46,7 +46,7 @@ controller:
 
   roll:
     p_gain: 15.0
-    i_gain: 0.5
+    i_gain: 1.0
     d_gain: 2.0
     limit_sum: 50.0
     limit_p: 50.0
@@ -55,7 +55,7 @@ controller:
 
   pitch:
     p_gain: 15.0
-    i_gain: 0.5
+    i_gain: 1.0
     d_gain: 2.0
     limit_sum: 50.0
     limit_p: 50.0
