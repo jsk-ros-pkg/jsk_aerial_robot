@@ -146,6 +146,22 @@
         </xacro:if>
       </joint>
     </xacro:if>
+    <xacro:if value="${battery == 4}">
+      <xacro:high_lipo_single_under index="${self}"/>
+      <joint name="battery_joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="high_lipo_single${self}"/>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0.310 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0.3435 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0.3435 0 0"/>
+        </xacro:if>
+      </joint>
+    </xacro:if>
 
     <!-- cylinder collision model  -->
     <xacro:if value="${self == 2}">

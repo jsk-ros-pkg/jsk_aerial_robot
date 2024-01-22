@@ -20,7 +20,7 @@
     </link>
   </xacro:macro>
 
-  <!-- 6S Turningy high lipo 1300 (silver) x1 -->
+  <!-- 6S Turningy high lipo 1300 (silver) x1 outer side of the link-->
   <xacro:macro name="high_lipo_single" params="index">
     <link name="high_lipo_single${index}">
       <inertial>
@@ -51,6 +51,24 @@
       <visual>
         <geometry>
           <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_double_module.stl" />
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
+  <!-- 6S Turningy high lipo 1300 (silver) x1 under side of the link -->
+  <xacro:macro name="high_lipo_single_under" params="index">
+    <link name="high_lipo_single${index}">
+      <inertial>
+        <origin xyz="0.4390043 0.00000000 -0.02750000" rpy="0 0 0"/>
+        <mass value="0.22649093"/>
+        <inertia
+            ixx="0.00005005"  iyy="0.00016934"  izz="0.00017334"
+            ixy="0.00000000" ixz="-0.00000034" iyz="-0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_single_module_under.STL" />
         </geometry>
       </visual>
     </link>
