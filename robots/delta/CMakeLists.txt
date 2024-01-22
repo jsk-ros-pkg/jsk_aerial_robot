@@ -80,7 +80,7 @@ install(DIRECTORY config launch plugins scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(TARGETS opt full_search fc_t_output optimal_design mapping_optimization pwm_republisher
+install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design mapping_optimization pwm_republisher
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
