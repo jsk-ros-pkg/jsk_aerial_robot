@@ -10,9 +10,9 @@
 #ifndef DSHOT_H
 #define DSHOT_H
 
-//#include <stm32h7xx_hal_dma.h>
-//#include <stm32h7xx_hal_tim.h>
+#include <stm32h7xx_hal.h>
 #include <stdbool.h>
+#include <cstdint>
 #include <math.h>  // lrintf
 
 /* User Configuration */
@@ -36,6 +36,21 @@
 #define DSHOT_MIN_THROTTLE 48
 #define DSHOT_MAX_THROTTLE 2047
 #define DSHOT_RANGE (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE)
+
+namespace
+{
+#ifdef STM32H7
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection1")));
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection2")));
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection3")));
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection4")));
+#else
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+#endif
+}
 
 /* Enumeration */
 typedef enum
@@ -67,23 +82,11 @@ private:
   TIM_HandleTypeDef* htim_motor_4_;
   uint32_t channel_motor_4_;
 
-#ifdef STM32H7
-  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection1")));
-  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection2")));
-  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection3")));
-  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection4")));
-#else
-  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-#endif
-
   /* Static functions */
   // dshot init
   uint32_t dshot_choose_type(dshot_type_e dshot_type);
   void dshot_set_timer(dshot_type_e dshot_type);
-  void dshot_dma_tc_callback(DMA_HandleTypeDef* hdma);
+  static void dshot_dma_tc_callback(DMA_HandleTypeDef* hdma);
   void dshot_put_tc_callback_function();
   void dshot_start_pwm();
 
