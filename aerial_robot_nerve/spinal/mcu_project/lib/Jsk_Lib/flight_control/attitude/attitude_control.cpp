@@ -75,7 +75,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   mutex_ = mutex;
 
 //  /* TODO: be compatible with PWM */
-  dshot_.init(DSHOT600_HZ, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
+  dshot_.init(DSHOT600, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
