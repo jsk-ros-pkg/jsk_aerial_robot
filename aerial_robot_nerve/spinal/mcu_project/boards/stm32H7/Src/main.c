@@ -1454,7 +1454,7 @@ void MPU_Config(void)
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER8;
   MPU_InitStruct.BaseAddress = 0x24045000;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_64B;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_128B;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
   MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
@@ -1469,7 +1469,7 @@ void MPU_Config(void)
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER9;
   MPU_InitStruct.BaseAddress = 0x24045080;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_64B;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_128B;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
   MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
@@ -1484,7 +1484,7 @@ void MPU_Config(void)
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER10;
   MPU_InitStruct.BaseAddress = 0x24045100;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_64B;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_128B;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
   MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
@@ -1499,7 +1499,7 @@ void MPU_Config(void)
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER11;
   MPU_InitStruct.BaseAddress = 0x24045180;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_64B;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_128B;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
   MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
