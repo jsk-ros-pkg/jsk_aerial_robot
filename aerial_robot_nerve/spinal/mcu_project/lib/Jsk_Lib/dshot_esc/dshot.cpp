@@ -118,7 +118,7 @@ void DShot::dshot_start_pwm()
 uint16_t DShot::dshot_prepare_packet(uint16_t value)
 {
   uint16_t packet;
-  bool dshot_telemetry = false;
+  bool dshot_telemetry = true;
 
   packet = (value << 1) | (dshot_telemetry ? 1 : 0);
 
