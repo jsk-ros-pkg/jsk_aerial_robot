@@ -75,7 +75,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   mutex_ = mutex;
 
 //  /* TODO: be compatible with PWM */
-  dshot_.init(DSHOT300, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
+  dshot_.init(DSHOT600, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
@@ -208,25 +208,12 @@ void AttitudeController::pwmsControl(void)
 
   /* direct pwm type */
   uint16_t motor_value[4] = { 0, 0, 0, 0 };
-//  for (int i = 0; i < 4; i++)
-//  {
-//    // target_pwm_: 0.5 ~ 1.0
-//    motor_value[i] = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
-//  }
-
-  if (tmp_ < 60000){
-	  tmp_++;
+  for (int i = 0; i < 4; i++)
+  {
+    // target_pwm_: 0.5 ~ 1.0
+    motor_value[i] = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
   }
 
-  if (tmp_ > 12000){
-//	  motor_value[0] = (uint16_t)(200);
-//	  motor_value[0] = (uint16_t)(0.1 / 1.0 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
-	  for (int i = 0; i < 4; i++)
-	  {
-		  motor_value[i] = (uint16_t)(200);
-//		  motor_value[i] = (uint16_t)(0.1 / 1.0 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
-	  }
-  }
   dshot_.write(motor_value);
 
   //  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
