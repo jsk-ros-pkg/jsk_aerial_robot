@@ -112,6 +112,7 @@ namespace aerial_robot_control
     double gravity_compensate_ratio_;
 
     /* common part */
+    bool update() override;
     void reset() override;
     void controlCore() override;
     void rosParamInit();

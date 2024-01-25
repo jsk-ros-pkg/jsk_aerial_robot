@@ -22,7 +22,7 @@ void RollingController::standingPlanning()
       ROS_WARN_ONCE("start roll/pitch I control");
     }
 
-  if(standing_baselink_pitch_update_)
+  if(standing_baselink_pitch_update_ && ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
     {
       if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
         {
