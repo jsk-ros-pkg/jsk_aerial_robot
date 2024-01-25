@@ -114,6 +114,7 @@ void RollingController::rosParamInit()
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
   getParam<double>(control_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 1.0);
+  getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
 
   rolling_robot_model_->setCircleRadius(circle_radius_);
   rolling_robot_model_for_opt_->setCircleRadius(circle_radius_);

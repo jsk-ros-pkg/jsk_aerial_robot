@@ -110,6 +110,7 @@ namespace aerial_robot_control
     double standing_baselink_ref_pitch_update_thresh_;
     double steering_mu_;
     double gravity_compensate_ratio_;
+    double rolling_minimum_lateral_force_;
 
     /* common part */
     bool update() override;
