@@ -98,6 +98,11 @@
     </xacro:unless>
 
     <!-- battery -->
+    <!-- battery: 1 = 6S ZIPPY 3000 (blue)              -->
+    <!-- battery: 2 = 6S Turningy high lipo (silver) x1 inner side -->
+    <!-- battery: 3 = 6S Turningy high lipo (silver) x1 outer side -->
+    <!-- battery: 4 = 6S Turningy high lipo (silver) x1 under side -->
+    <!-- battery: 5 = 6S Turningy high lipo (silver) x2 -->
     <xacro:if value="${battery == 1}">
       <xacro:battery index="${self}"/>
       <joint name="battery_joint${self}" type="fixed">
@@ -115,7 +120,23 @@
       </joint>
     </xacro:if>
     <xacro:if value="${battery == 2}">
-      <xacro:high_lipo_single index="${self}"/>
+      <xacro:high_lipo_single_inner index="${self}"/>
+      <joint name="battery_joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="high_lipo_single${self}"/>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0.32 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0.3535 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0.3535 0 0"/>
+        </xacro:if>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${battery == 3}">
+      <xacro:high_lipo_single_outer index="${self}"/>
       <joint name="battery_joint${self}" type="fixed">
         <parent link="link${self}"/>
         <child link="high_lipo_single${self}"/>
@@ -130,11 +151,11 @@
         </xacro:if>
       </joint>
     </xacro:if>
-    <xacro:if value="${battery == 3}">
-      <xacro:high_lipo_double index="${self}"/>
+    <xacro:if value="${battery == 4}">
+      <xacro:high_lipo_single_under index="${self}"/>
       <joint name="battery_joint${self}" type="fixed">
         <parent link="link${self}"/>
-        <child link="high_lipo_double${self}"/>
+        <child link="high_lipo_single${self}"/>
         <xacro:if value="${self == 1}">
           <origin xyz="0.310 0 0"/>
         </xacro:if>
@@ -146,11 +167,11 @@
         </xacro:if>
       </joint>
     </xacro:if>
-    <xacro:if value="${battery == 4}">
-      <xacro:high_lipo_single_under index="${self}"/>
+    <xacro:if value="${battery == 5}">
+      <xacro:high_lipo_double index="${self}"/>
       <joint name="battery_joint${self}" type="fixed">
         <parent link="link${self}"/>
-        <child link="high_lipo_single${self}"/>
+        <child link="high_lipo_double${self}"/>
         <xacro:if value="${self == 1}">
           <origin xyz="0.310 0 0"/>
         </xacro:if>
