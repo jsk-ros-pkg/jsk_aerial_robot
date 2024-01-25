@@ -37,25 +37,20 @@
 #define DSHOT_MAX_THROTTLE 2047
 #define DSHOT_RANGE (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE)
 
-//namespace
-//{
-//#ifdef STM32H7
-//  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection1")));
-//  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection2")));
-//  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection3")));
-//  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection4")));
-//#else
-//  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-//  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-//  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-//  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-//#endif
-//}
-
-static uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-static uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-static uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
-static uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+namespace
+{
+#ifdef STM32H7
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection1")));
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection2")));
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection3")));
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE] __attribute__((section(".DShotBufferSection4")));
+#else
+  uint32_t motor1_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor2_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor3_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+  uint32_t motor4_dmabuffer_[DSHOT_DMA_BUFFER_SIZE];
+#endif
+}
 
 /* Enumeration */
 typedef enum

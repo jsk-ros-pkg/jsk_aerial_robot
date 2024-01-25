@@ -74,6 +74,7 @@ void DShot::dshot_set_timer(dshot_type_e dshot_type)
 
 // __HAL_TIM_DISABLE_DMA is needed to eliminate the delay between different dshot signals
 // I don't know why :(
+// After add this function, there are no delay among dshot 1,2,3,4.
 void DShot::dshot_dma_tc_callback(DMA_HandleTypeDef* hdma)
 {
   TIM_HandleTypeDef* htim = (TIM_HandleTypeDef*)((DMA_HandleTypeDef*)hdma)->Parent;
@@ -99,10 +100,10 @@ void DShot::dshot_dma_tc_callback(DMA_HandleTypeDef* hdma)
 void DShot::dshot_put_tc_callback_function()
 {
   // TIM_DMA_ID_CCx depends on timer channel
-  htim_motor_1_->hdma[TIM_DMA_ID_CC4]->XferCpltCallback = dshot_dma_tc_callback;
-  htim_motor_2_->hdma[TIM_DMA_ID_CC3]->XferCpltCallback = dshot_dma_tc_callback;
-  htim_motor_3_->hdma[TIM_DMA_ID_CC1]->XferCpltCallback = dshot_dma_tc_callback;
-  htim_motor_4_->hdma[TIM_DMA_ID_CC2]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_1_->hdma[TIM_DMA_ID_CC1]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_2_->hdma[TIM_DMA_ID_CC2]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_3_->hdma[TIM_DMA_ID_CC3]->XferCpltCallback = dshot_dma_tc_callback;
+  htim_motor_4_->hdma[TIM_DMA_ID_CC4]->XferCpltCallback = dshot_dma_tc_callback;
 }
 
 void DShot::dshot_start_pwm()
@@ -164,20 +165,20 @@ void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value)
 
 void DShot::dshot_dma_start()
 {
-  HAL_DMA_Start_IT(htim_motor_1_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor1_dmabuffer_,
-                   (uint32_t)&htim_motor_1_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_2_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor2_dmabuffer_,
-                   (uint32_t)&htim_motor_2_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_3_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor3_dmabuffer_,
-                   (uint32_t)&htim_motor_3_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_4_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor4_dmabuffer_,
-                   (uint32_t)&htim_motor_4_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_1_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor1_dmabuffer_,
+                   (uint32_t)&htim_motor_1_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_2_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor2_dmabuffer_,
+                   (uint32_t)&htim_motor_2_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_3_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor3_dmabuffer_,
+                   (uint32_t)&htim_motor_3_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
+  HAL_DMA_Start_IT(htim_motor_4_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor4_dmabuffer_,
+                   (uint32_t)&htim_motor_4_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
 }
 
 void DShot::dshot_enable_dma_request()
 {
-  __HAL_TIM_ENABLE_DMA(htim_motor_1_, TIM_DMA_CC4);
-  __HAL_TIM_ENABLE_DMA(htim_motor_2_, TIM_DMA_CC3);
-  __HAL_TIM_ENABLE_DMA(htim_motor_3_, TIM_DMA_CC1);
-  __HAL_TIM_ENABLE_DMA(htim_motor_4_, TIM_DMA_CC2);
+  __HAL_TIM_ENABLE_DMA(htim_motor_1_, TIM_DMA_CC1);
+  __HAL_TIM_ENABLE_DMA(htim_motor_2_, TIM_DMA_CC2);
+  __HAL_TIM_ENABLE_DMA(htim_motor_3_, TIM_DMA_CC3);
+  __HAL_TIM_ENABLE_DMA(htim_motor_4_, TIM_DMA_CC4);
 }

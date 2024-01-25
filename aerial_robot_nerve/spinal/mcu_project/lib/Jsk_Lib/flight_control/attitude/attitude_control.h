@@ -121,8 +121,6 @@ private:
   spinal::RollPitchYawTerms control_term_msg_;
   spinal::RollPitchYawTerm control_feedback_state_msg_;
 
-  int tmp_=0;
-
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;
   ros::Subscriber pwm_info_sub_;
