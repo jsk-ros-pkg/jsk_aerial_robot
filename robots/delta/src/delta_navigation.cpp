@@ -28,8 +28,9 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 
-  prev_ground_navigation_mode_ = -1;
-  current_ground_navigation_mode_ = 0;
+  setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
+  setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+
   baselink_rot_force_update_mode_ = false;
 
   target_pitch_ang_vel_ = 0.0;
@@ -56,8 +57,8 @@ void RollingNavigator::reset()
   curr_target_baselink_rot_.setValue(0, 0, 0);
   final_target_baselink_rot_.setValue(0, 0, 0);
 
-  prev_ground_navigation_mode_ = 0;
-  current_ground_navigation_mode_ = 0;
+  setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
+  setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
 
   spinal::DesireCoord target_baselink_rot_msg;
   target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
@@ -88,9 +89,9 @@ void RollingNavigator::baselinkRotationProcess()
       /* force update mode */
       if(baselink_rot_force_update_mode_)
         {
-          target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-          target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-          final_target_baselink_rot_.setValue(curr_target_baselink_rot_.x(), curr_target_baselink_rot_.y(), curr_target_baselink_rot_.z());
+          target_baselink_rot_msg.roll = getCurrTargetBaselinkRotRoll();
+          target_baselink_rot_msg.pitch = getCurrTargetBaselinkRotPitch();
+          setFinalTargetBaselinkRot(tf::Vector3(getCurrTargetBaselinkRotRoll(), getCurrTargetBaselinkRotPitch(), 0.0));
         }
       /* linear interpolation */
       else
@@ -105,7 +106,7 @@ void RollingNavigator::baselinkRotationProcess()
                 }
               else
                 {
-                  ROS_WARN_STREAM("[navigation] do not update desire coord because rp error [" << curr_cog_roll << ", " << curr_cog_pitch << "] is larger than " << baselink_rotation_stop_error_);
+                  ROS_WARN_STREAM_THROTTLE(1.0, "[navigation] do not update desire coord because rp error [" << curr_cog_roll << ", " << curr_cog_pitch << "] is larger than " << baselink_rotation_stop_error_);
                 }
             }
           else
@@ -197,18 +198,26 @@ void RollingNavigator::setGroundNavigationMode(int state)
     {
       ROS_WARN_STREAM("[navigation] switch to flying state");
       current_ground_navigation_mode_ = state;
+
+      setFinalTargetBaselinkRotRoll(0.0);
+      setFinalTargetBaselinkRotPitch(0.0);
     }
 
   if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
       ROS_WARN_STREAM("[navigation] switch to staning mode");
       current_ground_navigation_mode_ = state;
+
+      setFinalTargetBaselinkRotRoll(M_PI / 2.0);
     }
 
   if(state == aerial_robot_navigation::ROLLING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
     {
       ROS_WARN_STREAM("[navigation] switch to rolling mode");
       current_ground_navigation_mode_ = state;
+
+      setCurrentTargetBaselinkRotRoll(M_PI / 2.0);
+      setFinalTargetBaselinkRotRoll(M_PI / 2.0);
     }
 }
 

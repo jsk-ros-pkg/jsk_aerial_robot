@@ -64,7 +64,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
   exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench_cog", 1);
 
-  ground_navigation_mode_ = aerial_robot_navigation::FLYING_STATE;
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
@@ -142,6 +142,24 @@ void RollingController::rosParamInit()
   rosoutControlAxis("standing_controller");
 }
 
+bool RollingController::update()
+{
+  ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
+  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+    {
+      if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE)
+        {
+          double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
+          rolling_navigator_->setCurrentTargetBaselinkRotPitch(baselink_pitch);
+          rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
+        }
+    }
+
+  if(!PoseLinearController::update()) return false;
+
+  return true;
+}
+
 void RollingController::controlCore()
 {
   PoseLinearController::controlCore();
@@ -158,7 +176,7 @@ void RollingController::controlCore()
       calcFlightFullLambda();
       /* for flight */
     }
-  else
+  else if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
       /* for stand */
       rolling_robot_model_->setTargetFrame("cp");
@@ -166,6 +184,10 @@ void RollingController::controlCore()
       standingPlanning();
       calcStandingFullLambda();
       /* for stand */
+    }
+  else
+    {
+      ROS_ERROR_STREAM_THROTTLE(1.0, "[control] ground navigation mode is incorrect");
     }
 
   /* common part */

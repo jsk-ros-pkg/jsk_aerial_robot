@@ -10,6 +10,7 @@ namespace aerial_robot_navigation
 {
   enum rolling_mode
     {
+     NONE,
      FLYING_STATE,
      STANDING_STATE,
      ROLLING_STATE
