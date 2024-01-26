@@ -43,8 +43,16 @@ namespace aerial_robot_navigation
     void setFinalTargetBaselinkRotRoll(double rad) {final_target_baselink_rot_.setX(rad);}
     void setFinalTargetBaselinkRotPitch(double rad) {final_target_baselink_rot_.setY(rad);}
     void setCurrentTargetBaselinkRot(tf::Vector3 rot) {curr_target_baselink_rot_.setValue(rot.x(), rot.y(), rot.z());}
-    void setCurrentTargetBaselinkRotRoll(double rad) {curr_target_baselink_rot_.setX(rad);}
-    void setCurrentTargetBaselinkRotPitch(double rad) {curr_target_baselink_rot_.setY(rad);}
+    void setCurrentTargetBaselinkRotRoll(double rad)
+    {
+      curr_target_baselink_rot_.setX(rad);
+      curr_target_baselink_rot_roll_ = rad;
+    }
+    void setCurrentTargetBaselinkRotPitch(double rad)
+    {
+      curr_target_baselink_rot_.setY(rad);
+      curr_target_baselink_rot_pitch_ = rad;
+    }
     double getCurrTargetBaselinkRotRoll() {return curr_target_baselink_rot_roll_;}
     double getCurrTargetBaselinkRotPitch() {return curr_target_baselink_rot_pitch_;}
     double getFinalTargetBaselinkRotRoll() {return final_target_baselink_rot_roll_;}
