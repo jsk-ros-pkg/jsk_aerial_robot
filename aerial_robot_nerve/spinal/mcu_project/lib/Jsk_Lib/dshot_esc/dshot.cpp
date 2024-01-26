@@ -29,16 +29,57 @@ void DShot::initTelemetry(UART_HandleTypeDef* huart)
   is_telemetry_ = true;
 }
 
+void DShot::writeMotor1(uint16_t motor_value, bool is_telemetry)
+{
+  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value, is_telemetry);
+
+  HAL_DMA_Start_IT(htim_motor_1_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor1_dmabuffer_,
+                   (uint32_t)&htim_motor_1_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
+
+  __HAL_TIM_ENABLE_DMA(htim_motor_1_, TIM_DMA_CC1);
+}
+
+void DShot::writeMotor2(uint16_t motor_value, bool is_telemetry)
+{
+  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value, is_telemetry);
+
+  HAL_DMA_Start_IT(htim_motor_2_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor2_dmabuffer_,
+                   (uint32_t)&htim_motor_2_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
+
+  __HAL_TIM_ENABLE_DMA(htim_motor_2_, TIM_DMA_CC2);
+}
+
+void DShot::writeMotor3(uint16_t motor_value, bool is_telemetry)
+{
+  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value, is_telemetry);
+
+  HAL_DMA_Start_IT(htim_motor_3_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor3_dmabuffer_,
+                   (uint32_t)&htim_motor_3_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
+
+  __HAL_TIM_ENABLE_DMA(htim_motor_3_, TIM_DMA_CC3);
+}
+
+void DShot::writeMotor4(uint16_t motor_value, bool is_telemetry)
+{
+  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value, is_telemetry);
+
+  HAL_DMA_Start_IT(htim_motor_4_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor4_dmabuffer_,
+                   (uint32_t)&htim_motor_4_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
+
+  __HAL_TIM_ENABLE_DMA(htim_motor_4_, TIM_DMA_CC4);
+}
+
 void DShot::write(uint16_t* motor_value)
 {
-  dshot_prepare_dmabuffer_all(motor_value);
-  dshot_dma_start();
-  dshot_enable_dma_request();
-
+  writeMotor1(motor_value[0], true);
   if (is_telemetry_)
   {
-    esc_reader_.update();
+    esc_reader_.update(1);
   }
+
+  writeMotor2(motor_value[1], false);
+  writeMotor3(motor_value[2], false);
+  writeMotor4(motor_value[3], false);
 }
 
 /* Static functions */
@@ -163,32 +204,4 @@ void DShot::dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value, b
 
   motor_dmabuffer[16] = 0;
   motor_dmabuffer[17] = 0;
-}
-
-void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value)
-{
-  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value[0], true);
-  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value[1], false);
-  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value[2], false);
-  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value[3], false);
-}
-
-void DShot::dshot_dma_start()
-{
-  HAL_DMA_Start_IT(htim_motor_1_->hdma[TIM_DMA_ID_CC1], (uint32_t)motor1_dmabuffer_,
-                   (uint32_t)&htim_motor_1_->Instance->CCR1, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_2_->hdma[TIM_DMA_ID_CC2], (uint32_t)motor2_dmabuffer_,
-                   (uint32_t)&htim_motor_2_->Instance->CCR2, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_3_->hdma[TIM_DMA_ID_CC3], (uint32_t)motor3_dmabuffer_,
-                   (uint32_t)&htim_motor_3_->Instance->CCR3, DSHOT_DMA_BUFFER_SIZE);
-  HAL_DMA_Start_IT(htim_motor_4_->hdma[TIM_DMA_ID_CC4], (uint32_t)motor4_dmabuffer_,
-                   (uint32_t)&htim_motor_4_->Instance->CCR4, DSHOT_DMA_BUFFER_SIZE);
-}
-
-void DShot::dshot_enable_dma_request()
-{
-  __HAL_TIM_ENABLE_DMA(htim_motor_1_, TIM_DMA_CC1);
-  __HAL_TIM_ENABLE_DMA(htim_motor_2_, TIM_DMA_CC2);
-  __HAL_TIM_ENABLE_DMA(htim_motor_3_, TIM_DMA_CC3);
-  __HAL_TIM_ENABLE_DMA(htim_motor_4_, TIM_DMA_CC4);
 }
