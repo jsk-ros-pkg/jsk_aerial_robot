@@ -16,10 +16,35 @@ void ESCReader::init(UART_HandleTypeDef* huart)
   memset(rx_buf_, 0, RX_BUFFER_SIZE);
 }
 
-void ESCReader::update()
+void ESCReader::update(int motor_id)
 {
   if (!available()) return;
+//  while (!available())
+//  {
+//    HAL_Delay(1);
+//  }
 
+  switch (motor_id)
+  {
+    case 1:
+      readOnePacket(esc_msg_1_);
+      break;
+    case 2:
+      readOnePacket(esc_msg_2_);
+      break;
+    case 3:
+      readOnePacket(esc_msg_3_);
+      break;
+    case 4:
+      readOnePacket(esc_msg_4_);
+      break;
+  }
+
+  clearDMABuffer();
+}
+
+void ESCReader::readOnePacket(spinal::ESCTelemetry& esc_msg)
+{
   // Byte 0: Temperature
   // Byte 1: Voltage high byte
   // Byte 2: Voltage low byte
@@ -32,22 +57,6 @@ void ESCReader::update()
   // Byte 9: 8-bit CRC
 
   uint8_t buffer[10];  // buffer for KISS esc telemetry data
-
-  if (is_crc_error_)  // discard one byte if crc error
-  {
-    /* try to read three times */
-    int data = ESCReader::readOneByte();
-    if (data < 0)
-    {
-      data = ESCReader::readOneByte();
-    }
-    if (data < 0)
-    {
-      data = ESCReader::readOneByte();
-    }
-
-    is_crc_error_ = false;
-  }
 
   for (int i = 0; i < 10; i++)
   {
@@ -67,28 +76,33 @@ void ESCReader::update()
     buffer[i] = data;
   }
 
+
   /* check crc */
   uint8_t crc = get_crc8(buffer, 9);
   if (crc != buffer[9])  // crc error
   {
-    is_crc_error_ = true;
     return;
   }
 
-  /* save data in esc_msg_1_ */
-  esc_msg_1_.temperature = buffer[0];
-  esc_msg_1_.voltage = buffer[1] << 8 | buffer[2];
-  esc_msg_1_.current = buffer[3] << 8 | buffer[4];
-  esc_msg_1_.consumption = buffer[5] << 8 | buffer[6];
-  esc_msg_1_.erpm = buffer[7] << 8 | buffer[8];
+  /* save data in esc_msg */
+  esc_msg.temperature = buffer[0];
+  esc_msg.voltage = buffer[1] << 8 | buffer[2];
+  esc_msg.current = buffer[3] << 8 | buffer[4];
+  esc_msg.consumption = buffer[5] << 8 | buffer[6];
+  esc_msg.erpm = buffer[7] << 8 | buffer[8];
 
-  is_new_msg_ = true;
+  is_new_msg_ = true;  // even if only one new_msg is received, the ros msg will be sent
 }
 
 bool ESCReader::available()
 {
   uint32_t dma_write_ptr = (ESC_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (ESC_BUFFER_SIZE);
   return (rd_ptr_ != dma_write_ptr);
+}
+
+void ESCReader::clearDMABuffer()
+{
+  rd_ptr_ = (ESC_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (ESC_BUFFER_SIZE);
 }
 
 int ESCReader::readOneByte()
