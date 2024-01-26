@@ -145,7 +145,25 @@ private:
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
-  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+  ros::Publisher esc_telem_pub_;
+  spinal::ESCTelemetryArray esc_telem_msg_;
+
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+  {
+    att_control_flag_ = req.data;
+  }
+
+  ros::ServiceServer<spinal::SetControlMode::Request, spinal::SetControlMode::Response, AttitudeController>
+      control_mode_srv_;
+  void setControlModeCallback(const spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res)
+  {
+    if (req.is_attitude == false && req.is_body_rate == false)
+    {
+    	nh_->logwarn("Note: attitude mode and body rate mode are both set to false, use only thrust cmd now!");
+    }
+    is_attitude_ctrl_ = req.is_attitude;
+    is_body_rate_ctrl_ = req.is_body_rate;
+  }
 
   BatteryStatus* bat_;
   osMutexId* mutex_;

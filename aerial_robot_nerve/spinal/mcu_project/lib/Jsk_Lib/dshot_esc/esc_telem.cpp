@@ -81,6 +81,8 @@ void ESCReader::update()
   esc_msg_1_.current = buffer[3] << 8 | buffer[4];
   esc_msg_1_.consumption = buffer[5] << 8 | buffer[6];
   esc_msg_1_.erpm = buffer[7] << 8 | buffer[8];
+
+  is_new_msg_ = true;
 }
 
 bool ESCReader::available()
