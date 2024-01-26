@@ -203,6 +203,9 @@ void AttitudeController::pwmsControl(void)
     if (dshot_->esc_reader_.is_new_msg_)
     {
       esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+      esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
+      esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
+      esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
       esc_telem_pub_.publish(&esc_telem_msg_);
       dshot_->esc_reader_.is_new_msg_ = false;
     }
