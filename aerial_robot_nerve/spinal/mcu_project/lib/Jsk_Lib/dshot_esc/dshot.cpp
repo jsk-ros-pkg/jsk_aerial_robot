@@ -116,10 +116,9 @@ void DShot::dshot_start_pwm()
   HAL_TIM_PWM_Start(htim_motor_4_, channel_motor_4_);
 }
 
-uint16_t DShot::dshot_prepare_packet(uint16_t value)
+uint16_t DShot::dshot_prepare_packet(uint16_t value, bool dshot_telemetry)
 {
   uint16_t packet;
-  bool dshot_telemetry = true;
 
   packet = (value << 1) | (dshot_telemetry ? 1 : 0);
 
@@ -140,10 +139,10 @@ uint16_t DShot::dshot_prepare_packet(uint16_t value)
 }
 
 // Convert 16 bits packet to 16 pwm signal
-void DShot::dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value)
+void DShot::dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value, bool is_telemetry)
 {
   uint16_t packet;
-  packet = dshot_prepare_packet(value);
+  packet = dshot_prepare_packet(value, is_telemetry);
 
   for (int i = 0; i < 16; i++)
   {
@@ -157,10 +156,10 @@ void DShot::dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value)
 
 void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value)
 {
-  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value[0]);
-  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value[1]);
-  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value[2]);
-  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value[3]);
+  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value[0], true);
+  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value[1], false);
+  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value[2], false);
+  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value[3], false);
 }
 
 void DShot::dshot_dma_start()
