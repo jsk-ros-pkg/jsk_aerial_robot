@@ -46,6 +46,8 @@ public:
   void update();
   bool available();
   int readOneByte();
+  
+  bool is_new_msg_ = false;
 
 private:
   bool is_crc_error_ = false;

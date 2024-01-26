@@ -201,6 +201,9 @@ private:
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
+  ros::Publisher esc_telem_pub_;
+  spinal::ESCTelemetryArray esc_telem_msg_;
+
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
   {
     att_control_flag_ = req.data;

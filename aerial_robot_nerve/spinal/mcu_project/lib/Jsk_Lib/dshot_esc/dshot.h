@@ -74,6 +74,10 @@ public:
 
   void write(uint16_t* motor_value);
 
+  /* dshot telemtry */
+  bool is_telemetry_ = false;
+  ESCReader esc_reader_;
+
 private:
   TIM_HandleTypeDef* htim_motor_1_;
   uint32_t channel_motor_1_;
@@ -98,10 +102,6 @@ private:
   void dshot_prepare_dmabuffer_all(uint16_t* motor_value);
   void dshot_dma_start();
   void dshot_enable_dma_request();
-
-  /* dshot telemtry */
-  bool is_telemetry_ = false;
-  ESCReader esc_reader_;
 };
 
 #endif  // DSHOT_H

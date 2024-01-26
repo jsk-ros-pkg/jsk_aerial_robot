@@ -60,6 +60,7 @@ AttitudeController::AttitudeController()
   , torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv",
                                       &AttitudeController::torqueAllocationMatrixInvCallback, this)
   , control_mode_srv_("set_control_mode", &AttitudeController::setControlModeCallback, this)
+  , esc_telem_pub_("esc_telem", &esc_telem_msg_)
 {
 }
 
@@ -89,6 +90,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
+  nh_->advertise(esc_telem_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
   nh_->subscribe(pwm_info_sub_);
@@ -215,6 +217,15 @@ void AttitudeController::pwmsControl(void)
   }
 
   dshot_->write(motor_value);
+  if (dshot_->is_telemetry_)
+  {
+    if (dshot_->esc_reader_.is_new_msg_)
+    {
+      esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+      esc_telem_pub_.publish(&esc_telem_msg_);
+      dshot_->esc_reader_.is_new_msg_ = false;
+    }
+  }
 
   //  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
   //  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
