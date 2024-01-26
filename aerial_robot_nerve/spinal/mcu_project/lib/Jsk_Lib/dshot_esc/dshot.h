@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <cstdint>
 #include <math.h>  // lrintf
+#include "esc_telem.h"
 
 /* User Configuration */
 // Timer Clock
@@ -69,6 +70,7 @@ public:
   void init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint32_t channel_motor_1,
             TIM_HandleTypeDef* htim_motor_2, uint32_t channel_motor_2, TIM_HandleTypeDef* htim_motor_3,
             uint32_t channel_motor_3, TIM_HandleTypeDef* htim_motor_4, uint32_t channel_motor_4);
+  void initTelemetry(UART_HandleTypeDef* huart);
 
   void write(uint16_t* motor_value);
 
@@ -96,6 +98,10 @@ private:
   void dshot_prepare_dmabuffer_all(uint16_t* motor_value);
   void dshot_dma_start();
   void dshot_enable_dma_request();
+
+  /* dshot telemtry */
+  bool is_telemetry_ = false;
+  ESCReader esc_reader_;
 };
 
 #endif  // DSHOT_H

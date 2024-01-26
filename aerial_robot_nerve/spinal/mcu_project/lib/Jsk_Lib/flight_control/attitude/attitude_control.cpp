@@ -64,18 +64,18 @@ AttitudeController::AttitudeController()
 }
 
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
-                              KondoServo* kondo_servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+                              KondoServo* kondo_servo, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
   nh_ = nh;
   estimator_ = estimator;
   kondo_servo_ = kondo_servo;
+  dshot_ = dshot;
   bat_ = bat;
   mutex_ = mutex;
 
-//  /* TODO: be compatible with PWM */
-  dshot_.init(DSHOT600, htim1, TIM_CHANNEL_1, htim1, TIM_CHANNEL_2, htim1, TIM_CHANNEL_3, htim1, TIM_CHANNEL_4);
+  //  /* TODO: dshot should be compatible with PWM */
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
   //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
@@ -214,7 +214,7 @@ void AttitudeController::pwmsControl(void)
     motor_value[i] = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
   }
 
-  dshot_.write(motor_value);
+  dshot_->write(motor_value);
 
   //  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
   //  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);

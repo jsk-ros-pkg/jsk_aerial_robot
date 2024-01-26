@@ -41,7 +41,7 @@
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
 
-#include "dshot_esc/esc_telem.h"
+#include "dshot_esc/dshot.h"
 
 #include "battery_status/battery_status.h"
 
@@ -114,7 +114,7 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
-ESCReader esc_reader_;
+DShot dshot_;
 
 /* driver instances */
 KondoServo kondo_servo_;
@@ -249,8 +249,9 @@ int main(void)
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  controller_.init(&htim1, &htim4, &estimator_, &kondo_servo_, &battery_status_, &nh_, &flightControlMutexHandle);
-  esc_reader_.init(&huart2, &nh_);
+  dshot_.init(DSHOT600, &htim1, TIM_CHANNEL_1, &htim1, TIM_CHANNEL_2, &htim1, TIM_CHANNEL_3, &htim1, TIM_CHANNEL_4);
+  dshot_.initTelemetry(&huart2);
+  controller_.init(&htim1, &htim4, &estimator_, &kondo_servo_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
