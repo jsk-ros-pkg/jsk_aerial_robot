@@ -23,11 +23,22 @@ void DShot::init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint3
   dshot_start_pwm();
 }
 
+void DShot::initTelemetry(UART_HandleTypeDef* huart)
+{
+  esc_reader_.init(huart);
+  is_telemetry_ = true;
+}
+
 void DShot::write(uint16_t* motor_value)
 {
   dshot_prepare_dmabuffer_all(motor_value);
   dshot_dma_start();
   dshot_enable_dma_request();
+
+  if (is_telemetry_)
+  {
+    esc_reader_.update();
+  }
 }
 
 /* Static functions */

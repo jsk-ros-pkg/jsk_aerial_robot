@@ -82,7 +82,8 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,
+            DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -109,7 +110,6 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
-  DShot dshot_;
 #endif
 
   ros::NodeHandle* nh_;
@@ -149,6 +149,8 @@ private:
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
+  KondoServo* kondo_servo_;
+  DShot* dshot_;
 #endif
 
   StateEstimate* estimator_;

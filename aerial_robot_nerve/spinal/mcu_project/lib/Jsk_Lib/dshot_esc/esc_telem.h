@@ -14,6 +14,8 @@
 #include "config.h"
 #include <ros.h>
 #include <std_msgs/UInt8.h>
+#include <spinal/ESCTelemetry.h>
+#include <spinal/ESCTelemetryArray.h>
 
 #define ESC_BUFFER_SIZE 512
 
@@ -34,17 +36,20 @@ public:
   ~ESCReader(){};
 
   UART_HandleTypeDef *huart_;
-  ros::NodeHandle* nh_;
-//  ros::Publisher esc_pub_;
-//  spinal::EscTelem esc_msg_;
 
-  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh);
+  spinal::ESCTelemetry esc_msg_1_;
+  spinal::ESCTelemetry esc_msg_2_;
+  spinal::ESCTelemetry esc_msg_3_;
+  spinal::ESCTelemetry esc_msg_4_;
+
+  void init(UART_HandleTypeDef* huart);
   void update();
-
   bool available();
-  int read();
+  int readOneByte();
 
 private:
+  bool is_crc_error_ = false;
+
   uint8_t step_ = 0;
   uint8_t msg_id_ = 0;
   uint16_t payload_length_ = 0;
@@ -53,5 +58,8 @@ private:
   uint8_t ck_b_ = 0;
   uint8_t class_ = 0;
 };
+
+uint8_t update_crc8(uint8_t crc, uint8_t crc_seed);
+uint8_t get_crc8(uint8_t *Buf, uint8_t BufLen);
 
 #endif  // ESC_TELEM_H

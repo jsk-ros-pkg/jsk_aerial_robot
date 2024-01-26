@@ -1,7 +1,7 @@
 # check the KISS protocol for details: https://brushlesswhoop.com/dshot-and-bidirectional-dshot/
 
-int8 temperature
-uint16 voltage
-uint16 current
-uint16 consumption
-uint16 erpm
+int8 temperature  # 1 degree
+uint16 voltage  # 1000 = 10.00V
+uint16 current  # 1000 = 10.00A
+uint16 consumption  # 1mAh
+uint16 erpm  # 100 = 10000 erpm
