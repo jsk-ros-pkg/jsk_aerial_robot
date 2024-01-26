@@ -97,7 +97,6 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
-osThreadId escTelemHandle;
 osThreadId servoCtrlHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
@@ -146,7 +145,6 @@ void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
-void escTelemTask(void const * argument);
 void servoCtrlTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
@@ -332,10 +330,6 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
-
-  /* definition and creation of escTelem */
-  osThreadDef(escTelem, escTelemTask, osPriorityLow, 0, 256);
-  escTelemHandle = osThreadCreate(osThread(escTelem), NULL);
 
   /* definition and creation of servoCtrl */
   osThreadDef(servoCtrl, servoCtrlTask, osPriorityLow, 0, 256);
@@ -1273,25 +1267,6 @@ __weak void canRxTask(void const * argument)
     osDelay(1000);
   }
   /* USER CODE END canRxTask */
-}
-
-/* USER CODE BEGIN Header_escTelemTask */
-/**
-* @brief Function implementing the escTelem thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_escTelemTask */
-void escTelemTask(void const * argument)
-{
-  /* USER CODE BEGIN escTelemTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    esc_reader_.update();
-    osDelay(1);
-  }
-  /* USER CODE END escTelemTask */
 }
 
 /* USER CODE BEGIN Header_servoCtrlTask */
