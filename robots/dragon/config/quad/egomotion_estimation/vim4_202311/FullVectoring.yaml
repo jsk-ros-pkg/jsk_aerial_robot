@@ -4,6 +4,7 @@ estimation:
         sensor_list:
         - sensor_plugin/dragon_imu
         - sensor_plugin/mocap
+        - sensor_plugin/vo # Fast LIO
 
         # egomotion estimation
         egomotion_list:
@@ -47,3 +48,8 @@ sensor_plugin:
                 cutoff_freq: 10.0
         mocap:
                 estimate_mode: 6 # 1<<1 + 1<<2
+        vo1:
+                estimate_mode: 1 # 1<<0
+                # fusion_mode: 2 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2 (default)
+                # param_verbose: true
+                throttle_rate: 120 # Hz                
