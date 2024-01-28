@@ -3,9 +3,9 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
-  <arg name="full_vectoring_mode"  default= "false" />
+  <arg name="full_vectoring_mode"  default= "true" />
   <arg name="type" default="quad" />
-  <arg name="onboards_model" default="euclid_201709" />
+  <arg name="onboards_model" default="vim4_202311" />
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />

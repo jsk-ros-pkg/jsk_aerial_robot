@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <arg name="robot_ns" default="dragon" />
-
-  <group ns="$(arg robot_ns)">
-    <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
-  </group>
-</launch>
