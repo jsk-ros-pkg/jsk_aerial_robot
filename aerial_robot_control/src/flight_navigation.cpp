@@ -447,8 +447,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviState(LAND_STATE);
       //update
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
       ROS_INFO("Joy Control: Land state");
 
       return;
@@ -682,8 +680,6 @@ void BaseNavigator::update()
       if(normal_land && !force_att_control_flag_)
         {
           setNaviState(LAND_STATE);
-          setTargetXyFromCurrentState();
-          setTargetYawFromCurrentState();
         }
     }
 
