@@ -37,7 +37,28 @@ void DShot::write(uint16_t* motor_value)
 
   if (is_telemetry_)
   {
-    esc_reader_.update();
+    if (!esc_reader_.available()){
+      return;
+    }
+
+    int esc_id = esc_reader_.id_read_ % 4;
+    switch (esc_id)
+    {
+      case 0:
+        esc_reader_.update(esc_reader_.esc_msg_1_);
+        break;
+      case 1:
+        esc_reader_.update(esc_reader_.esc_msg_2_);
+        break;
+      case 2:
+        esc_reader_.update(esc_reader_.esc_msg_3_);
+        break;
+      case 3:
+        esc_reader_.update(esc_reader_.esc_msg_4_);
+        esc_reader_.is_new_msg_ = true;
+        break;
+    }
+    esc_reader_.id_read_++;
   }
 }
 

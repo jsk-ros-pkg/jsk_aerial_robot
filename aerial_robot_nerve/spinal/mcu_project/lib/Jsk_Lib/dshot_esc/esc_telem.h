@@ -43,10 +43,11 @@ public:
   spinal::ESCTelemetry esc_msg_4_;
 
   void init(UART_HandleTypeDef* huart);
-  void update();
+  void update(spinal::ESCTelemetry& esc_msg);
   bool available();
   int readOneByte();
-  
+
+  int id_read_ = 0;
   bool is_new_msg_ = false;
 
 private:
