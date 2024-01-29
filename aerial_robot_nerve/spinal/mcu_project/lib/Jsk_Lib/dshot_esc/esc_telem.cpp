@@ -16,7 +16,7 @@ void ESCReader::init(UART_HandleTypeDef* huart)
   memset(rx_buf_, 0, RX_BUFFER_SIZE);
 }
 
-void ESCReader::update()
+void ESCReader::update(spinal::ESCTelemetry& esc_msg)
 {
   if (!available()) return;
 
