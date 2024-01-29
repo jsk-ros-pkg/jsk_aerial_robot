@@ -5,3 +5,5 @@ uint16 voltage  # 1000 = 10.00V
 uint16 current  # 1000 = 10.00A
 uint16 consumption  # 1mAh
 uint16 erpm  # 100 = 10000 erpm
+uint8 crc
+uint8 crc_error  # calculated crc - received crc
