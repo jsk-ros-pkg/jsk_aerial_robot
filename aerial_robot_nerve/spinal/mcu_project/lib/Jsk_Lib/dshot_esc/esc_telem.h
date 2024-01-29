@@ -47,7 +47,6 @@ public:
   bool available();
   int readOneByte();
 
-  int id_read_ = 0;
   bool is_new_msg_ = false;
 
 private:

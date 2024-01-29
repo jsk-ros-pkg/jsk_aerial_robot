@@ -31,7 +31,14 @@ void DShot::initTelemetry(UART_HandleTypeDef* huart)
 
 void DShot::write(uint16_t* motor_value)
 {
-  dshot_prepare_dmabuffer_all(motor_value);
+  id_telem_ = id_telem_ % 4;
+  int esc_id = id_telem_;
+  id_telem_++;
+
+  bool is_telemetry[4] = {false, false, false, false};
+  is_telemetry[esc_id] = true;
+
+  dshot_prepare_dmabuffer_all(motor_value, is_telemetry);
   dshot_dma_start();
   dshot_enable_dma_request();
 
@@ -41,7 +48,6 @@ void DShot::write(uint16_t* motor_value)
       return;
     }
 
-    int esc_id = esc_reader_.id_read_ % 4;
     switch (esc_id)
     {
       case 0:
@@ -58,7 +64,6 @@ void DShot::write(uint16_t* motor_value)
         esc_reader_.is_new_msg_ = true;
         break;
     }
-    esc_reader_.id_read_++;
   }
 }
 
@@ -186,12 +191,12 @@ void DShot::dshot_prepare_dmabuffer(uint32_t* motor_dmabuffer, uint16_t value, b
   motor_dmabuffer[17] = 0;
 }
 
-void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value)
+void DShot::dshot_prepare_dmabuffer_all(uint16_t* motor_value, bool* is_telemetry)
 {
-  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value[0], true);
-  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value[1], false);
-  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value[2], false);
-  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value[3], false);
+  dshot_prepare_dmabuffer(motor1_dmabuffer_, motor_value[0], is_telemetry[0]);
+  dshot_prepare_dmabuffer(motor2_dmabuffer_, motor_value[1], is_telemetry[1]);
+  dshot_prepare_dmabuffer(motor3_dmabuffer_, motor_value[2], is_telemetry[2]);
+  dshot_prepare_dmabuffer(motor4_dmabuffer_, motor_value[3], is_telemetry[3]);
 }
 
 void DShot::dshot_dma_start()
