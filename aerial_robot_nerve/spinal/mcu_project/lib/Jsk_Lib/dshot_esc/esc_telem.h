@@ -43,14 +43,15 @@ public:
   spinal::ESCTelemetry esc_msg_4_;
 
   void init(UART_HandleTypeDef* huart);
-  void update(int motor_id);
+  void update();
   bool available();
-  void clearDMABuffer();
   int readOneByte();
-
+  
   bool is_new_msg_ = false;
 
 private:
+  bool is_crc_error_ = false;
+
   uint8_t step_ = 0;
   uint8_t msg_id_ = 0;
   uint16_t payload_length_ = 0;
@@ -58,8 +59,6 @@ private:
   uint8_t ck_a_ = 0;
   uint8_t ck_b_ = 0;
   uint8_t class_ = 0;
-
-  void readOnePacket(spinal::ESCTelemetry& esc_msg);
 };
 
 uint8_t update_crc8(uint8_t crc, uint8_t crc_seed);
