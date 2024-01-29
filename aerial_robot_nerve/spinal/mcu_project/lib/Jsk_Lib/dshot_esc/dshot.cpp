@@ -31,40 +31,52 @@ void DShot::initTelemetry(UART_HandleTypeDef* huart)
 
 void DShot::write(uint16_t* motor_value)
 {
-  id_telem_ = id_telem_ % 4;
-  int esc_id = id_telem_;
-  id_telem_++;
-
   bool is_telemetry[4] = {false, false, false, false};
-  is_telemetry[esc_id] = true;
-
-  dshot_prepare_dmabuffer_all(motor_value, is_telemetry);
-  dshot_dma_start();
-  dshot_enable_dma_request();
 
   if (is_telemetry_)
   {
-    if (!esc_reader_.available()){
-      return;
-    }
-
-    switch (esc_id)
+    if (num_freq_divide == 1)
     {
-      case 0:
-        esc_reader_.update(esc_reader_.esc_msg_1_);
-        break;
-      case 1:
-        esc_reader_.update(esc_reader_.esc_msg_2_);
-        break;
-      case 2:
-        esc_reader_.update(esc_reader_.esc_msg_3_);
-        break;
-      case 3:
-        esc_reader_.update(esc_reader_.esc_msg_4_);
-        esc_reader_.is_new_msg_ = true;
-        break;
+      // send telemetry
+      id_telem_ = id_telem_ % 4;
+      is_telemetry[id_telem_] = true;
+
+      // receive telemetry
+      if (id_telem_prev_ != -1)
+      {
+        switch (id_telem_prev_)
+        {
+          case 0:
+            esc_reader_.update(esc_reader_.esc_msg_1_);
+            break;
+          case 1:
+            esc_reader_.update(esc_reader_.esc_msg_2_);
+            break;
+          case 2:
+            esc_reader_.update(esc_reader_.esc_msg_3_);
+            break;
+          case 3:
+            esc_reader_.update(esc_reader_.esc_msg_4_);
+            esc_reader_.is_update_all_msg_ = true;
+            break;
+        }
+      }
+
+      id_telem_prev_ = id_telem_;
+      id_telem_++;
+
+      num_freq_divide = 0;
+    }
+    else
+    {
+      num_freq_divide++;
     }
   }
+
+  // send dshot signal
+  dshot_prepare_dmabuffer_all(motor_value, is_telemetry);
+  dshot_dma_start();
+  dshot_enable_dma_request();
 }
 
 /* Static functions */

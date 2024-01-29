@@ -77,6 +77,8 @@ public:
   /* dshot telemtry */
   bool is_telemetry_ = false;
   int id_telem_ = 0;
+  int id_telem_prev_ = -1;
+
   ESCReader esc_reader_;
 
 private:
@@ -103,6 +105,8 @@ private:
   void dshot_prepare_dmabuffer_all(uint16_t* motor_value, bool* is_telemetry);
   void dshot_dma_start();
   void dshot_enable_dma_request();
+
+  int num_freq_divide = 0;  // make sure that the freq for telemetry is < 150hz
 };
 
 #endif  // DSHOT_H
