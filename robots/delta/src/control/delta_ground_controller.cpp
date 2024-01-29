@@ -196,9 +196,11 @@ void RollingController::calcStandingFullLambda()
       ROS_WARN_STREAM("[control][OSQP] could not reach the solution.");
       rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
+  else
+    {
+      auto solution = solver.getSolution();
 
-  auto solution = solver.getSolution();
-
-  full_lambda_all_ = solution;
-  full_lambda_trans_ = solution;
+      full_lambda_all_ = solution;
+      full_lambda_trans_ = solution;
+    }
 }
