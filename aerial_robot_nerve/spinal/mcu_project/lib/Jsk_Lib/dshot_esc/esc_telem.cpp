@@ -33,56 +33,37 @@ void ESCReader::update(spinal::ESCTelemetry& esc_msg)
 
   uint8_t buffer[10];  // buffer for KISS esc telemetry data
 
-  if (is_crc_error_)  // discard one byte if crc error
-  {
-    /* try to read three times */
-    int data = ESCReader::readOneByte();
-    if (data < 0)
-    {
-      data = ESCReader::readOneByte();
-    }
-    if (data < 0)
-    {
-      data = ESCReader::readOneByte();
-    }
-
-    is_crc_error_ = false;
-  }
-
   for (int i = 0; i < 10; i++)
   {
-    /* try to read three times */
-    int data = ESCReader::readOneByte();
-    if (data < 0)
-    {
+    int data;
+    int maxAttempts = 8; // Maximum number of times to attempt reading
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       data = ESCReader::readOneByte();
+      if (data >= 0) {
+        break; // Break the loop if a valid data is read
+      }
     }
-    if (data < 0)
-    {
-      data = ESCReader::readOneByte();
+
+    if (data < 0) {
+      data = 255; // If still negative after all attempts, set data to 255
     }
-    if (data < 0)
-      return;
 
     buffer[i] = data;
   }
 
   /* check crc */
   uint8_t crc = get_crc8(buffer, 9);
-  if (crc != buffer[9])  // crc error
+  if (crc == buffer[9])  // crc error
   {
-    is_crc_error_ = true;
-    return;
+    /* save data in esc_msg_1_ */
+    esc_msg.temperature = buffer[0];
+    esc_msg.voltage = buffer[1] << 8 | buffer[2];
+    esc_msg.current = buffer[3] << 8 | buffer[4];
+    esc_msg.consumption = buffer[5] << 8 | buffer[6];
+    esc_msg.erpm = buffer[7] << 8 | buffer[8];
   }
-
-  /* save data in esc_msg_1_ */
-  esc_msg_1_.temperature = buffer[0];
-  esc_msg_1_.voltage = buffer[1] << 8 | buffer[2];
-  esc_msg_1_.current = buffer[3] << 8 | buffer[4];
-  esc_msg_1_.consumption = buffer[5] << 8 | buffer[6];
-  esc_msg_1_.erpm = buffer[7] << 8 | buffer[8];
-
-  is_new_msg_ = true;
+  esc_msg.crc = buffer[9];
+  esc_msg.crc_error = crc - buffer[9];
 }
 
 bool ESCReader::available()

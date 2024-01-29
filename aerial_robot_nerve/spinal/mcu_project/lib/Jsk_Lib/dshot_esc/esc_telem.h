@@ -47,11 +47,9 @@ public:
   bool available();
   int readOneByte();
 
-  bool is_new_msg_ = false;
+  bool is_update_all_msg_ = false;
 
 private:
-  bool is_crc_error_ = false;
-
   uint8_t step_ = 0;
   uint8_t msg_id_ = 0;
   uint16_t payload_length_ = 0;
