@@ -102,11 +102,6 @@ private:
   void dshot_prepare_dmabuffer_all(uint16_t* motor_value);
   void dshot_dma_start();
   void dshot_enable_dma_request();
-
-  void writeMotor1(uint16_t motor_value, bool is_telemetry);
-  void writeMotor2(uint16_t motor_value, bool is_telemetry);
-  void writeMotor3(uint16_t motor_value, bool is_telemetry);
-  void writeMotor4(uint16_t motor_value, bool is_telemetry);
 };
 
 #endif  // DSHOT_H
