@@ -1,3 +1,4 @@
+time stamp
 # spinal/ESCTelemetry[] esc_telemetry_array
 spinal/ESCTelemetry esc_telemetry_1
 spinal/ESCTelemetry esc_telemetry_2
