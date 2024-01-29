@@ -77,24 +77,9 @@ void DShot::write(uint16_t* motor_value)
     esc_reader_.update(1);
   }
 
-  writeMotor2(motor_value[1], true);
-  if (is_telemetry_)
-  {
-    esc_reader_.update(2);
-  }
-
-  writeMotor3(motor_value[2], true);
-  if (is_telemetry_)
-  {
-    esc_reader_.update(3);
-  }
-
-  writeMotor4(motor_value[3], true);
-  if (is_telemetry_)
-  {
-    esc_reader_.update(4);
-  }
-
+  writeMotor2(motor_value[1], false);
+  writeMotor3(motor_value[2], false);
+  writeMotor4(motor_value[3], false);
 }
 
 /* Static functions */
