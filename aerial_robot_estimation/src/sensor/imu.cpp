@@ -406,15 +406,15 @@ namespace sensor_plugin
           {
             tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, i);
             tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, i);
-            state_.states[0].state[0].x = pos.x();
-            state_.states[1].state[0].x = pos.y();
-            state_.states[2].state[0].x = pos.z();
-            state_.states[0].state[0].y = vel.x();
-            state_.states[1].state[0].y = vel.y();
-            state_.states[2].state[0].y = vel.z();
-            state_.states[0].state[0].z = acc_w_.at(i).x();
-            state_.states[1].state[0].z = acc_w_.at(i).y();
-            state_.states[2].state[0].z = acc_w_.at(i).z();
+            state_.states[0].state[i].x = pos.x();
+            state_.states[1].state[i].x = pos.y();
+            state_.states[2].state[i].x = pos.z();
+            state_.states[0].state[i].y = vel.x();
+            state_.states[1].state[i].y = vel.y();
+            state_.states[2].state[i].y = vel.z();
+            state_.states[0].state[i].z = acc_w_.at(i).x();
+            state_.states[1].state[i].z = acc_w_.at(i).y();
+            state_.states[2].state[i].z = acc_w_.at(i).z();
           }
         state_pub_.publish(state_);
       }
