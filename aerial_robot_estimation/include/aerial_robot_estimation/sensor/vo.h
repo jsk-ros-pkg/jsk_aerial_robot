@@ -40,7 +40,6 @@
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
-#include <spinal/ServoControlCmd.h>
 #include <std_msgs/Empty.h>
 
 namespace sensor_plugin
@@ -73,9 +72,6 @@ namespace sensor_plugin
   private:
     /* ros */
     ros::Subscriber vo_sub_;
-    ros::Publisher vo_servo_pub_;
-    ros::Subscriber vo_servo_debug_sub_;
-    ros::Timer  servo_control_timer_;
 
     /* ros param */
     double throttle_rate_;
@@ -95,19 +91,6 @@ namespace sensor_plugin
     bool z_no_delay_;
     bool rot_valid_; // the estimated orientatin by VO is whether valid or not.
 
-
-    /* servo */
-    std::string joint_name_;
-    bool servo_auto_change_flag_;
-    double servo_height_thresh_;
-    double servo_angle_;
-    double servo_init_angle_, servo_downwards_angle_;
-    double servo_vel_;
-    double servo_control_rate_;
-
-    double servo_min_angle_, servo_max_angle_;
-    int servo_index_;
-
     tf::Transform world_offset_tf_; // ^{w}H_{w_vo}: transform from true world frame to the vo/vio world frame
     tf::Transform baselink_tf_; // ^{w}H_{b}: transform from true world frame to the baselink frame, but is estimated by vo/vio
     tf::Vector3 raw_global_vel_;
@@ -116,14 +99,8 @@ namespace sensor_plugin
     aerial_robot_msgs::States vo_state_;
 
     void rosParamInit();
-    void servoControl(const ros::TimerEvent & e);
     void estimateProcess();
     void voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg);
-
-    void servoDebugCallback(const std_msgs::Empty::ConstPtr & msg)
-    {
-      servo_auto_change_flag_ = true;
-    }
   };
 };
 

@@ -38,9 +38,6 @@
 
 namespace
 {
-  double init_servo_st = 0;
-  double max_du = 0;
-
   tf::Transform prev_sensor_tf;
   tf::Vector3 baselink_omega;
   tf::Matrix3x3 baselink_r;
@@ -49,8 +46,7 @@ namespace
 namespace sensor_plugin
 {
   VisualOdometry::VisualOdometry():
-    sensor_plugin::SensorBase(),
-    servo_auto_change_flag_(false)
+    sensor_plugin::SensorBase()
   {
     world_offset_tf_.setIdentity();
     baselink_tf_.setIdentity();
@@ -81,19 +77,6 @@ namespace sensor_plugin
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
     rot_valid_ = false;
-
-    /* servo control timer */
-    if(variable_sensor_tf_flag_)
-      {
-        /* ros publisher: servo motor */
-        getParam<std::string>("vo_servo_topic_name", topic_name, string("vo_servo_target_pwm"));
-        vo_servo_pub_ = nh_.advertise<sensor_msgs::JointState>(topic_name, 1);
-
-        getParam<std::string>("vo_servo_debug_topic_name", topic_name, string("vo_servo_debug"));
-        vo_servo_debug_sub_ = nh_.subscribe(topic_name, 1, &VisualOdometry::servoDebugCallback, this);
-
-        servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
-      }
   }
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -104,13 +87,9 @@ namespace sensor_plugin
         ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
         return;
       }
-
+    ROS_ERROR_ONCE("fusion mode: %d", fusion_mode_);
     /* update the sensor tf w.r.t baselink */
     if(!updateBaseLink2SensorTransform()) return;
-
-    /* servo init condition */
-    if(variable_sensor_tf_flag_ && ros::Time::now().toSec() - init_servo_st < 1.0 && init_servo_st > 0)
-      return;
 
     /* check whether is force att control mode */
     if(estimator_->getForceAttControlFlag() && getStatus() == Status::ACTIVE)
@@ -345,8 +324,7 @@ namespace sensor_plugin
       setStatus(Status::ACTIVE);
     }
 
-    /* transformaton from baselink to vo sensor, if we use the servo motor */
-
+    /* transformaton from baselink to vo sensor */
     baselink_tf_ = world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse();
 
     tf::Vector3 raw_pos;
@@ -613,66 +591,6 @@ namespace sensor_plugin
     getParam<double>("vel_outlier_thresh", vel_outlier_thresh_, 1.0);
     getParam<double>("downwards_vo_min_height", downwards_vo_min_height_, 0.8);
     getParam<double>("downwards_vo_max_height", downwards_vo_max_height_, 10.0);
-
-    getParam<std::string>("joint", joint_name_, std::string("servo"));
-    getParam<bool>("servo_auto_change_flag", servo_auto_change_flag_, false );
-    getParam<double>("servo_height_thresh", servo_height_thresh_, 0.7);
-    getParam<double>("servo_vel", servo_vel_, 0.02); // rad
-    getParam<double>("servo_init_angle", servo_init_angle_, 0.0); // rad
-    getParam<double>("servo_downwards_angle", servo_downwards_angle_, 0.0); // rad
-    getParam<double>("servo_min_angle", servo_min_angle_, -M_PI/2); // angle [rad]
-    getParam<double>("servo_max_angle", servo_max_angle_, M_PI/2); // angle [rad]
-    getParam<double>("servo_control_rate", servo_control_rate_, 0.1);
-
-    servo_angle_ = servo_init_angle_;
-  }
-
-  void VisualOdometry::servoControl(const ros::TimerEvent & e)
-  {
-    assert(variable_sensor_tf_flag_);
-
-    bool send_pub_ = false;
-
-    /* after takeoff */
-    if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
-      {
-        if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
-          {
-            int sign = fabs(servo_angle_ - servo_downwards_angle_) / (servo_angle_ - servo_downwards_angle_);
-            servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
-          }
-        else servo_angle_ = servo_downwards_angle_;
-
-        send_pub_ = true;
-      }
-
-    /* before landing */
-    if(estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
-      {
-        if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
-          {
-            int sign = fabs(servo_angle_ - servo_init_angle_) / (servo_angle_ - servo_init_angle_);
-            servo_angle_ -=  sign * servo_vel_ * servo_control_rate_;
-          }
-        else servo_angle_ = servo_init_angle_;
-
-        send_pub_ = true;
-      }
-
-    /* init */
-    if(init_servo_st == 0) init_servo_st = ros::Time::now().toSec();
-    if (ros::Time::now().toSec() - init_servo_st < 1.0) // 1 [sec]
-      {
-        send_pub_ = true;
-      }
-
-    if(send_pub_)
-      {
-        sensor_msgs::JointState msg;
-        msg.name.push_back(joint_name_);
-        msg.position.push_back(servo_angle_);
-        vo_servo_pub_.publish(msg);
-      }
   }
 
   bool VisualOdometry::reset()
