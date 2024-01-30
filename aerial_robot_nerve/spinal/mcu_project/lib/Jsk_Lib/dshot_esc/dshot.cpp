@@ -21,6 +21,15 @@ void DShot::init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint3
   dshot_set_timer(dshot_type);
   dshot_put_tc_callback_function();
   dshot_start_pwm();
+
+  // send dshot command to initialize esc
+  uint16_t motor_value_array[4] = {DSHOT_CMD_SPIN_DIRECTION_1, DSHOT_CMD_SPIN_DIRECTION_1,
+                                    DSHOT_CMD_SPIN_DIRECTION_2, DSHOT_CMD_SPIN_DIRECTION_2};
+  for(int i = 0; i < 10; i++)
+  {
+    write(motor_value_array, false);
+    HAL_Delay(1);
+  }
 }
 
 void DShot::initTelemetry(UART_HandleTypeDef* huart)
