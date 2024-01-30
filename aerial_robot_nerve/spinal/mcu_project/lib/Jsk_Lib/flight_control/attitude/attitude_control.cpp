@@ -213,10 +213,18 @@ void AttitudeController::pwmsControl(void)
   for (int i = 0; i < 4; i++)
   {
     // target_pwm_: 0.5 ~ 1.0
-    motor_value[i] = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
+    uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
+
+    if (motor_v > DSHOT_MAX_THROTTLE)
+      motor_v = DSHOT_MAX_THROTTLE;
+    else if (motor_v < DSHOT_MIN_THROTTLE)
+      motor_v = DSHOT_MIN_THROTTLE;
+    
+    motor_value[i] = motor_v;
   }
 
-  dshot_->write(motor_value);
+  dshot_->write(motor_value, dshot_->is_telemetry_);
+
   if (dshot_->is_telemetry_)
   {
     if (dshot_->esc_reader_.is_update_all_msg_)
