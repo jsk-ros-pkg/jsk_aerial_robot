@@ -50,6 +50,7 @@ sensor_plugin:
                 estimate_mode: 6 # 1<<1 + 1<<2
         vo1:
                 estimate_mode: 1 # 1<<0
-                # fusion_mode: 2 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2 (default)
+                fusion_mode: 0 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2 (default)
                 # param_verbose: true
-                throttle_rate: 120 # Hz                
+                throttle_rate: 120 # Hz
+                variable_sensor_tf_flag: true
