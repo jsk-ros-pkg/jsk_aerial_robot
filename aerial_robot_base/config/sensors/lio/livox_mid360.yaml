@@ -1,8 +1,8 @@
 sensor_plugin:
   vo:
     vo_sub_topic_name: Odometry_precede
-    level_pos_noise_sigma: 0.01  # TODO: modification
-    z_pos_noise_sigma: 0.01
+    level_pos_noise_sigma: 0.01  # 0.01 is better that 0.001
+    z_pos_noise_sigma: 0.01 # 0.01 is better than 0.001
     z_vel_mode: false
     vel_noise_sigma: 0.01 # TODO: modification
     sensor_frame: lidar_imu
