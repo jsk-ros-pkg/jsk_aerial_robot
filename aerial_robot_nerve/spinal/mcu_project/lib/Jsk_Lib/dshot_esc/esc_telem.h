@@ -49,6 +49,8 @@ public:
 
   bool is_update_all_msg_ = false;
 
+  int num_motor_mag_pole_; // conversion from erpm to rpm
+
 private:
   uint8_t step_ = 0;
   uint8_t msg_id_ = 0;

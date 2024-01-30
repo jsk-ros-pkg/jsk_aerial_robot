@@ -22,7 +22,7 @@ void DShot::init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint3
   dshot_put_tc_callback_function();
   dshot_start_pwm();
 
-  // send dshot command to initialize esc
+  // send dshot command to initialize esc  TODO: should be set by onboard PC
   uint16_t motor_value_array[4] = {DSHOT_CMD_SPIN_DIRECTION_1, DSHOT_CMD_SPIN_DIRECTION_1,
                                     DSHOT_CMD_SPIN_DIRECTION_2, DSHOT_CMD_SPIN_DIRECTION_2};
   for(int i = 0; i < 10; i++)
@@ -36,6 +36,7 @@ void DShot::initTelemetry(UART_HandleTypeDef* huart)
 {
   esc_reader_.init(huart);
   is_telemetry_ = true;
+  esc_reader_.num_motor_mag_pole_ = 14; // TODO: should be set by onboard PC
 }
 
 void DShot::write(uint16_t* motor_value_array, bool is_telemetry)

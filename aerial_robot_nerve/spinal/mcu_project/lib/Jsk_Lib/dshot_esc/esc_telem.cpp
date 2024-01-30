@@ -60,9 +60,9 @@ void ESCReader::update(spinal::ESCTelemetry& esc_msg)
     esc_msg.voltage = buffer[1] << 8 | buffer[2];
     esc_msg.current = buffer[3] << 8 | buffer[4];
     esc_msg.consumption = buffer[5] << 8 | buffer[6];
-    esc_msg.erpm = buffer[7] << 8 | buffer[8];
+    uint16_t erpm = buffer[7] << 8 | buffer[8];
+    esc_msg.rpm = erpm * 100 / (num_motor_mag_pole_ / 2);
   }
-  esc_msg.crc = buffer[9];
   esc_msg.crc_error = crc - buffer[9];
 }
 

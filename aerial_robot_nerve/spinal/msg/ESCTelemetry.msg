@@ -4,6 +4,5 @@ int8 temperature  # 1 degree
 uint16 voltage  # 1000 = 10.00V
 uint16 current  # 1000 = 10.00A
 uint16 consumption  # 1mAh
-uint16 erpm  # 100 = 10000 erpm
-uint8 crc
+uint32 rpm  # 1 rpm
 uint8 crc_error  # calculated crc - received crc
