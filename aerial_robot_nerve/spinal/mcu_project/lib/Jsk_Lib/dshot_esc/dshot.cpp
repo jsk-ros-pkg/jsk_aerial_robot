@@ -29,17 +29,17 @@ void DShot::initTelemetry(UART_HandleTypeDef* huart)
   is_telemetry_ = true;
 }
 
-void DShot::write(uint16_t* motor_value)
+void DShot::write(uint16_t* motor_value_array, bool is_telemetry)
 {
-  bool is_telemetry[4] = {false, false, false, false};
+  bool is_telemetry_array[4] = {false, false, false, false};
 
-  if (is_telemetry_)
+  if (is_telemetry)
   {
     if (num_freq_divide == 1)
     {
       // send telemetry
       id_telem_ = id_telem_ % 4;
-      is_telemetry[id_telem_] = true;
+      is_telemetry_array[id_telem_] = true;
 
       // receive telemetry
       if (id_telem_prev_ != -1)
@@ -74,7 +74,7 @@ void DShot::write(uint16_t* motor_value)
   }
 
   // send dshot signal
-  dshot_prepare_dmabuffer_all(motor_value, is_telemetry);
+  dshot_prepare_dmabuffer_all(motor_value_array, is_telemetry_array);
   dshot_dma_start();
   dshot_enable_dma_request();
 }
@@ -123,7 +123,7 @@ void DShot::dshot_set_timer(dshot_type_e dshot_type)
 
 // __HAL_TIM_DISABLE_DMA is needed to eliminate the delay between different dshot signals
 // I don't know why :(
-// After add this function, there are no delay among dshot 1,2,3,4.
+// After adding this function, there are no delay among dshot 1,2,3,4.
 void DShot::dshot_dma_tc_callback(DMA_HandleTypeDef* hdma)
 {
   TIM_HandleTypeDef* htim = (TIM_HandleTypeDef*)((DMA_HandleTypeDef*)hdma)->Parent;

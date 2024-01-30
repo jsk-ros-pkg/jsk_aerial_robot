@@ -72,7 +72,7 @@ public:
             uint32_t channel_motor_3, TIM_HandleTypeDef* htim_motor_4, uint32_t channel_motor_4);
   void initTelemetry(UART_HandleTypeDef* huart);
 
-  void write(uint16_t* motor_value);
+  void write(uint16_t* motor_value_array, bool is_telemetry);
 
   /* dshot telemtry */
   bool is_telemetry_ = false;
