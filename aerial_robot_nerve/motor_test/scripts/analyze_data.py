@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def analyze_data(folder_path, file_name):
+def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     file_path = folder_path + file_name
     data = pd.read_csv(file_path, sep=' ',
                        names=["PWM", "fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature",
@@ -19,7 +19,10 @@ def analyze_data(folder_path, file_name):
     # Filter the DataFrame for 'valid' state
     valid_data = data[data['State'] == 'valid']
 
-    columns_to_average = ["fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature", "voltage"]
+    if not has_telemetry:
+        columns_to_average = ["fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency"]
+    else:
+        columns_to_average = ["fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature", "voltage"]
 
     # Group by 'PWM' and calculate the average for each specified column
     average_values = valid_data.groupby('PWM')[columns_to_average].mean()
@@ -28,31 +31,38 @@ def analyze_data(folder_path, file_name):
     average_values.reset_index(inplace=True)
 
     # Add a column for power
-    average_values['Power'] = average_values['voltage'] * average_values['currency']
+    if has_telemetry:
+        average_values['Power'] = average_values['voltage'] * average_values['currency']
+    else:
+        average_values['Power'] = set_voltage * average_values['currency']
 
     # Add a column for PWM ratio
     average_values['PWM_Ratio_%'] = average_values['PWM'] / 2000 * 100
 
-    # Add a column for kRPM^2 (kilorevolutions per minute squared)
-    average_values['kRPM^2'] = (average_values['RPM'] / 1000) ** 2
-
-    # Add a column for Dshot ratio in percentage
-    average_values['Dshot_Ratio_%'] = ((average_values['PWM'] - 1000) / 1000) * 100
+    if has_telemetry:
+        # Add a column for kRPM^2 (kilorevolutions per minute squared)
+        average_values['kRPM^2'] = (average_values['RPM'] / 1000) ** 2
+        # Add a column for Dshot ratio in percentage
+        average_values['Dshot_Ratio_%'] = ((average_values['PWM'] - 1000) / 1000) * 100
 
     ''' plot the data '''
 
     # Convert series to numpy arrays
-    kRPM2 = average_values['kRPM^2'].to_numpy()
+
+    if has_telemetry:
+        kRPM2 = average_values['kRPM^2'].to_numpy()
+
     fz = average_values['fz'].to_numpy()
     mz = average_values['mz'].to_numpy()
     currency = average_values['currency'].to_numpy()
     PWM_ratio = average_values['PWM_Ratio_%'].to_numpy()
 
     # Perform the fittings
-    # Linear fit for x:kRPM^2 y:fz
-    slope_kRPM2, intercept_kRPM2 = np.polyfit(kRPM2, fz, 1)
-    fit_eq_kRPM2 = f"fz = {slope_kRPM2:.4f} * kRPM^2 + {intercept_kRPM2:.4f}"
-    print(f"Fitting Equation (x:kRPM^2 y:fz): {fit_eq_kRPM2}")
+    if has_telemetry:
+        # Linear fit for x:kRPM^2 y:fz
+        slope_kRPM2, intercept_kRPM2 = np.polyfit(kRPM2, fz, 1)
+        fit_eq_kRPM2 = f"fz = {slope_kRPM2:.4f} * kRPM^2 + {intercept_kRPM2:.4f}"
+        print(f"Fitting Equation (x:kRPM^2 y:fz): {fit_eq_kRPM2}")
 
     # Linear fit for x:fz y:mz, note that the intercept must be 0. Only y=kx form.
     slope_mz_fz, intercept_mz_fz = np.polyfit(fz, mz, 1)
@@ -73,14 +83,16 @@ def analyze_data(folder_path, file_name):
     fig, axs = plt.subplots(2, 2, figsize=(12, 12))
 
     # Plot 1: x:kRPM^2 y:fz
-    axs[0, 0].scatter(kRPM2, fz, color='blue', alpha=0.5, label='Data points')
-    axs[0, 0].plot(kRPM2, slope_kRPM2 * kRPM2 + intercept_kRPM2, color='red', label='Fitted line')
-    axs[0, 0].set_title('fz vs kRPM^2')
-    axs[0, 0].set_xlabel('kRPM^2')
-    axs[0, 0].set_ylabel('fz (N)')
-    axs[0, 0].grid()
-    axs[0, 0].text(0.95, 0.05, fit_eq_kRPM2, horizontalalignment='right', verticalalignment='bottom',
-                   transform=axs[0, 0].transAxes, fontsize=10, color='green')
+    if has_telemetry:
+        print("has telemetry", has_telemetry)
+        axs[0, 0].scatter(kRPM2, fz, color='blue', alpha=0.5, label='Data points')
+        axs[0, 0].plot(kRPM2, slope_kRPM2 * kRPM2 + intercept_kRPM2, color='red', label='Fitted line')
+        axs[0, 0].set_title('fz vs kRPM^2')
+        axs[0, 0].set_xlabel('kRPM^2')
+        axs[0, 0].set_ylabel('fz (N)')
+        axs[0, 0].grid()
+        axs[0, 0].text(0.95, 0.05, fit_eq_kRPM2, horizontalalignment='right', verticalalignment='bottom',
+                       transform=axs[0, 0].transAxes, fontsize=10, color='green')
 
     # Plot 2: x:fz y:mz
     axs[0, 1].scatter(fz, mz, color='blue', alpha=0.5, label='Data points')
@@ -125,7 +137,9 @@ if __name__ == '__main__':
     # pass text file name as argument
     parser = argparse.ArgumentParser()
     parser.add_argument('file_name', help='file name')
+    parser.add_argument('has_telemetry', help='has telemetry, 0 or 1')
+    parser.add_argument("--set_voltage", help="the voltage set in the test, float", default=0.0)
     parser.add_argument('--folder_path', help='path to folder', default='~/.ros/')
     args = parser.parse_args()
 
-    analyze_data(args.folder_path, args.file_name)
+    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage))
