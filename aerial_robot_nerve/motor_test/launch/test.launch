@@ -9,6 +9,8 @@
   <!-- parameters for oneshot -->
   <arg name="raise_duration" default="2.0" />
   <arg name="brake_duration" default="4.0" />
+  <arg name="has_dshot_telemetry" default="false" />
+
   <arg name="force_sensor" default="CFS034CA301U" /> <!-- other sensor: PFS055YA501U6 -->
 
   <node name="power_node"  pkg="takasako_sps" type="scpi_tcp_client_node" output="screen" />
@@ -17,10 +19,10 @@
     <rosparam file="$(find cfs_sensor)/config/$(arg force_sensor).yaml" command="load" />
   </node>
 
-  <include file="$(find rosserial_server)/launch/serial.launch" >
-    <arg name="port" value="/dev/ttyUSB0" />
-    <arg name="baud" value="921600" />
-  </include>
+<!--  <include file="$(find rosserial_server)/launch/serial.launch" >-->
+<!--    <arg name="port" value="/dev/ttyUSB0" />-->
+<!--    <arg name="baud" value="921600" />-->
+<!--  </include>-->
 
   <node name="motor_test_node" pkg="motor_test" type="motor_test_node"  output="screen">
     <param name="force_sensor_sub_name" value="/cfs/data" />
@@ -33,5 +35,6 @@
     <param name="max_pwm_value" value="$(arg max_pwm_value)" />
     <param name="raise_duration" value="$(arg raise_duration)" />
     <param name="brake_duration" value="$(arg brake_duration)" />
+    <param name="has_dshot_telemetry" value="$(arg has_dshot_telemetry)" />
   </node>
 </launch>
