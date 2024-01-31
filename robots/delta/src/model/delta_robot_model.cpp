@@ -4,6 +4,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   RobotModel(init_with_rosparam, verbose, fc_f_min_thre, fc_t_min_thre, epsilon)
 {
   const int rotor_num = getRotorNum();
+  links_position_from_cog_.resize(rotor_num);
   links_rotation_from_cog_.resize(rotor_num);
   thrust_link_ = "thrust";
 
@@ -34,9 +35,11 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
-      KDL::Frame f;
+      KDL::Frame f, f_from_cog;
       fk_solver.JntToCart(joint_positions, f, std::string("link") + s);
-      links_rotation_from_cog_[i] = cog.M.Inverse() * f.M;
+      f_from_cog = cog.Inverse() * f;
+      links_position_from_cog_.at(i) = f_from_cog.p;
+      links_rotation_from_cog_.at(i) = f_from_cog.M;
     }
 
   /* calculate inertia from root */
