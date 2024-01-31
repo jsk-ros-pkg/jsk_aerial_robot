@@ -7,6 +7,7 @@
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <takasako_sps/PowerInfo.h>
+#include <spinal/ESCTelemetryArray.h>
 
 namespace Mode
 {
@@ -44,6 +45,8 @@ public:
     start_cmd_sub_ =  nh_.subscribe("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
     sps_on_pub_ = nh.advertise<std_msgs::Empty>("/power_on_cmd", 1);
 
+    esc_telem_sub_ = nh_.subscribe("/esc_telem", 1, &MotorTest::escTelemCallback, this, ros::TransportHints().tcpNoDelay());
+
     ROS_WARN("run: %f, raise: %f, brake: %f", run_duration_, raise_duration_, brake_duration_);
 
     ros::ServiceClient calib_client = nh_.serviceClient<std_srvs::Empty>("/cfs_sensor_calib");
@@ -72,6 +75,7 @@ private:
   ros::Subscriber force_snesor_sub_;
   ros::Subscriber power_info_sub_;
   ros::Subscriber start_cmd_sub_;
+  ros::Subscriber esc_telem_sub_;
   ros::Publisher motor_pwm_pub_;
   ros::Publisher sps_on_pub_;
 
@@ -93,6 +97,11 @@ private:
 
   std::ofstream ofs_;
 
+  /* dshot measurement */
+  uint32_t rpm_;
+  int temprarure_;
+  float voltage_;
+
   void startCallback(const std_msgs::EmptyConstPtr & msg)
   {
     std::string file_name  = std::string("motor_test_") + std::to_string((int)ros::Time::now().toSec()) + std::string(".txt");
@@ -106,6 +115,13 @@ private:
     init_time_ = ros::Time::now();
     ROS_INFO("start pwm test");
     start_flag_ = true;
+  }
+
+  void escTelemCallback(const spinal::ESCTelemetryArrayConstPtr & msg)
+  {
+    rpm_ = msg->esc_telemetry_1.rpm;
+    temprarure_ = msg->esc_telemetry_1.temperature;
+    voltage_ = (float)(msg->esc_telemetry_1.voltage) / 100;
   }
 
   void powerInfoCallback(const takasako_sps::PowerInfoConstPtr& msg)
@@ -129,7 +145,10 @@ private:
         << msg->wrench.torque.x << " "
         << msg->wrench.torque.y << " "
         << msg->wrench.torque.z << " "
-        << currency_;
+        << currency_ << " "
+        << rpm_ << " "
+        << temprarure_ << " "
+        << voltage_;
 
     if(test_mode_ == Mode::ONESHOT)
       {
