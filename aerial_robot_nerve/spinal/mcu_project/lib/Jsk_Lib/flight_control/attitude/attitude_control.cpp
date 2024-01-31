@@ -968,7 +968,7 @@ void AttitudeController::pwmConversion()
   }
 
   /* pwm saturation avoidance */
-  /* get the decreasing rate for the thrust to avoid the devergence because of the pwm saturation */
+  /* get the decreasing rate for the thrust to avoid the divergence because of the pwm saturation */
   float base_thrust_decreasing_rate = 0;
   float yaw_decreasing_rate = 0;
   float thrust_limit = motor_info_[motor_ref_index_].max_thrust / v_factor_;
