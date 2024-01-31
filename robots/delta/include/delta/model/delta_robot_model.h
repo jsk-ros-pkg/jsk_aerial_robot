@@ -19,9 +19,16 @@ public:
   virtual ~RollingRobotModel() = default;
 
   void calcRobotModelFromFrame(std::string frame_name);
+  void setContactPointReal(KDL::Frame contact_point_real) {contact_point_real_ = contact_point_real;}
+  template <class T> T getContactPointReal();
   template <class T> T getContactPoint();
   template <class T> std::vector<T> getLinksPositionFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
+  std::vector<KDL::Frame> getLinksCenterFrameFromCog()
+  {
+    std::lock_guard<std::mutex> lock(links_center_frame_mutex_);
+    return links_center_frame_from_cog_;
+  }
   template <class T> T getCenterPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
   void setTargetFrame(KDL::Frame frame){target_frame_ = frame;};
@@ -40,11 +47,14 @@ private:
 
   std::mutex links_position_mutex_;
   std::mutex links_rotation_mutex_;
+  std::mutex links_center_frame_mutex_;
   std::mutex contact_point_mutex_;
+  std::mutex contact_point_real_mutex_;
   std::mutex center_point_mutex_;
 
   KDL::Frame center_point_;
   KDL::Frame contact_point_;
+  KDL::Frame contact_point_real_;
 
   std::string thrust_link_;
   double circle_radius_;
@@ -55,6 +65,7 @@ private:
 
   std::vector<KDL::Vector> links_position_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
+  std::vector<KDL::Frame> links_center_frame_from_cog_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
@@ -91,6 +102,17 @@ template<> inline KDL::Frame RollingRobotModel::getContactPoint()
 template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPoint()
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPoint<KDL::Frame>());
+}
+
+template<> inline KDL::Frame RollingRobotModel::getContactPointReal()
+{
+  std::lock_guard<std::mutex> lock(contact_point_real_mutex_);
+  return contact_point_real_;
+}
+
+template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPointReal()
+{
+  return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPointReal<KDL::Frame>());
 }
 
 template<> inline KDL::Frame RollingRobotModel::getCenterPoint()

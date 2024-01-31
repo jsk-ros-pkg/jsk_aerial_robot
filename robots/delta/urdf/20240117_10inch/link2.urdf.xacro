@@ -40,5 +40,21 @@
       </visual>
     </link>
 
+    <link name="link2_center">
+      <inerial>
+        <origin xyz="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.000001" iyz="0.0"
+              izz="0.000001"/>
+      </inerial>
+    </link>
+    <joint name="link2_center_joint" type="fixed">
+      <parent link="link2"/>
+      <child link="link2_center"/>
+      <origin xyz="0.26375 0.15228 0" rpy="0 0 ${pi}"/>
+    </joint>
+
   </xacro:macro>
 </robot>
