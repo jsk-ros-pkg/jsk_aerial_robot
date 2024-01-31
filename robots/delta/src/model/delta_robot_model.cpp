@@ -6,6 +6,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   const int rotor_num = getRotorNum();
   links_position_from_cog_.resize(rotor_num);
   links_rotation_from_cog_.resize(rotor_num);
+  links_center_frame_from_cog_.resize(rotor_num);
   thrust_link_ = "thrust";
 
   ros::NodeHandle nh;
@@ -18,6 +19,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
 
   target_frame_name_ = "cog";
   additional_frame_["cp"] = &contact_point_;
+  additional_frame_["contact_point_real"] = &contact_point_real_;
   setTargetFrame(target_frame_name_);
 }
 
@@ -40,6 +42,15 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       f_from_cog = cog.Inverse() * f;
       links_position_from_cog_.at(i) = f_from_cog.p;
       links_rotation_from_cog_.at(i) = f_from_cog.M;
+    }
+
+  /* circle center of each links */
+  for(int i = 0; i < getRotorNum(); i++)
+    {
+      std::string s = std::to_string(i + 1);
+      KDL::Frame f;
+      fk_solver.JntToCart(joint_positions, f, std::string("link") + s + std::string("_center"));
+      links_center_frame_from_cog_.at(i) = cog.Inverse() * f;
     }
 
   /* calculate inertia from root */

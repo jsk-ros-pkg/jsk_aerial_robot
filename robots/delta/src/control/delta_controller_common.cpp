@@ -156,6 +156,8 @@ bool RollingController::update()
         }
     }
 
+  calcContactPoint();
+
   if(!PoseLinearController::update()) return false;
 
   return true;
@@ -489,6 +491,13 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
             }
         }
     }
+
+  /* tf of real contact point */
+  geometry_msgs::TransformStamped contact_point_real_tf = rolling_robot_model_->getContactPointReal<geometry_msgs::TransformStamped>();
+  contact_point_real_tf.header = state->header;
+  contact_point_real_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  contact_point_real_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point_real"));
+  br_.sendTransform(contact_point_real_tf);
 
   /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();

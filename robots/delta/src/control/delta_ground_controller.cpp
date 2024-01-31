@@ -3,6 +3,69 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
+void RollingController::calcContactPoint()
+{
+  /* get realtime cog state */
+  tf::Vector3 w_p_cog_in_w_tf = estimator_->getPos(Frame::COG, estimate_mode_);
+  Eigen::Vector3d w_p_cog_in_w = Eigen::Vector3d(w_p_cog_in_w_tf.x(), w_p_cog_in_w_tf.y(), w_p_cog_in_w_tf.z());
+
+  tf::Matrix3x3 w_R_cog_tf = estimator_->getOrientation(Frame::COG, estimate_mode_);
+  Eigen::Matrix3d w_R_cog;
+  for(int i = 0; i < 3; i++)
+    {
+      for(int j = 0; j < 3; j++)
+        {
+          if(j == 0) w_R_cog(i, j) = w_R_cog_tf.getRow(i).x();
+          if(j == 1) w_R_cog(i, j) = w_R_cog_tf.getRow(i).y();
+          if(j == 2) w_R_cog(i, j) = w_R_cog_tf.getRow(i).z();
+        }
+    }
+
+  Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+  Eigen::Vector3d b3 = Eigen::Vector3d(0.0, 0.0, 1.0);
+  Eigen::Matrix3d rot_mat;
+  std::vector<KDL::Frame> links_center_frame_from_cog = rolling_robot_model_->getLinksCenterFrameFromCog();
+  double min_z_in_w = 100000;
+  int min_index_i, min_index_j;
+
+  /* serach lowest point in world frame */
+  for(int i = 0; i < motor_num_; i++)
+    {
+      KDL::Frame link_i_center_frame_from_cog = links_center_frame_from_cog.at(i);
+      Eigen::Vector3d cog_p_center_in_cog = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.p);
+      Eigen::Matrix3d cog_R_center = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.M);
+      Eigen::Vector3d w_p_center_in_w = w_p_cog_in_w + w_R_cog * cog_p_center_in_cog;
+      for(int j = 30; j <= 150; j++)
+        {
+          rot_mat = Eigen::AngleAxisd(j / 180.0 * M_PI, b3);
+          Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
+          Eigen::Vector3d center_p_cp_in_w = w_R_cog * cog_R_center * center_p_cp_in_center;
+          Eigen::Vector3d w_p_cp_in_w = w_p_center_in_w + center_p_cp_in_w;
+          if(w_p_cp_in_w(2) < min_z_in_w)
+            {
+              min_z_in_w = w_p_cp_in_w(2);
+              min_index_i = i;
+              min_index_j = j;
+            }
+        }
+    }
+
+  /* set real contact point to robot model */
+  rot_mat = Eigen::AngleAxisd(min_index_j / 180.0 * M_PI, b3);
+  Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
+  Eigen::Vector3d cog_p_cp_in_cog = aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).p) + aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).M) * center_p_cp_in_center;
+
+  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+  KDL::Frame contact_point_real_in_cog;
+  contact_point_real_in_cog.p.x(cog_p_cp_in_cog(0));
+  contact_point_real_in_cog.p.y(cog_p_cp_in_cog(1));
+  contact_point_real_in_cog.p.z(cog_p_cp_in_cog(2));
+  contact_point_real_in_cog.p = cog * contact_point_real_in_cog.p;
+  contact_point_real_in_cog.M = cog.M;
+  rolling_robot_model_->setContactPointReal(contact_point_real_in_cog);
+}
+
+
 void RollingController::standingPlanning()
 {
   /* set target roll of baselink */
