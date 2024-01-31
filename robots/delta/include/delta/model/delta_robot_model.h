@@ -20,6 +20,7 @@ public:
 
   void calcRobotModelFromFrame(std::string frame_name);
   template <class T> T getContactPoint();
+  template <class T> std::vector<T> getLinksPositionFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
   template <class T> T getCenterPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
@@ -37,6 +38,7 @@ private:
   ros::Publisher rotor_origin_pub_;
   ros::Publisher rotor_normal_pub_;
 
+  std::mutex links_position_mutex_;
   std::mutex links_rotation_mutex_;
   std::mutex contact_point_mutex_;
   std::mutex center_point_mutex_;
@@ -51,6 +53,7 @@ private:
   std::string target_frame_name_;
   std::map<std::string, KDL::Frame*> additional_frame_;
 
+  std::vector<KDL::Vector> links_position_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
 
 protected:
@@ -66,6 +69,17 @@ template<> inline std::vector<KDL::Rotation> RollingRobotModel::getLinksRotation
 template<> inline std::vector<Eigen::Matrix3d> RollingRobotModel::getLinksRotationFromCog()
 {
   return aerial_robot_model::kdlToEigen(getLinksRotationFromCog<KDL::Rotation>());
+}
+
+template<> inline std::vector<KDL::Vector> RollingRobotModel::getLinksPositionFromCog()
+{
+  std::lock_guard<std::mutex> lock(links_position_mutex_);
+  return links_position_from_cog_;
+}
+
+template<> inline std::vector<Eigen::Vector3d> RollingRobotModel::getLinksPositionFromCog()
+{
+  return aerial_robot_model::kdlToEigen(getLinksPositionFromCog<KDL::Vector>());
 }
 
 template<> inline KDL::Frame RollingRobotModel::getContactPoint()
