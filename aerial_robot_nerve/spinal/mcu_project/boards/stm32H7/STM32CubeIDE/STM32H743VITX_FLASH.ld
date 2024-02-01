@@ -189,7 +189,7 @@ PROVIDE ( _end = . );
 . = ABSOLUTE(0x24044400);
 *(.GpsRxBufferSection)
 . = ABSOLUTE(0x24044800);
-*(.ServoRxBufferSection)
+*(.KondoRxBufferSection)
 . = ABSOLUTE(0x24044C00);
 *(.EscRxBufferSection)
 . = ABSOLUTE(0x24045000);
@@ -200,8 +200,6 @@ PROVIDE ( _end = . );
 *(.DShotBufferSection3)
 . = ABSOLUTE(0x24045180);
 *(.DShotBufferSection4)
-. = ABSOLUTE(0x24048400);
-*(.KondoRxBufferSection)
 } >RAM_D1 AT> FLASH
 
 

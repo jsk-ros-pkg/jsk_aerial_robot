@@ -29,12 +29,15 @@
 #define KONDO_BUFFER_SIZE 512
 #define KONDO_POSITION_RX_SIZE 3
 
-#ifdef STM32H7
-  uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
-#else
-  uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE];
-#endif
-  uint32_t rd_ptr_ = 0;
+namespace
+{
+  #ifdef STM32H7
+    uint8_t kondo_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".KondoRxBufferSection")));
+  #else
+    uint8_t kondo_rx_buf_[KONDO_BUFFER_SIZE];
+  #endif
+  uint32_t kondo_rd_ptr_ = 0;
+}
 
 class KondoServo
 {
@@ -70,9 +73,9 @@ public:
     __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
     __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
     HAL_HalfDuplex_EnableReceiver(huart_);
-    HAL_UART_Receive_DMA(huart, dma_rx_buf_, RX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(huart, kondo_rx_buf_, RX_BUFFER_SIZE);
 
-    memset(dma_rx_buf_, 0, RX_BUFFER_SIZE);
+    memset(kondo_rx_buf_, 0, RX_BUFFER_SIZE);
     memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
 
     servo_state_msg_.servos_length = 5;
@@ -144,20 +147,17 @@ public:
       {
         __HAL_UART_CLEAR_FLAG(huart_,
                               UART_CLEAR_NEF | UART_CLEAR_OREF | UART_FLAG_RXNE | UART_FLAG_ORE);
-        HAL_UART_Receive_DMA(huart_, dma_rx_buf_, RX_BUFFER_SIZE); // restart
+        HAL_UART_Receive_DMA(huart_, kondo_rx_buf_, RX_BUFFER_SIZE); // restart
       }
     dma_write_ptr_ =  (KONDO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (KONDO_BUFFER_SIZE);
-
-    const char* a = std::to_string(__HAL_DMA_GET_COUNTER(huart_->hdmarx)).c_str();
-    nh_->logerror(a);
 
     int c = -1;
     uint32_t tick_start = HAL_GetTick();
     while(true){
-      if(rd_ptr_ != dma_write_ptr_)
+      if(kondo_rd_ptr_ != dma_write_ptr_)
         {
-          c = (int)dma_rx_buf_[rd_ptr_++];
-          rd_ptr_ %= KONDO_BUFFER_SIZE;
+          c = (int)kondo_rx_buf_[kondo_rd_ptr_++];
+          kondo_rd_ptr_ %= KONDO_BUFFER_SIZE;
           return c;
         }
 
@@ -181,7 +181,7 @@ public:
   bool available()
   {
     dma_write_ptr_ =  (GPS_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (GPS_BUFFER_SIZE);
-    return (rd_ptr_ != dma_write_ptr_);
+    return (kondo_rd_ptr_ != dma_write_ptr_);
   }
 
 
