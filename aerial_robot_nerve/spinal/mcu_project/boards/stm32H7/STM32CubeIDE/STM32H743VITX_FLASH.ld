@@ -169,8 +169,8 @@ __bss_end__ = _ebss;
 /*   PROVIDE ( _end = . ); */
 /*   . = . + _Min_Heap_Size; */
 /*   . = . + _Min_Stack_Size; */
-  /*   . = ALIGN(8); */
-  /* } >RAM_D1 */
+/*   . = ALIGN(8); */
+/* } >RAM_D1 */
 ._user_heap_stack :
 {
 . = ALIGN(4);
@@ -200,6 +200,8 @@ PROVIDE ( _end = . );
 *(.DShotBufferSection3)
 . = ABSOLUTE(0x24045180);
 *(.DShotBufferSection4)
+. = ABSOLUTE(0x24048400);
+*(.KondoRxBufferSection)
 } >RAM_D1 AT> FLASH
 
 
