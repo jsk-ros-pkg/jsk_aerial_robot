@@ -78,6 +78,10 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, 2)
     fit_eq_PWM_ratio_fz = f"fz = {coeffs_PWM_ratio_fz[0]:.4e} * PWM_Ratio_%^2 + {coeffs_PWM_ratio_fz[1]:.4e} * PWM_Ratio_% + {coeffs_PWM_ratio_fz[2]:.4f}"
     print(f"Fitting Equation (x:PWM_Ratio_% y:fz): {fit_eq_PWM_ratio_fz}")
+    print(f"max fz: {np.max(fz):.4f} N")
+    print(f"polynominal2(10x): {10 * coeffs_PWM_ratio_fz[0]:.5f}")
+    print(f"polynominal1(10x): {10 * coeffs_PWM_ratio_fz[1]:.5f}")
+    print(f"polynominal0: {coeffs_PWM_ratio_fz[2]:.5f}")
 
     # Create 2x2 subplots
     fig, axs = plt.subplots(2, 2, figsize=(12, 12))
