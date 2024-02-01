@@ -22,11 +22,11 @@
 namespace
 {
 #ifdef STM32H7
-  uint8_t rx_buf_[ESC_BUFFER_SIZE] __attribute__((section(".EscRxBufferSection")));
+  uint8_t esc_telem_rx_buf_[ESC_BUFFER_SIZE] __attribute__((section(".EscRxBufferSection")));
 #else
-  uint8_t rx_buf_[ESC_BUFFER_SIZE];
+  uint8_t esc_telem_rx_buf_[ESC_BUFFER_SIZE];
 #endif
-  uint32_t rd_ptr_ = 0;
+  uint32_t esc_telem_rd_ptr_ = 0;
 }
 
 class ESCReader
