@@ -84,10 +84,10 @@ AerialRobotBase::~AerialRobotBase()
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
 {
-  if (~e.last_real.isZero())
+  if (!e.last_real.isZero())
   {
       double dt_real = e.current_real.toSec() - e.last_real.toSec();
-      double tolerance = 0.05;
+      double tolerance = 0.05;  // 5% tolerance. This value is set based on experience.
       double dt_desire = (1.0 + tolerance) * 1.0 / main_rate_;
       if (dt_real > dt_desire)
       {
