@@ -15,7 +15,7 @@
 #include "config.h"
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
-#include <spinal/ServoState.h>
+#include <sensor_msgs/JointState.h>
 #include <map>
 
 #define MAX_SERVO_NUM 32
@@ -43,10 +43,10 @@ class KondoServo
 {
 private:
   UART_HandleTypeDef* huart_;
-  spinal::ServoStates servo_state_msg_;
+  sensor_msgs::JointState joint_state_msg_;
   ros::NodeHandle* nh_;
   ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
-  ros::Publisher servo_state_pub_;
+  ros::Publisher joint_state_pub_;
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
   bool activated_[MAX_SERVO_NUM];
@@ -58,7 +58,7 @@ public:
   ~KondoServo(){}
   KondoServo():
     kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
-    servo_state_pub_("kondo_servo_states", &servo_state_msg_)
+    joint_state_pub_("joint_states", &joint_state_msg_)
   {
   }
 
@@ -68,7 +68,7 @@ public:
     nh_ = nh;
 
     nh_->subscribe(kondo_servo_control_sub_);
-    nh_->advertise(servo_state_pub_);
+    nh_->advertise(joint_state_pub_);
 
     __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
     __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
@@ -78,9 +78,14 @@ public:
     memset(kondo_rx_buf_, 0, RX_BUFFER_SIZE);
     memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
 
-    servo_state_msg_.servos_length = 5;
-    servo_state_msg_.servos = new spinal::ServoState[5];
-    servo_state_pub_last_time_ = 0;
+    joint_state_msg_.name_length = 4;
+    joint_state_msg_.name = new char*[4];
+    joint_state_msg_.name[0] = "1";
+    joint_state_msg_.name[1] = "2";
+    joint_state_msg_.name[2] = "3";
+    joint_state_msg_.name[3] = "4";
+    joint_state_msg_.position_length = 4;
+    joint_state_msg_.position = new double_t[4];
 
     pos_rx_ptr_ = 0;
   }
@@ -98,7 +103,7 @@ public:
             writePosCmd(i, 0);  //freed
           }
       }
-    
+
     if(HAL_GetTick() - servo_state_pub_last_time_ > SERVO_STATE_PUB_INTERVAL)
       {
         servo_state_pub_last_time_ = HAL_GetTick();
@@ -136,7 +141,7 @@ public:
 
       pos_rx_ptr_ ++;
       pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;
-      
+
     }
   }
 
@@ -176,14 +181,11 @@ public:
     memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
   }
 
-  
-
   bool available()
   {
     dma_write_ptr_ =  (GPS_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (GPS_BUFFER_SIZE);
     return (kondo_rd_ptr_ != dma_write_ptr_);
   }
-
 
   void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
   {
@@ -206,18 +208,12 @@ public:
 
   void sendServoState()
   {
-    servo_state_msg_.stamp = nh_->now();
-    bool send_flag = false;
-    for (unsigned int i = 0; i < 5; i++)
-      {   
-        send_flag = true;
-        spinal::ServoState servo;
-        servo.index = i;
-        servo.angle = current_position_[i];
-        servo_state_msg_.servos[i] = servo;
-
-        if(send_flag) servo_state_pub_.publish(&servo_state_msg_);
+    joint_state_msg_.header.stamp = nh_->now();
+    for (uint8_t i = 1; i < 5; i++)
+      {
+        joint_state_msg_.position[i-1] = kondoPos2RadConv(current_position_[i]);
       }
+    joint_state_pub_.publish(&joint_state_msg_);
   }
 
   void setTargetPos(const std::map<uint16_t, float>& servo_map)
@@ -244,7 +240,6 @@ public:
     }
   }
 
-  
   uint16_t rad2KondoPosConv(float angle)
   {
     uint16_t kondo_pos = (uint16_t)((KONDO_SERVO_POSITION_MAX-KONDO_SERVO_POSITION_MIN)*(-angle - KONDO_SERVO_ANGLE_MIN)/(KONDO_SERVO_ANGLE_MAX - KONDO_SERVO_ANGLE_MIN) + KONDO_SERVO_POSITION_MIN); //min-max normarization
