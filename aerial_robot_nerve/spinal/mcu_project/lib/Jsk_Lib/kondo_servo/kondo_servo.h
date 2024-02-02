@@ -14,12 +14,11 @@
 
 #include "config.h"
 #include <ros.h>
-#include <spinal/ServoControlCmd.h>
 #include <sensor_msgs/JointState.h>
 #include <map>
 
 #define MAX_SERVO_NUM 32
-#define KONDO_SERVO_UPDATE_INTERVAL 10
+#define KONDO_SERVO_UPDATE_INTERVAL 5
 #define KONDO_SERVO_TIMEOUT 1
 #define KONDO_SERVO_POSITION_MIN 3500
 #define KONDO_SERVO_POSITION_MAX 11500
@@ -45,7 +44,7 @@ private:
   UART_HandleTypeDef* huart_;
   sensor_msgs::JointState joint_state_msg_;
   ros::NodeHandle* nh_;
-  ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
+  ros::Subscriber<sensor_msgs::JointState, KondoServo> kondo_servo_control_sub_;
   ros::Publisher joint_state_pub_;
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
@@ -57,7 +56,7 @@ private:
 public:
   ~KondoServo(){}
   KondoServo():
-    kondo_servo_control_sub_("kondo_servo_cmd", &KondoServo::servoControlCallback, this),
+    kondo_servo_control_sub_("gimbals_ctrl", &KondoServo::servoControlCallback, this),
     joint_state_pub_("joint_states", &joint_state_msg_)
   {
   }
@@ -93,7 +92,7 @@ public:
   void update()
   {
 
-    for(int i = 0; i < MAX_SERVO_NUM; i++)
+    for(int i = 1; i < 5; i++)
       {
         if(activated_[i])
           {
@@ -187,22 +186,27 @@ public:
     return (kondo_rd_ptr_ != dma_write_ptr_);
   }
 
-  void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
+  void servoControlCallback(const sensor_msgs::JointState& cmd_msg)
   {
-    for(int i = 0; i < cmd_msg.index_length; i++)
+    for (int i = 0; i < cmd_msg.name_length; i++)
       {
-        if(0 <= cmd_msg.index[i] && cmd_msg.index[i] < MAX_SERVO_NUM)
-          {
-            if(KONDO_SERVO_POSITION_MIN <= cmd_msg.angles[i] && cmd_msg.angles[i] <= KONDO_SERVO_POSITION_MAX)
-              {
-                activated_[cmd_msg.index[i]] = true;
-                target_position_[cmd_msg.index[i]] = cmd_msg.angles[i];
-              }
-            else if(cmd_msg.angles[i] == 0)
-              {
-                activated_[cmd_msg.index[i]] = false;
-              }
-          }
+        uint8_t servo_id = cmd_msg.name[i][0] - '0';
+        if (servo_id >= MAX_SERVO_NUM)
+          continue;
+
+        double_t angle_rad = cmd_msg.position[i];
+        if (angle_rad == 42)  // 42, the answer to the ultimate question of life, the universe, and everything
+        {
+          activated_[servo_id] = false;  // temporary command to free servo.
+          continue;
+        }
+
+        if (angle_rad < KONDO_SERVO_ANGLE_MIN || angle_rad > KONDO_SERVO_ANGLE_MAX)
+          continue;
+
+        activated_[servo_id] = true;
+        target_position_[servo_id] = rad2KondoPosConv(angle_rad);
+
       }
   }
 
