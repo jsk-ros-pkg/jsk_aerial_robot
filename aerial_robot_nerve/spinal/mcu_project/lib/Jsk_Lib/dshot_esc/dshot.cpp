@@ -21,15 +21,6 @@ void DShot::init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint3
   dshot_set_timer(dshot_type);
   dshot_put_tc_callback_function();
   dshot_start_pwm();
-
-  // send dshot command to initialize esc  TODO: should be set by onboard PC
-  uint16_t motor_value_array[4] = {DSHOT_CMD_SPIN_DIRECTION_1, DSHOT_CMD_SPIN_DIRECTION_1,
-                                    DSHOT_CMD_SPIN_DIRECTION_2, DSHOT_CMD_SPIN_DIRECTION_2};
-  for(int i = 0; i < 10; i++)
-  {
-    write(motor_value_array, false);
-    HAL_Delay(1);
-  }
 }
 
 void DShot::initTelemetry(UART_HandleTypeDef* huart)
@@ -51,7 +42,7 @@ void DShot::write(uint16_t* motor_value_array, bool is_telemetry)
       id_telem_ = id_telem_ % 4;
       is_telemetry_array[id_telem_] = true;
 
-      // receive telemetry
+      // receive the telemetry of the previous round
       if (id_telem_prev_ != -1)
       {
         switch (id_telem_prev_)
@@ -100,9 +91,11 @@ uint32_t DShot::dshot_choose_type(dshot_type_e dshot_type)
     case (DSHOT300):
       return DSHOT300_HZ;
 
-    default:
     case (DSHOT150):
       return DSHOT150_HZ;
+
+    default:
+      return DSHOT300_HZ;
   }
 }
 
