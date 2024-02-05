@@ -55,7 +55,7 @@ controller:
     yaw_rate_p_gain: 0.0
 
     is_attitude_ctrl: false
-    is_body_rate_ctrl: true
+    is_body_rate_ctrl: false
 
     is_print_physical_params: false
     is_debug: false

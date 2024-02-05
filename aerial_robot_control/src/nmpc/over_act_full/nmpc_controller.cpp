@@ -104,8 +104,8 @@ void nmpc_over_act_full::NMPCController::reset()
 {
   ControlBase::reset();
 
-  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
-  sendRotationalInertiaComp();  // tmp for inertia
+//  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
+//  sendRotationalInertiaComp();  // tmp for inertia
 
   /* reset controller using odom */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
