@@ -14,13 +14,12 @@ DeltaOptimalDesign::DeltaOptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp):
 
   eval_cnt_ = 0;
   direction_.resize(rotor_num_);
-  direction_.at(0) = 1;
-  direction_.at(1) = -1;
-  direction_.at(2) = 1;
+  direction_.at(0) = -1;
+  direction_.at(1) = 1;
+  direction_.at(2) = -1;
 
   feasible_control_torque_convex_pub_ = nh_.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
   feasible_control_torque_radius_pub_ = nh_.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
-
 }
 
 std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const std::vector<double>& theta)
@@ -144,12 +143,12 @@ void DeltaOptimalDesign::run()
 
   std::vector<double> lb(rotor_num_);
   std::vector<double> ub(rotor_num_);
-  lb.at(0) = -fabs(theta_max_);
-  ub.at(0) = 0.0;
-  lb.at(1) = 0.0;
-  ub.at(1) = fabs(theta_max_);
-  lb.at(2) = -fabs(theta_max_);
-  ub.at(2) = 0.0;
+  lb.at(0) = 0.0;
+  ub.at(0) = fabs(theta_max_);
+  lb.at(1) = -fabs(theta_max_);
+  ub.at(1) = 0.0;
+  lb.at(2) = 0.0;
+  ub.at(2) = fabs(theta_max_);
 
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
@@ -160,9 +159,9 @@ void DeltaOptimalDesign::run()
   optimizer_solver.set_maxeval(max_eval);
 
   std::vector<double> opt_x(rotor_num_, 0.0);
-  opt_x.at(0) = -theta_max_;
-  opt_x.at(1) =  theta_max_;
-  opt_x.at(2) = -theta_max_;
+  opt_x.at(0) = theta_max_;
+  opt_x.at(1) = -theta_max_;
+  opt_x.at(2) = theta_max_;
 
   double max_val;
   nlopt::result result = optimizer_solver.optimize(opt_x, max_val);

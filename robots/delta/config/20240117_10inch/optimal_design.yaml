@@ -3,6 +3,6 @@ mass: 4.3
 max_thrust: 28.0
 theta_max: 0.6
 max_eval: 50000
-m_f_rate: -0.146
+m_f_rate: -0.0146
 fct_min_weight: 4.0
-gimbal_penalty_weight: 1.0
+gimbal_penalty_weight: 1.2
