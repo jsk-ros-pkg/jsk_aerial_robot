@@ -247,7 +247,7 @@ int main(void)
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  battery_status_.init(&hadc1, &nh_);
+  battery_status_.init(&hadc1, &nh_, false);
 
 #if GPS_FLAG
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);

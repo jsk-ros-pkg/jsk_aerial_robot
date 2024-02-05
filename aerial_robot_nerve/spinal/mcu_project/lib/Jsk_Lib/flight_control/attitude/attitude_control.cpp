@@ -235,6 +235,11 @@ void AttitudeController::pwmsControl(void)
       esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
       esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
       esc_telem_pub_.publish(&esc_telem_msg_);
+
+      float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
+                    dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
+      bat_->update(voltage_ave);
+
       dshot_->esc_reader_.is_update_all_msg_ = false;
     }
   }
