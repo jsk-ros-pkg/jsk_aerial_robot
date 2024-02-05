@@ -24,6 +24,9 @@
 #define KONDO_POSITION_TX_SIZE 3
 #define KONDO_POSITION_RX_SIZE 3
 
+#define KONDO_SERVO_ANGLE_LIMIT_MIN -1.57  // -90 degree
+#define KONDO_SERVO_ANGLE_LIMIT_MAX 1.57  // 90 degree
+
 namespace
 {
   #ifdef STM32H7

@@ -150,6 +150,17 @@ void KondoServo::servoControlCallback(const sensor_msgs::JointState& cmd_msg)
     if (angle_rad < KONDO_SERVO_ANGLE_MIN || angle_rad > KONDO_SERVO_ANGLE_MAX)
       continue;
 
+    if (angle_rad < KONDO_SERVO_ANGLE_LIMIT_MIN)
+    {
+      angle_rad = KONDO_SERVO_ANGLE_LIMIT_MIN;
+      nh_->logwarn("WARN: Kondo servo angle is limited to -90 degree");
+    }
+    else if (angle_rad > KONDO_SERVO_ANGLE_LIMIT_MAX)
+    {
+      angle_rad = KONDO_SERVO_ANGLE_LIMIT_MAX;
+      nh_->logwarn("WARN: Kondo servo angle is limited to 90 degree");
+    }
+
     activated_[servo_id] = true;
     target_position_[servo_id] = rad2KondoPosConv(angle_rad);
   }
