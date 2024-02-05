@@ -240,6 +240,11 @@ void nmpc_over_act_full::NMPCController::controlCore()
   double a4c = mpc_solver_.x_u_out_.u.data.at(7);
 
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
+  gimbal_ctrl_cmd_.name.clear();
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal1");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal2");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal3");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal4");
   gimbal_ctrl_cmd_.position.clear();
   gimbal_ctrl_cmd_.position.push_back(a1c);
   gimbal_ctrl_cmd_.position.push_back(a2c);

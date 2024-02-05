@@ -82,10 +82,10 @@ public:
 
     joint_state_msg_.name_length = 4;
     joint_state_msg_.name = new char*[4];
-    joint_state_msg_.name[0] = "1";
-    joint_state_msg_.name[1] = "2";
-    joint_state_msg_.name[2] = "3";
-    joint_state_msg_.name[3] = "4";
+    joint_state_msg_.name[0] = "gimbal1";
+    joint_state_msg_.name[1] = "gimbal2";
+    joint_state_msg_.name[2] = "gimbal3";
+    joint_state_msg_.name[3] = "gimbal4";
     joint_state_msg_.position_length = 4;
     joint_state_msg_.position = new double_t[4];
   }
@@ -188,7 +188,7 @@ public:
   {
     for (int i = 0; i < cmd_msg.name_length; i++)
       {
-        uint8_t servo_id = cmd_msg.name[i][0] - '0';
+        uint8_t servo_id = cmd_msg.name[i][6] - '0';  // gimbal1
         if (servo_id >= MAX_SERVO_NUM)
           continue;
 
