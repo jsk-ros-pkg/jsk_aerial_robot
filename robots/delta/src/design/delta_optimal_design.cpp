@@ -14,12 +14,53 @@ DeltaOptimalDesign::DeltaOptimalDesign(ros::NodeHandle nh, ros::NodeHandle nhp):
 
   eval_cnt_ = 0;
   direction_.resize(rotor_num_);
-  direction_.at(0) = -1;
-  direction_.at(1) = 1;
-  direction_.at(2) = -1;
+  getParam<double>(nhp_, "rotor1_direction", direction_.at(0), 0);
+  getParam<double>(nhp_, "rotor2_direction", direction_.at(1), 0);
+  getParam<double>(nhp_, "rotor3_direction", direction_.at(2), 0);
 
+  finished_optimization_ = false;
+  rotor_origin_received_ = false;
+  rotor_origin_.resize(rotor_num_);
+  rotor_origin_sub_ = nh_.subscribe("delta/debug/rotor_origin", 1, &DeltaOptimalDesign::rotorOriginCallback, this);
   feasible_control_torque_convex_pub_ = nh_.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
   feasible_control_torque_radius_pub_ = nh_.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
+
+  timer_ = nh_.createTimer(ros::Duration(0.1), &DeltaOptimalDesign::timerCallback, this);
+}
+
+void DeltaOptimalDesign::timerCallback(const ros::TimerEvent& e)
+{
+  if(rotor_origin_received_)
+    {
+      if(finished_optimization_)
+        {
+          return;
+        }
+      else
+        {
+          run();
+          finished_optimization_ = true;
+        }
+    }
+  else
+    {
+      return;
+    }
+}
+
+void DeltaOptimalDesign::rotorOriginCallback(const geometry_msgs::PoseArrayPtr & msg)
+{
+  std::cout << "rotor origin callback" << std::endl;
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      Eigen::Vector3d rotor_origin_i;
+      rotor_origin_i(0) = msg->poses.at(i).position.x;
+      rotor_origin_i(1) = msg->poses.at(i).position.y;
+      rotor_origin_i(2) = msg->poses.at(i).position.z;
+      rotor_origin_.at(i) = rotor_origin_i;
+    }
+
+  rotor_origin_received_ = true;
 }
 
 std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const std::vector<double>& theta)
@@ -30,11 +71,7 @@ std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const st
       theta_.at(i) = theta.at(i);
     }
 
-  std::vector<Eigen::Vector3d> p(0), u(0), v(0);
-
-  p.push_back(Eigen::Vector3d(-0.10356573848447463, 0.1420213347603282, -0.0067415938016600905));
-  p.push_back(Eigen::Vector3d(-0.057934779219482105, -0.140915700598086, -0.0067415938016600905));
-  p.push_back(Eigen::Vector3d(0.16690982019541284, 0.03679320895573279,   -0.0067415938016600905));
+  std::vector<Eigen::Vector3d> u(0), v(0);
 
   Eigen::Matrix3d rot_mat;
   Eigen::Vector3d b3 = Eigen::Vector3d(0.0, 0.0, 1.0);
@@ -51,11 +88,11 @@ std::vector<Eigen::Vector3d> DeltaOptimalDesign::calcRotorConfiguration(const st
       u.push_back(y_axis);
       u.push_back(z_axis);
 
-      v.push_back(p.at(i).cross(x_axis) + m_f_rate_ * direction_.at(i) * x_axis);
-      v.push_back(p.at(i).cross(y_axis) + m_f_rate_ * direction_.at(i) * y_axis);
-      v.push_back(p.at(i).cross(z_axis) + m_f_rate_ * direction_.at(i) * z_axis);
-      v.push_back(p.at(i).cross(-y_axis) + m_f_rate_ * direction_.at(i) * (-y_axis));
-      v.push_back(p.at(i).cross(-z_axis) + m_f_rate_ * direction_.at(i) * (-z_axis));
+      v.push_back(rotor_origin_.at(i).cross(x_axis) + m_f_rate_ * direction_.at(i) * x_axis);
+      v.push_back(rotor_origin_.at(i).cross(y_axis) + m_f_rate_ * direction_.at(i) * y_axis);
+      v.push_back(rotor_origin_.at(i).cross(z_axis) + m_f_rate_ * direction_.at(i) * z_axis);
+      v.push_back(rotor_origin_.at(i).cross(-y_axis) + m_f_rate_ * direction_.at(i) * (-y_axis));
+      v.push_back(rotor_origin_.at(i).cross(-z_axis) + m_f_rate_ * direction_.at(i) * (-z_axis));
     }
   return v;
 }
@@ -136,6 +173,16 @@ double objectiveDesignFunc(const std::vector<double> &x, std::vector<double> &gr
 
 void DeltaOptimalDesign::run()
 {
+  if(rotor_origin_received_)
+    std::cout << "start optimization" << std::endl;
+  else
+    return;
+
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      std::cout << "rotor origin" << i + 1 << rotor_origin_.at(i).transpose() << std::endl;
+    }
+
   // design the optimiazation problem
   nlopt::opt optimizer_solver(nlopt::GN_ISRES, rotor_num_); // chose the proper optimization model
 
@@ -143,12 +190,19 @@ void DeltaOptimalDesign::run()
 
   std::vector<double> lb(rotor_num_);
   std::vector<double> ub(rotor_num_);
-  lb.at(0) = 0.0;
-  ub.at(0) = fabs(theta_max_);
-  lb.at(1) = -fabs(theta_max_);
-  ub.at(1) = 0.0;
-  lb.at(2) = 0.0;
-  ub.at(2) = fabs(theta_max_);
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      if(direction_.at(i) < 0)
+        {
+          lb.at(i) = 0.0;
+          ub.at(i) = fabs(theta_max_);
+        }
+      else
+        {
+          lb.at(i) = -fabs(theta_max_);
+          ub.at(i) = 0.0;
+        }
+    }
 
   optimizer_solver.set_lower_bounds(lb);
   optimizer_solver.set_upper_bounds(ub);
@@ -159,9 +213,10 @@ void DeltaOptimalDesign::run()
   optimizer_solver.set_maxeval(max_eval);
 
   std::vector<double> opt_x(rotor_num_, 0.0);
-  opt_x.at(0) = theta_max_;
-  opt_x.at(1) = -theta_max_;
-  opt_x.at(2) = theta_max_;
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      opt_x.at(i) = - direction_.at(i) * fabs(theta_max_);
+    }
 
   double max_val;
   nlopt::result result = optimizer_solver.optimize(opt_x, max_val);
@@ -205,7 +260,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nhp("~"); // node handle with private namespace
 
   DeltaOptimalDesign* delta_optimal_design = new DeltaOptimalDesign(nh, nhp);
-  delta_optimal_design->run();
+  ros::spin();
   delete delta_optimal_design;
   return 0;
 }
