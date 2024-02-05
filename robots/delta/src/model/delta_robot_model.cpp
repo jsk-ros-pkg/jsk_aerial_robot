@@ -149,9 +149,11 @@ Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame
 
   int last_col = 0;
   std::vector<KDL::Vector> rotors_origin_from_cog = getRotorsOriginFromCog<KDL::Vector>();
+  double m_f_rate = getMFRate();
+  std::map<int, int> rotor_direction = getRotorDirection();
   for(int i = 0; i < rotor_num; i++)
     {
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(kdlToEigen(getTargetFrame().Inverse() * cog * rotors_origin_from_cog.at(i)));
+      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(kdlToEigen(getTargetFrame().Inverse() * cog * rotors_origin_from_cog.at(i))) + m_f_rate * rotor_direction.at(i + 1) * Eigen::MatrixXd::Identity(3, 3);
       wrench_matrix.middleCols(last_col, 3) = wrench_map;
       last_col += 3;
     }
