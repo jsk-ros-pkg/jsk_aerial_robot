@@ -33,6 +33,7 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     # Add a column for power
     if has_telemetry:
         average_values['Power'] = average_values['voltage'] * average_values['currency']
+        print(f"Average voltage: {average_values['voltage'].mean()}")
     else:
         average_values['Power'] = set_voltage * average_values['currency']
 
