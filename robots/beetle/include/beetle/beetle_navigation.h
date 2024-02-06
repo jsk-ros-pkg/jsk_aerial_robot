@@ -37,6 +37,8 @@ namespace aerial_robot_navigation
 
   protected:
     void rosParamInit() override;
+    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg) override;
+    
 
   private:
     tf::Vector3 target_pos_candidate_;
@@ -44,6 +46,7 @@ namespace aerial_robot_navigation
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Subscriber assembly_nav_sub_;
+    ros::Subscriber assembly_target_rot_sub_;
 
     double max_target_roll_pitch_rate_;
 
