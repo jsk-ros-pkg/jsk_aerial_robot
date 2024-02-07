@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link1" >
+
+  <xacro:macro name="link1">
+
+    <link name="link1">
+      <inertial>
+        <origin xyz="0.29073125 -0.04875364 0.00356353" rpy="0 0 0"/>
+        <mass value="1.04062549"/>
+        <inertia
+            ixx="0.00487578"  iyy="0.03111063" izz="0.03370272"
+            ixy="-0.00077066" ixz="0.00156790" iyz="0.00018086" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240207_new_armor/link1_base.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0.25 0 -0.05"/>
+        <geometry>
+          <box size="0.5 0.05 0.18"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="gimbal_link1">
+      <inertial>
+        <origin xyz="0.00936905 -0.00000232 0.01002430" rpy="0 0 0"/>
+        <mass value="0.26465910"/>
+        <inertia
+            ixx="0.00062925"  iyy="0.00070169"  izz="0.00017410"
+            ixy="0.00000004"  ixz="-0.00017063" iyz="0.00000004" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240207_new_armor/link1_gimbal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link1_center">
+      <inerial>
+        <origin xyz="0 0 0"/>
+          <mass value="0.00001"/>
+          <inertia
+              ixx="0.000004" ixy="0.0" ixz="0.0"
+              iyy="0.000004" iyz="0.0"
+              izz="0.000004"/>
+      </inerial>
+    </link>
+    <joint name="link1_center_joint" type="fixed">
+      <parent link="link1"/>
+      <child link="link1_center"/>
+      <origin xyz="0.23025 0.15228 0" rpy="0 0 ${pi}"/>
+    </joint>
+
+  </xacro:macro>
+</robot>
