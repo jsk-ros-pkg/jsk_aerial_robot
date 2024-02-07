@@ -6,11 +6,11 @@
   <xacro:property name="max_force" value="28.2" /> <!-- [N] -->
   <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
 
-  <rotor_tilt1 value="-0.0876"/>
-  <rotor_tilt2  value="0.217"/>
-  <rotor_tilt3 value="-0.0975"/>
-  <xacro:property name="rotor_tilt1" value="-0.0876"/>
-  <xacro:property name="rotor_tilt2" value="0.217"/>
-  <xacro:property name="rotor_tilt3" value="-0.0975"/>
+  <rotor_tilt1 value="-0.0727822"/>
+  <rotor_tilt2  value="0.178982"/>
+  <rotor_tilt3 value="-0.0802372"/>
+  <xacro:property name="rotor_tilt1" value="-0.0727822"/>
+  <xacro:property name="rotor_tilt2" value="0.178982"/>
+  <xacro:property name="rotor_tilt3" value="-0.0802372"/>
 
 </robot>
