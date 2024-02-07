@@ -239,6 +239,8 @@ namespace aerial_robot_navigation
 
     bool param_verbose_;
 
+    bool joy_rotation_flag_;
+
     uint8_t navi_state_;
 
     int  xy_control_mode_;
@@ -252,7 +254,7 @@ namespace aerial_robot_navigation
     bool trajectory_mode_;
     bool lock_teleop_;
     ros::Time force_landing_start_time_;
-
+    
     double hover_convergent_start_time_;
     double hover_convergent_duration_;
     double land_check_start_time_;

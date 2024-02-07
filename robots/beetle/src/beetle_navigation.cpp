@@ -53,17 +53,18 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
    if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] == 1)
     {
       tf::Vector3 target_roll_pitch;
-      target_roll_pitch.setX(getFinalTargetBaselinkRot().x()
-                             + joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_roll_pitch_rate_                     
-                             );
+      // create another command to control roll direction
+      // target_roll_pitch.setX(getFinalTargetBaselinkRot().x()
+      //                        + joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_roll_pitch_rate_                     
+      //                        );
         
-      
       target_roll_pitch.setY(getFinalTargetBaselinkRot().y()
                              + joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_roll_pitch_rate_
                              );
 
       setFinalTargetBaselinkRot(target_roll_pitch);
       roll_pitch_control_flag_ = true;
+      joy_rotation_flag_ = true;
     }
   else
     {
@@ -82,6 +83,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   BaseNavigator::joyStickControl(joy_msg);
+  joy_rotation_flag_ = false;
 }
 
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
