@@ -158,13 +158,13 @@
       <child link="rotor_parent${self}"/>
       <axis xyz="0 0 1"/>
       <xacro:if value="${self == 1}">
-        <origin xyz="0 0 0" rpy="0 -0.125 0"/>
+        <origin xyz="0 0 0" rpy="0 ${rotor_tilt1} 0"/>
       </xacro:if>
       <xacro:if value="${self == 2}">
-        <origin xyz="0 0 0" rpy="0 0.146 0"/>
+        <origin xyz="0 0 0" rpy="0 ${rotor_tilt2} 0"/>
       </xacro:if>
       <xacro:if value="${self == 3}">
-        <origin xyz="0 0 0" rpy="0 0.083 0"/>
+        <origin xyz="0 0 0" rpy="0 ${rotor_tilt3} 0"/>
       </xacro:if>
     </joint>
 
