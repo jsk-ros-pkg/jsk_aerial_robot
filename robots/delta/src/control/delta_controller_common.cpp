@@ -125,15 +125,13 @@ void RollingController::rosParamInit()
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
-  double rotor_tilt1;
-  double rotor_tilt2;
-  double rotor_tilt3;
-  getParam<double>(control_nh, "rotor_tilt1", rotor_tilt1, 0.0);
-  rotor_tilt_.at(0) = rotor_tilt1;
-  getParam<double>(control_nh, "rotor_tilt2", rotor_tilt2, 0.0);
-  rotor_tilt_.at(1) = rotor_tilt2;
-  getParam<double>(control_nh, "rotor_tilt3", rotor_tilt3, 0.0);
-  rotor_tilt_.at(2) = rotor_tilt3;
+  auto robot_model_xml = robot_model_->getRobotModelXml("robot_description");
+  for(int i = 0; i < motor_num_; i++)
+    {
+      std::string rotor_tilt_name = std::string("rotor_tilt") + std::to_string(i + 1);
+      TiXmlElement* rotor_tilt_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement(rotor_tilt_name);
+      rotor_tilt_attr->Attribute("value", &rotor_tilt_.at(i));
+    }
 
   rosoutControlParams("controller");
   rosoutControlParams("standing_controller");

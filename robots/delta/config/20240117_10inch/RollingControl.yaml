@@ -17,9 +17,6 @@ controller:
   steering_mu: 0.5
 
   controlled_axis: [1, 1, 1, 1, 1, 1]
-  rotor_tilt1: -0.125
-  rotor_tilt2: 0.146
-  rotor_tilt3: 0.083
 
   xy:
     p_gain: 5.0
