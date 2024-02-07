@@ -1,14 +1,16 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="type" default="20240207_new_armor"/>
 
   <include file="$(find delta)/launch/bringup.launch">
     <arg name="real_machine" value="false"/>
     <arg name="simulation" value="false"/>
     <arg name="headless" value="true"/>
+    <arg name="type" value="$(arg type)"/>
   </include>
 
   <node pkg="delta" type="delta_optimal_design" name="delta_optimal_design" output="screen">
-    <rosparam file="$(find delta)/config/20240117_10inch/optimal_design.yaml" command="load"/>
+    <rosparam file="$(find delta)/config/$(arg type)/optimal_design.yaml" command="load"/>
   </node>
 
 </launch>
