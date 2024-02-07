@@ -34,6 +34,11 @@ elif demo_mode == 2: # mode model
     desire_joint.position = [0.0, half_pi, -1.5, 0.0, 0.0, half_pi]
     desire_att.vector.y = 0.75
 
+elif demo_mode == 3: # reverse sea horse
+    desire_joint.position = [0, half_pi, -0.6, 0, -0.6, -half_pi]
+    desire_att.vector.y = 0.9
+
+
 if reset:
     desire_joint.position = [0.0, half_pi, 0, half_pi, 0.0, half_pi]
     desire_att.vector.x = 0.0
