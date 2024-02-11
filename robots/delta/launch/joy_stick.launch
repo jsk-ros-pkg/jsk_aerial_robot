@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find aerial_robot_base)/launch/external_module/joy_stick.launch">
+    <arg name="robot_name" value="delta"/>
+  </include>
+
+  <node pkg="delta" type="joy_stick_instruction.py" name="delta_joy_stick_instruction" output="screen"/>
+
+</launch>
