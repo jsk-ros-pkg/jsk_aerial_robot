@@ -27,7 +27,7 @@ if demo_mode == 0: # circle
     desire_joint.position = [pi / 3 * 2] * 2
 
 elif demo_mode == 1: # zigzag
-    desire_joint.position = [1.57, 1.57]
+    desire_joint.position = [1.7, 1.7]
 
 time.sleep(0.6)
 
