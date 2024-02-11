@@ -250,7 +250,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
       setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
     }
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
     {
       ROS_INFO("[joy] change to flying state");
       setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
@@ -260,6 +260,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
     {
       target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
+      setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z() + target_yaw_ang_vel_);
       yaw_ang_vel_updating_ = true;
     }
   else
@@ -267,6 +268,7 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
       if(yaw_ang_vel_updating_)
         {
           target_yaw_ang_vel_ = 0.0;
+          setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z());
           yaw_ang_vel_updating_ = false;
         }
     }
