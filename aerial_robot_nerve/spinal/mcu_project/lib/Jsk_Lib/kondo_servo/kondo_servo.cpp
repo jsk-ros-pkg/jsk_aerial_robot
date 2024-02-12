@@ -17,7 +17,8 @@ void KondoServo::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
   nh_ = nh;
 
   nh_->subscribe(kondo_servo_control_sub_);
-  nh_->advertise(joint_state_pub_);
+  nh_->subscribe(kondo_servo_activate_cmd_sub_);
+  nh_->advertise(kondo_servo_state_pub_);
 
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
@@ -27,14 +28,8 @@ void KondoServo::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
   memset(kondo_rx_buf_, 0, RX_BUFFER_SIZE);
   memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
 
-  joint_state_msg_.name_length = 4;
-  joint_state_msg_.name = new char*[4];
-  joint_state_msg_.name[0] = "gimbal1";
-  joint_state_msg_.name[1] = "gimbal2";
-  joint_state_msg_.name[2] = "gimbal3";
-  joint_state_msg_.name[3] = "gimbal4";
-  joint_state_msg_.position_length = 4;
-  joint_state_msg_.position = new double_t[4];
+  servo_state_msg_.servos_length = 4;
+  servo_state_msg_.servos = new spinal::ServoState[4];
 }
 
 void KondoServo::update()
@@ -132,48 +127,63 @@ bool KondoServo::available()
   return (kondo_rd_ptr_ != dma_write_ptr);
 }
 
-void KondoServo::servoControlCallback(const sensor_msgs::JointState& cmd_msg)
+void KondoServo::servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
 {
-  for (int i = 0; i < cmd_msg.name_length; i++)
+  for (int i = 0; i < cmd_msg.index_length; i++)
   {
-    uint8_t servo_id = cmd_msg.name[i][6] - '0';  // gimbal1
+    uint8_t servo_id = cmd_msg.index[i] ;  // gimbal1
     if (servo_id >= MAX_SERVO_NUM)
       continue;
 
-    double_t angle_rad = cmd_msg.position[i];
-    if (angle_rad == 42)  // 42, the answer to the ultimate question of life, the universe, and everything
-    {
-      activated_[servo_id] = false;  // temporary command to free servo.
-      continue;
-    }
+    int16_t angle_int = cmd_msg.angles[i];
+
+    float angle_rad = kondoPos2RadConv(angle_int);
 
     if (angle_rad < KONDO_SERVO_ANGLE_MIN || angle_rad > KONDO_SERVO_ANGLE_MAX)
       continue;
 
     if (angle_rad < KONDO_SERVO_ANGLE_LIMIT_MIN)
     {
-      angle_rad = KONDO_SERVO_ANGLE_LIMIT_MIN;
+      angle_int = rad2KondoPosConv(KONDO_SERVO_ANGLE_LIMIT_MIN);
       nh_->logwarn("WARN: Kondo servo angle is limited to -90 degree");
     }
     else if (angle_rad > KONDO_SERVO_ANGLE_LIMIT_MAX)
     {
-      angle_rad = KONDO_SERVO_ANGLE_LIMIT_MAX;
+      angle_int = rad2KondoPosConv(KONDO_SERVO_ANGLE_LIMIT_MAX);
       nh_->logwarn("WARN: Kondo servo angle is limited to 90 degree");
     }
 
     activated_[servo_id] = true;
-    target_position_[servo_id] = rad2KondoPosConv(angle_rad);
+    target_position_[servo_id] = angle_int;
+  }
+}
+
+void KondoServo::servoActivateCallback(const spinal::ServoTorqueCmd& cmd_msg)
+{
+  for (int i = 0; i < cmd_msg.index_length; i++)
+  {
+    uint8_t servo_id = cmd_msg.index[i];
+    if (servo_id >= MAX_SERVO_NUM)
+      continue;
+
+    if (cmd_msg.torque_enable[i] == 0)
+      inactivate(servo_id);
+    else
+      activate(servo_id);
   }
 }
 
 void KondoServo::sendServoState()
 {
-  joint_state_msg_.header.stamp = nh_->now();
+  servo_state_msg_.stamp = nh_->now();
   for (uint8_t i = 1; i < 5; i++)
   {
-    joint_state_msg_.position[i - 1] = kondoPos2RadConv(current_position_[i]);
+    spinal::ServoState servo;
+    servo.index = i;
+    servo.angle = current_position_[i];
+    servo_state_msg_.servos[i - 1] = servo;
   }
-  joint_state_pub_.publish(&joint_state_msg_);
+  kondo_servo_state_pub_.publish(&servo_state_msg_);
 }
 
 void KondoServo::setTargetPos(const std::map<uint16_t, float>& servo_map)
@@ -184,16 +194,7 @@ void KondoServo::setTargetPos(const std::map<uint16_t, float>& servo_map)
     float angle = servo.second;
     uint16_t target_pos = rad2KondoPosConv(angle);
 
-    // temporary command to free servo is angle = 100.0
-    if (angle == 100.0)
-    {
-      activated_[id] = false;
-      target_position_[id] = 7500;
-      // char buf[100];
-      // sprintf(buf, "servo id: %d is freed!", id);
-      // nh_->l
-    }
-    else if (KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
+    if (KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
     {
       activated_[id] = true;
       target_position_[id] = target_pos;

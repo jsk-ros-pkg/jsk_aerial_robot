@@ -10,7 +10,9 @@
 
 #include "config.h"
 #include <ros.h>
-#include <sensor_msgs/JointState.h>
+#include <spinal/ServoControlCmd.h>
+#include <spinal/ServoStates.h>
+#include <spinal/ServoTorqueCmd.h>
 #include <map>
 
 #define KONDO_SERVO_UPDATE_INTERVAL 2
@@ -41,15 +43,17 @@ class KondoServo
 {
 private:
   UART_HandleTypeDef* huart_;
-  sensor_msgs::JointState joint_state_msg_;
+  spinal::ServoStates servo_state_msg_;
+
   ros::NodeHandle* nh_;
-  ros::Subscriber<sensor_msgs::JointState, KondoServo> kondo_servo_control_sub_;
-  ros::Publisher joint_state_pub_;
+  ros::Subscriber<spinal::ServoControlCmd, KondoServo> kondo_servo_control_sub_;
+  ros::Subscriber<spinal::ServoTorqueCmd, KondoServo> kondo_servo_activate_cmd_sub_;
+  ros::Publisher kondo_servo_state_pub_;
+
   uint16_t target_position_[MAX_SERVO_NUM];
   uint16_t current_position_[MAX_SERVO_NUM];
   bool activated_[MAX_SERVO_NUM];
   uint16_t pos_rx_buf_[KONDO_POSITION_RX_SIZE];
-  uint32_t servo_state_pub_last_time_;
 
   uint8_t id_telem_ = 0;
   char* servo_name_ = "1234";
@@ -61,7 +65,9 @@ private:
 
   void registerPos();
 
-  void servoControlCallback(const sensor_msgs::JointState& cmd_msg);
+  void servoControlCallback(const spinal::ServoControlCmd& cmd_msg);
+
+  void servoActivateCallback(const spinal::ServoTorqueCmd& cmd_msg);
 
   void sendServoState();
 
@@ -82,8 +88,9 @@ private:
 public:
   ~KondoServo(){}
   KondoServo():
-    kondo_servo_control_sub_("gimbals_ctrl", &KondoServo::servoControlCallback, this),
-    joint_state_pub_("joint_states", &joint_state_msg_)
+    kondo_servo_control_sub_("kondo_servo/states_cmd", &KondoServo::servoControlCallback, this),
+    kondo_servo_activate_cmd_sub_("kondo_servo/activate_cmd", &KondoServo::servoActivateCallback, this),
+    kondo_servo_state_pub_("kondo_servo/states_real", &servo_state_msg_)
   {
   }
 
