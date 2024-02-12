@@ -20,7 +20,7 @@ void nmpc_over_act_full::MPCSolver::initialize()
   int status = beetle_full_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
-    printf("beetle_full_model_acados_create() returned status %d. Exiting.\n", status);
+    ROS_WARN("beetle_full_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 

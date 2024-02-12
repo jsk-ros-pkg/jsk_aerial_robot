@@ -21,7 +21,7 @@ void nmpc_under_act_full::MPCSolver::initialize(Constraints& constraints)
   int status = qd_full_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
-    printf("qd_full_model_acados_create() returned status %d. Exiting.\n", status);
+    ROS_WARN("qd_full_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 

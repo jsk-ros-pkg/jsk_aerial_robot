@@ -21,7 +21,7 @@ void nmpc_under_act_body_rate::MPCSolver::initialize(PhysicalParams& phys_params
   int status = qd_body_rate_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
-    printf("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
+    ROS_WARN("qd_body_rate_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 

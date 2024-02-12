@@ -20,7 +20,7 @@ void nmpc_over_act_no_servo_delay::MPCSolver::initialize(Constraints& constraint
   int status = beetle_no_servo_delay_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
-    printf("beetle_no_servo_delay_model_acados_create() returned status %d. Exiting.\n", status);
+    ROS_WARN("beetle_no_servo_delay_model_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 
