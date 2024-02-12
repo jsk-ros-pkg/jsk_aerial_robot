@@ -180,6 +180,7 @@ void RollingController::calcStandingFullLambda()
 
   /* use sum of pid result and gravity compensation torque for attitude control */
   target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
+  gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
 
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);

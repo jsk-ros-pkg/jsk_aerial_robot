@@ -57,6 +57,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   desire_coordinate_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
+  gravity_compensate_term_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gravity_compensate_term", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
@@ -319,6 +320,13 @@ void RollingController::sendCmd()
       target_wrench_acc_cog_msg.data.push_back(target_wrench_acc_cog_(i));
     }
   target_wrench_acc_cog_pub_.publish(target_wrench_acc_cog_msg);
+
+  std_msgs::Float32MultiArray gravity_compensate_term_msg;
+  for(int i = 0; i < 3; i++)
+    {
+      gravity_compensate_term_msg.data.push_back(gravity_compensate_term_(i));
+    }
+  gravity_compensate_term_pub_.publish(gravity_compensate_term_msg);
 
   aerial_robot_msgs::WrenchAllocationMatrix wrench_allocation_matrix_msg;
   for(int i = 0; i < q_mat_.cols(); i++)
