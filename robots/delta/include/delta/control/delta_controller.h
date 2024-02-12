@@ -51,6 +51,7 @@ namespace aerial_robot_control
     ros::Publisher gimbal_indices_pub_;               // for spinal
     ros::Publisher target_vectoring_force_pub_;       // for debug
     ros::Publisher target_wrench_acc_cog_pub_;        // for debug
+    ros::Publisher gravity_compensate_term_pub_;      // for debug
     ros::Publisher wrench_allocation_matrix_pub_;     // for debug
     ros::Publisher full_q_mat_pub_;                   // for debug
     ros::Publisher operability_pub_;                  // for debug
@@ -105,6 +106,7 @@ namespace aerial_robot_control
     bool hovering_approximate_;
 
     /* rolling mode */
+    Eigen::Vector3d gravity_compensate_term_;
     bool standing_baselink_pitch_update_;
     double standing_baselink_ref_pitch_last_update_time_;
     double standing_baselink_ref_pitch_update_thresh_;
