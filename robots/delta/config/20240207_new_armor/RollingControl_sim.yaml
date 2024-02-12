@@ -10,7 +10,6 @@ controller:
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
 
-  gravity_compensate_ratio: 1.0
   rolling_minimum_lateral_force: 0.4
   standing_baselink_pitch_update: true
   standing_baselink_ref_pitch_update_thresh: 0.05
@@ -72,6 +71,7 @@ controller:
     need_d_control: true
 
 standing_controller:
+  gravity_compensate_ratio: 1.0
   controlled_axis: [1, 1, 1, 1, 1, 1]
   xy:
     p_gain: 1.5
@@ -98,3 +98,30 @@ standing_controller:
     i_gain: 0.1
     d_gain: 1.0
 
+rolling_controller:
+  gravity_compensate_ratio: 0.0
+  controlled_axis: [1, 1, 1, 1, 1, 1]
+  xy:
+    p_gain: 1.5
+    i_gain: 0.0
+    d_gain: 2.5
+
+  z:
+    p_gain: 20.0
+    i_gain: 1.5
+    d_gain: 2.5
+
+  roll:
+    p_gain: 10.0
+    i_gain: 0.1
+    d_gain: 4.0
+
+  pitch:
+    p_gain: 6.0
+    i_gain: 0.1
+    d_gain: 3.0
+
+  yaw:
+    p_gain: 2.0
+    i_gain: 0.1
+    d_gain: 1.0

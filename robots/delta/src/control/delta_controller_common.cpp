@@ -136,10 +136,12 @@ void RollingController::rosParamInit()
 
   rosoutControlParams("controller");
   rosoutControlParams("standing_controller");
+  rosoutControlParams("rolling_controller");
 
   controlled_axis_.resize(6, 1);
   rosoutControlAxis("controller");
   rosoutControlAxis("standing_controller");
+  rosoutControlAxis("rolling_controller");
 }
 
 bool RollingController::update()
@@ -182,7 +184,20 @@ void RollingController::controlCore()
     {
       /* for stand */
       rolling_robot_model_->setTargetFrame("cp");
-      setControllerParams("standing_controller");
+
+      if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+        {
+          setControllerParams("standing_controller");
+          ros::NodeHandle standing_nh(nh_, "standing_controller");
+          getParam<double>(standing_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 0.0);
+        }
+      if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+        {
+          setControllerParams("rolling_controller");
+          ros::NodeHandle rolling_nh(nh_, "rolling_controller");
+          getParam<double>(rolling_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 0.0);
+        }
+
       standingPlanning();
       calcStandingFullLambda();
       /* for stand */
