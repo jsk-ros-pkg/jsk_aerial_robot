@@ -391,7 +391,7 @@ def create_acados_model() -> AcadosModel:
     qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
     state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
-    control_y = ca.vertcat(ft, (ac - a) / t_servo)  # ac_ref must be zero!
+    control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
 
     # acados model
     x_dot = ca.SX.sym("x_dot", 17)

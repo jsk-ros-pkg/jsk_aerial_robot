@@ -47,7 +47,7 @@ controller:
     Qw_z: 5
     Qa: 1
     Rt: 1
-    Rac_d: 50  # difference of ac
+    Rac_d: 150  # difference of ac
 
     # for body_rate controller
     roll_rate_p_gain: 0.0
