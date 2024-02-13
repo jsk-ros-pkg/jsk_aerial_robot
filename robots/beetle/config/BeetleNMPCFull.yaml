@@ -2,7 +2,7 @@ aerial_robot_control_name: aerial_robot_control/over_act_full/nmpc_controller
 
 controller:
   physical:
-    mass: 2.773  #2.99194 # kg
+    mass: 1.952  # no battery: 2.773-0.821=1.952 ; with battery: 2.773; in sim: 2.99194 # kg
     gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
     inertia_diag: [0.04170, 0.03945, 0.07068] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
     dr1: -1  # direction of motor 1
@@ -15,8 +15,9 @@ controller:
     p4: [ 0.132585, -0.137979, -0.0154202 ] # position of motor 4
     kq_d_kt: 0.0153  #0.0171998
 
-    # the identified parameters are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
-    t_servo: 0.63 # sec
+    # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
+    # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
+    t_servo: 0.63 # sim: 0.63 # sec
 
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
@@ -47,7 +48,7 @@ controller:
     Qw_z: 5
     Qa: 1
     Rt: 1
-    Rac_d: 150  # difference of ac
+    Rac_d: 250  # difference of ac
 
     # for body_rate controller
     roll_rate_p_gain: 0.0
