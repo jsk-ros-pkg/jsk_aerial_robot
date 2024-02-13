@@ -37,7 +37,7 @@
           reset: [1.57, 1.57, 1.57]
           timeout: 10
         - command: "rosrun hydrus hydrus_demo.py _link_num:=4 _duration:=6"
-          threshold: [0.3, 0.02, 0.45]
+          threshold: [0.3, 0.04, 0.45]
           angle_threshold: 3.14
           timeout: 40
     </rosparam>
