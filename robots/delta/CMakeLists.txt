@@ -95,3 +95,9 @@ install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design 
 mujoco_model_convert(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_subdirectory(test)
+endif()
+
