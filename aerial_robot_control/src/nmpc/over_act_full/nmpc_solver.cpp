@@ -189,7 +189,7 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
 void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
                                                            const double joint_angles[4])
 {
-  // TODO: 改为传入可变数组
+  // TODO: modify, to pass in variable array
   double bx0[NBX0];
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
@@ -221,7 +221,7 @@ double nmpc_over_act_full::MPCSolver::solveOCPOnce()
   int status = beetle_full_model_acados_solve(acados_ocp_capsule_);
   if (status != ACADOS_SUCCESS)
   {
-    std::cout << "beetle_full_model_acados_solve() returned status " << status << ".\n";
+    ROS_WARN("beetle_full_model_acados_solve() returned status %d.\n", status);
   }
 
   ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
