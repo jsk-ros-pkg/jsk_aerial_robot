@@ -21,12 +21,21 @@
   </test>
 
   <!-- 2. control -->
-  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="60" retry="2">
+  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="180" retry="0">
     <rosparam>
-      hovering_delay: 20.0
-      hovering_duration: 30.0
-      convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
+      convergence_thresholds: [0.05, 0.05, 0.1]
+      init_joint_names: ['joint1', 'joint2']
+      init_joint_angles: [2.094, 2.094]
+      tasks:
+        - command: "rosrun delta transformation_demo.py _mode:=1"
+          threshold: [0.3, 0.04, 0.45]
+          angle_threshold: 3.14
+          reset: [2.094, 2.094]
+          timeout: 20
     </rosparam>
+    <param name="init_form_duration" value="90.0" />
+    <param name="init_angle_threshold" value="0.05" />
+    <param name="hovering_duration" value="30.0" />
   </test>
 
 </launch>
