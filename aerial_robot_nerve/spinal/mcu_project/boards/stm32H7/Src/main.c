@@ -98,8 +98,8 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
-osThreadId kondoServoTaskHandle;
 osTimerId coreTaskTimerHandle;
+osTimerId kondoServoTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
 osSemaphoreId coreTaskSemHandle;
@@ -146,8 +146,8 @@ void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
-void kondoServoFunc(void const * argument);
 void coreTaskEvokeCb(void const * argument);
+void kondoServoCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -300,9 +300,14 @@ int main(void)
   osTimerDef(coreTaskTimer, coreTaskEvokeCb);
   coreTaskTimerHandle = osTimerCreate(osTimer(coreTaskTimer), osTimerPeriodic, NULL);
 
+  /* definition and creation of kondoServoTimer */
+  osTimerDef(kondoServoTimer, kondoServoCallback);
+  kondoServoTimerHandle = osTimerCreate(osTimer(kondoServoTimer), osTimerPeriodic, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
+  osTimerStart(kondoServoTimerHandle, KONDO_SERVO_UPDATE_INTERVAL); // ms
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -338,10 +343,6 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
-
-  /* definition and creation of kondoServoTask */
-  osThreadDef(kondoServoTask, kondoServoFunc, osPriorityLow, 0, 256);
-  kondoServoTaskHandle = osThreadCreate(osThread(kondoServoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1279,29 +1280,6 @@ __weak void canRxTask(void const * argument)
   /* USER CODE END canRxTask */
 }
 
-/* USER CODE BEGIN Header_kondoServoFunc */
-/**
-* @brief Function implementing the kondoServoTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_kondoServoFunc */
-void kondoServoFunc(void const * argument)
-{
-  /* USER CODE BEGIN kondoServoFunc */
-  /* Infinite loop */
-  for(;;)
-  {
-#ifdef KONDO_FLAG
-    kondo_servo_.update();
-    osDelay(KONDO_SERVO_UPDATE_INTERVAL);
-#else
-    osDelay(1);
-#endif
-  }
-  /* USER CODE END kondoServoFunc */
-}
-
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
 {
@@ -1310,6 +1288,16 @@ void coreTaskEvokeCb(void const * argument)
   // timer callback to evoke coreTask at 1KHz
   osSemaphoreRelease (coreTaskSemHandle);
   /* USER CODE END coreTaskEvokeCb */
+}
+
+/* kondoServoCallback function */
+void kondoServoCallback(void const * argument)
+{
+  /* USER CODE BEGIN kondoServoCallback */
+#ifdef KONDO_FLAG
+  kondo_servo_.update();
+#endif
+  /* USER CODE END kondoServoCallback */
 }
 
 /* MPU Configuration */
