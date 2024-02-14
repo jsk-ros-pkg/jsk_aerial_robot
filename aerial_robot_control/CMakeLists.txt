@@ -24,6 +24,7 @@ find_package(acados) # if we use REQUIED, then will cause OpenBLAS and FortranLi
 generate_dynamic_reconfigure_options(
   cfg/PID.cfg
   cfg/LQI.cfg
+  cfg/NMPC.cfg
   )
 
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404

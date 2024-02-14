@@ -35,6 +35,18 @@ void nmpc_over_act_full::MPCSolver::initialize()
   int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
 
+  /* init weight matrix, W is a getCostWeightDim(0) * getCostWeightDim(0) double matrix */
+  nx_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "x");
+  nu_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "u");
+  int nw = nx_ + nu_;
+
+  W_ = (double*)malloc((nw * nw) * sizeof(double));
+  for (int i = 0; i < nw * nw; i++)
+    W_[i] = 0.0;
+  WN_ = (double*)malloc((nx_ * nx_) * sizeof(double));
+  for (int i = 0; i < nx_ * nx_; i++)
+    WN_[i] = 0.0;
+
   //  /* Set constraints */
   //  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are
   //  needed.
@@ -283,4 +295,23 @@ void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
   ROS_DEBUG("\nSolver info:\n");
   ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
             kkt_norm_inf);
+}
+
+void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
+{
+  W_[index + index * (nx_ + nu_)] = (double)value;
+
+  if (is_set_WN)
+    WN_[index + index * nx_] = (double)value;
+}
+
+void nmpc_over_act_full::MPCSolver::setCostWeight(bool is_update_W, bool is_update_WN)
+{
+  if (is_update_W)
+  {
+    for (int i = 0; i < NN; i++)
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_);
+  }
+  if (is_update_WN)
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "W", WN_);
 }

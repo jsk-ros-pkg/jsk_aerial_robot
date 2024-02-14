@@ -11,14 +11,14 @@
 
 #include "aerial_robot_control/control/base/base.h"
 #include "aerial_robot_control/nmpc/over_act_full/nmpc_solver.h"
-// #include <aerial_robot_control/control/utils/pid.h>
-// #include <aerial_robot_control/PIDConfig.h>
 
-#include "angles/angles.h"
-#include "tf_conversions/tf_eigen.h"
-#include "dynamic_reconfigure/server.h"
-// using PidControlDynamicConfig =
-// dynamic_reconfigure::Server<aerial_robot_control::PIDConfig>;
+#include <angles/angles.h>
+#include <tf_conversions/tf_eigen.h>
+
+/* dynamic reconfigure */
+#include "aerial_robot_msgs/DynamicReconfigureLevels.h"
+#include "aerial_robot_control/NMPCConfig.h"
+#include <dynamic_reconfigure/server.h>
 
 /* protocol */
 #include "nav_msgs/Odometry.h"
@@ -38,6 +38,8 @@
 #include "aerial_robot_msgs/TrackTrajGoal.h"
 #include "aerial_robot_msgs/TrackTrajResult.h"
 
+using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::NMPCConfig>;
+
 namespace aerial_robot_control
 {
 namespace nmpc_over_act_full
@@ -46,7 +48,7 @@ namespace nmpc_over_act_full
 class NMPCController : public ControlBase
 {
 public:
-  NMPCController();  // note that constructor should not have arguments as the rule of rospluginlib
+  NMPCController() = default;  // note that constructor should not have arguments as the rule of rospluginlib
   ~NMPCController() override = default;
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -66,6 +68,7 @@ protected:
   ros::Publisher pub_gimbal_control_;                   // for gimbal control
 
   ros::ServiceClient srv_set_control_mode_;
+  std::vector<boost::shared_ptr<NMPCControlDynamicConfig> > nmpc_reconf_servers_;
 
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
@@ -77,6 +80,8 @@ protected:
 
   virtual void controlCore();
   virtual void SendCmd();
+
+  void cfgNMPCCallback(NMPCConfig &config, uint32_t level);
 
 private:
   double mass_;

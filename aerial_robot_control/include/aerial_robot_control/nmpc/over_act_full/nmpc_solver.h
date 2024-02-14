@@ -72,6 +72,10 @@ class MPCSolver
 {
 public:
   aerial_robot_msgs::PredXU x_u_out_;
+  int nx_;
+  int nu_;
+  double* W_;
+  double* WN_;
 
   MPCSolver();
   ~MPCSolver();
@@ -79,6 +83,10 @@ public:
   void reset(const aerial_robot_msgs::PredXU& x_u);
   int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
             bool is_debug);
+
+  /* Setters */
+  void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
+  void setCostWeight(bool is_update_W, bool is_update_WN);
 
 private:
   double* new_time_steps;

@@ -6,10 +6,6 @@
 
 using namespace aerial_robot_control;
 
-nmpc_over_act_full::NMPCController::NMPCController()
-{
-}
-
 void nmpc_over_act_full::NMPCController::initialize(
     ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
@@ -18,19 +14,58 @@ void nmpc_over_act_full::NMPCController::initialize(
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle physical_nh(control_nh, "physical");
 
   // initialize nmpc solver
   mpc_solver_.initialize();
+  getParam<double>(physical_nh, "mass", mass_, 0.5);
+  getParam<double>(physical_nh, "gravity_const", gravity_const_, 9.81);
 
-  getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
-  getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
+  getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
+  getParam<double>(nmpc_nh, "T_integ", t_nmpc_integ_, 0.1);
+  getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
+  getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
+  getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
 
-  getParam<double>(control_nh, "physical/mass", mass_, 0.5);
-  getParam<double>(control_nh, "physical/gravity_const", gravity_const_, 9.81);
+  /* control parameters with dynamic reconfigure */
+  double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Rt, Rac_d;
+  getParam<double>(nmpc_nh, "Qp_xy", Qp_xy, 300);
+  getParam<double>(nmpc_nh, "Qp_z", Qp_z, 400);
+  getParam<double>(nmpc_nh, "Qv_xy", Qv_xy, 10);
+  getParam<double>(nmpc_nh, "Qv_z", Qv_z, 10);
+  getParam<double>(nmpc_nh, "Qq_xy", Qq_xy, 300);
+  getParam<double>(nmpc_nh, "Qq_z", Qq_z, 300);
+  getParam<double>(nmpc_nh, "Qw_xy", Qw_xy, 5);
+  getParam<double>(nmpc_nh, "Qw_z", Qw_z, 5);
+  getParam<double>(nmpc_nh, "Qa", Qa, 1);
+  getParam<double>(nmpc_nh, "Rt", Rt, 1);
+  getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
 
-  getParam<bool>(control_nh, "nmpc/is_attitude_ctrl", is_attitude_ctrl_, true);
-  getParam<bool>(control_nh, "nmpc/is_body_rate_ctrl", is_body_rate_ctrl_, false);
-  getParam<bool>(control_nh, "nmpc/is_debug", is_debug_, false);
+  // diagonal matrix
+  mpc_solver_.setCostWDiagElement(0, Qp_xy);
+  mpc_solver_.setCostWDiagElement(1, Qp_xy);
+  mpc_solver_.setCostWDiagElement(2, Qp_z);
+  mpc_solver_.setCostWDiagElement(3, Qv_xy);
+  mpc_solver_.setCostWDiagElement(4, Qv_xy);
+  mpc_solver_.setCostWDiagElement(5, Qv_z);
+  mpc_solver_.setCostWDiagElement(6, 0);
+  mpc_solver_.setCostWDiagElement(7, Qq_xy);
+  mpc_solver_.setCostWDiagElement(8, Qq_xy);
+  mpc_solver_.setCostWDiagElement(9, Qq_z);
+  mpc_solver_.setCostWDiagElement(10, Qw_xy);
+  mpc_solver_.setCostWDiagElement(11, Qw_xy);
+  mpc_solver_.setCostWDiagElement(12, Qw_z);
+  for (int i = 13; i < 17; ++i)
+    mpc_solver_.setCostWDiagElement(i, Qa);
+  for (int i = 17; i < 21; ++i)
+    mpc_solver_.setCostWDiagElement(i, Rt);
+  for (int i = 21; i < 25; ++i)
+    mpc_solver_.setCostWDiagElement(i, Rac_d);
+  mpc_solver_.setCostWeight(true, true);
+
+  nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
+  nmpc_reconf_servers_.back()->setCallback(boost::bind(&NMPCController::cfgNMPCCallback, this, _1, _2));
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &NMPCController::callbackViz, this);
@@ -104,8 +139,8 @@ void nmpc_over_act_full::NMPCController::reset()
 {
   ControlBase::reset();
 
-//  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
-//  sendRotationalInertiaComp();  // tmp for inertia
+  //  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
+  //  sendRotationalInertiaComp();  // tmp for inertia
 
   /* reset controller using odom */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
@@ -543,6 +578,98 @@ void nmpc_over_act_full::NMPCController::printPhysicalParams()
   for (const auto& vec : robot_model_->getThrustWrenchUnits())
   {
     std::cout << "thrust wrench units: " << vec << std::endl;
+  }
+}
+
+void nmpc_over_act_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+{
+  using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
+  if (config.nmpc_flag)
+  {
+    switch (level)
+    {
+      case Levels::RECONFIGURE_NMPC_Q_P_XY: {
+        mpc_solver_.setCostWDiagElement(0, config.Qp_xy);
+        mpc_solver_.setCostWDiagElement(1, config.Qp_xy);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qp_xy for NMPC '" << config.Qp_xy << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_P_Z: {
+        mpc_solver_.setCostWDiagElement(2, config.Qp_z);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qp_z for NMPC '" << config.Qp_z << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_V_XY: {
+        mpc_solver_.setCostWDiagElement(3, config.Qv_xy);
+        mpc_solver_.setCostWDiagElement(4, config.Qv_xy);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qv_xy for NMPC '" << config.Qv_xy << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_V_Z: {
+        mpc_solver_.setCostWDiagElement(5, config.Qv_z);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qv_z for NMPC '" << config.Qv_z << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_Q_XY: {
+        mpc_solver_.setCostWDiagElement(7, config.Qq_xy);
+        mpc_solver_.setCostWDiagElement(8, config.Qq_xy);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qq_xy for NMPC '" << config.Qq_xy << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_Q_Z: {
+        mpc_solver_.setCostWDiagElement(9, config.Qq_z);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qq_z for NMPC '" << config.Qq_z << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_W_XY: {
+        mpc_solver_.setCostWDiagElement(10, config.Qw_xy);
+        mpc_solver_.setCostWDiagElement(11, config.Qw_xy);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qw_xy for NMPC '" << config.Qw_xy << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_W_Z: {
+        mpc_solver_.setCostWDiagElement(12, config.Qw_z);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qw_z for NMPC '" << config.Qw_z << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_Q_A: {
+        mpc_solver_.setCostWDiagElement(13, config.Qa);
+        mpc_solver_.setCostWDiagElement(14, config.Qa);
+        mpc_solver_.setCostWDiagElement(15, config.Qa);
+        mpc_solver_.setCostWDiagElement(16, config.Qa);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Qa for NMPC '" << config.Qa << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_R_T: {
+        mpc_solver_.setCostWDiagElement(17, config.Rt);
+        mpc_solver_.setCostWDiagElement(18, config.Rt);
+        mpc_solver_.setCostWDiagElement(19, config.Rt);
+        mpc_solver_.setCostWDiagElement(20, config.Rt);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Rt for NMPC '" << config.Rt << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_R_AC_D: {
+        mpc_solver_.setCostWDiagElement(21, config.Rac_d);
+        mpc_solver_.setCostWDiagElement(22, config.Rac_d);
+        mpc_solver_.setCostWDiagElement(23, config.Rac_d);
+        mpc_solver_.setCostWDiagElement(24, config.Rac_d);
+        mpc_solver_.setCostWeight(true, true);
+        ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
