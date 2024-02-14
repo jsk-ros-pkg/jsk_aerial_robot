@@ -159,6 +159,10 @@ void nmpc_over_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.x.layout.dim[1].stride = NX;
   x_u.x.layout.data_offset = 0;
   x_u.x.data.resize((NN + 1) * NX);
+  std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
+  // quaternion
+  for (int i = 6; i < (NN + 1) * NX; i += NX)
+    x_u.x.data[i] = 1.0;
 
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim.emplace_back();
@@ -170,6 +174,7 @@ void nmpc_over_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.u.layout.dim[1].stride = NU;
   x_u.u.layout.data_offset = 0;
   x_u.u.data.resize(NN * NU);
+  std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
 }
 
 void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
@@ -299,10 +304,18 @@ void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
 
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
 {
-  W_[index + index * (nx_ + nu_)] = (double)value;
+  if (index < nx_ + nu_)
+    W_[index + index * (nx_ + nu_)] = (double)value;
+  else
+    ROS_ERROR("index should be less than nx_ + nu_");
 
   if (is_set_WN)
-    WN_[index + index * nx_] = (double)value;
+  {
+    if (index < nx_)
+      WN_[index + index * nx_] = (double)value;
+    else
+      ROS_ERROR("index should be less than nx_");
+  }
 }
 
 void nmpc_over_act_full::MPCSolver::setCostWeight(bool is_update_W, bool is_update_WN)

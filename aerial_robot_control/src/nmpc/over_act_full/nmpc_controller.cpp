@@ -59,9 +59,9 @@ void nmpc_over_act_full::NMPCController::initialize(
   for (int i = 13; i < 17; ++i)
     mpc_solver_.setCostWDiagElement(i, Qa);
   for (int i = 17; i < 21; ++i)
-    mpc_solver_.setCostWDiagElement(i, Rt);
+    mpc_solver_.setCostWDiagElement(i, Rt, false);
   for (int i = 21; i < 25; ++i)
-    mpc_solver_.setCostWDiagElement(i, Rac_d);
+    mpc_solver_.setCostWDiagElement(i, Rac_d, false);
   mpc_solver_.setCostWeight(true, true);
 
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
@@ -591,85 +591,70 @@ void nmpc_over_act_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
       case Levels::RECONFIGURE_NMPC_Q_P_XY: {
         mpc_solver_.setCostWDiagElement(0, config.Qp_xy);
         mpc_solver_.setCostWDiagElement(1, config.Qp_xy);
-        mpc_solver_.setCostWeight(true, true);
+
         ROS_INFO_STREAM("change Qp_xy for NMPC '" << config.Qp_xy << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_P_Z: {
         mpc_solver_.setCostWDiagElement(2, config.Qp_z);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qp_z for NMPC '" << config.Qp_z << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_V_XY: {
         mpc_solver_.setCostWDiagElement(3, config.Qv_xy);
         mpc_solver_.setCostWDiagElement(4, config.Qv_xy);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qv_xy for NMPC '" << config.Qv_xy << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_V_Z: {
         mpc_solver_.setCostWDiagElement(5, config.Qv_z);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qv_z for NMPC '" << config.Qv_z << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_Q_XY: {
         mpc_solver_.setCostWDiagElement(7, config.Qq_xy);
         mpc_solver_.setCostWDiagElement(8, config.Qq_xy);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qq_xy for NMPC '" << config.Qq_xy << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_Q_Z: {
         mpc_solver_.setCostWDiagElement(9, config.Qq_z);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qq_z for NMPC '" << config.Qq_z << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_W_XY: {
         mpc_solver_.setCostWDiagElement(10, config.Qw_xy);
         mpc_solver_.setCostWDiagElement(11, config.Qw_xy);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qw_xy for NMPC '" << config.Qw_xy << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_W_Z: {
         mpc_solver_.setCostWDiagElement(12, config.Qw_z);
-        mpc_solver_.setCostWeight(true, true);
         ROS_INFO_STREAM("change Qw_z for NMPC '" << config.Qw_z << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_A: {
-        mpc_solver_.setCostWDiagElement(13, config.Qa);
-        mpc_solver_.setCostWDiagElement(14, config.Qa);
-        mpc_solver_.setCostWDiagElement(15, config.Qa);
-        mpc_solver_.setCostWDiagElement(16, config.Qa);
-        mpc_solver_.setCostWeight(true, true);
+        for (int i = 13; i < 17; ++i)
+          mpc_solver_.setCostWDiagElement(i, config.Qa);
         ROS_INFO_STREAM("change Qa for NMPC '" << config.Qa << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_R_T: {
-        mpc_solver_.setCostWDiagElement(17, config.Rt);
-        mpc_solver_.setCostWDiagElement(18, config.Rt);
-        mpc_solver_.setCostWDiagElement(19, config.Rt);
-        mpc_solver_.setCostWDiagElement(20, config.Rt);
-        mpc_solver_.setCostWeight(true, true);
+        for (int i = 17; i < 21; ++i)
+          mpc_solver_.setCostWDiagElement(i, config.Rt, false);
         ROS_INFO_STREAM("change Rt for NMPC '" << config.Rt << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_R_AC_D: {
-        mpc_solver_.setCostWDiagElement(21, config.Rac_d);
-        mpc_solver_.setCostWDiagElement(22, config.Rac_d);
-        mpc_solver_.setCostWDiagElement(23, config.Rac_d);
-        mpc_solver_.setCostWDiagElement(24, config.Rac_d);
-        mpc_solver_.setCostWeight(true, true);
+        for (int i = 21; i < 25; ++i)
+          mpc_solver_.setCostWDiagElement(i, config.Rac_d, false);
         ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
         break;
       }
       default:
         break;
     }
+    mpc_solver_.setCostWeight(true, true);
   }
 }
 

@@ -88,6 +88,10 @@ public:
   void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
   void setCostWeight(bool is_update_W, bool is_update_WN);
 
+  /* for debugging */
+  void printStatus(double min_time);
+  void printSolution();
+
 private:
   double* new_time_steps;
   beetle_full_model_solver_capsule* acados_ocp_capsule_;
@@ -102,9 +106,6 @@ private:
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
-
-  void printStatus(double min_time);
-  void printSolution();
 };
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
