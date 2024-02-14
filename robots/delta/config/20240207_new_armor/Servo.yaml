@@ -10,20 +10,16 @@ servo_controller:
 
     # for simulation
     simulation:
-      pid: {p: 50.0, i: 0.4, d: 2.0, i_clamp_max: 6.6, i_clamp_min: -6.6}
-      init_value: 0.0
+      pid: {p: 50.0, i: 0.4, d: 2.0}
+      init_value: 2.094
       type: effort_controllers/JointPositionController
 
     controller1:
       id: 1
       name: joint1
-      simulation:
-        init_value: 2.08
     controller2:
       id: 3
       name: joint2
-      simulation:
-        init_value: 2.08
 
   gimbals:
     no_real_state: false # true if there is no servo state from real machine
