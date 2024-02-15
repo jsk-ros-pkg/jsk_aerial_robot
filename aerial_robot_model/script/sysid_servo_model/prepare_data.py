@@ -2,14 +2,17 @@
 created by Jinjie LI, 2023/02/06
 '''
 import argparse
+import time
 import rosbag
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from send_cmd import rad_2_kondo_pos, kondo_pos_2_rad
 
 if_save_csv = True
-TIME_START = 0
-TIME_END = 30
+TIME_START = int(3)
+TIME_SPAN = int(3)
+TIME_END = TIME_START + TIME_SPAN
 FREQ_INTEP = 100
 
 
@@ -20,15 +23,19 @@ class DataStore:
             setattr(self, f'data_{i}_list', [])
 
 
-def process_data(file_name):
+def process_data(file_name, is_kondo_pos):
     # Initialize a list to store the data
     cmd_data = DataStore(4)
     real_data = DataStore(4)
 
     # Specify the ROS bag file and topic name
     bag_file = file_name
-    joint_states_topic_name = "/beetle1/joint_states"
-    gimbals_ctrl_topic_name = "/beetle1/gimbals_ctrl"
+    if is_kondo_pos:
+        joint_states_topic_name = "/kondo_servo/states_real"
+        gimbals_ctrl_topic_name = "/kondo_servo/states_cmd"
+    else:
+        joint_states_topic_name = "/beetle1/joint_states"
+        gimbals_ctrl_topic_name = "/beetle1/gimbals_ctrl"
 
     # Open the ROS bag file
     bag = rosbag.Bag(bag_file)
@@ -38,12 +45,18 @@ def process_data(file_name):
         if topic == gimbals_ctrl_topic_name:
             cmd_data.timestamp_list.append(timestamp.to_sec())
             for i in range(4):
-                getattr(cmd_data, f'data_{i}_list').append(msg.position[i])
+                if is_kondo_pos:
+                    getattr(cmd_data, f'data_{i}_list').append(kondo_pos_2_rad(msg.angles[i]))
+                else:
+                    getattr(cmd_data, f'data_{i}_list').append(msg.position[i])
 
         if topic == joint_states_topic_name:
             real_data.timestamp_list.append(timestamp.to_sec())
             for i in range(4):
-                getattr(real_data, f'data_{i}_list').append(msg.position[i])
+                if is_kondo_pos:
+                    getattr(real_data, f'data_{i}_list').append(kondo_pos_2_rad(msg.servos[i].angle))
+                else:
+                    getattr(real_data, f'data_{i}_list').append(msg.position[i])
 
     # Close the ROS bag file
     bag.close()
@@ -73,7 +86,8 @@ def process_data(file_name):
                                             real_data.data_3_list)
 
     if if_save_csv:
-        with open("inter_" + bag_file + "_gimbals_ctrl.csv", "w", newline="") as csvfile:
+        time_now = time.strftime("%Y%m%d-%H%M%S")
+        with open(f"{time_now}_inter_gimbals_ctrl.csv", "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(len(cmd_data.inter_timestamp_list)):
                 writer.writerow(
@@ -88,7 +102,7 @@ def process_data(file_name):
                 print(
                     f"gimbals_ctrl: {cmd_data.inter_timestamp_list[i]}, {cmd_data.inter_data_0_list[i]}, {cmd_data.inter_data_1_list[i]}, {cmd_data.inter_data_2_list[i]}, {cmd_data.inter_data_3_list[i]}")
 
-        with open("inter_" + bag_file + "_joint_states.csv", "w", newline="") as csvfile:
+        with open(f"{time_now}_inter_joint_states.csv", "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(len(real_data.inter_timestamp_list)):
                 writer.writerow(
@@ -109,12 +123,13 @@ def process_data(file_name):
     fig, axs = plt.subplots(2, 2, figsize=(25, 10))
     plt.tight_layout(pad=3.0)
     for i in range(4):
-        axs[i // 2, i % 2].plot(cmd_data.timestamp_list, getattr(cmd_data, f'data_{i}_list'), label='cmd')
         axs[i // 2, i % 2].plot(real_data.timestamp_list, getattr(real_data, f'data_{i}_list'), label='real')
+        axs[i // 2, i % 2].plot(cmd_data.timestamp_list, getattr(cmd_data, f'data_{i}_list'), label='cmd')
         axs[i // 2, i % 2].set_title(f'Joint {i} data -- original')
         axs[i // 2, i % 2].set_xlabel('Time (s)')
         axs[i // 2, i % 2].set_ylabel('Position')
         axs[i // 2, i % 2].legend()
+        axs[i // 2, i % 2].grid(True)
     plt.show()
 
     # draw a figure with four subplots, each subplot is two curves with interpolated cmd and real data
@@ -122,11 +137,13 @@ def process_data(file_name):
     plt.tight_layout(pad=3.0)
     for i in range(4):
         axs[i // 2, i % 2].plot(cmd_data.inter_timestamp_list, getattr(cmd_data, f'inter_data_{i}_list'), label='cmd')
-        axs[i // 2, i % 2].plot(real_data.inter_timestamp_list, getattr(real_data, f'inter_data_{i}_list'), label='real')
+        axs[i // 2, i % 2].plot(real_data.inter_timestamp_list, getattr(real_data, f'inter_data_{i}_list'),
+                                label='real')
         axs[i // 2, i % 2].set_title(f'Joint {i} data -- interpolated')
         axs[i // 2, i % 2].set_xlabel('Time (s)')
         axs[i // 2, i % 2].set_ylabel('Position')
         axs[i // 2, i % 2].legend()
+        axs[i // 2, i % 2].grid(True)
     plt.show()
 
     return
@@ -135,6 +152,7 @@ def process_data(file_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process and visualize data from a rosbag file.')
     parser.add_argument('file_name', help='Name of the text file containing the data')
+    parser.add_argument('is_kondo_pos', help='Whether the data is in kondo position', default=False, type=bool)
     args = parser.parse_args()
 
-    process_data(args.file_name)
+    process_data(args.file_name, args.is_kondo_pos)
