@@ -43,7 +43,7 @@ controller:
     Qv_xy: 10
     Qv_z: 10
     Qq_xy: 300
-    Qq_z: 300
+    Qq_z: 600
     Qw_xy: 5
     Qw_z: 5
     Qa: 1
