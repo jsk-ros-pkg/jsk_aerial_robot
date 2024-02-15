@@ -214,7 +214,8 @@ void nmpc_over_act_full::NMPCController::controlCore()
   }
   else
   {
-    if (ros::Time::now() - receive_time_ > ros::Duration(t_nmpc_samp_ * 2.0))
+    /* tracking mode */
+    if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
     {
       ROS_INFO("Trajectory tracking mode is off!");
       is_traj_tracking_ = false;
