@@ -85,13 +85,19 @@ void RollingController::standingPlanning()
       ROS_WARN_ONCE("start roll/pitch I control");
     }
 
-  if(standing_baselink_pitch_update_ && ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+  // if(standing_baselink_pitch_update_ && ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+  //   {
+  //     if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
+  //       {
+  //         standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
+  //         rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
+  //       }
+  //   }
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE && fabs(baselink_roll - M_PI / 2.0) < standing_baselink_roll_converged_thresh_)
     {
-      if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
-        {
-          standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
-          rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
-        }
+      rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
+      rosoutControlParams("rolling_controller");
     }
 
   double du = ros::Time::now().toSec() - rolling_control_timestamp_;
