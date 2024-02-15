@@ -9,12 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from send_cmd import rad_2_kondo_pos, kondo_pos_2_rad
 
-if_save_csv = True
-TIME_START = int(3)
-TIME_SPAN = int(3)
-TIME_END = TIME_START + TIME_SPAN
-FREQ_INTEP = 100
-
 
 class DataStore:
     def __init__(self, number):
@@ -23,7 +17,9 @@ class DataStore:
             setattr(self, f'data_{i}_list', [])
 
 
-def process_data(file_name, is_kondo_pos):
+def process_data(file_name, is_kondo_pos, if_save_csv, time_start, time_span, freq_inter):
+    time_end = time_start + time_span
+
     # Initialize a list to store the data
     cmd_data = DataStore(4)
     real_data = DataStore(4)
@@ -62,20 +58,20 @@ def process_data(file_name, is_kondo_pos):
     bag.close()
 
     # find the max first timestamp
-    time_start = max(cmd_data.timestamp_list[0], real_data.timestamp_list[0])
+    timestamp_start = max(cmd_data.timestamp_list[0], real_data.timestamp_list[0])
 
     # normalize the timestamp
-    cmd_data.timestamp_list = [t - time_start for t in cmd_data.timestamp_list]
-    real_data.timestamp_list = [t - time_start for t in real_data.timestamp_list]
+    cmd_data.timestamp_list = [t - timestamp_start for t in cmd_data.timestamp_list]
+    real_data.timestamp_list = [t - timestamp_start for t in real_data.timestamp_list]
 
     # interpolate the data
-    cmd_data.inter_timestamp_list = np.linspace(TIME_START, TIME_END, FREQ_INTEP * (TIME_END - TIME_START))
+    cmd_data.inter_timestamp_list = np.linspace(time_start, time_end, freq_inter * (time_end - time_start))
     cmd_data.inter_data_0_list = np.interp(cmd_data.inter_timestamp_list, cmd_data.timestamp_list, cmd_data.data_0_list)
     cmd_data.inter_data_1_list = np.interp(cmd_data.inter_timestamp_list, cmd_data.timestamp_list, cmd_data.data_1_list)
     cmd_data.inter_data_2_list = np.interp(cmd_data.inter_timestamp_list, cmd_data.timestamp_list, cmd_data.data_2_list)
     cmd_data.inter_data_3_list = np.interp(cmd_data.inter_timestamp_list, cmd_data.timestamp_list, cmd_data.data_3_list)
 
-    real_data.inter_timestamp_list = np.linspace(TIME_START, TIME_END, FREQ_INTEP * (TIME_END - TIME_START))
+    real_data.inter_timestamp_list = np.linspace(time_start, time_end, freq_inter * (time_end - time_start))
     real_data.inter_data_0_list = np.interp(real_data.inter_timestamp_list, real_data.timestamp_list,
                                             real_data.data_0_list)
     real_data.inter_data_1_list = np.interp(real_data.inter_timestamp_list, real_data.timestamp_list,
@@ -152,7 +148,12 @@ def process_data(file_name, is_kondo_pos):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process and visualize data from a rosbag file.')
     parser.add_argument('file_name', help='Name of the text file containing the data')
-    parser.add_argument('is_kondo_pos', help='Whether the data is in kondo position', default=False, type=bool)
+    parser.add_argument('is_kondo_pos', help='Whether the data is in kondo position', type=int)
+    parser.add_argument('-c', '--if_csv', help='Whether to save the data to csv', default=0, type=int)
+    parser.add_argument('-t', '--t_start', help='The start time of the data', default=0, type=int)
+    parser.add_argument('-p', '--t_span', help='The time span of the data', default=3, type=int)
+    parser.add_argument('-f', '--freq_inter', help='The frequency of interpolation', default=100, type=int)
     args = parser.parse_args()
 
-    process_data(args.file_name, args.is_kondo_pos)
+    process_data(args.file_name, bool(args.is_kondo_pos), bool(args.if_csv), int(args.t_start),
+                 int(args.t_span), int(args.freq_inter))

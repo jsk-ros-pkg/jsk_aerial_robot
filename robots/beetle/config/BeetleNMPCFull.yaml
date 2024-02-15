@@ -17,7 +17,7 @@ controller:
 
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
     # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
-    t_servo: 0.085883  # experiment 0.085883  # sec
+    t_servo: 0.085883  # experiment 0.085883; sim: 0.15858 sec
 
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
