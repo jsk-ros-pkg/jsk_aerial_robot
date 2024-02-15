@@ -30,7 +30,7 @@ navigation:
   gps_waypoint_check_du: 1.0
 
   # desire tilt
-  baselink_rotation_stop_error: 1.3
+  baselink_rotation_stop_error: 2.0
   baselink_rot_pub_interval: 0.05
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
 
