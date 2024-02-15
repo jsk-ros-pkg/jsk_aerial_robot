@@ -208,6 +208,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
       ROS_WARN_STREAM("[navigation] switch to staning mode");
       current_ground_navigation_mode_ = state;
 
+      setCurrentTargetBaselinkRotRoll(M_PI / 2.0);
       setFinalTargetBaselinkRotRoll(M_PI / 2.0);
     }
 
