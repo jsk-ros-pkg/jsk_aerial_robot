@@ -246,7 +246,16 @@ namespace sensor_plugin
         /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
         world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
 
+        /* publish the offset tf if necessary */
+        geometry_msgs::TransformStamped static_transformStamped;
+        static_transformStamped.header.stamp = vo_msg->header.stamp;
+        static_transformStamped.header.frame_id = "world";
+        static_transformStamped.child_frame_id = vo_msg->header.frame_id;
+        tf::transformTFToMsg(world_offset_tf_, static_transformStamped.transform);
+        static_broadcaster_.sendTransform(static_transformStamped);
+
         tf::Vector3 init_pos = w_bdash_f.getOrigin();
+
 
         for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
           {

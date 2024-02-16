@@ -37,10 +37,13 @@
 
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Empty.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+
 
 namespace sensor_plugin
 {
@@ -97,6 +100,8 @@ namespace sensor_plugin
 
     double reference_timestamp_;
     aerial_robot_msgs::States vo_state_;
+
+    tf2_ros::StaticTransformBroadcaster static_broadcaster_; // publish the transfrom between the work and vo frame
 
     void rosParamInit();
     void estimateProcess();
