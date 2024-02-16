@@ -238,33 +238,34 @@ namespace sensor_plugin
               }
           }
 
-        /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
-        /** ^{w}H_{b} **/
-        world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        /** step1: ^{w}H_{b'}, b': level frame of b **/
+        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
 
-        tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+        tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setX(world_offset_pos.x());
+          w_bdash_f.getOrigin().setX(baselink_pos.x());
         if(estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setY(world_offset_pos.y());
+          w_bdash_f.getOrigin().setY(baselink_pos.y());
         if(estimator_->getStateStatus(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
+          w_bdash_f.getOrigin().setZ(baselink_pos.z());
 
-        /* set the init offset from world to the baselink of UAV if we know the ground truth */
+        /* set the offset if we know the ground truth */
         if(estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH))
           {
-            world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH));
-            world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0]));
-
-            double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
+            w_bdash_f.setOrigin(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH));
+            w_bdash_f.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0]));
           }
 
-        /* step2: also consider the offset tf from baselink to sensor */
-        /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
-        world_offset_tf_ *= (sensor_tf_ * raw_sensor_tf.inverse());
+        /** step2: ^{vo}H_{b'} **/
+        tf::Transform vo_bdash_f = raw_sensor_tf * sensor_tf_.inverse(); // ^{vo}H_{b}
+        double r,p,y;
+        vo_bdash_f.getBasis().getRPY(r,p,y);
+        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y)); // ^{vo}H_{b'}
 
-        //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
-        tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
+        /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
+        world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
+
+        tf::Vector3 init_pos = w_bdash_f.getOrigin();
 
         for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
           {
