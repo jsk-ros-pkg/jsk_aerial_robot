@@ -80,6 +80,7 @@ namespace sensor_plugin
     if(time_sync_) queuse_size = 10;
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
+
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
@@ -92,6 +93,8 @@ namespace sensor_plugin
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
       }
+
+    prev_timestamp_ = 0;
   }
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
