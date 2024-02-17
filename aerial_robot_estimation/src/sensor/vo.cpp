@@ -77,6 +77,7 @@ namespace sensor_plugin
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
     rot_valid_ = false;
+    prev_timestamp_ = 0;
   }
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
