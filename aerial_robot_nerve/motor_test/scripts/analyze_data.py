@@ -52,6 +52,7 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
 
     if has_telemetry:
         kRPM2 = average_values['kRPM^2'].to_numpy()
+        kRPM = average_values['RPM'].to_numpy() / 1000
 
     fz = average_values['fz'].to_numpy()
     mz = average_values['mz'].to_numpy()
@@ -64,6 +65,11 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
         slope_kRPM2, intercept_kRPM2 = np.polyfit(kRPM2, fz, 1)
         fit_eq_kRPM2 = f"fz = {slope_kRPM2:.4f} * kRPM^2 + {intercept_kRPM2:.4f}"
         print(f"Fitting Equation (x:kRPM^2 y:fz): {fit_eq_kRPM2}")
+
+        # Linear fit for x: pwm_ratio y: kRPM
+        slope_kRPM_PWM_ratio, intercept_kRPM_PWM_ratio = np.polyfit(PWM_ratio, kRPM, 1)
+        fit_eq_kRPM_PWM_ratio = f"kRPM = {slope_kRPM_PWM_ratio:.4f} * PWM_Ratio_% + {intercept_kRPM_PWM_ratio:.4f}"
+        print(f"Fitting Equation (x:PWM_Ratio_% y:kRPM): {fit_eq_kRPM_PWM_ratio}")
 
     # Linear fit for x:fz y:mz, note that the intercept must be 0. Only y=kx form.
     slope_mz_fz, intercept_mz_fz = np.polyfit(fz, mz, 1)
@@ -84,8 +90,8 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     print(f"polynominal1(10x): {10 * coeffs_PWM_ratio_fz[1]:.5f}")
     print(f"polynominal0: {coeffs_PWM_ratio_fz[2]:.5f}")
 
-    # Create 2x2 subplots
-    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+    # Create 3x2 subplots
+    fig, axs = plt.subplots(3, 2, figsize=(12, 18))
 
     # Plot 1: x:kRPM^2 y:fz
     if has_telemetry:
@@ -129,6 +135,25 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     axs[1, 1].grid()
     axs[1, 1].text(0.95, 0.05, fit_eq_PWM_ratio_fz, horizontalalignment='right', verticalalignment='bottom',
                    transform=axs[1, 1].transAxes, fontsize=10, color='green')
+
+    # Plot 5: fz vs PWM_ratio^2
+    axs[2, 0].scatter(PWM_ratio ** 2, fz, color='blue', alpha=0.5, label='Data points')
+    axs[2, 0].set_title('fz vs PWM_Ratio_%^2')
+    axs[2, 0].set_xlabel('PWM_Ratio_%^2')
+    axs[2, 0].set_ylabel('fz (N)')
+    axs[2, 0].grid()
+
+    # Plot 6: kRPM vs PWM_ratio
+    if has_telemetry:
+        axs[2, 1].scatter(PWM_ratio, kRPM, color='blue', alpha=0.5, label='Data points')
+        axs[2, 1].plot(PWM_ratio, slope_kRPM_PWM_ratio * PWM_ratio + intercept_kRPM_PWM_ratio, color='red',
+                       label='Fitted line')
+        axs[2, 1].set_title('kRPM vs PWM_Ratio_%')
+        axs[2, 1].set_xlabel('PWM_Ratio_%')
+        axs[2, 1].set_ylabel('kRPM')
+        axs[2, 1].grid()
+        axs[2, 1].text(0.95, 0.05, fit_eq_kRPM_PWM_ratio, horizontalalignment='right', verticalalignment='bottom',
+                       transform=axs[2, 1].transAxes, fontsize=10, color='green')
 
     # title with the file name
     fig.suptitle(file_name)
