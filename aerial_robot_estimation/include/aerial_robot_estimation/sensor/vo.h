@@ -98,7 +98,6 @@ namespace sensor_plugin
     bool z_no_delay_;
     bool rot_valid_; // the estimated orientatin by VO is whether valid or not.
 
-
     /* servo */
     std::string joint_name_;
     bool servo_auto_change_flag_;
