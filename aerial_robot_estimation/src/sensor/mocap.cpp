@@ -103,11 +103,11 @@ namespace sensor_plugin
       ground_truth_pose_.states[1].state.resize(2);
       ground_truth_pose_.states[2].id = "z";
       ground_truth_pose_.states[2].state.resize(2);
-      ground_truth_pose_.states[3].id = "roll";
+      ground_truth_pose_.states[3].id = "rot_x";
       ground_truth_pose_.states[3].state.resize(2);
-      ground_truth_pose_.states[4].id = "pitch";
+      ground_truth_pose_.states[4].id = "rot_y";
       ground_truth_pose_.states[4].state.resize(2);
-      ground_truth_pose_.states[5].id = "yaw";
+      ground_truth_pose_.states[5].id = "rot_z";
       ground_truth_pose_.states[5].state.resize(2);
     }
 
@@ -145,9 +145,6 @@ namespace sensor_plugin
 
       tf::Quaternion q;
       tf::quaternionMsgToTF(msg->pose.orientation, q);
-      tfScalar r = 0, p = 0, y = 0;
-      tf::Matrix3x3(q).getRPY(r, p, y);
-      tf::Vector3 euler = tf::Vector3(r, p, y);
 
       if(!first_flag)
         {
@@ -160,6 +157,7 @@ namespace sensor_plugin
           */
 
           tf::Matrix3x3 r_delta(prev_raw_q_.inverse() * q);
+          double r, p, y;
           r_delta.getRPY(r, p, y);
           tf::Vector3 raw_omega(r/delta_t, p/delta_t, y/delta_t);
 
@@ -173,10 +171,13 @@ namespace sensor_plugin
           if(!receive_groundtruth_odom_)
             {
               omega = lpf_angular_.filterFunction(raw_omega);
-              estimator_->setState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler[2]);
+              estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, tf::Matrix3x3(q));
+
+              tf::Transform cog2baselink_tf;
+              tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+              estimator_->setOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
+                                         tf::Matrix3x3(q) * cog2baselink_tf.getBasis().inverse());
             }
-          if(estimate_mode_ & (1 << aerial_robot_estimation::EXPERIMENT_ESTIMATE))
-            estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler[2]);
 
           ground_truth_pose_.header.stamp = msg->header.stamp;
 
@@ -191,7 +192,6 @@ namespace sensor_plugin
                 }
               else
                 {
-                  ground_truth_pose_.states[i].state[0].x = euler[i - 3];
                   ground_truth_pose_.states[i].state[0].y = raw_omega[i - 3];
                   ground_truth_pose_.states[i].state[1].y = omega[i - 3];
                 }
@@ -227,22 +227,19 @@ namespace sensor_plugin
 
       /* CoG */
       /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
-      /* pos_cog = pos_baselink - R * pos_cog2baselink */
+
       tf::Transform cog2baselink_tf;
       tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+      tf::Vector3 base2cog_pos = cog2baselink_tf.inverse().getOrigin();
+      tf::Matrix3x3 baselink_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
+      tf::Vector3 baselink_omega = estimator_->getAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
 
-      int estimate_mode = aerial_robot_estimation::GROUND_TRUTH;
-      estimator_->setPos(Frame::COG, estimate_mode,
-                         estimator_->getPos(Frame::BASELINK, estimate_mode)
-                         + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                         * cog2baselink_tf.inverse().getOrigin());
-      /* vel_cog = vel_baselink - R * (w x pos_cog2baselink) */
-      estimator_->setVel(Frame::COG, estimate_mode,
-                         estimator_->getVel(Frame::BASELINK, estimate_mode)
-                         + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                         * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
-
-      auto pos = estimator_->getPos(Frame::COG, estimate_mode);
+      /* pos_cog = pos_baselink + R * pos_base2cog */
+      estimator_->setPos(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
+                         baselink_pos + baselink_rot * base2cog_pos);
+      /* vel_cog = vel_baselink + R * (w x pos_base2cog) */
+      estimator_->setVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
+                         baselink_vel +  baselink_rot * (baselink_omega.cross(base2cog_pos)));
     }
 
     void groundTruthCallback(const nav_msgs::OdometryConstPtr & msg)
@@ -256,25 +253,22 @@ namespace sensor_plugin
           /* baselink */
           tf::Quaternion q;
           tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
-          tfScalar r = 0, p = 0, y = 0;
-          tf::Matrix3x3(q).getRPY(r, p, y);
-          tf::Vector3 euler(r, p, y);
 
           tf::Vector3 omega;
           tf::vector3MsgToTF(msg->twist.twist.angular, omega);
           // This LPF simulates the smoothing of gyro in spinal (e.g., dragon, which use angular to do attitude control in ROS as well as spinal,)
           omega = lpf_angular_.filterFunction(omega);
 
-          estimator_->setEuler(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, euler);
+          estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, tf::Matrix3x3(q));
           estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, omega);
 
           /* cog */
           tf::Transform cog2baselink_tf;
           tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-          (tf::Matrix3x3(q) * cog2baselink_tf.inverse().getBasis()).getRPY(r, p, y);
-          euler.setValue(r, p, y);
-          estimator_->setEuler(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, euler);
-          estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
+          estimator_->setOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
+                                     tf::Matrix3x3(q) * cog2baselink_tf.getBasis().inverse());
+          estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
+                                    cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
 
           setGroundTruthPosVel(baselink_pos, baselink_vel);
         }
@@ -283,10 +277,8 @@ namespace sensor_plugin
         {
           ground_truth_first_flag = false;
           init(baselink_pos);
+          estimator_->receiveGroundTruthOdom(true);
           receive_groundtruth_odom_ = true;
-
-          for(const auto& handler: estimator_->getImuHandlers())
-            boost::dynamic_pointer_cast<sensor_plugin::Imu>(handler)->treatImuAsGroundTruth(false);
         }
     }
 
@@ -305,16 +297,14 @@ namespace sensor_plugin
       estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
       estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
       estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH, true);
-      estimator_->setStateStatus(State::YAW_COG, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::Base::Rot, aerial_robot_estimation::GROUND_TRUTH, true);
+      estimator_->setStateStatus(State::CoG::Rot, aerial_robot_estimation::GROUND_TRUTH, true);
 
       if(estimate_mode_ & (1 << aerial_robot_estimation::EXPERIMENT_ESTIMATE))
         {
           estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
           estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
           estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
-          estimator_->setStateStatus(State::YAW_COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, true);
 
           for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EXPERIMENT_ESTIMATE))
             {
@@ -325,7 +315,7 @@ namespace sensor_plugin
               /* x, y, z */
               if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {
-                  if(id < (1 << State::ROLL_COG))
+                  if(id < (1 << State::TOTAL_NUM))
                       kf->setInitState(init_pos[id >> (State::X_BASE + 1)], 0);
                 }
 
@@ -362,7 +352,7 @@ namespace sensor_plugin
           int id = kf->getId();
 
           /* x_w, y_w, z_w */
-          if(id < (1 << State::ROLL_COG))
+          if(id < (1 << State::TOTAL_NUM))
             {
               if(plugin_name == "kalman_filter/kf_pos_vel_acc")
                 {

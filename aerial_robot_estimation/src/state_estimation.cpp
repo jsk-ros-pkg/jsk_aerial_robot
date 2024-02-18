@@ -45,18 +45,29 @@ StateEstimator::StateEstimator()
     flying_flag_(false),
     un_descend_flag_(false),
     force_att_control_flag_(false),
+    has_groundtruth_odom_(false),
     imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
 
-  for(int i = 0; i < State::TOTAL_NUM; i ++)
+  for(int i = 0; i < 6; i ++)
     {
       for(int j = 0; j < 3; j++)
         {
           state_[i][j].first = 0;
           state_[i][j].second = tf::Vector3(0, 0, 0);
         }
+    }
+
+  for(int i = 0; i < 3; i ++)
+    {
+      base_rots_.at(i).setIdentity();
+      cog_rots_.at(i).setIdentity();
+      base_omegas_.at(i).setZero();
+      cog_omegas_.at(i).setZero();
+      base_rot_status_.at(i) = 0;
+      cog_rot_status_.at(i) = 0;
     }
 
   /* TODO: represented sensors unhealth level */
@@ -88,7 +99,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = imu_stamp;
 
-  for(int axis = 0; axis < State::TOTAL_NUM; axis++)
+  for(int axis = 0; axis < 6; axis++)
     {
       aerial_robot_msgs::State r_state;
       AxisState state = getState(axis);
@@ -112,24 +123,6 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
           break;
         case State::Z_BASE:
           r_state.id = "z_b";
-          break;
-        case State::ROLL_COG:
-          r_state.id = "roll_cog";
-          break;
-        case State::PITCH_COG:
-          r_state.id = "pitch_cog";
-          break;
-        case State::YAW_COG:
-          r_state.id = "yaw_cog";
-          break;
-        case State::ROLL_BASE:
-          r_state.id = "roll_b";
-          break;
-        case State::PITCH_BASE:
-          r_state.id = "pitch_b";
-          break;
-        case State::YAW_BASE:
-          r_state.id = "yaw_b";
           break;
         default:
           break;
