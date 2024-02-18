@@ -60,6 +60,7 @@ namespace aerial_robot_model {
   private:
     //private attributes
     ros::ServiceServer add_extra_module_service_;
+    ros::Subscriber desire_coordinate_sub_;
     ros::Subscriber joint_state_sub_;
     tf2_ros::TransformBroadcaster br_;
     tf2_ros::StaticTransformBroadcaster static_br_;
@@ -73,5 +74,6 @@ namespace aerial_robot_model {
     //private functions
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
+    void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
   };
 } //namespace aerial_robot_model
