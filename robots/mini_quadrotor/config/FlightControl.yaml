@@ -4,7 +4,7 @@ controller:
   xy:
     p_gain: 5.0
     i_gain: 0.05
-    d_gain: 3.0
+    d_gain: 5.0
     limit_sum: 3
     limit_p: 3
     limit_i: 1.5
@@ -36,9 +36,9 @@ controller:
     gyro_moment_compensation: true
     clamp_gain: true
 
-    roll_pitch_p: 20
+    roll_pitch_p: 15 # 20
     roll_pitch_i: 0.5
-    roll_pitch_d: 0.15
+    roll_pitch_d: 0.5 # 1.0 #0.15
 
     yaw_p: 60
     yaw_i: 0.5

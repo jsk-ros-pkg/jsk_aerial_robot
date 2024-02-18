@@ -464,8 +464,8 @@ namespace aerial_robot_navigation
 
       setNaviState(LAND_STATE);
 
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
+      // setTargetXyFromCurrentState();
+      // setTargetYawFromCurrentState();
       ROS_INFO("Land state");
     }
 

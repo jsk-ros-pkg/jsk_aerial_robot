@@ -1,5 +1,5 @@
 bat_info:
         bat_cell: 3
-        bat_resistance: 0.04 # [m Ohm]
-        hovering_current: 15 #[A]
-        low_voltage_thre: 10 #[100%]
+        bat_resistance: 0.05 # [m Ohm]
+        hovering_current: 22 #[A]
+        low_voltage_thre: 6 #[100%]
