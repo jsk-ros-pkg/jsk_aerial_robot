@@ -98,7 +98,7 @@ private:
   int stop_pwm_value_, min_pwm_value_, max_pwm_value_;
   double pwm_range_;
 
-  float currency_;
+  float currency_ = 0.0;
   ros::Time init_time_;
 
   std::ofstream ofs_;
