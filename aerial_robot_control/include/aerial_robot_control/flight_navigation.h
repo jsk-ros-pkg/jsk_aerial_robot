@@ -557,7 +557,7 @@ namespace aerial_robot_navigation
 
     void setTargetYawFromCurrentState()
     {
-      double yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      double yaw = estimator_->getEuler(Frame::COG, estimate_mode_).z();
       setTargetYaw(yaw);
 
       // set the velocty to zero

@@ -46,6 +46,7 @@ namespace aerial_robot_control
     vel_(0,0,0), target_vel_(0,0,0),
     rpy_(0,0,0), target_rpy_(0,0,0),
     target_acc_(0,0,0),
+    target_omega_(0,0,0),
     start_rp_integration_(false)
   {
     pid_msg_.x.total.resize(1);
@@ -187,6 +188,12 @@ namespace aerial_robot_control
     start_rp_integration_ = false;
 
     for(auto& controller: pid_controllers_) controller.reset();
+
+    target_pos_.setValue(0, 0, 0);
+    target_vel_.setValue(0, 0, 0);
+    target_acc_.setValue(0, 0, 0);
+    target_rpy_.setValue(0, 0, 0);
+    target_omega_.setValue(0, 0, 0);
   }
 
   bool PoseLinearController::update()
@@ -207,10 +214,18 @@ namespace aerial_robot_control
     target_vel_ = navigator_->getTargetVel();
     target_acc_ = navigator_->getTargetAcc();
 
-    rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+    // rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+    tf::Quaternion cog2baselink_rot;
+    tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+    tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+    double r, p, y; cog_rot.getRPY(r, p, y);
+    rpy_.setValue(r, p, y);
+
     omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
     target_rpy_ = navigator_->getTargetRPY();
-    target_omega_ = navigator_->getTargetOmega();
+    tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
+    tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
+    target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
     target_ang_acc_ = navigator_->getTargetAngAcc();
 
     // time diff
