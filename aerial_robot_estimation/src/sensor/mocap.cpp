@@ -265,8 +265,13 @@ namespace sensor_plugin
           /* cog */
           tf::Transform cog2baselink_tf;
           tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-          estimator_->setOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
-                                     tf::Matrix3x3(q) * cog2baselink_tf.getBasis().inverse());
+          double r, p, y;
+          cog2baselink_tf.getBasis().getRPY(r, p, y);
+          tf::Quaternion q_baselink2cog;
+          q_baselink2cog.setRPY(-r, -p, -y);
+          q = q_baselink2cog * q;
+
+          estimator_->setOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, tf::Matrix3x3(q));
           estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH,
                                     cog2baselink_tf.getBasis() * omega); // TODO: check the vibration
 
