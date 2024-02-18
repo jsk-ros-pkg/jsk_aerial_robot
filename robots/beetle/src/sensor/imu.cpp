@@ -92,10 +92,6 @@ namespace sensor_plugin
     tf::vector3TFToMsg(filtered_omega, omega_msg.vector);
     omega_filter_pub_.publish(omega_msg);
 
-    // workaround: use raw roll&pitch omega (not filtered in spinal) for both angular and linear CoG velocity estimation, yaw is still filtered
-    // note: this is different with hydrus-like control which use filtered omega for CoG estimation
-    omega_.setZ(filtered_omega.z());
-
     // get filtered angular and linear velocity of CoG
     tf::Transform cog2baselink_tf;
     tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
