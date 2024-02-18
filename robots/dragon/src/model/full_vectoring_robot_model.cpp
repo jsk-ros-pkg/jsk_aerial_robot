@@ -45,6 +45,7 @@ namespace
     int rotor_num = model->getRotorNum();
     std::vector<Eigen::Matrix3d> link_rot = model->getLinksRotationFromCog<Eigen::Matrix3d>();
     std::vector<Eigen::Vector3d> gimbal_roll_pos = model->getGimbalRollOriginFromCog<Eigen::Vector3d>();
+    Eigen::Matrix3d cog_rot =  model->getCogDesireOrientation<Eigen::Matrix3d>();
     auto model_for_plan = model->getRobotModelForPlan();
     std::vector<Eigen::Vector3d> rotor_pos = model_for_plan->getRotorsOriginFromCog<Eigen::Vector3d>();
 
@@ -59,9 +60,9 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
     }
 
     const auto f_min_list = model->calcFeasibleControlFxyDists(roll_locked_gimbal, x, rotor_num, link_rot);
-    const auto t_min_list = model->calcFeasibleControlTDists(roll_locked_gimbal, x, rotor_num, rotor_pos, link_rot);
+    const auto t_min_list = model->calcFeasibleControlTDists(roll_locked_gimbal, x, rotor_num, rotor_pos, link_rot, cog_rot);
 
-    return model->getMinForceNormalizedWeight() * f_min_list.minCoeff() +  model->getMinTorqueNormalizedWeight() * t_min_list.minCoeff();
+    return model->getMinForceNormalizedWeight() * f_min_list.minCoeff() + model->getMinTorqueNormalizedWeight() * t_min_list.minCoeff();
   }
 }
 
@@ -81,6 +82,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   roll_locked_gimbal_.resize(rotor_num, 0);
   gimbal_roll_origin_from_cog_.resize(rotor_num);
   setGimbalNominalAngles(std::vector<double>(0)); // for online initialize
+  configuration_t_ = 0;
 
   robot_model_for_plan_ = boost::make_shared<aerial_robot_model::transformable::RobotModel>();
 
@@ -106,6 +108,8 @@ void FullVectoringRobotModel::getParamFromRos()
   nh.param("gimbal_roll_change_threshold", gimbal_roll_change_threshold_, 0.02); // rad/s
   nh.param("min_force_weight", min_force_weight_, 1.0);
   nh.param("min_torque_weight", min_torque_weight_, 1.0);
+  nh.param("confinguration_check_du", confinguration_check_du_, 1.0);
+  nh.param("fix_configuration_tresh", fix_configuration_tresh_, 0.02);
 }
 
 void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -152,6 +156,8 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       robot_model_for_plan_->updateRobotModel(gimbal_processed_joint);
 
       setGimbalNominalAngles(gimbal_nominal_angles);
+
+      last_links_rotation_from_cog_ = links_rotation_from_cog; // for configuration fix check
     }
 
   /* 2. check the orientation (pitch angle) of link to decide whether to lock gimbal roll */
@@ -213,11 +219,14 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
       /* robust: deal with the vibration of the link orientation from joint angles and cog attitude, not update the gimbal roll lock angles so often */
       for(int i = 0; i < getRotorNum(); i++)
         {
-          tf::Quaternion delta_q;
+          tf::Quaternion delta_q, prev_q;
           tf::quaternionKDLToTF(prev_links_rotation_from_cog_.at(i).Inverse() * links_rotation_from_cog.at(i), delta_q);
+          tf::quaternionKDLToTF(prev_links_rotation_from_cog_.at(i), prev_q);
+          tf::Vector3 rotation_axis = tf::Matrix3x3(prev_q) * delta_q.getAxis();
           if(fabs(delta_q.getAngle()) > link_att_change_threshold_)
             {
-              ROS_INFO_STREAM_NAMED("robot_model", "link " << i + 1 << ": the orientation is change more than threshold: " << delta_q.getAngle());
+              ROS_INFO_STREAM_NAMED("robot_model", "link " << i + 1 << ": the orientation is change more than threshold: " << delta_q.getAngle()
+                                    << "; the axis: [" << rotation_axis.x() << ", " << rotation_axis.y() << ", " << rotation_axis.z() << "]");
               roll_lock_status_change = true;
             }
         }
@@ -245,6 +254,31 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
           locked_angles_ = calcBestLockGimbalRoll(roll_locked_gimbal, prev_roll_locked_gimbal_, locked_angles_);
           prev_roll_locked_gimbal_ = roll_locked_gimbal;
           prev_links_rotation_from_cog_ = links_rotation_from_cog;
+        }
+      else
+        {
+          // periodic check (e.g. 1s) whether the robot configuration is fixed with locked gimbal
+          if (ros::Time::now().toSec() - configuration_t_ > confinguration_check_du_)
+            {
+              bool fix_configuration = true;
+              for(int i = 0; i < getRotorNum(); ++i)
+                {
+                  tf::Quaternion delta_q;
+                  tf::quaternionKDLToTF(last_links_rotation_from_cog_.at(i).Inverse() * links_rotation_from_cog.at(i), delta_q);
+                  double delta = delta_q.getAngle();
+                  if(delta > M_PI) delta -= 2* M_PI;
+
+                  if(fabs(delta) > fix_configuration_tresh_) fix_configuration = false;
+                }
+
+              last_links_rotation_from_cog_ = links_rotation_from_cog;
+              configuration_t_ = ros::Time::now().toSec();
+
+              if(fix_configuration)
+                prev_links_rotation_from_cog_ = links_rotation_from_cog;
+
+              ROS_DEBUG("the robot configuration is fix? %s", fix_configuration?std::string("Yes").c_str():std::string("No").c_str());
+            }
         }
     }
   else
@@ -454,64 +488,73 @@ void FullVectoringRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_po
 Eigen::VectorXd FullVectoringRobotModel::calcFeasibleControlFxyDists(const std::vector<int>& roll_locked_gimbal, const std::vector<double>& locked_angles, int rotor_num, const std::vector<Eigen::Matrix3d>& link_rot)
 {
   /* only consider F_x and F_y */
+  // Note: no need to consider 2DoF gimbals because unit circle.
 
   std::vector<Eigen::Vector2d> u(0);
 
-  int gimbal_lock_index = 0;
+  int gimbal_lock_cnt = 0;
   for (int i = 0; i < rotor_num; ++i)
     {
-      if(roll_locked_gimbal.at(i) == 0)
-        {
-          // ominidirectional: 2DoF
-          u.push_back(Eigen::Vector2d(1, 0)); // from the tilted x force
-          u.push_back(Eigen::Vector2d(0, 1)); // from the tilted y force
-        }
-      else
+      if(roll_locked_gimbal.at(i) == 1)
         {
           // lock gimbal roll: 1DOF
-          Eigen::Vector3d gimbal_roll_z_axis = link_rot.at(i) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(locked_angles.at(gimbal_lock_index), 0, 0)) * Eigen::Vector3d(0, 0, 1);
+          // Note: need to be describe in world frame, or the level cog frame
+          Eigen::Vector3d gimbal_roll_z_axis = link_rot.at(i) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(locked_angles.at(gimbal_lock_cnt), 0, 0)) * Eigen::Vector3d(0, 0, 1);
           u.push_back(Eigen::Vector2d(gimbal_roll_z_axis(0), gimbal_roll_z_axis(1)).normalized());
-          gimbal_lock_index++;
+          gimbal_lock_cnt++;
         }
     }
 
   Eigen::VectorXd f_min(u.size()); // f_min_i; i in [0, u.size()]
 
+  if (gimbal_lock_cnt == 1)
+    {
+      // no change due to the locked gimbal
+      f_min(0) = rotor_num - gimbal_lock_cnt; // because of three 2DoF gimbals
+      return f_min;
+    }
+
+
+  // only consider the convex composed from the locked gimbal
   for (int i = 0; i < u.size(); ++i)
     {
-      double f_min_ij = 0.0;
+      double f_min_ij = 0;
       for (int j = 0; j < u.size(); ++j)
         {
           if (i == j) continue;
           f_min_ij += fabs(u.at(i).x()*u.at(j).y() - u.at(j).x()*u.at(i).y()); // we omit the norm of u.at(i), since u is unit vector
         }
-      f_min(i) = f_min_ij;
+      f_min(i) = f_min_ij + (rotor_num  - gimbal_lock_cnt);
     }
 
   return f_min;
 }
 
-Eigen::VectorXd FullVectoringRobotModel::calcFeasibleControlTDists(const std::vector<int>& roll_locked_gimbal, const std::vector<double>& locked_angles, int rotor_num, const std::vector<Eigen::Vector3d>& rotor_pos, const std::vector<Eigen::Matrix3d>& link_rot)
+
+Eigen::VectorXd FullVectoringRobotModel::calcFeasibleControlTDists(const std::vector<int>& roll_locked_gimbal, const std::vector<double>& locked_angles, int rotor_num, const std::vector<Eigen::Vector3d>& rotor_pos, const std::vector<Eigen::Matrix3d>& link_rot, const Eigen::Matrix3d& cog_rot)
 {
+  // Note: calculate in baselink frame to remove the influence of desired rotation
+  // thus, only the joint angles affects the reuslt
   std::vector<Eigen::Vector3d> v(0);
 
-  int gimbal_lock_index = 0;
+  int gimbal_lock_cnt = 0;
   for (int i = 0; i < rotor_num; ++i)
     {
+      Eigen::Vector3d p = cog_rot.inverse() * rotor_pos.at(i); // w.r.t. baselink frame
       if(roll_locked_gimbal.at(i) == 0)
         {
           // ominidirectional: 3DoF
-          v.push_back(rotor_pos.at(i).cross(Eigen::Vector3d(1, 0, 0))); // from the tilted x force
-          v.push_back(rotor_pos.at(i).cross(Eigen::Vector3d(0, 1, 0))); // from the tilted y force
-          v.push_back(rotor_pos.at(i).cross(Eigen::Vector3d(0, 0, 1))); // from the z force
+          v.push_back(p.cross(Eigen::Vector3d(1, 0, 0))); // from the tilted x force
+          v.push_back(p.cross(Eigen::Vector3d(0, 1, 0))); // from the tilted y force
+          v.push_back(p.cross(Eigen::Vector3d(0, 0, 1))); // from the z force
         }
       else
         {
           // lock gimbal roll: 2DOF
-          Eigen::Matrix3d gimbal_roll_rot =  link_rot.at(i) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(locked_angles.at(gimbal_lock_index), 0, 0));
-          v.push_back(rotor_pos.at(i).cross(gimbal_roll_rot * Eigen::Vector3d(1, 0, 0))); // from the x force
-          v.push_back(rotor_pos.at(i).cross(gimbal_roll_rot * Eigen::Vector3d(0, 0, 1))); // from the z force
-          gimbal_lock_index++;
+          Eigen::Matrix3d gimbal_roll_rot =  cog_rot.inverse() * link_rot.at(i) * aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(locked_angles.at(gimbal_lock_cnt), 0, 0)); // w.r.t. baselink frame, but not cog frame, to keep the invariance against the desired rotation of CoG frame.
+          v.push_back(p.cross(gimbal_roll_rot * Eigen::Vector3d(1, 0, 0))); // from the x force
+          v.push_back(p.cross(gimbal_roll_rot * Eigen::Vector3d(0, 0, 1))); // from the z force
+          gimbal_lock_cnt++;
         }
     }
 
@@ -548,7 +591,6 @@ Eigen::VectorXd FullVectoringRobotModel::calcFeasibleControlTDists(const std::ve
 
   return t_min;
 }
-
 
 std::vector<double> FullVectoringRobotModel::calcBestLockGimbalRoll(const std::vector<int>& roll_locked_gimbal, const std::vector<int>& prev_roll_locked_gimbal, const std::vector<double>& prev_opt_locked_angles)
 {
@@ -612,7 +654,8 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 
   /* normalized the weight */
   min_force_normalized_weight_ = min_force_weight_ / rotor_num;
-  double max_min_torque = calcFeasibleControlTDists(std::vector<int>(rotor_num, 0), std::vector<double>(), rotor_num, rotor_pos, link_rot).minCoeff();
+  Eigen::Matrix3d cog_desire_rot =  getCogDesireOrientation<Eigen::Matrix3d>();
+  double max_min_torque = calcFeasibleControlTDists(std::vector<int>(rotor_num, 0), std::vector<double>(), rotor_num, rotor_pos, link_rot, cog_desire_rot).minCoeff();
   ROS_DEBUG_STREAM_NAMED("robot_model", "max_min_torque: " << max_min_torque);
 
   min_torque_normalized_weight_ = min_torque_weight_ / max_min_torque;
@@ -626,10 +669,10 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
 
   std::stringstream ss;
   for(auto angle: opt_locked_angles) ss << angle << ", ";
-  ROS_INFO_STREAM_NAMED("robot_model", "nlopt: locked angles: " << ss.str());
+  ROS_INFO_STREAM_NAMED("robot_model", "nlopt: locked angles: [" << ss.str() << "]");
 
   const auto f_min_list = calcFeasibleControlFxyDists(roll_locked_gimbal, opt_locked_angles, rotor_num, link_rot);
-  const auto t_min_list = calcFeasibleControlTDists(roll_locked_gimbal, opt_locked_angles, rotor_num, rotor_pos, link_rot);
+  const auto t_min_list = calcFeasibleControlTDists(roll_locked_gimbal, opt_locked_angles, rotor_num, rotor_pos, link_rot, cog_desire_rot);
 
   ROS_DEBUG_NAMED("robot_model", "opt F min: %f, opt T min: %f", f_min_list.minCoeff(), t_min_list.minCoeff());
 
@@ -644,7 +687,7 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
     }
 
   const auto f_min_list = calcFeasibleControlFxyDists(roll_locked_gimbal, locked_angles, rotor_num, link_rot);
-  const auto t_min_list = calcFeasibleControlTDists(roll_locked_gimbal, locked_angles, rotor_num, rotor_pos, link_rot);
+  const auto t_min_list = calcFeasibleControlTDists(roll_locked_gimbal, locked_angles, rotor_num, rotor_pos, link_rot, cog_desire_rot);
 
   ROS_DEBUG_NAMED("robot_model", "F min: %f, T min: %f", f_min_list.minCoeff(), t_min_list.minCoeff());
   return locked_angles;
