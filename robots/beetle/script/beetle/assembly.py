@@ -28,7 +28,7 @@ class StandbyState(smach.State):
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
-                 real_machine = False,
+                 real_machine = True,
                  unlock_servo_angle_male = 7000,
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
@@ -36,7 +36,7 @@ class StandbyState(smach.State):
                  leader = 'beetle2',
                  leader_id = 2,
                  airframe_size = 0.52,
-                 x_offset = 0.1,
+                 x_offset = 0.12,
                  y_offset = 0,
                  z_offset = 0,
                  x_tol = 0.01,
@@ -177,7 +177,10 @@ class StandbyState(smach.State):
         nav_msg_follower.target = 0
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
-        nav_msg_follower.target_pos_x = -1.5
+        if self.attach_dir < 0:
+            nav_msg_follower.target_pos_x = -1.5
+        else:
+            nav_msg_follower.target_pos_x = 1.5
         nav_msg_follower.target_pos_y = 0
         self.follower_nav_pub.publish(nav_msg_follower)
         self.emergency_flag = True
@@ -188,7 +191,7 @@ class ApproachState(smach.State):
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
-                 real_machine = False,
+                 real_machine = True,
                  unlock_servo_angle_male = 7000,
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
@@ -337,7 +340,10 @@ class ApproachState(smach.State):
         nav_msg_follower.target = 0
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
-        nav_msg_follower.target_pos_x = -1.5
+        if self.attach_dir < 0:
+            nav_msg_follower.target_pos_x = -1.5
+        else:
+            nav_msg_follower.target_pos_x = 1.5
         nav_msg_follower.target_pos_y = 0
         self.follower_nav_pub.publish(nav_msg_follower)
         self.emergency_flag = True
@@ -348,7 +354,7 @@ class AssemblyState(smach.State):
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
-                 real_machine = False,
+                 real_machine = True,
                  unlock_servo_angle_male = 7000,
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
@@ -378,6 +384,7 @@ class AssemblyState(smach.State):
         self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
+        self.assembly_nav_pub = rospy.Publisher("/assembly/uav/nav", FlightNav, queue_size=10)
         if(self.attach_dir < 0):
             self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
         else:
@@ -401,9 +408,12 @@ class AssemblyState(smach.State):
         if self.real_machine:
             self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
         time.sleep(1.0)
+        if not self.real_machine:
+            rospy.sleep(5.0)
         self.nav_msg.pos_xy_nav_mode= 6
         self.follower_nav_pub.publish(self.nav_msg)
         self.leader_nav_pub.publish(self.nav_msg)
+        self.assembly_nav_pub.publish(self.nav_msg)
         rospy.sleep(1.0)
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '1'
@@ -411,8 +421,7 @@ class AssemblyState(smach.State):
         self.flag_msg.key = str(self.leader_id)
         self.flag_msg.value = '1'
         self.flag_pub_leader.publish(self.flag_msg)
-        if not self.real_machine:
-            rospy.sleep(5.0)
+        rospy.sleep(5.0)
         return 'done'
 
     def emergencyCb(self,msg):
@@ -420,7 +429,10 @@ class AssemblyState(smach.State):
         nav_msg_follower.target = 0
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
-        nav_msg_follower.target_pos_x = -1.5
+        if self.attach_dir < 0:
+            nav_msg_follower.target_pos_x = -1.5
+        else:
+            nav_msg_follower.target_pos_x = 1.5
         nav_msg_follower.target_pos_y = 0
         self.follower_nav_pub.publish(nav_msg_follower)
         self.emergency_flag = True

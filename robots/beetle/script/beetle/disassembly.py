@@ -29,7 +29,7 @@ class SwitchState(smach.State):
                  robot_name = 'beetle1',
                  robot_id = 1,
                  male_servo_id = 5,
-                 real_machine = True,
+                 real_machine = False,
                  unlock_servo_angle_male = 7000,
                  lock_servo_angle_male = 8300,
                  unlock_servo_angle_female = 11000,
@@ -100,7 +100,7 @@ class SeparateState(smach.State):
                  robot_id = 1,
                  separate_vel = -0.5,
                  neighboring = 'beetle2',
-                 target_dist_from_neighboring = 1.0):
+                 target_dist_from_neighboring = 1.25):
 
         smach.State.__init__(self, outcomes=['done','in_process'])
 
