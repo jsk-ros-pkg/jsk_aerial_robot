@@ -194,11 +194,6 @@ void RollingNavigator::setGroundNavigationMode(int state)
       getParam<double>(navi_nh, "takeoff_height", target_z, 1.0);
       setTargetPosZ(target_z);
 
-      // setCurrentTargetBaselinkRotRoll(0.0);
-      // setFinalTargetBaselinkRotRoll(0.0);
-      // setCurrentTargetBaselinkRotPitch(0.0);
-      // setFinalTargetBaselinkRotPitch(0.0);
-
       setTargetYawFromCurrentState();
 
       controllers_reset_flag_ = true;
@@ -241,8 +236,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
       ROS_WARN_STREAM("[navigation] switch to down mode");
       current_ground_navigation_mode_ = state;
 
-      // setFinalTargetBaselinkRotRoll(0.0);
-      // setTargetYawFromCurrentState();
+      final_target_baselink_quat_ = tf::Quaternion(0.0, 0.0, 0.0, 1.0);
     }
 
 }
@@ -261,7 +255,7 @@ void RollingNavigator::setFinalTargetBaselinkQuatCallback(const geometry_msgs::Q
 
 void RollingNavigator::setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
 {
-  ROS_WARN_STREAM("[navigation] baselink rotation callback. RPY: " << msg->roll << " " << msg->pitch << " " << msg->yaw);
+  ROS_WARN_STREAM("[navigation] baselink rotation callback. RPY: " << msg->vector.x << " " << msg->vector.y << " " << msg->vector.z);
   final_target_baselink_quat_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
 }
 
