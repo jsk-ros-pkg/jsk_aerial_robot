@@ -104,8 +104,16 @@ void RollingController::standingPlanning()
       KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
       double qx, qy, qz, qw;
       rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-      rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-      rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+      if(ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+        {
+          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        }
+      else
+        {
+          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+        }
 
       navigator_->setTargetOmegaY(0);
     }
@@ -123,8 +131,16 @@ void RollingController::standingPlanning()
       KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
       double qx, qy, qz, qw;
       rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-      rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-      rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+      if(ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+        {
+          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        }
+      else
+        {
+          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+        }
 
       navigator_->setTargetOmegaY(target_pitch_ang_vel);
 
