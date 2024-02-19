@@ -59,11 +59,13 @@ if __name__=="__main__":
                     female_servo_handlers[index].sendTargetAngle(unlock_servo_angle_female)
             else:
                 if switch_type:
-                    male_servo_handlers[index].sendTargetAngle(lock_servo_angle_male)
                     female_servo_handlers[index].sendTargetAngle(lock_servo_angle_female)
+                    time.sleep(1.0)
+                    male_servo_handlers[index].sendTargetAngle(lock_servo_angle_male)
                 else:
-                    male_servo_handlers[index].sendTargetAngle(unlock_servo_angle_male)
                     female_servo_handlers[index].sendTargetAngle(unlock_servo_angle_female)
+                    time.sleep(1.0)
+                    male_servo_handlers[index].sendTargetAngle(unlock_servo_angle_male)
         else:
             if switch_type:
                 docking_msg.data = True
