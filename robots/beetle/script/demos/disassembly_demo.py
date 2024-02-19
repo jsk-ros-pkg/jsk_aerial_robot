@@ -14,8 +14,8 @@ class DisassemblyDemo():
     def main(self):
         sm_top = smach.StateMachine(outcomes=['succeeded'])
         with sm_top:
-            sm_sub1 = smach.StateMachine(outcomes=['succeeded_1_2']) # module1 depart from  module2
             sm_sub2 = smach.StateMachine(outcomes=['succeeded_2_3']) # module2 depart from  module3
+            sm_sub1 = smach.StateMachine(outcomes=['succeeded_1_2']) # module1 depart from  module2
 
             with sm_sub1:
                 smach.StateMachine.add('SwitchState1_2',
@@ -35,13 +35,14 @@ class DisassemblyDemo():
                                        SeparateState(robot_name = 'beetle3', robot_id = 3, neighboring = 'beetle2',separate_vel = 0.12),
                                        transitions={'done':'succeeded_2_3','in_process':'SeparateState2_3'})
 
-            smach.StateMachine.add('SUB1',
-                                   sm_sub1,
-                                   transitions={'succeeded_1_2':'SUB2'})
-
             smach.StateMachine.add('SUB2',
                                    sm_sub2,
-                                   transitions={'succeeded_2_3':'succeeded'})
+                                   transitions={'succeeded_2_3':'SUB1'})
+            
+            smach.StateMachine.add('SUB1',
+                                   sm_sub1,
+                                   transitions={'succeeded_1_2':'succeeded'})
+
 
         sis = smach_ros.IntrospectionServer('smach_server', sm_top, '/SM_ROOT')
         sis.start()
