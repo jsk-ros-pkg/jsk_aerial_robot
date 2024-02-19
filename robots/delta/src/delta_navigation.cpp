@@ -5,10 +5,10 @@ using namespace aerial_robot_navigation;
 
 RollingNavigator::RollingNavigator():
   BaseNavigator(),
-  curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0),
   landing_flag_(false)
 {
+  curr_target_baselink_quat_.setRPY(0, 0, 0);
+  final_target_baselink_quat_.setRPY(0, 0, 0);
 }
 
 void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -21,8 +21,9 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
 
-  curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
-  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &RollingNavigator::setFinalTargetBaselinkRotCallback, this);
+  desire_coord_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+  final_target_baselink_quat_sub_ = nh_.subscribe("final_target_baselink_quat", 1, &RollingNavigator::setFinalTargetBaselinkQuatCallback, this);
+  final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &RollingNavigator::setFinalTargetBaselinkRpyCallback, this);
   joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   ground_navigation_mode_sub_ = nh_.subscribe("ground_navigation_command", 1, &RollingNavigator::groundNavigationModeCallback, this);
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
@@ -31,8 +32,11 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
 
+  controllers_reset_flag_ = false;
   baselink_rot_force_update_mode_ = false;
 
+  curr_target_baselink_rpy_roll_ = 0.0;
+  curr_target_baselink_rpy_pitch_ = 0.0;
   target_pitch_ang_vel_ = 0.0;
   target_yaw_ang_vel_ = 0.0;
   pitch_ang_vel_updating_ = false;
@@ -54,20 +58,19 @@ void RollingNavigator::reset()
 {
   BaseNavigator::reset();
 
-  curr_target_baselink_rot_.setValue(0, 0, 0);
-  final_target_baselink_rot_.setValue(0, 0, 0);
+  curr_target_baselink_quat_.setRPY(0, 0, 0);
+  final_target_baselink_quat_.setRPY(0, 0, 0);
 
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
 
-  spinal::DesireCoord target_baselink_rot_msg;
-  target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-  target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-  curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+  controllers_reset_flag_ = false;
 
   landing_flag_ = false;
   baselink_rot_force_update_mode_ = false;
 
+  curr_target_baselink_rpy_roll_ = 0.0;
+  curr_target_baselink_rpy_pitch_ = 0.0;
   target_pitch_ang_vel_ = 0.0;
   target_yaw_ang_vel_ = 0.0;
   pitch_ang_vel_updating_ = false;
@@ -79,62 +82,49 @@ void RollingNavigator::reset()
 
 void RollingNavigator::baselinkRotationProcess()
 {
-  // if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;
-
-  spinal::DesireCoord target_baselink_rot_msg;
-
-  /* publish desire coord with constant timestep */
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
     {
-      /* force update mode */
-      if(baselink_rot_force_update_mode_)
-        {
-          target_baselink_rot_msg.roll = getCurrTargetBaselinkRotRoll();
-          target_baselink_rot_msg.pitch = getCurrTargetBaselinkRotPitch();
-          setFinalTargetBaselinkRot(tf::Vector3(getCurrTargetBaselinkRotRoll(), getCurrTargetBaselinkRotPitch(), 0.0));
-        }
-      /* linear interpolation */
-      else
-        {
-          if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
-            {
-              double curr_cog_roll = estimator_->getEuler(Frame::COG, estimate_mode_).x();
-              double curr_cog_pitch = estimator_->getEuler(Frame::COG, estimate_mode_).y();
-              if(fabs(curr_cog_roll) < baselink_rotation_stop_error_ && fabs(curr_cog_pitch) < baselink_rotation_stop_error_)
-                {
-                  curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
-                }
-              else
-                {
-                  ROS_WARN_STREAM_THROTTLE(1.0, "[navigation] do not update desire coord because rp error [" << curr_cog_roll << ", " << curr_cog_pitch << "] is larger than " << baselink_rotation_stop_error_);
-                }
-            }
-          else
-            {
-              curr_target_baselink_rot_ = final_target_baselink_rot_;
-            }
-          target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-          target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-        }
+      tf::Quaternion delta_q = curr_target_baselink_quat_.inverse() * final_target_baselink_quat_;
+      double angle = delta_q.getAngle();
+      if (angle > M_PI) angle -= 2 * M_PI;
 
-      curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+      if(fabs(angle) > baselink_rot_change_thresh_)
+        {
+          curr_target_baselink_quat_ *= tf::Quaternion(delta_q.getAxis(), fabs(angle) / angle * baselink_rot_change_thresh_);
+        }
+      else
+        curr_target_baselink_quat_ = final_target_baselink_quat_;
+
+      KDL::Rotation rot;
+      tf::quaternionTFToKDL(curr_target_baselink_quat_, rot);
+
+      /* set to robot model */
+      robot_model_->setCogDesireOrientation(rot);
+
+      /* send to spinal */
+      spinal::DesireCoord msg;
+      double r,p,y;
+      tf::Matrix3x3(curr_target_baselink_quat_).getRPY(r, p, y);
+      msg.roll = r;
+      msg.pitch = p;
+      msg.yaw = y;
+      desire_coord_pub_.publish(msg);
+
       prev_rotation_stamp_ = ros::Time::now().toSec();
     }
-
-  curr_target_baselink_rot_roll_ = curr_target_baselink_rot_.x();
-  curr_target_baselink_rot_pitch_ = curr_target_baselink_rot_.y();
-  final_target_baselink_rot_roll_ = final_target_baselink_rot_.x();
-  final_target_baselink_rot_pitch_ = final_target_baselink_rot_.y();
 }
 
 void RollingNavigator::landingProcess()
 {
+  double r, p, y;
+  tf::Matrix3x3(curr_target_baselink_quat_).getRPY(r, p, y);
+  tf::Vector3 curr_target_baselink_rpy = tf::Vector3(r, p, y);
   if(getForceLandingFlag() || getNaviState() == LAND_STATE)
     {
-      if(curr_target_baselink_rot_.length())
+      if(curr_target_baselink_rpy.length())
         {
           ROS_WARN_ONCE("[navigation][landing] set final desired baselink rotation to (0, 0, 0)");
-          final_target_baselink_rot_.setValue(0, 0, 0);
+          final_target_baselink_quat_.setRPY(0, 0, 0);
 
           if(getNaviState() == LAND_STATE && !landing_flag_)
             {
@@ -152,7 +142,7 @@ void RollingNavigator::landingProcess()
     {
       bool already_level = true;
 
-      if(curr_target_baselink_rot_.length()) already_level = false;
+      if(curr_target_baselink_rpy.length()) already_level = false;
 
       if(!already_level)
         {
@@ -176,7 +166,6 @@ void RollingNavigator::groundModeProcess()
   ground_navigation_mode_pub_.publish(msg);
 }
 
-
 void RollingNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();
@@ -185,7 +174,6 @@ void RollingNavigator::rosParamInit()
 
   getParam<double>(navi_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
   getParam<double>(navi_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
-  getParam<double>(navi_nh, "baselink_rotation_stop_error", baselink_rotation_stop_error_, 3.14);
   getParam<double>(navi_nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);
   getParam<double>(navi_nh, "rolling_max_yaw_ang_vel", rolling_max_yaw_ang_vel_, 0.0);
@@ -199,8 +187,21 @@ void RollingNavigator::setGroundNavigationMode(int state)
       ROS_WARN_STREAM("[navigation] switch to flying state");
       current_ground_navigation_mode_ = state;
 
-      setFinalTargetBaselinkRotRoll(0.0);
-      setFinalTargetBaselinkRotPitch(0.0);
+      setTargetXyFromCurrentState();
+
+      ros::NodeHandle navi_nh(nh_, "navigation");
+      double target_z;
+      getParam<double>(navi_nh, "takeoff_height", target_z, 1.0);
+      setTargetPosZ(target_z);
+
+      // setCurrentTargetBaselinkRotRoll(0.0);
+      // setFinalTargetBaselinkRotRoll(0.0);
+      // setCurrentTargetBaselinkRotPitch(0.0);
+      // setFinalTargetBaselinkRotPitch(0.0);
+
+      setTargetYawFromCurrentState();
+
+      controllers_reset_flag_ = true;
     }
 
   if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
@@ -208,8 +209,15 @@ void RollingNavigator::setGroundNavigationMode(int state)
       ROS_WARN_STREAM("[navigation] switch to staning mode");
       current_ground_navigation_mode_ = state;
 
-      setCurrentTargetBaselinkRotRoll(M_PI / 2.0);
-      setFinalTargetBaselinkRotRoll(M_PI / 2.0);
+      Eigen::Matrix3d rot_mat;
+      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+      rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+      double qx, qy, qz, qw;
+      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+      curr_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
+      final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
     }
 
   if(state == aerial_robot_navigation::ROLLING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
@@ -217,9 +225,26 @@ void RollingNavigator::setGroundNavigationMode(int state)
       ROS_WARN_STREAM("[navigation] switch to rolling mode");
       current_ground_navigation_mode_ = state;
 
-      setCurrentTargetBaselinkRotRoll(M_PI / 2.0);
-      setFinalTargetBaselinkRotRoll(M_PI / 2.0);
+      Eigen::Matrix3d rot_mat;
+      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+      rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+      double qx, qy, qz, qw;
+      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+      curr_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
+      final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
     }
+
+  if(state == aerial_robot_navigation::DOWN_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+    {
+      ROS_WARN_STREAM("[navigation] switch to down mode");
+      current_ground_navigation_mode_ = state;
+
+      // setFinalTargetBaselinkRotRoll(0.0);
+      // setTargetYawFromCurrentState();
+    }
+
 }
 
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
@@ -228,10 +253,16 @@ void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & m
   setGroundNavigationMode(msg->data);
 }
 
-void RollingNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
+void RollingNavigator::setFinalTargetBaselinkQuatCallback(const geometry_msgs::QuaternionStampedConstPtr & msg)
+{
+  tf::Quaternion final_target_baselink_quat;
+  tf::quaternionMsgToTF(msg->quaternion, final_target_baselink_quat);
+}
+
+void RollingNavigator::setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
 {
   ROS_WARN_STREAM("[navigation] baselink rotation callback. RPY: " << msg->roll << " " << msg->pitch << " " << msg->yaw);
-  setFinalTargetBaselinkRot(tf::Vector3(msg->roll, msg->pitch, msg->yaw));
+  final_target_baselink_quat_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
 }
 
 void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
@@ -255,6 +286,12 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       ROS_INFO("[joy] change to flying state");
       setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+    }
+
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+    {
+      ROS_INFO("[joy] change to down state");
+      setGroundNavigationMode(aerial_robot_navigation::DOWN_STATE);
     }
 
   /* set target angular velocity around yaw based on R-stick hilizontal */

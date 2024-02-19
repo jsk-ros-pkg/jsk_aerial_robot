@@ -11,6 +11,7 @@ msg = """\
 Standing mode: L1 + up
 Rolling  mode: L1 + down
 Flying   mode: R1 + left
+Down     mode: R1 + right
 
 Rolling pitch: L1 + Lstick vertical
 Rolling yaw  : L1 + Rstick holizontal

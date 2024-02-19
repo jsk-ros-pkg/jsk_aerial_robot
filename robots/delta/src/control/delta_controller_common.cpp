@@ -152,9 +152,22 @@ bool RollingController::update()
     {
       if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE)
         {
-          double baselink_pitch = estimator_->getEuler(Frame::BASELINK, estimate_mode_).y();
-          rolling_navigator_->setCurrentTargetBaselinkRotPitch(baselink_pitch);
-          rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
+          tf::Quaternion cog2baselink_rot;
+          tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+          tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+          double r, p, y;
+          cog_rot.getRPY(r, p, y);
+
+          Eigen::Matrix3d rot_mat;
+          Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+          Eigen::Vector3d b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+          rot_mat = Eigen::AngleAxisd(p, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+
+          KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+          double qx, qy, qz, qw;
+          rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
         }
     }
 
@@ -177,11 +190,21 @@ void RollingController::controlCore()
       rolling_robot_model_->setTargetFrame("cog");
       control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
       setControllerParams("controller");
+      if(rolling_navigator_->getControllersResetFlag())
+        {
+          for(auto& controller: pid_controllers_)
+            {
+              controller.reset();
+            }
+          rolling_navigator_->setControllersResetFlag(false);
+        }
+
+
       calcAccFromCog();
       calcFlightFullLambda();
       /* for flight */
     }
-  else if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+  else if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE  || ground_navigation_mode_ == aerial_robot_navigation::DOWN_STATE)
     {
       /* for stand */
       rolling_robot_model_->setTargetFrame("cp");
@@ -192,7 +215,7 @@ void RollingController::controlCore()
           ros::NodeHandle standing_nh(nh_, "standing_controller");
           getParam<double>(standing_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 0.0);
         }
-      if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+      if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE || ground_navigation_mode_ == aerial_robot_navigation::DOWN_STATE)
         {
           setControllerParams("rolling_controller");
           ros::NodeHandle rolling_nh(nh_, "rolling_controller");
@@ -538,16 +561,19 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   /* tf of contact point alined to ground plane */
   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
   KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
-  double baselink_roll = estimator_->getEuler(Frame::COG, estimate_mode_).x();
-  double baselink_pitch = estimator_->getEuler(Frame::COG, estimate_mode_).y();
+  tf::Quaternion cog2baselink_rot;
+  tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+  tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+  double r, p, y;
+  cog_rot.getRPY(r, p, y);
 
   if(true)
     {
       std::lock_guard<std::mutex> lock(contact_point_alined_mutex_);
       contact_point_alined_.p = contact_point.p;
       contact_point_alined_.M = cog.M;
-      contact_point_alined_.M.DoRotX(-baselink_roll);
-      contact_point_alined_.M.DoRotY(-baselink_pitch);
+      contact_point_alined_.M.DoRotX(-r);
+      contact_point_alined_.M.DoRotY(-p);
     }
   geometry_msgs::TransformStamped contact_point_alined_tf = kdlToMsg(contact_point_alined_);
   contact_point_alined_tf.header = state->header;

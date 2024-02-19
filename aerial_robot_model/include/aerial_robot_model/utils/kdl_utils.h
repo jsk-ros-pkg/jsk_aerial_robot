@@ -92,6 +92,32 @@ namespace aerial_robot_model {
                                                          });
   }
 
+  inline KDL::Vector eigenToKdl(const Eigen::Vector3d in)
+  {
+    KDL::Vector out;
+    out.x(in(0));
+    out.y(in(1));
+    out.z(in(2));
+
+    return out;
+  }
+
+  inline KDL::Rotation eigenToKdl(const Eigen::Matrix3d in)
+  {
+    KDL::Rotation out;
+    out.data[0] = in(0, 0);
+    out.data[1] = in(0, 1);
+    out.data[2] = in(0, 2);
+    out.data[3] = in(1, 0);
+    out.data[4] = in(1, 1);
+    out.data[5] = in(1, 2);
+    out.data[6] = in(2, 0);
+    out.data[7] = in(2, 1);
+    out.data[8] = in(2, 2);
+
+    return out;
+  }
+
   inline tf2::Transform kdlToTf2(const KDL::Frame& in)
   {
     tf2::Transform out;
