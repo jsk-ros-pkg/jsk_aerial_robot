@@ -3,6 +3,8 @@
 #include "spinal/DesireCoord.h"
 #include "spinal/Pwms.h"
 #include "std_msgs/Float32.h"
+#include "geometry_msgs/Quaternion.h"
+#include <tf/tf.h>
 
 class MotorPWMRepublisher
 {
@@ -33,7 +35,7 @@ private:
   ros::Timer timer_;
 
   void motorPwmCallback(const spinal::PwmsPtr & pwm_msg);
-  void desireCoordinateCallback(const spinal::DesireCoordPtr & desire_coordinate_msg);
+  void desireCoordinateCallback(const geometry_msgs::Quaternion & msg);
   void gimbalsControlCallback(const sensor_msgs::JointState & joint_state_msg);
   void timerCallback(const ros::TimerEvent & e);
 

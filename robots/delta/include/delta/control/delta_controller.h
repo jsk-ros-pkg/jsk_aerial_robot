@@ -46,7 +46,7 @@ namespace aerial_robot_control
     ros::Publisher flight_cmd_pub_;                   // for spinal
     ros::Publisher gimbal_control_pub_;               // for servo bridge
     ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
-    ros::Publisher desire_coordinate_pub_;            // for spinal
+    // ros::Publisher desire_coordinate_pub_;            // for spinal
     ros::Publisher gimbal_dof_pub_;                   // for spinal
     ros::Publisher gimbal_indices_pub_;               // for spinal
     ros::Publisher target_vectoring_force_pub_;       // for debug
