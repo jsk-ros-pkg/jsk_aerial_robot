@@ -101,6 +101,8 @@ namespace aerial_robot_control
     tf::Vector3 target_acc_, target_ang_acc_;
     tf::Vector3 rpy_, target_rpy_;
     tf::Vector3 omega_, target_omega_;
+    tf::Matrix3x3 err_rot_;
+    tf::Vector3 err_rpy_;
 
     std::string tf_prefix_;
     std::mutex wrench_mutex_;
