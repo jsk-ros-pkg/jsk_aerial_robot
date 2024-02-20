@@ -7,6 +7,7 @@ controller:
   use_sr_inv: false
   sr_inv_weight: 0.1
   hovering_approximate: false
+  attitude_control_in_spinal: true
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
 

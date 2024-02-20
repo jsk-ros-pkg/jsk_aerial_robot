@@ -80,7 +80,9 @@ void RollingController::reset()
 
   setControllerParams("controller");
   setControlAxisWithNameSpace("controller");
-  setAttitudeGains();
+
+  if(attitude_control_in_spinal_)
+    setAttitudeGains();
 
   torque_allocation_matrix_inv_pub_stamp_ = -1;
   standing_baselink_ref_pitch_last_update_time_ = -1;
@@ -111,6 +113,7 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<bool>(control_nh, "calc_gimbal_in_fc", calc_gimbal_in_fc_, false);
+  getParam<bool>(control_nh, "attitude_control_in_spinal", attitude_control_in_spinal_, true);
   getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
   getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
   getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
@@ -248,7 +251,16 @@ void RollingController::wrenchAllocation()
       Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
 
       /* calculate base thrusts */
-      target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+      if(attitude_control_in_spinal_)
+        {
+          target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+          ROS_WARN_ONCE("[control] do attitude control in spinal");
+        }
+      else
+        {
+          target_base_thrust_.at(i) = full_lambda_all_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+          ROS_ERROR_ONCE("[control] do not attitude control in spinal");
+        }
 
       /* calculate gimbal angles */
       prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
@@ -426,7 +438,8 @@ void RollingController::sendCmd()
 
   sendFourAxisCommand();
 
-  setAttitudeGains();
+  if(attitude_control_in_spinal_)
+    setAttitudeGains();
 
   sendTorqueAllocationMatrixInv();
 }
