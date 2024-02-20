@@ -69,6 +69,10 @@ public:
     r_.from_euler(desire_attitude_roll, desire_attitude_pitch, desire_attitude_yaw);
   }
 
+  void setCoordinateFromQuaternion(ap::Quaternion quat)
+  {
+    quat.rotation_matrix(r_);
+  }
 
   void update(const ap::Vector3f& gyro, const ap::Vector3f& acc, const ap::Vector3f& mag)
   {
