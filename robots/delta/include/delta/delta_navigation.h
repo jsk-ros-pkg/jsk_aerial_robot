@@ -4,6 +4,7 @@
 #include <aerial_robot_control/flight_navigation.h>
 #include <delta/model/delta_robot_model.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Int16.h>

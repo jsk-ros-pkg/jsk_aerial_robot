@@ -54,7 +54,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
   calc_gimbal_in_fc_sub_ = nh_.subscribe("calc_gimbal_in_fc", 1, &RollingController::calcGimbalInFcCallback, this);
 
-  desire_coordinate_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+  // desire_coordinate_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
   gravity_compensate_term_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gravity_compensate_term", 1);
