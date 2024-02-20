@@ -160,16 +160,27 @@ void RollingController::standingPlanning()
       tf::Quaternion cog2baselink_rot;
       tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
       tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
-      double r, p, y; cog_rot.getRPY(r, p, y);
-      rpy_.setValue(r, p, y);
-
       omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
       target_rpy_ = navigator_->getTargetRPY();
       tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
       tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
       target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
 
-      pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du, target_omega_.y() - omega_.y());
+      err_rot_[0][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][0] - (target_rot.inverse() * cog_rot)[0][0]);
+      err_rot_[0][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][1] - (target_rot.inverse() * cog_rot)[0][1]);
+      err_rot_[0][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][2] - (target_rot.inverse() * cog_rot)[0][2]);
+      err_rot_[1][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][0] - (target_rot.inverse() * cog_rot)[1][0]);
+      err_rot_[1][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][1] - (target_rot.inverse() * cog_rot)[1][1]);
+      err_rot_[1][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][2] - (target_rot.inverse() * cog_rot)[1][2]);
+      err_rot_[2][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][0] - (target_rot.inverse() * cog_rot)[2][0]);
+      err_rot_[2][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][1] - (target_rot.inverse() * cog_rot)[2][1]);
+      err_rot_[2][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][2] - (target_rot.inverse() * cog_rot)[2][2]);
+
+      err_rpy_[0] = err_rot_[2][1];
+      err_rpy_[1] = err_rot_[0][2];
+      err_rpy_[2] = err_rot_[1][0];
+
+      pid_controllers_.at(PITCH).update(err_rpy_.y(), du, target_omega_.y() - omega_.y());
     }
 
   rolling_control_timestamp_ = ros::Time::now().toSec();
