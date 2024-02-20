@@ -122,7 +122,15 @@ void RollingController::standingPlanning()
       double target_pitch_ang_vel = rolling_navigator_->getTargetPitchAngVel();
       // rolling_navigator_->setCurrentTargetBaselinkRotPitch(target_baselink_pitch + du * target_pitch_ang_vel);
 
-      double target_pitch = rolling_navigator_->getCurrentTargetBaselinkRpyPitch() + du * target_pitch_ang_vel;
+      double target_pitch = rolling_navigator_->getCurrentTargetBaselinkRpyPitch();
+      if(fabs(pid_msg_.pitch.err_p) < 0.15)
+        {
+          target_pitch += du * target_pitch_ang_vel;
+        }
+      else
+        {
+          ROS_WARN_STREAM_THROTTLE(0.5, "[control] do not update target pitch until convergence");
+        }
       rolling_navigator_->setCurrentTargetBaselinkRpyPitch(target_pitch);
 
       Eigen::Matrix3d rot_mat;
