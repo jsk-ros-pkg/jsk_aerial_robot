@@ -89,7 +89,10 @@ void RollingController::standingPlanning()
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE && fabs(pid_msg_.roll.err_p) < standing_baselink_roll_converged_thresh_)
     {
       rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
-      rosoutControlParams("rolling_controller");
+    }
+  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE && fabs(pid_msg_.roll.err_p) > rolling_baselink_roll_converged_thresh_)
+    {
+      rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
 
   double du = ros::Time::now().toSec() - rolling_control_timestamp_;

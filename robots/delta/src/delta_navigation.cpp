@@ -213,7 +213,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+      rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
       KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
       double qx, qy, qz, qw;
       rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
@@ -229,7 +229,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+      rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
       KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
       double qx, qy, qz, qw;
       rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
