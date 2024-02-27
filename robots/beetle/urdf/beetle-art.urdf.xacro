@@ -31,7 +31,7 @@
             ixy="-0.00000599" ixz="0.00008637" iyz="0.00005997"/>
       </inertial>   
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 3.141592"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://beetle/urdf/mesh/base_link_beetle_art.dae"/>
         </geometry>
@@ -59,7 +59,7 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="base_link"/>
-      <origin rpy="0 0 0" xyz="0 0 0.12947"/>
+      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.12947"/>  # should be aligned with the position of IMU
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -189,7 +189,7 @@
     <joint name="rotor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 0 0" xyz="0.018 0.00 0.00438"/>
+      <origin rpy="0 0 0" xyz="0.02335 0.0 0.0"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 

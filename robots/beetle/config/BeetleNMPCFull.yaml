@@ -6,13 +6,13 @@ controller:
     gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
     inertia_diag: [0.04170, 0.03945, 0.07068] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
     dr1: -1  # direction of motor 1
-    p1: [ 0.137628, 0.137564, 0.0340687 ] # position of motor 1
+    p1: [ 0.141357, 0.141401, 0.0297219 ] # position of motor 1
     dr2: 1  # direction of motor 2
-    p2: [ -0.137613, 0.137647, 0.0340691 ] # position of motor 2
+    p2: [ -0.141425, 0.141401, 0.0297219 ] # position of motor 2
     dr3: -1  # direction of motor 3
-    p3: [ -0.13761, -0.13805, 0.0340691 ] # position of motor 3
+    p3: [ -0.141425, -0.141801, 0.0297219 ] # position of motor 3
     dr4: 1  # direction of motor 4
-    p4: [ 0.137626, -0.137965, 0.0340687 ] # position of motor 4
+    p4: [ 0.141357, -0.141801, 0.0297219 ] # position of motor 4
     kq_d_kt: 0.0153  #0.0171998
 
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
