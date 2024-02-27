@@ -126,6 +126,7 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "standing_baselink_pitch_update", standing_baselink_pitch_update_, false);
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
   getParam<double>(control_nh, "standing_baselink_roll_converged_thresh", standing_baselink_roll_converged_thresh_, 0.0);
+  getParam<double>(control_nh, "rolling_baselink_roll_converged_thresh", rolling_baselink_roll_converged_thresh_, 0.0);
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
