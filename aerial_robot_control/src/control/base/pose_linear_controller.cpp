@@ -242,20 +242,6 @@ namespace aerial_robot_control
     target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
     target_ang_acc_ = navigator_->getTargetAngAcc();
 
-    err_rot_[0][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][0] - (target_rot.inverse() * cog_rot)[0][0]);
-    err_rot_[0][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][1] - (target_rot.inverse() * cog_rot)[0][1]);
-    err_rot_[0][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[0][2] - (target_rot.inverse() * cog_rot)[0][2]);
-    err_rot_[1][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][0] - (target_rot.inverse() * cog_rot)[1][0]);
-    err_rot_[1][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][1] - (target_rot.inverse() * cog_rot)[1][1]);
-    err_rot_[1][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[1][2] - (target_rot.inverse() * cog_rot)[1][2]);
-    err_rot_[2][0] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][0] - (target_rot.inverse() * cog_rot)[2][0]);
-    err_rot_[2][1] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][1] - (target_rot.inverse() * cog_rot)[2][1]);
-    err_rot_[2][2] = 1.0 / 2.0 * ((cog_rot.inverse() * target_rot)[2][2] - (target_rot.inverse() * cog_rot)[2][2]);
-
-    err_rpy_[0] = err_rot_[2][1];
-    err_rpy_[1] = err_rot_[0][2];
-    err_rpy_[2] = err_rot_[1][0];
-
     // time diff
     double du = ros::Time::now().toSec() - control_timestamp_;
 
@@ -322,33 +308,11 @@ namespace aerial_robot_control
           }
         du_rp = 0;
       }
-    // pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
-    // pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
-    pid_controllers_.at(ROLL).update(err_rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
-    pid_controllers_.at(PITCH).update(err_rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
+    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
+    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
 
     // yaw
-    // double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
-    double err_yaw = err_rpy_.z();
-    double err_yaw_candidate_plus = err_yaw, err_yaw_candidate_minus = err_yaw;
-    bool flag = false;
-    if(fabs(err_yaw) <= M_PI) flag = true;
-    while(!flag)
-      {
-        err_yaw_candidate_plus += 2.0 * M_PI;
-        err_yaw_candidate_minus -= 2.0 * M_PI;
-        if(fabs(err_yaw_candidate_plus) <= M_PI)
-          {
-            err_yaw = err_yaw_candidate_plus;
-            flag = true;
-          }
-        else if(fabs(err_yaw_candidate_minus) <= M_PI)
-          {
-            err_yaw = err_yaw_candidate_minus;
-            flag = true;
-          }
-      }
-
+    double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
     double err_omega_z = target_omega_.z() - omega_.z();
     if(!need_yaw_d_control_)
       {
