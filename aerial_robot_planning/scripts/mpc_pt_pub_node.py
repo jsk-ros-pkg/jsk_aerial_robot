@@ -175,12 +175,12 @@ class MPCPtPubNode:
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
     def get_one_xr_ur_from_target(
-        self,
-        target_pos,
-        target_vel=np.array([[0.0, 0.0, 0.0]]).T,
-        target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
-        target_omega=np.array([[0.0, 0.0, 0.0]]).T,
-        target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
+            self,
+            target_pos,
+            target_vel=np.array([[0.0, 0.0, 0.0]]).T,
+            target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
+            target_omega=np.array([[0.0, 0.0, 0.0]]).T,
+            target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
     ):
         anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
         target_wrench = anti_gravity_wrench + target_non_gravity_wrench
@@ -239,15 +239,15 @@ class MPCPtPubNode:
         is_ref_different = True  # TODO: consider remove ref_no_difference condition
 
         # convert rpy to quaternion
-        q = tf.transformations.quaternion_from_euler(0.5, 0, 0)
+        q = tf.transformations.quaternion_from_euler(0.0, 0.3, 0)
         target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
 
         if not is_ref_different:
             # -- case 1: all future reference points are the same
-            x, y, vx, vy, ax, ay = self.traj.get_2d_pt(rospy.Time.now().to_sec() - self.start_time)
-            target_pos = np.array([[x, y, 1.0]]).T
-            target_vel = np.array([[vx, vy, 0.0]]).T
-            target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
+            x, y, z, vx, vy, vz, ax, ay, az = self.traj.get_3d_pt(rospy.Time.now().to_sec() - self.start_time)
+            target_pos = np.array([[x, y, z]]).T
+            target_vel = np.array([[vx, vy, vz]]).T
+            target_non_gravity_wrench = np.array([[ax * mass, ay * mass, az * mass, 0, 0, 0]]).T
 
             xr, ur = self.get_one_xr_ur_from_target(
                 target_pos=target_pos,
@@ -262,10 +262,10 @@ class MPCPtPubNode:
             # -- case 2: all future reference points are different
             for i in range(self.N_nmpc + 1):
                 t_pred = i * nmpc_params["T_integ"]
-                x, y, vx, vy, ax, ay = self.traj.get_2d_pt(rospy.Time.now().to_sec() - self.start_time + t_pred)
-                target_pos = np.array([[x, y, 1.0]]).T
-                target_vel = np.array([[vx, vy, 0.0]]).T
-                target_non_gravity_wrench = np.array([[ax * mass, ay * mass, 0, 0, 0, 0]]).T
+                x, y, z, vx, vy, vz, ax, ay, az = self.traj.get_3d_pt(rospy.Time.now().to_sec() - self.start_time)
+                target_pos = np.array([[x, y, z]]).T
+                target_vel = np.array([[vx, vy, vz]]).T
+                target_non_gravity_wrench = np.array([[ax * mass, ay * mass, az * mass, 0, 0, 0]]).T
 
                 xr, ur = self.get_one_xr_ur_from_target(
                     target_pos=target_pos,
