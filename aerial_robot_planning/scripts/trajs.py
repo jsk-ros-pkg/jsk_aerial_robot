@@ -34,7 +34,7 @@ class CircleTraj2D(BaseTraj2D):
 class LemniscateTraj2D(BaseTraj2D):
     def __init__(self) -> None:
         super().__init__()
-        self.a = 0.5  # parameter determining the size of the Lemniscate
+        self.a = 1.0  # parameter determining the size of the Lemniscate
         self.T = 15  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
 
