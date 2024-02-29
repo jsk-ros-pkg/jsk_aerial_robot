@@ -88,7 +88,8 @@ target_link_libraries (trajectory_generation ${catkin_LIBRARIES})
 add_executable(trajectory_generation_node src/trajectory/test.cpp)
 target_link_libraries (trajectory_generation_node ${catkin_LIBRARIES} trajectory_generation)
 
-
+add_executable(motor_power_publisher src/util/motor_power_publisher.cpp)
+target_link_libraries(motor_power_publisher ${catkin_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
