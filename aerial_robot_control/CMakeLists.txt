@@ -102,7 +102,7 @@ install(TARGETS trajectory_generation_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY scripts plugins
+install(DIRECTORY launch scripts plugins
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
