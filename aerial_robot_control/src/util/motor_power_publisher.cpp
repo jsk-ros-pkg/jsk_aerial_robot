@@ -6,6 +6,7 @@ motorPowerPublisher::motorPowerPublisher(ros::NodeHandle nh, ros::NodeHandle nhp
 {
   motor_pwms_sub_ = nh_.subscribe("motor_pwms", 1, &motorPowerPublisher::motorPwmsCallback, this);
   battery_voltage_sub_ = nh_.subscribe("battery_voltage_status", 1, &motorPowerPublisher::batteryVoltageStatusCallback, this);
+  motor_currencies_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("motor_currency", 10);
   motor_power_pub_ = nh_.advertise<std_msgs::Float32>("motor_power", 10);
 
   timer_ = nh_.createTimer(ros::Duration(0.025), &motorPowerPublisher::timerCallback, this);
@@ -36,6 +37,18 @@ void motorPowerPublisher::rosParamInit()
         }
     }
 
+  std::cout << "currency = f(pwm)" << std::endl;
+  for(int i = 0; i < ref_num; i++)
+    {
+      std::cout << voltages_.at(i) << "V: ";
+      std::cout << std::setprecision(10);
+      for(int j = 0; j < motor_infos_.at(i).size(); j++)
+        {
+          std::cout << motor_infos_.at(i).at(j) << " * pwm^" << j << " + ";
+        }
+      std::cout << std::endl;
+    }
+
   bool simulation_mode;
   nh_.param("/use_sim_time", simulation_mode, false);
   if(simulation_mode)
@@ -51,6 +64,8 @@ void motorPowerPublisher::motorPwmsCallback(const spinal::PwmsPtr& msg)
     {
       motor_pwms_.at(i) = msg->motor_value.at(i);
     }
+
+  motor_currencies_.resize(msg->motor_value.size());
 }
 
 void motorPowerPublisher::batteryVoltageStatusCallback(const std_msgs::Float32Ptr& msg)
@@ -60,8 +75,14 @@ void motorPowerPublisher::batteryVoltageStatusCallback(const std_msgs::Float32Pt
 
 void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
 {
-  if(battery_voltage_ < voltages_.at(0) || voltages_.at(voltages_.size() - 1) < battery_voltage_)
-    return;
+  if(battery_voltage_ < voltages_.at(0))
+    {
+      battery_voltage_ = voltages_.at(0);
+    }
+  else if(voltages_.at(voltages_.size() - 1) < battery_voltage_)
+    {
+      battery_voltage_ = voltages_.at(voltages_.size() - 1);
+    }
 
   int upper_voltage_index;
   int lower_voltage_index;
@@ -73,32 +94,45 @@ void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
           lower_voltage_index = i - 1;
         }
     }
+
   double pwm_percent = 0.0;
-  double upper_power = 0.0;
-  double lower_power = 0.0;
+  double upper_currency, lower_currency;
+  double power_ratio = (battery_voltage_ - voltages_.at(lower_voltage_index)) / (voltages_.at(upper_voltage_index) - voltages_.at(lower_voltage_index));
+  double currency_sum = 0.0;
+  motor_currencies_.resize(motor_pwms_.size());
+
   for(int i = 0; i < motor_pwms_.size(); i++)
     {
       pwm_percent = motor_pwms_.at(i) / 2000.0 * 100.0;
-      upper_power +=
-        battery_voltage_ * (motor_infos_.at(upper_voltage_index).at(0) +
-                            motor_infos_.at(upper_voltage_index).at(1) * std::pow(pwm_percent, 1) +
-                            motor_infos_.at(upper_voltage_index).at(2) * std::pow(pwm_percent, 2) +
-                            motor_infos_.at(upper_voltage_index).at(3) * std::pow(pwm_percent, 3) +
-                            motor_infos_.at(upper_voltage_index).at(4) * std::pow(pwm_percent, 4));
-      lower_power +=
-        battery_voltage_ * ( motor_infos_.at(lower_voltage_index).at(0) +
-                             motor_infos_.at(lower_voltage_index).at(1) * std::pow(pwm_percent, 1) +
-                             motor_infos_.at(lower_voltage_index).at(2) * std::pow(pwm_percent, 2) +
-                             motor_infos_.at(lower_voltage_index).at(3) * std::pow(pwm_percent, 3) +
-                             motor_infos_.at(lower_voltage_index).at(4) * std::pow(pwm_percent, 4));
+
+      upper_currency =
+        motor_infos_.at(upper_voltage_index).at(0) +
+        motor_infos_.at(upper_voltage_index).at(1) * std::pow(pwm_percent, 1) +
+        motor_infos_.at(upper_voltage_index).at(2) * std::pow(pwm_percent, 2) +
+        motor_infos_.at(upper_voltage_index).at(3) * std::pow(pwm_percent, 3) +
+        motor_infos_.at(upper_voltage_index).at(4) * std::pow(pwm_percent, 4);
+
+      lower_currency =
+        motor_infos_.at(lower_voltage_index).at(0) +
+        motor_infos_.at(lower_voltage_index).at(1) * std::pow(pwm_percent, 1) +
+        motor_infos_.at(lower_voltage_index).at(2) * std::pow(pwm_percent, 2) +
+        motor_infos_.at(lower_voltage_index).at(3) * std::pow(pwm_percent, 3) +
+        motor_infos_.at(lower_voltage_index).at(4) * std::pow(pwm_percent, 4);
+
+      double currency = upper_currency * power_ratio + lower_currency * (1 - power_ratio);
+      motor_currencies_.at(i) = currency;
+      currency_sum += currency;
     }
 
-  double power_ratio = (battery_voltage_ - voltages_.at(lower_voltage_index)) / (voltages_.at(upper_voltage_index) - voltages_.at(lower_voltage_index));
-  double power = upper_power * power_ratio + lower_power * (1 - power_ratio);
+  double power = battery_voltage_ * currency_sum;
 
-  std_msgs::Float32 msg;
-  msg.data = power;
-  motor_power_pub_.publish(msg);
+  std_msgs::Float32 power_msg;
+  power_msg.data = power;
+  motor_power_pub_.publish(power_msg);
+
+  std_msgs::Float32MultiArray currency_msg;
+  currency_msg.data = motor_currencies_;
+  motor_currencies_pub_.publish(currency_msg);
 }
 
 int main(int argc, char** argv)
