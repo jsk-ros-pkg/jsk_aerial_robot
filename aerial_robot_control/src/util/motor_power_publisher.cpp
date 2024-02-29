@@ -37,6 +37,18 @@ void motorPowerPublisher::rosParamInit()
         }
     }
 
+  std::cout << "currency = f(pwm)" << std::endl;
+  for(int i = 0; i < ref_num; i++)
+    {
+      std::cout << voltages_.at(i) << "V: ";
+      std::cout << std::setprecision(10);
+      for(int j = 0; j < motor_infos_.at(i).size(); j++)
+        {
+          std::cout << motor_infos_.at(i).at(j) << " * pwm^" << j << " + ";
+        }
+      std::cout << std::endl;
+    }
+
   bool simulation_mode;
   nh_.param("/use_sim_time", simulation_mode, false);
   if(simulation_mode)
@@ -117,9 +129,9 @@ void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
 
   double power = battery_voltage_ * currency_sum;
 
-  std_msgs::Float32 msg;
-  msg.data = power;
-  motor_power_pub_.publish(msg);
+  std_msgs::Float32 power_msg;
+  power_msg.data = power;
+  motor_power_pub_.publish(power_msg);
 
   std_msgs::Float32MultiArray currency_msg;
   currency_msg.data = motor_currencies_;
