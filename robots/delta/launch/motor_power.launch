@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_ns" value="delta"/>
+  <arg name="type" value="20240207_new_armor"/>
+  
+  <include file="$(find aerial_robot_control)/launch/motor_power.launch">
+    <arg name="robot_ns" value="$(arg robot_ns)"/>
+    <arg name="config_path" value="$(find delta)/config/$(arg type)/MotorPower.yaml"/>
+  </include>
+
+</launch>

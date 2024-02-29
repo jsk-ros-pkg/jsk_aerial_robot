@@ -65,6 +65,11 @@
     <param name="motor_num" value="3"/>
   </node>
 
+  <include file="$(find aerial_robot_control)/launch/motor_power.launch">
+    <arg name="robot_ns" value="$(arg robot_ns)"/>
+    <arg name="config_path" value="$(find delta)/config/$(arg type)/MotorPower.yaml"/>
+  </include>
+
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
