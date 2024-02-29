@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_ns" default=""/>
+  <arg name="config_path" default=""/>
+
+  <node pkg="aerial_robot_control" type="motor_power_publisher" name="motor_power_publisher" ns="$(arg robot_ns)" output="screen"/>
+  <group ns="$(arg robot_ns)">
+    <rosparam file="$(arg config_path)" command="load"/>
+  </group>
+
+</launch>
