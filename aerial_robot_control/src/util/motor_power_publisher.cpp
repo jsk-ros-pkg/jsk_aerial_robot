@@ -56,10 +56,6 @@ void motorPowerPublisher::motorPwmsCallback(const spinal::PwmsPtr& msg)
 void motorPowerPublisher::batteryVoltageStatusCallback(const std_msgs::Float32Ptr& msg)
 {
   battery_voltage_ = msg->data;
-  if(battery_voltage_ < voltages_.at(0) || voltages_.at(voltages_.size() - 1) < battery_voltage_)
-    {
-      ROS_ERROR_STREAM("input voltage is not in references");
-    }
 }
 
 void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
