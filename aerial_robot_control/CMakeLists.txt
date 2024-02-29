@@ -94,7 +94,7 @@ target_link_libraries(motor_power_publisher ${catkin_LIBRARIES})
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS control_utils flight_control_pluginlib flight_navigation trajectory_generation
+install(TARGETS control_utils flight_control_pluginlib flight_navigation motor_power_publisher trajectory_generation
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
