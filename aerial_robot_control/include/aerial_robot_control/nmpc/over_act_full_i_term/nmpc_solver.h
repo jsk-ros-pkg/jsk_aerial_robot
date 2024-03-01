@@ -81,6 +81,7 @@ public:
   void reset(const aerial_robot_msgs::PredXU& x_u);
   int solve(const aerial_robot_msgs::PredXU& x_u_ref, const nav_msgs::Odometry& odom_now, double joint_angles[4],
             double f_disturb_w[3], double tau_disturb_cog[3], bool is_debug);
+  // TODO: refactor the last arguments to states and parameters.
 
   /* Setters */
   void setCostWDiagElement(int index, double value, bool is_set_mtx_wn = true) const;
@@ -100,7 +101,8 @@ private:
   ocp_nlp_solver* nlp_solver_;
   void* nlp_opts_;
 
-  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride, double* params);
+  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride,
+                    double* params);
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);

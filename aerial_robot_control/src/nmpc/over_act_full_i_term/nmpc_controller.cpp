@@ -114,6 +114,16 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
   if (is_print_physical_params)
     printPhysicalParams();
+
+  // init I term for position and attitude
+  double freq = 1.0 / ctrl_loop_du;
+  pos_i_term_[0].initialize(1.0, 10.0, freq);   // x
+  pos_i_term_[1].initialize(1.0, 10.0, freq);   // y
+  pos_i_term_[2].initialize(1.0, 10.0, freq);  // z
+
+  pos_i_term_[3].initialize(0.5, 5.0, freq);  // roll
+  pos_i_term_[4].initialize(0.5, 5.0, freq);  // pitch
+  pos_i_term_[5].initialize(0.5, 5.0, freq);  // yaw
 }
 
 bool nmpc_over_act_full_i_term::NMPCController::update()
@@ -237,9 +247,25 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
+  /* update I term */
+  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
+
+  // TODO: finish the I term for trajectory tracking
+  tf::Vector3 target_pos = navigator_->getTargetPos();
+  tf::Vector3 target_rpy = navigator_->getTargetRPY();
+
+  double fx_i_term = - pos_i_term_[0].update(target_pos.x(), pos.x());
+  double fy_i_term = - pos_i_term_[1].update(target_pos.y(), pos.y());
+  double fz_i_term = - pos_i_term_[2].update(target_pos.z(), pos.z());
+  double r_i_term = - pos_i_term_[3].update(target_rpy.x(), rpy.x());
+  double p_i_term = - pos_i_term_[4].update(target_rpy.y(), rpy.y());
+  double y_i_term = - pos_i_term_[5].update(target_rpy.z(), rpy.z());
+
+  double f_disturb_i[3] = { fx_i_term, fy_i_term, fz_i_term };
+  double tau_disturb_b[3] = { r_i_term, p_i_term, y_i_term };
+
   /* solve */
-  double f_disturb_i[3] = { 0.0, 0.0, 0.0 };
-  double tau_disturb_b[3] = { 0.0, 0.0, 0.0 };
   mpc_solver_.solve(x_u_ref_, odom_now, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
 
   /* get result */

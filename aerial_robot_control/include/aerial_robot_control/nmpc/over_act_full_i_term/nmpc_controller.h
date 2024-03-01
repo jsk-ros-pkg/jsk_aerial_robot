@@ -11,6 +11,7 @@
 
 #include "aerial_robot_control/control/base/base.h"
 #include "aerial_robot_control/nmpc/over_act_full_i_term/nmpc_solver.h"
+#include "aerial_robot_control/nmpc/i_term.h"
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>
@@ -97,6 +98,8 @@ private:
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
   ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
+
+  ITerm pos_i_term_[6];  // for x, y, z, roll, pitch, yaw
 
   nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;

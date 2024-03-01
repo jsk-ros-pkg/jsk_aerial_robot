@@ -201,13 +201,17 @@ void nmpc_over_act_full_i_term::MPCSolver::setReference(const aerial_robot_msgs:
     // parameters except for quaternions
     beetle_full_w_disturb_model_acados_update_params_sparse(acados_ocp_capsule_, i, p_idx, params, NP - 4);
   }
-  // final x and p, no u
+  // final xr, no ur
   double xr[NX];
   std::copy(x_u_ref.x.data.begin() + x_stride * NN, x_u_ref.x.data.begin() + x_stride * (NN + 1), xr);
   ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
 
+  // quaternions
   std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, qr);
   beetle_full_w_disturb_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
+
+  // parameters except for quaternions
+  beetle_full_w_disturb_model_acados_update_params_sparse(acados_ocp_capsule_, NN, p_idx, params, NP - 4);
 }
 
 void nmpc_over_act_full_i_term::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
