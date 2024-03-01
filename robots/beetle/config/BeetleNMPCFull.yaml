@@ -50,11 +50,6 @@ controller:
     Rt: 1
     Rac_d: 250  # difference of ac
 
-    # for body_rate controller
-    roll_rate_p_gain: 0.0
-    pitch_rate_p_gain: 0.0
-    yaw_rate_p_gain: 0.0
-
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
 

@@ -111,7 +111,6 @@ private:
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
 
-  void sendRPYGain();
   void sendRotationalInertiaComp();
 
   void initAllocMat();

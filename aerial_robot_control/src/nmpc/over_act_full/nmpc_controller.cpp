@@ -398,24 +398,6 @@ void nmpc_over_act_full::NMPCController::callbackSetRefTraj(const aerial_robot_m
   }
 }
 
-void nmpc_over_act_full::NMPCController::sendRPYGain()
-{
-  spinal::RollPitchYawTerms rpy_gain_msg;
-  rpy_gain_msg.motors.resize(motor_num_);
-
-  ros::NodeHandle control_nh(nh_, "controller");
-  double roll_rate_p_gain, pitch_rate_p_gain, yaw_rate_p_gain;
-  getParam<double>(control_nh, "nmpc/roll_rate_p_gain", roll_rate_p_gain, 1.0);
-  getParam<double>(control_nh, "nmpc/pitch_rate_p_gain", pitch_rate_p_gain, 1.0);
-  getParam<double>(control_nh, "nmpc/yaw_rate_p_gain", yaw_rate_p_gain, 1.0);
-
-  rpy_gain_msg.motors[0].roll_d = (short)(-roll_rate_p_gain * 1000);
-  rpy_gain_msg.motors[0].pitch_d = (short)(-pitch_rate_p_gain * 1000);
-  rpy_gain_msg.motors[0].yaw_d = (short)(-yaw_rate_p_gain * 1000);
-
-  pub_rpy_gain_.publish(rpy_gain_msg);
-}
-
 void nmpc_over_act_full::NMPCController::sendRotationalInertiaComp()
 {
   int lqi_mode_ = 4;

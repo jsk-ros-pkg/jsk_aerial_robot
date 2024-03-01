@@ -117,8 +117,8 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
 
   // init I term for position and attitude
   double freq = 1.0 / ctrl_loop_du;
-  pos_i_term_[0].initialize(1.0, 10.0, freq);   // x
-  pos_i_term_[1].initialize(1.0, 10.0, freq);   // y
+  pos_i_term_[0].initialize(1.0, 10.0, freq);  // x
+  pos_i_term_[1].initialize(1.0, 10.0, freq);  // y
   pos_i_term_[2].initialize(1.0, 10.0, freq);  // z
 
   pos_i_term_[3].initialize(0.5, 5.0, freq);  // roll
@@ -255,12 +255,12 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   tf::Vector3 target_pos = navigator_->getTargetPos();
   tf::Vector3 target_rpy = navigator_->getTargetRPY();
 
-  double fx_i_term = - pos_i_term_[0].update(target_pos.x(), pos.x());
-  double fy_i_term = - pos_i_term_[1].update(target_pos.y(), pos.y());
-  double fz_i_term = - pos_i_term_[2].update(target_pos.z(), pos.z());
-  double r_i_term = - pos_i_term_[3].update(target_rpy.x(), rpy.x());
-  double p_i_term = - pos_i_term_[4].update(target_rpy.y(), rpy.y());
-  double y_i_term = - pos_i_term_[5].update(target_rpy.z(), rpy.z());
+  double fx_i_term = -pos_i_term_[0].update(target_pos.x(), pos.x());
+  double fy_i_term = -pos_i_term_[1].update(target_pos.y(), pos.y());
+  double fz_i_term = -pos_i_term_[2].update(target_pos.z(), pos.z());
+  double r_i_term = -pos_i_term_[3].update(target_rpy.x(), rpy.x());
+  double p_i_term = -pos_i_term_[4].update(target_rpy.y(), rpy.y());
+  double y_i_term = -pos_i_term_[5].update(target_rpy.z(), rpy.z());
 
   double f_disturb_i[3] = { fx_i_term, fy_i_term, fz_i_term };
   double tau_disturb_b[3] = { r_i_term, p_i_term, y_i_term };
@@ -426,24 +426,6 @@ void nmpc_over_act_full_i_term::NMPCController::callbackSetRefTraj(const aerial_
   }
 }
 
-void nmpc_over_act_full_i_term::NMPCController::sendRPYGain()
-{
-  spinal::RollPitchYawTerms rpy_gain_msg;
-  rpy_gain_msg.motors.resize(motor_num_);
-
-  ros::NodeHandle control_nh(nh_, "controller");
-  double roll_rate_p_gain, pitch_rate_p_gain, yaw_rate_p_gain;
-  getParam<double>(control_nh, "nmpc/roll_rate_p_gain", roll_rate_p_gain, 1.0);
-  getParam<double>(control_nh, "nmpc/pitch_rate_p_gain", pitch_rate_p_gain, 1.0);
-  getParam<double>(control_nh, "nmpc/yaw_rate_p_gain", yaw_rate_p_gain, 1.0);
-
-  rpy_gain_msg.motors[0].roll_d = (short)(-roll_rate_p_gain * 1000);
-  rpy_gain_msg.motors[0].pitch_d = (short)(-pitch_rate_p_gain * 1000);
-  rpy_gain_msg.motors[0].yaw_d = (short)(-yaw_rate_p_gain * 1000);
-
-  pub_rpy_gain_.publish(rpy_gain_msg);
-}
-
 void nmpc_over_act_full_i_term::NMPCController::sendRotationalInertiaComp()
 {
   int lqi_mode_ = 4;
@@ -552,8 +534,8 @@ void nmpc_over_act_full_i_term::NMPCController::initAllocMat()
 }
 
 void nmpc_over_act_full_i_term::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                                    const Eigen::VectorXd& target_wrench)
+                                                           const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
+                                                           const Eigen::VectorXd& target_wrench)
 {
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
   double a1_ref = atan2(x_lambda(0), x_lambda(1));
@@ -689,4 +671,5 @@ void nmpc_over_act_full_i_term::NMPCController::cfgNMPCCallback(NMPCConfig& conf
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_over_act_full_i_term::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_over_act_full_i_term::NMPCController,
+                       aerial_robot_control::ControlBase);
