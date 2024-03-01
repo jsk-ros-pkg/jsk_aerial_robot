@@ -81,6 +81,8 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   pub_p_matrix_pseudo_inverse_inertia_ =
       nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);  // tmp
 
+  pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
+
   /* services */
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
   bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
@@ -270,15 +272,24 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   tf::Vector3 target_pos = navigator_->getTargetPos();
   tf::Vector3 target_rpy = navigator_->getTargetRPY();
 
-  double fx_i_term = -pos_i_term_[0].update(target_pos.x(), pos.x());
-  double fy_i_term = -pos_i_term_[1].update(target_pos.y(), pos.y());
-  double fz_i_term = -pos_i_term_[2].update(target_pos.z(), pos.z());
-  double r_i_term = -pos_i_term_[3].update(target_rpy.x(), rpy.x());
-  double p_i_term = -pos_i_term_[4].update(target_rpy.y(), rpy.y());
-  double y_i_term = -pos_i_term_[5].update(target_rpy.z(), rpy.z());
+  double fx_w_i_term = -pos_i_term_[0].update(target_pos.x(), pos.x());
+  double fy_w_i_term = -pos_i_term_[1].update(target_pos.y(), pos.y());
+  double fz_w_i_term = -pos_i_term_[2].update(target_pos.z(), pos.z());
+  double mx_cog_i_term = -pos_i_term_[3].update(target_rpy.x(), rpy.x());
+  double my_cog_i_term = -pos_i_term_[4].update(target_rpy.y(), rpy.y());
+  double mz_cog_i_term = -pos_i_term_[5].update(target_rpy.z(), rpy.z());
 
-  double f_disturb_i[3] = { fx_i_term, fy_i_term, fz_i_term };
-  double tau_disturb_b[3] = { r_i_term, p_i_term, y_i_term };
+  dist_force_w_ = geometry_msgs::Vector3();
+  dist_force_w_.x = fx_w_i_term;
+  dist_force_w_.y = fy_w_i_term;
+  dist_force_w_.z = fz_w_i_term;
+  dist_torque_cog_ = geometry_msgs::Vector3();
+  dist_torque_cog_.x = mx_cog_i_term;
+  dist_torque_cog_.y = my_cog_i_term;
+  dist_torque_cog_.z = mz_cog_i_term;
+
+  double f_disturb_i[3] = { fx_w_i_term, fy_w_i_term, fz_w_i_term };
+  double tau_disturb_b[3] = { mx_cog_i_term, my_cog_i_term, mz_cog_i_term };
 
   /* solve */
   mpc_solver_.solve(x_u_ref_, odom_now, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
@@ -404,6 +415,23 @@ void nmpc_over_act_full_i_term::NMPCController::callbackViz(const ros::TimerEven
   ref_poses.header.frame_id = "world";
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
+
+  /* disturbance wrench */
+  geometry_msgs::WrenchStamped dist_wrench_;
+  dist_wrench_.header.frame_id = "beetle1/cog";
+
+  dist_wrench_.wrench.torque = dist_torque_cog_;
+
+  tf::Matrix3x3 rot_mtx_cog2w = estimator_->getOrientation(Frame::COG, estimate_mode_);
+  tf::Vector3 dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
+  tf::Vector3 dist_force_cog = rot_mtx_cog2w.inverse() * dist_force_w;
+  dist_wrench_.wrench.force.x = dist_force_cog.x();
+  dist_wrench_.wrench.force.y = dist_force_cog.y();
+  dist_wrench_.wrench.force.z = dist_force_cog.z();
+
+  dist_wrench_.header.stamp = ros::Time::now();
+
+  pub_disturb_wrench_.publish(dist_wrench_);
 }
 
 void nmpc_over_act_full_i_term::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)

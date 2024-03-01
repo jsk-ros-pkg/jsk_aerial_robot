@@ -24,6 +24,8 @@
 /* protocol */
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/PoseArray.h"
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/WrenchStamped.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "spinal/FourAxisCommand.h"
 #include "spinal/RollPitchYawTerms.h"
@@ -67,6 +69,7 @@ protected:
   ros::Publisher pub_rpy_gain_;                         // for gains of attitude controller
   ros::Publisher pub_p_matrix_pseudo_inverse_inertia_;  // for pseudo inverse inertia
   ros::Publisher pub_gimbal_control_;                   // for gimbal control
+  ros::Publisher pub_disturb_wrench_;                   // for disturbance wrench
 
   ros::ServiceClient srv_set_control_mode_;
   std::vector<boost::shared_ptr<NMPCControlDynamicConfig> > nmpc_reconf_servers_;
@@ -82,7 +85,7 @@ protected:
   virtual void controlCore();
   virtual void SendCmd();
 
-  void cfgNMPCCallback(NMPCConfig &config, uint32_t level);
+  void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
 private:
   double mass_;
@@ -106,6 +109,9 @@ private:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
+  geometry_msgs::Vector3 dist_force_w_ = geometry_msgs::Vector3();
+  geometry_msgs::Vector3 dist_torque_cog_ = geometry_msgs::Vector3();
+
   MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
@@ -123,6 +129,6 @@ private:
   void printPhysicalParams();
 };
 
-};  // namespace nmpc_over_act_full
+};  // namespace nmpc_over_act_full_i_term
 
 };  // namespace aerial_robot_control
