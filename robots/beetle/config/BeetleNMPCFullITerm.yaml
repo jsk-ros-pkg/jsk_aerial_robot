@@ -4,7 +4,7 @@ controller:
   physical:
     mass: 2.773  # no battery: 2.773-0.821=1.952 ; with battery: 2.773; in sim: 2.99194 # kg
     gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
-    inertia_diag: [0.04170, 0.03945, 0.07068] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
+    inertia_diag: [ 0.04170, 0.03945, 0.07068 ] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
     dr1: -1  # direction of motor 1
     p1: [ 0.137712, 0.137882, 0.0297217 ] # position of motor 1
     dr2: 1  # direction of motor 2
@@ -55,3 +55,18 @@ controller:
 
     is_print_physical_params: false
     is_debug: false
+
+  disturb_rej:
+    limit:
+      fx: 5.0
+      fy: 5.0
+      fz: 5.0
+      mx: 1.0
+      my: 1.0
+      mz: 1.0
+
+    i_gain:
+      xy: 1.0
+      z: 1.0
+      roll_pitch: 0.5
+      yaw: 0.5

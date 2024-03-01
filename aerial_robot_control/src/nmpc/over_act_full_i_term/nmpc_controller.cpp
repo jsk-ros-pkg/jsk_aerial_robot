@@ -16,6 +16,7 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(control_nh, "physical");
+  ros::NodeHandle disturb_rej_nh(control_nh, "disturb_rej");
 
   // initialize nmpc solver
   mpc_solver_.initialize();
@@ -115,15 +116,29 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   if (is_print_physical_params)
     printPhysicalParams();
 
-  // init I term for position and attitude
-  double freq = 1.0 / ctrl_loop_du;
-  pos_i_term_[0].initialize(1.0, 10.0, freq);  // x
-  pos_i_term_[1].initialize(1.0, 10.0, freq);  // y
-  pos_i_term_[2].initialize(1.0, 10.0, freq);  // z
+  /* disturbance rejection using I term */
+  double fx_limit, fy_limit, fz_limit, mx_limit, my_limit, mz_limit;
+  getParam<double>(disturb_rej_nh, "limit/fx", fx_limit, 5.0);
+  getParam<double>(disturb_rej_nh, "limit/fy", fy_limit, 5.0);
+  getParam<double>(disturb_rej_nh, "limit/fz", fz_limit, 5.0);
+  getParam<double>(disturb_rej_nh, "limit/mx", mx_limit, 1.0);
+  getParam<double>(disturb_rej_nh, "limit/my", my_limit, 1.0);
+  getParam<double>(disturb_rej_nh, "limit/mz", mz_limit, 1.0);
 
-  pos_i_term_[3].initialize(0.5, 5.0, freq);  // roll
-  pos_i_term_[4].initialize(0.5, 5.0, freq);  // pitch
-  pos_i_term_[5].initialize(0.5, 5.0, freq);  // yaw
+  double i_gain_xy, i_gain_z, i_gain_roll_pitch, i_gain_yaw;
+  getParam<double>(disturb_rej_nh, "i_gain/xy", i_gain_xy, 1.0);
+  getParam<double>(disturb_rej_nh, "i_gain/z", i_gain_z, 1.0);
+  getParam<double>(disturb_rej_nh, "i_gain/roll_pitch", i_gain_roll_pitch, 0.5);
+  getParam<double>(disturb_rej_nh, "i_gain/yaw", i_gain_yaw, 0.5);
+
+  double freq = 1.0 / ctrl_loop_du;
+  pos_i_term_[0].initialize(i_gain_xy, fx_limit, freq);  // x
+  pos_i_term_[1].initialize(i_gain_xy, fy_limit, freq);  // y
+  pos_i_term_[2].initialize(i_gain_z, fz_limit, freq);   // z
+
+  pos_i_term_[3].initialize(i_gain_roll_pitch, mx_limit, freq);  // roll
+  pos_i_term_[4].initialize(i_gain_roll_pitch, my_limit, freq);  // pitch
+  pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);         // yaw
 }
 
 bool nmpc_over_act_full_i_term::NMPCController::update()
