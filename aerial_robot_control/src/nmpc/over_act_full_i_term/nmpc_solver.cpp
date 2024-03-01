@@ -38,12 +38,12 @@ void nmpc_over_act_full_i_term::MPCSolver::initialize()
   /* init weight matrix, W is a getCostWeightDim(0) * getCostWeightDim(0) double matrix */
   int nw = NX + NU;
 
-  W_ = (double*)malloc((nw * nw) * sizeof(double));
+  mtx_w_ = (double*)malloc((nw * nw) * sizeof(double));
   for (int i = 0; i < nw * nw; i++)
-    W_[i] = 0.0;
-  WN_ = (double*)malloc((NX * NX) * sizeof(double));
+    mtx_w_[i] = 0.0;
+  mtx_wn_ = (double*)malloc((NX * NX) * sizeof(double));
   for (int i = 0; i < NX * NX; i++)
-    WN_[i] = 0.0;
+    mtx_wn_[i] = 0.0;
 
   //  /* Set constraints */
   //  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are
@@ -309,17 +309,17 @@ void nmpc_over_act_full_i_term::MPCSolver::printStatus(const double min_time)
             kkt_norm_inf);
 }
 
-void nmpc_over_act_full_i_term::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
+void nmpc_over_act_full_i_term::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_mtx_wn) const
 {
   if (index < NX + NU)
-    W_[index + index * (NX + NU)] = (double)value;
+    mtx_w_[index + index * (NX + NU)] = (double)value;
   else
     ROS_ERROR("index should be less than NX + NU");
 
-  if (is_set_WN)
+  if (is_set_mtx_wn)
   {
     if (index < NX)
-      WN_[index + index * NX] = (double)value;
+      mtx_wn_[index + index * NX] = (double)value;
     else
       ROS_ERROR("index should be less than NX");
   }
@@ -330,8 +330,8 @@ void nmpc_over_act_full_i_term::MPCSolver::setCostWeight(bool is_update_W, bool 
   if (is_update_W)
   {
     for (int i = 0; i < NN; i++)
-      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_);
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", mtx_w_);
   }
   if (is_update_WN)
-    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "W", WN_);
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "W", mtx_wn_);
 }

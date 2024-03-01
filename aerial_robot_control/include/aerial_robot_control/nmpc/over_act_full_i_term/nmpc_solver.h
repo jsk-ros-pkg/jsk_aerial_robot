@@ -72,8 +72,8 @@ class MPCSolver
 {
 public:
   aerial_robot_msgs::PredXU x_u_out_;
-  double* W_;
-  double* WN_;
+  double* mtx_w_;
+  double* mtx_wn_;
 
   MPCSolver();
   ~MPCSolver();
@@ -83,7 +83,7 @@ public:
             double f_disturb_w[3], double tau_disturb_cog[3], bool is_debug);
 
   /* Setters */
-  void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
+  void setCostWDiagElement(int index, double value, bool is_set_mtx_wn = true) const;
   void setCostWeight(bool is_update_W, bool is_update_WN);
 
   /* for debugging */
