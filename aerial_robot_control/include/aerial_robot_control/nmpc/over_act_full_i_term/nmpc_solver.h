@@ -72,8 +72,6 @@ class MPCSolver
 {
 public:
   aerial_robot_msgs::PredXU x_u_out_;
-  int nx_;
-  int nu_;
   double* W_;
   double* WN_;
 
@@ -81,8 +79,8 @@ public:
   ~MPCSolver();
   void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
-  int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
-            bool is_debug);
+  int solve(const aerial_robot_msgs::PredXU& x_u_ref, const nav_msgs::Odometry& odom_now, double joint_angles[4],
+            double f_disturb_w[3], double tau_disturb_cog[3], bool is_debug);
 
   /* Setters */
   void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
@@ -102,7 +100,7 @@ private:
   ocp_nlp_solver* nlp_solver_;
   void* nlp_opts_;
 
-  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
+  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride, double* params);
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
@@ -110,6 +108,6 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace nmpc_over_act_full
+}  // namespace nmpc_over_act_full_i_term
 
 }  // namespace aerial_robot_control

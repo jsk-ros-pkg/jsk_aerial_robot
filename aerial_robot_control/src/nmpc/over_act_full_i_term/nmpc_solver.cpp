@@ -36,15 +36,13 @@ void nmpc_over_act_full_i_term::MPCSolver::initialize()
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
 
   /* init weight matrix, W is a getCostWeightDim(0) * getCostWeightDim(0) double matrix */
-  nx_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "x");
-  nu_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "u");
-  int nw = nx_ + nu_;
+  int nw = NX + NU;
 
   W_ = (double*)malloc((nw * nw) * sizeof(double));
   for (int i = 0; i < nw * nw; i++)
     W_[i] = 0.0;
-  WN_ = (double*)malloc((nx_ * nx_) * sizeof(double));
-  for (int i = 0; i < nx_ * nx_; i++)
+  WN_ = (double*)malloc((NX * NX) * sizeof(double));
+  for (int i = 0; i < NX * NX; i++)
     WN_[i] = 0.0;
 
   //  /* Set constraints */
@@ -125,12 +123,16 @@ void nmpc_over_act_full_i_term::MPCSolver::reset(const aerial_robot_msgs::PredXU
   ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
-int nmpc_over_act_full_i_term::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
-                                         const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
+int nmpc_over_act_full_i_term::MPCSolver::solve(const aerial_robot_msgs::PredXU& x_u_ref,
+                                                const nav_msgs::Odometry& odom_now, double joint_angles[4],
+                                                double f_disturb_w[3], double tau_disturb_cog[3], bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
-  setReference(x_u_ref, x_stride, u_stride);
+
+  double params[NP - 4] = { f_disturb_w[0],     f_disturb_w[1],     f_disturb_w[2],
+                            tau_disturb_cog[0], tau_disturb_cog[1], tau_disturb_cog[2] };
+  setReference(x_u_ref, x_stride, u_stride, params);
 
   setFeedbackConstraints(odom_now, joint_angles);
 
@@ -177,12 +179,14 @@ void nmpc_over_act_full_i_term::initPredXU(aerial_robot_msgs::PredXU& x_u)
   std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
 }
 
-void nmpc_over_act_full_i_term::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
-                                                 const unsigned int u_stride)
+void nmpc_over_act_full_i_term::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref,
+                                                        const unsigned int x_stride, const unsigned int u_stride,
+                                                        double* params)
 {
   double yr[NX + NU];
   double qr[4];
   int qr_idx[] = { 0, 1, 2, 3 };
+  int p_idx[] = { 4, 5, 6, 7, 8, 9 };
   for (int i = 0; i < NN; i++)
   {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
@@ -193,6 +197,9 @@ void nmpc_over_act_full_i_term::MPCSolver::setReference(const aerial_robot_msgs:
     // quaternions
     std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
     beetle_full_w_disturb_model_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
+
+    // parameters except for quaternions
+    beetle_full_w_disturb_model_acados_update_params_sparse(acados_ocp_capsule_, i, p_idx, params, NP - 4);
   }
   // final x and p, no u
   double xr[NX];
@@ -204,7 +211,7 @@ void nmpc_over_act_full_i_term::MPCSolver::setReference(const aerial_robot_msgs:
 }
 
 void nmpc_over_act_full_i_term::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
-                                                           const double joint_angles[4])
+                                                                  const double joint_angles[4])
 {
   // TODO: modify, to pass in variable array
   double bx0[NBX0];
@@ -304,17 +311,17 @@ void nmpc_over_act_full_i_term::MPCSolver::printStatus(const double min_time)
 
 void nmpc_over_act_full_i_term::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
 {
-  if (index < nx_ + nu_)
-    W_[index + index * (nx_ + nu_)] = (double)value;
+  if (index < NX + NU)
+    W_[index + index * (NX + NU)] = (double)value;
   else
-    ROS_ERROR("index should be less than nx_ + nu_");
+    ROS_ERROR("index should be less than NX + NU");
 
   if (is_set_WN)
   {
-    if (index < nx_)
-      WN_[index + index * nx_] = (double)value;
+    if (index < NX)
+      WN_[index + index * NX] = (double)value;
     else
-      ROS_ERROR("index should be less than nx_");
+      ROS_ERROR("index should be less than NX");
   }
 }
 

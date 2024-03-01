@@ -238,7 +238,9 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
 
   /* solve */
-  mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug_);
+  double f_disturb_i[3] = { 0.0, 0.0, 0.0 };
+  double tau_disturb_b[3] = { 0.0, 0.0, 0.0 };
+  mpc_solver_.solve(x_u_ref_, odom_now, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
 
   /* get result */
   // - body rates
