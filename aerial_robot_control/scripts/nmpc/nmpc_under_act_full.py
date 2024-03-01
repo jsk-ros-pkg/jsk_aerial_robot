@@ -55,7 +55,7 @@ class NMPCController(object):
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
                                    "under_act_full")
-
+        safe_mkdir_recursive(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
         # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
