@@ -1,32 +1,40 @@
-/*
- * servo.cpp
- *
- *  Created on: 2024/3/1
- *      Author: J.Sugihara
- *
- */
+/**
+******************************************************************************
+* File Name          : servo.cpp
+* Description        : universal servo control interface for Spinal
+* Author             : J.Sugihara (2024/3/1)
+ ------------------------------------------------------------------*/
+
 
 #include "servo.h"
 
-void Servo::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
   nh_ = nh;
   nh_->subscribe(servo_ctrl_sub_);
   nh_->subscribe(servo_torque_ctrl_sub_);
-  servo_handler_.init(huart, hi2c, mutex);
+  nh_->advertise(servo_state_pub_);
+  nh_->advertise(servo_torque_state_pub_);
+
+  // servo_state_msg_.servos_length = servo_with_send_flag_.size();
+  // servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
+  // servo_torque_state_msg_.torque_enable_length = servo_.size();
+  // servo_torque_state_msg_.torque_enable = new uint8_t[servo_.size()];
+
+  servo_handler_.init(huart, mutex);
 }
 
-void Servo::update()
+void DirectServo::update()
 {
   servo_handler_.update();
 }
 
-void Servo::sendData()
+void DirectServo::sendData()
 {
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];
     if (s.send_data_flag_ != 0) {
-      ServoData data(static_cast<int16_t>(s.getPresentPosition()),
+      ServoState data(static_cast<int16_t>(s.getPresentPosition()),
                      s.present_temp_,
                      s.moving_,
                      s.present_current_,
@@ -36,7 +44,7 @@ void Servo::sendData()
   }
 }
 
-void Servo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
+void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
 {
   if (control_msg.index_length != control_msg.angles_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
@@ -50,7 +58,7 @@ void Servo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
   }
 }
 
-void Servo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
+void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
 {
   if (control_msg.index_length != control_msg.torque_enable_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
