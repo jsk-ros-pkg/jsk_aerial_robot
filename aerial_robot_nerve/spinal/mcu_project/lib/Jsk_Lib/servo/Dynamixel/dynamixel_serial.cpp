@@ -1,7 +1,15 @@
 #include "dynamixel_serial.h"
 // #include "flashmemory/flashmemory.h"
 
-void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex)
+namespace
+{
+#if STM32H7
+  uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+#else
+  uint8_t rx_buf_[RX_BUFFER_SIZE];
+#endif
+}
+void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 {
 	huart_ = huart;
         mutex_ = mutex;
@@ -12,7 +20,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	get_temp_tick_ = 0;
 	get_move_tick_ = 0;
 	get_error_tick_ = 0;
-
 
         /* rx */
         __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
@@ -71,7 +78,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 
 
         //initialize encoder: only can support one encoder
-        encoder_handler_.init(hi2c); // Magnetic Encoder
+        // encoder_handler_.init(hi2c); // Magnetic Encoder
 
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
           servo_[i].hardware_error_status_ = 0;
@@ -89,7 +96,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 
 void DynamixelSerial::ping()
 {
-	cmdPing(BROADCAST_ID);
+	cmdPing(DX_BROADCAST_ID);
 	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
 		readStatusPacket(INST_PING);
 	}
@@ -438,30 +445,30 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   int header_match_count = 0;
   int transmit_data_index = 8;
   for (int i = 0; i < len - 3; i++) {
-	uint8_t tx_data = parameters[i];
-	if (header_match_count == 0) {
- 		if (tx_data == HEADER0) header_match_count++;
- 		else header_match_count = 0;
- 		transmit_data[transmit_data_index] = tx_data;
- 		transmit_data_index++;
- 	} else if (header_match_count == 1) {
- 		if (tx_data == HEADER1) header_match_count++;
- 		else header_match_count = 0;
- 		transmit_data[transmit_data_index] = tx_data;
- 		transmit_data_index++;
- 	} else if (header_match_count == 2) {
- 		if (tx_data == HEADER2) {
- 			//exception
- 			transmit_data[transmit_data_index] = tx_data;
- 			transmit_data_index++;
- 			transmit_data[transmit_data_index] = EXCEPTION_ADDITIONAL_BYTE;
- 			transmit_data_index++;
- 		} else {
- 			header_match_count = 0;
- 			transmit_data[transmit_data_index] = tx_data;
- 			transmit_data_index++;
- 		}
- 	}
+    uint8_t tx_data = parameters[i];
+    if (header_match_count == 0) {
+      if (tx_data == HEADER0) header_match_count++;
+      else header_match_count = 0;
+      transmit_data[transmit_data_index] = tx_data;
+      transmit_data_index++;
+    } else if (header_match_count == 1) {
+      if (tx_data == HEADER1) header_match_count++;
+      else header_match_count = 0;
+      transmit_data[transmit_data_index] = tx_data;
+      transmit_data_index++;
+    } else if (header_match_count == 2) {
+      if (tx_data == HEADER2) {
+        //exception
+        transmit_data[transmit_data_index] = tx_data;
+        transmit_data_index++;
+        transmit_data[transmit_data_index] = EXCEPTION_ADDITIONAL_BYTE;
+        transmit_data_index++;
+      } else {
+        header_match_count = 0;
+        transmit_data[transmit_data_index] = tx_data;
+        transmit_data_index++;
+      }
+    }
   }
 
   /* checksum */
@@ -471,6 +478,7 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   transmit_data_index++;
   transmit_data[transmit_data_index] = (chksum >> 8) & 0xFF; //CRC_H
   transmit_data_index++;
+
   /* send data */
   // WE;
   HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS. 
@@ -738,7 +746,7 @@ void DynamixelSerial::cmdSyncRead(uint16_t address, uint16_t byte_size, bool sen
           if(!send_all && !servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
           parameters[param_idx++] = servo_[i].id_;
 	}
-	transmitInstructionPacket(BROADCAST_ID, param_idx + 3, COMMAND_SYNC_READ, parameters);
+	transmitInstructionPacket(DX_BROADCAST_ID, param_idx + 3, COMMAND_SYNC_READ, parameters);
 }
 
 void DynamixelSerial::cmdSyncWrite(uint16_t address, uint8_t* param, int param_len)
@@ -756,7 +764,7 @@ void DynamixelSerial::cmdSyncWrite(uint16_t address, uint8_t* param, int param_l
 			parameters[all_param_idx++] = param[param_idx++];
 		}
 	}
-	transmitInstructionPacket(BROADCAST_ID, all_param_idx + 3, COMMAND_SYNC_WRITE, parameters);
+	transmitInstructionPacket(DX_BROADCAST_ID, all_param_idx + 3, COMMAND_SYNC_WRITE, parameters);
 }
 
 void DynamixelSerial::cmdReadCurrentLimit(uint8_t servo_index)
@@ -976,7 +984,7 @@ void DynamixelSerial::cmdSyncWriteTorqueEnable()
 
 void DynamixelSerial::setStatusReturnLevel()
 {
-	cmdWriteStatusReturnLevel(BROADCAST_ID, READ);
+	cmdWriteStatusReturnLevel(DX_BROADCAST_ID, READ);
 }
 
 void DynamixelSerial::getHomingOffset()

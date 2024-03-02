@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 
 #include <string.h>
+#include "config.h"
 
 /* first should set the baudrate to 1000000*/
 /* uncomment following macro, and set the uart baudrate to 57143(M
@@ -139,7 +140,7 @@
 #define READ					0x01
 #define ALL						0x02
 
-#define BROADCAST_ID           	0xFE
+#define DX_BROADCAST_ID           	0xFE
 
 #define HEADER0 				0xFF
 #define HEADER1 				0xFF
@@ -320,7 +321,8 @@ class DynamixelSerial
 public:
   DynamixelSerial(){}
 
-  void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
+  // void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
+  void init(UART_HandleTypeDef* huart,  osMutexId* mutex = NULL);
   void ping();
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
   void reboot(uint8_t servo_index);
@@ -353,7 +355,7 @@ private:
   uint32_t get_error_tick_;
 
   /* uart rx */
-  uint8_t rx_buf_[RX_BUFFER_SIZE];
+  // uint8_t rx_buf_[RX_BUFFER_SIZE];
   uint32_t rd_ptr_;
 
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
