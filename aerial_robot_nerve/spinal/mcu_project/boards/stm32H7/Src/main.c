@@ -43,6 +43,8 @@
 
 #include "battery_status/battery_status.h"
 
+#include "servo/servo.h"
+
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
 
@@ -105,6 +107,8 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* servo instance */
+DirectServo servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -232,14 +236,20 @@ int main(void)
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
+#if GPS_FLAG  
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+#else 
+  estimator_.init(&imu_, &baro_, NULL, &nh_);
+#endif
   controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-#if NERVE_COMM        
+#if Servo_FLAG
+  servo_.init(&huart3, &nh_, NULL);
+#elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
@@ -1019,8 +1029,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_coreTaskFunc */
 void coreTaskFunc(void const * argument)
 {
-  /* init code for LWIP */
-  MX_LWIP_Init();
+
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
@@ -1060,11 +1069,15 @@ void coreTaskFunc(void const * argument)
 
       imu_.update();
       baro_.update();
+#if GPS_FLAG      
       gps_.update();
+#endif      
       estimator_.update();
       controller_.update();
 
-#if NERVE_COMM      
+#if Servo_FLAG
+      servo_.update();
+#elif NERVE_COMM      
       Spine::update();
 #endif
 
