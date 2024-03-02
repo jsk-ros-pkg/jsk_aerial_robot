@@ -127,19 +127,21 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   getParam<double>(disturb_rej_nh, "limit/my", my_limit, 1.0);
   getParam<double>(disturb_rej_nh, "limit/mz", mz_limit, 1.0);
 
-  double i_gain_xy, i_gain_z, i_gain_roll_pitch, i_gain_yaw;
-  getParam<double>(disturb_rej_nh, "i_gain/xy", i_gain_xy, 1.0);
+  double i_gain_x, i_gain_y, i_gain_z, i_gain_roll, i_gain_pitch, i_gain_yaw;
+  getParam<double>(disturb_rej_nh, "i_gain/x", i_gain_x, 1.0);
+  getParam<double>(disturb_rej_nh, "i_gain/y", i_gain_y, 1.0);
   getParam<double>(disturb_rej_nh, "i_gain/z", i_gain_z, 1.0);
-  getParam<double>(disturb_rej_nh, "i_gain/roll_pitch", i_gain_roll_pitch, 0.5);
+  getParam<double>(disturb_rej_nh, "i_gain/roll", i_gain_roll, 0.5);
+  getParam<double>(disturb_rej_nh, "i_gain/pitch", i_gain_pitch, 0.5);
   getParam<double>(disturb_rej_nh, "i_gain/yaw", i_gain_yaw, 0.5);
 
   double freq = 1.0 / ctrl_loop_du;
-  pos_i_term_[0].initialize(i_gain_xy, fx_limit, freq);  // x
-  pos_i_term_[1].initialize(i_gain_xy, fy_limit, freq);  // y
+  pos_i_term_[0].initialize(i_gain_x, fx_limit, freq);  // x
+  pos_i_term_[1].initialize(i_gain_y, fy_limit, freq);  // y
   pos_i_term_[2].initialize(i_gain_z, fz_limit, freq);   // z
 
-  pos_i_term_[3].initialize(i_gain_roll_pitch, mx_limit, freq);  // roll
-  pos_i_term_[4].initialize(i_gain_roll_pitch, my_limit, freq);  // pitch
+  pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);  // roll
+  pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
   pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);         // yaw
 }
 

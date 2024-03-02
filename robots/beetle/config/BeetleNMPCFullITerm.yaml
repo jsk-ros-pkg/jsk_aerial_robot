@@ -66,7 +66,9 @@ controller:
       mz: 1.0
 
     i_gain:
-      xy: 1.0
+      x: 1.0
+      y: 1.0
       z: 1.0
-      roll_pitch: 0.5
+      roll: 0.5
+      pitch: 0.5
       yaw: 0.5
