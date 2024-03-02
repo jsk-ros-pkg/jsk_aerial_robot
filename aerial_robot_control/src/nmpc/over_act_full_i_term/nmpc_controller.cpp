@@ -244,15 +244,18 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
     {
       ROS_INFO("Trajectory tracking mode is off!");
       is_traj_tracking_ = false;
-      navigator_->setTargetPosX(estimator_->getPos(Frame::COG, estimate_mode_).x());
-      navigator_->setTargetPosY(estimator_->getPos(Frame::COG, estimate_mode_).y());
-      navigator_->setTargetPosZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
+      tf::Vector3 target_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+      tf::Vector3 target_rpy = navigator_->getTargetRPY();
+
+      navigator_->setTargetPosX((float)target_pos.x());
+      navigator_->setTargetPosY((float)target_pos.y());
+      navigator_->setTargetPosZ((float)target_pos.z());
       navigator_->setTargetVelX(0.0);
       navigator_->setTargetVelY(0.0);
       navigator_->setTargetVelZ(0.0);
-      navigator_->setTargetRoll(estimator_->getEuler(Frame::COG, estimate_mode_).x());
-      navigator_->setTargetPitch(estimator_->getEuler(Frame::COG, estimate_mode_).y());
-      navigator_->setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z());
+      navigator_->setTargetRoll((float)target_rpy.x());
+      navigator_->setTargetPitch((float)target_rpy.y());
+      navigator_->setTargetYaw((float)target_rpy.z());
       navigator_->setTargetOmageX(0.0);
       navigator_->setTargetOmageY(0.0);
       navigator_->setTargetOmageZ(0.0);
