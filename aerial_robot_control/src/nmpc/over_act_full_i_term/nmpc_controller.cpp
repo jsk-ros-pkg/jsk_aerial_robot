@@ -269,9 +269,31 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
 
-  // TODO: finish the I term for trajectory tracking
-  tf::Vector3 target_pos = navigator_->getTargetPos();
-  tf::Vector3 target_rpy = navigator_->getTargetRPY();
+  tf::Vector3 target_pos;
+  tf::Vector3 target_rpy;
+  if (!is_traj_tracking_)
+  {
+    target_pos = navigator_->getTargetPos();
+    target_rpy = navigator_->getTargetRPY();
+  }
+  else
+  {
+    target_pos.setX(x_u_ref_.x.data.at(0));
+    target_pos.setY(x_u_ref_.x.data.at(1));
+    target_pos.setZ(x_u_ref_.x.data.at(2));
+
+    tf::Quaternion q;
+    q.setW(x_u_ref_.x.data.at(6));
+    q.setX(x_u_ref_.x.data.at(7));
+    q.setY(x_u_ref_.x.data.at(8));
+    q.setZ(x_u_ref_.x.data.at(9));
+    double roll, pitch, yaw;
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    target_rpy.setX(roll);
+    target_rpy.setY(pitch);
+    target_rpy.setZ(yaw);
+  }
 
   double fx_w_i_term = -pos_i_term_[0].update(target_pos.x(), pos.x());
   double fy_w_i_term = -pos_i_term_[1].update(target_pos.y(), pos.y());
