@@ -41,19 +41,25 @@ class LemniscateTraj2D(BaseTraj2D):
         self.z = 0.6
 
     def get_2d_pt(self, t: float) -> Tuple[float, float, float, float, float, float]:
+        t = t + self.T / 4  # shift the phase to make the trajectory start at the origin
+
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t)
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
         ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
         ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
+
         return x, y, vx, vy, ax, ay
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        t = t + self.T / 4  # shift the phase to make the trajectory start at the origin
+
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t) / 2
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
         ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
         ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
+
         return x, y, self.z, vx, vy, 0.0, ax, ay, 0.0
