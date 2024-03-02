@@ -56,19 +56,17 @@ controller:
     is_print_physical_params: false
     is_debug: false
 
-  disturb_rej:
-    limit:
-      fx: 5.0
-      fy: 5.0
-      fz: 5.0
-      mx: 1.0
-      my: 1.0
-      mz: 1.0
+    # disturb_rej
+    limit_fx: 5.0
+    limit_fy: 5.0
+    limit_fz: 5.0
+    limit_mx: 1.0
+    limit_my: 1.0
+    limit_mz: 1.0
 
-    i_gain:
-      x: 1.0
-      y: 1.0
-      z: 1.0
-      roll: 0.5
-      pitch: 0.5
-      yaw: 0.5
+    i_gain_x: 3
+    i_gain_y: 3
+    i_gain_z: 5
+    i_gain_roll: 0.5
+    i_gain_pitch: 0.5
+    i_gain_yaw: 0.5

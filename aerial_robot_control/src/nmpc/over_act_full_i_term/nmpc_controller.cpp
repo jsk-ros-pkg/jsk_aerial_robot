@@ -14,9 +14,8 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(control_nh, "physical");
-  ros::NodeHandle disturb_rej_nh(control_nh, "disturb_rej");
+  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
   // initialize nmpc solver
   mpc_solver_.initialize();
@@ -64,6 +63,32 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   for (int i = 21; i < 25; ++i)
     mpc_solver_.setCostWDiagElement(i, Rac_d, false);
   mpc_solver_.setCostWeight(true, true);
+
+  /* disturbance rejection using I term */
+  double fx_limit, fy_limit, fz_limit, mx_limit, my_limit, mz_limit;
+  getParam<double>(nmpc_nh, "limit_fx", fx_limit, 5.0);
+  getParam<double>(nmpc_nh, "limit_fy", fy_limit, 5.0);
+  getParam<double>(nmpc_nh, "limit_fz", fz_limit, 5.0);
+  getParam<double>(nmpc_nh, "limit_mx", mx_limit, 1.0);
+  getParam<double>(nmpc_nh, "limit_my", my_limit, 1.0);
+  getParam<double>(nmpc_nh, "limit_mz", mz_limit, 1.0);
+
+  double i_gain_x, i_gain_y, i_gain_z, i_gain_roll, i_gain_pitch, i_gain_yaw;
+  getParam<double>(nmpc_nh, "i_gain_x", i_gain_x, 1.0);
+  getParam<double>(nmpc_nh, "i_gain_y", i_gain_y, 1.0);
+  getParam<double>(nmpc_nh, "i_gain_z", i_gain_z, 1.0);
+  getParam<double>(nmpc_nh, "i_gain_roll", i_gain_roll, 0.5);
+  getParam<double>(nmpc_nh, "i_gain_pitch", i_gain_pitch, 0.5);
+  getParam<double>(nmpc_nh, "i_gain_yaw", i_gain_yaw, 0.5);
+
+  double freq = 1.0 / ctrl_loop_du;
+  pos_i_term_[0].initialize(i_gain_x, fx_limit, freq);  // x
+  pos_i_term_[1].initialize(i_gain_y, fy_limit, freq);  // y
+  pos_i_term_[2].initialize(i_gain_z, fz_limit, freq);  // z
+
+  pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);   // roll
+  pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
+  pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
 
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
   nmpc_reconf_servers_.back()->setCallback(boost::bind(&NMPCController::cfgNMPCCallback, this, _1, _2));
@@ -114,35 +139,9 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
 
   // print physical parameters if needed
   bool is_print_physical_params;
-  getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
+  getParam(nmpc_nh, "is_print_physical_params", is_print_physical_params, false);
   if (is_print_physical_params)
     printPhysicalParams();
-
-  /* disturbance rejection using I term */
-  double fx_limit, fy_limit, fz_limit, mx_limit, my_limit, mz_limit;
-  getParam<double>(disturb_rej_nh, "limit/fx", fx_limit, 5.0);
-  getParam<double>(disturb_rej_nh, "limit/fy", fy_limit, 5.0);
-  getParam<double>(disturb_rej_nh, "limit/fz", fz_limit, 5.0);
-  getParam<double>(disturb_rej_nh, "limit/mx", mx_limit, 1.0);
-  getParam<double>(disturb_rej_nh, "limit/my", my_limit, 1.0);
-  getParam<double>(disturb_rej_nh, "limit/mz", mz_limit, 1.0);
-
-  double i_gain_x, i_gain_y, i_gain_z, i_gain_roll, i_gain_pitch, i_gain_yaw;
-  getParam<double>(disturb_rej_nh, "i_gain/x", i_gain_x, 1.0);
-  getParam<double>(disturb_rej_nh, "i_gain/y", i_gain_y, 1.0);
-  getParam<double>(disturb_rej_nh, "i_gain/z", i_gain_z, 1.0);
-  getParam<double>(disturb_rej_nh, "i_gain/roll", i_gain_roll, 0.5);
-  getParam<double>(disturb_rej_nh, "i_gain/pitch", i_gain_pitch, 0.5);
-  getParam<double>(disturb_rej_nh, "i_gain/yaw", i_gain_yaw, 0.5);
-
-  double freq = 1.0 / ctrl_loop_du;
-  pos_i_term_[0].initialize(i_gain_x, fx_limit, freq);  // x
-  pos_i_term_[1].initialize(i_gain_y, fy_limit, freq);  // y
-  pos_i_term_[2].initialize(i_gain_z, fz_limit, freq);   // z
-
-  pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);  // roll
-  pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
-  pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);         // yaw
 }
 
 bool nmpc_over_act_full_i_term::NMPCController::update()
@@ -711,6 +710,45 @@ void nmpc_over_act_full_i_term::NMPCController::cfgNMPCCallback(NMPCConfig& conf
         break;
     }
     mpc_solver_.setCostWeight(true, true);
+  }
+
+  if (config.i_gain_flag)
+  {
+    switch (level)
+    {
+      case Levels::RECONFIGURE_NMPC_I_GAIN_X: {
+        pos_i_term_[0].setIGain(config.i_gain_x);
+        ROS_INFO_STREAM("change i_gain_x for NMPC '" << config.i_gain_x << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_I_GAIN_Y: {
+        pos_i_term_[1].setIGain(config.i_gain_y);
+        ROS_INFO_STREAM("change i_gain_y for NMPC '" << config.i_gain_y << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_I_GAIN_Z: {
+        pos_i_term_[2].setIGain(config.i_gain_z);
+        ROS_INFO_STREAM("change i_gain_z for NMPC '" << config.i_gain_z << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_I_GAIN_ROLL: {
+        pos_i_term_[3].setIGain(config.i_gain_roll);
+        ROS_INFO_STREAM("change i_gain_roll for NMPC '" << config.i_gain_roll << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_I_GAIN_PITCH: {
+        pos_i_term_[4].setIGain(config.i_gain_pitch);
+        ROS_INFO_STREAM("change i_gain_pitch for NMPC '" << config.i_gain_pitch << "'");
+        break;
+      }
+      case Levels::RECONFIGURE_NMPC_I_GAIN_YAW: {
+        pos_i_term_[5].setIGain(config.i_gain_yaw);
+        ROS_INFO_STREAM("change i_gain_yaw for NMPC '" << config.i_gain_yaw << "'");
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 

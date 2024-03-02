@@ -28,6 +28,11 @@ public:
     error_last_round_ = 0;
   }
 
+  void setIGain(double i_gain)
+  {
+    i_gain_ = i_gain;
+  }
+
   double update(double y_ref, double y)
   {
     double error = y_ref - y;
