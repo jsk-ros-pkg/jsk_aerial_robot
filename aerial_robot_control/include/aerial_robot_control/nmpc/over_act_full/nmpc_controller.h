@@ -111,8 +111,6 @@ private:
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
 
-  void sendRotationalInertiaComp();
-
   void initAllocMat();
   void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
                   const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);

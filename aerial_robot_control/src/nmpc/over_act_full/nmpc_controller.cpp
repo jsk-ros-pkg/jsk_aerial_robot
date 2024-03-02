@@ -139,9 +139,6 @@ void nmpc_over_act_full::NMPCController::reset()
 {
   ControlBase::reset();
 
-  //  sendRPYGain();                // tmp for angular gains  TODO: change to angular gains only
-  //  sendRotationalInertiaComp();  // tmp for inertia
-
   /* reset controller using odom */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -396,39 +393,6 @@ void nmpc_over_act_full::NMPCController::callbackSetRefTraj(const aerial_robot_m
     ROS_INFO("Trajectory tracking mode is on!");
     is_traj_tracking_ = true;
   }
-}
-
-void nmpc_over_act_full::NMPCController::sendRotationalInertiaComp()
-{
-  int lqi_mode_ = 4;
-
-  Eigen::MatrixXd P = robot_model_->calcWrenchMatrixOnCoG();
-  Eigen::MatrixXd p_mat_pseudo_inv_ = aerial_robot_model::pseudoinverse(P.middleRows(2, lqi_mode_));
-
-  spinal::PMatrixPseudoInverseWithInertia p_pseudo_inverse_with_inertia_msg;  // to spinal
-  p_pseudo_inverse_with_inertia_msg.pseudo_inverse.resize(motor_num_);
-
-  for (int i = 0; i < motor_num_; ++i)
-  {
-    /* the p matrix pseudo inverse and inertia */
-    p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].r = p_mat_pseudo_inv_(i, 1) * 1000;
-    p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].p = p_mat_pseudo_inv_(i, 2) * 1000;
-    if (lqi_mode_ == 4)
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = p_mat_pseudo_inv_(i, 3) * 1000;
-    else
-      p_pseudo_inverse_with_inertia_msg.pseudo_inverse[i].y = 0;
-  }
-
-  /* the articulated inertia */
-  Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
-  p_pseudo_inverse_with_inertia_msg.inertia[0] = inertia(0, 0) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[1] = inertia(1, 1) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[2] = inertia(2, 2) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[3] = inertia(0, 1) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[4] = inertia(1, 2) * 1000;
-  p_pseudo_inverse_with_inertia_msg.inertia[5] = inertia(0, 2) * 1000;
-
-  pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
 }
 
 void nmpc_over_act_full::NMPCController::initAllocMat()
