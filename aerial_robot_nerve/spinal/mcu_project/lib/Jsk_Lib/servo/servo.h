@@ -45,9 +45,9 @@ private:
   spinal::ServoStates servo_state_msg_;
   spinal::ServoTorqueStates servo_torque_state_msg_;
 
-  const uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
-  const uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
-
+  uint32_t servo_last_pub_time_;
+  uint32_t servo_torque_last_pub_time_;
+  
   /* Servo state */
   struct ServoState{
     int16_t angle;

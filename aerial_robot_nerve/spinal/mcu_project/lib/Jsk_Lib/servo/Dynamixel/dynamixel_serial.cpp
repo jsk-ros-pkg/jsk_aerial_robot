@@ -3,7 +3,7 @@
 
 namespace
 {
-#if STM32H7
+#ifdef STM32H7
   uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
 #else
   uint8_t rx_buf_[RX_BUFFER_SIZE];
@@ -46,26 +46,40 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 		servo_[i].led_ = true;
 	}
 	cmdSyncWriteLed();
+
 	HAL_Delay(1000);
 	for (unsigned int i = 0; i < servo_num_; i++) {
 		servo_[i].led_ = false;
 	}
 	cmdSyncWriteLed();
 
-	for (int i = 0; i < MAX_SERVO_NUM; i++) {
-		FlashMemory::addValue(&(servo_[i].p_gain_), 2);
-		FlashMemory::addValue(&(servo_[i].i_gain_), 2);
-		FlashMemory::addValue(&(servo_[i].d_gain_), 2);
-		FlashMemory::addValue(&(servo_[i].profile_velocity_), 2);
-		FlashMemory::addValue(&(servo_[i].send_data_flag_), 2);
-                FlashMemory::addValue(&(servo_[i].external_encoder_flag_), 2);
-                FlashMemory::addValue(&(servo_[i].joint_resolution_), 2);
-                FlashMemory::addValue(&(servo_[i].servo_resolution_), 2);
-                FlashMemory::addValue(&(servo_[i].joint_offset_), 4);
-	}
-	FlashMemory::addValue(&(ttl_rs485_mixed_), 2);
+	// for (int i = 0; i < MAX_SERVO_NUM; i++) {
+	// 	FlashMemory::addValue(&(servo_[i].p_gain_), 2);
+	// 	FlashMemory::addValue(&(servo_[i].i_gain_), 2);
+	// 	FlashMemory::addValue(&(servo_[i].d_gain_), 2);
+	// 	FlashMemory::addValue(&(servo_[i].profile_velocity_), 2);
+	// 	FlashMemory::addValue(&(servo_[i].send_data_flag_), 2);
+        //         FlashMemory::addValue(&(servo_[i].external_encoder_flag_), 2);
+        //         FlashMemory::addValue(&(servo_[i].joint_resolution_), 2);
+        //         FlashMemory::addValue(&(servo_[i].servo_resolution_), 2);
+        //         FlashMemory::addValue(&(servo_[i].joint_offset_), 4);
+	// }
+	// FlashMemory::addValue(&(ttl_rs485_mixed_), 2);
 
-	FlashMemory::read();
+	// FlashMemory::read();
+
+        for (int i = 0; i < MAX_SERVO_NUM; i++) {
+          servo_[i].p_gain_ = 2200;
+          servo_[i].i_gain_ = 100;
+          servo_[i].d_gain_ = 3000;
+          servo_[i].profile_velocity_ = 10;
+          servo_[i].send_data_flag_ = 1;
+          servo_[i].external_encoder_flag_ = 0;
+          servo_[i].joint_resolution_ = 1;
+          servo_[i].servo_resolution_ = 1;
+          servo_[i].joint_offset_ = 0;
+	}
+        ttl_rs485_mixed_ = 0;
 
 	cmdSyncWritePositionGains();
 	cmdSyncWriteProfileVelocity();
@@ -189,6 +203,16 @@ void DynamixelSerial::setCurrentLimit(uint8_t servo_index)
   getCurrentLimit();
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
+}
+
+ServoData& DynamixelSerial::getOneServo(uint8_t id)
+{
+  for(int i = 0; i < servo_num_; i++)
+    {
+      if(servo_[i].id_ == id) return servo_[i];
+    }
+  ServoData non_servo;
+  return non_servo;
 }
 
 void DynamixelSerial::update()
@@ -481,7 +505,7 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
 
   /* send data */
   // WE;
-  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS. 
+  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
   // RE;
 }
 

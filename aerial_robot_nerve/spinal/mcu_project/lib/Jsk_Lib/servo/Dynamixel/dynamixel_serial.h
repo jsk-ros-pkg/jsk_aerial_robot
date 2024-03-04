@@ -338,7 +338,7 @@ public:
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
-
+  ServoData& getOneServo(uint8_t id);
 private:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex
