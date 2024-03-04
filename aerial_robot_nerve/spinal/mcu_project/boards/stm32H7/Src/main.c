@@ -91,6 +91,7 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
+osThreadId servoTaskHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -135,6 +136,7 @@ void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
+void servoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -247,7 +249,7 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-#if Servo_FLAG
+#if SERVO_FLAG
   servo_.init(&huart3, &nh_, NULL);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
@@ -325,6 +327,10 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, servoTaskCallback, osPriorityIdle, 0, 512);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1029,7 +1035,6 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_coreTaskFunc */
 void coreTaskFunc(void const * argument)
 {
-
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
@@ -1075,9 +1080,7 @@ void coreTaskFunc(void const * argument)
       estimator_.update();
       controller_.update();
 
-#if Servo_FLAG
-      servo_.update();
-#elif NERVE_COMM      
+#if !SERVO_FLAG && NERVE_COMM
       Spine::update();
 #endif
 
@@ -1199,6 +1202,27 @@ __weak void canRxTask(void const * argument)
   }
   /* USER CODE END canRxTask */
 }
+
+/* USER CODE BEGIN Header_servoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_servoTaskCallback */
+__weak void servoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN servoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+#if SERVO_FLAG
+    servo_.update();
+    osDelay(1);
+#endif
+  }
+  /* USER CODE END servoTaskCallback */}
+
 
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
