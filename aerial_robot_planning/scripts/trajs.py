@@ -62,9 +62,9 @@ class LemniscateTraj(BaseTraj2D):
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t) / 2
         vx = -self.a * self.omega * np.sin(self.omega * t)
-        vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
+        vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t) / 2
         ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
-        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
+        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
 
         return x, y, self.z, vx, vy, 0.0, ax, ay, 0.0
 
@@ -81,8 +81,8 @@ class LemniscateTrajOmni(LemniscateTraj):
         pitch = self.a_orientation * np.cos(self.omega * t)
         roll = self.a_orientation * np.sin(2 * self.omega * t) / 2
         pitch_rate = -self.a_orientation * self.omega * np.sin(self.omega * t)
-        roll_rate = 2 * self.a_orientation * self.omega * np.cos(2 * self.omega * t)
+        roll_rate = 2 * self.a_orientation * self.omega * np.cos(2 * self.omega * t) / 2
         pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
-        roll_acc = -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t)
+        roll_acc = -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
 
         return -2 * roll, pitch, self.yaw, -2 * roll_rate, pitch_rate, 0.0, -2 * roll_acc, pitch_acc, 0.0
