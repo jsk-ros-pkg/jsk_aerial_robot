@@ -15,8 +15,11 @@ includes ------------------------------------------------------------------*/
 #include <spinal/ServoStates.h>
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/ServoTorqueCmd.h>
+#include <spinal/SetDirectServoConfig.h>
 #include <string.h>
 #include <config.h>
+#include "flashmemory/flashmemory.h"
+
 class Initializer;
 
 class DirectServo
@@ -26,7 +29,8 @@ public:
     servo_ctrl_sub_("servo/target_states", &DirectServo::servoControlCallback,this),
     servo_torque_ctrl_sub_("servo/torque_enable", &DirectServo::servoTorqueControlCallback,this),
     servo_state_pub_("servo/states", &servo_state_msg_),
-    servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_)
+    servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_),
+    servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this)
   {
   }
   ~DirectServo(){}
@@ -42,11 +46,19 @@ private:
   ros::Subscriber<spinal::ServoTorqueCmd, DirectServo> servo_torque_ctrl_sub_;
   ros::Publisher servo_state_pub_;
   ros::Publisher servo_torque_state_pub_;
+
+  ros::ServiceServer<spinal::SetDirectServoConfig::Request, spinal::SetDirectServoConfig::Response, DirectServo> servo_config_srv_;
+
   spinal::ServoStates servo_state_msg_;
   spinal::ServoTorqueStates servo_torque_state_msg_;
 
   uint32_t servo_last_pub_time_;
   uint32_t servo_torque_last_pub_time_;
+
+  void servoControlCallback(const spinal::ServoControlCmd& control_msg);
+  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
+  
+  void servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res);
   
   /* Servo state */
   struct ServoState{
@@ -58,8 +70,6 @@ private:
     ServoState(uint16_t angle, uint8_t temperature, uint8_t moving, int16_t current, uint8_t error)
       :angle(angle), temperature(temperature), moving(moving), current(current), error(error){}
   };
-  void servoControlCallback(const spinal::ServoControlCmd& control_msg);
-  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
 
   DynamixelSerial servo_handler_;
   friend class Initializer;

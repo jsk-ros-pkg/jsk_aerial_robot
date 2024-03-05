@@ -18,6 +18,7 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   nh_->subscribe(servo_torque_ctrl_sub_);
   nh_->advertise(servo_state_pub_);
   nh_->advertise(servo_torque_state_pub_);
+  nh_->advertiseService(servo_config_srv_);
 
   //temp
   servo_state_msg_.servos_length = 4;
@@ -51,7 +52,7 @@ void DirectServo::sendData()
           servo.angle = s.present_position_;
           servo.temp = s.present_temp_;
           servo.load = s.present_current_;
-          servo.error = s.goal_position_;
+          servo.error = s.hardware_error_status_;
           servo_state_msg_.servos[i] = servo;
         }
       }
@@ -82,10 +83,112 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
 {
   if (control_msg.index_length != control_msg.torque_enable_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
-    ServoData& s = servo_handler_.getServo()[control_msg.index[i]];
+    ServoData& s = servo_handler_.getOneServo(control_msg.index[i]);
+    if(s == servo_handler_.getOneServo(0)){ 
+      nh_->logerror("Invalid Servo ID!");
+      return;
+    }
     if (! s.torque_enable_) {
       s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
       servo_handler_.setTorque(i);
     }
   }
 }
+
+void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res)
+{
+  uint8_t servo_index = req.data[0];
+  ServoData& s = servo_handler_.getOneServo(servo_index);
+  if(s == servo_handler_.getOneServo(0)){ 
+    nh_->logerror("Invalid Servo ID!");
+    return;
+  }
+
+  switch (req.command) {
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_HOMING_OFFSET:
+    {
+      int32_t calib_value = req.data[1];
+      s.calib_value_ = calib_value;
+      servo_handler_.setHomingOffset(servo_index);
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_PID_GAIN:
+    {
+      s.p_gain_ = req.data[1];
+      s.i_gain_ = req.data[2];
+      s.d_gain_ = req.data[3];
+      servo_handler_.setPositionGains(servo_index);
+      FlashMemory::erase();
+      FlashMemory::write();
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_PROFILE_VEL:
+    {
+      s.profile_velocity_ = req.data[1];
+      servo_handler_.setProfileVelocity(servo_index);
+      FlashMemory::erase();
+      FlashMemory::write();
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_SEND_DATA_FLAG:
+    {
+      s.send_data_flag_ = req.data[1];
+      FlashMemory::erase();
+      FlashMemory::write();
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_CURRENT_LIMIT:
+    {
+      s.current_limit_ = req.data[1];
+      servo_handler_.setCurrentLimit(servo_index);
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
+    {
+      servo_handler_.setTTLRS485Mixed(req.data[0]); // special case -> data[0] is flag value
+      FlashMemory::erase();
+      FlashMemory::write();
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:
+    {
+      if(!s.torque_enable_){
+        s.external_encoder_flag_ = req.data[1];
+        s.first_get_pos_flag_ = true;
+        if(!s.external_encoder_flag_)
+          { // if use the servo internal encoder, we directly output the encoder value without scaling by resolution_ratio.
+            s.servo_resolution_ = 1;
+            s.joint_resolution_ = 1;
+            s.resolution_ratio_ = 1;
+          }
+        FlashMemory::erase();
+        FlashMemory::write();
+      }
+      break;
+    }
+  case spinal::SetDirectServoConfig::Request::SET_SERVO_RESOLUTION_RATIO:
+    {
+      if(!s.torque_enable_){
+        s.joint_resolution_ = req.data[1];
+        s.servo_resolution_ = req.data[2];
+        s.hardware_error_status_ &= ((1 << RESOLUTION_RATIO_ERROR) - 1); // 0b00111111: reset
+
+        if(s.servo_resolution_ == 65535 || s.joint_resolution_ == 65535){
+          s.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);  // 0b01000000;
+          s.resolution_ratio_ = 1;
+        }
+        else{
+          s.resolution_ratio_ = (float)s.servo_resolution_ / (float)s.joint_resolution_;
+          s.first_get_pos_flag_ = true;
+          FlashMemory::erase();
+          FlashMemory::write();
+        }
+      }
+      break;
+    }
+  default:
+    break;
+  }
+  res.success = true;
+}
+

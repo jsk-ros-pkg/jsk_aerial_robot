@@ -53,33 +53,20 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	}
 	cmdSyncWriteLed();
 
-	// for (int i = 0; i < MAX_SERVO_NUM; i++) {
-	// 	FlashMemory::addValue(&(servo_[i].p_gain_), 2);
-	// 	FlashMemory::addValue(&(servo_[i].i_gain_), 2);
-	// 	FlashMemory::addValue(&(servo_[i].d_gain_), 2);
-	// 	FlashMemory::addValue(&(servo_[i].profile_velocity_), 2);
-	// 	FlashMemory::addValue(&(servo_[i].send_data_flag_), 2);
-        //         FlashMemory::addValue(&(servo_[i].external_encoder_flag_), 2);
-        //         FlashMemory::addValue(&(servo_[i].joint_resolution_), 2);
-        //         FlashMemory::addValue(&(servo_[i].servo_resolution_), 2);
-        //         FlashMemory::addValue(&(servo_[i].joint_offset_), 4);
-	// }
-	// FlashMemory::addValue(&(ttl_rs485_mixed_), 2);
-
-	// FlashMemory::read();
-
-        for (int i = 0; i < MAX_SERVO_NUM; i++) {
-          servo_[i].p_gain_ = 2200;
-          servo_[i].i_gain_ = 100;
-          servo_[i].d_gain_ = 3000;
-          servo_[i].profile_velocity_ = 10;
-          servo_[i].send_data_flag_ = 1;
-          servo_[i].external_encoder_flag_ = 0;
-          servo_[i].joint_resolution_ = 1;
-          servo_[i].servo_resolution_ = 1;
-          servo_[i].joint_offset_ = 0;
+	for (int i = 0; i < MAX_SERVO_NUM; i++) {
+		FlashMemory::addValue(&(servo_[i].p_gain_), 2);
+		FlashMemory::addValue(&(servo_[i].i_gain_), 2);
+		FlashMemory::addValue(&(servo_[i].d_gain_), 2);
+		FlashMemory::addValue(&(servo_[i].profile_velocity_), 2);
+		FlashMemory::addValue(&(servo_[i].send_data_flag_), 2);
+                FlashMemory::addValue(&(servo_[i].external_encoder_flag_), 2);
+                FlashMemory::addValue(&(servo_[i].joint_resolution_), 2);
+                FlashMemory::addValue(&(servo_[i].servo_resolution_), 2);
+                FlashMemory::addValue(&(servo_[i].joint_offset_), 4);
 	}
-        ttl_rs485_mixed_ = 0;
+	FlashMemory::addValue(&(ttl_rs485_mixed_), 2);
+
+	FlashMemory::read();
 
 	cmdSyncWritePositionGains();
 	cmdSyncWriteProfileVelocity();
