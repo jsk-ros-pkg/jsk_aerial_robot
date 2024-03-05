@@ -3,7 +3,7 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2023/11/27 9:43 PM
+Date: 2024/03/01 4:02 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
 """
 from __future__ import print_function  # be compatible with python2

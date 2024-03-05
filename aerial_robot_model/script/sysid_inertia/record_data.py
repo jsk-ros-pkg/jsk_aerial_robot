@@ -1,5 +1,5 @@
 '''
-created by Jinjie LI, 2023/02/06
+created by Jinjie LI, 2024/02/06
 
 subscribe to the /mocap/pose topic and record the data in a txt file under ~/.ros/ folder
 '''

@@ -3,7 +3,7 @@
 """
 Author: LI Jinjie
 File: nmpc_body_rate_ctl.py
-Date: 2023/4/16 9:50 AM
+Date: 2023/10/22 12:10 PM
 Description: the output of the NMPC controller is the body rate and collective acceleration
 """
 from __future__ import print_function  # be compatible with python2
