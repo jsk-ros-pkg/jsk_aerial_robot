@@ -306,12 +306,17 @@ public:
 	bool led_;
 	bool torque_enable_;
 	bool first_get_pos_flag_;
+        float angle_scale_;
+        uint16_t zero_point_offset_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
 	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
-	int32_t getGoalPosition() const {return goal_position_;}
+        int32_t getGoalPosition() const {return goal_position_;}
+        float getAngleScale() const {return angle_scale_;}
+        uint16_t getZeroPointOffset() const {return zero_point_offset_;}
+  
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
 };
@@ -339,6 +344,7 @@ public:
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
   ServoData& getOneServo(uint8_t id);
+  uint8_t getServoIndex(uint8_t id);
 private:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex

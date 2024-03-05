@@ -93,6 +93,12 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
             if(servo_[i].external_encoder_flag_) encoder_handler_.setOffset(servo_[i].joint_offset_);
           }
 	}
+
+        /*set angle scale values*/
+        for (int i = 0; i < MAX_SERVO_NUM; i++){
+          servo_[i].zero_point_offset_ = 2047;
+          servo_[i].angle_scale_ = 3.1416 / 2047;
+        }
 }
 
 void DynamixelSerial::ping()
@@ -200,6 +206,15 @@ ServoData& DynamixelSerial::getOneServo(uint8_t id)
     }
   ServoData non_servo;
   return non_servo;
+}
+
+uint8_t DynamixelSerial::getServoIndex(uint8_t id)
+{
+  for(int i = 0; i < servo_num_; i++)
+    {
+      if(servo_[i].id_ == id) return i;
+    }
+  return 0;
 }
 
 void DynamixelSerial::update()

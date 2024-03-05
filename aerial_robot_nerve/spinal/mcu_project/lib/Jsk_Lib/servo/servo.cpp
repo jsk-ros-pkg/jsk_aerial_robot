@@ -61,11 +61,36 @@ void DirectServo::sendData()
     }
 }
 
+void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map)
+{
+  for (auto servo : servo_map)
+    {
+      uint16_t servo_id = servo.first;
+      float goal_angle = servo.second;
+
+      ServoData& s = servo_handler_.getOneServo(servo_id);
+      uint8_t index = servo_handler_.getServoIndex(servo_id);
+      if(s == servo_handler_.getOneServo(0)){ 
+        nh_->logerror("Invalid Servo ID!");
+        return;
+      }
+
+      uint32_t goal_pos = DirectServo::rad2Pos(goal_angle, s.angle_scale_, s.zero_point_offset_ );
+      s.setGoalPosition(goal_pos);
+      if (! s.torque_enable_) {
+        s.torque_enable_ = true;
+        servo_handler_.setTorque(index);
+      }
+      
+    }
+}
+
 void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
 {
   if (control_msg.index_length != control_msg.angles_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
     ServoData& s = servo_handler_.getOneServo(control_msg.index[i]);
+    uint8_t index = servo_handler_.getServoIndex(control_msg.index[i]);
     if(s == servo_handler_.getOneServo(0)){ 
       nh_->logerror("Invalid Servo ID!");
       return;
@@ -74,7 +99,7 @@ void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_ms
     s.setGoalPosition(goal_pos);
     if (! s.torque_enable_) {
       s.torque_enable_ = true;
-      servo_handler_.setTorque(i);
+      servo_handler_.setTorque(index);
     }
   }
 }
@@ -84,13 +109,14 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
   if (control_msg.index_length != control_msg.torque_enable_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
     ServoData& s = servo_handler_.getOneServo(control_msg.index[i]);
+    uint8_t index = servo_handler_.getServoIndex(control_msg.index[i]);
     if(s == servo_handler_.getOneServo(0)){ 
       nh_->logerror("Invalid Servo ID!");
       return;
     }
     if (! s.torque_enable_) {
       s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
-      servo_handler_.setTorque(i);
+      servo_handler_.setTorque(index);
     }
   }
 }

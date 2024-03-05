@@ -18,6 +18,7 @@ includes ------------------------------------------------------------------*/
 #include <spinal/SetDirectServoConfig.h>
 #include <string.h>
 #include <config.h>
+#include <map>
 #include "flashmemory/flashmemory.h"
 
 class Initializer;
@@ -38,6 +39,11 @@ public:
   void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
   void update();
   void sendData();
+  void setGoalAngle(const std::map<uint8_t, float>& servo_map);
+
+  uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
+    return static_cast<uint32_t>(zero_point_pos - angle /scale);
+  }
 
 private:
   /* ROS */
