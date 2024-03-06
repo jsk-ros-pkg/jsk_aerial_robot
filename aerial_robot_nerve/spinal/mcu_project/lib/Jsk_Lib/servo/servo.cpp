@@ -123,6 +123,19 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
 
 void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res)
 {
+
+  uint8_t command = req.command;
+
+  /* special case : data[0] is flag value */
+  if(command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED)
+    {
+      servo_handler_.setTTLRS485Mixed(req.data[0]);
+      FlashMemory::erase();
+      FlashMemory::write();
+      res.success = true;
+      return;
+    }
+
   uint8_t servo_index = req.data[0];
   ServoData& s = servo_handler_.getOneServo(servo_index);
   if(s == servo_handler_.getOneServo(0)){ 
@@ -130,7 +143,7 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
     return;
   }
 
-  switch (req.command) {
+  switch (command) {
   case spinal::SetDirectServoConfig::Request::SET_SERVO_HOMING_OFFSET:
     {
       int32_t calib_value = req.data[1];
@@ -167,13 +180,6 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
     {
       s.current_limit_ = req.data[1];
       servo_handler_.setCurrentLimit(servo_index);
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
-    {
-      servo_handler_.setTTLRS485Mixed(req.data[0]); // special case -> data[0] is flag value
-      FlashMemory::erase();
-      FlashMemory::write();
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:

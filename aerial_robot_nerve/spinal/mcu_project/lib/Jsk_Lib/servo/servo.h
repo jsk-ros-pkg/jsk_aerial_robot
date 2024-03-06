@@ -42,7 +42,7 @@ public:
   void setGoalAngle(const std::map<uint8_t, float>& servo_map);
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
-    return static_cast<uint32_t>(zero_point_pos - angle /scale);
+    return static_cast<uint32_t>(angle /scale + zero_point_pos);
   }
 
 private:
