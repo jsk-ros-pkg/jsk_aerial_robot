@@ -329,7 +329,7 @@ int main(void)
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
 
   /* definition and creation of servoTask */
-  osThreadDef(servoTask, servoTaskCallback, osPriorityIdle, 0, 512);
+  osThreadDef(servoTask, servoTaskCallback, osPriorityRealtime, 0, 256);
   servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -1221,8 +1221,8 @@ __weak void servoTaskCallback(void const * argument)
     osDelay(1);
 #endif
   }
-  /* USER CODE END servoTaskCallback */}
-
+  /* USER CODE END servoTaskCallback */
+}
 
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
