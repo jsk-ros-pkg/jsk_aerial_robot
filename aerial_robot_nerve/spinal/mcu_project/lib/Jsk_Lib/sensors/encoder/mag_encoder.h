@@ -1,45 +1,44 @@
 /*
-******************************************************************************
-* File Name          : mag_encoder.h
-* Description        : Magnetic Encoder Interface
-******************************************************************************
-*/
+ * mag_encoder.h: Magnetic Encoder Interface
+ *
+ *  Created on: 2020/07/19
+ *      Author: zhao
+ */
 
-#ifndef __cplusplus
-#error "Please define __cplusplus, because this is a c++ based file "
-#endif
+#ifndef MAG_ENCODER_H
+#define MAG_ENCODER_H
 
-#ifndef __MAG_ENCODER_H
-#define __MAG_ENCODER_H
-
+// #include "stm32f4xx_hal.h"
 #include "config.h"
-#include <ros.h>
-#include <std_msgs/UInt16.h>
-
 
 class MagEncoder
 {
 public:
   MagEncoder();
   ~MagEncoder(){};
-  
+
   static const uint8_t AS5600_I2C_ADDRESS =  0x6c; // 0x36 << 1; NOTE: STM: i2c_address << 1 !!!
   static const uint8_t AS5600_REG_RAW_ANGLE =  0x0C;
-  static const uint8_t UPDATE_INTERVAL = 20; //20 -> 50Hz
+  static const uint16_t ERROR_VALUE =  65535;
+  static const int16_t RESOLUTION =  4096;
 
-  void init(I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh);
+
+  void init(I2C_HandleTypeDef* hi2c);
   void update(void);
+
+  uint16_t getRawValue(void) const { return raw_encoder_value_;}
+  int16_t getValue(void) const { return value_;}
+  int16_t getOffset(void) const { return offset_;}
+  void setOffset(int16_t offset) { offset_ = offset;}
+  bool connected(void) { return connection_;}
 
 private:
   I2C_HandleTypeDef* hi2c_;
-  ros::NodeHandle* nh_;
-  ros::Publisher angle_pub_;
 
+  bool connection_;
   uint16_t raw_encoder_value_;
-  uint32_t last_time_;
-
-  std_msgs::UInt16 angle_msg_;
-
+  int16_t offset_;
+  int16_t value_;
 };
 
 #endif
