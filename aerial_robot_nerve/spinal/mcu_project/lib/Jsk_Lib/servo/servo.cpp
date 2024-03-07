@@ -114,10 +114,9 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
       nh_->logerror("Invalid Servo ID!");
       return;
     }
-    if (! s.torque_enable_) {
-      s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
-      servo_handler_.setTorque(index);
-    }
+    s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
+    servo_handler_.setTorque(index);
+
   }
 }
 
