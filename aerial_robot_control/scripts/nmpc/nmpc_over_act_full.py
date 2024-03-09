@@ -58,7 +58,7 @@ t_sqp_start = 2.5
 t_sqp_end = 3.0
 
 
-def create_acados_ocp() -> AcadosOcp:
+def create_acados_ocp_solver() -> AcadosOcpSolver:
     opt_model = create_acados_model()
 
     nx = opt_model.x.size()[0]
@@ -254,9 +254,9 @@ def create_acados_ocp() -> AcadosOcp:
 
     # compile acados ocp
     json_file_path = os.path.join("./" + opt_model.name + "_acados_ocp.json")
-    solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+    acados_ocp_solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
-    return ocp
+    return acados_ocp_solver
 
 
 def create_acados_model() -> AcadosModel:
@@ -307,13 +307,13 @@ def create_acados_model() -> AcadosModel:
 
     # transformation matrix
     row_1 = ca.horzcat(
-        ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+        ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
     )
     row_2 = ca.horzcat(
-        ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+        ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
     )
     row_3 = ca.horzcat(
-        ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+        ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
     )
     rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -359,20 +359,20 @@ def create_acados_model() -> AcadosModel:
     tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
 
     f_u_b = (
-        ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-        + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-        + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-        + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
     )
     tau_u_b = (
-        ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-        + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-        + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-        + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-        + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-        + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-        + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-        + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
     )
 
     # dynamic model
@@ -431,6 +431,131 @@ def safe_mkdir_recursive(directory, overwrite=False):
                 shutil.rmtree(directory)
             except:
                 print("Error while removing directory {}".format(directory))
+
+
+class XrUrConverter:
+    def __init__(self):
+        self.mass = mass
+        self.gravity = gravity
+        self.alloc_mat_pinv = get_alloc_mat_pinv()
+        self.ocp_N = nmpc_params["N_node"]
+
+    def update(self, target_xyz, target_rpy):
+        roll = target_rpy.item(0)
+        pitch = target_rpy.item(1)
+        yaw = target_rpy.item(2)
+
+        q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
+
+        # convert [0,0,gravity] to body frame
+        q_inv = tf.quaternion_inverse(q)
+        rot = tf.quaternion_matrix(q_inv)
+        fg_i = np.array([0, 0, self.mass * self.gravity, 0])
+        fg_b = rot @ fg_i
+        target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
+
+        xr, ur = self.ctrl_target_2_xr_ur(target_xyz, target_qwxyz, target_wrench)
+
+        return xr, ur
+
+    def ctrl_target_2_xr_ur(self, target_pos, target_qwxyz, target_wrench):
+        ocp_N = self.ocp_N
+
+        # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+        x = self.alloc_mat_pinv @ target_wrench
+
+        a1_ref = np.arctan2(x[0, 0], x[1, 0])
+        ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
+        a2_ref = np.arctan2(x[2, 0], x[3, 0])
+        ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
+        a3_ref = np.arctan2(x[4, 0], x[5, 0])
+        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
+        a4_ref = np.arctan2(x[6, 0], x[7, 0])
+        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
+
+        # get x and u, set reference
+        xr = np.zeros([ocp_N + 1, 17])
+        xr[:, 0] = target_pos.item(0)  # x
+        xr[:, 1] = target_pos.item(1)  # y
+        xr[:, 2] = target_pos.item(2)  # z
+        xr[:, 6] = target_qwxyz.item(0)  # qw
+        xr[:, 7] = target_qwxyz.item(1)  # qx
+        xr[:, 8] = target_qwxyz.item(2)  # qy
+        xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 13] = a1_ref
+        xr[:, 14] = a2_ref
+        xr[:, 15] = a3_ref
+        xr[:, 16] = a4_ref
+        ur = np.zeros([ocp_N, 8])
+        ur[:, 0] = ft1_ref
+        ur[:, 1] = ft2_ref
+        ur[:, 2] = ft3_ref
+        ur[:, 3] = ft4_ref
+
+        return xr, ur
+
+
+def get_alloc_mat_pinv():
+    # get allocation matrix
+    alloc_mat = np.zeros((6, 8))
+    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+
+    # - force
+    alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
+    alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
+    alloc_mat[2, 1] = 1
+
+    alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
+    alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
+    alloc_mat[2, 3] = 1
+
+    alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
+    alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
+    alloc_mat[2, 5] = 1
+
+    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
+    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
+    alloc_mat[2, 7] = 1
+
+    # - torque
+    alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
+    alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
+    alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
+
+    alloc_mat[3, 1] = p1_b[1]
+    alloc_mat[4, 1] = -p1_b[0]
+    alloc_mat[5, 1] = -dr1 * kq_d_kt
+
+    alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
+    alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
+    alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
+
+    alloc_mat[3, 3] = p2_b[1]
+    alloc_mat[4, 3] = -p2_b[0]
+    alloc_mat[5, 3] = -dr2 * kq_d_kt
+
+    alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
+    alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
+    alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
+
+    alloc_mat[3, 5] = p3_b[1]
+    alloc_mat[4, 5] = -p3_b[0]
+    alloc_mat[5, 5] = -dr3 * kq_d_kt
+
+    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
+    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
+    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
+
+    alloc_mat[3, 7] = p4_b[1]
+    alloc_mat[4, 7] = -p4_b[0]
+    alloc_mat[5, 7] = -dr4 * kq_d_kt
+
+    alloc_mat_pinv = np.linalg.pinv(alloc_mat)
+    return alloc_mat_pinv
 
 
 def get_xr_ur_from_target(ocp_N, alloc_mat_pinv, target_pos, target_qwxyz, target_wrench):
@@ -501,64 +626,7 @@ def closed_loop_simulation(ocp: AcadosOcp):
 
     # - sim is initialized during the while loop
     # ============ update =============
-    # get allocation matrix
-    alloc_mat = np.zeros((6, 8))
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-
-    # - force
-    alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
-    alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
-    alloc_mat[2, 1] = 1
-
-    alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
-    alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
-    alloc_mat[2, 3] = 1
-
-    alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
-    alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
-    alloc_mat[2, 5] = 1
-
-    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
-    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
-    alloc_mat[2, 7] = 1
-
-    # - torque
-    alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
-
-    alloc_mat[3, 1] = p1_b[1]
-    alloc_mat[4, 1] = -p1_b[0]
-    alloc_mat[5, 1] = -dr1 * kq_d_kt
-
-    alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
-
-    alloc_mat[3, 3] = p2_b[1]
-    alloc_mat[4, 3] = -p2_b[0]
-    alloc_mat[5, 3] = -dr2 * kq_d_kt
-
-    alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
-
-    alloc_mat[3, 5] = p3_b[1]
-    alloc_mat[4, 5] = -p3_b[0]
-    alloc_mat[5, 5] = -dr3 * kq_d_kt
-
-    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
-
-    alloc_mat[3, 7] = p4_b[1]
-    alloc_mat[4, 7] = -p4_b[0]
-    alloc_mat[5, 7] = -dr4 * kq_d_kt
-
-    alloc_mat_pinv = np.linalg.pinv(alloc_mat)
+    alloc_mat_pinv = get_alloc_mat_pinv()
 
     target_pos = np.array([[0, 0, 1]]).T
     target_qwxyz = np.array([[1, 0, 0, 0]]).T
@@ -746,14 +814,14 @@ def closed_loop_simulation(ocp: AcadosOcp):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    acados_ocp = create_acados_ocp()
-    print("Successfully initialized acados ocp: ", acados_ocp)
-    print("number of states: ", acados_ocp.dims.nx)
-    print("number of controls: ", acados_ocp.dims.nu)
-    print("number of parameters: ", acados_ocp.dims.np)
+    acados_ocp_solver = create_acados_ocp_solver()
+    print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
+    print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
+    print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
+    print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
     print("T_samp: ", nmpc_params["T_samp"])
     print("T_pred: ", nmpc_params["T_pred"])
     print("T_integ: ", nmpc_params["T_integ"])
     print("N_node: ", nmpc_params["N_node"])
 
-    closed_loop_simulation(acados_ocp)
+    closed_loop_simulation(acados_ocp_solver.acados_ocp)
