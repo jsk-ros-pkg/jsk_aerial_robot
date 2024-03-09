@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   mujoco_ros_control
   pluginlib
   roscpp
-)
+  )
 
 find_package(Eigen3 REQUIRED)
 if(NOT CMAKE_BUILD_TYPE)
@@ -20,6 +20,9 @@ endif()
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 
 find_package(NLopt REQUIRED)
+
+set(CMAKE_CXX_STANDARD 17)
+find_package(pinocchio REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include test
