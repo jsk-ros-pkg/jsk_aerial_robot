@@ -57,6 +57,9 @@ add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messa
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
 
+add_executable(pinocchio_test src/model/pinocchio_test.cpp)
+target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES})
+
 
 # test
 # pre-build test code
