@@ -18,7 +18,7 @@ from tf_conversions import transformations as tf
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-from nmpc_base import NMPCBase
+from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -415,14 +415,15 @@ class NMPCOverActFull(NMPCBase):
         return XrUrConverter()
 
 
-class XrUrConverter:
+class XrUrConverter(XrUrConverterBase):
     def __init__(self):
+        super(XrUrConverter, self).__init__()
         self.mass = mass
         self.gravity = gravity
-        self.alloc_mat_pinv = get_alloc_mat_pinv()
+        self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
-    def update(self, target_xyz, target_rpy):
+    def pose_point_2_xr_ur(self, target_xyz, target_rpy):
         roll = target_rpy.item(0)
         pitch = target_rpy.item(1)
         yaw = target_rpy.item(2)
@@ -437,13 +438,6 @@ class XrUrConverter:
         fg_b = rot @ fg_i
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
-        xr, ur = self.ctrl_target_2_xr_ur(target_xyz, target_qwxyz, target_wrench)
-
-        return xr, ur
-
-    def ctrl_target_2_xr_ur(self, target_pos, target_qwxyz, target_wrench):
-        ocp_N = self.ocp_N
-
         # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
         x = self.alloc_mat_pinv @ target_wrench
 
@@ -457,11 +451,13 @@ class XrUrConverter:
         ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
 
         # get x and u, set reference
+        ocp_N = self.ocp_N
+
         xr = np.zeros([ocp_N + 1, 17])
-        xr[:, 0] = target_pos.item(0)  # x
-        xr[:, 1] = target_pos.item(1)  # y
-        xr[:, 2] = target_pos.item(2)  # z
-        xr[:, 6] = target_qwxyz.item(0)  # qw
+        xr[:, 0] = target_xyz.item(0)  # x
+        xr[:, 1] = target_xyz.item(1)  # y
+        xr[:, 2] = target_xyz.item(2)  # z
+        xr[:, 6] = target_qwxyz.item(0)  # qx
         xr[:, 7] = target_qwxyz.item(1)  # qx
         xr[:, 8] = target_qwxyz.item(2)  # qy
         xr[:, 9] = target_qwxyz.item(3)  # qz
@@ -477,67 +473,67 @@ class XrUrConverter:
 
         return xr, ur
 
+    @staticmethod
+    def _get_alloc_mat_pinv():
+        # get allocation matrix
+        alloc_mat = np.zeros((6, 8))
+        sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
 
-def get_alloc_mat_pinv():
-    # get allocation matrix
-    alloc_mat = np.zeros((6, 8))
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        # - force
+        alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
+        alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
+        alloc_mat[2, 1] = 1
 
-    # - force
-    alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
-    alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
-    alloc_mat[2, 1] = 1
+        alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
+        alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
+        alloc_mat[2, 3] = 1
 
-    alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
-    alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
-    alloc_mat[2, 3] = 1
+        alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
+        alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
+        alloc_mat[2, 5] = 1
 
-    alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
-    alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
-    alloc_mat[2, 5] = 1
+        alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
+        alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
+        alloc_mat[2, 7] = 1
 
-    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
-    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
-    alloc_mat[2, 7] = 1
+        # - torque
+        alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
+        alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
+        alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
 
-    # - torque
-    alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
+        alloc_mat[3, 1] = p1_b[1]
+        alloc_mat[4, 1] = -p1_b[0]
+        alloc_mat[5, 1] = -dr1 * kq_d_kt
 
-    alloc_mat[3, 1] = p1_b[1]
-    alloc_mat[4, 1] = -p1_b[0]
-    alloc_mat[5, 1] = -dr1 * kq_d_kt
+        alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
+        alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
+        alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
 
-    alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
+        alloc_mat[3, 3] = p2_b[1]
+        alloc_mat[4, 3] = -p2_b[0]
+        alloc_mat[5, 3] = -dr2 * kq_d_kt
 
-    alloc_mat[3, 3] = p2_b[1]
-    alloc_mat[4, 3] = -p2_b[0]
-    alloc_mat[5, 3] = -dr2 * kq_d_kt
+        alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
+        alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
+        alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
 
-    alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
+        alloc_mat[3, 5] = p3_b[1]
+        alloc_mat[4, 5] = -p3_b[0]
+        alloc_mat[5, 5] = -dr3 * kq_d_kt
 
-    alloc_mat[3, 5] = p3_b[1]
-    alloc_mat[4, 5] = -p3_b[0]
-    alloc_mat[5, 5] = -dr3 * kq_d_kt
+        alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
+        alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
+        alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
 
-    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
+        alloc_mat[3, 7] = p4_b[1]
+        alloc_mat[4, 7] = -p4_b[0]
+        alloc_mat[5, 7] = -dr4 * kq_d_kt
 
-    alloc_mat[3, 7] = p4_b[1]
-    alloc_mat[4, 7] = -p4_b[0]
-    alloc_mat[5, 7] = -dr4 * kq_d_kt
-
-    alloc_mat_pinv = np.linalg.pinv(alloc_mat)
-    return alloc_mat_pinv
+        alloc_mat_pinv = np.linalg.pinv(alloc_mat)
+        return alloc_mat_pinv
 
 
 if __name__ == "__main__":

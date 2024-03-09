@@ -214,7 +214,7 @@ if __name__ == "__main__":
             yaw = 0.0 / 180.0 * np.pi
             target_rpy = np.array([[roll, pitch, yaw]]).T
 
-        xr, ur = xr_ur_converter.update(target_xyz, target_rpy)
+        xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
         # -------- update solver --------
         if t_ctl >= ts_ctrl:

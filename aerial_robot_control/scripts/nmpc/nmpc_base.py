@@ -8,14 +8,13 @@ from abc import ABC, abstractmethod
 from acados_template import AcadosModel, AcadosOcpSolver
 
 
-class XrUrConverterBase:
+class XrUrConverterBase(ABC):
+    @abstractmethod
     def __init__(self):
         pass
 
-    def convert_xr_to_ur(self, xr):
-        pass
-
-    def convert_ur_to_xr(self, ur):
+    @abstractmethod
+    def pose_point_2_xr_ur(self, target_xyz, target_qwxyz):
         pass
 
 
