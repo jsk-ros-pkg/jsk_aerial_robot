@@ -4,10 +4,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
-import casadi as ca
 from tf_conversions import transformations as tf
 
-from nmpc_over_act_full import create_acados_ocp_solver, XrUrConverter
+from nmpc_over_act_full import NMPCOverActFull
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -22,7 +21,9 @@ def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSim
 
 
 class Visualizer:
-    def __init__(self, N_sim, nx, nu, x0):
+    def __init__(self, ts_sim, N_sim, nx, nu, x0):
+        self.ts_sim = ts_sim
+
         self.x_sim_all = np.ndarray((N_sim + 1, nx))
         self.u_sim_all = np.ndarray((N_sim, nu))
         self.x_sim_all[0, :] = x0
@@ -32,6 +33,7 @@ class Visualizer:
         self.u_sim_all[i, :] = u
 
     def visualize(self, ts_ctrl: float, t_servo: float = 0.0, t_sqp_start: float = 0, t_sqp_end: float = 0):
+        ts_sim = self.ts_sim
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
 
@@ -141,44 +143,44 @@ class Visualizer:
 
 
 if __name__ == "__main__":
-    # simulation parameters
-    ts_sim = 0.005
-    t_total_sim = 15.0
-    N_sim = int(t_total_sim / ts_sim)
+    # ========== init ==========
+    nmpc = NMPCOverActFull()
 
-    # acados ocp solver
-    ocp_solver = create_acados_ocp_solver()
-    t_servo = 0.085883  # TODO: wrap these parameters into a class
-    ts_ctrl = 0.01
+    # controller-specific parameters
+    t_servo = nmpc.t_servo
+    ts_ctrl = nmpc.ts_ctrl
 
+    # ocp solver
+    ocp_solver = nmpc.get_ocp_solver()
     nx = ocp_solver.acados_ocp.dims.nx
     nu = ocp_solver.acados_ocp.dims.nu
-    sim_solver = create_acados_sim_solver(ocp_solver.acados_ocp.model, ts_sim)
 
-    # initial states and control inputs
     x_init = np.zeros(nx)
     x_init[6] = 1.0  # qw
     u_init = np.zeros(nu)
 
-    x_current = x_init
-    u0 = u_init
-
-    # - viz
-    viz = Visualizer(N_sim, nx, nu, x_init)
-
-    # - ocp solver
     for stage in range(ocp_solver.N + 1):
         ocp_solver.set(stage, "x", x_init)
     for stage in range(ocp_solver.N):
         ocp_solver.set(stage, "u", u_init)
 
-    # - planner
-    xr_ur_converter = XrUrConverter()
-
-    # ========== update ==========
+    # sim solver
     t_sqp_start = 2.5
     t_sqp_end = 3.0
 
+    ts_sim = 0.005
+    t_total_sim = 15.0
+    N_sim = int(t_total_sim / ts_sim)
+
+    sim_solver = create_acados_sim_solver(ocp_solver.acados_ocp.model, ts_sim)
+
+    # others
+    xr_ur_converter = nmpc.get_xr_ur_converter()
+    viz = Visualizer(ts_sim, N_sim, nx, nu, x_init)
+
+    # ========== update ==========
+    x_now = x_init
+    u_cmd = u_init
     t_ctl = 0.0
     for i in range(N_sim):
         t_now = i * ts_sim
@@ -218,35 +220,36 @@ if __name__ == "__main__":
         if t_ctl >= ts_ctrl:
             t_ctl = 0.0
 
+            # 0 ~ N-1
             for j in range(ocp_solver.N):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
-
                 quaternion_r = xr[j, 6:10]
                 ocp_solver.set(j, "p", quaternion_r)  # for nonlinear quaternion error
-            ocp_solver.set(ocp_solver.N, "yref", xr[ocp_solver.N, :])  # final state of x, no u
 
+            # N
+            yr = xr[ocp_solver.N, :]
+            ocp_solver.set(ocp_solver.N, "yref", yr)  # final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
             ocp_solver.set(ocp_solver.N, "p", quaternion_r)  # for nonlinear quaternion error
 
             # feedback, take the first action
-            u0 = ocp_solver.solve_for_x0(x_current)
+            u_cmd = ocp_solver.solve_for_x0(x_now)
             if ocp_solver.status != 0:
-                raise Exception(
-                    "acados ocp_solver returned status {}. Exiting.".format(ocp_solver.status)
-                )
+                raise Exception("acados ocp_solver returned status {}. Exiting.".format(ocp_solver.status))
 
         # --------- update simulation ----------
-        sim_solver.set("x", x_current)
-        sim_solver.set("u", u0)
+        sim_solver.set("x", x_now)
+        sim_solver.set("u", u_cmd)
+
         status = sim_solver.solve()
         if status != 0:
             raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
 
-        # update state
-        x_current = sim_solver.get("x")
+        x_now = sim_solver.get("x")
 
-        viz.update(i, x_current, u0)
+        # --------- update visualizer ----------
+        viz.update(i, x_now, u_cmd)
 
-    # visualize
+    # ========== visualize ==========
     viz.visualize(ts_ctrl, t_servo, t_sqp_start, t_sqp_end)
