@@ -147,7 +147,11 @@ if __name__ == "__main__":
     nmpc = NMPCOverActFull()
 
     # controller-specific parameters
-    t_servo = nmpc.t_servo
+    # check if there is t_servo in the controller
+    if hasattr(nmpc, "t_servo"):
+        t_servo = nmpc.t_servo
+    else:
+        t_servo = 0.0
     ts_ctrl = nmpc.ts_ctrl
 
     # ocp solver

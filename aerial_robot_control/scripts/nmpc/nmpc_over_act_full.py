@@ -49,15 +49,16 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 
 
 class NMPCOverActFull(NMPCBase):
+    def __init__(self):
+        super(NMPCOverActFull, self).__init__()
+        self.t_servo = t_servo
+
     def _set_name(self):
         model_name = "beetle_full_model"
         return model_name
 
-    def __init__(self):
-        super(NMPCOverActFull, self).__init__()
-
-        self.t_servo = t_servo
-        self.ts_ctrl = nmpc_params["T_samp"]
+    def _set_ts_ctrl(self):
+        return nmpc_params["T_samp"]
 
     def _create_acados_model(self, model_name):
         # model states
@@ -407,9 +408,9 @@ class NMPCOverActFull(NMPCBase):
 
         # compile acados ocp
         json_file_path = os.path.join("./" + ocp_model.name + "_acados_ocp.json")
-        acados_ocp_solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
-        return acados_ocp_solver
+        return solver
 
     def _create_xr_ur_converter(self):
         return XrUrConverter()
