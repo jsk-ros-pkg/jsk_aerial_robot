@@ -9,8 +9,6 @@ Description: the output of the NMPC controller is the thrust for each rotor and 
 from __future__ import print_function  # be compatible with python2
 import os
 import sys
-import shutil
-import errno
 import numpy as np
 import yaml
 import rospkg
@@ -424,6 +422,9 @@ class XrUrConverter(XrUrConverterBase):
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
+    def _set_nx_nu(self):
+        return 17, 8
+
     def pose_point_2_xr_ur(self, target_xyz, target_rpy):
         roll = target_rpy.item(0)
         pitch = target_rpy.item(1)
@@ -454,7 +455,7 @@ class XrUrConverter(XrUrConverterBase):
         # get x and u, set reference
         ocp_N = self.ocp_N
 
-        xr = np.zeros([ocp_N + 1, 17])
+        xr = np.zeros([ocp_N + 1, self.nx])
         xr[:, 0] = target_xyz.item(0)  # x
         xr[:, 1] = target_xyz.item(1)  # y
         xr[:, 2] = target_xyz.item(2)  # z
@@ -466,7 +467,8 @@ class XrUrConverter(XrUrConverterBase):
         xr[:, 14] = a2_ref
         xr[:, 15] = a3_ref
         xr[:, 16] = a4_ref
-        ur = np.zeros([ocp_N, 8])
+
+        ur = np.zeros([ocp_N, self.nu])
         ur[:, 0] = ft1_ref
         ur[:, 1] = ft2_ref
         ur[:, 2] = ft3_ref

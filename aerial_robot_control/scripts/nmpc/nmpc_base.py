@@ -11,7 +11,11 @@ from acados_template import AcadosModel, AcadosOcpSolver
 class XrUrConverterBase(ABC):
     @abstractmethod
     def __init__(self):
-        pass
+        self.nx, self.nu = self._set_nx_nu()
+
+    @abstractmethod
+    def _set_nx_nu(self):
+        return int(), int()
 
     @abstractmethod
     def pose_point_2_xr_ur(self, target_xyz, target_qwxyz):
