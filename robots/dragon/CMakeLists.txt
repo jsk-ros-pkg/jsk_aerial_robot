@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
+  casadi_eigen
   hydrus
   mujoco_ros_control
   pluginlib
@@ -23,6 +24,7 @@ find_package(NLopt REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 find_package(pinocchio REQUIRED)
+find_package(casadi REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include test
@@ -58,7 +60,7 @@ add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
 
 add_executable(pinocchio_test src/model/pinocchio_test.cpp)
-target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES})
+target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES} casadi)
 
 
 # test
