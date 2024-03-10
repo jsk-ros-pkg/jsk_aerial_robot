@@ -184,6 +184,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # ========== init ==========
+    # ---------- Controller ----------
     if args.model == 0:
         nmpc = NMPCOverActFull()
     elif args.model == 1:
@@ -191,12 +192,11 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
-    # controller-specific parameters
     # check if there is t_servo in the controller
     if hasattr(nmpc, "t_servo"):
-        t_servo = nmpc.t_servo
+        t_servo_ctrl = nmpc.t_servo
     else:
-        t_servo = 0.0
+        t_servo_ctrl = 0.0
     ts_ctrl = nmpc.ts_ctrl
 
     # ocp solver
@@ -213,36 +213,47 @@ if __name__ == "__main__":
     for stage in range(ocp_solver.N):
         ocp_solver.set(stage, "u", u_init)
 
-    # sim solver
-    t_sqp_start = 2.5
-    t_sqp_end = 3.0
+    # ---------- Simulator ----------
+    sim_nmpc = NMPCOverActFull()
+
+    if hasattr(sim_nmpc, "t_servo"):
+        t_servo_sim = sim_nmpc.t_servo
+    else:
+        t_servo_sim = 0.0
 
     ts_sim = 0.005
     t_total_sim = 15.0
     N_sim = int(t_total_sim / ts_sim)
 
-    sim_solver = create_acados_sim_solver(ocp_solver.acados_ocp.model, ts_sim)
+    # sim solver
+    sim_nmpc.get_ocp_model()
+    sim_solver = create_acados_sim_solver(sim_nmpc.get_ocp_model(), ts_sim)
+    nx_sim = sim_solver.acados_sim.dims.nx
 
-    # others
+    x_init_sim = np.zeros(nx_sim)
+    x_init_sim[6] = 1.0  # qw
+
+    # ---------- Others ----------
     xr_ur_converter = nmpc.get_xr_ur_converter()
-    viz = Visualizer(N_sim, nx, nu, x_init)
+    viz = Visualizer(N_sim, nx_sim, nu, x_init_sim)
+
+    is_sqp_change = False
+    t_sqp_start = 2.5
+    t_sqp_end = 3.0
 
     # ========== update ==========
-    x_now = x_init
     u_cmd = u_init
     t_ctl = 0.0
+    x_now_sim = x_init_sim
     for i in range(N_sim):
+        # --------- update time ---------
         t_now = i * ts_sim
         t_ctl += ts_sim
 
-        # -------- sqp mode --------
-        if t_now >= t_sqp_start:
-            ocp_solver.solver_options["nlp_solver_type"] = "SQP"
+        # --------- update state estimation ---------
+        x_now = x_now_sim[:nx]
 
-        if t_now >= t_sqp_end:
-            ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
-
-        # -------- update target --------
+        # -------- update control target --------
         target_xyz = np.array([[0.0, 0.0, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
@@ -260,6 +271,14 @@ if __name__ == "__main__":
             target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
+
+        # -------- sqp mode --------
+        if is_sqp_change and t_sqp_start > t_sqp_end:
+            if t_now >= t_sqp_start:
+                ocp_solver.solver_options["nlp_solver_type"] = "SQP"
+
+            if t_now >= t_sqp_end:
+                ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
 
         # -------- update solver --------
         if t_ctl >= ts_ctrl:
@@ -286,18 +305,18 @@ if __name__ == "__main__":
                 break
 
         # --------- update simulation ----------
-        sim_solver.set("x", x_now)
+        sim_solver.set("x", x_now_sim)
         sim_solver.set("u", u_cmd)
 
         status = sim_solver.solve()
         if status != 0:
             raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
 
-        x_now = sim_solver.get("x")
+        x_now_sim = sim_solver.get("x")
 
         # --------- update visualizer ----------
-        viz.update(i, x_now, u_cmd)
+        viz.update(i, x_now_sim, u_cmd)
 
     # ========== visualize ==========
-    viz.visualize(ocp_solver.model_name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim, t_servo_ctrl=t_servo,
-                  t_servo_sim=t_servo)
+    viz.visualize(ocp_solver.model_name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim, t_servo_ctrl=t_servo_ctrl,
+                  t_servo_sim=t_servo_sim)
