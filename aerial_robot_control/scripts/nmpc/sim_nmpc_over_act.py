@@ -8,6 +8,7 @@ from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, 
 from tf_conversions import transformations as tf
 
 from nmpc_over_act_no_servo_delay import NMPCOverActNoServoDelay
+from nmpc_over_act_old_servo_cost import NMPCOverActOldServoCost
 from nmpc_over_act_full import NMPCOverActFull
 
 
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "model",
         type=int,
-        help="The NMPC model to be simulated. Options: 0 (full), 1 (no_servo_delay).",
+        help="The NMPC model to be simulated. Options: 0 (no_servo_delay), 1 (old servo cost), 2 (full).",
     )
 
     args = parser.parse_args()
@@ -186,9 +187,11 @@ if __name__ == "__main__":
     # ========== init ==========
     # ---------- Controller ----------
     if args.model == 0:
-        nmpc = NMPCOverActFull()
-    elif args.model == 1:
         nmpc = NMPCOverActNoServoDelay()
+    elif args.model == 1:
+        nmpc = NMPCOverActOldServoCost()
+    elif args.model == 2:
+        nmpc = NMPCOverActFull()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
