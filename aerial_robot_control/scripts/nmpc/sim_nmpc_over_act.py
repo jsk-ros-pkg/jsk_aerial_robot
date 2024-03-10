@@ -9,6 +9,7 @@ from tf_conversions import transformations as tf
 
 from nmpc_over_act_no_servo_delay import NMPCOverActNoServoDelay
 from nmpc_over_act_old_servo_cost import NMPCOverActOldServoCost
+from nmpc_over_act_no_servo_new_cost import NMPCOverActNoServoNewCost
 from nmpc_over_act_full import NMPCOverActFull
 
 
@@ -191,6 +192,8 @@ if __name__ == "__main__":
     elif args.model == 1:
         nmpc = NMPCOverActOldServoCost()
     elif args.model == 2:
+        nmpc = NMPCOverActNoServoNewCost()
+    elif args.model == 3:
         nmpc = NMPCOverActFull()
     else:
         raise ValueError(f"Invalid model {args.model}.")
@@ -306,6 +309,10 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
+
+        # if nmpc is NMPCOverActNoServoNewCost
+        if type(nmpc) is NMPCOverActNoServoNewCost:
+            xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
