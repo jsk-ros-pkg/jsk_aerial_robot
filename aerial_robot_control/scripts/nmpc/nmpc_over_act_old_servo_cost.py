@@ -271,10 +271,10 @@ class NMPCOverActOldServoCost(NMPCBase):
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
-                nmpc_params["Ra"],
-                nmpc_params["Ra"],
-                nmpc_params["Ra"],
-                nmpc_params["Ra"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
             ]
         )
         print("R: \n", R)

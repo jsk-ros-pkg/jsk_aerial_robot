@@ -48,7 +48,7 @@ controller:
     Qw_z: 5
     Qa: 1
     Rt: 1
-    Ra: 1
+    Rac: 1
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
