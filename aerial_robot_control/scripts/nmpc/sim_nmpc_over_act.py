@@ -2,6 +2,7 @@
  Created by li-jinjie on 24-3-9.
 """
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import argparse
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
@@ -173,6 +174,99 @@ class Visualizer:
 
         plt.show()
 
+    def visualize_less(self, ocp_model_name: str, sim_model_name: str, ts_ctrl: float, ts_sim: float,
+                       t_total_sim: float,
+                       t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0, t_sqp_start: float = 0,
+                       t_sqp_end: float = 0):
+        # to avoid the warning of font in pdf check
+        matplotlib.rcParams['pdf.fonttype'] = 42
+        matplotlib.rcParams['ps.fonttype'] = 42
+
+        # set font size
+        plt.rcParams.update({'font.size': 10})  # default is 10
+
+        x_sim_all = self.x_sim_all
+        u_sim_all = self.u_sim_all
+
+        is_plot_sqp = False
+        if t_sqp_start != t_sqp_end and t_sqp_end > t_sqp_start:
+            is_plot_sqp = True
+
+        fig = plt.figure(figsize=(7, 7))
+        fig.suptitle(
+            f"Ctrl: {ocp_model_name}, ts_ctrl = {ts_ctrl} s, servo delay: {t_servo_ctrl} s\n"
+            # f"Sim: {sim_model_name}, ts_sim = {ts_sim} s, servo delay: {t_servo_sim} s"
+        )
+
+        time_data_x = np.arange(self.data_idx) * ts_sim
+
+        plt.subplot(2, 2, 1)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="$x$")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="$y$")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="$z$")
+        plt.legend()
+        # plt.xlabel("$t$ (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("position (m)")
+        plt.ylim([-0.1, 1.1])
+        if is_plot_sqp:
+            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+            plt.text(1.5, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
+            plt.text((t_sqp_start + t_sqp_end) / 2, 0.5, "SQP", horizontalalignment="center",
+                     verticalalignment="center")
+            plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
+        plt.grid(True)
+
+        plt.subplot(2, 2, 2)
+        if x_sim_all.shape[1] > 13:
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, 13], label="$\\alpha_1$")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, 14], label="$\\alpha_2$")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, 15], label="$\\alpha_3$")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, 16], label="$\\alpha_4$")
+        plt.legend()
+        # plt.xlabel("time (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("servo angle state (rad)")
+        # plt.ylim([-0.18, 0.18])
+        plt.ylim([-1.0, 1.0])
+        plt.grid(True)
+        if is_plot_sqp:
+            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+
+        time_data_u = np.arange(self.data_idx - 1) * ts_sim
+
+        plt.subplot(2, 2, 3)
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 0], label="$f_1$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 1], label="$f_2$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="$f_3$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$f_4$")
+        plt.legend()
+        plt.xlabel("time (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("thrust command (N)")
+        plt.ylim([0, 15])
+        plt.grid(True)
+        if is_plot_sqp:
+            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+
+        plt.subplot(2, 2, 4)
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="$\\alpha_{c1}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5], label="$\\alpha_{c2}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="$\\alpha_{c3}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7], label="$\\alpha_{c4}$")
+        plt.legend()
+        plt.xlabel("time (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("servo angle command (rad)")
+        plt.ylim([-1.6, 1.6])  # -0.8, 0.8
+        plt.grid(True)
+        if is_plot_sqp:
+            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+        plt.show()
+
 
 if __name__ == "__main__":
     # read arguments
@@ -228,7 +322,7 @@ if __name__ == "__main__":
         t_servo_sim = 0.0
 
     ts_sim = 0.005
-    t_total_sim = 15.0
+    t_total_sim = 2.0
     N_sim = int(t_total_sim / ts_sim)
 
     # sim solver
@@ -263,18 +357,18 @@ if __name__ == "__main__":
         target_xyz = np.array([[0.0, 0.0, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
-        if 3.0 <= t_now < 5.5:
-            assert t_sqp_end <= 3.0
-            target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-            target_rpy = np.array([[0.0, 0.0, 0.0]]).T
-
-        if t_now >= 5.5:
-            target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-
-            roll = 30.0 / 180.0 * np.pi
-            pitch = 0.0 / 180.0 * np.pi
-            yaw = 0.0 / 180.0 * np.pi
-            target_rpy = np.array([[roll, pitch, yaw]]).T
+        # if 3.0 <= t_now < 5.5:
+        #     assert t_sqp_end <= 3.0
+        #     target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+        #     target_rpy = np.array([[0.0, 0.0, 0.0]]).T
+        #
+        # if t_now >= 5.5:
+        #     target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+        #
+        #     roll = 30.0 / 180.0 * np.pi
+        #     pitch = 0.0 / 180.0 * np.pi
+        #     yaw = 0.0 / 180.0 * np.pi
+        #     target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
@@ -328,5 +422,8 @@ if __name__ == "__main__":
         viz.update(i, x_now_sim, u_cmd)
 
     # ========== visualize ==========
-    viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                  t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+    # viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+    #               t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+
+    viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                       t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
