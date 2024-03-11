@@ -328,5 +328,5 @@ if __name__ == "__main__":
         viz.update(i, x_now_sim, u_cmd)
 
     # ========== visualize ==========
-    viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim, t_servo_ctrl=t_servo_ctrl,
-                  t_servo_sim=t_servo_sim)
+    viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                  t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)

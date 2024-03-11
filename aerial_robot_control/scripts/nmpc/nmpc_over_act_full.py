@@ -50,14 +50,14 @@ class NMPCOverActFull(NMPCBase):
         super(NMPCOverActFull, self).__init__()
         self.t_servo = t_servo
 
-    def _set_name(self):
+    def _set_name(self) -> str:
         model_name = "beetle_full_model"
         return model_name
 
-    def _set_ts_ctrl(self):
+    def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
 
-    def _create_acados_model(self, model_name):
+    def _create_acados_model(self, model_name: str) -> AcadosModel:
         # model states
         p = ca.SX.sym("p", 3)
         v = ca.SX.sym("v", 3)
@@ -211,7 +211,7 @@ class NMPCOverActFull(NMPCBase):
 
         return model
 
-    def _create_acados_ocp_solver(self, ocp_model):
+    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         nx = ocp_model.x.size()[0]
         nu = ocp_model.u.size()[0]
         n_params = ocp_model.p.size()[0]
@@ -405,11 +405,11 @@ class NMPCOverActFull(NMPCBase):
 
         # compile acados ocp
         json_file_path = os.path.join("./" + ocp_model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=is_build)
 
         return solver
 
-    def _create_xr_ur_converter(self):
+    def _create_xr_ur_converter(self) -> XrUrConverterBase:
         return XrUrConverter()
 
 

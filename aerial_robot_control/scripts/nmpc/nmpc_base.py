@@ -157,11 +157,11 @@ class XrUrConverterBase(ABC):
 
 
 class NMPCBase(ABC):
-    def __init__(self):
+    def __init__(self, is_build: bool = True):
         self.ts_ctrl = self._set_ts_ctrl()
 
         self._ocp_model = self._create_acados_model(self._set_name())
-        self._ocp_solver = self._create_acados_ocp_solver(self._ocp_model)
+        self._ocp_solver = self._create_acados_ocp_solver(self._ocp_model, is_build)
         self._xr_ur_converter = self._create_xr_ur_converter()
 
     def get_ocp_model(self) -> AcadosModel:
@@ -186,7 +186,7 @@ class NMPCBase(ABC):
         pass
 
     @abstractmethod
-    def _create_acados_ocp_solver(self, ocp_model: AcadosModel) -> AcadosOcpSolver:
+    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         pass
 
     @abstractmethod
