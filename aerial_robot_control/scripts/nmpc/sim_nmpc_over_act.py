@@ -276,6 +276,7 @@ if __name__ == "__main__":
         type=int,
         help="The NMPC model to be simulated. Options: 0 (no_servo_delay), 1 (old servo cost), 2 (full).",
     )
+    parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
 
@@ -322,7 +323,11 @@ if __name__ == "__main__":
         t_servo_sim = 0.0
 
     ts_sim = 0.005
-    t_total_sim = 2.0
+
+    t_total_sim = 15.0
+    if args.plot_type > 0:
+        t_total_sim = 2.0
+
     N_sim = int(t_total_sim / ts_sim)
 
     # sim solver
@@ -357,18 +362,19 @@ if __name__ == "__main__":
         target_xyz = np.array([[0.0, 0.0, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
-        # if 3.0 <= t_now < 5.5:
-        #     assert t_sqp_end <= 3.0
-        #     target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-        #     target_rpy = np.array([[0.0, 0.0, 0.0]]).T
-        #
-        # if t_now >= 5.5:
-        #     target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-        #
-        #     roll = 30.0 / 180.0 * np.pi
-        #     pitch = 0.0 / 180.0 * np.pi
-        #     yaw = 0.0 / 180.0 * np.pi
-        #     target_rpy = np.array([[roll, pitch, yaw]]).T
+        if t_total_sim > 3.0:
+            if 3.0 <= t_now < 5.5:
+                assert t_sqp_end <= 3.0
+                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+                target_rpy = np.array([[0.0, 0.0, 0.0]]).T
+
+            if t_now >= 5.5:
+                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+
+                roll = 30.0 / 180.0 * np.pi
+                pitch = 0.0 / 180.0 * np.pi
+                yaw = 0.0 / 180.0 * np.pi
+                target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
@@ -422,8 +428,9 @@ if __name__ == "__main__":
         viz.update(i, x_now_sim, u_cmd)
 
     # ========== visualize ==========
-    # viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-    #               t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
-
-    viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                       t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+    if args.plot_type == 0:
+        viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                      t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+    elif args.plot_type == 1:
+        viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                           t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
