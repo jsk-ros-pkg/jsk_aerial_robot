@@ -39,18 +39,19 @@ class LemniscateTraj(BaseTraj2D):
     def __init__(self) -> None:
         super().__init__()
         self.a = 1.0  # parameter determining the size of the Lemniscate
-        self.T = 15  # period in seconds
+        self.z_range = 0.3  # range of z
+        self.T = 20  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
-
-        self.z = 0.6
 
     def get_2d_pt(self, t: float) -> Tuple[float, float, float, float, float, float]:
         t = t + self.T / 4  # shift the phase to make the trajectory start at the origin
 
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t)
+
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
+
         ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
         ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
 
@@ -61,12 +62,17 @@ class LemniscateTraj(BaseTraj2D):
 
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t) / 2
+        z = self.z_range * np.sin(2 * self.omega * t + np.pi / 2) + 1.0
+
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t) / 2
+        vz = 2 * self.z_range * self.omega * np.cos(2 * self.omega * t + np.pi)
+
         ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
         ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
+        az = -4 * self.z_range * self.omega ** 2 * np.sin(2 * self.omega * t + np.pi)
 
-        return x, y, self.z, vx, vy, 0.0, ax, ay, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
 
 class LemniscateTrajOmni(LemniscateTraj):
