@@ -79,16 +79,20 @@ class LemniscateTrajOmni(LemniscateTraj):
     def __init__(self) -> None:
         super().__init__()
         self.a_orientation = 0.5
-        self.yaw = 0.0
 
     def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         t = t + self.T * 1 / 4
 
+        roll = -2 * self.a_orientation * np.sin(2 * self.omega * t) / 2
         pitch = self.a_orientation * np.cos(self.omega * t)
-        roll = self.a_orientation * np.sin(2 * self.omega * t) / 2
-        pitch_rate = -self.a_orientation * self.omega * np.sin(self.omega * t)
-        roll_rate = 2 * self.a_orientation * self.omega * np.cos(2 * self.omega * t) / 2
-        pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
-        roll_acc = -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
+        yaw = np.pi / 2 * np.sin(self.omega * t + np.pi) + np.pi / 2
 
-        return -2 * roll, pitch, self.yaw, -2 * roll_rate, pitch_rate, 0.0, -2 * roll_acc, pitch_acc, 0.0
+        roll_rate = -2 * 2 * self.a_orientation * self.omega * np.cos(2 * self.omega * t) / 2
+        pitch_rate = -self.a_orientation * self.omega * np.sin(self.omega * t)
+        yaw_rate = np.pi / 2 * self.omega * np.cos(self.omega * t + np.pi / 2)
+
+        roll_acc = -2 * -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
+        pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
+        yaw_acc = - np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
+
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
