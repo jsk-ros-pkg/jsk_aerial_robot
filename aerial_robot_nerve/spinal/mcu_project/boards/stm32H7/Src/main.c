@@ -35,7 +35,8 @@
 #include <spinal/Imu.h>
 
 #include "flashmemory/flashmemory.h"
-#include "sensors/imu/imu_mpu9250.h"
+/* #include "sensors/imu/imu_mpu9250.h" */
+#include "sensors/imu/icm_20948.h"
 #include "sensors/imu/imu_ros_cmd.h"
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
@@ -100,7 +101,8 @@ osMailQId canMsgMailHandle;
 ros::NodeHandle nh_;
 
 /* sensor instances */
-IMUOnboard imu_;
+/* IMUOnboard imu_; */
+ICM20948 imu_;
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
@@ -228,7 +230,8 @@ int main(void)
   FlashMemory::read();
 #endif
 
-  imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  /* imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin); */
+  imu_.init(&hspi1, &hi2c3, &nh_, SPI1_CS_GPIO_Port, SPI1_CS_Pin, LED0_GPIO_Port, LED0_Pin);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
@@ -981,7 +984,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, LED0_Pin|LED1_Pin|LED2_Pin|BAROCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(IMUCS_GPIO_Port, IMUCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, IMUCS_Pin|SPI1_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : LED0_Pin LED1_Pin LED2_Pin */
   GPIO_InitStruct.Pin = LED0_Pin|LED1_Pin|LED2_Pin;
@@ -990,12 +993,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : IMUCS_Pin */
-  GPIO_InitStruct.Pin = IMUCS_Pin;
+  /*Configure GPIO pins : IMUCS_Pin SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = IMUCS_Pin|SPI1_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(IMUCS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BAROCS_Pin */
   GPIO_InitStruct.Pin = BAROCS_Pin;
