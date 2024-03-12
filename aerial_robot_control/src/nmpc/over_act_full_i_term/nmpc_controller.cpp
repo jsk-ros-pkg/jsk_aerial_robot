@@ -267,14 +267,24 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
 
   /* update I term */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
+  double qw = odom_now.pose.pose.orientation.w;
+  double qx = odom_now.pose.pose.orientation.x;
+  double qy = odom_now.pose.pose.orientation.y;
+  double qz = odom_now.pose.pose.orientation.z;
 
   tf::Vector3 target_pos;
-  tf::Vector3 target_rpy;
+  double qwr, qxr, qyr, qzr;
   if (!is_traj_tracking_)
   {
     target_pos = navigator_->getTargetPos();
-    target_rpy = navigator_->getTargetRPY();
+
+    tf::Vector3 target_rpy = navigator_->getTargetRPY();
+    tf::Quaternion q_ref = tf::Quaternion();
+    q_ref.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+    qwr = q_ref.w();
+    qxr = q_ref.x();
+    qyr = q_ref.y();
+    qzr = q_ref.z();
   }
   else
   {
@@ -282,25 +292,25 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
     target_pos.setY(x_u_ref_.x.data.at(1));
     target_pos.setZ(x_u_ref_.x.data.at(2));
 
-    tf::Quaternion q;
-    q.setW(x_u_ref_.x.data.at(6));
-    q.setX(x_u_ref_.x.data.at(7));
-    q.setY(x_u_ref_.x.data.at(8));
-    q.setZ(x_u_ref_.x.data.at(9));
-    double roll, pitch, yaw;
-    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-    target_rpy.setX(roll);
-    target_rpy.setY(pitch);
-    target_rpy.setZ(yaw);
+    qwr = x_u_ref_.x.data.at(6);
+    qxr = x_u_ref_.x.data.at(7);
+    qyr = x_u_ref_.x.data.at(8);
+    qzr = x_u_ref_.x.data.at(9);
   }
 
-  double fx_w_i_term = -pos_i_term_[0].update(target_pos.x(), pos.x());
-  double fy_w_i_term = -pos_i_term_[1].update(target_pos.y(), pos.y());
-  double fz_w_i_term = -pos_i_term_[2].update(target_pos.z(), pos.z());
-  double mx_cog_i_term = -pos_i_term_[3].update(target_rpy.x(), rpy.x());
-  double my_cog_i_term = -pos_i_term_[4].update(target_rpy.y(), rpy.y());
-  double mz_cog_i_term = -pos_i_term_[5].update(target_rpy.z(), rpy.z());
+  double qe_w = qw * qwr + qx * qxr + qy * qyr + qz * qzr;
+  double qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr;
+  double qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr;
+  double qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr;
+
+  double sign_qe_w = qe_w > 0 ? 1 : -1;
+
+  double fx_w_i_term = pos_i_term_[0].update(pos.x() - target_pos.x());
+  double fy_w_i_term = pos_i_term_[1].update(pos.y() - target_pos.y());
+  double fz_w_i_term = pos_i_term_[2].update(pos.z() - target_pos.z());
+  double mx_cog_i_term = pos_i_term_[3].update(sign_qe_w * qe_x);
+  double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe_y);
+  double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe_z);
 
   dist_force_w_ = geometry_msgs::Vector3();
   dist_force_w_.x = fx_w_i_term;

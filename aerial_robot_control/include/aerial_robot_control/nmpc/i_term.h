@@ -33,10 +33,8 @@ public:
     i_gain_ = i_gain;
   }
 
-  double update(double y_ref, double y)
+  double update(double error)  // y - y_ref
   {
-    double error = y_ref - y;
-
     // update the integrator using trapazoidal rule
     i_term_ += (dt_ / 2) * (error + error_last_round_);
 
