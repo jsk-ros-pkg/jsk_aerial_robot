@@ -9,8 +9,10 @@
 #include "pinocchio/algorithm/center-of-mass.hxx"
 #include "pinocchio/algorithm/model.hxx"
 #include "pinocchio/autodiff/casadi.hpp"
+#include <pinocchio/multibody/model.hpp>
+#include <pinocchio/multibody/data.hpp>
 // #include <casadi/casadi.hpp>
-// #include <CasadiEigen/CasadiEigen.h>
+#include <CasadiEigen/CasadiEigen.h>
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
@@ -45,12 +47,13 @@ class PinocchioRobotModel
 
   casadi::SX q_cs_;
   Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
+  casadi::SX mass_;
   casadi::SX cog_pos_;
+  casadi::SX inertia_;
 
   std::map<std::string, int> joint_index_map_;
   int rotor_num_;
 
-  double mass_;
 };
 
 PinocchioRobotModel::PinocchioRobotModel()
@@ -60,13 +63,43 @@ PinocchioRobotModel::PinocchioRobotModel()
   inertialInit();
 }
 
+Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl)
+{
+  casadi::DM ret = casadi::DM(y.size1(), y.size2());
+  for(int i =  0; i < y.size1(); i++)
+  {
+    for(int j = 0; j < y.size2(); j++)
+    {
+      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+      casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
+      ret(i, j) = y_dbl;
+    }
+  }
+  return casadiDmToEigenMatrix(ret);
+}
+
+Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
+{
+  casadi::DM ret = casadi::DM(y.size1(), y.size2());
+  for(int i =  0; i < y.size1(); i++)
+  {
+    for(int j = 0; j < y.size2(); j++)
+    {
+      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+      casadi::DM y_dbl = f(x_dbl);
+      ret(i, j) = y_dbl;
+    }
+  }
+  return casadiDmToEigenMatrix(ret);
+}
+
 void PinocchioRobotModel::modelInit()
 {
   // You should change here to set up your own URDF file or just pass it as an argument of this example.
   const std::string urdf_filename = PINOCCHIO_MODEL_DIR + std::string("/quad/robot.urdf");
 
   // Load the urdf model
-  pinocchio::urdf::buildModel(urdf_filename, model_dbl_);
+  pinocchio::urdf::buildModel(urdf_filename, pinocchio::JointModelFreeFlyer(), model_dbl_);
   std::cout << "model name: " << model_dbl_.name << std::endl;
 
   // Create data required by the algorithms
@@ -78,12 +111,17 @@ void PinocchioRobotModel::modelInit()
 
   std::cout << "model_.nq: " << model_.nq << std::endl;
   std::cout << "model_.nv: " << model_.nv << std::endl;
+  std::cout << "model_.njoints: " << model_.njoints << std::endl;
+  std::cout << std::endl;
 
   std::vector<int> q_dims(model_.njoints);
-  for(int i = 0; i < model_.nv; i++)
+  for(int i = 0; i < model_.njoints; i++)
   {
     std::string joint_type = model_.joints[i].shortname();
-    if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")
+    // std::cout << model_.names[i] << " " << joint_type << std::endl;
+    if(joint_type == "JointModelFreeFlyer")
+      q_dims.at(i) = 7;
+    else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")
       q_dims.at(i) = 2;
     else
       q_dims.at(i) = 1;
@@ -91,27 +129,27 @@ void PinocchioRobotModel::modelInit()
 
   int joint_index = 0;
   rotor_num_ = 0;
-  // std::cout << "model njoints: " << model_.njoints << std::endl;
   for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
   {
+    std::cout << model_.names[joint_id] << std::endl;
     if(model_.names[joint_id] == "universe")
     {
       std::cout << "find joint named universe" << std::endl;
     }
     else
     {
-      // std::cout << model_.names[joint_id] << std::endl;
       joint_index_map_[model_.names[joint_id]] = joint_index;
       joint_index += q_dims.at(joint_id);
 
       // special process for rotor
       if(model_.names[joint_id].find("rotor") != std::string::npos)
       {
-        // std::cout << "found rotor named " << model_.names[joint_id] << std::endl; 
+        std::cout << "found rotor named " << model_.names[joint_id] << std::endl; 
         rotor_num_++;
       }
     }
   }
+  std::cout << std::endl;
   // std::cout << "rotor num: " << rotor_num_ << std::endl;
 
   // check the joint index map
@@ -123,6 +161,7 @@ void PinocchioRobotModel::modelInit()
       std::cout << model_.names[joint_id] << " :" << joint_index_map_.at(model_.names[joint_id]) << std::endl;
     }
   }
+  std::cout << std::endl;
 }
 
 void PinocchioRobotModel::kinematicsInit()
@@ -134,7 +173,7 @@ void PinocchioRobotModel::kinematicsInit()
   {
     q_(i) = q_cs_(i);
   }
-  std::cout << "q: " << q_.transpose() << std::endl;
+  // std::cout << "q: " << q_.transpose() << std::endl;
 
   // solve FK
   pinocchio::forwardKinematics(model_, data_, q_);
@@ -178,31 +217,31 @@ void PinocchioRobotModel::kinematicsInit()
   // for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
   //   std::cout << std::setw(24) << std::left
   //             << model_.names[joint_id] << ": "
-  //             << std::setw(15) << std::left
+  //             << std::setw(24) << std::left
   //             << model_.joints[joint_id].shortname() << ": "
   //             << std::fixed << std::setprecision(5)
   //             << data_.oMi[joint_id].translation().transpose()
   //             << std::endl;
-
-  
-
 }
 
 void PinocchioRobotModel::inertialInit()
 {
-  // https://github.com/stack-of-tasks/pinocchio/issues/1286
-  // TODO: compute mass. But root link1 (fixed to root link) is ignored.
-  // casadi::SX m = 0.0;
-  // for(pinocchio::JointIndex i=0; i<(pinocchio::JointIndex)(model_.njoints); ++i)
-  // {
-  //   std::cout << model_.names[i] << ": " << model_.inertias[i].mass() << std::endl;
-  //   m += model_.inertias[i].mass();
-  // }
-  // std::cout << m << std::endl;
-  // mass_ = pinocchio::computeTotalMass(model_);
-  // std::cout << "mass: " << mass_ << std::endl;
-  // cog_pos_ = pinocchio::centerOfMass(model_, data_, q_);
-  // std::cout << cog_pos_ << std::endl;
+  mass_ = pinocchio::computeTotalMass(model_);
+  std::cout << "mass: " << mass_ << std::endl;
+
+  auto cog_pos = pinocchio::centerOfMass(model_, data_, q_, true);
+  pinocchio::casadi::copy(cog_pos, cog_pos_);
+  // std::cout << "cog_pos_: "cog_pos_ << std::endl;
+  std::cout << std::endl;
+
+  casadi::DM q_test = casadi::DM(model_.nq, 1);
+  q_test(joint_index_map_["joint1_yaw"]) = 1.57;
+  q_test(joint_index_map_["joint2_yaw"]) = 1.57;
+  q_test(joint_index_map_["joint3_yaw"]) = 1.57;
+  std::cout << "q_test: " << q_test << std::endl;
+  std::cout << std::endl;
+  std::cout << "real cog: " << computeRealValue(cog_pos_, q_cs_, q_test).transpose() << std::endl;
+  std::cout << std::endl;
 }
 
 int main(int argc, char ** argv)
