@@ -248,6 +248,46 @@ class Visualizer:
 
         plt.show()
 
+    def visualize_rpy(self, ocp_model_name: str, sim_model_name: str, ts_ctrl: float, ts_sim: float,
+                      t_total_sim: float, t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0):
+
+        plt.style.use(["science", "grid"])
+
+        # set font size
+        plt.rcParams.update({'font.size': 11})  # default is 10
+        label_size = 14
+
+        x_sim_all = self.x_sim_all
+        u_sim_all = self.u_sim_all
+
+        fig = plt.figure(figsize=(3.5, 3))
+        title = str(f"{ocp_model_name}")
+        title = title.replace("_", r"\_")
+        # fig.title(title)
+
+        time_data_x = np.arange(self.data_idx) * ts_sim
+
+        euler = np.zeros((x_sim_all.shape[0], 3))
+        for i in range(x_sim_all.shape[0]):
+            qwxyz = x_sim_all[i, 6:10]
+            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
+            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+
+        plt.title(title)
+        plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
+        plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
+        plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
+        plt.legend()
+        plt.xlabel("time (s)", fontsize=label_size)
+        plt.xlim([0, t_total_sim])
+        plt.ylim([-0.02, 0.52])
+        plt.ylabel("euler angle (rad)", fontsize=label_size)
+
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.tight_layout()
+
+        plt.show()
+
 
 if __name__ == "__main__":
     # read arguments
@@ -306,8 +346,10 @@ if __name__ == "__main__":
     ts_sim = 0.005
 
     t_total_sim = 15.0
-    if args.plot_type > 0:
+    if args.plot_type == 1:
         t_total_sim = 2.0
+    if args.plot_type == 2:
+        t_total_sim = 3.0
 
     N_sim = int(t_total_sim / ts_sim)
 
@@ -343,6 +385,10 @@ if __name__ == "__main__":
         target_xyz = np.array([[0.0, 0.0, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
+        if args.plot_type == 2:
+            target_xyz = np.array([[0.0, 0.0, 0.0]]).T
+            target_rpy = np.array([[0.5, 0.5, 0.5]]).T
+
         if t_total_sim > 3.0:
             if 3.0 <= t_now < 5.5:
                 assert t_sqp_end <= 3.0
@@ -358,6 +404,11 @@ if __name__ == "__main__":
                 target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
+
+        if args.plot_type == 2:
+            if nx > 13:
+                xr[:, 13:] = 0.0
+            ur[:, 4:] = 0.0
 
         # -------- sqp mode --------
         if is_sqp_change and t_sqp_start > t_sqp_end:
@@ -415,3 +466,6 @@ if __name__ == "__main__":
     elif args.plot_type == 1:
         viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
                            t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+    elif args.plot_type == 2:
+        viz.visualize_rpy(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                          t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
