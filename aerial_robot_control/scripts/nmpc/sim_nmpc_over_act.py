@@ -184,8 +184,9 @@ class Visualizer:
 
         # set font size
         plt.rcParams.update({'font.size': 11})  # default is 10
+        label_size = 15
 
-        # # to avoid the warning of font in pdf check
+        # # to avoid the warning of font in pdf check. Seems no need after using scienceplots.
         # matplotlib.rcParams['pdf.fonttype'] = 42
         # matplotlib.rcParams['ps.fonttype'] = 42
 
@@ -210,7 +211,7 @@ class Visualizer:
         plt.legend()
         # plt.xlabel("$t$ (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("position (m)", fontsize=12)
+        plt.ylabel("position (m)", fontsize=label_size)
         plt.ylim([-0.1, 1.1])
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
@@ -228,7 +229,7 @@ class Visualizer:
         plt.legend()
         # plt.xlabel("time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("servo angle state (rad)", fontsize=12)
+        plt.ylabel("servo angle state (rad)", fontsize=label_size)
         plt.ylim([-0.8, 0.8])  # -0.18, 0.18; -1.0, 1.0
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
@@ -241,9 +242,9 @@ class Visualizer:
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="$f_3$")
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$f_4$")
         plt.legend()
-        plt.xlabel("time (s)", fontsize=12)
+        plt.xlabel("time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
-        plt.ylabel("thrust cmd (N)", fontsize=12)
+        plt.ylabel("thrust cmd (N)", fontsize=label_size)
         plt.ylim([0, 15])
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
@@ -254,9 +255,9 @@ class Visualizer:
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="$\\alpha_{c3}$")
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7], label="$\\alpha_{c4}$")
         plt.legend()
-        plt.xlabel("time (s)", fontsize=12)
+        plt.xlabel("time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
-        plt.ylabel("servo angle cmd (rad)", fontsize=12)
+        plt.ylabel("servo angle cmd (rad)", fontsize=label_size)
         plt.ylim([-0.8, 0.8])  # -0.8, 0.8; -1.6, 1.6
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
