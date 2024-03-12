@@ -176,9 +176,7 @@ class Visualizer:
         plt.show()
 
     def visualize_less(self, ocp_model_name: str, sim_model_name: str, ts_ctrl: float, ts_sim: float,
-                       t_total_sim: float,
-                       t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0, t_sqp_start: float = 0,
-                       t_sqp_end: float = 0):
+                       t_total_sim: float, t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0):
 
         plt.style.use(["science", "grid"])
 
@@ -192,10 +190,6 @@ class Visualizer:
 
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
-
-        is_plot_sqp = False
-        if t_sqp_start != t_sqp_end and t_sqp_end > t_sqp_start:
-            is_plot_sqp = True
 
         fig = plt.figure(figsize=(7, 6))
         title = str(f"Ctrl = {ocp_model_name}, ts ctrl = {ts_ctrl} s, servo delay = {t_servo_ctrl} s")
@@ -213,12 +207,6 @@ class Visualizer:
         plt.xlim([0, t_total_sim])
         plt.ylabel("position (m)", fontsize=label_size)
         plt.ylim([-0.1, 1.1])
-        if is_plot_sqp:
-            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
-            plt.text(1.5, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
-            plt.text((t_sqp_start + t_sqp_end) / 2, 0.5, "SQP", horizontalalignment="center",
-                     verticalalignment="center")
-            plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
 
         plt.subplot(2, 2, 2)
         if x_sim_all.shape[1] > 13:
@@ -231,8 +219,6 @@ class Visualizer:
         plt.xlim([0, t_total_sim])
         plt.ylabel("servo angle state (rad)", fontsize=label_size)
         plt.ylim([-0.8, 0.8])  # -0.18, 0.18; -1.0, 1.0
-        if is_plot_sqp:
-            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         time_data_u = np.arange(self.data_idx - 1) * ts_sim
 
@@ -246,8 +232,6 @@ class Visualizer:
         plt.xlim([0, t_total_sim])
         plt.ylabel("thrust cmd (N)", fontsize=label_size)
         plt.ylim([0, 15])
-        if is_plot_sqp:
-            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         plt.subplot(2, 2, 4)
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="$\\alpha_{c1}$")
@@ -259,8 +243,6 @@ class Visualizer:
         plt.xlim([0, t_total_sim])
         plt.ylabel("servo angle cmd (rad)", fontsize=label_size)
         plt.ylim([-0.8, 0.8])  # -0.8, 0.8; -1.6, 1.6
-        if is_plot_sqp:
-            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
