@@ -4,6 +4,7 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import scienceplots
 import argparse
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 from tf_conversions import transformations as tf
@@ -178,12 +179,15 @@ class Visualizer:
                        t_total_sim: float,
                        t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0, t_sqp_start: float = 0,
                        t_sqp_end: float = 0):
-        # to avoid the warning of font in pdf check
-        matplotlib.rcParams['pdf.fonttype'] = 42
-        matplotlib.rcParams['ps.fonttype'] = 42
+
+        plt.style.use(["science", "grid"])
 
         # set font size
-        plt.rcParams.update({'font.size': 10})  # default is 10
+        plt.rcParams.update({'font.size': 11})  # default is 10
+
+        # # to avoid the warning of font in pdf check
+        # matplotlib.rcParams['pdf.fonttype'] = 42
+        # matplotlib.rcParams['ps.fonttype'] = 42
 
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
@@ -192,11 +196,10 @@ class Visualizer:
         if t_sqp_start != t_sqp_end and t_sqp_end > t_sqp_start:
             is_plot_sqp = True
 
-        fig = plt.figure(figsize=(7, 7))
-        fig.suptitle(
-            f"Ctrl: {ocp_model_name}, ts_ctrl = {ts_ctrl} s, servo delay: {t_servo_ctrl} s\n"
-            # f"Sim: {sim_model_name}, ts_sim = {ts_sim} s, servo delay: {t_servo_sim} s"
-        )
+        fig = plt.figure(figsize=(7, 6))
+        title = str(f"Ctrl = {ocp_model_name}, ts ctrl = {ts_ctrl} s, servo delay = {t_servo_ctrl} s")
+        title = title.replace("_", r"\_")
+        fig.suptitle(title)
 
         time_data_x = np.arange(self.data_idx) * ts_sim
 
@@ -207,7 +210,7 @@ class Visualizer:
         plt.legend()
         # plt.xlabel("$t$ (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("position (m)")
+        plt.ylabel("position (m)", fontsize=12)
         plt.ylim([-0.1, 1.1])
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
@@ -215,7 +218,6 @@ class Visualizer:
             plt.text((t_sqp_start + t_sqp_end) / 2, 0.5, "SQP", horizontalalignment="center",
                      verticalalignment="center")
             plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
-        plt.grid(True)
 
         plt.subplot(2, 2, 2)
         if x_sim_all.shape[1] > 13:
@@ -226,10 +228,8 @@ class Visualizer:
         plt.legend()
         # plt.xlabel("time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("servo angle state (rad)")
-        # plt.ylim([-0.18, 0.18])
-        plt.ylim([-1.0, 1.0])
-        plt.grid(True)
+        plt.ylabel("servo angle state (rad)", fontsize=12)
+        plt.ylim([-0.8, 0.8])  # -0.18, 0.18; -1.0, 1.0
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
@@ -241,11 +241,10 @@ class Visualizer:
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="$f_3$")
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$f_4$")
         plt.legend()
-        plt.xlabel("time (s)")
+        plt.xlabel("time (s)", fontsize=12)
         plt.xlim([0, t_total_sim])
-        plt.ylabel("thrust command (N)")
+        plt.ylabel("thrust cmd (N)", fontsize=12)
         plt.ylim([0, 15])
-        plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
@@ -255,11 +254,10 @@ class Visualizer:
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="$\\alpha_{c3}$")
         plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7], label="$\\alpha_{c4}$")
         plt.legend()
-        plt.xlabel("time (s)")
+        plt.xlabel("time (s)", fontsize=12)
         plt.xlim([0, t_total_sim])
-        plt.ylabel("servo angle command (rad)")
-        plt.ylim([-1.6, 1.6])  # -0.8, 0.8
-        plt.grid(True)
+        plt.ylabel("servo angle cmd (rad)", fontsize=12)
+        plt.ylim([-0.8, 0.8])  # -0.8, 0.8; -1.6, 1.6
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
