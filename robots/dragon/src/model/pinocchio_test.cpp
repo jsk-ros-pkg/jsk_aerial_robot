@@ -1,129 +1,55 @@
-#include "pinocchio/fwd.hpp"
+#include "dragon/model/pinocchio_test.h"
 
-#include "pinocchio/parsers/urdf.hpp"
-
-#include "pinocchio/algorithm/joint-configuration.hpp"
-#include "pinocchio/algorithm/kinematics.hpp"
-#include "pinocchio/algorithm/joint-configuration.hpp"
-#include "pinocchio/algorithm/kinematics-derivatives.hpp"
-#include "pinocchio/algorithm/center-of-mass.hxx"
-#include "pinocchio/algorithm/model.hxx"
-#include "pinocchio/autodiff/casadi.hpp"
-#include <pinocchio/multibody/model.hpp>
-#include <pinocchio/multibody/data.hpp>
-// #include <casadi/casadi.hpp>
-#include <CasadiEigen/CasadiEigen.h>
-
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <Eigen/LU>
-
-#include <iostream>
-
-// PINOCCHIO_MODEL_DIR is defined by the CMake but you can define your own directory here.
-#ifndef PINOCCHIO_MODEL_DIR
-#define PINOCCHIO_MODEL_DIR "/home/sugihara/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/dragon/robots"
-#endif
-
-class PinocchioRobotModel
-{
-  public:
-  PinocchioRobotModel();
-  ~PinocchioRobotModel() = default;
-
-  void modelInit();
-  void kinematicsInit();
-  void inertialInit();
-
-  pinocchio::Model model_dbl_;
-  pinocchio::Data data_dlb_;
-  pinocchio::ModelTpl<casadi::SX> model_;
-  pinocchio::DataTpl<casadi::SX> data_;
-
-  std::vector<casadi::SX> rotor_origin_root_;
-  std::vector<casadi::SX> rotor_normal_root_;
-
-  casadi::SX q_cs_;
-  Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
-  casadi::SX mass_;
-  casadi::SX cog_pos_;
-  casadi::SX inertia_;
-
-  std::map<std::string, int> joint_index_map_;
-  int rotor_num_;
-
-};
-
-PinocchioRobotModel::PinocchioRobotModel()
+PinocchioRobotModel::PinocchioRobotModel(ros::NodeHandle nh, ros::NodeHandle nhp):
+  nh_(nh),
+  nhp_(nhp)
 {
   modelInit();
   kinematicsInit();
   inertialInit();
+  rotorInit();
+
+  joint_state_sub_ = nh_.subscribe("joint_states", 1, &PinocchioRobotModel::jointStateCallback, this);
 }
 
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl)
-{
-  casadi::DM ret = casadi::DM(y.size1(), y.size2());
-  for(int i =  0; i < y.size1(); i++)
-  {
-    for(int j = 0; j < y.size2(); j++)
-    {
-      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-      casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
-      ret(i, j) = y_dbl;
-    }
-  }
-  return casadiDmToEigenMatrix(ret);
-}
-
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
-{
-  casadi::DM ret = casadi::DM(y.size1(), y.size2());
-  for(int i =  0; i < y.size1(); i++)
-  {
-    for(int j = 0; j < y.size2(); j++)
-    {
-      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-      casadi::DM y_dbl = f(x_dbl);
-      ret(i, j) = y_dbl;
-    }
-  }
-  return casadiDmToEigenMatrix(ret);
-}
 
 void PinocchioRobotModel::modelInit()
 {
-  // You should change here to set up your own URDF file or just pass it as an argument of this example.
-  const std::string urdf_filename = PINOCCHIO_MODEL_DIR + std::string("/quad/robot.urdf");
-
-  // Load the urdf model
-  pinocchio::urdf::buildModel(urdf_filename, pinocchio::JointModelFreeFlyer(), model_dbl_);
-  std::cout << "model name: " << model_dbl_.name << std::endl;
+  // Load the urdf model from ros parameter server
+  std::string robot_model_string = getRobotModelXml("robot_description");
+  pinocchio::urdf::buildModelFromXML(robot_model_string, pinocchio::JointModelFreeFlyer(), model_dbl_);
+  ROS_WARN_STREAM("[model][pinocchio] model name: " << model_dbl_.name);
 
   // Create data required by the algorithms
-  pinocchio::Data data_dlb_(model_dbl_);
+  pinocchio::Data data_dbl_(model_dbl_);
 
   // declaraion of model and data with casadi
   model_ = model_dbl_.cast<casadi::SX>();
   data_ = pinocchio::DataTpl<casadi::SX>(model_);
 
-  std::cout << "model_.nq: " << model_.nq << std::endl;
-  std::cout << "model_.nv: " << model_.nv << std::endl;
-  std::cout << "model_.njoints: " << model_.njoints << std::endl;
-  std::cout << std::endl;
+  // get baselink name from urdf
+  TiXmlDocument robot_model_xml;
+  robot_model_xml.Parse(robot_model_string.c_str());
+  TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
+  if(!baselink_attr)
+    ROS_DEBUG("Can not get baselink attribute from urdf model");
+  else
+    baselink_ = std::string(baselink_attr->Attribute("name"));
 
+  ROS_WARN_STREAM("[model][pinocchio] model_.nq: " << model_.nq);
+  ROS_WARN_STREAM("[model][pinocchio] model_.nv: " << model_.nv);
+  ROS_WARN_STREAM("[model][pinocchio] model_.njoints: " << model_.njoints);
+
+  // make map for joint position and index
   std::vector<int> q_dims(model_.njoints);
   for(int i = 0; i < model_.njoints; i++)
   {
     std::string joint_type = model_.joints[i].shortname();
-    // std::cout << model_.names[i] << " " << joint_type << std::endl;
-    if(joint_type == "JointModelFreeFlyer")
+    if(joint_type == "JointModelFreeFlyer")  // floating joint is expressed by seven variables in joint position space (position and quaternion)
       q_dims.at(i) = 7;
-    else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")
+    else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")  // continuous joint is expressed by two variables in joint position space (cos and sin)
       q_dims.at(i) = 2;
-    else
+    else //  revolute joint is expressed by one variable in joint position space 
       q_dims.at(i) = 1;
   }
 
@@ -131,12 +57,7 @@ void PinocchioRobotModel::modelInit()
   rotor_num_ = 0;
   for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
   {
-    std::cout << model_.names[joint_id] << std::endl;
-    if(model_.names[joint_id] == "universe")
-    {
-      std::cout << "find joint named universe" << std::endl;
-    }
-    else
+    if(model_.names[joint_id] != "universe")
     {
       joint_index_map_[model_.names[joint_id]] = joint_index;
       joint_index += q_dims.at(joint_id);
@@ -144,56 +65,110 @@ void PinocchioRobotModel::modelInit()
       // special process for rotor
       if(model_.names[joint_id].find("rotor") != std::string::npos)
       {
-        std::cout << "found rotor named " << model_.names[joint_id] << std::endl; 
         rotor_num_++;
       }
     }
   }
-  std::cout << std::endl;
-  // std::cout << "rotor num: " << rotor_num_ << std::endl;
-
-  // check the joint index map
-  std::cout << "joint index map: \n";
-  for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
-  {
-    if(joint_index_map_.count(model_.names[joint_id]))
-    {
-      std::cout << model_.names[joint_id] << " :" << joint_index_map_.at(model_.names[joint_id]) << std::endl;
-    }
-  }
-  std::cout << std::endl;
 }
+
 
 void PinocchioRobotModel::kinematicsInit()
 {
   // init q
   q_cs_ = casadi::SX::sym("q", model_.nq);
+  q_dbl_ = casadi::DM(model_.nq, 1);
   q_.resize(model_.nq, 1);
   for(int i = 0; i < model_.nq; i++)
   {
+    q_dbl_(i) = 0.0;
     q_(i) = q_cs_(i);
   }
-  // std::cout << "q: " << q_.transpose() << std::endl;
 
   // solve FK
   pinocchio::forwardKinematics(model_, data_, q_);
+  pinocchio::updateFramePlacements(model_, data_);
+}
 
-  // setup rotor info
+
+void PinocchioRobotModel::inertialInit()
+{
+  // setup cog info  
+  oMcog_.translation() = pinocchio::centerOfMass(model_, data_, q_, true);
+  oMcog_.rotation() = data_.oMf[model_.getFrameId(baselink_)].rotation();
+
+  mass_ = pinocchio::computeTotalMass(model_);
+  ROS_WARN_STREAM("[model][pinocchio] robot mass: " << mass_);
+
+
+  // TODO: inertia https://github.com/stack-of-tasks/pinocchio/issues/980
+  // for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
+  //   std::cout << std::setw(24) << std::left
+  //             << model_.names[joint_id] << ": "
+  //             << std::setw(24) << std::left
+  //             << model_.joints[joint_id].shortname() << ": "
+  //             << std::fixed << std::setprecision(5)
+  //             << model_.inertias[joint_id]
+  //             << std::endl;
+
+  std::cout << std::endl;
+  // pinocchio::computeCentroidalMap(model_, data_, q_); 
+  // std::cout << pinocchio::computeCentroidalMap(model_, data_, q_) << std::endl;
+  // std::cout << pinocchio::computeCentroidalMap(model_, data_, q_).rows() << " " << pinocchio::computeCentroidalMap(model_, data_, q_).cols() << std::endl;
+
+  pinocchio::crba(model_, data_, q_);
+  data_.M.triangularView<Eigen::StrictlyLower>() = data_.M.transpose().triangularView<Eigen::StrictlyLower>();
+  data_.Ycrb[0] = data_.liMi[1].act(data_.Ycrb[1]);
+
+  pinocchio::InertiaTpl<casadi::SX> Ig(oMcog_.inverse().act(data_.Ycrb[0]));
+  pinocchio::Symmetric3Tpl<casadi::SX> I = Ig.inertia();
+  // inertia_ = I.matrix();
+  inertia_ = casadi::SX(3, 3);
+  for(int i = 0; i < 3; i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      inertia_(i, j) = I.matrix()(i, j);
+    }
+  }
+
+  // std::cout << I.matrix() << std::endl;
+  // std::cout << I.matrix().rows() << " " << I.matrix().cols() << std::endl;
+
+  // std::cout << data_.hg << std::endl;
+  // std::cout << data_.Ag << std::endl;
+  // std::cout << data_.Ig << std::endl;
+
+
+}
+
+void PinocchioRobotModel::rotorInit()
+{
+  // get rotor origin and normal from root and cog 
   rotor_origin_root_.resize(rotor_num_);
+  rotor_origin_cog_.resize(rotor_num_);
   rotor_normal_root_.resize(rotor_num_);
+  rotor_normal_cog_.resize(rotor_num_);
 
   for(int i = 0; i < rotor_num_; i++)
   {
     std::string rotor_name = "rotor" + std::to_string(i + 1);
     int joint_id =  model_.getJointId(rotor_name);
-    // std::cout << rotor_name << " " << joint_id << std::endl;
-    casadi::SX rotor_origin_root = casadi::SX::zeros(3);
-    for(int j = 0; j < 3; j++)
-      rotor_origin_root(j) = data_.oMi[joint_id].translation()(j);
-    rotor_origin_root_.at(i) = rotor_origin_root;
-    // std::cout << "rotor origin: " << i << " " << rotor_origin_root_.at(i) << std::endl;
 
+    // origin
+    casadi::SX rotor_origin_root = casadi::SX::zeros(3);
+    casadi::SX rotor_origin_cog = casadi::SX::zeros(3);
+    for(int j = 0; j < 3; j++)
+    {
+      rotor_origin_root(j) = data_.oMi[joint_id].translation()(j);
+      rotor_origin_cog(j) = (oMcog_.inverse() * data_.oMi[joint_id]).translation()(j);
+    }
+
+    rotor_origin_root_.at(i) = rotor_origin_root;
+    rotor_origin_cog_.at(i) = rotor_origin_cog;
+
+    // normal
     casadi::SX rotor_normal_root = casadi::SX::zeros(3);
+    casadi::SX rotor_normal_cog = casadi::SX::zeros(3);
     int rotor_axis_type;
     if(model_.joints[joint_id].shortname() == "JointModelRX" || model_.joints[joint_id].shortname() == "JointModelRUBX")
       rotor_axis_type = 0;
@@ -205,48 +180,46 @@ void PinocchioRobotModel::kinematicsInit()
     for(int j = 0; j < 3; j++)
     {
       rotor_normal_root(j) = data_.oMi[joint_id].rotation()(j, rotor_axis_type);
+      rotor_normal_cog(j) = (oMcog_.inverse() * data_.oMi[joint_id]).rotation()(j, rotor_axis_type);
     }
-    // std::cout << "rotor rotation: \n" << data_.oMi[joint_id].rotation() << std::endl;
     rotor_normal_root_.at(i) = rotor_normal_root;
-    // std::cout << "rotor axis for rotor" << i << ": " << rotor_axis_type << std::endl;
-    // std::cout << "rotor axis: " << i << " " << rotor_normal_root_.at(i) << std::endl;
-    // std::cout << std::endl;
+    rotor_normal_cog_.at(i) = rotor_normal_cog;
+  }
+}
+
+void PinocchioRobotModel::jointStateCallback(const sensor_msgs::JointStateConstPtr msg)
+{
+  std::vector<std::string> joint_names = msg->name;
+  std::vector<double> joint_positions = msg->position;
+
+  for(int i = 0; i < joint_names.size(); i++)
+  {
+    q_dbl_(joint_index_map_[joint_names.at(i)]) = joint_positions.at(i);
   }
 
-  // Print out the placement of each joint of the kinematic tree
-  // for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
-  //   std::cout << std::setw(24) << std::left
-  //             << model_.names[joint_id] << ": "
-  //             << std::setw(24) << std::left
-  //             << model_.joints[joint_id].shortname() << ": "
-  //             << std::fixed << std::setprecision(5)
-  //             << data_.oMi[joint_id].translation().transpose()
-  //             << std::endl;
+  // std::cout << "real cog: " << computeRealValue(cog_pos_, q_cs_, q_dbl_).transpose() << std::endl;
+  // for(int i = 0; i < rotor_num_; i++)
+  // {
+  //   std::cout << "origin " << i + 1 << ": " << computeRealValue(rotor_origin_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
+  //   std::cout << "normal " << i + 1 << ": " << computeRealValue(rotor_normal_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;    
+  // }
+  // std::cout << std::endl;
+  // std::cout << computeRealValue(inertia_, q_cs_, q_dbl_) << std::endl;
+  // std::cout << std::endl;
 }
 
-void PinocchioRobotModel::inertialInit()
-{
-  mass_ = pinocchio::computeTotalMass(model_);
-  std::cout << "mass: " << mass_ << std::endl;
-
-  auto cog_pos = pinocchio::centerOfMass(model_, data_, q_, true);
-  pinocchio::casadi::copy(cog_pos, cog_pos_);
-  // std::cout << "cog_pos_: "cog_pos_ << std::endl;
-  std::cout << std::endl;
-
-  casadi::DM q_test = casadi::DM(model_.nq, 1);
-  q_test(joint_index_map_["joint1_yaw"]) = 1.57;
-  q_test(joint_index_map_["joint2_yaw"]) = 1.57;
-  q_test(joint_index_map_["joint3_yaw"]) = 1.57;
-  std::cout << "q_test: " << q_test << std::endl;
-  std::cout << std::endl;
-  std::cout << "real cog: " << computeRealValue(cog_pos_, q_cs_, q_test).transpose() << std::endl;
-  std::cout << std::endl;
-}
 
 int main(int argc, char ** argv)
 {
-  PinocchioRobotModel pinocchio_robot_model;
+  ros::init (argc, argv, "pinocchio_robot_model");
+  ros::NodeHandle nh;
+  ros::NodeHandle nh_private("~");
+
+  PinocchioRobotModel* pinocchio_robot_model = new PinocchioRobotModel(nh, nh_private);
+  ros::spin();
+
+  delete pinocchio_robot_model;
+  return 0;
 
   // // zero configuration
   // Eigen::VectorXd q = randomConfiguration(model);
