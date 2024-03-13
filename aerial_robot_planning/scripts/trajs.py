@@ -5,7 +5,7 @@ import numpy as np
 from typing import Tuple
 
 
-class BaseTraj2D:
+class BaseTraj:
     def __init__(self) -> None:
         pass
 
@@ -18,7 +18,51 @@ class BaseTraj2D:
         return x, y, z, vx, vy, vz, ax, ay, az
 
 
-class CircleTraj2D(BaseTraj2D):
+class SetPointTraj(BaseTraj):
+    def __init__(self) -> None:
+        super().__init__()
+        self.pos = np.array([0.0, 0.0, 0.7])
+        self.vel = np.array([0.0, 0.0, 0.0])
+        self.acc = np.array([0.0, 0.0, 0.0])
+
+        self.att = np.array([0.0, 0.0, 0.0])
+        self.att_rate = np.array([0.0, 0.0, 0.0])
+        self.att_acc = np.array([0.0, 0.0, 0.0])
+
+        self.t_converge = 5.0
+
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        x, y, z = self.pos
+        vx, vy, vz = self.vel
+        ax, ay, az = self.acc
+
+        if 3 * self.t_converge > t > self.t_converge:
+            x = 0.5
+            z = 1.2
+
+        if 3 * self.t_converge > t > 2 * self.t_converge:
+            y = 0.6
+            z = 1.0
+
+        return x, y, z, vx, vy, vz, ax, ay, az
+
+    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        roll, pitch, yaw = self.att
+        roll_rate, pitch_rate, yaw_rate = self.att_rate
+        roll_acc, pitch_acc, yaw_acc = self.att_acc
+
+        if 3 * self.t_converge > t > self.t_converge:
+            roll = 0.5
+            yaw = 0.3
+
+        if 3 * self.t_converge > t > 2 * self.t_converge:
+            pitch = 0.5
+            yaw = -0.3
+
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class CircleTraj(BaseTraj):
     def __init__(self) -> None:
         super().__init__()
         self.r = 1  # radius in meters
@@ -34,8 +78,20 @@ class CircleTraj2D(BaseTraj2D):
         ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
         return x, y, vx, vy, ax, ay
 
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        x = self.r * np.cos(self.omega * t) - 1.0
+        y = self.r * np.sin(self.omega * t)
+        z = 0.5
+        vx = -self.r * self.omega * np.sin(self.omega * t)
+        vy = self.r * self.omega * np.cos(self.omega * t)
+        vz = 0.0
+        ax = -self.r * self.omega ** 2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
+        az = 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
-class LemniscateTraj(BaseTraj2D):
+
+class LemniscateTraj(BaseTraj):
     def __init__(self) -> None:
         super().__init__()
         self.a = 1.0  # parameter determining the size of the Lemniscate

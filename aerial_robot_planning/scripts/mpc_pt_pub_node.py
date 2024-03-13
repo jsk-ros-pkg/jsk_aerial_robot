@@ -4,6 +4,7 @@
 
 import sys
 import os
+import argparse
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, current_path)
@@ -148,7 +149,7 @@ def construct_allocation_mat_pinv():
 
 
 class MPCPtPubNode:
-    def __init__(self) -> None:
+    def __init__(self, traj_type: int) -> None:
         self.node_name = "mpc_pt_pub_node"
         rospy.init_node(self.node_name, anonymous=False)
         self.namespace = rospy.get_namespace().rstrip("/")
@@ -169,7 +170,19 @@ class MPCPtPubNode:
         self.N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
         # traj
-        self.traj = LemniscateTrajOmni()  # CircleTraj2D() or LemniscateTraj() or LemniscateTrajOmni()
+        if traj_type == 0:
+            self.traj = SetPointTraj()
+        elif traj_type == 1:
+            self.traj = CircleTraj()
+        elif traj_type == 2:
+            self.traj = LemniscateTraj()
+        elif traj_type == 3:
+            self.traj = LemniscateTrajOmni()
+        else:
+            raise ValueError("Invalid trajectory type!")
+
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
+
         self.start_time = rospy.Time.now().to_sec()
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
@@ -236,7 +249,7 @@ class MPCPtPubNode:
         x_ref = np.zeros([self.N_nmpc + 1, 17])
         u_ref = np.zeros([self.N_nmpc, 8])
 
-        is_ref_different = True
+        is_ref_different = False if isinstance(self.traj, SetPointTraj) else True
 
         for i in range(self.N_nmpc + 1):
             if is_ref_different:
@@ -257,7 +270,7 @@ class MPCPtPubNode:
             try:
                 roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc = self.traj.get_3d_orientation(t_cal)
             except AttributeError:
-                roll, pitch, yaw = 0.0, 0.3, 0.0
+                roll, pitch, yaw = 0.0, 0.0, 0.0
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
             q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
@@ -292,8 +305,13 @@ class MPCPtPubNode:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
+    parser.add_argument("traj_type", type=int,
+                        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni")
+    args = parser.parse_args()
+
     try:
-        node = MPCPtPubNode()
+        node = MPCPtPubNode(args.traj_type)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
