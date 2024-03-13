@@ -13,6 +13,7 @@ from nmpc_over_act_no_servo_delay import NMPCOverActNoServoDelay
 from nmpc_over_act_old_servo_cost import NMPCOverActOldServoCost
 from nmpc_over_act_no_servo_new_cost import NMPCOverActNoServoNewCost
 from nmpc_over_act_full import NMPCOverActFull
+from nmpc_over_act_full_i_term import NMPCOverActFullITerm
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -311,6 +312,8 @@ if __name__ == "__main__":
         nmpc = NMPCOverActNoServoNewCost()
     elif args.model == 3:
         nmpc = NMPCOverActFull()
+    elif args.model == 4:
+        nmpc = NMPCOverActFullITerm()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -325,6 +328,7 @@ if __name__ == "__main__":
     ocp_solver = nmpc.get_ocp_solver()
     nx = ocp_solver.acados_ocp.dims.nx
     nu = ocp_solver.acados_ocp.dims.nu
+    n_param = ocp_solver.acados_ocp.dims.np  # np has been used for numpy
 
     x_init = np.zeros(nx)
     x_init[6] = 1.0  # qw
@@ -427,13 +431,17 @@ if __name__ == "__main__":
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                ocp_solver.set(j, "p", quaternion_r)  # for nonlinear quaternion error
+                params = np.zeros(n_param)
+                params[0:4] = quaternion_r
+                ocp_solver.set(j, "p", params)  # for nonlinear quaternion error
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            ocp_solver.set(ocp_solver.N, "p", quaternion_r)  # for nonlinear quaternion error
+            params = np.zeros(n_param)
+            params[0:4] = quaternion_r
+            ocp_solver.set(ocp_solver.N, "p", params)  # for nonlinear quaternion error
 
             # feedback, take the first action
             try:
