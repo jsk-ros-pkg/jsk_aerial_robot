@@ -117,9 +117,12 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &NMPCController::callbackSetRPY, this);
   sub_set_ref_traj_ = nh_.subscribe("set_ref_traj", 5, &NMPCController::callbackSetRefTraj, this);
 
+  /* init some values */
+  odom_ = nav_msgs::Odometry();
+  odom_.pose.pose.orientation.w = 1;
   reset();
 
-  // set control mode
+  /* set control mode */
   if (!res)
   {
     ROS_ERROR("cannot find service named set_control_mode");
@@ -137,7 +140,7 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
 
   ROS_INFO("MPC Controller initialized!");
 
-  // print physical parameters if needed
+  /* print physical parameters if needed */
   bool is_print_physical_params;
   getParam(nmpc_nh, "is_print_physical_params", is_print_physical_params, false);
   if (is_print_physical_params)
@@ -265,12 +268,27 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
+  // check the sign of the quaternion, avoid the flip of the quaternion TODO: should be moved to Estimator
+  double qe_c_w = odom_now.pose.pose.orientation.w * odom_.pose.pose.orientation.w +
+                odom_now.pose.pose.orientation.x * odom_.pose.pose.orientation.x +
+                odom_now.pose.pose.orientation.y * odom_.pose.pose.orientation.y +
+                odom_now.pose.pose.orientation.z * odom_.pose.pose.orientation.z;
+  if (qe_c_w < 0)
+  {
+    odom_now.pose.pose.orientation.w = -odom_now.pose.pose.orientation.w;
+    odom_now.pose.pose.orientation.x = -odom_now.pose.pose.orientation.x;
+    odom_now.pose.pose.orientation.y = -odom_now.pose.pose.orientation.y;
+    odom_now.pose.pose.orientation.z = -odom_now.pose.pose.orientation.z;
+  }
+
+  odom_ = odom_now;
+
   /* update I term */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  double qw = odom_now.pose.pose.orientation.w;
-  double qx = odom_now.pose.pose.orientation.x;
-  double qy = odom_now.pose.pose.orientation.y;
-  double qz = odom_now.pose.pose.orientation.z;
+  double qw = odom_.pose.pose.orientation.w;
+  double qx = odom_.pose.pose.orientation.x;
+  double qy = odom_.pose.pose.orientation.y;
+  double qz = odom_.pose.pose.orientation.z;
 
   tf::Vector3 target_pos;
   double qwr, qxr, qyr, qzr;
@@ -325,7 +343,7 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   double tau_disturb_b[3] = { mx_cog_i_term, my_cog_i_term, mz_cog_i_term };
 
   /* solve */
-  mpc_solver_.solve(x_u_ref_, odom_now, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
+  mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
 
   /* get result */
   // - body rates

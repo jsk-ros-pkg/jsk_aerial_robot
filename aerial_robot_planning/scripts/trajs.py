@@ -95,4 +95,4 @@ class LemniscateTrajOmni(LemniscateTraj):
         pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
         yaw_acc = - np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
 
-        return roll, pitch, yaw / 2, roll_rate, pitch_rate, yaw_rate / 2, roll_acc, pitch_acc, yaw_acc / 2
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
