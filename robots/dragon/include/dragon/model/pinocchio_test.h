@@ -41,8 +41,8 @@ class PinocchioRobotModel
   PinocchioRobotModel(ros::NodeHandle nh, ros::NodeHandle nhp);
   ~PinocchioRobotModel() = default;
 
-  std::vector<casadi::SX> getRotorsOriginFromCog() {return rotor_origin_cog_;}
-  std::vector<casadi::SX> getRotorsNormalFromCog() {return rotor_normal_cog_;}
+  std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_cog_;}
+  std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
   std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
 
   
@@ -59,10 +59,10 @@ class PinocchioRobotModel
   pinocchio::ModelTpl<casadi::SX> model_;
   pinocchio::DataTpl<casadi::SX> data_;
 
-  std::vector<casadi::SX> rotor_origin_root_;
-  std::vector<casadi::SX> rotor_origin_cog_;
-  std::vector<casadi::SX> rotor_normal_root_;
-  std::vector<casadi::SX> rotor_normal_cog_;
+  std::vector<casadi::SX> rotors_origin_root_;
+  std::vector<casadi::SX> rotors_origin_cog_;
+  std::vector<casadi::SX> rotors_normal_root_;
+  std::vector<casadi::SX> rotors_normal_cog_;
 
   casadi::SX q_cs_;
   Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
@@ -71,6 +71,7 @@ class PinocchioRobotModel
   casadi::SX mass_;
   casadi::SX inertia_;
   pinocchio::SE3Tpl<casadi::SX> oMcog_;
+  casadi::SX opcog_;
 
   std::map<std::string, int> joint_index_map_;
 
