@@ -89,9 +89,12 @@ void nmpc_over_act_full::NMPCController::initialize(
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &NMPCController::callbackSetRPY, this);
   sub_set_ref_traj_ = nh_.subscribe("set_ref_traj", 5, &NMPCController::callbackSetRefTraj, this);
 
+  /* init some values */
+  odom_ = nav_msgs::Odometry();
+  odom_.pose.pose.orientation.w = 1;
   reset();
 
-  // set control mode
+  /* set control mode */
   if (!res)
   {
     ROS_ERROR("cannot find service named set_control_mode");
@@ -109,7 +112,7 @@ void nmpc_over_act_full::NMPCController::initialize(
 
   ROS_INFO("MPC Controller initialized!");
 
-  // print physical parameters if needed
+  /* print physical parameters if needed */
   bool is_print_physical_params;
   getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
   if (is_print_physical_params)
@@ -237,8 +240,23 @@ void nmpc_over_act_full::NMPCController::controlCore()
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
+  // check the sign of the quaternion, avoid the flip of the quaternion TODO: should be moved to Estimator
+  double qe_c_w = odom_now.pose.pose.orientation.w * odom_.pose.pose.orientation.w +
+                  odom_now.pose.pose.orientation.x * odom_.pose.pose.orientation.x +
+                  odom_now.pose.pose.orientation.y * odom_.pose.pose.orientation.y +
+                  odom_now.pose.pose.orientation.z * odom_.pose.pose.orientation.z;
+  if (qe_c_w < 0)
+  {
+    odom_now.pose.pose.orientation.w = -odom_now.pose.pose.orientation.w;
+    odom_now.pose.pose.orientation.x = -odom_now.pose.pose.orientation.x;
+    odom_now.pose.pose.orientation.y = -odom_now.pose.pose.orientation.y;
+    odom_now.pose.pose.orientation.z = -odom_now.pose.pose.orientation.z;
+  }
+
+  odom_ = odom_now;
+
   /* solve */
-  mpc_solver_.solve(odom_now, joint_angles_, x_u_ref_, is_debug_);
+  mpc_solver_.solve(odom_, joint_angles_, x_u_ref_, is_debug_);
 
   /* get result */
   // - body rates

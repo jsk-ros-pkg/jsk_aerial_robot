@@ -60,9 +60,12 @@ void nmpc_under_act_body_rate::NMPCController::initialize(
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
   bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
 
+  /* init some values */
+  odom_ = nav_msgs::Odometry();
+  odom_.pose.pose.orientation.w = 1;
   reset();
 
-  // set control mode
+  /* set control mode */
   if (!res)
   {
     ROS_ERROR("cannot find service named set_control_mode");
@@ -154,6 +157,21 @@ void nmpc_under_act_body_rate::NMPCController::controlCore()
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
 
+  // check the sign of the quaternion, avoid the flip of the quaternion TODO: should be moved to Estimator
+  double qe_c_w = odom_now.pose.pose.orientation.w * odom_.pose.pose.orientation.w +
+                  odom_now.pose.pose.orientation.x * odom_.pose.pose.orientation.x +
+                  odom_now.pose.pose.orientation.y * odom_.pose.pose.orientation.y +
+                  odom_now.pose.pose.orientation.z * odom_.pose.pose.orientation.z;
+  if (qe_c_w < 0)
+  {
+    odom_now.pose.pose.orientation.w = -odom_now.pose.pose.orientation.w;
+    odom_now.pose.pose.orientation.x = -odom_now.pose.pose.orientation.x;
+    odom_now.pose.pose.orientation.y = -odom_now.pose.pose.orientation.y;
+    odom_now.pose.pose.orientation.z = -odom_now.pose.pose.orientation.z;
+  }
+
+  odom_ = odom_now;
+
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
   double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
@@ -171,7 +189,7 @@ void nmpc_under_act_body_rate::NMPCController::controlCore()
   std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 
   /* solve */
-  mpc_solver_.solve(odom_now, x_u_ref_);
+  mpc_solver_.solve(odom_, x_u_ref_);
 
   /* get result */
   // convert quaternion to rpy
