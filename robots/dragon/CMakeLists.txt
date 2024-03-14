@@ -7,7 +7,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
-  casadi_eigen
   hydrus
   mujoco_ros_control
   pluginlib
