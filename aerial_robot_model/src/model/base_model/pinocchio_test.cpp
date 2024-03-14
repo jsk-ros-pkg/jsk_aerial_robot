@@ -71,7 +71,9 @@ void PinocchioRobotModel::modelInit()
     }
 
   for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
-    ROS_WARN_STREAM("[model][pinocchio] " << std::setw(24) << std::left << model_.names[joint_id] << ": " << std::setw(24) << std::left << model_.joints[joint_id].shortname());
+    ROS_WARN_STREAM("[model][pinocchio] joint " << std::setw(4) << joint_id << ": " << std::setw(24) << std::left << model_.names[joint_id] << ": " << std::setw(24) << std::left << model_.joints[joint_id].shortname());
+  for(int i = 0; i < model_.frames.size(); i++)
+    ROS_WARN_STREAM("[model][pinocchio] frame " << std::setw(4) << i << ": " << std::setw(24) << std::left << model_.frames[i].name);
 }
 
 
