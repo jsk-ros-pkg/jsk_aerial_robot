@@ -47,7 +47,7 @@ void PinocchioRobotModel::modelInit()
       std::string joint_type = model_.joints[i].shortname();
       if(joint_type == "JointModelFreeFlyer")  // floating joint is expressed by seven variables in joint position space (position and quaternion)
         q_dims.at(i) = 7;
-      else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")  // continuous joint is expressed by two variables in joint position space (cos and sin)
+      else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ" || joint_type == "JointModelRevoluteUnboundedUnaligned")  // continuous joint is expressed by two variables in joint position space (cos and sin)
         q_dims.at(i) = 2;
       else //  revolute joint is expressed by one variable in joint position space
         q_dims.at(i) = 1;
@@ -69,6 +69,9 @@ void PinocchioRobotModel::modelInit()
             }
         }
     }
+
+  for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
+    ROS_WARN_STREAM("[model][pinocchio] " << std::setw(24) << std::left << model_.names[joint_id] << ": " << std::setw(24) << std::left << model_.joints[joint_id].shortname());
 }
 
 
@@ -131,12 +134,12 @@ void PinocchioRobotModel::rotorInit()
       // normal
       casadi::SX rotor_normal_root = casadi::SX::zeros(3);
       casadi::SX rotor_normal_cog = casadi::SX::zeros(3);
-      int rotor_axis_type;
+      int rotor_axis_type = 0;
       if(model_.joints[joint_id].shortname() == "JointModelRX" || model_.joints[joint_id].shortname() == "JointModelRUBX")
         rotor_axis_type = 0;
       else if(model_.joints[joint_id].shortname() == "JointModelRY" || model_.joints[joint_id].shortname() == "JointModelRUBY")
         rotor_axis_type = 1;
-      else if(model_.joints[joint_id].shortname() == "JointModelRZ" || model_.joints[joint_id].shortname() == "JointModelRUBZ")
+      else if(model_.joints[joint_id].shortname() == "JointModelRZ" || model_.joints[joint_id].shortname() == "JointModelRUBZ" || model_.joints[joint_id].shortname() == "JointModelRevoluteUnboundedUnaligned") // hard coded for JointModelRevoluteUnboundedUnaligned
         rotor_axis_type = 2;
 
       pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(rotor_axis_type, 1), rotors_normal_root_.at(i));
