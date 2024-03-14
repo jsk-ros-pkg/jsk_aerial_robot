@@ -37,7 +37,7 @@
 
 class PinocchioRobotModel
 {
-  public:
+public:
   PinocchioRobotModel(ros::NodeHandle nh, ros::NodeHandle nhp);
   ~PinocchioRobotModel() = default;
 
@@ -45,8 +45,7 @@ class PinocchioRobotModel
   std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
   std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
 
-  
-  private:
+private:
   std::string getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
 
   void modelInit();
@@ -82,7 +81,6 @@ class PinocchioRobotModel
   ros::NodeHandle nhp_;
   ros::Subscriber joint_state_sub_;
   void jointStateCallback(const sensor_msgs::JointStateConstPtr msg);
-
 };
 
 
@@ -90,14 +88,14 @@ Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_d
 {
   casadi::DM ret = casadi::DM(y.size1(), y.size2());
   for(int i =  0; i < y.size1(); i++)
-  {
-    for(int j = 0; j < y.size2(); j++)
     {
-      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-      casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
-      ret(i, j) = y_dbl;
+      for(int j = 0; j < y.size2(); j++)
+        {
+          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+          casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
+          ret(i, j) = y_dbl;
+        }
     }
-  }
   return casadiDmToEigenMatrix(ret);
 }
 
@@ -105,14 +103,14 @@ Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
 {
   casadi::DM ret = casadi::DM(y.size1(), y.size2());
   for(int i =  0; i < y.size1(); i++)
-  {
-    for(int j = 0; j < y.size2(); j++)
     {
-      casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-      casadi::DM y_dbl = f(x_dbl);
-      ret(i, j) = y_dbl;
+      for(int j = 0; j < y.size2(); j++)
+        {
+          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+          casadi::DM y_dbl = f(x_dbl);
+          ret(i, j) = y_dbl;
+        }
     }
-  }
   return casadiDmToEigenMatrix(ret);
 }
 
@@ -120,7 +118,7 @@ std::string PinocchioRobotModel::getRobotModelXml(const std::string param, ros::
 {
   std::string xml_string;
 
-  if (!nh.hasParam(param))
+  if(!nh.hasParam(param))
     {
       ROS_ERROR("Could not find parameter %s on parameter server with namespace '%s'", param.c_str(), nh.getNamespace().c_str());
       return xml_string;

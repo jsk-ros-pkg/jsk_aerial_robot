@@ -43,32 +43,32 @@ void PinocchioRobotModel::modelInit()
   // make map for joint position and index
   std::vector<int> q_dims(model_.njoints);
   for(int i = 0; i < model_.njoints; i++)
-  {
-    std::string joint_type = model_.joints[i].shortname();
-    if(joint_type == "JointModelFreeFlyer")  // floating joint is expressed by seven variables in joint position space (position and quaternion)
-      q_dims.at(i) = 7;
-    else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")  // continuous joint is expressed by two variables in joint position space (cos and sin)
-      q_dims.at(i) = 2;
-    else //  revolute joint is expressed by one variable in joint position space 
-      q_dims.at(i) = 1;
-  }
+    {
+      std::string joint_type = model_.joints[i].shortname();
+      if(joint_type == "JointModelFreeFlyer")  // floating joint is expressed by seven variables in joint position space (position and quaternion)
+        q_dims.at(i) = 7;
+      else if(joint_type == "JointModelRUBX" || joint_type == "JointModelRUBY" || joint_type == "JointModelRUBZ")  // continuous joint is expressed by two variables in joint position space (cos and sin)
+        q_dims.at(i) = 2;
+      else //  revolute joint is expressed by one variable in joint position space
+        q_dims.at(i) = 1;
+    }
 
   int joint_index = 0;
   rotor_num_ = 0;
   for(pinocchio::JointIndex joint_id = 0; joint_id < (pinocchio::JointIndex)model_.njoints; ++joint_id)
-  {
-    if(model_.names[joint_id] != "universe")
     {
-      joint_index_map_[model_.names[joint_id]] = joint_index;
-      joint_index += q_dims.at(joint_id);
+      if(model_.names[joint_id] != "universe")
+        {
+          joint_index_map_[model_.names[joint_id]] = joint_index;
+          joint_index += q_dims.at(joint_id);
 
-      // special process for rotor
-      if(model_.names[joint_id].find("rotor") != std::string::npos)
-      {
-        rotor_num_++;
-      }
+          // special process for rotor
+          if(model_.names[joint_id].find("rotor") != std::string::npos)
+            {
+              rotor_num_++;
+            }
+        }
     }
-  }
 }
 
 
@@ -79,10 +79,10 @@ void PinocchioRobotModel::kinematicsInit()
   q_dbl_ = casadi::DM(model_.nq, 1);
   q_.resize(model_.nq, 1);
   for(int i = 0; i < model_.nq; i++)
-  {
-    q_dbl_(i) = 0.0;
-    q_(i) = q_cs_(i);
-  }
+    {
+      q_dbl_(i) = 0.0;
+      q_(i) = q_cs_(i);
+    }
 
   // solve FK
   pinocchio::forwardKinematics(model_, data_, q_);
@@ -92,7 +92,7 @@ void PinocchioRobotModel::kinematicsInit()
 
 void PinocchioRobotModel::inertialInit()
 {
-  // set cog frame  
+  // set cog frame
   oMcog_.translation() = pinocchio::centerOfMass(model_, data_, q_, true);
   oMcog_.rotation() = data_.oMf[model_.getFrameId(baselink_)].rotation();
   pinocchio::casadi::copy(oMcog_.translation(), opcog_);
@@ -120,28 +120,28 @@ void PinocchioRobotModel::rotorInit()
   rotors_normal_cog_.resize(rotor_num_);
 
   for(int i = 0; i < rotor_num_; i++)
-  {
-    std::string rotor_name = "rotor" + std::to_string(i + 1);
-    int joint_id =  model_.getJointId(rotor_name);
+    {
+      std::string rotor_name = "rotor" + std::to_string(i + 1);
+      int joint_id =  model_.getJointId(rotor_name);
 
-    // origin
-    pinocchio::casadi::copy(data_.oMi[joint_id].translation(), rotors_origin_root_.at(i));
-    pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).translation(), rotors_origin_cog_.at(i));
+      // origin
+      pinocchio::casadi::copy(data_.oMi[joint_id].translation(), rotors_origin_root_.at(i));
+      pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).translation(), rotors_origin_cog_.at(i));
 
-    // normal
-    casadi::SX rotor_normal_root = casadi::SX::zeros(3);
-    casadi::SX rotor_normal_cog = casadi::SX::zeros(3);
-    int rotor_axis_type;
-    if(model_.joints[joint_id].shortname() == "JointModelRX" || model_.joints[joint_id].shortname() == "JointModelRUBX")
-      rotor_axis_type = 0;
-    else if(model_.joints[joint_id].shortname() == "JointModelRY" || model_.joints[joint_id].shortname() == "JointModelRUBY")
-      rotor_axis_type = 1;
-    else if(model_.joints[joint_id].shortname() == "JointModelRZ" || model_.joints[joint_id].shortname() == "JointModelRUBZ")
-      rotor_axis_type = 2;
+      // normal
+      casadi::SX rotor_normal_root = casadi::SX::zeros(3);
+      casadi::SX rotor_normal_cog = casadi::SX::zeros(3);
+      int rotor_axis_type;
+      if(model_.joints[joint_id].shortname() == "JointModelRX" || model_.joints[joint_id].shortname() == "JointModelRUBX")
+        rotor_axis_type = 0;
+      else if(model_.joints[joint_id].shortname() == "JointModelRY" || model_.joints[joint_id].shortname() == "JointModelRUBY")
+        rotor_axis_type = 1;
+      else if(model_.joints[joint_id].shortname() == "JointModelRZ" || model_.joints[joint_id].shortname() == "JointModelRUBZ")
+        rotor_axis_type = 2;
 
-    pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(rotor_axis_type, 1), rotors_normal_root_.at(i));
-    pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(rotor_axis_type, 1), rotors_normal_cog_.at(i));
-  }
+      pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(rotor_axis_type, 1), rotors_normal_root_.at(i));
+      pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(rotor_axis_type, 1), rotors_normal_cog_.at(i));
+    }
 }
 
 void PinocchioRobotModel::jointStateCallback(const sensor_msgs::JointStateConstPtr msg)
@@ -150,16 +150,16 @@ void PinocchioRobotModel::jointStateCallback(const sensor_msgs::JointStateConstP
   std::vector<double> joint_positions = msg->position;
 
   for(int i = 0; i < joint_names.size(); i++)
-  {
-    q_dbl_(joint_index_map_[joint_names.at(i)]) = joint_positions.at(i);
-  }
+    {
+      q_dbl_(joint_index_map_[joint_names.at(i)]) = joint_positions.at(i);
+    }
 
   // std::cout << "real cog: " << computeRealValue(opcog_, q_cs_, q_dbl_).transpose() << std::endl;
   // for(int i = 0; i < rotor_num_; i++)
-  // {
-  //   std::cout << "origin " << i + 1 << ": " << computeRealValue(rotors_origin_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
-  //   std::cout << "normal " << i + 1 << ": " << computeRealValue(rotors_normal_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;    
-  // }
+  //   {
+  //     std::cout << "origin " << i + 1 << ": " << computeRealValue(rotors_origin_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
+  //     std::cout << "normal " << i + 1 << ": " << computeRealValue(rotors_normal_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
+  //   }
   // std::cout << std::endl;
   // std::cout << computeRealValue(inertia_, q_cs_, q_dbl_) << std::endl;
   // std::cout << std::endl;
