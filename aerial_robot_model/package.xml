@@ -12,6 +12,8 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>eigen_conversions</build_depend>
+  <build_depend>casadi</build_depend>
+  <build_depend>casadi_eigen</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>interactive_markers</build_depend>
   <build_depend>kalman_filter</build_depend>
@@ -32,6 +34,8 @@
   <build_depend>urdf</build_depend>
   <build_depend>visualization_msgs</build_depend>
 
+  <run_depend>casadi</run_depend>
+  <run_depend>casadi_eigen</run_depend>
   <run_depend>eigen_conversions</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>interactive_markers</run_depend>

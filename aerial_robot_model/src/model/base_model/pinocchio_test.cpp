@@ -1,4 +1,8 @@
+<<<<<<< HEAD:robots/dragon/src/model/pinocchio_test.cpp
 #include "pinocchio/fwd.hpp"
+=======
+#include "aerial_robot_model/model/pinocchio_test.h"
+>>>>>>> [aerial_robot_model] move pinocchio node to aerial_robot_model package:aerial_robot_model/src/model/base_model/pinocchio_test.cpp
 
 #include "pinocchio/parsers/urdf.hpp"
 
