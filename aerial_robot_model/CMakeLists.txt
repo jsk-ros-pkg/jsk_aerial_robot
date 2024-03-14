@@ -123,7 +123,7 @@ install(TARGETS aerial_robot_model aerial_robot_model_ros robot_model_pluginlib 
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
-install(TARGETS rotor_tf_publisher interactive_marker_tf_broadcaster servo_bridge_node
+install(TARGETS rotor_tf_publisher interactive_marker_tf_broadcaster servo_bridge_node pinocchio_test
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
