@@ -7,6 +7,7 @@ add_compile_options(-std=c++17)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  casadi_eigen
   eigen_conversions
   geometry_msgs
   interactive_markers
@@ -31,6 +32,10 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(orocos_kdl REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 find_package(Eigen3 REQUIRED)
+
+set(CMAKE_CXX_STANDARD 17)
+find_package(pinocchio REQUIRED)
+find_package(casadi REQUIRED)
 
 include_directories(${orocos_kdl_INCLUDE_DIRS} ${urdfdom_headers_INCLUDE_DIRS})
 
@@ -91,6 +96,9 @@ add_library(robot_model_pluginlib
   src/model/plugin/multirotor_robot_model.cpp
   src/model/plugin/underactuated_tilted_robot_model.cpp)
 target_link_libraries(robot_model_pluginlib ${catkin_LIBRARIES} aerial_robot_model)
+
+add_executable(pinocchio_test src/model/base_model/pinocchio_test.cpp)
+target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES} casadi)
 
 add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
