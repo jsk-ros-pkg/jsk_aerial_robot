@@ -57,8 +57,8 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include test
-  LIBRARIES aerial_robot_model aerial_robot_model_ros numerical_jacobians robot_model_pluginlib
-  CATKIN_DEPENDS eigen_conversions geometry_msgs interactive_markers kalman_filter kdl_parser message_runtime pluginlib sensor_msgs spinal std_msgs tf tf_conversions tf2_eigen tf2_geometry_msgs tf2_kdl tf2_ros tf_conversions urdf visualization_msgs
+  LIBRARIES aerial_robot_model aerial_robot_model_ros numerical_jacobians pinocchio_robot_model robot_model_pluginlib
+  CATKIN_DEPENDS casadi_eigen eigen_conversions geometry_msgs interactive_markers kalman_filter kdl_parser message_runtime pluginlib sensor_msgs spinal std_msgs tf tf_conversions tf2_eigen tf2_geometry_msgs tf2_kdl tf2_ros tf_conversions urdf visualization_msgs
   DEPENDS orocos_kdl urdfdom_headers
 )
 
@@ -97,8 +97,10 @@ add_library(robot_model_pluginlib
   src/model/plugin/underactuated_tilted_robot_model.cpp)
 target_link_libraries(robot_model_pluginlib ${catkin_LIBRARIES} aerial_robot_model)
 
+add_library(pinocchio_robot_model src/model/base_model/pinocchio_robot_model.cpp)
+target_link_libraries(pinocchio_robot_model ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES} casadi)
 add_executable(pinocchio_test src/model/base_model/pinocchio_test.cpp)
-target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES} casadi)
+target_link_libraries(pinocchio_test ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${pinocchio_LIBRARIES} casadi pinocchio_robot_model)
 
 add_library(servo_bridge src/servo_bridge/servo_bridge.cpp)
 target_link_libraries(servo_bridge ${catkin_LIBRARIES})
