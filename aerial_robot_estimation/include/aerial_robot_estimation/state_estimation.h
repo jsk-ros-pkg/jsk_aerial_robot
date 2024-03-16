@@ -480,7 +480,7 @@ namespace aerial_robot_estimation
 
     /* 6: x_w, y_w, z_w, x_b, y_b */
     /* TODO: check to vector3 */
-    std::array<AxisState, 6> state_;
+    std::array<AxisState, State::TOTAL_NUM> state_;
     std::array<tf::Matrix3x3, 3> base_rots_, cog_rots_; // TODO: should abolish the different between orientation of baselink and that of CoG
     std::array<tf::Vector3, 3> base_omegas_, cog_omegas_; // TODO: should abolish the different between orientation of baselink and that of CoG
     std::array<int, 3> base_rot_status_, cog_rot_status_;
