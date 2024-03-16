@@ -121,7 +121,7 @@ target_link_libraries(numerical_jacobians aerial_robot_model ${catkin_LIBRARIES}
 install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS aerial_robot_model aerial_robot_model_ros robot_model_pluginlib servo_bridge numerical_jacobians
+install(TARGETS aerial_robot_model aerial_robot_model_ros pinocchio_robot_model robot_model_pluginlib servo_bridge numerical_jacobians
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
