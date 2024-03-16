@@ -453,7 +453,7 @@ namespace aerial_robot_estimation
     std::string tf_prefix_;
 
     /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
-    array<AxisState, State::TOTAL_NUM> state_;
+    std::array<AxisState, State::TOTAL_NUM> state_;
 
     /* for calculate the sensor to baselink with the consideration of time delay */
     int qu_size_;
@@ -464,7 +464,7 @@ namespace aerial_robot_estimation
     /* sensor fusion */
     boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
     bool sensor_fusion_flag_;
-    array<SensorFuser, 2> fuser_; //0: egomotion; 1: experiment
+    std::array<SensorFuser, 2> fuser_; //0: egomotion; 1: experiment
 
     /* sensor (un)health level */
     uint8_t unhealth_level_;
