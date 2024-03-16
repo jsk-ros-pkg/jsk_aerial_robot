@@ -1,4 +1,4 @@
-#include <aerial_robot_model/model/pinocchio_test.h>
+#include <aerial_robot_model/model/pinocchio_robot_model.h>
 
 int main(int argc, char ** argv)
 {
