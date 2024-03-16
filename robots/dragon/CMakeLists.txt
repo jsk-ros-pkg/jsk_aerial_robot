@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   mujoco_ros_control
   pluginlib
   roscpp
-  )
+)
 
 find_package(Eigen3 REQUIRED)
 if(NOT CMAKE_BUILD_TYPE)
@@ -53,6 +53,7 @@ add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messa
 
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
+
 
 # test
 # pre-build test code
