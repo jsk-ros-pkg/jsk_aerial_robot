@@ -1,18 +1,18 @@
 #pragma once
 
-#include "pinocchio/fwd.hpp"
+#include <pinocchio/fwd.hpp>
 
-#include "pinocchio/parsers/urdf.hpp"
+#include <pinocchio/parsers/urdf.hpp>
 
-#include "pinocchio/algorithm/center-of-mass.hxx"
-#include "pinocchio/algorithm/centroidal.hxx"
-#include "pinocchio/algorithm/crba.hpp"
-#include "pinocchio/algorithm/frames.hpp"
-#include "pinocchio/algorithm/kinematics.hpp"
-#include "pinocchio/algorithm/kinematics-derivatives.hpp"
-#include "pinocchio/algorithm/joint-configuration.hpp"
-#include "pinocchio/algorithm/model.hxx"
-#include "pinocchio/autodiff/casadi.hpp"
+#include <pinocchio/algorithm/center-of-mass.hxx>
+#include <pinocchio/algorithm/centroidal.hxx>
+#include <pinocchio/algorithm/crba.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/kinematics-derivatives.hpp>
+#include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/algorithm/model.hxx>
+#include <pinocchio/autodiff/casadi.hpp>
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/spatial/se3-tpl.hpp>
@@ -42,9 +42,27 @@ namespace aerial_robot_model {
     PinocchioRobotModel();
     ~PinocchioRobotModel() = default;
 
+    pinocchio::Model getModelDbl() {return model_dbl_;}
+    pinocchio::Data getDataDbl() {return data_dbl_;}
+    pinocchio::ModelTpl<casadi::SX> getModel() {return model_;}
+    pinocchio::DataTpl<casadi::SX> getData() {return data_;}
+
+    std::vector<casadi::SX> getRotorsOriginFromRoot() {return rotors_origin_root_;}
     std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_cog_;}
+    std::vector<casadi::SX> getRotorsNormalFromRoot() {return rotors_normal_root_;}
     std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
+
+    casadi::SX getQCs() {return q_cs_;}
+    Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> getQ() {return q_;}
+    casadi::DM getQDbl() {return q_dbl_;}
+
+    casadi::SX getMass() {return mass_;}
+    casadi::SX getInertia() {return inertia_;}
+    pinocchio::SE3Tpl<casadi::SX> getocog() {return oMcog_;}
+    casadi::SX getoPcog() {return opcog_;}
+
     std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
+
     void updateRobotModel(const sensor_msgs::JointState& state);
     void updateRobotModelImpl(const sensor_msgs::JointState& state);
 
