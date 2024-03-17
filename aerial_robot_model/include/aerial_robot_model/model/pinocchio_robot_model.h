@@ -35,53 +35,52 @@
 #include <tinyxml.h>
 
 
-class PinocchioRobotModel
-{
-public:
-  PinocchioRobotModel(ros::NodeHandle nh, ros::NodeHandle nhp);
-  ~PinocchioRobotModel() = default;
+namespace aerial_robot_model {
+  class PinocchioRobotModel
+  {
+  public:
+    PinocchioRobotModel();
+    ~PinocchioRobotModel() = default;
 
-  std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_cog_;}
-  std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
-  std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
+    std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_cog_;}
+    std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
+    std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
+    void updateRobotModel(const sensor_msgs::JointState& state);
+    void updateRobotModelImpl(const sensor_msgs::JointState& state);
 
-private:
-  std::string getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
+  private:
+    std::string getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
 
-  void modelInit();
-  void kinematicsInit();
-  void inertialInit();
-  void rotorInit();
+    void modelInit();
+    void kinematicsInit();
+    void inertialInit();
+    void rotorInit();
 
-  pinocchio::Model model_dbl_;
-  pinocchio::Data data_dbl_;
-  pinocchio::ModelTpl<casadi::SX> model_;
-  pinocchio::DataTpl<casadi::SX> data_;
+    pinocchio::Model model_dbl_;
+    pinocchio::Data data_dbl_;
+    pinocchio::ModelTpl<casadi::SX> model_;
+    pinocchio::DataTpl<casadi::SX> data_;
 
-  std::vector<casadi::SX> rotors_origin_root_;
-  std::vector<casadi::SX> rotors_origin_cog_;
-  std::vector<casadi::SX> rotors_normal_root_;
-  std::vector<casadi::SX> rotors_normal_cog_;
+    std::vector<casadi::SX> rotors_origin_root_;
+    std::vector<casadi::SX> rotors_origin_cog_;
+    std::vector<casadi::SX> rotors_normal_root_;
+    std::vector<casadi::SX> rotors_normal_cog_;
 
-  casadi::SX q_cs_;
-  Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
-  casadi::DM q_dbl_;
+    casadi::SX q_cs_;
+    Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
+    casadi::DM q_dbl_;
 
-  casadi::SX mass_;
-  casadi::SX inertia_;
-  pinocchio::SE3Tpl<casadi::SX> oMcog_;
-  casadi::SX opcog_;
+    casadi::SX mass_;
+    casadi::SX inertia_;
+    pinocchio::SE3Tpl<casadi::SX> oMcog_;
+    casadi::SX opcog_;
 
-  std::map<std::string, int> joint_index_map_;
+    std::map<std::string, int> joint_index_map_;
 
-  int rotor_num_;
-  std::string baselink_;
-
-  ros::NodeHandle nh_;
-  ros::NodeHandle nhp_;
-  ros::Subscriber joint_state_sub_;
-  void jointStateCallback(const sensor_msgs::JointStateConstPtr msg);
-};
+    int rotor_num_;
+    std::string baselink_;
+  };
+}
 
 
 Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl)
@@ -112,17 +111,4 @@ Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
         }
     }
   return casadiDmToEigenMatrix(ret);
-}
-
-std::string PinocchioRobotModel::getRobotModelXml(const std::string param, ros::NodeHandle nh)
-{
-  std::string xml_string;
-
-  if(!nh.hasParam(param))
-    {
-      ROS_ERROR("Could not find parameter %s on parameter server with namespace '%s'", param.c_str(), nh.getNamespace().c_str());
-      return xml_string;
-    }
-  nh.getParam(param, xml_string);
-  return xml_string;
 }
