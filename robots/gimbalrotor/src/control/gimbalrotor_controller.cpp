@@ -19,11 +19,13 @@ namespace aerial_robot_control
     PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
     gimbalrotor_robot_model_ = boost::dynamic_pointer_cast<GimbalrotorRobotModel>(robot_model);
 
-    target_base_thrust_.resize(motor_num_ * 2);
+    GimbalrotorController::rosParamInit();
+
+    rotor_coef_ = gimbal_dof_ + 1; //number of virtual rotors in each rotor arm
+
+    target_base_thrust_.resize(motor_num_ * rotor_coef_);
     target_full_thrust_.resize(motor_num_);
     target_gimbal_angles_.resize(motor_num_, 0);
-
-    GimbalrotorController::rosParamInit();
 
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
     gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
@@ -137,11 +139,10 @@ namespace aerial_robot_control
     }
 
     /* mask integrated allocation */
-    int rotor_coef = gimbal_dof_ + 1; //number of virtual rotors in each rotor arm
-    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, rotor_coef * motor_num_);
+    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, rotor_coef_ * motor_num_);
     Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, (gimbal_dof_ + 1) * motor_num_);
     for(int i = 0; i< motor_num_; i++){
-      integrated_rot.block(3*i, rotor_coef*i, 3, rotor_coef) = masked_rot[i];
+      integrated_rot.block(3*i, rotor_coef_*i, 3, rotor_coef_) = masked_rot[i];
     }
     integrated_map = full_q_mat * integrated_rot;
 
@@ -155,22 +156,22 @@ namespace aerial_robot_control
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, rotor_coef);
-      target_base_thrust_.at(rotor_coef * i) = f_i[0];
-      target_base_thrust_.at(rotor_coef * i+1) = f_i[1];
+      Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, rotor_coef_);
+      target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
+      target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
       // target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
-      last_col += rotor_coef;
+      last_col += rotor_coef_;
     }
     candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 
     /* calculate target full thrusts and  gimbal angles (considering full components)*/
     last_col = 0;
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, rotor_coef) + target_vectoring_f_trans_.segment(last_col, rotor_coef);
+      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, rotor_coef_) + target_vectoring_f_trans_.segment(last_col, rotor_coef_);
       target_full_thrust_.at(i) = f_i_integrated.norm();
       target_gimbal_angles_.at(i) = atan2(-f_i_integrated[0], f_i_integrated[1]);
-      last_col += rotor_coef;
+      last_col += rotor_coef_;
     }
   }
 
@@ -234,11 +235,11 @@ namespace aerial_robot_control
   void GimbalrotorController::sendTorqueAllocationMatrixInv()
   {
     spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
-    torque_allocation_matrix_inv_msg.rows.resize(motor_num_*2);
+    torque_allocation_matrix_inv_msg.rows.resize(motor_num_ * rotor_coef_);
     Eigen::MatrixXd torque_allocation_matrix_inv = integrated_map_inv_rot_;
     if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
       ROS_ERROR("Torque Allocation Matrix overflow");
-    for (unsigned int i = 0; i < motor_num_*2; i++)
+    for (unsigned int i = 0; i < motor_num_* rotor_coef_; i++)
       {
         torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
         torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;

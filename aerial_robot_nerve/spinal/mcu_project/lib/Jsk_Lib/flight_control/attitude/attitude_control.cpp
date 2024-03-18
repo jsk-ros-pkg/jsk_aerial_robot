@@ -988,11 +988,11 @@ void AttitudeController::pwmConversion()
   /* check saturation level 2: z control saturation */
   float max_thrust = 0;
   int max_thrust_index = 0;
-  for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
+  for(int i = 0; i < motor_number_ / rotor_coef_; i++)
     {
       float thrust;
       if(gimbal_dof_){
-        thrust = ap::pythagorous2(base_thrust_term_[2*i] + roll_pitch_term_[2*i],base_thrust_term_[2*i+1] + roll_pitch_term_[2*i+1]);
+        thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
       }
       else
         {
@@ -1022,11 +1022,11 @@ void AttitudeController::pwmConversion()
               max_thrust = 0;
               float min_thrust = 10000;
               int min_thrust_index = 0;
-              for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
+              for(int i = 0; i < motor_number_ / (rotor_coef_); i++)
                 {
                   float thrust;
                   if(gimbal_dof_){
-                    thrust = ap::pythagorous2(base_thrust_term_[2*i] + roll_pitch_term_[2*i],base_thrust_term_[2*i+1] + roll_pitch_term_[2*i+1]);
+                    thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ * i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
                   }
                   else
                     {
@@ -1078,7 +1078,7 @@ void AttitudeController::pwmConversion()
 
   /* convert to target pwm and calculate target gimbal angles */
   /* TODO: adjust not only for gimbalrotor but also for fixed rotor */
-  for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
+  for(int i = 0; i < motor_number_ / (rotor_coef_); i++)
     {
       if(start_control_flag_)
         {
@@ -1110,7 +1110,7 @@ void AttitudeController::pwmConversion()
   if(gimbal_dof_){
     sensor_msgs::JointState gimbal_control_msg;
     gimbal_control_msg.header.stamp = ros::Time::now();
-    for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++){
+    for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
       gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
     }
     gimbal_control_pub_.publish(gimbal_control_msg);
