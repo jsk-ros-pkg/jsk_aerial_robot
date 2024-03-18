@@ -91,6 +91,7 @@ public:
 
   void setMotorNumber(uint16_t motor_number);
   void setGimbalDof(uint8_t gimbal_dof){gimbal_dof_ = gimbal_dof; }
+  void setRotorCoef(uint8_t rotor_coef){rotor_coef_ = rotor_coef; }
   uint16_t getGimbalDof(){return gimbal_dof_; }
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   bool getIntegrateFlag(){return integrate_flag_; }
@@ -155,6 +156,7 @@ private:
   int8_t uav_model_;
   uint16_t motor_number_;
   uint8_t gimbal_dof_;
+  uint8_t rotor_coef_;
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
