@@ -123,16 +123,25 @@ namespace aerial_robot_control
     for(int i = 0; i < motor_num_; i++){
       tf::Quaternion r;  tf::quaternionKDLToTF(thrust_coords_rot.at(i), r);
       Eigen::Matrix3d conv_cog_from_thrust; tf::matrixTFToEigen(tf::Matrix3x3(r),conv_cog_from_thrust);
-      Eigen::MatrixXd mask(3, 2);
-      mask << 0, 0, 1, 0, 0, 1;
-      masked_rot.push_back(conv_cog_from_thrust * mask);
+      if(gimbal_dof_ == 1)
+        {
+          Eigen::MatrixXd mask(3, 2);
+          mask << 0, 0, 1, 0, 0, 1;
+          masked_rot.push_back(conv_cog_from_thrust * mask);
+        }
+      else if(gimbal_dof_ == 2)
+        {
+          Eigen::MatrixXd mask = Eigen::Matrix3d::Identity();
+          masked_rot.push_back(conv_cog_from_thrust * mask);
+        }
     }
 
-    /* calculate integrated allocation */
-    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3*motor_num_, 2 * motor_num_);
-    Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
+    /* mask integrated allocation */
+    int rotor_coef = gimbal_dof_ + 1; //number of virtual rotors in each rotor arm
+    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, rotor_coef * motor_num_);
+    Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, (gimbal_dof_ + 1) * motor_num_);
     for(int i = 0; i< motor_num_; i++){
-      integrated_rot.block(3*i,2*i,3,2) = masked_rot[i];
+      integrated_rot.block(3*i, rotor_coef*i, 3, rotor_coef) = masked_rot[i];
     }
     integrated_map = full_q_mat * integrated_rot;
 
@@ -146,22 +155,22 @@ namespace aerial_robot_control
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, 2);
-      target_base_thrust_.at(2*i) = f_i[0];
-      target_base_thrust_.at(2*i+1) = f_i[1];
+      Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, rotor_coef);
+      target_base_thrust_.at(rotor_coef * i) = f_i[0];
+      target_base_thrust_.at(rotor_coef * i+1) = f_i[1];
       // target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
-      last_col += 2;
+      last_col += rotor_coef;
     }
     candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 
     /* calculate target full thrusts and  gimbal angles (considering full components)*/
     last_col = 0;
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, 2) + target_vectoring_f_trans_.segment(last_col, 2);
+      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, rotor_coef) + target_vectoring_f_trans_.segment(last_col, rotor_coef);
       target_full_thrust_.at(i) = f_i_integrated.norm();
       target_gimbal_angles_.at(i) = atan2(-f_i_integrated[0], f_i_integrated[1]);
-      last_col += 2;
+      last_col += rotor_coef;
     }
   }
 
