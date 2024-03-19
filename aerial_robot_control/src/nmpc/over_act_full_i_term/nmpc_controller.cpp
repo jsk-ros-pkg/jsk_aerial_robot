@@ -346,20 +346,6 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
 
   /* get result */
-  // - body rates
-  double target_roll_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(10) +
-                             (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(10 + NX)) /
-                            t_nmpc_integ_;
-  double target_pitch_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(11) +
-                              (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(11 + NX)) /
-                             t_nmpc_integ_;
-  double target_yaw_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(12) +
-                            (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(12 + NX)) /
-                           t_nmpc_integ_;
-  flight_cmd_.body_rates[0] = static_cast<float>(target_roll_rate);
-  flight_cmd_.body_rates[1] = static_cast<float>(target_pitch_rate);
-  flight_cmd_.body_rates[2] = static_cast<float>(target_yaw_rate);
-
   // - thrust
   double ft1 = mpc_solver_.x_u_out_.u.data.at(0);
   double ft2 = mpc_solver_.x_u_out_.u.data.at(1);
