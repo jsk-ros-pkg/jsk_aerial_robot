@@ -18,6 +18,7 @@
   <arg name="spawn_pitch" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="type" default="20240207_new_armor"/>
+  <arg name="prop" default="9"/>
   <arg name="config_dir" default="$(find delta)/config"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="delta$(arg robot_id)" />
@@ -37,7 +38,7 @@
     <rosparam file="$(arg config_dir)/$(arg type)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
-    <rosparam file="$(arg config_dir)/$(arg type)/MotorInfo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/MotorInfo_$(arg prop)inch.yaml" command="load" />
 
     ###########  Servo Config  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/Servo.yaml" command="load" />
