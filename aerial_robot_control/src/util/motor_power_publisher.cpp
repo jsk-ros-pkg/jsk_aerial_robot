@@ -128,7 +128,6 @@ void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
     }
 
   double power = battery_voltage_ * currency_sum;
-
   std_msgs::Float32 power_msg;
   power_msg.data = power;
   motor_power_pub_.publish(power_msg);
