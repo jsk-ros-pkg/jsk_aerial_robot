@@ -105,11 +105,9 @@ void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
   double power_ratio = (battery_voltage_ - voltages_.at(lower_voltage_index)) / (voltages_.at(upper_voltage_index) - voltages_.at(lower_voltage_index));
   double currency_sum = 0.0;
   motor_currencies_.resize(motor_pwms_.size());
-
   for(int i = 0; i < motor_pwms_.size(); i++)
     {
       pwm_percent = motor_pwms_.at(i) / 2000.0 * 100.0;
-
       upper_currency =
         motor_infos_.at(upper_voltage_index).at(0) +
         motor_infos_.at(upper_voltage_index).at(1) * std::pow(pwm_percent, 1) +
@@ -130,7 +128,6 @@ void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
     }
 
   double power = battery_voltage_ * currency_sum;
-
   std_msgs::Float32 power_msg;
   power_msg.data = power;
   motor_power_pub_.publish(power_msg);
