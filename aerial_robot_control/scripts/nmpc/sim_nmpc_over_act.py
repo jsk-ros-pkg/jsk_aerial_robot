@@ -1,6 +1,8 @@
 """
  Created by li-jinjie on 24-3-9.
 """
+import time
+
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -35,6 +37,7 @@ class Visualizer:
         self.x_sim_all = np.ndarray((N_sim + 1, nx))
         self.u_sim_all = np.ndarray((N_sim, nu))
         self.x_sim_all[0, :] = x0
+        self.comp_time = np.zeros(N_sim)
 
         self.data_idx = 0
 
@@ -53,7 +56,7 @@ class Visualizer:
         if t_sqp_start != t_sqp_end and t_sqp_end > t_sqp_start:
             is_plot_sqp = True
 
-        fig = plt.figure(figsize=(20, 10))
+        fig = plt.figure(figsize=(20, 15))
         fig.suptitle(
             f"Controller: {ocp_model_name}, ts_ctrl = {ts_ctrl} s, servo delay: {t_servo_ctrl} s\n"
             f"Simulator: {sim_model_name}, ts_sim = {ts_sim} s, servo delay: {t_servo_sim} s"
@@ -61,7 +64,7 @@ class Visualizer:
 
         time_data_x = np.arange(self.data_idx) * ts_sim
 
-        plt.subplot(4, 2, 1)
+        plt.subplot(5, 2, 1)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
@@ -77,7 +80,7 @@ class Visualizer:
             plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
         plt.grid(True)
 
-        plt.subplot(4, 2, 3)
+        plt.subplot(5, 2, 3)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 4], label="vy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 5], label="vz")
@@ -89,7 +92,7 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(4, 2, 5)
+        plt.subplot(5, 2, 5)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 6], label="qw")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 7], label="qx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 8], label="qy")
@@ -102,7 +105,7 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(4, 2, 7)
+        plt.subplot(5, 2, 7)
         # use tf2 to convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
@@ -121,7 +124,7 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(4, 2, 2)
+        plt.subplot(5, 2, 2)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 10], label="wx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 11], label="wy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 12], label="wz")
@@ -133,7 +136,7 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(4, 2, 4)
+        plt.subplot(5, 2, 4)
         if x_sim_all.shape[1] > 13:
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 13], label="a1")
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 14], label="a2")
@@ -147,13 +150,11 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        time_data_u = np.arange(self.data_idx - 1) * ts_sim
-
-        plt.subplot(4, 2, 6)
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 0], label="ft1")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 1], label="ft2")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="ft3")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="ft4")
+        plt.subplot(5, 2, 6)
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 0], label="ft1")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 1], label="ft2")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 2], label="ft3")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 3], label="ft4")
         plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -162,11 +163,11 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(4, 2, 8)
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="a1c")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5], label="a2c")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="a3c")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7], label="a4c")
+        plt.subplot(5, 2, 8)
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 4], label="a1c")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 5], label="a2c")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 6], label="a3c")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 7], label="a4c")
         plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -174,6 +175,14 @@ class Visualizer:
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+
+        print("Average computation time: ", np.mean(self.comp_time))
+        plt.subplot(5, 2, 9)
+        plt.plot(time_data_x, self.comp_time)
+        plt.xlabel("Time (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("Computation Time (s)")
+        plt.grid(True)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
@@ -429,6 +438,8 @@ if __name__ == "__main__":
                 ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
 
         # -------- update solver --------
+        comp_time_start = time.time()
+
         if t_ctl >= ts_ctrl:
             t_ctl = 0.0
 
@@ -456,6 +467,9 @@ if __name__ == "__main__":
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
 
+        comp_time_end = time.time()
+        viz.comp_time[i] = comp_time_end - comp_time_start
+
         # if nmpc is NMPCOverActNoServoNewCost
         if type(nmpc) is NMPCOverActNoServoNewCost:
             xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
@@ -475,7 +489,7 @@ if __name__ == "__main__":
         x_now_sim = sim_solver.get("x")
 
         # --------- update visualizer ----------
-        viz.update(i, x_now_sim, u_cmd)
+        viz.update(i, x_now_sim, u_cmd)  # note that the recording frequency of u_cmd is the same as ts_sim
 
     # ========== visualize ==========
     if args.plot_type == 0:
