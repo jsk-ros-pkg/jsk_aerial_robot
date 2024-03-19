@@ -9,7 +9,9 @@ void RollingController::calcContactPoint()
   tf::Vector3 w_p_cog_in_w_tf = estimator_->getPos(Frame::COG, estimate_mode_);
   Eigen::Vector3d w_p_cog_in_w = Eigen::Vector3d(w_p_cog_in_w_tf.x(), w_p_cog_in_w_tf.y(), w_p_cog_in_w_tf.z());
 
-  tf::Matrix3x3 w_R_cog_tf = estimator_->getOrientation(Frame::COG, estimate_mode_);
+  tf::Quaternion cog2baselink_rot;
+  tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+  tf::Matrix3x3 w_R_cog_tf = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
   Eigen::Matrix3d w_R_cog;
   for(int i = 0; i < 3; i++)
     {
