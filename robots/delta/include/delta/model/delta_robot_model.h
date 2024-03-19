@@ -29,7 +29,6 @@ public:
     std::lock_guard<std::mutex> lock(links_center_frame_mutex_);
     return links_center_frame_from_cog_;
   }
-  template <class T> T getCenterPoint();
   void setCircleRadius(double radius) {circle_radius_ = radius;}
   void setTargetFrame(KDL::Frame frame){target_frame_ = frame;};
   void setTargetFrame(std::string frame_name);
@@ -50,9 +49,7 @@ private:
   std::mutex links_center_frame_mutex_;
   std::mutex contact_point_mutex_;
   std::mutex contact_point_real_mutex_;
-  std::mutex center_point_mutex_;
 
-  KDL::Frame center_point_;
   KDL::Frame contact_point_;
   KDL::Frame contact_point_real_;
 
@@ -113,17 +110,6 @@ template<> inline KDL::Frame RollingRobotModel::getContactPointReal()
 template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPointReal()
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPointReal<KDL::Frame>());
-}
-
-template<> inline KDL::Frame RollingRobotModel::getCenterPoint()
-{
-  std::lock_guard<std::mutex> lock(center_point_mutex_);
-  return center_point_;
-}
-
-template<> inline geometry_msgs::TransformStamped RollingRobotModel::getCenterPoint()
-{
-  return aerial_robot_model::kdlToMsg(RollingRobotModel::getCenterPoint<KDL::Frame>());
 }
 
 template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaFromTargetFrame()
