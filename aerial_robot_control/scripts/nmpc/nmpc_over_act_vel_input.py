@@ -48,7 +48,7 @@ class NMPCOverActVelInput(NMPCBase):
         super(NMPCOverActVelInput, self).__init__()
 
     def _set_name(self) -> str:
-        model_name = "beetle_full_model"
+        model_name = "beetle_vel_input_model"
         return model_name
 
     def _set_ts_ctrl(self) -> float:

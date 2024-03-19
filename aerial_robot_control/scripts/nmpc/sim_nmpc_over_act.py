@@ -12,10 +12,12 @@ from tf_conversions import transformations as tf
 from nmpc_over_act_no_servo_delay import NMPCOverActNoServoDelay
 from nmpc_over_act_old_servo_cost import NMPCOverActOldServoCost
 from nmpc_over_act_no_servo_new_cost import NMPCOverActNoServoNewCost
+from nmpc_over_act_vel_input import NMPCOverActVelInput
 from nmpc_over_act_full import NMPCOverActFull
 from nmpc_over_act_full_i_term import NMPCOverActFullITerm
 
 legend_alpha = 0.5
+
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
     acados_sim = AcadosSim()
@@ -315,6 +317,8 @@ if __name__ == "__main__":
         nmpc = NMPCOverActFull()
     elif args.model == 4:
         nmpc = NMPCOverActFullITerm()
+    elif args.model == 5:
+        nmpc = NMPCOverActVelInput()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -384,7 +388,7 @@ if __name__ == "__main__":
         t_ctl += ts_sim
 
         # --------- update state estimation ---------
-        x_now = x_now_sim[:nx]
+        x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
         target_xyz = np.array([[0.0, 0.0, 1.0]]).T
@@ -454,6 +458,9 @@ if __name__ == "__main__":
         # if nmpc is NMPCOverActNoServoNewCost
         if type(nmpc) is NMPCOverActNoServoNewCost:
             xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
+
+        if type(nmpc) is NMPCOverActVelInput:
+            u_cmd[4:] = u_cmd[4:] * ts_ctrl + x_now[13:]  # convert from delta to absolute
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
