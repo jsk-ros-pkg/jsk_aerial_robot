@@ -60,19 +60,31 @@ void motorPowerPublisher::batteryVoltageStatusCallback(const std_msgs::Float32Pt
 
 void motorPowerPublisher::timerCallback(const ros::TimerEvent& e)
 {
-  if(battery_voltage_ < voltages_.at(0) || voltages_.at(voltages_.size() - 1) < battery_voltage_)
-    return;
-
-  int upper_voltage_index;
   int lower_voltage_index;
-  for(int i = 0; i < voltages_.size(); i++)
+  int upper_voltage_index;
+
+  if(battery_voltage_ <= voltages_.at(0))
     {
-      if(battery_voltage_ <= voltages_.at(i))
+      lower_voltage_index = 0;
+      upper_voltage_index = 1;
+    }
+  else if(battery_voltage_ >= voltages_.at(voltages_.size() - 1))
+    {
+      lower_voltage_index = voltages_.size() - 2;
+      upper_voltage_index = voltages_.size() - 1;
+    }
+  else
+    {
+      for(int i = 1; i < voltages_.size(); i++)
         {
-          upper_voltage_index = i;
-          lower_voltage_index = i - 1;
+          if(battery_voltage_ <= voltages_.at(i))
+            {
+              lower_voltage_index = i - 1;
+              upper_voltage_index = i;
+            }
         }
     }
+
   double pwm_percent = 0.0;
   double upper_power = 0.0;
   double lower_power = 0.0;
