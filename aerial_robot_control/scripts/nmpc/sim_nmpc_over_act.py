@@ -319,6 +319,7 @@ if __name__ == "__main__":
         nmpc = NMPCOverActFullITerm()
     elif args.model == 5:
         nmpc = NMPCOverActVelInput()
+        alpha_integ = np.zeros(4)
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -460,7 +461,8 @@ if __name__ == "__main__":
             xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
 
         if type(nmpc) is NMPCOverActVelInput:
-            u_cmd[4:] = u_cmd[4:] * ts_ctrl + x_now[13:]  # convert from delta to absolute
+            alpha_integ += u_cmd[4:] * ts_ctrl
+            u_cmd[4:] = alpha_integ  # convert from delta to absolute
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
