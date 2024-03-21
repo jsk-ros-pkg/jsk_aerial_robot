@@ -239,20 +239,6 @@ void nmpc_over_act_full::NMPCController::controlCore()
 
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
-
-  // check the sign of the quaternion, avoid the flip of the quaternion TODO: should be moved to Estimator
-  double qe_c_w = odom_now.pose.pose.orientation.w * odom_.pose.pose.orientation.w +
-                  odom_now.pose.pose.orientation.x * odom_.pose.pose.orientation.x +
-                  odom_now.pose.pose.orientation.y * odom_.pose.pose.orientation.y +
-                  odom_now.pose.pose.orientation.z * odom_.pose.pose.orientation.z;
-  if (qe_c_w < 0)
-  {
-    odom_now.pose.pose.orientation.w = -odom_now.pose.pose.orientation.w;
-    odom_now.pose.pose.orientation.x = -odom_now.pose.pose.orientation.x;
-    odom_now.pose.pose.orientation.y = -odom_now.pose.pose.orientation.y;
-    odom_now.pose.pose.orientation.z = -odom_now.pose.pose.orientation.z;
-  }
-
   odom_ = odom_now;
 
   /* solve */
@@ -298,6 +284,7 @@ void nmpc_over_act_full::NMPCController::SendCmd()
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
+// TODO: should be moved to Estimator
 nav_msgs::Odometry nmpc_over_act_full::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
@@ -306,6 +293,17 @@ nav_msgs::Odometry nmpc_over_act_full::NMPCController::getOdom()
   tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
+
+  // check the sign of the quaternion, avoid the flip of the quaternion
+  double qe_c_w = q.w() * odom_.pose.pose.orientation.w + q.x() * odom_.pose.pose.orientation.x +
+                  q.y() * odom_.pose.pose.orientation.y + q.z() * odom_.pose.pose.orientation.z;
+  if (qe_c_w < 0)
+  {
+    q.setW(-q.w());
+    q.setX(-q.x());
+    q.setY(-q.y());
+    q.setZ(-q.z());
+  }
 
   nav_msgs::Odometry odom;
   odom.pose.pose.position.x = pos.x();
