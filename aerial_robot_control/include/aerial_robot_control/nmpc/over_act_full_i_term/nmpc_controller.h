@@ -124,6 +124,8 @@ private:
   void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
                   const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
 
+  double getCommand(int idx_u, double t_pred = 0.0);
+
   void printPhysicalParams();
 };
 
