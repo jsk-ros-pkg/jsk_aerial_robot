@@ -16,7 +16,7 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   // /* special process */
   KDL::Frame f_baselink;
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
-  const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
+  const KDL::Rotation cog_frame = f_baselink.M;
   RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
 

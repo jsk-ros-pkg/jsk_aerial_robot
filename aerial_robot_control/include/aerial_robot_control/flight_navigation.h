@@ -316,7 +316,7 @@ namespace aerial_robot_navigation
     double hovering_current_;
 
     virtual void rosParamInit();
-    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 

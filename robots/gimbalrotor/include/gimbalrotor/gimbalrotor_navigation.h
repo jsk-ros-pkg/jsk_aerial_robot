@@ -27,6 +27,8 @@ namespace aerial_robot_navigation
     void baselinkRotationProcess();
     void rosParamInit() override;
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
+    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+
 
     /* target baselink rotation */
     double prev_rotation_stamp_;

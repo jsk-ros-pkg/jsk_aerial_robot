@@ -52,7 +52,7 @@ namespace aerial_robot_control
 
   bool GimbalrotorController::update()
   {
-    // sendGimbalCommand();
+    sendGimbalCommand();
     if(gimbal_calc_in_fc_){
       std_msgs::UInt8 msg;
       msg.data = gimbal_dof_;
@@ -65,7 +65,6 @@ namespace aerial_robot_control
   void GimbalrotorController::controlCore()
   {
     PoseLinearController::controlCore();
-
     tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
     tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                              pid_controllers_.at(Y).result(),
@@ -100,8 +99,6 @@ namespace aerial_robot_control
     double mass_inv = 1 / gimbalrotor_robot_model_->getMass();
 
     Eigen::Matrix3d inertia_inv = (gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
-
-    double t = ros::Time::now().toSec();
 
     std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalrotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
     const auto& rotor_direction = gimbalrotor_robot_model_->getRotorDirection();
