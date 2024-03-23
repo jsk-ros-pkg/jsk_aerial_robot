@@ -50,6 +50,7 @@ void ICM20948::gyroInit(void)
     // }
   }
 
+
   /* 1.Clear all bits in ub0-ub3 register */
   deviceReset();
 
@@ -90,12 +91,13 @@ void ICM20948::magInit(void)
       i2cMasterClkFrq(7); // 345.6 kHz / 46.67% dyty cycle (recoomended)
 
       /* Waiting for finding Magnetometer */
+      // uint32_t search_start_time = HAL_GetTick();
       while(!getAk09916WhoAmI()){
-        uint32_t search_curr_time = HAL_GetTick();
-        if(search_curr_time - search_curr_time > MAG_FIND_TIMEOUT){
-          nh_->logerror("Magnetometer is not found");
-          HAL_NVIC_SystemReset();
-        }
+        // uint32_t search_curr_time = HAL_GetTick();
+        // if(search_curr_time - search_curr_time > MAG_FIND_TIMEOUT){
+        //   nh_->logerror("Magnetometer is not found");
+        //   HAL_NVIC_SystemReset();
+        // }
       }
 
       /* 6.3 Clear all bits in mag register */
@@ -107,9 +109,9 @@ void ICM20948::magInit(void)
 
 void ICM20948::updateRawData()
 {
-  gyroRead(&raw_gyro_adc_);
-  accelRead(&raw_acc_adc_);
-  magRead(&raw_mag_adc_);
+  gyroReadDps(&raw_gyro_adc_);
+  accelReadG(&raw_acc_adc_);
+  magReadUT(&raw_mag_adc_);
 }
 
 void ICM20948::gyroRead(Vector3f* data)
@@ -127,7 +129,7 @@ void ICM20948::accelRead(Vector3f* data)
 
   data->x = (int16_t)(temp[0] << 8 | temp[1]);
   data->y = (int16_t)(temp[2] << 8 | temp[3]);
-  data->z = (int16_t)(temp[4] << 8 | temp[5]) + accel_scale_factor_; 
+  data->z = (int16_t)(temp[4] << 8 | temp[5]); 
   // Add scale factor because calibraiton function offset gravity acceleration.
 }
 
@@ -137,12 +139,19 @@ bool ICM20948::magRead(Vector3f* data)
   uint8_t drdy, hofl;	// data ready, overflow
 
   drdy = readSingleAk09916(MAG_ST1) & 0x01;
-  if(!drdy)	return false;
+  if(!drdy){
+    nh_->logerror("not ready");
+    return false;
+  }
 
   temp = readMultipleAk09916(MAG_HXL, 6);
+  // HAL_Delay(1);
 
   hofl = readSingleAk09916(MAG_ST2) & 0x08;
-  if(hofl)	return false;
+  if(hofl){
+    nh_->logerror("overflow");
+    return false;
+  }
 
   data->x = (int16_t)(temp[1] << 8 | temp[0]);
   data->y = (int16_t)(temp[3] << 8 | temp[2]);
@@ -387,12 +396,14 @@ uint8_t ICM20948::readSingleIcm20948(userbank ub, uint8_t reg)
   uint8_t read_reg = READ | reg;
   uint8_t reg_val;
   selectUserBank(ub);
+
   GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, &read_reg, 1, 1000);
   HAL_SPI_Receive(hspi_, &reg_val, 1, 1000);
   GPIO_H(spi_cs_port_, spi_cs_pin_);
 
   return reg_val;
+
 }
 
 void ICM20948::writeSingleIcm20948(userbank ub, uint8_t reg, uint8_t val)
@@ -439,7 +450,6 @@ uint8_t ICM20948::readSingleAk09916(uint8_t reg)
  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
 
-  HAL_Delay(1);
   return readSingleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
 }
 
@@ -457,6 +467,6 @@ uint8_t* ICM20948::readMultipleAk09916(uint8_t reg, uint8_t len)
  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
 
-  HAL_Delay(1);
   return readMultipleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00, len);
+
 }
