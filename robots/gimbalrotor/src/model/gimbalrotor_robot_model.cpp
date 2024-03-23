@@ -16,7 +16,7 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   // /* special process */
   KDL::Frame f_baselink;
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
-  const KDL::Rotation cog_frame = f_baselink.M;
+  const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
   RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
 
@@ -24,8 +24,10 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string thrust = "rotor_arm" + std::to_string(i + 1);
-      KDL::Frame f = seg_tf_map.at(thrust);
+      KDL::Frame f;
+      fk_solver.JntToCart(joint_positions, f, thrust);
       thrust_coords_rot_[i] = cog_frame.Inverse() * f.M;
+
     }
 }
 
