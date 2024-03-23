@@ -19,8 +19,8 @@ navigation:
   teleop_local_frame: fc
 
   cmd_vel_lev2_gain : 2.0
-  nav_vel_limit : 0.2
-  vel_nav_threshold : 0.01
+  # nav_vel_limit : 0.2
+  # vel_nav_threshold : 0.01
 
   gain_tunning_mode: 0
   max_target_tilt_angle: 0.2
