@@ -76,7 +76,12 @@ namespace aerial_robot_control
     double target_ang_acc_x = pid_controllers_.at(ROLL).result();
     double target_ang_acc_y = pid_controllers_.at(PITCH).result();
     double target_ang_acc_z = pid_controllers_.at(YAW).result();
-    target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+    Eigen::Matrix3d inertia = gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>();
+    Eigen::Vector3d omega;
+    tf::vectorTFToEigen(omega_, omega);
+    Eigen::Vector3d gyro = omega.cross(inertia * omega);
+
+    target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z) + gyro;
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -98,7 +103,7 @@ namespace aerial_robot_control
 
     double mass_inv = 1 / gimbalrotor_robot_model_->getMass();
 
-    Eigen::Matrix3d inertia_inv = (gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+    Eigen::Matrix3d inertia_inv = inertia.inverse();
 
     std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalrotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
     const auto& rotor_direction = gimbalrotor_robot_model_->getRotorDirection();
@@ -175,8 +180,13 @@ namespace aerial_robot_control
         }
       else if(gimbal_dof_ == 2)
         {
-          target_gimbal_angles_.at(2 * i) = atan2(-f_i_integrated[1], f_i_integrated[2]);
-          target_gimbal_angles_.at(2 * i + 1) = atan2(f_i_integrated[0], f_i_integrated[2]);
+          if(f_i_integrated[0] == 0 || f_i_integrated[2] == 0) continue;
+          double gimbal_roll = atan2(-f_i_integrated[0], f_i_integrated[2]);
+          double gimbal_pitch = atan2(f_i_integrated[1], f_i_integrated[0] * sin(-gimbal_roll) + f_i_integrated[2]* cos(-gimbal_roll));
+          target_gimbal_angles_.at(2 * i) = gimbal_roll;
+          target_gimbal_angles_.at(2 * i + 1) = gimbal_pitch;
+          // target_gimbal_angles_.at(2 * i) = atan2(-f_i_integrated[1], f_i_integrated[2]);
+          // target_gimbal_angles_.at(2 * i + 1) = atan2(f_i_integrated[0], f_i_integrated[2]);
         }
       last_col += rotor_coef_;
     }
