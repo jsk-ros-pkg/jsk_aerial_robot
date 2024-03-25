@@ -93,6 +93,10 @@ void RollingController::calcFlightFullLambda()
   /* calculate integarated allocation */
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame("cog");
 
+  /* change dimension from wrench to acc */
+  full_q_mat.topRows(3) = 1.0 / robot_model_->getMass() * full_q_mat.topRows(3);
+  full_q_mat.bottomRows(3) = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * full_q_mat.bottomRows(3);
+
   /* extract controlled axis */
   Eigen::MatrixXd controlled_axis_mask = Eigen::MatrixXd::Zero(control_dof_, 6);
   int last_row = 0;

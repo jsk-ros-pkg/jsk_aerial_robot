@@ -175,11 +175,6 @@ Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame
       last_col += 3;
     }
 
-  Eigen::Matrix3d inertia_inv = getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse();
-  double mass_inv = 1 / getMass();
-  wrench_matrix.topRows(3) = mass_inv * wrench_matrix.topRows(3);
-  wrench_matrix.bottomRows(3) = inertia_inv * wrench_matrix.bottomRows(3);
-
   /* calculate masked and integrated rotaion matrix */
   Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * rotor_num, 2 * rotor_num);
   Eigen::MatrixXd mask(3, 2);
