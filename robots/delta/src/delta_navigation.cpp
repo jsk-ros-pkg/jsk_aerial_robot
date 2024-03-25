@@ -321,7 +321,10 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
     {
       target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
-      setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z() + target_yaw_ang_vel_);
+
+      addTargetYaw(loop_du_ * target_yaw_ang_vel_);
+      setTargetOmegaZ(target_yaw_ang_vel_);
+
       yaw_ang_vel_updating_ = true;
     }
   else
@@ -329,7 +332,16 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
       if(yaw_ang_vel_updating_)
         {
           target_yaw_ang_vel_ = 0.0;
-          setTargetYaw(estimator_->getEuler(Frame::COG, estimate_mode_).z());
+
+          tf::Quaternion cog2baselink_rot;
+          tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+          tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+          double r, p, y;
+          cog_rot.getRPY(r, p, y);
+
+          setTargetYaw(y);
+          setTargetOmegaZ(0.0);
+
           yaw_ang_vel_updating_ = false;
         }
     }
