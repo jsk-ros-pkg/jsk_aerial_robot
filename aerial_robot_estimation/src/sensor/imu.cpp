@@ -165,10 +165,8 @@ namespace sensor_plugin
         double r,p,y;
         gt_cog_rot.getRPY(r, p, y);
         cog_euler[2] = y;
-        ROS_INFO_STREAM_THROTTLE(0.5, "[imu] yaw angle from cog ground truth: " << y);
         gt_cog_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH) * cog2baselink_tf.getBasis().inverse();
         gt_cog_rot.getRPY(r, p, y);
-        ROS_INFO_STREAM_THROTTLE(0.5, "[imu] yaw angle from baselink ground truth * baselink2cog: " << y);
         cog_euler[2] = y;
       }
     cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE).setRPY(cog_euler[0], cog_euler[1], cog_euler[2]);
