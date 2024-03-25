@@ -79,15 +79,6 @@ void RollingController::standingPlanning()
       ROS_WARN_ONCE("start roll/pitch I control");
     }
 
-  // if(standing_baselink_pitch_update_ && ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
-  //   {
-  //     if(ros::Time::now().toSec() - standing_baselink_ref_pitch_last_update_time_ > standing_baselink_ref_pitch_update_thresh_)
-  //       {
-  //         standing_baselink_ref_pitch_last_update_time_ = ros::Time::now().toSec();
-  //         rolling_navigator_->setFinalTargetBaselinkRotPitch(baselink_pitch);
-  //       }
-  //   }
-
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE && fabs(pid_msg_.roll.err_p) < standing_baselink_roll_converged_thresh_)
     {
       rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
@@ -96,88 +87,6 @@ void RollingController::standingPlanning()
     {
       rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
-
-  double du = ros::Time::now().toSec() - rolling_control_timestamp_;
-  if(!rolling_navigator_->getPitchAngVelUpdating())
-    {
-      double target_pitch = rolling_navigator_->getCurrentTargetBaselinkRpyPitch();
-      rolling_navigator_->setCurrentTargetBaselinkRpyPitch(target_pitch);
-
-      Eigen::Matrix3d rot_mat;
-      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-      double qx, qy, qz, qw;
-      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-
-      if(ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
-        {
-          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-        }
-      else
-        {
-          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
-        }
-
-      navigator_->setTargetOmegaY(0);
-    }
-  else
-    {
-      double target_pitch_ang_vel = rolling_navigator_->getTargetPitchAngVel();
-      // rolling_navigator_->setCurrentTargetBaselinkRotPitch(target_baselink_pitch + du * target_pitch_ang_vel);
-
-      double target_pitch = rolling_navigator_->getCurrentTargetBaselinkRpyPitch();
-      if(fabs(pid_msg_.pitch.err_p) < 0.15)
-        {
-          target_pitch += du * target_pitch_ang_vel;
-        }
-      else
-        {
-          ROS_WARN_STREAM_THROTTLE(0.5, "[control] do not update target pitch until convergence");
-        }
-      rolling_navigator_->setCurrentTargetBaselinkRpyPitch(target_pitch);
-
-      Eigen::Matrix3d rot_mat;
-      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-      double qx, qy, qz, qw;
-      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-
-      if(ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
-        {
-          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-        }
-      else
-        {
-          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
-        }
-
-      navigator_->setTargetOmegaY(target_pitch_ang_vel);
-
-      // rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
-      // omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
-      // target_rpy_ = navigator_->getTargetRPY();
-      // target_omega_ = navigator_->getTargetOmega();
-
-      tf::Quaternion cog2baselink_rot;
-      tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
-      tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
-      double r, p, y; cog_rot.getRPY(r, p, y);
-      rpy_.setValue(r, p, y);
-
-      omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
-      target_rpy_ = navigator_->getTargetRPY();
-      tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
-      tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
-      target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
-
-      pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du, target_omega_.y() - omega_.y());
-    }
-
-  rolling_control_timestamp_ = ros::Time::now().toSec();
 
   pid_msg_.roll.total.at(0) = pid_controllers_.at(ROLL).result();
   pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
