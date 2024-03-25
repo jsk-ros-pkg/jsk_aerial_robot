@@ -71,8 +71,8 @@ namespace aerial_robot_navigation
 
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
 
+    void rollingPlanner();
     void baselinkRotationProcess();
-    void landingProcess();
     void groundModeProcess();
     void rosPublishProcess();
 

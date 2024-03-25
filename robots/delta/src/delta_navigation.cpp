@@ -49,7 +49,7 @@ void RollingNavigator::update()
 
   baselinkRotationProcess();
 
-  landingProcess();
+  rollingPlanner();
 
   groundModeProcess();
 }
@@ -78,6 +78,73 @@ void RollingNavigator::reset()
 
   ROS_INFO_STREAM("[navigation] reset navigator");
 
+}
+
+void RollingNavigator::rollingPlanner()
+{
+  tf::Quaternion cog2baselink_rot;
+  tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+  tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+  double r, p, y;
+  cog_rot.getRPY(r, p, y);
+
+  switch(current_ground_navigation_mode_)
+    {
+    case aerial_robot_navigation::FLYING_STATE:
+      {
+        break;
+      }
+
+    case aerial_robot_navigation::STANDING_STATE:
+    case aerial_robot_navigation::ROLLING_STATE:
+      {
+        double target_pitch;
+        if(!getPitchAngVelUpdating())
+          {
+            target_pitch = getCurrentTargetBaselinkRpyPitch();
+
+            setCurrentTargetBaselinkRpyPitch(target_pitch);
+            setTargetOmegaY(0);
+          }
+        else
+          {
+            double target_pitch_ang_vel = getTargetPitchAngVel();
+            target_pitch = getCurrentTargetBaselinkRpyPitch();
+            if(fabs(p) < 0.15)
+              {
+                target_pitch += loop_du_ * target_pitch_ang_vel;
+              }
+            else
+              {
+                ROS_WARN_STREAM_THROTTLE(0.5, "[navigation] do not update target pitch until convergence");
+              }
+
+            setCurrentTargetBaselinkRpyPitch(target_pitch);
+            setTargetOmegaY(target_pitch_ang_vel);
+          }
+
+        Eigen::Matrix3d rot_mat;
+        Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+        rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+        KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+        double qx, qy, qz, qw;
+        rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+        setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+        break;
+      }
+
+    case aerial_robot_navigation::DOWN_STATE:
+      {
+        setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+        break;
+      }
+
+    default:
+      break;
+    }
 }
 
 void RollingNavigator::baselinkRotationProcess()
@@ -118,51 +185,6 @@ void RollingNavigator::baselinkRotationProcess()
       desire_coord_pub_.publish(msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
-    }
-}
-
-void RollingNavigator::landingProcess()
-{
-  double r, p, y;
-  tf::Matrix3x3(curr_target_baselink_quat_).getRPY(r, p, y);
-  tf::Vector3 curr_target_baselink_rpy = tf::Vector3(r, p, y);
-  if(getForceLandingFlag() || getNaviState() == LAND_STATE)
-    {
-      if(curr_target_baselink_rpy.length())
-        {
-          ROS_WARN_ONCE("[navigation][landing] set final desired baselink rotation to (0, 0, 0)");
-          final_target_baselink_quat_.setRPY(0, 0, 0);
-
-          if(getNaviState() == LAND_STATE && !landing_flag_)
-            {
-              ROS_WARN("[navigation][landing] set to hovering mode");
-              landing_flag_ = true;
-              setTeleopFlag(false);
-              setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
-              setNaviState(HOVER_STATE);
-            }
-        }
-    }
-
-  /* back to landing process */
-  if(landing_flag_)
-    {
-      bool already_level = true;
-
-      if(curr_target_baselink_rpy.length()) already_level = false;
-
-      if(!already_level)
-        {
-          ROS_WARN_ONCE("[navigation][landing] waiting for baselink rotation conversion");
-        }
-
-      if(already_level && getNaviState() == HOVER_STATE)
-        {
-          ROS_WARN("[navigation][landing] back to land state");
-          setNaviState(LAND_STATE);
-          // setTargetPosZ(estimator_->getLandingHeight());
-          setTeleopFlag(true);
-        }
     }
 }
 
