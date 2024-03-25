@@ -186,3 +186,33 @@ namespace aerial_robot_model {
   return xml_string;
   }
 }
+
+Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl)
+{
+  casadi::DM ret = casadi::DM(y.size1(), y.size2());
+  for(int i =  0; i < y.size1(); i++)
+    {
+      for(int j = 0; j < y.size2(); j++)
+        {
+          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+          casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
+          ret(i, j) = y_dbl;
+        }
+    }
+  return casadiDmToEigenMatrix(ret);
+}
+
+Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
+{
+  casadi::DM ret = casadi::DM(y.size1(), y.size2());
+  for(int i =  0; i < y.size1(); i++)
+    {
+      for(int j = 0; j < y.size2(); j++)
+        {
+          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
+          casadi::DM y_dbl = f(x_dbl);
+          ret(i, j) = y_dbl;
+        }
+    }
+  return casadiDmToEigenMatrix(ret);
+}
