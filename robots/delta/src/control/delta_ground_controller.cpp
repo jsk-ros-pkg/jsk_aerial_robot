@@ -152,8 +152,8 @@ void RollingController::calcStandingFullLambda()
   gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
 
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
-  Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
-  Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
+  Eigen::MatrixXd full_q_mat_trans = 1.0 / robot_model_->getMass() *  full_q_mat.topRows(3);
+  Eigen::MatrixXd full_q_mat_rot = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * full_q_mat.bottomRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
   A.topRows(3) = full_q_mat_rot;                                                           //    eq constraint about rpy torque
   A.block(3, 0, 1, n_variables) = full_q_mat_trans.row(Z);                                           // in eq constraint about z
