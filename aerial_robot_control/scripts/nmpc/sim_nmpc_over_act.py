@@ -225,9 +225,10 @@ class Visualizer:
         plt.ylim([-1.0, 1.0])  # -0.18, 0.18; -1.0, 1.0
 
         ax_right = ax.twinx()
+        ax_right.plot([0, t_total_sim], [1.0, 1.0], label="$z_r$", linestyle="-.", color="blue")
         ax_right.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="$z$", linestyle="--", color="black")
         ax_right.set_ylabel("Height (m)", fontsize=label_size)
-        ax_right.legend(framealpha=legend_alpha)
+        ax_right.legend(framealpha=legend_alpha, loc="upper left")
 
         time_data_u = np.arange(self.data_idx - 1) * ts_sim
 
@@ -272,6 +273,8 @@ class Visualizer:
             euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
 
         plt.title(title)
+        # plot reference as 0.5
+        plt.plot([0, t_total_sim], [0.5, 0.5], label="ref", linestyle="-.")
         plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
         plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
         plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
