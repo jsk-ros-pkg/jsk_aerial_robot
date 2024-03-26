@@ -64,6 +64,8 @@ namespace aerial_robot_model {
     std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
 
     void updateRobotModel();
+    void updateRobotModel(casadi::SX q_cs);
+    void updateRobotModel(Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q);
     void updateRobotModelImpl(Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q);
 
   private:
