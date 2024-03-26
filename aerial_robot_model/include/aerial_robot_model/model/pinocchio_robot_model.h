@@ -63,8 +63,8 @@ namespace aerial_robot_model {
 
     std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
 
-    void updateRobotModel(const sensor_msgs::JointState& state);
-    void updateRobotModelImpl(const sensor_msgs::JointState& state);
+    void updateRobotModel();
+    void updateRobotModelImpl(Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q);
 
   private:
     std::string getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
@@ -72,7 +72,9 @@ namespace aerial_robot_model {
     void modelInit();
     void kinematicsInit();
     void inertialInit();
+    void inertialUpdate();
     void rotorInit();
+    void rotorUpdate();
 
     pinocchio::Model model_dbl_;
     pinocchio::Data data_dbl_;

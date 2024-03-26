@@ -7,6 +7,8 @@ namespace aerial_robot_model {
     kinematicsInit();
     inertialInit();
     rotorInit();
+
+    updateRobotModel();
   }
 
 
@@ -78,6 +80,9 @@ namespace aerial_robot_model {
   {
     // init q
     q_cs_ = casadi::SX::sym("q", model_.nq);
+    for(int i = 0; i < 7; i++)  // set 0 to free flyer joint
+      q_cs_(i) = 0;
+
     q_dbl_ = casadi::DM(model_.nq, 1);
     q_.resize(model_.nq, 1);
     for(int i = 0; i < model_.nq; i++)
@@ -85,23 +90,29 @@ namespace aerial_robot_model {
         q_dbl_(i) = 0.0;
         q_(i) = q_cs_(i);
       }
-
-    // solve FK
-    pinocchio::forwardKinematics(model_, data_, q_);
-    pinocchio::updateFramePlacements(model_, data_);
   }
 
-
   void PinocchioRobotModel::inertialInit()
+  {
+    // get mass (caution: type of this variable is casadi::SX)
+    mass_ = pinocchio::computeTotalMass(model_);
+    ROS_WARN_STREAM("[model][pinocchio] robot mass: " << mass_);
+  }
+
+  void PinocchioRobotModel::rotorInit()
+  {
+    rotors_origin_root_.resize(rotor_num_);
+    rotors_origin_cog_.resize(rotor_num_);
+    rotors_normal_root_.resize(rotor_num_);
+    rotors_normal_cog_.resize(rotor_num_);
+  }
+
+  void PinocchioRobotModel::inertialUpdate()
   {
     // set cog frame
     oMcog_.translation() = pinocchio::centerOfMass(model_, data_, q_, true);
     oMcog_.rotation() = data_.oMf[model_.getFrameId(baselink_)].rotation();
     pinocchio::casadi::copy(oMcog_.translation(), opcog_);
-
-    // get mass (caution: type of this variable is casadi::SX)
-    mass_ = pinocchio::computeTotalMass(model_);
-    ROS_WARN_STREAM("[model][pinocchio] robot mass: " << mass_);
 
     // get inertia matrix expressed in cog frame. (Hint: pinocchio/unittest/centroidal.cpp)
     pinocchio::crba(model_, data_, q_);    // Composite Rigid Body Algorithm
@@ -113,14 +124,9 @@ namespace aerial_robot_model {
     pinocchio::casadi::copy(I.matrix(), inertia_);
   }
 
-  void PinocchioRobotModel::rotorInit()
+  void PinocchioRobotModel::rotorUpdate()
   {
     // get rotor origin and normal from root and cog
-    rotors_origin_root_.resize(rotor_num_);
-    rotors_origin_cog_.resize(rotor_num_);
-    rotors_normal_root_.resize(rotor_num_);
-    rotors_normal_cog_.resize(rotor_num_);
-
     for(int i = 0; i < rotor_num_; i++)
       {
         std::string rotor_name = "rotor" + std::to_string(i + 1);
@@ -130,47 +136,31 @@ namespace aerial_robot_model {
         pinocchio::casadi::copy(data_.oMi[joint_id].translation(), rotors_origin_root_.at(i));
         pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).translation(), rotors_origin_cog_.at(i));
 
-        // normal
-        casadi::SX rotor_normal_root = casadi::SX::zeros(3);
-        casadi::SX rotor_normal_cog = casadi::SX::zeros(3);
-        int rotor_axis_type = 0;
-        if(model_.joints[joint_id].shortname() == "JointModelRX" || model_.joints[joint_id].shortname() == "JointModelRUBX")
-          rotor_axis_type = 0;
-        else if(model_.joints[joint_id].shortname() == "JointModelRY" || model_.joints[joint_id].shortname() == "JointModelRUBY")
-          rotor_axis_type = 1;
-        else if(model_.joints[joint_id].shortname() == "JointModelRZ" || model_.joints[joint_id].shortname() == "JointModelRUBZ" || model_.joints[joint_id].shortname() == "JointModelRevoluteUnboundedUnaligned") // hard coded for JointModelRevoluteUnboundedUnaligned
-          rotor_axis_type = 2;
-
-        pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(rotor_axis_type, 1), rotors_normal_root_.at(i));
-        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(rotor_axis_type, 1), rotors_normal_cog_.at(i));
+        // normal (assume rotational axis is corresponding to z axis)
+        pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(2, 1), rotors_normal_root_.at(i));
+        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(2, 1), rotors_normal_cog_.at(i));
       }
   }
 
-
-  void PinocchioRobotModel::updateRobotModel(const sensor_msgs::JointState& state)
+  void PinocchioRobotModel::updateRobotModel()
   {
-    updateRobotModelImpl(state);
+    Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q;
+    q.resize(model_.nq, 1);
+    pinocchio::casadi::copy(q_cs_, q);
+
+    updateRobotModelImpl(q);
   }
 
-  void PinocchioRobotModel::updateRobotModelImpl(const sensor_msgs::JointState& state)
+  void PinocchioRobotModel::updateRobotModelImpl(Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q)
   {
-    std::vector<std::string> joint_names = state.name;
-    std::vector<double> joint_positions = state.position;
+    q_ = q;
 
-    for(int i = 0; i < joint_names.size(); i++)
-      {
-        q_dbl_(joint_index_map_[joint_names.at(i)]) = joint_positions.at(i);
-      }
+    // solve FK
+    pinocchio::forwardKinematics(model_, data_, q_);
+    pinocchio::updateFramePlacements(model_, data_);
 
-    // std::cout << "real cog: " << computeRealValue(opcog_, q_cs_, q_dbl_).transpose() << std::endl;
-    // for(int i = 0; i < rotor_num_; i++)
-    //   {
-    //     std::cout << "origin " << i + 1 << ": " << computeRealValue(rotors_origin_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
-    //     std::cout << "normal " << i + 1 << ": " << computeRealValue(rotors_normal_cog_.at(i), q_cs_, q_dbl_).transpose() << std::endl;
-    //   }
-    // std::cout << std::endl;
-    // std::cout << computeRealValue(inertia_, q_cs_, q_dbl_) << std::endl;
-    // std::cout << std::endl;
+    inertialUpdate();
+    rotorUpdate();
   }
 
   std::string PinocchioRobotModel::getRobotModelXml(const std::string param, ros::NodeHandle nh)
