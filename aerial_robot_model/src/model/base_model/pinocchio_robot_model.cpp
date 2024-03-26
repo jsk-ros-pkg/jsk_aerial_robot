@@ -148,6 +148,24 @@ namespace aerial_robot_model {
     q.resize(model_.nq, 1);
     pinocchio::casadi::copy(q_cs_, q);
 
+    updateRobotModel(q);
+  }
+
+  void PinocchioRobotModel::updateRobotModel(casadi::SX q_cs)
+  {
+    assert((q_cs.size1() == model_.nq) || (q_cs.size2() == model_.nq));
+
+    Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q;
+    q.resize(model_.nq, 1);
+    pinocchio::casadi::copy(q_cs, q);
+
+    updateRobotModel(q);
+  }
+
+  void PinocchioRobotModel::updateRobotModel(Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q)
+  {
+    assert(q.size() == model_.nq);
+
     updateRobotModelImpl(q);
   }
 
