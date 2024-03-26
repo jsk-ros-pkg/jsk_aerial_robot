@@ -1,6 +1,7 @@
 #include <aerial_robot_model/model/pinocchio_robot_model_ros.h>
 
-namespace aerial_robot_model {
+namespace aerial_robot_model
+{
   PinocchioRobotModelRos::PinocchioRobotModelRos(ros::NodeHandle nh, ros::NodeHandle nhp):
     nh_(nh),
     nhp_(nhp),
@@ -24,13 +25,5 @@ namespace aerial_robot_model {
         ROS_ERROR("can not find plugin rosparameter for robot model, use default class: aerial_robot_model::PinocchioRobotModel");
         pinocchio_robot_model_ = boost::make_shared<aerial_robot_model::PinocchioRobotModel>();
       }
-
-
-    joint_state_sub_ = nh_.subscribe("joint_states", 1, &PinocchioRobotModelRos::jointStateCallback, this);
-  }
-
-  void PinocchioRobotModelRos::jointStateCallback(const sensor_msgs::JointStateConstPtr& msg)
-  {
-    pinocchio_robot_model_->updateRobotModel(*msg);
   }
 }
