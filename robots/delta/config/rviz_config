@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
-      Splitter Ratio: 0.5029411911964417
+      Splitter Ratio: 0.6235294342041016
     Tree Height: 713
   - Class: rviz/Selection
     Name: Selection
@@ -61,11 +61,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        cylinder_collision:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         fc:
           Alpha: 1
           Show Axes: false
@@ -94,6 +89,11 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        link1_leg:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         link2:
           Alpha: 1
           Show Axes: false
@@ -103,6 +103,11 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        link2_leg:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         link3:
           Alpha: 1
           Show Axes: false
@@ -112,6 +117,16 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        link3_leg1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link3_leg2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         root:
           Alpha: 1
           Show Axes: false
@@ -153,8 +168,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        delta/center_point:
-          Value: false
         delta/cog:
           Value: true
         delta/contact_point:
@@ -163,8 +176,6 @@ Visualization Manager:
           Value: true
         delta/contact_point_real:
           Value: true
-        delta/cylinder_collision:
-          Value: false
         delta/fc:
           Value: true
         delta/gimbal_link1:
@@ -177,13 +188,21 @@ Visualization Manager:
           Value: true
         delta/link1_center:
           Value: false
+        delta/link1_leg:
+          Value: false
         delta/link2:
           Value: true
         delta/link2_center:
           Value: false
+        delta/link2_leg:
+          Value: false
         delta/link3:
           Value: true
         delta/link3_center:
+          Value: false
+        delta/link3_leg1:
+          Value: false
+        delta/link3_leg2:
           Value: false
         delta/root:
           Value: false
@@ -210,8 +229,6 @@ Visualization Manager:
       Tree:
         world:
           delta/root:
-            delta/center_point:
-              {}
             delta/cog:
               {}
             delta/contact_point:
@@ -227,9 +244,9 @@ Visualization Manager:
                     {}
               delta/link1_center:
                 {}
+              delta/link1_leg:
+                {}
               delta/link2:
-                delta/cylinder_collision:
-                  {}
                 delta/fc:
                   {}
                 delta/gimbal_link2:
@@ -238,12 +255,18 @@ Visualization Manager:
                       {}
                 delta/link2_center:
                   {}
+                delta/link2_leg:
+                  {}
                 delta/link3:
                   delta/gimbal_link3:
                     delta/rotor_parent3:
                       delta/thrust3:
                         {}
                   delta/link3_center:
+                    {}
+                  delta/link3_leg1:
+                    {}
+                  delta/link3_leg2:
                     {}
       Update Interval: 0
       Value: true
@@ -441,6 +464,21 @@ Visualization Manager:
       top: 208
       update interval: 0.03999999910593033
       width: 128
+    - Alpha: 1
+      Arrow Width: 0.30000001192092896
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.009999999776482582
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /delta/debug/exerted_wrench_cog
+      Torque Arrow Scale: 4
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -469,7 +507,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.089010238647461
+      Distance: 5.14434814453125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -477,17 +515,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.16355490684509277
-        Y: 0.30215054750442505
-        Z: 0.8140965700149536
+        X: 0.20174537599086761
+        Y: 0.4548872709274292
+        Z: 0.7949192523956299
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3797967731952667
+      Pitch: 0.5747973322868347
       Target Frame: <Fixed Frame>
-      Yaw: 4.893553256988525
+      Yaw: 4.683560848236084
     Saved: ~
 Window Geometry:
   Displays:

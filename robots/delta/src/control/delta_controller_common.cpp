@@ -65,7 +65,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
-  exerted_wrench_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/exerted_wrench_cog", 1);
+  exerted_wrench_cog_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/exerted_wrench_cog", 1);
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
@@ -182,6 +182,7 @@ bool RollingController::update()
 
   if(!PoseLinearController::update()) return false;
 
+  rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
   return true;
 }
 
@@ -276,8 +277,6 @@ void RollingController::controlCore()
   wrenchAllocation();
   calcYawTerm();
   /* common part */
-
-  rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);
 }
 
 void RollingController::wrenchAllocation()
@@ -285,7 +284,7 @@ void RollingController::wrenchAllocation()
   int last_col = 0;
 
   /* full lambda mode */
-  if(full_lambda_mode_)
+  if(full_lambda_mode_ || ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
     {
       for(int i = 0; i < motor_num_; i++)
         {
@@ -419,6 +418,7 @@ void RollingController::sendCmd()
 {
   PoseLinearController::sendCmd();
 
+  /* full lambda  */
   std_msgs::Float32MultiArray target_vectoring_force_msg;
   for(int i = 0; i < full_lambda_all_.size(); i++)
     {
@@ -426,6 +426,7 @@ void RollingController::sendCmd()
     }
   target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
+  /*  target wrench in cog frame (flying mode) */
   std_msgs::Float32MultiArray target_wrench_acc_cog_msg;
   for(int i = 0; i < target_wrench_acc_cog_.size(); i++)
     {
@@ -433,6 +434,7 @@ void RollingController::sendCmd()
     }
   target_wrench_acc_cog_pub_.publish(target_wrench_acc_cog_msg);
 
+  /* gravity compensate term (ground mode) */
   std_msgs::Float32MultiArray gravity_compensate_term_msg;
   for(int i = 0; i < 3; i++)
     {
@@ -440,6 +442,7 @@ void RollingController::sendCmd()
     }
   gravity_compensate_term_pub_.publish(gravity_compensate_term_msg);
 
+  /* wrench allocation matrix */
   aerial_robot_msgs::WrenchAllocationMatrix wrench_allocation_matrix_msg;
   for(int i = 0; i < q_mat_.cols(); i++)
     {
@@ -452,13 +455,15 @@ void RollingController::sendCmd()
     }
   wrench_allocation_matrix_pub_.publish(wrench_allocation_matrix_msg);
 
+  /* target acc in world frame */
+  // consider rotation in all axis
   std_msgs::Float32MultiArray target_acc_cog_msg;
   for(int i = 0; i < target_acc_cog_.size(); i++)
     {
       target_acc_cog_msg.data.push_back(target_acc_cog_.at(i));
     }
   target_acc_cog_pub_.publish(target_acc_cog_msg);
-
+  // consider rotation in yaw axis
   std_msgs::Float32MultiArray target_acc_dash_msg;
   for(int i = 0; i < target_acc_dash_.size(); i++)
     {
@@ -466,6 +471,7 @@ void RollingController::sendCmd()
     }
   target_acc_dash_pub_.publish(target_acc_dash_msg);
 
+  /* full wrench allocation matrix from cog */
   aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame("cog");
   for(int i = 0; i < 2 * motor_num_; i++)
@@ -479,14 +485,30 @@ void RollingController::sendCmd()
     }
   full_q_mat_pub_.publish(full_q_mat_msg);
 
-  std_msgs::Float32MultiArray exerted_wrench_msg;
-  Eigen::VectorXd exerted_wrench = full_q_mat * full_lambda_all_;
-  for(int i = 0; i < exerted_wrench.size(); i++)
+  /* exerted wrench in cog frame */
+  geometry_msgs::WrenchStamped exerted_wrench_cog_msg;
+  Eigen::VectorXd exerted_wrench_cog;
+  if(full_lambda_mode_ || ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
     {
-      exerted_wrench_msg.data.push_back(exerted_wrench(i));
+      exerted_wrench_cog = full_q_mat * full_lambda_all_;
     }
-  exerted_wrench_pub_.publish(exerted_wrench_msg);
+  else
+    {
+      Eigen::VectorXd lambda;
+      lambda.resize(motor_num_);
+      for(int i = 0; i < motor_num_; i++) lambda(i) = target_base_thrust_.at(i);
+      exerted_wrench_cog = q_mat_ * lambda;
+    }
+  exerted_wrench_cog_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("cog"));
+  exerted_wrench_cog_msg.wrench.force.x = exerted_wrench_cog(0);
+  exerted_wrench_cog_msg.wrench.force.y = exerted_wrench_cog(1);
+  exerted_wrench_cog_msg.wrench.force.z = exerted_wrench_cog(2);
+  exerted_wrench_cog_msg.wrench.torque.x = exerted_wrench_cog(3);
+  exerted_wrench_cog_msg.wrench.torque.y = exerted_wrench_cog(4);
+  exerted_wrench_cog_msg.wrench.torque.z = exerted_wrench_cog(5);
+  exerted_wrench_cog_pub_.publish(exerted_wrench_cog_msg);
 
+  /* operability of full wrench allocation matrix */
   std_msgs::Float32 operability_msg;
   Eigen::MatrixXd q_qt;
   q_qt = full_q_mat * full_q_mat.transpose();
