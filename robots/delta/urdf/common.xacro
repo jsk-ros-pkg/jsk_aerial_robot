@@ -21,6 +21,9 @@
     </gazebo>
   </xacro:macro>
 
+  <!-- leg length -->
+  <xacro:property name="leg_length" value="0.135"/>
+
   <xacro:macro name="damping_factor" params="link">
     <gazebo reference="${link}">
       <dampingFactor>0.00</dampingFactor>
