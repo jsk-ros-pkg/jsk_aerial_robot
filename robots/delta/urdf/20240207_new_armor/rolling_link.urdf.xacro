@@ -62,7 +62,7 @@
     </xacro:if>
 
     <!-- gimbal joint -->
-    <joint name="gimbal${self}" type="continuous">
+    <joint name="gimbal${self}" type="revolute">
       <limit effort="3" lower="-15.0" upper="15.0" velocity="12.5"/>
       <parent link="link${self}"/>
       <child link="gimbal_link${self}"/>

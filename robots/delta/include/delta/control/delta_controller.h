@@ -2,12 +2,16 @@
 
 #pragma once
 
-#include <numeric>
+#include <aerial_robot_model/model/pinocchio_robot_model.h>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <delta/control/osqp_solver.h>
 #include <delta/model/delta_robot_model.h>
 #include <delta/delta_navigation.h>
+#include <nlopt.hpp>
+#include <numeric>
+#include <OsqpEigen/OsqpEigen.h>
+#include <osqp_slsqp/slsqp.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
@@ -19,9 +23,6 @@
 #include <std_msgs/UInt8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <OsqpEigen/OsqpEigen.h>
-#include <nlopt.hpp>
-#include <osqp_slsqp/slsqp.h>
 
 namespace aerial_robot_control
 {
@@ -68,6 +69,7 @@ namespace aerial_robot_control
     std::mutex current_gimbal_angles_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
+    boost::shared_ptr<aerial_robot_model::PinocchioRobotModel> pinocchio_robot_model_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_for_opt_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
@@ -95,6 +97,7 @@ namespace aerial_robot_control
     bool realtime_gimbal_allocation_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
+    bool full_lambda_mode_;
 
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
@@ -116,6 +119,9 @@ namespace aerial_robot_control
     double rolling_baselink_roll_converged_thresh_;
     double gravity_compensate_ratio_;
     double rolling_minimum_lateral_force_;
+    double gimbal_d_theta_max_;
+    std::vector<double> prev_opt_gimbal_;
+    std::vector<double> prev_opt_lambda_;
 
     /* common part */
     bool update() override;

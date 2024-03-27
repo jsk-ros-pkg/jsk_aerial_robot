@@ -56,6 +56,7 @@ namespace aerial_robot_navigation
 
     void setBaselinkRotForceUpdateMode(bool flag) {baselink_rot_force_update_mode_ = flag;}
     bool getBaselinkRotForceUpdateMode() {return baselink_rot_force_update_mode_;}
+    std::string indexToGroundNavigationModeString(int index);
 
   private:
     /* baselink rotation process */
@@ -111,25 +112,5 @@ namespace aerial_robot_navigation
 
     /* landing process */
     bool landing_flag_;
-
-    std::string indexToGroundNavigationModeString(int index)
-    {
-      switch(index){
-      case aerial_robot_navigation::FLYING_STATE:
-        return "FLYING_STATE";
-        break;
-      case aerial_robot_navigation::STANDING_STATE:
-        return "STANDING_STATE";
-        break;
-      case aerial_robot_navigation::ROLLING_STATE:
-        return "ROLLING_STATE";
-        break;
-      case aerial_robot_navigation::DOWN_STATE:
-        return "DOWN_STATE";
-      default:
-        return "";
-        break;
-      }
-    }
   };
 };

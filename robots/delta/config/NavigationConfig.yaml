@@ -30,11 +30,11 @@ navigation:
   gps_waypoint_check_du: 1.0
 
   # desire tilt
-  baselink_rot_pub_interval: 0.05
+  baselink_rot_pub_interval: 0.020
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
 
   # rolling mode
-  rolling_max_pitch_ang_vel: 2.0
+  rolling_max_pitch_ang_vel: 1.0
   rolling_max_yaw_ang_vel: 1.0
 
   # param for joy stick control

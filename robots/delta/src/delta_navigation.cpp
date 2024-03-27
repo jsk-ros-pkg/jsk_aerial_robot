@@ -211,11 +211,14 @@ void RollingNavigator::rosParamInit()
 
 void RollingNavigator::setGroundNavigationMode(int state)
 {
+  current_ground_navigation_mode_ = state;
+  if(state != current_ground_navigation_mode_)
+    {
+      ROS_WARN_STREAM("[navigation] switch to " << indexToGroundNavigationModeString(state));
+    }
+
   if(state == aerial_robot_navigation::FLYING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
     {
-      ROS_WARN_STREAM("[navigation] switch to flying state");
-      current_ground_navigation_mode_ = state;
-
       setTargetXyFromCurrentState();
 
       ros::NodeHandle navi_nh(nh_, "navigation");
@@ -230,9 +233,6 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
   if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
-      ROS_WARN_STREAM("[navigation] switch to staning mode");
-      current_ground_navigation_mode_ = state;
-
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
       rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
@@ -246,9 +246,6 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
   if(state == aerial_robot_navigation::ROLLING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
     {
-      ROS_WARN_STREAM("[navigation] switch to rolling mode");
-      current_ground_navigation_mode_ = state;
-
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
       rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
@@ -262,12 +259,8 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
   if(state == aerial_robot_navigation::DOWN_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
     {
-      ROS_WARN_STREAM("[navigation] switch to down mode");
-      current_ground_navigation_mode_ = state;
-
       final_target_baselink_quat_ = tf::Quaternion(0.0, 0.0, 0.0, 1.0);
     }
-
 }
 
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
@@ -295,25 +288,25 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
   /* change ground navigation state */
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
     {
-      ROS_INFO("[joy] change to standing state");
+      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::STANDING_STATE));
       setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
 
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
     {
-      ROS_INFO("[joy] change to rolling state");
+      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
       setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
     }
 
   if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
     {
-      ROS_INFO("[joy] change to flying state");
+      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::FLYING_STATE));
       setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
     }
 
   if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
     {
-      ROS_INFO("[joy] change to down state");
+      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::DOWN_STATE));
       setGroundNavigationMode(aerial_robot_navigation::DOWN_STATE);
     }
 
@@ -360,6 +353,26 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
           pitch_ang_vel_updating_ = false;
         }
     }
+}
+
+std::string RollingNavigator::indexToGroundNavigationModeString(int index)
+{
+  switch(index){
+  case aerial_robot_navigation::FLYING_STATE:
+    return "FLYING_STATE";
+    break;
+  case aerial_robot_navigation::STANDING_STATE:
+    return "STANDING_STATE";
+    break;
+  case aerial_robot_navigation::ROLLING_STATE:
+    return "ROLLING_STATE";
+        break;
+  case aerial_robot_navigation::DOWN_STATE:
+    return "DOWN_STATE";
+  default:
+    return "NONE";
+        break;
+  }
 }
 
 /* plugin registration */
