@@ -37,11 +37,13 @@ class SetPointTraj(BaseTraj):
         ax, ay, az = self.acc
 
         if 3 * self.t_converge > t > self.t_converge:
-            x = 0.5
+            x = 0.3
+            y = 0.2
             z = 1.2
 
         if 3 * self.t_converge > t > 2 * self.t_converge:
-            y = 0.6
+            x = -0.3
+            y = -0.2
             z = 1.0
 
         return x, y, z, vx, vy, vz, ax, ay, az
