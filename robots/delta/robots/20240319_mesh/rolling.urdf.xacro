@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta" >
+
+  <xacro:include filename="$(find delta)/urdf/20240319_mesh/rolling_link.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/common.xacro" />
+
+  <xacro:delta_module self="1" child="2" rotor_direction="1"/>
+  <xacro:delta_module self="2" child="3" rotor_direction="-1" />
+  <xacro:delta_module self="3" child="3" rotor_direction="1"/>
+
+</robot>

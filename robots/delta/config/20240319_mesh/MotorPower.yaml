@@ -1,0 +1,47 @@
+motor_power:
+  ref_num: 5
+
+  ref1:
+    voltage: 25.2
+    dim: 4
+    polynominal4: -0.000012274744
+    polynominal3:  0.0036373031
+    polynominal2: -0.37369759
+    polynominal1:  16.444275
+    polynominal0: -266.02476
+
+  ref2:
+    voltage: 24.2
+    dim: 4
+    polynominal4: -0.0000041315458
+    polynominal3: 0.0013289659
+    polynominal2: -0.13201511
+    polynominal1:  5.3225872
+    polynominal0: -75.854426
+
+  ref3:
+    voltage: 23.2
+    dim: 4
+    polynominal4: -0.0000029418744
+    polynominal3:  0.00098711818
+    polynominal2: -0.097007987
+    polynominal1:  3.7684297
+    polynominal0: -50.274241
+
+  ref4:
+    voltage: 22.2
+    dim: 4
+    polynominal4: -0.0000066089428
+    polynominal3:  0.00020497604
+    polynominal2: -0.21309252
+    polynominal1:  9.3807570
+    polynominal0: -151.15273
+
+  ref5:
+    voltage: 21.2
+    dim: 4
+    polynominal4: -0.0000073337156
+    polynominal3:  0.0022551607
+    polynominal2: -0.23640600
+    polynominal1:  10.570774
+    polynominal0: -173.67390
