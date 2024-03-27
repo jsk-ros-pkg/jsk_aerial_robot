@@ -8,6 +8,7 @@
 #include <delta/control/osqp_solver.h>
 #include <delta/model/delta_robot_model.h>
 #include <delta/delta_navigation.h>
+#include <geometry_msgs/WrenchStamped.h>
 #include <nlopt.hpp>
 #include <numeric>
 #include <OsqpEigen/OsqpEigen.h>
@@ -47,7 +48,6 @@ namespace aerial_robot_control
     ros::Publisher flight_cmd_pub_;                   // for spinal
     ros::Publisher gimbal_control_pub_;               // for servo bridge
     ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
-    // ros::Publisher desire_coordinate_pub_;            // for spinal
     ros::Publisher gimbal_dof_pub_;                   // for spinal
     ros::Publisher gimbal_indices_pub_;               // for spinal
     ros::Publisher target_vectoring_force_pub_;       // for debug
@@ -58,7 +58,7 @@ namespace aerial_robot_control
     ros::Publisher operability_pub_;                  // for debug
     ros::Publisher target_acc_cog_pub_;               // for debug
     ros::Publisher target_acc_dash_pub_;              // for debug
-    ros::Publisher exerted_wrench_pub_;               // for debug
+    ros::Publisher exerted_wrench_cog_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
     ros::Subscriber calc_gimbal_in_fc_sub_;
 

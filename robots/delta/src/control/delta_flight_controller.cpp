@@ -7,8 +7,6 @@ void RollingController::calcAccFromCog()
 {
   control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
 
-  tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
-
   tf::Quaternion cog2baselink_rot;
   tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
   tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
