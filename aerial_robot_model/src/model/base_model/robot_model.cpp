@@ -95,6 +95,8 @@ namespace aerial_robot_model {
 
     rotors_origin_from_cog_.resize(rotor_num_);
     rotors_normal_from_cog_.resize(rotor_num_);
+    rotors_origin_from_root_.resize(rotor_num_);
+    rotors_normal_from_root_.resize(rotor_num_);
   }
 
   void RobotModel::stabilityInit()
@@ -367,8 +369,9 @@ namespace aerial_robot_model {
     setInertia((cog.Inverse() * link_inertia).getRotationalInertia());
     setCog2Baselink(cog.Inverse() * f_baselink);
 
-    /* thrust point based on COG */
+    /* thrust point based on COG and ROOT */
     std::vector<KDL::Vector> rotors_origin_from_cog, rotors_normal_from_cog;
+    std::vector<KDL::Vector> rotors_origin_from_root, rotors_normal_from_root;
     for(int i = 0; i < rotor_num_; ++i)
       {
         std::string rotor = thrust_link_ + std::to_string(i + 1);
@@ -376,9 +379,13 @@ namespace aerial_robot_model {
         if(verbose_) ROS_WARN(" %s : [%f, %f, %f]", rotor.c_str(), f.p.x(), f.p.y(), f.p.z());
         rotors_origin_from_cog.push_back((cog.Inverse() * f).p);
         rotors_normal_from_cog.push_back((cog.Inverse() * f).M * KDL::Vector(0, 0, 1));
+        rotors_origin_from_root.push_back(f.p);
+        rotors_normal_from_root.push_back(f.M * KDL::Vector(0, 0, 1));
       }
     setRotorsNormalFromCog(rotors_normal_from_cog);
     setRotorsOriginFromCog(rotors_origin_from_cog);
+    setRotorsNormalFromRoot(rotors_normal_from_root);
+    setRotorsOriginFromRoot(rotors_origin_from_root);
 
     /* statics */
     calcStaticThrust();

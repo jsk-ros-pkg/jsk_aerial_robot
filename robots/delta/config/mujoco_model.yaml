@@ -2,6 +2,6 @@ package:
   ["delta"]
 
 delta:
-  input: ["robots/20231013_frame/rolling.urdf.xacro", "robots/20240117_10inch/rolling.urdf.xacro"]
-  filename: ["20231013_frame", "20240117_10inch"]
+  input: ["robots/20231013_frame/rolling.urdf.xacro", "robots/20240117_10inch/rolling.urdf.xacro", "robots/20240207_new_armor/rolling.urdf.xacro"]
+  filename: ["20231013_frame", "20240117_10inch", "20240207_new_armor"]
   meshdir: urdf/mesh

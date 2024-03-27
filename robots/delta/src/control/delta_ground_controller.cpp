@@ -133,11 +133,11 @@ void RollingController::calcStandingFullLambda()
   H_s = H.sparseView();
 
   /* normal pid result */
-  Eigen::VectorXd target_wrench_acc_target_frame;
-  target_wrench_acc_target_frame.resize(6);
-  target_wrench_acc_target_frame.tail(3) = Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
-                                                           pid_controllers_.at(PITCH).result(),
-                                                           pid_controllers_.at(YAW).result());
+  Eigen::VectorXd target_wrench_target_frame;
+  target_wrench_target_frame.resize(6);
+  target_wrench_target_frame.tail(3) = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
+                                                                                                                            pid_controllers_.at(PITCH).result(),
+                                                                                                                            pid_controllers_.at(YAW).result());
 
   /* calculate gravity compensation term based on realtime orientation */
   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
@@ -145,15 +145,15 @@ void RollingController::calcStandingFullLambda()
   Eigen::Vector3d contact_point_alined_to_cog_p = aerial_robot_model::kdlToEigen(contact_point_alined_to_cog.p);
   Eigen::Matrix3d contact_point_alined_to_cog_p_skew = aerial_robot_model::skew(contact_point_alined_to_cog_p);
   Eigen::VectorXd gravity = robot_model_->getGravity3d();
-  Eigen::Vector3d gravity_ang_acc_from_contact_point_alined = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
+  Eigen::Vector3d gravity_moment_from_contact_point_alined = contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
 
   /* use sum of pid result and gravity compensation torque for attitude control */
-  target_wrench_acc_target_frame.tail(3) = target_wrench_acc_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
-  gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_ang_acc_from_contact_point_alined;
+  target_wrench_target_frame.tail(3) = target_wrench_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
+  gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
 
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
-  Eigen::MatrixXd full_q_mat_trans = 1.0 / robot_model_->getMass() *  full_q_mat.topRows(3);
-  Eigen::MatrixXd full_q_mat_rot = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * full_q_mat.bottomRows(3);
+  Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
+  Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
   A.topRows(3) = full_q_mat_rot;                                                           //    eq constraint about rpy torque
   A.block(3, 0, 1, n_variables) = full_q_mat_trans.row(Z);                                           // in eq constraint about z
@@ -178,25 +178,25 @@ void RollingController::calcStandingFullLambda()
 
   lower_bound.head(standing_mode_n_constraints)
     <<
-    target_wrench_acc_target_frame(ROLL) - epsilon,
-    target_wrench_acc_target_frame(PITCH) - epsilon,
-    target_wrench_acc_target_frame(YAW) - epsilon,
+    target_wrench_target_frame(ROLL) - epsilon,
+    target_wrench_target_frame(PITCH) - epsilon,
+    target_wrench_target_frame(YAW) - epsilon,
     -INFINITY,
-    -steering_mu_ * robot_model_->getGravity()(Z),
+    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
-    -steering_mu_ * robot_model_->getGravity()(Z),
+    -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY;
 
   upper_bound.head(standing_mode_n_constraints)
     <<
-    target_wrench_acc_target_frame(ROLL) + epsilon,
-    target_wrench_acc_target_frame(PITCH) + epsilon,
-    target_wrench_acc_target_frame(YAW) + epsilon,
-    robot_model_->getGravity()(Z),
+    target_wrench_target_frame(ROLL) + epsilon,
+    target_wrench_target_frame(PITCH) + epsilon,
+    target_wrench_target_frame(YAW) + epsilon,
+    robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
-    steering_mu_ * robot_model_->getGravity()(Z),
+    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
-    steering_mu_ * robot_model_->getGravity()(Z);
+    steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
   if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
@@ -236,4 +236,189 @@ void RollingController::calcStandingFullLambda()
       full_lambda_all_ = solution;
       full_lambda_trans_ = solution;
     }
+}
+
+void RollingController::nonlinearQP()
+{
+  // apply real joint angle
+  casadi::SX q_cs = pinocchio_robot_model_->getQCs();
+  const auto joint_state  = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
+  std::map<std::string, int> joint_index_map = pinocchio_robot_model_->getJointIndexMap();
+  for(int i = 0; i < joint_state.position.size(); i++)
+    {
+      if(joint_state.name.at(i).find("joint") != std::string::npos)
+        {
+          q_cs(joint_index_map.at(joint_state.name.at(i))) = joint_state.position.at(i);
+        }
+    }
+  pinocchio_robot_model_->updateRobotModel(q_cs);
+
+  std::vector<casadi::SX> rotors_normal_from_root = pinocchio_robot_model_->getRotorsNormalFromRoot();
+  std::vector<casadi::SX> rotors_origin_from_root = pinocchio_robot_model_->getRotorsOriginFromRoot();
+
+  // calculate rotor info from contact point
+  KDL::Frame root_T_cp = rolling_robot_model_->getContactPoint<KDL::Frame>();
+  casadi::SX root_R_cp;
+  pinocchio::casadi::copy(aerial_robot_model::kdlToEigen(root_T_cp.M), root_R_cp);
+  casadi::SX root_p_cp_in_root;
+  pinocchio::casadi::copy(aerial_robot_model::kdlToEigen(root_T_cp.p), root_p_cp_in_root);
+
+  const auto& sigma = robot_model_->getRotorDirection();
+  const double m_f_rate = robot_model_->getMFRate();
+
+  std::vector<casadi::SX> rotors_normal_from_cp, rotors_origin_from_cp;
+  rotors_normal_from_cp.resize(motor_num_);
+  rotors_origin_from_cp.resize(motor_num_);
+
+  for(int i = 0; i < motor_num_; i++)
+    {
+      rotors_normal_from_cp.at(i) = mtimes(root_R_cp.T(), rotors_normal_from_root.at(i));
+      rotors_origin_from_cp.at(i) = - mtimes(root_R_cp.T(), root_p_cp_in_root) + mtimes(root_R_cp.T(), rotors_origin_from_root.at(i));
+    }
+
+  // make wrench allocation Matrix
+  casadi::SX wrench_allocation_mat_from_cp = casadi::SX(6, 3);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      casadi::SX v_i = cross(rotors_origin_from_cp.at(i), rotors_normal_from_cp.at(i)) + sigma.at(i + 1) * m_f_rate * rotors_normal_from_cp.at(i);
+      for(int j = 0; j < 3; j++)
+        {
+          wrench_allocation_mat_from_cp(j, i) = rotors_normal_from_cp.at(i)(j);
+          wrench_allocation_mat_from_cp(j + 3, i) = v_i(j);
+        }
+    }
+
+  // calculate wrench
+  casadi::SX lambda = casadi::SX::sym("lambda", motor_num_);
+  casadi::SX wrench_cp = mtimes(wrench_allocation_mat_from_cp, lambda);
+
+  // target torque
+  Eigen::VectorXd target_wrench_target_frame;
+  target_wrench_target_frame.resize(6);
+  target_wrench_target_frame.tail(3) = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
+                                                                                                                            pid_controllers_.at(PITCH).result(),
+                                                                                                                            pid_controllers_.at(YAW).result());
+
+  /* calculate gravity compensation term based on realtime orientation */
+  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+  KDL::Frame contact_point_alined_to_cog = contact_point_alined_.Inverse() * cog;
+  Eigen::Vector3d contact_point_alined_to_cog_p = aerial_robot_model::kdlToEigen(contact_point_alined_to_cog.p);
+  Eigen::Matrix3d contact_point_alined_to_cog_p_skew = aerial_robot_model::skew(contact_point_alined_to_cog_p);
+  Eigen::VectorXd gravity = robot_model_->getGravity3d();
+  Eigen::Vector3d gravity_moment_from_contact_point_alined = contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
+
+  /* use sum of pid result and gravity compensation torque for attitude control */
+  target_wrench_target_frame.tail(3) = target_wrench_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
+
+
+  // optimization problem
+  casadi::SX x_opt = casadi::SX(6, 1);
+  x_opt(0) = q_cs(joint_index_map.at("gimbal1"));
+  x_opt(1) = q_cs(joint_index_map.at("gimbal2"));
+  x_opt(2) = q_cs(joint_index_map.at("gimbal3"));
+  x_opt(3) = lambda(0);
+  x_opt(4) = lambda(1);
+  x_opt(5) = lambda(2);
+
+  casadi::SX cost = dot(lambda, lambda)
+    + 2.0 * pow(x_opt(0) - M_PI / 2.0, 2)
+    + 2.0 * pow(x_opt(1) - M_PI / 2.0, 2)
+    + 2.0 * pow(x_opt(2) - M_PI / 2.0, 2);
+
+  casadi::SX constraints = casadi::SX(8, 1);
+  constraints(0) = wrench_cp(ROLL);
+  constraints(1) = wrench_cp(PITCH);
+  constraints(2) = wrench_cp(YAW);
+  constraints(3) = wrench_cp(Z);
+  constraints(4) = wrench_cp(X) - steering_mu_ * wrench_cp(Z);  // lower
+  constraints(5) = wrench_cp(X) + steering_mu_ * wrench_cp(Z);  // upper
+  constraints(6) = wrench_cp(Y) - steering_mu_ * wrench_cp(Z);  // lower
+  constraints(7) = wrench_cp(Y) + steering_mu_ * wrench_cp(Z);  // upper
+
+  casadi::DM lbg = casadi::DM(8, 1);
+  casadi::DM ubg = casadi::DM(8, 1);
+  casadi::DM lbx = casadi::DM(6, 1);
+  casadi::DM ubx = casadi::DM(6, 1);
+
+  lbg(0) = target_wrench_target_frame(ROLL);
+  lbg(1) = target_wrench_target_frame(PITCH);
+  lbg(2) = target_wrench_target_frame(YAW);
+  lbg(3) = -INFINITY;
+  lbg(4) = -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
+  lbg(5) = -INFINITY;
+  lbg(6) = -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
+  lbg(7) = -INFINITY;
+
+  ubg(0) = target_wrench_target_frame(ROLL);
+  ubg(1) = target_wrench_target_frame(PITCH);
+  ubg(2) = target_wrench_target_frame(YAW);
+  ubg(3) = robot_model_->getMass() * robot_model_->getGravity()(Z);
+  ubg(4) = INFINITY;
+  ubg(5) = steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
+  ubg(6) = INFINITY;
+  ubg(7) = steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+    {
+      lbx(0) = min(M_PI, max(0.0, prev_opt_gimbal_.at(0) - gimbal_d_theta_max_));
+      lbx(1) = min(M_PI, max(0.0, prev_opt_gimbal_.at(1) - gimbal_d_theta_max_));
+      lbx(2) = min(M_PI, max(0.0, prev_opt_gimbal_.at(2) - gimbal_d_theta_max_));
+    }
+  else
+    {
+      lbx(0) = max(-M_PI, prev_opt_gimbal_.at(0) - gimbal_d_theta_max_);
+      lbx(1) = max(-M_PI, prev_opt_gimbal_.at(1) - gimbal_d_theta_max_);
+      lbx(2) = max(-M_PI, prev_opt_gimbal_.at(2) - gimbal_d_theta_max_);
+    }
+  lbx(3) = 0.0;
+  lbx(4) = 0.0;
+  lbx(5) = 0.0;
+
+  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+    {
+      ubx(0) = max(0.0, min(M_PI, prev_opt_gimbal_.at(0) + gimbal_d_theta_max_));
+      ubx(1) = max(0.0, min(M_PI, prev_opt_gimbal_.at(1) + gimbal_d_theta_max_));
+      ubx(2) = max(0.0, min(M_PI, prev_opt_gimbal_.at(2) + gimbal_d_theta_max_));
+    }
+  else
+    {
+      ubx(0) = min(M_PI, prev_opt_gimbal_.at(0) + gimbal_d_theta_max_);
+      ubx(1) = min(M_PI, prev_opt_gimbal_.at(1) + gimbal_d_theta_max_);
+      ubx(2) = min(M_PI, prev_opt_gimbal_.at(2) + gimbal_d_theta_max_);
+    }
+  ubx(3) = robot_model_->getThrustUpperLimit();
+  ubx(4) = robot_model_->getThrustUpperLimit();
+  ubx(5) = robot_model_->getThrustUpperLimit();
+
+  ROS_INFO_STREAM_ONCE("x_opt: \n" << x_opt << "\n");
+  ROS_INFO_STREAM_ONCE("cost: \n" << cost << "\n");
+  ROS_INFO_STREAM_ONCE("constraints: \n" << constraints << "\n");
+  ROS_INFO_STREAM_ONCE("lbg: \n" << lbg << "\n");
+  ROS_INFO_STREAM_ONCE("ubg: \n" << ubg << "\n");
+  ROS_INFO_STREAM_ONCE("lbx: \n" << lbx << "\n");
+  ROS_INFO_STREAM_ONCE("ubx: \n" << ubx << "\n");
+
+  casadi::SXDict nlp = { {"x", x_opt}, {"f", cost}, {"g", constraints} };
+
+  casadi::Dict opt_dict = casadi::Dict();
+  opt_dict["ipopt.max_iter"] = 30;
+  opt_dict["ipopt.print_level"] = 0;
+  opt_dict["ipopt.sb"] = "yes";
+  opt_dict["print_time"] = 0;
+
+  casadi::Function S = casadi::nlpsol("S", "ipopt", nlp, opt_dict);
+  casadi::DM initial_x = casadi::DM({prev_opt_gimbal_.at(0), prev_opt_gimbal_.at(1), prev_opt_gimbal_.at(2), prev_opt_lambda_.at(0), prev_opt_lambda_.at(1), prev_opt_lambda_.at(2)});
+
+  // double start = ros::Time::now().toSec();
+  auto res = S(casadi::DMDict{ {"x0", initial_x}, {"lbg",lbg}, {"ubg", ubg}, {"lbx", lbx}, {"ubx", ubx} });
+  // std::cout << "time: " << ros::Time::now().toSec() - start << std::endl;
+  // std::cout << res.at("x") << std::endl;
+
+  prev_opt_gimbal_.at(0) = (double)res.at("x")(0);
+  prev_opt_gimbal_.at(1) = (double)res.at("x")(1);
+  prev_opt_gimbal_.at(2) = (double)res.at("x")(2);
+  prev_opt_lambda_.at(0) = (double)res.at("x")(3);
+  prev_opt_lambda_.at(1) = (double)res.at("x")(4);
+  prev_opt_lambda_.at(2) = (double)res.at("x")(5);
+
 }

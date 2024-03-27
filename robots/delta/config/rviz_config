@@ -5,8 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
-      Splitter Ratio: 0.5411764979362488
+        - /TF1/Frames1
+      Splitter Ratio: 0.5029411911964417
     Tree Height: 713
   - Class: rviz/Selection
     Name: Selection
@@ -90,16 +90,28 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        link1_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        link2_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        link3_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         root:
           Alpha: 1
           Show Axes: false
@@ -142,15 +154,17 @@ Visualization Manager:
       Frames:
         All Enabled: false
         delta/center_point:
-          Value: true
+          Value: false
         delta/cog:
           Value: true
         delta/contact_point:
           Value: true
         delta/contact_point_alined:
           Value: true
-        delta/cylinder_collision:
+        delta/contact_point_real:
           Value: true
+        delta/cylinder_collision:
+          Value: false
         delta/fc:
           Value: true
         delta/gimbal_link1:
@@ -161,18 +175,24 @@ Visualization Manager:
           Value: true
         delta/link1:
           Value: true
+        delta/link1_center:
+          Value: false
         delta/link2:
           Value: true
+        delta/link2_center:
+          Value: false
         delta/link3:
           Value: true
+        delta/link3_center:
+          Value: false
         delta/root:
-          Value: true
+          Value: false
         delta/rotor_parent1:
-          Value: true
+          Value: false
         delta/rotor_parent2:
-          Value: true
+          Value: false
         delta/rotor_parent3:
-          Value: true
+          Value: false
         delta/thrust1:
           Value: true
         delta/thrust2:
@@ -198,11 +218,15 @@ Visualization Manager:
               {}
             delta/contact_point_alined:
               {}
+            delta/contact_point_real:
+              {}
             delta/link1:
               delta/gimbal_link1:
                 delta/rotor_parent1:
                   delta/thrust1:
                     {}
+              delta/link1_center:
+                {}
               delta/link2:
                 delta/cylinder_collision:
                   {}
@@ -212,11 +236,15 @@ Visualization Manager:
                   delta/rotor_parent2:
                     delta/thrust2:
                       {}
+                delta/link2_center:
+                  {}
                 delta/link3:
                   delta/gimbal_link3:
                     delta/rotor_parent3:
                       delta/thrust3:
                         {}
+                  delta/link3_center:
+                    {}
       Update Interval: 0
       Value: true
     - Class: jsk_rviz_plugin/PieChart
@@ -441,7 +469,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.962312936782837
+      Distance: 12.089010238647461
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -449,17 +477,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.9568541646003723
-        Y: 0.06243499368429184
-        Z: 0.3242992162704468
+        X: 0.16355490684509277
+        Y: 0.30215054750442505
+        Z: 0.8140965700149536
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3247966766357422
+      Pitch: 0.3797967731952667
       Target Frame: <Fixed Frame>
-      Yaw: 5.868560791015625
+      Yaw: 4.893553256988525
     Saved: ~
 Window Geometry:
   Displays:

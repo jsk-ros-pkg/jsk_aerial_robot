@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
+  casadi_eigen
   hydrus
   mujoco_ros_control
   osqp_slsqp
@@ -18,9 +19,12 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
+set(CMAKE_CXX_STANDARD 17)
+find_package(pinocchio REQUIRED)
+find_package(casadi REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus osqp_slsqp pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs casadi_eigen hydrus osqp_slsqp pluginlib roscpp
 )
 
 include_directories(

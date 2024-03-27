@@ -17,6 +17,8 @@ controller:
   standing_baselink_roll_converged_thresh: 0.2
   rolling_baselink_roll_converged_thresh: 0.6
   steering_mu: 3.0
+  full_lambda_mode: true
+  gimbal_d_theta_max: 0.3
 
   controlled_axis: [1, 1, 1, 1, 1, 1]
 
