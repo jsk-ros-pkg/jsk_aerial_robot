@@ -259,7 +259,7 @@ class Visualizer:
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
 
-        fig = plt.figure(figsize=(3.5, 3))
+        fig = plt.figure(figsize=(3.5, 2.0))
         title = str(f"{ocp_model_name}")
         title = title.replace("_", r"\_")
         # fig.title(title)
@@ -272,13 +272,13 @@ class Visualizer:
             qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
             euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
 
-        plt.title(title)
+        # plt.title(title)
         # plot reference as 0.5
         plt.plot([0, t_total_sim], [0.5, 0.5], label="ref", linestyle="-.")
         plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
         plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
         plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
-        plt.legend(framealpha=legend_alpha)
+        plt.legend(framealpha=legend_alpha, loc="lower right")
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
         plt.ylim([-0.02, 0.52])
