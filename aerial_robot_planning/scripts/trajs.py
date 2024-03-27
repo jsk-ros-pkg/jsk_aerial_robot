@@ -29,7 +29,7 @@ class SetPointTraj(BaseTraj):
         self.att_rate = np.array([0.0, 0.0, 0.0])
         self.att_acc = np.array([0.0, 0.0, 0.0])
 
-        self.t_converge = 5.0
+        self.t_converge = 8.0
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         x, y, z = self.pos
@@ -43,7 +43,7 @@ class SetPointTraj(BaseTraj):
 
         if 3 * self.t_converge > t > 2 * self.t_converge:
             x = -0.3
-            y = -0.2
+            y = 0.0
             z = 1.0
 
         return x, y, z, vx, vy, vz, ax, ay, az
