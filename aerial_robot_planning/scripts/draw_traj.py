@@ -6,29 +6,51 @@ import argparse
 
 legend_alpha = 0.5
 
+
 def main(file_path, type):
     # Load the data from csv file
     data = pd.read_csv(file_path)
 
     if type == 0:
         # ======= xyz =========
-        data_xyz_ref = data[
-            ['__time', '/beetle1/set_ref_traj/x/data[0]', '/beetle1/set_ref_traj/x/data[1]',
-             '/beetle1/set_ref_traj/x/data[2]']]
         data_xyz = data[
             ['__time', '/beetle1/uav/cog/odom/pose/pose/position/x', '/beetle1/uav/cog/odom/pose/pose/position/y',
              '/beetle1/uav/cog/odom/pose/pose/position/z']]
-        data_xyz_ref = data_xyz_ref.dropna()
+
+        try:
+            data_xyz_ref = data[
+                ['__time', '/beetle1/set_ref_traj/x/data[0]', '/beetle1/set_ref_traj/x/data[1]',
+                 '/beetle1/set_ref_traj/x/data[2]']]
+        except KeyError:
+            # assign the reference trajectory to zero
+            data_xyz_ref = pd.DataFrame()
+            data_xyz_ref['__time'] = data_xyz['__time']
+            data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'] = 0
+            data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'] = 0
+            data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'] = 1.0
+
         data_xyz = data_xyz.dropna()
+        data_xyz_ref = data_xyz_ref.dropna()
 
         # ======= rpy =========
-        data_qwxyz_ref = data[
-            ['__time', '/beetle1/set_ref_traj/x/data[6]', '/beetle1/set_ref_traj/x/data[7]',
-             '/beetle1/set_ref_traj/x/data[8]',
-             '/beetle1/set_ref_traj/x/data[9]']]
         data_qwxyz = data[
             ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w', '/beetle1/uav/cog/odom/pose/pose/orientation/x',
              '/beetle1/uav/cog/odom/pose/pose/orientation/y', '/beetle1/uav/cog/odom/pose/pose/orientation/z']]
+
+        try:
+            data_qwxyz_ref = data[
+                ['__time', '/beetle1/set_ref_traj/x/data[6]', '/beetle1/set_ref_traj/x/data[7]',
+                 '/beetle1/set_ref_traj/x/data[8]',
+                 '/beetle1/set_ref_traj/x/data[9]']]
+        except KeyError:
+            # assign the reference trajectory to zero
+            data_qwxyz_ref = pd.DataFrame()
+            data_qwxyz_ref['__time'] = data_qwxyz['__time']
+            data_qwxyz_ref['/beetle1/set_ref_traj/x/data[6]'] = 0
+            data_qwxyz_ref['/beetle1/set_ref_traj/x/data[7]'] = 0
+            data_qwxyz_ref['/beetle1/set_ref_traj/x/data[8]'] = 0
+            data_qwxyz_ref['/beetle1/set_ref_traj/x/data[9]'] = 0
+
         data_qwxyz_ref = data_qwxyz_ref.dropna()
         data_qwxyz = data_qwxyz.dropna()
 
@@ -79,78 +101,83 @@ def main(file_path, type):
 
         fig = plt.figure(figsize=(7, 6))
 
+        t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
+        color_ref = '#0C5DA5'
+        color_real = '#FF2C00'
+
         # --------------------------------
         plt.subplot(3, 2, 1)
-        t_ref = np.array(data_xyz_ref['__time'])
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
         x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'])
-        plt.plot(t_ref, x_ref, label='ref')
+        plt.plot(t_ref, x_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_xyz['__time'])
+        t = np.array(data_xyz['__time']) - t_bias
         x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
-        plt.plot(t, x, label='real')
+        plt.plot(t, x, label='real', color=color_real)
 
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('X (m)', fontsize=label_size)
 
         # --------------------------------
         plt.subplot(3, 2, 2)
-        t_ref = np.array(data_euler_ref['__time'])
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
         roll_ref = np.array(data_euler_ref['roll'])
-        plt.plot(t_ref, roll_ref, label='ref')
+        plt.plot(t_ref, roll_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_euler['__time'])
+        t = np.array(data_euler['__time']) - t_bias
         roll = np.array(data_euler['roll'])
-        plt.plot(t, roll, label='real')
+        plt.plot(t, roll, label='real', color=color_real)
 
-        plt.legend(framealpha=legend_alpha)
         plt.ylabel('Roll (rad)', fontsize=label_size)
 
         # --------------------------------
         plt.subplot(3, 2, 3)
-        t_ref = np.array(data_xyz_ref['__time'])
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
         y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'])
-        plt.plot(t_ref, y_ref, label='ref')
+        plt.plot(t_ref, y_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_xyz['__time'])
+        t = np.array(data_xyz['__time']) - t_bias
         y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
-        plt.plot(t, y, label='Y')
+        plt.plot(t, y, label='Y', color=color_real)
         plt.ylabel('Y (m)', fontsize=label_size)
 
         # --------------------------------
         plt.subplot(3, 2, 4)
-        t_ref = np.array(data_euler_ref['__time'])
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
         pitch_ref = np.array(data_euler_ref['pitch'])
-        plt.plot(t_ref, pitch_ref, label='ref')
+        plt.plot(t_ref, pitch_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_euler['__time'])
+        t = np.array(data_euler['__time']) - t_bias
         pitch = np.array(data_euler['pitch'])
-        plt.plot(t, pitch, label='real')
+        plt.plot(t, pitch, label='real', color=color_real)
         plt.ylabel('Pitch (rad)', fontsize=label_size)
 
         # --------------------------------
         plt.subplot(3, 2, 5)
-        t_ref = np.array(data_xyz_ref['__time'])
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
         z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'])
-        plt.plot(t_ref, z_ref, label='ref')
+        plt.plot(t_ref, z_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_xyz['__time'])
+        t = np.array(data_xyz['__time']) - t_bias
         z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
 
-        plt.plot(t, z, label='Z')
+        plt.plot(t, z, label='Z', color=color_real)
         plt.ylabel('Z (m)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
 
         # --------------------------------
         plt.subplot(3, 2, 6)
-        t_ref = np.array(data_euler_ref['__time'])
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
         yaw_ref = np.array(data_euler_ref['yaw'])
-        plt.plot(t_ref, yaw_ref, label='ref')
+        plt.plot(t_ref, yaw_ref, label='ref', linestyle="--", color=color_ref)
 
-        t = np.array(data_euler['__time'])
+        t = np.array(data_euler['__time']) - t_bias
         yaw = np.array(data_euler['yaw'])
-        plt.plot(t, yaw, label='real')
+        plt.plot(t, yaw, label='real', color=color_real)
         plt.ylabel('Yaw (rad)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
+
+        plt.legend(framealpha=legend_alpha)
 
         plt.tight_layout()
         plt.show()
@@ -234,7 +261,8 @@ def main(file_path, type):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Plot the trajectory')
+    parser = argparse.ArgumentParser(
+        description='Plot the trajectory. Please use plotjuggler to generate the csv file.')
     parser.add_argument('file_path', type=str, help='The file name of the trajectory')
     parser.add_argument('--type', type=int, help='The type of the trajectory')
 
