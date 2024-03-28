@@ -7,6 +7,18 @@ import argparse
 legend_alpha = 0.5
 
 
+def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
+    x_ref_interp = np.interp(t, t_ref, x_ref)
+    if is_yaw:
+        # calculate the RMSE for yaw
+        error = np.minimum(np.abs(x - x_ref_interp), 2 * np.pi - np.abs(x - x_ref_interp))
+    else:
+        error = x - x_ref_interp
+
+    rmse_x = np.sqrt(np.mean(error ** 2))
+    return rmse_x
+
+
 def main(file_path, type):
     # Load the data from csv file
     data = pd.read_csv(file_path)
@@ -118,6 +130,10 @@ def main(file_path, type):
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('X (m)', fontsize=label_size)
 
+        # calculate RMSE
+        rmse_x = calculate_rmse(t, x, t_ref, x_ref)
+        print(f'RMSE X: {rmse_x}')
+
         # --------------------------------
         plt.subplot(3, 2, 2)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
@@ -130,6 +146,10 @@ def main(file_path, type):
 
         plt.ylabel('Roll (rad)', fontsize=label_size)
 
+        # calculate RMSE
+        rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
+        print(f'RMSE Roll: {rmse_roll}')
+
         # --------------------------------
         plt.subplot(3, 2, 3)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
@@ -141,6 +161,10 @@ def main(file_path, type):
         plt.plot(t, y, label='Y', color=color_real)
         plt.ylabel('Y (m)', fontsize=label_size)
 
+        # calculate RMSE
+        rmse_y = calculate_rmse(t, y, t_ref, y_ref)
+        print(f'RMSE Y: {rmse_y}')
+
         # --------------------------------
         plt.subplot(3, 2, 4)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
@@ -151,6 +175,10 @@ def main(file_path, type):
         pitch = np.array(data_euler['pitch'])
         plt.plot(t, pitch, label='real', color=color_real)
         plt.ylabel('Pitch (rad)', fontsize=label_size)
+
+        # calculate RMSE
+        rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
+        print(f'RMSE Pitch: {rmse_pitch}')
 
         # --------------------------------
         plt.subplot(3, 2, 5)
@@ -165,6 +193,10 @@ def main(file_path, type):
         plt.ylabel('Z (m)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
 
+        # calculate RMSE
+        rmse_z = calculate_rmse(t, z, t_ref, z_ref)
+        print(f'RMSE Z: {rmse_z}')
+
         # --------------------------------
         plt.subplot(3, 2, 6)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
@@ -178,6 +210,10 @@ def main(file_path, type):
         plt.xlabel('Time (s)', fontsize=label_size)
 
         plt.legend(framealpha=legend_alpha)
+
+        # calculate RMSE
+        rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
+        print(f'RMSE Yaw: {rmse_yaw}')
 
         plt.tight_layout()
         plt.show()
