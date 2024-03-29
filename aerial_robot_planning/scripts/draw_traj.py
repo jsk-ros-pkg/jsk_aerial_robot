@@ -37,8 +37,8 @@ def main(file_path, type):
             # assign the reference trajectory to zero
             data_xyz_ref = pd.DataFrame()
             data_xyz_ref['__time'] = data_xyz['__time']
-            data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'] = 0
-            data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'] = 0
+            data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'] = -0.095
+            data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'] = -0.015
             data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'] = 1.0
 
         data_xyz = data_xyz.dropna()
