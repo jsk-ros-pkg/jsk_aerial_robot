@@ -47,6 +47,7 @@
 //2.2 State Estimate
 //2.2.1 Attitude Estimate
 #define ATTITUDE_ESTIMATE_FLAG 1
+#define IMU_UPDATE_INTERVAL 100
 //* Do not change following code!!!
 ///////////////////////////////////
 #if !IMU_FLAG

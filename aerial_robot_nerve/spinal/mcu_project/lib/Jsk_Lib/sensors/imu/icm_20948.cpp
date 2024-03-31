@@ -102,11 +102,10 @@ void ICM20948::magInit(void)
 void ICM20948::updateRawData()
 {
   // if(getIcm20948WhoAmI()) nh_->logerror("ok icm");
-  if(getAk09916WhoAmI()) nh_->logerror("ok mag");
-  gyroRead(&raw_gyro_adc_);
-  // gyroReadDps(&raw_gyro_adc_);
-  // accelReadG(&raw_acc_adc_);
-  // magReadUT(&raw_mag_adc_);
+  // if(getAk09916WhoAmI()) nh_->logerror("ok mag");
+  gyroReadDps(&raw_gyro_adc_);
+  accelReadG(&raw_acc_adc_);
+  magReadUT(&raw_mag_adc_);
 }
 
 void ICM20948::gyroRead(Vector3f* data)
