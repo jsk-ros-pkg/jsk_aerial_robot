@@ -45,20 +45,14 @@ void ICM20948::gyroInit(void)
   uint32_t search_start_time = HAL_GetTick();
 
   /* Waiting for finding Imu */
-  while(!getIcm20948WhoAmI()){
-    // uint32_t search_curr_time = HAL_GetTick();
-    // HAL_Delay(100);
-    // if(search_curr_time - search_curr_time > IMU_FIND_TIMEOUT){
-    //   nh_->logerror("IMU is not found");
-    //   HAL_NVIC_SystemReset();
-    // }
-  }
+
+  while(!getIcm20948WhoAmI());
   
   /* 1.Clear all bits in ub0-ub3 register */
   deviceReset();
 
   /* 2.Wakeup icm20948 */
-  wakeUp();
+  // wakeUp();
 
   /* 3.Set fundamental properties */
   setClockSource(1); // Clock source is automatically selected.
@@ -72,12 +66,14 @@ void ICM20948::gyroInit(void)
 
 void ICM20948::accInit (void)
 {
+  HAL_Delay(100);
   /* 5.Acc initialization */
   setAccelFullScale(_8g);
 }
 
 void ICM20948::magInit(void)
 {
+  HAL_Delay(100);
   /* 6.1 Check whether use external magnetometer */
   mag_id_ = IMUOnboard::checkExternalMag();
 
@@ -94,14 +90,7 @@ void ICM20948::magInit(void)
       i2cMasterClkFrq(7); // 345.6 kHz / 46.67% dyty cycle (recoomended)
 
       /* Waiting for finding Magnetometer */
-      // uint32_t search_start_time = HAL_GetTick();
-      while(!getAk09916WhoAmI()){
-        // uint32_t search_curr_time = HAL_GetTick();
-        // if(search_curr_time - search_curr_time > MAG_FIND_TIMEOUT){
-        //   nh_->logerror("Magnetometer is not found");
-        //   HAL_NVIC_SystemReset();
-        // }
-      }
+      while(!getAk09916WhoAmI());
 
       /* 6.3 Clear all bits in mag register */
       magSoftReset();
@@ -112,9 +101,12 @@ void ICM20948::magInit(void)
 
 void ICM20948::updateRawData()
 {
-  gyroReadDps(&raw_gyro_adc_);
-  accelReadG(&raw_acc_adc_);
-  magReadUT(&raw_mag_adc_);
+  // if(getIcm20948WhoAmI()) nh_->logerror("ok icm");
+  if(getAk09916WhoAmI()) nh_->logerror("ok mag");
+  gyroRead(&raw_gyro_adc_);
+  // gyroReadDps(&raw_gyro_adc_);
+  // accelReadG(&raw_acc_adc_);
+  // magReadUT(&raw_mag_adc_);
 }
 
 void ICM20948::gyroRead(Vector3f* data)
@@ -208,7 +200,6 @@ bool ICM20948::getIcm20948WhoAmI()
 bool ICM20948::getAk09916WhoAmI()
 {
   uint8_t ak09916_id = readSingleAk09916(MAG_WIA2);
-
   if(ak09916_id == AK09916_ID)
     return true;
   else
@@ -250,6 +241,8 @@ void ICM20948::spiModeEnable()
   uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
   new_val |= 0x10;
 
+  HAL_Delay(100);
+
   writeSingleIcm20948(ub_0, B0_USER_CTRL, new_val);
   HAL_Delay(100);
 }
@@ -258,6 +251,8 @@ void ICM20948::i2cMasterReset()
 {
   uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
   new_val |= 0x02;
+
+  HAL_Delay(100);
 
   writeSingleIcm20948(ub_0, B0_USER_CTRL, new_val);
   HAL_Delay(100);
@@ -268,6 +263,8 @@ void ICM20948::i2cMasterEnable()
   uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
   new_val |= 0x20;
 
+  HAL_Delay(100);
+
   writeSingleIcm20948(ub_0, B0_USER_CTRL, new_val);
   HAL_Delay(100);
 }
@@ -277,14 +274,15 @@ void ICM20948::i2cMasterClkFrq(uint8_t config)
   uint8_t new_val = readSingleIcm20948(ub_3, B3_I2C_MST_CTRL);
   new_val |= config;
 
+  HAL_Delay(100);
+
   writeSingleIcm20948(ub_3, B3_I2C_MST_CTRL, new_val);
   HAL_Delay(100);
 }
 
 void ICM20948::setClockSource(uint8_t source)
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_PWR_MGMT_1);
-  new_val |= source;
+  uint8_t new_val = 0x01;
 
   writeSingleIcm20948(ub_0, B0_PWR_MGMT_1, new_val);
   HAL_Delay(100);
@@ -366,6 +364,8 @@ void ICM20948::setGyroFullScale(gyro_full_scale full_scale)
 void ICM20948::setAccelFullScale(accel_full_scale full_scale)
 {
   uint8_t new_val = readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
+
+  HAL_Delay(100);
 	
   switch(full_scale)
     {
@@ -430,7 +430,7 @@ void ICM20948::writeSingleIcm20948(userbank ub, uint8_t reg, uint8_t val)
 uint8_t* ICM20948::readMultipleIcm20948(userbank ub, uint8_t reg, uint8_t len)
 {
   uint8_t read_reg = READ | reg;
-  static uint8_t reg_val[6];
+  uint8_t reg_val[6];
   selectUserBank(ub);
 
   GPIO_L(spi_cs_port_, spi_cs_pin_);
