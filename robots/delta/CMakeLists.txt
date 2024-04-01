@@ -45,7 +45,7 @@ target_link_libraries(delta_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES
 add_library(delta_robot_model src/model/delta_robot_model.cpp)
 target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
 
-add_library(delta_navigation src/delta_navigation.cpp)
+add_library(delta_navigation src/navigation/delta_navigation.cpp)
 target_link_libraries(delta_navigation ${catkin_LIBRARIES})
 
 add_executable(delta_optimal_design src/design/delta_optimal_design.cpp)
