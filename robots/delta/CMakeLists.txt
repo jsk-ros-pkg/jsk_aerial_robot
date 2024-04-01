@@ -101,6 +101,8 @@ mujoco_model_convert(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
+catkin_add_env_hooks(99.delta SHELLS bash sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_subdirectory(test)
