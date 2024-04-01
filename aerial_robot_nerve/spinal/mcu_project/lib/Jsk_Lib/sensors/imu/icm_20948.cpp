@@ -30,7 +30,7 @@ void ICM20948::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeH
   calib_indicator_time_ = HAL_GetTick();
 
 #ifdef STM32H7
-  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); //16 = 12.5Mhz, 200MHz
+  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); 
 #endif
 
   gyroInit();
@@ -101,8 +101,6 @@ void ICM20948::magInit(void)
 
 void ICM20948::updateRawData()
 {
-  // if(getIcm20948WhoAmI()) nh_->logerror("ok icm");
-  // if(getAk09916WhoAmI()) nh_->logerror("ok mag");
   gyroReadDps(&raw_gyro_adc_);
   accelReadG(&raw_acc_adc_);
   magReadUT(&raw_mag_adc_);
@@ -110,20 +108,22 @@ void ICM20948::updateRawData()
 
 void ICM20948::gyroRead(Vector3f* data)
 {
-  uint8_t* temp = readMultipleIcm20948(ub_0, B0_GYRO_XOUT_H, 6);
+  uint8_t read_reg = READ | B0_GYRO_XOUT_H;
+  selectUserBank(ub_0);
+  readMultipleIcm20948(ub_0, B0_GYRO_XOUT_H);
 
-  data->x = (int16_t)(temp[0] << 8 | temp[1]);
-  data->y = (int16_t)(temp[2] << 8 | temp[3]);
-  data->z = (int16_t)(temp[4] << 8 | temp[5]);
+  data->x = (int16_t)(multi_adc_[0] << 8 | multi_adc_[1]);
+  data->y = (int16_t)(multi_adc_[2] << 8 | multi_adc_[3]);
+  data->z = (int16_t)(multi_adc_[4] << 8 | multi_adc_[5]);
 }
 
 void ICM20948::accelRead(Vector3f* data)
 {
-  uint8_t* temp = readMultipleIcm20948(ub_0, B0_ACCEL_XOUT_H, 6);
+  readMultipleIcm20948(ub_0, B0_ACCEL_XOUT_H);
 
-  data->x = (int16_t)(temp[0] << 8 | temp[1]);
-  data->y = (int16_t)(temp[2] << 8 | temp[3]);
-  data->z = (int16_t)(temp[4] << 8 | temp[5]); 
+  data->x = (int16_t)(multi_adc_[0] << 8 | multi_adc_[1]);
+  data->y = (int16_t)(multi_adc_[2] << 8 | multi_adc_[3]);
+  data->z = (int16_t)(multi_adc_[4] << 8 | multi_adc_[5]); 
   // Add scale factor because calibraiton function offset gravity acceleration.
 }
 
@@ -132,23 +132,23 @@ bool ICM20948::magRead(Vector3f* data)
   uint8_t* temp;
   uint8_t drdy, hofl;	// data ready, overflow
 
-  drdy = readSingleAk09916(MAG_ST1) & 0x01;
+  readSingleAk09916(MAG_ST1);
+  drdy = single_adc_ & 0x01;
   if(!drdy){
-    // nh_->logerror("not ready");
     return false;
   }
 
-  temp = readMultipleAk09916(MAG_HXL, 6);
+  readMultipleAk09916(MAG_HXL);
 
-  hofl = readSingleAk09916(MAG_ST2) & 0x08;
+  readSingleAk09916(MAG_ST2);  
+  hofl = single_adc_ & 0x08;
   if(hofl){
-    // nh_->logerror("overflow");
     return false;
   }
 
-  data->x = (int16_t)(temp[1] << 8 | temp[0]);
-  data->y = (int16_t)(temp[3] << 8 | temp[2]);
-  data->z = (int16_t)(temp[5] << 8 | temp[4]);
+  data->x = (int16_t)(multi_adc_[1] << 8 | multi_adc_[0]);
+  data->y = (int16_t)(multi_adc_[3] << 8 | multi_adc_[2]);
+  data->z = (int16_t)(multi_adc_[5] << 8 | multi_adc_[4]);
 
   return true;
 }
@@ -188,9 +188,9 @@ bool ICM20948::magReadUT(Vector3f* data)
 /* Sub Functions */
 bool ICM20948::getIcm20948WhoAmI()
 {
-  uint8_t icm20948_id = readSingleIcm20948(ub_0, B0_WHO_AM_I);
+ readSingleIcm20948(ub_0, B0_WHO_AM_I);
 
-  if(icm20948_id == ICM20948_ID)
+  if(single_adc_ == ICM20948_ID)
     return true;
   else
     return false;
@@ -198,8 +198,8 @@ bool ICM20948::getIcm20948WhoAmI()
 
 bool ICM20948::getAk09916WhoAmI()
 {
-  uint8_t ak09916_id = readSingleAk09916(MAG_WIA2);
-  if(ak09916_id == AK09916_ID)
+  readSingleAk09916(MAG_WIA2);
+  if(single_adc_ == AK09916_ID)
     return true;
   else
     return false;
@@ -219,8 +219,8 @@ void ICM20948::magSoftReset()
 
 void ICM20948::wakeUp()
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_PWR_MGMT_1);
-  new_val &= 0xBF;
+  readSingleIcm20948(ub_0, B0_PWR_MGMT_1);
+  uint8_t new_val = single_adc_ & 0xBF;
 
   writeSingleIcm20948(ub_0, B0_PWR_MGMT_1, new_val);
   HAL_Delay(100);
@@ -228,8 +228,8 @@ void ICM20948::wakeUp()
 
 void ICM20948::sleep()
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_PWR_MGMT_1);
-  new_val |= 0x40;
+  readSingleIcm20948(ub_0, B0_PWR_MGMT_1);
+  uint8_t new_val = single_adc_ | 0x40;
 
   writeSingleIcm20948(ub_0, B0_PWR_MGMT_1, new_val);
   HAL_Delay(100);
@@ -237,8 +237,8 @@ void ICM20948::sleep()
 
 void ICM20948::spiModeEnable()
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
-  new_val |= 0x10;
+  readSingleIcm20948(ub_0, B0_USER_CTRL);
+  uint8_t new_val = single_adc_ | 0x10;
 
   HAL_Delay(100);
 
@@ -248,8 +248,8 @@ void ICM20948::spiModeEnable()
 
 void ICM20948::i2cMasterReset()
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
-  new_val |= 0x02;
+  readSingleIcm20948(ub_0, B0_USER_CTRL);
+  uint8_t new_val = single_adc_ | 0x02;
 
   HAL_Delay(100);
 
@@ -259,8 +259,8 @@ void ICM20948::i2cMasterReset()
 
 void ICM20948::i2cMasterEnable()
 {
-  uint8_t new_val = readSingleIcm20948(ub_0, B0_USER_CTRL);
-  new_val |= 0x20;
+  readSingleIcm20948(ub_0, B0_USER_CTRL);
+  uint8_t new_val = single_adc_ | 0x20;
 
   HAL_Delay(100);
 
@@ -270,8 +270,8 @@ void ICM20948::i2cMasterEnable()
 
 void ICM20948::i2cMasterClkFrq(uint8_t config)
 {
-  uint8_t new_val = readSingleIcm20948(ub_3, B3_I2C_MST_CTRL);
-  new_val |= config;
+  readSingleIcm20948(ub_3, B3_I2C_MST_CTRL);
+  uint8_t new_val = single_adc_ | config;
 
   HAL_Delay(100);
 
@@ -295,16 +295,16 @@ void ICM20948::odrAlignEnable()
 
 void ICM20948::setGyroLpf(uint8_t config)
 {
-  uint8_t new_val = readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
-  new_val |= config << 3;
+  readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
+  uint8_t new_val = single_adc_ | config << 3;
 
   writeSingleIcm20948(ub_2, B2_GYRO_CONFIG_1, new_val);
 }
 
 void ICM20948::setAccelLpf(uint8_t config)
 {
-  uint8_t new_val = readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
-  new_val |= config << 3;
+  readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
+  uint8_t new_val = single_adc_ | config << 3;
 
   writeSingleIcm20948(ub_2, B2_GYRO_CONFIG_1, new_val);
 }
@@ -334,7 +334,8 @@ void ICM20948::setMagOperationMode(operation_mode mode)
 
 void ICM20948::setGyroFullScale(gyro_full_scale full_scale)
 {
-  uint8_t new_val = readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
+  readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
+  uint8_t new_val = single_adc_;
 	
   switch(full_scale)
     {
@@ -362,7 +363,8 @@ void ICM20948::setGyroFullScale(gyro_full_scale full_scale)
 
 void ICM20948::setAccelFullScale(accel_full_scale full_scale)
 {
-  uint8_t new_val = readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
+  readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
+  uint8_t new_val = single_adc_;
 
   HAL_Delay(100);
 	
@@ -401,18 +403,15 @@ void ICM20948::selectUserBank(userbank ub)
   GPIO_H(spi_cs_port_, spi_cs_pin_);
 }
 
-uint8_t ICM20948::readSingleIcm20948(userbank ub, uint8_t reg)
+void ICM20948::readSingleIcm20948(userbank ub, uint8_t reg)
 {
   uint8_t read_reg = READ | reg;
-  uint8_t reg_val;
   selectUserBank(ub);
 
   GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, &read_reg, 1, 1000);
-  HAL_SPI_Receive(hspi_, &reg_val, 1, 1000);
+  HAL_SPI_Receive(hspi_, &single_adc_, 1, 1000);
   GPIO_H(spi_cs_port_, spi_cs_pin_);
-  return reg_val;
-
 }
 
 void ICM20948::writeSingleIcm20948(userbank ub, uint8_t reg, uint8_t val)
@@ -426,17 +425,16 @@ void ICM20948::writeSingleIcm20948(userbank ub, uint8_t reg, uint8_t val)
   GPIO_H(spi_cs_port_, spi_cs_pin_);
 }
 
-uint8_t* ICM20948::readMultipleIcm20948(userbank ub, uint8_t reg, uint8_t len)
+void ICM20948::readMultipleIcm20948(userbank ub, uint8_t reg)
 {
   uint8_t read_reg = READ | reg;
-  uint8_t reg_val[6];
+  uint8_t len = (uint8_t)(sizeof(multi_adc_)/sizeof(multi_adc_[0]));
   selectUserBank(ub);
 
   GPIO_L(spi_cs_port_, spi_cs_pin_);
   HAL_SPI_Transmit(hspi_, &read_reg, 1, 1000);
-  HAL_SPI_Receive(hspi_, reg_val, len, 1000);
+  HAL_SPI_Receive(hspi_, multi_adc_, len, 1000);
   GPIO_H(spi_cs_port_, spi_cs_pin_);
-  return reg_val;
 }
 
 void ICM20948::writeMultipleIcm20948(userbank ub, uint8_t reg, uint8_t* val, uint8_t len)
@@ -450,27 +448,27 @@ void ICM20948::writeMultipleIcm20948(userbank ub, uint8_t reg, uint8_t* val, uin
   GPIO_H(spi_cs_port_, spi_cs_pin_);
 }
 
-uint8_t ICM20948::readSingleAk09916(uint8_t reg)
+void ICM20948::readSingleAk09916(uint8_t reg)
 {
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
- return readSingleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
+  readSingleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
 }
 
 void ICM20948::writeSingleAk09916(uint8_t reg, uint8_t val)
 {
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, WRITE | MAG_SLAVE_ADDR);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_DO, val);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, WRITE | MAG_SLAVE_ADDR);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_DO, val);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
 }
 
-uint8_t* ICM20948::readMultipleAk09916(uint8_t reg, uint8_t len)
-{	
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
- writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
- return readMultipleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00, len);
-
+void ICM20948::readMultipleAk09916(uint8_t reg)
+{
+  uint8_t len = (uint8_t)(sizeof(multi_adc_)/sizeof(multi_adc_[0]));
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
+  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
+  readMultipleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
 }

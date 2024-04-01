@@ -228,6 +228,11 @@ private:
   float gyro_scale_factor_;
   float accel_scale_factor_;
 
+  /* raw adc data */
+  uint8_t single_adc_;
+  uint8_t multi_adc_[6];  
+  
+
   /* Initialization */
   void gyroInit(void) override;
   void accInit(void) override;
@@ -279,16 +284,16 @@ private:
   /* Fundamental functions */
   void selectUserBank(userbank ub);
     
-  uint8_t readSingleIcm20948(userbank ub, uint8_t reg);
+  void readSingleIcm20948(userbank ub, uint8_t reg);
   void writeSingleIcm20948(userbank ub, uint8_t reg, uint8_t val);
 
-  uint8_t* readMultipleIcm20948(userbank ub, uint8_t reg, uint8_t len);
+  void readMultipleIcm20948(userbank ub, uint8_t reg);
   void writeMultipleIcm20948(userbank ub, uint8_t reg, uint8_t* val, uint8_t len);
 
-  uint8_t readSingleAk09916(uint8_t reg);
+  void readSingleAk09916(uint8_t reg);
   void writeSingleAk09916(uint8_t reg, uint8_t val);
 
-  uint8_t* readMultipleAk09916(uint8_t reg, uint8_t len);
+  void readMultipleAk09916(uint8_t reg);
 
 };
 #endif
