@@ -7,7 +7,7 @@
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
 #include <delta/control/osqp_solver.h>
 #include <delta/model/delta_robot_model.h>
-#include <delta/delta_navigation.h>
+#include <delta/navigation/delta_navigation.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <nlopt.hpp>
 #include <numeric>
