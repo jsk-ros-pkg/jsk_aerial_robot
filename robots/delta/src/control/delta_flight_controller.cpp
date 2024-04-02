@@ -42,23 +42,6 @@ void RollingController::calcAccFromCog()
   target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
   target_wrench_acc_cog_ = target_wrench_acc_cog;
 
-  pid_msg_.roll.total.at(0) = target_ang_acc_x;
-  pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
-  pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
-  pid_msg_.roll.d_term.at(0) = pid_controllers_.at(ROLL).getDTerm();
-  pid_msg_.roll.target_p = target_rpy_.x();
-  pid_msg_.roll.err_p = pid_controllers_.at(ROLL).getErrP();
-  pid_msg_.roll.target_d = target_omega_.x();
-  pid_msg_.roll.err_d = pid_controllers_.at(ROLL).getErrD();
-  pid_msg_.pitch.total.at(0) = target_ang_acc_y;
-  pid_msg_.pitch.p_term.at(0) = pid_controllers_.at(PITCH).getPTerm();
-  pid_msg_.pitch.i_term.at(0) = pid_controllers_.at(PITCH).getITerm();
-  pid_msg_.pitch.d_term.at(0) = pid_controllers_.at(PITCH).getDTerm();
-  pid_msg_.pitch.target_p = target_rpy_.y();
-  pid_msg_.pitch.err_p = pid_controllers_.at(PITCH).getErrP();
-  pid_msg_.pitch.target_d = target_omega_.y();
-  pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
-
   if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
     start_rp_integration_ = false;
 
