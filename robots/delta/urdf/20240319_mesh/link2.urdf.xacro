@@ -6,14 +6,7 @@
 
     <!-- fc frame -->
     <link name="fc">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.00001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000002"/>
-      </inertial>
+      <xacro:virtual_inertial/>
     </link>
     <joint name="fc_joint" type="fixed">
       <child link="fc" />
@@ -46,15 +39,15 @@
     <!-- leg -->
     <link name="link2_leg">
       <inertial>
-        <mass value="0.00001"/>
+        <mass value="${leg_mass}"/>
         <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000001"/>
+            ixx="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" ixy="0.0" ixz="0.0"
+            iyy="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" iyz="0.0"
+            izz="${(leg_radius * leg_radius / 2.0) * leg_mass}"/>
       </inertial>
       <collision>
         <geometry>
-          <cylinder radius="0.012" length="${leg_length}"/>
+          <cylinder radius="${leg_radius}" length="${leg_length}"/>
         </geometry>
       </collision>
     </link>
@@ -81,14 +74,7 @@
     </link>
 
     <link name="link2_center">
-      <inerial>
-        <origin xyz="0 0 0"/>
-          <mass value="0.00001"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.000001" iyz="0.0"
-              izz="0.000001"/>
-      </inerial>
+      <xacro:virtual_inertial/>
     </link>
     <joint name="link2_center_joint" type="fixed">
       <parent link="link2"/>
