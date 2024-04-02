@@ -30,7 +30,7 @@ void ICM20948::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeH
   calib_indicator_time_ = HAL_GetTick();
 
 #ifdef STM32H7
-  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64); 
+  hspi_->Instance->CR1 |= (uint32_t)(SPI_BAUDRATEPRESCALER_64);
 #endif
 
   gyroInit();
@@ -46,10 +46,7 @@ void ICM20948::gyroInit(void)
 
   /* Waiting for finding Imu */
 
-  while(!getIcm20948WhoAmI())
-    {
-      HAL_Delay(10);
-    }
+  while(!getIcm20948WhoAmI());
   
   /* 1.Clear all bits in ub0-ub3 register */
   deviceReset();
@@ -93,14 +90,12 @@ void ICM20948::magInit(void)
       i2cMasterClkFrq(7); // 345.6 kHz / 46.67% dyty cycle (recoomended)
 
       /* Waiting for finding Magnetometer */
-      while(!getAk09916WhoAmI()){
-        HAL_Delay(10);
-      };
+      while(!getAk09916WhoAmI());
 
       /* 6.3 Clear all bits in mag register */
       magSoftReset();
       /* 6.4 Wakeup and set operation mode to magnetometer */
-      setMagOperationMode(continuous_measurement_100hz);      
+      setMagOperationMode(continuous_measurement_100hz);
     }
 }
 
@@ -134,22 +129,27 @@ void ICM20948::accelRead(Vector3f* data)
 
 bool ICM20948::magRead(Vector3f* data)
 {
+  static uint32_t pre_mag_read;
+
+  /* following AK09916's update frequency*/
+  if(HAL_GetTick() - pre_mag_read > MAG_READ_INTERVAL)
+    pre_mag_read = HAL_GetTick();
+  else
+    return false;
+
   uint8_t* temp;
   uint8_t drdy, hofl;	// data ready, overflow
 
   readSingleAk09916(MAG_ST1);
   drdy = single_adc_ & 0x01;
-  if(!drdy){
-    return false;
-  }
+  if(!drdy) return false;
+
 
   readMultipleAk09916(MAG_HXL);
 
   readSingleAk09916(MAG_ST2);  
   hofl = single_adc_ & 0x08;
-  if(hofl){
-    return false;
-  }
+  if(hofl) return false;
 
   data->x = (int16_t)(multi_adc_[1] << 8 | multi_adc_[0]);
   data->y = (int16_t)(multi_adc_[3] << 8 | multi_adc_[2]);
@@ -180,7 +180,7 @@ bool ICM20948::magReadUT(Vector3f* data)
 {
   Vector3f temp;
   bool new_data = magRead(&temp);
-  if(!new_data)	return false;
+  if(!new_data) return false;
 
   data->x = (float)(temp.x * 0.15);
   data->y = (float)(temp.y * 0.15);
@@ -193,7 +193,7 @@ bool ICM20948::magReadUT(Vector3f* data)
 /* Sub Functions */
 bool ICM20948::getIcm20948WhoAmI()
 {
- readSingleIcm20948(ub_0, B0_WHO_AM_I);
+  readSingleIcm20948(ub_0, B0_WHO_AM_I);
 
   if(single_adc_ == ICM20948_ID)
     return true;
