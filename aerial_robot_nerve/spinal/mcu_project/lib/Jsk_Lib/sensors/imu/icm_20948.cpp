@@ -173,9 +173,9 @@ void ICM20948::accelReadG(Vector3f* data)
 {
   accelRead(data);
 
-  data->x /= accel_scale_factor_;
-  data->y /= accel_scale_factor_;
-  data->z /= accel_scale_factor_;
+  data->x = data->x / accel_scale_factor_ * GRAVITY_MSS;
+  data->y = data->y / accel_scale_factor_ * GRAVITY_MSS;
+  data->z = data->z / accel_scale_factor_ * GRAVITY_MSS;
 }
 
 bool ICM20948::magReadUT(Vector3f* data)
