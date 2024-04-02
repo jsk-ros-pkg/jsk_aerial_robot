@@ -59,15 +59,18 @@ void ICM20948::gyroInit(void)
   odrAlignEnable(); // Synchronize odr with sampling rates.
   spiModeEnable(); // Use only SPI mode
   
-  /* 4.Gyro initialization */
-  setGyroFullScale(_2000dps);
-  
+  /* 4.Gyro initialization (Do not change following order) */
+  setGyroLpf(0);
+  setGyroSampleRate(0);
+  setGyroFullScale(_2000dps);  
 }
 
 void ICM20948::accInit (void)
 {
   HAL_Delay(100);
-  /* 5.Acc initialization */
+  /* 5.Acc initialization (Do not change following order) */
+  setAccelLpf(0);
+  setAccelSampleRate(0);
   setAccelFullScale(_8g);
 }
 
@@ -101,7 +104,7 @@ void ICM20948::magInit(void)
 
 void ICM20948::updateRawData()
 {
-  gyroReadDps(&raw_gyro_adc_);
+  gyroReadRad(&raw_gyro_adc_);
   accelReadG(&raw_acc_adc_);
   magReadUT(&raw_mag_adc_);
 }
@@ -124,7 +127,6 @@ void ICM20948::accelRead(Vector3f* data)
   data->x = (int16_t)(multi_adc_[0] << 8 | multi_adc_[1]);
   data->y = (int16_t)(multi_adc_[2] << 8 | multi_adc_[3]);
   data->z = (int16_t)(multi_adc_[4] << 8 | multi_adc_[5]); 
-  // Add scale factor because calibraiton function offset gravity acceleration.
 }
 
 bool ICM20948::magRead(Vector3f* data)
@@ -158,13 +160,13 @@ bool ICM20948::magRead(Vector3f* data)
   return true;
 }
 
-void ICM20948::gyroReadDps(Vector3f* data)
+void ICM20948::gyroReadRad(Vector3f* data)
 {
   gyroRead(data);
 
-  data->x /= gyro_scale_factor_;
-  data->y /= gyro_scale_factor_;
-  data->z /= gyro_scale_factor_;
+  data->x = data->x / gyro_scale_factor_ * M_PI / 180.0f;
+  data->y = data->y / gyro_scale_factor_ * M_PI / 180.0f;
+  data->z = data->z / gyro_scale_factor_ * M_PI / 180.0f;
 }
 
 void ICM20948::accelReadG(Vector3f* data)
@@ -300,18 +302,16 @@ void ICM20948::odrAlignEnable()
 
 void ICM20948::setGyroLpf(uint8_t config)
 {
-  readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
-  uint8_t new_val = single_adc_ | config << 3;
+  uint8_t new_val =  config << 3;
 
   writeSingleIcm20948(ub_2, B2_GYRO_CONFIG_1, new_val);
 }
 
 void ICM20948::setAccelLpf(uint8_t config)
 {
-  readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
-  uint8_t new_val = single_adc_ | config << 3;
+  uint8_t new_val =  config << 3;
 
-  writeSingleIcm20948(ub_2, B2_GYRO_CONFIG_1, new_val);
+  writeSingleIcm20948(ub_2, B2_ACCEL_CONFIG, new_val);
 }
 
 void ICM20948::setGyroSampleRate(uint8_t divider)

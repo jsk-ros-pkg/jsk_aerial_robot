@@ -249,7 +249,7 @@ private:
   bool magRead(Vector3f* data); 
 
   /* Conversion from raw adc data to proper units */
-  void gyroReadDps(Vector3f* data); 
+  void gyroReadRad(Vector3f* data);
   void accelReadG(Vector3f* data);
   bool magReadUT(Vector3f* data);
 
