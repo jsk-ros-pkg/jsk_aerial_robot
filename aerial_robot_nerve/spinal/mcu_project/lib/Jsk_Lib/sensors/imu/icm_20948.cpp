@@ -46,7 +46,10 @@ void ICM20948::gyroInit(void)
 
   /* Waiting for finding Imu */
 
-  while(!getIcm20948WhoAmI());
+  while(!getIcm20948WhoAmI())
+    {
+      HAL_Delay(10);
+    }
   
   /* 1.Clear all bits in ub0-ub3 register */
   deviceReset();
@@ -90,7 +93,9 @@ void ICM20948::magInit(void)
       i2cMasterClkFrq(7); // 345.6 kHz / 46.67% dyty cycle (recoomended)
 
       /* Waiting for finding Magnetometer */
-      while(!getAk09916WhoAmI());
+      while(!getAk09916WhoAmI()){
+        HAL_Delay(10);
+      };
 
       /* 6.3 Clear all bits in mag register */
       magSoftReset();
