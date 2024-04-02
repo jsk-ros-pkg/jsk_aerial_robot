@@ -64,7 +64,7 @@
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.000001" iyz="0.0"
-            izz="0.000001"/>
+            izz="0.000002"/>
       </inertial>
     </link>
     <joint name="rotor_parent_link_joint${self}" type="fixed">
@@ -90,7 +90,7 @@
         <inertia
             ixx="0.000001" ixy="0.0" ixz="0.0"
             iyy="0.000001" iyz="0.0"
-            izz="0.000001"/>
+            izz="0.000002"/>
       </inertial>
     </link>
     <xacro:damping_factor link="thrust${self}" />
