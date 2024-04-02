@@ -161,7 +161,7 @@ namespace sensor_plugin
     // 2. experiment estimate mode
     if(estimator_->getStateStatus(State::CoG::Rot, aerial_robot_estimation::GROUND_TRUTH))
       {
-        tf::Matrix3x3 gt_cog_rot = estimator_->getOrientation(Frame::COG, aerial_robot_estimation::GROUND_TRUTH);
+        tf::Matrix3x3 gt_cog_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH) * cog2baselink_tf.getBasis().inverse();
         double r,p,y;
         gt_cog_rot.getRPY(r, p, y);
         cog_euler[2] = y;
