@@ -47,10 +47,10 @@ namespace aerial_robot_model {
     pinocchio::ModelTpl<casadi::SX> getModel() {return model_;}
     pinocchio::DataTpl<casadi::SX> getData() {return data_;}
 
-    std::vector<casadi::SX> getRotorsOriginFromRoot() {return rotors_origin_root_;}
-    std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_cog_;}
-    std::vector<casadi::SX> getRotorsNormalFromRoot() {return rotors_normal_root_;}
-    std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_cog_;}
+    std::vector<casadi::SX> getRotorsOriginFromRoot() {return rotors_origin_from_root_;}
+    std::vector<casadi::SX> getRotorsOriginFromCog() {return rotors_origin_from_cog_;}
+    std::vector<casadi::SX> getRotorsNormalFromRoot() {return rotors_normal_from_root_;}
+    std::vector<casadi::SX> getRotorsNormalFromCog() {return rotors_normal_from_cog_;}
 
     casadi::SX getQCs() {return q_cs_;}
     Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> getQ() {return q_;}
@@ -58,8 +58,7 @@ namespace aerial_robot_model {
 
     casadi::SX getMass() {return mass_;}
     casadi::SX getInertia() {return inertia_;}
-    pinocchio::SE3Tpl<casadi::SX> getocog() {return oMcog_;}
-    casadi::SX getoPcog() {return opcog_;}
+    pinocchio::SE3Tpl<casadi::SX> getoMcog() {return oMcog_;}
 
     std::map<std::string, int> getJointIndexMap() {return joint_index_map_;}
 
@@ -83,10 +82,16 @@ namespace aerial_robot_model {
     pinocchio::ModelTpl<casadi::SX> model_;
     pinocchio::DataTpl<casadi::SX> data_;
 
-    std::vector<casadi::SX> rotors_origin_root_;
-    std::vector<casadi::SX> rotors_origin_cog_;
-    std::vector<casadi::SX> rotors_normal_root_;
-    std::vector<casadi::SX> rotors_normal_cog_;
+    std::mutex mutex_cog_pos_;
+    std::mutex mutex_cog_rot_;
+    std::mutex mutex_inertia_;
+    std::mutex mutex_rotor_origin_;
+    std::mutex mutex_rotor_normal_;
+
+    std::vector<casadi::SX> rotors_origin_from_root_;
+    std::vector<casadi::SX> rotors_origin_from_cog_;
+    std::vector<casadi::SX> rotors_normal_from_root_;
+    std::vector<casadi::SX> rotors_normal_from_cog_;
 
     casadi::SX q_cs_;
     Eigen::Matrix<casadi::SX, Eigen::Dynamic, 1> q_;
@@ -95,15 +100,47 @@ namespace aerial_robot_model {
     casadi::SX mass_;
     casadi::SX inertia_;
     pinocchio::SE3Tpl<casadi::SX> oMcog_;
-    casadi::SX opcog_;
 
     std::map<std::string, int> joint_index_map_;
 
     int rotor_num_;
     std::string baselink_;
+
+  protected:
+    void setCogPos(const Eigen::Matrix<casadi::SX, 3, 1> cog_pos)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cog_pos_);
+      oMcog_.translation() = cog_pos;
+    }
+    void setCogRot(const Eigen::Matrix<casadi::SX, 3, 3> cog_rot)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cog_rot_);
+      oMcog_.rotation() = cog_rot;
+    }
+    void setInertia(const Eigen::Matrix<casadi::SX, 3, 3> inertia)
+    {
+      std::lock_guard<std::mutex> lock(mutex_inertia_);
+      pinocchio::casadi::copy(inertia, inertia_);
+    }
+    void setRotorsOriginFromRoot(const std::vector<casadi::SX> rotors_origin_from_root)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
+      rotors_origin_from_root_ = rotors_origin_from_root;
+    }
+    void setRotorsOriginFromCog(const std::vector<casadi::SX> rotors_origin_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
+      rotors_origin_from_cog_ = rotors_origin_from_cog;
+    }
+    void setRotorsNormalFromRoot(const std::vector<casadi::SX> rotors_normal_from_root)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
+      rotors_normal_from_root_ = rotors_normal_from_root;
+    }
+    void setRotorsNormalFromCog(const std::vector<casadi::SX> rotors_normal_from_cog)
+    {
+      std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
+      rotors_normal_from_cog_ = rotors_normal_from_cog;
+    }
   };
 }
-
-
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl);
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl);
