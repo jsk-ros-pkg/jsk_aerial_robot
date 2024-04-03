@@ -42,7 +42,6 @@ void ICM20948::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeH
 void ICM20948::gyroInit(void)
 {
   HAL_Delay(100);
-  uint32_t search_start_time = HAL_GetTick();
 
   /* Waiting for finding Imu */
 
@@ -51,15 +50,12 @@ void ICM20948::gyroInit(void)
   /* 1.Clear all bits in ub0-ub3 register */
   deviceReset();
 
-  /* 2.Wakeup icm20948 */
-  // wakeUp();
-
-  /* 3.Set fundamental properties */
+  /* 2.Wakeup icm20948 and set fundamental properties */
   setClockSource(1); // Clock source is automatically selected.
   odrAlignEnable(); // Synchronize odr with sampling rates.
   spiModeEnable(); // Use only SPI mode
   
-  /* 4.Gyro initialization (Do not change following order) */
+  /* 3.Gyro initialization (Do not change following order) */
   setGyroLpf(0);
   setGyroSampleRate(0);
   setGyroFullScale(_2000dps);  

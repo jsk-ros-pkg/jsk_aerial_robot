@@ -1060,9 +1060,6 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  /* IMU timer */
-  static uint32_t pre_imu_update = 0;
-
   imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
@@ -1074,11 +1071,7 @@ void coreTaskFunc(void const * argument)
 #if NERVE_COMM
       Spine::send();
 #endif
-      if(HAL_GetTick() - pre_imu_update > IMU_UPDATE_INTERVAL)
-        {
-          imu_.update();
-          pre_imu_update = HAL_GetTick();
-        } 
+      imu_.update();
       baro_.update();
       gps_.update();
       estimator_.update();

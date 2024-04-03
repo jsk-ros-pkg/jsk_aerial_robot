@@ -21,7 +21,7 @@
 #define IMU_FIND_TIMEOUT 10000
 #define MAG_FIND_TIMEOUT 10000
 
-#define MAG_READ_INTERVAL 0
+#define MAG_READ_INTERVAL 10
 
 /* ICM-20948 Registers */
 #define ICM20948_ID						0xEA
