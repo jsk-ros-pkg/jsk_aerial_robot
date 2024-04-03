@@ -101,18 +101,17 @@ namespace aerial_robot_model {
 
   void PinocchioRobotModel::rotorInit()
   {
-    rotors_origin_root_.resize(rotor_num_);
-    rotors_origin_cog_.resize(rotor_num_);
-    rotors_normal_root_.resize(rotor_num_);
-    rotors_normal_cog_.resize(rotor_num_);
+    rotors_origin_from_root_.resize(rotor_num_);
+    rotors_origin_from_cog_.resize(rotor_num_);
+    rotors_normal_from_root_.resize(rotor_num_);
+    rotors_normal_from_cog_.resize(rotor_num_);
   }
 
   void PinocchioRobotModel::inertialUpdate()
   {
     // set cog frame
-    oMcog_.translation() = pinocchio::centerOfMass(model_, data_, q_, true);
-    oMcog_.rotation() = data_.oMf[model_.getFrameId(baselink_)].rotation();
-    pinocchio::casadi::copy(oMcog_.translation(), opcog_);
+    setCogPos(pinocchio::centerOfMass(model_, data_, q_, true));
+    setCogRot(data_.oMf[model_.getFrameId(baselink_)].rotation());
 
     // get inertia matrix expressed in cog frame. (Hint: pinocchio/unittest/centroidal.cpp)
     pinocchio::crba(model_, data_, q_);    // Composite Rigid Body Algorithm
@@ -121,11 +120,12 @@ namespace aerial_robot_model {
 
     pinocchio::InertiaTpl<casadi::SX> Ig(oMcog_.inverse().act(data_.Ycrb[0]));
     pinocchio::Symmetric3Tpl<casadi::SX> I = Ig.inertia();
-    pinocchio::casadi::copy(I.matrix(), inertia_);
+    setInertia(I.matrix());
   }
 
   void PinocchioRobotModel::rotorUpdate()
   {
+    std::vector<casadi::SX> rotors_origin_from_root(rotor_num_), rotors_origin_from_cog(rotor_num_),  rotors_normal_from_root(rotor_num_), rotors_normal_from_cog(rotor_num_);
     // get rotor origin and normal from root and cog
     for(int i = 0; i < rotor_num_; i++)
       {
@@ -133,13 +133,18 @@ namespace aerial_robot_model {
         int joint_id =  model_.getJointId(rotor_name);
 
         // origin
-        pinocchio::casadi::copy(data_.oMi[joint_id].translation(), rotors_origin_root_.at(i));
-        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).translation(), rotors_origin_cog_.at(i));
+        pinocchio::casadi::copy(data_.oMi[joint_id].translation(), rotors_origin_from_root.at(i));
+        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).translation(), rotors_origin_from_cog.at(i));
 
         // normal (assume rotational axis is corresponding to z axis)
-        pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(2, 1), rotors_normal_root_.at(i));
-        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(2, 1), rotors_normal_cog_.at(i));
+        pinocchio::casadi::copy(data_.oMi[joint_id].rotation().middleCols(2, 1), rotors_normal_from_root.at(i));
+        pinocchio::casadi::copy((oMcog_.inverse() * data_.oMi[joint_id]).rotation().middleCols(2, 1), rotors_normal_from_cog.at(i));
       }
+
+    setRotorsOriginFromRoot(rotors_origin_from_root);
+    setRotorsOriginFromCog(rotors_origin_from_cog);
+    setRotorsNormalFromRoot(rotors_normal_from_root);
+    setRotorsNormalFromCog(rotors_normal_from_cog);
   }
 
   void PinocchioRobotModel::updateRobotModel()
@@ -193,34 +198,4 @@ namespace aerial_robot_model {
   nh.getParam(param, xml_string);
   return xml_string;
   }
-}
-
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, Eigen::VectorXd x_dbl)
-{
-  casadi::DM ret = casadi::DM(y.size1(), y.size2());
-  for(int i =  0; i < y.size1(); i++)
-    {
-      for(int j = 0; j < y.size2(); j++)
-        {
-          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-          casadi::DM y_dbl = f(eigenVectorToCasadiDm(x_dbl));
-          ret(i, j) = y_dbl;
-        }
-    }
-  return casadiDmToEigenMatrix(ret);
-}
-
-Eigen::MatrixXd computeRealValue(casadi::SX y, casadi::SX x, casadi::DM x_dbl)
-{
-  casadi::DM ret = casadi::DM(y.size1(), y.size2());
-  for(int i =  0; i < y.size1(); i++)
-    {
-      for(int j = 0; j < y.size2(); j++)
-        {
-          casadi::Function f = casadi::Function("f", {x}, {y(i, j)});
-          casadi::DM y_dbl = f(x_dbl);
-          ret(i, j) = y_dbl;
-        }
-    }
-  return casadiDmToEigenMatrix(ret);
 }
