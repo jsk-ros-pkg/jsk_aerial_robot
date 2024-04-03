@@ -85,6 +85,7 @@ void ICM20948::magInit(void)
       /* 6.2 Enable communication between ICM20948 and AK09916*/
       // ICM20948 can get magnetometer value from AK09916 via I2C using AUX_CL and AUX_DA. Then, we configure ICM20948 as a master device and AK09916 as a slave device.
 
+      // intPinBpEnable();
       /* 6.2.1 Reset I2C bus*/
       i2cMasterReset();
       /* 6.2.2 Enable I2C bus*/
@@ -146,7 +147,6 @@ bool ICM20948::magRead(Vector3f* data)
   drdy = single_adc_ & 0x01;
   if(!drdy) return false;
 
-
   readMultipleAk09916(MAG_HXL);
 
   readSingleAk09916(MAG_ST2);  
@@ -156,7 +156,6 @@ bool ICM20948::magRead(Vector3f* data)
   data->x = (int16_t)(multi_adc_[1] << 8 | multi_adc_[0]);
   data->y = (int16_t)(multi_adc_[3] << 8 | multi_adc_[2]);
   data->z = (int16_t)(multi_adc_[5] << 8 | multi_adc_[4]);
-
   return true;
 }
 
@@ -186,7 +185,7 @@ bool ICM20948::magReadUT(Vector3f* data)
 
   data->x = (float)(temp.x * 0.15);
   data->y = (float)(temp.y * 0.15);
-  data->z = (float)(temp.z * 0.15);
+  data->z = (float)(temp.z * -0.15);
 
   return true;
 }	
@@ -253,6 +252,13 @@ void ICM20948::spiModeEnable()
   HAL_Delay(100);
 }
 
+void ICM20948::intPinBpEnable()
+{
+  uint8_t new_val = 0x01;
+  writeSingleIcm20948(ub_0, B0_INT_PIN_CFG, new_val);
+  HAL_Delay(100);
+}
+
 void ICM20948::i2cMasterReset()
 {
   readSingleIcm20948(ub_0, B0_USER_CTRL);
@@ -286,6 +292,14 @@ void ICM20948::i2cMasterClkFrq(uint8_t config)
   HAL_Delay(100);
 }
 
+void ICM20948::i2cOdrCfg(uint8_t config)
+{
+  /* ODR = 1.1 kHz/(2^config) */
+  uint8_t new_val = config;
+  writeSingleIcm20948(ub_0, B3_I2C_MST_ODR_CONFIG, new_val);
+  HAL_Delay(100);
+}
+
 void ICM20948::setClockSource(uint8_t source)
 {
   uint8_t new_val = 0x01;
@@ -293,6 +307,7 @@ void ICM20948::setClockSource(uint8_t source)
   writeSingleIcm20948(ub_0, B0_PWR_MGMT_1, new_val);
   HAL_Delay(100);
 }
+
 
 void ICM20948::odrAlignEnable()
 {
@@ -440,6 +455,7 @@ void ICM20948::readMultipleIcm20948(userbank ub, uint8_t reg)
   HAL_SPI_Transmit(hspi_, &read_reg, 1, 1000);
   HAL_SPI_Receive(hspi_, multi_adc_, len, 1000);
   GPIO_H(spi_cs_port_, spi_cs_pin_);
+
 }
 
 void ICM20948::writeMultipleIcm20948(userbank ub, uint8_t reg, uint8_t* val, uint8_t len)
@@ -466,6 +482,7 @@ void ICM20948::writeSingleAk09916(uint8_t reg, uint8_t val)
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, WRITE | MAG_SLAVE_ADDR);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_DO, val);
+  HAL_Delay(1);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
 }
 
@@ -475,5 +492,6 @@ void ICM20948::readMultipleAk09916(uint8_t reg)
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
+  HAL_Delay(1);
   readMultipleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
 }

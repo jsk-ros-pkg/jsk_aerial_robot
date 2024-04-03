@@ -21,7 +21,7 @@
 #define IMU_FIND_TIMEOUT 10000
 #define MAG_FIND_TIMEOUT 10000
 
-#define MAG_READ_INTERVAL 10
+#define MAG_READ_INTERVAL 0
 
 /* ICM-20948 Registers */
 #define ICM20948_ID						0xEA
@@ -129,7 +129,7 @@
 #define B2_TEMP_CONFIG					0x53
 #define B2_MOD_CTRL_USR					0X54
 
-// USER BANK 3
+// USER BANK 3#
 #define B3_I2C_MST_ODR_CONFIG			0x00
 #define B3_I2C_MST_CTRL					0x01
 #define B3_I2C_MST_DELAY_CTRL			0x02	
@@ -162,12 +162,14 @@
 
 #define MAG_WIA2						0x01
 #define MAG_ST1							0x10
+
 #define MAG_HXL							0x11
 #define MAG_HXH							0x12
 #define MAG_HYL							0x13
 #define MAG_HYH							0x14
 #define MAG_HZL							0x15
 #define MAG_HZH							0x16
+
 #define MAG_ST2							0x18
 #define MAG_CNTL2						0x31
 #define MAG_CNTL3						0x32
@@ -232,8 +234,7 @@ private:
 
   /* raw adc data */
   uint8_t single_adc_;
-  uint8_t multi_adc_[6];  
-  
+  uint8_t multi_adc_[6];
 
   /* Initialization */
   void gyroInit(void) override;
@@ -266,9 +267,11 @@ private:
 
   void spiModeEnable();
 
+  void intPinBpEnable();
   void i2cMasterReset();
   void i2cMasterEnable();
   void i2cMasterClkFrq(uint8_t config); // 0 - 15
+  void i2cOdrCfg(uint8_t config);
 
   void setClockSource(uint8_t source);
   void odrAlignEnable();
