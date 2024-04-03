@@ -8,8 +8,7 @@
 #ifndef __cplusplus
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
-
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
 
 uint8_t IMUOnboard::adc_[SENSOR_DATA_LENGTH];
 uint32_t IMUOnboard::last_mag_time_;

@@ -14,7 +14,7 @@
 
 #include "config.h"
 #include "math/AP_Math.h"
-#include "imu_basic.h"
+#include "sensors/imu/imu_basic.h"
 
 #define SENSOR_DATA_LENGTH 7
 

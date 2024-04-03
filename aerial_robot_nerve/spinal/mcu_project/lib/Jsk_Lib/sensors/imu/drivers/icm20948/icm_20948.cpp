@@ -10,7 +10,7 @@
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
 
-#include "sensors/imu/icm_20948.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 
 void ICM20948::init(SPI_HandleTypeDef* hspi, I2C_HandleTypeDef* hi2c, ros::NodeHandle* nh,
                       GPIO_TypeDef* spi_cs_port, uint16_t spi_cs_pin,

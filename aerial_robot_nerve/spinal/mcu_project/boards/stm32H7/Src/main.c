@@ -35,8 +35,8 @@
 #include <spinal/Imu.h>
 
 #include "flashmemory/flashmemory.h"
-#include "sensors/imu/imu_mpu9250.h"
-#include "sensors/imu/icm_20948.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 #include "sensors/imu/imu_ros_cmd.h"
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"

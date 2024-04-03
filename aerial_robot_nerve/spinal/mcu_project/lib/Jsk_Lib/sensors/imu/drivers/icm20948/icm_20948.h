@@ -14,7 +14,7 @@
 #define __IMU_ICM_H
 
 #include "config.h"
-#include "imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
 
 
 #define SENSOR_DATA_LENGTH 7
