@@ -866,12 +866,19 @@ void AttitudeController::pwmConversion()
   for(int i = 0; i < motor_number_ / rotor_coef_; i++)
     {
       float thrust;
-      if(gimbal_dof_){
-        thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
-      }
-      else
+      switch(gimbal_dof_)
         {
+        case 2:
+          thrust = ap::pythagorous3(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1], base_thrust_term_[rotor_coef_ * i+2] + roll_pitch_term_[rotor_coef_ *i+2]);
+          break;
+        case 1:
+          thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
+          break;
+        case 0:
           thrust = base_thrust_term_[i] + roll_pitch_term_[i];
+          break;
+        default:
+          break;
         }
       if(max_thrust < thrust)
         {
@@ -900,12 +907,19 @@ void AttitudeController::pwmConversion()
               for(int i = 0; i < motor_number_ / (rotor_coef_); i++)
                 {
                   float thrust;
-                  if(gimbal_dof_){
-                    thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ * i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
-                  }
-                  else
+                  switch(gimbal_dof_)
                     {
+                    case 2:
+                      thrust = ap::pythagorous3(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1], base_thrust_term_[rotor_coef_ * i+2] + roll_pitch_term_[rotor_coef_ *i+2]);
+                      break;
+                    case 1:
+                      thrust = ap::pythagorous2(base_thrust_term_[rotor_coef_ * i] + roll_pitch_term_[rotor_coef_ *i],base_thrust_term_[rotor_coef_ * i+1] + roll_pitch_term_[rotor_coef_ * i+1]);
+                      break;
+                    case 0:
                       thrust = base_thrust_term_[i] + roll_pitch_term_[i];
+                      break;
+                    default:
+                      break;
                     }
                   if(max_thrust < thrust)
                     {
@@ -957,17 +971,43 @@ void AttitudeController::pwmConversion()
     {
       if(start_control_flag_)
         {
-          if(gimbal_dof_){
-            ap::Vector3f f_i;
-            f_i.x = target_thrust_[i*2];
-            f_i.z = target_thrust_[i*2+1];
-            target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
-            float gimbal_candidate = atan2f(-f_i.x, f_i.z);
-            if(std::isfinite(gimbal_candidate))
+          switch(gimbal_dof_)
+            {
+            case 2:
               {
-                target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
+                ap::Vector3f f_i;
+                f_i.x = target_thrust_[i*3];
+                f_i.y = target_thrust_[i*3+1];
+                f_i.z = target_thrust_[i*3+2];
+            
+                float gimbal_candidate_roll = atan2f(-f_i.y, f_i.z);
+                float gimbal_candidate_pitch = atan2f(f_i.x, -f_i.y * sin(gimbal_candidate_roll) + f_i.z * cos(gimbal_candidate_roll));
+                target_thrust_[i] = ap::pythagorous3(f_i.x,f_i.y,f_i.z);
+
+                /* simple lpf */
+                if(std::isfinite(gimbal_candidate_roll) && std::isfinite(gimbal_candidate_pitch)){
+                  target_gimbal_angles_[2*i] =(target_gimbal_angles_[2*i]+ gimbal_candidate_roll)/2;
+                  target_gimbal_angles_[2*i+1] =(target_gimbal_angles_[2*i+1]+ gimbal_candidate_pitch)/2;
+            
+                }
+                break;
               }
-          }
+            case 1:
+              {
+                ap::Vector3f f_i;
+                f_i.x = target_thrust_[i*2];
+                f_i.z = target_thrust_[i*2+1];
+                float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+                target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
+
+                /* simple lpf */
+                if(std::isfinite(gimbal_candidate)) target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
+
+                break;
+              }
+            default:
+              break;
+            }
 
           target_pwm_[i] = convert(target_thrust_[i]);
 
@@ -981,14 +1021,33 @@ void AttitudeController::pwmConversion()
     }
 #ifdef SIMULATION
   //TODO: directly send target gimbal angles to gazebo
-  if(gimbal_dof_){
-    sensor_msgs::JointState gimbal_control_msg;
-    gimbal_control_msg.header.stamp = ros::Time::now();
-    for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
-      gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
+  switch(gimbal_dof_)
+    {
+    case 2:
+      {
+        sensor_msgs::JointState gimbal_control_msg;
+        gimbal_control_msg.header.stamp = ros::Time::now();
+        for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
+          gimbal_control_msg.position.push_back(target_gimbal_angles_[2*i]);
+          gimbal_control_msg.position.push_back(target_gimbal_angles_[2*i+1]);
+        }
+        gimbal_control_pub_.publish(gimbal_control_msg);    
+        break;
+      }
+    case 1:
+      {
+        sensor_msgs::JointState gimbal_control_msg;
+        gimbal_control_msg.header.stamp = ros::Time::now();
+        for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
+          gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
+        }
+        gimbal_control_pub_.publish(gimbal_control_msg);
+        break;
+      }
+    default:
+      break;
     }
-    gimbal_control_pub_.publish(gimbal_control_msg);
-  }
+
 #else
   if(gimbal_dof_){
     std::map<uint16_t, float> gimbal_map;
