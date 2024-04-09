@@ -81,7 +81,10 @@ namespace aerial_robot_control
     tf::vectorTFToEigen(omega_, omega);
     Eigen::Vector3d gyro = omega.cross(inertia * omega);
 
-    target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z) + gyro;
+    if(gimbal_calc_in_fc_)
+      target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+    else
+      target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z) + gyro;
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -161,9 +164,15 @@ namespace aerial_robot_control
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
     for(int i = 0; i < motor_num_; i++){
       Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, rotor_coef_);
-      target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
-      target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
-      // target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
+      if(gimbal_dof_ == 1)
+        {
+          target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
+          target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
+        }else if(gimbal_dof_ == 2){
+          target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
+          target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
+          target_base_thrust_.at(rotor_coef_ * i+2) = f_i[2];
+        }
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
       last_col += rotor_coef_;
     }
