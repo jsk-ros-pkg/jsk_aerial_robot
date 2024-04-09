@@ -181,12 +181,11 @@ namespace aerial_robot_control
       else if(gimbal_dof_ == 2)
         {
           if(f_i_integrated[0] == 0 || f_i_integrated[2] == 0) continue;
-          double gimbal_roll = atan2(-f_i_integrated[0], f_i_integrated[2]);
-          double gimbal_pitch = atan2(f_i_integrated[1], f_i_integrated[0] * sin(-gimbal_roll) + f_i_integrated[2]* cos(-gimbal_roll));
+
+          double gimbal_roll = atan2(-f_i_integrated[1], f_i_integrated[2]);
+          double gimbal_pitch = atan2(f_i_integrated[0], -f_i_integrated[1] * sin(gimbal_roll) + f_i_integrated[2]* cos(gimbal_roll));
           target_gimbal_angles_.at(2 * i) = gimbal_roll;
           target_gimbal_angles_.at(2 * i + 1) = gimbal_pitch;
-          // target_gimbal_angles_.at(2 * i) = atan2(-f_i_integrated[1], f_i_integrated[2]);
-          // target_gimbal_angles_.at(2 * i + 1) = atan2(f_i_integrated[0], f_i_integrated[2]);
         }
       last_col += rotor_coef_;
     }
