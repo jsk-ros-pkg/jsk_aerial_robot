@@ -1062,6 +1062,10 @@ void BaseNavigator::rosParamInit()
 
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
+  if (land_check_duration_ < 0.5) {
+    land_check_duration_ = 0.5;
+  }
+
   getParam<double>(nh, "trajectory_reset_duration", trajectory_reset_duration_, 0.5);
   getParam<double>(nh, "teleop_reset_duration", teleop_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
