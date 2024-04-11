@@ -80,6 +80,8 @@ namespace sensor_plugin
     if(time_sync_) queuse_size = 10;
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
+    rot_valid_ = false;
+
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
@@ -112,11 +114,7 @@ namespace sensor_plugin
 
     /* check whether is force att control mode */
     if(estimator_->getForceAttControlFlag() && getStatus() == Status::ACTIVE)
-      {
-        if(estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, false);
-        setStatus(Status::INVALID);
-      }
+      setStatus(Status::INVALID);
 
     /* check the sensor value whether valid */
     if(std::isnan(vo_msg->pose.pose.position.x) ||
@@ -167,7 +165,6 @@ namespace sensor_plugin
             return;
           }
 
-        /* to get the correction rotation and omega of baselink with the consideration of time delay, along with the yaw problem */
         bool imu_initialized = false;
         for(const auto& handler: estimator_->getImuHandlers())
           {
@@ -238,9 +235,12 @@ namespace sensor_plugin
               }
           }
 
-        /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
+        /* step1: set the init offset from world to the baselink of UAV from egomotion estimation */
         /** ^{w}H_{b} **/
-        world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+        double r,p,y;
+        base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+        world_offset_tf_.setRotation(tf::createQuaternionFromYaw(y));
 
         tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
@@ -251,12 +251,13 @@ namespace sensor_plugin
           world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
 
         /* set the init offset from world to the baselink of UAV if we know the ground truth */
-        if(estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH))
+        if(estimator_->getStateStatus(State::Base::Rot, aerial_robot_estimation::GROUND_TRUTH))
           {
             world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH));
-            world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0]));
 
-            double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
+            base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
+            base_rot.getRPY(r, p, y);
+            world_offset_tf_.setRotation(tf::createQuaternionFromYaw(y));
           }
 
         /* step2: also consider the offset tf from baselink to sensor */
@@ -274,7 +275,7 @@ namespace sensor_plugin
 
             if(plugin_name == "kalman_filter/kf_pos_vel_acc")
               {
-                if(id < (1 << State::ROLL_COG))
+                if(id < (1 << State::TOTAL_NUM))
                   {
                     /* not need to initialize */
                     if(estimator_->getStateStatus(State::X_BASE + (id >> (State::X_BASE + 1)), aerial_robot_estimation::EGOMOTION_ESTIMATE))
@@ -362,7 +363,6 @@ namespace sensor_plugin
     if (time_sync_)
       {
         // TODO: what is the following previous tricky code?
-        // int mode = estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)?aerial_robot_estimation::GROUND_TRUTH:aerial_robot_estimation::EGOMOTION_ESTIMATE;
         int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
 
         if (raw_local_vel == tf::Vector3(0.0,0.0,0.0))
@@ -397,16 +397,15 @@ namespace sensor_plugin
                  baselink_tf_.getOrigin().x(), baselink_tf_.getOrigin().y(),
                  baselink_tf_.getOrigin().z());
         baselink_tf_.getBasis().getRPY(r, p, y);
-        ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0], r, p, y);
+
+        double mocap_r, mocap_p, mocap_y;
+        tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
+        base_rot.getRPY(mocap_r, mocap_p, mocap_y);
+        ROS_INFO("mocap yaw: %f, vo rot: [%f, %f, %f]", mocap_y, r, p, y);
       }
 
     double start_time = ros::Time::now().toSec();
     estimateProcess();
-    /*
-    double time_du = ros::Time::now().toSec() - start_time;
-    if(max_du < time_du) max_du = time_du;
-    ROS_INFO("max du: %f, time du: %f", max_du, time_du);
-    */
 
     /* publish */
     vo_state_.header.stamp.fromSec(curr_timestamp_);
@@ -439,6 +438,7 @@ namespace sensor_plugin
     if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
       {
         double height = estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0];
+        rot_valid_ = false;
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
           {
 
@@ -448,15 +448,7 @@ namespace sensor_plugin
       }
     else
       {
-        /* YAW */
-        if(!estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          {
-            estimator_->setStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
-            ROS_WARN_STREAM(indexed_nhp_.getNamespace() <<": set yaw estimate status true");
-          }
-        tfScalar r,p,y;
-        baselink_tf_.getBasis().getRPY(r,p,y);
-        estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, y);
+        rot_valid_ = true;
       }
 
     /* XYZ */
@@ -471,7 +463,7 @@ namespace sensor_plugin
         double timestamp = reference_timestamp_;
         double outlier_thresh = (fusion_mode_ == ONLY_VEL_MODE)?(vel_outlier_thresh_ / (vel_noise_sigma_) / (vel_noise_sigma_)):0;
         /* x_w, y_w, z_w */
-        if(id < (1 << State::ROLL_COG))
+        if(id < (1 << State::TOTAL_NUM))
           {
             if(plugin_name == "kalman_filter/kf_pos_vel_acc")
               {
