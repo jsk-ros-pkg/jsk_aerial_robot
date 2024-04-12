@@ -447,8 +447,6 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviState(LAND_STATE);
       //update
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
       ROS_INFO("Joy Control: Land state");
 
       return;
@@ -682,8 +680,6 @@ void BaseNavigator::update()
       if(normal_land && !force_att_control_flag_)
         {
           setNaviState(LAND_STATE);
-          setTargetXyFromCurrentState();
-          setTargetYawFromCurrentState();
         }
     }
 
@@ -1054,9 +1050,20 @@ void BaseNavigator::rosParamInit()
   ros::NodeHandle nh(nh_, "navigation");
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);
   getParam<double>(nh, "takeoff_height", takeoff_height_, 0.0);
+
   getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.3);
+  if (land_descend_vel_ >= 0) {
+    ROS_WARN("land_descend_vel_ (current value: %f) should be negative", land_descend_vel_);
+    land_descend_vel_ == -0.3;
+  }
+
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
+  if (land_check_duration_ < 0.5) {
+    ROS_WARN("land_check_duration_ (current value: %f) should be not smaller than 0.5", land_check_duration_);
+    land_check_duration_ = 0.5;
+  }
+
   getParam<double>(nh, "trajectory_reset_duration", trajectory_reset_duration_, 0.5);
   getParam<double>(nh, "teleop_reset_duration", teleop_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
