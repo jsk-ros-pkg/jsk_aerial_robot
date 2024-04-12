@@ -399,9 +399,9 @@ namespace sensor_plugin
             state_.states[0].state[i].y = vel.x();
             state_.states[1].state[i].y = vel.y();
             state_.states[2].state[i].y = vel.z();
-            state_.states[0].state[i].z = acc_w_.at(i).x();
-            state_.states[1].state[i].z = acc_w_.at(i).y();
-            state_.states[2].state[i].z = acc_w_.at(i).z();
+            state_.states[0].state[i].z = acc_w_.x();
+            state_.states[1].state[i].z = acc_w_.y();
+            state_.states[2].state[i].z = acc_w_.z();
           }
         state_pub_.publish(state_);
       }
