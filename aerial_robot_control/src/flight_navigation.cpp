@@ -1053,12 +1053,14 @@ void BaseNavigator::rosParamInit()
 
   getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.3);
   if (land_descend_vel_ >= 0) {
+    ROS_WARN("land_descend_vel_ (current value: %f) should be negative", land_descend_vel_);
     land_descend_vel_ == -0.3;
   }
 
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
   if (land_check_duration_ < 0.5) {
+    ROS_WARN("land_check_duration_ (current value: %f) should be not smaller than 0.5", land_check_duration_);
     land_check_duration_ = 0.5;
   }
 
