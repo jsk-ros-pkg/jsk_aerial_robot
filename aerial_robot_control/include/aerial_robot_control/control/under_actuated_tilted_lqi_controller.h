@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_control/control/under_actuated_lqi_controller.h>
-#include <spinal/DesireCoord.h>
+#include <geometry_msgs/Quaternion.h>
 
 namespace aerial_robot_control
 {

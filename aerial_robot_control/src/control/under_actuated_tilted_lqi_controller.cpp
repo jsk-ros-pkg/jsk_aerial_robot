@@ -46,7 +46,7 @@ void UnderActuatedTiltedLQIController::initialize(ros::NodeHandle nh,
 {
   UnderActuatedLQIController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
-  desired_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+  desired_baselink_rot_pub_ = nh_.advertise<geometry_msgs::Quaternion>("desire_coordinate", 1);
 
   pid_msg_.z.p_term.resize(1);
   pid_msg_.z.i_term.resize(1);
@@ -154,12 +154,14 @@ void UnderActuatedTiltedLQIController::publishGain()
 {
   UnderActuatedLQIController::publishGain();
 
-  double roll,pitch, yaw;
-  robot_model_->getCogDesireOrientation<KDL::Rotation>().GetRPY(roll, pitch, yaw);
+  double qx, qy, qz, qw;
+  robot_model_->getCogDesireOrientation<KDL::Rotation>().GetQuaternion(qx, qy, qz, qw);
 
-  spinal::DesireCoord coord_msg;
-  coord_msg.roll = roll;
-  coord_msg.pitch = pitch;
+  geometry_msgs::Quaternion coord_msg;
+  coord_msg.x = qx;
+  coord_msg.y = qy;
+  coord_msg.z = qz;
+  coord_msg.w = qw;
   desired_baselink_rot_pub_.publish(coord_msg);
 }
 
