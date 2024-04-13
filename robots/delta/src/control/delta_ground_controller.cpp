@@ -79,6 +79,7 @@ void RollingController::standingPlanning()
       ROS_WARN_ONCE("start roll/pitch I control");
     }
 
+  /* TODO change to use baselink roll angle not to switch during trajectory tracking */
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE && fabs(pid_msg_.roll.err_p) < standing_baselink_roll_converged_thresh_)
     {
       rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
@@ -302,10 +303,10 @@ void RollingController::nonlinearQP()
   x_opt(4) = lambda(1);
   x_opt(5) = lambda(2);
 
-  casadi::SX cost = dot(lambda, lambda)
-    + 2.0 * pow(x_opt(0) - M_PI / 2.0, 2)
-    + 2.0 * pow(x_opt(1) - M_PI / 2.0, 2)
-    + 2.0 * pow(x_opt(2) - M_PI / 2.0, 2);
+  casadi::SX cost
+    = lambda_weight_ * dot(lambda, lambda)
+    + d_gimbal_center_weight_ * (pow(x_opt(0) - M_PI / 2.0, 2) + pow(x_opt(1) - M_PI / 2.0, 2) + 2.0 * pow(x_opt(2) - M_PI / 2.0, 2))
+    + d_gimbal_weight_ * (pow(x_opt(0) - prev_opt_gimbal_.at(0), 2) + pow(x_opt(1) - prev_opt_gimbal_.at(1), 2) + pow(x_opt(2) - prev_opt_gimbal_.at(2), 2));
 
   casadi::SX constraints = casadi::SX(8, 1);
   constraints(0) = wrench_cp(ROLL);
@@ -342,9 +343,9 @@ void RollingController::nonlinearQP()
 
   if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
-      lbx(0) = min(M_PI, max(0.0, prev_opt_gimbal_.at(0) - gimbal_d_theta_max_));
-      lbx(1) = min(M_PI, max(0.0, prev_opt_gimbal_.at(1) - gimbal_d_theta_max_));
-      lbx(2) = min(M_PI, max(0.0, prev_opt_gimbal_.at(2) - gimbal_d_theta_max_));
+      lbx(0) = min(max(0.0, prev_opt_gimbal_.at(0) - gimbal_d_theta_max_), M_PI);
+      lbx(1) = min(max(0.0, prev_opt_gimbal_.at(1) - gimbal_d_theta_max_), M_PI);
+      lbx(2) = min(max(0.0, prev_opt_gimbal_.at(2) - gimbal_d_theta_max_), M_PI);
     }
   else
     {
@@ -352,25 +353,25 @@ void RollingController::nonlinearQP()
       lbx(1) = max(-M_PI, prev_opt_gimbal_.at(1) - gimbal_d_theta_max_);
       lbx(2) = max(-M_PI, prev_opt_gimbal_.at(2) - gimbal_d_theta_max_);
     }
-  lbx(3) = 0.0;
-  lbx(4) = 0.0;
-  lbx(5) = 0.0;
+  lbx(3) = max(0.0, prev_opt_lambda_.at(0) - d_lambda_max_);
+  lbx(4) = max(0.0, prev_opt_lambda_.at(1) - d_lambda_max_);
+  lbx(5) = max(0.0, prev_opt_lambda_.at(2) - d_lambda_max_);
 
   if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
-      ubx(0) = max(0.0, min(M_PI, prev_opt_gimbal_.at(0) + gimbal_d_theta_max_));
-      ubx(1) = max(0.0, min(M_PI, prev_opt_gimbal_.at(1) + gimbal_d_theta_max_));
-      ubx(2) = max(0.0, min(M_PI, prev_opt_gimbal_.at(2) + gimbal_d_theta_max_));
+      ubx(0) = max(0.0, min(prev_opt_gimbal_.at(0) + gimbal_d_theta_max_, M_PI));
+      ubx(1) = max(0.0, min(prev_opt_gimbal_.at(1) + gimbal_d_theta_max_, M_PI));
+      ubx(2) = max(0.0, min(prev_opt_gimbal_.at(2) + gimbal_d_theta_max_, M_PI));
     }
   else
     {
-      ubx(0) = min(M_PI, prev_opt_gimbal_.at(0) + gimbal_d_theta_max_);
-      ubx(1) = min(M_PI, prev_opt_gimbal_.at(1) + gimbal_d_theta_max_);
-      ubx(2) = min(M_PI, prev_opt_gimbal_.at(2) + gimbal_d_theta_max_);
+      ubx(0) = min(prev_opt_gimbal_.at(0) + gimbal_d_theta_max_, M_PI);
+      ubx(1) = min(prev_opt_gimbal_.at(1) + gimbal_d_theta_max_, M_PI);
+      ubx(2) = min(prev_opt_gimbal_.at(2) + gimbal_d_theta_max_, M_PI);
     }
-  ubx(3) = robot_model_->getThrustUpperLimit();
-  ubx(4) = robot_model_->getThrustUpperLimit();
-  ubx(5) = robot_model_->getThrustUpperLimit();
+  ubx(3) = min(prev_opt_lambda_.at(0) + d_lambda_max_, robot_model_->getThrustUpperLimit());
+  ubx(4) = min(prev_opt_lambda_.at(1) + d_lambda_max_, robot_model_->getThrustUpperLimit());
+  ubx(5) = min(prev_opt_lambda_.at(2) + d_lambda_max_, robot_model_->getThrustUpperLimit());
 
   ROS_INFO_STREAM_ONCE("x_opt: \n" << x_opt << "\n");
   ROS_INFO_STREAM_ONCE("cost: \n" << cost << "\n");
@@ -383,7 +384,7 @@ void RollingController::nonlinearQP()
   casadi::SXDict nlp = { {"x", x_opt}, {"f", cost}, {"g", constraints} };
 
   casadi::Dict opt_dict = casadi::Dict();
-  opt_dict["ipopt.max_iter"] = 30;
+  opt_dict["ipopt.max_iter"] = ipopt_max_iter_;
   opt_dict["ipopt.print_level"] = 0;
   opt_dict["ipopt.sb"] = "yes";
   opt_dict["print_time"] = 0;
@@ -391,10 +392,7 @@ void RollingController::nonlinearQP()
   casadi::Function S = casadi::nlpsol("S", "ipopt", nlp, opt_dict);
   casadi::DM initial_x = casadi::DM({prev_opt_gimbal_.at(0), prev_opt_gimbal_.at(1), prev_opt_gimbal_.at(2), prev_opt_lambda_.at(0), prev_opt_lambda_.at(1), prev_opt_lambda_.at(2)});
 
-  // double start = ros::Time::now().toSec();
   auto res = S(casadi::DMDict{ {"x0", initial_x}, {"lbg",lbg}, {"ubg", ubg}, {"lbx", lbx}, {"ubx", ubx} });
-  // std::cout << "time: " << ros::Time::now().toSec() - start << std::endl;
-  // std::cout << res.at("x") << std::endl;
 
   prev_opt_gimbal_.at(0) = (double)res.at("x")(0);
   prev_opt_gimbal_.at(1) = (double)res.at("x")(1);

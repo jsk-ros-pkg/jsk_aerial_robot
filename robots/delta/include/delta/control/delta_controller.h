@@ -41,7 +41,6 @@ namespace aerial_robot_control
 
     boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModel() {return robot_model_;}
     boost::shared_ptr<RollingRobotModel> getRollingRobotModel() {return rolling_robot_model_;}
-    boost::shared_ptr<RollingRobotModel> getRollingRobotModelForOpt() {return rolling_robot_model_for_opt_;}
 
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
@@ -71,7 +70,6 @@ namespace aerial_robot_control
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<aerial_robot_model::PinocchioRobotModel> pinocchio_robot_model_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
-    boost::shared_ptr<RollingRobotModel> rolling_robot_model_for_opt_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
 
     /* common part */
@@ -120,6 +118,11 @@ namespace aerial_robot_control
     double gravity_compensate_ratio_;
     double rolling_minimum_lateral_force_;
     double gimbal_d_theta_max_;
+    double d_lambda_max_;
+    double lambda_weight_;
+    double d_gimbal_center_weight_;
+    double d_gimbal_weight_;
+    int ipopt_max_iter_;
     std::vector<double> prev_opt_gimbal_;
     std::vector<double> prev_opt_lambda_;
 
