@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_model/model/transformable_aerial_robot_model.h>
-#include <spinal/DesireCoord.h>
+#include <geometry_msgs/Quaternion.h>
 
 namespace aerial_robot_model  {
 
@@ -82,7 +82,7 @@ namespace aerial_robot_model  {
     aerial_robot_model::transformable::RobotModel& getRobotModel() const { return *robot_model_; }
 
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
-    void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
+    void desireCoordinateCallback(const geometry_msgs::QuaternionConstPtr& msg);
 
     //  numerical solution
     virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices);
