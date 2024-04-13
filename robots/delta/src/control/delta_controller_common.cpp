@@ -20,7 +20,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rolling_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::RollingNavigator>(navigator_);
   pinocchio_robot_model_ = boost::make_shared<aerial_robot_model::PinocchioRobotModel>();
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
-  rolling_robot_model_for_opt_ = boost::make_shared<RollingRobotModel>();
   robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   rotor_tilt_.resize(motor_num_);
@@ -123,7 +122,6 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
 
   rolling_robot_model_->setCircleRadius(circle_radius_);
-  rolling_robot_model_for_opt_->setCircleRadius(circle_radius_);
 
   getParam<bool>(control_nh, "standing_baselink_pitch_update", standing_baselink_pitch_update_, false);
   getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
@@ -132,6 +130,11 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
   getParam<bool>(control_nh, "full_lambda_mode", full_lambda_mode_, true);
   getParam<double>(control_nh, "gimbal_d_theta_max", gimbal_d_theta_max_, 0.0);
+  getParam<double>(control_nh, "d_lambda_max",   d_lambda_max_, 0.0);
+  getParam<double>(control_nh, "lambda_weight", lambda_weight_, 1.0);
+  getParam<double>(control_nh, "d_gimbal_center_weight", d_gimbal_center_weight_, 1.0);
+  getParam<double>(control_nh, "d_gimbal_weight", d_gimbal_weight_, 1.0);
+  getParam<int>(control_nh, "ipopt_max_iter", ipopt_max_iter_, 100);
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -354,7 +357,7 @@ void RollingController::wrenchAllocation()
 
   for(int i = 0; i < motor_num_; i++)
     {
-      prev_opt_gimbal_.at(i) = angles::normalize_angle(target_gimbal_angles_.at(i));
+      prev_opt_gimbal_.at(i) = angles::normalize_angle(current_gimbal_angles_.at(i));
     }
 
   /* update robot model by calculated gimbal angle */

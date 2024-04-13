@@ -18,7 +18,13 @@ controller:
   rolling_baselink_roll_converged_thresh: 0.6
   steering_mu: 2.0
   full_lambda_mode: true
-  gimbal_d_theta_max: 0.3
+
+  lambda_weight: 1.0
+  d_gimbal_center_weight: 2.0
+  d_gimbal_weight: 2.0
+  gimbal_d_theta_max: 0.7
+  d_lambda_max: 10.0
+  ipopt_max_iter: 100
 
   controlled_axis: [1, 1, 1, 1, 1, 1]
 
