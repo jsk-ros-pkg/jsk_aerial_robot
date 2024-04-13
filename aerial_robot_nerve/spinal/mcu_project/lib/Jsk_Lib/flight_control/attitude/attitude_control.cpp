@@ -13,7 +13,7 @@
 
 #ifdef SIMULATION
 #include <sensor_msgs/JointState.h>
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0), gimbal_dof_(0) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0), gimbal_dof_(0), rotor_coef_(1) {}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -442,7 +442,6 @@ void AttitudeController::update(void)
             }
         }
     }
-
   /* target thrust -> target pwm -> HAL */
   pwmsControl();
 }
@@ -1011,7 +1010,6 @@ void AttitudeController::pwmConversion()
           max_thrust_index = i;
         }
     }
-
   if(start_control_flag_)
     {
       float residual_term = thrust_limit - max_thrust / rotor_devider_;
