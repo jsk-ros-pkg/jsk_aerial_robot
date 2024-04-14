@@ -424,29 +424,20 @@ namespace sensor_plugin
 
         /* publish state date */
         state_.header.stamp = imu_stamp_;
-        tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-        tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-        state_.states[0].state[0].x = pos.x();
-        state_.states[1].state[0].x = pos.y();
-        state_.states[2].state[0].x = pos.z();
-        state_.states[0].state[0].y = vel.x();
-        state_.states[1].state[0].y = vel.y();
-        state_.states[2].state[0].y = vel.z();
-        state_.states[0].state[0].z = acc_w_.x();
-        state_.states[1].state[0].z = acc_w_.y();
-        state_.states[2].state[0].z = acc_w_.z();
-        pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
-        vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
-        state_.states[0].state[1].x = pos.x();
-        state_.states[1].state[1].x = pos.y();
-        state_.states[2].state[1].x = pos.z();
-        state_.states[0].state[1].y = vel.x();
-        state_.states[1].state[1].y = vel.y();
-        state_.states[2].state[1].y = vel.z();
-        state_.states[0].state[1].z = acc_w_.x();
-        state_.states[1].state[1].z = acc_w_.y();
-        state_.states[2].state[1].z = acc_w_.z();
-
+        for (int i = 0; i < 2; i++)
+          {
+            tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, i);
+            tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, i);
+            state_.states[0].state[i].x = pos.x();
+            state_.states[1].state[i].x = pos.y();
+            state_.states[2].state[i].x = pos.z();
+            state_.states[0].state[i].y = vel.x();
+            state_.states[1].state[i].y = vel.y();
+            state_.states[2].state[i].y = vel.z();
+            state_.states[0].state[i].z = acc_w_.x();
+            state_.states[1].state[i].z = acc_w_.y();
+            state_.states[2].state[i].z = acc_w_.z();
+          }
         state_pub_.publish(state_);
       }
     prev_time = imu_stamp_;

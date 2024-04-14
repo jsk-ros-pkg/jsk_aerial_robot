@@ -99,7 +99,7 @@ namespace aerial_robot_control
 
     tf::Vector3 pos_, target_pos_;
     tf::Vector3 vel_, target_vel_;
-    tf::Vector3 target_acc_;
+    tf::Vector3 target_acc_, target_ang_acc_;
     tf::Vector3 rpy_, target_rpy_;
     tf::Vector3 omega_, target_omega_;
 

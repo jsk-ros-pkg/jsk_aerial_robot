@@ -31,3 +31,8 @@ navigation:
   # desire tilt
   baselink_rot_pub_interval: 0.2
   baselink_rot_change_thresh: 0.04 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
+
+  # trajectory
+  trajectory_min_du: 2.0
+  trajectory_mean_yaw_rate: 0.6
+  enable_latch_yaw_trajectory: false

@@ -183,6 +183,11 @@ void UnderActuatedLQIController::controlCore()
       pid_msg_.z.i_term.at(i) = i_term;
       pid_msg_.z.d_term.at(i) = d_term;
     }
+  // feed-forward term for z
+  Eigen::MatrixXd q_mat_inv = getQInv();
+  double ff_acc_z = navigator_->getTargetAcc().z();
+  Eigen::VectorXd ff_term = q_mat_inv.col(0) * ff_acc_z;
+  target_thrust_z_term += ff_term;
 
   // constraint z (also  I term)
   int index;
@@ -203,6 +208,24 @@ void UnderActuatedLQIController::controlCore()
   allocateYawTerm();
 }
 
+Eigen::MatrixXd UnderActuatedLQIController::getQInv()
+{
+  // wrench allocation matrix
+  const std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  const auto& rotor_direction = robot_model_->getRotorDirection();
+  const double m_f_rate = robot_model_->getMFRate();
+  double uav_mass_inv = 1.0 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+  Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
+  for (unsigned int i = 0; i < motor_num_; ++i) {
+    q_mat(0, i) = rotors_normal.at(i).z() * uav_mass_inv;
+    q_mat.block(1, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
+  }
+  Eigen::MatrixXd q_mat_inv = aerial_robot_model::pseudoinverse(q_mat);
+  return q_mat_inv;
+}
+
 void UnderActuatedLQIController::allocateYawTerm()
 {
   Eigen::VectorXd target_thrust_yaw_term = Eigen::VectorXd::Zero(motor_num_);
@@ -216,6 +239,13 @@ void UnderActuatedLQIController::allocateYawTerm()
       pid_msg_.yaw.i_term.at(i) = i_term;
       pid_msg_.yaw.d_term.at(i) = d_term;
     }
+
+  // feed-forward term for yaw
+  Eigen::MatrixXd q_mat_inv = getQInv();
+  double ff_ang_yaw = navigator_->getTargetAngAcc().z();
+  Eigen::VectorXd ff_term = q_mat_inv.col(3) * ff_ang_yaw;
+  target_thrust_yaw_term += ff_term;
+
   // constraint yaw (also  I term)
   int index;
   double max_term = target_thrust_yaw_term.cwiseAbs().maxCoeff(&index);

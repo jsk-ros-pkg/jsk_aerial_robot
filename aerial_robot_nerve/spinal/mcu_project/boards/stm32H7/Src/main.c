@@ -229,6 +229,8 @@ int main(void)
 #endif
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
@@ -1042,8 +1044,6 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  IMU_ROS_CMD::init(&nh_);
-  IMU_ROS_CMD::addImu(&imu_);
   imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
