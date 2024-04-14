@@ -59,6 +59,16 @@ if [ ${ROS_DISTRO} = 'kinetic' ]; then
     wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model.config -P ${path}
 fi
 
+if [[ "$ROS_DISTRO" = "kinetic" ]]; then
+    # to use c++17
+    sudo apt-get install -y software-properties-common
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    sudo apt update
+    sudo apt install -y g++-7
+    export CXX='g++-7'
+    export CC='gcc-7'
+fi
+
 # Build
 catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 catkin build -p1 -j1 --no-status

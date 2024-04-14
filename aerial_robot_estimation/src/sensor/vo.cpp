@@ -80,6 +80,7 @@ namespace sensor_plugin
     if(time_sync_) queuse_size = 10;
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
+
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
@@ -92,6 +93,8 @@ namespace sensor_plugin
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
       }
+
+    prev_timestamp_ = 0;
   }
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -238,33 +241,43 @@ namespace sensor_plugin
               }
           }
 
-        /* step1: set the init offset from world to the baselink of UAV from egomotion estimation (e.g. yaw) */
-        /** ^{w}H_{b} **/
-        world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        /** step1: ^{w}H_{b'}, b': level frame of b **/
+        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
 
-        tf::Vector3 world_offset_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+        tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setX(world_offset_pos.x());
+          w_bdash_f.getOrigin().setX(baselink_pos.x());
         if(estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setY(world_offset_pos.y());
+          w_bdash_f.getOrigin().setY(baselink_pos.y());
         if(estimator_->getStateStatus(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-          world_offset_tf_.getOrigin().setZ(world_offset_pos.z());
+          w_bdash_f.getOrigin().setZ(baselink_pos.z());
 
-        /* set the init offset from world to the baselink of UAV if we know the ground truth */
+        /* set the offset if we know the ground truth */
         if(estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH))
           {
-            world_offset_tf_.setOrigin(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH));
-            world_offset_tf_.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0]));
-
-            double y, p, r; world_offset_tf_.getBasis().getRPY(r, p, y);
+            w_bdash_f.setOrigin(estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH));
+            w_bdash_f.setRotation(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)[0]));
           }
 
-        /* step2: also consider the offset tf from baselink to sensor */
-        /** ^{w}H_{b} * ^{b}H_{vo} * ^{vo}H_{w_vo} = ^{w}H_{w_vo} **/
-        world_offset_tf_ *= (sensor_tf_ * raw_sensor_tf.inverse());
+        /** step2: ^{vo}H_{b'} **/
+        tf::Transform vo_bdash_f = raw_sensor_tf * sensor_tf_.inverse(); // ^{vo}H_{b}
+        double r,p,y;
+        vo_bdash_f.getBasis().getRPY(r,p,y);
+        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y)); // ^{vo}H_{b'}
 
-        //double y, p, r; raw_sensor_tf.getBasis().getRPY(r, p, y);
-        tf::Vector3 init_pos = (world_offset_tf_ * raw_sensor_tf * sensor_tf_.inverse()).getOrigin();
+        /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
+        world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
+
+        /* publish the offset tf if necessary */
+        geometry_msgs::TransformStamped static_transformStamped;
+        static_transformStamped.header.stamp = vo_msg->header.stamp;
+        static_transformStamped.header.frame_id = "world";
+        static_transformStamped.child_frame_id = vo_msg->header.frame_id;
+        tf::transformTFToMsg(world_offset_tf_, static_transformStamped.transform);
+        static_broadcaster_.sendTransform(static_transformStamped);
+
+        tf::Vector3 init_pos = w_bdash_f.getOrigin();
+
 
         for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
           {
@@ -353,8 +366,8 @@ namespace sensor_plugin
     tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
 
     // velocity:
-    tf::Vector3 raw_local_vel;
-    tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_local_vel);
+    tf::Vector3 raw_vel;
+    tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_vel);
     /* get the latest orientation and omega */
     baselink_r = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
     baselink_omega = estimator_->getAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
@@ -365,11 +378,11 @@ namespace sensor_plugin
         // int mode = estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::GROUND_TRUTH)?aerial_robot_estimation::GROUND_TRUTH:aerial_robot_estimation::EGOMOTION_ESTIMATE;
         int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
 
-        if (raw_local_vel == tf::Vector3(0.0,0.0,0.0))
+        if (raw_vel == tf::Vector3(0.0,0.0,0.0))
           {
             /* the odometry message does not contain velocity information, we have to calulcate by ourselves. */
             tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
-            raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
+            raw_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
 
             reference_timestamp_ = (curr_timestamp_ + prev_timestamp_) / 2;
             estimator_->findRotOmega(reference_timestamp_, mode, baselink_r, baselink_omega);
@@ -384,7 +397,16 @@ namespace sensor_plugin
           }
       }
 
-    raw_global_vel_ = baselink_r * ( sensor_tf_.getBasis() * raw_local_vel - baselink_omega.cross(sensor_tf_.getOrigin()));
+    raw_global_vel_ = world_offset_tf_.getBasis() * raw_vel;
+    if (local_vel_mode_)
+      {
+        // if the velocity is described in local frame (i.e., the sensor frame),
+        // we need to convert to global one
+        raw_global_vel_ = baselink_r * sensor_tf_.getBasis() * raw_vel;
+      }
+    // consider the offset between baselink and sensor frames
+    raw_global_vel_ -= baselink_r * baselink_omega.cross(sensor_tf_.getOrigin());
+
 
     if(debug_verbose_)
       {
@@ -600,6 +622,7 @@ namespace sensor_plugin
   {
     getParam<int>("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
     getParam<bool>("vio_mode", vio_mode_, false);
+    getParam<bool>("local_vel_mode", local_vel_mode_, true);
     getParam<bool>("z_vel_mode", z_vel_mode_, false);
     getParam<bool>("z_no_delay", z_no_delay_, false);
     getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);

@@ -28,4 +28,4 @@ jobs:
           wstool init
           wstool merge aerial_robot_noetic.rosinstall
           wstool update
-          ROS_DISTRO=noetic catkin_lint --resolve-env --strict $PWD --skip-path kalman_filter --skip-path ublox_gps --skip-path aerial_robot_3rdparty  --skip-path rosserial
+          ROS_DISTRO=noetic catkin_lint --resolve-env --strict $PWD --skip-path kalman_filter --skip-path ublox_gps --skip-path aerial_robot_3rdparty  --skip-path rosserial --skip-path livox_ros_driver2 --skip-path fast_lio

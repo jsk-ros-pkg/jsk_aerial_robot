@@ -6,8 +6,7 @@
     type="mocap_node"
     name="mocap_node"
     respawn="false"
-    launch-prefix=""
-    required="true">
+    launch-prefix="">
     <rosparam subst_value="true">
       rigid_bodies:
          '$(arg robot_id)':
