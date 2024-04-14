@@ -11,7 +11,7 @@ navigation:
   takeoff_height: 1.0 #1.0
   outdoor_takeoff_height: 1.5
   convergent_duration: 10.0
-  land_descend_vel: 0.15
+  land_descend_vel: -0.15
 
   # teleop operation
   max_target_vel: 0.5
