@@ -12,6 +12,8 @@
   <depend>angles</depend>
   <depend>hydrus</depend>
   <depend>mujoco_ros_control</depend>
+  <depend>nlopt</depend>
+  <depend>osqp-eigen</depend>
   <depend>roscpp</depend>
 
   <exec_depend>aerial_robot_base</exec_depend>

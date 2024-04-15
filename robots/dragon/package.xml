@@ -17,6 +17,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>hydrus</build_depend>
   <build_depend>mujoco_ros_control</build_depend>
+  <build_depend>nlopt</build_depend>
   <build_depend>pluginlib</build_depend>
 
   <run_depend>aerial_robot_control</run_depend>
@@ -27,6 +28,7 @@
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>hydrus</run_depend>
+  <run_depend>nlopt</run_depend>
   <run_depend>pluginlib</run_depend>
 
   <test_depend>rostest</test_depend>
