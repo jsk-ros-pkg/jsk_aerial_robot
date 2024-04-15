@@ -1,11 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
-
+import tf
+import numpy as np
 from std_msgs.msg import Empty
 from std_msgs.msg import Int8
 from std_msgs.msg import UInt16
 from aerial_robot_msgs.msg import PoseControlPid
-
+from spinal.msg import Imu
+from std_msgs.msg import Float32MultiArray
 import sys, select, termios, tty, math
 
 msg = """
@@ -25,9 +27,26 @@ def cb(data):
                 pose_squared_errors_sum[1] = pose_squared_errors_sum[1] + data.y.err_p * data.y.err_p
                 pose_squared_errors_sum[2] = pose_squared_errors_sum[2] + data.z.err_p * data.z.err_p
 
-                pose_squared_errors_sum[3] = pose_squared_errors_sum[3] + data.roll.err_p * data.roll.err_p
-                pose_squared_errors_sum[4] = pose_squared_errors_sum[4] + data.pitch.err_p * data.pitch.err_p
+                # pose_squared_errors_sum[3] = pose_squared_errors_sum[3] + data.roll.err_p * data.roll.err_p
+                # pose_squared_errors_sum[4] = pose_squared_errors_sum[4] + data.pitch.err_p * data.pitch.err_p
                 pose_squared_errors_sum[5] = pose_squared_errors_sum[5] + data.yaw.err_p * data.yaw.err_p
+
+                rms = [math.sqrt(i / pose_cnt) for i in pose_squared_errors_sum]
+                # rospy.loginfo("RMS errors of pos: [%f, %f, %f]; rot: [%f, %f, %f]", rms[0], rms[1], rms[2], rms[3], rms[4], rms[5])
+def cb_roll_pitch(data):
+        global start_flag
+        if start_flag == True:
+                global pose_cnt
+                global pose_squared_errors_sum
+                pose_cnt = pose_cnt + 1
+
+                # transformation
+                R_imu = tf.transformations.euler_matrix(data.angles[0],data.angles[1],0)
+                R_from_body_to_imu = tf.transformations.euler_matrix(0,0,45*math.pi/180)
+                R_body = np.dot(R_imu,R_from_body_to_imu)
+                att = tf.transformations.euler_from_matrix(R_body)
+                pose_squared_errors_sum[3] = pose_squared_errors_sum[3] + att[0] * att[0]
+                pose_squared_errors_sum[4] = pose_squared_errors_sum[4] + att[1] * att[1]
 
                 rms = [math.sqrt(i / pose_cnt) for i in pose_squared_errors_sum]
                 #rospy.loginfo("RMS errors of pos: [%f, %f, %f]; rot: [%f, %f, %f]", rms[0], rms[1], rms[2], rms[3], rms[4], rms[5])
@@ -48,8 +67,11 @@ if __name__=="__main__":
         pose_squared_errors_sum = [0] * 6
         pose_cnt = 0
 
-        rospy.Subscriber("debug/pose/pid", PoseControlPid, cb)
-
+        rospy.Subscriber("/quadrotor/debug/pose/pid", PoseControlPid, cb)
+        #imu -> roll, pitch
+        rospy.Subscriber("/quadrotor/imu", Imu, cb_roll_pitch)
+        pub = rospy.Publisher("/rmse",Float32MultiArray,queue_size = 10)
+        msg = [0]*6
         rospy.init_node('rms_error')
 
         print(msg)
@@ -68,6 +90,10 @@ if __name__=="__main__":
                                         rms = [math.sqrt(i / pose_cnt) for i in pose_squared_errors_sum]
 
                                 rospy.loginfo("RMS of pos errors: [%f, %f, %f], att errors: [%f, %f, %f]", rms[0], rms[1], rms[2], rms[3], rms[4], rms[5])
+                                for i in range(6):
+                                        msg[i] = rms[i]
+                                msg_forPub = Float32MultiArray(data=msg)
+                                pub.publish(msg_forPub)
 
                                 start_flag = False
 
