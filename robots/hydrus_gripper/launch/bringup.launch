@@ -21,7 +21,7 @@
   <arg name="battery_type" default="True"/>
   <arg name="rs_d435" default="False"/>
 
-  <arg name="tree" default="real_RP_254_hydrus_v1" />
+  <arg name="tree" default="real_RP_254_hydrus_v2" />
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
   <arg name="body_r" default="0.55" />
