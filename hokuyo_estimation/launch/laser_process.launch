@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- tree detector -->
+  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node"/>
+</launch>
