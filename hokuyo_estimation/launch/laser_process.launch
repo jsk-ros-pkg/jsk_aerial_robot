@@ -4,6 +4,8 @@
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
   <group ns="$(arg robot_ns)">
   <!-- tree detector -->
-  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node"/>
+  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node">
+    <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
+  </node>
   </group>
 </launch>
