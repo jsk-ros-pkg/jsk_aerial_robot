@@ -33,7 +33,7 @@ TreeDataBase::TreeDataBase(ros::NodeHandle nh, ros::NodeHandle nhp):nh_(nh), nhp
   nhp_.param("tree_margin_radius", tree_margin_radius_, 1.0); // 1.0[m]
   nhp_.param("valid_num", valid_num_, 7);
   nhp_.param("verbose", verbose_, false);
-  nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("/visualization_marker"));
+  nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("visualization_marker"));
   nhp_.param("tree_cut_rate", tree_cut_rate_, 0.1);
   pub_visualization_marker_ = nh_.advertise<visualization_msgs::MarkerArray>(visualization_marker_topic_name_, 1);
 }

@@ -13,7 +13,7 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
   nhp_.param("tree_scan_angle_thre", tree_scan_angle_thre_, 0.1);
   nhp_.param("tree_circle_regulation_thre", tree_circle_regulation_thre_, 0.005);
   nhp_.param("tree_global_location_topic_name", tree_global_location_topic_name_, string("tree_global_location"));
-  nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("/visualization_marker"));
+  nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("visualization_marker"));
 
   sub_laser_scan_ = nh_.subscribe(laser_scan_topic_name_, 1, &TreeTracking::laserScanCallback, this);
   sub_odom_ = nh_.subscribe(odom_topic_name_, 1, &TreeTracking::uavOdomCallback, this);
