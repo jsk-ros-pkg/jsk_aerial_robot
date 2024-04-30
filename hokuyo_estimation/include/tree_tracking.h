@@ -30,8 +30,9 @@ private:
   ros::NodeHandle nh_, nhp_;
 
   ros::Subscriber sub_laser_scan_;
+  ros::Subscriber sub_odom_;
   ros::Publisher pub_visualization_marker_;
-  string laser_scan_topic_name_;
+  string laser_scan_topic_name_, odom_topic_name_;
   string tree_global_location_topic_name_;
   string visualization_marker_topic_name_;
 
