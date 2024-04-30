@@ -79,7 +79,7 @@ void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_
 
   /* find the tree most close to the previous target tree */
   bool target_update = false;
-  int prev_vote = target_trees_.back()->getVote();
+  // int prev_vote = target_trees_.back()->getVote();
   for ( vector<int>::iterator it = cluster_index.begin(); it != cluster_index.end(); ++it)
     {
       // /* we do not update trees pos if there is big tilt */
