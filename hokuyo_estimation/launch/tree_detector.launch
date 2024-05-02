@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="multirotor$(arg robot_id)" />
+  <group ns="$(arg robot_ns)">
+
+  <!-- 2D scan filter & clustering -->
+  <include file="$(find jsk_uav_forest_perception)/launch/laser_process.launch">
+  </include>
+
+  <!-- tree detector -->
+  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node">
+    <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
+  </node>
+  </group>
+</launch>
