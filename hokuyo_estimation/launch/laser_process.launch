@@ -1,11 +1,17 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="robot_id" default="" />
-  <arg name="robot_ns" value="multirotor$(arg robot_id)" />
-  <group ns="$(arg robot_ns)">
-  <!-- tree detector -->
-  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node">
-    <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
+  <!-- shadow_laser_filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="shadow_laser_filter">
+    <remap from="scan" to="scan" />
+    <remap from="scan_filtered" to="shadow_filtered" />
+    <rosparam command="load" file="$(find jsk_uav_forest_perception)/param/LaserShadowFilter.yaml" />
   </node>
-  </group>
+
+  <!-- laser clustering  filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="trees_filter">
+    <remap from="scan" to="shadow_filtered" />
+    <remap from="scan_filtered" to="scan_clustered" />
+    <rosparam command="load" file="$(find jsk_uav_forest_perception)/param/LaserClustering.yaml" />
+
+  </node>
 </launch>

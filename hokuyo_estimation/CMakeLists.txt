@@ -43,6 +43,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   )
 
+add_library(laser_clustering_filter SHARED src/laser_clustering_filter.cpp)
+target_link_libraries(laser_clustering_filter ${catkin_LIBRARIES})
+
 add_library(tree_tracking src/tree_tracking.cpp src/tree_database.cpp src/circle_detection.cpp)
 target_link_libraries(tree_tracking ${catkin_LIBRARIES})
 
