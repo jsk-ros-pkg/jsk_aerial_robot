@@ -4,14 +4,14 @@
   <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="shadow_laser_filter">
     <remap from="scan" to="scan" />
     <remap from="scan_filtered" to="shadow_filtered" />
-    <rosparam command="load" file="$(find jsk_uav_forest_perception)/param/LaserShadowFilter.yaml" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserShadowFilter.yaml" />
   </node>
 
   <!-- laser clustering  filter -->
   <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="trees_filter">
     <remap from="scan" to="shadow_filtered" />
     <remap from="scan_filtered" to="scan_clustered" />
-    <rosparam command="load" file="$(find jsk_uav_forest_perception)/param/LaserClustering.yaml" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserClustering.yaml" />
 
   </node>
 </launch>
