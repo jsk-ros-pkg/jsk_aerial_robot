@@ -10,6 +10,7 @@
 
   <!-- tree detector -->
   <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node">
+    <param name="laser_scan_topic_name" value="scan_clustered" />
     <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
   </node>
   </group>

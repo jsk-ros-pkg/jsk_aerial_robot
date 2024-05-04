@@ -7,7 +7,7 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
 {
   nhp_.param("urg_yaw_offset", urg_yaw_offset_, 0.0);
   nhp_.param("laser_scan_topic_name", laser_scan_topic_name_, string("scan"));
-  nhp_.param("laser_scan_topic_name", odom_topic_name_, string("odom"));
+  nhp_.param("uav_odom_topic_name", odom_topic_name_, string("odom"));
   nhp_.param("tree_radius_max", tree_radius_max_, 0.3);
   nhp_.param("tree_radius_min", tree_radius_min_, 0.08);
   nhp_.param("tree_scan_angle_thre", tree_scan_angle_thre_, 0.1);
