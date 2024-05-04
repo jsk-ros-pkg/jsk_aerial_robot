@@ -21,6 +21,9 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>laser_filters</build_depend>
+  <build_depend>filters</build_depend>
+
   <build_export_depend>cmake_modules</build_export_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>dynamic_reconfigure</build_export_depend>
@@ -32,6 +35,9 @@
   <build_export_depend>sensor_msgs</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>tf</build_export_depend>
+  <build_export_depend>laser_filters</build_export_depend>
+  <build_export_depend>filters</build_export_depend>
+
   <exec_depend>cmake_modules</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>dynamic_reconfigure</exec_depend>
@@ -43,11 +49,13 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
+  <exec_depend>laser_filters</exec_depend>
+  <exec_depend>filters</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
+    <!-- <hokuyo_estimation plugin="${prefix}/vision_detection_plugins.xml"/> -->
+    <filters plugin="${prefix}/laser_filters_plugins.xml"/>
   </export>
 </package>
