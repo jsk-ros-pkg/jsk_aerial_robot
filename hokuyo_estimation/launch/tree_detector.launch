@@ -5,7 +5,7 @@
   <group ns="$(arg robot_ns)">
 
   <!-- 2D scan filter & clustering -->
-  <include file="$(find jsk_uav_forest_perception)/launch/laser_process.launch">
+  <include file="$(find hokuyo_estimation)/launch/laser_process.launch">
   </include>
 
   <!-- tree detector -->
