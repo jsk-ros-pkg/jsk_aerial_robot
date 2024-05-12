@@ -135,8 +135,8 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
       return;
     }
 
-  uint8_t servo_index = req.data[0];
-  ServoData& s = servo_handler_.getOneServo(servo_index);
+  uint8_t servo_index = servo_handler_.getServoIndex(req.data[0]);
+  ServoData& s = servo_handler_.getOneServo(req.data[0]);
   if(s == servo_handler_.getOneServo(0)){ 
     nh_->logerror("Invalid Servo ID!");
     return;
@@ -145,19 +145,31 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
   switch (command) {
   case spinal::SetDirectServoConfig::Request::SET_SERVO_HOMING_OFFSET:
     {
-      int32_t calib_value = req.data[1];
-      s.calib_value_ = calib_value;
-      servo_handler_.setHomingOffset(servo_index);
+      if(!s.torque_enable_){
+        int32_t calib_value = req.data[1];
+        s.calib_value_ = calib_value;
+        servo_handler_.setHomingOffset(servo_index);
+        res.success = true;
+      }else{
+        nh_->logerror("Cannot set homing offset during torque on state.");
+        res.success = false;
+      }
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_PID_GAIN:
     {
-      s.p_gain_ = req.data[1];
-      s.i_gain_ = req.data[2];
-      s.d_gain_ = req.data[3];
-      servo_handler_.setPositionGains(servo_index);
-      FlashMemory::erase();
-      FlashMemory::write();
+      if(!s.torque_enable_){
+        s.p_gain_ = req.data[1];
+        s.i_gain_ = req.data[2];
+        s.d_gain_ = req.data[3];
+        servo_handler_.setPositionGains(servo_index);
+        FlashMemory::erase();
+        FlashMemory::write();
+        res.success = true;
+      }else{
+        nh_->logerror("Cannot set PID gains during torque on state.");
+        res.success = false;
+      }
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_PROFILE_VEL:
@@ -166,6 +178,7 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
       servo_handler_.setProfileVelocity(servo_index);
       FlashMemory::erase();
       FlashMemory::write();
+      res.success = true;
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_SEND_DATA_FLAG:
@@ -173,12 +186,14 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
       s.send_data_flag_ = req.data[1];
       FlashMemory::erase();
       FlashMemory::write();
+      res.success = true;
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_CURRENT_LIMIT:
     {
       s.current_limit_ = req.data[1];
       servo_handler_.setCurrentLimit(servo_index);
+      res.success = true;
       break;
     }
   case spinal::SetDirectServoConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:
@@ -194,6 +209,10 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
           }
         FlashMemory::erase();
         FlashMemory::write();
+        res.success = true;
+      }else{
+        nh_->logerror("Cannot set ex encoder falg during torque on state.");
+        res.success = false;
       }
       break;
     }
@@ -214,12 +233,17 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
           FlashMemory::erase();
           FlashMemory::write();
         }
+        res.success = true;
+      }else{
+        nh_->logerror("Cannot set resolution rate during torque on state.");
+        res.success = false;
       }
+      
       break;
     }
   default:
     break;
   }
-  res.success = true;
+  // res.success = true;
 }
 
