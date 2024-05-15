@@ -56,7 +56,7 @@ void ICM20948::gyroInit(void)
   spiModeEnable(); // Use only SPI mode
   
   /* 3.Gyro initialization (Do not change following order) */
-  setGyroLpf(0);
+  setGyroLpf(3);
   setGyroSampleRate(0);
   setGyroFullScale(_2000dps);  
 }
@@ -65,7 +65,7 @@ void ICM20948::accInit (void)
 {
   HAL_Delay(100);
   /* 5.Acc initialization (Do not change following order) */
-  setAccelLpf(0);
+  setAccelLpf(6);
   setAccelSampleRate(0);
   setAccelFullScale(_8g);
 }
@@ -313,14 +313,16 @@ void ICM20948::odrAlignEnable()
 
 void ICM20948::setGyroLpf(uint8_t config)
 {
-  uint8_t new_val =  config << 3;
+  readSingleIcm20948(ub_2, B2_GYRO_CONFIG_1);
+  uint8_t new_val =  single_adc_ | (config << 3);
 
   writeSingleIcm20948(ub_2, B2_GYRO_CONFIG_1, new_val);
 }
 
 void ICM20948::setAccelLpf(uint8_t config)
 {
-  uint8_t new_val =  config << 3;
+  readSingleIcm20948(ub_2, B2_ACCEL_CONFIG);
+  uint8_t new_val =  single_adc_ | (config << 3);
 
   writeSingleIcm20948(ub_2, B2_ACCEL_CONFIG, new_val);
 }
