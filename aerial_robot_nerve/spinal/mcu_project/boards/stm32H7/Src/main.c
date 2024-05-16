@@ -245,15 +245,18 @@ int main(void)
 #else 
   estimator_.init(&imu_, &baro_, NULL, &nh_);
 #endif
-  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
 #if SERVO_FLAG
   servo_.init(&huart3, &nh_, NULL);
+  controller_.init(&htim1, &htim4, &estimator_, &servo_, &battery_status_, &nh_, &flightControlMutexHandle);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+#else
+  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
   
   /* USER CODE END 2 */
