@@ -18,7 +18,7 @@ servo_controller:
       name: head_joint
       angle_sgn: -1
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 1.0}
+        pid: {p: 20.0, i: 0.1, d: 1.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
@@ -27,7 +27,7 @@ servo_controller:
       name: tail_joint
       angle_sgn: -1
       simulation:
-        pid: {p: 50.0, i: 0.01, d: 1.0}
+        pid: {p: 20.0, i: 0.1, d: 1.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
