@@ -17,7 +17,7 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   KDL::Frame f_baselink;
   fk_solver.JntToCart(joint_positions, f_baselink, getBaselinkName());
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
-  RobotModel::updateRobotModelImpl(joint_positions);
+  transformable::RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
 
   /* get local coords of thrust links */

@@ -273,7 +273,7 @@ namespace aerial_robot_control
         gimbal_state_msg.name.push_back(gimbal_pitch_name);
       }
     }
-    gimbal_state_pub_.publish(gimbal_state_msg);
+    // gimbal_state_pub_.publish(gimbal_state_msg);
 
   }
 
