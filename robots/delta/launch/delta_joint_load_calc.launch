@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="real_machine" default="False" />
+  <arg name="simulation" default="False" />
+  <arg name="headless" default="True" />
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="delta$(arg robot_id)" />
+  <arg name="direct_model" default="False" />
+  <arg name="config_dir" default="$(find delta)/config"/>
+  <arg name="type" default="20240319_mesh"/>
+  <arg name="verbose" default="false"/>
+  <arg name="wrench_mode" default="0"/>
+
+  ###########  Robot Model  ###########
+  <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
+  <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="robot_model" value="$(find delta)/robots/$(arg type)/rolling.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rviz_config" value="$(arg config_dir)/default.rviz" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/$(arg type)/RvizInit.yaml" />
+    <arg name="need_joint_state" value="false"/>
+  </include>
+
+  <group ns="$(arg robot_ns)">
+    <rosparam file="$(find delta)/config/$(arg type)/joint_load.yaml" command="load"/>
+    <param name="wrench_mode" value="$(arg wrench_mode)"/>
+    <param name="verbose" value="$(arg verbose)" />
+  </group>
+
+  <node pkg="delta" type="delta_joint_load_calc" name="delta_joint_load_calc" output="screen" ns="$(arg robot_ns)"/>
+
+</launch>

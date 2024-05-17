@@ -1,6 +1,6 @@
 rotor_num: 3
 mass: 4.3
-max_thrust: 28.0
+max_thrust: 26.5
 theta_max: 0.6
 max_eval: 50000
 m_f_rate: -0.0156

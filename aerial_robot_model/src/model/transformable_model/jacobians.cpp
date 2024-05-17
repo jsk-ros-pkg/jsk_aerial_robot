@@ -9,6 +9,11 @@ Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, st
   
   Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse());
 
+  // std::cout << "cog desire orientation:\n" << aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>()) << std::endl;
+  // std::cout << "baselink M:\n" << aerial_robot_model::kdlToEigen(seg_frames.at(getBaselinkName()).M) << std::endl;
+  // std::cout << "baselink M inverse:\n" << aerial_robot_model::kdlToEigen(seg_frames.at(getBaselinkName()).M.Inverse()) << std::endl;
+  // std::cout << "root rot: \n" << root_rot << std::endl;
+
   KDL::TreeJntToJacSolver solver(tree);
   KDL::Jacobian jac(tree.getNrOfJoints());
   int status = solver.JntToJac(joint_positions, jac, segment_name);
