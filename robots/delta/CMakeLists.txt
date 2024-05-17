@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   casadi_eigen
+  cddeigen
   hydrus
   mujoco_ros_control
   osqp_slsqp
@@ -24,8 +25,10 @@ find_package(pinocchio REQUIRED)
 find_package(casadi REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs casadi_eigen hydrus osqp_slsqp pluginlib roscpp
-)
+  INCLUDE_DIRS include test
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs casadi_eigen cddeigen hydrus osqp_slsqp pluginlib roscpp
+  LIBRARIES delta_controller delta_robot_model delta_navigation
+  )
 
 include_directories(
   include
@@ -49,32 +52,29 @@ add_library(delta_navigation src/navigation/delta_navigation.cpp)
 target_link_libraries(delta_navigation ${catkin_LIBRARIES})
 
 add_executable(delta_optimal_design src/design/delta_optimal_design.cpp)
-target_link_libraries(delta_optimal_design
-  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(delta_optimal_design ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
+add_executable(delta_joint_load_calc src/design/delta_joint_load_calc.cpp)
+target_link_libraries(delta_joint_load_calc
+  ${catkin_LIBRARIES} delta_robot_model)
 
 add_executable(opt src/design/opt.cpp)
-target_link_libraries(opt
-  ${catkin_LIBRARIES})
+target_link_libraries(opt ${catkin_LIBRARIES})
 
 add_executable(full_search src/design/full_search.cpp)
-target_link_libraries(full_search
-  ${catkin_LIBRARIES})
+target_link_libraries(full_search ${catkin_LIBRARIES})
 
 add_executable(fc_t_output src/design/fc_t_output.cpp)
-target_link_libraries(fc_t_output
-  ${catkin_LIBRARIES})
+target_link_libraries(fc_t_output ${catkin_LIBRARIES})
 
 add_executable(optimal_design src/design/optimal_design.cpp)
-target_link_libraries(optimal_design
-  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(optimal_design ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_executable(mapping_optimization src/design/mapping_optimization.cpp)
-target_link_libraries(mapping_optimization
-  ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(mapping_optimization ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_executable(pwm_republisher src/util/pwm_republisher.cpp)
-target_link_libraries(pwm_republisher
-  ${catkin_LIBRARIES})
+target_link_libraries(pwm_republisher ${catkin_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}

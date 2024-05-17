@@ -159,7 +159,8 @@ void RollingController::rosParamInit()
 bool RollingController::update()
 {
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
-
+  // std::cout << rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame() << std::endl;
+  // std::cout << std::endl;
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
       if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE)
