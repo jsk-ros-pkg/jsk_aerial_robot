@@ -1048,24 +1048,47 @@ void AttitudeController::pwmConversion()
     }
 
 #else
-  if(gimbal_dof_){
-    std::map<uint8_t, float> gimbal_map;
-    for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
-      if(start_control_flag_)
-        {
-          gimbal_map[i+1] = target_gimbal_angles_[i];
-          int target_angle = (int)(target_gimbal_angles_[i]*10);
+  switch(gimbal_dof_)
+    {
+    case 2:
+      {
+        std::map<uint8_t, float> gimbal_map;
+        for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
+          if(start_control_flag_)
+            {
+              gimbal_map[2*i] =  target_gimbal_angles_[2*i];
+              gimbal_map[2*i+1] = target_gimbal_angles_[2*i+1];
+            }
+          else
+            {
+              gimbal_map[2*i] =  0;
+              gimbal_map[2*i+1] = 0;
+            }
         }
-      else
-        {
-          // gimbal_map[i+1] = 0;
-          // int target_angle = (int)(0);          
-          gimbal_map[i+1] = 100.0;
+        if(start_control_flag_)
+          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+        else
+          servo_->torqueEnable(gimbal_map);
+        break;
+      }
+    case 1:
+      {
+        std::map<uint8_t, float> gimbal_map;
+        for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
+          if(start_control_flag_)
+            gimbal_map[i] = target_gimbal_angles_[i];
+          else
+            gimbal_map[i] = 0;
         }
+        if(start_control_flag_)
+          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+        else
+          servo_->torqueEnable(gimbal_map);
+        break;
+      }
+    default:
+      break;
     }
-    // kondo_servo_->setTargetPos(gimbal_map);
-    servo_->setGoalAngle(gimbal_map);
-  }
 #endif
   
 }
