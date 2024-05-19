@@ -16,6 +16,7 @@ includes ------------------------------------------------------------------*/
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/SetDirectServoConfig.h>
+#include <spinal/JointProfiles.h>
 #include <string.h>
 #include <config.h>
 #include <map>
@@ -23,12 +24,19 @@ includes ------------------------------------------------------------------*/
 
 class Initializer;
 
+namespace ValueType
+{
+  enum
+    {BIT = 0, RADIAN = 1};
+};
+
 class DirectServo
 {
 public:
   DirectServo():
     servo_ctrl_sub_("servo/target_states", &DirectServo::servoControlCallback,this),
     servo_torque_ctrl_sub_("servo/torque_enable", &DirectServo::servoTorqueControlCallback,this),
+    joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
     servo_state_pub_("servo/states", &servo_state_msg_),
     servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_),
     servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this)
@@ -39,7 +47,8 @@ public:
   void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
   void update();
   void sendData();
-  void setGoalAngle(const std::map<uint8_t, float>& servo_map);
+  void torqueEnable(const std::map<uint8_t, float>& servo_map);
+  void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
     return static_cast<uint32_t>(angle /scale + zero_point_pos);
@@ -50,6 +59,7 @@ private:
   ros::NodeHandle* nh_;
   ros::Subscriber<spinal::ServoControlCmd, DirectServo> servo_ctrl_sub_;
   ros::Subscriber<spinal::ServoTorqueCmd, DirectServo> servo_torque_ctrl_sub_;
+  ros::Subscriber<spinal::JointProfiles, DirectServo> joint_profiles_sub_;
   ros::Publisher servo_state_pub_;
   ros::Publisher servo_torque_state_pub_;
 
@@ -63,6 +73,7 @@ private:
 
   void servoControlCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
+  void jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg);
   
   void servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res);
   
@@ -76,6 +87,17 @@ private:
     ServoState(uint16_t angle, uint8_t temperature, uint8_t moving, int16_t current, uint8_t error)
       :angle(angle), temperature(temperature), moving(moving), current(current), error(error){}
   };
+
+  struct JointProf{
+    uint8_t servo_id;
+    int8_t angle_sgn;
+    float angle_scale;
+    int16_t zero_point_offset;
+  };
+
+  JointProf joint_profiles_[MAX_SERVO_NUM];
+
+    
 
   DynamixelSerial servo_handler_;
   friend class Initializer;
