@@ -9,12 +9,10 @@ Panels:
         - /Grid1
         - /LaserScan1
         - /LaserScan2
+        - /LaserScan2/Status1
         - /LaserScan3
         - /MarkerArray1
-        - /MarkerArray1/Status1
-        - /Odometry1
-        - /Odometry1/Status1
-        - /Odometry1/Shape1
+        - /Axes1
       Splitter Ratio: 0.45338207483291626
     Tree Height: 1799
   - Class: rviz/Selection
@@ -34,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -153,40 +151,14 @@ Visualization Manager:
         tree_diameter: true
       Queue Size: 100
       Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
+    - Alpha: 1
+      Class: rviz/Axes
       Enabled: true
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Queue Size: 10
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 255; 25; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
-        Shaft Length: 1
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
-      Topic: /multirotor/uav/cog/odom
-      Unreliable: false
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: multirotor/main_body
+      Show Trail: false
       Value: true
   Enabled: true
   Global Options:
