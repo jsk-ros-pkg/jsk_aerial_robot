@@ -2,6 +2,7 @@
 <launch>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
+  <arg name="show_rviz" default="false"/>
   <group ns="$(arg robot_ns)">
 
   <!-- 2D scan filter & clustering -->
@@ -13,5 +14,8 @@
     <param name="laser_scan_topic_name" value="scan_clustered" />
     <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
   </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/rviz_config.rviz" if="$(arg show_rviz)"/>
+
   </group>
 </launch>
