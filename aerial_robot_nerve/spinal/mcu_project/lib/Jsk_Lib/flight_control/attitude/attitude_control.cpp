@@ -655,10 +655,11 @@ void AttitudeController::maxYawGainIndex()
 
 void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 {
+#ifndef SIMULATION  
   if(pwm_msg.pwms_length && !pwm_test_flag_)
     {
       pwm_test_flag_ = true;
-      nh_->logwarn("Enter pwm test mode"); 
+      nh_->logwarn("Enter pwm test mode");
     }
   else if(!pwm_msg.pwms_length && pwm_test_flag_)
     {
@@ -687,6 +688,7 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         pwm_test_value_[i] = pwm_msg.pwms[0];
       }
     }
+#endif  
 }
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
