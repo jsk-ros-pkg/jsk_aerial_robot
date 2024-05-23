@@ -4,8 +4,8 @@ scan_filter_chain:
   params:
         min_angle: 20
         max_angle: 160
-        neighbors: 10
-        window: 1
+        neighbors: 3
+        window: 3
 - name: range
   type: laser_filters/LaserScanRangeFilter
   params:
