@@ -37,6 +37,8 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
+catkin_python_setup()
+
 add_library(delta_controller
   src/control/delta_controller_common.cpp
   src/control/delta_controller_utils.cpp
