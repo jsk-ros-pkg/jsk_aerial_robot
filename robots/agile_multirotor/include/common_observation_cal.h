@@ -12,6 +12,7 @@
 #include <aerial_robot_msgs/ObstacleArray.h>
 #include <fstream>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <sstream>
 #include <std_msgs/Float64MultiArray.h>
 
@@ -58,6 +59,7 @@ private:
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
   ros::Subscriber odom_sub_;
+  ros::Subscriber marker_sub_;
   ros::Publisher obs_pub_;
   ros::Publisher obs_min_dist_pub_;
 
@@ -90,4 +92,5 @@ private:
   std::vector<std::string> split(std::string &input, char delimiter);
 
   void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
+  void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
 };

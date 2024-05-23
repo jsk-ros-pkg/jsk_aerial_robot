@@ -4,33 +4,41 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     : nh_(nh), pnh_(pnh), call_(0) {
 
   std::string file, quad_name;
-  shift_x_, shift_y_;
+  bool from_hokuyo;
   pnh_.getParam("cfg_path", file);
+  pnh_.getParam("hokuyo", from_hokuyo);
   pnh_.getParam("shift_x", shift_x_);
   pnh_.getParam("shift_y", shift_y_);
   pnh_.getParam("robot_ns", quad_name);
   pnh_.getParam("print_yaw", print_yaw_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
   pnh_.getParam("body_r", body_r_);
-  //   file = file + ".csv";
-  std::cout << "file name is " << file << std::endl;
-  std::ifstream ifs(file);
-  if (!ifs) {
-    std::cerr << "cannot open file" << std::endl;
-    std::exit(1);
-  }
-  std::string line;
 
-  while (std::getline(ifs, line)) {
-    std::vector<std::string> strvec = split(line, ',');
-    Eigen::Vector3d tree_pos;
-    tree_pos(0) = stof(strvec.at(1))+shift_x_; //world coodinate
-    // std::cout << "shift_x is: " << shift_x_ << std::endl;
-    // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
-    tree_pos(1) = stof(strvec.at(2))+shift_y_; //world coodinate
-    tree_pos(2) = 0;
-    positions_.push_back(tree_pos);
-    radius_list_.push_back(stof(strvec.at(8)));
+  //   file = file + ".csv";
+  if (!from_hokuyo){
+    std::cout << "file name is " << file << std::endl;
+    std::ifstream ifs(file);
+    if (!ifs) {
+      std::cerr << "cannot open file" << std::endl;
+      std::exit(1);
+    }
+    std::string line;
+
+    while (std::getline(ifs, line)) {
+      std::vector<std::string> strvec = split(line, ',');
+      Eigen::Vector3d tree_pos;
+      tree_pos(0) = stof(strvec.at(1))+shift_x_; //world coodinate
+      // std::cout << "shift_x is: " << shift_x_ << std::endl;
+      // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
+      tree_pos(1) = stof(strvec.at(2))+shift_y_; //world coodinate
+      tree_pos(2) = 0;
+      positions_.push_back(tree_pos);
+      radius_list_.push_back(stof(strvec.at(8)));
+    }
+  }
+  else {
+    marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
+                            &ObstacleCalculator::VisualizationMarkerCallback, this);
   }
 
   odom_sub_ = nh_.subscribe("/" + quad_name + "/uav/cog/odom", 1,
@@ -50,6 +58,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   common_r_ = 0.2;
 
   set_collision_point();
+}
+
+void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
+  ROS_INFO("VisualizationMarkerCallback is called");
 }
 
 void ObstacleCalculator::CalculatorCallback(
