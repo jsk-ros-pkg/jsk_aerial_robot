@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="real_machine" default="True" />
+  <arg name="simulation" default="False" />
+  <arg name="robot_ns" default="" />
+
+  <group ns="$(arg robot_ns)">
+    <group if= "$(eval not arg('simulation') and arg('real_machine') )">
+      <include file="$(find hokuyo_estimation)/launch/urg_node.launch">
+      </include>
+    </group>
+
+    <include file="$(find hokuyo_estimation)/launch/tree_detector.launch">
+      <!-- show rviz only in simulation -->
+      <arg name="show_rviz" value="$(arg simulation)" />
+    </include>
+
+  </group>
+</launch>
