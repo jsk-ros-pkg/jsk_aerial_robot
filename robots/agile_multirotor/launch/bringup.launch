@@ -128,9 +128,10 @@
 
   ####### HOKUYO sensor launch  ############
   <!-- real exec to use hokuyo sensor  -->
-  <group if= "$(eval not arg('simulation') and arg('real_machine') and arg('hokuyo'))">
-  <include file="$(find agile_multirotor)/launch/urg_node.launch" >
-   </include>
-   </group>
+  <include file="$(find hokuyo_estimation)/launch/bringup.launch" if= "$(arg hokuyo)">
+    <arg name="real_machine" value="$(arg real_machine)" />
+    <arg name="simulation" value="$(arg simulation)" />
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+  </include>
 
 </launch>

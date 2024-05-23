@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="robot_id" default="" />
-  <arg name="robot_ns" value="multirotor$(arg robot_id)" />
-  <arg name="show_rviz" default="false"/>
-  <group ns="$(arg robot_ns)">
+  <arg name="robot_ns" default="" />
+  <arg name="show_rviz" default="False"/>
 
   <!-- 2D scan filter & clustering -->
   <include file="$(find hokuyo_estimation)/launch/laser_process.launch">
@@ -17,5 +15,4 @@
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/rviz_config.rviz" if="$(arg show_rviz)"/>
 
-  </group>
 </launch>
