@@ -41,6 +41,7 @@
   <run_depend>pinocchio</run_depend>
   <run_depend>pluginlib</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
 
   <test_depend>rostest</test_depend>
 
