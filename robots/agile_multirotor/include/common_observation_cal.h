@@ -90,6 +90,8 @@ private:
   double shift_x_, shift_y_;
   double body_r_;
   bool record_marker_;
+  bool from_hokuyo_;
+  bool have_hokuyo_data_;
 
 
   std::vector<std::string> split(std::string &input, char delimiter);

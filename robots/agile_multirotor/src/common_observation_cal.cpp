@@ -4,9 +4,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     : nh_(nh), pnh_(pnh), call_(0) {
 
   std::string file, quad_name;
-  bool from_hokuyo;
   pnh_.getParam("cfg_path", file);
-  pnh_.getParam("hokuyo", from_hokuyo);
+  pnh_.getParam("hokuyo", from_hokuyo_);
   pnh_.getParam("shift_x", shift_x_);
   pnh_.getParam("shift_y", shift_y_);
   pnh_.getParam("robot_ns", quad_name);
@@ -15,7 +14,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("body_r", body_r_);
 
   //   file = file + ".csv";
-  if (!from_hokuyo){
+  if (!from_hokuyo_){
     std::cout << "file name is " << file << std::endl;
     std::ifstream ifs(file);
     if (!ifs) {
@@ -37,11 +36,13 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     }
   }
   else {
+    record_marker_ = false;
+    have_hokuyo_data_ = false;
+
     marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
                             &ObstacleCalculator::VisualizationMarkerCallback, this);
     record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
                             &ObstacleCalculator::RecordMarkerCallback, this);
-    record_marker_ = false;
   }
 
   odom_sub_ = nh_.subscribe("/" + quad_name + "/uav/cog/odom", 1,
@@ -64,8 +65,23 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 }
 
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
-  ROS_INFO("record_marker_ is %d",record_marker_);
-  record_marker_ = false;
+
+  if (record_marker_){
+    for (const visualization_msgs::Marker &tree_data : msg->markers) {
+      if (tree_data.ns=="tree_diameter") continue;
+      Eigen::Vector3d tree_pos;
+      geometry_msgs::Point position = tree_data.pose.position;
+      tree_pos(0) = position.x; //world coodinate
+      tree_pos(1) = position.y; //world coodinate
+      tree_pos(2) = 0;
+      positions_.push_back(tree_pos);
+
+      geometry_msgs::Vector3 scale = tree_data.scale;
+      radius_list_.push_back(scale.x/2);
+      have_hokuyo_data_ = true;
+      record_marker_ = false;
+    }
+  }
 }
 
 void ObstacleCalculator::RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg){
@@ -140,8 +156,9 @@ void ObstacleCalculator::CalculatorCallback(
   for (size_t i = 0; i < Vision::Rotor_Num; ++i) {
     obstacle_msg.R_vel_obs.push_back(R_vel_obs_distance_[i]);
   }
-
+  if (!from_hokuyo_ || have_hokuyo_data_){
   obs_pub_.publish(obstacle_msg);
+  }
 
   //   if (call == 400) {
   //     std::cout << "v: " << std::endl;
