@@ -39,6 +39,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   else {
     marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
                             &ObstacleCalculator::VisualizationMarkerCallback, this);
+    record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
+                            &ObstacleCalculator::RecordMarkerCallback, this);
   }
 
   odom_sub_ = nh_.subscribe("/" + quad_name + "/uav/cog/odom", 1,
@@ -62,6 +64,10 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
   ROS_INFO("VisualizationMarkerCallback is called");
+}
+
+void ObstacleCalculator::RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg){
+  ROS_INFO("RecordMarkerCallback is called");
 }
 
 void ObstacleCalculator::CalculatorCallback(

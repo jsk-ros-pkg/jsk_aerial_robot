@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Empty.h>
 #include <string>
 #include <vector>
 // #include <tf/tf.h>
@@ -60,6 +61,7 @@ private:
   ros::NodeHandle pnh_;
   ros::Subscriber odom_sub_;
   ros::Subscriber marker_sub_;
+  ros::Subscriber record_sub_;
   ros::Publisher obs_pub_;
   ros::Publisher obs_min_dist_pub_;
 
@@ -93,4 +95,5 @@ private:
 
   void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
   void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
+  void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
 };
