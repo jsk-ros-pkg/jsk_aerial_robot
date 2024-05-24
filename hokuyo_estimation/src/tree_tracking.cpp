@@ -70,7 +70,7 @@ void TreeTracking::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg)
 
 void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg)
 {
-   ROS_INFO("receive new laser scan");
+   // ROS_INFO("receive new laser scan");
 
   /* extract the cluster */
   vector<int> cluster_index;
@@ -138,7 +138,7 @@ void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_
           else
             {
               // if(verbose_)
-                ROS_INFO("radius: %f, min: %f, max: %f", tree_radius, tree_radius_min_, tree_radius_max_);
+                // ROS_INFO("radius: %f, min: %f, max: %f", tree_radius, tree_radius_min_, tree_radius_max_);
             }
       // else
       //   {
