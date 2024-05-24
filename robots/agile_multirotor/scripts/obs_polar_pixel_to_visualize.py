@@ -56,7 +56,7 @@ class PolarPixelVisualizeNode:
         self.publish_commands = False
         self.state = None
 
-        self.obs_polar_pixel_sub = rospy.Subscriber("/" + quad_name + "/debug/obs_polar_pixel", ObstacleArray, self.obs_polar_pixel_conversion_callback, 
+        self.obs_polar_pixel_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray, self.obs_polar_pixel_conversion_callback,
                                         queue_size=1, tcp_nodelay=True)
         self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
                                     queue_size=1, tcp_nodelay=True)
