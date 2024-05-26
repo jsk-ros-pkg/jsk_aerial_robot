@@ -169,6 +169,14 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        delta/cog:
+          Value: true
+        delta/contact_point:
+          Value: true
+        delta/contact_point_alined:
+          Value: true
+        delta/contact_point_real:
+          Value: true
         delta/fc:
           Value: false
         delta/gimbal_link1:
@@ -211,6 +219,8 @@ Visualization Manager:
           Value: true
         delta/thrust3:
           Value: true
+        world:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 0.30000001192092896
       Name: TF
@@ -218,45 +228,54 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        delta/root:
-          delta/link1:
-            delta/gimbal_link1:
-              delta/rotor_parent1:
-                delta/thrust1:
-                  {}
-            delta/link1_center:
+        world:
+          delta/root:
+            delta/cog:
               {}
-            delta/link1_leg:
+            delta/contact_point:
               {}
-            delta/link2:
-              delta/fc:
-                {}
-              delta/gimbal_link2:
-                delta/rotor_parent2:
-                  delta/thrust2:
+            delta/contact_point_alined:
+              {}
+            delta/contact_point_real:
+              {}
+            delta/link1:
+              delta/gimbal_link1:
+                delta/rotor_parent1:
+                  delta/thrust1:
                     {}
-              delta/link2_center:
+              delta/link1_center:
                 {}
-              delta/link2_leg:
+              delta/link1_leg:
                 {}
-              delta/link3:
-                delta/gimbal_link3:
-                  delta/rotor_parent3:
-                    delta/thrust3:
+              delta/link2:
+                delta/fc:
+                  {}
+                delta/gimbal_link2:
+                  delta/rotor_parent2:
+                    delta/thrust2:
                       {}
-                delta/link3_center:
+                delta/link2_center:
                   {}
-                delta/link3_leg1:
+                delta/link2_leg:
                   {}
-                delta/link3_leg2:
-                  {}
+                delta/link3:
+                  delta/gimbal_link3:
+                    delta/rotor_parent3:
+                      delta/thrust3:
+                        {}
+                  delta/link3_center:
+                    {}
+                  delta/link3_leg1:
+                    {}
+                  delta/link3_leg2:
+                    {}
       Update Interval: 0
       Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: delta/root
+    Fixed Frame: world
     Frame Rate: 30
   Name: root
   Tools:
@@ -280,7 +299,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.2040467262268066
+      Distance: 3.1507086753845215
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -288,17 +307,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.10824241489171982
-        Y: 0.14301645755767822
-        Z: -0.1384374350309372
+        X: -0.2940984070301056
+        Y: -0.07366207987070084
+        Z: 0.2430010735988617
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8247966766357422
+      Pitch: 0.954796552658081
       Target Frame: <Fixed Frame>
-      Yaw: 0.05039220303297043
+      Yaw: 6.043574810028076
     Saved: ~
 Window Geometry:
   Displays:

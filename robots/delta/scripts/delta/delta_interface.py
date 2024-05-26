@@ -67,6 +67,8 @@ class DeltaInterface:
 
     def cogOdomCallback(self, msg):
         self.cog_odom_ = msg
+    def getCogOdom(self):
+        return self.cog_odom_
 
     def flightStateCallback(self, msg):
         self.flight_state_ = msg.data
@@ -77,11 +79,14 @@ class DeltaInterface:
         self.pid_ = msg
     def getPID(self):
         return self.pid_
-    def posControlConverged(self, thresh=0.05):
-        if math.sqrt(self.pid_.x.err_p**2 + self.pid_.y.err_p**2 + self.pid_.z.err_p**2):
+    def posControlConverged(self, pos=[0, 0, 0], thresh=0.05):
+        if math.sqrt((pos[0] - self.cog_odom_.pose.pose.position.x)**2 + (pos[1] - self.cog_odom_.pose.pose.position.y)**2 + (pos[2] - self.cog_odom_.pose.pose.position.z)**2) < thresh:
             return True
         else:
             return False
+    def getPosControlError(self, pos=[0, 0, 0]):
+        return [pos[0] - self.cog_odom_.pose.pose.position.x, pos[1] - self.cog_odom_.pose.pose.position.y, pos[2] - self.cog_odom_.pose.pose.position.z]
+
     def yawControlConverged(self, thresh=0.1):
         if(abs(self.pid_.yaw.err_p) < thresh):
             return True

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="config_dir" default="$(find delta)/config"/>
+  <arg name="door_x" default="2.0"/>
+  <arg name="door_y" default="0.0"/>
+  <arg name="door_z" default="0.0"/>
+  <arg name="door_yaw" default="0.0"/>
+
+  <!-- demo node -->
+  <group ns="delta">
+    <node pkg="delta" type="door_opening_demo.py" name="door_opening_demo" output="screen">
+      <rosparam file="$(arg config_dir)/demo/door_opening_demo.yaml" command="load"/>
+    </node>
+  </group>
+
+  <!-- smach viewer -->
+  <node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer"/>
+
+  <!-- spawn door -->
+  <include file="$(find delta)/launch/demo/door_spawn.launch" >
+    <arg name="door_x" value="$(arg door_x)"/>
+    <arg name="door_y" value="$(arg door_y)"/>
+    <arg name="door_z" value="$(arg door_z)"/>
+    <arg name="door_yaw" value="$(arg door_yaw)"/>
+  </include>
+
+</launch>
