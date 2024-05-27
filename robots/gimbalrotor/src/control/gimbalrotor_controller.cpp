@@ -130,7 +130,7 @@ namespace aerial_robot_control
 
     /* calculate normal allocation */
     for(int i = 0; i < motor_num_; i++){
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i))  + m_f_rate * rotor_direction.at(i + 1) * Eigen::Matrix3d::Identity();
+      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i)) + rotor_direction.at(i + 1) * m_f_rate * Eigen::Matrix3d::Identity();
       full_q_mat.middleCols(last_col, 3) = wrench_map;
       last_col += 3;
     }
