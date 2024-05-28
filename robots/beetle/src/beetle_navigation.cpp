@@ -14,9 +14,10 @@ BeetleNavigator::BeetleNavigator():
 
 void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                   double loop_du)
 {
-  GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator);
+  GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
   nh_ = nh;
   nhp_ = nhp;
   beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
