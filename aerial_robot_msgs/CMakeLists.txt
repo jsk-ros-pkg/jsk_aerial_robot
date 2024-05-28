@@ -6,7 +6,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
-  )
+  actionlib
+  actionlib_msgs
+)
 
 ## Declare ROS messages and services
 add_message_files(FILES
@@ -20,15 +22,23 @@ add_message_files(FILES
   States.msg
   Acc.msg
   WrenchAllocationMatrix.msg
+  TrajCoefficients.msg
+  TrajFullStatePt.msg
+  MultiTrajFullStatePt.msg
+  TrajPt.msg
+  PredXU.msg
+)
+
+# Generate actions in the 'action' folder
+add_action_files(
+  FILES
+  TrackTraj.action
 )
 
 ## Generate added messages and services
-generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+generate_messages(DEPENDENCIES std_msgs geometry_msgs actionlib_msgs)
 
 ## Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime actionlib actionlib_msgs
 )
-
-
-

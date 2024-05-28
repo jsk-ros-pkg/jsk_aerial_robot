@@ -16,9 +16,15 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 
+
+#list(APPEND CMAKE_PREFIX_PATH "~/acados/install/cmake")
+find_package(acados) # if we use REQUIED, then will cause OpenBLAS and FortranLib Find_Package error
+
+
 generate_dynamic_reconfigure_options(
   cfg/PID.cfg
   cfg/LQI.cfg
+  cfg/NMPC.cfg
   )
 
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
@@ -51,7 +57,7 @@ include_directories(
 ### control utils
 add_library(control_utils
   src/control/utils/care.cpp
-  )
+)
 target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
 ### flight control plugin
@@ -60,9 +66,25 @@ add_library(flight_control_pluginlib
   src/control/fully_actuated_controller.cpp
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
-  src/control/under_actuated_tilted_lqi_controller.cpp)
-
-target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
+  src/control/under_actuated_tilted_lqi_controller.cpp
+  src/nmpc/under_act_body_rate/mpc_solver.cpp
+  src/nmpc/under_act_body_rate/nmpc_controller.cpp
+  src/nmpc/under_act_full/mpc_solver.cpp
+  src/nmpc/under_act_full/nmpc_controller.cpp
+  src/nmpc/over_act_no_servo_delay/nmpc_solver.cpp
+  src/nmpc/over_act_no_servo_delay/nmpc_controller.cpp
+  src/nmpc/over_act_full/nmpc_solver.cpp
+  src/nmpc/over_act_full/nmpc_controller.cpp
+  src/nmpc/over_act_full_i_term/nmpc_solver.cpp
+  src/nmpc/over_act_full_i_term/nmpc_controller.cpp
+  )
+target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_full/c_generated_code/libacados_ocp_solver_qd_full_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_no_servo_delay/c_generated_code/libacados_ocp_solver_beetle_no_servo_delay_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_full/c_generated_code/libacados_ocp_solver_beetle_full_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_full_i_term/c_generated_code/libacados_ocp_solver_beetle_full_w_disturb_model.so
+        )
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation

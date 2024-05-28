@@ -61,7 +61,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ctrl_mode_sub_ = teleop_nh.subscribe("ctrl_mode", 1, &BaseNavigator::xyControlModeCallback, this);
 
   ros::TransportHints joy_transport_hints;
-#ifdef ARM_MELODIC // https://github.com/ros/ros_comm/issues/1404
+#ifdef ARM_MELODIC  // https://github.com/ros/ros_comm/issues/1404
   joy_udp_ = false;
 #endif
   if(joy_udp_) joy_transport_hints = ros::TransportHints().udp();
@@ -85,16 +85,16 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
       throw std::runtime_error("the voltage from spinal is Nan, please re-calibrate the voltage scale using /set_adc_scale.");
     }
 
-  if(bat_cell_ == 0)
-    {
-      ROS_WARN("No correct battery information, cell is 0");
-      return;
-    }
+  if (bat_cell_ == 0)
+  {
+    ROS_WARN("No correct battery information, cell is 0");
+    return;
+  }
 
   float voltage = msg->data;
   /* consider the voltage drop */
-  if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
-    voltage += ( (bat_resistance_voltage_rate_ * voltage +  bat_resistance_) * hovering_current_);
+  if (getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE)
+    voltage += ((bat_resistance_voltage_rate_ * voltage + bat_resistance_) * hovering_current_);
 
   float average_voltage = voltage / bat_cell_;
   float input_cell = voltage / VOLTAGE_100P;

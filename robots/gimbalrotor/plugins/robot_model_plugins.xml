@@ -1,0 +1,5 @@
+<library path="lib/libgimbalrotor_robot_model">
+  <class name="gimbalrotor_robot_model" type="GimbalrotorRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for gimbalrotor robot model </description>
+  </class>
+</library>

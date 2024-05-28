@@ -1,0 +1,12 @@
+# set Control Mode for Spinal
+#
+# reference: http://docs.ros.org/en/api/mavros_msgs/html/srv/SetMode.html
+# and https://github.com/PX4/px4_msgs/blob/main/msg/OffboardControlMode.msg
+
+# if all false, raise error. if all true, body_rate will be used as a feedforward term.
+
+bool is_attitude
+bool is_body_rate
+
+---
+bool is_success

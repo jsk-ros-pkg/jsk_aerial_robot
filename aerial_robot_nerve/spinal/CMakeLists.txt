@@ -43,6 +43,8 @@ add_message_files(
   FlightConfigCmd.msg
   Vector3Int16.msg
   TorqueAllocationMatrixInv.msg
+  ESCTelemetry.msg
+  ESCTelemetryArray.msg
   )
 
 add_service_files(
@@ -52,6 +54,7 @@ add_service_files(
   SetAttitudeGains.srv
   ImuCalib.srv
   MagDeclination.srv
+  SetControlMode.srv
 )
 
 generate_messages(

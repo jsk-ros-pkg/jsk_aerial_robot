@@ -1,0 +1,11 @@
+#goal definition
+aerial_robot_msgs/TrajCoefficients traj_coeff
+---
+#result definition
+float64 pos_error_rmse
+float64 yaw_error_rmse
+---
+#feedback
+float64 percent_complete
+float64 pos_error
+float64 yaw_error # target position - now position

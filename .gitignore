@@ -111,3 +111,8 @@ tags
 # mujoco
 MUJOCO_LOG.txt
 robots/**/mujoco
+
+# acados
+*c_generated_code/
+*acados_ocp.json
+*model.json
