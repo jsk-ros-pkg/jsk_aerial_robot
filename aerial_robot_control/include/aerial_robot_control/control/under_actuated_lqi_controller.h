@@ -105,6 +105,7 @@ namespace aerial_robot_control
     virtual void sendCmd() override;
     virtual void sendFourAxisCommand();
 
+    Eigen::MatrixXd getQInv();
     virtual void allocateYawTerm();
     void cfgLQICallback(aerial_robot_control::LQIConfig &config, uint32_t level); //dynamic reconfigure
 

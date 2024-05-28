@@ -111,7 +111,7 @@ namespace sensor_plugin
       /* utc time */
       /* https://github.com/KumarRobotics/ublox/blob/master/ublox_gps/include/ublox_gps/mkgmtime.h */
       time_t mkgmtime(struct tm * const tmp);
-      int tmcomp(register const struct tm * const  atmp, register const struct tm * const btmp);
+      int tmcomp(const struct tm * const  atmp, const struct tm * const btmp);
     };
 };
 

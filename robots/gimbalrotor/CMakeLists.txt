@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(gimbalrotor)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   aerial_robot_control
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
+  spinal
   pluginlib
   roscpp
   )

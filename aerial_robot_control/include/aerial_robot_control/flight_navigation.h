@@ -6,6 +6,7 @@
 #include <aerial_robot_msgs/FlightNav.h>
 #include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <spinal/FlightConfigCmd.h>
@@ -13,6 +14,8 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
+#include <nav_msgs/Path.h>
+#include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
 
 namespace aerial_robot_navigation
 {
@@ -75,6 +78,7 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
+    inline tf::Vector3 getTargetAngAcc() {return target_ang_acc_;}
 
     inline void setTargetPos(tf::Vector3 pos) { target_pos_ = pos; }
     inline void setTargetPos(double x, double y, double z) { setTargetPos(tf::Vector3(x, y, z)); }
@@ -88,12 +92,22 @@ namespace aerial_robot_navigation
     inline void setTargetZeroAcc() { setTargetAcc(tf::Vector3(0,0,0)); }
 
     inline void setTargetRoll(float value) { target_rpy_.setX(value); }
+    inline void setTargetOmega(tf::Vector3 omega) { target_omega_ = omega; }
+    inline void setTargetOmega(double x, double y, double z) { setTargetOmega(tf::Vector3(x, y, z)); }
+    inline void setTargetZeroOmega() { setTargetOmega(0,0,0); }
     inline void setTargetOmegaX(float value) { target_omega_.setX(value); }
     inline void setTargetPitch(float value) { target_rpy_.setY(value); }
     inline void setTargetOmegaY(float value) { target_omega_.setY(value); }
     inline void setTargetYaw(float value) { target_rpy_.setZ(value); }
     inline void addTargetYaw(float value) { setTargetYaw(angles::normalize_angle(target_rpy_.z() + value)); }
     inline void setTargetOmegaZ(float value) { target_omega_.setZ(value); }
+    inline void setTargetAngAcc(tf::Vector3 acc) { target_ang_acc_ = acc; }
+    inline void setTargetAngAcc(double x, double y, double z) { setTargetAngAcc(tf::Vector3(x, y, z)); }
+    inline void setTargetZeroAngAcc() { setTargetAngAcc(tf::Vector3(0,0,0)); }
+    inline void setTargetAngAccX(double value) { target_ang_acc_.setX(value); }
+    inline void setTargetAngAccY(double value) { target_ang_acc_.setY(value); }
+    inline void setTargetAngAccZ(double value) { target_ang_acc_.setZ(value); }
+
     inline void setTargetPosX( float value){  target_pos_.setX(value);}
     inline void setTargetVelX( float value){  target_vel_.setX(value);}
     inline void setTargetAccX( float value){  target_acc_.setX(value);}
@@ -115,6 +129,8 @@ namespace aerial_robot_navigation
 
     uint8_t getEstimateMode(){ return estimate_mode_;}
     void setEstimateMode(uint8_t estimate_mode){ estimate_mode_ = estimate_mode;}
+
+    void generateNewTrajectory(geometry_msgs::PoseStamped pose);
 
     static constexpr uint8_t POS_CONTROL_COMMAND = 0;
     static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
@@ -219,7 +235,10 @@ namespace aerial_robot_navigation
     ros::Publisher  flight_config_pub_;
     ros::Publisher  power_info_pub_;
     ros::Publisher  flight_state_pub_;
+    ros::Publisher  path_pub_;
     ros::Subscriber navi_sub_;
+    ros::Subscriber pose_sub_;
+    ros::Subscriber simple_move_base_goal_sub_;
     ros::Subscriber battery_sub_;
     ros::Subscriber flight_status_ack_sub_;
     ros::Subscriber takeoff_sub_;
@@ -266,7 +285,7 @@ namespace aerial_robot_navigation
 
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
-    tf::Vector3 target_rpy_, target_omega_;
+    tf::Vector3 target_rpy_, target_omega_, target_ang_acc_;
 
     double takeoff_height_;
     double init_height_;
@@ -307,17 +326,28 @@ namespace aerial_robot_navigation
 
     std::string teleop_local_frame_;
 
+    /* trajectory */
+    double trajectory_mean_vel_;
+    double trajectory_mean_yaw_rate_;
+    double trajectory_min_du_;
+    bool enable_latch_yaw_trajectory_;
+    std::shared_ptr<agi::MinJerkTrajectory> traj_generator_ptr_;
+
     /* battery info */
     double low_voltage_thre_;
     bool low_voltage_flag_;
+    double high_voltage_cell_thre_;
+    bool high_voltage_flag_;
     int bat_cell_;
     double bat_resistance_;
     double bat_resistance_voltage_rate_;
     double hovering_current_;
 
     virtual void rosParamInit();
-    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
-    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
+    void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg);
+    void simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
+    virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    virtual void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 
     virtual void halt() {}
@@ -433,9 +463,6 @@ namespace aerial_robot_navigation
       if(!teleop_flag_) return;
 
       setNaviState(LAND_STATE);
-
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
       ROS_INFO("Land state");
     }
 

@@ -46,6 +46,7 @@ namespace aerial_robot_control
     Eigen::MatrixXd integrated_map_inv_rot_;
     double candidate_yaw_term_;
     int gimbal_dof_;
+    int rotor_coef_;
     bool gimbal_calc_in_fc_;
     std::vector<int> controlled_axis_;
     int control_dof_;

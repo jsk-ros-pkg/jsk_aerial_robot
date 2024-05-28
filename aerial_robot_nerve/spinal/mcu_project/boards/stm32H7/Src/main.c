@@ -43,6 +43,8 @@
 
 #include "battery_status/battery_status.h"
 
+#include "servo/servo.h"
+
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
 
@@ -89,6 +91,7 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
+osThreadId servoTaskHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -105,6 +108,8 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* servo instance */
+DirectServo servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -131,6 +136,7 @@ void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
+void servoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -229,17 +235,28 @@ int main(void)
 #endif
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
+#if GPS_FLAG  
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
+#else 
+  estimator_.init(&imu_, &baro_, NULL, &nh_);
+#endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-#if NERVE_COMM        
+#if SERVO_FLAG
+  servo_.init(&huart3, &nh_, NULL);
+  controller_.init(&htim1, &htim4, &estimator_, &servo_, &battery_status_, &nh_, &flightControlMutexHandle);
+#elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+#else
+  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
   
   /* USER CODE END 2 */
@@ -313,6 +330,10 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, servoTaskCallback, osPriorityRealtime, 0, 256);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -904,7 +925,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 19200;
+  huart3.Init.BaudRate = 1000000;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -1042,8 +1063,6 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  IMU_ROS_CMD::init(&nh_);
-  IMU_ROS_CMD::addImu(&imu_);
   imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
@@ -1058,11 +1077,13 @@ void coreTaskFunc(void const * argument)
 
       imu_.update();
       baro_.update();
+#if GPS_FLAG      
       gps_.update();
+#endif      
       estimator_.update();
       controller_.update();
 
-#if NERVE_COMM      
+#if !SERVO_FLAG && NERVE_COMM
       Spine::update();
 #endif
 
@@ -1183,6 +1204,27 @@ __weak void canRxTask(void const * argument)
     osDelay(1000);
   }
   /* USER CODE END canRxTask */
+}
+
+/* USER CODE BEGIN Header_servoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_servoTaskCallback */
+__weak void servoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN servoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+#if SERVO_FLAG
+    servo_.update();
+    osDelay(1);
+#endif
+  }
+  /* USER CODE END servoTaskCallback */
 }
 
 /* coreTaskEvokeCb function */
