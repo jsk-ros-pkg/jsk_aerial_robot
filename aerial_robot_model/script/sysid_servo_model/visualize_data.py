@@ -11,11 +11,11 @@ from scipy.interpolate import interp1d
 
 # Load the input data from the CSV file
 # Replace 'path/to/your/file.csv' with the actual file path
-input_data = pd.read_csv('20240215-210011_inter_gimbals_ctrl.csv', header=None)
+input_data = pd.read_csv('20240216-132439_inter_gimbals_ctrl.csv', header=None)
 time_input = input_data[0]
 u_input = input_data[1]
 
-output_data = pd.read_csv('20240215-210011_inter_joint_states.csv', header=None)
+output_data = pd.read_csv('20240216-132439_inter_joint_states.csv', header=None)
 time_output = output_data[0].to_numpy()
 y_output = output_data[1].to_numpy()
 
@@ -46,7 +46,7 @@ plt.rcParams.update({'font.size': 11})  # default is 10
 label_size = 15
 legend_alpha = 0.5
 
-fig = plt.figure(figsize=(3.5, 3))
+fig = plt.figure(figsize=(3.5, 2.5))
 plt.plot(t, u_interpolated(t), label='input')
 plt.plot(time_output, y_output, label='real')
 plt.plot(t, y, label='estimated')
@@ -54,6 +54,6 @@ plt.xlabel('Time (s)', fontsize=label_size)
 plt.ylabel('Servo Angle (rad)', fontsize=label_size)
 # plt.title('First-order system response with varying input')
 plt.legend(framealpha=legend_alpha)
-plt.xlim([4, 5])
+plt.xlim([19, 21])
 plt.tight_layout()
 plt.show()
