@@ -16,11 +16,11 @@ from tf_conversions import transformations as tf
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver, AcadosModel
 import casadi as ca
 
-from nmpc_base import NMPCBase, XrUrConverterBase
+from ..nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCNoServoNewCost.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCNoServoDelay.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -44,13 +44,13 @@ p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 
-class NMPCOverActNoServoNewCost(NMPCBase):
+class NMPCTiltQdNoServo(NMPCBase):
 
     def __init__(self):
-        super(NMPCOverActNoServoNewCost, self).__init__()
+        super(NMPCTiltQdNoServo, self).__init__()
 
     def _set_name(self) -> str:
-        return "beetle_no_servo_new_cost_model"
+        return "beetle_no_servo_delay_model"
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -210,7 +210,7 @@ class NMPCOverActNoServoNewCost(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "over_act_no_servo_new_cost")
+                                   "over_act_no_servo_delay")
         self._mkdir(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
@@ -257,10 +257,10 @@ class NMPCOverActNoServoNewCost(NMPCBase):
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
             ]
         )
         print("R: \n", R)
@@ -387,7 +387,6 @@ class NMPCOverActNoServoNewCost(NMPCBase):
 class XrUrConverter(XrUrConverterBase):
     def __init__(self):
         super(XrUrConverter, self).__init__()
-        self.a1_prev, self.a2_prev, self.a3_prev, self.a4_prev = 0, 0, 0, 0
 
     def _set_nx_nu(self):
         self.nx = 13
@@ -454,22 +453,16 @@ class XrUrConverter(XrUrConverterBase):
         ur[:, 1] = ft2_ref
         ur[:, 2] = ft3_ref
         ur[:, 3] = ft4_ref
-        ur[:, 4] = self.a1_prev
-        ur[:, 5] = self.a2_prev
-        ur[:, 6] = self.a3_prev
-        ur[:, 7] = self.a4_prev
+        ur[:, 4] = a1_ref
+        ur[:, 5] = a2_ref
+        ur[:, 6] = a3_ref
+        ur[:, 7] = a4_ref
 
         return xr, ur
 
-    def update_a_prev(self, a1, a2, a3, a4):
-        self.a1_prev = a1
-        self.a2_prev = a2
-        self.a3_prev = a3
-        self.a4_prev = a4
-
 
 if __name__ == "__main__":
-    nmpc = NMPCOverActNoServoNewCost()
+    nmpc = NMPCTiltQdNoServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

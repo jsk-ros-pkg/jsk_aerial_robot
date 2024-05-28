@@ -3,7 +3,7 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2024/03/01 4:02 PM
+Date: 2023/11/27 9:43 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
 """
 from __future__ import print_function  # be compatible with python2
@@ -12,14 +12,14 @@ import sys
 import numpy as np
 import yaml
 import rospkg
-from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
-from nmpc_base import NMPCBase, XrUrConverterBase
+from ..nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -45,13 +45,14 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 
-class NMPCOverActFullITerm(NMPCBase):
+class NMPCTiltQdFull(NMPCBase):
     def __init__(self):
-        super(NMPCOverActFullITerm, self).__init__()
+        super(NMPCTiltQdFull, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        return "beetle_full_w_disturb_model"
+        model_name = "beetle_full_model"
+        return model_name
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -85,7 +86,7 @@ class NMPCOverActFullITerm(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
+        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
         ft1 = ca.SX.sym("ft1")
@@ -99,12 +100,6 @@ class NMPCOverActFullITerm(NMPCBase):
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
-
-        # disturbance
-        f_disturb_i = ca.SX.sym("f_disturb_i", 3)
-        tau_disturb_b = ca.SX.sym("tau_disturb_b", 3)
-
-        parameters = ca.vertcat(quaternion, f_disturb_i, tau_disturb_b)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -179,17 +174,17 @@ class NMPCOverActFullITerm(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_disturb_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
             (ac - a) / t_servo,
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
@@ -224,9 +219,11 @@ class NMPCOverActFullITerm(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "over_act_full_i_term")
+                                   "over_act_full")
         self._mkdir(folder_path)
         os.chdir(folder_path)
+        # acados_models_dir = "acados_models"
+        # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
 
         acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
         sys.path.insert(0, acados_source_path)
@@ -443,7 +440,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCOverActFullITerm()
+    nmpc = NMPCTiltQdFull()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

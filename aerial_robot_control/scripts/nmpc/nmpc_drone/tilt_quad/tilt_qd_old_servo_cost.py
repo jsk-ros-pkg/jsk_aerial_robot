@@ -16,7 +16,7 @@ from tf_conversions import transformations as tf
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
-from nmpc_base import NMPCBase, XrUrConverterBase
+from ..nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -46,9 +46,9 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 
-class NMPCOverActOldServoCost(NMPCBase):
+class NMPCTiltQdOldServoCost(NMPCBase):
     def __init__(self):
-        super(NMPCOverActOldServoCost, self).__init__()
+        super(NMPCTiltQdOldServoCost, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
@@ -496,7 +496,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCOverActOldServoCost()
+    nmpc = NMPCTiltQdOldServoCost()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
