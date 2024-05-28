@@ -242,9 +242,7 @@ void nmpc_over_act_full::NMPCController::controlCore()
       navigator_->setTargetRoll((float)target_rpy.x());
       navigator_->setTargetPitch((float)target_rpy.y());
       navigator_->setTargetYaw((float)target_rpy.z());
-      navigator_->setTargetOmageX(0.0);
-      navigator_->setTargetOmageY(0.0);
-      navigator_->setTargetOmageZ(0.0);
+      navigator_->setTargetZeroAngAcc();
     }
   }
 
