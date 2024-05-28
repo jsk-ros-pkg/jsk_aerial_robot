@@ -41,18 +41,18 @@ public:
 
   template <typename T>
   T getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos);
+                    const Vector<3> &poll_x, const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos);
   template <typename T>
   T getsphericalboxel(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                    const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos, Eigen::Vector3d &vel);
+                    const Vector<3> &poll_x, const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const std::vector<Scalar> &theta_list, Eigen::Vector3d &pos, Eigen::Vector3d &vel);
   Scalar
   getClosestDistance(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-                     const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos);
+                     const Vector<3> &poll_x, const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, Scalar tcell, Scalar fcell, Eigen::Vector3d &quad_pos);
 
   void get_common_sphericalboxel(
   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &converted_positions,
-  const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const Eigen::Matrix3d &R_T,const Eigen::Vector3d &vel, const Eigen::Vector3d &omega, Eigen::Vector3d &pos);
-  Scalar calc_dist_from_wall(Scalar sign, const Vector<3>& Cell, const Vector<3> &poll_y, Eigen::Vector3d &quad_pos) const;
+  const Vector<3> &poll_x, const Vector<3> &poll_y, const Eigen::Vector3d &poll_z, const Eigen::Matrix3d &R_T,const Eigen::Vector3d &vel, const Eigen::Vector3d &omega, Eigen::Vector3d &pos);
+  Scalar calc_dist_from_wall(Scalar sign, const Vector<3>& Cell, const Scalar wall_pos, const Vector<3> &poll, Scalar direction_pos) const;
 
   Eigen::Vector3d getCartesianFromAng(Scalar t, Scalar f);
   bool set_collision_point();
@@ -81,7 +81,7 @@ private:
   Scalar common_l_;
   Scalar common_r_;
 
-  Scalar wall_pos_;
+  Scalar wall_x_pos_, wall_y_pos_;
   
   const Scalar max_detection_range_ = 10;
   bool print_yaw_;
