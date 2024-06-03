@@ -7,14 +7,14 @@ import numpy as np
 import argparse
 from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
-from nmpc_drone.nmpc_viz import Visualizer
+from nmpc_viz import Visualizer
 
-from nmpc_drone.tilt_quad.tilt_qd_no_servo import NMPCTiltQdNoServo
-from nmpc_drone.tilt_quad.tilt_qd_old_servo_cost import NMPCTiltQdOldServoCost
-from nmpc_drone.tilt_quad.tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
-from nmpc_drone.tilt_quad.tilt_qd_vel_input import NMPCTiltQdVelInput
-from nmpc_drone.tilt_quad.tilt_qd_full import NMPCTiltQdFull
-from nmpc_drone.tilt_quad.tilt_qd_full_i_term import NMPCTiltQdFullITerm
+from tilt_qd_full import NMPCTiltQdFull
+from tilt_qd_full_i_term import NMPCTiltQdFullITerm
+from tilt_qd_no_servo import NMPCTiltQdNoServo
+from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
+from tilt_qd_old_servo_cost import NMPCTiltQdOldServoCost
+from tilt_qd_vel_input import NMPCTiltQdVelInput
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
