@@ -3,7 +3,7 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2024/03/01 4:02 PM
+Date: 2023/11/27 9:43 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
 """
 from __future__ import print_function  # be compatible with python2
@@ -12,14 +12,15 @@ import sys
 import numpy as np
 import yaml
 import rospkg
-from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+from tf_conversions import transformations as tf
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
-from ..nmpc_base import NMPCBase, XrUrConverterBase
+from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCOldServoCost.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -45,13 +46,14 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 
-class NMPCTiltQdFullITerm(NMPCBase):
+class NMPCTiltQdOldServoCost(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdFullITerm, self).__init__()
+        super(NMPCTiltQdOldServoCost, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        return "beetle_full_w_disturb_model"
+        model_name = "beetle_old_servo_cost_model"
+        return model_name
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -85,7 +87,7 @@ class NMPCTiltQdFullITerm(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
+        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
         ft1 = ca.SX.sym("ft1")
@@ -99,12 +101,6 @@ class NMPCTiltQdFullITerm(NMPCBase):
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
-
-        # disturbance
-        f_disturb_i = ca.SX.sym("f_disturb_i", 3)
-        tau_disturb_b = ca.SX.sym("tau_disturb_b", 3)
-
-        parameters = ca.vertcat(quaternion, f_disturb_i, tau_disturb_b)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -179,17 +175,17 @@ class NMPCTiltQdFullITerm(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_disturb_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
             (ac - a) / t_servo,
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
@@ -197,7 +193,7 @@ class NMPCTiltQdFullITerm(NMPCBase):
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
-        control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
+        control_y = ca.vertcat(ft, ac)  # key difference
 
         # acados model
         x_dot = ca.SX.sym("x_dot", 17)
@@ -224,9 +220,11 @@ class NMPCTiltQdFullITerm(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "over_act_full_i_term")
+                                   "over_act_old_servo_cost")
         self._mkdir(folder_path)
         os.chdir(folder_path)
+        # acados_models_dir = "acados_models"
+        # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
 
         acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
         sys.path.insert(0, acados_source_path)
@@ -273,10 +271,10 @@ class NMPCTiltQdFullITerm(NMPCBase):
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
+                nmpc_params["Rac"],
             ]
         )
         print("R: \n", R)
@@ -412,7 +410,7 @@ class NMPCTiltQdFullITerm(NMPCBase):
 
         return solver
 
-    def _create_xr_ur_converter(self) -> XrUrConverterBase:
+    def _create_xr_ur_converter(self):
         return XrUrConverter()
 
 
@@ -441,9 +439,64 @@ class XrUrConverter(XrUrConverterBase):
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
+    def pose_point_2_xr_ur(self, target_xyz, target_rpy):
+        roll = target_rpy.item(0)
+        pitch = target_rpy.item(1)
+        yaw = target_rpy.item(2)
+
+        q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
+
+        # convert [0,0,gravity] to body frame
+        q_inv = tf.quaternion_inverse(q)
+        rot = tf.quaternion_matrix(q_inv)
+        fg_i = np.array([0, 0, self.mass * self.gravity, 0])
+        fg_b = rot @ fg_i
+        target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
+
+        # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+        x = self.alloc_mat_pinv @ target_wrench
+
+        a1_ref = np.arctan2(x[0, 0], x[1, 0])
+        ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
+        a2_ref = np.arctan2(x[2, 0], x[3, 0])
+        ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
+        a3_ref = np.arctan2(x[4, 0], x[5, 0])
+        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
+        a4_ref = np.arctan2(x[6, 0], x[7, 0])
+        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
+
+        # get x and u, set reference
+        ocp_N = self.ocp_N
+
+        xr = np.zeros([ocp_N + 1, self.nx])
+        xr[:, 0] = target_xyz.item(0)  # x
+        xr[:, 1] = target_xyz.item(1)  # y
+        xr[:, 2] = target_xyz.item(2)  # z
+        xr[:, 6] = target_qwxyz.item(0)  # qx
+        xr[:, 7] = target_qwxyz.item(1)  # qx
+        xr[:, 8] = target_qwxyz.item(2)  # qy
+        xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 13] = a1_ref
+        xr[:, 14] = a2_ref
+        xr[:, 15] = a3_ref
+        xr[:, 16] = a4_ref
+
+        ur = np.zeros([ocp_N, self.nu])
+        ur[:, 0] = ft1_ref
+        ur[:, 1] = ft2_ref
+        ur[:, 2] = ft3_ref
+        ur[:, 3] = ft4_ref
+        ur[:, 4] = a1_ref
+        ur[:, 5] = a2_ref
+        ur[:, 6] = a3_ref
+        ur[:, 7] = a4_ref
+
+        return xr, ur
+
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdFullITerm()
+    nmpc = NMPCTiltQdOldServoCost()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
