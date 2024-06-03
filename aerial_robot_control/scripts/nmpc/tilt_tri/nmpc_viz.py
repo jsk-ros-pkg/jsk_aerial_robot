@@ -206,9 +206,9 @@ class Visualizer:
         time_data_u = np.arange(self.data_idx - 1) * ts_sim
 
         plt.subplot(1, 2, 2)
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="$\\alpha_{c1}$")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5], label="$\\alpha_{c2}$")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="$\\alpha_{c3}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$\\alpha_{c1}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="$\\alpha_{c2}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5], label="$\\alpha_{c3}$")
         plt.legend(framealpha=legend_alpha, loc="lower right")
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
