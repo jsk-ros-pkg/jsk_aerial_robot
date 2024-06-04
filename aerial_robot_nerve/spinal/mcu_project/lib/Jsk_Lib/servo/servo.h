@@ -16,6 +16,7 @@ includes ------------------------------------------------------------------*/
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/SetDirectServoConfig.h>
+#include <spinal/GetBoardInfo.h>
 #include <spinal/JointProfiles.h>
 #include <string.h>
 #include <config.h>
@@ -39,7 +40,8 @@ public:
     joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
     servo_state_pub_("servo/states", &servo_state_msg_),
     servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_),
-    servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this)
+    servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this),
+    board_info_srv_("get_board_info", &DirectServo::boardInfoCallback,this)
   {
   }
   ~DirectServo(){}
@@ -49,6 +51,7 @@ public:
   void sendData();
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
+  DynamixelSerial& getServoHnadler() {return servo_handler_;}
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
     return static_cast<uint32_t>(angle /scale + zero_point_pos);
@@ -64,9 +67,11 @@ private:
   ros::Publisher servo_torque_state_pub_;
 
   ros::ServiceServer<spinal::SetDirectServoConfig::Request, spinal::SetDirectServoConfig::Response, DirectServo> servo_config_srv_;
+  ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response, DirectServo> board_info_srv_;
 
   spinal::ServoStates servo_state_msg_;
   spinal::ServoTorqueStates servo_torque_state_msg_;
+  spinal::GetBoardInfo::Response board_info_res_;
 
   uint32_t servo_last_pub_time_;
   uint32_t servo_torque_last_pub_time_;
@@ -76,6 +81,7 @@ private:
   void jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg);
   
   void servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res);
+  void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
   
   /* Servo state */
   struct ServoState{

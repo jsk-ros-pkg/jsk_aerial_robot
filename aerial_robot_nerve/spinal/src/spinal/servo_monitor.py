@@ -43,6 +43,7 @@ class ServoMonitor(Plugin):
 
         self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
+        self.set_direct_servo_config_client_ = rospy.ServiceProxy(robot_ns + '/direct_servo_config', SetDirectServoConfig)
         self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
 
         from argparse import ArgumentParser
@@ -171,11 +172,17 @@ class ServoMonitor(Plugin):
         if servo_index == -1:
             rospy.logerr("No servo exists")
             return
-
-        req = SetBoardConfigRequest()
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())) #board id
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())) #servo index
-
+        
+        board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
+        servo_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
+        req = None
+        if(board_id == 0):
+            req = SetDirectServoConfigRequest()
+            req.data.append(servo_id)
+        else:
+            req = SetBoardConfigRequest()
+            req.data.append(board_id)
+            req.data.append(servo_id)
         try:
             req.data.append(int(self._widget.homingOffsetLineEdit.text()))
         except ValueError as e:
@@ -194,19 +201,25 @@ class ServoMonitor(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            res = self.set_board_config_client_(req)
+            if(board_id == 0):
+                res = self.set_direct_servo_config_client_(req)
+            else:
+                res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
         except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)
 
     def boardReboot(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
+        board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
         if servo_index == -1:
             rospy.logerr("No servo exists")
             return
-
+        if board_id == 0:
+            rospy.logerr("Spinal cannot be rebooted from rqt")
+            return            
         req = SetBoardConfigRequest()
-        req.data.append(int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())) #board id
+        req.data.append(board_id) #board id
         req.command = req.REBOOT
 
         rospy.loginfo('published message')
