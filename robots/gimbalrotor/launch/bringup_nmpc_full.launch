@@ -46,7 +46,7 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/GimbalrotorNMPCFullITerm.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/TiltTriRotorNMPCFullITerm.yaml" command="load" if="$(eval airframe =='tri')" />
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />

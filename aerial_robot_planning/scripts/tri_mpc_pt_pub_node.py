@@ -31,7 +31,7 @@ from aerial_robot_msgs.msg import (
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "GimbalrotorNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltTriRotorNMPCFullITerm.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = param_dict["controller"]["nmpc"]

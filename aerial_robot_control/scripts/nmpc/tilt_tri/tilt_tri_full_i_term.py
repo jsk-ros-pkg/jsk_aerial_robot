@@ -19,7 +19,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "GimbalrotorNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltTriRotorNMPCFullITerm.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -103,13 +103,13 @@ class NMPCTiltTriFullITerm(NMPCBase):
 
         # transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -147,17 +147,17 @@ class NMPCTiltTriFullITerm(NMPCBase):
         tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
 
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
         )
 
         # dynamic model
@@ -207,8 +207,9 @@ class NMPCTiltTriFullITerm(NMPCBase):
 
         # get file path for acados
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "tilt_tri_full_i_term")
+        folder_path = os.path.join(
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_tri_full_i_term"
+        )
         self._mkdir(folder_path)
         os.chdir(folder_path)
 
