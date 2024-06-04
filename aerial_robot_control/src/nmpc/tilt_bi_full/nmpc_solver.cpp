@@ -126,7 +126,7 @@ void nmpc_tilt_bi_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
 }
 
 int nmpc_tilt_bi_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[2],
-                                         const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
+                                        const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
@@ -178,7 +178,7 @@ void nmpc_tilt_bi_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
 }
 
 void nmpc_tilt_bi_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
-                                                 const unsigned int u_stride)
+                                                const unsigned int u_stride)
 {
   double yr[NX + NU];
   double qr[4];
@@ -204,7 +204,7 @@ void nmpc_tilt_bi_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU&
 }
 
 void nmpc_tilt_bi_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
-                                                           const double joint_angles[2])
+                                                          const double joint_angles[2])
 {
   // TODO: modify, to pass in variable array
   double bx0[NBX0];

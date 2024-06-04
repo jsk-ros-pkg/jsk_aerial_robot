@@ -6,10 +6,11 @@
 
 using namespace aerial_robot_control;
 
-void nmpc_tilt_bi_full::NMPCController::initialize(
-    ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
+void nmpc_tilt_bi_full::NMPCController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                                                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                                                   double ctrl_loop_du)
 {
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
@@ -150,10 +151,8 @@ void nmpc_tilt_bi_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  double x[NX] = {
-    pos.x(), pos.y(),   pos.z(),   vel.x(),   vel.y(),          vel.z(),          q.w(),           q.x(), q.y(),
-    q.z(),   omega.x(), omega.y(), omega.z(), joint_angles_[0], joint_angles_[1]
-  };
+  double x[NX] = { pos.x(), pos.y(), pos.z(),   vel.x(),   vel.y(),   vel.z(),          q.w(),           q.x(),
+                   q.y(),   q.z(),   omega.x(), omega.y(), omega.z(), joint_angles_[0], joint_angles_[1] };
   double u[NU] = { 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
   initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
@@ -427,8 +426,8 @@ void nmpc_tilt_bi_full::NMPCController::initAllocMat()
 }
 
 void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                                    const Eigen::VectorXd& target_wrench)
+                                                   const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
+                                                   const Eigen::VectorXd& target_wrench)
 {
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
   double a1_ref = atan2(x_lambda(0), x_lambda(1));
@@ -454,7 +453,6 @@ void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos,
               x_u_ref_.u.data.begin() + NU * i);
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 }
 
 double nmpc_tilt_bi_full::NMPCController::getCommand(int idx_u, double t_pred)

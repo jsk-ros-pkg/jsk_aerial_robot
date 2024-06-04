@@ -81,7 +81,7 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_tri_full/nmpc_controller.cpp
         src/nmpc/tilt_bi_full/nmpc_solver.cpp
         src/nmpc/tilt_bi_full/nmpc_controller.cpp
-  )
+)
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_full/c_generated_code/libacados_ocp_solver_qd_full_model.so

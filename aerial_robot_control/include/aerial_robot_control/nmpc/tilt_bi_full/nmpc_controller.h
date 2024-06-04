@@ -89,10 +89,10 @@ private:
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
-  double joint_angles_[3] = { 0.0, 0.0, 0.0 };
+  double joint_angles_[2] = { 0.0, 0.0 };
 
   bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
-  Eigen::Matrix<double, 6, 6> alloc_mat_;
+  Eigen::Matrix<double, 6, 4> alloc_mat_;
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
