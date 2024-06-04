@@ -8,6 +8,7 @@
   <group ns="$(arg robot_ns)">
     <group if= "$(eval not arg('simulation') and arg('real_machine') )">
       <include file="$(find hokuyo_estimation)/launch/urg_node.launch">
+	<arg name="robot_ns" value="$(arg robot_ns)" />
       </include>
     </group>
 
