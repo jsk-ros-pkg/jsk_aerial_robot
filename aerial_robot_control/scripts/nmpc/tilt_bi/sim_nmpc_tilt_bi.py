@@ -9,8 +9,7 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
-from tilt_tri_full import NMPCTiltTriFull
-from tilt_tri_full_i_term import NMPCTiltTriFullITerm
+from tilt_bi_full import NMPCTiltBiFull
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -39,9 +38,7 @@ if __name__ == "__main__":
     # ========== init ==========
     # ---------- Controller ----------
     if args.model == 0:
-        nmpc = NMPCTiltTriFull()
-    elif args.model == 1:
-        nmpc = NMPCTiltTriFullITerm()
+        nmpc = NMPCTiltBiFull()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -68,7 +65,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltTriFull()
+    sim_nmpc = NMPCTiltBiFull()
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
@@ -140,7 +137,7 @@ if __name__ == "__main__":
         if args.plot_type == 2:
             if nx > 13:
                 xr[:, 13:] = 0.0
-            ur[:, 3:] = 0.0
+            ur[:, 2:] = 0.0
 
         # -------- sqp mode --------
         if is_sqp_change and t_sqp_start > t_sqp_end:

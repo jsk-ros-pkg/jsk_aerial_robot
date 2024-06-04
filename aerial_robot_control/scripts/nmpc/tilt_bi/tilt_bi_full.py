@@ -19,7 +19,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "GimbalrotorNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBiRotorNMPCFull.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -36,20 +36,18 @@ dr1 = physical_params["dr1"]
 p1_b = physical_params["p1"]
 dr2 = physical_params["dr2"]
 p2_b = physical_params["p2"]
-dr3 = physical_params["dr3"]
-p3_b = physical_params["p3"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 
-class NMPCTiltTriFull(NMPCBase):
+class NMPCTiltBiFull(NMPCBase):
     def __init__(self):
-        super(NMPCTiltTriFull, self).__init__()
+        super(NMPCTiltBiFull, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        model_name = "tilt_tri_full_model"
+        model_name = "tilt_bi_full_model"
         return model_name
 
     def _set_ts_ctrl(self) -> float:
@@ -73,8 +71,7 @@ class NMPCTiltTriFull(NMPCBase):
 
         a1 = ca.SX.sym("a1")
         a2 = ca.SX.sym("a2")
-        a3 = ca.SX.sym("a3")
-        a = ca.vertcat(a1, a2, a3)
+        a = ca.vertcat(a1, a2)
 
         states = ca.vertcat(p, v, q, w, a)
 
@@ -88,12 +85,10 @@ class NMPCTiltTriFull(NMPCBase):
         # control inputs
         ft1 = ca.SX.sym("ft1")
         ft2 = ca.SX.sym("ft2")
-        ft3 = ca.SX.sym("ft3")
-        ft = ca.vertcat(ft1, ft2, ft3)
+        ft = ca.vertcat(ft1, ft2)
         a1c = ca.SX.sym("a1c")
         a2c = ca.SX.sym("a2c")
-        a3c = ca.SX.sym("a3c")
-        ac = ca.vertcat(a1c, a2c, a3c)
+        ac = ca.vertcat(a1c, a2c)
         controls = ca.vertcat(ft, ac)
 
         # transformation matrix
@@ -114,17 +109,11 @@ class NMPCTiltTriFull(NMPCBase):
         den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
         rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-        rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
-
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
         )
         rot_e2r2 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
-        )
-        rot_e3r3 = ca.vertcat(
-            ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a3), -ca.sin(a3)), ca.horzcat(0, ca.sin(a3), ca.cos(a3))
         )
 
         # inertial
@@ -135,24 +124,16 @@ class NMPCTiltTriFull(NMPCBase):
         # wrench
         ft_r1 = ca.vertcat(0, 0, ft1)
         ft_r2 = ca.vertcat(0, 0, ft2)
-        ft_r3 = ca.vertcat(0, 0, ft3)
 
         tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
         tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
 
-        f_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-        )
+        f_u_b = ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)) + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
         tau_u_b = (
             ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
             + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
             + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
         )
 
         # dynamic model
@@ -179,7 +160,7 @@ class NMPCTiltTriFull(NMPCBase):
         control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 16)
+        x_dot = ca.SX.sym("x_dot", 15)
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -203,7 +184,7 @@ class NMPCTiltTriFull(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_tri_full"
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_bi_full"
         )
         self._mkdir(folder_path)
         os.chdir(folder_path)
@@ -243,7 +224,6 @@ class NMPCTiltTriFull(NMPCBase):
                 nmpc_params["Qw_z"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
-                nmpc_params["Qa"],
             ]
         )
         print("Q: \n", Q)
@@ -252,8 +232,6 @@ class NMPCTiltTriFull(NMPCBase):
             [
                 nmpc_params["Rt"],
                 nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
             ]
@@ -268,7 +246,7 @@ class NMPCTiltTriFull(NMPCBase):
         # set constraints
         # # bx
         # vx, vy, vz, wx, wy, wz, a1, a2, a3
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15])
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14])
         ocp.constraints.lbx = np.array(
             [
                 nmpc_params["v_min"],
@@ -277,7 +255,6 @@ class NMPCTiltTriFull(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
                 nmpc_params["a_min"],
                 nmpc_params["a_min"],
             ]
@@ -292,7 +269,6 @@ class NMPCTiltTriFull(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["a_max"],
                 nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
         print("lbx: ", ocp.constraints.lbx)
@@ -300,7 +276,7 @@ class NMPCTiltTriFull(NMPCBase):
 
         # # bx_e
         # vx, vy, vz, wx, wy, wz, a1, a2, a3
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15])
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14])
         ocp.constraints.lbx_e = np.array(
             [
                 nmpc_params["v_min"],
@@ -309,7 +285,6 @@ class NMPCTiltTriFull(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
                 nmpc_params["a_min"],
                 nmpc_params["a_min"],
             ]
@@ -324,21 +299,18 @@ class NMPCTiltTriFull(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["a_max"],
                 nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
         print("lbx_e: ", ocp.constraints.lbx_e)
         print("ubx_e: ", ocp.constraints.ubx_e)
 
         # # bu
-        # ft1, ft2, ft3, a1c, a2c, a3c
-        ocp.constraints.idxbu = np.array([0, 1, 2, 3, 4, 5])
+        # ft1, ft2, a1c, a2c
+        ocp.constraints.idxbu = np.array([0, 1, 2, 3])
         ocp.constraints.lbu = np.array(
             [
                 nmpc_params["thrust_min"],
                 nmpc_params["thrust_min"],
-                nmpc_params["thrust_min"],
-                nmpc_params["a_min"],
                 nmpc_params["a_min"],
                 nmpc_params["a_min"],
             ]
@@ -347,8 +319,6 @@ class NMPCTiltTriFull(NMPCBase):
             [
                 nmpc_params["thrust_max"],
                 nmpc_params["thrust_max"],
-                nmpc_params["thrust_max"],
-                nmpc_params["a_max"],
                 nmpc_params["a_max"],
                 nmpc_params["a_max"],
             ]
@@ -360,7 +330,7 @@ class NMPCTiltTriFull(NMPCBase):
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
-        u_ref[0:3] = mass * gravity / 3  # ft1, ft2, ft3
+        u_ref[0:2] = mass * gravity / 2  # ft1, ft2
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
@@ -392,16 +362,14 @@ class XrUrConverter(XrUrConverterBase):
         super(XrUrConverter, self).__init__()
 
     def _set_nx_nu(self):
-        self.nx = 16
-        self.nu = 6
+        self.nx = 15
+        self.nu = 4
 
     def _set_physical_params(self):
         self.p1_b = p1_b
         self.p2_b = p2_b
-        self.p3_b = p3_b
         self.dr1 = dr1
         self.dr2 = dr2
-        self.dr3 = dr3
         self.kq_d_kt = kq_d_kt
 
         self.mass = mass
@@ -412,7 +380,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltTriFull()
+    nmpc = NMPCTiltBiFull()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

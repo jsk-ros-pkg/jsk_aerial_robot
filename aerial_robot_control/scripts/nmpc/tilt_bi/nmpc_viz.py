@@ -128,7 +128,6 @@ class Visualizer:
         if x_sim_all.shape[1] > 13:
             plt.plot(time_data_x, x_sim_all[: self.data_idx, 13], label="a1")
             plt.plot(time_data_x, x_sim_all[: self.data_idx, 14], label="a2")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, 15], label="a3")
         plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -140,7 +139,6 @@ class Visualizer:
         plt.subplot(5, 2, 6)
         plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 0], label="ft1")
         plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 1], label="ft2")
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 2], label="ft3")
         plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -150,9 +148,8 @@ class Visualizer:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         plt.subplot(5, 2, 8)
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 3], label="a1c")
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 4], label="a2c")
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 5], label="a3c")
+        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 2], label="a1c")
+        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 3], label="a2c")
         plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -209,7 +206,6 @@ class Visualizer:
         if x_sim_all.shape[1] > 13:
             plt.plot(time_data_x, x_sim_all[: self.data_idx, 13], label="$\\alpha_1$")
             plt.plot(time_data_x, x_sim_all[: self.data_idx, 14], label="$\\alpha_2$")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, 15], label="$\\alpha_3$")
         plt.legend(framealpha=legend_alpha, loc="lower right")
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
@@ -225,9 +221,8 @@ class Visualizer:
         time_data_u = np.arange(self.data_idx - 1) * ts_sim
 
         plt.subplot(1, 2, 2)
-        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 3], label="$\\alpha_{c1}$")
-        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 4], label="$\\alpha_{c2}$")
-        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 5], label="$\\alpha_{c3}$")
+        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 2], label="$\\alpha_{c1}$")
+        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 3], label="$\\alpha_{c2}$")
         plt.legend(framealpha=legend_alpha, loc="lower right")
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])

@@ -25,10 +25,8 @@ class XrUrConverterBase(ABC):
     def _set_physical_params(self):
         self.p1_b = np.array([float(), float(), float()])
         self.p2_b = np.array([float(), float(), float()])
-        self.p3_b = np.array([float(), float(), float()])
         self.dr1 = float()
         self.dr2 = float()
-        self.dr3 = float()
         self.kq_d_kt = float()
 
         self.mass = float()
@@ -59,8 +57,6 @@ class XrUrConverterBase(ABC):
         ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
         a2_ref = np.arctan2(x[2, 0], x[3, 0])
         ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
-        a3_ref = np.arctan2(x[4, 0], x[5, 0])
-        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
 
         # get x and u, set reference
         ocp_N = self.ocp_N
@@ -75,25 +71,22 @@ class XrUrConverterBase(ABC):
         xr[:, 9] = target_qwxyz.item(3)  # qz
         xr[:, 13] = a1_ref
         xr[:, 14] = a2_ref
-        xr[:, 15] = a3_ref
 
         ur = np.zeros([ocp_N, self.nu])
         ur[:, 0] = ft1_ref
         ur[:, 1] = ft2_ref
-        ur[:, 2] = ft3_ref
 
         return xr, ur
 
     def _get_alloc_mat_pinv(self):
-        p1_b, p2_b, p3_b = self.p1_b, self.p2_b, self.p3_b
-        dr1, dr2, dr3 = self.dr1, self.dr2, self.dr3
+        p1_b, p2_b = self.p1_b, self.p2_b
+        dr1, dr2 = self.dr1, self.dr2
         kq_d_kt = self.kq_d_kt
 
         # get allocation matrix
-        alloc_mat = np.zeros((6, 6))
+        alloc_mat = np.zeros((6, 4))
         sqrt_p1b_xy = np.sqrt(self.p1_b[0] ** 2 + self.p1_b[1] ** 2)
         sqrt_p2b_xy = np.sqrt(self.p2_b[0] ** 2 + self.p2_b[1] ** 2)
-        sqrt_p3b_xy = np.sqrt(self.p3_b[0] ** 2 + self.p3_b[1] ** 2)
 
         # - force
         alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
@@ -103,10 +96,6 @@ class XrUrConverterBase(ABC):
         alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
         alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
         alloc_mat[2, 3] = 1
-
-        alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
-        alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
-        alloc_mat[2, 5] = 1
 
         # - torque
         alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
@@ -124,14 +113,6 @@ class XrUrConverterBase(ABC):
         alloc_mat[3, 3] = p2_b[1]
         alloc_mat[4, 3] = -p2_b[0]
         alloc_mat[5, 3] = -dr2 * kq_d_kt
-
-        alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
-        alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
-        alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
-
-        alloc_mat[3, 5] = p3_b[1]
-        alloc_mat[4, 5] = -p3_b[0]
-        alloc_mat[5, 5] = -dr3 * kq_d_kt
 
         alloc_mat_pinv = np.linalg.pinv(alloc_mat)
         return alloc_mat_pinv
@@ -156,7 +137,7 @@ class NMPCBase(ABC):
 
     @abstractmethod
     def _set_name(self) -> str:
-        return "beetle_full_model"
+        return "bi_full_model"
 
     @abstractmethod
     def _set_ts_ctrl(self) -> float:
