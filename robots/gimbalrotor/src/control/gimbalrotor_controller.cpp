@@ -220,7 +220,8 @@ namespace aerial_robot_control
           target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
           target_base_thrust_.at(rotor_coef_ * i+2) = f_i[2];
         }
-      if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
+      if(integrated_map_inv(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, control_dof_ - 1); // control_dof - 1 = index for yaw axis
+
       last_col += rotor_coef_;
     }
     candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
