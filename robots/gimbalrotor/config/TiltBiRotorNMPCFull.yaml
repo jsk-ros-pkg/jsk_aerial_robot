@@ -2,15 +2,13 @@ aerial_robot_control_name: aerial_robot_control/tilt_tri_full/nmpc_controller
 
 controller:
   physical:
-    mass: 1.52127  # sim: 1.52127 # kg
-    gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
-    inertia_diag: [ 0.025102, 0.0190842, 0.0387961 ] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
+    mass: 1.44441  # sim: 1.44441 # kg
+    gravity: 9.798  # sim: 9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
+    inertia_diag: [ 0.055429, 0.017873, 0.067851 ] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
     dr1: 1  # direction of motor 1
-    p1: [ 0.0864353, -0.23752, 0.0259075 ] # position of motor 1
+    p1: [ 0.0, 0.2375, 0.12098 ] # position of motor 1
     dr2: -1  # direction of motor 2
-    p2: [ 0.0864353, 0.23748, 0.0259075 ] # position of motor 2
-    dr3: 1  # direction of motor 3
-    p3: [ -0.211065, -0.00002, 0.0259075 ] # position of motor 3
+    p2: [ 0, -0.2375, 0.12098 ] # position of motor 2
     kq_d_kt: 0.0172  # sim: 0.0172
 
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
@@ -53,18 +51,3 @@ controller:
 
     is_print_physical_params: false
     is_debug: false
-
-    # disturb_rej
-    limit_fx: 5.0
-    limit_fy: 5.0
-    limit_fz: 5.0
-    limit_mx: 1.0
-    limit_my: 1.0
-    limit_mz: 1.0
-
-    i_gain_x: 0
-    i_gain_y: 0
-    i_gain_z: 5
-    i_gain_roll: 0.0
-    i_gain_pitch: 0.0
-    i_gain_yaw: 0.0
