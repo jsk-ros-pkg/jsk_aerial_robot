@@ -156,7 +156,7 @@ class NMPCBase(ABC):
 
     @abstractmethod
     def _set_name(self) -> str:
-        return "beetle_full_model"
+        return "tilt_tri_full_model"
 
     @abstractmethod
     def _set_ts_ctrl(self) -> float:
