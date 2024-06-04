@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="robot_ns" default="" />
-  <group ns="$(arg robot_ns)">
   <node pkg="urg_node" type="urg_node" name="urg_node">
     <param name="ip_address" value="172.16.0.10" />
     <param name="frame_id" value="$(arg robot_ns)/laser_frame"/>
   </node>
-  </group>
 </launch>
