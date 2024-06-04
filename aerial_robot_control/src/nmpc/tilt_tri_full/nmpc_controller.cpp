@@ -400,7 +400,6 @@ void nmpc_tilt_tri_full::NMPCController::initAllocMat()
   int dr1 = rotor_dr.find(1)->second;
   int dr2 = rotor_dr.find(2)->second;
   int dr3 = rotor_dr.find(3)->second;
-  std::cout << "dr1: " << dr1 << ", dr2: " << dr2 << ", dr3: " << dr3 << std::endl;
 
   double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
 
@@ -566,19 +565,19 @@ void nmpc_tilt_tri_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
         break;
       }
       case Levels::RECONFIGURE_NMPC_Q_A: {
-        for (int i = 13; i < 17; ++i)
+        for (int i = 13; i < 16; ++i)
           mpc_solver_.setCostWDiagElement(i, config.Qa);
         ROS_INFO_STREAM("change Qa for NMPC '" << config.Qa << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_R_T: {
-        for (int i = 17; i < 21; ++i)
+        for (int i = 16; i < 19; ++i)
           mpc_solver_.setCostWDiagElement(i, config.Rt, false);
         ROS_INFO_STREAM("change Rt for NMPC '" << config.Rt << "'");
         break;
       }
       case Levels::RECONFIGURE_NMPC_R_AC_D: {
-        for (int i = 21; i < 25; ++i)
+        for (int i = 19; i < 22; ++i)
           mpc_solver_.setCostWDiagElement(i, config.Rac_d, false);
         ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
         break;

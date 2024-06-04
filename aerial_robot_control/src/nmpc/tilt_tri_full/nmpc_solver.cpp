@@ -125,7 +125,7 @@ void nmpc_tilt_tri_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
   ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
-int nmpc_tilt_tri_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
+int nmpc_tilt_tri_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[3],
                                          const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
@@ -204,7 +204,7 @@ void nmpc_tilt_tri_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
 }
 
 void nmpc_tilt_tri_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
-                                                           const double joint_angles[4])
+                                                           const double joint_angles[3])
 {
   // TODO: modify, to pass in variable array
   double bx0[NBX0];
