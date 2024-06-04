@@ -31,7 +31,7 @@ from aerial_robot_msgs.msg import (
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "GimbalrotorNMPCFullITerm.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = param_dict["controller"]["nmpc"]
@@ -48,50 +48,49 @@ dr2 = physical_params["dr2"]
 p2_b = physical_params["p2"]
 dr3 = physical_params["dr3"]
 p3_b = physical_params["p3"]
-dr4 = physical_params["dr4"]
-p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
+
+nx = 16
+nu = 6
 
 
 def prepare_x_u(n_nmpc: int, x_ref: np.array, u_ref: np.array):
     x_u = PredXU()
-
     x_dim_1 = MultiArrayDimension()
     x_dim_1.label = "horizon"
     x_dim_1.size = n_nmpc + 1
-    x_dim_1.stride = (n_nmpc + 1) * 17
+    x_dim_1.stride = (n_nmpc + 1) * nx
     x_u.x.layout.dim.append(x_dim_1)
     x_dim_2 = MultiArrayDimension()
     x_dim_2.label = "state"
-    x_dim_2.size = 17
-    x_dim_2.stride = 17
+    x_dim_2.size = nx
+    x_dim_2.stride = nx
     x_u.x.layout.dim.append(x_dim_2)
     x_u.x.layout.data_offset = 0
-    x_u.x.data = np.resize(x_ref, (n_nmpc + 1) * 17).astype(np.float64).tolist()
+    x_u.x.data = np.resize(x_ref, (n_nmpc + 1) * nx).astype(np.float64).tolist()
 
     u_dim_1 = MultiArrayDimension()
     u_dim_1.label = "horizon"
     u_dim_1.size = n_nmpc
-    u_dim_1.stride = n_nmpc * 8
+    u_dim_1.stride = n_nmpc * nu
     x_u.u.layout.dim.append(u_dim_1)
     u_dim_2 = MultiArrayDimension()
     u_dim_2.label = "input"
-    u_dim_2.size = 8
-    u_dim_2.stride = 8
+    u_dim_2.size = nu
+    u_dim_2.stride = nu
     x_u.u.layout.dim.append(u_dim_2)
     x_u.u.layout.data_offset = 0
-    x_u.u.data = np.resize(u_ref, n_nmpc * 8).astype(np.float64).tolist()
+    x_u.u.data = np.resize(u_ref, n_nmpc * nu).astype(np.float64).tolist()
 
     return x_u
 
 
 def construct_allocation_mat_pinv():
     # get allocation matrix
-    alloc_mat = np.zeros((6, 8))
+    alloc_mat = np.zeros((6, nu))
     sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
     sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
     sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
 
     # - force
     alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
@@ -105,10 +104,6 @@ def construct_allocation_mat_pinv():
     alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
     alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
     alloc_mat[2, 5] = 1
-
-    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
-    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
-    alloc_mat[2, 7] = 1
 
     # - torque
     alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
@@ -135,14 +130,6 @@ def construct_allocation_mat_pinv():
     alloc_mat[4, 5] = -p3_b[0]
     alloc_mat[5, 5] = -dr3 * kq_d_kt
 
-    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
-
-    alloc_mat[3, 7] = p4_b[1]
-    alloc_mat[4, 7] = -p4_b[0]
-    alloc_mat[5, 7] = -dr4 * kq_d_kt
-
     alloc_mat_pinv = np.linalg.pinv(alloc_mat)
 
     return alloc_mat_pinv, alloc_mat
@@ -160,10 +147,10 @@ class MPCPtPubNode:
 
         # Sub --> feedback
         self.uav_odom = Odometry()
-        rospy.Subscriber("/beetle1/uav/cog/odom", Odometry, self.sub_odom_callback)
+        rospy.Subscriber("/gimbalrotor/uav/cog/odom", Odometry, self.sub_odom_callback)
 
         # Pub
-        self.pub_ref_traj = rospy.Publisher("/beetle1/set_ref_traj", PredXU, queue_size=5)
+        self.pub_ref_traj = rospy.Publisher("/gimbalrotor/set_ref_traj", PredXU, queue_size=5)
 
         # nmpc and robot related
         self.alloc_mat_pinv, self.alloc_mat = construct_allocation_mat_pinv()
@@ -188,12 +175,12 @@ class MPCPtPubNode:
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
     def get_one_xr_ur_from_target(
-            self,
-            target_pos,
-            target_vel=np.array([[0.0, 0.0, 0.0]]).T,
-            target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
-            target_omega=np.array([[0.0, 0.0, 0.0]]).T,
-            target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
+        self,
+        target_pos,
+        target_vel=np.array([[0.0, 0.0, 0.0]]).T,
+        target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
+        target_omega=np.array([[0.0, 0.0, 0.0]]).T,
+        target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
     ):
         anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
         target_wrench = anti_gravity_wrench + target_non_gravity_wrench
@@ -206,12 +193,10 @@ class MPCPtPubNode:
         ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
         a3_ref = np.arctan2(x[4, 0], x[5, 0])
         ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
-        a4_ref = np.arctan2(x[6, 0], x[7, 0])
-        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
 
         # get x and u, set reference
-        xr = np.zeros([1, 17])
-        ur = np.zeros([1, 8])
+        xr = np.zeros([1, nx])
+        ur = np.zeros([1, nu])
         xr[0, 0] = target_pos.item(0)  # x
         xr[0, 1] = target_pos.item(1)  # y
         xr[0, 2] = target_pos.item(2)  # z
@@ -228,11 +213,9 @@ class MPCPtPubNode:
         xr[0, 13] = a1_ref
         xr[0, 14] = a2_ref
         xr[0, 15] = a3_ref
-        xr[0, 16] = a4_ref
         ur[0, 0] = ft1_ref
         ur[0, 1] = ft2_ref
         ur[0, 2] = ft3_ref
-        ur[0, 3] = ft4_ref
 
         return xr, ur
 
@@ -246,8 +229,8 @@ class MPCPtPubNode:
             )
 
         # 2. calculate the reference points
-        x_ref = np.zeros([self.N_nmpc + 1, 17])
-        u_ref = np.zeros([self.N_nmpc, 8])
+        x_ref = np.zeros([self.N_nmpc + 1, nx])
+        u_ref = np.zeros([self.N_nmpc, nu])
 
         is_ref_different = False if isinstance(self.traj, SetPointTraj) else True
 
@@ -279,7 +262,8 @@ class MPCPtPubNode:
             target_body_rate = np.array([[r_rate, p_rate, y_rate]]).T
 
             target_non_gravity_wrench = np.array(
-                [[mass * ax, mass * ay, mass * az, Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]).T
+                [[mass * ax, mass * ay, mass * az, Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]
+            ).T
 
             xr, ur = self.get_one_xr_ur_from_target(
                 target_pos=target_pos,
@@ -306,8 +290,11 @@ class MPCPtPubNode:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
-    parser.add_argument("traj_type", type=int,
-                        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni")
+    parser.add_argument(
+        "traj_type",
+        type=int,
+        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni",
+    )
     args = parser.parse_args()
 
     try:
