@@ -249,13 +249,13 @@ void nmpc_tilt_tri_full::NMPCController::controlCore()
 
   for (int i = 0; i < motor_num_; i++)
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i) * 1.28);
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i) * 1.00);
   }
 
   // - servo angle
-  double a1c = getCommand(4, t_nmpc_samp_);
-  double a2c = getCommand(5, t_nmpc_samp_);
-  double a3c = getCommand(6, t_nmpc_samp_);
+  double a1c = getCommand(3, t_nmpc_samp_);
+  double a2c = getCommand(4, t_nmpc_samp_);
+  double a3c = getCommand(5, t_nmpc_samp_);
 
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
   gimbal_ctrl_cmd_.name.clear();
@@ -400,6 +400,7 @@ void nmpc_tilt_tri_full::NMPCController::initAllocMat()
   int dr1 = rotor_dr.find(1)->second;
   int dr2 = rotor_dr.find(2)->second;
   int dr3 = rotor_dr.find(3)->second;
+  std::cout << "dr1: " << dr1 << ", dr2: " << dr2 << ", dr3: " << dr3 << std::endl;
 
   double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
 
