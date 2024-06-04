@@ -509,7 +509,11 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
   };
   double u[NU] = { ft1_ref, ft2_ref, ft3_ref, ft4_ref, 0.0, 0.0, 0.0, 0.0 };
 
-  for (int i = 0; i < NN; i++)
+  // Aim: gently add the target point to the end of the reference trajectory
+  // - x: NN + 1, u: NN
+  // - for 0 ~ NN-2 x and u, shift
+  // - copy x to x: NN-1 and NN, copy u to u: NN-1
+  for (int i = 0; i < NN - 1; i++)
   {
     // shift one step
     std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
@@ -517,8 +521,10 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
     std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
               x_u_ref_.u.data.begin() + NU * i);
   }
+  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
+  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
+
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 }
 
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)

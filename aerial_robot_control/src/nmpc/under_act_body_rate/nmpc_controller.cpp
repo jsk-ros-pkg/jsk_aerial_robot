@@ -177,7 +177,11 @@ void nmpc_under_act_body_rate::NMPCController::controlCore()
   double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
   double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
 
-  for (int i = 0; i < NN; i++)
+  // Aim: gently add the target point to the end of the reference trajectory
+  // - x: NN + 1, u: NN
+  // - for 0 ~ NN-2 x and u, shift
+  // - copy x to x: NN-1 and NN, copy u to u: NN-1
+  for (int i = 0; i < NN - 1; i++)
   {
     // shift one step
     std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
@@ -185,8 +189,10 @@ void nmpc_under_act_body_rate::NMPCController::controlCore()
     std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
               x_u_ref_.u.data.begin() + NU * i);
   }
+  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
+  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
+
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 
   /* solve */
   mpc_solver_.solve(odom_, x_u_ref_);
