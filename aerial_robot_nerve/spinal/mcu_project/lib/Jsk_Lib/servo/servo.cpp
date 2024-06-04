@@ -20,6 +20,7 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   nh_->advertise(servo_state_pub_);
   nh_->advertise(servo_torque_state_pub_);
   nh_->advertiseService(servo_config_srv_);
+  nh_->advertiseService(board_info_srv_);
 
   //temp
   servo_state_msg_.servos_length = MAX_SERVO_NUM;
@@ -27,12 +28,15 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   servo_torque_state_msg_.torque_enable_length = MAX_SERVO_NUM;
   servo_torque_state_msg_.torque_enable = new uint8_t[MAX_SERVO_NUM];
 
-  
-
   servo_handler_.init(huart, mutex);
 
   servo_last_pub_time_ = 0;
   servo_torque_last_pub_time_ = 0;
+
+  board_info_res_.boards_length = 1;
+  board_info_res_.boards = new spinal::BoardInfo[1];
+  board_info_res_.boards[0].servos_length = servo_handler_.getServoNum();
+  board_info_res_.boards[0].servos = new spinal::ServoInfo[servo_handler_.getServoNum()];
 }
 
 void DirectServo::update()
@@ -62,6 +66,17 @@ void DirectServo::sendData()
       servo_state_pub_.publish(&servo_state_msg_);
       servo_last_pub_time_ = now_time;
     }
+  if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
+    {
+      for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
+        const ServoData& s = servo_handler_.getServo()[i];
+        if (s.send_data_flag_ != 0) {
+          servo_torque_state_msg_.torque_enable[i] = s.torque_enable_;
+        }
+      }
+      servo_torque_state_pub_.publish(&servo_torque_state_msg_);
+      servo_torque_last_pub_time_= now_time;
+    }  
 }
 
 void DirectServo::torqueEnable(const std::map<uint8_t, float>& servo_map)
@@ -275,6 +290,29 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
     break;
   }
   // res.success = true;
+}
+
+void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
+{
+  //TODO: Bad implementation. This features should not be located in servo interface.
+  spinal::BoardInfo& board = board_info_res_.boards[0];
+  board.imu_send_data_flag = 1;
+  board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+  board.slave_id = 0;
+  for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
+    const ServoData& s = servo_handler_.getServo()[i];
+    board.servos[i].id = s.id_;
+    board.servos[i].p_gain = s.p_gain_;
+    board.servos[i].i_gain = s.i_gain_;
+    board.servos[i].d_gain = s.d_gain_;
+    board.servos[i].profile_velocity = s.profile_velocity_;
+    board.servos[i].current_limit = s.current_limit_;
+    board.servos[i].send_data_flag = s.send_data_flag_;
+    board.servos[i].external_encoder_flag = s.external_encoder_flag_;
+    board.servos[i].joint_resolution = s.joint_resolution_;
+    board.servos[i].servo_resolution = s.servo_resolution_;
+  }
+  res = board_info_res_;
 }
 
 void DirectServo::jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg)
