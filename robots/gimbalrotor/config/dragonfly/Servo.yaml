@@ -14,7 +14,7 @@ servo_controller:
     cutoff_freq: 10.0 # 10Hz, test
 
     controller1:
-      id: 7
+      id: 6
       name: head_joint
       angle_sgn: -1
       simulation:
@@ -23,7 +23,7 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
     controller2:
-      id: 8
+      id: 7
       name: tail_joint
       angle_sgn: -1
       simulation:
@@ -42,31 +42,31 @@ servo_controller:
       type: effort_controllers/JointPositionController
 
     controller1:
-      id: 1
+      id: 0
       angle_sgn: 1
       name: gimbal1_roll
 
     controller2:
-      id: 2
+      id: 1
       angle_sgn: 1      
       name: gimbal1_pitch
 
     controller3:
-      id: 3
+      id: 2
       angle_sgn: 1      
       name: gimbal2_roll
 
     controller4:
-      id: 4
+      id: 3
       angle_sgn: -1      
       name: gimbal2_pitch
 
     controller5:
-      id: 5
+      id: 4
       angle_sgn: 1      
       name: gimbal3_roll
 
     controller6:
-      id: 6
+      id: 5
       angle_sgn: -1      
       name: gimbal3_pitch
