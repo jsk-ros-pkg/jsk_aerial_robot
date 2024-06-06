@@ -10,6 +10,7 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 from nmpc_viz import Visualizer
 
 from tilt_bi_full import NMPCTiltBiFull
+from tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -39,6 +40,8 @@ if __name__ == "__main__":
     # ---------- Controller ----------
     if args.model == 0:
         nmpc = NMPCTiltBiFull()
+    elif args.model == 1:
+        nmpc = NMPCTiltBi2OrdServo()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -65,7 +68,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltBiFull()
+    sim_nmpc = NMPCTiltBi2OrdServo()
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
@@ -74,7 +77,7 @@ if __name__ == "__main__":
 
     ts_sim = 0.005
 
-    t_total_sim = 15.0
+    t_total_sim = 5.0
     if args.plot_type == 1:
         t_total_sim = 2.0
     if args.plot_type == 2:
@@ -121,16 +124,16 @@ if __name__ == "__main__":
         if t_total_sim > 3.0:
             if 3.0 <= t_now < 5.5:
                 assert t_sqp_end <= 3.0
-                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+                target_xyz = np.array([[1.0, 0.0, 1.0]]).T
                 target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
-            if t_now >= 5.5:
-                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-
-                roll = 30.0 / 180.0 * np.pi
-                pitch = 0.0 / 180.0 * np.pi
-                yaw = 0.0 / 180.0 * np.pi
-                target_rpy = np.array([[roll, pitch, yaw]]).T
+            # if t_now >= 5.5:
+            #     target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+            #
+            #     roll = 30.0 / 180.0 * np.pi
+            #     pitch = 0.0 / 180.0 * np.pi
+            #     yaw = 0.0 / 180.0 * np.pi
+            #     target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 

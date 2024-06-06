@@ -11,9 +11,15 @@ controller:
     p2: [ 0, -0.2375, 0.12098 ] # position of motor 2
     kq_d_kt: 0.0172  # sim: 0.0172
 
+    # old 1st-order servo model
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
     # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
     t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
+
+    # new 2nd-order servo model
+    kps: 1.5635 # sim: 1.5635; real servo 1: 0.0651
+    kds: 0.2479 # sim: 0.2479; real servo 1: 0.0028
+    mus: 3.3521e-04 # sim: 3.3521e-04; real servo 1: 3.1252e-04
 
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
@@ -43,6 +49,7 @@ controller:
     Qw_xy: 5
     Qw_z: 5
     Qa: 1
+    Qb: 0
     Rt: 1
     Rac_d: 250  # difference of ac
 
