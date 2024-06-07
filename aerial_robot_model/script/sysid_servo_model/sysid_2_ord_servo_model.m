@@ -19,7 +19,7 @@ best_fit_accuracy = 0.0;
 t_servo_when_best = 0.0;
 
 % parallel axis theorem
-Isxx = 0.00006797 + 0.15429 * (0.0^2 + 0.00007058);
+Isxx = 0.00006797 + 0.15429 * (0.0^2 + 0.00007058^2);
 
 mydata = iddata(output(:, 2), input(:, 2), 0.01);
 tf1 = tfest(mydata, 2, 0, 'InputDelay', 0.0, Options);

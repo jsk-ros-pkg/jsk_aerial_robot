@@ -17,9 +17,11 @@ controller:
     t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
 
     # new 2nd-order servo model
-    kps: 1.5635 # sim: 1.5635; real servo 1: 0.0651
-    kds: 0.2479 # sim: 0.2479; real servo 1: 0.0028
-    mus: 3.3521e-04 # sim: 3.3521e-04; real servo 1: 3.1252e-04
+    kps: 1.3476 # sim: 1.3476; real servo 1: 0.0562
+    kds: 0.2137 # sim: 0.2137; real servo 1: 0.0024
+    mus: 2.8892e-04 # sim: 2.8892e-04; real servo 1: 2.6937e-04
+
+    servo_inertia_x: 6.7971e-05 # calculated from UDRF
 
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
