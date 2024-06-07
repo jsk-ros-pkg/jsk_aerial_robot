@@ -36,11 +36,11 @@ def export_servo_model() -> AcadosModel:
     # set up states & controls
     t_servo = 0.08
 
-    a = ca.SX.sym('a')
-    b = ca.SX.sym('b')
+    a = ca.SX.sym('a', 2)
+    b = ca.SX.sym('b', 2)
     x = ca.vertcat(a, b)
 
-    ac = ca.SX.sym('ac')
+    ac = ca.SX.sym('ac', 2)
     u = ca.vertcat(ac)
 
     # xdot
@@ -93,22 +93,7 @@ def plot_servo(shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, la
         N_mhe = N_sim - X_est.shape[0]
         t_mhe = np.linspace(N_mhe * Ts, Tf, N_sim - N_mhe)
 
-    plt.subplot(nx + 1, 1, 1)
-    line, = plt.step(t, np.append([U[0]], U))
-    if X_true_label is not None:
-        line.set_label(X_true_label)
-    else:
-        line.set_color('r')
-
-    plt.ylabel('$u$')
-    plt.xlabel('$t$')
-    plt.hlines(u_max, t[0], t[-1], linestyles='dashed', alpha=0.7)
-    plt.hlines(-u_max, t[0], t[-1], linestyles='dashed', alpha=0.7)
-    plt.ylim([-1.2 * u_max, 1.2 * u_max])
-    plt.xlim(t[0], t[-1])
-    plt.grid()
-
-    states_lables = ['$x$', r'$\theta$', '$v$', r'$\dot{\theta}$']
+    states_lables = ['$a1$', '$a2$', '$b1$', '$b2$']
 
     for i in range(nx):
         plt.subplot(nx + 1, 1, i + 2)
@@ -160,7 +145,7 @@ def main():
 
     simX = np.zeros((N + 1, nx))
     x0 = np.zeros((nx,))
-    u0 = np.array([1.0])
+    u0 = np.array([1.0, -1.0])
     acados_integrator.set("u", u0)
 
     simX[0, :] = x0
