@@ -7,6 +7,27 @@ from acados_template import AcadosSim, AcadosSimSolver, AcadosModel, latexify_pl
 import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
+import rospkg
+import os
+import yaml
+
+# read parameters from yaml
+rospack = rospkg.RosPack()
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBiRotorNMPCFull.yaml")
+with open(param_path, "r") as f:
+    param_dict = yaml.load(f, Loader=yaml.FullLoader)
+
+nmpc_params = param_dict["controller"]["nmpc"]
+nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
+
+physical_params = param_dict["controller"]["physical"]
+
+# servo parameters
+kps = physical_params["kps"]
+kds = physical_params["kds"]
+mus = physical_params["mus"]
+
+i_sxx = physical_params["servo_inertia_x"]
 
 
 def export_servo_model() -> AcadosModel:
@@ -16,18 +37,18 @@ def export_servo_model() -> AcadosModel:
     t_servo = 0.08
 
     a = ca.SX.sym('a')
-    x = ca.vertcat(a)
+    b = ca.SX.sym('b')
+    x = ca.vertcat(a, b)
 
     ac = ca.SX.sym('ac')
     u = ca.vertcat(ac)
 
     # xdot
-    a_dot = ca.SX.sym('a_dot')
-
-    xdot = ca.vertcat(a_dot)
+    xdot = ca.SX.sym('xdot', x.size()[0])
 
     # dynamics
-    f_expl = ca.vertcat((ac - a) / t_servo)
+    f_expl = ca.vertcat(b,
+                        (kps * (ac - a) + kds * (0 - b) + mus * b) / i_sxx)
 
     f_impl = xdot - f_expl
 
@@ -138,7 +159,7 @@ def main():
     acados_integrator = AcadosSimSolver(sim)
 
     simX = np.zeros((N + 1, nx))
-    x0 = np.array([0.0])
+    x0 = np.zeros((nx,))
     u0 = np.array([1.0])
     acados_integrator.set("u", u0)
 
