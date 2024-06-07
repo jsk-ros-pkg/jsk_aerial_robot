@@ -9,44 +9,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def export_pendulum_ode_model() -> AcadosModel:
-    model_name = 'pendulum_ode'
-
-    # constants
-    M = 1.  # mass of the cart [kg] -> now estimated
-    m = 0.1  # mass of the ball [kg]
-    g = 9.81  # gravity constant [m/s^2]
-    l = 0.8  # length of the rod [m]
+def export_servo_model() -> AcadosModel:
+    model_name = 'servo_ode'
 
     # set up states & controls
-    x1 = ca.SX.sym('x1')
-    theta = ca.SX.sym('theta')
-    v1 = ca.SX.sym('v1')
-    dtheta = ca.SX.sym('dtheta')
+    t_servo = 0.08
 
-    x = ca.vertcat(x1, theta, v1, dtheta)
+    a = ca.SX.sym('a')
+    x = ca.vertcat(a)
 
-    F = ca.SX.sym('F')
-    u = ca.vertcat(F)
+    ac = ca.SX.sym('ac')
+    u = ca.vertcat(ac)
 
     # xdot
-    x1_dot = ca.SX.sym('x1_dot')
-    theta_dot = ca.SX.sym('theta_dot')
-    v1_dot = ca.SX.sym('v1_dot')
-    dtheta_dot = ca.SX.sym('dtheta_dot')
+    a_dot = ca.SX.sym('a_dot')
 
-    xdot = ca.vertcat(x1_dot, theta_dot, v1_dot, dtheta_dot)
+    xdot = ca.vertcat(a_dot)
 
     # dynamics
-    cos_theta = ca.cos(theta)
-    sin_theta = ca.sin(theta)
-    denominator = M + m - m * cos_theta * cos_theta
-    f_expl = ca.vertcat(v1,
-                        dtheta,
-                        (-m * l * sin_theta * dtheta * dtheta + m * g * cos_theta * sin_theta + F) / denominator,
-                        (-m * l * cos_theta * sin_theta * dtheta * dtheta + F * cos_theta + (M + m) * g * sin_theta) / (
-                                    l * denominator)
-                        )
+    f_expl = ca.vertcat((ac - a) / t_servo)
 
     f_impl = xdot - f_expl
 
@@ -62,8 +43,8 @@ def export_pendulum_ode_model() -> AcadosModel:
     return model
 
 
-def plot_pendulum(shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, latexify=False, plt_show=True,
-                  X_true_label=None):
+def plot_servo(shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, latexify=False, plt_show=True,
+               X_true_label=None):
     """
     Params:
         shooting_nodes: time values of the discretization
@@ -134,15 +115,15 @@ def main():
     sim = AcadosSim()
 
     # export model
-    model = export_pendulum_ode_model()
+    model = export_servo_model()
 
     # set model_name
     sim.model = model
 
-    Tf = 0.1
+    Tf = 0.001
     nx = model.x.size()[0]
     nu = model.u.size()[0]
-    N = 200
+    N = 1000
 
     # set simulation time
     sim.solver_options.T = Tf
@@ -157,8 +138,8 @@ def main():
     acados_integrator = AcadosSimSolver(sim)
 
     simX = np.zeros((N + 1, nx))
-    x0 = np.array([0.0, np.pi + 1, 0.0, 0.0])
-    u0 = np.array([0.0])
+    x0 = np.array([0.0])
+    u0 = np.array([1.0])
     acados_integrator.set("u", u0)
 
     simX[0, :] = x0
@@ -182,7 +163,7 @@ def main():
     print("S_forw, sensitivities of simulation result wrt x,u:\n", S_forw)
 
     # plot results
-    plot_pendulum(np.linspace(0, N * Tf, N + 1), 10, np.repeat(u0, N), simX, latexify=False)
+    plot_servo(np.linspace(0, N * Tf, N + 1), 10, np.repeat(u0, N), simX, latexify=False)
 
 
 if __name__ == "__main__":
