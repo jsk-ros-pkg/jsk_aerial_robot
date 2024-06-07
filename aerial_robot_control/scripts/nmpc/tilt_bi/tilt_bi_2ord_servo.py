@@ -43,6 +43,8 @@ kps = physical_params["kps"]
 kds = physical_params["kds"]
 mus = physical_params["mus"]
 
+i_sxx = physical_params["servo_inertia_x"]
+
 
 class NMPCTiltBi2OrdServo(NMPCBase):
     def __init__(self):
@@ -160,7 +162,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b - tau_s_b)),
             b,
-            kps * (ac - a) + kds * (0 - b) + mus * b,
+            (kps * (ac - a) + kds * (0 - b) + mus * b) / i_sxx,
         )
 
         # function
