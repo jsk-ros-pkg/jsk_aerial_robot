@@ -140,6 +140,18 @@ def main():
     sim.solver_options.newton_iter = 3  # for implicit integrator
     sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
 
+    # # The following setting leads to unconvergence
+    # sim.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
+    # sim.solver_options.hpipm_mode = "BALANCE"  # "BALANCE", "SPEED_ABS", "SPEED", "ROBUST". Default: "BALANCE".
+    # # # 0: no warm start; 1: warm start; 2: hot start. Default: 0   Seems only works for FULL_CONDENSING_QPOASES
+    # # ocp.solver_options.qp_solver_warm_start = 1
+    # sim.solver_options.hessian_approx = "GAUSS_NEWTON"
+    # sim.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
+    # sim.solver_options.print_level = 0
+    # sim.solver_options.nlp_solver_type = "SQP_RTI"
+    # sim.solver_options.qp_solver_cond_N = nmpc_params["N_node"]
+    # sim.solver_options.tf = nmpc_params["T_pred"]
+
     # create
     acados_integrator = AcadosSimSolver(sim)
 
