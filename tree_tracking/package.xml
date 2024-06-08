@@ -51,6 +51,8 @@
   <exec_depend>tf</exec_depend>
   <exec_depend>laser_filters</exec_depend>
   <exec_depend>filters</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>urg_node</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
