@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>hokuyo_estimation</name>
+  <name>tree_tracking</name>
   <version>0.0.0</version>
-  <description>The hokuyo_estimation package</description>
+  <description>The tree tracking package</description>
 
   <maintainer email="kozuka@jsk.imi.i.u-tokyo.ac.jp">Haruki Kozuka</maintainer>
 
