@@ -57,3 +57,6 @@ target_link_libraries (tree_tracking_node ${catkin_LIBRARIES} tree_tracking)
 #############
 ## Install ##
 #############
+install(FILES laser_filters_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
