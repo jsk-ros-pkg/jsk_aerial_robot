@@ -33,7 +33,7 @@ message(WARNING "OPENCV ${OpenCV_VERSION} FOUND")
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp sensor_msgs nodelet tf std_msgs dynamic_reconfigure geometry_msgs
-  LIBRARIES tree_tracking
+  # LIBRARIES tree_tracking
 )
 
 ###########
