@@ -1,5 +1,5 @@
-#include "tree_tracking.h"
-#include "circle_detection.h"
+#include "tree_tracking/tree_tracking.h"
+#include "tree_tracking/circle_detection.h"
 
 TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
   nh_(nh), nhp_(nhp),

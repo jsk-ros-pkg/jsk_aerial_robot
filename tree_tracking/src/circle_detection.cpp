@@ -1,4 +1,4 @@
-#include "circle_detection.h"
+#include "tree_tracking/circle_detection.h"
 
 namespace CircleDetection {
   void circleFitting(const std::vector<tf::Vector3>& points, tf::Vector3& tree_center_location, double& tree_radius, double& regulation)

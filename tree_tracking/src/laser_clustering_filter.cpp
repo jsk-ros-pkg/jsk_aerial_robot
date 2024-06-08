@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "laser_clustering_filter.h"
+#include "tree_tracking/laser_clustering_filter.h"
 #include "sensor_msgs/LaserScan.h"
 #include "filters/filter_base.h"
 

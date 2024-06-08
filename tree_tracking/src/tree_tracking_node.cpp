@@ -1,4 +1,4 @@
-#include "tree_tracking.h"
+#include "tree_tracking/tree_tracking.h"
 
 int main (int argc, char **argv)
 {
