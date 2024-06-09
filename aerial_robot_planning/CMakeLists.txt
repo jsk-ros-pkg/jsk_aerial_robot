@@ -158,6 +158,7 @@ include_directories(
  catkin_install_python(PROGRAMS
    scripts/beetle_mpc_pt_pub_node.py
    scripts/tri_mpc_pt_pub_node.py
+   scripts/bi_mpc_pt_pub_node.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
