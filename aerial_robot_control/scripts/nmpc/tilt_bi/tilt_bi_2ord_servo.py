@@ -360,6 +360,10 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         # ocp.solver_options.qp_solver_warm_start = 1
         ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         ocp.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
+        ocp.solver_options.num_stages = 3
+        ocp.solver_options.num_steps = 3
+        ocp.solver_options.newton_iter = 3  # for implicit integrator
+
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
         ocp.solver_options.qp_solver_cond_N = nmpc_params["N_node"]
