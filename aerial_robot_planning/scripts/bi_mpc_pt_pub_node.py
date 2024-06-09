@@ -49,7 +49,7 @@ p2_b = physical_params["p2"]
 
 kq_d_kt = physical_params["kq_d_kt"]
 
-nx = 17
+nx = 15
 nu = 4
 
 

@@ -1,4 +1,5 @@
-aerial_robot_control_name: aerial_robot_control/tilt_bi_2_ord/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/tilt_bi_full/nmpc_controller
+# tilt_bi_2_ord or tilt_bi_full
 
 controller:
   physical:
@@ -14,7 +15,7 @@ controller:
     # old 1st-order servo model
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
     # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
-    t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
+    t_servo: 0.15858  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
 
     # new 2nd-order servo model
     kps: 1.3476 # sim: 1.3476; real servo 1: 0.0562
