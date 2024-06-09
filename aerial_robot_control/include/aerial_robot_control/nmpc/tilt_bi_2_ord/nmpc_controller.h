@@ -90,6 +90,7 @@ private:
   double t_nmpc_integ_;
 
   double joint_angles_[2] = { 0.0, 0.0 };
+  double joint_vel_[2] = { 0.0, 0.0 };
 
   bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
   Eigen::Matrix<double, 6, 4> alloc_mat_;

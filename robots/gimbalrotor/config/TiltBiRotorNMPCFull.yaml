@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/tilt_bi_full/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/tilt_bi_2_ord/nmpc_controller
 
 controller:
   physical:
@@ -21,7 +21,7 @@ controller:
     kds: 0.2137 # sim: 0.2137; real servo 1: 0.0024
     mus: 2.8892e-04 # sim: 2.8892e-04; real servo 1: 2.6937e-04
 
-    servo_inertia_x: 6.7971e-04 # 6.7971e-05 calculated from UDRF
+    servo_inertia_x: 6.7971e-03 # 6.7971e-05 calculated from UDRF
 
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
@@ -51,7 +51,7 @@ controller:
     Qw_xy: 5
     Qw_z: 5
     Qa: 1
-    Qb: 0
+    Qb: 5
     Rt: 1
     Rac_d: 250  # difference of ac
 

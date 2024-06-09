@@ -81,8 +81,8 @@ public:
   ~MPCSolver();
   void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
-  int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
-            bool is_debug);
+  int solve(const nav_msgs::Odometry& odom_now, double joint_angles[2], double joint_vel[2],
+            const aerial_robot_msgs::PredXU& x_u_ref, bool is_debug);
 
   /* Setters */
   void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
@@ -103,7 +103,8 @@ private:
   void* nlp_opts_;
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
-  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
+  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[2],
+                              const double joint_vel[2]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
 };

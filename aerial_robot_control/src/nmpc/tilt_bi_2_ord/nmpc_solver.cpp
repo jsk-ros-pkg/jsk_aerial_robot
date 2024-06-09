@@ -126,13 +126,14 @@ void nmpc_tilt_bi_2_ord::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
 }
 
 int nmpc_tilt_bi_2_ord::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[2],
-                                        const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
+                                         double joint_vel[2], const aerial_robot_msgs::PredXU& x_u_ref,
+                                         const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
   setReference(x_u_ref, x_stride, u_stride);
 
-  setFeedbackConstraints(odom_now, joint_angles);
+  setFeedbackConstraints(odom_now, joint_angles, joint_vel);
 
   double min_time = solveOCPOnce();
 
@@ -178,7 +179,7 @@ void nmpc_tilt_bi_2_ord::initPredXU(aerial_robot_msgs::PredXU& x_u)
 }
 
 void nmpc_tilt_bi_2_ord::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
-                                                const unsigned int u_stride)
+                                                 const unsigned int u_stride)
 {
   double yr[NX + NU];
   double qr[4];
@@ -204,7 +205,7 @@ void nmpc_tilt_bi_2_ord::MPCSolver::setReference(const aerial_robot_msgs::PredXU
 }
 
 void nmpc_tilt_bi_2_ord::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
-                                                          const double joint_angles[2])
+                                                           const double joint_angles[2], const double joint_vel[2])
 {
   // TODO: modify, to pass in variable array
   double bx0[NBX0];
@@ -223,6 +224,8 @@ void nmpc_tilt_bi_2_ord::MPCSolver::setFeedbackConstraints(const nav_msgs::Odome
   bx0[12] = odom_now.twist.twist.angular.z;
   bx0[13] = joint_angles[0];
   bx0[14] = joint_angles[1];
+  bx0[15] = joint_vel[0];
+  bx0[16] = joint_vel[1];
 
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", bx0);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
