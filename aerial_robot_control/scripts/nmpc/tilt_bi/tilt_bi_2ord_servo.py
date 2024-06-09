@@ -200,7 +200,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_bi_full"
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_bi_2_ord"
         )
         self._mkdir(folder_path)
         os.chdir(folder_path)

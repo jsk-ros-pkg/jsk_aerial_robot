@@ -81,6 +81,8 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_tri_full/nmpc_controller.cpp
         src/nmpc/tilt_bi_full/nmpc_solver.cpp
         src/nmpc/tilt_bi_full/nmpc_controller.cpp
+        src/nmpc/tilt_bi_2_ord/nmpc_solver.cpp
+        src/nmpc/tilt_bi_2_ord/nmpc_controller.cpp
 )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
@@ -90,7 +92,8 @@ target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_full_i_term/c_generated_code/libacados_ocp_solver_beetle_full_w_disturb_model.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_tri_full/c_generated_code/libacados_ocp_solver_tilt_tri_full_model.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_full/c_generated_code/libacados_ocp_solver_tilt_bi_full_model.so
-        )
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_model.so
+)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation
