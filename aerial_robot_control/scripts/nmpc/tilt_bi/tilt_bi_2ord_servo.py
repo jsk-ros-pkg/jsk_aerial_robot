@@ -147,10 +147,10 @@ class NMPCTiltBi2OrdServo(NMPCBase):
                 + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
         )
 
-        tau_s_e1 = ca.vertcat(kps * (a1c - a1) + kds * (0 - b1) + mus * b1, 0, 0)
-        tau_s_e2 = ca.vertcat(kps * (a2c - a2) + kds * (0 - b2) + mus * b2, 0, 0)
-
-        tau_s_b = ca.mtimes(rot_be1, tau_s_e1) + ca.mtimes(rot_be2, tau_s_e2)
+        # tau_s_e1 = ca.vertcat(kps * (a1c - a1) + kds * (0 - b1) + mus * b1, 0, 0)
+        # tau_s_e2 = ca.vertcat(kps * (a2c - a2) + kds * (0 - b2) + mus * b2, 0, 0)
+        #
+        # tau_s_b = ca.mtimes(rot_be1, tau_s_e1) + ca.mtimes(rot_be2, tau_s_e2)
 
         # dynamic model
         ds = ca.vertcat(
@@ -160,7 +160,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b - tau_s_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
             b,
             (kps * (ac - a) + kds * (0 - b) + mus * b) / i_sxx,
         )

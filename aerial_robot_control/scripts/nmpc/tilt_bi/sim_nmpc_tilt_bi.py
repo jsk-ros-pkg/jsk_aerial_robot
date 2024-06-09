@@ -19,7 +19,15 @@ def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSim
     n_params = ocp_model.p.size()[0]
     acados_sim.dims.np = n_params  # TODO: seems that the np needn't to be set manually in the latest version of acados
     acados_sim.parameter_values = np.zeros(n_params)
+
     acados_sim.solver_options.T = ts_sim
+    # important to sim 2-ord servo model
+    acados_sim.solver_options.integrator_type = 'IRK'
+    acados_sim.solver_options.num_stages = 3
+    acados_sim.solver_options.num_steps = 3
+    acados_sim.solver_options.newton_iter = 3  # for implicit integrator
+    acados_sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
+
     acados_sim_solver = AcadosSimSolver(acados_sim, json_file="acados_ocp_" + ocp_model.name + ".json")
     return acados_sim_solver
 
@@ -75,9 +83,9 @@ if __name__ == "__main__":
     else:
         t_servo_sim = 0.0
 
-    ts_sim = 0.005
+    ts_sim = 0.001
 
-    t_total_sim = 5.0
+    t_total_sim = 15.0
     if args.plot_type == 1:
         t_total_sim = 2.0
     if args.plot_type == 2:
