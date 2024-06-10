@@ -70,6 +70,9 @@ target_link_libraries (tree_tracking_node ${catkin_LIBRARIES} tree_tracking)
 #############
 ## Install ##
 #############
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
 install(
   TARGETS tree_tracking_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
