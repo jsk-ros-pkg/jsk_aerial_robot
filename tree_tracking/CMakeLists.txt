@@ -41,7 +41,7 @@ catkin_package(
 ## Build ##
 ###########
 include_directories(
-  include test
+  include
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   )
