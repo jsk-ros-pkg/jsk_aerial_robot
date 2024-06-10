@@ -46,11 +46,11 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   )
 
-catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp sensor_msgs nodelet tf std_msgs dynamic_reconfigure geometry_msgs
-  # LIBRARIES tree_tracking
-)
+# catkin_package(
+#   INCLUDE_DIRS include
+#   CATKIN_DEPENDS roscpp sensor_msgs nodelet tf std_msgs dynamic_reconfigure geometry_msgs
+#   # LIBRARIES tree_tracking
+# )
 
 add_library(laser_clustering_filter SHARED src/laser_clustering_filter.cpp)
 target_link_libraries(laser_clustering_filter ${catkin_LIBRARIES})
