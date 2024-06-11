@@ -151,7 +151,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         tau_s_e2 = ca.vertcat(kps * (a2c - a2) + kds * (0 - b2), 0, 0)
         tau_s_b = ca.mtimes(rot_be1, tau_s_e1) + ca.mtimes(rot_be2, tau_s_e2)
 
-        # dynamic model
+        # dynamic model # TODO: check if the damping term mus*b should be included in reactive torque
         ds = ca.vertcat(
             v,
             ca.mtimes(rot_ib, f_u_b) / mass + g_i,
@@ -359,7 +359,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         # # 0: no warm start; 1: warm start; 2: hot start. Default: 0   Seems only works for FULL_CONDENSING_QPOASES
         # ocp.solver_options.qp_solver_warm_start = 1
         ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        ocp.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
+        ocp.solver_options.integrator_type = "IRK"  # IRK: implicit Runge-Kutta integrator
         ocp.solver_options.num_stages = 3
         ocp.solver_options.num_steps = 3
         ocp.solver_options.newton_iter = 3  # for implicit integrator
