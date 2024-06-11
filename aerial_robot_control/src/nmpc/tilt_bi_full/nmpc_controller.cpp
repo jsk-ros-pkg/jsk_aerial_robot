@@ -27,6 +27,7 @@ void nmpc_tilt_bi_full::NMPCController::initialize(ros::NodeHandle nh, ros::Node
   getParam<double>(nmpc_nh, "T_integ", t_nmpc_integ_, 0.1);
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
+  getParam<bool>(nmpc_nh, "is_print_phys_params", is_print_phys_params_, false);
   getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
 
   /* control parameters with dynamic reconfigure */
@@ -112,12 +113,6 @@ void nmpc_tilt_bi_full::NMPCController::initialize(ros::NodeHandle nh, ros::Node
            set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
-
-  /* print physical parameters if needed */
-  bool is_print_physical_params;
-  getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
-  if (is_print_physical_params)
-    printPhysicalParams();
 }
 
 bool nmpc_tilt_bi_full::NMPCController::update()
@@ -142,6 +137,9 @@ bool nmpc_tilt_bi_full::NMPCController::update()
 void nmpc_tilt_bi_full::NMPCController::reset()
 {
   ControlBase::reset();
+
+  if (is_print_phys_params_)
+    printPhysicalParams();
 
   /* reset controller using odom */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);

@@ -80,6 +80,7 @@ protected:
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
+  bool is_print_phys_params_;
   bool is_debug_;
 
   virtual void controlCore();

@@ -53,7 +53,7 @@ controller:
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
 
-    is_print_physical_params: false
+    is_print_phys_params: false
     is_debug: false
 
     # disturb_rej
