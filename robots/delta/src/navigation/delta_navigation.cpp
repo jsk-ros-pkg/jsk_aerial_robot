@@ -138,7 +138,18 @@ void RollingNavigator::rollingPlanner()
 
     case aerial_robot_navigation::DOWN_STATE:
       {
-        setFinalTargetBaselinkQuat(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
+        Eigen::Matrix3d rot_mat;
+        Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+        rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+        double down_angle = std::min(std::max(0.0, down_mode_roll_anglvel_ * (ros::Time::now().toSec() - down_start_time_)), M_PI / 2.0);
+        rot_mat = Eigen::AngleAxisd(-down_angle, b1) * rot_mat;
+
+        KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+        double qx, qy, qz, qw;
+        rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+        setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
         break;
       }
 
@@ -206,18 +217,22 @@ void RollingNavigator::rosParamInit()
   getParam<double>(navi_nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);
   getParam<double>(navi_nh, "rolling_max_yaw_ang_vel", rolling_max_yaw_ang_vel_, 0.0);
+  getParam<double>(navi_nh, "down_mode_roll_angvel", down_mode_roll_anglvel_, 0.0);
 
 }
 
 void RollingNavigator::setGroundNavigationMode(int state)
 {
-  current_ground_navigation_mode_ = state;
   if(state != current_ground_navigation_mode_)
     {
       ROS_WARN_STREAM("[navigation] switch to " << indexToGroundNavigationModeString(state));
     }
+  else
+    {
+      return;
+    }
 
-  if(state == aerial_robot_navigation::FLYING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
+  if(state == aerial_robot_navigation::FLYING_STATE)
     {
       setTargetXyFromCurrentState();
 
@@ -231,7 +246,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
       controllers_reset_flag_ = true;
     }
 
-  if(state == aerial_robot_navigation::STANDING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
+  if(state == aerial_robot_navigation::STANDING_STATE)
     {
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
@@ -244,7 +259,7 @@ void RollingNavigator::setGroundNavigationMode(int state)
       final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
     }
 
-  if(state == aerial_robot_navigation::ROLLING_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
+  if(state == aerial_robot_navigation::ROLLING_STATE)
     {
       Eigen::Matrix3d rot_mat;
       Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
@@ -257,10 +272,13 @@ void RollingNavigator::setGroundNavigationMode(int state)
       final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
     }
 
-  if(state == aerial_robot_navigation::DOWN_STATE && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+  if(state == aerial_robot_navigation::DOWN_STATE)
     {
-      final_target_baselink_quat_ = tf::Quaternion(0.0, 0.0, 0.0, 1.0);
+      down_start_time_ = ros::Time::now().toSec();
+      ROS_INFO_STREAM("[navigation] down start at: " << down_start_time_);
     }
+
+  current_ground_navigation_mode_ = state;
 }
 
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
