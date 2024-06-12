@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# rosrun delta joint_load_plot.py ~/.ros/filename
+
 import argparse
 import matplotlib.pyplot as plt
 import sys

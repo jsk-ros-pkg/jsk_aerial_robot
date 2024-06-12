@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="config_dir" default="$(find delta)/config"/>
+  <arg name="brick_x" default="1.5"/>
+  <arg name="brick_y" default="0.0"/>
+  <arg name="brick_z" default="1.0"/>
+  <arg name="brick_yaw" default="0.0"/>
+
+  <!-- demo node -->
+  <group ns="delta">
+    <node pkg="delta" type="brick_pick_demo.py" name="brick_pick_demo" output="screen">
+      <rosparam file="$(arg config_dir)/demo/brick_pick_demo.yaml" command="load"/>
+    </node>
+  </group>
+
+
+  <!-- spawn brick -->
+  <param name="brick/robot_description" command="$(find xacro)/xacro $(find delta)/urdf/demo/brick.xacro"/>
+
+  <node pkg="gazebo_ros" type="spawn_model" name="brick_spawn" args="-param brick/robot_description -urdf -x $(arg brick_x) -y $(arg brick_y) -z $(arg brick_z) -Y $(arg brick_yaw) -model brick_model" />
+
+
+  <!-- smach viewer -->
+  <node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer"/>
+
+</launch>

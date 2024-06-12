@@ -1,0 +1,12 @@
+pos_control_converge_timeout: 20
+joint_angle_wait_time: 10
+
+pick_joint_angle: [1.2, 1.2]
+pick_link1_pos: [1.5, 0.0, 1.0]
+pick_object_pos: [1.5, 0.0, 0.0]
+pick_cog_yaw_angle: -1.57
+
+grasp_joint_angle: [1.8, 1.8]
+
+release_joint_angle: [1.6, 1.6]
+release_cog_pos: [2.0, 0.0, 0.7]

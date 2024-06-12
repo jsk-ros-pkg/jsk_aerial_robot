@@ -1,12 +1,12 @@
 approach_cog_pos: [0.8, 0.0, 1.0]
 approach_wait_time: 5.0
 
-prepare_manip_joint_angle: [1.57, 2.08]
+prepare_manip_joint_angle: [1.2, 2.08]
 prepare_manip_cog_pos: [0.8, 0.2, 1.0]
 prepare_manip_wait_time: 3.0
 
 manip_target_pos: [0.8, -0.8, 1.0]
-manip_wait_time: 4.0
+manip_wait_time: 6.0
 
 finish_task_target_pos: [0.0, 0.0, 1.0]
 finish_task_wait_time: 3.0
