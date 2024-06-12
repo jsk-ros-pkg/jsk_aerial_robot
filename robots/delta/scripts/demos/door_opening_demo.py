@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from delta.delta_interface import DeltaInterface
+from delta.common_states import *
 import math
 import numpy as np
 import rospy
@@ -10,46 +11,6 @@ import smach_ros
 import tf
 import time
 
-class BaseState(State):
-    def __init__(self, robot, outcomes=[], input_keys=[], output_keys=[], io_keys=[]):
-        State.__init__(self, outcomes, input_keys, output_keys, io_keys)
-        self.robot = robot
-
-class Start(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        self.robot.start()
-        return 'success'
-
-class Takeoff(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        self.robot.takeoff()
-        return 'success'
-
-class Land(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        self.robot.land()
-        return 'success'
-
-class ForceLanding(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        self.robot.forceLanding()
-        return 'success'
-
-class Halt(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        self.robot.halt()
-        return 'success'
-
 class Wait(BaseState):
     def __init__(self, robot):
         BaseState.__init__(self, robot, outcomes=['success'])
@@ -57,15 +18,6 @@ class Wait(BaseState):
 
     def execute(self, userdata):
         time.sleep(2.0)
-        return 'success'
-
-class HoveringCheck(BaseState):
-    def __init__(self, robot):
-        BaseState.__init__(self, robot, outcomes=['success'])
-    def execute(self, userdata):
-        while not (self.robot.getFlightState() == self.robot.HOVER_STATE):
-            rospy.logwarn_throttle(3.0, "[HoveringCheck] waiting for hovering")
-            continue
         return 'success'
 
 class Approach(BaseState):
@@ -77,8 +29,8 @@ class Approach(BaseState):
 
     def execute(self, userdata):
         # set target pos
-        self.robot.setTargetPos(self.approach_cog_pos[0], self.approach_cog_pos[1], self.approach_cog_pos[2])
-        rospy.logwarn("[Approach] go to {}, {}, {}".format(self.approach_cog_pos[0], self.approach_cog_pos[1], self.approach_cog_pos[2]))
+        self.robot.setTargetPosTraj(self.approach_cog_pos)
+        rospy.logwarn("[Approach] go to {}".format(self.approach_cog_pos))
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.approach_wait_time):
             rospy.logwarn_throttle(3.0, "[Approach] waiting after pos control command")
@@ -86,19 +38,19 @@ class Approach(BaseState):
         converge_flag = False
         while not converge_flag:
             cog_odom = self.robot.getCogOdom()
-            if self.robot.posControlConverged(self.approach_cog_pos, 0.1):
+            if self.robot.posControlConverged(target=self.approach_cog_pos, thresh=0.1):
                 converge_flag = True
             else:
                 pos_control_error = self.robot.getPosControlError(self.approach_cog_pos)
                 rospy.logwarn_throttle(3.0, "[Approach] waiting for pos control convergence. error: {} {} {}".format(pos_control_error[0], pos_control_error[1], pos_control_error[2]))
 
         # set target yaw angle
-        self.robot.setTargetYaw(-1.57)
+        self.robot.setTargetYawTraj(-1.57)
         rospy.logwarn("[Approach] set target yaw angle")
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.approach_wait_time):
             pass
-        while not self.robot.yawControlConverged():
+        while not self.robot.yawControlConverged(target=-1.57):
             pass
 
         return 'success'
@@ -122,11 +74,11 @@ class PrepareManip(BaseState):
             pass
 
         # set target pos
-        self.robot.setTargetPos(self.prepare_manip_cog_pos[0], self.prepare_manip_cog_pos[1], self.prepare_manip_cog_pos[2])
+        self.robot.setTargetPosTraj(self.prepare_manip_cog_pos)
         start_time= rospy.get_time()
         while(rospy.get_time() - start_time < self.prepare_manip_wait_time):
             pass
-        while not self.robot.posControlConverged(self.prepare_manip_cog_pos):
+        while not self.robot.posControlConverged(target=self.prepare_manip_cog_pos):
             rospy.logwarn_throttle(3.0, "[PrepareManip] waiting for pos control converged")
             pass
 
@@ -139,13 +91,13 @@ class Manip(BaseState):
         self.manip_wait_time = rospy.get_param("~manip_wait_time")
 
     def execute(self, userdata):
-        self.robot.setTargetPos(self.manip_target_pos[0], self.manip_target_pos[1], self.manip_target_pos[2])
+        self.robot.setTargetPosTraj(self.manip_target_pos)
+        rospy.logwarn("[Manip] set target pos {}".format(self.manip_target_pos))
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.manip_wait_time):
-            if not self.robot.posControlConverged(0.3):
-                return "recover"
+            pass
 
-        if not self.robot.posControlConverged():
+        if not self.robot.posControlConverged(target=self.manip_target_pos, thresh=0.1):
             return "recover"
 
         return 'success'
@@ -157,7 +109,7 @@ class FinishTask(BaseState):
         self.finish_task_wait_time = rospy.get_param('~finish_task_wait_time')
 
     def execute(self, userdata):
-        self.robot.setTargetPos(self.finish_task_target_pos[0], self.finish_task_target_pos[1], self.finish_task_target_pos[2])
+        self.robot.setTargetPosTraj(self.finish_task_target_pos)
 
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.finish_task_wait_time):

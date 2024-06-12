@@ -17,11 +17,6 @@
   <node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer"/>
 
   <!-- spawn door -->
-  <include file="$(find delta)/launch/demo/door_spawn.launch" >
-    <arg name="door_x" value="$(arg door_x)"/>
-    <arg name="door_y" value="$(arg door_y)"/>
-    <arg name="door_z" value="$(arg door_z)"/>
-    <arg name="door_yaw" value="$(arg door_yaw)"/>
-  </include>
-
+  <param name="door/robot_description" command="$(find xacro)/xacro $(find delta)/urdf/demo/door.urdf"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="door_spawn" args="-param door/robot_description -urdf -x $(arg door_x) -y $(arg door_y) -z 0 -Y $(arg door_yaw) -model door_model" />
 </launch>
