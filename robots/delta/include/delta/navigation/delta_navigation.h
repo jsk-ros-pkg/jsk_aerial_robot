@@ -91,13 +91,16 @@ namespace aerial_robot_navigation
     /* flight mode variable */
     bool controllers_reset_flag_;
 
-    /* rolling mode variable */
+    /* ground mode variable */
     double target_pitch_ang_vel_;
     double target_yaw_ang_vel_;
     double rolling_max_pitch_ang_vel_;
     double rolling_max_yaw_ang_vel_;
     bool pitch_ang_vel_updating_;
     bool yaw_ang_vel_updating_;
+    double down_mode_roll_anglvel_;
+    double down_start_time_;
+
 
     /* param for joy stick control */
     double joy_stick_deadzone_;

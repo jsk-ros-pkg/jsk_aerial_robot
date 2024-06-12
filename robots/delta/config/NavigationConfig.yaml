@@ -37,6 +37,9 @@ navigation:
   rolling_max_pitch_ang_vel: 1.0
   rolling_max_yaw_ang_vel: 1.0
 
+  # down mode
+  down_mode_roll_angvel: 0.2
+
   # param for joy stick control
   joy_stick_deadzone: 0.2
 
