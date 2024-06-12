@@ -66,6 +66,7 @@ namespace aerial_robot_control
 
     std::mutex contact_point_alined_mutex_;
     std::mutex current_gimbal_angles_mutex_;
+    std::mutex current_joint_angles_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<aerial_robot_model::PinocchioRobotModel> pinocchio_robot_model_;
@@ -78,6 +79,7 @@ namespace aerial_robot_control
     std::vector<double> target_gimbal_angles_;
     std::vector<double> prev_target_gimbal_angles_;
     std::vector<double> current_gimbal_angles_;
+    std::vector<double> current_joint_angles_;
     Eigen::VectorXd full_lambda_all_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
