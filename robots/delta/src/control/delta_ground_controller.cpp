@@ -227,14 +227,6 @@ void RollingController::nonlinearQP()
   casadi::SX q_cs = pinocchio_robot_model_->getQCs();
   const auto joint_state  = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
   std::map<std::string, int> joint_index_map = pinocchio_robot_model_->getJointIndexMap();
-  for(int i = 0; i < joint_state.position.size(); i++)
-    {
-      if(joint_state.name.at(i).find("joint") != std::string::npos)
-        {
-          q_cs(joint_index_map.at(joint_state.name.at(i))) = joint_state.position.at(i);
-        }
-    }
-  pinocchio_robot_model_->updateRobotModel(q_cs);
 
   std::vector<casadi::SX> rotors_normal_from_root = pinocchio_robot_model_->getRotorsNormalFromRoot();
   std::vector<casadi::SX> rotors_origin_from_root = pinocchio_robot_model_->getRotorsOriginFromRoot();
@@ -245,9 +237,6 @@ void RollingController::nonlinearQP()
   pinocchio::casadi::copy(aerial_robot_model::kdlToEigen(root_T_cp.M), root_R_cp);
   casadi::SX root_p_cp_in_root;
   pinocchio::casadi::copy(aerial_robot_model::kdlToEigen(root_T_cp.p), root_p_cp_in_root);
-
-  const auto& sigma = robot_model_->getRotorDirection();
-  const double m_f_rate = robot_model_->getMFRate();
 
   std::vector<casadi::SX> rotors_normal_from_cp, rotors_origin_from_cp;
   rotors_normal_from_cp.resize(motor_num_);
@@ -260,7 +249,9 @@ void RollingController::nonlinearQP()
     }
 
   // make wrench allocation Matrix
-  casadi::SX wrench_allocation_mat_from_cp = casadi::SX(6, 3);
+  const auto& sigma = robot_model_->getRotorDirection();
+  const double m_f_rate = robot_model_->getMFRate();
+  casadi::SX wrench_allocation_mat_from_cp = casadi::SX(6, motor_num_);
   for(int i = 0; i < motor_num_; i++)
     {
       casadi::SX v_i = cross(rotors_origin_from_cp.at(i), rotors_normal_from_cp.at(i)) + sigma.at(i + 1) * m_f_rate * rotors_normal_from_cp.at(i);
@@ -295,20 +286,25 @@ void RollingController::nonlinearQP()
   gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
 
   // optimization problem
-  casadi::SX x_opt = casadi::SX(6, 1);
+  int n_variables = 8;
+  int n_constraints = 8;
+
+  casadi::SX x_opt = casadi::SX(n_variables, 1);
   x_opt(0) = q_cs(joint_index_map.at("gimbal1"));
   x_opt(1) = q_cs(joint_index_map.at("gimbal2"));
   x_opt(2) = q_cs(joint_index_map.at("gimbal3"));
   x_opt(3) = lambda(0);
   x_opt(4) = lambda(1);
   x_opt(5) = lambda(2);
+  x_opt(6) = q_cs(joint_index_map.at("joint1"));
+  x_opt(7) = q_cs(joint_index_map.at("joint2"));
 
   casadi::SX cost
     = lambda_weight_ * dot(lambda, lambda)
     + d_gimbal_center_weight_ * (pow(x_opt(0) - M_PI / 2.0, 2) + pow(x_opt(1) - M_PI / 2.0, 2) + 2.0 * pow(x_opt(2) - M_PI / 2.0, 2))
     + d_gimbal_weight_ * (pow(x_opt(0) - prev_opt_gimbal_.at(0), 2) + pow(x_opt(1) - prev_opt_gimbal_.at(1), 2) + pow(x_opt(2) - prev_opt_gimbal_.at(2), 2));
 
-  casadi::SX constraints = casadi::SX(8, 1);
+  casadi::SX constraints = casadi::SX(n_constraints, 1);
   constraints(0) = wrench_cp(ROLL);
   constraints(1) = wrench_cp(PITCH);
   constraints(2) = wrench_cp(YAW);
@@ -318,10 +314,10 @@ void RollingController::nonlinearQP()
   constraints(6) = wrench_cp(Y) - steering_mu_ * wrench_cp(Z);  // lower
   constraints(7) = wrench_cp(Y) + steering_mu_ * wrench_cp(Z);  // upper
 
-  casadi::DM lbg = casadi::DM(8, 1);
-  casadi::DM ubg = casadi::DM(8, 1);
-  casadi::DM lbx = casadi::DM(6, 1);
-  casadi::DM ubx = casadi::DM(6, 1);
+  casadi::DM lbg = casadi::DM(n_constraints, 1);
+  casadi::DM ubg = casadi::DM(n_constraints, 1);
+  casadi::DM lbx = casadi::DM(n_variables, 1);
+  casadi::DM ubx = casadi::DM(n_variables, 1);
 
   lbg(0) = target_wrench_target_frame(ROLL);
   lbg(1) = target_wrench_target_frame(PITCH);
@@ -373,6 +369,11 @@ void RollingController::nonlinearQP()
   ubx(4) = min(prev_opt_lambda_.at(1) + d_lambda_max_, robot_model_->getThrustUpperLimit());
   ubx(5) = min(prev_opt_lambda_.at(2) + d_lambda_max_, robot_model_->getThrustUpperLimit());
 
+  lbx(6) = current_joint_angles_.at(0);
+  lbx(7) = current_joint_angles_.at(1);
+  ubx(6) = lbx(6);
+  ubx(7) = lbx(7);
+
   ROS_INFO_STREAM_ONCE("x_opt: \n" << x_opt << "\n");
   ROS_INFO_STREAM_ONCE("cost: \n" << cost << "\n");
   ROS_INFO_STREAM_ONCE("constraints: \n" << constraints << "\n");
@@ -387,10 +388,19 @@ void RollingController::nonlinearQP()
   opt_dict["ipopt.max_iter"] = ipopt_max_iter_;
   opt_dict["ipopt.print_level"] = 0;
   opt_dict["ipopt.sb"] = "yes";
+  opt_dict["ipopt.linear_solver"] = "ma97";
   opt_dict["print_time"] = 0;
 
   casadi::Function S = casadi::nlpsol("S", "ipopt", nlp, opt_dict);
-  casadi::DM initial_x = casadi::DM({prev_opt_gimbal_.at(0), prev_opt_gimbal_.at(1), prev_opt_gimbal_.at(2), prev_opt_lambda_.at(0), prev_opt_lambda_.at(1), prev_opt_lambda_.at(2)});
+  casadi::DM initial_x = casadi::DM(n_variables, 1);
+  initial_x(0) = prev_opt_gimbal_.at(0);
+  initial_x(1) = prev_opt_gimbal_.at(1);
+  initial_x(2) = prev_opt_gimbal_.at(2);
+  initial_x(3) = prev_opt_lambda_.at(0);
+  initial_x(4) = prev_opt_lambda_.at(1);
+  initial_x(5) = prev_opt_lambda_.at(2);
+  initial_x(6) = current_joint_angles_.at(0);
+  initial_x(7) = current_joint_angles_.at(1);
 
   auto res = S(casadi::DMDict{ {"x0", initial_x}, {"lbg",lbg}, {"ubg", ubg}, {"lbx", lbx}, {"ubx", ubx} });
 

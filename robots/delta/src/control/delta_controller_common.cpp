@@ -27,6 +27,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_gimbal_angles_.resize(motor_num_, 0);
   prev_target_gimbal_angles_.resize(motor_num_, 0);
   current_gimbal_angles_.resize(motor_num_, 0);
+  current_joint_angles_.resize(2, 0);   // TODO: get from robot model
   prev_opt_gimbal_.resize(motor_num_, 0.0);
   prev_opt_lambda_.resize(motor_num_, 0.0);
 
@@ -632,6 +633,17 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
                 {
                   std::lock_guard<std::mutex> lock(current_gimbal_angles_mutex_);
                   current_gimbal_angles_.at(j) = joint_state.position.at(i);
+                }
+            }
+        }
+      if(joint_state.name.at(i).find("joint") != string::npos)
+        {
+          for(int j = 0; j < current_joint_angles_.size(); j++)
+            {
+              if(joint_state.name.at(i) == std::string("joint" + std::to_string(j + 1)))
+                {
+                  std::lock_guard<std::mutex> lock(current_joint_angles_mutex_);
+                  current_joint_angles_.at(j) = joint_state.position.at(i);
                 }
             }
         }
