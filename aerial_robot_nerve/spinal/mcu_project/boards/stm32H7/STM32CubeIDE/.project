@@ -68,6 +68,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Src/lwip.c</locationURI>
 		</link>
 		<link>
+			<name>Application/User/main.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Src/main.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/main.cpp</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/main.cpp</locationURI>
