@@ -51,20 +51,55 @@ ax2.legend(framealpha=legend_alpha, loc="center right")
 plt.subplot(212, sharex=ax1)
 plt.plot(servo_angle * 180 / np.pi, resis_d_thrust, 'o-', label='ground truth')
 
+servo_virtual = np.arange(-90, 91, 1) * np.pi / 180
+
 # use 3rd order polynomial to fit the data
-fit = np.polyfit(servo_angle, resis_d_thrust, 3)
+fit, residuals, _, _, _ = np.polyfit(servo_angle, resis_d_thrust, 3, full=True)
 fit_fn = np.poly1d(fit)
-plt.plot(servo_angle * 180 / np.pi, fit_fn(servo_angle), ':', label='3rd-order poly.')
+plt.plot(servo_virtual * 180 / np.pi, fit_fn(servo_virtual), ':', label='3rd-order poly.')
+print("3ord\n", fit_fn)
+print(" residuals: ", residuals)
+
+# Calculate R^2
+y = resis_d_thrust
+y_mean = np.mean(y)
+TSS = np.sum((y - y_mean) ** 2)
+y_pred = fit_fn(servo_angle)
+RSS = np.sum((y - y_pred) ** 2)
+r_squared = 1 - (RSS / TSS)
+print("R-squared: ", r_squared)
 
 # use 4th order polynomial to fit the data
-fit = np.polyfit(servo_angle, resis_d_thrust, 4)
+fit, residuals, _, _, _ = np.polyfit(servo_angle, resis_d_thrust, 4, full=True)
 fit_fn = np.poly1d(fit)
-plt.plot(servo_angle * 180 / np.pi, fit_fn(servo_angle), '-.', label='4th-order poly.')
+plt.plot(servo_virtual * 180 / np.pi, fit_fn(servo_virtual), '-.', label='4th-order poly.')
+print("4ord\n", fit_fn)
+print(" residuals: ", residuals)
+
+# Calculate R^2
+y = resis_d_thrust
+y_mean = np.mean(y)
+TSS = np.sum((y - y_mean) ** 2)
+y_pred = fit_fn(servo_angle)
+RSS = np.sum((y - y_pred) ** 2)
+r_squared = 1 - (RSS / TSS)
+print("R-squared: ", r_squared)
 
 # use 5th order polynomial to fit the data
-fit = np.polyfit(servo_angle, resis_d_thrust, 5)
+fit, residuals, _, _, _ = np.polyfit(servo_angle, resis_d_thrust, 5, full=True)
 fit_fn = np.poly1d(fit)
-plt.plot(servo_angle * 180 / np.pi, fit_fn(servo_angle), '--', label='5th-order poly.')
+plt.plot(servo_virtual * 180 / np.pi, fit_fn(servo_virtual), '--', label='5th-order poly.')
+print("5ord\n", fit_fn)
+print(" residuals: ", residuals)
+
+# Calculate R^2
+y = resis_d_thrust
+y_mean = np.mean(y)
+TSS = np.sum((y - y_mean) ** 2)
+y_pred = fit_fn(servo_angle)
+RSS = np.sum((y - y_pred) ** 2)
+r_squared = 1 - (RSS / TSS)
+print("R-squared: ", r_squared)
 
 # the interval for the x-axis is 15 degrees
 plt.xticks(np.arange(-90, 91, 15))
