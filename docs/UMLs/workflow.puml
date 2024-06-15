@@ -41,7 +41,7 @@ end loop
 
 Nav ->> Ctl: target_pos/vel/acc
 loop 10Hz
-    Ctl -> Spinal: qd/attitude\ngeometry_msgs/Vector3Stamped
+    Ctl -> Spinal: angles and thrust\nspinal/FourAxisCommand.msg
 end loop
 Spinal -> ESC: PWM
 

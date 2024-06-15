@@ -572,4 +572,4 @@ namespace aerial_robot_navigation
         ROS_INFO_STREAM("[" << nh.getNamespace() << "] " << param_name << ": " << param);
     }
   };
-};
+};  // namespace aerial_robot_navigation

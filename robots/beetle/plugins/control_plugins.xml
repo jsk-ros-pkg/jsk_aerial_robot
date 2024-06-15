@@ -1,0 +1,5 @@
+<library path="lib/libbeetle_controller">
+  <class name="aerial_robot_control/beetle_controller" type="aerial_robot_control::BeetleController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for beetle control </description>
+  </class>
+</library>

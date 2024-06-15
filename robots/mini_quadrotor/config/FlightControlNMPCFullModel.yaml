@@ -1,0 +1,55 @@
+aerial_robot_control_name: aerial_robot_control/under_act_full/nmpc_controller
+
+controller:
+  physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in this section
+    mass: 1.0564 # kg
+    gravity: 9.798 # m/s^2
+    inertia_diag: [ 0.00867032, 0.00867103, 0.00979117 ] # kg m^2
+    dr1: -1  # direction of motor 1
+    p1: [ -0.0865752, -0.085, 0.0108557 ] # position of motor 1
+    dr2: 1  # direction of motor 2
+    p2: [ 0.0834248, -0.085, 0.0108557 ] # position of motor 2
+    dr3: -1  # direction of motor 3
+    p3: [ 0.0834248, 0.085, 0.0108557 ] # position of motor 3
+    dr4: 1  # direction of motor 4
+    p4: [ -0.0865752, 0.085, 0.0108557 ] # position of motor 4
+    kq_d_kt: 0.011
+
+  nmpc:
+    T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
+    T_pred: 2.0  # seconds
+    T_integ: 0.1  # seconds
+
+    n_states: 13
+    n_controls: 4
+
+    # constraint
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
+
+    v_max: 1
+    v_min: -1
+
+    thrust_max: 8 # N
+    thrust_min: 0 # N
+
+    # params for the cost function
+    Qp_xy: 300  # 0
+    Qp_z: 400  # 500
+    Qv_xy: 10  # 0
+    Qv_z: 10  # 100
+    Qq_xy: 10  # 400
+    Qq_z: 100
+    Qw_xy: 5
+    Qw_z: 5
+    Rt: 1
+
+    # for body_rate controller
+    roll_rate_p_gain: 0.4
+    pitch_rate_p_gain: 0.4
+    yaw_rate_p_gain: 1.5
+
+    is_attitude_ctrl: false
+    is_body_rate_ctrl: true
+
+    is_print_physical_params: false

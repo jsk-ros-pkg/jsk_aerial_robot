@@ -7,6 +7,7 @@
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <takasako_sps/PowerInfo.h>
+#include <spinal/ESCTelemetryArray.h>
 
 namespace Mode
 {
@@ -44,6 +45,14 @@ public:
     start_cmd_sub_ =  nh_.subscribe("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
     sps_on_pub_ = nh.advertise<std_msgs::Empty>("/power_on_cmd", 1);
 
+    /* dshot telemetry */
+    nhp_.param("has_dshot_telemetry", has_dshot_telemetry_, false);
+
+    if (has_dshot_telemetry_)
+    {
+      esc_telem_sub_ = nh_.subscribe("/esc_telem", 1, &MotorTest::escTelemCallback, this, ros::TransportHints().tcpNoDelay());
+    }
+
     ROS_WARN("run: %f, raise: %f, brake: %f", run_duration_, raise_duration_, brake_duration_);
 
     ros::ServiceClient calib_client = nh_.serviceClient<std_srvs::Empty>("/cfs_sensor_calib");
@@ -72,6 +81,7 @@ private:
   ros::Subscriber force_snesor_sub_;
   ros::Subscriber power_info_sub_;
   ros::Subscriber start_cmd_sub_;
+  ros::Subscriber esc_telem_sub_;
   ros::Publisher motor_pwm_pub_;
   ros::Publisher sps_on_pub_;
 
@@ -88,10 +98,16 @@ private:
   int stop_pwm_value_, min_pwm_value_, max_pwm_value_;
   double pwm_range_;
 
-  float currency_;
+  float currency_ = 0.0;
   ros::Time init_time_;
 
   std::ofstream ofs_;
+
+  /* dshot measurement */
+  bool has_dshot_telemetry_;
+  uint32_t rpm_;
+  int temperature_;
+  float voltage_;
 
   void startCallback(const std_msgs::EmptyConstPtr & msg)
   {
@@ -108,6 +124,13 @@ private:
     start_flag_ = true;
   }
 
+  void escTelemCallback(const spinal::ESCTelemetryArrayConstPtr & msg)
+  {
+    rpm_ = msg->esc_telemetry_1.rpm;
+    temperature_ = msg->esc_telemetry_1.temperature;
+    voltage_ = (float)(msg->esc_telemetry_1.voltage) / 100;
+  }
+
   void powerInfoCallback(const takasako_sps::PowerInfoConstPtr& msg)
   {
     currency_ = msg->currency;
@@ -120,16 +143,34 @@ private:
     double force_norm = sqrt(msg->wrench.force.x * msg->wrench.force.x +
                              msg->wrench.force.y * msg->wrench.force.y +
                              msg->wrench.force.z * msg->wrench.force.z);
+    if (has_dshot_telemetry_)
+    {
+      ofs_ << pwm_value_ << " "
+           << msg->wrench.force.x << " "
+           << msg->wrench.force.y << " "
+           << msg->wrench.force.z << " "
+           << force_norm << " "
+           << msg->wrench.torque.x << " "
+           << msg->wrench.torque.y << " "
+           << msg->wrench.torque.z << " "
+           << currency_ << " "
+           << rpm_ << " "
+           << temperature_ << " "
+           << voltage_;
+    }
+    else
+    {
+      ofs_ << pwm_value_ << " "
+           << msg->wrench.force.x << " "
+           << msg->wrench.force.y << " "
+           << msg->wrench.force.z << " "
+           << force_norm << " "
+           << msg->wrench.torque.x << " "
+           << msg->wrench.torque.y << " "
+           << msg->wrench.torque.z << " "
+           << currency_;
+    }
 
-    ofs_ << pwm_value_ << " "
-        << msg->wrench.force.x << " "
-        << msg->wrench.force.y << " "
-        << msg->wrench.force.z << " "
-        << force_norm << " "
-        << msg->wrench.torque.x << " "
-        << msg->wrench.torque.y << " "
-        << msg->wrench.torque.z << " "
-        << currency_;
 
     if(test_mode_ == Mode::ONESHOT)
       {

@@ -51,4 +51,3 @@ controller:
 
     trans_constraint_weight: 100
     att_control_weight: 1
-
