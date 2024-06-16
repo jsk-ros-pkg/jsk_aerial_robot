@@ -9,6 +9,7 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
+from tilt_qd_full_plus import NMPCTiltQdFullPlus
 from tilt_qd_full import NMPCTiltQdFull
 from tilt_qd_full_i_term import NMPCTiltQdFullITerm
 from tilt_qd_no_servo import NMPCTiltQdNoServo
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdFull()
+    sim_nmpc = NMPCTiltQdFullPlus()  # consider both the servo delay and the control delay
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
@@ -143,7 +144,7 @@ if __name__ == "__main__":
             if t_now >= 5.5:
                 target_xyz = np.array([[1.0, 1.0, 1.0]]).T
 
-                roll = 30.0 / 180.0 * np.pi
+                roll = 90.0 / 180.0 * np.pi
                 pitch = 0.0 / 180.0 * np.pi
                 yaw = 0.0 / 180.0 * np.pi
                 target_rpy = np.array([[roll, pitch, yaw]]).T
