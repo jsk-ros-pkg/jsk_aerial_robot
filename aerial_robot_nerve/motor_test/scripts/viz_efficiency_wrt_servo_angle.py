@@ -23,32 +23,35 @@ plt.style.use(["science", "grid"])
 plt.rcParams.update({'font.size': 11})  # default is 10
 label_size = 12
 
-plt.figure(figsize=(5.5, 4.5))
-# two subplots sharing the same x-axis
+# plt.figure(figsize=(5.5, 4.5))
+# # two subplots sharing the same x-axis
+#
+# ax1 = plt.subplot(211)
+# plt.plot(servo_angle * 180 / np.pi, kt, 'o-', label='$k_t$ w/ mounting')
+# plt.plot(0, 0.1495, 'ro', label='$k_t$ w/o mounting')
+# # the interval for the x-axis is 15 degrees
+# # plt.xticks(np.arange(-90, 91, 15))
+# # plt.xlabel('Servo Angle ($^\circ$)', fontsize=label_size)
+# # plt.xlim([-90, 90])
+# plt.ylabel('$k_t$ (N/kRPM$^2$)', fontsize=label_size)
+# plt.ylim([0.0, 0.16])
+# plt.legend(framealpha=legend_alpha, loc="center left")
+# # plt.setp(ax1.get_xticklabels(), visible=False)
+#
+# # draw kq_d_kt with respect to servo_angle at the same figure
+# ax = plt.gca()
+# ax2 = ax.twinx()
+# ax2.plot(servo_angle * 180 / np.pi, -kq_d_kt, '*-', label='$k_q/k_t$ w/ mounting')
+# ax2.plot(0, --0.0153, 'r*', label='$k_q/k_t$ w/o mounting')
+# ax2.set_ylabel('$k_q/k_t$', fontsize=label_size)
+# ax2.set_ylim([0.0, 0.16])
+# ax2.legend(framealpha=legend_alpha, loc="center right")
+#
+# # plot resis_d_thrust with respect to servo_angle
+# plt.subplot(212, sharex=ax1)
 
-ax1 = plt.subplot(211)
-plt.plot(servo_angle * 180 / np.pi, kt, 'o-', label='$k_t$ w/ mounting')
-plt.plot(0, 0.1495, 'ro', label='$k_t$ w/o mounting')
-# the interval for the x-axis is 15 degrees
-# plt.xticks(np.arange(-90, 91, 15))
-# plt.xlabel('Servo Angle ($^\circ$)', fontsize=label_size)
-# plt.xlim([-90, 90])
-plt.ylabel('$k_t$ (N/kRPM$^2$)', fontsize=label_size)
-plt.ylim([0.0, 0.16])
-plt.legend(framealpha=legend_alpha, loc="center left")
-# plt.setp(ax1.get_xticklabels(), visible=False)
+plt.figure(figsize=(5.5, 2.5))
 
-# draw kq_d_kt with respect to servo_angle at the same figure
-ax = plt.gca()
-ax2 = ax.twinx()
-ax2.plot(servo_angle * 180 / np.pi, -kq_d_kt, '*-', label='$k_q/k_t$ w/ mounting')
-ax2.plot(0, --0.0153, 'r*', label='$k_q/k_t$ w/o mounting')
-ax2.set_ylabel('$k_q/k_t$', fontsize=label_size)
-ax2.set_ylim([0.0, 0.16])
-ax2.legend(framealpha=legend_alpha, loc="center right")
-
-# plot resis_d_thrust with respect to servo_angle
-plt.subplot(212, sharex=ax1)
 plt.plot(servo_angle * 180 / np.pi, resis_d_thrust, 'o-', label='ground truth')
 
 servo_virtual = np.arange(-90, 91, 1) * np.pi / 180
