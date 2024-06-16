@@ -47,11 +47,11 @@ label_size = 15
 legend_alpha = 0.5
 
 fig = plt.figure(figsize=(3.5, 2.5))
-plt.plot(t, u_interpolated(t), label='input')
-plt.plot(time_output, y_output, label='real')
-plt.plot(t, y, label='estimated')
+plt.plot(t, u_interpolated(t) * 180 / np.pi, label='input')
+plt.plot(time_output, y_output * 180 / np.pi, label='real')
+plt.plot(t, y * 180 / np.pi, label='estimated')
 plt.xlabel('Time (s)', fontsize=label_size)
-plt.ylabel('Servo Angle (rad)', fontsize=label_size)
+plt.ylabel('Servo Angle ($^\circ$)', fontsize=label_size)
 # plt.title('First-order system response with varying input')
 plt.legend(framealpha=legend_alpha)
 plt.xlim([4, 5])
