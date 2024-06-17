@@ -154,7 +154,7 @@ void RollingController::calcStandingFullLambda()
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
-  Eigen::VectorXd gradient = Eigen::VectorXd::Ones(n_variables);
+  Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n_variables);
 
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
@@ -210,7 +210,6 @@ void RollingController::calcStandingFullLambda()
   if(!solver.solve())
     {
       ROS_WARN_STREAM("[control][OSQP] could not reach the solution.");
-      // rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
     }
   else
     {
