@@ -212,7 +212,7 @@ print("R-squared: ", r_squared)
 plt.xticks(np.arange(-90, 91, 15))
 plt.xlim([-90, 90])
 plt.xlabel('Servo Angle ($^\circ$)', fontsize=label_size)
-plt.ylabel('$f_{i,re}/f_i$ (\%)', fontsize=label_size)
+plt.ylabel('$f_{i,D}/f_i$ (\%)', fontsize=label_size)
 
 plt.legend(ncol=2, fontsize=10, framealpha=legend_alpha, loc="upper center")
 

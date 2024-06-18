@@ -36,8 +36,8 @@ u_interpolated = interp1d(time, thrust_cmd, kind='linear', fill_value='extrapola
 
 # Define the first-order differential equation using the interpolated input
 def model(y, t):
-    tau = 0.1571
-    delay = 0.3
+    tau = 0.0942
+    delay = 0.35
     u = u_interpolated(t - delay)
     dydt = (1 / tau) * (u - y)
     return dydt
@@ -63,7 +63,7 @@ plt.plot(time, fz, label='real')
 plt.plot(time, y, label='estimated')
 
 plt.xlabel('Time (s)', fontsize=label_size)
-plt.xlim([199.5, 202])
+plt.xlim([200, 201.5])
 
 plt.ylabel('Thrust (N)', fontsize=label_size)
 plt.ylim([-2, 16])
