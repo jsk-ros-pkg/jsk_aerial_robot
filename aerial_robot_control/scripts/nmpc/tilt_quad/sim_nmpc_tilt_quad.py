@@ -56,6 +56,8 @@ if __name__ == "__main__":
     elif args.model == 5:
         nmpc = NMPCTiltQdVelInput()
         alpha_integ = np.zeros(4)
+    elif args.model == 6:
+        nmpc = NMPCTiltQdFullPlus()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
