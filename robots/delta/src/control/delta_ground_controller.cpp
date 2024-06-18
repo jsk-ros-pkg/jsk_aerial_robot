@@ -78,16 +78,6 @@ void RollingController::standingPlanning()
       navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
       ROS_WARN_ONCE("start roll/pitch I control");
     }
-
-  /* TODO change to use baselink roll angle not to switch during trajectory tracking */
-  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE && fabs(pid_msg_.roll.err_p) < standing_baselink_roll_converged_thresh_)
-    {
-      rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
-    }
-  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE && fabs(pid_msg_.roll.err_p) > rolling_baselink_roll_converged_thresh_)
-    {
-      rolling_navigator_->setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
-    }
 }
 
 void RollingController::calcStandingFullLambda()
