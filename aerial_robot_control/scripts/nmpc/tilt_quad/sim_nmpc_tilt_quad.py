@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     t_total_sim = 15.0
     if args.plot_type == 1:
-        t_total_sim = 2.0
+        t_total_sim = 4.0
     if args.plot_type == 2:
         t_total_sim = 3.0
 
@@ -128,26 +128,26 @@ if __name__ == "__main__":
         x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
-        target_xyz = np.array([[0.0, 0.0, 1.0]]).T
+        target_xyz = np.array([[0.3, 0.6, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         if args.plot_type == 2:
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
-        if t_total_sim > 3.0:
-            if 3.0 <= t_now < 5.5:
+        if t_total_sim > 2.0:
+            if 2.0 <= t_now < 6:
+                target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+
+                roll = 30.0 / 180.0 * np.pi
+                pitch = 60.0 / 180.0 * np.pi
+                yaw = 90.0 / 180.0 * np.pi
+                target_rpy = np.array([[roll, pitch, yaw]]).T
+
+            if t_now >= 6:
                 assert t_sqp_end <= 3.0
                 target_xyz = np.array([[1.0, 1.0, 1.0]]).T
                 target_rpy = np.array([[0.0, 0.0, 0.0]]).T
-
-            if t_now >= 5.5:
-                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-
-                roll = 90.0 / 180.0 * np.pi
-                pitch = 0.0 / 180.0 * np.pi
-                yaw = 0.0 / 180.0 * np.pi
-                target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
