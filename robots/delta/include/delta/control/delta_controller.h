@@ -115,12 +115,7 @@ namespace aerial_robot_control
 
     /* ground mode */
     Eigen::Vector3d gravity_compensate_term_;
-    bool standing_baselink_pitch_update_;
-    double standing_baselink_ref_pitch_last_update_time_;
-    double standing_baselink_ref_pitch_update_thresh_;
     double steering_mu_;
-    double standing_baselink_roll_converged_thresh_;
-    double rolling_baselink_roll_converged_thresh_;
     double gravity_compensate_ratio_;
     double rolling_minimum_lateral_force_;
     double gimbal_d_theta_max_;

@@ -87,7 +87,6 @@ void RollingController::reset()
     setAttitudeGains();
 
   torque_allocation_matrix_inv_pub_stamp_ = -1;
-  standing_baselink_ref_pitch_last_update_time_ = -1;
   rolling_control_timestamp_ = -1;
 
   calc_gimbal_in_fc_ = false;
@@ -124,10 +123,6 @@ void RollingController::rosParamInit()
 
   rolling_robot_model_->setCircleRadius(circle_radius_);
 
-  getParam<bool>(control_nh, "standing_baselink_pitch_update", standing_baselink_pitch_update_, false);
-  getParam<double>(control_nh, "standing_baselink_ref_pitch_update_thresh", standing_baselink_ref_pitch_update_thresh_, 1.0);
-  getParam<double>(control_nh, "standing_baselink_roll_converged_thresh", standing_baselink_roll_converged_thresh_, 0.0);
-  getParam<double>(control_nh, "rolling_baselink_roll_converged_thresh", rolling_baselink_roll_converged_thresh_, 0.0);
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
   getParam<bool>(control_nh, "full_lambda_mode", full_lambda_mode_, true);
   getParam<double>(control_nh, "gimbal_d_theta_max", gimbal_d_theta_max_, 0.0);

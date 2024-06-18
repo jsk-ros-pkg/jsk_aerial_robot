@@ -5,7 +5,7 @@ using namespace aerial_robot_navigation;
 
 RollingNavigator::RollingNavigator():
   BaseNavigator(),
-  landing_flag_(false)
+  poly_(11, agi::Vector<3>(0, 0, 1), 2)
 {
   curr_target_baselink_quat_.setRPY(0, 0, 0);
   final_target_baselink_quat_.setRPY(0, 0, 0);
@@ -47,11 +47,9 @@ void RollingNavigator::update()
 {
   BaseNavigator::update();
 
-  baselinkRotationProcess();
-
   rollingPlanner();
 
-  groundModeProcess();
+  rosPublishProcess();
 }
 
 void RollingNavigator::reset()
@@ -65,8 +63,9 @@ void RollingNavigator::reset()
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
 
   controllers_reset_flag_ = false;
+  trajectory_mode_ = false;
+  poly_.reset();
 
-  landing_flag_ = false;
   baselink_rot_force_update_mode_ = false;
 
   curr_target_baselink_rpy_roll_ = 0.0;
@@ -96,8 +95,77 @@ void RollingNavigator::rollingPlanner()
       }
 
     case aerial_robot_navigation::STANDING_STATE:
+      {
+        // if the robot has not started, generate trajectory every time
+        if(!(getNaviState() == aerial_robot_navigation::TAKEOFF_STATE || getNaviState() == aerial_robot_navigation::HOVER_STATE))
+          {
+            trajectory_start_time_ = ros::Time::now().toSec();
+            poly_.reset();
+            poly_.scale(trajectory_start_time_, trajectory_duration_);
+            poly_.addConstraint(trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
+            poly_.addConstraint(trajectory_start_time_ + trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
+            poly_.solve();
+            trajectory_mode_ = true;
+            ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] generate new standing trajectory");
+          }
+
+        agi::Vector<> baselink_roll_trajectory = agi::Vector<>::Zero(3);
+        if(trajectory_mode_)
+          {
+            poly_.eval(ros::Time::now().toSec(), baselink_roll_trajectory);
+
+            if(ros::Time::now().toSec() > trajectory_start_time_ + trajectory_duration_)
+              {
+                ROS_WARN_STREAM("[navigation] finished trajectory tracking");
+                trajectory_mode_ = false;
+              }
+          }
+        else
+          {
+            poly_.eval(trajectory_start_time_ + trajectory_duration_, baselink_roll_trajectory);
+          }
+
+        /* set pid term */
+        setTargetOmegaX(baselink_roll_trajectory(1));
+        setTargetAngAccX(baselink_roll_trajectory(2));
+
+        /* set desire coordinate */
+        Eigen::Matrix3d rot_mat;
+        Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+        rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+        KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+        double qx, qy, qz, qw;
+        rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+        setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+        // state transition to rolling state based on the baselink rotation
+        double baselink_roll = estimator_->getEuler(Frame::BASELINK, estimate_mode_).x();
+        if(fabs(fabs(baselink_roll) - M_PI / 2.0) < standing_baselink_roll_converged_thresh_)
+          {
+            ROS_INFO_STREAM("[navigation] baselink roll " << baselink_roll << " is smaller than threshold " << standing_baselink_roll_converged_thresh_);
+            setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
+          }
+        break;
+      }
+
     case aerial_robot_navigation::ROLLING_STATE:
       {
+        agi::Vector<> baselink_roll_trajectory = agi::Vector<>::Zero(3);
+        /* trajectory mode */
+        if(trajectory_mode_)
+          {
+            poly_.eval(ros::Time::now().toSec(), baselink_roll_trajectory);
+
+            if(ros::Time::now().toSec() > trajectory_start_time_ + trajectory_duration_)
+              {
+                ROS_WARN_STREAM("[navigation] finished trajectory tracking");
+                trajectory_mode_ = false;
+              }
+          }
+
+        /* calculate rolling pitch angle */
         double target_pitch;
         if(!getPitchAngVelUpdating())
           {
@@ -110,28 +178,52 @@ void RollingNavigator::rollingPlanner()
           {
             double target_pitch_ang_vel = getTargetPitchAngVel();
             target_pitch = getCurrentTargetBaselinkRpyPitch();
-            if(fabs(p) < 0.15)
+            if(fabs(p) < rolling_pitch_update_thresh_)
               {
                 target_pitch += loop_du_ * target_pitch_ang_vel;
               }
             else
               {
-                ROS_WARN_STREAM_THROTTLE(0.5, "[navigation] do not update target pitch until convergence");
+                ROS_WARN_STREAM_THROTTLE(0.5, "[navigation] do not update target pitch because the pitch " << p << " is  larger than thresh " << rolling_pitch_update_thresh_);
               }
 
             setCurrentTargetBaselinkRpyPitch(target_pitch);
             setTargetOmegaY(target_pitch_ang_vel);
           }
 
-        Eigen::Matrix3d rot_mat;
-        Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-        rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-        KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-        double qx, qy, qz, qw;
-        rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+        /* set desire coordinate as roll:pi/2 and target pitch */
+        if(trajectory_mode_)
+          {
+            /* set pid term */
+            setTargetOmegaX(baselink_roll_trajectory(1));
+            setTargetAngAccX(baselink_roll_trajectory(2));
 
-        setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-        setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+            /* set desire coordinate */
+            Eigen::Matrix3d rot_mat;
+            Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+            KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+            double qx, qy, qz, qw;
+            rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+            setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+            setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+            setTargetOmegaX(baselink_roll_trajectory(1));
+            setTargetAngAccX(baselink_roll_trajectory(2));
+          }
+        else
+          {
+            Eigen::Matrix3d rot_mat;
+            Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
+            rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+            KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+            double qx, qy, qz, qw;
+            rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+
+            setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+            setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+          }
 
         break;
       }
@@ -158,6 +250,12 @@ void RollingNavigator::rollingPlanner()
     }
 }
 
+void RollingNavigator::rosPublishProcess()
+{
+  baselinkRotationProcess();
+  groundModeProcess();
+}
+
 void RollingNavigator::baselinkRotationProcess()
 {
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
@@ -180,14 +278,6 @@ void RollingNavigator::baselinkRotationProcess()
       robot_model_->setCogDesireOrientation(rot);
 
       /* send to spinal */
-      // spinal::DesireCoord msg;
-      // double r,p,y;
-      // tf::Matrix3x3(curr_target_baselink_quat_).getRPY(r, p, y);
-      // msg.roll = r;
-      // msg.pitch = p;
-      // msg.yaw = y;
-      // desire_coord_pub_.publish(msg);
-
       geometry_msgs::Quaternion msg;
       msg.x = curr_target_baselink_quat_.x();
       msg.y = curr_target_baselink_quat_.y();
@@ -218,6 +308,9 @@ void RollingNavigator::rosParamInit()
   getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);
   getParam<double>(navi_nh, "rolling_max_yaw_ang_vel", rolling_max_yaw_ang_vel_, 0.0);
   getParam<double>(navi_nh, "down_mode_roll_angvel", down_mode_roll_anglvel_, 0.0);
+  getParam<double>(navi_nh, "standing_baselink_roll_converged_thresh", standing_baselink_roll_converged_thresh_, 0.0);
+  getParam<double>(navi_nh, "rolling_pitch_update_thresh", rolling_pitch_update_thresh_, 0.0);
+  getParam<double>(navi_nh, "trajectory_duration", trajectory_duration_, 0.0);
 
 }
 
@@ -248,28 +341,17 @@ void RollingNavigator::setGroundNavigationMode(int state)
 
   if(state == aerial_robot_navigation::STANDING_STATE)
     {
-      Eigen::Matrix3d rot_mat;
-      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-      double qx, qy, qz, qw;
-      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-
-      curr_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
-      final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
+      trajectory_start_time_ = ros::Time::now().toSec();
+      poly_.reset();
+      poly_.scale(trajectory_start_time_, trajectory_duration_);
+      poly_.addConstraint(trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
+      poly_.addConstraint(trajectory_start_time_ + trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
+      poly_.solve();
+      trajectory_mode_ = true;
     }
 
   if(state == aerial_robot_navigation::ROLLING_STATE)
     {
-      Eigen::Matrix3d rot_mat;
-      Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-      rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-      KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-      double qx, qy, qz, qw;
-      rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-
-      curr_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
-      final_target_baselink_quat_ = tf::Quaternion(qx, qy, qz, qw);
     }
 
   if(state == aerial_robot_navigation::DOWN_STATE)

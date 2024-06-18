@@ -36,6 +36,9 @@ navigation:
   # rolling mode
   rolling_max_pitch_ang_vel: 1.0
   rolling_max_yaw_ang_vel: 1.0
+  trajectory_duration: 2.0       # should not to be 0
+  standing_baselink_roll_converged_thresh: 0.2
+  rolling_pitch_update_thresh: 0.2
 
   # down mode
   down_mode_roll_angvel: 0.2

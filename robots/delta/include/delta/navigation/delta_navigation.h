@@ -1,8 +1,9 @@
 // -*- mode: c++ -*-
 #pragma once
 
-#include <aerial_robot_control/flight_navigation.h>
 #include <delta/model/delta_robot_model.h>
+#include <aerial_robot_control/flight_navigation.h>
+#include <aerial_robot_control/trajectory/trajectory_reference/polynomial.hpp>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
@@ -92,6 +93,8 @@ namespace aerial_robot_navigation
     bool controllers_reset_flag_;
 
     /* ground mode variable */
+    double standing_baselink_roll_converged_thresh_;
+    double rolling_pitch_update_thresh_;
     double target_pitch_ang_vel_;
     double target_yaw_ang_vel_;
     double rolling_max_pitch_ang_vel_;
@@ -101,6 +104,11 @@ namespace aerial_robot_navigation
     double down_mode_roll_anglvel_;
     double down_start_time_;
 
+    /* standing mode trajectory generation */
+    agi::Polynomial<> poly_;
+    bool trajectory_mode_;
+    double trajectory_start_time_;
+    double trajectory_duration_;
 
     /* param for joy stick control */
     double joy_stick_deadzone_;
@@ -112,8 +120,5 @@ namespace aerial_robot_navigation
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
     bool baselink_rot_force_update_mode_;
-
-    /* landing process */
-    bool landing_flag_;
   };
 };
