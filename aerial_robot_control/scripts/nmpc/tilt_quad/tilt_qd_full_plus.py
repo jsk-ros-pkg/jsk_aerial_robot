@@ -46,7 +46,7 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
-t_rotor = 0.085883  # time constant of rotor
+t_rotor = 0.0942  # time constant of rotor
 
 
 class NMPCTiltQdFullPlus(NMPCBase):
