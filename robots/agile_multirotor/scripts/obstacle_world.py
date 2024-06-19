@@ -27,8 +27,10 @@ class ObstacleWorld:
         self.collision_pub = rospy.Publisher('collision_flag', Empty, queue_size = 1)
 
         self.lock = threading.Lock()
+        self.callback_counter:int = 0
 
         rate = rospy.get_param('~rate', 40.0) # Hz
+        self.rate = rate
         shift_x = rospy.get_param('~shift_x', 0) #init x
         shift_y = rospy.get_param('~shift_y', 0) #init y
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
@@ -69,6 +71,8 @@ class ObstacleWorld:
         self.lock.release()
 
     def mainProcess(self, event):
+        time_passed:float = self.callback_counter/self.rate
+        rospy.loginfo("time_passed %f", time_passed)
         if self.quadrotor_pos is None:
             return
 
@@ -87,6 +91,7 @@ class ObstacleWorld:
             if min_dist < 0:
                 rospy.logwarn("{}, collision!! quadrotor: {}, obstacle: {} ".format(n, quad_pos, obs_pos))
                 self.collision_pub.publish(Empty())
+        self.callback_counter +=1
 
         # publish the obstacle position using LaserScan
 
