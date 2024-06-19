@@ -6,6 +6,7 @@ from gazebo_msgs.srv import SpawnModel, DeleteModel
 from geometry_msgs.msg import Pose, Point, Quaternion
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty
+from gazebo_msgs.msg import ModelState
 
 import pandas as pd
 import numpy as np
@@ -25,6 +26,7 @@ class ObstacleWorld:
         self.quadrotor_r = rospy.get_param('~quadrotor/radius', 0.3)
         self.odom_sub = rospy.Subscriber('uav/cog/odom', Odometry, self.odomCb)
         self.collision_pub = rospy.Publisher('collision_flag', Empty, queue_size = 1)
+        self.moving_obstacle_pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size = 1)
 
         self.lock = threading.Lock()
         self.callback_counter:int = 0
@@ -53,8 +55,10 @@ class ObstacleWorld:
             self.obs = dict()
             for i in range(len(df)):
                 name = 'obj' + str(i+1)
-                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), 'r': df.at[0,8]}
+                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), \
+                                  'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[0,8]}
                 self.obs[name]['p'][2] = self.h / 2
+                self.obs[name]['v'][2] = 0.0
                 self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
             rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
         except pd.errors.EmptyDataError as e:
@@ -72,7 +76,6 @@ class ObstacleWorld:
 
     def mainProcess(self, event):
         time_passed:float = self.callback_counter/self.rate
-        rospy.loginfo("time_passed %f", time_passed)
         if self.quadrotor_pos is None:
             return
 
@@ -83,7 +86,16 @@ class ObstacleWorld:
 
         # check the collision
         for n, conf in self.obs.items():
-            obs_pos = conf['p']
+            if all(x == 0.0 for x in conf['v']):
+                obs_pos = conf['p']
+            else:
+                obs_pos = conf['p'] + conf['v']*time_passed
+                obstacle_next_pos = ModelState()
+                obstacle_next_pos.model_name = n
+                obstacle_next_pos.pose.position.x = obs_pos[0]
+                obstacle_next_pos.pose.position.y = obs_pos[1]
+                self.moving_obstacle_pub.publish(obstacle_next_pos)
+
             obs_r = conf['r']
             cog_dist = np.linalg.norm(obs_pos[:2] - quad_pos[:2])
             min_dist = cog_dist - obs_r - self.quadrotor_r
@@ -109,7 +121,7 @@ class ObstacleWorld:
                     "<model name='{}'>".format(name)  + \
                     "<allow_auto_disable>true</allow_auto_disable>" + \
                     "<pose> 0 0 0 0 0 0 </pose>" + \
-                    "<static>true</static>" + \
+                    "<static>false</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
                     "<linear>0.01</linear>" + \
@@ -171,11 +183,11 @@ class ObstacleWorld:
                     "<model name='{}'>".format(name)  + \
                     "<allow_auto_disable>true</allow_auto_disable>" + \
                     "<pose> 0 0 0 0 0 0 </pose>" + \
-                    "<static>true</static>" + \
+                    "<static>false</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
-                    "<linear>0.01</linear>" + \
-                    "<angular>0.01</angular>" + \
+                    "<linear>0.0</linear>" + \
+                    "<angular>0.0</angular>" + \
                     "</velocity_decay>" + \
                     "<inertial><mass> {} </mass>".format(m) + \
                     "<inertia>" + \
