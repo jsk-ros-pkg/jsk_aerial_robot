@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle" >
+  <xacro:arg name="robot_name" default="beetle" />
+
+  <xacro:include filename="$(find beetle)/robots/beetle.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" mag_frame="fc" />
+
+  <!-- gazebo plugin for docking mech -->
+  <gazebo>
+    <plugin name="gazebo_grasp_fix" filename="libgazebo_grasp_fix.so">
+      <arm>
+        <arm_name>docking_mech</arm_name>
+        <palm_link>dummy_palm</palm_link>
+        <gripper_link>dummy_gripper</gripper_link>
+      </arm>
+      <forces_angle_tolerance>90</forces_angle_tolerance>
+      <update_rate>50</update_rate>
+      <grip_count_threshold>0</grip_count_threshold>
+      <max_grip_count>1</max_grip_count>
+      <release_tolerance>1</release_tolerance>
+      <disable_collisions_on_attach>false</disable_collisions_on_attach>
+      <contact_topic>__default_topic__</contact_topic>
+    </plugin>
+  </gazebo>
+  
+
+</robot>

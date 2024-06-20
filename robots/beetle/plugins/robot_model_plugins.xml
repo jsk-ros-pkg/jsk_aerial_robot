@@ -1,0 +1,5 @@
+<library path="lib/libbeetle_robot_model">
+  <class name="beetle_robot_model" type="BeetleRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for beetle robot model </description>
+  </class>
+</library>

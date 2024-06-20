@@ -50,3 +50,13 @@
 #    local-name: realsense-ros
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
+
+# docking_mechanism
+- git:
+    local-name: gazebo-pkgs
+    uri: https://github.com/sugihara-16/gazebo-pkgs.git
+    version: 85ec0f5
+- git:
+    local-name: general-message-pkgs
+    uri: https://github.com/JenniferBuehler/general-message-pkgs.git
+    version: f0c7a0c

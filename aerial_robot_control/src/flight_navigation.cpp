@@ -25,7 +25,8 @@ BaseNavigator::BaseNavigator():
   joy_stick_heart_beat_(false),
   joy_stick_prev_time_(0),
   teleop_flag_(true),
-  land_check_start_time_(0)
+  land_check_start_time_(0),
+  pre_battery_percentage_(100)
 {
   setNaviState(ARM_OFF_STATE);
 }
@@ -99,7 +100,7 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   float average_voltage = voltage / bat_cell_;
   float input_cell = voltage / VOLTAGE_100P;
   float percentage = 0;
-  if(average_voltage  > VOLTAGE_90P) percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
+  if(average_voltage  > VOLTAGE_90P)percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
   else if (average_voltage  > VOLTAGE_80P) percentage = (average_voltage - VOLTAGE_80P) / (VOLTAGE_90P - VOLTAGE_80P) * 10 + 80;
   else if (average_voltage  > VOLTAGE_70P) percentage = (average_voltage - VOLTAGE_70P) / (VOLTAGE_80P - VOLTAGE_70P) * 10 + 70;
   else if (average_voltage  > VOLTAGE_60P) percentage = (average_voltage - VOLTAGE_60P) / (VOLTAGE_70P - VOLTAGE_60P) * 10 + 60;
@@ -111,6 +112,11 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   else percentage = (average_voltage - VOLTAGE_0P) / (VOLTAGE_10P - VOLTAGE_0P) * 10;
 
   if (percentage > 100) percentage = 100;
+
+  if(percentage < pre_battery_percentage_ - 10){
+    pre_battery_percentage_ = percentage - (int)percentage % 10 + 10; // e.g. percentage = 85% -> 90%
+    ROS_WARN_STREAM("Battery : " << int(pre_battery_percentage_) <<"%");
+  }
   if(percentage < 0)
     {
       /* can remove this information */
@@ -454,10 +460,14 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
 
-  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
-  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_x_cmd = 0;
+  double raw_y_cmd = 0;
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
   double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+  if(!joy_rotation_flag_){
+    raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
+    raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
+  }
 
   /* Motion: Z (Height) */
   if(getNaviState() == HOVER_STATE)

@@ -12,7 +12,8 @@
 #include "flight_control/attitude/attitude_control.h"
 
 #ifdef SIMULATION
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0) {}
+#include <sensor_msgs/JointState.h>
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0), gimbal_dof_(0) {}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -32,6 +33,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
   baseInit();
+  gimbal_control_pub_ = nh_->advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
 }
 
 #else
@@ -50,13 +52,14 @@ AttitudeController::AttitudeController():
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
   nh_ = nh;
   estimator_ = estimator;
+  kondo_servo_ = kondo_servo;
   bat_ = bat;
   mutex_ = mutex;
 
@@ -438,7 +441,7 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 #ifdef SIMULATION
   if(cmd_msg.base_thrust.size() != motor_number_)
     {
-      ROS_ERROR("fource axis commnd: motor number is not identical between fc and pc");
+      ROS_ERROR("fource axis commnd: motor number is not identical between fc(%d) and pc(%ld)", motor_number_, cmd_msg.base_thrust.size());
       return;
     }
 #else
@@ -492,7 +495,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
   /* mutex to protect the completion of following update  */
   if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
 #endif
-
   force_landing_thrust_ = info_msg.force_landing_thrust;
 
   min_duty_ = info_msg.min_pwm;
@@ -502,7 +504,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
   min_thrust_ = info_msg.min_thrust; // make a variant min_duty_
 
   motor_info_.resize(0);
-
 #ifdef SIMULATION
   for(int i = 0; i < info_msg.motor_info.size(); i++)
 #else
@@ -511,7 +512,6 @@ void AttitudeController::pwmInfoCallback( const spinal::PwmInfo &info_msg)
       {
         motor_info_.push_back(info_msg.motor_info[i]);
       }
-
 #ifdef SIMULATION
   if(sim_voltage_== 0) sim_voltage_ = motor_info_[0].voltage;
 #endif
@@ -585,7 +585,7 @@ void AttitudeController::rpyGainCallback( const spinal::RollPitchYawTerms &gain_
 
 void AttitudeController::torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg)
 {
-  if(motor_number_ == 0) return;
+  if(motor_number_ == 0 || !start_control_flag_) return;
 
 #ifdef SIMULATION
   if(msg.rows.size() != motor_number_)
@@ -698,7 +698,7 @@ void AttitudeController::setStartControlFlag(bool start_control_flag)
   if(!start_control_flag_) reset();
 }
 
-void AttitudeController::setMotorNumber(uint8_t motor_number)
+void AttitudeController::setMotorNumber(uint16_t motor_number)
 {
   /* check the motor number which has spine system */
   if(motor_number_ > 0)
@@ -895,9 +895,16 @@ void AttitudeController::pwmConversion()
   /* check saturation level 2: z control saturation */
   float max_thrust = 0;
   int max_thrust_index = 0;
-  for(int i = 0; i < motor_number_; i++)
+  for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
     {
-      float thrust = base_thrust_term_[i] + roll_pitch_term_[i];
+      float thrust;
+      if(gimbal_dof_){
+        thrust = ap::pythagorous2(base_thrust_term_[2*i] + roll_pitch_term_[2*i],base_thrust_term_[2*i+1] + roll_pitch_term_[2*i+1]);
+      }
+      else
+        {
+          thrust = base_thrust_term_[i] + roll_pitch_term_[i];
+        }
       if(max_thrust < thrust)
         {
           max_thrust = thrust;
@@ -916,15 +923,22 @@ void AttitudeController::pwmConversion()
         }
       else
         {
-          if(max_yaw_term_index_ != -1 && base_thrust_term_[0] > 0 )
+          if(max_yaw_term_index_ != -1 && fabs(base_thrust_term_[0]) > 0 )
             {
               /* check saturation level1: yaw control saturation */
               max_thrust = 0;
               float min_thrust = 10000;
               int min_thrust_index = 0;
-              for(int i = 0; i < motor_number_; i++)
+              for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
                 {
-                  float thrust = base_thrust_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
+                  float thrust;
+                  if(gimbal_dof_){
+                    thrust = ap::pythagorous2(base_thrust_term_[2*i] + roll_pitch_term_[2*i],base_thrust_term_[2*i+1] + roll_pitch_term_[2*i+1]);
+                  }
+                  else
+                    {
+                      thrust = base_thrust_term_[i] + roll_pitch_term_[i];
+                    }
                   if(max_thrust < thrust)
                     {
                       max_thrust = thrust;
@@ -965,15 +979,28 @@ void AttitudeController::pwmConversion()
             }
         }
     }
-
+  
   for(int i = 0; i < motor_number_; i++)
     target_thrust_[i] = roll_pitch_term_[i] + (1 + base_thrust_decreasing_rate) * base_thrust_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
 
-  /* convert to target pwm */
-  for(int i = 0; i < motor_number_; i++)
+  /* convert to target pwm and calculate target gimbal angles */
+  /* TODO: adjust not only for gimbalrotor but also for fixed rotor */
+  for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
     {
       if(start_control_flag_)
         {
+          if(gimbal_dof_){
+            ap::Vector3f f_i;
+            f_i.x = target_thrust_[i*2];
+            f_i.z = target_thrust_[i*2+1];
+            target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
+            float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+            if(std::isfinite(gimbal_candidate))
+              {
+                target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
+              }
+          }
+
           target_pwm_[i] = convert(target_thrust_[i]);
 
           /* constraint */
@@ -984,4 +1011,38 @@ void AttitudeController::pwmConversion()
       /* for ros */
       pwms_msg_.motor_value[i] = (target_pwm_[i] * 2000);
     }
+#ifdef SIMULATION
+  //TODO: directly send target gimbal angles to gazebo
+  if(gimbal_dof_){
+    sensor_msgs::JointState gimbal_control_msg;
+    gimbal_control_msg.header.stamp = ros::Time::now();
+    for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++){
+      gimbal_control_msg.position.push_back(target_gimbal_angles_[i]);
+    }
+    if(HAL_GetTick() - gimbal_control_pub_last_time_ > GIMBAL_CONTROL_PUB_INTERVAL)
+      {
+        gimbal_control_pub_last_time_ = HAL_GetTick();
+        gimbal_control_pub_.publish(gimbal_control_msg);
+      }
+  }
+#else
+  if(gimbal_dof_){
+    std::map<uint16_t, float> gimbal_map;
+    for(int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++){
+      if(start_control_flag_)
+        {
+          gimbal_map[i+1] = target_gimbal_angles_[i];
+          int target_angle = (int)(target_gimbal_angles_[i]*10);
+        }
+      else
+        {
+          // gimbal_map[i+1] = 0;
+          // int target_angle = (int)(0);          
+          gimbal_map[i+1] = 100.0;
+        }
+    }
+    kondo_servo_->setTargetPos(gimbal_map);
+  }
+#endif
+  
 }
