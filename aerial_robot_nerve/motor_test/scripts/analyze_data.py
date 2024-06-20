@@ -26,6 +26,11 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
 
     # Group by 'PWM' and calculate the average for each specified column
     average_values = valid_data.groupby('PWM')[columns_to_average].mean()
+    # use a for-loop to print average_values['fz'] in one line, separated by ,
+    print("Average fz: ", end="")
+    for i in average_values['fz']:
+        print(f"{i:.4f}, ", end="")
+    print()
 
     # Resetting index to make 'PWM' a column again
     average_values.reset_index(inplace=True)

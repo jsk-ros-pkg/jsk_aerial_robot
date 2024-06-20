@@ -2,7 +2,7 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/over_act_no_servo_delay/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 

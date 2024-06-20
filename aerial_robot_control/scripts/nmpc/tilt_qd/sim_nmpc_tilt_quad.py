@@ -9,12 +9,13 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
-from tilt_qd_full import NMPCTiltQdFull
-from tilt_qd_full_i_term import NMPCTiltQdFullITerm
+from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from tilt_qd_servo import NMPCTiltQdServo
+from tilt_qd_servo_dist import NMPCTiltQdServoDist
 from tilt_qd_no_servo import NMPCTiltQdNoServo
 from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
-from tilt_qd_old_servo_cost import NMPCTiltQdOldServoCost
-from tilt_qd_vel_input import NMPCTiltQdVelInput
+from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -45,16 +46,18 @@ if __name__ == "__main__":
     if args.model == 0:
         nmpc = NMPCTiltQdNoServo()
     elif args.model == 1:
-        nmpc = NMPCTiltQdOldServoCost()
+        nmpc = NMPCTiltQdServoOldCost()
     elif args.model == 2:
         nmpc = NMPCTiltQdNoServoNewCost()
     elif args.model == 3:
-        nmpc = NMPCTiltQdFull()
+        nmpc = NMPCTiltQdServo()
     elif args.model == 4:
-        nmpc = NMPCTiltQdFullITerm()
+        nmpc = NMPCTiltQdServoDist()
     elif args.model == 5:
-        nmpc = NMPCTiltQdVelInput()
+        nmpc = NMPCTiltQdServoVelInput()
         alpha_integ = np.zeros(4)
+    elif args.model == 6:
+        nmpc = NMPCTiltQdServoThrust()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdFull()
+    sim_nmpc = NMPCTiltQdServoThrust()  # consider both the servo delay and the control delay
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
@@ -92,7 +95,7 @@ if __name__ == "__main__":
 
     t_total_sim = 15.0
     if args.plot_type == 1:
-        t_total_sim = 2.0
+        t_total_sim = 4.0
     if args.plot_type == 2:
         t_total_sim = 3.0
 
@@ -127,26 +130,26 @@ if __name__ == "__main__":
         x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
-        target_xyz = np.array([[0.0, 0.0, 1.0]]).T
+        target_xyz = np.array([[0.3, 0.6, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         if args.plot_type == 2:
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
-        if t_total_sim > 3.0:
-            if 3.0 <= t_now < 5.5:
+        if t_total_sim > 2.0:
+            if 2.0 <= t_now < 6:
+                target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+
+                roll = 30.0 / 180.0 * np.pi
+                pitch = 60.0 / 180.0 * np.pi
+                yaw = 90.0 / 180.0 * np.pi
+                target_rpy = np.array([[roll, pitch, yaw]]).T
+
+            if t_now >= 6:
                 assert t_sqp_end <= 3.0
                 target_xyz = np.array([[1.0, 1.0, 1.0]]).T
                 target_rpy = np.array([[0.0, 0.0, 0.0]]).T
-
-            if t_now >= 5.5:
-                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-
-                roll = 30.0 / 180.0 * np.pi
-                pitch = 0.0 / 180.0 * np.pi
-                yaw = 0.0 / 180.0 * np.pi
-                target_rpy = np.array([[roll, pitch, yaw]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
@@ -200,7 +203,7 @@ if __name__ == "__main__":
         if type(nmpc) is NMPCTiltQdNoServoNewCost:
             xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
 
-        if type(nmpc) is NMPCTiltQdVelInput:
+        if type(nmpc) is NMPCTiltQdServoVelInput:
             alpha_integ += u_cmd[4:] * ts_ctrl
             u_cmd[4:] = alpha_integ  # convert from delta to absolute
 

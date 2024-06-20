@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scienceplots
 
-legend_alpha = 0.5
+legend_alpha = 0.3
 
 
 class Visualizer:
@@ -172,7 +172,7 @@ class Visualizer:
 
         # set font size
         plt.rcParams.update({'font.size': 11})  # default is 10
-        label_size = 15
+        label_size = 12
 
         # # to avoid the warning of font in pdf check. Seems no need after using scienceplots.
         # matplotlib.rcParams['pdf.fonttype'] = 42
@@ -181,46 +181,68 @@ class Visualizer:
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
 
-        fig = plt.figure(figsize=(7, 3))
-        title = str(f"Ctrl = {ocp_model_name}, ts ctrl = {ts_ctrl} s, servo delay = {t_servo_ctrl} s")
-        title = title.replace("_", r"\_")
-        fig.suptitle(title)
+        fig = plt.figure(figsize=(7, 5))
+        # title = str(f"Ctrl = {ocp_model_name}, ts ctrl = {ts_ctrl} s, servo delay = {t_servo_ctrl} s")
+        # title = title.replace("_", r"\_")
+        # fig.suptitle(title)
+
+        ax = plt.subplot(211)
 
         time_data_x = np.arange(self.data_idx) * ts_sim
 
-        ax = plt.subplot(1, 2, 1)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
+        plt.ylabel("Position (m)", fontsize=label_size)
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
 
-        if x_sim_all.shape[1] > 13:
-            plt.plot(time_data_x, x_sim_all[:self.data_idx, 13], label="$\\alpha_1$")
-            plt.plot(time_data_x, x_sim_all[:self.data_idx, 14], label="$\\alpha_2$")
-            plt.plot(time_data_x, x_sim_all[:self.data_idx, 15], label="$\\alpha_3$")
-            plt.plot(time_data_x, x_sim_all[:self.data_idx, 16], label="$\\alpha_4$")
-        plt.legend(framealpha=legend_alpha, loc="lower right")
-        plt.xlabel("Time (s)", fontsize=label_size)
-        plt.xlim([0, t_total_sim])
-        plt.ylabel("Servo Angle State (rad)", fontsize=label_size)
-        plt.ylim([-1.0, 1.0])  # -0.18, 0.18; -1.0, 1.0
+        euler = np.zeros((x_sim_all.shape[0], 3))
+        for i in range(x_sim_all.shape[0]):
+            qwxyz = x_sim_all[i, 6:10]
+            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
+            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+        euler = euler * 180 / np.pi
 
+        # plot the y in right axis
         ax_right = ax.twinx()
-        ax_right.plot([0, t_total_sim], [1.0, 1.0], label="$z_r$", linestyle="-.", color="blue")
-        ax_right.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="$z$", linestyle="--", color="black")
-        ax_right.set_ylabel("Height (m)", fontsize=label_size)
-        ax_right.legend(framealpha=legend_alpha, loc="upper left")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 0], label="roll", linestyle="--")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 1], label="pitch", linestyle="--")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 2], label="yaw", linestyle="--")
+        ax_right.set_ylabel("Euler Angle ($^\\circ$)", fontsize=label_size)
 
-        time_data_u = np.arange(self.data_idx - 1) * ts_sim
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.45, 0.7), loc="lower left")
+        # plt.xlim([0, t_total_sim])
 
-        plt.subplot(1, 2, 2)
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4], label="$\\alpha_{c1}$")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5], label="$\\alpha_{c2}$")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6], label="$\\alpha_{c3}$")
-        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7], label="$\\alpha_{c4}$")
-        plt.legend(framealpha=legend_alpha, loc="lower right")
+        time_data_u = np.arange(self.data_idx - 1) * ts_sim + ts_sim
+
+        ax2 = plt.subplot(212, sharex=ax)
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 0], label="$f_{c1}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 1], label="$f_{c2}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="$f_{c3}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$f_{c4}$")
+        plt.ylabel("Thrust Cmd. (N)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
-        plt.xlim([0, t_total_sim])
-        plt.ylabel("Servo Angle Cmd (rad)", fontsize=label_size)
-        plt.ylim([-1.0, 1.0])  # -0.8, 0.8; -1.6, 1.6
+        plt.legend(framealpha=legend_alpha, ncol=4, bbox_to_anchor=(0.1, 0.75), loc="lower left")
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        ax2_right = ax2.twinx()
+        ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c1}$",
+                       linestyle="--")
+        ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c2}$",
+                       linestyle="--")
+        ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6] * 180 / np.pi, label="$\\alpha_{c3}$",
+                       linestyle="--")
+        ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7] * 180 / np.pi, label="$\\alpha_{c4}$",
+                       linestyle="--")
+        ax2_right.set_ylabel("Servo Angle Cmd. ($^\\circ$)", fontsize=label_size)
+        plt.legend(framealpha=legend_alpha, ncol=4, bbox_to_anchor=(0.1, 0.00), loc="lower left")
+
+        plt.xlim([-0.1, t_total_sim])
+
+        # plt.ylabel("Servo Angle Cmd (rad)", fontsize=label_size)
+        # plt.ylim([-1.0, 1.0])  # -0.8, 0.8; -1.6, 1.6
+
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.tight_layout()
 
         plt.show()
 

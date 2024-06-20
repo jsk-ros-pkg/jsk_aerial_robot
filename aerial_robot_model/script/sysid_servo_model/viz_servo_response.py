@@ -11,11 +11,11 @@ from scipy.interpolate import interp1d
 
 # Load the input data from the CSV file
 # Replace 'path/to/your/file.csv' with the actual file path
-input_data = pd.read_csv('20240216-132439_inter_gimbals_ctrl.csv', header=None)
+input_data = pd.read_csv('20240215-210011_inter_gimbals_ctrl.csv', header=None)
 time_input = input_data[0]
 u_input = input_data[1]
 
-output_data = pd.read_csv('20240216-132439_inter_joint_states.csv', header=None)
+output_data = pd.read_csv('20240215-210011_inter_joint_states.csv', header=None)
 time_output = output_data[0].to_numpy()
 y_output = output_data[1].to_numpy()
 
@@ -28,7 +28,7 @@ u_interpolated = interp1d(time_input, u_input, kind='linear', fill_value='extrap
 
 # Define the first-order differential equation using the interpolated input
 def model(y, t):
-    tau = 0.08
+    tau = 0.085883
     u = u_interpolated(t)
     dydt = (1 / tau) * (u - y)
     return dydt
@@ -47,13 +47,14 @@ label_size = 15
 legend_alpha = 0.5
 
 fig = plt.figure(figsize=(3.5, 2.5))
-plt.plot(t, u_interpolated(t), label='input')
-plt.plot(time_output, y_output, label='real')
-plt.plot(t, y, label='estimated')
+plt.plot(t, u_interpolated(t) * 180 / np.pi, label='input')
+plt.plot(time_output, y_output * 180 / np.pi, label='real')
+plt.plot(t, y * 180 / np.pi, label='estimated')
 plt.xlabel('Time (s)', fontsize=label_size)
-plt.ylabel('Servo Angle (rad)', fontsize=label_size)
+plt.ylabel('Servo Angle ($^\circ$)', fontsize=label_size)
 # plt.title('First-order system response with varying input')
 plt.legend(framealpha=legend_alpha)
-plt.xlim([19, 21])
+plt.xlim([4.0, 5.5])
+plt.ylim([-5, 65])
 plt.tight_layout()
 plt.show()

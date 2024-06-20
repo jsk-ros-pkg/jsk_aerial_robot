@@ -17,38 +17,38 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/nmpc/over_act_full_i_term/c_generated_code/acados_solver_beetle_full_w_disturb_model.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/acados_solver_tilt_qd_servo_dist_mdl.h"
 
-#define NN BEETLE_FULL_W_DISTURB_MODEL_N
-#define NX BEETLE_FULL_W_DISTURB_MODEL_NX
-#define NZ BEETLE_FULL_W_DISTURB_MODEL_NZ
-#define NU BEETLE_FULL_W_DISTURB_MODEL_NU
-#define NP BEETLE_FULL_W_DISTURB_MODEL_NP
-#define NBX BEETLE_FULL_W_DISTURB_MODEL_NBX
-#define NBX0 BEETLE_FULL_W_DISTURB_MODEL_NBX0
-#define NBU BEETLE_FULL_W_DISTURB_MODEL_NBU
-#define NSBX BEETLE_FULL_W_DISTURB_MODEL_NSBX
-#define NSBU BEETLE_FULL_W_DISTURB_MODEL_NSBU
-#define NSH BEETLE_FULL_W_DISTURB_MODEL_NSH
-#define NSG BEETLE_FULL_W_DISTURB_MODEL_NSG
-#define NSPHI BEETLE_FULL_W_DISTURB_MODEL_NSPHI
-#define NSHN BEETLE_FULL_W_DISTURB_MODEL_NSHN
-#define NSGN BEETLE_FULL_W_DISTURB_MODEL_NSGN
-#define NSPHIN BEETLE_FULL_W_DISTURB_MODEL_NSPHIN
-#define NSBXN BEETLE_FULL_W_DISTURB_MODEL_NSBXN
-#define NS BEETLE_FULL_W_DISTURB_MODEL_NS
-#define NSN BEETLE_FULL_W_DISTURB_MODEL_NSN
-#define NG BEETLE_FULL_W_DISTURB_MODEL_NG
-#define NBXN BEETLE_FULL_W_DISTURB_MODEL_NBXN
-#define NGN BEETLE_FULL_W_DISTURB_MODEL_NGN
-#define NY0 BEETLE_FULL_W_DISTURB_MODEL_NY0
-#define NY BEETLE_FULL_W_DISTURB_MODEL_NY
-#define NYN BEETLE_FULL_W_DISTURB_MODEL_NYN
-#define NH BEETLE_FULL_W_DISTURB_MODEL_NH
-#define NPHI BEETLE_FULL_W_DISTURB_MODEL_NPHI
-#define NHN BEETLE_FULL_W_DISTURB_MODEL_NHN
-#define NPHIN BEETLE_FULL_W_DISTURB_MODEL_NPHIN
-#define NR BEETLE_FULL_W_DISTURB_MODEL_NR
+#define NN TILT_QD_SERVO_DIST_MDL_N
+#define NX TILT_QD_SERVO_DIST_MDL_NX
+#define NZ TILT_QD_SERVO_DIST_MDL_NZ
+#define NU TILT_QD_SERVO_DIST_MDL_NU
+#define NP TILT_QD_SERVO_DIST_MDL_NP
+#define NBX TILT_QD_SERVO_DIST_MDL_NBX
+#define NBX0 TILT_QD_SERVO_DIST_MDL_NBX0
+#define NBU TILT_QD_SERVO_DIST_MDL_NBU
+#define NSBX TILT_QD_SERVO_DIST_MDL_NSBX
+#define NSBU TILT_QD_SERVO_DIST_MDL_NSBU
+#define NSH TILT_QD_SERVO_DIST_MDL_NSH
+#define NSG TILT_QD_SERVO_DIST_MDL_NSG
+#define NSPHI TILT_QD_SERVO_DIST_MDL_NSPHI
+#define NSHN TILT_QD_SERVO_DIST_MDL_NSHN
+#define NSGN TILT_QD_SERVO_DIST_MDL_NSGN
+#define NSPHIN TILT_QD_SERVO_DIST_MDL_NSPHIN
+#define NSBXN TILT_QD_SERVO_DIST_MDL_NSBXN
+#define NS TILT_QD_SERVO_DIST_MDL_NS
+#define NSN TILT_QD_SERVO_DIST_MDL_NSN
+#define NG TILT_QD_SERVO_DIST_MDL_NG
+#define NBXN TILT_QD_SERVO_DIST_MDL_NBXN
+#define NGN TILT_QD_SERVO_DIST_MDL_NGN
+#define NY0 TILT_QD_SERVO_DIST_MDL_NY0
+#define NY TILT_QD_SERVO_DIST_MDL_NY
+#define NYN TILT_QD_SERVO_DIST_MDL_NYN
+#define NH TILT_QD_SERVO_DIST_MDL_NH
+#define NPHI TILT_QD_SERVO_DIST_MDL_NPHI
+#define NHN TILT_QD_SERVO_DIST_MDL_NHN
+#define NPHIN TILT_QD_SERVO_DIST_MDL_NPHIN
+#define NR TILT_QD_SERVO_DIST_MDL_NR
 
 namespace aerial_robot_control
 {
@@ -93,7 +93,7 @@ public:
 
 private:
   double* new_time_steps;
-  beetle_full_w_disturb_model_solver_capsule* acados_ocp_capsule_;
+  tilt_qd_servo_dist_mdl_solver_capsule* acados_ocp_capsule_;
   ocp_nlp_config* nlp_config_;
   ocp_nlp_dims* nlp_dims_;
   ocp_nlp_in* nlp_in_;

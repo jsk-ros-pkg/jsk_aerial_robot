@@ -10,7 +10,7 @@
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/nmpc/over_act_full_i_term/nmpc_solver.h"
+#include "nmpc_solver.h"
 #include "aerial_robot_control/nmpc/i_term.h"
 
 #include <angles/angles.h>

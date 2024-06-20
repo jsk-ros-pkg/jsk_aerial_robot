@@ -3,8 +3,9 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2023/12/04 4:17 PM
+Date: 2023/11/27 9:43 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
+The plus version also considers the time constant of the rotor.
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -12,15 +13,15 @@ import sys
 import numpy as np
 import yaml
 import rospkg
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 from tf_conversions import transformations as tf
-from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCNoServoNewCost.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -43,14 +44,19 @@ dr4 = physical_params["dr4"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
+t_servo = physical_params["t_servo"]  # time constant of servo
 
-class NMPCTiltQdNoServoNewCost(NMPCBase):
+t_rotor = 0.0942  # time constant of rotor
 
+
+class NMPCTiltQdServoThrust(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdNoServoNewCost, self).__init__()
+        super(NMPCTiltQdServoThrust, self).__init__()
+        self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        return "beetle_no_servo_new_cost_model"
+        model_name = "tilt_qd_servo_thrust_mdl"
+        return model_name
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -71,7 +77,19 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        states = ca.vertcat(p, v, q, w)
+        a1 = ca.SX.sym("a1")
+        a2 = ca.SX.sym("a2")
+        a3 = ca.SX.sym("a3")
+        a4 = ca.SX.sym("a4")
+        a = ca.vertcat(a1, a2, a3, a4)
+
+        ft1 = ca.SX.sym("ft1")
+        ft2 = ca.SX.sym("ft2")
+        ft3 = ca.SX.sym("ft3")
+        ft4 = ca.SX.sym("ft4")
+        ft = ca.vertcat(ft1, ft2, ft3, ft4)
+
+        states = ca.vertcat(p, v, q, w, a, ft)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -81,17 +99,17 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
-        ft1 = ca.SX.sym("ft1")
-        ft2 = ca.SX.sym("ft2")
-        ft3 = ca.SX.sym("ft3")
-        ft4 = ca.SX.sym("ft4")
-        ft = ca.vertcat(ft1, ft2, ft3, ft4)
-        a1 = ca.SX.sym("a1")
-        a2 = ca.SX.sym("a2")
-        a3 = ca.SX.sym("a3")
-        a4 = ca.SX.sym("a4")
-        ac = ca.vertcat(a1, a2, a3, a4)
-        controls = ca.vertcat(ft, ac)
+        ftc1 = ca.SX.sym("ftc1")
+        ftc2 = ca.SX.sym("ftc2")
+        ftc3 = ca.SX.sym("ftc3")
+        ftc4 = ca.SX.sym("ftc4")
+        ftc = ca.vertcat(ftc1, ftc2, ftc3, ftc4)
+        a1c = ca.SX.sym("a1c")
+        a2c = ca.SX.sym("a2c")
+        a3c = ca.SX.sym("a3c")
+        a4c = ca.SX.sym("a4c")
+        ac = ca.vertcat(a1c, a2c, a3c, a4c)
+        controls = ca.vertcat(ftc, ac)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -172,6 +190,8 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
+            (ac - a) / t_servo,
+            (ftc - ft) / t_rotor,
         )
 
         # function
@@ -182,11 +202,11 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w)
-        control_y = controls
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
+        control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 13)
+        x_dot = ca.SX.sym("x_dot", 21)
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -210,7 +230,7 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "over_act_no_servo_new_cost")
+                                   ocp_model.name)
         self._mkdir(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
@@ -247,16 +267,24 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_z"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
+                1,
+                1,
+                1,
+                1,
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
@@ -273,7 +301,7 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         # set constraints
         # # bx
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
         ocp.constraints.lbx = np.array(
             [
                 nmpc_params["v_min"],
@@ -282,6 +310,10 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx = np.array(
@@ -292,6 +324,10 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
             ]
         )
         print("lbx: ", ocp.constraints.lbx)
@@ -299,7 +335,7 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
 
         # # bx_e
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
         ocp.constraints.lbx_e = np.array(
             [
                 nmpc_params["v_min"],
@@ -308,6 +344,10 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
+                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx_e = np.array(
@@ -318,6 +358,10 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
+                nmpc_params["a_max"],
             ]
         )
         print("lbx_e: ", ocp.constraints.lbx_e)
@@ -387,10 +431,9 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
 class XrUrConverter(XrUrConverterBase):
     def __init__(self):
         super(XrUrConverter, self).__init__()
-        self.a1_prev, self.a2_prev, self.a3_prev, self.a4_prev = 0, 0, 0, 0
 
     def _set_nx_nu(self):
-        self.nx = 13
+        self.nx = 21
         self.nu = 8
 
     def _set_physical_params(self):
@@ -448,28 +491,22 @@ class XrUrConverter(XrUrConverterBase):
         xr[:, 7] = target_qwxyz.item(1)  # qx
         xr[:, 8] = target_qwxyz.item(2)  # qy
         xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 13] = a1_ref
+        xr[:, 14] = a2_ref
+        xr[:, 15] = a3_ref
+        xr[:, 16] = a4_ref
+        xr[:, 17] = ft1_ref
+        xr[:, 18] = ft2_ref
+        xr[:, 19] = ft3_ref
+        xr[:, 20] = ft4_ref
 
         ur = np.zeros([ocp_N, self.nu])
-        ur[:, 0] = ft1_ref
-        ur[:, 1] = ft2_ref
-        ur[:, 2] = ft3_ref
-        ur[:, 3] = ft4_ref
-        ur[:, 4] = self.a1_prev
-        ur[:, 5] = self.a2_prev
-        ur[:, 6] = self.a3_prev
-        ur[:, 7] = self.a4_prev
 
         return xr, ur
 
-    def update_a_prev(self, a1, a2, a3, a4):
-        self.a1_prev = a1
-        self.a2_prev = a2
-        self.a3_prev = a3
-        self.a4_prev = a4
-
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdNoServoNewCost()
+    nmpc = NMPCTiltQdServoThrust()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
