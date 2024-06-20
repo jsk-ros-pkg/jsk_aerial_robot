@@ -10,13 +10,14 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <array>
 #include <algorithm>
 #include <utility>
 #include <cmath>
-#include "flashmemory.h"
-#include "can_core.h"
-#include "Encoder/mag_encoder.h"
+#include "Flashmemory/flashmemory.h"
+#include "CAN/can_core.h"
+#include "Servo/Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
 /* first should set the baudrate to 1000000*/
@@ -211,9 +212,6 @@
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
 #define GET_HARDWARE_ERROR_STATUS_OFFSET 150
 
-/* please define the gpio which control the IO direction */
-#define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
-#define RE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_RESET);
 
 /* DMA circular rx buffer size */
 #define RX_BUFFER_SIZE 512
@@ -278,7 +276,7 @@ private:
 class ServoData {
 public:
 	ServoData(){}
-  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
+  ServoData(uint8_t id): id_(id), internal_offset_(0), torque_enable_(false), first_get_pos_flag_(true){}
 
 	uint8_t id_;
   	int32_t present_position_;

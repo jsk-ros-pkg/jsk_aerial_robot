@@ -8,7 +8,13 @@
 #ifndef MAG_ENCODER_H
 #define MAG_ENCODER_H
 
+#if defined(STM32F413xx)
 #include "stm32f4xx_hal.h"
+#elif defined(STM32G473xx)
+#include "stm32g4xx_hal.h"
+#else
+#error "please specify the STM32 series"
+#endif
 
 class MagEncoder
 {
