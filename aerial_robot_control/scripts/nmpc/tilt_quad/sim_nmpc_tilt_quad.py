@@ -9,9 +9,9 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
-from tilt_qd_full_plus import NMPCTiltQdFullPlus
-from tilt_qd_full import NMPCTiltQdFull
-from tilt_qd_full_i_term import NMPCTiltQdFullITerm
+from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from tilt_qd_servo import NMPCTiltQdServo
+from tilt_qd_servo_dist import NMPCTiltQdServoDist
 from tilt_qd_no_servo import NMPCTiltQdNoServo
 from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
 from tilt_qd_old_servo_cost import NMPCTiltQdOldServoCost
@@ -50,14 +50,14 @@ if __name__ == "__main__":
     elif args.model == 2:
         nmpc = NMPCTiltQdNoServoNewCost()
     elif args.model == 3:
-        nmpc = NMPCTiltQdFull()
+        nmpc = NMPCTiltQdServo()
     elif args.model == 4:
-        nmpc = NMPCTiltQdFullITerm()
+        nmpc = NMPCTiltQdServoDist()
     elif args.model == 5:
         nmpc = NMPCTiltQdVelInput()
         alpha_integ = np.zeros(4)
     elif args.model == 6:
-        nmpc = NMPCTiltQdFullPlus()
+        nmpc = NMPCTiltQdServoThrust()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdFullPlus()  # consider both the servo delay and the control delay
+    sim_nmpc = NMPCTiltQdServoThrust()  # consider both the servo delay and the control delay
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
