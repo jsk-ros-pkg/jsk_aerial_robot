@@ -89,7 +89,7 @@ private:
 
   double shift_x_, shift_y_;
   double body_r_;
-  bool record_marker_;
+  // bool record_marker_;
   bool from_hokuyo_;
   bool have_hokuyo_data_;
 
@@ -98,5 +98,5 @@ private:
 
   void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
   void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
-  void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
+  // void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
 };

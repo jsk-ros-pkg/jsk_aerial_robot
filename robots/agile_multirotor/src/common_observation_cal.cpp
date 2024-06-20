@@ -36,13 +36,13 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     }
   }
   else {
-    record_marker_ = false;
+    // record_marker_ = false;
     have_hokuyo_data_ = false;
 
     marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
                             &ObstacleCalculator::VisualizationMarkerCallback, this);
-    record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
-                            &ObstacleCalculator::RecordMarkerCallback, this);
+    // record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
+    //                         &ObstacleCalculator::RecordMarkerCallback, this);
   }
 
   odom_sub_ = nh_.subscribe("/" + quad_name + "/uav/cog/odom", 1,
@@ -67,7 +67,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
 
-  if (record_marker_){
+  // if (record_marker_){
     for (const visualization_msgs::Marker &tree_data : msg->markers) {
       if (tree_data.ns=="tree_diameter") continue;
       Eigen::Vector3d tree_pos;
@@ -80,14 +80,14 @@ void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::M
       geometry_msgs::Vector3 scale = tree_data.scale;
       radius_list_.push_back(scale.x/2);
       have_hokuyo_data_ = true;
-      record_marker_ = false;
+      // record_marker_ = false;
     }
-  }
+  // }
 }
 
-void ObstacleCalculator::RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg){
-  record_marker_ = true;
-}
+// void ObstacleCalculator::RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg){
+//   record_marker_ = true;
+// }
 
 void ObstacleCalculator::CalculatorCallback(
     const nav_msgs::Odometry::ConstPtr &msg) {
