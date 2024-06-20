@@ -267,7 +267,7 @@ void nmpc_over_act_full::NMPCController::controlCore()
 
   for (int i = 0; i < motor_num_; i++)
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i) * 1.28);
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
   }
 
   // - servo angle
@@ -518,7 +518,6 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
               x_u_ref_.u.data.begin() + NU * i);
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 }
 
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)

@@ -354,7 +354,7 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
 
   for (int i = 0; i < motor_num_; i++)
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i) * 1.28);
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
   }
 
   // - servo angle
