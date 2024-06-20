@@ -43,7 +43,7 @@ p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 
-class NMPCController(object):
+class NMPCFixQdThrustOut(object):
     def __init__(self):
         opt_model = QdFullModel().model
 
@@ -338,7 +338,7 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    mpc_ctl = NMPCController()
+    mpc_ctl = NMPCFixQdThrustOut()
 
     print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
     print("T_samp: ", nmpc_params["T_samp"])

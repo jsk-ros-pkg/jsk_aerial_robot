@@ -66,8 +66,8 @@ set(ACADOS_PYTHON_TARGETS)
 
 # Create a list of the scripts
 set(ACADOS_PYTHON_SCRIPTS
-        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_quad/nmpc_under_act_body_rate.py
-        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_quad/nmpc_under_act_full.py
+        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_body_rate_out.py
+        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_thrust_out.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_dist.py

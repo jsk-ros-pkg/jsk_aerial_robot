@@ -27,7 +27,7 @@ nmpc_params = param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
 
-class NMPCController(object):
+class NMPCQdBodyRateOut(object):
     def __init__(self):
         opt_model = QdBodyRateModel().model
 
@@ -229,7 +229,7 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    mpc_ctl = NMPCController()
+    mpc_ctl = NMPCQdBodyRateOut()
 
     print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
     print("T_samp: ", nmpc_params["T_samp"])
