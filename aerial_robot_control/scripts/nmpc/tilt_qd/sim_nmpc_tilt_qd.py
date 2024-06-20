@@ -9,13 +9,21 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
-from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
-from tilt_qd_servo import NMPCTiltQdServo
-from tilt_qd_servo_dist import NMPCTiltQdServoDist
+# naive models
 from tilt_qd_no_servo import NMPCTiltQdNoServo
 from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
+
+# consider the servo delay
+from tilt_qd_servo import NMPCTiltQdServo
+from tilt_qd_servo_dist import NMPCTiltQdServoDist
+from tilt_qd_servo_drag_dist import NMPCTiltQdServoDragDist
+
 from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
 from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
+
+# further consider the thrust delay
+from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -58,6 +66,8 @@ if __name__ == "__main__":
         alpha_integ = np.zeros(4)
     elif args.model == 6:
         nmpc = NMPCTiltQdServoThrust()
+    elif args.model == 7:
+        nmpc = NMPCTiltQdServoDragDist()
     else:
         raise ValueError(f"Invalid model {args.model}.")
 
