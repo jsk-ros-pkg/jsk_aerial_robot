@@ -49,11 +49,11 @@
           <!-- baselink -->
           <xacro:if value="${baselink}">
             <inertial>
-              <origin xyz="${link_length* 0.5 + 9.54 * 0.001} ${-4.74 * 0.001} ${-15.68 * 0.001}" rpy="0 0 0"/>
-              <mass value="1.1348" />
+              <origin xyz="${link_length* 0.5 + 2.23 * 0.001} ${-5.59 * 0.001} ${-14.86 * 0.001}" rpy="0 0 0"/>
+              <mass value="1.055" />
               <inertia
-                  ixx="0.0018" iyy="0.0228" izz="0.0219"
-                  ixy="-0.0009" ixz="-0.0006" iyz="0.0001"/>
+                  ixx="0.0016" iyy="0.0221" izz="0.0213"
+                  ixy="-0.0009" ixz="-0.0002" iyz="-0.0001"/>
               <!--
               <origin xyz="${link_length* 0.5 + 11.92 * 0.001} ${-4.98 * 0.001} ${-14.07 * 0.001}" rpy="0 0 0"/>
               <mass value="1.07879" />

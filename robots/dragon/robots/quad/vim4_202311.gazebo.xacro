@@ -5,7 +5,7 @@
   <xacro:arg name="robot_name" default="dragon" />
 
   <!-- robot urdf -->
-  <xacro:include filename="$(find dragon)/robots/quad/euclid_201709.urdf.xacro" />
+  <xacro:include filename="$(find dragon)/robots/quad/vim4_202311.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->
   <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
