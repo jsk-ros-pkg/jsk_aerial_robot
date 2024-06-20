@@ -50,7 +50,7 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         super(NMPCTiltQdNoServoNewCost, self).__init__()
 
     def _set_name(self) -> str:
-        return "beetle_no_servo_new_cost_model"
+        return "tilt_qd_no_servo_new_cost_mdl"
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -210,7 +210,7 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "over_act_no_servo_new_cost")
+                                   ocp_model.name)
         self._mkdir(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"

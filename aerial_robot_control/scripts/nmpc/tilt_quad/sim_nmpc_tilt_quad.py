@@ -14,8 +14,8 @@ from tilt_qd_servo import NMPCTiltQdServo
 from tilt_qd_servo_dist import NMPCTiltQdServoDist
 from tilt_qd_no_servo import NMPCTiltQdNoServo
 from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
-from tilt_qd_old_servo_cost import NMPCTiltQdOldServoCost
-from tilt_qd_vel_input import NMPCTiltQdVelInput
+from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     if args.model == 0:
         nmpc = NMPCTiltQdNoServo()
     elif args.model == 1:
-        nmpc = NMPCTiltQdOldServoCost()
+        nmpc = NMPCTiltQdServoOldCost()
     elif args.model == 2:
         nmpc = NMPCTiltQdNoServoNewCost()
     elif args.model == 3:
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     elif args.model == 4:
         nmpc = NMPCTiltQdServoDist()
     elif args.model == 5:
-        nmpc = NMPCTiltQdVelInput()
+        nmpc = NMPCTiltQdServoVelInput()
         alpha_integ = np.zeros(4)
     elif args.model == 6:
         nmpc = NMPCTiltQdServoThrust()
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         if type(nmpc) is NMPCTiltQdNoServoNewCost:
             xr_ur_converter.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
 
-        if type(nmpc) is NMPCTiltQdVelInput:
+        if type(nmpc) is NMPCTiltQdServoVelInput:
             alpha_integ += u_cmd[4:] * ts_ctrl
             u_cmd[4:] = alpha_integ  # convert from delta to absolute
 
