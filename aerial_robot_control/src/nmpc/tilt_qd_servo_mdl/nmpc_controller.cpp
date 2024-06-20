@@ -2,11 +2,11 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/over_act_full_i_term/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc_over_act_full_i_term::NMPCController::initialize(
+void nmpc_over_act_full::NMPCController::initialize(
     ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
@@ -14,8 +14,8 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle physical_nh(control_nh, "physical");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle physical_nh(control_nh, "physical");
 
   // initialize nmpc solver
   mpc_solver_.initialize();
@@ -64,32 +64,6 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
     mpc_solver_.setCostWDiagElement(i, Rac_d, false);
   mpc_solver_.setCostWeight(true, true);
 
-  /* disturbance rejection using I term */
-  double fx_limit, fy_limit, fz_limit, mx_limit, my_limit, mz_limit;
-  getParam<double>(nmpc_nh, "limit_fx", fx_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_fy", fy_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_fz", fz_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_mx", mx_limit, 1.0);
-  getParam<double>(nmpc_nh, "limit_my", my_limit, 1.0);
-  getParam<double>(nmpc_nh, "limit_mz", mz_limit, 1.0);
-
-  double i_gain_x, i_gain_y, i_gain_z, i_gain_roll, i_gain_pitch, i_gain_yaw;
-  getParam<double>(nmpc_nh, "i_gain_x", i_gain_x, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_y", i_gain_y, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_z", i_gain_z, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_roll", i_gain_roll, 0.5);
-  getParam<double>(nmpc_nh, "i_gain_pitch", i_gain_pitch, 0.5);
-  getParam<double>(nmpc_nh, "i_gain_yaw", i_gain_yaw, 0.5);
-
-  double freq = 1.0 / ctrl_loop_du;
-  pos_i_term_[0].initialize(i_gain_x, fx_limit, freq);  // x
-  pos_i_term_[1].initialize(i_gain_y, fy_limit, freq);  // y
-  pos_i_term_[2].initialize(i_gain_z, fz_limit, freq);  // z
-
-  pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);   // roll
-  pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
-  pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
-
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
   nmpc_reconf_servers_.back()->setCallback(boost::bind(&NMPCController::cfgNMPCCallback, this, _1, _2));
 
@@ -105,8 +79,6 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
   pub_rpy_gain_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);  // tmp
   pub_p_matrix_pseudo_inverse_inertia_ =
       nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);  // tmp
-
-  pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 
   /* services */
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
@@ -142,12 +114,12 @@ void nmpc_over_act_full_i_term::NMPCController::initialize(
 
   /* print physical parameters if needed */
   bool is_print_physical_params;
-  getParam(nmpc_nh, "is_print_physical_params", is_print_physical_params, false);
+  getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
   if (is_print_physical_params)
     printPhysicalParams();
 }
 
-bool nmpc_over_act_full_i_term::NMPCController::update()
+bool nmpc_over_act_full::NMPCController::update()
 {
   if (!ControlBase::update())
     return false;
@@ -166,7 +138,7 @@ bool nmpc_over_act_full_i_term::NMPCController::update()
   return true;
 }
 
-void nmpc_over_act_full_i_term::NMPCController::reset()
+void nmpc_over_act_full::NMPCController::reset()
 {
   ControlBase::reset();
 
@@ -223,11 +195,11 @@ void nmpc_over_act_full_i_term::NMPCController::reset()
   gimbal_ctrl_cmd_.position.push_back(0.0);
 }
 
-void nmpc_over_act_full_i_term::NMPCController::controlCore()
+void nmpc_over_act_full::NMPCController::controlCore()
 {
   if (!is_traj_tracking_)
   {
-    /* point mode --> set target  */
+    /* point mode --> set target */
     tf::Vector3 target_pos = navigator_->getTargetPos();
     tf::Vector3 target_vel = navigator_->getTargetVel();
     tf::Vector3 target_rpy = navigator_->getTargetRPY();
@@ -280,67 +252,8 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
   odom_ = odom_now;
 
-  /* update I term */
-  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  double qw = odom_.pose.pose.orientation.w;
-  double qx = odom_.pose.pose.orientation.x;
-  double qy = odom_.pose.pose.orientation.y;
-  double qz = odom_.pose.pose.orientation.z;
-
-  tf::Vector3 target_pos;
-  double qwr, qxr, qyr, qzr;
-  if (!is_traj_tracking_)
-  {
-    target_pos = navigator_->getTargetPos();
-
-    tf::Vector3 target_rpy = navigator_->getTargetRPY();
-    tf::Quaternion q_ref = tf::Quaternion();
-    q_ref.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-    qwr = q_ref.w();
-    qxr = q_ref.x();
-    qyr = q_ref.y();
-    qzr = q_ref.z();
-  }
-  else
-  {
-    target_pos.setX(x_u_ref_.x.data.at(0));
-    target_pos.setY(x_u_ref_.x.data.at(1));
-    target_pos.setZ(x_u_ref_.x.data.at(2));
-
-    qwr = x_u_ref_.x.data.at(6);
-    qxr = x_u_ref_.x.data.at(7);
-    qyr = x_u_ref_.x.data.at(8);
-    qzr = x_u_ref_.x.data.at(9);
-  }
-
-  double qe_w = qw * qwr + qx * qxr + qy * qyr + qz * qzr;
-  double qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr;
-  double qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr;
-  double qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr;
-
-  double sign_qe_w = qe_w > 0 ? 1 : -1;
-
-  double fx_w_i_term = pos_i_term_[0].update(pos.x() - target_pos.x());
-  double fy_w_i_term = pos_i_term_[1].update(pos.y() - target_pos.y());
-  double fz_w_i_term = pos_i_term_[2].update(pos.z() - target_pos.z());
-  double mx_cog_i_term = pos_i_term_[3].update(sign_qe_w * qe_x);
-  double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe_y);
-  double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe_z);
-
-  dist_force_w_ = geometry_msgs::Vector3();
-  dist_force_w_.x = fx_w_i_term;
-  dist_force_w_.y = fy_w_i_term;
-  dist_force_w_.z = fz_w_i_term;
-  dist_torque_cog_ = geometry_msgs::Vector3();
-  dist_torque_cog_.x = mx_cog_i_term;
-  dist_torque_cog_.y = my_cog_i_term;
-  dist_torque_cog_.z = mz_cog_i_term;
-
-  double f_disturb_i[3] = { fx_w_i_term, fy_w_i_term, fz_w_i_term };
-  double tau_disturb_b[3] = { mx_cog_i_term, my_cog_i_term, mz_cog_i_term };
-
   /* solve */
-  mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
+  mpc_solver_.solve(odom_, joint_angles_, x_u_ref_, is_debug_);
 
   /* get result */
   // - thrust
@@ -376,14 +289,14 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   gimbal_ctrl_cmd_.position.push_back(a4c);
 }
 
-void nmpc_over_act_full_i_term::NMPCController::SendCmd()
+void nmpc_over_act_full::NMPCController::SendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 // TODO: should be moved to Estimator
-nav_msgs::Odometry nmpc_over_act_full_i_term::NMPCController::getOdom()
+nav_msgs::Odometry nmpc_over_act_full::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -425,7 +338,7 @@ nav_msgs::Odometry nmpc_over_act_full_i_term::NMPCController::getOdom()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc_over_act_full_i_term::NMPCController::callbackViz(const ros::TimerEvent& event)
+void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -461,26 +374,9 @@ void nmpc_over_act_full_i_term::NMPCController::callbackViz(const ros::TimerEven
   ref_poses.header.frame_id = "world";
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
-
-  /* disturbance wrench */
-  geometry_msgs::WrenchStamped dist_wrench_;
-  dist_wrench_.header.frame_id = "beetle1/cog";
-
-  dist_wrench_.wrench.torque = dist_torque_cog_;
-
-  tf::Matrix3x3 rot_mtx_cog2w = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  tf::Vector3 dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
-  tf::Vector3 dist_force_cog = rot_mtx_cog2w.inverse() * dist_force_w;
-  dist_wrench_.wrench.force.x = dist_force_cog.x();
-  dist_wrench_.wrench.force.y = dist_force_cog.y();
-  dist_wrench_.wrench.force.z = dist_force_cog.z();
-
-  dist_wrench_.header.stamp = ros::Time::now();
-
-  pub_disturb_wrench_.publish(dist_wrench_);
 }
 
-void nmpc_over_act_full_i_term::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+void nmpc_over_act_full::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
   joint_angles_[0] = msg->position[0];
   joint_angles_[1] = msg->position[1];
@@ -489,7 +385,7 @@ void nmpc_over_act_full_i_term::NMPCController::callbackJointStates(const sensor
 }
 
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
-void nmpc_over_act_full_i_term::NMPCController::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
+void nmpc_over_act_full::NMPCController::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
 {
   navigator_->setTargetRoll(msg->roll);
   navigator_->setTargetPitch(msg->pitch);
@@ -497,7 +393,7 @@ void nmpc_over_act_full_i_term::NMPCController::callbackSetRPY(const spinal::Des
 }
 
 /* TODO: this function should be combined with the inner planning framework */
-void nmpc_over_act_full_i_term::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
+void nmpc_over_act_full::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
   {
@@ -515,7 +411,7 @@ void nmpc_over_act_full_i_term::NMPCController::callbackSetRefTraj(const aerial_
   }
 }
 
-void nmpc_over_act_full_i_term::NMPCController::initAllocMat()
+void nmpc_over_act_full::NMPCController::initAllocMat()
 {
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::Vector3d p1_b = rotor_p[0];
@@ -589,9 +485,9 @@ void nmpc_over_act_full_i_term::NMPCController::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc_over_act_full_i_term::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                                           const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                                           const Eigen::VectorXd& target_wrench)
+void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
+                                                    const Eigen::VectorXd& target_wrench)
 {
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
   double a1_ref = atan2(x_lambda(0), x_lambda(1));
@@ -625,7 +521,7 @@ void nmpc_over_act_full_i_term::NMPCController::calXrUrRef(const tf::Vector3 tar
   std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * NN);
 }
 
-double nmpc_over_act_full_i_term::NMPCController::getCommand(int idx_u, double t_pred)
+double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
   double u_predicted =
       mpc_solver_.x_u_out_.u.data.at(idx_u) +
@@ -633,7 +529,7 @@ double nmpc_over_act_full_i_term::NMPCController::getCommand(int idx_u, double t
   return u_predicted;
 }
 
-void nmpc_over_act_full_i_term::NMPCController::printPhysicalParams()
+void nmpc_over_act_full::NMPCController::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;
   cout << "gravity: " << robot_model_->getGravity() << endl;
@@ -656,7 +552,7 @@ void nmpc_over_act_full_i_term::NMPCController::printPhysicalParams()
   }
 }
 
-void nmpc_over_act_full_i_term::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+void nmpc_over_act_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
@@ -731,48 +627,8 @@ void nmpc_over_act_full_i_term::NMPCController::cfgNMPCCallback(NMPCConfig& conf
     }
     mpc_solver_.setCostWeight(true, true);
   }
-
-  if (config.i_gain_flag)
-  {
-    switch (level)
-    {
-      case Levels::RECONFIGURE_NMPC_I_GAIN_X: {
-        pos_i_term_[0].setIGain(config.i_gain_x);
-        ROS_INFO_STREAM("change i_gain_x for NMPC '" << config.i_gain_x << "'");
-        break;
-      }
-      case Levels::RECONFIGURE_NMPC_I_GAIN_Y: {
-        pos_i_term_[1].setIGain(config.i_gain_y);
-        ROS_INFO_STREAM("change i_gain_y for NMPC '" << config.i_gain_y << "'");
-        break;
-      }
-      case Levels::RECONFIGURE_NMPC_I_GAIN_Z: {
-        pos_i_term_[2].setIGain(config.i_gain_z);
-        ROS_INFO_STREAM("change i_gain_z for NMPC '" << config.i_gain_z << "'");
-        break;
-      }
-      case Levels::RECONFIGURE_NMPC_I_GAIN_ROLL: {
-        pos_i_term_[3].setIGain(config.i_gain_roll);
-        ROS_INFO_STREAM("change i_gain_roll for NMPC '" << config.i_gain_roll << "'");
-        break;
-      }
-      case Levels::RECONFIGURE_NMPC_I_GAIN_PITCH: {
-        pos_i_term_[4].setIGain(config.i_gain_pitch);
-        ROS_INFO_STREAM("change i_gain_pitch for NMPC '" << config.i_gain_pitch << "'");
-        break;
-      }
-      case Levels::RECONFIGURE_NMPC_I_GAIN_YAW: {
-        pos_i_term_[5].setIGain(config.i_gain_yaw);
-        ROS_INFO_STREAM("change i_gain_yaw for NMPC '" << config.i_gain_yaw << "'");
-        break;
-      }
-      default:
-        break;
-    }
-  }
 }
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_over_act_full_i_term::NMPCController,
-                       aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_over_act_full::NMPCController, aerial_robot_control::ControlBase);

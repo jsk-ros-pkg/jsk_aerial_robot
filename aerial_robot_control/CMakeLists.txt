@@ -71,19 +71,19 @@ add_library(flight_control_pluginlib
   src/nmpc/under_act_body_rate/nmpc_controller.cpp
   src/nmpc/under_act_full/mpc_solver.cpp
   src/nmpc/under_act_full/nmpc_controller.cpp
-  src/nmpc/over_act_no_servo_delay/nmpc_solver.cpp
-  src/nmpc/over_act_no_servo_delay/nmpc_controller.cpp
-  src/nmpc/over_act_full/nmpc_solver.cpp
-  src/nmpc/over_act_full/nmpc_controller.cpp
-  src/nmpc/over_act_full_i_term/nmpc_solver.cpp
-  src/nmpc/over_act_full_i_term/nmpc_controller.cpp
+  src/nmpc/tilt_qd_no_servo_mdl/nmpc_solver.cpp
+  src/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.cpp
+  src/nmpc/tilt_qd_servo_mdl/nmpc_solver.cpp
+  src/nmpc/tilt_qd_servo_mdl/nmpc_controller.cpp
+  src/nmpc/tilt_qd_servo_dist_mdl/nmpc_solver.cpp
+  src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_full/c_generated_code/libacados_ocp_solver_qd_full_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_no_servo_delay/c_generated_code/libacados_ocp_solver_beetle_no_servo_delay_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_full/c_generated_code/libacados_ocp_solver_beetle_full_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/over_act_full_i_term/c_generated_code/libacados_ocp_solver_beetle_full_w_disturb_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_no_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_no_servo_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_dist_mdl.so
         )
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 

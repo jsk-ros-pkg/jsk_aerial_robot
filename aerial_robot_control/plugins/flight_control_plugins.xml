@@ -24,15 +24,15 @@
       <description>NMPC controller for quadrotor with full model </description>
   </class>
 
-  <class name="aerial_robot_control/over_act_no_servo_delay/nmpc_controller" type="aerial_robot_control::nmpc_over_act_no_servo_delay::NMPCController" base_class_type="aerial_robot_control::ControlBase">
+  <class name="aerial_robot_control/tilt_qd_no_servo_mdl/nmpc_controller" type="aerial_robot_control::nmpc_over_act_no_servo_delay::NMPCController" base_class_type="aerial_robot_control::ControlBase">
       <description>NMPC controller for beetle with no servo delay model </description>
   </class>
 
-  <class name="aerial_robot_control/over_act_full/nmpc_controller" type="aerial_robot_control::nmpc_over_act_full::NMPCController" base_class_type="aerial_robot_control::ControlBase">
+  <class name="aerial_robot_control/tilt_qd_servo_mdl/nmpc_controller" type="aerial_robot_control::nmpc_over_act_full::NMPCController" base_class_type="aerial_robot_control::ControlBase">
       <description>NMPC controller for beetle with full model </description>
   </class>
 
-  <class name="aerial_robot_control/over_act_full_i_term/nmpc_controller" type="aerial_robot_control::nmpc_over_act_full_i_term::NMPCController" base_class_type="aerial_robot_control::ControlBase">
+  <class name="aerial_robot_control/tilt_qd_servo_dist_mdl/nmpc_controller" type="aerial_robot_control::nmpc_over_act_full_i_term::NMPCController" base_class_type="aerial_robot_control::ControlBase">
       <description>NMPC controller for beetle with full model and consider I term to compensate for model error </description>
   </class>
 

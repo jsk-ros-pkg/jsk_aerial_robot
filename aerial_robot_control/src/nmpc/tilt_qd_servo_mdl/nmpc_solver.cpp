@@ -2,38 +2,50 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/over_act_no_servo_delay/nmpc_solver.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
 
 using namespace aerial_robot_control;
 
-nmpc_over_act_no_servo_delay::MPCSolver::MPCSolver()
+nmpc_over_act_full::MPCSolver::MPCSolver()
 {
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::initialize(Constraints& constraints)
+void nmpc_over_act_full::MPCSolver::initialize()
 {
   /* Allocate the array and fill it accordingly */
-  acados_ocp_capsule_ = beetle_no_servo_delay_model_acados_create_capsule();
+  acados_ocp_capsule_ = tilt_qd_servo_mdl_acados_create_capsule();
 
   new_time_steps = nullptr;
 
-  int status = beetle_no_servo_delay_model_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
+  int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
   if (status)
   {
-    ROS_WARN("beetle_no_servo_delay_model_acados_create() returned status %d. Exiting.\n", status);
+    ROS_WARN("tilt_qd_servo_mdl_acados_create() returned status %d. Exiting.\n", status);
     exit(1);
   }
 
-  nlp_config_ = beetle_no_servo_delay_model_acados_get_nlp_config(acados_ocp_capsule_);
-  nlp_dims_ = beetle_no_servo_delay_model_acados_get_nlp_dims(acados_ocp_capsule_);
-  nlp_in_ = beetle_no_servo_delay_model_acados_get_nlp_in(acados_ocp_capsule_);
-  nlp_out_ = beetle_no_servo_delay_model_acados_get_nlp_out(acados_ocp_capsule_);
-  nlp_solver_ = beetle_no_servo_delay_model_acados_get_nlp_solver(acados_ocp_capsule_);
-  nlp_opts_ = beetle_no_servo_delay_model_acados_get_nlp_opts(acados_ocp_capsule_);
+  nlp_config_ = tilt_qd_servo_mdl_acados_get_nlp_config(acados_ocp_capsule_);
+  nlp_dims_ = tilt_qd_servo_mdl_acados_get_nlp_dims(acados_ocp_capsule_);
+  nlp_in_ = tilt_qd_servo_mdl_acados_get_nlp_in(acados_ocp_capsule_);
+  nlp_out_ = tilt_qd_servo_mdl_acados_get_nlp_out(acados_ocp_capsule_);
+  nlp_solver_ = tilt_qd_servo_mdl_acados_get_nlp_solver(acados_ocp_capsule_);
+  nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
 
   /* Set rti_phase */
   int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
+
+  /* init weight matrix, W is a getCostWeightDim(0) * getCostWeightDim(0) double matrix */
+  nx_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "x");
+  nu_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "u");
+  int nw = nx_ + nu_;
+
+  W_ = (double*)malloc((nw * nw) * sizeof(double));
+  for (int i = 0; i < nw * nw; i++)
+    W_[i] = 0.0;
+  WN_ = (double*)malloc((nx_ * nx_) * sizeof(double));
+  for (int i = 0; i < nx_ * nx_; i++)
+    WN_[i] = 0.0;
 
   //  /* Set constraints */
   //  // Please note that the constraints have been set up inside the python interface. Only minimum adjustments are
@@ -72,28 +84,28 @@ void nmpc_over_act_no_servo_delay::MPCSolver::initialize(Constraints& constraint
   double p[NP] = { 1.0, 0.0, 0.0, 0.0 };
   for (int i = 0; i < NN; i++)
   {
-    beetle_no_servo_delay_model_acados_update_params(acados_ocp_capsule_, i, p, NP);
+    tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, i, p, NP);
   }
-  beetle_no_servo_delay_model_acados_update_params(acados_ocp_capsule_, NN, p, NP);
+  tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, NN, p, NP);
 
   /* Initialize output value */
   initPredXU(x_u_out_);
 }
 
-nmpc_over_act_no_servo_delay::MPCSolver::~MPCSolver()
+nmpc_over_act_full::MPCSolver::~MPCSolver()
 {
   // 1. free solver
-  int status = beetle_no_servo_delay_model_acados_free(acados_ocp_capsule_);
+  int status = tilt_qd_servo_mdl_acados_free(acados_ocp_capsule_);
   if (status)
-    ROS_WARN("beetle_no_servo_delay_model_acados_free() returned status %d. \n", status);
+    ROS_WARN("tilt_qd_servo_mdl_acados_free() returned status %d. \n", status);
 
   // 2. free solver capsule
-  status = beetle_no_servo_delay_model_acados_free_capsule(acados_ocp_capsule_);
+  status = tilt_qd_servo_mdl_acados_free_capsule(acados_ocp_capsule_);
   if (status)
-    ROS_WARN("beetle_no_servo_delay_model_acados_free_capsule() returned status %d. \n", status);
+    ROS_WARN("tilt_qd_servo_mdl_acados_free_capsule() returned status %d. \n", status);
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
+void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
 {
   const unsigned int x_stride = x_u.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u.u.layout.dim[1].stride;
@@ -113,14 +125,14 @@ void nmpc_over_act_no_servo_delay::MPCSolver::reset(const aerial_robot_msgs::Pre
   ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
 }
 
-int nmpc_over_act_no_servo_delay::MPCSolver::solve(const nav_msgs::Odometry& odom_now,
-                                                   const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
+int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
+                                         const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
   const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
   setReference(x_u_ref, x_stride, u_stride);
 
-  setFeedbackConstraints(odom_now);
+  setFeedbackConstraints(odom_now, joint_angles);
 
   double min_time = solveOCPOnce();
 
@@ -135,7 +147,7 @@ int nmpc_over_act_no_servo_delay::MPCSolver::solve(const nav_msgs::Odometry& odo
   return 0;
 }
 
-void nmpc_over_act_no_servo_delay::initPredXU(aerial_robot_msgs::PredXU& x_u)
+void nmpc_over_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
 {
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim.emplace_back();
@@ -147,6 +159,10 @@ void nmpc_over_act_no_servo_delay::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.x.layout.dim[1].stride = NX;
   x_u.x.layout.data_offset = 0;
   x_u.x.data.resize((NN + 1) * NX);
+  std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
+  // quaternion
+  for (int i = 6; i < (NN + 1) * NX; i += NX)
+    x_u.x.data[i] = 1.0;
 
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim.emplace_back();
@@ -158,10 +174,11 @@ void nmpc_over_act_no_servo_delay::initPredXU(aerial_robot_msgs::PredXU& x_u)
   x_u.u.layout.dim[1].stride = NU;
   x_u.u.layout.data_offset = 0;
   x_u.u.data.resize(NN * NU);
+  std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref,
-                                                           const unsigned int x_stride, const unsigned int u_stride)
+void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
+                                                 const unsigned int u_stride)
 {
   double yr[NX + NU];
   double qr[4];
@@ -175,7 +192,7 @@ void nmpc_over_act_no_servo_delay::MPCSolver::setReference(const aerial_robot_ms
 
     // quaternions
     std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
-    beetle_no_servo_delay_model_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
+    tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
   }
   // final x and p, no u
   double xr[NX];
@@ -183,11 +200,13 @@ void nmpc_over_act_no_servo_delay::MPCSolver::setReference(const aerial_robot_ms
   ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
 
   std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, qr);
-  beetle_no_servo_delay_model_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
+  tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now)
+void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
+                                                           const double joint_angles[4])
 {
+  // TODO: modify, to pass in variable array
   double bx0[NBX0];
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
@@ -202,20 +221,24 @@ void nmpc_over_act_no_servo_delay::MPCSolver::setFeedbackConstraints(const nav_m
   bx0[10] = odom_now.twist.twist.angular.x;
   bx0[11] = odom_now.twist.twist.angular.y;
   bx0[12] = odom_now.twist.twist.angular.z;
+  bx0[13] = joint_angles[0];
+  bx0[14] = joint_angles[1];
+  bx0[15] = joint_angles[2];
+  bx0[16] = joint_angles[3];
 
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", bx0);
   ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
 }
 
-double nmpc_over_act_no_servo_delay::MPCSolver::solveOCPOnce()
+double nmpc_over_act_full::MPCSolver::solveOCPOnce()
 {
   double min_time = 1e12;
   double elapsed_time;
 
-  int status = beetle_no_servo_delay_model_acados_solve(acados_ocp_capsule_);
+  int status = tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
   if (status != ACADOS_SUCCESS)
   {
-    std::cout << "beetle_no_servo_delay_model_acados_solve() returned status " << status << ".\n";
+    ROS_WARN("tilt_qd_servo_mdl_acados_solve() returned status %d.\n", status);
   }
 
   ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
@@ -224,7 +247,7 @@ double nmpc_over_act_no_servo_delay::MPCSolver::solveOCPOnce()
   return min_time;
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
+void nmpc_over_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
 {
   for (int i = 0; i < NN; i++)
   {
@@ -234,7 +257,7 @@ void nmpc_over_act_no_servo_delay::MPCSolver::getSolution(const unsigned int x_s
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x_u_out_.x.data.data() + x_stride * NN);
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::printSolution()
+void nmpc_over_act_full::MPCSolver::printSolution()
 {
   std::stringstream ss;
 
@@ -266,15 +289,42 @@ void nmpc_over_act_no_servo_delay::MPCSolver::printSolution()
   ROS_INFO_STREAM(ss.str());  // Logging the u_traj
 }
 
-void nmpc_over_act_no_servo_delay::MPCSolver::printStatus(const double min_time)
+void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
 {
   double kkt_norm_inf;
   int sqp_iter;
 
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
   ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
-  beetle_no_servo_delay_model_acados_print_stats(acados_ocp_capsule_);
+  tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
   ROS_DEBUG("\nSolver info:\n");
   ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
             kkt_norm_inf);
+}
+
+void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
+{
+  if (index < nx_ + nu_)
+    W_[index + index * (nx_ + nu_)] = (double)value;
+  else
+    ROS_ERROR("index should be less than nx_ + nu_");
+
+  if (is_set_WN)
+  {
+    if (index < nx_)
+      WN_[index + index * nx_] = (double)value;
+    else
+      ROS_ERROR("index should be less than nx_");
+  }
+}
+
+void nmpc_over_act_full::MPCSolver::setCostWeight(bool is_update_W, bool is_update_WN)
+{
+  if (is_update_W)
+  {
+    for (int i = 0; i < NN; i++)
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_);
+  }
+  if (is_update_WN)
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "W", WN_);
 }
