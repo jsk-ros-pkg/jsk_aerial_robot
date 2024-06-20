@@ -236,7 +236,7 @@ int main(void)
 #if IMU_MPU
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
 #elif IMU_ICM
-  imu_.init(&hspi1, &hi2c3, &nh_, SPI1_CS_GPIO_Port, SPI1_CS_Pin, LED0_GPIO_Port, LED0_Pin);
+  imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
 #endif
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
