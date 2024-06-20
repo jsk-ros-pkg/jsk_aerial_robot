@@ -131,8 +131,8 @@ class ObstacleWorld:
                     "<static>false</static>" + \
                     "<link name='link'>" + \
                     "<velocity_decay>" + \
-                    "<linear>0.01</linear>" + \
-                    "<angular>0.01</angular>" + \
+                    "<linear>0.0</linear>" + \
+                    "<angular>0.0</angular>" + \
                     "</velocity_decay>" + \
                     "<inertial><mass> {} </mass>".format(m) + \
                     "<inertia>" + \
