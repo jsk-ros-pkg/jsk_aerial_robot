@@ -28,9 +28,10 @@ namespace aerial_robot_model {
     nhp_.param("feasible_control_torque_diff_thre", feasible_control_torque_diff_thre_, 0.001);
   }
 
-  void NumericalJacobian::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
+  void NumericalJacobian::desireCoordinateCallback(const geometry_msgs::QuaternionConstPtr& msg)
   {
-    getRobotModel().setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+    KDL::Rotation rot = KDL::Rotation::Quaternion(msg->x, msg->y, msg->z, msg->w);
+    getRobotModel().setCogDesireOrientation(rot);
   }
 
   void NumericalJacobian::jointStateCallback(const sensor_msgs::JointStateConstPtr& state)

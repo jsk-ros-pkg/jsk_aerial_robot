@@ -25,10 +25,12 @@
 #include <spinal/Imu.h>
 #include <spinal/DesireCoord.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/Quaternion.h>
 
 /* sensors */
 #ifdef SIMULATION
 #include <tf/LinearMath/Matrix3x3.h>
+#include <tf/LinearMath/Quaternion.h>
 #else
 #include "sensors/imu/imu_mpu9250.h"
 #include "sensors/gps/gps_ublox.h"
@@ -251,7 +253,7 @@ private:
 #ifdef SIMULATION
   ros::Subscriber desire_coord_sub_;
 #else
-  ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> desire_coord_sub_;
+  ros::Subscriber<geometry_msgs::Quaternion, AttitudeEstimate> desire_coord_sub_;
 #endif
 
   EstimatorAlgorithm* estimator_;
@@ -295,12 +297,32 @@ private:
 
   uint32_t last_imu_pub_time_, last_attitude_pub_time_;
 
-  void desireCoordCallback(const spinal::DesireCoord& coord_msg)
+  void desireCoordCallback(const geometry_msgs::Quaternion& msg)
   {
-    estimator_->coordinateUpdate(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
+    ap::Quaternion quat = ap::Quaternion(msg.w, msg.x, msg.y, msg.z);
+    estimator_->setCoordinateFromQuaternion(quat);
+
+    ap::Matrix3f desire_coord_r = estimator_->getDesiredCoord();
+
+    ap::Vector3f colx = desire_coord_r.colx();
+    ap::Vector3f coly = desire_coord_r.coly();
+    ap::Vector3f colz = desire_coord_r.colz();
+
+    // estimator_->coordinateUpdate(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
 #ifdef SIMULATION
     /* bypass to tf::Matrix3x3 */
-    tf_desired_coord_.setRPY(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
+    // tf_desired_coord_.setRPY(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
+
+    tf_desired_coord_[0][0] = colx[0];
+    tf_desired_coord_[1][0] = colx[1];
+    tf_desired_coord_[2][0] = colx[2];
+    tf_desired_coord_[0][1] = coly[0];
+    tf_desired_coord_[1][1] = coly[1];
+    tf_desired_coord_[2][1] = coly[2];
+    tf_desired_coord_[0][2] = colz[0];
+    tf_desired_coord_[1][2] = colz[1];
+    tf_desired_coord_[2][2] = colz[2];
+
 #endif
   }
 
