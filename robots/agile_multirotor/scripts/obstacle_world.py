@@ -23,9 +23,12 @@ class ObstacleWorld:
 
         self.quadrotor_pos = None
         self.quadrotor_rot = None
+        self.obstacle_moving = False
         self.quadrotor_r = rospy.get_param('~quadrotor/radius', 0.3)
         self.odom_sub = rospy.Subscriber('uav/cog/odom', Odometry, self.odomCb)
         self.collision_pub = rospy.Publisher('collision_flag', Empty, queue_size = 1)
+        self.start_obstacle_sub = rospy.Subscriber("start_moving_obstacle", Empty, self.start_obstacle_callback,
+                                          queue_size=1, tcp_nodelay=True)
         self.moving_obstacle_pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size = 1)
 
         self.lock = threading.Lock()
@@ -67,6 +70,10 @@ class ObstacleWorld:
         # self.spawnWall("right_wall", 0.5, np.array([40,wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
         # self.spawnWall("left_wall", 0.5, np.array([40,-wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
         # self.spawnWall("back_wall", 0.5, np.array([-0.7,-0.4,2]) + np.array([shift_x,shift_y,0]), 0.01, 1.5, 4)
+    def start_obstacle_callback(self, data):
+        rospy.loginfo("Start moving obstacles!")
+        self.callback_counter:int = 0
+        self.obstacle_moving = True
 
     def odomCb(self, msg):
         self.lock.acquire()
@@ -86,7 +93,7 @@ class ObstacleWorld:
 
         # check the collision
         for n, conf in self.obs.items():
-            if all(x == 0.0 for x in conf['v']):
+            if all(x == 0.0 for x in conf['v']) or not self.obstacle_moving:
                 obs_pos = conf['p']
             else:
                 obs_pos = conf['p'] + conf['v']*time_passed
