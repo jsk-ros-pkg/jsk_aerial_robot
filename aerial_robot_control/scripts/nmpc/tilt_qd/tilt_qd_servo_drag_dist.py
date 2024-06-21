@@ -3,8 +3,8 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2023/11/27 9:43 PM
-Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
+Date: 2024/03/01 4:02 PM
+Description: consider disturbance. The output of the NMPC controller is the thrust and the servo angle
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -19,7 +19,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -44,15 +44,20 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
+c0 = physical_params["c0"]
+c1 = physical_params["c1"]
+c2 = physical_params["c2"]
+c3 = physical_params["c3"]
+c4 = physical_params["c4"]
 
-class NMPCTiltQdServo(NMPCBase):
+
+class NMPCTiltQdServoDragDist(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServo, self).__init__()
+        super(NMPCTiltQdServoDragDist, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        model_name = "tilt_qd_servo_mdl"
-        return model_name
+        return "tilt_qd_servo_drag_dist_mdl"
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -86,7 +91,7 @@ class NMPCTiltQdServo(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
+        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
         ft1 = ca.SX.sym("ft1")
@@ -100,6 +105,12 @@ class NMPCTiltQdServo(NMPCBase):
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
+
+        # disturbance
+        f_disturb_i = ca.SX.sym("f_disturb_i", 3)
+        tau_disturb_b = ca.SX.sym("tau_disturb_b", 3)
+
+        parameters = ca.vertcat(quaternion, f_disturb_i, tau_disturb_b)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -144,10 +155,15 @@ class NMPCTiltQdServo(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
-        ft_r1 = ca.vertcat(0, 0, ft1)
-        ft_r2 = ca.vertcat(0, 0, ft2)
-        ft_r3 = ca.vertcat(0, 0, ft3)
-        ft_r4 = ca.vertcat(0, 0, ft4)
+        fd1 = (c4 * a1**4 + c3 * a1**3 + c2 * a1**2 + c1 * a1 + c0) * ft1
+        fd2 = (c4 * a2**4 + c3 * a2**3 + c2 * a2**2 + c1 * a2 + c0) * ft2
+        fd3 = (c4 * a3**4 + c3 * a3**3 + c2 * a3**2 + c1 * a3 + c0) * ft3
+        fd4 = (c4 * a4**4 + c3 * a4**3 + c2 * a4**2 + c1 * a4 + c0) * ft4
+
+        ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
+        ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
+        ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
+        ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
         tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
         tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
@@ -174,17 +190,17 @@ class NMPCTiltQdServo(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_disturb_b)),
             (ac - a) / t_servo,
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
@@ -222,8 +238,6 @@ class NMPCTiltQdServo(NMPCBase):
                                    ocp_model.name)
         self._mkdir(folder_path)
         os.chdir(folder_path)
-        # acados_models_dir = "acados_models"
-        # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
 
         acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
         sys.path.insert(0, acados_source_path)
@@ -440,7 +454,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServo()
+    nmpc = NMPCTiltQdServoDragDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

@@ -43,7 +43,7 @@ p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 
-class NMPCController(object):
+class NMPCFixQdThrustOut(object):
     def __init__(self):
         opt_model = QdFullModel().model
 
@@ -54,7 +54,7 @@ class NMPCController(object):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "under_act_full")
+                                   opt_model.name)
         safe_mkdir_recursive(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
@@ -181,7 +181,7 @@ class NMPCController(object):
 
 class QdFullModel(object):
     def __init__(self):
-        model_name = "qd_full_model"
+        model_name = "fix_qd_thrust_out_mdl"
 
         # model states
         p = ca.SX.sym("p", 3)
@@ -338,7 +338,7 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    mpc_ctl = NMPCController()
+    mpc_ctl = NMPCFixQdThrustOut()
 
     print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
     print("T_samp: ", nmpc_params["T_samp"])

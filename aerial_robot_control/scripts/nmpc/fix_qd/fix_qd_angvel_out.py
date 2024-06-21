@@ -27,7 +27,7 @@ nmpc_params = param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
 
-class NMPCController(object):
+class NMPCFixQdAngvelOut(object):
     def __init__(self):
         opt_model = QdBodyRateModel().model
 
@@ -38,7 +38,7 @@ class NMPCController(object):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "under_act_body_rate")
+                                   opt_model.name)
         safe_mkdir_recursive(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
@@ -126,7 +126,7 @@ class NMPCController(object):
 
 class QdBodyRateModel(object):
     def __init__(self):
-        model_name = "qd_body_rate_model"
+        model_name = "fix_qd_angvel_out_mdl"
 
         # model states
         x = ca.SX.sym("x")
@@ -229,7 +229,7 @@ def safe_mkdir_recursive(directory, overwrite=False):
 
 if __name__ == "__main__":
     # read parameters from launch file
-    mpc_ctl = NMPCController()
+    mpc_ctl = NMPCFixQdAngvelOut()
 
     print("Successfully initialized acados ocp solver: ", mpc_ctl.solver)
     print("T_samp: ", nmpc_params["T_samp"])

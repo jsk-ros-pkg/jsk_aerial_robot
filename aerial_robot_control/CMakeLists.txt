@@ -60,6 +60,32 @@ add_library(control_utils
 )
 target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
+### acados code generation
+# Create a list to hold the target names
+set(ACADOS_PYTHON_TARGETS)
+
+# Create a list of the scripts
+set(ACADOS_PYTHON_SCRIPTS
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_angvel_out.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_thrust_out.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_dist.py
+)
+
+foreach(script ${ACADOS_PYTHON_SCRIPTS})
+  message("Running ${script}...")
+  get_filename_component(script_name ${script} NAME_WE)
+  add_custom_target(
+          ${script_name} ALL
+          COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CATKIN_DEVEL_PREFIX}/lib/python3/dist-packages:$ENV{PYTHONPATH} ${Python3_EXECUTABLE} ${script}
+          DEPENDS ${script} acados
+          COMMENT "Running ${script}..."
+  )
+  # Append the target name to the list
+  list(APPEND ACADOS_PYTHON_TARGETS ${script_name})
+endforeach()
+
 ### flight control plugin
 add_library(flight_control_pluginlib
   src/control/base/pose_linear_controller.cpp
@@ -67,10 +93,10 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
   src/control/under_actuated_tilted_lqi_controller.cpp
-  src/nmpc/under_act_body_rate/mpc_solver.cpp
-  src/nmpc/under_act_body_rate/nmpc_controller.cpp
-  src/nmpc/under_act_full/mpc_solver.cpp
-  src/nmpc/under_act_full/nmpc_controller.cpp
+  src/nmpc/fix_qd_angvel_out_mdl/nmpc_solver.cpp
+  src/nmpc/fix_qd_angvel_out_mdl/nmpc_controller.cpp
+  src/nmpc/fix_qd_thrust_out_mdl/nmpc_solver.cpp
+  src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_servo_mdl/nmpc_solver.cpp
@@ -85,8 +111,8 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_bi_2_ord/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_full/c_generated_code/libacados_ocp_solver_qd_full_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/fix_qd_angvel_out_mdl/c_generated_code/libacados_ocp_solver_fix_qd_angvel_out_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/fix_qd_thrust_out_mdl/c_generated_code/libacados_ocp_solver_fix_qd_thrust_out_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_no_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_no_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_dist_mdl.so
@@ -94,7 +120,7 @@ target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_full/c_generated_code/libacados_ocp_solver_tilt_bi_full_model.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_model.so
         )
-add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
+add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg  ${ACADOS_PYTHON_TARGETS})
 
 ### flight navigation
 add_library (flight_navigation src/flight_navigation.cpp)

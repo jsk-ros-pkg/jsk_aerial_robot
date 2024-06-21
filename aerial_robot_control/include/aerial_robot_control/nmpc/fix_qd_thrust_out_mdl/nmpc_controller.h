@@ -10,7 +10,7 @@
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/nmpc/under_act_full/mpc_solver.h"
+#include "nmpc_solver.h"
 // #include <aerial_robot_control/control/utils/pid.h>
 // #include <aerial_robot_control/PIDConfig.h>
 

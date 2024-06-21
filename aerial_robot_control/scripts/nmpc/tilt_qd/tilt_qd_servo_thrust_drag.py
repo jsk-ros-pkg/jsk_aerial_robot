@@ -5,6 +5,7 @@ Author: LI Jinjie
 File: nmpc_over_act_full.py
 Date: 2023/11/27 9:43 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
+The plus version also considers the time constant of the rotor.
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -13,13 +14,14 @@ import numpy as np
 import yaml
 import rospkg
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
+from tf_conversions import transformations as tf
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -44,14 +46,22 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
+t_rotor = 0.0942  # time constant of rotor
 
-class NMPCTiltQdServo(NMPCBase):
+c0 = physical_params["c0"]
+c1 = physical_params["c1"]
+c2 = physical_params["c2"]
+c3 = physical_params["c3"]
+c4 = physical_params["c4"]
+
+
+class NMPCTiltQdServoThrustDrag(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServo, self).__init__()
+        super(NMPCTiltQdServoThrustDrag, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        model_name = "tilt_qd_servo_mdl"
+        model_name = "tilt_qd_servo_thrust_drag_mdl"
         return model_name
 
     def _set_ts_ctrl(self) -> float:
@@ -79,7 +89,13 @@ class NMPCTiltQdServo(NMPCBase):
         a4 = ca.SX.sym("a4")
         a = ca.vertcat(a1, a2, a3, a4)
 
-        states = ca.vertcat(p, v, q, w, a)
+        ft1 = ca.SX.sym("ft1")
+        ft2 = ca.SX.sym("ft2")
+        ft3 = ca.SX.sym("ft3")
+        ft4 = ca.SX.sym("ft4")
+        ft = ca.vertcat(ft1, ft2, ft3, ft4)
+
+        states = ca.vertcat(p, v, q, w, a, ft)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -89,17 +105,17 @@ class NMPCTiltQdServo(NMPCBase):
         parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
-        ft1 = ca.SX.sym("ft1")
-        ft2 = ca.SX.sym("ft2")
-        ft3 = ca.SX.sym("ft3")
-        ft4 = ca.SX.sym("ft4")
-        ft = ca.vertcat(ft1, ft2, ft3, ft4)
+        ftc1 = ca.SX.sym("ftc1")
+        ftc2 = ca.SX.sym("ftc2")
+        ftc3 = ca.SX.sym("ftc3")
+        ftc4 = ca.SX.sym("ftc4")
+        ftc = ca.vertcat(ftc1, ftc2, ftc3, ftc4)
         a1c = ca.SX.sym("a1c")
         a2c = ca.SX.sym("a2c")
         a3c = ca.SX.sym("a3c")
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
-        controls = ca.vertcat(ft, ac)
+        controls = ca.vertcat(ftc, ac)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -144,6 +160,16 @@ class NMPCTiltQdServo(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
+        fd1 = (c4 * a1**4 + c3 * a1**3 + c2 * a1**2 + c1 * a1 + c0) * ft1
+        fd2 = (c4 * a2**4 + c3 * a2**3 + c2 * a2**2 + c1 * a2 + c0) * ft2
+        fd3 = (c4 * a3**4 + c3 * a3**3 + c2 * a3**2 + c1 * a3 + c0) * ft3
+        fd4 = (c4 * a4**4 + c3 * a4**3 + c2 * a4**2 + c1 * a4 + c0) * ft4
+
+        ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
+        ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
+        ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
+        ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
+
         ft_r1 = ca.vertcat(0, 0, ft1)
         ft_r2 = ca.vertcat(0, 0, ft2)
         ft_r3 = ca.vertcat(0, 0, ft3)
@@ -181,6 +207,7 @@ class NMPCTiltQdServo(NMPCBase):
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
             (ac - a) / t_servo,
+            (ftc - ft) / t_rotor,
         )
 
         # function
@@ -191,11 +218,11 @@ class NMPCTiltQdServo(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
-        control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
+        control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 17)
+        x_dot = ca.SX.sym("x_dot", 21)
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -260,16 +287,20 @@ class NMPCTiltQdServo(NMPCBase):
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
+                nmpc_params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
+                1,
+                1,
+                1,
+                1,
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
@@ -418,7 +449,7 @@ class XrUrConverter(XrUrConverterBase):
         super(XrUrConverter, self).__init__()
 
     def _set_nx_nu(self):
-        self.nx = 17
+        self.nx = 21
         self.nu = 8
 
     def _set_physical_params(self):
@@ -438,9 +469,60 @@ class XrUrConverter(XrUrConverterBase):
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
+    def pose_point_2_xr_ur(self, target_xyz, target_rpy):
+        roll = target_rpy.item(0)
+        pitch = target_rpy.item(1)
+        yaw = target_rpy.item(2)
+
+        q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
+
+        # convert [0,0,gravity] to body frame
+        q_inv = tf.quaternion_inverse(q)
+        rot = tf.quaternion_matrix(q_inv)
+        fg_i = np.array([0, 0, self.mass * self.gravity, 0])
+        fg_b = rot @ fg_i
+        target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
+
+        # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+        x = self.alloc_mat_pinv @ target_wrench
+
+        a1_ref = np.arctan2(x[0, 0], x[1, 0])
+        ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
+        a2_ref = np.arctan2(x[2, 0], x[3, 0])
+        ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
+        a3_ref = np.arctan2(x[4, 0], x[5, 0])
+        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
+        a4_ref = np.arctan2(x[6, 0], x[7, 0])
+        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
+
+        # get x and u, set reference
+        ocp_N = self.ocp_N
+
+        xr = np.zeros([ocp_N + 1, self.nx])
+        xr[:, 0] = target_xyz.item(0)  # x
+        xr[:, 1] = target_xyz.item(1)  # y
+        xr[:, 2] = target_xyz.item(2)  # z
+        xr[:, 6] = target_qwxyz.item(0)  # qx
+        xr[:, 7] = target_qwxyz.item(1)  # qx
+        xr[:, 8] = target_qwxyz.item(2)  # qy
+        xr[:, 9] = target_qwxyz.item(3)  # qz
+        xr[:, 13] = a1_ref
+        xr[:, 14] = a2_ref
+        xr[:, 15] = a3_ref
+        xr[:, 16] = a4_ref
+        xr[:, 17] = ft1_ref
+        xr[:, 18] = ft2_ref
+        xr[:, 19] = ft3_ref
+        xr[:, 20] = ft4_ref
+
+        ur = np.zeros([ocp_N, self.nu])
+
+        return xr, ur
+
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServo()
+    nmpc = NMPCTiltQdServoThrustDrag()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
