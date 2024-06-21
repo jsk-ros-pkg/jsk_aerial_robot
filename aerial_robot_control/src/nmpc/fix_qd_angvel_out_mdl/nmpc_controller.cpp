@@ -1,15 +1,17 @@
+// -*- mode: c++ -*-
 //
-// Created by li-jinjie on 23-11-25.
+// Created by lijinjie on 23/10/27.
 //
-#include "aerial_robot_control/nmpc/under_act_full/nmpc_controller.h"
+
+#include "aerial_robot_control/nmpc/fix_qd_angvel_out_mdl/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-nmpc_under_act_full::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
+nmpc_under_act_body_rate::NMPCController::NMPCController() : target_roll_(0), target_pitch_(0), candidate_yaw_term_(0)
 {
 }
 
-void nmpc_under_act_full::NMPCController::initialize(
+void nmpc_under_act_body_rate::NMPCController::initialize(
     ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
@@ -18,21 +20,23 @@ void nmpc_under_act_full::NMPCController::initialize(
 
   ros::NodeHandle control_nh(nh_, "controller");
 
-  // get params and initialize nmpc solver
-  Constraints constraints{};
-  constraints.thrust_max = robot_model_->getThrustUpperLimit();
-  constraints.thrust_min = robot_model_->getThrustLowerLimit();
-  getParam<double>(control_nh, "nmpc/v_max", constraints.v_max, 0.5);
-  getParam<double>(control_nh, "nmpc/v_min", constraints.v_min, -0.5);
-  getParam<double>(control_nh, "nmpc/w_max", constraints.w_max, 3.0);
-  getParam<double>(control_nh, "nmpc/w_min", constraints.w_min, -3.0);
-  mpc_solver_.initialize(constraints);
+  mass_ = robot_model_->getMass();
+  // TODO: wired. I think the original value should be -9.8 in ENU frame
+  gravity_const_ = robot_model_->getGravity()[2];
 
+  // get params and initialize nmpc solver
+  PhysicalParams physical_params{};
+  physical_params.mass = robot_model_->getMass();
+  physical_params.gravity = robot_model_->getGravity()[2];
+  physical_params.c_thrust_max = robot_model_->getThrustUpperLimit() * robot_model_->getRotorNum();
+  physical_params.c_thrust_min = robot_model_->getThrustLowerLimit() * robot_model_->getRotorNum();
+  getParam<double>(control_nh, "nmpc/v_max", physical_params.v_max, 0.5);
+  getParam<double>(control_nh, "nmpc/v_min", physical_params.v_min, -0.5);
+  getParam<double>(control_nh, "nmpc/w_max", physical_params.w_max, 3.0);
+  getParam<double>(control_nh, "nmpc/w_min", physical_params.w_min, -3.0);
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
-
-  mass_ = robot_model_->getMass();
-  gravity_const_ = robot_model_->getGravity()[2];
+  mpc_solver_.initialize(physical_params);
 
   getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);
   getParam<double>(control_nh, "nmpc/yaw_d_gain", yaw_d_gain, 1.0);
@@ -78,15 +82,9 @@ void nmpc_under_act_full::NMPCController::initialize(
            set_control_mode_srv.request.is_body_rate);
 
   ROS_INFO("MPC Controller initialized!");
-
-  /* print physical parameters if needed */
-  bool is_print_physical_params;
-  getParam(control_nh, "nmpc/is_print_physical_params", is_print_physical_params, false);
-  if (is_print_physical_params)
-    printPhysicalParams();
 }
 
-bool nmpc_under_act_full::NMPCController::update()
+bool nmpc_under_act_body_rate::NMPCController::update()
 {
   if (!ControlBase::update())
     return false;
@@ -97,7 +95,7 @@ bool nmpc_under_act_full::NMPCController::update()
   return true;
 }
 
-void nmpc_under_act_full::NMPCController::reset()
+void nmpc_under_act_body_rate::NMPCController::reset()
 {
   ControlBase::reset();
 
@@ -105,17 +103,14 @@ void nmpc_under_act_full::NMPCController::reset()
   sendRotationalInertiaComp();  // tmp for inertia
 
   /* reset controller using odom */
-  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
-  tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+  tf::Vector3 pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 vel_ = estimator_->getVel(Frame::COG, estimate_mode_);
+  tf::Vector3 rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
   tf::Quaternion q;
-  q.setRPY(rpy.x(), rpy.y(), rpy.z());
+  q.setRPY(rpy_.x(), rpy_.y(), rpy_.z());
 
-  double x[NX] = { pos.x(), pos.y(), pos.z(), vel.x(),   vel.y(),   vel.z(),  q.w(),
-                   q.x(),   q.y(),   q.z(),   omega.x(), omega.y(), omega.z() };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  double x[NX] = { pos_.x(), pos_.y(), pos_.z(), vel_.x(), vel_.y(), vel_.z(), q.w(), q.x(), q.y(), q.z() };
+  double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
   initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
   {
@@ -130,7 +125,7 @@ void nmpc_under_act_full::NMPCController::reset()
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 }
 
-nav_msgs::Odometry nmpc_under_act_full::NMPCController::getOdom()
+nav_msgs::Odometry nmpc_under_act_body_rate::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -157,7 +152,7 @@ nav_msgs::Odometry nmpc_under_act_full::NMPCController::getOdom()
   return odom;
 }
 
-void nmpc_under_act_full::NMPCController::controlCore()
+void nmpc_under_act_body_rate::NMPCController::controlCore()
 {
   /* get odom information */
   nav_msgs::Odometry odom_now = getOdom();
@@ -179,11 +174,8 @@ void nmpc_under_act_full::NMPCController::controlCore()
 
   /* set target */
   tf::Vector3 target_pos_ = navigator_->getTargetPos();
-  double x[NX] = {
-    target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-  };
-  double each_thrust_hovering = mass_ * gravity_const_ / 4;
-  double u[NU] = { each_thrust_hovering, each_thrust_hovering, each_thrust_hovering, each_thrust_hovering };
+  double x[NX] = { target_pos_.x(), target_pos_.y(), target_pos_.z(), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
+  double u[NU] = { 0.0, 0.0, 0.0, gravity_const_ };
 
   // Aim: gently add the target point to the end of the reference trajectory
   // - x: NN + 1, u: NN
@@ -206,28 +198,48 @@ void nmpc_under_act_full::NMPCController::controlCore()
   mpc_solver_.solve(odom_, x_u_ref_);
 
   /* get result */
+  // convert quaternion to rpy
+  tf::Quaternion q0, q1;
+  q0.setW(mpc_solver_.x_u_out_.x.data.at(6));
+  q0.setX(mpc_solver_.x_u_out_.x.data.at(7));
+  q0.setY(mpc_solver_.x_u_out_.x.data.at(8));
+  q0.setZ(mpc_solver_.x_u_out_.x.data.at(9));
+  q1.setW(mpc_solver_.x_u_out_.x.data.at(6 + NX));
+  q1.setX(mpc_solver_.x_u_out_.x.data.at(7 + NX));
+  q1.setY(mpc_solver_.x_u_out_.x.data.at(8 + NX));
+  q1.setZ(mpc_solver_.x_u_out_.x.data.at(9 + NX));
+
+  double rpy0[3], rpy1[3];
+  tf::Matrix3x3(q0).getRPY(rpy0[0], rpy0[1], rpy0[2]);
+  tf::Matrix3x3(q1).getRPY(rpy1[0], rpy1[1], rpy1[2]);
+
+  // - roll, pitch angles
+  target_roll_ = (t_nmpc_samp_ * rpy0[0] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[0]) / t_nmpc_integ_;
+  target_pitch_ = (t_nmpc_samp_ * rpy0[1] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[1]) / t_nmpc_integ_;
+
+  flight_cmd_.angles[0] = static_cast<float>(target_roll_);
+  flight_cmd_.angles[1] = static_cast<float>(target_pitch_);
+
+  // - yaw angle
+  double target_yaw, error_yaw, yaw_p_term, error_yaw_rate, yaw_d_term;
+  target_yaw = (t_nmpc_samp_ * rpy0[2] + (t_nmpc_integ_ - t_nmpc_samp_) * rpy1[2]) / t_nmpc_integ_;
+  error_yaw = angles::shortest_angular_distance(target_yaw, rpy0[2]);
+  yaw_p_term = yaw_p_gain * error_yaw;
+  candidate_yaw_term_ = -yaw_p_term;
+
+  flight_cmd_.angles[2] = static_cast<float>(candidate_yaw_term_);
+
   // - body rates
-  double target_roll_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(10) +
-                             (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(10 + NX)) /
-                            t_nmpc_integ_;
-  double target_pitch_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(11) +
-                              (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(11 + NX)) /
-                             t_nmpc_integ_;
-  double target_yaw_rate = (t_nmpc_samp_ * mpc_solver_.x_u_out_.x.data.at(12) +
-                            (t_nmpc_integ_ - t_nmpc_samp_) * mpc_solver_.x_u_out_.x.data.at(12 + NX)) /
-                           t_nmpc_integ_;
-  flight_cmd_.body_rates[0] = static_cast<float>(target_roll_rate);
-  flight_cmd_.body_rates[1] = static_cast<float>(target_pitch_rate);
-  flight_cmd_.body_rates[2] = static_cast<float>(target_yaw_rate);
+  flight_cmd_.body_rates[0] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(0));
+  flight_cmd_.body_rates[1] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(1));
+  flight_cmd_.body_rates[2] = static_cast<float>(mpc_solver_.x_u_out_.u.data.at(2));
 
   // - thrust
-  double ft1 = mpc_solver_.x_u_out_.u.data.at(0);
-  double ft2 = mpc_solver_.x_u_out_.u.data.at(1);
-  double ft3 = mpc_solver_.x_u_out_.u.data.at(2);
-  double ft4 = mpc_solver_.x_u_out_.u.data.at(3);
+  double acc_body_z = mpc_solver_.x_u_out_.u.data.at(3);
 
-  Eigen::VectorXd target_thrusts(4);
-  target_thrusts << ft1, ft2, ft3, ft4;
+  Eigen::VectorXd static_thrust = robot_model_->getStaticThrust();
+  Eigen::VectorXd g = robot_model_->getGravity();
+  Eigen::VectorXd target_thrusts = acc_body_z * static_thrust / g.norm();
 
   for (int i = 0; i < motor_num_; i++)
   {
@@ -235,7 +247,7 @@ void nmpc_under_act_full::NMPCController::controlCore()
   }
 }
 
-void nmpc_under_act_full::NMPCController::sendCmd()
+void nmpc_under_act_body_rate::NMPCController::sendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
 }
@@ -244,7 +256,7 @@ void nmpc_under_act_full::NMPCController::sendCmd()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc_under_act_full::NMPCController::callbackViz(const ros::TimerEvent& event)
+void nmpc_under_act_body_rate::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -281,7 +293,7 @@ void nmpc_under_act_full::NMPCController::callbackViz(const ros::TimerEvent& eve
   ref_poses.header.stamp = ros::Time::now();
   pub_viz_ref_.publish(ref_poses);
 }
-void nmpc_under_act_full::NMPCController::sendRPYGain()
+void nmpc_under_act_body_rate::NMPCController::sendRPYGain()
 {
   spinal::RollPitchYawTerms rpy_gain_msg;
   rpy_gain_msg.motors.resize(motor_num_);
@@ -346,7 +358,7 @@ void nmpc_under_act_full::NMPCController::sendRPYGain()
   pub_rpy_gain_.publish(rpy_gain_msg);
 }
 
-void nmpc_under_act_full::NMPCController::sendRotationalInertiaComp()
+void nmpc_under_act_body_rate::NMPCController::sendRotationalInertiaComp()
 {
   int lqi_mode_ = 4;
 
@@ -378,29 +390,8 @@ void nmpc_under_act_full::NMPCController::sendRotationalInertiaComp()
 
   pub_p_matrix_pseudo_inverse_inertia_.publish(p_pseudo_inverse_with_inertia_msg);
 }
-void nmpc_under_act_full::NMPCController::printPhysicalParams()
-{
-  cout << "mass: " << robot_model_->getMass() << endl;
-  cout << "gravity: " << robot_model_->getGravity() << endl;
-  cout << "inertia: " << robot_model_->getInertia<Eigen::Matrix3d>() << endl;
-  cout << "rotor num: " << robot_model_->getRotorNum() << endl;
-  for (const auto& dir : robot_model_->getRotorDirection())
-  {
-    std::cout << "Key: " << dir.first << ", Value: " << dir.second << std::endl;
-  }
-  for (const auto& vec : robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>())
-  {
-    std::cout << "rotor origin from cog: " << vec << std::endl;
-  }
-  cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
-  cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
-  robot_model_->getThrustWrenchUnits();
-  for (const auto& vec : robot_model_->getThrustWrenchUnits())
-  {
-    std::cout << "thrust wrench units: " << vec << std::endl;
-  }
-}
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_under_act_full::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_under_act_body_rate::NMPCController,
+                       aerial_robot_control::ControlBase);

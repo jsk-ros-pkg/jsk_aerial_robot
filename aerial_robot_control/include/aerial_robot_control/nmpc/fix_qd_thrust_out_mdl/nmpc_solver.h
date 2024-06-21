@@ -18,38 +18,38 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/nmpc/under_act_full/c_generated_code/acados_solver_qd_full_model.h"
+#include "aerial_robot_control/nmpc/fix_qd_thrust_out_mdl/c_generated_code/acados_solver_fix_qd_thrust_out_mdl.h"
 
-#define NN QD_FULL_MODEL_N
-#define NX QD_FULL_MODEL_NX
-#define NZ QD_FULL_MODEL_NZ
-#define NU QD_FULL_MODEL_NU
-#define NP QD_FULL_MODEL_NP
-#define NBX QD_FULL_MODEL_NBX
-#define NBX0 QD_FULL_MODEL_NBX0
-#define NBU QD_FULL_MODEL_NBU
-#define NSBX QD_FULL_MODEL_NSBX
-#define NSBU QD_FULL_MODEL_NSBU
-#define NSH QD_FULL_MODEL_NSH
-#define NSG QD_FULL_MODEL_NSG
-#define NSPHI QD_FULL_MODEL_NSPHI
-#define NSHN QD_FULL_MODEL_NSHN
-#define NSGN QD_FULL_MODEL_NSGN
-#define NSPHIN QD_FULL_MODEL_NSPHIN
-#define NSBXN QD_FULL_MODEL_NSBXN
-#define NS QD_FULL_MODEL_NS
-#define NSN QD_FULL_MODEL_NSN
-#define NG QD_FULL_MODEL_NG
-#define NBXN QD_FULL_MODEL_NBXN
-#define NGN QD_FULL_MODEL_NGN
-#define NY0 QD_FULL_MODEL_NY0
-#define NY QD_FULL_MODEL_NY
-#define NYN QD_FULL_MODEL_NYN
-#define NH QD_FULL_MODEL_NH
-#define NPHI QD_FULL_MODEL_NPHI
-#define NHN QD_FULL_MODEL_NHN
-#define NPHIN QD_FULL_MODEL_NPHIN
-#define NR QD_FULL_MODEL_NR
+#define NN FIX_QD_THRUST_OUT_MDL_N
+#define NX FIX_QD_THRUST_OUT_MDL_NX
+#define NZ FIX_QD_THRUST_OUT_MDL_NZ
+#define NU FIX_QD_THRUST_OUT_MDL_NU
+#define NP FIX_QD_THRUST_OUT_MDL_NP
+#define NBX FIX_QD_THRUST_OUT_MDL_NBX
+#define NBX0 FIX_QD_THRUST_OUT_MDL_NBX0
+#define NBU FIX_QD_THRUST_OUT_MDL_NBU
+#define NSBX FIX_QD_THRUST_OUT_MDL_NSBX
+#define NSBU FIX_QD_THRUST_OUT_MDL_NSBU
+#define NSH FIX_QD_THRUST_OUT_MDL_NSH
+#define NSG FIX_QD_THRUST_OUT_MDL_NSG
+#define NSPHI FIX_QD_THRUST_OUT_MDL_NSPHI
+#define NSHN FIX_QD_THRUST_OUT_MDL_NSHN
+#define NSGN FIX_QD_THRUST_OUT_MDL_NSGN
+#define NSPHIN FIX_QD_THRUST_OUT_MDL_NSPHIN
+#define NSBXN FIX_QD_THRUST_OUT_MDL_NSBXN
+#define NS FIX_QD_THRUST_OUT_MDL_NS
+#define NSN FIX_QD_THRUST_OUT_MDL_NSN
+#define NG FIX_QD_THRUST_OUT_MDL_NG
+#define NBXN FIX_QD_THRUST_OUT_MDL_NBXN
+#define NGN FIX_QD_THRUST_OUT_MDL_NGN
+#define NY0 FIX_QD_THRUST_OUT_MDL_NY0
+#define NY FIX_QD_THRUST_OUT_MDL_NY
+#define NYN FIX_QD_THRUST_OUT_MDL_NYN
+#define NH FIX_QD_THRUST_OUT_MDL_NH
+#define NPHI FIX_QD_THRUST_OUT_MDL_NPHI
+#define NHN FIX_QD_THRUST_OUT_MDL_NHN
+#define NPHIN FIX_QD_THRUST_OUT_MDL_NPHIN
+#define NR FIX_QD_THRUST_OUT_MDL_NR
 
 namespace aerial_robot_control
 {
@@ -80,7 +80,7 @@ public:
 
 private:
   double* new_time_steps;
-  qd_full_model_solver_capsule* acados_ocp_capsule_;
+  fix_qd_thrust_out_mdl_solver_capsule* acados_ocp_capsule_;
   ocp_nlp_config* nlp_config_;
   ocp_nlp_dims* nlp_dims_;
   ocp_nlp_in* nlp_in_;

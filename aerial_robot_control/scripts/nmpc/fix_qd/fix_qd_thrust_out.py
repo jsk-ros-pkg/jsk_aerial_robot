@@ -54,7 +54,7 @@ class NMPCFixQdThrustOut(object):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   "under_act_full")
+                                   opt_model.name)
         safe_mkdir_recursive(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"
@@ -181,7 +181,7 @@ class NMPCFixQdThrustOut(object):
 
 class QdFullModel(object):
     def __init__(self):
-        model_name = "qd_full_model"
+        model_name = "fix_qd_thrust_out_mdl"
 
         # model states
         p = ca.SX.sym("p", 3)

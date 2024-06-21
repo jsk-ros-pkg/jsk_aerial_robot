@@ -66,7 +66,7 @@ set(ACADOS_PYTHON_TARGETS)
 
 # Create a list of the scripts
 set(ACADOS_PYTHON_SCRIPTS
-        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_body_rate_out.py
+        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_angvel_out.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_thrust_out.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
@@ -93,10 +93,10 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
   src/control/under_actuated_tilted_lqi_controller.cpp
-  src/nmpc/under_act_body_rate/mpc_solver.cpp
-  src/nmpc/under_act_body_rate/nmpc_controller.cpp
-  src/nmpc/under_act_full/mpc_solver.cpp
-  src/nmpc/under_act_full/nmpc_controller.cpp
+  src/nmpc/fix_qd_angvel_out_mdl/nmpc_solver.cpp
+  src/nmpc/fix_qd_angvel_out_mdl/nmpc_controller.cpp
+  src/nmpc/fix_qd_thrust_out_mdl/nmpc_solver.cpp
+  src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_servo_mdl/nmpc_solver.cpp
@@ -105,8 +105,8 @@ add_library(flight_control_pluginlib
   src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_body_rate/c_generated_code/libacados_ocp_solver_qd_body_rate_model.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/under_act_full/c_generated_code/libacados_ocp_solver_qd_full_model.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/fix_qd_angvel_out_mdl/c_generated_code/libacados_ocp_solver_fix_qd_angvel_out_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/fix_qd_thrust_out_mdl/c_generated_code/libacados_ocp_solver_fix_qd_thrust_out_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_no_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_no_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_dist_mdl.so
