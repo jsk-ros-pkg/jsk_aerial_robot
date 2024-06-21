@@ -160,8 +160,8 @@ bool nmpc_over_act_full_i_term::NMPCController::update()
     initAllocMat();
   }
 
-  this->SendCmd();
   this->controlCore();
+  this->SendCmd();
 
   return true;
 }
@@ -291,10 +291,10 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
 
   /* get result */
   // - thrust
-  double ft1 = getCommand(0, t_nmpc_samp_);
-  double ft2 = getCommand(1, t_nmpc_samp_);
-  double ft3 = getCommand(2, t_nmpc_samp_);
-  double ft4 = getCommand(3, t_nmpc_samp_);
+  double ft1 = getCommand(0, 0);
+  double ft2 = getCommand(1, 0);
+  double ft3 = getCommand(2, 0);
+  double ft4 = getCommand(3, 0);
 
   Eigen::VectorXd target_thrusts(4);
   target_thrusts << ft1, ft2, ft3, ft4;
@@ -305,10 +305,10 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   }
 
   // - servo angle
-  double a1c = getCommand(4, t_nmpc_samp_);
-  double a2c = getCommand(5, t_nmpc_samp_);
-  double a3c = getCommand(6, t_nmpc_samp_);
-  double a4c = getCommand(7, t_nmpc_samp_);
+  double a1c = getCommand(4, 0);
+  double a2c = getCommand(5, 0);
+  double a3c = getCommand(6, 0);
+  double a4c = getCommand(7, 0);
 
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
   gimbal_ctrl_cmd_.name.clear();
@@ -639,10 +639,11 @@ void nmpc_over_act_full_i_term::NMPCController::calcXrUrRef(const tf::Vector3 ta
 
 double nmpc_over_act_full_i_term::NMPCController::getCommand(int idx_u, double t_pred)
 {
-  double u_predicted =
-      mpc_solver_.x_u_out_.u.data.at(idx_u) +
-      t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + NU) - mpc_solver_.x_u_out_.u.data.at(idx_u));
-  return u_predicted;
+  if (t_pred == 0)
+    return mpc_solver_.x_u_out_.u.data.at(idx_u);
+
+  return mpc_solver_.x_u_out_.u.data.at(idx_u) +
+         t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + NU) - mpc_solver_.x_u_out_.u.data.at(idx_u));
 }
 
 void nmpc_over_act_full_i_term::NMPCController::printPhysicalParams()
