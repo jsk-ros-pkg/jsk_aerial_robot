@@ -249,7 +249,7 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
     Eigen::VectorXd target_wrench(6);
     target_wrench << fg_b(0), fg_b(1), fg_b(2), 0, 0, 0;
 
-    calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
+    calcXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
   }
   else
   {
@@ -280,6 +280,57 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
   odom_ = odom_now;
 
+  /* disturbance rejection */
+  calcDisturbWrench();
+
+  double f_disturb_i[3] = { dist_force_w_.x, dist_force_w_.y, dist_force_w_.z };
+  double tau_disturb_b[3] = { dist_torque_cog_.x, dist_torque_cog_.y, dist_torque_cog_.z };
+
+  /* solve */
+  mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
+
+  /* get result */
+  // - thrust
+  double ft1 = getCommand(0, t_nmpc_samp_);
+  double ft2 = getCommand(1, t_nmpc_samp_);
+  double ft3 = getCommand(2, t_nmpc_samp_);
+  double ft4 = getCommand(3, t_nmpc_samp_);
+
+  Eigen::VectorXd target_thrusts(4);
+  target_thrusts << ft1, ft2, ft3, ft4;
+
+  for (int i = 0; i < motor_num_; i++)
+  {
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
+  }
+
+  // - servo angle
+  double a1c = getCommand(4, t_nmpc_samp_);
+  double a2c = getCommand(5, t_nmpc_samp_);
+  double a3c = getCommand(6, t_nmpc_samp_);
+  double a4c = getCommand(7, t_nmpc_samp_);
+
+  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
+  gimbal_ctrl_cmd_.name.clear();
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal1");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal2");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal3");
+  gimbal_ctrl_cmd_.name.emplace_back("gimbal4");
+  gimbal_ctrl_cmd_.position.clear();
+  gimbal_ctrl_cmd_.position.push_back(a1c);
+  gimbal_ctrl_cmd_.position.push_back(a2c);
+  gimbal_ctrl_cmd_.position.push_back(a3c);
+  gimbal_ctrl_cmd_.position.push_back(a4c);
+}
+
+void nmpc_over_act_full_i_term::NMPCController::SendCmd()
+{
+  pub_flight_cmd_.publish(flight_cmd_);
+  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
+}
+
+void nmpc_over_act_full_i_term::NMPCController::calcDisturbWrench()
+{
   /* update I term */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   double qw = odom_.pose.pose.orientation.w;
@@ -335,51 +386,6 @@ void nmpc_over_act_full_i_term::NMPCController::controlCore()
   dist_torque_cog_.x = mx_cog_i_term;
   dist_torque_cog_.y = my_cog_i_term;
   dist_torque_cog_.z = mz_cog_i_term;
-
-  double f_disturb_i[3] = { fx_w_i_term, fy_w_i_term, fz_w_i_term };
-  double tau_disturb_b[3] = { mx_cog_i_term, my_cog_i_term, mz_cog_i_term };
-
-  /* solve */
-  mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, is_debug_);
-
-  /* get result */
-  // - thrust
-  double ft1 = getCommand(0, t_nmpc_samp_);
-  double ft2 = getCommand(1, t_nmpc_samp_);
-  double ft3 = getCommand(2, t_nmpc_samp_);
-  double ft4 = getCommand(3, t_nmpc_samp_);
-
-  Eigen::VectorXd target_thrusts(4);
-  target_thrusts << ft1, ft2, ft3, ft4;
-
-  for (int i = 0; i < motor_num_; i++)
-  {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
-  }
-
-  // - servo angle
-  double a1c = getCommand(4, t_nmpc_samp_);
-  double a2c = getCommand(5, t_nmpc_samp_);
-  double a3c = getCommand(6, t_nmpc_samp_);
-  double a4c = getCommand(7, t_nmpc_samp_);
-
-  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
-  gimbal_ctrl_cmd_.name.clear();
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal1");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal2");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal3");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal4");
-  gimbal_ctrl_cmd_.position.clear();
-  gimbal_ctrl_cmd_.position.push_back(a1c);
-  gimbal_ctrl_cmd_.position.push_back(a2c);
-  gimbal_ctrl_cmd_.position.push_back(a3c);
-  gimbal_ctrl_cmd_.position.push_back(a4c);
-}
-
-void nmpc_over_act_full_i_term::NMPCController::SendCmd()
-{
-  pub_flight_cmd_.publish(flight_cmd_);
-  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 // TODO: should be moved to Estimator
@@ -589,7 +595,7 @@ void nmpc_over_act_full_i_term::NMPCController::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc_over_act_full_i_term::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+void nmpc_over_act_full_i_term::NMPCController::calcXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
                                                            const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
                                                            const Eigen::VectorXd& target_wrench)
 {

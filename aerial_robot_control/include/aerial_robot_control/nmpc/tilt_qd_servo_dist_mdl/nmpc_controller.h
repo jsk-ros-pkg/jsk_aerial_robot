@@ -87,7 +87,7 @@ protected:
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
-private:
+protected:
   double mass_;
   double gravity_const_;
   double t_nmpc_samp_;
@@ -115,13 +115,15 @@ private:
   MPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
+  void calcDisturbWrench();
+
   void callbackViz(const ros::TimerEvent& event);
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
 
   void initAllocMat();
-  void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
+  void calcXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
                   const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
 
   double getCommand(int idx_u, double t_pred = 0.0);
