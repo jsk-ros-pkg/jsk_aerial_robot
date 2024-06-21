@@ -235,6 +235,7 @@ private:
   /* raw adc data */
   uint8_t single_adc_;
   uint8_t multi_adc_[6];
+  float raw_temp_adc_;
 
   /* Initialization */
   void gyroInit(void) override;
@@ -247,13 +248,14 @@ private:
   /* Raw 16 bits adc data reading function */
   void gyroRead(Vector3f* data);	
   void accelRead(Vector3f* data);
-  bool magRead(Vector3f* data); 
+  bool magRead(Vector3f* data);
+  void tempRead(float* data);
 
   /* Conversion from raw adc data to proper units */
   void gyroReadRad(Vector3f* data);
   void accelReadG(Vector3f* data);
   bool magReadUT(Vector3f* data);
-
+  void tempReadC(float* data);
 
   /* Sub functions */
   bool getIcm20948WhoAmI();

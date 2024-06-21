@@ -104,6 +104,7 @@ void ICM20948::updateRawData()
   gyroReadRad(&raw_gyro_adc_);
   accelReadG(&raw_acc_adc_);
   magReadUT(&raw_mag_adc_);
+  tempReadC(&raw_temp_adc_);
 }
 
 void ICM20948::gyroRead(Vector3f* data)
@@ -155,6 +156,15 @@ bool ICM20948::magRead(Vector3f* data)
   return true;
 }
 
+void ICM20948::tempRead(float* data)
+{
+  readSingleIcm20948(ub_0, B0_TEMP_OUT_H);
+  uint8_t temp_high = single_adc_;
+  readSingleIcm20948(ub_0, B0_TEMP_OUT_L);
+  uint8_t temp_low = single_adc_;
+  *data = (float)(temp_high << 8 | temp_low);
+}
+
 void ICM20948::gyroReadRad(Vector3f* data)
 {
   gyroRead(data);
@@ -167,10 +177,11 @@ void ICM20948::gyroReadRad(Vector3f* data)
 void ICM20948::accelReadG(Vector3f* data)
 {
   accelRead(data);
-
-  data->x = data->x / accel_scale_factor_ * GRAVITY_MSS;
-  data->y = data->y / accel_scale_factor_ * GRAVITY_MSS;
-  data->z = data->z / accel_scale_factor_ * GRAVITY_MSS;
+  /*Temperature correction*/
+  float corrected_scale_factor = accel_scale_factor_+ accel_scale_factor_ * (0.026f * raw_temp_adc_ )/100.0f;
+  data->x = data->x / corrected_scale_factor * GRAVITY_MSS;
+  data->y = data->y / corrected_scale_factor * GRAVITY_MSS;
+  data->z = data->z / corrected_scale_factor * GRAVITY_MSS;
 }
 
 bool ICM20948::magReadUT(Vector3f* data)
@@ -186,6 +197,11 @@ bool ICM20948::magReadUT(Vector3f* data)
   return true;
 }	
 
+void ICM20948::tempReadC(float* data)
+{
+  tempRead(data);
+  *data = *data/333.87f + 21.0f;
+}
 
 /* Sub Functions */
 bool ICM20948::getIcm20948WhoAmI()
