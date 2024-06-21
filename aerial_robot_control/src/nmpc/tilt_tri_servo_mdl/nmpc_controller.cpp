@@ -2,7 +2,7 @@
 // Created by lijinjie on 24/06/03.
 //
 
-#include "aerial_robot_control/nmpc/tilt_tri_full/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_tri_servo_mdl/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 

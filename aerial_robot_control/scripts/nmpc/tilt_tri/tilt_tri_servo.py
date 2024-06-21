@@ -43,13 +43,13 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 
-class NMPCTiltTriFull(NMPCBase):
+class NMPCTiltTriServo(NMPCBase):
     def __init__(self):
-        super(NMPCTiltTriFull, self).__init__()
+        super(NMPCTiltTriServo, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        model_name = "tilt_tri_full_model"
+        model_name = "tilt_tri_servo_mdl"
         return model_name
 
     def _set_ts_ctrl(self) -> float:
@@ -203,7 +203,7 @@ class NMPCTiltTriFull(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_tri_full"
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", ocp_model.name
         )
         self._mkdir(folder_path)
         os.chdir(folder_path)
@@ -412,7 +412,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltTriFull()
+    nmpc = NMPCTiltTriServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

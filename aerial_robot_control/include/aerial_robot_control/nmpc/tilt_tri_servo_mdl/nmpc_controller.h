@@ -10,7 +10,7 @@
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/nmpc/tilt_tri_full/nmpc_solver.h"
+#include "nmpc_solver.h"
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>

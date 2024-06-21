@@ -54,7 +54,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         self.mus = mus
 
     def _set_name(self) -> str:
-        model_name = "tilt_bi_2_ord_model"
+        model_name = "tilt_bi_2_ord_servo_mdl"
         return model_name
 
     def _set_ts_ctrl(self) -> float:
@@ -200,7 +200,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         # get file path for acados
         rospack = rospkg.RosPack()
         folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", "tilt_bi_2_ord"
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", ocp_model.name
         )
         self._mkdir(folder_path)
         os.chdir(folder_path)

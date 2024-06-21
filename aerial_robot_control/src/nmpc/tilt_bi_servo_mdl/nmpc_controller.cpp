@@ -1,12 +1,12 @@
 //
-// Created by lijinjie on 24/06/09.
+// Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/tilt_bi_2_ord/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_bi_servo_mdl/nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc_tilt_bi_2_ord::NMPCController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+void nmpc_tilt_bi_full::NMPCController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                                                    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
@@ -31,7 +31,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::initialize(ros::NodeHandle nh, ros::Nod
   getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
 
   /* control parameters with dynamic reconfigure */
-  double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Qb, Rt, Rac_d;
+  double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Rt, Rac_d;
   getParam<double>(nmpc_nh, "Qp_xy", Qp_xy, 300);
   getParam<double>(nmpc_nh, "Qp_z", Qp_z, 400);
   getParam<double>(nmpc_nh, "Qv_xy", Qv_xy, 10);
@@ -41,7 +41,6 @@ void nmpc_tilt_bi_2_ord::NMPCController::initialize(ros::NodeHandle nh, ros::Nod
   getParam<double>(nmpc_nh, "Qw_xy", Qw_xy, 5);
   getParam<double>(nmpc_nh, "Qw_z", Qw_z, 5);
   getParam<double>(nmpc_nh, "Qa", Qa, 1);
-  getParam<double>(nmpc_nh, "Qb", Qb, 0);
   getParam<double>(nmpc_nh, "Rt", Rt, 1);
   getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
 
@@ -62,10 +61,8 @@ void nmpc_tilt_bi_2_ord::NMPCController::initialize(ros::NodeHandle nh, ros::Nod
   for (int i = 13; i < 15; ++i)
     mpc_solver_.setCostWDiagElement(i, Qa);
   for (int i = 15; i < 17; ++i)
-    mpc_solver_.setCostWDiagElement(i, Qb);
-  for (int i = 17; i < 19; ++i)
     mpc_solver_.setCostWDiagElement(i, Rt, false);
-  for (int i = 19; i < 21; ++i)
+  for (int i = 17; i < 19; ++i)
     mpc_solver_.setCostWDiagElement(i, Rac_d, false);
   mpc_solver_.setCostWeight(true, true);
 
@@ -118,7 +115,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::initialize(ros::NodeHandle nh, ros::Nod
   ROS_INFO("MPC Controller initialized!");
 }
 
-bool nmpc_tilt_bi_2_ord::NMPCController::update()
+bool nmpc_tilt_bi_full::NMPCController::update()
 {
   if (!ControlBase::update())
     return false;
@@ -137,7 +134,7 @@ bool nmpc_tilt_bi_2_ord::NMPCController::update()
   return true;
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::reset()
+void nmpc_tilt_bi_full::NMPCController::reset()
 {
   ControlBase::reset();
 
@@ -153,8 +150,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::reset()
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
   double x[NX] = { pos.x(), pos.y(), pos.z(),   vel.x(),   vel.y(),   vel.z(),          q.w(),           q.x(),
-                   q.y(),   q.z(),   omega.x(), omega.y(), omega.z(), joint_angles_[0], joint_angles_[1],
-                   joint_vel_[0], joint_vel_[1]};
+                   q.y(),   q.z(),   omega.x(), omega.y(), omega.z(), joint_angles_[0], joint_angles_[1] };
   double u[NU] = { 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
   initPredXU(x_u_ref_);
   for (int i = 0; i < NN; i++)
@@ -177,7 +173,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::reset()
   gimbal_ctrl_cmd_.position.push_back(0.0);
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::controlCore()
+void nmpc_tilt_bi_full::NMPCController::controlCore()
 {
   if (!is_traj_tracking_)
   {
@@ -235,7 +231,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::controlCore()
   odom_ = odom_now;
 
   /* solve */
-  mpc_solver_.solve(odom_, joint_angles_, joint_vel_, x_u_ref_, is_debug_);
+  mpc_solver_.solve(odom_, joint_angles_, x_u_ref_, is_debug_);
 
   /* get result */
   // - thrust
@@ -263,14 +259,14 @@ void nmpc_tilt_bi_2_ord::NMPCController::controlCore()
   gimbal_ctrl_cmd_.position.push_back(a2c);
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::SendCmd()
+void nmpc_tilt_bi_full::NMPCController::SendCmd()
 {
   pub_flight_cmd_.publish(flight_cmd_);
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 // TODO: should be moved to Estimator
-nav_msgs::Odometry nmpc_tilt_bi_2_ord::NMPCController::getOdom()
+nav_msgs::Odometry nmpc_tilt_bi_full::NMPCController::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
@@ -312,7 +308,7 @@ nav_msgs::Odometry nmpc_tilt_bi_2_ord::NMPCController::getOdom()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc_tilt_bi_2_ord::NMPCController::callbackViz(const ros::TimerEvent& event)
+void nmpc_tilt_bi_full::NMPCController::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_.x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -350,16 +346,14 @@ void nmpc_tilt_bi_2_ord::NMPCController::callbackViz(const ros::TimerEvent& even
   pub_viz_ref_.publish(ref_poses);
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+void nmpc_tilt_bi_full::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
   joint_angles_[0] = msg->position[0];
   joint_angles_[1] = msg->position[1];
-  joint_vel_[0] = msg->velocity[0];
-  joint_vel_[1] = msg->velocity[1];
 }
 
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
-void nmpc_tilt_bi_2_ord::NMPCController::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
+void nmpc_tilt_bi_full::NMPCController::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
 {
   navigator_->setTargetRoll(msg->roll);
   navigator_->setTargetPitch(msg->pitch);
@@ -367,7 +361,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::callbackSetRPY(const spinal::DesireCoor
 }
 
 /* TODO: this function should be combined with the inner planning framework */
-void nmpc_tilt_bi_2_ord::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
+void nmpc_tilt_bi_full::NMPCController::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
   {
@@ -385,7 +379,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::callbackSetRefTraj(const aerial_robot_m
   }
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::initAllocMat()
+void nmpc_tilt_bi_full::NMPCController::initAllocMat()
 {
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::Vector3d p1_b = rotor_p[0];
@@ -429,7 +423,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
                                                    const Eigen::VectorXd& target_wrench)
 {
@@ -444,7 +438,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 
   double x[NX] = {
     target_pos.x(), target_pos.y(), target_pos.z(),   target_vel.x(),   target_vel.y(),   target_vel.z(), q.w(),  q.x(),
-    q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref, a2_ref, 0.0, 0.0
+    q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,         a2_ref
   };
   double u[NU] = { ft1_ref, ft2_ref, 0.0, 0.0 };
 
@@ -466,7 +460,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::calXrUrRef(const tf::Vector3 target_pos
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
 }
 
-double nmpc_tilt_bi_2_ord::NMPCController::getCommand(int idx_u, double t_pred)
+double nmpc_tilt_bi_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
   double u_predicted =
       mpc_solver_.x_u_out_.u.data.at(idx_u) +
@@ -474,7 +468,7 @@ double nmpc_tilt_bi_2_ord::NMPCController::getCommand(int idx_u, double t_pred)
   return u_predicted;
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::printPhysicalParams()
+void nmpc_tilt_bi_full::NMPCController::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;
   cout << "gravity: " << robot_model_->getGravity() << endl;
@@ -497,7 +491,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::printPhysicalParams()
   }
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+void nmpc_tilt_bi_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
@@ -576,4 +570,4 @@ void nmpc_tilt_bi_2_ord::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_2_ord::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_full::NMPCController, aerial_robot_control::ControlBase);

@@ -2,10 +2,10 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#ifndef TILT_TRI_NMPC_SOLVER_H
-#define TILT_TRI_NMPC_SOLVER_H
+#ifndef TILT_BI_NMPC_SOLVER_H
+#define TILT_BI_NMPC_SOLVER_H
 
-#endif  // TILT_TRI_NMPC_SOLVER_H
+#endif  // TILT_BI_NMPC_SOLVER_H
 
 #include <ros/console.h>
 #include <aerial_robot_msgs/PredXU.h>
@@ -17,43 +17,43 @@
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "aerial_robot_control/nmpc/tilt_tri_full/c_generated_code/acados_solver_tilt_tri_full_model.h"
+#include "aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/acados_solver_tilt_bi_servo_mdl.h"
 
-#define NN TILT_TRI_FULL_MODEL_N
-#define NX TILT_TRI_FULL_MODEL_NX
-#define NZ TILT_TRI_FULL_MODEL_NZ
-#define NU TILT_TRI_FULL_MODEL_NU
-#define NP TILT_TRI_FULL_MODEL_NP
-#define NBX TILT_TRI_FULL_MODEL_NBX
-#define NBX0 TILT_TRI_FULL_MODEL_NBX0
-#define NBU TILT_TRI_FULL_MODEL_NBU
-#define NSBX TILT_TRI_FULL_MODEL_NSBX
-#define NSBU TILT_TRI_FULL_MODEL_NSBU
-#define NSH TILT_TRI_FULL_MODEL_NSH
-#define NSG TILT_TRI_FULL_MODEL_NSG
-#define NSPHI TILT_TRI_FULL_MODEL_NSPHI
-#define NSHN TILT_TRI_FULL_MODEL_NSHN
-#define NSGN TILT_TRI_FULL_MODEL_NSGN
-#define NSPHIN TILT_TRI_FULL_MODEL_NSPHIN
-#define NSBXN TILT_TRI_FULL_MODEL_NSBXN
-#define NS TILT_TRI_FULL_MODEL_NS
-#define NSN TILT_TRI_FULL_MODEL_NSN
-#define NG TILT_TRI_FULL_MODEL_NG
-#define NBXN TILT_TRI_FULL_MODEL_NBXN
-#define NGN TILT_TRI_FULL_MODEL_NGN
-#define NY0 TILT_TRI_FULL_MODEL_NY0
-#define NY TILT_TRI_FULL_MODEL_NY
-#define NYN TILT_TRI_FULL_MODEL_NYN
-#define NH TILT_TRI_FULL_MODEL_NH
-#define NPHI TILT_TRI_FULL_MODEL_NPHI
-#define NHN TILT_TRI_FULL_MODEL_NHN
-#define NPHIN TILT_TRI_FULL_MODEL_NPHIN
-#define NR TILT_TRI_FULL_MODEL_NR
+#define NN TILT_BI_SERVO_MDL_N
+#define NX TILT_BI_SERVO_MDL_NX
+#define NZ TILT_BI_SERVO_MDL_NZ
+#define NU TILT_BI_SERVO_MDL_NU
+#define NP TILT_BI_SERVO_MDL_NP
+#define NBX TILT_BI_SERVO_MDL_NBX
+#define NBX0 TILT_BI_SERVO_MDL_NBX0
+#define NBU TILT_BI_SERVO_MDL_NBU
+#define NSBX TILT_BI_SERVO_MDL_NSBX
+#define NSBU TILT_BI_SERVO_MDL_NSBU
+#define NSH TILT_BI_SERVO_MDL_NSH
+#define NSG TILT_BI_SERVO_MDL_NSG
+#define NSPHI TILT_BI_SERVO_MDL_NSPHI
+#define NSHN TILT_BI_SERVO_MDL_NSHN
+#define NSGN TILT_BI_SERVO_MDL_NSGN
+#define NSPHIN TILT_BI_SERVO_MDL_NSPHIN
+#define NSBXN TILT_BI_SERVO_MDL_NSBXN
+#define NS TILT_BI_SERVO_MDL_NS
+#define NSN TILT_BI_SERVO_MDL_NSN
+#define NG TILT_BI_SERVO_MDL_NG
+#define NBXN TILT_BI_SERVO_MDL_NBXN
+#define NGN TILT_BI_SERVO_MDL_NGN
+#define NY0 TILT_BI_SERVO_MDL_NY0
+#define NY TILT_BI_SERVO_MDL_NY
+#define NYN TILT_BI_SERVO_MDL_NYN
+#define NH TILT_BI_SERVO_MDL_NH
+#define NPHI TILT_BI_SERVO_MDL_NPHI
+#define NHN TILT_BI_SERVO_MDL_NHN
+#define NPHIN TILT_BI_SERVO_MDL_NPHIN
+#define NR TILT_BI_SERVO_MDL_NR
 
 namespace aerial_robot_control
 {
 
-namespace nmpc_tilt_tri_full
+namespace nmpc_tilt_bi_full
 {
 
 struct Constraints
@@ -94,7 +94,7 @@ public:
 
 private:
   double* new_time_steps;
-  tilt_tri_full_model_solver_capsule* acados_ocp_capsule_;
+  tilt_bi_servo_mdl_solver_capsule* acados_ocp_capsule_;
   ocp_nlp_config* nlp_config_;
   ocp_nlp_dims* nlp_dims_;
   ocp_nlp_in* nlp_in_;
@@ -110,6 +110,6 @@ private:
 
 void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-}  // namespace nmpc_tilt_tri_full
+}  // namespace nmpc_tilt_bi_full
 
 }  // namespace aerial_robot_control

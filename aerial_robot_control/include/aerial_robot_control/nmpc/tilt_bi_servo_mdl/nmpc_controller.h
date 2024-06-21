@@ -2,15 +2,15 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#ifndef TILT_BI_2_ORD_NMPC_CONTROLLER_H
-#define TILT_BI_2_ORD_NMPC_CONTROLLER_H
+#ifndef TILT_BI_NMPC_CONTROLLER_H
+#define TILT_BI_NMPC_CONTROLLER_H
 
-#endif  // TILT_BI_2_ORD_NMPC_CONTROLLER_H
+#endif  // TILT_BI_NMPC_CONTROLLER_H
 
 #pragma once
 
 #include "aerial_robot_control/control/base/base.h"
-#include "aerial_robot_control/nmpc/tilt_bi_2_ord/nmpc_solver.h"
+#include "nmpc_solver.h"
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>
@@ -42,7 +42,7 @@ using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_contro
 
 namespace aerial_robot_control
 {
-namespace nmpc_tilt_bi_2_ord
+namespace nmpc_tilt_bi_full
 {
 
 class NMPCController : public ControlBase
@@ -91,7 +91,6 @@ private:
   double t_nmpc_integ_;
 
   double joint_angles_[2] = { 0.0, 0.0 };
-  double joint_vel_[2] = { 0.0, 0.0 };
 
   bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
   Eigen::Matrix<double, 6, 4> alloc_mat_;
@@ -122,6 +121,6 @@ private:
   void printPhysicalParams();
 };
 
-};  // namespace nmpc_tilt_bi_2_ord
+};  // namespace nmpc_tilt_bi_full
 
 };  // namespace aerial_robot_control
