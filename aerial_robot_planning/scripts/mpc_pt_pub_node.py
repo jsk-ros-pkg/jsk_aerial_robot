@@ -154,10 +154,6 @@ class MPCPtPubNode:
         rospy.init_node(self.node_name, anonymous=False)
         self.namespace = rospy.get_namespace().rstrip("/")
 
-        # Timer
-        self.ts_pt_pub = 0.02  # [s]  ~50Hz
-        self.tmr_pt_pub = rospy.Timer(rospy.Duration(self.ts_pt_pub), self.callback_tmr_pt_pub)
-
         # Sub --> feedback
         self.uav_odom = Odometry()
         rospy.Subscriber("/beetle1/uav/cog/odom", Odometry, self.sub_odom_callback)
@@ -184,8 +180,12 @@ class MPCPtPubNode:
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
 
         self.start_time = rospy.Time.now().to_sec()
-
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
+
+        # Timer
+        self.ts_pt_pub = 0.02  # [s]  ~50Hz
+        self.tmr_pt_pub = rospy.Timer(rospy.Duration(self.ts_pt_pub), self.callback_tmr_pt_pub)
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Timer started!")
 
     def get_one_xr_ur_from_target(
             self,
