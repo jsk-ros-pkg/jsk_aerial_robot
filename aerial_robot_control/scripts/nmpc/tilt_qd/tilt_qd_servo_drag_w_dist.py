@@ -4,7 +4,8 @@
 Author: LI Jinjie
 File: nmpc_over_act_full.py
 Date: 2024/03/01 4:02 PM
-Description: consider disturbance. The output of the NMPC controller is the thrust and the servo angle
+Description: consider disturbance. The output of the NMPC controller is the thrust and the servo angle. The drag model
+is inside the NMPC model. Very difficult to converge.
 """
 from __future__ import print_function  # be compatible with python2
 import os
