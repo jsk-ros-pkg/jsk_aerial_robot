@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="gimbalrotor_common" >
+
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <m_f_rate value="-0.0172" /> <!-- drug torque rate -->
+  <xacro:property name="max_force" value="18.0" /> <!-- [N] -->
+  <xacro:property name="min_force" value="1.0" /> <!-- [N] -->
+
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.1</mu1>
+      <mu2>0.1</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>
