@@ -71,9 +71,9 @@ controller:
     limit_my: 1.0
     limit_mz: 1.0
 
-    i_gain_x: 0
-    i_gain_y: 0
-    i_gain_z: 5
+    i_gain_x: 2
+    i_gain_y: 2
+    i_gain_z: 2
     i_gain_roll: 0.0
     i_gain_pitch: 0.0
     i_gain_yaw: 0.0
