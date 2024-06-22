@@ -155,7 +155,7 @@ class MPCPtPubNode:
         self.namespace = rospy.get_namespace().rstrip("/")
 
         # Timer
-        self.ts_pt_pub = 0.025  # [s]  ~40Hz
+        self.ts_pt_pub = 0.02  # [s]  ~50Hz
         self.tmr_pt_pub = rospy.Timer(rospy.Duration(self.ts_pt_pub), self.callback_tmr_pt_pub)
 
         # Sub --> feedback
@@ -249,7 +249,7 @@ class MPCPtPubNode:
         x_ref = np.zeros([self.N_nmpc + 1, 17])
         u_ref = np.zeros([self.N_nmpc, 8])
 
-        is_ref_different = False if isinstance(self.traj, SetPointTraj) else True
+        is_ref_different = True
 
         for i in range(self.N_nmpc + 1):
             if is_ref_different:
