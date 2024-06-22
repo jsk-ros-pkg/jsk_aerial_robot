@@ -71,6 +71,7 @@ set(ACADOS_PYTHON_SCRIPTS
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_w_dist.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_w_cog_end_dist.py
 )
 
 foreach(script ${ACADOS_PYTHON_SCRIPTS})

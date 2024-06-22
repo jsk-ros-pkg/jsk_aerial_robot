@@ -297,22 +297,32 @@ void nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController::controlCore()
   Eigen::Matrix<double, NN, 4> fz_dist_r;
   fz_dist_r.setZero();
 
-  for (int j = 0; j < 4; j++)  // TODO: can be accelerated by matrix operation
+  // case 1: the drag for each time step is the same. the optimization is more stable
+  for (int i = 0; i < NN; i++)
   {
-    double alpha = joint_angles_[j];
-    fz_dist_r(0, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
-                      drag_coeff_(3) * pow(alpha, 3) + drag_coeff_(4) * pow(alpha, 4);
-  }
-
-  for (int i = 1; i < NN; i++)
-  {
-    for (int j = 0; j < 4; j++)
+    for (int j = 0; j < 4; j++)  // TODO: can be accelerated by matrix operation
     {
-      double alpha = mpc_solver_.x_u_out_.x.data.at(i * NX + 13 + j);
-      fz_dist_r(i, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
+      double alpha = joint_angles_[j];
+      fz_dist_r(0, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
                         drag_coeff_(3) * pow(alpha, 3) + drag_coeff_(4) * pow(alpha, 4);
     }
   }
+//  // case 2: the drag for each rotor is different. the optimization is not stable.
+//  for (int j = 0; j < 4; j++)  // TODO: can be accelerated by matrix operation
+//  {
+//    double alpha = joint_angles_[j];
+//    fz_dist_r(0, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
+//                      drag_coeff_(3) * pow(alpha, 3) + drag_coeff_(4) * pow(alpha, 4);
+//  }
+//  for (int i = 1; i < NN; i++)
+//  {
+//    for (int j = 0; j < 4; j++)
+//    {
+//      double alpha = mpc_solver_.x_u_out_.x.data.at(i * NX + 13 + j);
+//      fz_dist_r(i, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
+//                        drag_coeff_(3) * pow(alpha, 3) + drag_coeff_(4) * pow(alpha, 4);
+//    }
+//  }
 
   /* solve */
   mpc_solver_.solve(x_u_ref_, odom_, joint_angles_, f_disturb_i, tau_disturb_b, fz_dist_r, is_debug_);
