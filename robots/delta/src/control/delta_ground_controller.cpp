@@ -91,8 +91,6 @@ void RollingController::calcStandingFullLambda()
       n_constraints += 3;
     }
 
-  double epsilon = 0.0001;
-
   Eigen::MatrixXd H(n_variables, n_variables);
   H <<
     1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -145,15 +143,16 @@ void RollingController::calcStandingFullLambda()
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
   Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n_variables);
+  gradient = gradient_weight_ * full_lambda_all_;
 
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
 
   lower_bound.head(standing_mode_n_constraints)
     <<
-    target_wrench_target_frame(ROLL) - epsilon,
-    target_wrench_target_frame(PITCH) - epsilon,
-    target_wrench_target_frame(YAW) - epsilon,
+    target_wrench_target_frame(ROLL),
+    target_wrench_target_frame(PITCH),
+    target_wrench_target_frame(YAW),
     -INFINITY,
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
@@ -162,9 +161,9 @@ void RollingController::calcStandingFullLambda()
 
   upper_bound.head(standing_mode_n_constraints)
     <<
-    target_wrench_target_frame(ROLL) + epsilon,
-    target_wrench_target_frame(PITCH) + epsilon,
-    target_wrench_target_frame(YAW) + epsilon,
+    target_wrench_target_frame(ROLL),
+    target_wrench_target_frame(PITCH),
+    target_wrench_target_frame(YAW),
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),

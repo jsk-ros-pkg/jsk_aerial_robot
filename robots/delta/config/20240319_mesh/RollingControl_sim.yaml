@@ -14,6 +14,7 @@ controller:
   rolling_minimum_lateral_force: 0.2
   steering_mu: 2.0
   full_lambda_mode: true
+  gradient_weight: 1.0
 
   lambda_weight: 1.0
   d_gimbal_center_weight: 2.0
