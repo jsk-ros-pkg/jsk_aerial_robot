@@ -38,6 +38,7 @@ class ObstacleWorld:
         self.rate = rate
         shift_x = rospy.get_param('~shift_x', 0) #init x
         shift_y = rospy.get_param('~shift_y', 0) #init y
+        policy_start_delay = rospy.get_param('~policy_start_delay', 0) #init obstacle position
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
 
         wall_y_position = 1.75
@@ -58,7 +59,8 @@ class ObstacleWorld:
             self.obs = dict()
             for i in range(len(df)):
                 name = 'obj' + str(i+1)
-                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]), \
+                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]) \
+                                  + np.array(df.loc[i, 3:5].tolist())*(-1*policy_start_delay),
                                   'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[0,8]}
                 self.obs[name]['p'][2] = self.h / 2
                 self.obs[name]['v'][2] = 0.0

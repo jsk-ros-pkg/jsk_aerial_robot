@@ -7,6 +7,7 @@
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="moving_obstacle/real_RP_254_hokuyo_v2" />
+  <arg name="policy_start_delay" default="1.0" />
   <arg name="nav_exec" default="True" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
@@ -105,6 +106,7 @@
       <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
+      <param name="policy_start_delay" value="$(arg policy_start_delay)" />
       <!-- <remap from="start_moving_obstacle" to="start_navigation" /> -->
     </node>
 
