@@ -105,7 +105,7 @@
       <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
-      <remap from="start_moving_obstacle" to="start_navigation" />
+      <!-- <remap from="start_moving_obstacle" to="start_navigation" /> -->
     </node>
 
     <node pkg="agile_multirotor" type="depth_image_correction.py" name="depth_image_correction" output="screen" ns="$(arg robot_ns)"/> 
