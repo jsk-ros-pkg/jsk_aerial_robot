@@ -156,20 +156,24 @@ class NMPCTiltQdServoDragDist(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
-        fd1 = (c4 * a1**4 + c3 * a1**3 + c2 * a1**2 + c1 * a1 + c0) * ft1
-        fd2 = (c4 * a2**4 + c3 * a2**3 + c2 * a2**2 + c1 * a2 + c0) * ft2
-        fd3 = (c4 * a3**4 + c3 * a3**3 + c2 * a3**2 + c1 * a3 + c0) * ft3
-        fd4 = (c4 * a4**4 + c3 * a4**3 + c2 * a4**2 + c1 * a4 + c0) * ft4
+        dr_a1 = dr1 * a1
+        dr_a2 = dr2 * a2
+        dr_a3 = dr3 * a3
+        dr_a4 = dr4 * a4
+        fd1 = (c4 * dr_a1 ** 4 + c3 * dr_a1 ** 3 + c2 * dr_a1 ** 2 + c1 * dr_a1 + c0) * ft1
+        fd2 = (c4 * dr_a2 ** 4 + c3 * dr_a2 ** 3 + c2 * dr_a2 ** 2 + c1 * dr_a2 + c0) * ft2
+        fd3 = (c4 * dr_a3 ** 4 + c3 * dr_a3 ** 3 + c2 * dr_a3 ** 2 + c1 * dr_a3 + c0) * ft3
+        fd4 = (c4 * dr_a4 ** 4 + c3 * dr_a4 ** 3 + c2 * dr_a4 ** 2 + c1 * dr_a4 + c0) * ft4
 
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd2) * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd3) * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd4) * kq_d_kt)
 
         f_u_b = (
                 ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))

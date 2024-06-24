@@ -156,16 +156,15 @@ class NMPCTiltQdServoWCogEndDist(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
-
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd1) * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd1) * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd1) * kq_d_kt)
 
         f_u_b = (
                 ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
