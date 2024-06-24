@@ -36,9 +36,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_acc_cog_.resize(6);
   target_acc_dash_.resize(6);
 
-  full_lambda_all_.resize(2 * motor_num_);
-  full_lambda_trans_.resize(2 * motor_num_);
-  full_lambda_rot_.resize(2 * motor_num_);
+  full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
+  full_lambda_trans_ = Eigen::VectorXd::Zero(2 * motor_num_);
+  full_lambda_rot_ = Eigen::VectorXd::Zero(2 * motor_num_);
 
   rosParamInit();
 
@@ -124,6 +124,7 @@ void RollingController::rosParamInit()
   rolling_robot_model_->setCircleRadius(circle_radius_);
 
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
+  getParam<double>(control_nh, "gradient_weight", gradient_weight_, 0.0);
   getParam<bool>(control_nh, "full_lambda_mode", full_lambda_mode_, true);
   getParam<double>(control_nh, "gimbal_d_theta_max", gimbal_d_theta_max_, 0.0);
   getParam<double>(control_nh, "d_lambda_max",   d_lambda_max_, 0.0);
@@ -155,30 +156,6 @@ void RollingController::rosParamInit()
 bool RollingController::update()
 {
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
-  // std::cout << rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame() << std::endl;
-  // std::cout << std::endl;
-  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
-    {
-      if(navigator_->getNaviState() == aerial_robot_navigation::ARM_OFF_STATE)
-        {
-          tf::Quaternion cog2baselink_rot;
-          tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
-          tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
-          double r, p, y;
-          cog_rot.getRPY(r, p, y);
-
-          Eigen::Matrix3d rot_mat;
-          Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
-          Eigen::Vector3d b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-          rot_mat = Eigen::AngleAxisd(p, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
-
-          KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-          double qx, qy, qz, qw;
-          rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-          rolling_navigator_->setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-          rolling_navigator_->setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-        }
-    }
 
   if(!PoseLinearController::update()) return false;
 
