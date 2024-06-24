@@ -193,6 +193,7 @@ void nmpc_over_act_full::NMPCController::reset()
   gimbal_ctrl_cmd_.position.push_back(0.0);
   gimbal_ctrl_cmd_.position.push_back(0.0);
   gimbal_ctrl_cmd_.position.push_back(0.0);
+  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 void nmpc_over_act_full::NMPCController::controlCore()

@@ -228,6 +228,7 @@ void nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController::reset()
   gimbal_ctrl_cmd_.position.push_back(0.0);
   gimbal_ctrl_cmd_.position.push_back(0.0);
   gimbal_ctrl_cmd_.position.push_back(0.0);
+  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 void nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController::controlCore()
