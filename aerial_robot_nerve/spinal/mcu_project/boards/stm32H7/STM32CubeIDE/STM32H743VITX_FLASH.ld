@@ -188,6 +188,8 @@ PROVIDE ( _end = . );
 *(.UartTxBufferSection)
 . = ABSOLUTE(0x24044400);
 *(.GpsRxBufferSection)
+. = ABSOLUTE(0x24044800);
+*(.ServoRxBufferSection)
 } >RAM_D1 AT> FLASH
 
 

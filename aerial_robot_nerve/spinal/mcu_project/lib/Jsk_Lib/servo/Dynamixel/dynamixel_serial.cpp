@@ -4,7 +4,8 @@
 namespace
 {
 #ifdef STM32H7
-  uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+  // uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+  uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
 #else
   uint8_t rx_buf_[RX_BUFFER_SIZE];
 #endif
