@@ -36,6 +36,8 @@
 //2.1 Sensors
 //2.1.1 IMU Sensor
 #define IMU_FLAG 1
+#define IMU_MPU 0
+#define IMU_ICM 1
 //2.1.2 Barometer Sensor
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
