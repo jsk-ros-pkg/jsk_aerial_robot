@@ -68,6 +68,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
 
   // if (record_marker_){
+  positions_.clear();
+  radius_list_.clear();
     for (const visualization_msgs::Marker &tree_data : msg->markers) {
       if (tree_data.ns=="tree_diameter") continue;
       Eigen::Vector3d tree_pos;
