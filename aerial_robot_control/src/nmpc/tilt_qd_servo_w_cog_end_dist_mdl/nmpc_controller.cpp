@@ -28,7 +28,6 @@ void nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController::initialize(
   getParam<float>(physical_nh, "c3", drag_coeff_(3), 0.0);
   getParam<float>(physical_nh, "c4", drag_coeff_(4), 0.0);
 
-
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(nmpc_nh, "T_integ", t_nmpc_integ_, 0.1);
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
@@ -298,14 +297,17 @@ void nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController::controlCore()
   Eigen::Matrix<double, NN, 4> fz_dist_r;
   fz_dist_r.setZero();
 
+  const map<int, int> rotor_dr = robot_model_->getRotorDirection();
+
   // case 1: the drag for each time step is the same. the optimization is more stable
   for (int i = 0; i < NN; i++)
   {
     for (int j = 0; j < 4; j++)  // TODO: can be accelerated by matrix operation
     {
-      double alpha = joint_angles_[j];
-      fz_dist_r(0, j) = drag_coeff_(0) + drag_coeff_(1) * alpha + drag_coeff_(2) * pow(alpha, 2) +
-                        drag_coeff_(3) * pow(alpha, 3) + drag_coeff_(4) * pow(alpha, 4);
+      double dr_a = rotor_dr.find(j + 1)->second * joint_angles_[j];
+      double h = drag_coeff_(0) + drag_coeff_(1) * dr_a + drag_coeff_(2) * pow(dr_a, 2) +
+                 drag_coeff_(3) * pow(dr_a, 3) + drag_coeff_(4) * pow(dr_a, 4);
+      fz_dist_r(i, j) = h * getCommand(j);
     }
   }
 //  // case 2: the drag for each rotor is different. the optimization is not stable.
