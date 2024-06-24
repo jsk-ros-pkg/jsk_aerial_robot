@@ -19,13 +19,6 @@ controller:
     # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
     t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
 
-    # profile drag model
-    c0: -0.278
-    c1: -2.147
-    c2: 8.134
-    c3: 0.470
-    c4: -2.439
-
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
     T_pred: 2.0  # seconds
@@ -71,9 +64,9 @@ controller:
     limit_my: 1.0
     limit_mz: 1.0
 
-    i_gain_x: 2
-    i_gain_y: 2
-    i_gain_z: 2
+    i_gain_x: 0
+    i_gain_y: 0
+    i_gain_z: 5
     i_gain_roll: 0.0
     i_gain_pitch: 0.0
     i_gain_yaw: 0.0
