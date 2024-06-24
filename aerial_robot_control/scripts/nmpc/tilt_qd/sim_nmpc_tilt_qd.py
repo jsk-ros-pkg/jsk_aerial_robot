@@ -94,7 +94,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdServoThrust()  # consider both the servo delay and the control delay
+    sim_nmpc = NMPCTiltQdServoThrustDrag()  # consider both the servo delay and the control delay
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
