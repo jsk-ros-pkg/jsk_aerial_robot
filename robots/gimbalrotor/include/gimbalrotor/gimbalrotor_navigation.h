@@ -33,6 +33,11 @@ namespace aerial_robot_navigation
     ros::Subscriber final_target_baselink_rot_sub_;
 
     void baselinkRotationProcess();
+    void rosParamInit() override;
+    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
+    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+
+
     /* target baselink rotation */
     double prev_rotation_stamp_;
     tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;

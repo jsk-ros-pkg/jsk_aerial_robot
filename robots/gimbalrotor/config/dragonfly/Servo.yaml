@@ -1,0 +1,72 @@
+servo_controller:
+  state_sub_topic: servo/states
+  ctrl_pub_topic: servo/target_states
+  torque_pub_topic: servo/torque_enable
+
+  joints:
+    angle_sgn: 1
+    angle_scale: 0.00076699
+    zero_point_offset: 2047
+    torque_scale: 1.0 # TODO please update the scale
+
+    filter_flag: true
+    sample_freq: 50.0 # 50Hz
+    cutoff_freq: 10.0 # 10Hz, test
+
+    controller1:
+      id: 6
+      name: head_joint
+      angle_sgn: -1
+      simulation:
+        pid: {p: 20.0, i: 0.1, d: 1.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+    controller2:
+      id: 7
+      name: tail_joint
+      angle_sgn: -1
+      simulation:
+        pid: {p: 20.0, i: 0.1, d: 1.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
+
+  gimbals:
+    no_real_state: false
+    angle_scale: 0.001534
+    zero_point_offset: 2047
+
+    simulation:
+      pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
+      init_value: 0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      id: 0
+      angle_sgn: 1
+      name: gimbal1_roll
+
+    controller2:
+      id: 1
+      angle_sgn: 1      
+      name: gimbal1_pitch
+
+    controller3:
+      id: 2
+      angle_sgn: 1      
+      name: gimbal2_roll
+
+    controller4:
+      id: 3
+      angle_sgn: -1      
+      name: gimbal2_pitch
+
+    controller5:
+      id: 4
+      angle_sgn: 1      
+      name: gimbal3_roll
+
+    controller6:
+      id: 5
+      angle_sgn: -1      
+      name: gimbal3_pitch

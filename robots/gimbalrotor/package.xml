@@ -14,6 +14,7 @@
   <build_depend>aerial_robot_estimation</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
+  <build_depend>spinal</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>pluginlib</build_depend>
 
@@ -23,8 +24,11 @@
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>aerial_robot_base</run_depend>
+  <run_depend>spinal</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>pluginlib</run_depend>
+
+  <test_depend>rostest</test_depend>
 
   <export>
     <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml" />

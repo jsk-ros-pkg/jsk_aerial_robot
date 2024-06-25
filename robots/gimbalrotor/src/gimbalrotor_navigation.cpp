@@ -37,6 +37,13 @@ void GimbalrotorNavigator::setFinalTargetBaselinkRotCallback(const spinal::Desir
   final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
 }
 
+void GimbalrotorNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
+{
+  BaseNavigator::naviCallback(msg);
+  if(msg->roll_nav_mode == 2) setTargetRoll(msg->target_roll);
+  if(msg->pitch_nav_mode == 2) setTargetPitch(msg->target_pitch);
+}
+
 void GimbalrotorNavigator::baselinkRotationProcess()
 {
   if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;

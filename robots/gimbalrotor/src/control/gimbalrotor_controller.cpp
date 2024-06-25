@@ -17,15 +17,15 @@ namespace aerial_robot_control
                                          )
   {
     PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
-    gimbalerotor_robot_model_ = boost::dynamic_pointer_cast<GimbalrotorRobotModel>(robot_model);
-
-    target_base_thrust_.resize(motor_num_ * 2);
-    target_full_thrust_.resize(motor_num_);
-    target_gimbal_angles_.resize(motor_num_, 0);
-    integrated_map_inv_trans_.resize(motor_num_ * 2, 3);
-    integrated_map_inv_rot_.resize(motor_num_ * 2, 3);
+    gimbalrotor_robot_model_ = boost::dynamic_pointer_cast<GimbalrotorRobotModel>(robot_model);
 
     GimbalrotorController::rosParamInit();
+
+    rotor_coef_ = gimbal_dof_ + 1; //number of virtual rotors in each rotor arm
+
+    target_base_thrust_.resize(motor_num_ * rotor_coef_);
+    target_full_thrust_.resize(motor_num_);
+    target_gimbal_angles_.resize(motor_num_ * gimbal_dof_, 0);
 
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
     
@@ -67,7 +67,6 @@ namespace aerial_robot_control
   void GimbalrotorController::controlCore()
   {
     PoseLinearController::controlCore();
-
     tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
     tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                              pid_controllers_.at(Y).result(),
@@ -98,6 +97,18 @@ namespace aerial_robot_control
 
     setTargetWrenchAccCog(target_wrench_acc_cog_for_est);
 
+    double target_ang_acc_x = pid_controllers_.at(ROLL).result();
+    double target_ang_acc_y = pid_controllers_.at(PITCH).result();
+    double target_ang_acc_z = pid_controllers_.at(YAW).result();
+    Eigen::Matrix3d inertia = gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>();
+    Eigen::Vector3d omega;
+    tf::vectorTFToEigen(omega_, omega);
+    Eigen::Vector3d gyro = omega.cross(inertia * omega);
+
+    if(gimbal_calc_in_fc_)
+      target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+    else
+      target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z) + gyro;
     pid_msg_.roll.total.at(0) = target_ang_acc_x;
     pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
     pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
@@ -117,14 +128,13 @@ namespace aerial_robot_control
 
     Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 3 * motor_num_);
 
-    double mass_inv = 1 / gimbalerotor_robot_model_->getMass();
+    double mass_inv = 1 / gimbalrotor_robot_model_->getMass();
 
-    Eigen::Matrix3d inertia_inv = (gimbalerotor_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
+    Eigen::Matrix3d inertia_inv = inertia.inverse();
 
-    double t = ros::Time::now().toSec();
-    
-
-    std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalerotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+    std::vector<Eigen::Vector3d> rotors_origin_from_cog = gimbalrotor_robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+    const auto& rotor_direction = gimbalrotor_robot_model_->getRotorDirection();
+    const double m_f_rate = gimbalrotor_robot_model_->getMFRate();
 
     Eigen::MatrixXd wrench_map = Eigen::MatrixXd::Zero(6, 3);
     wrench_map.block(0, 0, 3, 3) =  Eigen::MatrixXd::Identity(3, 3);
@@ -132,7 +142,7 @@ namespace aerial_robot_control
 
     /* calculate normal allocation */
     for(int i = 0; i < motor_num_; i++){
-      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i));
+      wrench_map.block(3, 0, 3, 3) = aerial_robot_model::skew(rotors_origin_from_cog.at(i))  + m_f_rate * rotor_direction.at(i + 1) * Eigen::Matrix3d::Identity();
       full_q_mat.middleCols(last_col, 3) = wrench_map;
       last_col += 3;
     }
@@ -141,21 +151,29 @@ namespace aerial_robot_control
     full_q_mat.bottomRows(3) = inertia_inv * full_q_mat.bottomRows(3);
 
     /* calculate masked rotation matrix */
-    std::vector<KDL::Rotation> thrust_coords_rot = gimbalerotor_robot_model_->getThrustCoordRot<KDL::Rotation>();
+    std::vector<KDL::Rotation> thrust_coords_rot = gimbalrotor_robot_model_->getThrustCoordRot<KDL::Rotation>();
     std::vector<Eigen::MatrixXd> masked_rot;
     for(int i = 0; i < motor_num_; i++){
       tf::Quaternion r;  tf::quaternionKDLToTF(thrust_coords_rot.at(i), r);
       Eigen::Matrix3d conv_cog_from_thrust; tf::matrixTFToEigen(tf::Matrix3x3(r),conv_cog_from_thrust);
-      Eigen::MatrixXd mask(3, 2);
-      mask << 0, 0, 1, 0, 0, 1;
-      masked_rot.push_back(conv_cog_from_thrust * mask);
+      if(gimbal_dof_ == 1)
+        {
+          Eigen::MatrixXd mask(3, 2);
+          mask << 0, 0, 1, 0, 0, 1;
+          masked_rot.push_back(conv_cog_from_thrust * mask);
+        }
+      else if(gimbal_dof_ == 2)
+        {
+          Eigen::MatrixXd mask = Eigen::Matrix3d::Identity();
+          masked_rot.push_back(conv_cog_from_thrust * mask);
+        }
     }
 
-    /* calculate integrated allocation */
-    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3*motor_num_, 2 * motor_num_);
-    Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, 2 * motor_num_);
+    /* mask integrated allocation */
+    Eigen::MatrixXd integrated_rot = Eigen::MatrixXd::Zero(3 * motor_num_, rotor_coef_ * motor_num_);
+    Eigen::MatrixXd integrated_map = Eigen::MatrixXd::Zero(6, (gimbal_dof_ + 1) * motor_num_);
     for(int i = 0; i< motor_num_; i++){
-      integrated_rot.block(3*i,2*i,3,2) = masked_rot[i];
+      integrated_rot.block(3*i, rotor_coef_*i, 3, rotor_coef_) = masked_rot[i];
     }
     integrated_map = full_q_mat * integrated_rot;
 
@@ -170,27 +188,40 @@ namespace aerial_robot_control
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i;
-      if(i_term_rp_calc_in_pc_){
-        f_i = target_vectoring_f_.segment(last_col, 2);
-      }else{
-        f_i = target_vectoring_f_trans_.segment(last_col, 2);
-      }
-      target_base_thrust_.at(2*i) = f_i[0];
-      target_base_thrust_.at(2*i+1) = f_i[1];
-      // target_gimbal_angles_.at(i) = atan2(-f_i[0], f_i[1]);
+      Eigen::VectorXd f_i = target_vectoring_f_trans_.segment(last_col, rotor_coef_);
+      if(gimbal_dof_ == 1)
+        {
+          target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
+          target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
+        }else if(gimbal_dof_ == 2){
+          target_base_thrust_.at(rotor_coef_ * i) = f_i[0];
+          target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
+          target_base_thrust_.at(rotor_coef_ * i+2) = f_i[2];
+        }
       if(integrated_map_inv(i, YAW) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, YAW);
-      last_col += 2;
+      last_col += rotor_coef_;
     }
     candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 
-    /* calculate target full thrusts and  gimbal angles (considering full components)*/
+    /* calculate target full thrusts and gimbal angles (considering full components)*/
     last_col = 0;
     for(int i = 0; i < motor_num_; i++){
-      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, 2) + target_vectoring_f_trans_.segment(last_col, 2);
+      Eigen::VectorXd f_i_integrated = target_vectoring_f_rot_.segment(last_col, rotor_coef_) + target_vectoring_f_trans_.segment(last_col, rotor_coef_);
       target_full_thrust_.at(i) = f_i_integrated.norm();
-      target_gimbal_angles_.at(i) = atan2(-f_i_integrated[0], f_i_integrated[1]);
-      last_col += 2;
+      if(gimbal_dof_ == 1)
+        {
+          target_gimbal_angles_.at(i) = atan2(-f_i_integrated[0], f_i_integrated[1]);
+        }
+      else if(gimbal_dof_ == 2)
+        {
+          if(f_i_integrated[0] == 0 || f_i_integrated[2] == 0) continue;
+
+          double gimbal_roll = atan2(-f_i_integrated[1], f_i_integrated[2]);
+          double gimbal_pitch = atan2(f_i_integrated[0], -f_i_integrated[1] * sin(gimbal_roll) + f_i_integrated[2]* cos(gimbal_roll));
+          target_gimbal_angles_.at(2 * i) = gimbal_roll;
+          target_gimbal_angles_.at(2 * i + 1) = gimbal_pitch;
+        }
+      last_col += rotor_coef_;
     }
   }
 
@@ -199,7 +230,7 @@ namespace aerial_robot_control
     PoseLinearController::sendCmd();
 
     sendFourAxisCommand();
-    
+
     if(gimbal_calc_in_fc_){
       sendTorqueAllocationMatrixInv();
     }
@@ -208,9 +239,25 @@ namespace aerial_robot_control
         sensor_msgs::JointState gimbal_control_msg;
         gimbal_control_msg.header.stamp = ros::Time::now();
         for(int i = 0; i < motor_num_; i++){
-          gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+          if(gimbal_dof_ == 1)
+            {
+              gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
+            }
+          else if(gimbal_dof_ == 2)
+            {
+              gimbal_control_msg.position.push_back(target_gimbal_angles_.at(2*i));
+              gimbal_control_msg.position.push_back(target_gimbal_angles_.at(2*i + 1));
+            }
         }
-        gimbal_control_pub_.publish(gimbal_control_msg); 
+        gimbal_control_pub_.publish(gimbal_control_msg);
+        
+        std_msgs::Float32MultiArray target_vectoring_force_msg;
+        target_vectoring_f_ = target_vectoring_f_trans_ + target_vectoring_f_rot_;
+        for(int i = 0; i < target_vectoring_f_.size(); i++){
+          target_vectoring_force_msg.data.push_back(target_vectoring_f_(i));
+        }
+        target_vectoring_force_pub_.publish(target_vectoring_force_msg);
+        
       }
     std_msgs::Float32MultiArray target_vectoring_force_msg;
     for(int i = 0; i < target_vectoring_f_.size(); i++){
@@ -241,22 +288,34 @@ namespace aerial_robot_control
     sensor_msgs::JointState gimbal_state_msg;
     gimbal_state_msg.header.stamp = ros::Time::now();
     for(int i = 0; i < motor_num_; i++){
-      gimbal_state_msg.position.push_back(target_gimbal_angles_.at(i));
-      std::string gimbal_name = "gimbal" + std::to_string(i+1);
-      gimbal_state_msg.name.push_back(gimbal_name);
+      if(gimbal_dof_ == 1)
+        {
+          gimbal_state_msg.position.push_back(target_gimbal_angles_.at(i));
+          std::string gimbal_name = "gimbal" + std::to_string(i+1);
+          gimbal_state_msg.name.push_back(gimbal_name);
+        }
+      else if(gimbal_dof_ == 2)
+      {
+        gimbal_state_msg.position.push_back(target_gimbal_angles_.at(2*i));
+        gimbal_state_msg.position.push_back(target_gimbal_angles_.at(2*i+1));
+        std::string gimbal_roll_name = "gimbal" + std::to_string(i+1) + "_roll";
+        std::string gimbal_pitch_name = "gimbal" + std::to_string(i+1) + "_pitch";
+        gimbal_state_msg.name.push_back(gimbal_roll_name);
+        gimbal_state_msg.name.push_back(gimbal_pitch_name);
+      }
     }
-    gimbal_state_pub_.publish(gimbal_state_msg);
+    // gimbal_state_pub_.publish(gimbal_state_msg);
 
   }
-  
+
   void GimbalrotorController::sendTorqueAllocationMatrixInv()
   {
     spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
-    torque_allocation_matrix_inv_msg.rows.resize(motor_num_*2);
+    torque_allocation_matrix_inv_msg.rows.resize(motor_num_ * rotor_coef_);
     Eigen::MatrixXd torque_allocation_matrix_inv = integrated_map_inv_rot_;
     if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
       ROS_ERROR("Torque Allocation Matrix overflow");
-    for (unsigned int i = 0; i < motor_num_*2; i++)
+    for (unsigned int i = 0; i < motor_num_* rotor_coef_; i++)
       {
         torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
         torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;

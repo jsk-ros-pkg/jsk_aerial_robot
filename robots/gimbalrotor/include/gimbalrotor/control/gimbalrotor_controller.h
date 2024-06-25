@@ -44,7 +44,7 @@ namespace aerial_robot_control
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
     ros::Publisher gimbal_dof_pub_; //for spinal
 
-    boost::shared_ptr<GimbalrotorRobotModel> gimbalerotor_robot_model_;
+    boost::shared_ptr<GimbalrotorRobotModel> gimbalrotor_robot_model_;
     std::vector<float> target_base_thrust_;
     std::vector<float> target_full_thrust_;
     std::vector<double> target_gimbal_angles_;
@@ -56,6 +56,8 @@ namespace aerial_robot_control
     Eigen::MatrixXd integrated_map_inv_rot_;
     double candidate_yaw_term_;
     int gimbal_dof_;
+    int rotor_coef_;
+    bool gimbal_calc_in_fc_;
 
     bool update() override;
     void sendCmd() override;

@@ -25,6 +25,16 @@ float64 target_pos_y
 float32 target_vel_y
 float32 target_acc_y
 
+uint8 roll_nav_mode
+
+float32 target_omega_x
+float32 target_roll
+
+uint8 pitch_nav_mode
+
+float32 target_omega_y
+float32 target_pitch
+
 uint8 yaw_nav_mode
 
 float32 target_omega_z

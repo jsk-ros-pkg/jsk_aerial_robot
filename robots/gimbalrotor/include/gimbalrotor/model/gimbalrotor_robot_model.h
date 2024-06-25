@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_model;
 
-class GimbalrotorRobotModel : public aerial_robot_model::RobotModel{
+class GimbalrotorRobotModel : public transformable::RobotModel{
 public:
   GimbalrotorRobotModel(bool init_with_rosparam = true,
                     bool verbose = false,

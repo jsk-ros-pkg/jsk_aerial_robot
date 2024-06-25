@@ -33,7 +33,8 @@
 /* RTOS */
 #include "cmsis_os.h"
 /* gimbal servo*/
-#include <kondo_servo/kondo_servo.h>
+#include <kondo_servo/kondo_servo.h> //TODO: support kondo servo
+#include <servo/servo.h>
 #endif
 #include "state_estimate/state_estimate.h"
 
@@ -80,7 +81,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -92,6 +93,7 @@ public:
 
   void setMotorNumber(uint16_t motor_number);
   void setGimbalDof(uint8_t gimbal_dof){gimbal_dof_ = gimbal_dof; }
+  void setRotorCoef(uint8_t rotor_coef){rotor_coef_ = rotor_coef; }
   uint16_t getGimbalDof(){return gimbal_dof_; }
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   bool getIntegrateFlag(){return integrate_flag_; }
@@ -149,13 +151,16 @@ private:
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
-  KondoServo* kondo_servo_;
+  KondoServo* kondo_servo_; // TODO
+  DirectServo* servo_;
+
 #endif
 
   StateEstimate* estimator_;
   int8_t uav_model_;
   uint16_t motor_number_;
   uint8_t gimbal_dof_;
+  uint8_t rotor_coef_;
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
