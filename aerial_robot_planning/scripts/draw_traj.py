@@ -144,23 +144,24 @@ def main(file_path, type):
 
         # calculate RMSE
         rmse_x = calculate_rmse(t, x, t_ref, x_ref)
-        print(f'RMSE X: {rmse_x}')
+        print(f'RMSE X (m): {rmse_x}')
 
         # --------------------------------
         plt.subplot(4, 2, 2)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         roll_ref = np.array(data_euler_ref['roll'])
-        plt.plot(t_ref, roll_ref, label='ref', linestyle="--", color=color_ref)
+        plt.plot(t_ref, roll_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         roll = np.array(data_euler['roll'])
-        plt.plot(t, roll, label='real', color=color_real)
+        plt.plot(t, roll * 180 / np.pi, label='real', color=color_real)
 
-        plt.ylabel('Roll (rad)', fontsize=label_size)
+        plt.ylabel('Roll ($^\\circ$)', fontsize=label_size)
 
         # calculate RMSE
         rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
-        print(f'RMSE Roll: {rmse_roll}')
+        print(f'RMSE Roll (rad): {rmse_roll}')
+        print(f'RMSE Roll (deg): {rmse_roll * 180 / np.pi}')
 
         # --------------------------------
         plt.subplot(4, 2, 3)
@@ -175,22 +176,23 @@ def main(file_path, type):
 
         # calculate RMSE
         rmse_y = calculate_rmse(t, y, t_ref, y_ref)
-        print(f'RMSE Y: {rmse_y}')
+        print(f'RMSE Y (m): {rmse_y}')
 
         # --------------------------------
         plt.subplot(4, 2, 4)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         pitch_ref = np.array(data_euler_ref['pitch'])
-        plt.plot(t_ref, pitch_ref, label='ref', linestyle="--", color=color_ref)
+        plt.plot(t_ref, pitch_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         pitch = np.array(data_euler['pitch'])
-        plt.plot(t, pitch, label='real', color=color_real)
-        plt.ylabel('Pitch (rad)', fontsize=label_size)
+        plt.plot(t, pitch * 180 / np.pi, label='real', color=color_real)
+        plt.ylabel('Pitch ($^\\circ$)', fontsize=label_size)
 
         # calculate RMSE
         rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
-        print(f'RMSE Pitch: {rmse_pitch}')
+        print(f'RMSE Pitch (rad): {rmse_pitch}')
+        print(f'RMSE Pitch (deg): {rmse_pitch * 180 / np.pi}')
 
         # --------------------------------
         plt.subplot(4, 2, 5)
@@ -206,22 +208,23 @@ def main(file_path, type):
 
         # calculate RMSE
         rmse_z = calculate_rmse(t, z, t_ref, z_ref)
-        print(f'RMSE Z: {rmse_z}')
+        print(f'RMSE Z (m): {rmse_z}')
 
         # --------------------------------
         plt.subplot(4, 2, 6)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         yaw_ref = np.array(data_euler_ref['yaw'])
-        plt.plot(t_ref, yaw_ref, label='ref', linestyle="--", color=color_ref)
+        plt.plot(t_ref, yaw_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         yaw = np.array(data_euler['yaw'])
-        plt.plot(t, yaw, label='real', color=color_real)
-        plt.ylabel('Yaw (rad)', fontsize=label_size)
+        plt.plot(t, yaw * 180 / np.pi, label='real', color=color_real)
+        plt.ylabel('Yaw ($^\\circ$)', fontsize=label_size)
 
         # calculate RMSE
         rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
-        print(f'RMSE Yaw: {rmse_yaw}')
+        print(f'RMSE Yaw (rad): {rmse_yaw}')
+        print(f'RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}')
 
         # --------------------------------
         plt.subplot(4, 2, 7)
