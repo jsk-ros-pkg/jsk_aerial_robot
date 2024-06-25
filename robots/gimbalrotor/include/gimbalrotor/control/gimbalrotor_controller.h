@@ -57,7 +57,6 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     int gimbal_dof_;
     int rotor_coef_;
-    bool gimbal_calc_in_fc_;
 
     bool update() override;
     void sendCmd() override;

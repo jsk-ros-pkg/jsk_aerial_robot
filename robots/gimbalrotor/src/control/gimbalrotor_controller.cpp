@@ -97,9 +97,6 @@ namespace aerial_robot_control
 
     setTargetWrenchAccCog(target_wrench_acc_cog_for_est);
 
-    double target_ang_acc_x = pid_controllers_.at(ROLL).result();
-    double target_ang_acc_y = pid_controllers_.at(PITCH).result();
-    double target_ang_acc_z = pid_controllers_.at(YAW).result();
     Eigen::Matrix3d inertia = gimbalrotor_robot_model_->getInertia<Eigen::Matrix3d>();
     Eigen::Vector3d omega;
     tf::vectorTFToEigen(omega_, omega);
