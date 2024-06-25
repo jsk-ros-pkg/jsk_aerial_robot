@@ -181,7 +181,7 @@ class Visualizer:
         x_sim_all = self.x_sim_all
         u_sim_all = self.u_sim_all
 
-        fig = plt.figure(figsize=(7, 5))
+        fig = plt.figure(figsize=(7, 4.5))
         # title = str(f"Ctrl = {ocp_model_name}, ts ctrl = {ts_ctrl} s, servo delay = {t_servo_ctrl} s")
         # title = title.replace("_", r"\_")
         # fig.suptitle(title)
@@ -243,6 +243,7 @@ class Visualizer:
 
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.tight_layout()
+        fig.subplots_adjust(hspace=0.15)
 
         plt.show()
 
