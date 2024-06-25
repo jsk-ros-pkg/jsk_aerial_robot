@@ -9,12 +9,12 @@
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
 
-#ifndef __IMU_H
-#define __IMU_H
+#ifndef __IMU_MPU_H
+#define __IMU_MPU_H
 
 #include "config.h"
 #include "math/AP_Math.h"
-#include "imu_basic.h"
+#include "sensors/imu/imu_basic.h"
 
 #define SENSOR_DATA_LENGTH 7
 
@@ -28,6 +28,25 @@ public:
 
   enum{INTERNAL_MAG = 0, LIS3MDL = 1, HMC58X3 = 2,};
 
+protected:
+  static  uint8_t adc_[SENSOR_DATA_LENGTH];
+  static  uint32_t last_mag_time_;
+
+  uint8_t mag_id_;
+
+  SPI_HandleTypeDef* hspi_;
+  I2C_HandleTypeDef* hi2c_;
+  ros::NodeHandle* nh_;
+
+  GPIO_TypeDef* spi_cs_port_;
+  uint16_t spi_cs_pin_;
+  GPIO_TypeDef* led_port_;
+  uint16_t led_pin_;
+
+  bool use_external_mag_flag_;
+  uint32_t calib_indicator_time_; // ms
+
+  uint8_t checkExternalMag(void);
 private:
   static const uint8_t GYRO_DLPF_CFG = 0x03;//0x01 //0: 250Hz, 0.97ms; 3: 41Hz, 5.9ms(kduino); 4: 20Hz: 9.9ms
   static const uint8_t ACC_DLPF_CFG = 0x05; //0x03: 41Hz, 11.80ms
@@ -73,26 +92,9 @@ private:
   static const uint32_t HMC58X3_READ_PRESCALER = 13; // 1000Hz/13= 75Hz
   static constexpr float HMC58X3_RATE = 0.092; // 0.92mG/LSb (1.3G) -> 1G = 10e-4T -> 0.092mT/LSb
 
-  static  uint8_t adc_[SENSOR_DATA_LENGTH];
-  static  uint32_t last_mag_time_;
-
-  uint8_t mag_id_;
-
-  SPI_HandleTypeDef* hspi_;
-  I2C_HandleTypeDef* hi2c_;
-  ros::NodeHandle* nh_;
-
-  GPIO_TypeDef* spi_cs_port_;
-  uint16_t spi_cs_pin_;
-  GPIO_TypeDef* led_port_;
-  uint16_t led_pin_;
-
-  bool use_external_mag_flag_;
-  uint32_t calib_indicator_time_; // ms
-
-  void gyroInit(void);
-  void accInit(void);
-  void magInit(void);
+  virtual void gyroInit(void);
+  virtual void accInit(void);
+  virtual void magInit(void);
 
   // external mag
   void hmc58x3Init(void);

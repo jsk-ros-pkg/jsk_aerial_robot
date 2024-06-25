@@ -30,7 +30,8 @@
 #ifdef SIMULATION
 #include <tf/LinearMath/Matrix3x3.h>
 #else
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 #include "sensors/gps/gps_ublox.h"
 #endif
 

@@ -8,8 +8,7 @@
 #ifndef __cplusplus
 #error "Please define __cplusplus, because this is a c++ based file "
 #endif
-
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
 
 uint8_t IMUOnboard::adc_[SENSOR_DATA_LENGTH];
 uint32_t IMUOnboard::last_mag_time_;
@@ -105,52 +104,11 @@ void IMUOnboard::accInit (void)
 void IMUOnboard::magInit(void)
 {
   /* check whether use external magnetometer */
-  /*
-   * we need check the i2c connectio with external mag(HMC5883L) several times initially,
-   * since the module UBlox M8N has some problem with the gps/mag simultaneous polling.
-   */
-
-  HAL_Delay(4000); // wait for the setup of the Blox M8N module, especially for winter
-  mag_id_ = INTERNAL_MAG;
-  uint8_t val[2];
-  int i2c_status = 1;
-
-  for(int i = 0; i < EXTERNAL_MAG_CHECK_COUNT; i ++)
-    {
-      /* check the existence of external magnetometer */
-
-      /* 1. LIS3MDL */
-      val[0] = LIS3MDL_PING;
-      i2c_status = HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
-      HAL_I2C_Master_Receive(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
-
-      if(i2c_status == HAL_OK && val[0] == 61) //0b111101
-        {
-          mag_id_ = LIS3MDL;
-          HAL_Delay(10);
-          lis3mdlInit();
-          break;
-        }
-
-      /* 2. HMC58X3 */
-      val[0] = HMC58X3_R_CONFB;
-      val[1] = 0x20;
-      i2c_status = HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER, val, 2, 100);
-
-      if(i2c_status == HAL_OK)
-        {
-          mag_id_ = HMC58X3;
-          HAL_Delay(10);
-          hmc58x3Init();
-          break;
-        }
-      HAL_Delay(10);
-    }
-
+  mag_id_ = checkExternalMag();
 
   if(mag_id_ == INTERNAL_MAG)
-    {/* use internal mag */
-
+    {
+      /* use internal mag */
       HAL_Delay(10);
       //at this stage, the MAG is configured via the original MAG init function in I2C bypass mode
       //now we configure MPU as a I2C Master device to handle the MAG via the I2C AUX port (done here for HMC5883)
@@ -187,6 +145,49 @@ void IMUOnboard::magInit(void)
       HAL_Delay(1);
     }
   last_mag_time_ = HAL_GetTick();
+}
+
+uint8_t IMUOnboard::checkExternalMag(void)
+{
+  HAL_Delay(4000); // wait for the setup of the Blox M8N module, especially for winter
+  uint8_t val[2];
+  int i2c_status = 1;
+
+  /*
+   * we need check the i2c connectio with external mag(HMC5883L) several times initially,
+   * since the module UBlox M8N has some problem with the gps/mag simultaneous polling.
+   */
+
+  for(int i = 0; i < EXTERNAL_MAG_CHECK_COUNT; i ++)
+    {
+      /* check the existence of external magnetometer */
+
+      /* 1. LIS3MDL */
+      val[0] = LIS3MDL_PING;
+      i2c_status = HAL_I2C_Master_Transmit(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
+      HAL_I2C_Master_Receive(hi2c_, LIS3MDL_MAG_REGISTER, val, 1, 100);
+
+      if(i2c_status == HAL_OK && val[0] == 61) //0b111101
+        {
+          HAL_Delay(10);
+          lis3mdlInit();
+          return LIS3MDL;
+        }
+
+      /* 2. HMC58X3 */
+      val[0] = HMC58X3_R_CONFB;
+      val[1] = 0x20;
+      i2c_status = HAL_I2C_Master_Transmit(hi2c_, HMC58X3_MAG_REGISTER, val, 2, 100);
+
+      if(i2c_status == HAL_OK)
+        {
+          HAL_Delay(10);
+          hmc58x3Init();
+          return HMC58X3;
+        }
+      HAL_Delay(10);
+    }
+  return INTERNAL_MAG;
 }
 
 void IMUOnboard::lis3mdlInit(void)
