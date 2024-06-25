@@ -37,8 +37,6 @@ namespace aerial_robot_navigation
 
   protected:
     void rosParamInit() override;
-    void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg) override;
-    
 
   private:
     tf::Vector3 target_pos_candidate_;
@@ -55,6 +53,7 @@ namespace aerial_robot_navigation
 
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    void setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();
     tf2_ros::TransformBroadcaster br_;

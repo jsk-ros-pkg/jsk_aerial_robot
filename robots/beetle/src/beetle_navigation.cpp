@@ -23,7 +23,7 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
   int max_modules_num = beetle_robot_model_->getMaxModuleNum();
   assembly_nav_sub_ = nh_.subscribe("/assembly/uav/nav", 1, &BeetleNavigator::assemblyNavCallback, this);
-  assembly_target_rot_sub_ = nh_.subscribe("/assembly/final_target_baselink_rot", 1, &BeetleNavigator::setFinalTargetBaselinkRotCallback, this);
+  assembly_target_rot_sub_ = nh_.subscribe("/assembly/final_target_baselink_rot", 1, &BeetleNavigator::setAssemblyFinalTargetBaselinkRotCallback, this);
   for(int i = 0; i < max_modules_num; i++){
     std::string module_name  = string("/beetle") + std::to_string(i+1);
     assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
@@ -286,7 +286,7 @@ void BeetleNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavCons
   if(beetle_robot_model_->getModuleState() != SEPARATED) BeetleNavigator::naviCallback(msg);
 }
 
-void BeetleNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
+void BeetleNavigator::setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
   if(beetle_robot_model_->getModuleState() != SEPARATED) GimbalrotorNavigator::setFinalTargetBaselinkRotCallback(msg);
 }
