@@ -119,7 +119,14 @@ void RollingController::calcStandingFullLambda()
   Eigen::Vector3d gravity_moment_from_contact_point_alined = contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
 
   /* use sum of pid result and gravity compensation torque for attitude control */
-  target_wrench_target_frame.tail(3) = target_wrench_target_frame.tail(3) + gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
+  Eigen::Vector3d omega;
+  tf::vectorTFToEigen(omega_, omega);
+
+  target_wrench_target_frame.tail(3)
+    = target_wrench_target_frame.tail(3)
+    + gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined
+    + omega.cross(rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * omega);
+
   gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
 
   Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();

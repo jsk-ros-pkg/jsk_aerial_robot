@@ -39,7 +39,15 @@ void RollingController::calcAccFromCog()
   double target_ang_acc_y = pid_controllers_.at(PITCH).result();
   double target_ang_acc_z = pid_controllers_.at(YAW).result();
 
-  target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
+  Eigen::Vector3d omega;
+  tf::vectorTFToEigen(omega_, omega);
+  Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
+  Eigen::Vector3d gyro = omega.cross(inertia * omega);
+
+  target_wrench_acc_cog.tail(3)
+    = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z)
+    + inertia.inverse() * gyro;
+
   target_wrench_acc_cog_ = target_wrench_acc_cog;
 
   if(navigator_->getForceLandingFlag() && target_acc_w.z() < 5.0) // heuristic measures to avoid to large gimbal angles after force land
