@@ -182,6 +182,7 @@ namespace aerial_robot_control
     void rosoutControlParams(std::string ns);
     void setControlAxisWithNameSpace(std::string ns);
     void rosoutControlAxis(std::string ns);
+    void printDebug();
 
     void slsqpSolve();
     void nonlinearQP();
