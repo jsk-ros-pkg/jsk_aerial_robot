@@ -193,12 +193,9 @@ class MPCPtPubNode:
             target_vel=np.array([[0.0, 0.0, 0.0]]).T,
             target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
             target_omega=np.array([[0.0, 0.0, 0.0]]).T,
-            target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
+            target_wrench_b=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
     ):
-        anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
-        target_wrench = anti_gravity_wrench + target_non_gravity_wrench
-
-        x = self.alloc_mat_pinv @ target_wrench
+        x = self.alloc_mat_pinv @ target_wrench_b
 
         a1_ref = np.arctan2(x[0, 0], x[1, 0])
         ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
@@ -274,19 +271,23 @@ class MPCPtPubNode:
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
             q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+            w_rot_mtx_b = tf.transformations.quaternion_matrix(q)[:3, :3]
+            b_rot_mtx_w = w_rot_mtx_b.T
 
             target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
             target_body_rate = np.array([[r_rate, p_rate, y_rate]]).T
 
-            target_non_gravity_wrench = np.array(
-                [[mass * ax, mass * ay, mass * az, Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]).T
+            target_force_w = np.array([[mass * ax, mass * ay, mass * (az + gravity)]]).T
+            target_force_b = b_rot_mtx_w @ target_force_w
+            target_torque_b = np.array([[Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]).T
+            target_wrench_b = np.vstack((target_force_b, target_torque_b))
 
             xr, ur = self.get_one_xr_ur_from_target(
                 target_pos=target_pos,
                 target_vel=target_vel,
                 target_qwxyz=target_qwxyz,
                 target_omega=target_body_rate,
-                target_non_gravity_wrench=target_non_gravity_wrench,
+                target_wrench_b=target_wrench_b,
             )
 
             x_ref[i] = xr
