@@ -157,6 +157,7 @@ bool RollingController::update()
 {
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
+  printDebug();
   if(!PoseLinearController::update()) return false;
 
   rolling_navigator_->setPrevGroundNavigationMode(ground_navigation_mode_);

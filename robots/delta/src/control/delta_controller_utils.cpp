@@ -179,3 +179,18 @@ void RollingController::rosoutControlAxis(std::string ns)
                   << controlled_axis.at(4) << " "
                   << controlled_axis.at(5) << "]");
 }
+
+void RollingController::printDebug()
+{
+  // const auto links_rotation_from_cog = rolling_robot_model_->getLinksRotationFromCog<Eigen::Matrix3d>();
+  // Eigen::Vector3d b1 = Eigen::Vector3d(1, 0, 0), b2 = Eigen::Vector3d(0, 1, 0);
+  // for(int i = 0; i < motor_num_; i++)
+  //   {
+  //     Eigen::Matrix3d rot_mat;
+  //     rot_mat = Eigen::AngleAxisd(current_gimbal_angles_.at(i), links_rotation_from_cog.at(i) * b1) * Eigen::AngleAxisd(rotor_tilt_.at(i), links_rotation_from_cog.at(i) * b2);
+  //     Eigen::Vector3d rotor_axis = rot_mat * links_rotation_from_cog.at(i) * Eigen::Vector3d(0, 0, 1);
+  //     std::cout << rotor_axis.transpose() << std::endl;
+  //     std::cout << std::endl;
+  //   }
+  // std::cout << std::endl;
+}
