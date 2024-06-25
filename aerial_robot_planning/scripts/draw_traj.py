@@ -105,6 +105,18 @@ def main(file_path, type):
                                        1 - 2 * (data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'] ** 2 +
                                                 data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'] ** 2))
 
+        # thrust_cmd
+        data_thrust_cmd = data[
+            ['__time', '/beetle1/four_axes/command/base_thrust[0]', '/beetle1/four_axes/command/base_thrust[1]',
+             '/beetle1/four_axes/command/base_thrust[2]', '/beetle1/four_axes/command/base_thrust[3]']]
+        data_thrust_cmd = data_thrust_cmd.dropna()
+
+        # servo angle cmd
+        data_servo_angle_cmd = data[
+            ['__time', '/beetle1/gimbals_ctrl/gimbal1/position', '/beetle1/gimbals_ctrl/gimbal2/position',
+             '/beetle1/gimbals_ctrl/gimbal3/position', '/beetle1/gimbals_ctrl/gimbal4/position']]
+        data_servo_angle_cmd = data_servo_angle_cmd.dropna()
+
         # ======= plotting =========
         plt.style.use(["science", "grid"])
 
@@ -118,7 +130,7 @@ def main(file_path, type):
         color_real = '#FF2C00'
 
         # --------------------------------
-        plt.subplot(3, 2, 1)
+        plt.subplot(4, 2, 1)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'])
         plt.plot(t_ref, x_ref, label='ref', linestyle="--", color=color_ref)
@@ -135,7 +147,7 @@ def main(file_path, type):
         print(f'RMSE X: {rmse_x}')
 
         # --------------------------------
-        plt.subplot(3, 2, 2)
+        plt.subplot(4, 2, 2)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         roll_ref = np.array(data_euler_ref['roll'])
         plt.plot(t_ref, roll_ref, label='ref', linestyle="--", color=color_ref)
@@ -151,7 +163,7 @@ def main(file_path, type):
         print(f'RMSE Roll: {rmse_roll}')
 
         # --------------------------------
-        plt.subplot(3, 2, 3)
+        plt.subplot(4, 2, 3)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'])
         plt.plot(t_ref, y_ref, label='ref', linestyle="--", color=color_ref)
@@ -166,7 +178,7 @@ def main(file_path, type):
         print(f'RMSE Y: {rmse_y}')
 
         # --------------------------------
-        plt.subplot(3, 2, 4)
+        plt.subplot(4, 2, 4)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         pitch_ref = np.array(data_euler_ref['pitch'])
         plt.plot(t_ref, pitch_ref, label='ref', linestyle="--", color=color_ref)
@@ -181,7 +193,7 @@ def main(file_path, type):
         print(f'RMSE Pitch: {rmse_pitch}')
 
         # --------------------------------
-        plt.subplot(3, 2, 5)
+        plt.subplot(4, 2, 5)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'])
         plt.plot(t_ref, z_ref, label='ref', linestyle="--", color=color_ref)
@@ -191,14 +203,13 @@ def main(file_path, type):
 
         plt.plot(t, z, label='Z', color=color_real)
         plt.ylabel('Z (m)', fontsize=label_size)
-        plt.xlabel('Time (s)', fontsize=label_size)
 
         # calculate RMSE
         rmse_z = calculate_rmse(t, z, t_ref, z_ref)
         print(f'RMSE Z: {rmse_z}')
 
         # --------------------------------
-        plt.subplot(3, 2, 6)
+        plt.subplot(4, 2, 6)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         yaw_ref = np.array(data_euler_ref['yaw'])
         plt.plot(t_ref, yaw_ref, label='ref', linestyle="--", color=color_ref)
@@ -207,15 +218,45 @@ def main(file_path, type):
         yaw = np.array(data_euler['yaw'])
         plt.plot(t, yaw, label='real', color=color_real)
         plt.ylabel('Yaw (rad)', fontsize=label_size)
-        plt.xlabel('Time (s)', fontsize=label_size)
-
-        plt.legend(framealpha=legend_alpha)
 
         # calculate RMSE
         rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
         print(f'RMSE Yaw: {rmse_yaw}')
 
+        # --------------------------------
+        plt.subplot(4, 2, 7)
+        t = np.array(data_thrust_cmd['__time']) - t_bias
+        thrust1 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[0]'])
+        plt.plot(t, thrust1, label='$f_{c1}$')
+        thrust2 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[1]'])
+        plt.plot(t, thrust2, label='$f_{c2}$')
+        thrust3 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[2]'])
+        plt.plot(t, thrust3, label='$f_{c3}$')
+        thrust4 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[3]'])
+        plt.plot(t, thrust4, label='$f_{c4}$')
+        plt.ylabel('Thrust Cmd (N)', fontsize=label_size)
+        plt.xlabel('Time (s)', fontsize=label_size)
+        plt.legend(framealpha=legend_alpha, loc='upper left')
+
+        # --------------------------------
+        plt.subplot(4, 2, 8)
+        t = np.array(data_servo_angle_cmd['__time']) - t_bias
+        servo1 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal1/position']) * 180 / np.pi
+        plt.plot(t, servo1, label='$\\alpha_{c1}$')
+        servo2 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal2/position']) * 180 / np.pi
+        plt.plot(t, servo2, label='$\\alpha_{c2}$')
+        servo3 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal3/position']) * 180 / np.pi
+        plt.plot(t, servo3, label='$\\alpha_{c3}$')
+        servo4 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal4/position']) * 180 / np.pi
+        plt.plot(t, servo4, label='$\\alpha_{c4}$')
+        plt.ylabel('Servo Cmd ($^\\circ$)', fontsize=label_size)
+        plt.xlabel('Time (s)', fontsize=label_size)
+        plt.legend(framealpha=legend_alpha, loc='upper left')
+
+        # --------------------------------
         plt.tight_layout()
+        # make the subplots very compact
+        fig.subplots_adjust(hspace=0.2)
         plt.show()
 
     elif type == 1:
