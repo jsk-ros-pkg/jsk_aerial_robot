@@ -12,12 +12,15 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>eigen_conversions</build_depend>
+  <build_depend>casadi</build_depend>
+  <build_depend>casadi_eigen</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>interactive_markers</build_depend>
   <build_depend>kalman_filter</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>liburdfdom-headers-dev</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>pinocchio</build_depend>
   <build_depend>pluginlib</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>spinal</build_depend>
@@ -32,6 +35,8 @@
   <build_depend>urdf</build_depend>
   <build_depend>visualization_msgs</build_depend>
 
+  <run_depend>casadi</run_depend>
+  <run_depend>casadi_eigen</run_depend>
   <run_depend>eigen_conversions</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>interactive_markers</run_depend>
@@ -39,6 +44,7 @@
   <run_depend>kalman_filter</run_depend>
   <run_depend>kdl_parser</run_depend>
   <run_depend>message_runtime</run_depend>
+  <run_depend>pinocchio</run_depend>
   <run_depend>pluginlib</run_depend>
   <run_depend>robot_state_publisher</run_depend>
   <run_depend>rviz</run_depend>
