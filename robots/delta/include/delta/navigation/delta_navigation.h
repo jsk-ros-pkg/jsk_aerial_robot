@@ -106,9 +106,9 @@ namespace aerial_robot_navigation
 
     /* standing mode trajectory generation */
     agi::Polynomial<> poly_;
-    bool trajectory_mode_;
-    double trajectory_start_time_;
-    double trajectory_duration_;
+    bool ground_trajectory_mode_;
+    double ground_trajectory_start_time_;
+    double ground_trajectory_duration_;
 
     /* param for joy stick control */
     double joy_stick_deadzone_;
