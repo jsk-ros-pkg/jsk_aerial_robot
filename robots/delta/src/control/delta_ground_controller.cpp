@@ -193,6 +193,8 @@ void RollingController::calcStandingFullLambda()
       ROS_ERROR("[control][OSQP] init solver error!");
     }
 
+  solver.setPrimalVariable(full_lambda_all_);
+
   solver.solve();
   auto solution = solver.getSolution();
   full_lambda_all_ = solution;
