@@ -106,7 +106,7 @@ void RollingNavigator::rollingPlanner()
             poly_.addConstraint(ground_trajectory_start_time_ + ground_trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
             poly_.solve();
             ground_trajectory_mode_ = true;
-            ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] generate new standing trajectory from " << ground_trajectory_start_time_ << " to " << ground_trajectory_start_time_ + ground_trajectory_duration_);
+            ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] generate new standing trajectory from " << std::setprecision(12) << ground_trajectory_start_time_ << " to " << ground_trajectory_start_time_ + ground_trajectory_duration_);
           }
 
         /* evaluate current point in trajectory */
