@@ -12,6 +12,8 @@ BeetleRobotModel::BeetleRobotModel(bool init_with_rosparam, bool verbose, double
     assembly_flags_.insert(std::make_pair(i+1,false));
   }
   nh_.getParam("robot_id", my_id_);
+  nh_.getParam("aerial_robot_base_node/tf_prefix", my_name_);
+  my_name_.pop_back(); // extract common robot name
   cog_com_dist_pub_ = nh_.advertise<geometry_msgs::Point>("cog_com_dist", 1);
 }
 
@@ -33,7 +35,7 @@ void BeetleRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions
 
 void BeetleRobotModel::calcCenterOfMoving()
 {
-  std::string cog_name = "beetle" + std::to_string(my_id_) + "/cog";
+  std::string cog_name = my_name_ + std::to_string(my_id_) + "/cog";
   Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
   int assembled_module = 0;
   geometry_msgs::Point cog_com_dist_msg;
@@ -45,7 +47,7 @@ void BeetleRobotModel::calcCenterOfMoving()
     if(!value) continue;
     try
       {
-        transformStamped = tfBuffer_.lookupTransform(cog_name, "beetle" + std::to_string(id) + std::string("/cog") , ros::Time(0));
+        transformStamped = tfBuffer_.lookupTransform(cog_name, my_name_ + std::to_string(id) + std::string("/cog") , ros::Time(0));
         auto& trans = transformStamped.transform.translation;
         Eigen::Vector3f module_root(trans.x,trans.y,trans.z); 
         center_of_moving += module_root;

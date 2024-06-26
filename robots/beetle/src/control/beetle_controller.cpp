@@ -56,7 +56,7 @@ namespace aerial_robot_control
     wrench_comp_pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/wrench_comp/pid", 1);
     int max_modules_num = beetle_robot_model_->getMaxModuleNum();
     for(int i = 0; i < max_modules_num; i++){
-      std::string module_name  = string("/beetle") + std::to_string(i+1);
+      std::string module_name  = string("/") + beetle_robot_model_->getMyName() + std::to_string(i+1);
       est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench"), 1, &BeetleController::estExternalWrenchCallback, this)));
       Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
       est_wrench_list_.insert(make_pair(i+1, wrench));

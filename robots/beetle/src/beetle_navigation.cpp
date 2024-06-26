@@ -25,7 +25,7 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   assembly_nav_sub_ = nh_.subscribe("/assembly/uav/nav", 1, &BeetleNavigator::assemblyNavCallback, this);
   assembly_target_rot_sub_ = nh_.subscribe("/assembly/final_target_baselink_rot", 1, &BeetleNavigator::setAssemblyFinalTargetBaselinkRotCallback, this);
   for(int i = 0; i < max_modules_num; i++){
-    std::string module_name  = string("/beetle") + std::to_string(i+1);
+    std::string module_name  = string("/") + beetle_robot_model_->getMyName() + std::to_string(i+1);
     assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
   }
   

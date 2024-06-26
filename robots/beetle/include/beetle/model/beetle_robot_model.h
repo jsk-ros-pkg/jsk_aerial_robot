@@ -7,6 +7,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/Point.h>
 #include <algorithm>
+#include <cctype>
 using namespace aerial_robot_model;
 
 enum module_state
@@ -31,6 +32,7 @@ public:
   int getModuleState(){return module_state_;}
   int getReconfigFlag(){return reconfig_flag_;}
   int getMyID(){return my_id_;}
+  std::string getMyName(){return my_name_;}
   int getLeaderID(){return leader_id_;}
   std::vector<int> getModuleIDs(){return assembled_modules_ids_;}
   bool getControlFlag(){return control_flag_;}
@@ -74,6 +76,7 @@ private:
   int max_modules_num_ = 4; //TODO: get the value from rosparam
   int pre_assembled_modules_;
   int my_id_;
+  std::string my_name_;
   int leader_id_;
   std::map<int, bool> assembly_flags_;
   bool reconfig_flag_;
