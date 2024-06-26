@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="ninja" >
+
+  <xacro:include filename="$(find ninja)/urdf/ninja.urdf.xacro" />
+  <xacro:include filename="$(find ninja)/urdf/common.xacro" />
+
+  <xacro:ninja_center_link child1="1" child2="2" child3="3"/>
+  <xacro:ninja_gimbal_link self="1" rotor_direction="1"/>
+  <xacro:ninja_gimbal_link self="2" rotor_direction="-1"/>
+  <xacro:ninja_gimbal_link self="3" rotor_direction="-1"/>
+  <xacro:ninja_head_link/>
+  <xacro:ninja_tail_link/>
+
+  ##### dummy grasp links ####
+  <joint name="base_dummy_arm_joint" type="fixed">
+    <parent link="tail_link"/>
+    <child link="dummy_arm"/>
+    <origin xyz="0.3 0 0" rpy="0 0 ${pi}"/>
+  </joint>
+
+  <link name="dummy_arm">
+    <inertial>
+      <mass value = "0.01" />
+      <origin xyz="0.05 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="dummy_arm_palm_joint" type="revolute">
+    <parent link="dummy_arm"/>
+    <child link="dummy_palm"/>
+    <origin xyz="0.02 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <dynamics damping="0.2" friction="0.02"/>
+  </joint>
+
+  <link name="dummy_palm">
+    <inertial>
+      <mass value = "0.001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="dummy_palm_gripper_joint" type="revolute">
+    <parent link="dummy_palm"/>
+    <child link="dummy_gripper"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+    <dynamics damping="0.2" friction="0.02"/>
+  </joint>
+
+
+  <link name="dummy_gripper">
+    <inertial>
+      <mass value = "0.001" />
+      <origin xyz="0.0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0001" ixy="0.0000" ixz="0.0000"
+          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="0.0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </visual>
+  </link>
+
+  ## dummy link for the contact point coordinate
+  <link name="contact_point">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.0001" iyz="0.0"
+          izz="0.0001"/>
+    </inertial>
+  </link>
+  <joint name="cp_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="contact_point"/>
+    <origin rpy="0 0 0" xyz="0.26 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  
+    
+</robot>

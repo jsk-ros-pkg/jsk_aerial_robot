@@ -1,0 +1,5 @@
+<library path="lib/libninja_navigation">
+  <class name="aerial_robot_navigation/ninja_navigation" type="aerial_robot_navigation::NinjaNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description>plugin for ninja navigation </description>
+  </class>
+</library>

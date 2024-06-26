@@ -1,0 +1,5 @@
+<library path="lib/libninja_robot_model">
+  <class name="ninja_robot_model" type="NinjaRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for ninja robot model </description>
+  </class>
+</library>

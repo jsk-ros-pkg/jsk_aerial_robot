@@ -1,0 +1,7 @@
+<library path="lib/libninja_sensor_pluginlib">
+
+  <class name="sensor_plugin/ninja_imu" type="sensor_plugin::NinjaImu" base_class_type="sensor_plugin::SensorBase">
+    <description>Ninja IMU sensor plugin.</description>
+  </class>
+
+</library>

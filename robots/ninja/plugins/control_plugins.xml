@@ -1,0 +1,5 @@
+<library path="lib/libninja_controller">
+  <class name="aerial_robot_control/ninja_controller" type="aerial_robot_control::NinjaController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for ninja control </description>
+  </class>
+</library>
