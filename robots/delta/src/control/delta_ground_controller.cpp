@@ -83,13 +83,7 @@ void RollingController::standingPlanning()
 void RollingController::calcStandingFullLambda()
 {
   int n_variables = 2 * motor_num_;
-  int n_constraints = 3 + 1 + 2 + 2;
-
-  int standing_mode_n_constraints = n_constraints;
-  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
-    {
-      n_constraints += 3;
-    }
+  int n_constraints = 3 + 1 + 2 + 2 + 6;
 
   Eigen::MatrixXd H(n_variables, n_variables);
   H <<
@@ -139,13 +133,7 @@ void RollingController::calcStandingFullLambda()
   A.block(5, 0, 1, n_variables) = full_q_mat_trans.row(X) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
   A.block(6, 0, 1, n_variables) = full_q_mat_trans.row(Y) - steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
   A.block(7, 0, 1, n_variables) = full_q_mat_trans.row(Y) + steering_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
-
-  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
-    {
-      A.block(8, 0, 1, n_variables)  << 1, 0, 0, 0, 0, 0;
-      A.block(9, 0, 1, n_variables)  << 0, 0, 1, 0, 0, 0;
-      A.block(10, 0, 1, n_variables) << 0, 0, 0, 0, 1, 0;
-    }
+  A.block(8, 0, n_variables, n_variables) = Eigen::MatrixXd::Identity(n_variables, n_variables);     // in eq constraints about thrust limit
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
@@ -155,7 +143,7 @@ void RollingController::calcStandingFullLambda()
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
 
-  lower_bound.head(standing_mode_n_constraints)
+  lower_bound.head(n_constraints - n_variables)
     <<
     target_wrench_target_frame(ROLL),
     target_wrench_target_frame(PITCH),
@@ -166,7 +154,7 @@ void RollingController::calcStandingFullLambda()
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY;
 
-  upper_bound.head(standing_mode_n_constraints)
+  upper_bound.head(n_constraints - n_variables)
     <<
     target_wrench_target_frame(ROLL),
     target_wrench_target_frame(PITCH),
@@ -177,12 +165,14 @@ void RollingController::calcStandingFullLambda()
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
+  lower_bound.tail(n_variables) = - robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(n_variables);
+  upper_bound.tail(n_variables) =   robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(n_variables);
+
   if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
       for(int i = 0; i < motor_num_; i++)
         {
-          lower_bound(standing_mode_n_constraints + i) = -robot_model_->getThrustUpperLimit();
-          upper_bound(standing_mode_n_constraints + i) = -fabs(rolling_minimum_lateral_force_);
+          upper_bound(n_constraints - n_variables + 2 * i) = -fabs(rolling_minimum_lateral_force_);
         }
     }
 
