@@ -124,7 +124,6 @@ void RollingController::rosParamInit()
   rolling_robot_model_->setCircleRadius(circle_radius_);
 
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
-  getParam<double>(control_nh, "gradient_weight", gradient_weight_, 0.0);
   getParam<bool>(control_nh, "full_lambda_mode", full_lambda_mode_, true);
   getParam<double>(control_nh, "gimbal_d_theta_max", gimbal_d_theta_max_, 0.0);
   getParam<double>(control_nh, "d_lambda_max",   d_lambda_max_, 0.0);
