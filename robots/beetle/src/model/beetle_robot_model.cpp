@@ -90,7 +90,7 @@ void BeetleRobotModel::calcCenterOfMoving()
   geometry_msgs::TransformStamped tf;
   tf.header.stamp = ros::Time::now();
   tf.header.frame_id = cog_name;
-  tf.child_frame_id = "beelte" + std::to_string(my_id_)+"/center_of_moving";
+  tf.child_frame_id = my_name_ + std::to_string(my_id_)+"/center_of_moving";
   tf.transform.translation.x = center_of_moving.x();
   tf.transform.translation.y = center_of_moving.y();
   tf.transform.translation.z = center_of_moving.z();
