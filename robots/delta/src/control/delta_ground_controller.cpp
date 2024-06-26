@@ -138,7 +138,6 @@ void RollingController::calcStandingFullLambda()
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
   Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n_variables);
-  gradient = gradient_weight_ * full_lambda_all_;
 
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
