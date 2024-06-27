@@ -18,6 +18,10 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   BeetleNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 }
 
+void NinjaNavigator::convertTargetPosFromCoG2CoM(){
+  
+}
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_navigation::NinjaNavigator, aerial_robot_navigation::BaseNavigator);
