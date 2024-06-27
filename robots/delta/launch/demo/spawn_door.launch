@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="door_x" default="2.0"/>
+  <arg name="door_y" default="0.0"/>
+  <arg name="door_z" default="0.0"/>
+  <arg name="door_yaw" default="0.0"/>
+
+  <!-- spawn door -->
+  <param name="door/robot_description" command="$(find xacro)/xacro $(find delta)/urdf/demo/door.urdf"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="door_spawn" args="-param door/robot_description -urdf -x $(arg door_x) -y $(arg door_y) -z 0 -Y $(arg door_yaw) -model door_model" />
+
+</launch>

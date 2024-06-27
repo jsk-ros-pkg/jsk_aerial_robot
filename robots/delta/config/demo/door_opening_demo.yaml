@@ -1,12 +1,17 @@
-approach_cog_pos: [0.8, 0.0, 1.0]
+door_knob_initial_world_pos: [1.3, 0, 1.0]
+door_knob_final_world_pos: [1.3, 0.8, 1.0]
+
+approach_cog_pos_offset: [-0.6, -0.3, 0.0]
+approach_yaw_angle: -2.54
 approach_wait_time: 5.0
 
-prepare_manip_joint_angle: [1.2, 2.08]
-prepare_manip_cog_pos: [0.8, 0.2, 1.0]
+prepare_manip_joint_angle: [0.6, 2.08]
 prepare_manip_wait_time: 3.0
+prepare_manip_door_knob_offset: [0.0, -0.2, 0.0]
 
-manip_target_pos: [0.8, -0.8, 1.0]
+manip_target_pos: [0.8, 2.0, 1.0]
 manip_wait_time: 6.0
 
 finish_task_target_pos: [0.0, 0.0, 1.0]
-finish_task_wait_time: 3.0
+finish_task_joint_angle: [2.08, 2.08]
+finish_task_wait_time: 6.0

@@ -23,34 +23,39 @@ class Wait(BaseState):
 class Approach(BaseState):
     def __init__(self, robot):
         BaseState.__init__(self, robot, outcomes=['success'])
-        self.approach_cog_pos = rospy.get_param("~approach_cog_pos")
+        self.approach_cog_pos_offset = rospy.get_param("~approach_cog_pos_offset")
+        self.approach_yaw_angle = rospy.get_param("~approach_yaw_angle")
         self.approach_wait_time = rospy.get_param("~approach_wait_time")
+        self.door_knob_initial_world_pos = rospy.get_param("~door_knob_initial_world_pos")
         time.sleep(1.0)
 
     def execute(self, userdata):
         # set target pos
-        self.robot.setTargetPosTraj(self.approach_cog_pos)
-        rospy.logwarn("[Approach] go to {}".format(self.approach_cog_pos))
+        approach_cog_pos = np.array(self.door_knob_initial_world_pos) + np.array(self.approach_cog_pos_offset)
+        self.robot.setTargetPosTraj(approach_cog_pos)
+        rospy.logwarn("[Approach] go to {}".format(approach_cog_pos))
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.approach_wait_time):
             rospy.logwarn_throttle(3.0, "[Approach] waiting after pos control command")
             pass
+
+        # check pos control convergence
         converge_flag = False
         while not converge_flag:
             cog_odom = self.robot.getCogOdom()
-            if self.robot.posControlConverged(target=self.approach_cog_pos, thresh=0.1):
+            if self.robot.posControlConverged(target=approach_cog_pos, thresh=0.1):
                 converge_flag = True
             else:
-                pos_control_error = self.robot.getPosControlError(self.approach_cog_pos)
+                pos_control_error = self.robot.getPosControlError(approach_cog_pos)
                 rospy.logwarn_throttle(3.0, "[Approach] waiting for pos control convergence. error: {} {} {}".format(pos_control_error[0], pos_control_error[1], pos_control_error[2]))
 
         # set target yaw angle
-        self.robot.setTargetYawTraj(-1.57)
-        rospy.logwarn("[Approach] set target yaw angle")
+        self.robot.setTargetYawTraj(self.approach_yaw_angle)
+        rospy.logwarn("[Approach] set target yaw angle to {}".format(self.approach_yaw_angle))
         start_time = rospy.get_time()
         while(rospy.get_time() - start_time < self.approach_wait_time):
             pass
-        while not self.robot.yawControlConverged(target=-1.57):
+        while not self.robot.yawControlConverged(target=self.approach_yaw_angle):
             pass
 
         return 'success'
@@ -59,8 +64,9 @@ class PrepareManip(BaseState):
     def __init__(self, robot):
         BaseState.__init__(self, robot, outcomes=['success'])
         self.prepare_manip_joint_angle = rospy.get_param("~prepare_manip_joint_angle")
-        self.prepare_manip_cog_pos = rospy.get_param("~prepare_manip_cog_pos")
         self.prepare_manip_wait_time = rospy.get_param("~prepare_manip_wait_time")
+        self.prepare_manip_door_knob_offset = rospy.get_param("~prepare_manip_door_knob_offset")
+        self.door_knob_initial_world_pos = rospy.get_param("~door_knob_initial_world_pos")
 
     def execute(self, userdata):
         # set joint angle
@@ -74,11 +80,15 @@ class PrepareManip(BaseState):
             pass
 
         # set target pos
-        self.robot.setTargetPosTraj(self.prepare_manip_cog_pos)
+        target_ef_pos = np.array(self.door_knob_initial_world_pos) + np.array(self.prepare_manip_door_knob_offset)
+        (trans, rot) = self.robot.getTransform("cog", "link1")
+        world_R_cog = self.robot.getCogRotationMatrix()
+        prepare_manip_cog_pos = target_ef_pos - np.dot(world_R_cog, trans)
+        self.robot.setTargetPosTraj(prepare_manip_cog_pos)
         start_time= rospy.get_time()
         while(rospy.get_time() - start_time < self.prepare_manip_wait_time):
             pass
-        while not self.robot.posControlConverged(target=self.prepare_manip_cog_pos):
+        while not self.robot.posControlConverged(target=prepare_manip_cog_pos):
             rospy.logwarn_throttle(3.0, "[PrepareManip] waiting for pos control converged")
             pass
 
@@ -89,8 +99,12 @@ class Manip(BaseState):
         BaseState.__init__(self, robot, outcomes=['success', 'recover'])
         self.manip_target_pos = rospy.get_param("~manip_target_pos")
         self.manip_wait_time = rospy.get_param("~manip_wait_time")
+        self.door_knob_final_world_pos = rospy.get_param("~door_knob_final_world_pos")
 
     def execute(self, userdata):
+        (trans, rot) = self.robot.getTransform("cog", "link1")
+        world_R_cog = self.robot.getCogRotationMatrix()
+        self.manip_target_pos = self.door_knob_final_world_pos - np.dot(world_R_cog, trans)
         self.robot.setTargetPosTraj(self.manip_target_pos)
         rospy.logwarn("[Manip] set target pos {}".format(self.manip_target_pos))
         start_time = rospy.get_time()
@@ -106,14 +120,20 @@ class FinishTask(BaseState):
     def __init__(self, robot):
         BaseState.__init__(self, robot, outcomes=['success'])
         self.finish_task_target_pos = rospy.get_param('~finish_task_target_pos')
+        self.finish_task_joint_angle = rospy.get_param('~finish_task_joint_angle')
         self.finish_task_wait_time = rospy.get_param('~finish_task_wait_time')
 
     def execute(self, userdata):
-        self.robot.setTargetPosTraj(self.finish_task_target_pos)
+        # set joint angle
+        msg = JointState()
+        msg.name = ["joint1", "joint2"]
+        msg.position = self.finish_task_joint_angle
+        self.robot.sendJointState(msg)
+        time.sleep(self.finish_task_wait_time)
 
-        start_time = rospy.get_time()
-        while(rospy.get_time() - start_time < self.finish_task_wait_time):
-            pass
+        # set target pos
+        self.robot.setTargetPosTraj(self.finish_task_target_pos)
+        time.sleep(self.finish_task_wait_time)
 
         return "success"
 
