@@ -214,10 +214,22 @@ def main(file_path, type):
         plt.subplot(4, 2, 6)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         yaw_ref = np.array(data_euler_ref['yaw'])
+        # if yaw_ref has a jump, we need to fix it
+        for i in range(1, len(yaw_ref)):
+            if yaw_ref[i] - yaw_ref[i - 1] > np.pi:
+                yaw_ref[i:] -= 2 * np.pi
+            elif yaw_ref[i] - yaw_ref[i - 1] < -np.pi:
+                yaw_ref[i:] += 2 * np.pi
         plt.plot(t_ref, yaw_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         yaw = np.array(data_euler['yaw'])
+        # if yaw has a jump, we need to fix it
+        for i in range(1, len(yaw)):
+            if yaw[i] - yaw[i - 1] > np.pi:
+                yaw[i:] -= 2 * np.pi
+            elif yaw[i] - yaw[i - 1] < -np.pi:
+                yaw[i:] += 2 * np.pi
         plt.plot(t, yaw * 180 / np.pi, label='real', color=color_real)
         plt.ylabel('Yaw ($^\\circ$)', fontsize=label_size)
 
