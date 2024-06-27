@@ -46,8 +46,8 @@ controller:
     Qq_z: 600
     Qw_xy: 5
     Qw_z: 5
-    Qa: 1
-    Rt: 1
+    Qa: 2
+    Rt: 2
     Rac_d: 250  # difference of ac
 
     is_attitude_ctrl: false
