@@ -60,6 +60,6 @@ namespace aerial_robot_navigation
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;
     void assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg);
-    void convertTargetPosFromCoG2CoM();
+    virtual void convertTargetPosFromCoG2CoM();
   };
 };

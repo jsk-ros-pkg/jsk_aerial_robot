@@ -59,17 +59,18 @@ public:
   std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
   int getMaxModuleNum(){return max_modules_num_;}
 
-  void calcCenterOfMoving();
+  virtual void calcCenterOfMoving();  
 
-private:
+protected:
   ros::NodeHandle nh_;
   ros::Publisher cog_com_dist_pub_;
   KDL::Frame contact_frame_;
   KDL::Frame Cog2Cp_;
-  KDL::Frame Cog2CoM_;
   std::mutex mutex_contact_frame_;
   std::mutex mutex_cog2cp_;
   std::mutex mutex_cog2com_;
+
+  KDL::Frame Cog2CoM_;
   tf2_ros::TransformListener tfListener_;
   tf2_ros::Buffer tfBuffer_;
   tf2_ros::TransformBroadcaster br_;
@@ -85,10 +86,8 @@ private:
   bool leader_fix_flag_;
   std::vector<int> assembled_modules_ids_;
   int module_state_;
-  int module_num_;
-  
+  int module_num_;  
 
-protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 };
 
