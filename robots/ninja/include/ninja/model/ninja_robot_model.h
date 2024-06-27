@@ -12,5 +12,11 @@ public:
                   bool verbose = false,
                   double fc_t_min_thre = 0,
                   double epsilon = 10);
-  virtual ~NinjaRobotModel() = default;  
+  virtual ~NinjaRobotModel() = default;
+
+  void calcCenterOfMoving() override;
+protected:
+  void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+private:
+  KDL::Tree entire_structure_;
 };
