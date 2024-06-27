@@ -53,7 +53,7 @@ Visualization Manager:
       Value: true
     - Alpha: 0.5
       Class: rviz/RobotModel
-      Collision Enabled: false
+      Collision Enabled: true
       Enabled: true
       Links:
         All Links Enabled: true
@@ -168,6 +168,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
         delta/cog:
           Value: true
         delta/contact_point:
@@ -228,6 +230,8 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
+          base_link:
+            {}
           delta/root:
             delta/cog:
               {}
@@ -470,7 +474,7 @@ Visualization Manager:
       Enabled: true
       Force Arrow Scale: 0.009999999776482582
       Force Color: 204; 51; 51
-      Hide Small Values: true
+      Hide Small Values: false
       History Length: 1
       Name: WrenchStamped
       Queue Size: 10
@@ -479,6 +483,51 @@ Visualization Manager:
       Torque Color: 204; 204; 51
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /delta/trajectory
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: slope/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -507,7 +556,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.14434814453125
+      Distance: 4.009026527404785
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -515,17 +564,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.20174537599086761
-        Y: 0.4548872709274292
-        Z: 0.7949192523956299
+        X: -0.044640183448791504
+        Y: 0.3090484142303467
+        Z: 0.6699919700622559
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5747973322868347
+      Pitch: 0.36979755759239197
       Target Frame: <Fixed Frame>
-      Yaw: 4.683560848236084
+      Yaw: 4.733561038970947
     Saved: ~
 Window Geometry:
   Displays:

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="slope_x" default="3.0"/>
+  <arg name="slope_y" default="0.0"/>
+  <arg name="slope_z" default="0.0"/>
+  <arg name="slope_yaw" default="0.0"/>
+
+  <!-- spawn slope -->
+  <param name="slope/robot_description" command="$(find xacro)/xacro $(find delta)/urdf/demo/slope.urdf"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="slope_spawn" args="-param slope/robot_description -urdf -x $(arg slope_x) -y $(arg slope_y) -z 0 -Y $(arg slope_yaw) -model slope_model" />
+
+   <node pkg="tf" type="static_transform_publisher" name="slope_tf_publisher" args="$(arg slope_x) $(arg slope_y) $(arg slope_z) 0 0 0 world base_link 1000" />
+</launch>

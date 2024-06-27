@@ -118,6 +118,13 @@
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
+  <include file="$(find delta)/launch/demo/spawn_slope.launch" if="$(arg simulation)">
+    <arg name="slope_x" value="3.0"/>
+    <arg name="slope_y" value="0.0"/>
+    <arg name="slope_z" value="0.0"/>
+    <arg name="slope_yaw" value="0.0"/>
+  </include>
+
   ########## Simulation in Mujoco #########
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
