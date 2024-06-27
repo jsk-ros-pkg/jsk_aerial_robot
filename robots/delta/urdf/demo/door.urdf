@@ -2,7 +2,9 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="door" >
 
-  <link name="door_base">
+  <xacro:property name="door_knob_length" value="1.0"/>
+
+  <link name="base_link">
     <inertial>
       <origin xyz="0.5 0.5 1"/>
       <mass value="10.0"/>
@@ -24,6 +26,10 @@
       </geometry>
     </visual>
   </link>
+  <gazebo reference="base_link">
+    <mu1>2.0</mu1>
+    <mu2>2.0</mu2>
+  </gazebo>
 
   <link name="slide_door">
     <inertial>
@@ -50,7 +56,7 @@
 
   <link name="door_knob_link">
     <inertial>
-      <origin xyz="0 0 0.1"/>
+      <origin xyz="0 0 0"/>
       <mass value="0.05"/>
       <inertia
           ixx="0.01" ixy="0.0" ixz="0.0"
@@ -58,29 +64,30 @@
           izz="0.01"/>
     </inertial>
     <collision>
-      <origin xyz="0 0 0.1"/>
+      <origin xyz="0 0 0"/>
       <geometry>
-        <cylinder radius="0.02" length="0.2"/>
+        <cylinder radius="0.02" length="${door_knob_length}"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0 0.1"/>
+      <origin xyz="0 0 0"/>
       <geometry>
-        <cylinder radius="0.02" length="0.2"/>
+        <cylinder radius="0.02" length="${door_knob_length}"/>
       </geometry>
     </visual>
   </link>
 
   <joint name="slide_door_joint" type="prismatic">
-    <origin xyz="-0.5 0 1"/>
-    <parent link="door_base"/>
+    <origin xyz="-0.5 0.5 1"/>
+    <parent link="base_link"/>
     <child link="slide_door"/>
     <axis xyz="0 1 0"/>
     <limit lower="-1.0" upper="1.0" effort="0" velocity="0"/>
+    <dynamics friction="1.0"/>
   </joint>
 
   <joint name="door_knob_joint" type="fixed">
-    <origin xyz="-0.2 0.5 0"/>
+    <origin xyz="-0.2 -0.5 0"/>
     <parent link="slide_door"/>
     <child link="door_knob_link"/>
   </joint>

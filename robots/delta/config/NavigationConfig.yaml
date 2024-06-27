@@ -48,6 +48,6 @@ navigation:
 
 
   # aerial trajectory
-  trajectory_mean_vel: 0.2
-  trajectory_mean_yaw_rate: 0.2
-  trajectory_min_du: 5.0
+  trajectory_mean_vel: 0.1
+  trajectory_mean_yaw_rate: 0.1
+  trajectory_min_du: 6.0
