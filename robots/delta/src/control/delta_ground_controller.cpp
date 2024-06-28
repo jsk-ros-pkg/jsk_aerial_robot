@@ -194,7 +194,10 @@ void RollingController::calcStandingFullLambda()
 
   solver.setPrimalVariable(full_lambda_all_);
 
-  solver.solve();
+  if(!solver.solve())
+    {
+      ROS_WARN_STREAM("[control][OSQP] could not solve QP!");
+    }
   auto solution = solver.getSolution();
   full_lambda_all_ = solution;
   full_lambda_trans_ = solution;
