@@ -56,7 +56,7 @@ label_size = 15
 legend_alpha = 0.5
 
 # fig = plt.figure(figsize=(3.5, 3))
-figure = plt.figure(figsize=(3.5, 2.5))
+figure = plt.figure(figsize=(3.5, 2.2))
 
 plt.plot(time, thrust_cmd, label='input')
 plt.plot(time, fz, label='real')

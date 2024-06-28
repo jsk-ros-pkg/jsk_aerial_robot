@@ -46,7 +46,7 @@ plt.rcParams.update({'font.size': 11})  # default is 10
 label_size = 15
 legend_alpha = 0.5
 
-fig = plt.figure(figsize=(3.5, 2.5))
+fig = plt.figure(figsize=(3.5, 2.2))
 plt.plot(t, u_interpolated(t) * 180 / np.pi, label='input')
 plt.plot(time_output, y_output * 180 / np.pi, label='real')
 plt.plot(t, y * 180 / np.pi, label='estimated')
