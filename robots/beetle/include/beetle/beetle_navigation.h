@@ -77,6 +77,7 @@ namespace aerial_robot_navigation
     KDL::Frame Cog2CoM_;
     tf2_ros::TransformListener tfListener_;
     tf2_ros::Buffer tfBuffer_;
+    tf2_ros::TransformBroadcaster br_;
     int max_modules_num_ = 4; //TODO: get the value from rosparam
     int pre_assembled_modules_;
     int my_id_;
@@ -89,7 +90,7 @@ namespace aerial_robot_navigation
     bool leader_fix_flag_;
     std::vector<int> assembled_modules_ids_;
     int module_state_;
-    int module_num_;  
+    int module_num_;
 
     void rosParamInit() override;
 
@@ -111,7 +112,6 @@ namespace aerial_robot_navigation
     void setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();
-    tf2_ros::TransformBroadcaster br_;
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;
     void assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg);

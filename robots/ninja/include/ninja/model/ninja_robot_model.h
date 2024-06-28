@@ -14,7 +14,6 @@ public:
                   double epsilon = 10);
   virtual ~NinjaRobotModel() = default;
 
-  void calcCenterOfMoving() override;
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
 private:

@@ -16,6 +16,8 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     double loop_du) override;
+  protected:
+    void calcCenterOfMoving() override;
   private:
     void convertTargetPosFromCoG2CoM() override;
     ros::Subscriber entire_structure_sub_;
