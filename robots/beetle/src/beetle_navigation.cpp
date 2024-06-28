@@ -8,7 +8,12 @@ using namespace aerial_robot_navigation;
 BeetleNavigator::BeetleNavigator():
   GimbalrotorNavigator(),
   roll_pitch_control_flag_(false),
-  pre_assembled_(false)
+  pre_assembled_(false),
+  current_assembled_(false),
+  module_state_(SEPARATED),
+  leader_fix_flag_(false),
+  tfBuffer_(),
+  tfListener_(tfBuffer_)
 {
 }
 
@@ -20,13 +25,16 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
   nh_ = nh;
   nhp_ = nhp;
-  beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
-  int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+  cog_com_dist_pub_ = nh_.advertise<geometry_msgs::Point>("cog_com_dist", 1);
   assembly_nav_sub_ = nh_.subscribe("/assembly/uav/nav", 1, &BeetleNavigator::assemblyNavCallback, this);
   assembly_target_rot_sub_ = nh_.subscribe("/assembly/final_target_baselink_rot", 1, &BeetleNavigator::setAssemblyFinalTargetBaselinkRotCallback, this);
-  for(int i = 0; i < max_modules_num; i++){
-    std::string module_name  = string("/") + beetle_robot_model_->getMyName() + std::to_string(i+1);
+
+  beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
+
+  for(int i = 0; i < max_modules_num_; i++){
+    std::string module_name  = string("/") + getMyName() + std::to_string(i+1);
     assembly_flag_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/assembly_flag"), 1, &BeetleNavigator::assemblyFlagCallback, this)));
+    assembly_flags_.insert(std::make_pair(i+1,false));
   }
   
 }
@@ -283,12 +291,12 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
 
 void BeetleNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
-  if(beetle_robot_model_->getModuleState() != SEPARATED) BeetleNavigator::naviCallback(msg);
+  if(getModuleState() != SEPARATED) BeetleNavigator::naviCallback(msg);
 }
 
 void BeetleNavigator::setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
-  if(beetle_robot_model_->getModuleState() != SEPARATED) GimbalrotorNavigator::setFinalTargetBaselinkRotCallback(msg);
+  if(getModuleState() != SEPARATED) GimbalrotorNavigator::setFinalTargetBaselinkRotCallback(msg);
 }
 
 
@@ -296,16 +304,16 @@ void BeetleNavigator::assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg
 {
   int module_id = std::stoi(msg.key);
   int assembly_flag = std::stoi(msg.value);
-  beetle_robot_model_->setAssemblyFlag(module_id,assembly_flag);
+  setAssemblyFlag(module_id,assembly_flag);
 }
 
 void BeetleNavigator::update()
 {
   rotateContactPointFrame();
-  beetle_robot_model_->calcCenterOfMoving();
+  calcCenterOfMoving();
   convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
-  beetle_robot_model_->setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
+  setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
 }
 
 void BeetleNavigator::rotateContactPointFrame()
@@ -317,17 +325,116 @@ void BeetleNavigator::rotateContactPointFrame()
   br_.sendTransform(tf); 
 }
 
+void BeetleNavigator::calcCenterOfMoving()
+{
+  std::string cog_name = my_name_ + std::to_string(my_id_) + "/cog";
+  Eigen::Vector3f center_of_moving = Eigen::Vector3f::Zero();
+  int assembled_module = 0;
+  geometry_msgs::Point cog_com_dist_msg;
+  assembled_modules_ids_.clear();
+  for(const auto & item : assembly_flags_){
+    geometry_msgs::TransformStamped transformStamped;
+    int id = item.first;
+    bool value = item.second;
+    if(!value) continue;
+    try
+      {
+        transformStamped = tfBuffer_.lookupTransform(cog_name, my_name_ + std::to_string(id) + std::string("/cog") , ros::Time(0));
+        auto& trans = transformStamped.transform.translation;
+        Eigen::Vector3f module_root(trans.x,trans.y,trans.z); 
+        center_of_moving += module_root;
+        assembled_module ++;
+        assembled_modules_ids_.push_back(id);
+      }
+    catch (tf2::TransformException& ex)
+      {
+        ROS_ERROR_STREAM("not exist module is mentioned. ID is "<<id );
+        return;
+      }
+  }
+  setModuleNum(assembled_module);
+  if(!assembled_module || assembled_module == 1 || !assembly_flags_[my_id_]){
+    pre_assembled_modules_ = assembled_module;
+    KDL::Frame com_frame;
+    setCog2CoM(com_frame);
+    current_assembled_ = false;
+    module_state_ = SEPARATED;
+    cog_com_dist_msg.x = Cog2CoM_.p.x();
+    cog_com_dist_msg.y = Cog2CoM_.p.y();
+    cog_com_dist_msg.z = Cog2CoM_.p.z();
+    cog_com_dist_pub_.publish(cog_com_dist_msg);
+    return;
+  }
+
+  //define a module closest to the center as leader
+  std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
+  int leader_index = std::round((assembled_modules_ids_.size())/2.0) -1;
+  if(!leader_fix_flag_) leader_id_ = assembled_modules_ids_[leader_index];
+  if(my_id_ == leader_id_ && control_flag_){
+    module_state_ = LEADER;
+  }else if(control_flag_){
+    module_state_ = FOLLOWER;
+  }
+
+
+  center_of_moving = center_of_moving / assembled_module;
+
+  geometry_msgs::TransformStamped tf;
+  tf.header.stamp = ros::Time::now();
+  tf.header.frame_id = cog_name;
+  tf.child_frame_id = my_name_ + std::to_string(my_id_)+"/center_of_moving";
+  tf.transform.translation.x = center_of_moving.x();
+  tf.transform.translation.y = center_of_moving.y();
+  tf.transform.translation.z = center_of_moving.z();
+  tf.transform.rotation.x = 0;
+  tf.transform.rotation.y = 0;
+  tf.transform.rotation.z = 0;
+  tf.transform.rotation.w = 1;
+  br_.sendTransform(tf);
+
+  //update com-cog distance only during hovering
+  if(control_flag_){
+    Eigen::Vector3f cog_com_dist(center_of_moving.norm() * center_of_moving.x()/fabs(center_of_moving.x()),0,0);
+    // ROS_INFO_STREAM("cog_com_dist is " << cog_com_dist.transpose());
+    tf.transform.translation.x = cog_com_dist.x();
+    tf.transform.translation.y = cog_com_dist.y();
+    tf.transform.translation.z = cog_com_dist.z();
+    setCog2CoM(tf2::transformToKDL(tf));
+    reconfig_flag_ =  (pre_assembled_modules_ != assembled_module) ? true : false;
+    if(reconfig_flag_){
+      pre_assembled_modules_ = assembled_module;
+      Eigen::VectorXi id_vector = Eigen::Map<Eigen::VectorXi>(assembled_modules_ids_.data(), assembled_modules_ids_.size());
+      for(const auto & item : assembly_flags_){
+        if(item.second)
+          {
+            std::cout << "id: " << item.first << " -> assembled"<< std::endl;
+          } else {
+          std::cout << "id: " << item.first << " -> separated"<< std::endl;
+        }
+      }
+      ROS_INFO_STREAM(id_vector);
+      ROS_INFO_STREAM("Leader's ID is " <<leader_id_);
+    }
+  }
+  cog_com_dist_msg.x = Cog2CoM_.p.x();
+  cog_com_dist_msg.y = Cog2CoM_.p.y();
+  cog_com_dist_msg.z = Cog2CoM_.p.z();
+  cog_com_dist_pub_.publish(cog_com_dist_msg);
+  if(control_flag_) current_assembled_ = true;
+}
+
+
 void BeetleNavigator::convertTargetPosFromCoG2CoM()
 {
   //TODO: considering correct rotaion axis
 
   tf::Transform cog2com_tf;
-  tf::transformKDLToTF(beetle_robot_model_->getCog2CoM<KDL::Frame>(), cog2com_tf);
+  tf::transformKDLToTF(getCog2CoM<KDL::Frame>(), cog2com_tf);
   tf::Matrix3x3 cog_orientation_tf;
   tf::matrixEigenToTF(beetle_robot_model_->getCogDesireOrientation<Eigen::Matrix3d>(),cog_orientation_tf);
   tf::Vector3 com_conversion = cog_orientation_tf *  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
-  bool current_assembled = beetle_robot_model_->getCurrentAssembled();
-  bool reconfig_flag = beetle_robot_model_->getReconfigFlag();
+  bool current_assembled = getCurrentAssembled();
+  bool reconfig_flag = getReconfigFlag();
 
   KDL::Frame empty_frame;
 
@@ -338,7 +445,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
   } else if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
-    int my_id = beetle_robot_model_->getMyID();
+    int my_id = getMyID();
     tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
     tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
     ROS_INFO_STREAM("ID: " << my_id << "'s orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
@@ -351,7 +458,7 @@ void BeetleNavigator::convertTargetPosFromCoG2CoM()
     }
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
-  }else if(beetle_robot_model_->getCog2CoM<KDL::Frame>() == empty_frame && getNaviState() != HOVER_STATE){
+  }else if(getCog2CoM<KDL::Frame>() == empty_frame && getNaviState() != HOVER_STATE){
     return;
   }
 
@@ -393,6 +500,10 @@ void BeetleNavigator::rosParamInit()
   ros::NodeHandle nh(nh_, "navigation");
   getParam<double>(nh, "max_target_roll_pitch_rate", max_target_roll_pitch_rate_, 0.0);
   GimbalrotorNavigator::rosParamInit();
+
+  nh_.getParam("robot_id", my_id_);
+  nh_.getParam("aerial_robot_base_node/tf_prefix", my_name_);
+  my_name_.pop_back(); // extract common robot name
 }
 
 

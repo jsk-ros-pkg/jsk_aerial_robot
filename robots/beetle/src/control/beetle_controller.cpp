@@ -45,6 +45,7 @@ namespace aerial_robot_control
     wrench_pid_msg_.yaw.d_term.resize(1);
 
     beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
+    beetle_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::BeetleNavigator>(navigator);
     external_wrench_lower_limit_ = Eigen::VectorXd::Zero(6);
     external_wrench_upper_limit_ = Eigen::VectorXd::Zero(6);
     rosParamInit();
@@ -54,9 +55,9 @@ namespace aerial_robot_control
     whole_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("whole_wrench", 1);
     internal_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("internal_wrench", 1);
     wrench_comp_pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/wrench_comp/pid", 1);
-    int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+    int max_modules_num = beetle_navigator_->getMaxModuleNum();
     for(int i = 0; i < max_modules_num; i++){
-      std::string module_name  = string("/") + beetle_robot_model_->getMyName() + std::to_string(i+1);
+      std::string module_name  = string("/") + beetle_navigator_->getMyName() + std::to_string(i+1);
       est_wrench_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/tagged_wrench"), 1, &BeetleController::estExternalWrenchCallback, this)));
       Eigen::VectorXd wrench = Eigen::VectorXd::Zero(6);
       est_wrench_list_.insert(make_pair(i+1, wrench));
@@ -83,12 +84,12 @@ namespace aerial_robot_control
 
   void BeetleController::controlCore()
   {
-    std::map<int, bool> assembly_flag = beetle_robot_model_->getAssemblyFlags();
-    int max_modules_num = beetle_robot_model_->getMaxModuleNum();
-    int module_state = beetle_robot_model_-> getModuleState();
+    std::map<int, bool> assembly_flag = beetle_navigator_->getAssemblyFlags();
+    int max_modules_num = beetle_navigator_->getMaxModuleNum();
+    int module_state = beetle_navigator_-> getModuleState();
     bool comp_update_flag = false;
     double comp_update_interval = 1  / comp_term_update_freq_;
-    if(beetle_robot_model_->getControlFlag() &&
+    if(beetle_navigator_->getControlFlag() &&
        module_state != SEPARATED){
       calcInteractionWrench();
       comp_update_flag = true;
@@ -102,11 +103,11 @@ namespace aerial_robot_control
 
     double mass_inv = 1 / beetle_robot_model_->getMass();
     Eigen::Matrix3d inertia_inv = (beetle_robot_model_->getInertia<Eigen::Matrix3d>()).inverse();
-    int my_id = beetle_robot_model_->getMyID();
+    int my_id = beetle_navigator_->getMyID();
 
     if(module_state == FOLLOWER &&
        pd_wrench_comp_mode_ &&
-       beetle_robot_model_->getControlFlag()){
+       beetle_navigator_->getControlFlag()){
 
       /* set proper gains for wrench comp */
       int module_num = 0;
@@ -253,7 +254,7 @@ namespace aerial_robot_control
     Eigen::VectorXd W_w = Eigen::VectorXd::Zero(6);
     Eigen::VectorXd W_sum = Eigen::VectorXd::Zero(6);
     int module_num = 0;
-    std::map<int, bool> assembly_flag = beetle_robot_model_->getAssemblyFlags();
+    std::map<int, bool> assembly_flag = beetle_navigator_->getAssemblyFlags();
 
     for(const auto & item : est_wrench_list_){
       if(assembly_flag[item.first]){
@@ -285,7 +286,7 @@ namespace aerial_robot_control
         inter_wrench_list_[item.first] = Eigen::VectorXd::Zero(6);
       }
     }
-    int my_id = beetle_robot_model_->getMyID();
+    int my_id = beetle_navigator_->getMyID();
     wrench_msg.wrench.force.x = inter_wrench_list_[my_id](0);
     wrench_msg.wrench.force.y = inter_wrench_list_[my_id](1);
     wrench_msg.wrench.force.z = inter_wrench_list_[my_id](2);
@@ -294,7 +295,7 @@ namespace aerial_robot_control
     wrench_msg.wrench.torque.z = inter_wrench_list_[my_id](5);
     internal_wrench_pub_.publish(wrench_msg);
     /* 3. calculate wrench compensation term for each module*/
-    int leader_id = beetle_robot_model_->getLeaderID();
+    int leader_id = beetle_navigator_->getLeaderID();
     /* 3.1. process from leader to left*/
     int right_module_id = leader_id;
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
@@ -309,7 +310,7 @@ namespace aerial_robot_control
       }
     }
     /* 3.2. process from leader to right*/
-    int max_modules_num = beetle_robot_model_->getMaxModuleNum();
+    int max_modules_num = beetle_navigator_->getMaxModuleNum();
     int left_module_id = leader_id;
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i <= max_modules_num; i++){
@@ -417,7 +418,7 @@ namespace aerial_robot_control
     estimate_external_wrench_pub_.publish(wrench_msg);
 
     beetle::TaggedWrench tagged_wrench;
-    tagged_wrench.index = beetle_robot_model_->getMyID();
+    tagged_wrench.index = beetle_navigator_->getMyID();
     tagged_wrench.wrench = wrench_msg;
     tagged_external_wrench_pub_.publish(tagged_wrench);
 
