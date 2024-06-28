@@ -149,7 +149,7 @@ def construct_allocation_mat_pinv():
 
 
 class MPCPtPubNode:
-    def __init__(self, traj_type: int) -> None:
+    def __init__(self, traj_type: int, loop_num: int) -> None:
         self.node_name = "mpc_pt_pub_node"
         rospy.init_node(self.node_name, anonymous=False)
         self.namespace = rospy.get_namespace().rstrip("/")
@@ -167,13 +167,13 @@ class MPCPtPubNode:
 
         # traj
         if traj_type == 0:
-            self.traj = SetPointTraj()
+            self.traj = SetPointTraj(loop_num)
         elif traj_type == 1:
-            self.traj = CircleTraj()
+            self.traj = CircleTraj(loop_num)
         elif traj_type == 2:
-            self.traj = LemniscateTraj()
+            self.traj = LemniscateTraj(loop_num)
         elif traj_type == 3:
-            self.traj = LemniscateTrajOmni()
+            self.traj = LemniscateTrajOmni(loop_num)
         else:
             raise ValueError("Invalid trajectory type!")
 
@@ -301,6 +301,12 @@ class MPCPtPubNode:
         ros_x_u.header.frame_id = "map"
         self.pub_ref_traj.publish(ros_x_u)
 
+        # 4. check if the trajectory is finished
+        if self.traj.check_finished(rospy.Time.now().to_sec() - self.start_time):
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished!")
+            rospy.signal_shutdown("Trajectory finished!")
+            return
+
     def sub_odom_callback(self, msg: Odometry):
         self.uav_odom = msg
 
@@ -309,10 +315,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
     parser.add_argument("traj_type", type=int,
                         help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni")
+    parser.add_argument("-num", "--loop_num", type=int, default=np.inf, help="Loop number for the trajectory")
     args = parser.parse_args()
 
     try:
-        node = MPCPtPubNode(args.traj_type)
+        node = MPCPtPubNode(args.traj_type, args.loop_num)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
