@@ -179,7 +179,7 @@ class MPCPtPubNode:
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
 
-        self.start_time = rospy.Time.now().to_sec()
+        self.start_time = None
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
         # Timer
@@ -254,6 +254,8 @@ class MPCPtPubNode:
             else:
                 t_pred = 0.0
 
+            if self.start_time is None:
+                self.start_time = rospy.Time.now().to_sec()
             t_cal = t_pred + rospy.Time.now().to_sec() - self.start_time
 
             # position
