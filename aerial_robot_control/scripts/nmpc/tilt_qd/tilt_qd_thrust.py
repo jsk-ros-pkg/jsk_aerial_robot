@@ -49,13 +49,13 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 t_rotor = 0.0942  # time constant of rotor
 
 
-class NMPCTiltQdServoThrust(NMPCBase):
+class NMPCTiltQdThrust(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServoThrust, self).__init__()
+        super(NMPCTiltQdThrust, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        model_name = "tilt_qd_servo_thrust_mdl"
+        model_name = "tilt_qd_thrust_mdl"
         return model_name
 
     def _set_ts_ctrl(self) -> float:
@@ -89,7 +89,7 @@ class NMPCTiltQdServoThrust(NMPCBase):
         ft4 = ca.SX.sym("ft4")
         ft = ca.vertcat(ft1, ft2, ft3, ft4)
 
-        states = ca.vertcat(p, v, q, w, a, ft)
+        states = ca.vertcat(p, v, q, w, ft)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -104,12 +104,7 @@ class NMPCTiltQdServoThrust(NMPCBase):
         ftc3 = ca.SX.sym("ftc3")
         ftc4 = ca.SX.sym("ftc4")
         ftc = ca.vertcat(ftc1, ftc2, ftc3, ftc4)
-        a1c = ca.SX.sym("a1c")
-        a2c = ca.SX.sym("a2c")
-        a3c = ca.SX.sym("a3c")
-        a4c = ca.SX.sym("a4c")
-        ac = ca.vertcat(a1c, a2c, a3c, a4c)
-        controls = ca.vertcat(ftc, ac)
+        controls = ca.vertcat(ftc, a)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -190,7 +185,6 @@ class NMPCTiltQdServoThrust(NMPCBase):
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
-            (ac - a) / t_servo,
             (ftc - ft) / t_rotor,
         )
 
@@ -202,11 +196,11 @@ class NMPCTiltQdServoThrust(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
-        control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, ft)
+        control_y = ca.vertcat((ftc - ft), a)  # ftc_ref and ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 21)
+        x_dot = ca.SX.sym("x_dot", states.size())
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -267,28 +261,24 @@ class NMPCTiltQdServoThrust(NMPCBase):
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_xy"],
                 nmpc_params["Qw_z"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                1,
-                1,
-                1,
-                1,
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                50,
+                50,
+                50,
+                50,
             ]
         )
         print("R: \n", R)
@@ -301,7 +291,7 @@ class NMPCTiltQdServoThrust(NMPCBase):
         # set constraints
         # # bx
         # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
         ocp.constraints.lbx = np.array(
             [
                 nmpc_params["v_min"],
@@ -310,10 +300,6 @@ class NMPCTiltQdServoThrust(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx = np.array(
@@ -324,18 +310,14 @@ class NMPCTiltQdServoThrust(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
         print("lbx: ", ocp.constraints.lbx)
         print("ubx: ", ocp.constraints.ubx)
 
         # # bx_e
-        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
+        # vx, vy, vz, wx, wy, wz
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
         ocp.constraints.lbx_e = np.array(
             [
                 nmpc_params["v_min"],
@@ -344,10 +326,6 @@ class NMPCTiltQdServoThrust(NMPCBase):
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
                 nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubx_e = np.array(
@@ -358,10 +336,6 @@ class NMPCTiltQdServoThrust(NMPCBase):
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
                 nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
         print("lbx_e: ", ocp.constraints.lbx_e)
@@ -433,7 +407,7 @@ class XrUrConverter(XrUrConverterBase):
         super(XrUrConverter, self).__init__()
 
     def _set_nx_nu(self):
-        self.nx = 21
+        self.nx = 17
         self.nu = 8
 
     def _set_physical_params(self):
@@ -491,22 +465,22 @@ class XrUrConverter(XrUrConverterBase):
         xr[:, 7] = target_qwxyz.item(1)  # qx
         xr[:, 8] = target_qwxyz.item(2)  # qy
         xr[:, 9] = target_qwxyz.item(3)  # qz
-        xr[:, 13] = a1_ref
-        xr[:, 14] = a2_ref
-        xr[:, 15] = a3_ref
-        xr[:, 16] = a4_ref
-        xr[:, 17] = ft1_ref
-        xr[:, 18] = ft2_ref
-        xr[:, 19] = ft3_ref
-        xr[:, 20] = ft4_ref
+        xr[:, 13] = ft1_ref
+        xr[:, 14] = ft2_ref
+        xr[:, 15] = ft3_ref
+        xr[:, 16] = ft4_ref
 
         ur = np.zeros([ocp_N, self.nu])
+        ur[:, 4] = a1_ref
+        ur[:, 5] = a2_ref
+        ur[:, 6] = a3_ref
+        ur[:, 7] = a4_ref
 
         return xr, ur
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServoThrust()
+    nmpc = NMPCTiltQdThrust()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

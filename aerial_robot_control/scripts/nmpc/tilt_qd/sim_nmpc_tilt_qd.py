@@ -1,6 +1,7 @@
 """
  Created by li-jinjie on 24-3-9.
 """
+import copy
 import time
 
 import numpy as np
@@ -24,6 +25,9 @@ from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 # further consider the thrust delay
 from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 from tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+
+# only consider the thrust delay
+from tilt_qd_thrust import NMPCTiltQdThrust
 
 
 def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
@@ -70,6 +74,8 @@ if __name__ == "__main__":
         nmpc = NMPCTiltQdServoThrust()
     elif args.model == 7:
         nmpc = NMPCTiltQdServoDragDist()
+    elif args.model == 8:
+        nmpc = NMPCTiltQdThrust()
     else:
         raise ValueError(f"Invalid control model {args.model}.")
 
@@ -144,13 +150,16 @@ if __name__ == "__main__":
         t_ctl += ts_sim
 
         # --------- update state estimation ---------
-        x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
+        x_now = copy.deepcopy(x_now_sim[:nx])  # the dimension of x_now may be smaller than x_now_sim
+
+        if isinstance(nmpc, NMPCTiltQdThrust):
+            x_now[13:17] = copy.deepcopy(x_now_sim[17:21])
 
         # -------- update control target --------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
-        if args.plot_type == 2:
+        if isinstance(nmpc, NMPCTiltQdNoServoNewCost):
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
@@ -170,7 +179,7 @@ if __name__ == "__main__":
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
-        if args.plot_type == 2:
+        if isinstance(nmpc, NMPCTiltQdNoServoNewCost):
             if nx > 13:
                 xr[:, 13:] = 0.0
             ur[:, 4:] = 0.0
