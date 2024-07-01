@@ -406,8 +406,10 @@ namespace aerial_robot_control
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu>(estimator_->getImuHandler(0));
     tf::vectorTFToEigen(imu_handler->getFilteredVelCog(), vel_w);
     tf::vectorTFToEigen(imu_handler->getFilteredOmegaCog(), omega_cog);
+    tf::Quaternion cog2baselink_rot;
+    tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
     Eigen::Matrix3d cog_rot;
-    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), cog_rot);
+    tf::matrixTFToEigen(estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse(), cog_rot);
 
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
     double mass = robot_model_->getMass();
