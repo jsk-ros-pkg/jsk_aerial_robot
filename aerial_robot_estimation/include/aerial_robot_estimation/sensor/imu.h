@@ -83,12 +83,12 @@ namespace sensor_plugin
       boost::lock_guard<boost::mutex> lock(vel_mutex_);
       filtered_vel_cog_ = filtered_vel_cog;
     }
-    
+
   protected:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
     ros::Subscriber imu_sub_;
-    ros::Publisher omega_filter_pub_; 
+    ros::Publisher omega_filter_pub_;
 
     /* rosparam */
     string imu_topic_name_;
