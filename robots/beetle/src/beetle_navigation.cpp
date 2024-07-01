@@ -13,7 +13,8 @@ BeetleNavigator::BeetleNavigator():
   module_state_(SEPARATED),
   leader_fix_flag_(false),
   tfBuffer_(),
-  tfListener_(tfBuffer_)
+  tfListener_(tfBuffer_),
+  pre_assembled_modules_(0)
 {
 }
 

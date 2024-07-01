@@ -15,11 +15,14 @@ public:
                   double epsilon = 10);
   virtual ~NinjaRobotModel() = default;
   const KDL::Tree& getInitModuleTree(){ return init_module_tree_; }
+  const KDL::Vector& getInitCog2BaseVec(){ return cog2baselink_vector_; }
+
+  void copyTreeStructure(const KDL::Tree& source_tree, KDL::Tree& destination_tree);
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
-  void addSegmentsRecursively(const KDL::Tree& source_tree, KDL::Tree& destination_tree, const std::string& segment_name, std::unordered_set<std::string>& added_segments)
-  void copyTreeStructure(const KDL::Tree& source_tree, KDL::Tree& destination_tree);
+  bool addSegmentsRecursively(const KDL::Tree& source_tree, KDL::Tree& destination_tree, const std::string& segment_name, std::unordered_set<std::string>& added_segments);
 private:
   KDL::Tree init_module_tree_;
+  KDL::Vector cog2baselink_vector_;
 };

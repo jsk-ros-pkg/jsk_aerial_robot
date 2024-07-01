@@ -6,6 +6,7 @@ NinjaRobotModel::NinjaRobotModel(bool init_with_rosparam, bool verbose, double f
   /*Create copy tree model of single module*/
   init_module_tree_ = KDL::Tree("root");
   copyTreeStructure(getTree(), init_module_tree_);
+  cog2baselink_vector_ = (getCog2Baselink<KDL::Frame>()).p;
 }
 
 void NinjaRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)

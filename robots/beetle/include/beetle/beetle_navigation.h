@@ -93,6 +93,7 @@ namespace aerial_robot_navigation
     int module_num_;
 
     void rosParamInit() override;
+    virtual void convertTargetPosFromCoG2CoM();
 
   private:
     tf::Vector3 target_pos_candidate_;
@@ -115,7 +116,6 @@ namespace aerial_robot_navigation
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;
     void assemblyFlagCallback(const diagnostic_msgs::KeyValue & msg);
-    virtual void convertTargetPosFromCoG2CoM();
   };
 
   template<> inline KDL::Frame BeetleNavigator::getCog2CoM()
