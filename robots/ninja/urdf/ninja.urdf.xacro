@@ -343,9 +343,9 @@
 
     <joint name="pitch_dock_joint" type="revolute">
       <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.5"/>
-      <parent link="tail_link"/>
+      <parent link="base_link"/>
       <child link="pitch_dock_link"/>
-      <origin rpy="0 0 0" xyz="0.3 0 0"/>
+      <origin rpy="0 0 0" xyz="-0.32 0 0"/>
       <axis xyz="0 1 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
