@@ -60,10 +60,36 @@ namespace sensor_plugin
 
     inline ros::Time getStamp(){return imu_stamp_;}
 
+
+    inline tf::Vector3 getFilteredOmegaCog()
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      return filtered_omega_cog_;
+    }
+
+    inline tf::Vector3 getFilteredVelCog()
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      return filtered_vel_cog_;
+    }
+
+    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(omega_mutex_);
+      filtered_omega_cog_ = filtered_omega_cog;
+    }
+
+    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
+    {
+      boost::lock_guard<boost::mutex> lock(vel_mutex_);
+      filtered_vel_cog_ = filtered_vel_cog;
+    }
+
   protected:
     ros::Publisher  acc_pub_;
     ros::Publisher  imu_pub_;
     ros::Subscriber imu_sub_;
+    ros::Publisher omega_filter_pub_;
 
     /* rosparam */
     string imu_topic_name_;
@@ -90,6 +116,13 @@ namespace sensor_plugin
 
     /* orientation */
     std::array<tf::Matrix3x3, 2> cog_rot_, base_rot_;
+
+   /* IIR filter*/
+    boost::mutex omega_mutex_;
+    boost::mutex vel_mutex_;
+    tf::Vector3 filtered_vel_cog_;
+    tf::Vector3 filtered_omega_cog_;
+    IirFilter lpf_omega_; // for gyro
 
     aerial_robot_msgs::States state_; /* for debug */
 
