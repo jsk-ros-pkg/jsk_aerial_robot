@@ -118,9 +118,9 @@
    <xacro:friction self="base_link"/>
   </xacro:macro>
 
-  <xacro:macro name="ninja_head_link">
-    <!-- head -->
-    <link name="head_link">
+  <xacro:macro name="ninja_docking_mech_yaw">
+    <!-- yaw -->
+    <link name="yaw_dock_link">
       <inertial>
         <origin xyz="0.007 0 -0.038" rpy="0 0 0"/>
         <mass value="0.081"/>
@@ -141,27 +141,28 @@
         </geometry>
       </collision>
     </link>
-    <xacro:damping_factor link="head_link"/>
+    <xacro:damping_factor link="yaw_dock_link"/>
 
-    <joint name="head_joint" type="revolute">
-      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="3.0"/>
+    <joint name="yaw_dock_joint" type="revolute">
+      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.5"/>
       <parent link="base_link"/>
-      <child link="head_link"/>
+      <child link="yaw_dock_link"/>
       <origin rpy="0 0 0" xyz="0.41 0 0.018"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-    <transmission name="head_joint_tran">
+    <transmission name="yaw_dockjoint_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="head_joint">
+      <joint name="yaw_dock_joint">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="head_servo">
+      <actuator name="yaw_dock_servo">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
+
   </xacro:macro>
 
 
@@ -186,24 +187,14 @@
     </link>
     <xacro:damping_factor link="tail_link"/>
 
-    <joint name="tail_joint" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+    <joint name="tail_joint" type="fixed">
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
       <parent link="base_link"/>
       <child link="tail_link"/>
       <origin rpy="0 0 ${pi}" xyz="-0.02 0 0.018"/>
       <axis xyz="0 1 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
-    <transmission name="tail_joint_tran">
-      <type>transmission_interface/SimpleTransmission</type>
-      <joint name="tail_joint">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      </joint>
-      <actuator name="tail_servo">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-        <mechanicalReduction>1</mechanicalReduction>
-      </actuator>
-    </transmission>
   </xacro:macro>
 
   <xacro:macro name="ninja_gimbal_link" params="self rotor_direction">
@@ -325,4 +316,51 @@
 
   </xacro:macro>
 
+  <xacro:macro name="ninja_docking_mech_pitch">
+    <!-- pitch -->
+    <link name="pitch_dock_link">
+      <inertial>
+        <origin xyz="0.007 0 -0.038" rpy="0 0 0"/>
+        <mass value="0.081"/>
+        <inertia
+            ixx="0.00022881" iyy="0.00022121" izz="0.0"
+            ixy="0.0" ixz="0.00002107" iyz="0.00000009"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://ninja/urdf/mesh/head_link.dae" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.05 0.05 0.05"/>
+        </geometry>
+      </collision>
+    </link>
+    <xacro:damping_factor link="pitch_dock_link"/>
+
+    <joint name="pitch_dock_joint" type="revolute">
+      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.5"/>
+      <parent link="tail_link"/>
+      <child link="pitch_dock_link"/>
+      <origin rpy="0 0 0" xyz="0.3 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
+    <transmission name="pitch_dockjoint_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="pitch_dock_joint">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="pitch_dock_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+  </xacro:macro>
+  
 </robot>

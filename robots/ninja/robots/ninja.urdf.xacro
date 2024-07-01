@@ -9,30 +9,32 @@
   <xacro:ninja_gimbal_link self="1" rotor_direction="1"/>
   <xacro:ninja_gimbal_link self="2" rotor_direction="-1"/>
   <xacro:ninja_gimbal_link self="3" rotor_direction="-1"/>
-  <xacro:ninja_head_link/>
+  <xacro:ninja_docking_mech_yaw/>
+  <xacro:ninja_docking_mech_pitch/>
   <xacro:ninja_tail_link/>
 
   ##### dummy grasp links ####
-  <joint name="base_dummy_arm_joint" type="fixed">
-    <parent link="tail_link"/>
-    <child link="dummy_arm"/>
-    <origin xyz="0.3 0 0" rpy="0 0 ${pi}"/>
-  </joint>
-
   <link name="dummy_arm">
     <inertial>
       <mass value = "0.01" />
-      <origin xyz="0.05 0 0" rpy="0 0 0"/>
+      <origin xyz="0.1 0 0" rpy="0 0 0"/>
       <inertia
-          ixx="0.0001" ixy="0.0000" ixz="0.0000"
-          iyy="0.0001" iyz="0.0000" izz="0.0001"/>
+          ixx="0.0011" ixy="0.0000" ixz="0.0001"
+          iyy="0.0011" iyz="0.0000" izz="0.0011"/>
     </inertial>
   </link>
+
+  <joint name="base_dummy_arm_joint" type="fixed">
+    <parent link="yaw_dock_link"/>
+    <child link="dummy_arm"/>
+    <origin xyz="0.0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
 
   <joint name="dummy_arm_palm_joint" type="revolute">
     <parent link="dummy_arm"/>
     <child link="dummy_palm"/>
-    <origin xyz="0.02 0 0" rpy="0 0 0"/>
+    <origin xyz="0.0 0 0" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
     <limit lower="0" upper="0" effort="0" velocity="0"/>
     <dynamics damping="0.2" friction="0.02"/>
@@ -49,7 +51,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.04 0.04 0.04"/>
+        <box size="0.06 0.06 0.06"/>
       </geometry>
     </collision>
   </link>
@@ -75,13 +77,13 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.04 0.04 0.04"/>
+        <box size="0.05 0.05 0.05"/>
       </geometry>
     </collision>
     <visual>
       <origin xyz="0 0 0" rpy="0.0 0 0"/>
       <geometry>
-        <box size="0.04 0.04 0.04"/>
+        <box size="0.05 0.05 0.05"/>
       </geometry>
     </visual>
   </link>
