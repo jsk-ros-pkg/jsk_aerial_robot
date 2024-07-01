@@ -358,6 +358,27 @@ void RollingController::wrenchAllocation()
   /* calculate allocation matrix for realtime control */
   q_mat_ = robot_model_for_control_->calcWrenchMatrixOnCoG();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
+
+  /* set target acc for external wrench estimation */
+  Eigen::VectorXd exerted_wrench_acc_cog;
+  if(full_lambda_mode_)
+    {
+      exerted_wrench_acc_cog = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame("cog") * full_lambda_all_;
+      exerted_wrench_acc_cog.head(3) = 1.0 / robot_model_->getMass() *  exerted_wrench_acc_cog.head(3);
+      exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
+    }
+  else
+    {
+      Eigen::VectorXd thrust = Eigen::VectorXd::Zero(motor_num_);
+      for(int i = 0; i < motor_num_; i++)
+        {
+          thrust(i) = target_base_thrust_.at(i);
+        }
+      exerted_wrench_acc_cog = q_mat_ * thrust;
+      exerted_wrench_acc_cog.head(3) = 1.0 / robot_model_->getMass() *  exerted_wrench_acc_cog.head(3);
+      exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
+    }
+  setTargetWrenchAccCog(exerted_wrench_acc_cog);
 }
 
 void RollingController::calcYawTerm()

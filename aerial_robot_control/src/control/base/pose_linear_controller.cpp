@@ -390,6 +390,7 @@ namespace aerial_robot_control
     const Eigen::VectorXd target_wrench_acc_cog = getTargetWrenchAccCog();
 
     if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
+       navigator_->getNaviState() != aerial_robot_navigation::TAKEOFF_STATE &&
        navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
       {
         prev_est_wrench_timestamp_ = 0;

@@ -10,6 +10,7 @@ controller:
   attitude_control_in_spinal: true
   gimbal_lpf_factor: 1.0 # don't set to 0
   realtime_gimbal_allocation: true
+  wrench_estimate_flag: true
 
   rolling_minimum_lateral_force: 0.2
   steering_mu: 3.0
