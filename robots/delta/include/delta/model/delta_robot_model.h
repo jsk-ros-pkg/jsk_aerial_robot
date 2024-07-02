@@ -19,8 +19,6 @@ public:
   virtual ~RollingRobotModel() = default;
 
   void calcRobotModelFromFrame(std::string frame_name);
-  void setContactPointReal(KDL::Frame contact_point_real) {contact_point_real_ = contact_point_real;}
-  template <class T> T getContactPointReal();
   template <class T> T getContactPoint();
   template <class T> std::vector<T> getLinksPositionFromCog();
   template <class T> std::vector<T> getLinksRotationFromCog();
@@ -48,10 +46,8 @@ private:
   std::mutex links_rotation_mutex_;
   std::mutex links_center_frame_mutex_;
   std::mutex contact_point_mutex_;
-  std::mutex contact_point_real_mutex_;
 
   KDL::Frame contact_point_;
-  KDL::Frame contact_point_real_;
 
   std::string thrust_link_;
   double circle_radius_;
@@ -99,17 +95,6 @@ template<> inline KDL::Frame RollingRobotModel::getContactPoint()
 template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPoint()
 {
   return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPoint<KDL::Frame>());
-}
-
-template<> inline KDL::Frame RollingRobotModel::getContactPointReal()
-{
-  std::lock_guard<std::mutex> lock(contact_point_real_mutex_);
-  return contact_point_real_;
-}
-
-template<> inline geometry_msgs::TransformStamped RollingRobotModel::getContactPointReal()
-{
-  return aerial_robot_model::kdlToMsg(RollingRobotModel::getContactPointReal<KDL::Frame>());
 }
 
 template<> inline KDL::RotationalInertia RollingRobotModel::getInertiaFromTargetFrame()
