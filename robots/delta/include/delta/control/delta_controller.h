@@ -156,7 +156,6 @@ namespace aerial_robot_control
     void calcFlightFullLambda();
 
     /* rolling mode */
-    void calcContactPoint();
     void standingPlanning();
     void calcStandingFullLambda();
 

@@ -19,7 +19,6 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
 
   target_frame_name_ = "cog";
   additional_frame_["cp"] = &contact_point_;
-  additional_frame_["contact_point_real"] = &contact_point_real_;
   setTargetFrame(target_frame_name_);
 }
 
