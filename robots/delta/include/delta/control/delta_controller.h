@@ -93,7 +93,6 @@ namespace aerial_robot_control
     double sr_inv_weight_;
     double circle_radius_;
     std::string tf_prefix_;
-    bool attitude_control_in_spinal_;
     double gimbal_lpf_factor_;
     int ground_navigation_mode_;
     double rolling_control_timestamp_;
