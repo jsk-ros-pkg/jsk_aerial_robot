@@ -97,6 +97,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE) return;
+  bool current_assembled =  getCurrentAssembled();
 
   gps_waypoint_ = false;
 
@@ -156,9 +157,16 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
 
         if(!vel_based_waypoint_)
           xy_control_mode_ = POS_CONTROL_MODE;
-
-        setTargetPosCandX(target_cog_pos.x());
-        setTargetPosCandY(target_cog_pos.y());
+        if(current_assembled)
+          {
+            setTargetPosCandX(target_cog_pos.x());
+            setTargetPosCandY(target_cog_pos.y());
+          }
+        else
+          {
+            setTargetPosX(target_cog_pos.x());
+            setTargetPosY(target_cog_pos.y());
+          }
         setTargetVelX(0);
         setTargetVelY(0);
 
@@ -197,8 +205,16 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
     case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
         xy_control_mode_ = POS_CONTROL_MODE;
-        setTargetPosCandX(msg->target_pos_x);
-        setTargetPosCandY(msg->target_pos_y);
+        if(current_assembled)
+          {
+            setTargetPosCandX(msg->target_pos_x);
+            setTargetPosCandY(msg->target_pos_y);
+          }
+        else
+          {
+            setTargetPosX(msg->target_pos_x);
+            setTargetPosY(msg->target_pos_y);            
+          }
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
 
@@ -277,13 +293,26 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
           target_cog_pos -= cog2cp_tf.getOrigin();
         }
 
-      setTargetPosCandZ(target_cog_pos.z());
-      setTargetVelZ(0);      
-
+      if(current_assembled)
+        {
+          setTargetPosCandZ(target_cog_pos.z());
+        }
+      else
+        {
+          setTargetPosZ(target_cog_pos.z());
+        }
+      setTargetVelZ(0);
     }
   else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
-      setTargetPosCandZ(msg->target_pos_z);
+      if(current_assembled)
+        {
+          setTargetPosCandZ(msg->target_pos_z);
+        }
+      else
+        {
+          setTargetPosZ(msg->target_pos_z);
+        }
       setTargetVelZ(msg->target_vel_z);
     }
 
@@ -312,9 +341,9 @@ void BeetleNavigator::update()
 {
   rotateContactPointFrame();
   calcCenterOfMoving();
-  convertTargetPosFromCoG2CoM();
   GimbalrotorNavigator::update();
   setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
+  convertTargetPosFromCoG2CoM();
 }
 
 void BeetleNavigator::rotateContactPointFrame()
