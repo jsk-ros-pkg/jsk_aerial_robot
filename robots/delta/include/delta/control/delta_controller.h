@@ -4,17 +4,15 @@
 
 #include <aerial_robot_model/model/pinocchio_robot_model.h>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
-#include <aerial_robot_msgs/DynamicReconfigureLevels.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
-#include <delta/mpcConfig.h>
 #include <delta/control/osqp_solver.h>
 #include <delta/model/delta_robot_model.h>
 #include <delta/navigation/delta_navigation.h>
-#include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <nlopt.hpp>
 #include <numeric>
 #include <OsqpEigen/OsqpEigen.h>
+#include <osqp_slsqp/slsqp.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
@@ -61,8 +59,6 @@ namespace aerial_robot_control
     ros::Publisher exerted_wrench_cog_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
     ros::Subscriber calc_gimbal_in_fc_sub_;
-    dynamic_reconfigure::Server<delta::mpcConfig>::CallbackType dynamic_reconf_func_mpc_;
-    boost::shared_ptr<dynamic_reconfigure::Server<delta::mpcConfig>> mpc_reconfigure_server_;
 
     tf2_ros::TransformBroadcaster br_;
     KDL::Frame contact_point_alined_;
@@ -122,22 +118,6 @@ namespace aerial_robot_control
     std::vector<double> prev_opt_gimbal_;
     std::vector<double> prev_opt_lambda_;
 
-    /* mpc */
-    OsqpEigen::Solver mpc_linear_solver_;
-    bool mpc_first_run_;
-    double horizon_;
-    int n_step_;
-    double q_x_p_xy_;
-    double q_x_p_z_;
-    double q_x_v_xy_;
-    double q_x_v_z_;
-    double q_x_a_xy_;
-    double q_x_a_z_;
-    double q_x_w_xy_;
-    double q_x_w_z_;
-    double r_lambda_;
-    Eigen::VectorXd mpc_solution_;
-
     /* common part */
     bool update() override;
     void reset() override;
@@ -154,10 +134,6 @@ namespace aerial_robot_control
     void standingPlanning();
     void calcStandingFullLambda();
 
-    /* mpc */
-    void flyingMpc();
-    void mpcParamInit();
-
     /* send command */
     void sendCmd();
     void sendGimbalAngles();
@@ -168,7 +144,6 @@ namespace aerial_robot_control
     /* ros callbacks */
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
     void calcGimbalInFcCallback(const std_msgs::BoolPtr & msg);
-    void mpcCfgCallback(delta::mpcConfig &config, uint32_t level);
 
     /* utils */
     void setControllerParams(std::string ns);

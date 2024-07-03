@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   casadi_eigen
   cddeigen
-  dynamic_reconfigure
   hydrus
   mujoco_ros_control
   osqp_slsqp
@@ -25,12 +24,6 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(pinocchio REQUIRED)
 find_package(casadi REQUIRED)
 
-catkin_python_setup()
-
-generate_dynamic_reconfigure_options(
-  cfg/mpc.cfg
-  )
-
 catkin_package(
   INCLUDE_DIRS include test
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs casadi_eigen cddeigen hydrus osqp_slsqp pluginlib roscpp
@@ -44,12 +37,13 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
+catkin_python_setup()
+
 add_library(delta_controller
   src/control/delta_controller_common.cpp
   src/control/delta_controller_utils.cpp
   src/control/delta_flight_controller.cpp
   src/control/delta_ground_controller.cpp
-  src/control/delta_mpc_controller.cpp
   )
 target_link_libraries(delta_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
