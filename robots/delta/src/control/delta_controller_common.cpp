@@ -296,23 +296,16 @@ void RollingController::wrenchAllocation()
 
   /* set target acc for external wrench estimation */
   Eigen::VectorXd exerted_wrench_acc_cog;
-  if(full_lambda_mode_)
+  Eigen::VectorXd thrust = Eigen::VectorXd::Zero(motor_num_);
+  for(int i = 0; i < motor_num_; i++)
     {
-      exerted_wrench_acc_cog = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame("cog") * full_lambda_all_;
-      exerted_wrench_acc_cog.head(3) = 1.0 / robot_model_->getMass() *  exerted_wrench_acc_cog.head(3);
-      exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
+      thrust(i) = lambda_all_.at(i);
     }
-  else
-    {
-      Eigen::VectorXd thrust = Eigen::VectorXd::Zero(motor_num_);
-      for(int i = 0; i < motor_num_; i++)
-        {
-          thrust(i) = target_base_thrust_.at(i);
-        }
-      exerted_wrench_acc_cog = q_mat_ * thrust;
-      exerted_wrench_acc_cog.head(3) = 1.0 / robot_model_->getMass() *  exerted_wrench_acc_cog.head(3);
-      exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
-    }
+
+  exerted_wrench_acc_cog = q_mat_ * thrust;
+  exerted_wrench_acc_cog.head(3) = 1.0 / robot_model_->getMass() *  exerted_wrench_acc_cog.head(3);
+  exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
+
   setTargetWrenchAccCog(exerted_wrench_acc_cog);
 }
 
@@ -407,17 +400,11 @@ void RollingController::sendCmd()
   /* exerted wrench in cog frame */
   geometry_msgs::WrenchStamped exerted_wrench_cog_msg;
   Eigen::VectorXd exerted_wrench_cog;
-  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
-    {
-      exerted_wrench_cog = full_q_mat * full_lambda_all_;
-    }
-  else
-    {
-      Eigen::VectorXd lambda;
-      lambda.resize(motor_num_);
-      for(int i = 0; i < motor_num_; i++) lambda(i) = target_base_thrust_.at(i);
-      exerted_wrench_cog = q_mat_ * lambda;
-    }
+  Eigen::VectorXd lambda = Eigen::VectorXd::Zero(motor_num_);
+  lambda.resize(motor_num_);
+  for(int i = 0; i < motor_num_; i++) lambda(i) = lambda_all_.at(i);
+  exerted_wrench_cog = q_mat_ * lambda;
+
   exerted_wrench_cog_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("cog"));
   exerted_wrench_cog_msg.wrench.force.x = exerted_wrench_cog(0);
   exerted_wrench_cog_msg.wrench.force.y = exerted_wrench_cog(1);
