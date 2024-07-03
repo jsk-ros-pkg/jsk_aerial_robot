@@ -107,7 +107,7 @@
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
       <param name="policy_start_delay" value="$(arg policy_start_delay)" />
-      <!-- <remap from="start_moving_obstacle" to="start_navigation" /> -->
+      <remap from="start_moving_obstacle" to="start_navigation" />
     </node>
 
     <node pkg="agile_multirotor" type="depth_image_correction.py" name="depth_image_correction" output="screen" ns="$(arg robot_ns)"/> 
