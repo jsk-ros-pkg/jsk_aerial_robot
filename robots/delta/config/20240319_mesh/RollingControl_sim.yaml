@@ -128,17 +128,3 @@ rolling_controller:
     p_gain: 2.0
     i_gain: 0.1
     d_gain: 1.0
-
-mpc:
-    horizon: 2.0
-    n_step: 20
-    q_x_p_xy: 400
-    q_x_p_z: 250
-    q_x_v_xy: 10
-    q_x_v_z: 10
-    q_x_a_xy: 60
-    q_x_a_z: 75
-    q_x_w_xy: 5
-    q_x_w_z: 5
-    r_lambda: 30
-
