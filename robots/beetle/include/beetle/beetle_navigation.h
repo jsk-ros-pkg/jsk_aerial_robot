@@ -91,13 +91,9 @@ namespace aerial_robot_navigation
     std::vector<int> assembled_modules_ids_;
     int module_state_;
     int module_num_;
-
-    void rosParamInit() override;
-    virtual void convertTargetPosFromCoG2CoM();
-
-  private:
     tf::Vector3 target_pos_candidate_;
     tf::Vector3 pre_target_pos_;
+    tf::Vector3 pre_target_rot_;
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
     ros::Subscriber assembly_nav_sub_;
@@ -108,6 +104,11 @@ namespace aerial_robot_navigation
     bool roll_pitch_control_flag_;
     bool pre_assembled_ ; 
 
+
+    void rosParamInit() override;
+    virtual void convertTargetPosFromCoG2CoM();
+
+  private:
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);

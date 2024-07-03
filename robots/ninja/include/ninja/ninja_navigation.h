@@ -4,6 +4,7 @@
 
 #include <beetle/beetle_navigation.h>
 #include <ninja/model/ninja_robot_model.h>
+#include <geometry_msgs/Pose.h>
 
 namespace aerial_robot_navigation
 {
@@ -34,6 +35,8 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     double loop_du) override;
     void update() override;
+    void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
+    void setTargetCoMPoseFromCurrState();
 
   protected:
     void calcCenterOfMoving() override;
@@ -42,6 +45,7 @@ namespace aerial_robot_navigation
 
   private:
     void convertTargetPosFromCoG2CoM() override;
+    ros::Publisher target_com_pose_pub_;
 
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
     ros::Subscriber entire_structure_sub_;
@@ -49,5 +53,6 @@ namespace aerial_robot_navigation
 
     std::map<int, ModuleData> assembled_modules_data_;
     KDL::Rotation target_com_rot_;
+    KDL::Frame test_frame_;
   };
 };

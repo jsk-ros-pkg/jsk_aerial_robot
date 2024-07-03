@@ -16,7 +16,8 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                 double loop_du)
 {
   BeetleNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
-  ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model); 
+  ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
+  target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1);
 }
 
 void NinjaNavigator::update()
@@ -24,6 +25,40 @@ void NinjaNavigator::update()
   updateEntSysState();
   // updateAssemblyTree();
   BeetleNavigator::update();
+  bool current_assembled = getCurrentAssembled();
+  if(current_assembled){
+    try
+      {
+        KDL::Frame current_com;
+        KDL::Frame target_cog_pose;
+        geometry_msgs::TransformStamped transformStamped;
+        transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
+        tf::transformMsgToKDL(transformStamped.transform, current_com);
+        target_cog_pose = getCog2CoM<KDL::Frame>().Inverse() * current_com;
+
+        geometry_msgs::TransformStamped tf;
+        tf::transformKDLToMsg(target_cog_pose, tf.transform);
+        tf.header.stamp = ros::Time::now();
+        tf.header.frame_id ="world";
+        tf.child_frame_id = my_name_ + std::to_string(my_id_)+"/target_cog_pose";
+        br_.sendTransform(tf);
+      }
+    catch (tf2::TransformException& ex)
+      {
+        ROS_ERROR_STREAM("CoM is not defined");
+        return;
+      }
+    if(control_flag_)
+      {
+        geometry_msgs::Pose com_pose_msg;
+        KDL::Frame target_com_pose;
+        target_com_pose.p = KDL::Vector(target_pos_candidate_.x(), target_pos_candidate_.y(), target_pos_candidate_.z());
+        target_com_pose.M = target_com_rot_;
+        tf::PoseKDLToMsg(target_com_pose, com_pose_msg);
+        target_com_pose_pub_.publish(com_pose_msg);
+      }
+  }
+  
 }
 
 void NinjaNavigator::updateEntSysState()
@@ -38,7 +73,7 @@ void NinjaNavigator::updateEntSysState()
         assembled_modules_ids_.push_back(id);
         ModuleData module_data(id);
         ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_data.module_tree_);
-        module_data.joint_pos_ = KDL::JntArray(2); //docking yaw and pitch
+        module_data.joint_pos_ = KDL::JntArray(4); //docking yaw and pitch
         assembled_modules_data_.insert(std::make_pair(id,module_data));
       }
     else if(id_pre_exist && ! value)
@@ -125,8 +160,8 @@ void NinjaNavigator::calcCenterOfMoving()
   if(control_flag_){
     KDL::Frame com_frame;
     KDL::Chain chain;
-    std::string left_dock = "pitch_dock_link";
-    std::string right_dock = "yaw_dock_link";
+    std::string left_dock = "pitch_connect_point";
+    std::string right_dock = "yaw_connect_point";
     if(my_id_ == leader_id_)
       {
         setCog2CoM(com_frame);
@@ -220,6 +255,7 @@ void NinjaNavigator::calcCenterOfMoving()
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
                     }
+                    test_frame_ = frame;
                     com_frame = com_frame * frame;
                   }
                 else if(it.first < my_id_)
@@ -261,11 +297,10 @@ void NinjaNavigator::calcCenterOfMoving()
                   {
                     continue;
                   }
-              }            
+              }
           }
-        KDL::Frame leader_base2cog;
-        leader_base2cog.p = ninja_robot_model_->getInitCog2BaseVec();
-        setCog2CoM(leader_base2cog.Inverse() * com_frame);
+        KDL::Frame cog2base = ninja_robot_model_->getCog2Baselink<KDL::Frame>();
+        setCog2CoM((cog2base.Inverse() * com_frame * cog2base).Inverse());
       }
 
     if(reconfig_flag_){
@@ -282,80 +317,118 @@ void NinjaNavigator::calcCenterOfMoving()
       ROS_INFO_STREAM("Leader's ID is " <<leader_id_);
     }
   }
-    cog_com_dist_msg.x = Cog2CoM_.p.x();
-    cog_com_dist_msg.y = Cog2CoM_.p.y();
-    cog_com_dist_msg.z = Cog2CoM_.p.z();
-    cog_com_dist_pub_.publish(cog_com_dist_msg);
-    if(control_flag_) current_assembled_ = true;
+
+  if(control_flag_) current_assembled_ = true;
 }
 
-void NinjaNavigator::convertTargetPosFromCoG2CoM(){
+void NinjaNavigator::convertTargetPosFromCoG2CoM()
+{
+  if(!control_flag_) return;
 
-  tf::Transform cog2com_tf;
-  tf::transformKDLToTF(getCog2CoM<KDL::Frame>(), cog2com_tf);
-  tf::Matrix3x3 cog_orientation_tf;
-  tf::matrixEigenToTF(beetle_robot_model_->getCogDesireOrientation<Eigen::Matrix3d>(),cog_orientation_tf);
-  tf::Vector3 com_conversion = cog_orientation_tf *  tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z())) * cog2com_tf.getOrigin();
   bool current_assembled = getCurrentAssembled();
   bool reconfig_flag = getReconfigFlag();
 
-  KDL::Frame empty_frame;
+  KDL::Frame init_frame;
 
   if(pre_assembled_  && !current_assembled){ //disassembly process
-    setTargetPosCandX(getTargetPos().x());
-    setTargetPosCandY(getTargetPos().y());
-    setTargetPosCandZ(getTargetPos().z());
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
+    return;
   } else if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
-    int my_id = getMyID();
-    tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
-    tf::Vector3 orientation_err = getTargetRPY() - estimator_ ->getEuler(Frame::COG, estimate_mode_);
-    ROS_INFO_STREAM("ID: " << my_id << "'s orientation_err is "<< "(" << orientation_err.x() << ", " << orientation_err.y() << ", " << orientation_err.z() << ")");
-    tf::Matrix3x3 att_err_mat = tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z()));
-    tf::Vector3 corrected_target_pos =  tf::Matrix3x3(tf::createQuaternionFromRPY(orientation_err.x(), orientation_err.y(),orientation_err.z())) * pos_cog;
-    if(getNaviState() == HOVER_STATE){
-      setTargetPosCandX(pos_cog.x() + (att_err_mat.inverse() * com_conversion).x());
-      setTargetPosCandY(pos_cog.y() + (att_err_mat.inverse() * com_conversion).y());
-      setTargetPosCandZ(pos_cog.z() + (att_err_mat.inverse() * com_conversion).z());
-    }
+    setTargetCoMPoseFromCurrState();
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
-  }else if(getCog2CoM<KDL::Frame>() == empty_frame && getNaviState() != HOVER_STATE){
+    return;
+  }else if(!current_assembled){
+    return;
+  }else if(my_id_ == leader_id_){
+    KDL::Frame target_my_pose;
+    if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE)
+      {
+        setTargetPosX(target_pos_candidate_.x());
+        setTargetPosY(target_pos_candidate_.y());
+        setTargetPosZ(getTargetPos().z());
+      }
+    else
+      {
+        setTargetPos(target_pos_candidate_);
+      }
+    tf::Vector3 target_rot;
+    double target_roll, target_pitch, target_yaw;
+    target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
+    target_rot.setX(target_roll);
+    target_rot.setY(target_pitch);
+    target_rot.setZ(target_yaw);
+    setFinalTargetBaselinkRot(target_rot);
+    setTargetYaw(target_rot.z());
+    return;
+  }else if(getCog2CoM<KDL::Frame>() == init_frame){
     return;
   }
 
-
-  /* Check whether the target value was changed by someway other than uav nav */
-  /* Target pos candidate represents a target pos in a assembly frame */
-  if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000)){
-    float target_x_com = getTargetPos().x() + com_conversion.x();
-    setTargetPosCandX(target_x_com);
+  if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000) ||
+      int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000) ||
+      int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000) ||
+      int(pre_target_rot_.z() * 1000) != int(getTargetRPY().z() * 1000)){
+    setTargetCoMPoseFromCurrState();
+    ROS_INFO("Target com pose is updated!");
   }
 
-  if( int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000)){
-    float target_y_com = getTargetPos().y() + com_conversion.y();
-    setTargetPosCandY(target_y_com);
-  }
+  /*Target pose conversion*/
+  KDL::Frame target_com_pose;
+  KDL::Frame target_my_pose;
+  target_com_pose.M = target_com_rot_;
+  tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
+  KDL::Frame cog2base = ninja_robot_model_->getCog2Baselink<KDL::Frame>();
+  target_my_pose = getCog2CoM<KDL::Frame>().Inverse() * target_com_pose; // com -> cog
 
-  if( int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000)){
-    float target_z_com = getTargetPos().z() + com_conversion.z();
-    setTargetPosCandZ(target_z_com);
-  }
-  
-  tf::Vector3 target_cog_pos = getTargetPosCand();
-  target_cog_pos -=  com_conversion;
+  tf::Vector3 target_pos, target_rot;
+  double target_roll, target_pitch, target_yaw;
+  tf::vectorKDLToTF(target_my_pose.p, target_pos);
+  target_my_pose.M.GetEulerZYX(target_yaw, target_pitch, target_roll);
+  target_rot.setX(target_roll);
+  target_rot.setY(target_pitch);
+  target_rot.setZ(target_yaw);
 
+  /*Set new target pose*/
   if( getNaviState() == HOVER_STATE ||
       getNaviState() == TAKEOFF_STATE){
-    setTargetPosX(target_cog_pos.x());
-    setTargetPosY(target_cog_pos.y());
-    setTargetPosZ(target_cog_pos.z());
+    setTargetPos(target_pos);
+    setTargetYaw(target_rot.z());
+    setFinalTargetBaselinkRot(target_rot);  
   }
 
-  pre_target_pos_.setX(target_cog_pos.x());
-  pre_target_pos_.setY(target_cog_pos.y());
-  pre_target_pos_.setZ(target_cog_pos.z());
+  pre_target_pos_.setX(target_pos.x());
+  pre_target_pos_.setY(target_pos.y());
+  pre_target_pos_.setZ(target_pos.z());
+  pre_target_rot_.setX(target_rot.x());
+  pre_target_rot_.setY(target_rot.y());
+  pre_target_rot_.setZ(target_rot.z());
+}
+
+void NinjaNavigator::setTargetCoMPoseFromCurrState()
+{
+  bool current_assembled = getCurrentAssembled();
+  if(current_assembled){
+    try
+      {
+        KDL::Frame current_com;
+        geometry_msgs::TransformStamped transformStamped;
+        transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
+        tf::transformMsgToKDL(transformStamped.transform, current_com);
+        tf::Vector3 target_com_pos;
+        tf::vectorKDLToTF(current_com.p, target_com_pos);
+        if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) target_com_pos.setZ(getTargetPos().z());
+        setTargetPosCand(target_com_pos);
+        setTargetComRot(current_com.M);
+      }
+    catch (tf2::TransformException& ex)
+      {
+        ROS_ERROR_STREAM("CoM is not defined");
+        return;
+      }
+  }
+
 }
 
 /* plugin registration */

@@ -16,13 +16,13 @@
     </link>
     <joint name="root_joint" type="fixed">
       <parent link="root"/>
-      <child link="base_link"/>
+      <child link="main_body"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     ## link
-    <link name="base_link">
+    <link name="main_body">
       <inertial>
         <origin xyz="0.2237 0.0050 0.0126" rpy="0 0 0"/>
         <mass value="0.74"/>
@@ -44,7 +44,7 @@
       </collision>
     </link>
 
-    <xacro:damping_factor link="base_link"/>
+    <xacro:damping_factor link="main_body"/>
 
     <link name="fc">
       <inertial>
@@ -58,7 +58,7 @@
     </link>
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <origin rpy="0 0 0" xyz="0.33 0 0.067"/>
       <axis xyz="0 0 1"/>
     </joint>
@@ -75,7 +75,7 @@
       </inertial>
     </link>
     <joint name="base_arm_joint${child1}" type="fixed">
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <child link="rotor_arm${child1}"/>
       <origin rpy="0 0 ${pi/2}" xyz="0.329 0.065 0.018"/>
       <axis xyz="0 0 1"/>
@@ -92,7 +92,7 @@
       </inertial>
     </link>
     <joint name="base_arm_joint${child2}" type="fixed">
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <child link="rotor_arm${child2}"/>
       <origin rpy="0 0 ${-pi/2}" xyz="0.329 -0.065 0.018"/>
       <axis xyz="0 0 1"/>
@@ -115,7 +115,7 @@
       <axis xyz="0 0 1"/>
     </joint>
 
-   <xacro:friction self="base_link"/>
+   <xacro:friction self="main_body"/>
   </xacro:macro>
 
   <xacro:macro name="ninja_docking_mech_yaw">
@@ -145,7 +145,7 @@
 
     <joint name="yaw_dock_joint" type="revolute">
       <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.5"/>
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <child link="yaw_dock_link"/>
       <origin rpy="0 0 0" xyz="0.41 0 0.018"/>
       <axis xyz="0 0 1"/>
@@ -163,6 +163,23 @@
       </actuator>
     </transmission>
 
+    <link name="yaw_connect_point">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="yaw_connect_point_joint" type="fixed">
+      <parent link="yaw_dock_link"/>
+      <child link="yaw_connect_point"/>
+      <origin rpy="0 0 0" xyz="0.025 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    
   </xacro:macro>
 
 
@@ -189,7 +206,7 @@
 
     <joint name="tail_joint" type="fixed">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.5"/>
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <child link="tail_link"/>
       <origin rpy="0 0 ${pi}" xyz="-0.02 0 0.018"/>
       <axis xyz="0 1 0"/>
@@ -343,7 +360,7 @@
 
     <joint name="pitch_dock_joint" type="revolute">
       <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.5"/>
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <child link="pitch_dock_link"/>
       <origin rpy="0 0 0" xyz="-0.32 0 0"/>
       <axis xyz="0 1 0"/>
@@ -360,6 +377,23 @@
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
+
+    <link name="pitch_connect_point">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="pitch_connect_point_joint" type="fixed">
+      <parent link="pitch_dock_link"/>
+      <child link="pitch_connect_point"/>
+      <origin rpy="0 0 0" xyz="-0.025 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
   </xacro:macro>
   
