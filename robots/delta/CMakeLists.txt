@@ -8,11 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
-  casadi_eigen
-  cddeigen
   hydrus
   mujoco_ros_control
-  osqp_slsqp
   pluginlib
   roscpp
   )
@@ -20,13 +17,10 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
-set(CMAKE_CXX_STANDARD 17)
-find_package(pinocchio REQUIRED)
-find_package(casadi REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include test
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs casadi_eigen cddeigen hydrus osqp_slsqp pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
   LIBRARIES delta_controller delta_robot_model delta_navigation
   )
 
@@ -52,6 +46,9 @@ target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
 
 add_library(delta_navigation src/navigation/delta_navigation.cpp)
 target_link_libraries(delta_navigation ${catkin_LIBRARIES})
+
+add_executable(traj_test src/navigation/traj_test.cpp)
+target_link_libraries(traj_test ${catkin_LIBRARIES})
 
 add_executable(delta_optimal_design src/design/delta_optimal_design.cpp)
 target_link_libraries(delta_optimal_design ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})

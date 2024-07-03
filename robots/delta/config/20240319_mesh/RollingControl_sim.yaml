@@ -15,13 +15,6 @@ controller:
   steering_mu: 2.0
   full_lambda_mode: true
 
-  lambda_weight: 1.0
-  d_gimbal_center_weight: 2.0
-  d_gimbal_weight: 2.0
-  gimbal_d_theta_max: 0.7
-  d_lambda_max: 10.0
-  ipopt_max_iter: 100
-
   xy:
     p_gain: 4.0
     i_gain: 0.5

@@ -2,17 +2,13 @@
 
 #pragma once
 
-#include <aerial_robot_model/model/pinocchio_robot_model.h>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
-#include <delta/control/osqp_solver.h>
 #include <delta/model/delta_robot_model.h>
 #include <delta/navigation/delta_navigation.h>
 #include <geometry_msgs/WrenchStamped.h>
-#include <nlopt.hpp>
 #include <numeric>
 #include <OsqpEigen/OsqpEigen.h>
-#include <osqp_slsqp/slsqp.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
@@ -68,13 +64,13 @@ namespace aerial_robot_control
     std::mutex current_joint_angles_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
-    boost::shared_ptr<aerial_robot_model::PinocchioRobotModel> pinocchio_robot_model_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
 
     /* common part */
     std::vector<double> rotor_tilt_;
-    std::vector<float> target_base_thrust_;
+    std::vector<float> lambda_trans_;
+    std::vector<float> lambda_all_;
     std::vector<double> target_gimbal_angles_;
     std::vector<double> prev_target_gimbal_angles_;
     std::vector<double> current_gimbal_angles_;
@@ -91,11 +87,9 @@ namespace aerial_robot_control
     std::string tf_prefix_;
     double gimbal_lpf_factor_;
     int ground_navigation_mode_;
-    double rolling_control_timestamp_;
     bool realtime_gimbal_allocation_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
-    bool full_lambda_mode_;
 
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
@@ -109,14 +103,6 @@ namespace aerial_robot_control
     double steering_mu_;
     double gravity_compensate_ratio_;
     double rolling_minimum_lateral_force_;
-    double gimbal_d_theta_max_;
-    double d_lambda_max_;
-    double lambda_weight_;
-    double d_gimbal_center_weight_;
-    double d_gimbal_weight_;
-    int ipopt_max_iter_;
-    std::vector<double> prev_opt_gimbal_;
-    std::vector<double> prev_opt_lambda_;
 
     /* common part */
     bool update() override;
@@ -149,9 +135,5 @@ namespace aerial_robot_control
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
     void printDebug();
-
-    void slsqpSolve();
-    void nonlinearQP();
-
   };
 };
