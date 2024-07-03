@@ -18,21 +18,18 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
   rolling_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::RollingNavigator>(navigator_);
-  pinocchio_robot_model_ = boost::make_shared<aerial_robot_model::PinocchioRobotModel>();
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
   robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   rotor_tilt_.resize(motor_num_);
-  target_base_thrust_.resize(motor_num_);
+  lambda_trans_.resize(motor_num_);
+  lambda_all_.resize(motor_num_);
   target_gimbal_angles_.resize(motor_num_, 0);
   prev_target_gimbal_angles_.resize(motor_num_, 0);
   current_gimbal_angles_.resize(motor_num_, 0);
   current_joint_angles_.resize(2, 0);   // TODO: get from robot model
-  prev_opt_gimbal_.resize(motor_num_, 0.0);
-  prev_opt_lambda_.resize(motor_num_, 0.0);
 
   target_wrench_acc_cog_.resize(6);
-
   target_acc_cog_.resize(6);
 
   full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
@@ -43,8 +40,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_roll_ = 0.0;
   target_pitch_ = 0.0;
-
-  rolling_control_timestamp_ = -1;
 
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
@@ -80,7 +75,6 @@ void RollingController::reset()
   setAttitudeGains();
 
   torque_allocation_matrix_inv_pub_stamp_ = -1;
-  rolling_control_timestamp_ = -1;
 
   calc_gimbal_in_fc_ = false;
 
@@ -112,17 +106,9 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
   getParam<double>(control_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 1.0);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
+  getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
 
   rolling_robot_model_->setCircleRadius(circle_radius_);
-
-  getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
-  getParam<bool>(control_nh, "full_lambda_mode", full_lambda_mode_, true);
-  getParam<double>(control_nh, "gimbal_d_theta_max", gimbal_d_theta_max_, 0.0);
-  getParam<double>(control_nh, "d_lambda_max",   d_lambda_max_, 0.0);
-  getParam<double>(control_nh, "lambda_weight", lambda_weight_, 1.0);
-  getParam<double>(control_nh, "d_gimbal_center_weight", d_gimbal_center_weight_, 1.0);
-  getParam<double>(control_nh, "d_gimbal_weight", d_gimbal_weight_, 1.0);
-  getParam<int>(control_nh, "ipopt_max_iter", ipopt_max_iter_, 100);
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -193,6 +179,7 @@ void RollingController::controlCore()
     case aerial_robot_navigation::FLYING_STATE:
       {
         rolling_robot_model_->setTargetFrame("cog");
+
         if(rolling_navigator_->getControllersResetFlag())
           {
             for(auto& controller: pid_controllers_)
@@ -213,18 +200,8 @@ void RollingController::controlCore()
       {
         /* for stand */
         rolling_robot_model_->setTargetFrame("cp");
-
         standingPlanning();
-        if(full_lambda_mode_)
-          {
-            ROS_WARN_STREAM_ONCE("[control] full lambda mode");
-            calcStandingFullLambda();
-          }
-        else
-          {
-            ROS_WARN_STREAM_ONCE("[control] direct gimbal calculation mode");
-            nonlinearQP();
-          }
+        calcStandingFullLambda();
         /* for stand */
         break;
       }
@@ -246,35 +223,22 @@ void RollingController::wrenchAllocation()
 {
   int last_col = 0;
 
-  /* full lambda mode */
-  if(full_lambda_mode_ || ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
+  for(int i = 0; i < motor_num_; i++)
     {
-      for(int i = 0; i < motor_num_; i++)
-        {
-          Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
-          Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
 
-          target_base_thrust_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+      lambda_trans_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+      lambda_all_.at(i) = full_lambda_all_i.norm() / fabs(cos(rotor_tilt_.at(i)));
 
-          /* calculate gimbal angles */
-          prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
-          double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-          target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
+      /* calculate gimbal angles */
+      prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
+      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
 
-          ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
+      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
 
-          last_col += 2;
-        }
-    }
-
-  /* direct calculation mode */
-  else
-    {
-      for(int i = 0; i < motor_num_; i++)
-        {
-          target_base_thrust_.at(i) = prev_opt_lambda_.at(i);
-          target_gimbal_angles_.at(i) = prev_opt_gimbal_.at(i);
-        }
+      last_col += 2;
     }
 
   /* solve round offset of gimbal angle */
@@ -303,11 +267,6 @@ void RollingController::wrenchAllocation()
                 }
             }
         }
-    }
-
-  for(int i = 0; i < motor_num_; i++)
-    {
-      prev_opt_gimbal_.at(i) = angles::normalize_angle(current_gimbal_angles_.at(i));
     }
 
   /* update robot model by calculated gimbal angle */
@@ -378,7 +337,7 @@ void RollingController::calcYawTerm()
           if(q_mat_inv_(i, YAW) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW);
         }
     }
-      candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+  candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 }
 
 void RollingController::sendCmd()
@@ -448,7 +407,7 @@ void RollingController::sendCmd()
   /* exerted wrench in cog frame */
   geometry_msgs::WrenchStamped exerted_wrench_cog_msg;
   Eigen::VectorXd exerted_wrench_cog;
-  if(full_lambda_mode_ || ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
+  if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE)
     {
       exerted_wrench_cog = full_q_mat * full_lambda_all_;
     }
@@ -510,7 +469,7 @@ void RollingController::sendFourAxisCommand()
         }
     }
   else
-    flight_command_data.base_thrust = target_base_thrust_;
+    flight_command_data.base_thrust = lambda_trans_;
 
   flight_cmd_pub_.publish(flight_command_data);
 }
@@ -624,7 +583,6 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   contact_point_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   contact_point_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point_alined"));
   br_.sendTransform(contact_point_alined_tf);
-
 }
 
 void RollingController::calcGimbalInFcCallback(const std_msgs::BoolPtr & msg)
