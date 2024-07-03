@@ -191,6 +191,7 @@ namespace aerial_robot_control
     pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/pose/pid", 10);
 
     /* external wrench estimation*/
+    getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
     getParam<bool>(control_nh, "wrench_estimate_flag", wrench_estimate_flag_, false);
     if(wrench_estimate_flag_) startWrenchEstimation();
   }
@@ -441,17 +442,18 @@ namespace aerial_robot_control
 
     est_external_wrench_ = momentum_observer_matrix_ * (sum_momentum - init_sum_momentum_ - integrate_term_);
 
-    Eigen::VectorXd est_external_wrench_cog = est_external_wrench_;
-    est_external_wrench_cog.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
+    est_external_wrench_cog_ = est_external_wrench_;
+    est_external_wrench_cog_.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
 
     geometry_msgs::WrenchStamped wrench_msg;
     wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
-    wrench_msg.wrench.force.x = est_external_wrench_(0);
-    wrench_msg.wrench.force.y = est_external_wrench_(1);
-    wrench_msg.wrench.force.z = est_external_wrench_(2);
-    wrench_msg.wrench.torque.x = est_external_wrench_(3);
-    wrench_msg.wrench.torque.y = est_external_wrench_(4);
-    wrench_msg.wrench.torque.z = est_external_wrench_(5);
+    wrench_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("cog"));
+    wrench_msg.wrench.force.x = est_external_wrench_cog_(0);
+    wrench_msg.wrench.force.y = est_external_wrench_cog_(1);
+    wrench_msg.wrench.force.z = est_external_wrench_cog_(2);
+    wrench_msg.wrench.torque.x = est_external_wrench_cog_(3);
+    wrench_msg.wrench.torque.y = est_external_wrench_cog_(4);
+    wrench_msg.wrench.torque.z = est_external_wrench_cog_(5);
     estimate_external_wrench_pub_.publish(wrench_msg);
 
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
@@ -493,9 +495,10 @@ namespace aerial_robot_control
 
   void PoseLinearController::startWrenchEstimation()
   {
-    estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench", 1);
+    estimate_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("estimated_external_wrench_cog", 1);
 
     est_external_wrench_ = Eigen::VectorXd::Zero(6);
+    est_external_wrench_cog_ = Eigen::VectorXd::Zero(6);
     init_sum_momentum_ = Eigen::VectorXd::Zero(6);
     integrate_term_ = Eigen::VectorXd::Zero(6);
     momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6,6);
