@@ -34,7 +34,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_wrench_acc_cog_.resize(6);
 
   target_acc_cog_.resize(6);
-  target_acc_dash_.resize(6);
 
   full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_trans_ = Eigen::VectorXd::Zero(2 * motor_num_);
@@ -64,16 +63,12 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
-  target_acc_dash_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_dash", 1);
   exerted_wrench_cog_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/exerted_wrench_cog", 1);
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
-  control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
-
-  q_mat_.resize(control_dof_, motor_num_);
-  q_mat_inv_.resize(motor_num_, control_dof_);
-
+  q_mat_.resize(6, motor_num_);
+  q_mat_inv_.resize(motor_num_, 6);
 }
 
 void RollingController::reset()
@@ -81,7 +76,6 @@ void RollingController::reset()
   PoseLinearController::reset();
 
   setControllerParams("controller");
-  setControlAxisWithNameSpace("controller");
 
   if(attitude_control_in_spinal_)
     setAttitudeGains();
@@ -145,11 +139,6 @@ void RollingController::rosParamInit()
   rosoutControlParams("controller");
   rosoutControlParams("standing_controller");
   rosoutControlParams("rolling_controller");
-
-  controlled_axis_.resize(6, 1);
-  rosoutControlAxis("controller");
-  rosoutControlAxis("standing_controller");
-  rosoutControlAxis("rolling_controller");
 }
 
 bool RollingController::update()
@@ -206,7 +195,6 @@ void RollingController::controlCore()
     case aerial_robot_navigation::FLYING_STATE:
       {
         rolling_robot_model_->setTargetFrame("cog");
-        control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
         if(rolling_navigator_->getControllersResetFlag())
           {
             for(auto& controller: pid_controllers_)
@@ -383,13 +371,6 @@ void RollingController::wrenchAllocation()
 
 void RollingController::calcYawTerm()
 {
-  if(controlled_axis_.at(YAW) == 0)
-    {
-      candidate_yaw_term_ = 0;
-      ROS_ERROR("[control] control axis around YAW is false");
-      return;
-    }
-
   // special process for yaw since the bandwidth between PC and spinal
   double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
 
@@ -406,7 +387,7 @@ void RollingController::calcYawTerm()
         }
       else
         {
-          if(q_mat_inv_(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, control_dof_ - 1);
+          if(q_mat_inv_(i, YAW) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW);
         }
     }
       candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
@@ -461,13 +442,6 @@ void RollingController::sendCmd()
       target_acc_cog_msg.data.push_back(target_acc_cog_.at(i));
     }
   target_acc_cog_pub_.publish(target_acc_cog_msg);
-  // consider rotation in yaw axis
-  std_msgs::Float32MultiArray target_acc_dash_msg;
-  for(int i = 0; i < target_acc_dash_.size(); i++)
-    {
-      target_acc_dash_msg.data.push_back(target_acc_dash_.at(i));
-    }
-  target_acc_dash_pub_.publish(target_acc_dash_msg);
 
   /* full wrench allocation matrix from cog */
   aerial_robot_msgs::WrenchAllocationMatrix full_q_mat_msg;
@@ -551,14 +525,6 @@ void RollingController::sendFourAxisCommand()
   else
     flight_command_data.base_thrust = target_base_thrust_;
 
-  if(!controlled_axis_.at(X))
-    {
-      flight_command_data.angles[1] = target_pitch_;
-    }
-  if(!controlled_axis_.at(Y))
-    {
-      flight_command_data.angles[0] = target_roll_;
-    }
   flight_cmd_pub_.publish(flight_command_data);
 }
 

@@ -23,8 +23,6 @@ controller:
   d_lambda_max: 10.0
   ipopt_max_iter: 100
 
-  controlled_axis: [1, 1, 1, 1, 1, 1]
-
   xy:
     p_gain: 4.0
     i_gain: 0.5
@@ -80,7 +78,6 @@ controller:
 
 standing_controller:
   gravity_compensate_ratio: 1.0
-  controlled_axis: [1, 1, 1, 1, 1, 1]
   xy:
     p_gain: 1.5
     i_gain: 0.0
@@ -108,7 +105,6 @@ standing_controller:
 
 rolling_controller:
   gravity_compensate_ratio: 0.0
-  controlled_axis: [1, 1, 1, 1, 1, 1]
   xy:
     p_gain: 1.5
     i_gain: 0.0

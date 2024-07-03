@@ -58,7 +58,6 @@ namespace aerial_robot_control
     ros::Publisher full_q_mat_pub_;                   // for debug
     ros::Publisher operability_pub_;                  // for debug
     ros::Publisher target_acc_cog_pub_;               // for debug
-    ros::Publisher target_acc_dash_pub_;              // for debug
     ros::Publisher exerted_wrench_cog_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
     ros::Subscriber calc_gimbal_in_fc_sub_;
@@ -105,11 +104,8 @@ namespace aerial_robot_control
 
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
-    std::vector<int> controlled_axis_;
     std::vector<double> target_acc_cog_;
-    std::vector<double> target_acc_dash_;
     double target_roll_, target_pitch_; // for under actuated control
-    int control_dof_;
     bool calc_gimbal_in_fc_;
     bool hovering_approximate_;
 
@@ -178,30 +174,10 @@ namespace aerial_robot_control
     /* utils */
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
-    void setControlAxisWithNameSpace(std::string ns);
-    void rosoutControlAxis(std::string ns);
     void printDebug();
 
     void slsqpSolve();
     void nonlinearQP();
 
-    void setControlAxis(int axis, int mode)
-    {
-      int prev_mode = controlled_axis_.at(axis);
-      if(axis < 0 || 6 <= axis) return;
-      if(mode) controlled_axis_.at(axis) = 1;
-      else controlled_axis_.at(axis) = 0;
-      if(prev_mode != mode)
-        {
-          ROS_WARN_STREAM("[control] set control axis about " << axis << " to " << mode << ". The controlled axis is ["
-                          << controlled_axis_.at(0) << " "
-                          << controlled_axis_.at(1) << " "
-                          << controlled_axis_.at(2) << " "
-                          << controlled_axis_.at(3) << " "
-                          << controlled_axis_.at(4) << " "
-                          << controlled_axis_.at(5) << "]"
-                          );
-        }
-    }
   };
 };
