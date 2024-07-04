@@ -6,6 +6,7 @@
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseArray.h>
 #include <aerial_robot_model/model/transformable_aerial_robot_model.h>
+#include <numeric>
 
 using namespace aerial_robot_model;
 
@@ -34,6 +35,12 @@ public:
   std::string getTargetFrameName() {return target_frame_name_;}
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame(std::string frame_name);
+  Eigen::MatrixXd getPlannedWrenchAllocationMatrixFromControlFrame();
+  std::vector<double> getCurrentGimbalAngles() {return current_gimbal_angles_;}
+  void setGimbalPlanningFlag(int index, int flag) {gimbal_planning_flag_.at(index) = flag;}
+  std::vector<int> getGimbalPlanningFlag() {return gimbal_planning_flag_;}
+  void setGimbalPlanningAngle(int index, double angle) {gimbal_planning_angle_.at(index) = angle;}
+  std::vector<double> getGimbalPlanningAngle() {return gimbal_planning_angle_;}
   template <class T> T getInertiaFromTargetFrame();
 
 private:
@@ -46,6 +53,7 @@ private:
   std::mutex links_rotation_mutex_;
   std::mutex links_center_frame_mutex_;
   std::mutex contact_point_mutex_;
+  std::mutex current_gimbal_angles_mutex_;
 
   KDL::Frame contact_point_;
 
@@ -59,6 +67,11 @@ private:
   std::vector<KDL::Vector> links_position_from_cog_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
   std::vector<KDL::Frame> links_center_frame_from_cog_;
+  std::vector<double> current_gimbal_angles_;
+
+  /* gimbal planning */
+  std::vector<int> gimbal_planning_flag_;
+  std::vector<double> gimbal_planning_angle_;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;

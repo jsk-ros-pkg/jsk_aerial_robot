@@ -7,6 +7,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   links_position_from_cog_.resize(rotor_num);
   links_rotation_from_cog_.resize(rotor_num);
   links_center_frame_from_cog_.resize(rotor_num);
+  current_gimbal_angles_.resize(rotor_num);
   thrust_link_ = "thrust";
 
   ros::NodeHandle nh;
@@ -17,6 +18,9 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 
+  gimbal_planning_flag_.resize(getRotorNum(), 0);
+  gimbal_planning_angle_.resize(getRotorNum(), 0.0);
+
   target_frame_name_ = "cog";
   additional_frame_["cp"] = &contact_point_;
   setTargetFrame(target_frame_name_);
@@ -26,6 +30,7 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
 {
   RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = fullForwardKinematics(joint_positions);
+  sensor_msgs::JointState joint_state = kdlJointToMsg(joint_positions);
   KDL::TreeFkSolverPos_recursive fk_solver(getTree());
 
   /* get cog */
@@ -96,6 +101,22 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   contact_point_.p = cog * contact_point_.p;
   contact_point_.M = cog.M;
   /* contact point */
+
+  /* get current gimbal angles */
+  for(int i = 0; i < joint_state.name.size(); i++)
+    {
+      if(joint_state.name.at(i).find("gimbal") != std::string::npos)
+        {
+          for(int j = 0; j < getRotorNum(); j++)
+            {
+              if(joint_state.name.at(i) == std::string("gimbal") + std::to_string(j + 1))
+                {
+                  std::lock_guard<std::mutex> lock(current_gimbal_angles_mutex_);
+                  current_gimbal_angles_.at(j) = joint_state.position.at(i);
+                }
+            }
+        }
+    }
 
   /* publish origin and normal for debug */
   geometry_msgs::PoseArray rotor_origin_msg;
@@ -200,6 +221,43 @@ Eigen::MatrixXd RollingRobotModel::getFullWrenchAllocationMatrixFromControlFrame
   Eigen::MatrixXd full_q_mat = getFullWrenchAllocationMatrixFromControlFrame();
   setTargetFrame(prev_target_frame_name);
   return full_q_mat;
+}
+
+Eigen::MatrixXd RollingRobotModel::getPlannedWrenchAllocationMatrixFromControlFrame()
+{
+  Eigen::MatrixXd full_q_mat = getFullWrenchAllocationMatrixFromControlFrame();
+
+  const int rotor_num = getRotorNum();
+  int planned_gimbal_num = std::accumulate(gimbal_planning_flag_.begin(), gimbal_planning_flag_.end(), 0);
+
+  KDL::Frame cog = getCog<KDL::Frame>();
+
+  Eigen::MatrixXd planned_q_mat = Eigen::MatrixXd::Zero(6, planned_gimbal_num + 2 * (rotor_num - planned_gimbal_num));
+  int last_col = 0;
+  std::vector<KDL::Vector> rotors_origin_from_cog = getRotorsOriginFromCog<KDL::Vector>();
+  std::vector<KDL::Vector> rotors_normal_from_cog = getRotorsNormalFromCog<KDL::Vector>();
+  double m_f_rate = getMFRate();
+  std::map<int, int> rotor_direction = getRotorDirection();
+
+  for(int i = 0; i < rotor_num; i++)
+    {
+      if(gimbal_planning_flag_.at(i)) // planned
+        {
+          Eigen::VectorXd p, u;
+          u = kdlToEigen(getTargetFrame().M.Inverse() * cog.M * rotors_normal_from_cog.at(i));
+          p = kdlToEigen(getTargetFrame().Inverse()   * cog   * rotors_origin_from_cog.at(i));
+
+          planned_q_mat.block(0, last_col, 3, 1) = u;
+          planned_q_mat.block(3, last_col, 3, 1) = aerial_robot_model::skew(p) * u + m_f_rate * rotor_direction.at(i + 1) * u;
+          last_col += 1;
+        }
+      else // not planned
+        {
+          planned_q_mat.block(0, last_col, 6, 2) = full_q_mat.block(0, 2 * i, 6, 2);
+          last_col += 2;
+        }
+    }
+  return planned_q_mat;
 }
 
 /* plugin registration */

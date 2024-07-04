@@ -72,9 +72,6 @@ namespace aerial_robot_control
     std::vector<float> lambda_trans_;
     std::vector<float> lambda_all_;
     std::vector<double> target_gimbal_angles_;
-    std::vector<double> prev_target_gimbal_angles_;
-    std::vector<double> current_gimbal_angles_;
-    std::vector<double> current_joint_angles_;
     Eigen::VectorXd full_lambda_all_;
     Eigen::VectorXd full_lambda_trans_;
     Eigen::VectorXd full_lambda_rot_;
@@ -83,18 +80,14 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     bool use_sr_inv_;
     double sr_inv_weight_;
-    double circle_radius_;
     std::string tf_prefix_;
-    double gimbal_lpf_factor_;
     int ground_navigation_mode_;
-    bool realtime_gimbal_allocation_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
 
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
     std::vector<double> target_acc_cog_;
-    double target_roll_, target_pitch_; // for under actuated control
     bool calc_gimbal_in_fc_;
     bool hovering_approximate_;
 
