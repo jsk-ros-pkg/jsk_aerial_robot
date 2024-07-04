@@ -17,8 +17,11 @@ void RollingController::standingPlanning()
 
 void RollingController::calcStandingFullLambda()
 {
-  int n_variables = 2 * motor_num_;
-  int n_constraints = 3 + 1 + 2 + 2 + 6;
+  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
+  int num_of_planned_gimbals = std::accumulate(gimbal_planning_flag.begin(), gimbal_planning_flag.end(), 0);
+
+  int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals;
+  int n_constraints = 3 + 1 + 2 + 2 + n_variables;
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Identity(n_variables, n_variables);
   Eigen::SparseMatrix<double> H_s;
@@ -50,7 +53,8 @@ void RollingController::calcStandingFullLambda()
 
   gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
 
-  Eigen::MatrixXd full_q_mat = rolling_robot_model_->getFullWrenchAllocationMatrixFromControlFrame();
+  Eigen::MatrixXd planned_q_mat = rolling_robot_model_->getPlannedWrenchAllocationMatrixFromControlFrame();
+  Eigen::MatrixXd full_q_mat = planned_q_mat;
   Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
   Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
@@ -91,14 +95,27 @@ void RollingController::calcStandingFullLambda()
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
-  lower_bound.tail(n_variables) = - robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(n_variables);
-  upper_bound.tail(n_variables) =   robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(n_variables);
-
-  if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+  int last_col = n_constraints - n_variables;
+  for(int i = 0; i < motor_num_; i++)
     {
-      for(int i = 0; i < motor_num_; i++)
+      if(gimbal_planning_flag.at(i))
         {
-          upper_bound(n_constraints - n_variables + 2 * i) = -fabs(rolling_minimum_lateral_force_);
+          lower_bound(last_col) = 0.0;
+          upper_bound(last_col) = robot_model_->getThrustUpperLimit();
+
+          last_col += 1;
+        }
+      else
+        {
+          lower_bound.segment(last_col, 2) = - robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(2);
+          upper_bound.segment(last_col, 2) =   robot_model_->getThrustUpperLimit() * Eigen::VectorXd::Ones(2);
+
+          if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+            {
+              upper_bound(last_col) = -fabs(rolling_minimum_lateral_force_);
+            }
+
+          last_col += 2;
         }
     }
 
@@ -119,13 +136,47 @@ void RollingController::calcStandingFullLambda()
       ROS_ERROR("[control][OSQP] init solver error!");
     }
 
-  solver.setPrimalVariable(full_lambda_all_);
+  /* set primal variable from previous solution x*/
+  last_col = 0;
+  Eigen::VectorXd initial_variable = Eigen::VectorXd::Zero(n_variables);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      if(gimbal_planning_flag.at(i))
+        {
+          initial_variable(last_col) = lambda_all_.at(i);
+          last_col += 1;
+        }
+      else
+        {
+          initial_variable.segment(last_col, 2) = full_lambda_all_.segment(2 * i, 2);
+          last_col += 2;
+        }
+    }
+  solver.setPrimalVariable(initial_variable);
 
   if(!solver.solve())
     {
       ROS_WARN_STREAM("[control][OSQP] could not solve QP!");
     }
   auto solution = solver.getSolution();
-  full_lambda_all_ = solution;
-  full_lambda_trans_ = solution;
+
+  /* reconstruct full lambda */
+  Eigen::VectorXd full_lambda = Eigen::VectorXd::Zero(2 * motor_num_);
+  last_col = 0;
+  for(int i = 0; i < motor_num_; i++)
+    {
+      if(gimbal_planning_flag.at(i))
+        {
+          full_lambda.segment(2 * i, 2) = solution(last_col) * Eigen::VectorXd::Ones(2);
+          last_col += 1;
+        }
+      else
+        {
+          full_lambda.segment(2 * i, 2) = solution.segment(last_col, 2);
+          last_col += 2;
+        }
+    }
+
+  full_lambda_all_ = full_lambda;
+  full_lambda_trans_ = full_lambda;
 }

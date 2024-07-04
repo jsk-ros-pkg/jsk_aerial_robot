@@ -22,12 +22,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
 
   rotor_tilt_.resize(motor_num_);
-  lambda_trans_.resize(motor_num_);
-  lambda_all_.resize(motor_num_);
-  target_gimbal_angles_.resize(motor_num_, 0);
-  prev_target_gimbal_angles_.resize(motor_num_, 0);
-  current_gimbal_angles_.resize(motor_num_, 0);
-  current_joint_angles_.resize(2, 0);   // TODO: get from robot model
+  lambda_trans_.resize(motor_num_, 0.0);
+  lambda_all_.resize(motor_num_, 0.0);
+  target_gimbal_angles_.resize(motor_num_, 0.0);
 
   target_wrench_acc_cog_.resize(6);
   target_acc_cog_.resize(6);
@@ -37,9 +34,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_lambda_rot_ = Eigen::VectorXd::Zero(2 * motor_num_);
 
   rosParamInit();
-
-  target_roll_ = 0.0;
-  target_pitch_ = 0.0;
 
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
@@ -101,14 +95,13 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<bool>(control_nh, "calc_gimbal_in_fc", calc_gimbal_in_fc_, false);
-  getParam<double>(control_nh, "gimbal_lpf_factor",gimbal_lpf_factor_, 1.0);
-  getParam<double>(nh_, "circle_radius", circle_radius_, 0.5);
-  getParam<bool>(control_nh, "realtime_gimbal_allocation", realtime_gimbal_allocation_, false);
   getParam<double>(control_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 1.0);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
 
-  rolling_robot_model_->setCircleRadius(circle_radius_);
+  double circle_radius;
+  getParam<double>(nh_, "circle_radius", circle_radius, 0.5);
+  rolling_robot_model_->setCircleRadius(circle_radius);
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -221,30 +214,39 @@ void RollingController::controlCore()
 
 void RollingController::wrenchAllocation()
 {
-  int last_col = 0;
+  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
+  auto gimbal_planning_angle = rolling_robot_model_->getGimbalPlanningAngle();
 
+  int last_col = 0;
   for(int i = 0; i < motor_num_; i++)
     {
-      Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
-      Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+      if(gimbal_planning_flag.at(i))
+        {
+          lambda_trans_.at(i) = full_lambda_trans_(last_col);
+          lambda_all_.at(i) = full_lambda_all_(last_col);
+          target_gimbal_angles_.at(i) = gimbal_planning_angle.at(i);
+          ROS_INFO_STREAM_THROTTLE(0.1, "[control] send planned gimbal" << i << " angle " << target_gimbal_angles_.at(i));
+        }
+      else
+        {
+          Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
+          Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
+          lambda_trans_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
+          lambda_all_.at(i) = full_lambda_all_i.norm() / fabs(cos(rotor_tilt_.at(i)));
 
-      lambda_trans_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
-      lambda_all_.at(i) = full_lambda_all_i.norm() / fabs(cos(rotor_tilt_.at(i)));
-
-      /* calculate gimbal angles */
-      prev_target_gimbal_angles_.at(i) = target_gimbal_angles_.at(i);
-      double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-      target_gimbal_angles_.at(i) = (gimbal_lpf_factor_ - 1.0) / gimbal_lpf_factor_ * prev_target_gimbal_angles_.at(i) + 1.0 / gimbal_lpf_factor_ * gimbal_angle_i;
-
-      ROS_WARN_STREAM_ONCE("[control] gimbal lpf factor: " << gimbal_lpf_factor_);
-
+          double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
+          target_gimbal_angles_.at(i) = gimbal_angle_i;
+        }
       last_col += 2;
     }
 
   /* solve round offset of gimbal angle */
+  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
   for(int i = 0; i < motor_num_; i++)
     {
-      if(fabs(target_gimbal_angles_.at(i) - current_gimbal_angles_.at(i)) > M_PI)
+      if(gimbal_planning_flag.at(i)) continue; // send planned gimbal angle
+
+      if(fabs(target_gimbal_angles_.at(i) - current_gimbal_angles.at(i)) > M_PI)
         {
           bool converge_flag = false;
           double gimbal_candidate_plus = target_gimbal_angles_.at(i);
@@ -253,13 +255,13 @@ void RollingController::wrenchAllocation()
             {
               gimbal_candidate_plus += 2 * M_PI;
               gimbal_candidate_minus -= 2 * M_PI;
-              if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_plus) < M_PI)
+              if(fabs(current_gimbal_angles.at(i) - gimbal_candidate_plus) < M_PI)
                 {
                   ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_plus;
                   converge_flag = true;
                 }
-              else if(fabs(current_gimbal_angles_.at(i) - gimbal_candidate_minus) < M_PI)
+              else if(fabs(current_gimbal_angles.at(i) - gimbal_candidate_minus) < M_PI)
                 {
                   ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
                   target_gimbal_angles_.at(i) = gimbal_candidate_minus;
@@ -277,16 +279,7 @@ void RollingController::wrenchAllocation()
   for(int i = 0; i < motor_num_; i++)
     {
       std::string s = std::to_string(i + 1);
-      if(realtime_gimbal_allocation_)
-        {
-          ROS_WARN_STREAM_ONCE("[control] use actual gimbal angle for realtime allocation");
-          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = current_gimbal_angles_.at(i);
-        }
-      else
-        {
-          ROS_WARN_STREAM_ONCE("[control] use target gimbal angle for realtime allocation");
-          gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = target_gimbal_angles_.at(i);
-        }
+      gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = current_gimbal_angles.at(i);
     }
   robot_model_for_control_->updateRobotModel(gimbal_processed_joint);
 
@@ -513,33 +506,6 @@ void RollingController::setAttitudeGains()
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
 {
   sensor_msgs::JointState joint_state = *state;
-
-  /* get current gimbal angles */
-  for(int i = 0; i < joint_state.name.size(); i++)
-    {
-      if(joint_state.name.at(i).find("gimbal") != string::npos)
-        {
-          for(int j = 0; j < motor_num_; j++)
-            {
-              if(joint_state.name.at(i) == std::string("gimbal") + std::to_string(j + 1))
-                {
-                  std::lock_guard<std::mutex> lock(current_gimbal_angles_mutex_);
-                  current_gimbal_angles_.at(j) = joint_state.position.at(i);
-                }
-            }
-        }
-      if(joint_state.name.at(i).find("joint") != string::npos)
-        {
-          for(int j = 0; j < current_joint_angles_.size(); j++)
-            {
-              if(joint_state.name.at(i) == std::string("joint" + std::to_string(j + 1)))
-                {
-                  std::lock_guard<std::mutex> lock(current_joint_angles_mutex_);
-                  current_joint_angles_.at(j) = joint_state.position.at(i);
-                }
-            }
-        }
-    }
 
   /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
