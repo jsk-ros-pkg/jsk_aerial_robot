@@ -24,6 +24,57 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   target_frame_name_ = "cog";
   additional_frame_["cp"] = &contact_point_;
   setTargetFrame(target_frame_name_);
+
+  contact_point_calc_thread_ = boost::thread([this]()
+                                             {
+                                               double update_rate = 100.0;
+                                               ros::Rate loop_rate(update_rate);
+                                               while(ros::ok())
+                                                 {
+                                                   calcContactPoint();
+                                                   loop_rate.sleep();
+                                                 }
+                                             });
+}
+
+void RollingRobotModel::calcContactPoint()
+{
+  /* contact point */
+  Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+  Eigen::Vector3d b3 = Eigen::Vector3d(0.0, 0.0, 1.0);
+  Eigen::Matrix3d rot_mat;
+  std::vector<KDL::Frame> links_center_frame_from_cog = getLinksCenterFrameFromCog();
+  double min_z_in_cog = 100000;
+  int min_index_i, min_index_j;
+  for(int i = 0; i < getRotorNum(); i++)
+    {
+      KDL::Frame link_i_center_frame_from_cog = links_center_frame_from_cog.at(i);
+      Eigen::Matrix3d cog_R_center = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.M);
+      Eigen::Vector3d cog_p_center_in_cog = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.p);
+      for(int j = 30; j <= 150; j++)
+        {
+          rot_mat = Eigen::AngleAxisd(j / 180.0 * M_PI, b3);
+          Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
+          Eigen::Vector3d center_p_cp_in_cog = cog_R_center * center_p_cp_in_center;
+          if(center_p_cp_in_cog(2) < min_z_in_cog)
+            {
+              min_z_in_cog = center_p_cp_in_cog(2);
+              min_index_i = i;
+              min_index_j = j;
+            }
+        }
+    }
+  rot_mat = Eigen::AngleAxisd(min_index_j / 180.0 * M_PI, b3);
+  Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
+  Eigen::Vector3d cog_p_cp_in_cog = aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).p) + aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).M) * center_p_cp_in_center;
+
+  auto cog = getCog<KDL::Frame>();
+  contact_point_.p.x(cog_p_cp_in_cog(0));
+  contact_point_.p.y(cog_p_cp_in_cog(1));
+  contact_point_.p.z(cog_p_cp_in_cog(2));
+  contact_point_.p = cog * contact_point_.p;
+  contact_point_.M = cog.M;
+  /* contact point */
 }
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -65,42 +116,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       link_inertia = link_inertia + f * inertia.second;
     }
   link_inertia_ = link_inertia;
-
-  /* contact point */
-  Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
-  Eigen::Vector3d b3 = Eigen::Vector3d(0.0, 0.0, 1.0);
-  Eigen::Matrix3d rot_mat;
-  std::vector<KDL::Frame> links_center_frame_from_cog = getLinksCenterFrameFromCog();
-  double min_z_in_cog = 100000;
-  int min_index_i, min_index_j;
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      KDL::Frame link_i_center_frame_from_cog = links_center_frame_from_cog.at(i);
-      Eigen::Matrix3d cog_R_center = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.M);
-      Eigen::Vector3d cog_p_center_in_cog = aerial_robot_model::kdlToEigen(link_i_center_frame_from_cog.p);
-      for(int j = 30; j <= 150; j++)
-        {
-          rot_mat = Eigen::AngleAxisd(j / 180.0 * M_PI, b3);
-          Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
-          Eigen::Vector3d center_p_cp_in_cog = cog_R_center * center_p_cp_in_center;
-          if(center_p_cp_in_cog(2) < min_z_in_cog)
-            {
-              min_z_in_cog = center_p_cp_in_cog(2);
-              min_index_i = i;
-              min_index_j = j;
-            }
-        }
-    }
-  rot_mat = Eigen::AngleAxisd(min_index_j / 180.0 * M_PI, b3);
-  Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
-  Eigen::Vector3d cog_p_cp_in_cog = aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).p) + aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).M) * center_p_cp_in_center;
-
-  contact_point_.p.x(cog_p_cp_in_cog(0));
-  contact_point_.p.y(cog_p_cp_in_cog(1));
-  contact_point_.p.z(cog_p_cp_in_cog(2));
-  contact_point_.p = cog * contact_point_.p;
-  contact_point_.M = cog.M;
-  /* contact point */
 
   /* get current gimbal angles */
   for(int i = 0; i < joint_state.name.size(); i++)

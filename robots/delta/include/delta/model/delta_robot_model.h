@@ -3,6 +3,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <boost/thread/thread.hpp>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseArray.h>
 #include <aerial_robot_model/model/transformable_aerial_robot_model.h>
@@ -17,7 +18,11 @@ public:
                     double fc_f_min_thre = 0,
                     double fc_t_min_thre = 0,
                     double epsilon = 10);
-  virtual ~RollingRobotModel() = default;
+  ~RollingRobotModel()
+  {
+    contact_point_calc_thread_.interrupt();
+    contact_point_calc_thread_.join();
+  }
 
   void calcRobotModelFromFrame(std::string frame_name);
   template <class T> T getContactPoint();
@@ -49,6 +54,8 @@ private:
   ros::Publisher rotor_origin_pub_;
   ros::Publisher rotor_normal_pub_;
 
+  boost::thread contact_point_calc_thread_;
+
   std::mutex links_position_mutex_;
   std::mutex links_rotation_mutex_;
   std::mutex links_center_frame_mutex_;
@@ -72,6 +79,8 @@ private:
   /* gimbal planning */
   std::vector<int> gimbal_planning_flag_;
   std::vector<double> gimbal_planning_angle_;
+
+  void calcContactPoint();
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
