@@ -17,7 +17,8 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 {
   BeetleNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
   ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
-  target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1);
+  target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1); //for debug
+  target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setTargetCoMRotCallback, this);
 }
 
 void NinjaNavigator::update()
@@ -31,10 +32,12 @@ void NinjaNavigator::update()
       {
         KDL::Frame current_com;
         KDL::Frame target_cog_pose;
+        KDL::Frame target_com_pose;
         geometry_msgs::TransformStamped transformStamped;
-        transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
-        tf::transformMsgToKDL(transformStamped.transform, current_com);
-        target_cog_pose = getCog2CoM<KDL::Frame>().Inverse() * current_com;
+        
+        target_com_pose.M = target_com_rot_;
+        tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
+        target_cog_pose = target_com_pose * getCog2CoM<KDL::Frame>().Inverse();
 
         geometry_msgs::TransformStamped tf;
         tf::transformKDLToMsg(target_cog_pose, tf.transform);
@@ -255,7 +258,6 @@ void NinjaNavigator::calcCenterOfMoving()
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
                     }
-                    test_frame_ = frame;
                     com_frame = com_frame * frame;
                   }
                 else if(it.first < my_id_)
@@ -299,8 +301,10 @@ void NinjaNavigator::calcCenterOfMoving()
                   }
               }
           }
-        KDL::Frame cog2base = ninja_robot_model_->getCog2Baselink<KDL::Frame>();
+        KDL::Frame cog2base;
+        cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
         setCog2CoM((cog2base.Inverse() * com_frame * cog2base).Inverse());
+
       }
 
     if(reconfig_flag_){
@@ -379,8 +383,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   KDL::Frame target_my_pose;
   target_com_pose.M = target_com_rot_;
   tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
-  KDL::Frame cog2base = ninja_robot_model_->getCog2Baselink<KDL::Frame>();
-  target_my_pose = getCog2CoM<KDL::Frame>().Inverse() * target_com_pose; // com -> cog
+  target_my_pose = target_com_pose * getCog2CoM<KDL::Frame>().Inverse(); // com -> cog
 
   tf::Vector3 target_pos, target_rot;
   double target_roll, target_pitch, target_yaw;
@@ -429,6 +432,11 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
       }
   }
 
+}
+
+void NinjaNavigator::setTargetCoMRotCallback(const spinal::DesireCoordConstPtr & msg)
+{
+  setTargetComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw)); 
 }
 
 /* plugin registration */

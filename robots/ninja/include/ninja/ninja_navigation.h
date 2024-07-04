@@ -45,14 +45,15 @@ namespace aerial_robot_navigation
 
   private:
     void convertTargetPosFromCoG2CoM() override;
-    ros::Publisher target_com_pose_pub_;
+    void setTargetCoMRotCallback(const spinal::DesireCoordConstPtr & msg);
 
+    ros::Publisher target_com_pose_pub_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
+    ros::Subscriber target_com_rot_sub_;
     ros::Subscriber entire_structure_sub_;
     ros::Publisher joint_control_pub_;
 
     std::map<int, ModuleData> assembled_modules_data_;
     KDL::Rotation target_com_rot_;
-    KDL::Frame test_frame_;
   };
 };
