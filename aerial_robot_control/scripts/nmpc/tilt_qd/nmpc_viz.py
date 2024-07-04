@@ -194,7 +194,7 @@ class Visualizer:
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
         plt.ylabel("Position (m)", fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.65), loc="lower left")
 
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
@@ -210,7 +210,7 @@ class Visualizer:
         ax_right.plot(time_data_x, euler[:self.data_idx, 2], label="yaw", linestyle="--")
         ax_right.set_ylabel("Euler Angle ($^\\circ$)", fontsize=label_size)
 
-        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.45, 0.7), loc="lower left")
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.45, 0.65), loc="lower left")
         # plt.xlim([0, t_total_sim])
 
         time_data_u = np.arange(self.data_idx - 1) * ts_sim + ts_sim
