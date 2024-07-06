@@ -25,6 +25,15 @@
     </link>
     <xacro:large_friction link="link3"/>
 
+    <link name="link3_end">
+      <xacro:virtual_inertial/>
+    </link>
+    <joint name="link3_end_joint" type="fixed">
+      <parent link="link3"/>
+      <child link="link3_end"/>
+      <origin xyz="0.5335 0  0" rpy="0 0 0"/>
+    </joint>
+
     <!-- leg -->
     <link name="link3_leg1">
       <inertial>
