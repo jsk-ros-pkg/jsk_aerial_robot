@@ -4,6 +4,7 @@
   <arg name="real_machine" default="false" />
   <arg name="simulation" default="false" />
   <arg name="robot_ns" default="quadrotor" />
+  <arg name="robot_id" default="1"/>
 
   <group ns="$(arg robot_ns)">
     <group if="$(arg real_machine)">
@@ -15,7 +16,9 @@
         </include>
 
         <!-- mocap -->
-        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" >
+          <arg name="robot_id" value= "$(arg robot_id)" />
+        </include>
       </group>
     </group>
 

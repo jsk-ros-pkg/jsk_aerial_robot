@@ -79,6 +79,7 @@
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="robot_id" value="$(arg robot_id)" />
   </include >
 
   ########## Simulation in Gazebo #########
