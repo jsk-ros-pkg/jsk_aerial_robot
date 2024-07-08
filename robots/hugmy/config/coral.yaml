@@ -1,0 +1,7 @@
+edgetpu_node_manager:
+  nodes:
+  - name: edgetpu_panorama_object_detector
+    type: panorama_object_detector
+  - name: edgetpu_human_pose_estimator
+    type: human_pose_estimator
+  default: edgetpu_panorama_object_detector
