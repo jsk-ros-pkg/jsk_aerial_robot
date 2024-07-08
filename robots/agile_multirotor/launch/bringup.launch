@@ -25,6 +25,7 @@
   <arg name="config_dir" default="$(find agile_multirotor)/config/" />
   <arg name="hokuyo" default="False" />
   <arg name="body_r" default="0.325" />
+  <arg name="rate" default="20.0" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -102,12 +103,12 @@
   ####### Simulation collision world ############
   <group if= "$(eval arg('simulation') and not arg('real_machine'))">
     <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
-      <param name="rate" value="20.0" />
+      <param name="rate" value="$(arg rate)" />
       <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg worldtype).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
       <param name="policy_start_delay" value="$(arg policy_start_delay)" />
-      <remap from="start_moving_obstacle" to="start_navigation" />
+      <!-- <remap from="start_moving_obstacle" to="start_navigation" /> -->
     </node>
 
     <node pkg="agile_multirotor" type="depth_image_correction.py" name="depth_image_correction" output="screen" ns="$(arg robot_ns)"/> 
