@@ -20,4 +20,8 @@
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>pluginlib</run_depend>
 
+  <export>
+    <aerial_robot_control plugin="${prefix}/plugins/navigation_plugin.xml" />
+  </export>
+
 </package>
