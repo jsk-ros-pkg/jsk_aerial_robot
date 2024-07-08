@@ -64,6 +64,7 @@ private:
   ros::Subscriber marker_sub_;
   ros::Subscriber record_sub_, start_obstacle_sub_;
   ros::Publisher obs_pub_;
+  ros::Publisher marker_sub_
   ros::Publisher obs_min_dist_pub_;
 
   std::vector<Eigen::Vector3d> positions_, velocities_;

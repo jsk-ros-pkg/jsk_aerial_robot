@@ -40,6 +40,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       radius_list_.push_back(stof(strvec.at(8)));
       start_obstacle_sub_ = nh_.subscribe("/" + quad_name + "/start_moving_obstacle", 1,
                             &ObstacleCalculator::StartObstacleCallback, this);
+      marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
+      "/" + quad_name + "/visualization_marker", 1);
     }
   }
   else {
@@ -115,6 +117,10 @@ void ObstacleCalculator::CalculatorCallback(
 
   Eigen::Vector3d pos;
   tf::pointMsgToEigen(msg->pose.pose.position, pos);
+
+  visualization_msgs::MarkerArray marker_array_msg;
+  marker_array_msg.markers.resize(positions_.size());
+
   Eigen::Quaternion<Scalar> quat;
   tf::quaternionMsgToEigen(msg->pose.pose.orientation, quat);
   Eigen::Vector3d euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
@@ -147,11 +153,22 @@ void ObstacleCalculator::CalculatorCallback(
 
   for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
     Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
-
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "world";
+    marker.ns = "tree";
+    marker.id = obstacle_id;
+    marker.type = 3;
+    marker.pose.position.x = tree_pos(0);
+    marker.pose.position.y = tree_pos(1);
+    marker.pose.position.z = 1.0;
+    marker.scale.x = 0.25
+    marker.scale.y = 0.25
+    marker.scale.z = 2.0;
     Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
     converted_positions.push_back(converted_pos);
     Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
     min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
+    marker_array_msg.markers[obstacle_id] = marker
 
     obstacle_id++;
   }
