@@ -39,7 +39,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       velocities_.push_back(tree_vel);
       radius_list_.push_back(stof(strvec.at(8)));
       start_obstacle_sub_ = nh_.subscribe("/" + quad_name + "/start_moving_obstacle", 1,
-                            &ObstacleCalculator::std_msgs::Empty, this);
+                            &ObstacleCalculator::StartObstacleCallback, this);
     }
   }
   else {
@@ -47,7 +47,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     have_hokuyo_data_ = false;
 
     marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
-                            &ObstacleCalculator::StartObstacleCallback, this);
+                            &ObstacleCalculator::VisualizationMarkerCallback, this);
     // record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
     //                         &ObstacleCalculator::RecordMarkerCallback, this);
   }
@@ -109,9 +109,9 @@ void ObstacleCalculator::CalculatorCallback(
   // if moving_obstacle_ is false, obstacle_start_moving_time_ is current time, then obstacle_moving_time is 0.f
 
   if (!moving_obstacle_){
-    obstacle_start_moving_time_ = msg.header.stamp;
+    obstacle_start_moving_time_ = msg->header.stamp;
   }
-  obstacle_moving_time_ = (msg.header.stamp - obstacle_start_moving_time_).toSec();
+  obstacle_moving_time_ = (msg->header.stamp - obstacle_start_moving_time_).toSec();
 
   Eigen::Vector3d pos;
   tf::pointMsgToEigen(msg->pose.pose.position, pos);
