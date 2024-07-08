@@ -140,7 +140,7 @@ void ObstacleCalculator::CalculatorCallback(
 
   std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> converted_positions;
   double min_dist = max_detection_range_;
-  size_t call = 0;
+  size_t obstacle_id = 0;
 
   auto it_pos = positions_.begin();
   auto it_vel = velocities_.begin();
@@ -151,8 +151,9 @@ void ObstacleCalculator::CalculatorCallback(
     Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
     converted_positions.push_back(converted_pos);
     Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
-    min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[call]);
-    call++;
+    min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
+
+    obstacle_id++;
   }
   std_msgs::Float64 min_dist_msg;
   min_dist_msg.data = min_dist;
@@ -188,12 +189,12 @@ void ObstacleCalculator::CalculatorCallback(
   obs_pub_.publish(obstacle_msg);
   }
 
-  //   if (call == 400) {
+  //   if (obstacle_id == 400) {
   //     std::cout << "v: " << std::endl;
   //     std::cout << v << std::endl;
-  //     call = 0;
+  //     obstacle_id = 0;
   //   } else {
-  //     call += 1;
+  //     obstacle_id += 1;
   //   }
 }
 
