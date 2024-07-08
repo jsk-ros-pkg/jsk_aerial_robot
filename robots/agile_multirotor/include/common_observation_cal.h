@@ -16,6 +16,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <sstream>
 #include <std_msgs/Float64MultiArray.h>
+#include <time.h>
 
 using Scalar = double;
 static constexpr int Dynamic = Eigen::Dynamic;
@@ -61,11 +62,11 @@ private:
   ros::NodeHandle pnh_;
   ros::Subscriber odom_sub_;
   ros::Subscriber marker_sub_;
-  ros::Subscriber record_sub_;
+  ros::Subscriber record_sub_, start_obstacle_sub_;
   ros::Publisher obs_pub_;
   ros::Publisher obs_min_dist_pub_;
 
-  std::vector<Eigen::Vector3d> positions_;
+  std::vector<Eigen::Vector3d> positions_, velocities_;
   std::vector<Scalar> radius_list_;
   int call_;
 
@@ -91,12 +92,15 @@ private:
   double body_r_;
   // bool record_marker_;
   bool from_hokuyo_;
-  bool have_hokuyo_data_;
+  bool have_hokuyo_data_, moving_obstacle_;
+  ros::Time obstacle_start_moving_time_;
+  float obstacle_moving_time_;
 
 
   std::vector<std::string> split(std::string &input, char delimiter);
 
   void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
   void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
+  void StartObstacleCallback(const std_msgs::Empty::ConstPtr &msg);
   // void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
 };

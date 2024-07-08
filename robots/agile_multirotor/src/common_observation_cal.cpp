@@ -32,7 +32,14 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       tree_pos(1) = stof(strvec.at(2))+shift_y_; //world coodinate
       tree_pos(2) = 0;
       positions_.push_back(tree_pos);
+      Eigen::Vector3d tree_vel;
+      tree_vel(0) = stof(strvec.at(3));
+      tree_vel(1) = stof(strvec.at(4));
+      tree_vel(2) = 0.f;
+      velocities_.push_back(tree_vel);
       radius_list_.push_back(stof(strvec.at(8)));
+      start_obstacle_sub_ = nh_.subscribe("/" + quad_name + "/start_moving_obstacle", 1,
+                            &ObstacleCalculator::std_msgs::Empty, this);
     }
   }
   else {
@@ -40,7 +47,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     have_hokuyo_data_ = false;
 
     marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
-                            &ObstacleCalculator::VisualizationMarkerCallback, this);
+                            &ObstacleCalculator::StartObstacleCallback, this);
     // record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
     //                         &ObstacleCalculator::RecordMarkerCallback, this);
   }
@@ -91,8 +98,20 @@ void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::M
 //   record_marker_ = true;
 // }
 
+void ObstacleCalculator::StartObstacleCallback(const std_msgs::Empty::ConstPtr &msg){
+  moving_obstacle_ = true;
+}
+
 void ObstacleCalculator::CalculatorCallback(
     const nav_msgs::Odometry::ConstPtr &msg) {
+
+  // calc time from obstacle moving
+  // if moving_obstacle_ is false, obstacle_start_moving_time_ is current time, then obstacle_moving_time is 0.f
+
+  if (!moving_obstacle_){
+    obstacle_start_moving_time_ = msg.header.stamp;
+  }
+  obstacle_moving_time_ = (msg.header.stamp - obstacle_start_moving_time_).toSec();
 
   Eigen::Vector3d pos;
   tf::pointMsgToEigen(msg->pose.pose.position, pos);
@@ -123,7 +142,12 @@ void ObstacleCalculator::CalculatorCallback(
   double min_dist = max_detection_range_;
   size_t call = 0;
 
-  for (const auto &tree_pos : positions_) {
+  auto it_pos = positions_.begin();
+  auto it_vel = velocities_.begin();
+
+  for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
+    Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
+
     Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
     converted_positions.push_back(converted_pos);
     Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
