@@ -94,7 +94,7 @@ namespace aerial_robot_control
     /* ground mode */
     Eigen::Vector3d gravity_compensate_term_;
     double steering_mu_;
-    double gravity_compensate_ratio_;
+    Eigen::MatrixXd gravity_compensate_weights_;
     double rolling_minimum_lateral_force_;
 
     /* common part */

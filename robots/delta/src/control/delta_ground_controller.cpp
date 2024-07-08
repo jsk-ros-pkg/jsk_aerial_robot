@@ -48,10 +48,10 @@ void RollingController::calcStandingFullLambda()
 
   target_wrench_target_frame.tail(3)
     = target_wrench_target_frame.tail(3)
-    + gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined
+    + gravity_compensate_weights_ * gravity_moment_from_contact_point_alined
     + omega.cross(rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * omega);
 
-  gravity_compensate_term_ = gravity_compensate_ratio_ * gravity_moment_from_contact_point_alined;
+  gravity_compensate_term_ = gravity_compensate_weights_ * gravity_moment_from_contact_point_alined;
 
   Eigen::MatrixXd planned_q_mat = rolling_robot_model_->getPlannedWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd full_q_mat = planned_q_mat;
