@@ -95,7 +95,6 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<bool>(control_nh, "calc_gimbal_in_fc", calc_gimbal_in_fc_, false);
-  getParam<double>(control_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 1.0);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
   getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
 
@@ -151,7 +150,15 @@ void RollingController::controlCore()
           {
             setControllerParams("standing_controller");
             ros::NodeHandle standing_nh(nh_, "standing_controller");
-            getParam<double>(standing_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 0.0);
+            std::vector<double> gravity_compensate_weights = std::vector<double>(3);
+            if(!standing_nh.getParam("gravity_compensate_weights", gravity_compensate_weights))
+              ROS_ERROR_STREAM("[control] could not find parameter gravity_compensate_weights");
+            else
+              ROS_WARN_STREAM("[control] set ros parameter gravity_compensate_weights as [" << gravity_compensate_weights.at(0) << " " << gravity_compensate_weights.at(1) << " " << gravity_compensate_weights.at(2) << "]");
+            gravity_compensate_weights_ = Eigen::MatrixXd::Zero(3, 3);
+            for(int i = 0; i < 3; i++)
+              gravity_compensate_weights_(i, i) = gravity_compensate_weights.at(i);
+
             break;
           }
         case aerial_robot_navigation::ROLLING_STATE:
@@ -159,7 +166,15 @@ void RollingController::controlCore()
           {
             setControllerParams("rolling_controller");
             ros::NodeHandle rolling_nh(nh_, "rolling_controller");
-            getParam<double>(rolling_nh, "gravity_compensate_ratio", gravity_compensate_ratio_, 0.0);
+            std::vector<double> gravity_compensate_weights = std::vector<double>(3);
+            if(!rolling_nh.getParam("gravity_compensate_weights", gravity_compensate_weights))
+              ROS_ERROR_STREAM("[control] could not find parameter gravity_compensate_weights");
+            else
+              ROS_WARN_STREAM("[control] set ros parameter gravity_compensate_weights as [" << gravity_compensate_weights.at(0) << " " << gravity_compensate_weights.at(1) << " " << gravity_compensate_weights.at(2) << "]");
+            gravity_compensate_weights_ = Eigen::MatrixXd::Zero(3, 3);
+            for(int i = 0; i < 3; i++)
+              gravity_compensate_weights_(i, i) = gravity_compensate_weights.at(i);
+
             break;
           }
         default:
