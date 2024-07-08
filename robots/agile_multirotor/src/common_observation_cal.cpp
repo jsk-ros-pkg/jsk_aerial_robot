@@ -161,17 +161,18 @@ void ObstacleCalculator::CalculatorCallback(
     marker.pose.position.x = tree_pos(0);
     marker.pose.position.y = tree_pos(1);
     marker.pose.position.z = 1.0;
-    marker.scale.x = 0.25
-    marker.scale.y = 0.25
+    marker.scale.x = 0.25;
+    marker.scale.y = 0.25;
     marker.scale.z = 2.0;
     Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
     converted_positions.push_back(converted_pos);
     Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
     min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
-    marker_array_msg.markers[obstacle_id] = marker
+    marker_array_msg.markers[obstacle_id] = marker;
 
     obstacle_id++;
   }
+  marker_pub_.publish(marker_array_msg);
   std_msgs::Float64 min_dist_msg;
   min_dist_msg.data = min_dist;
   obs_min_dist_pub_.publish(min_dist_msg);
