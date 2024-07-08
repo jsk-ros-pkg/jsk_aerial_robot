@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+  <!-- arduino for hand -->
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
+    <param name="port" value="/dev/arduino_nano" />
+    <param name="baud" value="57600" />
+  </node>
+
+  <!-- <node pkg="mini_quadrotor" -->
+  <!--       type="merge.py" -->
+  <!--       name="merge_class_and_rect" output="screen"> -->
+  <!-- </node> -->
+
+
+</launch>
