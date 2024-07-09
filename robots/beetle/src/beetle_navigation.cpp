@@ -131,6 +131,11 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
         if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
           {
+            if(current_assembled_)
+              {
+                ROS_ERROR("[Nav] Only cog frame is available during assembled state!");
+                return;
+              }
             /* check the transformation */
             tf::Transform cog2baselink_tf;
             tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
@@ -280,6 +285,11 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
       tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
       if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
         {
+          if(current_assembled_)
+            {
+              ROS_ERROR("[Nav] Only CoG can be set as a target frame during assembled state!");
+              return;
+            }
           /* check the transformation */
           tf::Transform cog2baselink_tf;
           tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
