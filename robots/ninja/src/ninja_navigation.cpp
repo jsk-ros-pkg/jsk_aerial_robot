@@ -6,7 +6,8 @@ using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;
 
 NinjaNavigator::NinjaNavigator():
-  BeetleNavigator()
+  BeetleNavigator(),
+  module_joint_num_(2)
 {
 }
 
@@ -18,7 +19,9 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   BeetleNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
   ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
   target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1); //for debug
+  joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setTargetCoMRotCallback, this);
+  target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
 }
 
 void NinjaNavigator::update()
@@ -34,16 +37,24 @@ void NinjaNavigator::update()
         KDL::Frame target_cog_pose;
         KDL::Frame target_com_pose;
         geometry_msgs::TransformStamped transformStamped;
-        
         target_com_pose.M = target_com_rot_;
         tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
-        target_cog_pose = target_com_pose * getCog2CoM<KDL::Frame>().Inverse();
+        target_cog_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse();
 
         geometry_msgs::TransformStamped tf;
+
+        //send target cog pose
         tf::transformKDLToMsg(target_cog_pose, tf.transform);
         tf.header.stamp = ros::Time::now();
         tf.header.frame_id ="world";
         tf.child_frame_id = my_name_ + std::to_string(my_id_)+"/target_cog_pose";
+        br_.sendTransform(tf);
+
+        //send target cog pose
+        tf::transformKDLToMsg(target_com_pose, tf.transform);
+        tf.header.stamp = ros::Time::now();
+        tf.header.frame_id ="world";
+        tf.child_frame_id = my_name_ + std::to_string(my_id_)+"/target_com_pose";
         br_.sendTransform(tf);
       }
     catch (tf2::TransformException& ex)
@@ -76,7 +87,7 @@ void NinjaNavigator::updateEntSysState()
         assembled_modules_ids_.push_back(id);
         ModuleData module_data(id);
         ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_data.module_tree_);
-        module_data.joint_pos_ = KDL::JntArray(4); //docking yaw and pitch
+        module_data.joint_pos_ = KDL::JntArray(module_joint_num_); //docking yaw and pitch
         assembled_modules_data_.insert(std::make_pair(id,module_data));
       }
     else if(id_pre_exist && ! value)
@@ -103,8 +114,8 @@ void NinjaNavigator::calcCenterOfMoving()
   geometry_msgs::Point cog_com_dist_msg;
   if(!module_num_ || module_num_ == 1 || !assembly_flags_[my_id_]){
     // pre_assembled_modules_ = module_num_;
-    KDL::Frame com_frame;
-    setCog2CoM(com_frame);
+    KDL::Frame com_frame = ninja_robot_model_->getCog2Baselink<KDL::Frame>();;
+    setCoM2Base(com_frame);
     current_assembled_ = false;
     module_state_ = SEPARATED;
     cog_com_dist_msg.x = Cog2CoM_.p.x();
@@ -167,7 +178,7 @@ void NinjaNavigator::calcCenterOfMoving()
     std::string right_dock = "yaw_connect_point";
     if(my_id_ == leader_id_)
       {
-        setCog2CoM(com_frame);
+        setCoM2Base(com_frame * ninja_robot_model_->getCog2Baselink<KDL::Frame>());
       }
     else
       {
@@ -294,6 +305,7 @@ void NinjaNavigator::calcCenterOfMoving()
                       return;
                     }
                     com_frame = com_frame * frame;
+                    test_frame_ = com_frame;
                   }
                 else if(my_id_ < it.first)
                   {
@@ -301,10 +313,9 @@ void NinjaNavigator::calcCenterOfMoving()
                   }
               }
           }
-        KDL::Frame cog2base;
-        cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
-        setCog2CoM((cog2base.Inverse() * com_frame * cog2base).Inverse());
-
+        KDL::Frame raw_cog2base; // co2base conversion without desire coord process
+        raw_cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
+        setCoM2Base(raw_cog2base * com_frame);
       }
 
     if(reconfig_flag_){
@@ -366,8 +377,6 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     setFinalTargetBaselinkRot(target_rot);
     setTargetYaw(target_rot.z());
     return;
-  }else if(getCog2CoM<KDL::Frame>() == init_frame){
-    return;
   }
 
   if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000) ||
@@ -383,7 +392,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   KDL::Frame target_my_pose;
   target_com_pose.M = target_com_rot_;
   tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
-  target_my_pose = target_com_pose * getCog2CoM<KDL::Frame>().Inverse(); // com -> cog
+  target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse(); // com -> cog
 
   tf::Vector3 target_pos, target_rot;
   double target_roll, target_pitch, target_yaw;
@@ -436,7 +445,77 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
 
 void NinjaNavigator::setTargetCoMRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
-  setTargetComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw)); 
+  setTargetComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
+}
+
+void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg)
+{
+  sensor_msgs::JointState joints_ctrl_msg;
+
+  //TODO: get joint names from yaml
+  std::map<std::string, std::string> joint_map;
+  joint_map["pitch"] = "pitch_dock_joint";
+  joint_map["yaw"] = "yaw_dock_joint";
+
+  if(msg->name.size() > 0)
+    {
+      bool joint_send_flag;
+      for(int i = 0; i < msg->name.size(); i++)
+        {
+          if(msg->position.size() !=  msg->name.size())
+            {
+              ROS_ERROR("The joint position num and name num are different in ros msgs [%d vs %d]",
+                        (int)msg->position.size(), (int)msg->name.size());
+              return;
+            }
+          // Extract id and joint name
+          int id;
+          std::string joint_name;
+          size_t pos = msg->name.at(i).find('/');
+          
+          std::string module_name = msg->name.at(i).substr(0, pos);
+          joint_name = msg->name.at(i).substr(pos + 1);
+          std::regex numberRegex("\\d+");
+          std::smatch match;
+          if (std::regex_search(module_name, match, numberRegex)) {
+            id = std::stoi(match.str(0));
+          } else {
+            std::cout << "Please distinguish module id." << std::endl;
+          }
+
+          //check if the module is assembled
+          auto it_id = std::find(assembled_modules_ids_.begin(), assembled_modules_ids_.end(), id);
+          bool id_exist = (it_id != assembled_modules_ids_.end()) ? true : false;
+          if(!id_exist)
+            {
+              ROS_ERROR_STREAM("ID: " << id << "is not assembled.");
+              return;
+            }
+
+          //check the joint name
+          if(joint_map.find(joint_name) == joint_map.end())
+            {
+              ROS_ERROR_STREAM("name: " << joint_name << " does not exists");
+              return;
+            }
+
+          //add to joint control msg
+          std::string target_joint_name = joint_map[joint_name];
+          float target_joint_angle = msg->position.at(i);
+          if(id == my_id_)
+            {
+              joint_send_flag = true;
+              joints_ctrl_msg.name.push_back(target_joint_name);
+              joints_ctrl_msg.position.push_back(target_joint_angle);
+            }
+
+          //update joint info for FK
+          ModuleData& data = assembled_modules_data_[id];
+          if(target_joint_name == "yaw_dock_joint") data.joint_pos_(YAW) = target_joint_angle;
+          if(target_joint_name == "pitch_dock_joint") data.joint_pos_(PITCH) = target_joint_angle;
+        }
+      if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
+    }
 }
 
 /* plugin registration */
