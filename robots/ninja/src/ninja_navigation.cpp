@@ -28,6 +28,7 @@ void NinjaNavigator::update()
 {
   updateEntSysState();
   // updateAssemblyTree();
+  morphingProcess();
   BeetleNavigator::update();
   bool current_assembled = getCurrentAssembled();
   if(current_assembled){
@@ -88,6 +89,10 @@ void NinjaNavigator::updateEntSysState()
         ModuleData module_data(id);
         ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_data.module_tree_);
         module_data.joint_pos_ = KDL::JntArray(module_joint_num_); //docking yaw and pitch
+        module_data.goal_joint_pos_ = KDL::JntArray(module_joint_num_);
+        module_data.start_joint_pos_ = KDL::JntArray(module_joint_num_);
+        module_data.first_joint_processed_time_ = std::vector<double>(2,-1);
+        module_data.joint_process_coef_ = std::vector<double>(2);
         assembled_modules_data_.insert(std::make_pair(id,module_data));
       }
     else if(id_pre_exist && ! value)
@@ -451,7 +456,8 @@ void NinjaNavigator::setTargetCoMRotCallback(const spinal::DesireCoordConstPtr &
 void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg)
 {
   sensor_msgs::JointState joints_ctrl_msg;
-
+  bool joint_send_flag;
+  
   //TODO: get joint names from yaml
   std::map<std::string, std::string> joint_map;
   joint_map["pitch"] = "pitch_dock_joint";
@@ -501,22 +507,105 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
 
           //add to joint control msg
           std::string target_joint_name = joint_map[joint_name];
-          float target_joint_angle = msg->position.at(i);
-          if(id == my_id_)
-            {
-              joint_send_flag = true;
-              joints_ctrl_msg.name.push_back(target_joint_name);
-              joints_ctrl_msg.position.push_back(target_joint_angle);
-            }
+          double target_joint_angle = msg->position.at(i);
 
           //update joint info for FK
           ModuleData& data = assembled_modules_data_[id];
-          if(target_joint_name == "yaw_dock_joint") data.joint_pos_(YAW) = target_joint_angle;
-          if(target_joint_name == "pitch_dock_joint") data.joint_pos_(PITCH) = target_joint_angle;
+          int axis;
+          if(target_joint_name == "yaw_dock_joint") axis = YAW;
+          if(target_joint_name == "pitch_dock_joint") axis = PITCH;
+          data.goal_joint_pos_(axis) = target_joint_angle;
+          data.start_joint_pos_(axis) = data.joint_pos_(axis);
+          data.first_joint_processed_time_[axis] = ros::Time::now().toSec();
+          double conv_time = abs(data.goal_joint_pos_(axis) - data.joint_pos_(axis)) / morphing_vel_;          
+          switch(joint_process_func_)
+            {
+            case CONSTANT:
+              if(id == my_id_)
+                {
+                  joint_send_flag = true;
+                  joints_ctrl_msg.name.push_back(target_joint_name);
+                  joints_ctrl_msg.position.push_back(target_joint_angle);
+                }
+              data.first_joint_processed_time_[axis] = -1;
+              data.joint_pos_(axis) = target_joint_angle;
+              break;
+            case FRAC:
+              data.joint_process_coef_[axis] = 99.0/conv_time;
+              if(id == my_id_) ROS_INFO_STREAM("Morphing of module"<<my_id_ << "'s " <<(target_joint_name).c_str() << " has started. (" << conv_time << " sec)");
+              break;
+            case EXP:
+              data.joint_process_coef_[axis] = 2 * log(10)/conv_time;
+              if(id == my_id_) ROS_INFO_STREAM("Morphing of module"<<my_id_ << "'s " <<(target_joint_name).c_str() << " has started. (" << conv_time << " sec)");
+              break;
+            default:
+              break;
+            }
         }
-      if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
     }
+  if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 }
+
+void NinjaNavigator::morphingProcess()
+{
+  // if(!control_flag_) return;
+  sensor_msgs::JointState joints_ctrl_msg;
+  bool joint_send_flag;
+  std::map<int, std::string> joint_map;
+  joint_map[PITCH] = "pitch_dock_joint";
+  joint_map[YAW] = "yaw_dock_joint";
+  for(auto & it : assembled_modules_data_)
+    {
+      int id = it.first;
+      ModuleData& data = it.second;
+      for(int i = 0; i < module_joint_num_; i ++)
+        {
+          double t = ros::Time::now().toSec() - data.first_joint_processed_time_[i];
+          if(data.first_joint_processed_time_[i] < 0) continue;
+          if(abs(data.goal_joint_pos_(i) - data.joint_pos_(i)) < joint_pos_chnage_thresh_)
+            {
+              data.first_joint_processed_time_[i] = -1.0;
+              data.joint_pos_(i) = data.goal_joint_pos_(i);
+              if(id == my_id_)
+                {
+                  joint_send_flag = true;
+                  joints_ctrl_msg.name.push_back(joint_map[i]);
+                  joints_ctrl_msg.position.push_back(data.joint_pos_(i));
+                  ROS_INFO_STREAM("Morphing of module"<<my_id_ << "'s " <<(joint_map[i]).c_str() << " has finished. (" << t << " sec)");
+                }              
+              continue;
+            }
+          switch(joint_process_func_)
+            {
+            case FRAC:
+              data.joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - 1/(data.joint_process_coef_[i] * t + 1) );
+              break;
+            case EXP:
+              data.joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - exp(-data.joint_process_coef_[i] * t));
+              break;
+            default:
+              break;
+            }
+          if(id == my_id_)
+            {
+              joint_send_flag = true;
+              joints_ctrl_msg.name.push_back(joint_map[i]);
+              joints_ctrl_msg.position.push_back(data.joint_pos_(i));
+            }
+        }
+    }
+  if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
+}
+
+void NinjaNavigator::rosParamInit()
+{
+  ros::NodeHandle nh(nh_, "navigation");
+  getParam<double>(nh, "morphing_vel", morphing_vel_, M_PI/4.0);
+  getParam<double>(nh, "joint_pos_change_thresh", joint_pos_chnage_thresh_, 0.01);
+  getParam<int>(nh, "joint_process_func", joint_process_func_, CONSTANT);
+  BeetleNavigator::rosParamInit();
+}
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

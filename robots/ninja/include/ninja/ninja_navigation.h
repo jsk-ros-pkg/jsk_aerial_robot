@@ -14,17 +14,29 @@ namespace aerial_robot_navigation
      PITCH,
      YAW
     };
+
+    enum convergence_func
+    {
+     CONSTANT,
+     FRAC,
+     EXP
+    };
   
   class ModuleData
   {
   public:
-    ModuleData(int id): id_(id), joint_pos_(), module_tree_(){}
-    ModuleData(): id_(1), joint_pos_(), module_tree_(){}
+    ModuleData(int id): id_(id), joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
+    ModuleData(): id_(1), joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
     int id_;
     KDL::JntArray joint_pos_;
     KDL::Tree module_tree_;
-  };
 
+    std::vector<double> first_joint_processed_time_;
+    std::vector<double> joint_process_coef_;
+    KDL::JntArray goal_joint_pos_;
+    KDL::JntArray start_joint_pos_;
+
+  };
   class NinjaNavigator : public BeetleNavigator
   {
   public:
@@ -39,12 +51,14 @@ namespace aerial_robot_navigation
     void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
     void setTargetCoMPoseFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
+    void morphingProcess();
 
     template<class T> T getCom2Base();
   protected:
     std::mutex mutex_com2base_;
     
     void calcCenterOfMoving() override;
+    void rosParamInit() override;
     void updateEntSysState();
     void updateAssemblyTree();
 
@@ -60,12 +74,16 @@ namespace aerial_robot_navigation
     ros::Publisher joint_control_pub_;
 
     std::map<int, ModuleData> assembled_modules_data_;
+
     KDL::Rotation target_com_rot_;
-
     KDL::Frame com2base_;
-
     KDL::Frame test_frame_;
+
     int module_joint_num_;
+    double morphing_vel_;
+    double joint_pos_chnage_thresh_;
+    int joint_process_func_;
+    
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
   {
