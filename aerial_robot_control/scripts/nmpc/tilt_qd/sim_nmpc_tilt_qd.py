@@ -15,8 +15,8 @@ from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
 
 # consider the servo delay
 from tilt_qd_servo import NMPCTiltQdServo
-from tilt_qd_servo_dist import NMPCTiltQdServoDist
-from tilt_qd_servo_drag_dist import NMPCTiltQdServoDragDist
+from tilt_qd_servo_w_dist import NMPCTiltQdServoDist
+from tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
 
 from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
 from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
@@ -45,6 +45,8 @@ if __name__ == "__main__":
         type=int,
         help="The NMPC model to be simulated. Options: 0 (no_servo_delay), 1 (old servo cost), 2 (full).",
     )
+    parser.add_argument("-sim", "--sim_model", type=int, default=0,
+                        help="The simulation model. Options: 0 (NMPCTiltQdServoThrust), 1 (NMPCTiltQdServoThrustDrag).")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     elif args.model == 7:
         nmpc = NMPCTiltQdServoDragDist()
     else:
-        raise ValueError(f"Invalid model {args.model}.")
+        raise ValueError(f"Invalid control model {args.model}.")
 
     # check if there is t_servo in the controller
     if hasattr(nmpc, "t_servo"):
@@ -94,7 +96,12 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdServoThrust()  # consider both the servo delay and the control delay
+    if args.sim_model == 0:
+        sim_nmpc = NMPCTiltQdServoThrust()  # consider both the servo delay and the control delay
+    elif args.sim_model == 1:
+        sim_nmpc = NMPCTiltQdServoThrustDrag()
+    else:
+        raise ValueError(f"Invalid sim model {args.sim_model}.")
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo

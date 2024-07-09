@@ -6,8 +6,12 @@ from typing import Tuple
 
 
 class BaseTraj:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, loop_num: int = np.inf) -> None:
+        self.T = float()
+        self.loop_num = loop_num
+
+    def check_finished(self, t: float) -> bool:
+        return t > self.T * self.loop_num
 
     def get_2d_pt(self, t: float) -> Tuple[float, float, float, float, float, float]:
         x, y, vx, vy, ax, ay = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
@@ -19,8 +23,8 @@ class BaseTraj:
 
 
 class SetPointTraj(BaseTraj):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
         self.pos = np.array([0.0, 0.0, 0.7])
         self.vel = np.array([0.0, 0.0, 0.0])
         self.acc = np.array([0.0, 0.0, 0.0])
@@ -30,6 +34,7 @@ class SetPointTraj(BaseTraj):
         self.att_acc = np.array([0.0, 0.0, 0.0])
 
         self.t_converge = 8.0
+        self.T = 4 * self.t_converge
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         x, y, z = self.pos
@@ -65,8 +70,8 @@ class SetPointTraj(BaseTraj):
 
 
 class CircleTraj(BaseTraj):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
         self.r = 1  # radius in meters
         self.T = 10  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
@@ -94,8 +99,8 @@ class CircleTraj(BaseTraj):
 
 
 class LemniscateTraj(BaseTraj):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
         self.a = 1.0  # parameter determining the size of the Lemniscate
         self.z_range = 0.3  # range of z
         self.T = 20  # period in seconds
@@ -134,8 +139,8 @@ class LemniscateTraj(BaseTraj):
 
 
 class LemniscateTrajOmni(LemniscateTraj):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
         self.a_orientation = 0.5
 
     def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:

@@ -19,6 +19,8 @@
   <arg name="robot_id" default="1" />
   <arg name="robot_ns" value="beetle$(arg robot_id)" />
 
+  <arg name="nmpc_mode" default="0" /> <!-- 0: full_i_term, 1: full_i_term_drag, 2: full, 2: no servo delay (unsafe) -->
+
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
     # EGOMOTION_ESTIMATE = 0
@@ -42,7 +44,10 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/BeetleNMPCFull.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/BeetleNMPCFullITerm.yaml" command="load" if="$(eval arg('nmpc_mode') == 0)"/>
+    <rosparam file="$(arg config_dir)/BeetleNMPCFullITermDrag.yaml" command="load" if="$(eval arg('nmpc_mode') == 1)"/>
+    <rosparam file="$(arg config_dir)/BeetleNMPCFull.yaml" command="load" if="$(eval arg('nmpc_mode') == 2)"/>
+    <rosparam file="$(arg config_dir)/BeetleNMPCNoServoDelay.yaml" command="load" if="$(eval arg('nmpc_mode') == 3)"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />

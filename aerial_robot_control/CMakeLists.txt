@@ -70,7 +70,8 @@ set(ACADOS_PYTHON_SCRIPTS
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_thrust_out.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_dist.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_w_dist.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_w_cog_end_dist.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_tri/tilt_tri_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_2ord_servo.py
@@ -112,6 +113,8 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_bi_servo_mdl/nmpc_controller.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_solver.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
+  src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_solver.cpp
+  src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/fix_qd_angvel_out_mdl/c_generated_code/libacados_ocp_solver_fix_qd_angvel_out_mdl.so
@@ -122,6 +125,7 @@ target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_tri_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_tri_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_servo_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_w_cog_end_dist_mdl.so
         )
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg  ${ACADOS_PYTHON_TARGETS})
 

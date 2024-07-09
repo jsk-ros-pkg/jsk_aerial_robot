@@ -146,13 +146,13 @@ for i in range(len(servo_angle)):
 #     plt.violinplot(-(fz_r[i, 3:] - fz_r[6, 3:]) / fz_r[6, 3:] * 100, positions=[servo_angle[i] * 180 / np.pi], widths=10,
 #                    showmeans=True, showmedians=False, showextrema=False)
 
-resis_d_thrust_n = np.mean(-(fz[:, 3:] - fz[6, 3:]) / fz[6, 3:] * 100, axis=1)
-resis_d_thrust_r = np.mean(-(fz_r[:, 3:] - fz_r[6, 3:]) / fz_r[6, 3:] * 100, axis=1)
+resis_d_thrust_n = np.mean(-(fz[:, 3:] - fz[6, 3:]) / fz[6, 3:], axis=1)
+resis_d_thrust_r = np.mean(-(fz_r[:, 3:] - fz_r[6, 3:]) / fz_r[6, 3:], axis=1)
 
 servo_virtual = np.arange(-90, 91, 1) * np.pi / 180
 
-plt.plot(servo_angle * 180 / np.pi, resis_d_thrust_n, 'o-', label='normal prop.')
-plt.plot(servo_angle * 180 / np.pi, resis_d_thrust_r, '*-', label='reverse prop.')
+plt.plot(servo_angle * 180 / np.pi, resis_d_thrust_n * 100, 'o-', label='normal prop.')
+plt.plot(servo_angle * 180 / np.pi, resis_d_thrust_r * 100, '*-', label='reverse prop.')
 
 # reverse the order of resis_d_thrust_r
 resis_d_thrust = (resis_d_thrust_n + resis_d_thrust_r[::-1]) / 2
@@ -176,7 +176,7 @@ print("R-squared: ", r_squared)
 # use 4th order polynomial to fit the data
 fit, residuals, _, _, _ = np.polyfit(servo_angle, resis_d_thrust, 4, full=True)
 fit_fn = np.poly1d(fit)
-plt.plot(servo_virtual * 180 / np.pi, fit_fn(servo_virtual), '--', label='4th-order poly.')
+plt.plot(servo_virtual * 180 / np.pi, fit_fn(servo_virtual) * 100, '--', label='4th-order poly.')
 print("4ord\n", fit_fn)
 print(" residuals: ", residuals)
 
@@ -190,7 +190,7 @@ r_squared = 1 - (RSS / TSS)
 print("R-squared: ", r_squared)
 
 # plot 4th order polynomial fit flipped
-plt.plot(servo_virtual[::-1] * 180 / np.pi, fit_fn(servo_virtual), '-.', label='4th-order poly. flipped')
+plt.plot(servo_virtual[::-1] * 180 / np.pi, fit_fn(servo_virtual) * 100, '-.', label='4th-order poly. flipped')
 
 # use 5th order polynomial to fit the data
 fit, residuals, _, _, _ = np.polyfit(servo_angle, resis_d_thrust, 5, full=True)

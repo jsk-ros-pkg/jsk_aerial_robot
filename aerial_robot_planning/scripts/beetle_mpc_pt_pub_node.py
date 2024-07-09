@@ -149,14 +149,10 @@ def construct_allocation_mat_pinv():
 
 
 class MPCPtPubNode:
-    def __init__(self, traj_type: int) -> None:
+    def __init__(self, traj_type: int, loop_num: int) -> None:
         self.node_name = "mpc_pt_pub_node"
         rospy.init_node(self.node_name, anonymous=False)
         self.namespace = rospy.get_namespace().rstrip("/")
-
-        # Timer
-        self.ts_pt_pub = 0.025  # [s]  ~40Hz
-        self.tmr_pt_pub = rospy.Timer(rospy.Duration(self.ts_pt_pub), self.callback_tmr_pt_pub)
 
         # Sub --> feedback
         self.uav_odom = Odometry()
@@ -171,34 +167,35 @@ class MPCPtPubNode:
 
         # traj
         if traj_type == 0:
-            self.traj = SetPointTraj()
+            self.traj = SetPointTraj(loop_num)
         elif traj_type == 1:
-            self.traj = CircleTraj()
+            self.traj = CircleTraj(loop_num)
         elif traj_type == 2:
-            self.traj = LemniscateTraj()
+            self.traj = LemniscateTraj(loop_num)
         elif traj_type == 3:
-            self.traj = LemniscateTrajOmni()
+            self.traj = LemniscateTrajOmni(loop_num)
         else:
             raise ValueError("Invalid trajectory type!")
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
 
         self.start_time = rospy.Time.now().to_sec()
-
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
-    def get_one_xr_ur_from_target(
-        self,
-        target_pos,
-        target_vel=np.array([[0.0, 0.0, 0.0]]).T,
-        target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
-        target_omega=np.array([[0.0, 0.0, 0.0]]).T,
-        target_non_gravity_wrench=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
-    ):
-        anti_gravity_wrench = np.array([[0, 0, mass * gravity, 0, 0, 0]]).T
-        target_wrench = anti_gravity_wrench + target_non_gravity_wrench
+        # Timer
+        self.ts_pt_pub = 0.02  # [s]  ~50Hz
+        self.tmr_pt_pub = rospy.Timer(rospy.Duration(self.ts_pt_pub), self.callback_tmr_pt_pub)
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Timer started!")
 
-        x = self.alloc_mat_pinv @ target_wrench
+    def get_one_xr_ur_from_target(
+            self,
+            target_pos,
+            target_vel=np.array([[0.0, 0.0, 0.0]]).T,
+            target_qwxyz=np.array([[1.0, 0.0, 0.0, 0.0]]).T,
+            target_omega=np.array([[0.0, 0.0, 0.0]]).T,
+            target_wrench_b=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T,
+    ):
+        x = self.alloc_mat_pinv @ target_wrench_b
 
         a1_ref = np.arctan2(x[0, 0], x[1, 0])
         ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
@@ -249,7 +246,7 @@ class MPCPtPubNode:
         x_ref = np.zeros([self.N_nmpc + 1, 17])
         u_ref = np.zeros([self.N_nmpc, 8])
 
-        is_ref_different = False if isinstance(self.traj, SetPointTraj) else True
+        is_ref_different = True
 
         for i in range(self.N_nmpc + 1):
             if is_ref_different:
@@ -274,20 +271,23 @@ class MPCPtPubNode:
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
             q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+            w_rot_mtx_b = tf.transformations.quaternion_matrix(q)[:3, :3]
+            b_rot_mtx_w = w_rot_mtx_b.T
 
             target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
             target_body_rate = np.array([[r_rate, p_rate, y_rate]]).T
 
-            target_non_gravity_wrench = np.array(
-                [[mass * ax, mass * ay, mass * az, Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]
-            ).T
+            target_force_w = np.array([[mass * ax, mass * ay, mass * (az + gravity)]]).T
+            target_force_b = b_rot_mtx_w @ target_force_w
+            target_torque_b = np.array([[Ixx * r_acc, Iyy * p_acc, Izz * y_acc]]).T
+            target_wrench_b = np.vstack((target_force_b, target_torque_b))
 
             xr, ur = self.get_one_xr_ur_from_target(
                 target_pos=target_pos,
                 target_vel=target_vel,
                 target_qwxyz=target_qwxyz,
                 target_omega=target_body_rate,
-                target_non_gravity_wrench=target_non_gravity_wrench,
+                target_wrench_b=target_wrench_b,
             )
 
             x_ref[i] = xr
@@ -301,21 +301,25 @@ class MPCPtPubNode:
         ros_x_u.header.frame_id = "map"
         self.pub_ref_traj.publish(ros_x_u)
 
+        # 4. check if the trajectory is finished
+        if self.traj.check_finished(rospy.Time.now().to_sec() - self.start_time):
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished!")
+            rospy.signal_shutdown("Trajectory finished!")
+            return
+
     def sub_odom_callback(self, msg: Odometry):
         self.uav_odom = msg
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
-    parser.add_argument(
-        "traj_type",
-        type=int,
-        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni",
-    )
+    parser.add_argument("traj_type", type=int,
+                        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni")
+    parser.add_argument("-num", "--loop_num", type=int, default=np.inf, help="Loop number for the trajectory")
     args = parser.parse_args()
 
     try:
-        node = MPCPtPubNode(args.traj_type)
+        node = MPCPtPubNode(args.traj_type, args.loop_num)
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

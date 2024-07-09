@@ -19,7 +19,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITermDrag.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -44,20 +44,14 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
-c0 = physical_params["c0"]
-c1 = physical_params["c1"]
-c2 = physical_params["c2"]
-c3 = physical_params["c3"]
-c4 = physical_params["c4"]
 
-
-class NMPCTiltQdServoDragDist(NMPCBase):
+class NMPCTiltQdServoWCogEndDist(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServoDragDist, self).__init__()
+        super(NMPCTiltQdServoWCogEndDist, self).__init__()
         self.t_servo = t_servo
 
     def _set_name(self) -> str:
-        return "tilt_qd_servo_drag_dist_mdl"
+        return "tilt_qd_servo_w_cog_end_dist_mdl"
 
     def _set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -106,11 +100,18 @@ class NMPCTiltQdServoDragDist(NMPCBase):
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
 
-        # disturbance
-        f_disturb_i = ca.SX.sym("f_disturb_i", 3)
-        tau_disturb_b = ca.SX.sym("tau_disturb_b", 3)
+        # cog disturbance
+        f_dist_i = ca.SX.sym("f_dist_i", 3)
+        m_dist_b = ca.SX.sym("m_dist_b", 3)
 
-        parameters = ca.vertcat(quaternion, f_disturb_i, tau_disturb_b)
+        # end disturbance
+        fd1 = ca.SX.sym("fd1")
+        fd2 = ca.SX.sym("fd2")
+        fd3 = ca.SX.sym("fd3")
+        fd4 = ca.SX.sym("fd4")
+        fz_dist_r = ca.vertcat(fd1, fd2, fd3, fd4)
+
+        parameters = ca.vertcat(quaternion, f_dist_i, m_dist_b, fz_dist_r)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -155,20 +156,15 @@ class NMPCTiltQdServoDragDist(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
-        fd1 = (c4 * a1**4 + c3 * a1**3 + c2 * a1**2 + c1 * a1 + c0) * ft1
-        fd2 = (c4 * a2**4 + c3 * a2**3 + c2 * a2**2 + c1 * a2 + c0) * ft2
-        fd3 = (c4 * a3**4 + c3 * a3**3 + c2 * a3**2 + c1 * a3 + c0) * ft3
-        fd4 = (c4 * a4**4 + c3 * a4**3 + c2 * a4**2 + c1 * a4 + c0) * ft4
-
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd1) * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd1) * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd1) * kq_d_kt)
 
         f_u_b = (
                 ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
@@ -190,12 +186,12 @@ class NMPCTiltQdServoDragDist(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_dist_i / mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_disturb_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + m_dist_b)),
             (ac - a) / t_servo,
         )
 
@@ -454,7 +450,7 @@ class XrUrConverter(XrUrConverterBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServoDragDist()
+    nmpc = NMPCTiltQdServoWCogEndDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

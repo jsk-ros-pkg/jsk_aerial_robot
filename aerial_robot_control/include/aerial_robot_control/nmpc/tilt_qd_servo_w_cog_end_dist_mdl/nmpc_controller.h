@@ -45,7 +45,7 @@ using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_contro
 
 namespace aerial_robot_control
 {
-namespace nmpc_over_act_full_i_term
+namespace nmpc_tilt_qd_servo_w_cog_end_dist
 {
 
 class NMPCController : public ControlBase
@@ -80,7 +80,6 @@ protected:
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
-  bool is_print_phys_params_;
   bool is_debug_;
 
   virtual void controlCore();
@@ -91,6 +90,9 @@ protected:
 protected:
   double mass_;
   double gravity_const_;
+
+  Eigen::VectorXf drag_coeff_= Eigen::VectorXf::Zero(5);
+
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
