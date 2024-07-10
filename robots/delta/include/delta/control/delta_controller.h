@@ -58,10 +58,11 @@ namespace aerial_robot_control
 
     tf2_ros::TransformBroadcaster br_;
     KDL::Frame contact_point_alined_;
+    KDL::Frame cog_alined_;
 
     std::mutex contact_point_alined_mutex_;
     std::mutex current_gimbal_angles_mutex_;
-    std::mutex current_joint_angles_mutex_;
+    std::mutex cog_alined_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
