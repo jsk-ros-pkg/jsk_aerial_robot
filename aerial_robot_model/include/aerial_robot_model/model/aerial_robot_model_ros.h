@@ -37,8 +37,8 @@
 
 #include <aerial_robot_model/model/aerial_robot_model.h>
 #include <aerial_robot_model/AddExtraModule.h>
+#include <geometry_msgs/Quaternion.h>
 #include <pluginlib/class_loader.h>
-#include <spinal/DesireCoord.h>
 #include <tf/tf.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -74,6 +74,6 @@ namespace aerial_robot_model {
     //private functions
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     bool addExtraModuleCallback(aerial_robot_model::AddExtraModule::Request& req, aerial_robot_model::AddExtraModule::Response& res);
-    void desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg);
+    void desireCoordinateCallback(const geometry_msgs::QuaternionConstPtr& msg);
   };
 } //namespace aerial_robot_model

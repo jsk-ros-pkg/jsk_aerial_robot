@@ -38,6 +38,7 @@
 #include <aerial_robot_control/flight_navigation.h>
 #include <sensor_msgs/JointState.h>
 #include <spinal/DesireCoord.h>
+#include <geometry_msgs/Quaternion.h>
 
 namespace aerial_robot_navigation
 {
@@ -72,7 +73,6 @@ namespace aerial_robot_navigation
     void rosParamInit() override;
 
     void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
-    void targetBaselinkRotCallback(const spinal::DesireCoordConstPtr& msg);
 
     /* target baselink rotation */
     double prev_rotation_stamp_;

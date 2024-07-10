@@ -91,8 +91,9 @@ namespace aerial_robot_model {
     return false;
   }
 
-  void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
+  void RobotModelRos::desireCoordinateCallback(const geometry_msgs::QuaternionConstPtr& msg)
   {
-    robot_model_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
+    KDL::Rotation rot = KDL::Rotation::Quaternion(msg->x, msg->y, msg->z, msg->w);
+    robot_model_->setCogDesireOrientation(rot);
   }
 } //namespace aerial_robot_model

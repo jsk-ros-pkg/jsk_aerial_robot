@@ -21,7 +21,7 @@ void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the flight control */
   BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
-  curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
+  curr_target_baselink_rot_pub_ = nh_.advertise<geometry_msgs::Quaternion>("desire_coordinate", 1);
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &DragonNavigator::setFinalTargetBaselinkRotCallback, this);
 
@@ -55,9 +55,9 @@ void DragonNavigator::baselinkRotationProcess()
       else
         curr_target_baselink_rot_ = final_target_baselink_rot_;
 
-      spinal::DesireCoord target_baselink_rot_msg;
-      target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-      target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+      KDL::Rotation rot = KDL::Rotation::RPY(curr_target_baselink_rot_.x(), curr_target_baselink_rot_.y(), 0);
+      geometry_msgs::Quaternion target_baselink_rot_msg;
+      rot.GetQuaternion(target_baselink_rot_msg.x, target_baselink_rot_msg.y, target_baselink_rot_msg.z,  target_baselink_rot_msg.w);
       curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
