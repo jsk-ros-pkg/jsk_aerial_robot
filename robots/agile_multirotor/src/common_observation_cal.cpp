@@ -12,6 +12,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("print_yaw", print_yaw_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
   pnh_.getParam("body_r", body_r_);
+  pnh_.getParam("policy_start_delay", policy_start_delay_);
 
   //   file = file + ".csv";
   if (!from_hokuyo_){
@@ -25,18 +26,19 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 
     while (std::getline(ifs, line)) {
       std::vector<std::string> strvec = split(line, ',');
-      Eigen::Vector3d tree_pos;
-      tree_pos(0) = stof(strvec.at(1))+shift_x_; //world coodinate
-      // std::cout << "shift_x is: " << shift_x_ << std::endl;
-      // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
-      tree_pos(1) = stof(strvec.at(2))+shift_y_; //world coodinate
-      tree_pos(2) = 0;
-      positions_.push_back(tree_pos);
       Eigen::Vector3d tree_vel;
       tree_vel(0) = stof(strvec.at(3));
       tree_vel(1) = stof(strvec.at(4));
       tree_vel(2) = 0.f;
       velocities_.push_back(tree_vel);
+      Eigen::Vector3d tree_pos;
+      tree_pos(0) = stof(strvec.at(1))+shift_x_ + (tree_vel(0) * (-1) * policy_start_delay_); //world coodinate
+      // std::cout << "shift_x is: " << shift_x_ << std::endl;
+      // std::cout << "tree_pos(0) is: " << tree_pos(0) << std::endl;
+      tree_pos(1) = stof(strvec.at(2))+shift_y_ + (tree_vel(1) * (-1) * policy_start_delay_); //world coodinate
+      tree_pos(2) = 0;
+      positions_.push_back(tree_pos);
+
       radius_list_.push_back(stof(strvec.at(8)));
       start_obstacle_sub_ = nh_.subscribe("/" + quad_name + "/start_moving_obstacle", 1,
                             &ObstacleCalculator::StartObstacleCallback, this);

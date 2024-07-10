@@ -125,6 +125,7 @@
     <param name="print_yaw" type="bool" value="false" />
     <param name="vel_calc_boundary" type="double" value="0.30" />
     <param name="body_r" type="double" value="$(arg body_r)" />
+    <param name="policy_start_delay" value="$(arg policy_start_delay)" />
   </node>
 
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
