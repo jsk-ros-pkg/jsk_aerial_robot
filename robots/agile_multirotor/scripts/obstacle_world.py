@@ -64,7 +64,7 @@ class ObstacleWorld:
                                   'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[0,8]}
                 self.obs[name]['p'][2] = self.h / 2
                 self.obs[name]['v'][2] = 0.0
-                self.spwanObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
+                self.spawnObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
             rospy.Timer(rospy.Duration(1.0/rate), self.mainProcess)
         except pd.errors.EmptyDataError as e:
             print("tree data is empty")
@@ -116,7 +116,7 @@ class ObstacleWorld:
 
         # publish the obstacle position using LaserScan
 
-    def spwanObstacle(self, name, m, p, r, h):
+    def spawnObstacle(self, name, m, p, r, h):
 
         rospy.wait_for_service('/gazebo/delete_model')
         try:
