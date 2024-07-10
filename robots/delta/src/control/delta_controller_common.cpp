@@ -315,6 +315,9 @@ void RollingController::wrenchAllocation()
   exerted_wrench_acc_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>().inverse() * exerted_wrench_acc_cog.tail(3);
 
   setTargetWrenchAccCog(exerted_wrench_acc_cog);
+
+  rolling_navigator_->setEstimatedExternalWrench(est_external_wrench_);
+  rolling_navigator_->setEstimatedExternalWrenchCog(est_external_wrench_cog_);
 }
 
 void RollingController::calcYawTerm()
