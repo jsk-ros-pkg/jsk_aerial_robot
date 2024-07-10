@@ -215,30 +215,13 @@ void NinjaNavigator::calcCenterOfMoving()
                       }
                     com_frame = com_frame * frame;
                   }
-                else if( it.first == leader_id_)
-                  {
-                    if(!data.module_tree_.getChain(left_dock,"fc",chain))
-                      {
-                        ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
-                        return;
-                          }
-                    KDL::ChainFkSolverPos_recursive fk_solver(chain);
-                    KDL::Frame frame;
-                    KDL::JntArray joint_positions(1);
-                    joint_positions(0) = data.joint_pos_(PITCH);
-                    if (fk_solver.JntToCart(joint_positions, frame) < 0) {
-                      ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
-                      return;
-                    }
-                    com_frame = com_frame * frame;
-                  }
-                else if(my_id_ < it.first)
+                else if(my_id_ < it.first && it.first < leader_id_)
                   {
                     if(!data.module_tree_.getChain(left_dock,right_dock,chain))
                       {
                         ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
                         return;
-                          }
+                      }
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(2);
@@ -250,6 +233,27 @@ void NinjaNavigator::calcCenterOfMoving()
                     }
                     com_frame = com_frame * frame;
                   }
+                else if( it.first == leader_id_)
+                  {
+                    if(!data.module_tree_.getChain(left_dock,"fc",chain))
+                      {
+                        ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
+                        return;
+                      }
+                    KDL::ChainFkSolverPos_recursive fk_solver(chain);
+                    KDL::Frame frame;
+                    KDL::JntArray joint_positions(1);
+                    joint_positions(0) = data.joint_pos_(PITCH);
+                    if (fk_solver.JntToCart(joint_positions, frame) < 0) {
+                      ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
+                      return;
+                    }
+                    com_frame = com_frame * frame;
+                  }
+                else if(leader_id_ < it.first)
+                  {
+                    continue;
+                  }
               }
             com_frame = com_frame.Inverse();
           }
@@ -259,13 +263,17 @@ void NinjaNavigator::calcCenterOfMoving()
             for(auto & it: assembled_modules_data_)
               {
                 ModuleData data = it.second;
-                if( it.first == leader_id_)
+                if(it.first < leader_id_)
+                  {
+                    continue;
+                  }
+                else if( it.first == leader_id_)
                   {
                     if(!data.module_tree_.getChain("fc",right_dock,chain))
                       {
                         ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
                         return;
-                          }
+                      }
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
@@ -276,13 +284,13 @@ void NinjaNavigator::calcCenterOfMoving()
                     }
                     com_frame = com_frame * frame;
                   }
-                else if(it.first < my_id_)
+                else if(leader_id_ < it.first && it.first < my_id_)
                   {
                     if(!data.module_tree_.getChain(left_dock,right_dock,chain))
                       {
                         ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
                         return;
-                          }
+                      }
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(2);
@@ -300,7 +308,7 @@ void NinjaNavigator::calcCenterOfMoving()
                       {
                         ROS_ERROR_STREAM("Failed to get a chain of module" << it.first);
                         return;
-                          }
+                      }
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
