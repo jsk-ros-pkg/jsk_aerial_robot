@@ -27,7 +27,6 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 void NinjaNavigator::update()
 {
   updateEntSysState();
-  // updateAssemblyTree();
   morphingProcess();
   BeetleNavigator::update();
   bool current_assembled = getCurrentAssembled();
@@ -464,7 +463,7 @@ void NinjaNavigator::setTargetCoMRotCallback(const spinal::DesireCoordConstPtr &
 void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg)
 {
   sensor_msgs::JointState joints_ctrl_msg;
-  bool joint_send_flag;
+  bool joint_send_flag = false;
   
   //TODO: get joint names from yaml
   std::map<std::string, std::string> joint_map;
@@ -473,7 +472,6 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
 
   if(msg->name.size() > 0)
     {
-      bool joint_send_flag;
       for(int i = 0; i < msg->name.size(); i++)
         {
           if(msg->position.size() !=  msg->name.size())
@@ -556,9 +554,8 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
 
 void NinjaNavigator::morphingProcess()
 {
-  // if(!control_flag_) return;
   sensor_msgs::JointState joints_ctrl_msg;
-  bool joint_send_flag;
+  bool joint_send_flag = false;
   std::map<int, std::string> joint_map;
   joint_map[PITCH] = "pitch_dock_joint";
   joint_map[YAW] = "yaw_dock_joint";
@@ -604,6 +601,7 @@ void NinjaNavigator::morphingProcess()
     }
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 }
+
 
 void NinjaNavigator::rosParamInit()
 {
