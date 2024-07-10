@@ -231,6 +231,7 @@ void RollingController::wrenchAllocation()
 {
   auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
   auto gimbal_planning_angle = rolling_robot_model_->getGimbalPlanningAngle();
+  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
 
   int last_col = 0;
   for(int i = 0; i < motor_num_; i++)
@@ -240,7 +241,7 @@ void RollingController::wrenchAllocation()
           lambda_trans_.at(i) = full_lambda_trans_(last_col);
           lambda_all_.at(i) = full_lambda_all_(last_col);
           target_gimbal_angles_.at(i) = gimbal_planning_angle.at(i);
-          ROS_INFO_STREAM_THROTTLE(0.1, "[control] send planned gimbal" << i << " angle " << target_gimbal_angles_.at(i));
+          ROS_INFO_STREAM_THROTTLE(0.1, "[control] send planned gimbal" << i << " angle " << target_gimbal_angles_.at(i) << " current angle: " << current_gimbal_angles.at(i));
         }
       else
         {
@@ -256,7 +257,6 @@ void RollingController::wrenchAllocation()
     }
 
   /* solve round offset of gimbal angle */
-  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
   for(int i = 0; i < motor_num_; i++)
     {
       if(gimbal_planning_flag.at(i)) continue; // send planned gimbal angle
