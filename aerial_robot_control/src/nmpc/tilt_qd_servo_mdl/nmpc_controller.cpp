@@ -148,7 +148,7 @@ void nmpc_over_act_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  double x[NX] = {
+  double x[] = {
     pos.x(),
     pos.y(),
     pos.z(),
@@ -167,9 +167,14 @@ void nmpc_over_act_full::NMPCController::reset()
     joint_angles_[2],
     joint_angles_[3],
   };
-  double u[NU] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
-  initPredXU(x_u_ref_);
-  for (int i = 0; i < NN; i++)
+  double u[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
+
+  mpc_solver_.initPredXU(x_u_ref_);
+  int NX = mpc_solver_.NX_;
+  int NU = mpc_solver_.NU_;
+  int NN = mpc_solver_.NN_;
+
+  for (int i = 0; i < mpc_solver_.NN_; i++)
   {
     std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
     std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * i);
@@ -343,6 +348,9 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
   geometry_msgs::PoseArray pred_poses;
   geometry_msgs::PoseArray ref_poses;
 
+  int NN = mpc_solver_.NN_;
+  int NX = mpc_solver_.NX_;
+
   for (int i = 0; i < NN; ++i)
   {
     geometry_msgs::Pose pred_pose;
@@ -501,12 +509,16 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
   tf::Quaternion q;
   q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
 
-  double x[NX] = {
+  int NX = mpc_solver_.NX_;
+  int NU = mpc_solver_.NU_;
+  int NN = mpc_solver_.NN_;
+
+  double x[] = {
     target_pos.x(), target_pos.y(), target_pos.z(), target_vel.x(),   target_vel.y(),   target_vel.z(),   q.w(),
     q.x(),          q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,
     a2_ref,         a3_ref,         a4_ref
   };
-  double u[NU] = { ft1_ref, ft2_ref, ft3_ref, ft4_ref, 0.0, 0.0, 0.0, 0.0 };
+  double u[] = { ft1_ref, ft2_ref, ft3_ref, ft4_ref, 0.0, 0.0, 0.0, 0.0 };
 
   // Aim: gently add the target point to the end of the reference trajectory
   // - x: NN + 1, u: NN
@@ -532,7 +544,7 @@ double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
     return mpc_solver_.x_u_out_.u.data.at(idx_u);
 
   return mpc_solver_.x_u_out_.u.data.at(idx_u) +
-         t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + NU) - mpc_solver_.x_u_out_.u.data.at(idx_u));
+         t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + mpc_solver_.NU_) - mpc_solver_.x_u_out_.u.data.at(idx_u));
 }
 
 void nmpc_over_act_full::NMPCController::printPhysicalParams()

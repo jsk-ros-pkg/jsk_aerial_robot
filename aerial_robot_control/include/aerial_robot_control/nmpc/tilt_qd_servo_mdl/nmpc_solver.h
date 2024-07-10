@@ -19,65 +19,62 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/acados_solver_tilt_qd_servo_mdl.h"
 
-#define NN TILT_QD_SERVO_MDL_N
-#define NX TILT_QD_SERVO_MDL_NX
-#define NZ TILT_QD_SERVO_MDL_NZ
-#define NU TILT_QD_SERVO_MDL_NU
-#define NP TILT_QD_SERVO_MDL_NP
-#define NBX TILT_QD_SERVO_MDL_NBX
-#define NBX0 TILT_QD_SERVO_MDL_NBX0
-#define NBU TILT_QD_SERVO_MDL_NBU
-#define NSBX TILT_QD_SERVO_MDL_NSBX
-#define NSBU TILT_QD_SERVO_MDL_NSBU
-#define NSH TILT_QD_SERVO_MDL_NSH
-#define NSG TILT_QD_SERVO_MDL_NSG
-#define NSPHI TILT_QD_SERVO_MDL_NSPHI
-#define NSHN TILT_QD_SERVO_MDL_NSHN
-#define NSGN TILT_QD_SERVO_MDL_NSGN
-#define NSPHIN TILT_QD_SERVO_MDL_NSPHIN
-#define NSBXN TILT_QD_SERVO_MDL_NSBXN
-#define NS TILT_QD_SERVO_MDL_NS
-#define NSN TILT_QD_SERVO_MDL_NSN
-#define NG TILT_QD_SERVO_MDL_NG
-#define NBXN TILT_QD_SERVO_MDL_NBXN
-#define NGN TILT_QD_SERVO_MDL_NGN
-#define NY0 TILT_QD_SERVO_MDL_NY0
-#define NY TILT_QD_SERVO_MDL_NY
-#define NYN TILT_QD_SERVO_MDL_NYN
-#define NH TILT_QD_SERVO_MDL_NH
-#define NPHI TILT_QD_SERVO_MDL_NPHI
-#define NHN TILT_QD_SERVO_MDL_NHN
-#define NPHIN TILT_QD_SERVO_MDL_NPHIN
-#define NR TILT_QD_SERVO_MDL_NR
-
 namespace aerial_robot_control
 {
 
 namespace nmpc_over_act_full
 {
 
-struct Constraints
-{
-  double v_max;
-  double v_min;
-  double w_max;
-  double w_min;
-  double thrust_max;
-  double thrust_min;
-  double a_max;
-  double a_min;
-};
-
 class MPCSolver
 {
 public:
+  int NN_, NX_, NZ_, NU_, NP_, NBX_, NBX0_, NBU_, NSBX_, NSBU_, NSH_, NSH0_, NSG_, NSPHI_, NSHN_, NSGN_, NSPHIN_,
+      NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
+      NR_;
+
   aerial_robot_msgs::PredXU x_u_out_;
-  int nx_;
-  int nu_;
+
   double* W_;
   double* WN_;
 
-  MPCSolver();
+  MPCSolver()
+  {
+    NN_ = TILT_QD_SERVO_MDL_N;
+    NX_ = TILT_QD_SERVO_MDL_NX;
+    NZ_ = TILT_QD_SERVO_MDL_NZ;
+    NU_ = TILT_QD_SERVO_MDL_NU;
+    NP_ = TILT_QD_SERVO_MDL_NP;
+    NBX_ = TILT_QD_SERVO_MDL_NBX;
+    NBX0_ = TILT_QD_SERVO_MDL_NBX0;
+    NBU_ = TILT_QD_SERVO_MDL_NBU;
+    NSBX_ = TILT_QD_SERVO_MDL_NSBX;
+    NSBU_ = TILT_QD_SERVO_MDL_NSBU;
+    NSH_ = TILT_QD_SERVO_MDL_NSH;
+    NSH0_ = TILT_QD_SERVO_MDL_NSH0;
+    NSG_ = TILT_QD_SERVO_MDL_NSG;
+    NSPHI_ = TILT_QD_SERVO_MDL_NSPHI;
+    NSHN_ = TILT_QD_SERVO_MDL_NSHN;
+    NSGN_ = TILT_QD_SERVO_MDL_NSGN;
+    NSPHIN_ = TILT_QD_SERVO_MDL_NSPHIN;
+    NSPHI0_ = TILT_QD_SERVO_MDL_NSPHI0;
+    NSBXN_ = TILT_QD_SERVO_MDL_NSBXN;
+    NS_ = TILT_QD_SERVO_MDL_NS;
+    NS0_ = TILT_QD_SERVO_MDL_NS0;
+    NSN_ = TILT_QD_SERVO_MDL_NSN;
+    NG_ = TILT_QD_SERVO_MDL_NG;
+    NBXN_ = TILT_QD_SERVO_MDL_NBXN;
+    NGN_ = TILT_QD_SERVO_MDL_NGN;
+    NY0_ = TILT_QD_SERVO_MDL_NY0;
+    NY_ = TILT_QD_SERVO_MDL_NY;
+    NYN_ = TILT_QD_SERVO_MDL_NYN;
+    NH_ = TILT_QD_SERVO_MDL_NH;
+    NHM_ = TILT_QD_SERVO_MDL_NHN;
+    NH0_ = TILT_QD_SERVO_MDL_NH0;
+    NPHI0_ = TILT_QD_SERVO_MDL_NPHI0;
+    NPHI_ = TILT_QD_SERVO_MDL_NPHI;
+    NPHIN_ = TILT_QD_SERVO_MDL_NPHIN;
+    NR_ = TILT_QD_SERVO_MDL_NR;
+  };
   ~MPCSolver();
   void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
@@ -91,6 +88,8 @@ public:
   /* for debugging */
   void printStatus(double min_time);
   void printSolution();
+
+  void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
 private:
   double* new_time_steps;
@@ -106,9 +105,8 @@ private:
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
-};
 
-void initPredXU(aerial_robot_msgs::PredXU& x_u);
+};
 
 }  // namespace nmpc_over_act_full
 

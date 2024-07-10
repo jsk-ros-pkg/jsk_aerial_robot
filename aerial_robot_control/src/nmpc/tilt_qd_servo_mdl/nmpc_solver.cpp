@@ -6,10 +6,6 @@
 
 using namespace aerial_robot_control;
 
-nmpc_over_act_full::MPCSolver::MPCSolver()
-{
-}
-
 void nmpc_over_act_full::MPCSolver::initialize()
 {
   /* Allocate the array and fill it accordingly */
@@ -17,7 +13,7 @@ void nmpc_over_act_full::MPCSolver::initialize()
 
   new_time_steps = nullptr;
 
-  int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN, new_time_steps);
+  int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN_, new_time_steps);
   if (status)
   {
     ROS_WARN("tilt_qd_servo_mdl_acados_create() returned status %d. Exiting.\n", status);
@@ -36,15 +32,13 @@ void nmpc_over_act_full::MPCSolver::initialize()
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
 
   /* init weight matrix, W is a getCostWeightDim(0) * getCostWeightDim(0) double matrix */
-  nx_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "x");
-  nu_ = ocp_nlp_dims_get_from_attr(nlp_config_, nlp_dims_, nlp_out_, 0, "u");
-  int nw = nx_ + nu_;
+  int nw = NX_ + NU_;
 
   W_ = (double*)malloc((nw * nw) * sizeof(double));
   for (int i = 0; i < nw * nw; i++)
     W_[i] = 0.0;
-  WN_ = (double*)malloc((nx_ * nx_) * sizeof(double));
-  for (int i = 0; i < nx_ * nx_; i++)
+  WN_ = (double*)malloc((NX_ * NX_) * sizeof(double));
+  for (int i = 0; i < NX_ * NX_; i++)
     WN_[i] = 0.0;
 
   //  /* Set constraints */
@@ -56,7 +50,7 @@ void nmpc_over_act_full::MPCSolver::initialize()
   //                      constraints.w_min, constraints.w_min, constraints.w_min };
   //  double ubx[NBX] = { constraints.v_max, constraints.v_max, constraints.v_max,
   //                      constraints.w_max, constraints.w_max, constraints.w_max };
-  //  for (int i = 1; i < NN; i++)
+  //  for (int i = 1; i < NN_; i++)
   //  {
   //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbx", lbx);
   //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubx", ubx);
@@ -66,13 +60,13 @@ void nmpc_over_act_full::MPCSolver::initialize()
   //                         constraints.w_min, constraints.w_min, constraints.w_min };
   //  double ubx_e[NBXN] = { constraints.v_max, constraints.v_max, constraints.v_max,
   //                         constraints.w_max, constraints.w_max, constraints.w_max };
-  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "lbx", lbx_e);
-  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "ubx", ubx_e);
+  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "lbx", lbx_e);
+  //  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "ubx", ubx_e);
   //
   //  // bu
   //  double lbu[NBU] = { constraints.thrust_min, constraints.thrust_min, constraints.thrust_min, constraints.thrust_min
   //  }; double ubu[NBU] = { constraints.thrust_max, constraints.thrust_max, constraints.thrust_max,
-  //  constraints.thrust_max }; for (int i = 0; i < NN; i++)
+  //  constraints.thrust_max }; for (int i = 0; i < NN_; i++)
   //  {
   //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "lbu", lbu);
   //    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "ubu", ubu);
@@ -81,12 +75,12 @@ void nmpc_over_act_full::MPCSolver::initialize()
   /* Set parameters */
   // Note that the code here initializes all parameters, including variables and constants.
   // Constants are initialized only once, while variables are initialized in every iteration
-  double p[NP] = { 1.0, 0.0, 0.0, 0.0 };
-  for (int i = 0; i < NN; i++)
+  double p[] = { 1.0, 0.0, 0.0, 0.0 };
+  for (int i = 0; i < NN_; i++)
   {
-    tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, i, p, NP);
+    tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, i, p, NP_);
   }
-  tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, NN, p, NP);
+  tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, NN_, p, NP_);
 
   /* Initialize output value */
   initPredXU(x_u_out_);
@@ -111,9 +105,9 @@ void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
   const unsigned int u_stride = x_u.u.layout.dim[1].stride;
 
   // reset initial guess
-  double x[NX];
-  double u[NU];
-  for (int i = 0; i < NN; i++)
+  double x[NX_];
+  double u[NU_];
+  for (int i = 0; i < NN_; i++)
   {
     std::copy(x_u.x.data.begin() + x_stride * i, x_u.x.data.begin() + x_stride * (i + 1), x);
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", x);
@@ -121,8 +115,8 @@ void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
     std::copy(x_u.u.data.begin() + u_stride * i, x_u.u.data.begin() + u_stride * (i + 1), u);
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", u);
   }
-  std::copy(x_u.x.data.begin() + x_stride * NN, x_u.x.data.begin() + x_stride * (NN + 1), x);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x);
+  std::copy(x_u.x.data.begin() + x_stride * NN_, x_u.x.data.begin() + x_stride * (NN_ + 1), x);
+  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x);
 }
 
 int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
@@ -147,47 +141,47 @@ int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, dou
   return 0;
 }
 
-void nmpc_over_act_full::initPredXU(aerial_robot_msgs::PredXU& x_u)
+void nmpc_over_act_full::MPCSolver::initPredXU(aerial_robot_msgs::PredXU& x_u)
 {
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim.emplace_back();
   x_u.x.layout.dim[0].label = "horizon";
-  x_u.x.layout.dim[0].size = NN + 1;
-  x_u.x.layout.dim[0].stride = (NN + 1) * NX;
+  x_u.x.layout.dim[0].size = NN_ + 1;
+  x_u.x.layout.dim[0].stride = (NN_ + 1) * NX_;
   x_u.x.layout.dim[1].label = "state";
-  x_u.x.layout.dim[1].size = NX;
-  x_u.x.layout.dim[1].stride = NX;
+  x_u.x.layout.dim[1].size = NX_;
+  x_u.x.layout.dim[1].stride = NX_;
   x_u.x.layout.data_offset = 0;
-  x_u.x.data.resize((NN + 1) * NX);
+  x_u.x.data.resize((NN_ + 1) * NX_);
   std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
   // quaternion
-  for (int i = 6; i < (NN + 1) * NX; i += NX)
+  for (int i = 6; i < (NN_ + 1) * NX_; i += NX_)
     x_u.x.data[i] = 1.0;
 
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim.emplace_back();
   x_u.u.layout.dim[0].label = "horizon";
-  x_u.u.layout.dim[0].size = NN;
-  x_u.u.layout.dim[0].stride = NN * NU;
+  x_u.u.layout.dim[0].size = NN_;
+  x_u.u.layout.dim[0].stride = NN_ * NU_;
   x_u.u.layout.dim[1].label = "input";
-  x_u.u.layout.dim[1].size = NU;
-  x_u.u.layout.dim[1].stride = NU;
+  x_u.u.layout.dim[1].size = NU_;
+  x_u.u.layout.dim[1].stride = NU_;
   x_u.u.layout.data_offset = 0;
-  x_u.u.data.resize(NN * NU);
+  x_u.u.data.resize(NN_ * NU_);
   std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
 }
 
 void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
                                                  const unsigned int u_stride)
 {
-  double yr[NX + NU];
+  double yr[NX_ + NU_];
   double qr[4];
   int qr_idx[] = { 0, 1, 2, 3 };
-  for (int i = 0; i < NN; i++)
+  for (int i = 0; i < NN_; i++)
   {
     // yr = np.concatenate((xr[i, :], ur[i, :]))
     std::copy(x_u_ref.x.data.begin() + x_stride * i, x_u_ref.x.data.begin() + x_stride * (i + 1), yr);
-    std::copy(x_u_ref.u.data.begin() + u_stride * i, x_u_ref.u.data.begin() + u_stride * (i + 1), yr + NX);
+    std::copy(x_u_ref.u.data.begin() + u_stride * i, x_u_ref.u.data.begin() + u_stride * (i + 1), yr + NX_);
     ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", yr);
 
     // quaternions
@@ -195,19 +189,19 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
     tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
   }
   // final x and p, no u
-  double xr[NX];
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN, x_u_ref.x.data.begin() + x_stride * (NN + 1), xr);
-  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "y_ref", xr);
+  double xr[NX_];
+  std::copy(x_u_ref.x.data.begin() + x_stride * NN_, x_u_ref.x.data.begin() + x_stride * (NN_ + 1), xr);
+  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "y_ref", xr);
 
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN + 6, x_u_ref.x.data.begin() + x_stride * NN + 10, qr);
-  tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, NN, qr_idx, qr, 4);
+  std::copy(x_u_ref.x.data.begin() + x_stride * NN_ + 6, x_u_ref.x.data.begin() + x_stride * NN_ + 10, qr);
+  tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, NN_, qr_idx, qr, 4);
 }
 
 void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
                                                            const double joint_angles[4])
 {
   // TODO: modify, to pass in variable array
-  double bx0[NBX0];
+  double bx0[NBX0_];
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
   bx0[2] = odom_now.pose.pose.position.z;
@@ -249,12 +243,12 @@ double nmpc_over_act_full::MPCSolver::solveOCPOnce()
 
 void nmpc_over_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
 {
-  for (int i = 0; i < NN; i++)
+  for (int i = 0; i < NN_; i++)
   {
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_u_out_.x.data.data() + x_stride * i);
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", x_u_out_.u.data.data() + u_stride * i);
   }
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN, "x", x_u_out_.x.data.data() + x_stride * NN);
+  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x_u_out_.x.data.data() + x_stride * NN_);
 }
 
 void nmpc_over_act_full::MPCSolver::printSolution()
@@ -262,12 +256,12 @@ void nmpc_over_act_full::MPCSolver::printSolution()
   std::stringstream ss;
 
   ss << "\n--- x_traj ---\n";
-  for (int i = 0; i <= NN; i++)
+  for (int i = 0; i <= NN_; i++)
   {
     ss << "X Row " << i << ":\n";
-    for (int j = 0; j < NX; j++)
+    for (int j = 0; j < NX_; j++)
     {
-      int index = i * NX + j;
+      int index = i * NX_ + j;
       ss << x_u_out_.x.data[index] << " ";
     }
     ss << "\n";
@@ -276,12 +270,12 @@ void nmpc_over_act_full::MPCSolver::printSolution()
   ss.str("");                 // Clearing the stringstream
 
   ss << "\n--- u_traj ---\n";
-  for (int i = 0; i < NN; i++)
+  for (int i = 0; i < NN_; i++)
   {
     ss << "U Row " << i << ":\n";
-    for (int j = 0; j < NU; j++)
+    for (int j = 0; j < NU_; j++)
     {
-      int index = i * NU + j;
+      int index = i * NU_ + j;
       ss << x_u_out_.u.data[index] << " ";
     }
     ss << "\n";
@@ -304,17 +298,17 @@ void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
 
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
 {
-  if (index < nx_ + nu_)
-    W_[index + index * (nx_ + nu_)] = (double)value;
+  if (index < NX_ + NU_)
+    W_[index + index * (NX_ + NU_)] = (double)value;
   else
-    ROS_ERROR("index should be less than nx_ + nu_");
+    ROS_ERROR("index should be less than NX_ + NU_");
 
   if (is_set_WN)
   {
-    if (index < nx_)
-      WN_[index + index * nx_] = (double)value;
+    if (index < NX_)
+      WN_[index + index * NX_] = (double)value;
     else
-      ROS_ERROR("index should be less than nx_");
+      ROS_ERROR("index should be less than NX_");
   }
 }
 
@@ -322,9 +316,9 @@ void nmpc_over_act_full::MPCSolver::setCostWeight(bool is_update_W, bool is_upda
 {
   if (is_update_W)
   {
-    for (int i = 0; i < NN; i++)
+    for (int i = 0; i < NN_; i++)
       ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_);
   }
   if (is_update_WN)
-    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN, "W", WN_);
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN_);
 }
