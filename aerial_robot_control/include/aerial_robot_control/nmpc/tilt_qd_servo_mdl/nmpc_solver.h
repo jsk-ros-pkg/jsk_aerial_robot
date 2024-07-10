@@ -28,6 +28,8 @@ namespace nmpc_over_act_full
 class MPCSolver
 {
 public:
+  /* acados */
+  // params
   int NN_, NX_, NZ_, NU_, NP_, NBX_, NBX0_, NBU_, NSBX_, NSBU_, NSH_, NSH0_, NSG_, NSPHI_, NSHN_, NSGN_, NSPHIN_,
       NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
       NR_;
@@ -39,6 +41,7 @@ public:
 
   MPCSolver()
   {
+    // macro
     NN_ = TILT_QD_SERVO_MDL_N;
     NX_ = TILT_QD_SERVO_MDL_NX;
     NZ_ = TILT_QD_SERVO_MDL_NZ;
@@ -74,8 +77,58 @@ public:
     NPHI_ = TILT_QD_SERVO_MDL_NPHI;
     NPHIN_ = TILT_QD_SERVO_MDL_NPHIN;
     NR_ = TILT_QD_SERVO_MDL_NR;
+
+    // acados functions that only using once
+    acados_ocp_capsule_ = tilt_qd_servo_mdl_acados_create_capsule();
+
+    int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN_, new_time_steps);
+    if (status)
+    {
+      ROS_WARN("tilt_qd_servo_mdl_acados_create() returned status %d. Exiting.\n", status);
+      exit(1);
+    }
+
+    nlp_config_ = tilt_qd_servo_mdl_acados_get_nlp_config(acados_ocp_capsule_);
+    nlp_dims_ = tilt_qd_servo_mdl_acados_get_nlp_dims(acados_ocp_capsule_);
+    nlp_in_ = tilt_qd_servo_mdl_acados_get_nlp_in(acados_ocp_capsule_);
+    nlp_out_ = tilt_qd_servo_mdl_acados_get_nlp_out(acados_ocp_capsule_);
+    nlp_solver_ = tilt_qd_servo_mdl_acados_get_nlp_solver(acados_ocp_capsule_);
+    nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
   };
-  ~MPCSolver();
+
+  // acados functions that using multiple times
+  inline int acados_update_params(int stage, double* value)
+  {
+    return tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, stage, value, NP_);
+  }
+
+  inline int acados_update_params_sparse(int stage, int *idx, double *p, int n_update)
+  {
+    return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx, p, n_update);
+  }
+
+  inline int acados_solve()
+  {
+    return tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
+  }
+
+  inline void acados_print_stats(){
+    tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
+  }
+
+  ~MPCSolver()
+  {
+    // 1. free solver
+    int status = tilt_qd_servo_mdl_acados_free(acados_ocp_capsule_);
+    if (status)
+      ROS_WARN("tilt_qd_servo_mdl_acados_free() returned status %d. \n", status);
+
+    // 2. free solver capsule
+    status = tilt_qd_servo_mdl_acados_free_capsule(acados_ocp_capsule_);
+    if (status)
+      ROS_WARN("tilt_qd_servo_mdl_acados_free_capsule() returned status %d. \n", status);
+  };
+
   void initialize();
   void reset(const aerial_robot_msgs::PredXU& x_u);
   int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
@@ -91,21 +144,21 @@ public:
 
   void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
-private:
-  double* new_time_steps;
-  tilt_qd_servo_mdl_solver_capsule* acados_ocp_capsule_;
-  ocp_nlp_config* nlp_config_;
-  ocp_nlp_dims* nlp_dims_;
-  ocp_nlp_in* nlp_in_;
-  ocp_nlp_out* nlp_out_;
-  ocp_nlp_solver* nlp_solver_;
-  void* nlp_opts_;
+protected:
+  tilt_qd_servo_mdl_solver_capsule* acados_ocp_capsule_ = nullptr;
+
+  double* new_time_steps = nullptr;
+  ocp_nlp_config* nlp_config_ = nullptr;
+  ocp_nlp_dims* nlp_dims_ = nullptr;
+  ocp_nlp_in* nlp_in_ = nullptr;
+  ocp_nlp_out* nlp_out_ = nullptr;
+  ocp_nlp_solver* nlp_solver_ = nullptr;
+  void* nlp_opts_ = nullptr;
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
   void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
-
 };
 
 }  // namespace nmpc_over_act_full

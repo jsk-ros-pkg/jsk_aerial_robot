@@ -8,25 +8,6 @@ using namespace aerial_robot_control;
 
 void nmpc_over_act_full::MPCSolver::initialize()
 {
-  /* Allocate the array and fill it accordingly */
-  acados_ocp_capsule_ = tilt_qd_servo_mdl_acados_create_capsule();
-
-  new_time_steps = nullptr;
-
-  int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN_, new_time_steps);
-  if (status)
-  {
-    ROS_WARN("tilt_qd_servo_mdl_acados_create() returned status %d. Exiting.\n", status);
-    exit(1);
-  }
-
-  nlp_config_ = tilt_qd_servo_mdl_acados_get_nlp_config(acados_ocp_capsule_);
-  nlp_dims_ = tilt_qd_servo_mdl_acados_get_nlp_dims(acados_ocp_capsule_);
-  nlp_in_ = tilt_qd_servo_mdl_acados_get_nlp_in(acados_ocp_capsule_);
-  nlp_out_ = tilt_qd_servo_mdl_acados_get_nlp_out(acados_ocp_capsule_);
-  nlp_solver_ = tilt_qd_servo_mdl_acados_get_nlp_solver(acados_ocp_capsule_);
-  nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
-
   /* Set rti_phase */
   int rti_phase = 0;  //  (1) preparation, (2) feedback, (0) both. 0 is default
   ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
@@ -78,25 +59,12 @@ void nmpc_over_act_full::MPCSolver::initialize()
   double p[] = { 1.0, 0.0, 0.0, 0.0 };
   for (int i = 0; i < NN_; i++)
   {
-    tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, i, p, NP_);
+    acados_update_params(i, p);
   }
-  tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, NN_, p, NP_);
+  acados_update_params(NN_, p);
 
   /* Initialize output value */
   initPredXU(x_u_out_);
-}
-
-nmpc_over_act_full::MPCSolver::~MPCSolver()
-{
-  // 1. free solver
-  int status = tilt_qd_servo_mdl_acados_free(acados_ocp_capsule_);
-  if (status)
-    ROS_WARN("tilt_qd_servo_mdl_acados_free() returned status %d. \n", status);
-
-  // 2. free solver capsule
-  status = tilt_qd_servo_mdl_acados_free_capsule(acados_ocp_capsule_);
-  if (status)
-    ROS_WARN("tilt_qd_servo_mdl_acados_free_capsule() returned status %d. \n", status);
 }
 
 void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
@@ -186,7 +154,7 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
 
     // quaternions
     std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
-    tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, i, qr_idx, qr, 4);
+    acados_update_params_sparse(i, qr_idx, qr, 4);
   }
   // final x and p, no u
   double xr[NX_];
@@ -194,7 +162,7 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
   ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "y_ref", xr);
 
   std::copy(x_u_ref.x.data.begin() + x_stride * NN_ + 6, x_u_ref.x.data.begin() + x_stride * NN_ + 10, qr);
-  tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, NN_, qr_idx, qr, 4);
+  acados_update_params_sparse(NN_, qr_idx, qr, 4);
 }
 
 void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
@@ -229,10 +197,10 @@ double nmpc_over_act_full::MPCSolver::solveOCPOnce()
   double min_time = 1e12;
   double elapsed_time;
 
-  int status = tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
+  int status = acados_solve();
   if (status != ACADOS_SUCCESS)
   {
-    ROS_WARN("tilt_qd_servo_mdl_acados_solve() returned status %d.\n", status);
+    ROS_WARN("acados_solve() returned status %d.\n", status);
   }
 
   ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
@@ -290,7 +258,7 @@ void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
 
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
   ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
-  tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
+  acados_print_stats();
   ROS_DEBUG("\nSolver info:\n");
   ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
             kkt_norm_inf);
