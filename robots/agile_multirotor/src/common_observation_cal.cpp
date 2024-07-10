@@ -63,6 +63,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
       "/" + quad_name + "/polar_pixel", 1);
   obs_min_dist_pub_ = nh_.advertise<std_msgs::Float64>(
       "/" + quad_name + "/debug/min_obs_distance_with_body", 1);
+  debug_diff_obstacle_pos_to_gazebo_pub_ = nh_.advertise<geometry_msgs::Point>(
+      "/" + quad_name + "/debug/true_obstacle_diff/from_gazebo", 1);
 
   theta_list_ = {5,15,25,35,45,55, 65, 75, 85, 95, 105, 115, 125};//should change Theta_Cuts if you change this theta's num
   acc_theta_list_ = {1,4,7,10};
@@ -166,6 +168,10 @@ void ObstacleCalculator::CalculatorCallback(
       // calc difference of obstacle this code and gazebo
       double error_tree_x = tree_pos[0] - gazebo_pos_x_;
       double error_tree_y = tree_pos[1] - gazebo_pos_y_;
+      geometry_msgs::Point error_tree_msg;
+      error_tree_msg.x = error_tree_x;
+      error_tree_msg.y = error_tree_y;
+      debug_diff_obstacle_pos_to_gazebo_pub_.publish(error_tree_msg);
     }
     visualization_msgs::Marker marker;
     marker.header.frame_id = "world";

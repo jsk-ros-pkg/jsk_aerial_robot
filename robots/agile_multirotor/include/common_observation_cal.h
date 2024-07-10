@@ -18,6 +18,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <time.h>
 #include <gazebo_msgs/ModelState.h>
+#include <geometry_msgs/Point.h>
 
 using Scalar = double;
 static constexpr int Dynamic = Eigen::Dynamic;
@@ -66,7 +67,7 @@ private:
   ros::Subscriber record_sub_, start_obstacle_sub_, gazebo_obstacle_pos_sub_;
   ros::Publisher obs_pub_;
   ros::Publisher marker_pub_;
-  ros::Publisher obs_min_dist_pub_;
+  ros::Publisher obs_min_dist_pub_, debug_diff_obstacle_pos_to_gazebo_pub_;
 
   std::vector<Eigen::Vector3d> positions_, velocities_;
   std::vector<Scalar> radius_list_;
