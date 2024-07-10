@@ -59,6 +59,9 @@ namespace aerial_robot_navigation
     bool getBaselinkRotForceUpdateMode() {return baselink_rot_force_update_mode_;}
     std::string indexToGroundNavigationModeString(int index);
 
+    void setEstimatedExternalWrench(Eigen::VectorXd est_external_wrench) {est_external_wrench_ = est_external_wrench;}
+    void setEstimatedExternalWrenchCog(Eigen::VectorXd est_external_wrench_cog) {est_external_wrench_cog_ = est_external_wrench_cog;}
+
   private:
     /* baselink rotation process */
     ros::Publisher desire_coord_pub_;
@@ -109,6 +112,10 @@ namespace aerial_robot_navigation
     bool ground_trajectory_mode_;
     double ground_trajectory_start_time_;
     double ground_trajectory_duration_;
+
+    /* motion planning based on external wrench estimation */
+    Eigen::VectorXd est_external_wrench_;
+    Eigen::VectorXd est_external_wrench_cog_;
 
     /* param for joy stick control */
     double joy_stick_deadzone_;
