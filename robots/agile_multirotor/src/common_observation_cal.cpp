@@ -283,10 +283,11 @@ Scalar ObstacleCalculator::getClosestDistance(
     if (a == 0) continue;
     Scalar b = alpha.dot(beta);
     Scalar c = std::pow(beta.norm(), 2) - std::pow(radius, 2);
+    if (c <= 0) rmin = 0;
     Scalar D = std::pow(b, 2) - a * c;
     if (0 <= D) {
       Scalar dist = (b - std::sqrt(D)) / a;
-      if (0 < dist){
+      if (0 <= dist){
       rmin = std::min(dist, rmin);
       }
     }
