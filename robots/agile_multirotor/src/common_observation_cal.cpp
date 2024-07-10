@@ -78,9 +78,9 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 }
 
 void ObstacleCalculator::SetGazeboObstacleCallback(const gazebo_msgs::ModelState::ConstPtr &msg){
-  gazebo_obstacle_id = std::stoi((msg->model_name).substr(3));
-  gazebo_x = msg->pose.position.x;
-  gazebo_y = msg->pose.position.y;
+  gazebo_obstacle_id_ = static_cast<size_t>(std::stoull((msg->model_name).substr(3)));
+  gazebo_pos_x_ = msg->pose.position.x;
+  gazebo_pos_y_ = msg->pose.position.y;
 }
 
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
@@ -162,6 +162,11 @@ void ObstacleCalculator::CalculatorCallback(
 
   for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
     Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
+    if (obstacle_id == gazebo_obstacle_id_){
+      // calc difference of obstacle this code and gazebo
+      double error_tree_x = tree_pos[0] - gazebo_pos_x_;
+      double error_tree_y = tree_pos[1] - gazebo_pos_y_;
+    }
     visualization_msgs::Marker marker;
     marker.header.frame_id = "world";
     marker.ns = "tree";
