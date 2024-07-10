@@ -80,7 +80,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 }
 
 void ObstacleCalculator::SetGazeboObstacleCallback(const gazebo_msgs::ModelState::ConstPtr &msg){
-  gazebo_obstacle_id_ = static_cast<size_t>(std::stoull((msg->model_name).substr(3)));
+  gazebo_obstacle_id_ = static_cast<size_t>(std::stoull((msg->model_name).substr(3))) - 1 ;
   gazebo_pos_x_ = msg->pose.position.x;
   gazebo_pos_y_ = msg->pose.position.y;
 }
