@@ -532,14 +532,16 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   contact_point_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
   br_.sendTransform(contact_point_tf);
 
-  /* tf of contact point alined to ground plane */
-  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
-  KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
+  /* get current orientation to get alined frame */
   tf::Quaternion cog2baselink_rot;
   tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
   tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
   double r, p, y;
   cog_rot.getRPY(r, p, y);
+
+  /* tf of contact point alined to ground plane */
+  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+  KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
 
   if(true)
     {
@@ -554,6 +556,19 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   contact_point_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   contact_point_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("contact_point_alined"));
   br_.sendTransform(contact_point_alined_tf);
+
+  /* tf of cog alined to ground plane */
+  if(true)
+    {
+      std::lock_guard<std::mutex> lock(cog_alined_mutex_);
+      cog_alined_.p = cog.p;
+      cog_alined_.M = contact_point_alined_.M;
+    }
+  geometry_msgs::TransformStamped cog_alined_tf = kdlToMsg(cog_alined_);
+  cog_alined_tf.header = state->header;
+  cog_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  cog_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog_alined"));
+  br_.sendTransform(cog_alined_tf);
 }
 
 void RollingController::calcGimbalInFcCallback(const std_msgs::BoolPtr & msg)
