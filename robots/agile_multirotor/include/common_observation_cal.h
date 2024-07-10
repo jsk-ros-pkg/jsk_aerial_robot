@@ -17,6 +17,7 @@
 #include <sstream>
 #include <std_msgs/Float64MultiArray.h>
 #include <time.h>
+#include <gazebo_msgs/ModelState.h>
 
 using Scalar = double;
 static constexpr int Dynamic = Eigen::Dynamic;
@@ -62,7 +63,7 @@ private:
   ros::NodeHandle pnh_;
   ros::Subscriber odom_sub_;
   ros::Subscriber marker_sub_;
-  ros::Subscriber record_sub_, start_obstacle_sub_;
+  ros::Subscriber record_sub_, start_obstacle_sub_, gazebo_obstacle_pos_sub_;
   ros::Publisher obs_pub_;
   ros::Publisher marker_pub_;
   ros::Publisher obs_min_dist_pub_;
@@ -96,7 +97,8 @@ private:
   bool have_hokuyo_data_, moving_obstacle_;
   ros::Time obstacle_start_moving_time_;
   float obstacle_moving_time_;
-
+  int gazebo_obstacle_id;
+  float gazebo_x, gazebo_y;
 
   std::vector<std::string> split(std::string &input, char delimiter);
 
@@ -104,4 +106,5 @@ private:
   void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
   void StartObstacleCallback(const std_msgs::Empty::ConstPtr &msg);
   // void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
+  void SetGazeboObstacleCallback(const gazebo_msgs::ModelState::ConstPtr &msg);
 };

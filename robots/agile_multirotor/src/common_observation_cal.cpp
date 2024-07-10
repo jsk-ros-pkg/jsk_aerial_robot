@@ -56,6 +56,9 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
 
   odom_sub_ = nh_.subscribe("/" + quad_name + "/uav/cog/odom", 1,
                             &ObstacleCalculator::CalculatorCallback, this);
+  gazebo_obstacle_pos_sub_ = nh_.subscribe("/gazebo/set_model_state", 1,
+                            &ObstacleCalculator::SetGazeboObstacleCallback, this);
+
   obs_pub_ = nh_.advertise<aerial_robot_msgs::ObstacleArray>(
       "/" + quad_name + "/polar_pixel", 1);
   obs_min_dist_pub_ = nh_.advertise<std_msgs::Float64>(
@@ -72,6 +75,12 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   common_r_ = 0.2;
 
   set_collision_point();
+}
+
+void ObstacleCalculator::SetGazeboObstacleCallback(const gazebo_msgs::ModelState::ConstPtr &msg){
+  gazebo_obstacle_id = std::stoi((msg->model_name).substr(3));
+  gazebo_x = msg->pose.position.x;
+  gazebo_y = msg->pose.position.y;
 }
 
 void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
