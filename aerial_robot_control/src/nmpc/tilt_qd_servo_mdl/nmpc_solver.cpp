@@ -185,24 +185,6 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
   acados_update_params_sparse(NN_, qr_idx, qr, 4);
 }
 
-
-double nmpc_over_act_full::MPCSolver::solveOCPOnce()
-{
-  double min_time = 1e12;
-  double elapsed_time;
-
-  int status = acados_solve();
-  if (status != ACADOS_SUCCESS)
-  {
-    ROS_WARN("acados_solve() returned status %d.\n", status);
-  }
-
-  ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
-  min_time = MIN(elapsed_time, min_time);
-
-  return min_time;
-}
-
 void nmpc_over_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
 {
   for (int i = 0; i < NN_; i++)

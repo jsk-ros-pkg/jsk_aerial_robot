@@ -203,13 +203,29 @@ protected:
   void setFeedbackConstraints(const std::vector<double>& bx0)
   {
     if (bx0.size() != NBX0_)
-      throw std::invalid_argument("bx0 size is not equal to NX_");
+      throw std::invalid_argument("bx0 size is not equal to NBX0_");
 
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", (void*)bx0.data());
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", (void*)bx0.data());
   }
 
-  double solveOCPOnce();
+  double solveOCPOnce()
+  {
+    double min_time = 1e12;
+    double elapsed_time;
+
+    int status = acados_solve();
+    if (status != ACADOS_SUCCESS)
+    {
+      ROS_WARN("acados_solve() returned status %d.\n", status);
+    }
+
+    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
+    min_time = MIN(elapsed_time, min_time);
+
+    return min_time;
+  }
+
   void getSolution(unsigned int x_stride, unsigned int u_stride);
 };
 
