@@ -110,6 +110,8 @@ public:
     W_ = std::vector<double>(NY_ * NY_, 0);   // NY = NX + NU
     WN_ = std::vector<double>(NX_ * NX_, 0);  // WN has the same size as NX
 
+    setRTIPhase();
+
     std::vector<double> p(NP_, 0);
     p[0] = 1.0;  // quaternion
     setParameters(p);
@@ -128,7 +130,7 @@ public:
       ROS_WARN("tilt_qd_servo_mdl_acados_free_capsule() returned status %d. \n", status);
   };
 
-  void initialize();
+  void initialize() {};
 
   void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
   {
@@ -175,6 +177,11 @@ public:
   }
 
   /* Setters */
+  void setRTIPhase(int rti_phase = 0)  //  (1) preparation, (2) feedback, (0) both.
+  {
+    ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
+  }
+
   void setParameters(std::vector<double>& p)
   {
     if (p.size() != NP_)
