@@ -277,8 +277,12 @@ void nmpc_over_act_full::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
   odom_ = odom_now;
 
+  /* set reference */
+  rosXU2VecXU(x_u_ref_, mpc_solver_.xr_, mpc_solver_.ur_);
+  mpc_solver_.setReference(mpc_solver_.xr_, mpc_solver_.ur_, true);
+
   /* solve */
-  mpc_solver_.solve(odom_, joint_angles_, x_u_ref_, is_debug_);
+  mpc_solver_.solve(odom_, joint_angles_, is_debug_);
 
   /* get result */
   // - thrust
@@ -695,6 +699,29 @@ void nmpc_over_act_full::NMPCController::initPredXU(aerial_robot_msgs::PredXU& x
   x_u.u.layout.data_offset = 0;
   x_u.u.data.resize(nn * nu);
   std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
+}
+
+void nmpc_over_act_full::NMPCController::rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u,
+                                                     std::vector<std::vector<double>>& x_vec,
+                                                     std::vector<std::vector<double>>& u_vec)
+{
+  int NN = (int)u_vec.size();  // x_vec is NN+1
+  int NX = (int)x_vec[0].size();
+  int NU = (int)u_vec[0].size();
+
+  if (x_u.x.layout.dim[1].stride != NX || x_u.u.layout.dim[1].stride != NU)
+    ROS_ERROR("The dimension of x_u: nx, nu is not correct!");
+
+  if (x_u.x.layout.dim[0].size != NN + 1 || x_u.u.layout.dim[0].size != NN)
+    ROS_ERROR("The dimension of x_u: nn for x, nn for u is not correct!");
+
+  // convert x_u to xr_ and ur_
+  for (int i = 0; i < NN; i++)
+  {
+    std::copy(x_u.x.data.begin() + i * NX, x_u.x.data.begin() + (i + 1) * NX, x_vec[i].begin());
+    std::copy(x_u.u.data.begin() + i * NU, x_u.u.data.begin() + (i + 1) * NU, u_vec[i].begin());
+  }
+  std::copy(x_u.x.data.begin() + NN * NX, x_u.x.data.begin() + (NN + 1) * NX, x_vec[NN].begin());
 }
 
 /* plugin registration */

@@ -68,7 +68,7 @@ protected:
   ros::Publisher pub_gimbal_control_;                   // for gimbal control
 
   ros::ServiceClient srv_set_control_mode_;
-  std::vector<boost::shared_ptr<NMPCControlDynamicConfig> > nmpc_reconf_servers_;
+  std::vector<boost::shared_ptr<NMPCControlDynamicConfig>> nmpc_reconf_servers_;
 
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
@@ -82,7 +82,7 @@ protected:
   virtual void controlCore();
   virtual void SendCmd();
 
-  void cfgNMPCCallback(NMPCConfig &config, uint32_t level);
+  void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
 private:
   double mass_;
@@ -121,6 +121,9 @@ private:
   void printPhysicalParams();
 
   static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
+
+  static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
+                   std::vector<std::vector<double>>& u_vec);
 };
 
 };  // namespace nmpc_over_act_full

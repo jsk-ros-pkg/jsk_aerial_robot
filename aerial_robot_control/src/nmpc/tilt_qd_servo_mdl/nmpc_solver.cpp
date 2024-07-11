@@ -64,26 +64,8 @@ void nmpc_over_act_full::MPCSolver::initialize()
   acados_update_params(NN_, p);
 }
 
-int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
-                                         const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
+int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const double joint_angles[4], const bool is_debug)
 {
-  if (x_u_ref.x.layout.dim[1].stride != NX_ || x_u_ref.u.layout.dim[1].stride != NU_)
-    ROS_ERROR("The dimension of x_u_ref: nx, nu is not correct!");
-
-  if (x_u_ref.x.layout.dim[0].size != NN_ + 1 || x_u_ref.u.layout.dim[0].size != NN_)
-    ROS_ERROR("The dimension of x_u_ref: nn for x, nn for u is not correct!");
-
-  // convert x_u_ref to xr_ and ur_
-  for (int i = 0; i < NN_; i++)
-  {
-    std::copy(x_u_ref.x.data.begin() + i * NX_, x_u_ref.x.data.begin() + (i + 1) * NX_, xr_[i].begin());
-    std::copy(x_u_ref.u.data.begin() + i * NU_, x_u_ref.u.data.begin() + (i + 1) * NU_, ur_[i].begin());
-  }
-  std::copy(x_u_ref.x.data.begin() + NN_ * NX_, x_u_ref.x.data.begin() + (NN_ + 1) * NX_, xr_[NN_].begin());
-
-  setReference(xr_, ur_, true);
-
-
   std::vector<double> bx0(NBX0_);
   bx0[0] = odom_now.pose.pose.position.x;
   bx0[1] = odom_now.pose.pose.position.y;
