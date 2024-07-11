@@ -28,8 +28,7 @@ namespace nmpc_over_act_full
 class MPCSolver
 {
 public:
-  /* acados */
-  // params
+  // acados params
   int NN_, NX_, NZ_, NU_, NP_, NBX_, NBX0_, NBU_, NSBX_, NSBU_, NSH_, NSH0_, NSG_, NSPHI_, NSHN_, NSGN_, NSPHIN_,
       NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
       NR_;
@@ -38,16 +37,16 @@ public:
   std::vector<std::vector<double>> xr_;
   std::vector<std::vector<double>> ur_;
 
-  // used for the output, also is (sub) optimal
+  // outputs, also are (sub) optimal
   std::vector<std::vector<double>> xo_;
   std::vector<std::vector<double>> uo_;
 
-  double* W_;
-  double* WN_;
+  std::vector<double> W_;
+  std::vector<double> WN_;
 
   MPCSolver()
   {
-    // macro
+    // acados macro
     NN_ = TILT_QD_SERVO_MDL_N;
     NX_ = TILT_QD_SERVO_MDL_NX;
     NZ_ = TILT_QD_SERVO_MDL_NZ;
@@ -107,6 +106,9 @@ public:
 
     xo_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
     uo_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
+
+    W_ = std::vector<double>(NY_ * NY_, 0);   // NY = NX + NU
+    WN_ = std::vector<double>(NX_ * NX_, 0);  // WN has the same size as NX
   };
 
   // acados functions that using multiple times
@@ -172,6 +174,24 @@ public:
     reset(x_init, u_init);
   }
 
+  int solve(const std::vector<double>& bx0, const bool is_debug = false)
+  {
+    setFeedbackConstraints(bx0);
+
+    double min_time = solveOCPOnce();
+
+    getSolution();
+
+    if (is_debug)
+    {
+      printSolution();
+      printStatus(min_time);
+    }
+
+    return 0;
+  }
+
+  /* Setters */
   void setReference(const std::vector<std::vector<double>>& xr, const std::vector<std::vector<double>>& ur,
                     bool is_set_quat = false)
   {
@@ -218,26 +238,32 @@ public:
     ur_ = ur;
   }
 
-  int solve(const std::vector<double>& bx0, const bool is_debug = false)
+  void setCostWDiagElement(int index, double value, bool is_set_WN = true)
   {
-    setFeedbackConstraints(bx0);
+    if (index < NY_)
+      W_[index + index * (NY_)] = value;
+    else
+      ROS_ERROR("index should be less than NY_ = NX_ + NU_");
 
-    double min_time = solveOCPOnce();
-
-    getSolution();
-
-    if (is_debug)
+    if (is_set_WN)
     {
-      printSolution();
-      printStatus(min_time);
+      if (index < NX_)
+        WN_[index + index * NX_] = value;
+      else
+        ROS_ERROR("index should be less than NX_");
     }
-
-    return 0;
   }
 
-  /* Setters */
-  void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;
-  void setCostWeight(bool is_update_W, bool is_update_WN);
+  void setCostWeight(bool is_update_W, bool is_update_WN)
+  {
+    if (is_update_W)
+    {
+      for (int i = 0; i < NN_; i++)
+        ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_.data());
+    }
+    if (is_update_WN)
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN_.data());
+  }
 
   /* for debugging */
   void printStatus(double min_time)
