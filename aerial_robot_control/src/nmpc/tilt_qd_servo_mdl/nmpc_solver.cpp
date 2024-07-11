@@ -62,9 +62,6 @@ void nmpc_over_act_full::MPCSolver::initialize()
     acados_update_params(i, p);
   }
   acados_update_params(NN_, p);
-
-  /* Initialize output value */
-  initPredXU(x_u_out_);
 }
 
 void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
@@ -118,7 +115,7 @@ int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, dou
 
   double min_time = solveOCPOnce();
 
-  getSolution(x_stride, u_stride);
+  getSolution();
 
   if (is_debug)
   {
@@ -183,16 +180,6 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
 
   std::copy(x_u_ref.x.data.begin() + x_stride * NN_ + 6, x_u_ref.x.data.begin() + x_stride * NN_ + 10, qr);
   acados_update_params_sparse(NN_, qr_idx, qr, 4);
-}
-
-void nmpc_over_act_full::MPCSolver::getSolution(const unsigned int x_stride, const unsigned int u_stride)
-{
-  for (int i = 0; i < NN_; i++)
-  {
-    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_u_out_.x.data.data() + x_stride * i);
-    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", x_u_out_.u.data.data() + u_stride * i);
-  }
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x_u_out_.x.data.data() + x_stride * NN_);
 }
 
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const

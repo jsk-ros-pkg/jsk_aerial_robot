@@ -34,7 +34,9 @@ public:
       NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
       NR_;
 
-  aerial_robot_msgs::PredXU x_u_out_;
+  // used for the result
+  std::vector<std::vector<double>> x_;
+  std::vector<std::vector<double>> u_;
 
   double* W_;
   double* WN_;
@@ -94,6 +96,10 @@ public:
     nlp_out_ = tilt_qd_servo_mdl_acados_get_nlp_out(acados_ocp_capsule_);
     nlp_solver_ = tilt_qd_servo_mdl_acados_get_nlp_solver(acados_ocp_capsule_);
     nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
+
+    // initialization that has no relation to acados
+    x_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
+    u_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
   };
 
   // acados functions that using multiple times
@@ -163,8 +169,7 @@ public:
       ss << "X Row " << i << ":\n";
       for (int j = 0; j < NX_; j++)
       {
-        int index = i * NX_ + j;
-        ss << x_u_out_.x.data[index] << " ";
+        ss << x_[i][j] << " ";
       }
       ss << "\n";
     }
@@ -177,8 +182,7 @@ public:
       ss << "U Row " << i << ":\n";
       for (int j = 0; j < NU_; j++)
       {
-        int index = i * NU_ + j;
-        ss << x_u_out_.u.data[index] << " ";
+        ss << u_[i][j] << " ";
       }
       ss << "\n";
     }
@@ -226,7 +230,25 @@ protected:
     return min_time;
   }
 
-  void getSolution(unsigned int x_stride, unsigned int u_stride);
+  void getSolution()
+  {
+    if (x_.size() != NN_ + 1 || u_.size() != NN_)
+      throw std::invalid_argument("x_ or u_ size is not equal to NN_ + 1 or NN_");
+
+    for (int i = 0; i < NN_; i++)
+    {
+      if (x_[i].size() != NX_ || u_[i].size() != NU_)
+        throw std::invalid_argument("x_[i] or u_[i] size is not equal to NX_ or NU_");
+
+      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_[i].data());
+      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", u_[i].data());
+    }
+
+    if (x_[NN_].size() != NX_)
+      throw std::invalid_argument("x_[NN_] size is not equal to NX_");
+
+    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x_[NN_].data());
+  }
 };
 
 }  // namespace nmpc_over_act_full

@@ -354,13 +354,13 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
   for (int i = 0; i < NN; ++i)
   {
     geometry_msgs::Pose pred_pose;
-    pred_pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
-    pred_pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
-    pred_pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
-    pred_pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
-    pred_pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
-    pred_pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
-    pred_pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
+    pred_pose.position.x = mpc_solver_.x_[i][0];
+    pred_pose.position.y = mpc_solver_.x_[i][1];
+    pred_pose.position.z = mpc_solver_.x_[i][2];
+    pred_pose.orientation.w = mpc_solver_.x_[i][6];
+    pred_pose.orientation.x = mpc_solver_.x_[i][7];
+    pred_pose.orientation.y = mpc_solver_.x_[i][8];
+    pred_pose.orientation.z = mpc_solver_.x_[i][9];
     pred_poses.poses.push_back(pred_pose);
 
     geometry_msgs::Pose ref_pose;
@@ -541,10 +541,10 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
   if (t_pred == 0)
-    return mpc_solver_.x_u_out_.u.data.at(idx_u);
+    return mpc_solver_.u_[0][idx_u];
 
-  return mpc_solver_.x_u_out_.u.data.at(idx_u) +
-         t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + mpc_solver_.NU_) - mpc_solver_.x_u_out_.u.data.at(idx_u));
+  return mpc_solver_.u_[0][idx_u] +
+         t_pred / t_nmpc_integ_ * (mpc_solver_.u_[1][idx_u] - mpc_solver_.u_[0][idx_u]);
 }
 
 void nmpc_over_act_full::NMPCController::printPhysicalParams()
