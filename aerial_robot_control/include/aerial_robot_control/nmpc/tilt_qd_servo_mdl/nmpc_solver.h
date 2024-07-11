@@ -218,7 +218,22 @@ public:
     ur_ = ur;
   }
 
-  int solve(const nav_msgs::Odometry& odom_now, const double joint_angles[4], bool is_debug);
+  int solve(const std::vector<double>& bx0, const bool is_debug = false)
+  {
+    setFeedbackConstraints(bx0);
+
+    double min_time = solveOCPOnce();
+
+    getSolution();
+
+    if (is_debug)
+    {
+      printSolution();
+      printStatus(min_time);
+    }
+
+    return 0;
+  }
 
   /* Setters */
   void setCostWDiagElement(int index, double value, bool is_set_WN = true) const;

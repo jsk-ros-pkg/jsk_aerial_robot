@@ -282,7 +282,26 @@ void nmpc_over_act_full::NMPCController::controlCore()
   mpc_solver_.setReference(mpc_solver_.xr_, mpc_solver_.ur_, true);
 
   /* solve */
-  mpc_solver_.solve(odom_, joint_angles_, is_debug_);
+  std::vector<double> bx0(mpc_solver_.NBX0_, 0);
+  bx0[0] = odom_now.pose.pose.position.x;
+  bx0[1] = odom_now.pose.pose.position.y;
+  bx0[2] = odom_now.pose.pose.position.z;
+  bx0[3] = odom_now.twist.twist.linear.x;
+  bx0[4] = odom_now.twist.twist.linear.y;
+  bx0[5] = odom_now.twist.twist.linear.z;
+  bx0[6] = odom_now.pose.pose.orientation.w;
+  bx0[7] = odom_now.pose.pose.orientation.x;
+  bx0[8] = odom_now.pose.pose.orientation.y;
+  bx0[9] = odom_now.pose.pose.orientation.z;
+  bx0[10] = odom_now.twist.twist.angular.x;
+  bx0[11] = odom_now.twist.twist.angular.y;
+  bx0[12] = odom_now.twist.twist.angular.z;
+  bx0[13] = joint_angles_[0];
+  bx0[14] = joint_angles_[1];
+  bx0[15] = joint_angles_[2];
+  bx0[16] = joint_angles_[3];
+
+  mpc_solver_.solve(bx0);
 
   /* get result */
   // - thrust

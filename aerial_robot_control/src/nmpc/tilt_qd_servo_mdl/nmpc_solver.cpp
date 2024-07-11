@@ -64,42 +64,6 @@ void nmpc_over_act_full::MPCSolver::initialize()
   acados_update_params(NN_, p);
 }
 
-int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, const double joint_angles[4], const bool is_debug)
-{
-  std::vector<double> bx0(NBX0_);
-  bx0[0] = odom_now.pose.pose.position.x;
-  bx0[1] = odom_now.pose.pose.position.y;
-  bx0[2] = odom_now.pose.pose.position.z;
-  bx0[3] = odom_now.twist.twist.linear.x;
-  bx0[4] = odom_now.twist.twist.linear.y;
-  bx0[5] = odom_now.twist.twist.linear.z;
-  bx0[6] = odom_now.pose.pose.orientation.w;
-  bx0[7] = odom_now.pose.pose.orientation.x;
-  bx0[8] = odom_now.pose.pose.orientation.y;
-  bx0[9] = odom_now.pose.pose.orientation.z;
-  bx0[10] = odom_now.twist.twist.angular.x;
-  bx0[11] = odom_now.twist.twist.angular.y;
-  bx0[12] = odom_now.twist.twist.angular.z;
-  bx0[13] = joint_angles[0];
-  bx0[14] = joint_angles[1];
-  bx0[15] = joint_angles[2];
-  bx0[16] = joint_angles[3];
-
-  setFeedbackConstraints(bx0);
-
-  double min_time = solveOCPOnce();
-
-  getSolution();
-
-  if (is_debug)
-  {
-    printSolution();
-    printStatus(min_time);
-  }
-
-  return 0;
-}
-
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
 {
   if (index < NX_ + NU_)
