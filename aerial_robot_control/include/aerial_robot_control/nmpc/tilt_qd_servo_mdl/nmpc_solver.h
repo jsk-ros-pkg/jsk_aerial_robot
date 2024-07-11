@@ -1,16 +1,12 @@
 //
 // Created by lijinjie on 23/11/29.
+// Refactored by lijinjie on 24/07/11.
 //
 
 #ifndef BEETLE_NMPC_SOLVER_H
 #define BEETLE_NMPC_SOLVER_H
 
 #endif  // BEETLE_NMPC_SOLVER_H
-
-#include <ros/console.h>
-#include <aerial_robot_msgs/PredXU.h>
-#include <nav_msgs/Odometry.h>
-#include <iostream>
 
 // acados
 #include "acados/utils/math.h"
@@ -25,13 +21,27 @@ namespace aerial_robot_control
 namespace nmpc_over_act_full
 {
 
+class AcadosSolveException : public std::runtime_error
+{
+public:
+  int status_;
+  explicit AcadosSolveException(int status) : std::runtime_error(createErrorMessage(status)), status_(status){};
+
+private:
+  static std::string createErrorMessage(int status)
+  {
+    std::ostringstream oss;
+    oss << "acados returned status " << status << ". Exiting.";
+    return oss.str();
+  }
+};
+
 class MPCSolver
 {
 public:
   // acados params
   int NN_, NX_, NZ_, NU_, NP_, NBX_, NBX0_, NBU_, NSBX_, NSBU_, NSH_, NSH0_, NSG_, NSPHI_, NSHN_, NSGN_, NSPHIN_,
-      NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
-      NR_;
+      NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_, NR_;
 
   // references
   std::vector<std::vector<double>> xr_;
@@ -76,7 +86,7 @@ public:
     NY_ = TILT_QD_SERVO_MDL_NY;
     NYN_ = TILT_QD_SERVO_MDL_NYN;
     NH_ = TILT_QD_SERVO_MDL_NH;
-    NHM_ = TILT_QD_SERVO_MDL_NHN;
+    NHN_ = TILT_QD_SERVO_MDL_NHN;
     NH0_ = TILT_QD_SERVO_MDL_NH0;
     NPHI0_ = TILT_QD_SERVO_MDL_NPHI0;
     NPHI_ = TILT_QD_SERVO_MDL_NPHI;
@@ -88,10 +98,8 @@ public:
 
     int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN_, new_time_steps);
     if (status)
-    {
-      ROS_WARN("tilt_qd_servo_mdl_acados_create() returned status %d. Exiting.\n", status);
-      exit(1);
-    }
+      throw std::runtime_error("tilt_qd_servo_mdl_acados_create_with_discretization() returned status " +
+                               std::to_string(status) + ". Exiting.");
 
     nlp_config_ = tilt_qd_servo_mdl_acados_get_nlp_config(acados_ocp_capsule_);
     nlp_dims_ = tilt_qd_servo_mdl_acados_get_nlp_dims(acados_ocp_capsule_);
@@ -119,15 +127,13 @@ public:
 
   ~MPCSolver()
   {
-    // 1. free solver
     int status = tilt_qd_servo_mdl_acados_free(acados_ocp_capsule_);
     if (status)
-      ROS_WARN("tilt_qd_servo_mdl_acados_free() returned status %d. \n", status);
+      std::cout << "tilt_qd_servo_mdl_acados_free() returned status " << status << ". \n" << std::endl;
 
-    // 2. free solver capsule
     status = tilt_qd_servo_mdl_acados_free_capsule(acados_ocp_capsule_);
     if (status)
-      ROS_WARN("tilt_qd_servo_mdl_acados_free_capsule() returned status %d. \n", status);
+      std::cout << "tilt_qd_servo_mdl_acados_free_capsule() returned status " << status << ". \n" << std::endl;
   };
 
   void initialize() {};
@@ -239,17 +245,17 @@ public:
 
   void setCostWDiagElement(int index, double value, bool is_set_WN = true)
   {
-    if (index < NY_)
-      W_[index + index * (NY_)] = value;
-    else
-      ROS_ERROR("index should be less than NY_ = NX_ + NU_");
+    if (index >= NY_)
+      throw std::invalid_argument("index should be less than NY_ = NX_ + NU_");
+
+    W_[index + index * (NY_)] = value;
 
     if (is_set_WN)
     {
-      if (index < NX_)
-        WN_[index + index * NX_] = value;
-      else
-        ROS_ERROR("index should be less than NX_");
+      if (index >= NX_)
+        throw std::invalid_argument("index should be less than NX_");
+
+      WN_[index + index * NX_] = value;
     }
   }
 
@@ -272,10 +278,12 @@ public:
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
     ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
+
     acadosPrintStats();
-    ROS_DEBUG("\nSolver info:\n");
-    ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
-              kkt_norm_inf);
+
+    std::cout << "\nSolver info:\n";
+    std::cout << " SQP iterations " << sqp_iter << "\n minimum time for 1 solve " << min_time * 1000 << " [ms]\n KKT "
+              << kkt_norm_inf << std::endl;
   }
 
   void printSolution()
@@ -292,8 +300,9 @@ public:
       }
       ss << "\n";
     }
-    ROS_INFO_STREAM(ss.str());  // Logging the x_traj
-    ss.str("");                 // Clearing the stringstream
+    std::cout << ss.str();  // Logging the x_traj
+
+    ss.str("");  // Clearing the stringstream
 
     ss << "\n--- u_traj ---\n";
     for (int i = 0; i < NN_; i++)
@@ -305,7 +314,7 @@ public:
       }
       ss << "\n";
     }
-    ROS_INFO_STREAM(ss.str());  // Logging the u_traj
+    std::cout << ss.str();  // Logging the u_traj
   }
 
 protected:
@@ -335,9 +344,7 @@ protected:
 
     int status = acadosSolve();
     if (status != ACADOS_SUCCESS)
-    {
-      ROS_WARN("acadosSolve() returned status %d.\n", status);
-    }
+      throw AcadosSolveException(status);
 
     ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
     min_time = MIN(elapsed_time, min_time);

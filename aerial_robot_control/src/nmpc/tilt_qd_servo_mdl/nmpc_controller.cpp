@@ -301,7 +301,14 @@ void nmpc_over_act_full::NMPCController::controlCore()
   bx0[15] = joint_angles_[2];
   bx0[16] = joint_angles_[3];
 
-  mpc_solver_.solve(bx0);
+  try
+  {
+    mpc_solver_.solve(bx0);
+  }
+  catch (AcadosSolveException& e)
+  {
+    ROS_WARN("NMPC solver failed: %s", e.what());
+  }
 
   /* get result */
   // - thrust
