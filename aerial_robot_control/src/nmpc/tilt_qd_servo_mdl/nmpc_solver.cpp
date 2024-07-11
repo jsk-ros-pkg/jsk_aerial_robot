@@ -64,26 +64,6 @@ void nmpc_over_act_full::MPCSolver::initialize()
   acados_update_params(NN_, p);
 }
 
-void nmpc_over_act_full::MPCSolver::reset(const aerial_robot_msgs::PredXU& x_u)
-{
-  const unsigned int x_stride = x_u.x.layout.dim[1].stride;
-  const unsigned int u_stride = x_u.u.layout.dim[1].stride;
-
-  // reset initial guess
-  double x[NX_];
-  double u[NU_];
-  for (int i = 0; i < NN_; i++)
-  {
-    std::copy(x_u.x.data.begin() + x_stride * i, x_u.x.data.begin() + x_stride * (i + 1), x);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", x);
-
-    std::copy(x_u.u.data.begin() + u_stride * i, x_u.u.data.begin() + u_stride * (i + 1), u);
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", u);
-  }
-  std::copy(x_u.x.data.begin() + x_stride * NN_, x_u.x.data.begin() + x_stride * (NN_ + 1), x);
-  ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x);
-}
-
 int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
                                          const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
@@ -126,35 +106,6 @@ int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, dou
   return 0;
 }
 
-void nmpc_over_act_full::MPCSolver::initPredXU(aerial_robot_msgs::PredXU& x_u)
-{
-  x_u.x.layout.dim.emplace_back();
-  x_u.x.layout.dim.emplace_back();
-  x_u.x.layout.dim[0].label = "horizon";
-  x_u.x.layout.dim[0].size = NN_ + 1;
-  x_u.x.layout.dim[0].stride = (NN_ + 1) * NX_;
-  x_u.x.layout.dim[1].label = "state";
-  x_u.x.layout.dim[1].size = NX_;
-  x_u.x.layout.dim[1].stride = NX_;
-  x_u.x.layout.data_offset = 0;
-  x_u.x.data.resize((NN_ + 1) * NX_);
-  std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
-  // quaternion
-  for (int i = 6; i < (NN_ + 1) * NX_; i += NX_)
-    x_u.x.data[i] = 1.0;
-
-  x_u.u.layout.dim.emplace_back();
-  x_u.u.layout.dim.emplace_back();
-  x_u.u.layout.dim[0].label = "horizon";
-  x_u.u.layout.dim[0].size = NN_;
-  x_u.u.layout.dim[0].stride = NN_ * NU_;
-  x_u.u.layout.dim[1].label = "input";
-  x_u.u.layout.dim[1].size = NU_;
-  x_u.u.layout.dim[1].stride = NU_;
-  x_u.u.layout.data_offset = 0;
-  x_u.u.data.resize(NN_ * NU_);
-  std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
-}
 
 void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
                                                  const unsigned int u_stride)

@@ -34,9 +34,9 @@ public:
       NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
       NR_;
 
-  // used for the result
-  std::vector<std::vector<double>> x_;
-  std::vector<std::vector<double>> u_;
+  // used for the output, also is (sub) optimal
+  std::vector<std::vector<double>> xo_;
+  std::vector<std::vector<double>> uo_;
 
   double* W_;
   double* WN_;
@@ -98,8 +98,8 @@ public:
     nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
 
     // initialization that has no relation to acados
-    x_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
-    u_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
+    xo_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
+    uo_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
   };
 
   // acados functions that using multiple times
@@ -137,7 +137,34 @@ public:
   };
 
   void initialize();
-  void reset(const aerial_robot_msgs::PredXU& x_u);
+
+  void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
+  {
+    if (x_init.size() != NN_ + 1 || u_init.size() != NN_)
+      throw std::invalid_argument("x_init or u_init size is not equal to NN_ + 1 or NN_");
+
+    for (int i = 0; i < NN_; i++)
+    {
+      if (x_init[i].size() != NX_ || u_init[i].size() != NU_)
+        throw std::invalid_argument("x_init[i] or u_init[i] size is not equal to NX_ or NU_");
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", (void*)x_init[i].data());
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", (void*)u_init[i].data());
+    }
+    if (x_init[NN_].size() != NX_)
+      throw std::invalid_argument("x_init[NN_] size is not equal to NX_");
+    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
+  }
+
+  void reset_w_x0_u0(const std::vector<double>& x0, const std::vector<double>& u0)
+  {
+    if (x0.size() != NX_ || u0.size() != NU_)
+      throw std::invalid_argument("x0 or u0 size is not equal to NX_ or NU_");
+
+    std::vector<std::vector<double>> x_init(NN_ + 1, x0);
+    std::vector<std::vector<double>> u_init(NN_, u0);
+    reset(x_init, u_init);
+  }
+
   int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,
             bool is_debug);
 
@@ -169,7 +196,7 @@ public:
       ss << "X Row " << i << ":\n";
       for (int j = 0; j < NX_; j++)
       {
-        ss << x_[i][j] << " ";
+        ss << xo_[i][j] << " ";
       }
       ss << "\n";
     }
@@ -182,14 +209,12 @@ public:
       ss << "U Row " << i << ":\n";
       for (int j = 0; j < NU_; j++)
       {
-        ss << u_[i][j] << " ";
+        ss << uo_[i][j] << " ";
       }
       ss << "\n";
     }
     ROS_INFO_STREAM(ss.str());  // Logging the u_traj
   }
-
-  void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
 protected:
   tilt_qd_servo_mdl_solver_capsule* acados_ocp_capsule_ = nullptr;
@@ -232,22 +257,22 @@ protected:
 
   void getSolution()
   {
-    if (x_.size() != NN_ + 1 || u_.size() != NN_)
+    if (xo_.size() != NN_ + 1 || uo_.size() != NN_)
       throw std::invalid_argument("x_ or u_ size is not equal to NN_ + 1 or NN_");
 
     for (int i = 0; i < NN_; i++)
     {
-      if (x_[i].size() != NX_ || u_[i].size() != NU_)
+      if (xo_[i].size() != NX_ || uo_[i].size() != NU_)
         throw std::invalid_argument("x_[i] or u_[i] size is not equal to NX_ or NU_");
 
-      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", x_[i].data());
-      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", u_[i].data());
+      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", xo_[i].data());
+      ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", uo_[i].data());
     }
 
-    if (x_[NN_].size() != NX_)
+    if (xo_[NN_].size() != NX_)
       throw std::invalid_argument("x_[NN_] size is not equal to NX_");
 
-    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x_[NN_].data());
+    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", xo_[NN_].data());
   }
 };
 

@@ -119,6 +119,8 @@ private:
   double getCommand(int idx_u, double t_pred = 0.0);
 
   void printPhysicalParams();
+
+  static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
 };
 
 };  // namespace nmpc_over_act_full

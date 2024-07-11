@@ -93,6 +93,7 @@ void nmpc_over_act_full::NMPCController::initialize(
   /* init some values */
   odom_ = nav_msgs::Odometry();
   odom_.pose.pose.orientation.w = 1;
+  initPredXU(x_u_ref_, mpc_solver_.NN_, mpc_solver_.NX_, mpc_solver_.NU_);
   reset();
 
   /* set control mode */
@@ -169,7 +170,6 @@ void nmpc_over_act_full::NMPCController::reset()
   };
   double u[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
 
-  mpc_solver_.initPredXU(x_u_ref_);
   int NX = mpc_solver_.NX_;
   int NU = mpc_solver_.NU_;
   int NN = mpc_solver_.NN_;
@@ -181,7 +181,28 @@ void nmpc_over_act_full::NMPCController::reset()
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
 
-  mpc_solver_.reset(x_u_ref_);
+  std::vector<double> x_vec(mpc_solver_.NX_, 0);
+  x_vec[0] = pos.x();
+  x_vec[1] = pos.y();
+  x_vec[2] = pos.z();
+  x_vec[3] = vel.x();
+  x_vec[4] = vel.y();
+  x_vec[5] = vel.z();
+  x_vec[6] = q.w();
+  x_vec[7] = q.x();
+  x_vec[8] = q.y();
+  x_vec[9] = q.z();
+  x_vec[10] = omega.x();
+  x_vec[11] = omega.y();
+  x_vec[12] = omega.z();
+  x_vec[13] = joint_angles_[0];
+  x_vec[14] = joint_angles_[1];
+  x_vec[15] = joint_angles_[2];
+  x_vec[16] = joint_angles_[3];
+
+  std::vector<double> u_vec(mpc_solver_.NU_, 0);
+
+  mpc_solver_.reset_w_x0_u0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
@@ -354,13 +375,13 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
   for (int i = 0; i < NN; ++i)
   {
     geometry_msgs::Pose pred_pose;
-    pred_pose.position.x = mpc_solver_.x_[i][0];
-    pred_pose.position.y = mpc_solver_.x_[i][1];
-    pred_pose.position.z = mpc_solver_.x_[i][2];
-    pred_pose.orientation.w = mpc_solver_.x_[i][6];
-    pred_pose.orientation.x = mpc_solver_.x_[i][7];
-    pred_pose.orientation.y = mpc_solver_.x_[i][8];
-    pred_pose.orientation.z = mpc_solver_.x_[i][9];
+    pred_pose.position.x = mpc_solver_.xo_[i][0];
+    pred_pose.position.y = mpc_solver_.xo_[i][1];
+    pred_pose.position.z = mpc_solver_.xo_[i][2];
+    pred_pose.orientation.w = mpc_solver_.xo_[i][6];
+    pred_pose.orientation.x = mpc_solver_.xo_[i][7];
+    pred_pose.orientation.y = mpc_solver_.xo_[i][8];
+    pred_pose.orientation.z = mpc_solver_.xo_[i][9];
     pred_poses.poses.push_back(pred_pose);
 
     geometry_msgs::Pose ref_pose;
@@ -541,10 +562,9 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
   if (t_pred == 0)
-    return mpc_solver_.u_[0][idx_u];
+    return mpc_solver_.uo_[0][idx_u];
 
-  return mpc_solver_.u_[0][idx_u] +
-         t_pred / t_nmpc_integ_ * (mpc_solver_.u_[1][idx_u] - mpc_solver_.u_[0][idx_u]);
+  return mpc_solver_.uo_[0][idx_u] + t_pred / t_nmpc_integ_ * (mpc_solver_.uo_[1][idx_u] - mpc_solver_.uo_[0][idx_u]);
 }
 
 void nmpc_over_act_full::NMPCController::printPhysicalParams()
@@ -645,6 +665,36 @@ void nmpc_over_act_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
     }
     mpc_solver_.setCostWeight(true, true);
   }
+}
+
+void nmpc_over_act_full::NMPCController::initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu)
+{
+  x_u.x.layout.dim.emplace_back();
+  x_u.x.layout.dim.emplace_back();
+  x_u.x.layout.dim[0].label = "horizon";
+  x_u.x.layout.dim[0].size = nn + 1;
+  x_u.x.layout.dim[0].stride = (nn + 1) * nx;
+  x_u.x.layout.dim[1].label = "state";
+  x_u.x.layout.dim[1].size = nx;
+  x_u.x.layout.dim[1].stride = nx;
+  x_u.x.layout.data_offset = 0;
+  x_u.x.data.resize((nn + 1) * nx);
+  std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
+  // quaternion
+  for (int i = 6; i < (nn + 1) * nx; i += nx)
+    x_u.x.data[i] = 1.0;
+
+  x_u.u.layout.dim.emplace_back();
+  x_u.u.layout.dim.emplace_back();
+  x_u.u.layout.dim[0].label = "horizon";
+  x_u.u.layout.dim[0].size = nn;
+  x_u.u.layout.dim[0].stride = nn * nu;
+  x_u.u.layout.dim[1].label = "input";
+  x_u.u.layout.dim[1].size = nu;
+  x_u.u.layout.dim[1].stride = nu;
+  x_u.u.layout.data_offset = 0;
+  x_u.u.data.resize(nn * nu);
+  std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
 }
 
 /* plugin registration */
