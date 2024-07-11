@@ -3,6 +3,7 @@
 import rospy
 from aerial_robot_msgs.msg import FlightNav, PoseControlPid
 from geometry_msgs.msg import PoseStamped
+from IPython import embed
 import math
 from nav_msgs.msg import Odometry
 import numpy as np
@@ -184,5 +185,5 @@ class DeltaInterface:
 
 if __name__ == "__main__":
     rospy.init_node("delta_interface")
-    node = DeltaInterface()
-    rospy.spin()
+    robot = DeltaInterface()
+    embed()
