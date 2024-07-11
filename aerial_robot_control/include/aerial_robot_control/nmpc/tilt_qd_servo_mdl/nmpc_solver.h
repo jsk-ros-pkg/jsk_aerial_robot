@@ -102,7 +102,7 @@ public:
     return tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, stage, value, NP_);
   }
 
-  inline int acados_update_params_sparse(int stage, int *idx, double *p, int n_update)
+  inline int acados_update_params_sparse(int stage, int* idx, double* p, int n_update)
   {
     return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx, p, n_update);
   }
@@ -112,7 +112,8 @@ public:
     return tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
   }
 
-  inline void acados_print_stats(){
+  inline void acados_print_stats()
+  {
     tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
   }
 
@@ -139,8 +140,50 @@ public:
   void setCostWeight(bool is_update_W, bool is_update_WN);
 
   /* for debugging */
-  void printStatus(double min_time);
-  void printSolution();
+  void printStatus(double min_time)
+  {
+    double kkt_norm_inf;
+    int sqp_iter;
+
+    ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
+    ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
+    acados_print_stats();
+    ROS_DEBUG("\nSolver info:\n");
+    ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
+              kkt_norm_inf);
+  }
+
+  void printSolution()
+  {
+    std::stringstream ss;
+
+    ss << "\n--- x_traj ---\n";
+    for (int i = 0; i <= NN_; i++)
+    {
+      ss << "X Row " << i << ":\n";
+      for (int j = 0; j < NX_; j++)
+      {
+        int index = i * NX_ + j;
+        ss << x_u_out_.x.data[index] << " ";
+      }
+      ss << "\n";
+    }
+    ROS_INFO_STREAM(ss.str());  // Logging the x_traj
+    ss.str("");                 // Clearing the stringstream
+
+    ss << "\n--- u_traj ---\n";
+    for (int i = 0; i < NN_; i++)
+    {
+      ss << "U Row " << i << ":\n";
+      for (int j = 0; j < NU_; j++)
+      {
+        int index = i * NU_ + j;
+        ss << x_u_out_.u.data[index] << " ";
+      }
+      ss << "\n";
+    }
+    ROS_INFO_STREAM(ss.str());  // Logging the u_traj
+  }
 
   void initPredXU(aerial_robot_msgs::PredXU& x_u);
 
@@ -156,7 +199,16 @@ protected:
   void* nlp_opts_ = nullptr;
 
   void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
-  void setFeedbackConstraints(const nav_msgs::Odometry& odom_now, const double joint_angles[4]);
+
+  void setFeedbackConstraints(const std::vector<double>& bx0)
+  {
+    if (bx0.size() != NBX0_)
+      throw std::invalid_argument("bx0 size is not equal to NX_");
+
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", (void*)bx0.data());
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", (void*)bx0.data());
+  }
+
   double solveOCPOnce();
   void getSolution(unsigned int x_stride, unsigned int u_stride);
 };

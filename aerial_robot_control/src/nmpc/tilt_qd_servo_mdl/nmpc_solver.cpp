@@ -94,7 +94,27 @@ int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, dou
   const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
   setReference(x_u_ref, x_stride, u_stride);
 
-  setFeedbackConstraints(odom_now, joint_angles);
+
+  std::vector<double> bx0(NBX0_);
+  bx0[0] = odom_now.pose.pose.position.x;
+  bx0[1] = odom_now.pose.pose.position.y;
+  bx0[2] = odom_now.pose.pose.position.z;
+  bx0[3] = odom_now.twist.twist.linear.x;
+  bx0[4] = odom_now.twist.twist.linear.y;
+  bx0[5] = odom_now.twist.twist.linear.z;
+  bx0[6] = odom_now.pose.pose.orientation.w;
+  bx0[7] = odom_now.pose.pose.orientation.x;
+  bx0[8] = odom_now.pose.pose.orientation.y;
+  bx0[9] = odom_now.pose.pose.orientation.z;
+  bx0[10] = odom_now.twist.twist.angular.x;
+  bx0[11] = odom_now.twist.twist.angular.y;
+  bx0[12] = odom_now.twist.twist.angular.z;
+  bx0[13] = joint_angles[0];
+  bx0[14] = joint_angles[1];
+  bx0[15] = joint_angles[2];
+  bx0[16] = joint_angles[3];
+
+  setFeedbackConstraints(bx0);
 
   double min_time = solveOCPOnce();
 
@@ -165,32 +185,6 @@ void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU
   acados_update_params_sparse(NN_, qr_idx, qr, 4);
 }
 
-void nmpc_over_act_full::MPCSolver::setFeedbackConstraints(const nav_msgs::Odometry& odom_now,
-                                                           const double joint_angles[4])
-{
-  // TODO: modify, to pass in variable array
-  double bx0[NBX0_];
-  bx0[0] = odom_now.pose.pose.position.x;
-  bx0[1] = odom_now.pose.pose.position.y;
-  bx0[2] = odom_now.pose.pose.position.z;
-  bx0[3] = odom_now.twist.twist.linear.x;
-  bx0[4] = odom_now.twist.twist.linear.y;
-  bx0[5] = odom_now.twist.twist.linear.z;
-  bx0[6] = odom_now.pose.pose.orientation.w;
-  bx0[7] = odom_now.pose.pose.orientation.x;
-  bx0[8] = odom_now.pose.pose.orientation.y;
-  bx0[9] = odom_now.pose.pose.orientation.z;
-  bx0[10] = odom_now.twist.twist.angular.x;
-  bx0[11] = odom_now.twist.twist.angular.y;
-  bx0[12] = odom_now.twist.twist.angular.z;
-  bx0[13] = joint_angles[0];
-  bx0[14] = joint_angles[1];
-  bx0[15] = joint_angles[2];
-  bx0[16] = joint_angles[3];
-
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", bx0);
-  ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", bx0);
-}
 
 double nmpc_over_act_full::MPCSolver::solveOCPOnce()
 {
@@ -217,51 +211,6 @@ void nmpc_over_act_full::MPCSolver::getSolution(const unsigned int x_stride, con
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", x_u_out_.u.data.data() + u_stride * i);
   }
   ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", x_u_out_.x.data.data() + x_stride * NN_);
-}
-
-void nmpc_over_act_full::MPCSolver::printSolution()
-{
-  std::stringstream ss;
-
-  ss << "\n--- x_traj ---\n";
-  for (int i = 0; i <= NN_; i++)
-  {
-    ss << "X Row " << i << ":\n";
-    for (int j = 0; j < NX_; j++)
-    {
-      int index = i * NX_ + j;
-      ss << x_u_out_.x.data[index] << " ";
-    }
-    ss << "\n";
-  }
-  ROS_INFO_STREAM(ss.str());  // Logging the x_traj
-  ss.str("");                 // Clearing the stringstream
-
-  ss << "\n--- u_traj ---\n";
-  for (int i = 0; i < NN_; i++)
-  {
-    ss << "U Row " << i << ":\n";
-    for (int j = 0; j < NU_; j++)
-    {
-      int index = i * NU_ + j;
-      ss << x_u_out_.u.data[index] << " ";
-    }
-    ss << "\n";
-  }
-  ROS_INFO_STREAM(ss.str());  // Logging the u_traj
-}
-
-void nmpc_over_act_full::MPCSolver::printStatus(const double min_time)
-{
-  double kkt_norm_inf;
-  int sqp_iter;
-
-  ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
-  ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
-  acados_print_stats();
-  ROS_DEBUG("\nSolver info:\n");
-  ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
-            kkt_norm_inf);
 }
 
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
