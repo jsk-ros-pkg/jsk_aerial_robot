@@ -34,6 +34,10 @@ public:
       NSPHI0_, NSBXN_, NS_, NS0_, NSN_, NG_, NBXN_, NGN_, NY0_, NY_, NYN_, NH_, NHM_, NH0_, NPHI0_, NPHI_, NHN_, NPHIN_,
       NR_;
 
+  // references
+  std::vector<std::vector<double>> xr_;
+  std::vector<std::vector<double>> ur_;
+
   // used for the output, also is (sub) optimal
   std::vector<std::vector<double>> xo_;
   std::vector<std::vector<double>> uo_;
@@ -98,6 +102,9 @@ public:
     nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
 
     // initialization that has no relation to acados
+    xr_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
+    ur_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
+
     xo_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
     uo_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
   };
@@ -163,6 +170,52 @@ public:
     std::vector<std::vector<double>> x_init(NN_ + 1, x0);
     std::vector<std::vector<double>> u_init(NN_, u0);
     reset(x_init, u_init);
+  }
+
+  void setReference(const std::vector<std::vector<double>>& xr, const std::vector<std::vector<double>>& ur,
+                    bool is_set_quat = false)
+  {
+    if (xr.size() != NN_ + 1 || ur.size() != NN_)
+      throw std::invalid_argument("xr or ur size is not equal to NN_ + 1 or NN_");
+
+    for (int i = 0; i < NN_; i++)
+    {
+      if (xr[i].size() != NX_ || ur[i].size() != NU_)
+        throw std::invalid_argument("xr[i] or ur[i] size is not equal to NX_ or NU_");
+
+      std::vector<double> yr;
+      yr.reserve(xr[i].size() + ur[i].size());
+      yr.insert(yr.end(), xr[i].begin(), xr[i].end());
+      yr.insert(yr.end(), ur[i].begin(), ur[i].end());
+
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", (void*)yr.data());
+
+      if (is_set_quat)
+      {
+        int qr_idx[] = { 0, 1, 2, 3 };
+        std::vector<double> qr;
+        qr.reserve(4);
+        qr.insert(qr.end(), xr[i].begin() + 6, xr[i].begin() + 10);
+        acados_update_params_sparse(i, qr_idx, qr.data(), 4);
+      }
+    }
+
+    if (xr[NN_].size() != NX_)
+      throw std::invalid_argument("xr[NN_] size is not equal to NX_");
+
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "y_ref", (void*)xr[NN_].data());
+
+    if (is_set_quat)
+    {
+      int qr_idx[] = { 0, 1, 2, 3 };
+      std::vector<double> qr;
+      qr.reserve(4);
+      qr.insert(qr.end(), xr[NN_].begin() + 6, xr[NN_].begin() + 10);
+      acados_update_params_sparse(NN_, qr_idx, qr.data(), 4);
+    }
+
+    xr_ = xr;
+    ur_ = ur;
   }
 
   int solve(const nav_msgs::Odometry& odom_now, double joint_angles[4], const aerial_robot_msgs::PredXU& x_u_ref,

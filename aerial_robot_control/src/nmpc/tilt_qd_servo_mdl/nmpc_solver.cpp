@@ -67,9 +67,21 @@ void nmpc_over_act_full::MPCSolver::initialize()
 int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, double joint_angles[4],
                                          const aerial_robot_msgs::PredXU& x_u_ref, const bool is_debug)
 {
-  const unsigned int x_stride = x_u_ref.x.layout.dim[1].stride;
-  const unsigned int u_stride = x_u_ref.u.layout.dim[1].stride;
-  setReference(x_u_ref, x_stride, u_stride);
+  if (x_u_ref.x.layout.dim[1].stride != NX_ || x_u_ref.u.layout.dim[1].stride != NU_)
+    ROS_ERROR("The dimension of x_u_ref: nx, nu is not correct!");
+
+  if (x_u_ref.x.layout.dim[0].size != NN_ + 1 || x_u_ref.u.layout.dim[0].size != NN_)
+    ROS_ERROR("The dimension of x_u_ref: nn for x, nn for u is not correct!");
+
+  // convert x_u_ref to xr_ and ur_
+  for (int i = 0; i < NN_; i++)
+  {
+    std::copy(x_u_ref.x.data.begin() + i * NX_, x_u_ref.x.data.begin() + (i + 1) * NX_, xr_[i].begin());
+    std::copy(x_u_ref.u.data.begin() + i * NU_, x_u_ref.u.data.begin() + (i + 1) * NU_, ur_[i].begin());
+  }
+  std::copy(x_u_ref.x.data.begin() + NN_ * NX_, x_u_ref.x.data.begin() + (NN_ + 1) * NX_, xr_[NN_].begin());
+
+  setReference(xr_, ur_, true);
 
 
   std::vector<double> bx0(NBX0_);
@@ -104,33 +116,6 @@ int nmpc_over_act_full::MPCSolver::solve(const nav_msgs::Odometry& odom_now, dou
   }
 
   return 0;
-}
-
-
-void nmpc_over_act_full::MPCSolver::setReference(const aerial_robot_msgs::PredXU& x_u_ref, const unsigned int x_stride,
-                                                 const unsigned int u_stride)
-{
-  double yr[NX_ + NU_];
-  double qr[4];
-  int qr_idx[] = { 0, 1, 2, 3 };
-  for (int i = 0; i < NN_; i++)
-  {
-    // yr = np.concatenate((xr[i, :], ur[i, :]))
-    std::copy(x_u_ref.x.data.begin() + x_stride * i, x_u_ref.x.data.begin() + x_stride * (i + 1), yr);
-    std::copy(x_u_ref.u.data.begin() + u_stride * i, x_u_ref.u.data.begin() + u_stride * (i + 1), yr + NX_);
-    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "y_ref", yr);
-
-    // quaternions
-    std::copy(x_u_ref.x.data.begin() + x_stride * i + 6, x_u_ref.x.data.begin() + x_stride * i + 10, qr);
-    acados_update_params_sparse(i, qr_idx, qr, 4);
-  }
-  // final x and p, no u
-  double xr[NX_];
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN_, x_u_ref.x.data.begin() + x_stride * (NN_ + 1), xr);
-  ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "y_ref", xr);
-
-  std::copy(x_u_ref.x.data.begin() + x_stride * NN_ + 6, x_u_ref.x.data.begin() + x_stride * NN_ + 10, qr);
-  acados_update_params_sparse(NN_, qr_idx, qr, 4);
 }
 
 void nmpc_over_act_full::MPCSolver::setCostWDiagElement(int index, double value, bool is_set_WN) const
