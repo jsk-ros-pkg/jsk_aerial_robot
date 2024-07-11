@@ -227,9 +227,9 @@ protected:
   ocp_nlp_solver* nlp_solver_ = nullptr;
   void* nlp_opts_ = nullptr;
 
-  void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
+  inline void setReference(const aerial_robot_msgs::PredXU& x_u_ref, unsigned int x_stride, unsigned int u_stride);
 
-  void setFeedbackConstraints(const std::vector<double>& bx0)
+  inline void setFeedbackConstraints(const std::vector<double>& bx0)
   {
     if (bx0.size() != NBX0_)
       throw std::invalid_argument("bx0 size is not equal to NBX0_");
@@ -238,7 +238,7 @@ protected:
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", (void*)bx0.data());
   }
 
-  double solveOCPOnce()
+  inline double solveOCPOnce()
   {
     double min_time = 1e12;
     double elapsed_time;
@@ -255,22 +255,22 @@ protected:
     return min_time;
   }
 
-  void getSolution()
+  inline void getSolution()
   {
     if (xo_.size() != NN_ + 1 || uo_.size() != NN_)
-      throw std::invalid_argument("x_ or u_ size is not equal to NN_ + 1 or NN_");
+      throw std::invalid_argument("xo_ or uo_ size is not equal to NN_ + 1 or NN_");
 
     for (int i = 0; i < NN_; i++)
     {
       if (xo_[i].size() != NX_ || uo_[i].size() != NU_)
-        throw std::invalid_argument("x_[i] or u_[i] size is not equal to NX_ or NU_");
+        throw std::invalid_argument("xo_[i] or uo_[i] size is not equal to NX_ or NU_");
 
       ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", xo_[i].data());
       ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", uo_[i].data());
     }
 
     if (xo_[NN_].size() != NX_)
-      throw std::invalid_argument("x_[NN_] size is not equal to NX_");
+      throw std::invalid_argument("xo_[NN_] size is not equal to NX_");
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", xo_[NN_].data());
   }
