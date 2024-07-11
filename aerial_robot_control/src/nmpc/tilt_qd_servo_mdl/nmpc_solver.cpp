@@ -46,10 +46,4 @@ void nmpc_over_act_full::MPCSolver::initialize()
   /* Set parameters */
   // Note that the code here initializes all parameters, including variables and constants.
   // Constants are initialized only once, while variables are initialized in every iteration
-  double p[] = { 1.0, 0.0, 0.0, 0.0 };
-  for (int i = 0; i < NN_; i++)
-  {
-    acados_update_params(i, p);
-  }
-  acados_update_params(NN_, p);
 }

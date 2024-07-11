@@ -109,28 +109,11 @@ public:
 
     W_ = std::vector<double>(NY_ * NY_, 0);   // NY = NX + NU
     WN_ = std::vector<double>(NX_ * NX_, 0);  // WN has the same size as NX
+
+    std::vector<double> p(NP_, 0);
+    p[0] = 1.0;  // quaternion
+    setParameters(p);
   };
-
-  // acados functions that using multiple times
-  inline int acados_update_params(int stage, double* value)
-  {
-    return tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, stage, value, NP_);
-  }
-
-  inline int acados_update_params_sparse(int stage, int* idx, double* p, int n_update)
-  {
-    return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx, p, n_update);
-  }
-
-  inline int acados_solve()
-  {
-    return tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
-  }
-
-  inline void acados_print_stats()
-  {
-    tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
-  }
 
   ~MPCSolver()
   {
@@ -164,7 +147,7 @@ public:
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
   }
 
-  void reset_w_x0_u0(const std::vector<double>& x0, const std::vector<double>& u0)
+  void resetByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
   {
     if (x0.size() != NX_ || u0.size() != NU_)
       throw std::invalid_argument("x0 or u0 size is not equal to NX_ or NU_");
@@ -192,6 +175,15 @@ public:
   }
 
   /* Setters */
+  void setParameters(std::vector<double>& p)
+  {
+    if (p.size() != NP_)
+      throw std::invalid_argument("p size is not equal to NP_");
+
+    for (int i = 0; i < NN_ + 1; i++)
+      acadosUpdateParams(i, p);
+  }
+
   void setReference(const std::vector<std::vector<double>>& xr, const std::vector<std::vector<double>>& ur,
                     bool is_set_quat = false)
   {
@@ -216,7 +208,7 @@ public:
         std::vector<double> qr;
         qr.reserve(4);
         qr.insert(qr.end(), xr[i].begin() + 6, xr[i].begin() + 10);
-        acados_update_params_sparse(i, qr_idx, qr.data(), 4);
+        acadosUpdateParamsSparse(i, qr_idx, qr.data(), 4);
       }
     }
 
@@ -231,7 +223,7 @@ public:
       std::vector<double> qr;
       qr.reserve(4);
       qr.insert(qr.end(), xr[NN_].begin() + 6, xr[NN_].begin() + 10);
-      acados_update_params_sparse(NN_, qr_idx, qr.data(), 4);
+      acadosUpdateParamsSparse(NN_, qr_idx, qr.data(), 4);
     }
 
     xr_ = xr;
@@ -273,7 +265,7 @@ public:
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
     ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
-    acados_print_stats();
+    acadosPrintStats();
     ROS_DEBUG("\nSolver info:\n");
     ROS_DEBUG(" SQP iterations %2d\n minimum time for 1 solve %f [ms]\n KKT %e\n", sqp_iter, min_time * 1000,
               kkt_norm_inf);
@@ -334,10 +326,10 @@ protected:
     double min_time = 1e12;
     double elapsed_time;
 
-    int status = acados_solve();
+    int status = acadosSolve();
     if (status != ACADOS_SUCCESS)
     {
-      ROS_WARN("acados_solve() returned status %d.\n", status);
+      ROS_WARN("acadosSolve() returned status %d.\n", status);
     }
 
     ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
@@ -364,6 +356,27 @@ protected:
       throw std::invalid_argument("xo_[NN_] size is not equal to NX_");
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", xo_[NN_].data());
+  }
+
+  // acados functions that using multiple times
+  inline int acadosUpdateParams(int stage, std::vector<double>& value)
+  {
+    return tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, stage, value.data(), NP_);
+  }
+
+  inline int acadosUpdateParamsSparse(int stage, int* idx, double* p, int n_update)
+  {
+    return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx, p, n_update);
+  }
+
+  inline int acadosSolve()
+  {
+    return tilt_qd_servo_mdl_acados_solve(acados_ocp_capsule_);
+  }
+
+  inline void acadosPrintStats()
+  {
+    tilt_qd_servo_mdl_acados_print_stats(acados_ocp_capsule_);
   }
 };
 

@@ -202,7 +202,7 @@ void nmpc_over_act_full::NMPCController::reset()
 
   std::vector<double> u_vec(mpc_solver_.NU_, 0);
 
-  mpc_solver_.reset_w_x0_u0(x_vec, u_vec);
+  mpc_solver_.resetByX0U0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
