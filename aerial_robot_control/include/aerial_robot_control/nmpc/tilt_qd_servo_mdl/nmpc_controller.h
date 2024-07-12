@@ -104,7 +104,7 @@ private:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
-  MPCSolver mpc_solver_;
+  nmpc::TiltQdServoMdlMPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
   void callbackViz(const ros::TimerEvent& event);

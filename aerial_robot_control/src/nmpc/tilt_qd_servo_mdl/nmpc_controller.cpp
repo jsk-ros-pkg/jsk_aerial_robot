@@ -305,7 +305,7 @@ void nmpc_over_act_full::NMPCController::controlCore()
   {
     mpc_solver_.solve(bx0);
   }
-  catch (AcadosSolveException& e)
+  catch (nmpc::AcadosSolveException& e)
   {
     ROS_WARN("NMPC solver failed, no action: %s", e.what());
   }
