@@ -93,6 +93,7 @@ void nmpc_tilt_tri_full::NMPCController::initialize(
   /* init some values */
   odom_ = nav_msgs::Odometry();
   odom_.pose.pose.orientation.w = 1;
+  initPredXU(x_u_ref_, mpc_solver_.NN_, mpc_solver_.NX_, mpc_solver_.NU_);
   reset();
 
   /* set control mode */
@@ -127,8 +128,8 @@ bool nmpc_tilt_tri_full::NMPCController::update()
     initAllocMat();
   }
 
-  this->SendCmd();
   this->controlCore();
+  this->SendCmd();
 
   return true;
 }
@@ -148,20 +149,46 @@ void nmpc_tilt_tri_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  double x[NX] = {
+  // reset x_u_ref_
+  double x[] = {
     pos.x(), pos.y(),   pos.z(),   vel.x(),   vel.y(),          vel.z(),          q.w(),           q.x(), q.y(),
     q.z(),   omega.x(), omega.y(), omega.z(), joint_angles_[0], joint_angles_[1], joint_angles_[2]
   };
-  double u[NU] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
-  initPredXU(x_u_ref_);
-  for (int i = 0; i < NN; i++)
+  double u[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
+
+  int NX = mpc_solver_.NX_;
+  int NU = mpc_solver_.NU_;
+  int NN = mpc_solver_.NN_;
+
+  for (int i = 0; i < mpc_solver_.NN_; i++)
   {
     std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
     std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * i);
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
 
-  mpc_solver_.reset(x_u_ref_);
+  // reset mpc solver
+  std::vector<double> x_vec(mpc_solver_.NX_, 0);
+  x_vec[0] = pos.x();
+  x_vec[1] = pos.y();
+  x_vec[2] = pos.z();
+  x_vec[3] = vel.x();
+  x_vec[4] = vel.y();
+  x_vec[5] = vel.z();
+  x_vec[6] = q.w();
+  x_vec[7] = q.x();
+  x_vec[8] = q.y();
+  x_vec[9] = q.z();
+  x_vec[10] = omega.x();
+  x_vec[11] = omega.y();
+  x_vec[12] = omega.z();
+  x_vec[13] = joint_angles_[0];
+  x_vec[14] = joint_angles_[1];
+  x_vec[15] = joint_angles_[2];
+
+  std::vector<double> u_vec(mpc_solver_.NU_, 0);
+
+  mpc_solver_.resetByX0U0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
@@ -233,27 +260,56 @@ void nmpc_tilt_tri_full::NMPCController::controlCore()
   nav_msgs::Odometry odom_now = getOdom();
   odom_ = odom_now;
 
+  /* set reference */
+  rosXU2VecXU(x_u_ref_, mpc_solver_.xr_, mpc_solver_.ur_);
+  mpc_solver_.setReference(mpc_solver_.xr_, mpc_solver_.ur_, true);
+
   /* solve */
-  mpc_solver_.solve(odom_, joint_angles_, x_u_ref_, is_debug_);
+  std::vector<double> bx0(mpc_solver_.NBX0_, 0);
+  bx0[0] = odom_now.pose.pose.position.x;
+  bx0[1] = odom_now.pose.pose.position.y;
+  bx0[2] = odom_now.pose.pose.position.z;
+  bx0[3] = odom_now.twist.twist.linear.x;
+  bx0[4] = odom_now.twist.twist.linear.y;
+  bx0[5] = odom_now.twist.twist.linear.z;
+  bx0[6] = odom_now.pose.pose.orientation.w;
+  bx0[7] = odom_now.pose.pose.orientation.x;
+  bx0[8] = odom_now.pose.pose.orientation.y;
+  bx0[9] = odom_now.pose.pose.orientation.z;
+  bx0[10] = odom_now.twist.twist.angular.x;
+  bx0[11] = odom_now.twist.twist.angular.y;
+  bx0[12] = odom_now.twist.twist.angular.z;
+  bx0[13] = joint_angles_[0];
+  bx0[14] = joint_angles_[1];
+  bx0[15] = joint_angles_[2];
+
+  try
+  {
+    mpc_solver_.solve(bx0);
+  }
+  catch (nmpc::AcadosSolveException& e)
+  {
+    ROS_WARN("NMPC solver failed, no action: %s", e.what());
+  }
 
   /* get result */
   // - thrust
-  double ft1 = getCommand(0, t_nmpc_samp_);
-  double ft2 = getCommand(1, t_nmpc_samp_);
-  double ft3 = getCommand(2, t_nmpc_samp_);
+  double ft1 = getCommand(0);
+  double ft2 = getCommand(1);
+  double ft3 = getCommand(2);
 
   Eigen::VectorXd target_thrusts(3);
   target_thrusts << ft1, ft2, ft3;
 
   for (int i = 0; i < motor_num_; i++)
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i) * 1.00);
+    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
   }
 
   // - servo angle
-  double a1c = getCommand(3, t_nmpc_samp_);
-  double a2c = getCommand(4, t_nmpc_samp_);
-  double a3c = getCommand(5, t_nmpc_samp_);
+  double a1c = getCommand(3);
+  double a2c = getCommand(4);
+  double a3c = getCommand(5);
 
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
   gimbal_ctrl_cmd_.name.clear();
@@ -321,16 +377,19 @@ void nmpc_tilt_tri_full::NMPCController::callbackViz(const ros::TimerEvent& even
   geometry_msgs::PoseArray pred_poses;
   geometry_msgs::PoseArray ref_poses;
 
+  int NN = mpc_solver_.NN_;
+  int NX = mpc_solver_.NX_;
+
   for (int i = 0; i < NN; ++i)
   {
     geometry_msgs::Pose pred_pose;
-    pred_pose.position.x = mpc_solver_.x_u_out_.x.data.at(i * NX);
-    pred_pose.position.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 1);
-    pred_pose.position.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 2);
-    pred_pose.orientation.w = mpc_solver_.x_u_out_.x.data.at(i * NX + 6);
-    pred_pose.orientation.x = mpc_solver_.x_u_out_.x.data.at(i * NX + 7);
-    pred_pose.orientation.y = mpc_solver_.x_u_out_.x.data.at(i * NX + 8);
-    pred_pose.orientation.z = mpc_solver_.x_u_out_.x.data.at(i * NX + 9);
+    pred_pose.position.x = mpc_solver_.xo_[i][0];
+    pred_pose.position.y = mpc_solver_.xo_[i][1];
+    pred_pose.position.z = mpc_solver_.xo_[i][2];
+    pred_pose.orientation.w = mpc_solver_.xo_[i][6];
+    pred_pose.orientation.x = mpc_solver_.xo_[i][7];
+    pred_pose.orientation.y = mpc_solver_.xo_[i][8];
+    pred_pose.orientation.z = mpc_solver_.xo_[i][9];
     pred_poses.poses.push_back(pred_pose);
 
     geometry_msgs::Pose ref_pose;
@@ -461,11 +520,15 @@ void nmpc_tilt_tri_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
   tf::Quaternion q;
   q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
 
-  double x[NX] = {
+  int NX = mpc_solver_.NX_;
+  int NU = mpc_solver_.NU_;
+  int NN = mpc_solver_.NN_;
+
+  double x[] = {
     target_pos.x(), target_pos.y(), target_pos.z(),   target_vel.x(),   target_vel.y(),   target_vel.z(), q.w(),  q.x(),
     q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,         a2_ref, a3_ref
   };
-  double u[NU] = { ft1_ref, ft2_ref, ft3_ref, 0.0, 0.0, 0.0 };
+  double u[] = { ft1_ref, ft2_ref, ft3_ref, 0.0, 0.0, 0.0 };
 
   // Aim: gently add the target point to the end of the reference trajectory
   // - x: NN + 1, u: NN
@@ -487,10 +550,11 @@ void nmpc_tilt_tri_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 
 double nmpc_tilt_tri_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
-  double u_predicted =
-      mpc_solver_.x_u_out_.u.data.at(idx_u) +
-      t_pred / t_nmpc_integ_ * (mpc_solver_.x_u_out_.u.data.at(idx_u + NU) - mpc_solver_.x_u_out_.u.data.at(idx_u));
-  return u_predicted;
+  // TODO: change to .at() for safety
+  if (t_pred == 0)
+    return mpc_solver_.uo_[0][idx_u];
+
+  return mpc_solver_.uo_[0][idx_u] + t_pred / t_nmpc_integ_ * (mpc_solver_.uo_[1][idx_u] - mpc_solver_.uo_[0][idx_u]);
 }
 
 void nmpc_tilt_tri_full::NMPCController::printPhysicalParams()
@@ -591,6 +655,59 @@ void nmpc_tilt_tri_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
     }
     mpc_solver_.setCostWeight(true, true);
   }
+}
+
+void nmpc_tilt_tri_full::NMPCController::initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu)
+{
+  x_u.x.layout.dim.emplace_back();
+  x_u.x.layout.dim.emplace_back();
+  x_u.x.layout.dim[0].label = "horizon";
+  x_u.x.layout.dim[0].size = nn + 1;
+  x_u.x.layout.dim[0].stride = (nn + 1) * nx;
+  x_u.x.layout.dim[1].label = "state";
+  x_u.x.layout.dim[1].size = nx;
+  x_u.x.layout.dim[1].stride = nx;
+  x_u.x.layout.data_offset = 0;
+  x_u.x.data.resize((nn + 1) * nx);
+  std::fill(x_u.x.data.begin(), x_u.x.data.end(), 0.0);
+  // quaternion
+  for (int i = 6; i < (nn + 1) * nx; i += nx)
+    x_u.x.data[i] = 1.0;
+
+  x_u.u.layout.dim.emplace_back();
+  x_u.u.layout.dim.emplace_back();
+  x_u.u.layout.dim[0].label = "horizon";
+  x_u.u.layout.dim[0].size = nn;
+  x_u.u.layout.dim[0].stride = nn * nu;
+  x_u.u.layout.dim[1].label = "input";
+  x_u.u.layout.dim[1].size = nu;
+  x_u.u.layout.dim[1].stride = nu;
+  x_u.u.layout.data_offset = 0;
+  x_u.u.data.resize(nn * nu);
+  std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
+}
+
+void nmpc_tilt_tri_full::NMPCController::rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u,
+                                                     std::vector<std::vector<double>>& x_vec,
+                                                     std::vector<std::vector<double>>& u_vec)
+{
+  int NN = (int)u_vec.size();  // x_vec is NN+1
+  int NX = (int)x_vec[0].size();
+  int NU = (int)u_vec[0].size();
+
+  if (x_u.x.layout.dim[1].stride != NX || x_u.u.layout.dim[1].stride != NU)
+    ROS_ERROR("The dimension of x_u: nx, nu is not correct!");
+
+  if (x_u.x.layout.dim[0].size != NN + 1 || x_u.u.layout.dim[0].size != NN)
+    ROS_ERROR("The dimension of x_u: nn for x, nn for u is not correct!");
+
+  // convert x_u to xr_ and ur_
+  for (int i = 0; i < NN; i++)
+  {
+    std::copy(x_u.x.data.begin() + i * NX, x_u.x.data.begin() + (i + 1) * NX, x_vec[i].begin());
+    std::copy(x_u.u.data.begin() + i * NU, x_u.u.data.begin() + (i + 1) * NU, u_vec[i].begin());
+  }
+  std::copy(x_u.x.data.begin() + NN * NX, x_u.x.data.begin() + (NN + 1) * NX, x_vec[NN].begin());
 }
 
 /* plugin registration */

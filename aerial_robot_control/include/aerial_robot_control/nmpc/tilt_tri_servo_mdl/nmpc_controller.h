@@ -104,7 +104,7 @@ private:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
-  MPCSolver mpc_solver_;
+  nmpc::TiltTriServoMdlMPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
   void callbackViz(const ros::TimerEvent& event);
@@ -119,6 +119,11 @@ private:
   double getCommand(int idx_u, double t_pred = 0.0);
 
   void printPhysicalParams();
+
+  static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
+
+  static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
+                          std::vector<std::vector<double>>& u_vec);
 };
 
 };  // namespace nmpc_tilt_tri_full
