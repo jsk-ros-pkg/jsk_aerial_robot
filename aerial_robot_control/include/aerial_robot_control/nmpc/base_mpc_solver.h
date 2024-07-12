@@ -2,10 +2,10 @@
 // Created by li-jinjie on 23-11-25.
 //
 
-#ifndef NMPC_BASE_MPC_SOLVER_H
-#define NMPC_BASE_MPC_SOLVER_H
+#ifndef BASE_MPC_SOLVER_H
+#define BASE_MPC_SOLVER_H
 
-#endif  // NMPC_BASE_MPC_SOLVER_H
+#endif  // BASE_MPC_SOLVER_H
 
 // acados
 #include "acados/utils/math.h"

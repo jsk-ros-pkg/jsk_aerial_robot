@@ -3,18 +3,12 @@
 // Refactored by lijinjie on 24/07/11.
 //
 
-#ifndef BEETLE_NMPC_SOLVER_H
-#define BEETLE_NMPC_SOLVER_H
+#ifndef TILT_QD_SERVO_MDL_NMPC_SOLVER_H
+#define TILT_QD_SERVO_MDL_NMPC_SOLVER_H
 
-#endif  // BEETLE_NMPC_SOLVER_H
+#endif  // TILT_QD_SERVO_MDL_NMPC_SOLVER_H
 
 #include "aerial_robot_control/nmpc/base_mpc_solver.h"
-
-// acados
-#include "acados/utils/math.h"
-#include "acados/utils/print.h"
-#include "acados_c/external_function_interface.h"
-#include "acados_c/ocp_nlp_interface.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/acados_solver_tilt_qd_servo_mdl.h"
 
 namespace aerial_robot_control
