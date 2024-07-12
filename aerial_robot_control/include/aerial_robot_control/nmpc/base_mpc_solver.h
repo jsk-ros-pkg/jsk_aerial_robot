@@ -54,8 +54,8 @@ public:
   std::vector<double> W_;
   std::vector<double> WN_;
 
-  BaseMPCSolver(){};   // should be overrided by the derived class
-  ~BaseMPCSolver(){};  // should be overrided by the derived class
+  BaseMPCSolver()=default;   // should be overridden by the derived class
+  ~BaseMPCSolver()=default;  // should be overridden by the derived class
 
   void initialize()
   {
@@ -239,7 +239,7 @@ public:
     }
     std::cout << ss.str();  // Logging the x_traj
 
-    ss.str("");  // Clearing the stringstream
+    ss.str("");  // Clearing the string stream
 
     ss << "\n--- u_traj ---\n";
     for (int i = 0; i < NN_; i++)
