@@ -5,9 +5,11 @@
 #ifndef BASE_MPC_SOLVER_H
 #define BASE_MPC_SOLVER_H
 
-#endif  // BASE_MPC_SOLVER_H
+#include <stdexcept>
+#include <sstream>
+#include <vector>
+#include <iostream>
 
-// acados
 #include "acados/utils/math.h"
 #include "acados/utils/print.h"
 #include "acados_c/external_function_interface.h"
@@ -318,3 +320,5 @@ protected:
 }  // namespace nmpc
 
 }  // namespace aerial_robot_control
+
+#endif  // BASE_MPC_SOLVER_H

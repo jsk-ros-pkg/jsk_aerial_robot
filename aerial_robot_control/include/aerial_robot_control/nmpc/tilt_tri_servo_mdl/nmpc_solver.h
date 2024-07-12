@@ -5,8 +5,6 @@
 #ifndef TILT_TRI_SERVO_MDL_NMPC_SOLVER_H
 #define TILT_TRI_SERVO_MDL_NMPC_SOLVER_H
 
-#endif  // TILT_TRI_SERVO_MDL_NMPC_SOLVER_H
-
 #include "aerial_robot_control/nmpc/base_mpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_tri_servo_mdl/c_generated_code/acados_solver_tilt_tri_servo_mdl.h"
 
@@ -113,3 +111,5 @@ protected:
 }  // namespace nmpc
 
 }  // namespace aerial_robot_control
+
+#endif  // TILT_TRI_SERVO_MDL_NMPC_SOLVER_H

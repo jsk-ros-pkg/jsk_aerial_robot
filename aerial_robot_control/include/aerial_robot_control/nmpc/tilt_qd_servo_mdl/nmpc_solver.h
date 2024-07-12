@@ -6,8 +6,6 @@
 #ifndef TILT_QD_SERVO_MDL_NMPC_SOLVER_H
 #define TILT_QD_SERVO_MDL_NMPC_SOLVER_H
 
-#endif  // TILT_QD_SERVO_MDL_NMPC_SOLVER_H
-
 #include "aerial_robot_control/nmpc/base_mpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/acados_solver_tilt_qd_servo_mdl.h"
 
@@ -114,3 +112,5 @@ protected:
 }  // namespace nmpc
 
 }  // namespace aerial_robot_control
+
+#endif  // TILT_QD_SERVO_MDL_NMPC_SOLVER_H
