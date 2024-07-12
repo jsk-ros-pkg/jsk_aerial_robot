@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+set namespaceSeparator ::
+
+abstract class aerial_robot_control::nmpc::BaseMPCSolver
+
+'all the solvers are based on the same base class
+
+class aerial_robot_control::nmpc::TiltQdServoMdlMPCSolver {
+}
+
+class aerial_robot_control::nmpc::TiltTriServoMdlMPCSolver {
+}
+
+class aerial_robot_control::nmpc::TiltBiServoMdlMPCSolver {
+}
+
+BaseMPCSolver <|-- TiltQdServoMdlMPCSolver
+BaseMPCSolver <|-- TiltTriServoMdlMPCSolver
+BaseMPCSolver <|-- TiltBiServoMdlMPCSolver
+
+@enduml
