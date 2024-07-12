@@ -58,6 +58,9 @@ public:
   void reset() override;
 
 protected:
+  int motor_num_ = 4;  // should be set by the robot model
+  int joint_num_ = 4;  // should be set by the robot model
+
   ros::Timer tmr_viz_;
 
   ros::Publisher pub_flight_cmd_;                       // for spinal
@@ -90,7 +93,7 @@ private:
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
-  double joint_angles_[4] = { 0.0, 0.0, 0.0, 0.0 };
+  std::vector<double> joint_angles_;
 
   bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
   Eigen::Matrix<double, 6, 8> alloc_mat_;
@@ -107,6 +110,14 @@ private:
   nmpc::TiltQdServoMdlMPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
+
+  inline void initJointAngles()
+  {
+    joint_angles_.resize(joint_num_);
+    for (int i = 0; i < joint_num_; i++)
+      joint_angles_[i] = 0.0;
+  }
+
   void callbackViz(const ros::TimerEvent& event);
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
@@ -123,7 +134,7 @@ private:
   static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
 
   static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
-                   std::vector<std::vector<double>>& u_vec);
+                          std::vector<std::vector<double>>& u_vec);
 };
 
 };  // namespace nmpc_over_act_full

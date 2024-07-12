@@ -57,11 +57,11 @@ void nmpc_over_act_full::NMPCController::initialize(
   mpc_solver_.setCostWDiagElement(10, Qw_xy);
   mpc_solver_.setCostWDiagElement(11, Qw_xy);
   mpc_solver_.setCostWDiagElement(12, Qw_z);
-  for (int i = 13; i < 17; ++i)
+  for (int i = 13; i < 13 + joint_num_; ++i)
     mpc_solver_.setCostWDiagElement(i, Qa);
-  for (int i = 17; i < 21; ++i)
+  for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
     mpc_solver_.setCostWDiagElement(i, Rt, false);
-  for (int i = 21; i < 25; ++i)
+  for (int i = 13 + joint_num_ + motor_num_; i < 13 + joint_num_ + motor_num_ + joint_num_; ++i)
     mpc_solver_.setCostWDiagElement(i, Rac_d, false);
   mpc_solver_.setCostWeight(true, true);
 
@@ -91,6 +91,8 @@ void nmpc_over_act_full::NMPCController::initialize(
   sub_set_ref_traj_ = nh_.subscribe("set_ref_traj", 5, &NMPCController::callbackSetRefTraj, this);
 
   /* init some values */
+  initJointAngles();
+
   odom_ = nav_msgs::Odometry();
   odom_.pose.pose.orientation.w = 1;
   initPredXU(x_u_ref_, mpc_solver_.NN_, mpc_solver_.NX_, mpc_solver_.NU_);
@@ -149,40 +151,11 @@ void nmpc_over_act_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
-  // reset x_u_ref_
-  double x[] = {
-    pos.x(),
-    pos.y(),
-    pos.z(),
-    vel.x(),
-    vel.y(),
-    vel.z(),
-    q.w(),
-    q.x(),
-    q.y(),
-    q.z(),
-    omega.x(),
-    omega.y(),
-    omega.z(),
-    joint_angles_[0],
-    joint_angles_[1],
-    joint_angles_[2],
-    joint_angles_[3],
-  };
-  double u[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };  // initial guess = zero seems to be better!
+  // reset
+  int& NX = mpc_solver_.NX_;
+  int& NU = mpc_solver_.NU_;
+  int& NN = mpc_solver_.NN_;
 
-  int NX = mpc_solver_.NX_;
-  int NU = mpc_solver_.NU_;
-  int NN = mpc_solver_.NN_;
-
-  for (int i = 0; i < mpc_solver_.NN_; i++)
-  {
-    std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * i);
-    std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * i);
-  }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-
-  // reset mpc solver
   std::vector<double> x_vec(mpc_solver_.NX_, 0);
   x_vec[0] = pos.x();
   x_vec[1] = pos.y();
@@ -197,28 +170,33 @@ void nmpc_over_act_full::NMPCController::reset()
   x_vec[10] = omega.x();
   x_vec[11] = omega.y();
   x_vec[12] = omega.z();
-  x_vec[13] = joint_angles_[0];
-  x_vec[14] = joint_angles_[1];
-  x_vec[15] = joint_angles_[2];
-  x_vec[16] = joint_angles_[3];
+  for (int i = 0; i < joint_num_; i++)
+    x_vec[13 + i] = joint_angles_[i];
 
   std::vector<double> u_vec(mpc_solver_.NU_, 0);
 
+  // reset x_u_ref_
+  for (int i = 0; i < mpc_solver_.NN_; i++)
+  {
+    std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * i);
+    std::copy(u_vec.begin(), u_vec.begin() + NU, x_u_ref_.u.data.begin() + NU * i);
+  }
+  std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
+
+  // reset mpc solver
   mpc_solver_.resetByX0U0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
 
   gimbal_ctrl_cmd_.name.clear();
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal1");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal2");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal3");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal4");
   gimbal_ctrl_cmd_.position.clear();
-  gimbal_ctrl_cmd_.position.push_back(0.0);
-  gimbal_ctrl_cmd_.position.push_back(0.0);
-  gimbal_ctrl_cmd_.position.push_back(0.0);
-  gimbal_ctrl_cmd_.position.push_back(0.0);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
+    gimbal_ctrl_cmd_.position.push_back(0.0);
+  }
+
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
@@ -298,10 +276,8 @@ void nmpc_over_act_full::NMPCController::controlCore()
   bx0[10] = odom_now.twist.twist.angular.x;
   bx0[11] = odom_now.twist.twist.angular.y;
   bx0[12] = odom_now.twist.twist.angular.z;
-  bx0[13] = joint_angles_[0];
-  bx0[14] = joint_angles_[1];
-  bx0[15] = joint_angles_[2];
-  bx0[16] = joint_angles_[3];
+  for (int i = 0; i < joint_num_; i++)
+    bx0[13 + i] = joint_angles_[i];
 
   try
   {
@@ -314,36 +290,20 @@ void nmpc_over_act_full::NMPCController::controlCore()
 
   /* get result */
   // - thrust
-  double ft1 = getCommand(0, 0);
-  double ft2 = getCommand(1, 0);
-  double ft3 = getCommand(2, 0);
-  double ft4 = getCommand(3, 0);
-
-  Eigen::VectorXd target_thrusts(4);
-  target_thrusts << ft1, ft2, ft3, ft4;
-
   for (int i = 0; i < motor_num_; i++)
   {
-    flight_cmd_.base_thrust[i] = static_cast<float>(target_thrusts(i));
+    flight_cmd_.base_thrust[i] = (float)getCommand(i);
   }
 
   // - servo angle
-  double a1c = getCommand(4, 0);
-  double a2c = getCommand(5, 0);
-  double a3c = getCommand(6, 0);
-  double a4c = getCommand(7, 0);
-
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
   gimbal_ctrl_cmd_.name.clear();
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal1");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal2");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal3");
-  gimbal_ctrl_cmd_.name.emplace_back("gimbal4");
   gimbal_ctrl_cmd_.position.clear();
-  gimbal_ctrl_cmd_.position.push_back(a1c);
-  gimbal_ctrl_cmd_.position.push_back(a2c);
-  gimbal_ctrl_cmd_.position.push_back(a3c);
-  gimbal_ctrl_cmd_.position.push_back(a4c);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
+    gimbal_ctrl_cmd_.position.push_back(getCommand(4 + i));
+  }
 }
 
 void nmpc_over_act_full::NMPCController::SendCmd()
@@ -401,8 +361,8 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
   geometry_msgs::PoseArray pred_poses;
   geometry_msgs::PoseArray ref_poses;
 
-  int NN = mpc_solver_.NN_;
-  int NX = mpc_solver_.NX_;
+  int& NN = mpc_solver_.NN_;
+  int& NX = mpc_solver_.NX_;
 
   for (int i = 0; i < NN; ++i)
   {
@@ -438,10 +398,8 @@ void nmpc_over_act_full::NMPCController::callbackViz(const ros::TimerEvent& even
 
 void nmpc_over_act_full::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
-  joint_angles_[0] = msg->position[0];
-  joint_angles_[1] = msg->position[1];
-  joint_angles_[2] = msg->position[2];
-  joint_angles_[3] = msg->position[3];
+  for (int i = 0; i < joint_num_; i++)
+    joint_angles_[i] = msg->position[i];
 }
 
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
@@ -562,9 +520,9 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
   tf::Quaternion q;
   q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
 
-  int NX = mpc_solver_.NX_;
-  int NU = mpc_solver_.NU_;
-  int NN = mpc_solver_.NN_;
+  int& NX = mpc_solver_.NX_;
+  int& NU = mpc_solver_.NU_;
+  int& NN = mpc_solver_.NN_;
 
   double x[] = {
     target_pos.x(), target_pos.y(), target_pos.z(), target_vel.x(),   target_vel.y(),   target_vel.z(),   q.w(),
@@ -593,11 +551,11 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
-  // TODO: change to .at() for safety
   if (t_pred == 0)
-    return mpc_solver_.uo_[0][idx_u];
+    return mpc_solver_.uo_.at(0).at(idx_u);
 
-  return mpc_solver_.uo_[0][idx_u] + t_pred / t_nmpc_integ_ * (mpc_solver_.uo_[1][idx_u] - mpc_solver_.uo_[0][idx_u]);
+  return mpc_solver_.uo_.at(0).at(idx_u) +
+         t_pred / t_nmpc_integ_ * (mpc_solver_.uo_.at(1).at(idx_u) - mpc_solver_.uo_.at(0).at(idx_u));
 }
 
 void nmpc_over_act_full::NMPCController::printPhysicalParams()
@@ -678,19 +636,19 @@ void nmpc_over_act_full::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
           break;
         }
         case Levels::RECONFIGURE_NMPC_Q_A: {
-          for (int i = 13; i < 17; ++i)
+          for (int i = 13; i < 13 + joint_num_; ++i)
             mpc_solver_.setCostWDiagElement(i, config.Qa);
           ROS_INFO_STREAM("change Qa for NMPC '" << config.Qa << "'");
           break;
         }
         case Levels::RECONFIGURE_NMPC_R_T: {
-          for (int i = 17; i < 21; ++i)
+          for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
             mpc_solver_.setCostWDiagElement(i, config.Rt, false);
           ROS_INFO_STREAM("change Rt for NMPC '" << config.Rt << "'");
           break;
         }
         case Levels::RECONFIGURE_NMPC_R_AC_D: {
-          for (int i = 21; i < 25; ++i)
+          for (int i = 13 + joint_num_ + motor_num_; i < 13 + joint_num_ + motor_num_ + joint_num_; ++i)
             mpc_solver_.setCostWDiagElement(i, config.Rac_d, false);
           ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
           break;
