@@ -149,6 +149,7 @@ void nmpc_over_act_full::NMPCController::reset()
   tf::Quaternion q;
   q.setRPY(rpy.x(), rpy.y(), rpy.z());
 
+  // reset x_u_ref_
   double x[] = {
     pos.x(),
     pos.y(),
@@ -181,6 +182,7 @@ void nmpc_over_act_full::NMPCController::reset()
   }
   std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
 
+  // reset mpc solver
   std::vector<double> x_vec(mpc_solver_.NX_, 0);
   x_vec[0] = pos.x();
   x_vec[1] = pos.y();
@@ -591,6 +593,7 @@ void nmpc_over_act_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 
 double nmpc_over_act_full::NMPCController::getCommand(int idx_u, double t_pred)
 {
+  // TODO: change to .at() for safety
   if (t_pred == 0)
     return mpc_solver_.uo_[0][idx_u];
 
