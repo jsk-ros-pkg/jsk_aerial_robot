@@ -24,12 +24,12 @@ protected:
 
   void initAllocMat() override;
 
-  void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
-                  const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench) override;
+  void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy, tf::Vector3 target_omega,
+                  const Eigen::VectorXd& target_wrench) override;
 };
 
-};  // namespace nmpc_tilt_tri_full
+}  // namespace nmpc_tilt_tri_full
 
-};  // namespace aerial_robot_control
+}  // namespace aerial_robot_control
 
 #endif  // TILT_TRI_SERVO_NMPC_CONTROLLER_H

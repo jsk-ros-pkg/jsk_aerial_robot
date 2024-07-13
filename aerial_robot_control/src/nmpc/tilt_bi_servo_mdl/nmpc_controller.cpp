@@ -95,4 +95,4 @@ void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos,
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_full::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_full::NMPCController, aerial_robot_control::ControlBase)
