@@ -129,7 +129,7 @@ protected:
   // ----- should be overridden by the derived class
   std::unique_ptr<nmpc::BaseMPCSolver> mpc_solver_ptr_;
 
-  virtual inline void initMPCSolver()
+  virtual inline void initMPCSolverPtr()
   {
     mpc_solver_ptr_ = std::make_unique<nmpc::TiltQdServoMdlMPCSolver>();
   }

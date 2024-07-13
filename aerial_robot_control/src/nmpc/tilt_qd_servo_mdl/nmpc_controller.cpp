@@ -18,7 +18,7 @@ void nmpc_over_act_full::NMPCController::initialize(
   ros::NodeHandle physical_nh(control_nh, "physical");
 
   // initialize nmpc solver
-  initMPCSolver();
+  initMPCSolverPtr();
   mpc_solver_ptr_->initialize();
   getParam<double>(physical_nh, "mass", mass_, 0.5);
   getParam<double>(physical_nh, "gravity_const", gravity_const_, 9.81);
