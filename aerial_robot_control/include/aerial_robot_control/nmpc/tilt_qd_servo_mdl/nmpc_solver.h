@@ -73,7 +73,7 @@ public:
     nlp_opts_ = tilt_qd_servo_mdl_acados_get_nlp_opts(acados_ocp_capsule_);
   };
 
-  ~TiltQdServoMdlMPCSolver()
+  ~TiltQdServoMdlMPCSolver() override
   {
     int status = tilt_qd_servo_mdl_acados_free(acados_ocp_capsule_);
     if (status)
