@@ -54,8 +54,9 @@ public:
   std::vector<double> W_;
   std::vector<double> WN_;
 
-  BaseMPCSolver()=default;   // should be overridden by the derived class
-  ~BaseMPCSolver()=default;  // should be overridden by the derived class
+  BaseMPCSolver() = default;           // should be overridden by the derived class
+  virtual ~BaseMPCSolver() = default;  // if the class has virtual functions, then the destructor should be virtual, but
+                                       // not pure virtual.
 
   void initialize()
   {

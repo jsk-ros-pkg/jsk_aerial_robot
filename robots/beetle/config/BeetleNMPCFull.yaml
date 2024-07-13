@@ -15,6 +15,9 @@ controller:
     p4: [ 0.137712, -0.138284, 0.0297217 ] # position of motor 4
     kq_d_kt: 0.0153  #0.0171998
 
+    num_rotors: 4
+
+    num_servos: 4
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
     # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
     t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec

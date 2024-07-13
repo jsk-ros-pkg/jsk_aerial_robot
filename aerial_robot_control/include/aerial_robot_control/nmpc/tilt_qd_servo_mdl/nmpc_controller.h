@@ -2,12 +2,8 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#ifndef BEETLE_NMPC_CONTROLLER_H
-#define BEETLE_NMPC_CONTROLLER_H
-
-#endif  // BEETLE_NMPC_CONTROLLER_H
-
-#pragma once
+#ifndef TILT_QD_SERVO_NMPC_CONTROLLER_H
+#define TILT_QD_SERVO_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/control/base/base.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
@@ -42,6 +38,7 @@ using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_contro
 
 namespace aerial_robot_control
 {
+
 namespace nmpc_over_act_full
 {
 
@@ -58,9 +55,6 @@ public:
   void reset() override;
 
 protected:
-  int motor_num_ = 4;  // should be set by the robot model
-  int joint_num_ = 4;  // should be set by the robot model
-
   ros::Timer tmr_viz_;
 
   ros::Publisher pub_flight_cmd_;                       // for spinal
@@ -87,16 +81,18 @@ protected:
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
-private:
   double mass_;
   double gravity_const_;
+
+  int motor_num_;
+  int joint_num_;
+
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
   std::vector<double> joint_angles_;
 
-  bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
-  Eigen::Matrix<double, 6, 8> alloc_mat_;
+  Eigen::MatrixXd alloc_mat_;
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
@@ -106,8 +102,6 @@ private:
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
-
-  nmpc::TiltQdServoMdlMPCSolver mpc_solver_;
 
   nav_msgs::Odometry getOdom();
 
@@ -123,10 +117,6 @@ private:
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
 
-  void initAllocMat();
-  void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
-                  const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
-
   double getCommand(int idx_u, double t_pred = 0.0);
 
   void printPhysicalParams();
@@ -135,8 +125,24 @@ private:
 
   static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
                           std::vector<std::vector<double>>& u_vec);
+
+  // ----- should be overridden by the derived class
+  std::unique_ptr<nmpc::BaseMPCSolver> mpc_solver_ptr_;
+
+  virtual inline void initMPCSolver()
+  {
+    mpc_solver_ptr_ = std::make_unique<nmpc::TiltQdServoMdlMPCSolver>();
+  }
+
+  virtual void initAllocMat();
+
+  virtual void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
+                          const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
+  // -----
 };
 
 };  // namespace nmpc_over_act_full
 
 };  // namespace aerial_robot_control
+
+#endif  // TILT_QD_SERVO_NMPC_CONTROLLER_H
