@@ -76,17 +76,10 @@ protected:
   bool is_print_phys_params_;
   bool is_debug_;
 
-  virtual void controlCore();
-  virtual void SendCmd();
-
-  void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
-
   double mass_;
   double gravity_const_;
-
   int motor_num_;
   int joint_num_;
-
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
@@ -103,28 +96,41 @@ protected:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
-  nav_msgs::Odometry getOdom();
-
+  /* initialize() */
+  void initParams();
+  void initCostW();
+  void setControlMode();
   inline void initJointAngles()
   {
     joint_angles_.resize(joint_num_);
     for (int i = 0; i < joint_num_; i++)
       joint_angles_[i] = 0.0;
   }
+  static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
 
+  /* update() */
+  virtual void controlCore();
+  virtual void SendCmd();
+
+  /* callback functions */
   void callbackViz(const ros::TimerEvent& event);
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
+  void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
+  /* utils */
+  // get functions
+  nav_msgs::Odometry getOdom();
   double getCommand(int idx_u, double t_pred = 0.0);
 
-  void printPhysicalParams();
-
-  static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
-
+  // conversion functions
   static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
                           std::vector<std::vector<double>>& u_vec);
+  std::vector<double> meas2VecX();
+
+  // debug functions
+  void printPhysicalParams();
 
   // ----- should be overridden by the derived class
   std::unique_ptr<nmpc::BaseMPCSolver> mpc_solver_ptr_;
@@ -136,13 +142,13 @@ protected:
 
   virtual void initAllocMat();
 
-  virtual void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
-                          const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
+  virtual void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy,
+                          tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
   // -----
 };
 
-};  // namespace nmpc_over_act_full
+}  // namespace nmpc_over_act_full
 
-};  // namespace aerial_robot_control
+}  // namespace aerial_robot_control
 
 #endif  // TILT_QD_SERVO_NMPC_CONTROLLER_H
