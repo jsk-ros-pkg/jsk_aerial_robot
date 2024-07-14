@@ -93,9 +93,9 @@ protected:
     return tilt_qd_servo_mdl_acados_update_params(acados_ocp_capsule_, stage, value.data(), NP_);
   }
 
-  inline int acadosUpdateParamsSparse(int stage, int* idx, double* p, int n_update) override
+  inline int acadosUpdateParamsSparse(int stage, std::vector<int>& idx, std::vector<double>& p, int n_update) override
   {
-    return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx, p, n_update);
+    return tilt_qd_servo_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx.data(), p.data(), n_update);
   }
 
   inline int acadosSolve() override
@@ -109,7 +109,7 @@ protected:
   }
 };
 
-}  // namespace nmpc
+}  // namespace mpc_solver
 
 }  // namespace aerial_robot_control
 

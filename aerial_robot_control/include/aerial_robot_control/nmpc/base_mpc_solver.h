@@ -126,13 +126,29 @@ public:
     ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
   }
 
-  void setParameters(std::vector<double>& p)
+  void setParameters(std::vector<double>& p, bool is_quat_in_p = true)
   {
-    if (p.size() != NP_)
-      throw std::invalid_argument("p size is not equal to NP_");
+    if (is_quat_in_p)
+    {
+      if (p.size() != NP_)
+        throw std::invalid_argument("p size is not equal to NP_");
 
-    for (int i = 0; i < NN_ + 1; i++)
-      acadosUpdateParams(i, p);
+      for (int i = 0; i < NN_ + 1; i++)
+        acadosUpdateParams(i, p);
+    }
+    else
+    {
+      if (p.size() != NP_ - 4)
+        throw std::invalid_argument("p size is not equal to NP_ - 4");
+
+      std::vector<int> index;
+      index.resize(NP_ - 4);
+      for (int j = 0; j < NP_ - 4; j++)
+        index[j] = j + 4;
+
+      for (int i = 0; i < NN_ + 1; i++)
+        acadosUpdateParamsSparse(i, index, p, NP_ - 4);
+    }
   }
 
   void setReference(const std::vector<std::vector<double>>& xr, const std::vector<std::vector<double>>& ur,
@@ -155,11 +171,11 @@ public:
 
       if (is_set_quat)
       {
-        int qr_idx[] = { 0, 1, 2, 3 };
+        std::vector<int> qr_idx = { 0, 1, 2, 3 };
         std::vector<double> qr;
         qr.reserve(4);
         qr.insert(qr.end(), xr[i].begin() + 6, xr[i].begin() + 10);
-        acadosUpdateParamsSparse(i, qr_idx, qr.data(), 4);
+        acadosUpdateParamsSparse(i, qr_idx, qr, 4);
       }
     }
 
@@ -170,11 +186,11 @@ public:
 
     if (is_set_quat)
     {
-      int qr_idx[] = { 0, 1, 2, 3 };
+      std::vector<int> qr_idx = { 0, 1, 2, 3 };
       std::vector<double> qr;
       qr.reserve(4);
       qr.insert(qr.end(), xr[NN_].begin() + 6, xr[NN_].begin() + 10);
-      acadosUpdateParamsSparse(NN_, qr_idx, qr.data(), 4);
+      acadosUpdateParamsSparse(NN_, qr_idx, qr, 4);
     }
 
     xr_ = xr;
@@ -311,14 +327,15 @@ protected:
   // acados functions that using multiple times
   virtual inline int acadosUpdateParams(int stage, std::vector<double>& value) = 0;
 
-  virtual inline int acadosUpdateParamsSparse(int stage, int* idx, double* p, int n_update) = 0;
+  virtual inline int acadosUpdateParamsSparse(int stage, std::vector<int>& idx, std::vector<double>& p,
+                                              int n_update) = 0;
 
   virtual inline int acadosSolve() = 0;
 
   virtual inline void acadosPrintStats() = 0;
 };
 
-}  // namespace nmpc
+}  // namespace mpc_solver
 
 }  // namespace aerial_robot_control
 
