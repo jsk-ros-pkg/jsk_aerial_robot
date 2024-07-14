@@ -157,38 +157,39 @@ void ObstacleCalculator::CalculatorCallback(
 
   std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> converted_positions;
   double min_dist = max_detection_range_;
-  size_t obstacle_id = 0;
+  if (!from_hokuyo_){
+    size_t obstacle_id = 0;
+    auto it_pos = positions_.begin();
+    auto it_vel = velocities_.begin();
 
-  auto it_pos = positions_.begin();
-  auto it_vel = velocities_.begin();
+    for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
+      Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
+      if (obstacle_id == gazebo_obstacle_id_){
+	// calc difference of obstacle this code and gazebo
+	tree_pos[0] = gazebo_pos_x_;
+	tree_pos[1] = gazebo_pos_y_;
+      }
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = "world";
+      marker.ns = "tree";
+      marker.id = obstacle_id;
+      marker.type = 3;
+      marker.pose.position.x = tree_pos(0);
+      marker.pose.position.y = tree_pos(1);
+      marker.pose.position.z = 1.0;
+      marker.scale.x = 0.25;
+      marker.scale.y = 0.25;
+      marker.scale.z = 2.0;
+      Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
+      converted_positions.push_back(converted_pos);
+      Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
+      min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
+      marker_array_msg.markers[obstacle_id] = marker;
 
-  for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
-    Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
-    if (obstacle_id == gazebo_obstacle_id_){
-      // calc difference of obstacle this code and gazebo
-      tree_pos[0] = gazebo_pos_x_;
-      tree_pos[1] = gazebo_pos_y_;
+      obstacle_id++;
     }
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "world";
-    marker.ns = "tree";
-    marker.id = obstacle_id;
-    marker.type = 3;
-    marker.pose.position.x = tree_pos(0);
-    marker.pose.position.y = tree_pos(1);
-    marker.pose.position.z = 1.0;
-    marker.scale.x = 0.25;
-    marker.scale.y = 0.25;
-    marker.scale.z = 2.0;
-    Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
-    converted_positions.push_back(converted_pos);
-    Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
-    min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
-    marker_array_msg.markers[obstacle_id] = marker;
-
-    obstacle_id++;
+    marker_pub_.publish(marker_array_msg);
   }
-  marker_pub_.publish(marker_array_msg);
   std_msgs::Float64 min_dist_msg;
   min_dist_msg.data = min_dist;
   obs_min_dist_pub_.publish(min_dist_msg);
