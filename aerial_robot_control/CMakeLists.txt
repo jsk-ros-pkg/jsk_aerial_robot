@@ -108,7 +108,6 @@ add_library(flight_control_pluginlib
   src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.cpp
         src/nmpc/tilt_tri_servo_mdl/nmpc_controller.cpp
         src/nmpc/tilt_bi_servo_mdl/nmpc_controller.cpp
-        src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_solver.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_controller.cpp

@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/tilt_bi_full/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/tilt_bi_2_ord/nmpc_controller
 # tilt_bi_2_ord or tilt_bi_full
 
 controller:
