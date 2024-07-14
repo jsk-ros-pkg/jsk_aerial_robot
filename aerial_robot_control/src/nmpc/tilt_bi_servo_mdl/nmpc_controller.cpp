@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_control;
 
-void nmpc_tilt_bi_full::NMPCController::initAllocMat()
+void nmpc::TiltBiServoNMPC::initAllocMat()
 {
   alloc_mat_ = Eigen::Matrix<double, 6, 4>::Zero();
 
@@ -52,7 +52,7 @@ void nmpc_tilt_bi_full::NMPCController::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+void nmpc::TiltBiServoNMPC::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
                                                    const Eigen::VectorXd& target_wrench)
 {
@@ -95,4 +95,4 @@ void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos,
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_full::NMPCController, aerial_robot_control::ControlBase)
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltBiServoNMPC, aerial_robot_control::ControlBase)

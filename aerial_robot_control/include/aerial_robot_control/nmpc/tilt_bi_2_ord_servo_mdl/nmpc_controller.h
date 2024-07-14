@@ -10,10 +10,10 @@
 
 namespace aerial_robot_control
 {
-namespace nmpc_tilt_bi_2_ord
+namespace nmpc
 {
 
-class NMPCController : public nmpc_tilt_bi_full::NMPCController
+class TiltBi2OrdServoNMPC : public nmpc::TiltBiServoNMPC
 {
 protected:
   std::vector<double> joint_vel_;

@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_control;
 
-void nmpc_tilt_bi_2_ord::NMPCController::initCostW()
+void nmpc::TiltBi2OrdServoNMPC::initCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -51,7 +51,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::initCostW()
   mpc_solver_ptr_->setCostWeight(true, true);
 }
 
-std::vector<double> nmpc_tilt_bi_2_ord::NMPCController::meas2VecX()
+std::vector<double> nmpc::TiltBi2OrdServoNMPC::meas2VecX()
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
   bx0[0] = odom_.pose.pose.position.x;
@@ -74,7 +74,7 @@ std::vector<double> nmpc_tilt_bi_2_ord::NMPCController::meas2VecX()
   return bx0;
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+void nmpc::TiltBi2OrdServoNMPC::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
   joint_angles_[0] = msg->position[0];
   joint_angles_[1] = msg->position[1];
@@ -82,7 +82,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::callbackJointStates(const sensor_msgs::
   joint_vel_[1] = msg->velocity[1];
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+void nmpc::TiltBi2OrdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
@@ -164,7 +164,7 @@ void nmpc_tilt_bi_2_ord::NMPCController::cfgNMPCCallback(NMPCConfig& config, uin
   }
 }
 
-void nmpc_tilt_bi_2_ord::NMPCController::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
+void nmpc::TiltBi2OrdServoNMPC::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
                                                     const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
                                                     const Eigen::VectorXd& target_wrench)
 {
@@ -220,4 +220,4 @@ void nmpc_tilt_bi_2_ord::NMPCController::calXrUrRef(const tf::Vector3 target_pos
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc_tilt_bi_2_ord::NMPCController, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltBi2OrdServoNMPC, aerial_robot_control::ControlBase);

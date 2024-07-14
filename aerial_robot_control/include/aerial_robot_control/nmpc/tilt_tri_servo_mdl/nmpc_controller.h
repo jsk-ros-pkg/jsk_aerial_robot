@@ -11,10 +11,10 @@
 namespace aerial_robot_control
 {
 
-namespace nmpc_tilt_tri_full
+namespace nmpc
 {
 
-class NMPCController : public nmpc::TiltQdServoNMPC
+class TiltTriServoNMPC : public nmpc::TiltQdServoNMPC
 {
 protected:
   inline void initMPCSolverPtr() override
