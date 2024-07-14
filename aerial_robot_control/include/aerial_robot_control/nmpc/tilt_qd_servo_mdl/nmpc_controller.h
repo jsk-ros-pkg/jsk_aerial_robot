@@ -147,7 +147,7 @@ protected:
   // -----
 };
 
-}  // namespace nmpc_over_act_full
+}  // namespace nmpc
 
 }  // namespace aerial_robot_control
 

@@ -28,7 +28,7 @@ protected:
                   const Eigen::VectorXd& target_wrench) override;
 };
 
-}  // namespace nmpc_tilt_bi_full
+}  // namespace nmpc
 
 }  // namespace aerial_robot_control
 
