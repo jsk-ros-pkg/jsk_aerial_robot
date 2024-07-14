@@ -22,7 +22,7 @@ protected:
 
   inline void initJointStates() override
   {
-    nmpc_over_act_full::NMPCController::initJointStates();
+    nmpc::TiltQdServoNMPC::initJointStates();
     joint_vel_.resize(joint_num_);
     for (int i = 0; i < joint_num_; i++)
       joint_vel_[i] = 0.0;

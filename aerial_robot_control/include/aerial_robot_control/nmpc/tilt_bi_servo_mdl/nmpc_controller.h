@@ -14,7 +14,7 @@ namespace aerial_robot_control
 namespace nmpc_tilt_bi_full
 {
 
-class NMPCController : public nmpc_over_act_full::NMPCController
+class NMPCController : public nmpc::TiltQdServoNMPC
 {
 protected:
   inline void initMPCSolverPtr() override

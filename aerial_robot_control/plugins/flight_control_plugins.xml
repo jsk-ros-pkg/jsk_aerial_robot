@@ -28,7 +28,7 @@
       <description>NMPC controller for beetle with no servo delay model </description>
   </class>
 
-  <class name="aerial_robot_control/tilt_qd_servo_mdl/nmpc_controller" type="aerial_robot_control::nmpc_over_act_full::NMPCController" base_class_type="aerial_robot_control::ControlBase">
+  <class name="aerial_robot_control/tilt_qd_servo_mdl/nmpc_controller" type="aerial_robot_control::nmpc::TiltQdServoNMPC" base_class_type="aerial_robot_control::ControlBase">
       <description>NMPC controller for beetle with full model </description>
   </class>
 

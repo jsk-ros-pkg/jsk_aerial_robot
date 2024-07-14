@@ -39,14 +39,14 @@ using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_contro
 namespace aerial_robot_control
 {
 
-namespace nmpc_over_act_full
+namespace nmpc
 {
 
-class NMPCController : public ControlBase
+class TiltQdServoNMPC : public ControlBase
 {
 public:
-  NMPCController() = default;  // note that constructor should not have arguments as the rule of rospluginlib
-  ~NMPCController() override = default;
+  TiltQdServoNMPC() = default;  // note that constructor should not have arguments as the rule of rospluginlib
+  ~TiltQdServoNMPC() override = default;
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
