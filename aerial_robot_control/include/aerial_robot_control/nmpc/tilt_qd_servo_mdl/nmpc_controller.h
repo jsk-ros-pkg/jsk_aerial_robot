@@ -133,11 +133,11 @@ protected:
   void printPhysicalParams();
 
   // ----- should be overridden by the derived class
-  std::unique_ptr<nmpc::BaseMPCSolver> mpc_solver_ptr_;
+  std::unique_ptr<mpc_solver::BaseMPCSolver> mpc_solver_ptr_;
 
   virtual inline void initMPCSolverPtr()
   {
-    mpc_solver_ptr_ = std::make_unique<nmpc::TiltQdServoMdlMPCSolver>();
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoMdlMPCSolver>();
   }
 
   virtual void initAllocMat();

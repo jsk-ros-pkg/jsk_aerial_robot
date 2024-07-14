@@ -36,7 +36,7 @@ protected:
 
   inline void initMPCSolverPtr() override
   {
-    mpc_solver_ptr_ = std::make_unique<nmpc::TiltBi2OrdServoMdlMPCSolver>();
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltBi2OrdServoMdlMPCSolver>();
   }
 
   void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy, tf::Vector3 target_omega,

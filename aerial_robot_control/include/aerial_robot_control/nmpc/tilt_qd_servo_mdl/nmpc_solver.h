@@ -12,7 +12,7 @@
 namespace aerial_robot_control
 {
 
-namespace nmpc
+namespace mpc_solver
 {
 
 class TiltQdServoMdlMPCSolver : public BaseMPCSolver

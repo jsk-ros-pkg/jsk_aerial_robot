@@ -19,7 +19,7 @@ class NMPCController : public nmpc_over_act_full::NMPCController
 protected:
   inline void initMPCSolverPtr() override
   {
-    mpc_solver_ptr_ = std::make_unique<nmpc::TiltBiServoMdlMPCSolver>();
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltBiServoMdlMPCSolver>();
   }
 
   void initAllocMat() override;
