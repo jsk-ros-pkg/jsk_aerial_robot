@@ -98,9 +98,9 @@ protected:
 
   /* initialize() */
   void initParams();
-  void initCostW();
+  virtual void initCostW();
   void setControlMode();
-  inline void initJointAngles()
+  virtual inline void initJointStates()
   {
     joint_angles_.resize(joint_num_);
     for (int i = 0; i < joint_num_; i++)
@@ -114,10 +114,10 @@ protected:
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event);
-  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
+  virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
-  void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
+  virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
   // get functions
@@ -127,7 +127,7 @@ protected:
   // conversion functions
   static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
                           std::vector<std::vector<double>>& u_vec);
-  std::vector<double> meas2VecX();
+  virtual std::vector<double> meas2VecX();
 
   // debug functions
   void printPhysicalParams();

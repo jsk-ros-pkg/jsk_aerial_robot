@@ -65,9 +65,9 @@ void nmpc_tilt_bi_full::NMPCController::calXrUrRef(const tf::Vector3 target_pos,
   tf::Quaternion q;
   q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
 
-  int NX = mpc_solver_ptr_->NX_;
-  int NU = mpc_solver_ptr_->NU_;
-  int NN = mpc_solver_ptr_->NN_;
+  int &NX = mpc_solver_ptr_->NX_;
+  int &NU = mpc_solver_ptr_->NU_;
+  int &NN = mpc_solver_ptr_->NN_;
 
   double x[] = {
     target_pos.x(), target_pos.y(), target_pos.z(),   target_vel.x(),   target_vel.y(),   target_vel.z(), q.w(), q.x(),

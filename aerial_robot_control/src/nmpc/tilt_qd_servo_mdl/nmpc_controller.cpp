@@ -53,7 +53,7 @@ void nmpc_over_act_full::NMPCController::initialize(
   /* init some values */
   setControlMode();
 
-  initJointAngles();
+  initJointStates();
   odom_ = nav_msgs::Odometry();
   odom_.pose.pose.orientation.w = 1;
   initPredXU(x_u_ref_, mpc_solver_ptr_->NN_, mpc_solver_ptr_->NX_, mpc_solver_ptr_->NU_);
