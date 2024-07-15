@@ -190,6 +190,16 @@ void ObstacleCalculator::CalculatorCallback(
     }
     marker_pub_.publish(marker_array_msg);
   }
+  else{
+    size_t obstacle_id = 0;
+    for (const auto &tree_pos : positions_) {
+      Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
+      converted_positions.push_back(converted_pos);
+      Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
+      min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
+      obstacle_id++;
+    }
+  }
   std_msgs::Float64 min_dist_msg;
   min_dist_msg.data = min_dist;
   obs_min_dist_pub_.publish(min_dist_msg);
