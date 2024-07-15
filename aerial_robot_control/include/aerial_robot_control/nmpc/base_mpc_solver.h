@@ -141,8 +141,7 @@ public:
       if (p.size() != NP_ - 4)
         throw std::invalid_argument("p size is not equal to NP_ - 4");
 
-      std::vector<int> index;
-      index.resize(NP_ - 4);
+      std::vector<int> index(NP_ - 4);
       for (int j = 0; j < NP_ - 4; j++)
         index[j] = j + 4;
 

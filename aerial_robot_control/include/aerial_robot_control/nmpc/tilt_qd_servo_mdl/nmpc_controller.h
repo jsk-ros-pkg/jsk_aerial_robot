@@ -97,7 +97,7 @@ protected:
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
   /* initialize() */
-  void initParams();
+  virtual void initParams();
   virtual void initCostW();
   void setControlMode();
   virtual inline void initJointStates()
@@ -112,8 +112,12 @@ protected:
   virtual void controlCore();
   virtual void SendCmd();
 
+  // controlCore()
+  void prepareNMPCRef();
+  virtual void prepareNMPCParams();
+
   /* callback functions */
-  void callbackViz(const ros::TimerEvent& event);
+  virtual void callbackViz(const ros::TimerEvent& event);
   virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);

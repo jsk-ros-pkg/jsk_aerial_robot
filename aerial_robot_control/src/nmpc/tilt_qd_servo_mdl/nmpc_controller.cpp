@@ -6,10 +6,11 @@
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltQdServoNMPC::initialize(
-    ros::NodeHandle nh, ros::NodeHandle nhp, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du)
+void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                                       boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                       boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                       boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                                       double ctrl_loop_du)
 {
   ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
@@ -228,6 +229,44 @@ void nmpc::TiltQdServoNMPC::initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, i
 
 void nmpc::TiltQdServoNMPC::controlCore()
 {
+  prepareNMPCRef();
+
+  prepareNMPCParams();
+
+  /* prepare initial value */
+  odom_ = getOdom();  // TODO: should be moved to Estimator. it should be updated not using ROS。
+  std::vector<double> bx0 = meas2VecX();
+
+  /* solve */
+  try
+  {
+    mpc_solver_ptr_->solve(bx0);
+  }
+  catch (mpc_solver::AcadosSolveException& e)
+  {
+    ROS_WARN("NMPC solver failed, no action: %s", e.what());
+  }
+
+  /* get result */
+  // - thrust
+  for (int i = 0; i < motor_num_; i++)
+  {
+    flight_cmd_.base_thrust[i] = (float)getCommand(i);
+  }
+
+  // - servo angle
+  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
+  gimbal_ctrl_cmd_.name.clear();
+  gimbal_ctrl_cmd_.position.clear();
+  for (int i = 0; i < joint_num_; i++)
+  {
+    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
+    gimbal_ctrl_cmd_.position.push_back(getCommand(motor_num_ + i));
+  }
+}
+
+void nmpc::TiltQdServoNMPC::prepareNMPCRef()
+{
   if (!is_traj_tracking_)
   {
     /* point mode --> set target */
@@ -282,38 +321,10 @@ void nmpc::TiltQdServoNMPC::controlCore()
   /* prepare reference */
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
+}
 
-  /* prepare initial value */
-  odom_ =
-      getOdom();  // TODO: should be moved to Estimator. like joint_angles_, it should be updated in a timer/estimator
-  std::vector<double> bx0 = meas2VecX();
-
-  /* solve */
-  try
-  {
-    mpc_solver_ptr_->solve(bx0);
-  }
-  catch (mpc_solver::AcadosSolveException& e)
-  {
-    ROS_WARN("NMPC solver failed, no action: %s", e.what());
-  }
-
-  /* get result */
-  // - thrust
-  for (int i = 0; i < motor_num_; i++)
-  {
-    flight_cmd_.base_thrust[i] = (float)getCommand(i);
-  }
-
-  // - servo angle
-  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
-  gimbal_ctrl_cmd_.name.clear();
-  gimbal_ctrl_cmd_.position.clear();
-  for (int i = 0; i < joint_num_; i++)
-  {
-    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
-    gimbal_ctrl_cmd_.position.push_back(getCommand(motor_num_ + i));
-  }
+void nmpc::TiltQdServoNMPC::prepareNMPCParams()
+{
 }
 
 void nmpc::TiltQdServoNMPC::SendCmd()
@@ -533,9 +544,8 @@ double nmpc::TiltQdServoNMPC::getCommand(int idx_u, double t_pred)
          t_pred / t_nmpc_integ_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
-void nmpc::TiltQdServoNMPC::rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u,
-                                                     std::vector<std::vector<double>>& x_vec,
-                                                     std::vector<std::vector<double>>& u_vec)
+void nmpc::TiltQdServoNMPC::rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
+                                        std::vector<std::vector<double>>& u_vec)
 {
   int NN = (int)u_vec.size();  // x_vec is NN+1
   int NX = (int)x_vec[0].size();
@@ -677,8 +687,8 @@ void nmpc::TiltQdServoNMPC::initAllocMat()
 }
 
 void nmpc::TiltQdServoNMPC::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                                    const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                                    const Eigen::VectorXd& target_wrench)
+                                       const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
+                                       const Eigen::VectorXd& target_wrench)
 {
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
   double a1_ref = atan2(x_lambda(0), x_lambda(1));
