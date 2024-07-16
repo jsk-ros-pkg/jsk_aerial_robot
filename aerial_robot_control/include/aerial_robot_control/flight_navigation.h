@@ -120,39 +120,6 @@ namespace aerial_robot_navigation
     inline void setTargetAccZ( float value){  target_acc_.setZ(value);}
     inline void addTargetPosZ( float value){  target_pos_ += tf::Vector3(0, 0, value);}
 
-    void setTargetXyFromCurrentState()
-    {
-      setXyControlMode(POS_CONTROL_MODE);
-      tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
-      target_pos_.setX(pos_cog.x());
-      target_pos_.setY(pos_cog.y());
-
-      // set the velocty to zero
-      target_vel_.setX(0);
-      target_vel_.setY(0);
-
-      // set the acceleration to zero
-      setTargetAccX(0);
-      setTargetAccY(0);
-    }
-
-    void setTargetZFromCurrentState()
-    {
-      target_pos_.setZ(estimator_->getPos(Frame::COG, estimate_mode_).z());
-
-      // set the velocty to zero
-      target_vel_.setZ(0);
-    }
-
-    void setTargetYawFromCurrentState()
-    {
-      target_rpy_.setZ(estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
-
-      // set the velocty to zero
-      target_omega_.setZ(0);
-    }
-
-
     inline void setTeleopFlag(bool teleop_flag) { teleop_flag_ = teleop_flag; }
     inline bool getTeleopFlag() { return teleop_flag_; }
 
@@ -567,6 +534,47 @@ namespace aerial_robot_navigation
           ROS_WARN("start teleop control");
           teleop_flag_ = true;
         }
+    }
+
+    void setTargetXyFromCurrentState()
+    {
+      setXyControlMode(POS_CONTROL_MODE);
+      tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+      setTargetPosX(pos_cog.x());
+      setTargetPosY(pos_cog.y());
+
+      // set the velocty to zero
+      setTargetVelX(0);
+      setTargetVelY(0);
+
+      // set the acceleration to zero
+      setTargetAccX(0);
+      setTargetAccY(0);
+    }
+
+    void setTargetZFromCurrentState()
+    {
+      tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+      setTargetPosZ(pos_cog.z());
+
+      // set the velocty to zero
+      setTargetVelZ(0);
+
+      // set the acceleration to zero
+      setTargetAccZ(0);
+    }
+
+    void setTargetYawFromCurrentState()
+    {
+      tf::Quaternion cog2baselink_rot;
+      tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+      tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+      double r, p, y; cog_rot.getRPY(r, p, y);
+      double yaw = y;
+      setTargetYaw(yaw);
+
+      // set the velocty to zero
+      setTargetOmegaZ(0);
     }
 
     template<class T> void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
