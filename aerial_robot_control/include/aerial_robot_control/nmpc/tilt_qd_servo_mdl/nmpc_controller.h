@@ -5,7 +5,7 @@
 #ifndef TILT_QD_SERVO_NMPC_CONTROLLER_H
 #define TILT_QD_SERVO_NMPC_CONTROLLER_H
 
-#include "aerial_robot_control/control/base/base.h"
+#include "aerial_robot_control/nmpc/base_mpc_controller.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
 
 #include <angles/angles.h>
@@ -42,7 +42,7 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class TiltQdServoNMPC : public ControlBase
+class TiltQdServoNMPC : public BaseMPC
 {
 public:
   TiltQdServoNMPC() = default;  // note that constructor should not have arguments as the rule of rospluginlib
@@ -106,21 +106,20 @@ protected:
     for (int i = 0; i < joint_num_; i++)
       joint_angles_[i] = 0.0;
   }
-  static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu);
 
   /* update() */
-  virtual void controlCore();
-  virtual void SendCmd();
+  void controlCore() override;
+  void sendCmd() override;
 
   // controlCore()
   void prepareNMPCRef();
   virtual void prepareNMPCParams();
 
   /* callback functions */
-  virtual void callbackViz(const ros::TimerEvent& event);
+  void callbackViz(const ros::TimerEvent& event) override;
   virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
-  void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
+  void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg) override;
   virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
@@ -129,9 +128,7 @@ protected:
   double getCommand(int idx_u, double t_pred = 0.0);
 
   // conversion functions
-  static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
-                          std::vector<std::vector<double>>& u_vec);
-  virtual std::vector<double> meas2VecX();
+  std::vector<double> meas2VecX() override;
 
   // debug functions
   void printPhysicalParams();
@@ -139,7 +136,7 @@ protected:
   // ----- should be overridden by the derived class
   std::unique_ptr<mpc_solver::BaseMPCSolver> mpc_solver_ptr_;
 
-  virtual inline void initMPCSolverPtr()
+  inline void initMPCSolverPtr() override
   {
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoMdlMPCSolver>();
   }
