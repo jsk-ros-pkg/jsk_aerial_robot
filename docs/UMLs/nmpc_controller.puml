@@ -70,7 +70,8 @@ class aerial_robot_control::nmpc::TiltQdServoNMPC extends aerial_robot_control::
     # getCommand()
     # meas2VecX()
     # printPhysicalParams()
-    # calXrUrRef()
+    # setXrUrRef()
+    # allocateToXU()
 }
 
 class aerial_robot_control::nmpc::TiltQdServoNMPCwITerm extends aerial_robot_control::nmpc::TiltQdServoNMPC {
@@ -116,14 +117,12 @@ class aerial_robot_control::nmpc::TiltTriServoNMPC extends aerial_robot_control:
 'x_dim = 16, u_dim = 6, p_dim = 4'
     # initMPCSolverPtr()
     # initAllocMat()
-    # calXrUrRef()
 }
 
 class aerial_robot_control::nmpc::TiltBiServoNMPC extends aerial_robot_control::nmpc::TiltQdServoNMPC {
 'x_dim = 15, u_dim = 4, p_dim = 4'
     # initMPCSolverPtr()
     # initAllocMat()
-    # calXrUrRef()
 }
 
 class aerial_robot_control::nmpc::TiltBi2OrdServoNMPC extends aerial_robot_control::nmpc::TiltBiServoNMPC {
@@ -134,7 +133,6 @@ class aerial_robot_control::nmpc::TiltBi2OrdServoNMPC extends aerial_robot_contr
     # meas2VecX()
     # callbackJointStates()
     # cfgNMPCCallback()
-    # calXrUrRef()
 }
 
 @enduml

@@ -49,7 +49,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* subscribers */
   sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltQdServoNMPC::callbackJointStates, this);
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltQdServoNMPC::callbackSetRPY, this);
-  sub_set_ref_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltQdServoNMPC::callbackSetRefTraj, this);
+  sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltQdServoNMPC::callbackSetRefXU, this);
 
   /* init some values */
   setControlMode();
@@ -126,6 +126,8 @@ void nmpc::TiltQdServoNMPC::initParams()
 
   getParam<double>(physical_nh, "mass", mass_, 0.5);
   getParam<double>(physical_nh, "gravity_const", gravity_const_, 9.81);
+  inertia_.resize(3);
+  physical_nh.getParam("inertia_diag", inertia_);
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
@@ -227,25 +229,11 @@ void nmpc::TiltQdServoNMPC::prepareNMPCRef()
     tf::Vector3 target_pos = navigator_->getTargetPos();
     tf::Vector3 target_vel = navigator_->getTargetVel();
     tf::Vector3 target_rpy = navigator_->getTargetRPY();
+    tf::Quaternion target_quat;
+    target_quat.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
     tf::Vector3 target_omega = navigator_->getTargetOmega();
 
-    /* calc target wrench in the body frame */
-    Eigen::VectorXd fg_i = Eigen::VectorXd::Zero(3);
-    fg_i(2) = mass_ * gravity_const_;
-
-    // coordinate transformation
-    tf::Quaternion q;
-    q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-    tf::Quaternion q_inv = q.inverse();
-
-    Eigen::Matrix3d rot;
-    tf::matrixTFToEigen(tf::Transform(q_inv).getBasis(), rot);
-    Eigen::VectorXd fg_b = rot * fg_i;
-
-    Eigen::VectorXd target_wrench(6);
-    target_wrench << fg_b(0), fg_b(1), fg_b(2), 0, 0, 0;
-
-    calXrUrRef(target_pos, target_vel, target_rpy, target_omega, target_wrench);
+    setXrUrRef(target_pos, target_vel, tf::Vector3(0, 0, 0), target_quat, target_omega, tf::Vector3(0, 0, 0), -1);
   }
   else
   {
@@ -365,7 +353,7 @@ void nmpc::TiltQdServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& ms
 }
 
 /* TODO: this function should be combined with the inner planning framework */
-void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg)
+void nmpc::TiltQdServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
   {
@@ -636,50 +624,110 @@ void nmpc::TiltQdServoNMPC::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc::TiltQdServoNMPC::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                       const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                       const Eigen::VectorXd& target_wrench)
+/**
+ * @brief calXrUrRef: calculate the reference state and control input
+ * @param ref_pos_i
+ * @param ref_vel_i
+ * @param ref_acc_i - the acceleration is in the inertial frame, no including the gravity
+ * @param ref_quat_ib
+ * @param ref_omega_b
+ * @param ref_ang_acc_b
+ * @param horizon_idx - set -1 for adding the target point to the end of the reference trajectory, 0 ~ NN for adding
+ * the target point to the horizon_idx interval
+ */
+void nmpc::TiltQdServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                       const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
+                                       const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
+                                       const int& horizon_idx)
 {
-  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
-  double a1_ref = atan2(x_lambda(0), x_lambda(1));
-  double ft1_ref = sqrt(x_lambda(0) * x_lambda(0) + x_lambda(1) * x_lambda(1));
-  double a2_ref = atan2(x_lambda(2), x_lambda(3));
-  double ft2_ref = sqrt(x_lambda(2) * x_lambda(2) + x_lambda(3) * x_lambda(3));
-  double a3_ref = atan2(x_lambda(4), x_lambda(5));
-  double ft3_ref = sqrt(x_lambda(4) * x_lambda(4) + x_lambda(5) * x_lambda(5));
-  double a4_ref = atan2(x_lambda(6), x_lambda(7));
-  double ft4_ref = sqrt(x_lambda(6) * x_lambda(6) + x_lambda(7) * x_lambda(7));
-
-  tf::Quaternion q;
-  q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-
   int& NX = mpc_solver_ptr_->NX_;
   int& NU = mpc_solver_ptr_->NU_;
   int& NN = mpc_solver_ptr_->NN_;
 
-  double x[] = {
-    target_pos.x(), target_pos.y(), target_pos.z(), target_vel.x(),   target_vel.y(),   target_vel.z(),   q.w(),
-    q.x(),          q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,
-    a2_ref,         a3_ref,         a4_ref
-  };
-  double u[] = { ft1_ref, ft2_ref, ft3_ref, ft4_ref, 0.0, 0.0, 0.0, 0.0 };
+  /* calculate the reference wrench in the body frame */
+  Eigen::VectorXd acc_with_g_i(3);
+  acc_with_g_i(0) = ref_acc_i.x();
+  acc_with_g_i(1) = ref_acc_i.y();
+  acc_with_g_i(2) = ref_acc_i.z() + gravity_const_;  // add gravity
 
-  // Aim: gently add the target point to the end of the reference trajectory
-  // - x: NN + 1, u: NN
-  // - for 0 ~ NN-2 x and u, shift
-  // - copy x to x: NN-1 and NN, copy u to u: NN-1
-  for (int i = 0; i < NN - 1; i++)
+  // coordinate transformation
+  tf::Quaternion q_bi = ref_quat_ib.inverse();
+  Eigen::Matrix3d rot_bi;
+  tf::matrixTFToEigen(tf::Transform(q_bi).getBasis(), rot_bi);
+  Eigen::VectorXd ref_acc_b = rot_bi * acc_with_g_i;
+
+  Eigen::VectorXd ref_wrench_b(6);
+  ref_wrench_b(0) = ref_acc_b(0) * mass_;
+  ref_wrench_b(1) = ref_acc_b(1) * mass_;
+  ref_wrench_b(2) = ref_acc_b(2) * mass_;
+  ref_wrench_b(3) = ref_ang_acc_b.x() * inertia_.at(0);
+  ref_wrench_b(4) = ref_ang_acc_b.y() * inertia_.at(1);
+  ref_wrench_b(5) = ref_ang_acc_b.z() * inertia_.at(2);
+
+  /* calculate X U from ref, aka. control allocation */
+  std::vector<double> x(NX);
+  std::vector<double> u(NU);
+  allocateToXU(ref_pos_i, ref_vel_i, ref_quat_ib, ref_omega_b, ref_wrench_b, x, u);
+
+  /* set values */
+  if (horizon_idx == -1)
   {
-    // shift one step
-    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
-              x_u_ref_.x.data.begin() + NX * i);
-    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
-              x_u_ref_.u.data.begin() + NU * i);
-  }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
+    // Aim: gently add the target point to the end of the reference trajectory
+    // - x: NN + 1, u: NN
+    // - for 0 ~ NN-2 x and u, shift
+    // - copy x to x: NN-1 and NN, copy u to u: NN-1
+    for (int i = 0; i < NN - 1; i++)
+    {
+      // shift one step
+      std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
+                x_u_ref_.x.data.begin() + NX * i);
+      std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
+                x_u_ref_.u.data.begin() + NU * i);
+    }
+    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
+    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
 
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
+    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
+
+    return;
+  }
+
+  if (horizon_idx < 0 || horizon_idx > NN)
+  {
+    ROS_WARN("horizon_idx is out of range! CalXrUrRef failed!");
+    return;
+  }
+
+  std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * horizon_idx);
+  if (horizon_idx < NN)
+    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * horizon_idx);
+}
+
+void nmpc::TiltQdServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                         const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
+                                         const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const
+{
+  x.at(0) = ref_pos_i.x();
+  x.at(1) = ref_pos_i.y();
+  x.at(2) = ref_pos_i.z();
+  x.at(3) = ref_vel_i.x();
+  x.at(4) = ref_vel_i.y();
+  x.at(5) = ref_vel_i.z();
+  x.at(6) = ref_quat_ib.w();
+  x.at(7) = ref_quat_ib.x();
+  x.at(8) = ref_quat_ib.y();
+  x.at(9) = ref_quat_ib.z();
+  x.at(10) = ref_omega_b.x();
+  x.at(11) = ref_omega_b.y();
+  x.at(12) = ref_omega_b.z();
+  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
+  for (int i = 0; i < x_lambda.size() / 2; i++)
+  {
+    double a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+    x.at(13 + i) = a_ref;
+    double ft_ref = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
+    u.at(i) = ft_ref;
+  }
 }
 
 /* plugin registration */

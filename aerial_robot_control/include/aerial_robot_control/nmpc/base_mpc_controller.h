@@ -59,7 +59,7 @@ protected:
 
   /* update() */
   // 1. set reference for NMPC
-  virtual void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg) = 0;
+  virtual void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) = 0;
   static void rosXU2VecXU(const aerial_robot_msgs::PredXU& x_u, std::vector<std::vector<double>>& x_vec,
                           std::vector<std::vector<double>>& u_vec)
   {

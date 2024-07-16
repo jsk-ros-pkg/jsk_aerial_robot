@@ -52,47 +52,6 @@ void nmpc::TiltBiServoNMPC::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc::TiltBiServoNMPC::calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel,
-                                                   const tf::Vector3 target_rpy, const tf::Vector3 target_omega,
-                                                   const Eigen::VectorXd& target_wrench)
-{
-  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * target_wrench;
-  double a1_ref = atan2(x_lambda(0), x_lambda(1));
-  double ft1_ref = sqrt(x_lambda(0) * x_lambda(0) + x_lambda(1) * x_lambda(1));
-  double a2_ref = atan2(x_lambda(2), x_lambda(3));
-  double ft2_ref = sqrt(x_lambda(2) * x_lambda(2) + x_lambda(3) * x_lambda(3));
-
-  tf::Quaternion q;
-  q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-
-  int &NX = mpc_solver_ptr_->NX_;
-  int &NU = mpc_solver_ptr_->NU_;
-  int &NN = mpc_solver_ptr_->NN_;
-
-  double x[] = {
-    target_pos.x(), target_pos.y(), target_pos.z(),   target_vel.x(),   target_vel.y(),   target_vel.z(), q.w(), q.x(),
-    q.y(),          q.z(),          target_omega.x(), target_omega.y(), target_omega.z(), a1_ref,         a2_ref
-  };
-  double u[] = { ft1_ref, ft2_ref, 0.0, 0.0 };
-
-  // Aim: gently add the target point to the end of the reference trajectory
-  // - x: NN + 1, u: NN
-  // - for 0 ~ NN-2 x and u, shift
-  // - copy x to x: NN-1 and NN, copy u to u: NN-1
-  for (int i = 0; i < NN - 1; i++)
-  {
-    // shift one step
-    std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
-              x_u_ref_.x.data.begin() + NX * i);
-    std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
-              x_u_ref_.u.data.begin() + NU * i);
-  }
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
-  std::copy(u, u + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
-
-  std::copy(x, x + NX, x_u_ref_.x.data.begin() + NX * NN);
-}
-
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltBiServoNMPC, aerial_robot_control::ControlBase)

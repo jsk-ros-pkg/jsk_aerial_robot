@@ -23,9 +23,6 @@ protected:
   }
 
   void initAllocMat() override;
-
-  void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy, tf::Vector3 target_omega,
-                  const Eigen::VectorXd& target_wrench) override;
 };
 
 }  // namespace nmpc

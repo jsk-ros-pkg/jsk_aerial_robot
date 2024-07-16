@@ -69,7 +69,7 @@ protected:
 
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
-  ros::Subscriber sub_set_ref_traj_;
+  ros::Subscriber sub_set_ref_x_u_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
@@ -78,6 +78,7 @@ protected:
 
   double mass_;
   double gravity_const_;
+  std::vector<double> inertia_;
   int motor_num_;
   int joint_num_;
   double t_nmpc_samp_;
@@ -114,12 +115,18 @@ protected:
   // controlCore()
   void prepareNMPCRef();
   virtual void prepareNMPCParams();
+  void setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Vector3& ref_acc_i,
+                  const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
+                  const int& horizon_idx);
+  void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
+                    const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
+                    vector<double>& u) const;
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event) override;
   virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
-  void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg) override;
+  void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
   virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
@@ -142,10 +149,6 @@ protected:
   }
 
   virtual void initAllocMat();
-
-  virtual void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy,
-                          tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
-  // -----
 };
 
 }  // namespace nmpc

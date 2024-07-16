@@ -38,12 +38,9 @@ protected:
   {
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltBi2OrdServoMdlMPCSolver>();
   }
-
-  void calXrUrRef(tf::Vector3 target_pos, tf::Vector3 target_vel, tf::Vector3 target_rpy, tf::Vector3 target_omega,
-                  const Eigen::VectorXd& target_wrench) override;
 };
 
-};  // namespace nmpc_tilt_bi_2_ord
+};  // namespace nmpc
 
 };  // namespace aerial_robot_control
 
