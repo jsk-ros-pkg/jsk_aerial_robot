@@ -96,7 +96,7 @@ standing_controller:
     d_gain: 1.0
 
 rolling_controller:
-  gravity_compensate_weights: [0.0, 0.0, 0.0]
+  gravity_compensate_weights: [0.0, 1.0, 0.0]
   xy:
     p_gain: 1.5
     i_gain: 0.0
