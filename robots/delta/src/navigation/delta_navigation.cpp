@@ -127,13 +127,14 @@ void RollingNavigator::rollingPlanner()
         Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
         if(ground_trajectory_mode_)
           {
-            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+            setCurrentTargetBaselinkRpyRoll(baselink_roll_trajectory(0));
+            rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyRoll(), b1);
             setTargetOmegaX(baselink_roll_trajectory(1));
             setTargetAngAccX(baselink_roll_trajectory(2));
           }
         else
           {
-            rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+            rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyRoll(), b1);
             setTargetOmegaX(0.0);
             setTargetAngAccX(0.0);
           }
@@ -158,6 +159,22 @@ void RollingNavigator::rollingPlanner()
 
     case aerial_robot_navigation::ROLLING_STATE:
       {
+        /* target rolling angle */
+        double target_pitch;
+
+        /* set current baselink pose as target until control is started */
+        if(!(getNaviState() == aerial_robot_navigation::TAKEOFF_STATE || getNaviState() == aerial_robot_navigation::HOVER_STATE))
+          {
+            ground_trajectory_mode_ = false;
+
+            tf::Matrix3x3 baselink_orientation = estimator_->getOrientation(Frame::BASELINK, estimate_mode_);
+            tf::Vector3 baselink_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+
+            ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] set desire coordinate same as baselink roll: " << baselink_euler.x() << " pitch: " << baselink_euler.y());
+            target_pitch = baselink_euler.y();
+            setCurrentTargetBaselinkRpyPitch(target_pitch);
+          }
+
         agi::Vector<> baselink_roll_trajectory = agi::Vector<>::Zero(3);
         if(ground_trajectory_mode_)
           {
@@ -171,7 +188,6 @@ void RollingNavigator::rollingPlanner()
           }
 
         /* calculate rolling pitch angle */
-        double target_pitch;
         if(!getPitchAngVelUpdating())
           {
             target_pitch = getCurrentTargetBaselinkRpyPitch();
@@ -204,9 +220,10 @@ void RollingNavigator::rollingPlanner()
             setTargetAngAccX(baselink_roll_trajectory(2));
 
             /* set desire coordinate */
+            setCurrentTargetBaselinkRpyRoll(baselink_roll_trajectory(0));
             Eigen::Matrix3d rot_mat;
             Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0);
-            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+            rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyRoll(), b1);
             KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
             double qx, qy, qz, qw;
             rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
@@ -221,9 +238,21 @@ void RollingNavigator::rollingPlanner()
             setTargetAngAccX(0.0);
 
             /* set desire coordinate */
+            double target_roll;
+            if(!(getNaviState() == aerial_robot_navigation::TAKEOFF_STATE || getNaviState() == aerial_robot_navigation::HOVER_STATE))
+              {
+                tf::Vector3 baselink_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+                target_roll = baselink_euler.x();
+                setCurrentTargetBaselinkRpyRoll(target_roll);
+              }
+            else
+              {
+                target_roll = getCurrentTargetBaselinkRpyRoll();
+                setCurrentTargetBaselinkRpyRoll(target_roll);
+              }
             Eigen::Matrix3d rot_mat;
             Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-            rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+            rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(target_roll, b1);
             KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
             double qx, qy, qz, qw;
             rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
@@ -239,7 +268,7 @@ void RollingNavigator::rollingPlanner()
       {
         Eigen::Matrix3d rot_mat;
         Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-        rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(M_PI / 2.0, b1);
+        rot_mat = Eigen::AngleAxisd(getCurrentTargetBaselinkRpyPitch(), b2) * Eigen::AngleAxisd(getCurrentTargetBaselinkRpyRoll(), b1);
         double down_angle = std::min(std::max(0.0, down_mode_roll_anglvel_ * (ros::Time::now().toSec() - down_start_time_)), M_PI / 2.0);
         rot_mat = Eigen::AngleAxisd(-down_angle, b1) * rot_mat;
 
