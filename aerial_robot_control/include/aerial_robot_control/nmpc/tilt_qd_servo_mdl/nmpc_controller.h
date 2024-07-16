@@ -18,6 +18,8 @@
 
 /* protocol */
 #include "nav_msgs/Odometry.h"
+#include "trajectory_msgs/MultiDOFJointTrajectory.h"
+#include "trajectory_msgs/MultiDOFJointTrajectoryPoint.h"
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "spinal/FourAxisCommand.h"
@@ -70,6 +72,7 @@ protected:
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
   ros::Subscriber sub_set_ref_x_u_;
+  ros::Subscriber sub_set_traj_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
@@ -127,6 +130,7 @@ protected:
   virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
+  void callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
   virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */

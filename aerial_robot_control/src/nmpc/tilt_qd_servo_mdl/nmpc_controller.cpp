@@ -50,6 +50,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltQdServoNMPC::callbackJointStates, this);
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltQdServoNMPC::callbackSetRPY, this);
   sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltQdServoNMPC::callbackSetRefXU, this);
+  sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltQdServoNMPC::callbackSetRefTraj, this);
 
   /* init some values */
   setControlMode();
@@ -369,6 +370,28 @@ void nmpc::TiltQdServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
     ROS_INFO("Trajectory tracking mode is on!");
     is_traj_tracking_ = true;
   }
+}
+
+void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
+{
+  if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
+    ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
+
+  for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
+  {
+    const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
+    geometry_msgs::Vector3 pos = point.transforms[0].translation;
+    geometry_msgs::Vector3 vel = point.velocities[0].linear;
+    geometry_msgs::Vector3 acc = point.accelerations[0].linear;
+    geometry_msgs::Quaternion quat = point.transforms[0].rotation;
+    geometry_msgs::Vector3 omega = point.velocities[0].angular;
+    geometry_msgs::Vector3 ang_acc = point.accelerations[0].angular;
+    setXrUrRef(tf::Vector3(pos.x, pos.y, pos.z), tf::Vector3(vel.x, vel.y, vel.z), tf::Vector3(acc.x, acc.y, acc.z),
+               tf::Quaternion(quat.x, quat.y, quat.z, quat.w), tf::Vector3(omega.x, omega.y, omega.z),
+               tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
+  }
+
+  callbackSetRefXU(aerial_robot_msgs::PredXUConstPtr(new aerial_robot_msgs::PredXU(x_u_ref_)));
 }
 
 void nmpc::TiltQdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
