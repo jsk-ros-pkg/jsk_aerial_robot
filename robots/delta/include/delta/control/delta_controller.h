@@ -102,6 +102,7 @@ namespace aerial_robot_control
     bool update() override;
     void reset() override;
     void controlCore() override;
+    void activate() override;
     void rosParamInit();
     void wrenchAllocation();
     void calcYawTerm();

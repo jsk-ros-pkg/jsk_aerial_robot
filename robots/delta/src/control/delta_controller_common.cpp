@@ -86,6 +86,20 @@ void RollingController::reset()
   ROS_INFO_STREAM("[control] reset controller\n");
 }
 
+void RollingController::activate()
+{
+  ControlBase::activate();
+
+  for(int i = 0; i < motor_num_; i++)
+    {
+      if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
+        target_gimbal_angles_.at(i) = 0.0;
+      else if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+        target_gimbal_angles_.at(i) = M_PI / 2.0;
+    }
+  sendGimbalAngles();
+}
+
 void RollingController::rosParamInit()
 {
   ros::NodeHandle control_nh(nh_, "controller");
