@@ -377,6 +377,12 @@ void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
     ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
 
+  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  {
+    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    return;
+  }
+
   for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
   {
     const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
