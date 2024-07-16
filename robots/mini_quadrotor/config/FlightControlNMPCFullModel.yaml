@@ -15,6 +15,9 @@ controller:
     p4: [ -0.0865752, 0.085, 0.0108557 ] # position of motor 4
     kq_d_kt: 0.011
 
+    num_rotors: 4
+    num_servos: 0
+
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
     T_pred: 2.0  # seconds

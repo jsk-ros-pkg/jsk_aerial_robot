@@ -290,8 +290,10 @@ void nmpc::TiltQdServoNMPC::sendCmd()
   }
 
   /* publish */
-  pub_flight_cmd_.publish(flight_cmd_);
-  pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
+  if (motor_num_ > 0)
+    pub_flight_cmd_.publish(flight_cmd_);
+  if (joint_num_ > 0)
+    pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
 /**

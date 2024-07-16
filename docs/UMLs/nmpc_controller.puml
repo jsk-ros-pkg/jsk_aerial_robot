@@ -25,14 +25,10 @@ abstract class aerial_robot_control::nmpc::BaseMPC extends aerial_robot_control:
     # callbackViz()
 }
 
-class aerial_robot_control::nmpc::FixQdNMPC extends aerial_robot_control::nmpc::BaseMPC {
+class aerial_robot_control::nmpc::FixQdNMPC extends aerial_robot_control::nmpc::TiltQdServoNMPC {
 'x_dim = 13, u_dim = 4, p_dim = 4'
-unfinished
-    + FixQdNMPC()
-    + ~FixQdNMPC()
-    + initialize()
-    + update()
-    + reset()
+    # initMPCSolverPtr()
+    # initAllocMat()
 }
 
 'class aerial_robot_control::nmpc::TiltQdNMPC extends aerial_robot_control::nmpc::FixQdNMPC {

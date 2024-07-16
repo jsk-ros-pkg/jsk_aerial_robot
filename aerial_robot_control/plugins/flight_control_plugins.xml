@@ -20,7 +20,7 @@
       <description>NMPC controller for quadrotor with body rate model </description>
   </class>
 
-  <class name="aerial_robot_control/under_act_full/nmpc_controller" type="aerial_robot_control::nmpc_under_act_full::NMPCController" base_class_type="aerial_robot_control::ControlBase">
+  <class name="aerial_robot_control/under_act_full/nmpc_controller" type="aerial_robot_control::nmpc::FixQdNMPC" base_class_type="aerial_robot_control::ControlBase">
       <description>NMPC controller for quadrotor with full model </description>
   </class>
 

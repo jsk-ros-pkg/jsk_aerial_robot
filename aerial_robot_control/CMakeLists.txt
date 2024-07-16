@@ -99,8 +99,7 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_tilted_lqi_controller.cpp
   src/nmpc/fix_qd_angvel_out_mdl/nmpc_solver.cpp
   src/nmpc/fix_qd_angvel_out_mdl/nmpc_controller.cpp
-  src/nmpc/fix_qd_thrust_out_mdl/nmpc_solver.cpp
-  src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
+        src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.cpp
         src/nmpc/tilt_qd_servo_mdl/nmpc_controller.cpp
