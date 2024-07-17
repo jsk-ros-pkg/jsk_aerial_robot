@@ -60,6 +60,7 @@ class aerial_robot_control::nmpc::TiltQdServoNMPC extends aerial_robot_control::
     # callbackViz()
     # callbackJointStates()
     # callbackSetRPY()
+    # callbackSetRefXU()
     # callbackSetRefTraj()
     # cfgNMPCCallback()
     # getOdom()

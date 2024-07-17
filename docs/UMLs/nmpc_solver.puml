@@ -10,14 +10,26 @@ abstract class aerial_robot_control::mpc_solver::BaseMPCSolver
 class aerial_robot_control::mpc_solver::TiltQdServoMdlMPCSolver {
 }
 
+class aerial_robot_control::mpc_solver::TiltQdServoDistMdlMPCSolver {
+}
+
 class aerial_robot_control::mpc_solver::TiltTriServoMdlMPCSolver {
 }
 
 class aerial_robot_control::mpc_solver::TiltBiServoMdlMPCSolver {
 }
 
+class aerial_robot_control::mpc_solver::TiltBi2OrdServoMdlMPCSolver {
+}
+
+class aerial_robot_control::mpc_solver::FixQdNMPCSolver {
+}
+
 BaseMPCSolver <|-- TiltQdServoMdlMPCSolver
+BaseMPCSolver <|-- TiltQdServoDistMdlMPCSolver
 BaseMPCSolver <|-- TiltTriServoMdlMPCSolver
 BaseMPCSolver <|-- TiltBiServoMdlMPCSolver
+BaseMPCSolver <|-- TiltBi2OrdServoMdlMPCSolver
+BaseMPCSolver <|-- FixQdNMPCSolver
 
 @enduml
