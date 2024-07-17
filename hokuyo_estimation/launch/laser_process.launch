@@ -9,9 +9,16 @@
 
   <!-- laser clustering  filter -->
   <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="trees_filter">
-    <remap from="scan" to="shadow_filtered" />
+    <remap from="scan" to="range_diff_filtered" />
     <remap from="scan_filtered" to="scan_clustered" />
     <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserClustering.yaml" />
-
   </node>
+
+  <!-- range diff filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="range_diff_filter">
+    <remap from="scan" to="shadow_filtered" />
+    <remap from="scan_filtered" to="range_diff_filtered" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserRangeDiffFilter.yaml" />
+  </node>
+
 </launch>

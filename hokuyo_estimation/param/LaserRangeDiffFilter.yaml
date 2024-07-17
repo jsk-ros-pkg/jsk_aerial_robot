@@ -1,0 +1,5 @@
+laser_scan_filter_chain:
+  - name: laser_range_diff_filter
+    type: laser_filters/LaserRangeDiffFilter
+    params:
+      distance_threshold: 1.0
