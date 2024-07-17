@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
+  catkin_virtualenv
   hydrus
   mujoco_ros_control
   pluginlib
@@ -18,12 +19,6 @@ find_package(Eigen3 REQUIRED)
 find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
 
-catkin_package(
-  INCLUDE_DIRS include test
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
-  LIBRARIES delta_controller delta_robot_model delta_navigation
-  )
-
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -32,6 +27,33 @@ include_directories(
   )
 
 catkin_python_setup()
+
+catkin_package(
+  INCLUDE_DIRS include test
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
+  LIBRARIES delta_controller delta_robot_model delta_navigation
+  )
+
+catkin_generate_virtualenv(
+  INPUT_REQUIREMENTS requirements.in
+  PYTHON_INTERPRETER python3
+  )
+
+catkin_install_python(
+  PROGRAMS
+    scripts/delta/common_states.py
+    scripts/delta/delta_interface.py
+    scripts/demos/brick_pick_demo.py
+    scripts/demos/door_opening_demo.py
+    scripts/demos/gimbal_demo.py
+    scripts/gimbal_test.py
+    scripts/feasible_control_convex_plot.py
+    scripts/joint_load_plot.py
+    scripts/joint_test.py
+    scripts/joy_stick_instruction.py
+    scripts/transformation_demo.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
 
 add_library(delta_controller
   src/control/delta_controller_common.cpp
@@ -88,13 +110,9 @@ install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design 
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
-# add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/mujoco
-#   COMMAND rosrun aerial_robot_simulation mujoco_model_generator.py ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml
-#   POST_BUILD
-#   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#   DEPENDS ${PROJECT_SOURCE_DIR}/urdf
-#           ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
-# add_custom_target(generate_mujoco_model ALL DEPENDS ${PROJECT_SOURCE_DIR}/mujoco)
+install(FILES requirements.txt
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
 
 mujoco_model_convert(
   ${PROJECT_SOURCE_DIR}
