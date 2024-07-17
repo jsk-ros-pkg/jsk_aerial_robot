@@ -7,6 +7,8 @@
 	This is a filter which do clustering from a laser.
       </description>
     </class>
+   </library>
+
    <library path="lib/librange_diff_filter">
     <class name="laser_filters/LaserRangeDiffFilter" type="laser_filters::LaserRangeDiffFilter"
 	    base_class_type="filters::FilterBase<sensor_msgs::LaserScan>">
