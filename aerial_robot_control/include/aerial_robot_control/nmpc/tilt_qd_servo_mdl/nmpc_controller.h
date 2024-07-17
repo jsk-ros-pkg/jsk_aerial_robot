@@ -2,14 +2,10 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#ifndef BEETLE_NMPC_CONTROLLER_H
-#define BEETLE_NMPC_CONTROLLER_H
+#ifndef TILT_QD_SERVO_NMPC_CONTROLLER_H
+#define TILT_QD_SERVO_NMPC_CONTROLLER_H
 
-#endif  // BEETLE_NMPC_CONTROLLER_H
-
-#pragma once
-
-#include "aerial_robot_control/control/base/base.h"
+#include "aerial_robot_control/nmpc/base_mpc_controller.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
 
 #include <angles/angles.h>
@@ -22,6 +18,8 @@
 
 /* protocol */
 #include "nav_msgs/Odometry.h"
+#include "trajectory_msgs/MultiDOFJointTrajectory.h"
+#include "trajectory_msgs/MultiDOFJointTrajectoryPoint.h"
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
 #include "spinal/FourAxisCommand.h"
@@ -42,14 +40,15 @@ using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_contro
 
 namespace aerial_robot_control
 {
-namespace nmpc_over_act_full
+
+namespace nmpc
 {
 
-class NMPCController : public ControlBase
+class TiltQdServoNMPC : public BaseMPC
 {
 public:
-  NMPCController() = default;  // note that constructor should not have arguments as the rule of rospluginlib
-  ~NMPCController() override = default;
+  TiltQdServoNMPC() = default;  // note that constructor should not have arguments as the rule of rospluginlib
+  ~TiltQdServoNMPC() override = default;
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
@@ -68,32 +67,29 @@ protected:
   ros::Publisher pub_gimbal_control_;                   // for gimbal control
 
   ros::ServiceClient srv_set_control_mode_;
-  std::vector<boost::shared_ptr<NMPCControlDynamicConfig> > nmpc_reconf_servers_;
+  std::vector<boost::shared_ptr<NMPCControlDynamicConfig>> nmpc_reconf_servers_;
 
   ros::Subscriber sub_joint_states_;
   ros::Subscriber sub_set_rpy_;
-  ros::Subscriber sub_set_ref_traj_;
+  ros::Subscriber sub_set_ref_x_u_;
+  ros::Subscriber sub_set_traj_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
   bool is_print_phys_params_;
   bool is_debug_;
 
-  virtual void controlCore();
-  virtual void SendCmd();
-
-  void cfgNMPCCallback(NMPCConfig &config, uint32_t level);
-
-private:
   double mass_;
   double gravity_const_;
+  std::vector<double> inertia_;
+  int motor_num_;
+  int joint_num_;
   double t_nmpc_samp_;
   double t_nmpc_integ_;
 
-  double joint_angles_[4] = { 0.0, 0.0, 0.0, 0.0 };
+  std::vector<double> joint_angles_;
 
-  bool is_init_alloc_mat_ = false;  // TODO: tmp value. should be combined with KDL framework in the future
-  Eigen::Matrix<double, 6, 8> alloc_mat_;
+  Eigen::MatrixXd alloc_mat_;
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
@@ -104,23 +100,63 @@ private:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
-  MPCSolver mpc_solver_;
+  /* initialize() */
+  virtual void initParams();
+  virtual void initCostW();
+  void setControlMode();
+  virtual inline void initJointStates()
+  {
+    joint_angles_.resize(joint_num_);
+    for (int i = 0; i < joint_num_; i++)
+      joint_angles_[i] = 0.0;
+  }
 
-  nav_msgs::Odometry getOdom();
-  void callbackViz(const ros::TimerEvent& event);
-  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
+  /* update() */
+  void controlCore() override;
+  void sendCmd() override;
+
+  // controlCore()
+  void prepareNMPCRef();
+  virtual void prepareNMPCParams();
+  void setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Vector3& ref_acc_i,
+                  const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
+                  const int& horizon_idx);
+  void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
+                    const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
+                    vector<double>& u) const;
+
+  /* callback functions */
+  void callbackViz(const ros::TimerEvent& event) override;
+  virtual void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg);
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
-  void callbackSetRefTraj(const aerial_robot_msgs::PredXUConstPtr& msg);
+  void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
+  void callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
+  virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
-  void initAllocMat();
-  void calXrUrRef(const tf::Vector3 target_pos, const tf::Vector3 target_vel, const tf::Vector3 target_rpy,
-                  const tf::Vector3 target_omega, const Eigen::VectorXd& target_wrench);
-
+  /* utils */
+  // get functions
+  nav_msgs::Odometry getOdom();
   double getCommand(int idx_u, double t_pred = 0.0);
 
+  // conversion functions
+  std::vector<double> meas2VecX() override;
+
+  // debug functions
   void printPhysicalParams();
+
+  // ----- should be overridden by the derived class
+  std::unique_ptr<mpc_solver::BaseMPCSolver> mpc_solver_ptr_;
+
+  inline void initMPCSolverPtr() override
+  {
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoMdlMPCSolver>();
+  }
+
+  virtual void initAllocMat();
 };
 
-};  // namespace nmpc_over_act_full
+}  // namespace nmpc
 
-};  // namespace aerial_robot_control
+}  // namespace aerial_robot_control
+
+#endif  // TILT_QD_SERVO_NMPC_CONTROLLER_H

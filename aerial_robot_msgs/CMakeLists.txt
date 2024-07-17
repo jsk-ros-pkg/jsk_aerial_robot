@@ -23,9 +23,6 @@ add_message_files(FILES
   Acc.msg
   WrenchAllocationMatrix.msg
   TrajCoefficients.msg
-  TrajFullStatePt.msg
-  MultiTrajFullStatePt.msg
-  TrajPt.msg
   PredXU.msg
 )
 

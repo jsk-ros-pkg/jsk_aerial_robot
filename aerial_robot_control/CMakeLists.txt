@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(aerial_robot_control)
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
@@ -99,19 +99,13 @@ add_library(flight_control_pluginlib
   src/control/under_actuated_tilted_lqi_controller.cpp
   src/nmpc/fix_qd_angvel_out_mdl/nmpc_solver.cpp
   src/nmpc/fix_qd_angvel_out_mdl/nmpc_controller.cpp
-  src/nmpc/fix_qd_thrust_out_mdl/nmpc_solver.cpp
-  src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
+        src/nmpc/fix_qd_thrust_out_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_no_servo_mdl/nmpc_controller.cpp
-  src/nmpc/tilt_qd_servo_mdl/nmpc_solver.cpp
-  src/nmpc/tilt_qd_servo_mdl/nmpc_controller.cpp
-  src/nmpc/tilt_qd_servo_dist_mdl/nmpc_solver.cpp
-  src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.cpp
-        src/nmpc/tilt_tri_servo_mdl/nmpc_solver.cpp
+        src/nmpc/tilt_qd_servo_mdl/nmpc_controller.cpp
+        src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.cpp
         src/nmpc/tilt_tri_servo_mdl/nmpc_controller.cpp
-        src/nmpc/tilt_bi_servo_mdl/nmpc_solver.cpp
         src/nmpc/tilt_bi_servo_mdl/nmpc_controller.cpp
-        src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_solver.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
   src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_solver.cpp
   src/nmpc/tilt_qd_servo_w_cog_end_dist_mdl/nmpc_controller.cpp
