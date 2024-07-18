@@ -42,7 +42,7 @@ protected:
 
   void prepareNMPCParams() override;
 
-  void calcDisturbWrench();
+  virtual void calcDisturbWrench();
 
   void callbackViz(const ros::TimerEvent& event) override;
 

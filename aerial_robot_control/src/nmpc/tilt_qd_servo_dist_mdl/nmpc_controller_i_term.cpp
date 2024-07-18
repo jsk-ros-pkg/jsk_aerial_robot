@@ -2,7 +2,7 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller_i_term.h"
 
 using namespace aerial_robot_control;
 
