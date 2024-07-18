@@ -16,13 +16,13 @@ abstract class aerial_robot_control::ControlBase {
 abstract class aerial_robot_control::nmpc::BaseMPC extends aerial_robot_control::ControlBase {
     # mpc_solver_ptr_
     # initPredXU()
-    # initMPCSolverPtr()
-    # callbackSetRefTraj()
+    # initMPCSolverPtr() = 0
+    # callbackSetRefTraj() = 0
     # rosXU2VecXU()
-    # meas2VecX()
-    # controlCore()
-    # sendCmd()
-    # callbackViz()
+    # meas2VecX() = 0
+    # controlCore() = 0
+    # sendCmd() = 0
+    # callbackViz() = 0
 }
 
 class aerial_robot_control::nmpc::FixQdNMPC extends aerial_robot_control::nmpc::TiltQdServoNMPC {
@@ -71,23 +71,28 @@ class aerial_robot_control::nmpc::TiltQdServoNMPC extends aerial_robot_control::
     # allocateToXU()
 }
 
-class aerial_robot_control::nmpc::TiltQdServoNMPCwITerm extends aerial_robot_control::nmpc::TiltQdServoNMPC {
-'x_dim = 17, u_dim = 8， p_dim = 10'
+abstract class aerial_robot_control::nmpc::TiltQdServoDistNMPC extends aerial_robot_control::nmpc::TiltQdServoNMPC {
+'x_dim = 23, u_dim = 8， p_dim = 4'
     + initialize()
-    # initParams()
     # initMPCSolverPtr()
-    # prepareNMPCParams()
-    # calcDisturbWrench()
+    # meas2VecX()
+    # calcDisturbWrench() = 0
     # callbackViz()
+}
+
+class aerial_robot_control::nmpc::TiltQdServoNMPCwITerm extends aerial_robot_control::nmpc::TiltQdServoDistNMPC {
+'x_dim = 23, u_dim = 8， p_dim = 4'
+    # initParams()
+    # calcDisturbWrench()
     # cfgNMPCCallback()
 }
 
-class aerial_robot_control::nmpc::TiltQdServoNMPCwEKF extends aerial_robot_control::nmpc::TiltQdServoNMPC {
+class aerial_robot_control::nmpc::TiltQdServoNMPCwEKF extends aerial_robot_control::nmpc::TiltQdServoDistNMPC {
 'x_dim = 23, u_dim = 8, p_dim = 4'
 unfinished
-    + initialize()
-    + update()
-    + reset()
+    # initParams()
+    # calcDisturbWrench()
+    # cfgNMPCCallback()
 }
 
 class aerial_robot_control::nmpc::TiltQdServoNMPCwMHE extends aerial_robot_control::nmpc::TiltQdServoNMPCwEKF {
