@@ -89,7 +89,7 @@ class NMPCTiltQdServoDist(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
+        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
         ft1 = ca.SX.sym("ft1")
@@ -103,8 +103,6 @@ class NMPCTiltQdServoDist(NMPCBase):
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
-
-        parameters = ca.vertcat(quaternion)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -186,8 +184,8 @@ class NMPCTiltQdServoDist(NMPCBase):
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b)),
             (ac - a) / t_servo,
-            ca.vertcat(0, 0, 0),
-            ca.vertcat(0, 0, 0),
+            ca.vertcat(0.0, 0.0, 0.0),
+            ca.vertcat(0.0, 0.0, 0.0),
         )
 
         # function
@@ -265,7 +263,7 @@ class NMPCTiltQdServoDist(NMPCBase):
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
-                0, 0, 0, 0, 0, 0
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             ]
         )
         print("Q: \n", Q)
