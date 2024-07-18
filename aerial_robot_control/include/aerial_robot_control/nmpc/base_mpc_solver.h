@@ -113,8 +113,11 @@ public:
 
     if (is_debug)
     {
-      printSolution();
-      printStatus(min_time);
+      printAcadosWeight();
+      printAcadosMatrix();
+      printAcadosReference();
+      printAcadosSolution();
+      printAcadosStatus(min_time);
     }
 
     return 0;
@@ -224,7 +227,7 @@ public:
   }
 
   /* for debugging */
-  void printStatus(double min_time)
+  void printAcadosStatus(double min_time)
   {
     double kkt_norm_inf;
     int sqp_iter;
@@ -239,7 +242,76 @@ public:
               << kkt_norm_inf << std::endl;
   }
 
-  void printSolution()
+  void printAcadosWeight()
+  {
+    std::cout << "W matrix:\n";
+    for (int i = 0; i < NY_; i++)
+    {
+      for (int j = 0; j < NY_; j++)
+      {
+        std::cout << W_[i * NY_ + j] << " ";
+      }
+      std::cout << "\n";
+    }
+
+    std::cout << "WN matrix:\n";
+    for (int i = 0; i < NX_; i++)
+    {
+      for (int j = 0; j < NX_; j++)
+      {
+        std::cout << WN_[i * NX_ + j] << " ";
+      }
+      std::cout << "\n";
+    }
+  }
+
+  void printAcadosMatrix()
+  {
+    std::vector<double> mtx_A(NX_ * NX_);
+    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, 0, "A", mtx_A.data());
+    std::cout << "A matrix at stage 0:\n";
+    for (int i = 0; i < NX_; i++)
+    {
+      for (int j = 0; j < NX_; j++)
+      {
+        std::cout << mtx_A[i * NX_ + j] << " ";
+      }
+      std::cout << "\n";
+    }
+  }
+
+  void printAcadosReference()
+  {
+    std::stringstream ss;
+
+    ss << "\n--- xr ---\n";
+    for (int i = 0; i <= NN_; i++)
+    {
+      ss << "Xr Row " << i << ":\n";
+      for (int j = 0; j < NX_; j++)
+      {
+        ss << xr_[i][j] << " ";
+      }
+      ss << "\n";
+    }
+    std::cout << ss.str();  // Logging the xr
+
+    ss.str("");  // Clearing the string stream
+
+    ss << "\n--- ur ---\n";
+    for (int i = 0; i < NN_; i++)
+    {
+      ss << "Ur Row " << i << ":\n";
+      for (int j = 0; j < NU_; j++)
+      {
+        ss << ur_[i][j] << " ";
+      }
+      ss << "\n";
+    }
+    std::cout << ss.str();  // Logging the ur
+  }
+
+  void printAcadosSolution()
   {
     std::stringstream ss;
 
