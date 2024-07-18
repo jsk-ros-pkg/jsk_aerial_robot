@@ -2,10 +2,10 @@ scan_filter_chain:
 - name: shadows
   type: laser_filters/ScanShadowsFilter
   params:
-        min_angle: 10
-        max_angle: 170
-        neighbors: 3
-        window: 3
+        min_angle: 5
+        max_angle: 175
+        neighbors: 2
+        window: 2
 - name: range
   type: laser_filters/LaserScanRangeFilter
   params:
