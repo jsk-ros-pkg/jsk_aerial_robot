@@ -15,7 +15,7 @@ from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
 
 # consider the servo delay
 from tilt_qd_servo import NMPCTiltQdServo
-from tilt_qd_servo_w_dist import NMPCTiltQdServoDist
+from tilt_qd_servo_dist import NMPCTiltQdServoDist
 from tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
 
 from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
@@ -46,7 +46,8 @@ if __name__ == "__main__":
         help="The NMPC model to be simulated. Options: 0 (no_servo_delay), 1 (old servo cost), 2 (full).",
     )
     parser.add_argument("-sim", "--sim_model", type=int, default=0,
-                        help="The simulation model. Options: 0 (NMPCTiltQdServoThrust), 1 (NMPCTiltQdServoThrustDrag).")
+                        help="The simulation model. "
+                             "Options: 0 (default: NMPCTiltQdServoThrust), 1 (NMPCTiltQdServoThrustDrag).")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -144,7 +145,11 @@ if __name__ == "__main__":
         t_ctl += ts_sim
 
         # --------- update state estimation ---------
-        x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
+        if isinstance(nmpc, NMPCTiltQdServoDist):
+            x_now = np.zeros(nx)
+            x_now[:nx - 6] = x_now_sim[:nx - 6]  # only remove the last 6 elements, which are the disturbances
+        else:
+            x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T

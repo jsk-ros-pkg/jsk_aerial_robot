@@ -78,7 +78,11 @@ class NMPCTiltQdServoDist(NMPCBase):
         a4 = ca.SX.sym("a4")
         a = ca.vertcat(a1, a2, a3, a4)
 
-        states = ca.vertcat(p, v, q, w, a)
+        # disturbances
+        f_d_i = ca.SX.sym("f_d_i", 3)
+        tau_d_b = ca.SX.sym("tau_d_b", 3)
+
+        states = ca.vertcat(p, v, q, w, a, f_d_i, tau_d_b)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -100,11 +104,7 @@ class NMPCTiltQdServoDist(NMPCBase):
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
         controls = ca.vertcat(ft, ac)
 
-        # disturbance
-        f_disturb_i = ca.SX.sym("f_disturb_i", 3)
-        tau_disturb_b = ca.SX.sym("tau_disturb_b", 3)
-
-        parameters = ca.vertcat(quaternion, f_disturb_i, tau_disturb_b)
+        parameters = ca.vertcat(quaternion)
 
         # transformation matrix
         row_1 = ca.horzcat(
@@ -179,28 +179,30 @@ class NMPCTiltQdServoDist(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_d_i / mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_disturb_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b)),
             (ac - a) / t_servo,
+            ca.vertcat(0, 0, 0),
+            ca.vertcat(0, 0, 0),
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, f_d_i, tau_d_b)
         control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 17)
+        x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -263,6 +265,7 @@ class NMPCTiltQdServoDist(NMPCBase):
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
+                0, 0, 0, 0, 0, 0
             ]
         )
         print("Q: \n", Q)
@@ -421,7 +424,7 @@ class XrUrConverter(XrUrConverterBase):
         super(XrUrConverter, self).__init__()
 
     def _set_nx_nu(self):
-        self.nx = 17
+        self.nx = 23
         self.nu = 8
 
     def _set_physical_params(self):
