@@ -40,7 +40,7 @@ protected:
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoDistMdlMPCSolver>();
   }
 
-  void prepareNMPCParams() override;
+  std::vector<double> meas2VecX() override;
 
   virtual void calcDisturbWrench();
 

@@ -174,9 +174,9 @@ void nmpc::TiltQdServoNMPC::initCostW()
   mpc_solver_ptr_->setCostWDiagElement(12, Qw_z);
   for (int i = 13; i < 13 + joint_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Qa);
-  for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
+  for (int i = mpc_solver_ptr_->NX_; i < mpc_solver_ptr_->NX_ + motor_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rt, false);
-  for (int i = 13 + joint_num_ + motor_num_; i < 13 + joint_num_ + motor_num_ + joint_num_; ++i)
+  for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
   mpc_solver_ptr_->setCostWeight(true, true);
 }
@@ -463,13 +463,13 @@ void nmpc::TiltQdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
           break;
         }
         case Levels::RECONFIGURE_NMPC_R_T: {
-          for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
+          for (int i = mpc_solver_ptr_->NX_; i < mpc_solver_ptr_->NX_ + motor_num_; ++i)
             mpc_solver_ptr_->setCostWDiagElement(i, config.Rt, false);
           ROS_INFO_STREAM("change Rt for NMPC '" << config.Rt << "'");
           break;
         }
         case Levels::RECONFIGURE_NMPC_R_AC_D: {
-          for (int i = 13 + joint_num_ + motor_num_; i < 13 + joint_num_ + motor_num_ + joint_num_; ++i)
+          for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
             mpc_solver_ptr_->setCostWDiagElement(i, config.Rac_d, false);
           ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
           break;

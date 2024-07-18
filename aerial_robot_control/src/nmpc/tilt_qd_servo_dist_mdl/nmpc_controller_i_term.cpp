@@ -51,20 +51,19 @@ void nmpc::TiltQdServoNMPCwITerm::initParams()
   pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
 }
 
-void nmpc::TiltQdServoNMPCwITerm::prepareNMPCParams()
+std::vector<double> nmpc::TiltQdServoNMPCwITerm::meas2VecX()
 {
+  vector<double> bx0 = TiltQdServoNMPC::meas2VecX();
+
   /* disturbance rejection */
   calcDisturbWrench();
-
-  std::vector<double> params(mpc_solver_ptr_->NP_ - 4);
-  params[0] = dist_force_w_.x;
-  params[1] = dist_force_w_.y;
-  params[2] = dist_force_w_.z;
-  params[3] = dist_torque_cog_.x;
-  params[4] = dist_torque_cog_.y;
-  params[5] = dist_torque_cog_.z;
-
-  mpc_solver_ptr_->setParameters(params, false);
+  bx0[13 + joint_num_ + 0] = dist_force_w_.x;
+  bx0[13 + joint_num_ + 1] = dist_force_w_.y;
+  bx0[13 + joint_num_ + 2] = dist_force_w_.z;
+  bx0[13 + joint_num_ + 3] = dist_torque_cog_.x;
+  bx0[13 + joint_num_ + 4] = dist_torque_cog_.y;
+  bx0[13 + joint_num_ + 5] = dist_torque_cog_.z;
+  return bx0;
 }
 
 void nmpc::TiltQdServoNMPCwITerm::calcDisturbWrench()
