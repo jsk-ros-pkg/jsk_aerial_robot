@@ -7,7 +7,7 @@ import shutil
 import numpy as np
 from tf_conversions import transformations as tf
 from abc import ABC, abstractmethod
-from acados_template import AcadosModel, AcadosOcpSolver
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
 
 class XrUrConverterBase(ABC):
@@ -158,11 +158,11 @@ class XrUrConverterBase(ABC):
 
 class NMPCBase(ABC):
     def __init__(self, is_build: bool = True):
-        self.ts_ctrl = self._set_ts_ctrl()
+        self.ts_ctrl = self.set_ts_ctrl()
 
-        self._ocp_model = self._create_acados_model(self._set_name())
-        self._ocp_solver = self._create_acados_ocp_solver(self._ocp_model, is_build)
-        self._xr_ur_converter = self._create_xr_ur_converter()
+        self._ocp_model = self.create_acados_model(self.set_name())
+        self._ocp_solver = self.create_acados_ocp_solver(self._ocp_model, is_build)
+        self._xr_ur_converter = self.create_xr_ur_converter()
 
     def get_ocp_model(self) -> AcadosModel:
         return self._ocp_model
@@ -174,23 +174,36 @@ class NMPCBase(ABC):
         return self._xr_ur_converter
 
     @abstractmethod
-    def _set_name(self) -> str:
-        return "beetle_full_model"
+    def set_name(self) -> str:
+        return "xxx_mdl"
 
     @abstractmethod
-    def _set_ts_ctrl(self) -> float:
+    def set_ts_ctrl(self) -> float:
         return float()
 
     @abstractmethod
-    def _create_acados_model(self, model_name: str) -> AcadosModel:
+    def create_acados_model(self, model_name: str) -> AcadosModel:
+        pass
+
+    @staticmethod
+    def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float, is_build: bool) -> AcadosSimSolver:
+        acados_sim = AcadosSim()
+        acados_sim.model = ocp_model
+
+        n_params = ocp_model.p.size()[0]
+        acados_sim.dims.np = n_params
+        acados_sim.parameter_values = np.zeros(n_params)
+
+        acados_sim.solver_options.T = ts_sim
+        acados_sim_solver = AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return acados_sim_solver
+
+    @abstractmethod
+    def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         pass
 
     @abstractmethod
-    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
-        pass
-
-    @abstractmethod
-    def _create_xr_ur_converter(self) -> XrUrConverterBase:
+    def create_xr_ur_converter(self) -> XrUrConverterBase:
         pass
 
     @staticmethod

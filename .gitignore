@@ -111,4 +111,5 @@ tags
 # acados
 *c_generated_code/
 *acados_ocp.json
+*acados_sim.json
 *model.json

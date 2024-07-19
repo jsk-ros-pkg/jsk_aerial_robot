@@ -25,18 +25,6 @@ from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 from tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
-
-def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float) -> AcadosSimSolver:
-    acados_sim = AcadosSim()
-    acados_sim.model = ocp_model
-    n_params = ocp_model.p.size()[0]
-    acados_sim.dims.np = n_params  # TODO: seems that the np needn't to be set manually in the latest version of acados
-    acados_sim.parameter_values = np.zeros(n_params)
-    acados_sim.solver_options.T = ts_sim
-    acados_sim_solver = AcadosSimSolver(acados_sim, json_file="acados_ocp_" + ocp_model.name + ".json")
-    return acados_sim_solver
-
-
 if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different NMPC models.")
@@ -121,7 +109,7 @@ if __name__ == "__main__":
 
     # sim solver
     sim_nmpc.get_ocp_model()
-    sim_solver = create_acados_sim_solver(sim_nmpc.get_ocp_model(), ts_sim)
+    sim_solver = sim_nmpc.create_acados_sim_solver(sim_nmpc.get_ocp_model(), ts_sim, True)
     nx_sim = sim_solver.acados_sim.dims.nx
 
     x_init_sim = np.zeros(nx_sim)

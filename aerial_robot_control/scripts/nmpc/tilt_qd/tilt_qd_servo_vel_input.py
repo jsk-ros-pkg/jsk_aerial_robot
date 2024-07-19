@@ -47,14 +47,14 @@ class NMPCTiltQdServoVelInput(NMPCBase):
     def __init__(self):
         super(NMPCTiltQdServoVelInput, self).__init__()
 
-    def _set_name(self) -> str:
+    def set_name(self) -> str:
         model_name = "tilt_qd_servo_vel_input_mdl"
         return model_name
 
-    def _set_ts_ctrl(self) -> float:
+    def set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
 
-    def _create_acados_model(self, model_name: str) -> AcadosModel:
+    def create_acados_model(self, model_name: str) -> AcadosModel:
         # model states
         p = ca.SX.sym("p", 3)
         v = ca.SX.sym("v", 3)
@@ -208,7 +208,7 @@ class NMPCTiltQdServoVelInput(NMPCBase):
 
         return model
 
-    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         nx = ocp_model.x.size()[0]
         nu = ocp_model.u.size()[0]
         n_params = ocp_model.p.size()[0]
@@ -406,7 +406,7 @@ class NMPCTiltQdServoVelInput(NMPCBase):
 
         return solver
 
-    def _create_xr_ur_converter(self) -> XrUrConverterBase:
+    def create_xr_ur_converter(self) -> XrUrConverterBase:
         return XrUrConverter()
 
 

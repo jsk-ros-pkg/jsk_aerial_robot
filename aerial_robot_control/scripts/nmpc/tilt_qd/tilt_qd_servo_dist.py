@@ -12,7 +12,7 @@ import sys
 import numpy as np
 import yaml
 import rospkg
-from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
@@ -46,17 +46,20 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 
 
 class NMPCTiltQdServoDist(NMPCBase):
-    def __init__(self):
-        super(NMPCTiltQdServoDist, self).__init__()
+    def __init__(self, is_build: bool = True):
+        super(NMPCTiltQdServoDist, self).__init__(is_build)
         self.t_servo = t_servo
 
-    def _set_name(self) -> str:
+        # for EKF
+        self.sim_solver = self.create_acados_sim_solver(self._ocp_model, nmpc_params["T_samp"], is_build)
+
+    def set_name(self) -> str:
         return "tilt_qd_servo_dist_mdl"
 
-    def _set_ts_ctrl(self) -> float:
+    def set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
 
-    def _create_acados_model(self, model_name: str) -> AcadosModel:
+    def create_acados_model(self, model_name: str) -> AcadosModel:
         # model states
         p = ca.SX.sym("p", 3)
         v = ca.SX.sym("v", 3)
@@ -216,7 +219,7 @@ class NMPCTiltQdServoDist(NMPCBase):
 
         return model
 
-    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         nx = ocp_model.x.size()[0]
         nu = ocp_model.u.size()[0]
         n_params = ocp_model.p.size()[0]
@@ -413,7 +416,7 @@ class NMPCTiltQdServoDist(NMPCBase):
 
         return solver
 
-    def _create_xr_ur_converter(self) -> XrUrConverterBase:
+    def create_xr_ur_converter(self) -> XrUrConverterBase:
         return XrUrConverter()
 
 
