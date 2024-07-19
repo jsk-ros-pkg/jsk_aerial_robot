@@ -25,6 +25,7 @@ public:
     P_ = P;
     x_ = x;
   }
+
   void predict(const Eigen::VectorXd& u, const Eigen::MatrixXd& A = Eigen::MatrixXd::Zero(0, 0),
                const Eigen::MatrixXd& B = Eigen::MatrixXd::Zero(0, 0),
                const Eigen::MatrixXd& G = Eigen::MatrixXd::Zero(0, 0))

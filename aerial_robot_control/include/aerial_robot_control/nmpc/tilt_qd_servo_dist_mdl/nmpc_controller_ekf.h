@@ -5,7 +5,7 @@
 #ifndef TILT_QD_SERVO_NMPC_W_EKF_CONTROLLER_H
 #define TILT_QD_SERVO_NMPC_W_EKF_CONTROLLER_H
 
-#include "nmpc_controller_i_term.h"
+#include "nmpc_controller.h"
 #include "aerial_robot_control/nmpc/kalman_filter.h"
 
 #include "geometry_msgs/WrenchStamped.h"
@@ -18,15 +18,11 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class TiltQdServoNMPCwEKF : public nmpc::TiltQdServoNMPCwITerm
+class TiltQdServoNMPCwEKF : public nmpc::TiltQdServoDistNMPC
 {
-public:
-  void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
-
 protected:
+  KalmanFilter ekf_;
+
   void initParams() override;
 
   void calcDisturbWrench() override;

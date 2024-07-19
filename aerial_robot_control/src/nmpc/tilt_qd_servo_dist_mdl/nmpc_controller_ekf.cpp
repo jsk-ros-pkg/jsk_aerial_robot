@@ -6,19 +6,14 @@
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltQdServoNMPCwEKF::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                                           boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                           boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                           boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                                           double ctrl_loop_du)
-{
-  TiltQdServoNMPCwITerm::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
-}
-
 void nmpc::TiltQdServoNMPCwEKF::initParams()
 {
   TiltQdServoNMPC::initParams();
 
+  ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle ekf_nh(control_nh, "ekf");
+
+  /* EKF */
 }
 
 void nmpc::TiltQdServoNMPCwEKF::calcDisturbWrench()
