@@ -1,24 +1,32 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- shadow_laser_filter -->
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="shadow_laser_filter">
+
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="whole_laser_filter">
     <remap from="scan" to="scan" />
-    <remap from="scan_filtered" to="shadow_filtered" />
+    <remap from="scan_filtered" to="scan_clustered" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserWholeFilter.yaml" />
+  </node>
+
+  <!-- shadow_laser_filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_shadow_laser_filter">
+    <remap from="scan" to="scan" />
+    <remap from="scan_filtered" to="debug/shadow_filtered" />
     <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserShadowFilter.yaml" />
   </node>
 
+  <!-- range diff filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_range_diff_filter">
+    <remap from="scan" to="debug/shadow_filtered" />
+    <remap from="scan_filtered" to="debug/range_diff_filtered" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserRangeDiffFilter.yaml" />
+  </node>
+
   <!-- laser clustering  filter -->
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="trees_filter">
-    <remap from="scan" to="range_diff_filtered" />
-    <remap from="scan_filtered" to="scan_clustered" />
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_trees_filter">
+    <remap from="scan" to="debug/range_diff_filtered" />
+    <remap from="scan_filtered" to="debug/scan_clustered" />
     <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserClustering.yaml" />
   </node>
 
-  <!-- range diff filter -->
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="range_diff_filter">
-    <remap from="scan" to="shadow_filtered" />
-    <remap from="scan_filtered" to="range_diff_filtered" />
-    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserRangeDiffFilter.yaml" />
-  </node>
 
 </launch>

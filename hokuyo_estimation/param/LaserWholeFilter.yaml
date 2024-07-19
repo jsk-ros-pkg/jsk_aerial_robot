@@ -1,0 +1,23 @@
+scan_filter_chain:
+- name: shadows
+  type: laser_filters/ScanShadowsFilter
+  params:
+        min_angle: 5
+        max_angle: 175
+        neighbors: 2
+        window: 2
+- name: range
+  type: laser_filters/LaserScanRangeFilter
+  params:
+        lower_threshold: 0.2
+        upper_threshold: 15
+- name: range_diff_filter
+  type: laser_filters/LaserRangeDiffFilter
+  params:
+    distance_threshold: 1.0
+- name: tree
+  type: laser_filters/LaserClusteringFilter
+  params:
+    max_radius: 0.4 #kashiwa  #0.25(diameter: 0.5) real
+    min_points: 3
+    verbose: false
