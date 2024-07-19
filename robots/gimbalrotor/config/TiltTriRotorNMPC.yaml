@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/tilt_tri_full/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_tri/servo_nmpc
 
 controller:
   physical:
@@ -57,6 +57,7 @@ controller:
     is_print_phys_params: false
     is_debug: false
 
+  i_term:
     # disturb_rej
     limit_fx: 5.0
     limit_fy: 5.0

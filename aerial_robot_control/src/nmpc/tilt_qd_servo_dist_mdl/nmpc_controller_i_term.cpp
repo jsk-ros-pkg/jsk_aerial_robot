@@ -11,24 +11,24 @@ void nmpc::TiltQdServoNMPCwITerm::initParams()
   TiltQdServoNMPC::initParams();
 
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle i_term_nh(control_nh, "i_term");
 
   /* disturbance rejection using I term */
   double fx_limit, fy_limit, fz_limit, mx_limit, my_limit, mz_limit;
-  getParam<double>(nmpc_nh, "limit_fx", fx_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_fy", fy_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_fz", fz_limit, 5.0);
-  getParam<double>(nmpc_nh, "limit_mx", mx_limit, 1.0);
-  getParam<double>(nmpc_nh, "limit_my", my_limit, 1.0);
-  getParam<double>(nmpc_nh, "limit_mz", mz_limit, 1.0);
+  getParam<double>(i_term_nh, "limit_fx", fx_limit, 5.0);
+  getParam<double>(i_term_nh, "limit_fy", fy_limit, 5.0);
+  getParam<double>(i_term_nh, "limit_fz", fz_limit, 5.0);
+  getParam<double>(i_term_nh, "limit_mx", mx_limit, 1.0);
+  getParam<double>(i_term_nh, "limit_my", my_limit, 1.0);
+  getParam<double>(i_term_nh, "limit_mz", mz_limit, 1.0);
 
   double i_gain_x, i_gain_y, i_gain_z, i_gain_roll, i_gain_pitch, i_gain_yaw;
-  getParam<double>(nmpc_nh, "i_gain_x", i_gain_x, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_y", i_gain_y, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_z", i_gain_z, 1.0);
-  getParam<double>(nmpc_nh, "i_gain_roll", i_gain_roll, 0.5);
-  getParam<double>(nmpc_nh, "i_gain_pitch", i_gain_pitch, 0.5);
-  getParam<double>(nmpc_nh, "i_gain_yaw", i_gain_yaw, 0.5);
+  getParam<double>(i_term_nh, "i_gain_x", i_gain_x, 1.0);
+  getParam<double>(i_term_nh, "i_gain_y", i_gain_y, 1.0);
+  getParam<double>(i_term_nh, "i_gain_z", i_gain_z, 1.0);
+  getParam<double>(i_term_nh, "i_gain_roll", i_gain_roll, 0.5);
+  getParam<double>(i_term_nh, "i_gain_pitch", i_gain_pitch, 0.5);
+  getParam<double>(i_term_nh, "i_gain_yaw", i_gain_yaw, 0.5);
 
   double freq = 1.0 / ctrl_loop_du_;
   pos_i_term_[0].initialize(i_gain_x, fx_limit, freq);  // x

@@ -6,7 +6,6 @@
 #define TILT_QD_SERVO_NMPC_W_ITERM_CONTROLLER_H
 
 #include "nmpc_controller.h"
-#include "nmpc_solver.h"
 #include "aerial_robot_control/nmpc/i_term.h"
 
 #include "geometry_msgs/WrenchStamped.h"

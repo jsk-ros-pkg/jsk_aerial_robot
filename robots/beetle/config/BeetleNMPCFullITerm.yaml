@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/tilt_qd_servo_dist_mdl/nmpc_controller
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_qd/servo_nmpc_w_iterm
 
 controller:
   physical:
@@ -59,6 +59,7 @@ controller:
     is_print_phys_params: false
     is_debug: false
 
+  i_term:
     # disturb_rej
     limit_fx: 5.0
     limit_fy: 5.0
