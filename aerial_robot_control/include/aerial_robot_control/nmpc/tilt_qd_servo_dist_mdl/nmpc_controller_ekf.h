@@ -6,6 +6,7 @@
 #define TILT_QD_SERVO_NMPC_W_EKF_CONTROLLER_H
 
 #include "nmpc_controller.h"
+#include "nsim_solver.h"
 #include "aerial_robot_control/nmpc/kalman_filter.h"
 
 #include "geometry_msgs/WrenchStamped.h"
@@ -21,7 +22,14 @@ namespace nmpc
 class TiltQdServoNMPCwEKF : public nmpc::TiltQdServoDistNMPC
 {
 protected:
+  std::unique_ptr<mpc_sim_solver::TiltQdServoDistMdlSimSolver> sim_solver_ptr_;
   KalmanFilter ekf_;
+
+  inline void initMPCSolverPtr() override
+  {
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoDistMdlMPCSolver>();
+    sim_solver_ptr_ = std::make_unique<mpc_sim_solver::TiltQdServoDistMdlSimSolver>();
+  }
 
   void initParams() override;
 
