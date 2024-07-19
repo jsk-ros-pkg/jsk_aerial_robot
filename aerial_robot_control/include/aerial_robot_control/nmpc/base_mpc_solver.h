@@ -226,6 +226,21 @@ public:
       ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN_.data());
   }
 
+  /* Getters */
+  std::vector<double> getMatrixA(int stage)
+  {
+    std::vector<double> mtx_A(NX_ * NX_);
+    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "A", mtx_A.data());
+    return mtx_A;
+  }
+
+  std::vector<double> getMatrixB(int stage)
+  {
+    std::vector<double> mtx_B(NX_ * NU_);
+    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "B", mtx_B.data());
+    return mtx_B;
+  }
+
   /* for debugging */
   void printAcadosStatus(double min_time)
   {
@@ -265,11 +280,10 @@ public:
     }
   }
 
-  void printAcadosMatrix()
+  void printAcadosMatrix(int stage = 0)
   {
-    std::vector<double> mtx_A(NX_ * NX_);
-    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, 0, "A", mtx_A.data());
-    std::cout << "A matrix at stage 0:\n";
+    std::vector<double> mtx_A = getMatrixA(stage);
+    std::cout << "A matrix at stage " << stage << ":\n";
     for (int i = 0; i < NX_; i++)
     {
       for (int j = 0; j < NX_; j++)
