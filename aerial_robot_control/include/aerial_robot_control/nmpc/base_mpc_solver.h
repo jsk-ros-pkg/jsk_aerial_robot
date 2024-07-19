@@ -79,24 +79,24 @@ public:
   void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
   {
     if (x_init.size() != NN_ + 1 || u_init.size() != NN_)
-      throw std::invalid_argument("x_init or u_init size is not equal to NN_ + 1 or NN_");
+      throw std::length_error("x_init or u_init size is not equal to NN_ + 1 or NN_");
 
     for (int i = 0; i < NN_; i++)
     {
       if (x_init[i].size() != NX_ || u_init[i].size() != NU_)
-        throw std::invalid_argument("x_init[i] or u_init[i] size is not equal to NX_ or NU_");
+        throw std::length_error("x_init[i] or u_init[i] size is not equal to NX_ or NU_");
       ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", (void*)x_init[i].data());
       ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", (void*)u_init[i].data());
     }
     if (x_init[NN_].size() != NX_)
-      throw std::invalid_argument("x_init[NN_] size is not equal to NX_");
+      throw std::length_error("x_init[NN_] size is not equal to NX_");
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
   }
 
   void resetByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
   {
     if (x0.size() != NX_ || u0.size() != NU_)
-      throw std::invalid_argument("x0 or u0 size is not equal to NX_ or NU_");
+      throw std::length_error("x0 or u0 size is not equal to NX_ or NU_");
 
     std::vector<std::vector<double>> x_init(NN_ + 1, x0);
     std::vector<std::vector<double>> u_init(NN_, u0);
@@ -134,7 +134,7 @@ public:
     if (is_quat_in_p)
     {
       if (p.size() != NP_)
-        throw std::invalid_argument("p size is not equal to NP_");
+        throw std::length_error("p size is not equal to NP_");
 
       for (int i = 0; i < NN_ + 1; i++)
         acadosUpdateParams(i, p);
@@ -142,7 +142,7 @@ public:
     else
     {
       if (p.size() != NP_ - 4)
-        throw std::invalid_argument("p size is not equal to NP_ - 4");
+        throw std::length_error("p size is not equal to NP_ - 4");
 
       std::vector<int> index(NP_ - 4);
       for (int j = 0; j < NP_ - 4; j++)
@@ -157,12 +157,12 @@ public:
                     bool is_set_quat = false)
   {
     if (xr.size() != NN_ + 1 || ur.size() != NN_)
-      throw std::invalid_argument("xr or ur size is not equal to NN_ + 1 or NN_");
+      throw std::length_error("xr or ur size is not equal to NN_ + 1 or NN_");
 
     for (int i = 0; i < NN_; i++)
     {
       if (xr[i].size() != NX_ || ur[i].size() != NU_)
-        throw std::invalid_argument("xr[i] or ur[i] size is not equal to NX_ or NU_");
+        throw std::length_error("xr[i] or ur[i] size is not equal to NX_ or NU_");
 
       std::vector<double> yr;
       yr.reserve(xr[i].size() + ur[i].size());
@@ -182,7 +182,7 @@ public:
     }
 
     if (xr[NN_].size() != NX_)
-      throw std::invalid_argument("xr[NN_] size is not equal to NX_");
+      throw std::length_error("xr[NN_] size is not equal to NX_");
 
     ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "y_ref", (void*)xr[NN_].data());
 
@@ -202,14 +202,14 @@ public:
   void setCostWDiagElement(int index, double value, bool is_set_WN = true)
   {
     if (index >= NY_)
-      throw std::invalid_argument("index should be less than NY_ = NX_ + NU_");
+      throw std::length_error("index should be less than NY_ = NX_ + NU_");
 
     W_[index + index * (NY_)] = value;
 
     if (is_set_WN)
     {
       if (index >= NX_)
-        throw std::invalid_argument("index should be less than NX_");
+        throw std::length_error("index should be less than NX_");
 
       WN_[index + index * NX_] = value;
     }
@@ -354,7 +354,7 @@ protected:
   inline void setFeedbackConstraints(const std::vector<double>& bx0)
   {
     if (bx0.size() != NBX0_)
-      throw std::invalid_argument("bx0 size is not equal to NBX0_");
+      throw std::length_error("bx0 size is not equal to NBX0_");
 
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", (void*)bx0.data());
     ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", (void*)bx0.data());
@@ -378,19 +378,19 @@ protected:
   inline void getSolution()
   {
     if (xo_.size() != NN_ + 1 || uo_.size() != NN_)
-      throw std::invalid_argument("xo_ or uo_ size is not equal to NN_ + 1 or NN_");
+      throw std::length_error("xo_ or uo_ size is not equal to NN_ + 1 or NN_");
 
     for (int i = 0; i < NN_; i++)
     {
       if (xo_[i].size() != NX_ || uo_[i].size() != NU_)
-        throw std::invalid_argument("xo_[i] or uo_[i] size is not equal to NX_ or NU_");
+        throw std::length_error("xo_[i] or uo_[i] size is not equal to NX_ or NU_");
 
       ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "x", xo_[i].data());
       ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, i, "u", uo_[i].data());
     }
 
     if (xo_[NN_].size() != NX_)
-      throw std::invalid_argument("xo_[NN_] size is not equal to NX_");
+      throw std::length_error("xo_[NN_] size is not equal to NX_");
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", xo_[NN_].data());
   }
