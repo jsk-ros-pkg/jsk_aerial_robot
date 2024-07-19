@@ -60,10 +60,10 @@ public:
     // acados functions that only using once
     acados_ocp_capsule_ = tilt_qd_servo_mdl_acados_create_capsule();
 
-    int status = tilt_qd_servo_mdl_acados_create_with_discretization(acados_ocp_capsule_, NN_, new_time_steps);
+    int status = tilt_qd_servo_mdl_acados_create(acados_ocp_capsule_);
     if (status)
-      throw std::runtime_error("tilt_qd_servo_mdl_acados_create_with_discretization() returned status " +
-                               std::to_string(status) + ". Exiting.");
+      throw std::runtime_error("tilt_qd_servo_mdl_acados_create() returned status " + std::to_string(status) +
+                               ". Exiting.");
 
     nlp_config_ = tilt_qd_servo_mdl_acados_get_nlp_config(acados_ocp_capsule_);
     nlp_dims_ = tilt_qd_servo_mdl_acados_get_nlp_dims(acados_ocp_capsule_);

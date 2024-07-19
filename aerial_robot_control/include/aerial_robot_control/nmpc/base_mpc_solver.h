@@ -343,7 +343,6 @@ public:
   }
 
 protected:
-  double* new_time_steps = nullptr;
   ocp_nlp_config* nlp_config_ = nullptr;
   ocp_nlp_dims* nlp_dims_ = nullptr;
   ocp_nlp_in* nlp_in_ = nullptr;
