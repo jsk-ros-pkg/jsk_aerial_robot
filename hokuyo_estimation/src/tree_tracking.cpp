@@ -72,7 +72,6 @@ void TreeTracking::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg)
 
 void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg)
 {
- ROS_INFO("TreeTracking laserScanCallback is called");
  ros::Time callback_begin = ros::Time::now();
 
   /* extract the cluster */
@@ -155,5 +154,4 @@ void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_
   /* send command for policy system */
   tree_db_.visualization(scan_msg->header);
   ros::Duration callback_duration = ros::Time::now() - callback_begin;
-  ROS_INFO("laserScanCallback:%u.%09u", callback_duration.sec, callback_duration.nsec);
 }
