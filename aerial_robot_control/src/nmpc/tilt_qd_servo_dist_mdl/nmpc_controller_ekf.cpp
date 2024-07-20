@@ -52,7 +52,7 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
   Q(17, 17) = Qd_f_i, Q(18, 18) = Qd_f_i, Q(19, 19) = Qd_f_i;
   Q(20, 20) = Qd_tau_b, Q(21, 21) = Qd_tau_b, Q(22, 22) = Qd_tau_b;
 
-  Eigen::MatrixXd R = Eigen::MatrixXd::Zero(17, NX);
+  Eigen::MatrixXd R = Eigen::MatrixXd::Zero(17, 17);
   R(0, 0) = Rp, R(1, 1) = Rp, R(2, 2) = Rp;
   R(3, 3) = Rv, R(4, 4) = Rv, R(5, 5) = Rv;
   R(6, 6) = Rq, R(7, 7) = Rq, R(8, 8) = Rq, R(9, 9) = Rq;
@@ -69,7 +69,7 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
 
 std::vector<double> nmpc::TiltQdServoNMPCwEKF::meas2VecX()
 {
-  Eigen::VectorXd z = Eigen::VectorXd::Zero(sim_solver_ptr_->NX_);
+  Eigen::VectorXd z = Eigen::VectorXd::Zero(17);
   z(0) = odom_.pose.pose.position.x;
   z(1) = odom_.pose.pose.position.y;
   z(2) = odom_.pose.pose.position.z;
