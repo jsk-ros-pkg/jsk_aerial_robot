@@ -66,8 +66,8 @@ controller:
     Qq: 0.01
     Qw: 0.01
     Qa: 0.01
-    Qdf: 0.5
-    Qdb: 0.1
+    Qd_f_i: 0.5
+    Qd_tau_b: 0.1
 
     Rp: 0.005
     Rv: 0.05
