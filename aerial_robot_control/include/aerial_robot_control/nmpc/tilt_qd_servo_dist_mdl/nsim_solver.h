@@ -56,7 +56,12 @@ public:
 protected:
   tilt_qd_servo_dist_mdl_sim_solver_capsule* acados_sim_capsule_ = nullptr;
 
-  inline int acadosSolve() override
+  inline int acadosSimUpdateParams(std::vector<double>& value) override
+  {
+    return tilt_qd_servo_dist_mdl_acados_sim_update_params(acados_sim_capsule_, value.data(), NP_);
+  }
+
+  inline int acadosSimSolve() override
   {
     return tilt_qd_servo_dist_mdl_acados_sim_solve(acados_sim_capsule_);
   }

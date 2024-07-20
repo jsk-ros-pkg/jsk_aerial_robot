@@ -45,10 +45,8 @@ public:
   virtual ~BaseSimSolver() = default;  // if the class has virtual functions, then the destructor should be virtual, but
                                        // not pure virtual.
 
-  void initialize(double T)
+  void initialize()  // note that T cannot be changed according to acados
   {
-    setT(T);
-
     xo_ = std::vector<double>(NX_, 0);
 
     std::vector<double> p(NP_, 0);
@@ -60,8 +58,8 @@ public:
     if (x.size() != NX_ || u.size() != NU_)
       throw std::length_error("x or u size is not equal to NX_ or NU_");
 
-    sim_solver_set(sim_solver_, "x", x.data());
-    sim_solver_set(sim_solver_, "u", u.data());
+    sim_in_set(sim_config_, sim_dims_, sim_in_, "x", x.data());
+    sim_in_set(sim_config_, sim_dims_, sim_in_, "u", u.data());
 
     double min_time = solveSimOnce();
 
@@ -78,17 +76,12 @@ public:
   }
 
   /* Setters */
-  void setT(double& T)
-  {
-    sim_solver_set(sim_solver_, "T", &T);
-  }
-
   void setParameters(std::vector<double>& p)
   {
     if (p.size() != NP_)
       throw std::length_error("p size is not equal to NP_");
 
-    sim_solver_set(sim_solver_, "p", p.data());
+    acadosSimUpdateParams(p);
   }
 
   /* Getters */
@@ -154,7 +147,7 @@ protected:
     double min_time = 1e12;
     double elapsed_time;
 
-    int status = acadosSolve();
+    int status = acadosSimSolve();
     if (status != ACADOS_SUCCESS)
       throw AcadosSolveException(status);
 
@@ -173,7 +166,9 @@ protected:
   }
 
   // acados functions that using multiple times
-  virtual inline int acadosSolve() = 0;
+  virtual inline int acadosSimUpdateParams(std::vector<double>& value) = 0;
+
+  virtual inline int acadosSimSolve() = 0;
 };
 
 }  // namespace mpc_sim_solver
