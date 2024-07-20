@@ -58,7 +58,7 @@ public:
     if (C.rows() != 0)
       C_ = C;
 
-    K_ = P_ * C_.transpose() * (C_ * P_ * C_.transpose() + R_).inverse();
+    K_ = P_ * C_.transpose() * ((C_ * P_ * C_.transpose() + R_).inverse());
     x_ = x_ + K_ * (z - C_ * x_);  // TODO: consider using the nonlinear measurement model
     P_ = (Eigen::MatrixXd::Identity(P_.rows(), P_.cols()) - K_ * C_) * P_;
   }

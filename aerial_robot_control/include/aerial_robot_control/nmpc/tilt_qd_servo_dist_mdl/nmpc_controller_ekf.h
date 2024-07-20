@@ -35,6 +35,8 @@ protected:
 
   void calcDisturbWrench() override;
 
+  std::vector<double> meas2VecX() override;
+
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
 };
 

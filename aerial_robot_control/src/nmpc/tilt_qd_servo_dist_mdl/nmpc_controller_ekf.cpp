@@ -67,7 +67,7 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
   ekf_.init(A, B, G, C, Q, R, P, x);
 }
 
-void nmpc::TiltQdServoNMPCwEKF::calcDisturbWrench()
+std::vector<double> nmpc::TiltQdServoNMPCwEKF::meas2VecX()
 {
   Eigen::VectorXd z = Eigen::VectorXd::Zero(sim_solver_ptr_->NX_);
   z(0) = odom_.pose.pose.position.x;
@@ -89,14 +89,14 @@ void nmpc::TiltQdServoNMPCwEKF::calcDisturbWrench()
   z(16) = joint_angles_.at(3);
   ekf_.update(z);
 
-  dist_force_w_.x = ekf_.getX(17);
-  dist_force_w_.y = ekf_.getX(18);
-  dist_force_w_.z = ekf_.getX(19);
-  dist_torque_cog_.x = ekf_.getX(20);
-  dist_torque_cog_.y = ekf_.getX(21);
-  dist_torque_cog_.z = ekf_.getX(22);
+  calcDisturbWrench();
 
-  // time update  TODO: optimize the for loop
+  // get bx0
+  vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
+  for (int i = 0; i < mpc_solver_ptr_->NBX0_; i++)
+    bx0[i] = ekf_.getX(i);
+
+  // time update  TODO: optimize the for loop; put this part after mpc_solver_ptr_->solve() in the future
   Eigen::VectorXd x_eigen = ekf_.getX();
   std::vector<double> x(sim_solver_ptr_->NX_, 0.0);
   for (int i = 0; i < sim_solver_ptr_->NX_; i++)
@@ -112,6 +112,18 @@ void nmpc::TiltQdServoNMPCwEKF::calcDisturbWrench()
   Eigen::VectorXd xo = KalmanFilter::stdVec2EigenVec(sim_solver_ptr_->xo_);
   Eigen::MatrixXd A = KalmanFilter::stdVec2EigenMat(sim_solver_ptr_->getMatrixA(), NX, NX);
   ekf_.predictWithX(xo, A);
+
+  return bx0;
+}
+
+void nmpc::TiltQdServoNMPCwEKF::calcDisturbWrench()
+{
+  dist_force_w_.x = ekf_.getX(17);
+  dist_force_w_.y = ekf_.getX(18);
+  dist_force_w_.z = ekf_.getX(19);
+  dist_torque_cog_.x = ekf_.getX(20);
+  dist_torque_cog_.y = ekf_.getX(21);
+  dist_torque_cog_.z = ekf_.getX(22);
 }
 
 void nmpc::TiltQdServoNMPCwEKF::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
