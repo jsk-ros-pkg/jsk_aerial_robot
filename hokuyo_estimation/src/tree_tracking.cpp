@@ -15,7 +15,9 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
   nhp_.param("tree_global_location_topic_name", tree_global_location_topic_name_, string("tree_global_location"));
   nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("visualization_marker"));
 
-  sub_laser_scan_ = nh_.subscribe(laser_scan_topic_name_, 1, &TreeTracking::laserScanCallback, this);
+  ros::TransportHints transport_hints;
+  transport_hints.tcpNoDelay(true);
+  sub_laser_scan_ = nh_.subscribe(laser_scan_topic_name_, 1, &TreeTracking::laserScanCallback, this, transport_hints);
   sub_odom_ = nh_.subscribe(odom_topic_name_, 1, &TreeTracking::uavOdomCallback, this);
   pub_visualization_marker_ = nh_.advertise<visualization_msgs::MarkerArray>(visualization_marker_topic_name_, 1);
 }
