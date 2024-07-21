@@ -110,7 +110,7 @@ class ObstacleWorld:
             min_dist = cog_dist - obs_r - self.quadrotor_r
             rospy.logdebug("{}, pos: {}, quad pos: {}, cog dist: {}, min_dist: {}".format(n, obs_pos, quad_pos, cog_dist, min_dist))
             if min_dist < 0:
-                rospy.logwarn("{}, collision!! quadrotor: {}, obstacle: {} ".format(n, quad_pos, obs_pos))
+                rospy.logwarn("{}, collision!! quadrotor: {}, obstacle: {} ,min_dist: {} ".format(n, quad_pos, obs_pos, min_dist))
                 self.collision_pub.publish(Empty())
         self.callback_counter +=1
 
