@@ -2,12 +2,13 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link" >
 
-  <xacro:include filename="$(find delta)/urdf/20240319_mesh/link1.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20240319_mesh/link2.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20240319_mesh/link3.urdf.xacro" />
-  <xacro:include filename="$(find delta)/urdf/20240319_mesh/thrust.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240722/link1.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240722/link2.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240722/link3.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240722/thrust.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/20240722/battery.urdf.xacro" />
 
-  <xacro:macro name="delta_module" params="self child rotor_direction">
+  <xacro:macro name="delta_module" params="self child rotor_direction battery">
 
     <xacro:if value="${self == 1}">
       <xacro:link1/>
@@ -101,6 +102,24 @@
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
+
+    <!-- battery -->
+    <xacro:if value="${battery == 1}">
+      <xacro:high_lipo_single index="${self}"/>
+      <joint name="battery_joint${self}" type="fixed">
+        <parent link="link${self}"/>
+        <child link="high_lipo_single${self}"/>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0.3735 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0.407 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0.407 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
+        </xacro:if>
+      </joint>
+    </xacro:if>
 
     <!-- hardware interface -->
     <xacro:unless value="${self == child}">
