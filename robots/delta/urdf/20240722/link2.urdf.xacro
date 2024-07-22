@@ -25,12 +25,12 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link2_base.dae" />
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_base.dae" />
         </geometry>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link2_base_opt.stl" />
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_base_opt.stl" />
         </geometry>
       </collision>
     </link>
@@ -68,7 +68,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link2_gimbal.dae" />
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_gimbal.dae" />
         </geometry>
       </visual>
     </link>

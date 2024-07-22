@@ -14,7 +14,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://delta/urdf/mesh/20240117_10inch/high_lipo_single_module.stl" />
+          <mesh filename="package://delta/urdf/mesh/20240722/high_lipo_single_module.stl" />
         </geometry>
       </visual>
     </link>
