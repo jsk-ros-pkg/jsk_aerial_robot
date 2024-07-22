@@ -1,0 +1,24 @@
+rotor_num: 3
+mass: 4.3
+max_thrust: 26.5
+
+# joint 
+joint_angle_min: -2.09
+joint_angle_max: -1.5
+joint_angle_cnt_max: 10
+
+# pose
+pose_roll_max_abs: 0.01
+pose_pitch_max_abs: 0.0
+pose_roll_cnt_max: 5
+pose_pitch_cnt_max: 5
+
+# wrench z
+wrench_z_min_acc: 6.0
+wrench_z_max_acc: 10.0
+wrench_z_cnt_max: 10
+
+# wrench torque
+wrench_roll_max_abs: 10.0
+wrench_pitch_max_abs: 10.0
+wrench_torque_cnt_max: 20
