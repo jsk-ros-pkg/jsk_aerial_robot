@@ -17,7 +17,7 @@
   <arg name="spawn_roll" default="0.0"/>
   <arg name="spawn_pitch" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
-  <arg name="type" default="20240319_mesh"/>
+  <arg name="type" default="20240722"/>
   <arg name="prop" default="9"/>
   <arg name="config_dir" default="$(find delta)/config"/>
   <arg name="robot_id" default="" />
