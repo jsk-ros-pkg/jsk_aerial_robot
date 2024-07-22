@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link1" >
+
+  <xacro:macro name="link1">
+
+    <!-- dummy root link for KDL -->
+    <link name="root">
+      <xacro:virtual_inertial/>
+    </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="link1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="link1">
+      <inertial>
+        <origin xyz="0.28794398 -0.04712329 0.00347969" rpy="0 0 0"/>
+        <mass value="1.08222549"/>
+        <inertia
+             ixx="0.00498184" iyy="0.03252549" izz="0.03516989"
+            ixy="-0.00088064" ixz="0.00165575" iyz="0.00017753" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link1_base.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link1_base_opt.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <xacro:large_friction link="link1"/>
+
+    <!-- leg -->
+    <link name="link1_leg">
+      <inertial>
+        <mass value="${leg_mass}"/>
+        <inertia
+            ixx="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" ixy="0.0" ixz="0.0"
+            iyy="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" iyz="0.0"
+            izz="${(leg_radius * leg_radius / 2.0) * leg_mass}"/>
+      </inertial>
+      <collision>
+        <geometry>
+          <cylinder radius="${leg_radius}" length="${leg_length}"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="link1_leg_joint" type="fixed">
+      <parent link="link1"/>
+      <child link="link1_leg"/>
+      <origin rpy="0 0 0" xyz="0.0225 0 ${-0.012-leg_length/2.0}"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="gimbal_link1">
+      <inertial>
+        <origin xyz="0.00944096 -0.00000223 0.01141561" rpy="0 0 0"/>
+        <mass value="0.27443334"/>
+        <inertia
+            ixx="0.00066652"  iyy="0.00074131" izz="0.00017798"
+            ixy="0.00000004" ixz="-0.00017867" iyz="0.00000005" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240319_mesh/link1_gimbal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link1_center">
+      <xacro:virtual_inertial/>
+    </link>
+    <joint name="link1_center_joint" type="fixed">
+      <parent link="link1"/>
+      <child link="link1_center"/>
+      <origin xyz="0.23025 0.15228 0" rpy="0 0 ${pi}"/>
+    </joint>
+
+  </xacro:macro>
+</robot>
