@@ -59,18 +59,22 @@ controller:
     is_print_phys_params: false
     is_debug: false
 
-  # EKF
   ekf:
-    Qp: 0.01
-    Qv: 0.01
-    Qq: 0.01
-    Qw: 0.01
-    Qa: 0.01
-    Qd_f_i: 0.5
-    Qd_tau_b: 0.1
+    ts: 0.005  # 200 Hz
 
-    Rp: 0.005
-    Rv: 0.05
-    Rq: 0.01
-    Rw: 0.05
-    Ra: 0.01
+    Qd_f_ixy: 0.5
+    Qd_f_iz: 0.5
+    Qd_tau_bxy: 0.1
+    Qd_tau_bz: 0.1
+
+    # IMU
+    R_imu_sf: 0.01
+    R_imu_q: 0.1
+    R_imu_w: 0.1
+
+    # Mocap
+    R_mocap_p: 0.005
+    R_mocap_q: 0.01
+
+    # Servo
+    R_servo_a: 0.01
