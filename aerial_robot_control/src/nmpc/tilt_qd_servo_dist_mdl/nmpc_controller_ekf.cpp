@@ -79,8 +79,6 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
 
 void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
 {
-  // TODO:   ekf_.updateIMU(z);
-
   // time update  TODO: put this part after mpc_solver_ptr_->solve() in the future
   Eigen::VectorXd x_eigen = ekf_.getX();
   std::vector<double> x = EKFEstimator::eigenVec2StdVec(x_eigen);
@@ -95,6 +93,135 @@ void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
   Eigen::VectorXd xo = EKFEstimator::stdVec2EigenVec(sim_solver_ptr_->xo_);
   Eigen::MatrixXd A = EKFEstimator::stdVec2EigenMat(sim_solver_ptr_->getMatrixA(), NX, NX);
   ekf_.predict(xo, A);
+
+  // IMU update
+  const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  Eigen::Vector3d p1_b = rotor_p[0];
+  Eigen::Vector3d p2_b = rotor_p[1];
+  Eigen::Vector3d p3_b = rotor_p[2];
+  Eigen::Vector3d p4_b = rotor_p[3];
+
+  //  const map<int, int> rotor_dr = robot_model_->getRotorDirection();
+  //  int dr1 = rotor_dr.find(1)->second;
+  //  int dr2 = rotor_dr.find(2)->second;
+  //  int dr3 = rotor_dr.find(3)->second;
+  //  int dr4 = rotor_dr.find(4)->second;
+
+  double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
+
+  double sqrt_p1b_xy = sqrt(p1_b.x() * p1_b.x() + p1_b.y() * p1_b.y());
+  double sqrt_p2b_xy = sqrt(p2_b.x() * p2_b.x() + p2_b.y() * p2_b.y());
+  double sqrt_p3b_xy = sqrt(p3_b.x() * p3_b.x() + p3_b.y() * p3_b.y());
+  double sqrt_p4b_xy = sqrt(p4_b.x() * p4_b.x() + p4_b.y() * p4_b.y());
+
+  double ft1 = getCommand(0);
+  double ft2 = getCommand(1);
+  double ft3 = getCommand(2);
+  double ft4 = getCommand(3);
+  double alpha1 = getCommand(4);
+  double alpha2 = getCommand(5);
+  double alpha3 = getCommand(6);
+  double alpha4 = getCommand(7);
+
+  // sf = (fBu+RBI.fId)/m
+  Eigen::Vector3d fBu = Eigen::Vector3d::Zero();
+  fBu(0) = ft1 * p1_b.y() * sin(alpha1) / sqrt_p1b_xy + ft2 * p2_b.y() * sin(alpha2) / sqrt_p2b_xy +
+           ft3 * p3_b.y() * sin(alpha3) / sqrt_p3b_xy + ft4 * p4_b.y() * sin(alpha4) / sqrt_p4b_xy;
+  fBu(1) = -ft1 * p1_b.x() * sin(alpha1) / sqrt_p1b_xy - ft2 * p2_b.x() * sin(alpha2) / sqrt_p2b_xy -
+           ft3 * p3_b.x() * sin(alpha3) / sqrt_p3b_xy - ft4 * p4_b.x() * sin(alpha4) / sqrt_p4b_xy;
+  fBu(2) = ft1 * cos(alpha1) + ft2 * cos(alpha2) + ft3 * cos(alpha3) + ft4 * cos(alpha4);
+
+  Eigen::Vector3d fId = Eigen::Vector3d::Zero();
+  fId(0) = ekf_.getX(17);
+  fId(1) = ekf_.getX(18);
+  fId(2) = ekf_.getX(19);
+
+  double qw = ekf_.getX(6);
+  double qx = ekf_.getX(7);
+  double qy = ekf_.getX(8);
+  double qz = ekf_.getX(9);
+
+  Eigen::Matrix3d RIB = Eigen::Matrix3d::Zero();
+  RIB(0, 0) = 1 - 2 * qy * qy - 2 * qz * qz;
+  RIB(0, 1) = 2 * qx * qy - 2 * qz * qw;
+  RIB(0, 2) = 2 * qx * qz + 2 * qy * qw;
+  RIB(1, 0) = 2 * qx * qy + 2 * qz * qw;
+  RIB(1, 1) = 1 - 2 * qx * qx - 2 * qz * qz;
+  RIB(1, 2) = 2 * qy * qz - 2 * qx * qw;
+  RIB(2, 0) = 2 * qx * qz - 2 * qy * qw;
+  RIB(2, 1) = 2 * qy * qz + 2 * qx * qw;
+  RIB(2, 2) = 1 - 2 * qx * qx - 2 * qy * qy;
+
+  Eigen::Matrix3d RBI = RIB.transpose();
+
+  Eigen::Vector3d sf_est = (fBu + RBI * fId) / mass_;
+
+  // get C_imu_
+  Eigen::MatrixXd dsfBIMUdqIB = Eigen::MatrixXd::Zero(3, 4);
+  dsfBIMUdqIB(0, 0) = 2 * qz * fId(1) - 2 * qy * fId(2);
+  dsfBIMUdqIB(1, 0) = -2 * qz * fId(0) + 2 * qx * fId(2);
+  dsfBIMUdqIB(2, 0) = 2 * qy * fId(0) - 2 * qx * fId(1);
+  dsfBIMUdqIB(0, 1) = 2 * qy * fId(1) + 2 * qz * fId(2);
+  dsfBIMUdqIB(1, 1) = 2 * qy * fId(0) - 4 * qx * fId(1) + 2 * qw * fId(2);
+  dsfBIMUdqIB(2, 1) = 2 * qz * fId(0) - 2 * qw * fId(1) - 4 * qx * fId(2);
+  dsfBIMUdqIB(0, 2) = -4 * qy * fId(0) + 2 * qx * fId(1) - 2 * qw * fId(2);
+  dsfBIMUdqIB(1, 2) = 2 * qx * fId(0) + 2 * qz * fId(2);
+  dsfBIMUdqIB(2, 2) = 2 * qw * fId(0) + 2 * qz * fId(1) - 4 * qy * fId(2);
+  dsfBIMUdqIB(0, 3) = -4 * qz * fId(0) + 2 * qw * fId(1) + 2 * qx * fId(2);
+  dsfBIMUdqIB(1, 3) = -2 * qw * fId(0) - 4 * qz * fId(1) + 2 * qy * fId(2);
+  dsfBIMUdqIB(2, 3) = 2 * qx * fId(0) + 2 * qy * fId(1);
+
+  Eigen::MatrixXd dsfBIMUdA = Eigen::MatrixXd::Zero(3, 4);
+  dsfBIMUdA(0, 0) = ft1 * p1_b.y() * cos(alpha1) / mass_ / sqrt_p1b_xy;
+  dsfBIMUdA(1, 0) = -ft1 * p1_b.x() * cos(alpha1) / mass_ / sqrt_p1b_xy;
+  dsfBIMUdA(2, 0) = -ft1 * sin(alpha1) / mass_;
+  dsfBIMUdA(0, 1) = ft2 * p2_b.y() * cos(alpha2) / mass_ / sqrt_p2b_xy;
+  dsfBIMUdA(1, 1) = -ft2 * p2_b.x() * cos(alpha2) / mass_ / sqrt_p2b_xy;
+  dsfBIMUdA(2, 1) = -ft2 * sin(alpha2) / mass_;
+  dsfBIMUdA(0, 2) = ft3 * p3_b.y() * cos(alpha3) / mass_ / sqrt_p3b_xy;
+  dsfBIMUdA(1, 2) = -ft3 * p3_b.x() * cos(alpha3) / mass_ / sqrt_p3b_xy;
+  dsfBIMUdA(2, 2) = -ft3 * sin(alpha3) / mass_;
+  dsfBIMUdA(0, 3) = ft4 * p4_b.y() * cos(alpha4) / mass_ / sqrt_p4b_xy;
+  dsfBIMUdA(1, 3) = -ft4 * p4_b.x() * cos(alpha4) / mass_ / sqrt_p4b_xy;
+  dsfBIMUdA(2, 3) = -ft4 * sin(alpha4) / mass_;
+
+  Eigen::MatrixXd C_imu = Eigen::MatrixXd::Zero(6, 23);
+  for (int i = 0; i < dsfBIMUdqIB.rows(); i++)
+  {
+    for (int j = 0; j < dsfBIMUdqIB.cols(); j++)
+      C_imu(i, 6 + j) = dsfBIMUdqIB(i, j);
+  }
+  for (int i = 0; i < dsfBIMUdA.rows(); i++)
+  {
+    for (int j = 0; j < dsfBIMUdA.cols(); j++)
+      C_imu(i, 13 + j) = dsfBIMUdA(i, j);
+  }
+  for (int i = 0; i < RBI.rows(); i++)
+  {
+    for (int j = 0; j < RBI.cols(); j++)
+      C_imu(i, 17 + j) = RBI(i, j) / mass_;
+  }
+  C_imu(3, 10) = 1;
+  C_imu(4, 11) = 1;
+  C_imu(5, 12) = 1;
+
+  Eigen::VectorXd z = Eigen::VectorXd::Zero(6);
+  z(0) = msg->acc_data.at(0);
+  z(1) = msg->acc_data.at(1);
+  z(2) = msg->acc_data.at(2);
+  z(3) = msg->gyro_data.at(0);
+  z(4) = msg->gyro_data.at(1);
+  z(5) = msg->gyro_data.at(2);
+
+  Eigen::VectorXd z_est = Eigen::VectorXd::Zero(6);
+  z_est(0) = sf_est(0);
+  z_est(1) = sf_est(1);
+  z_est(2) = sf_est(2);
+  z_est(3) = ekf_.getX(10);
+  z_est(4) = ekf_.getX(11);
+  z_est(5) = ekf_.getX(12);
+
+  //  ekf_.updateIMU(z, C_imu, z_est);
 }
 
 void nmpc::TiltQdServoNMPCwEKF::callbackMoCap(const geometry_msgs::PoseStampedConstPtr& msg)
