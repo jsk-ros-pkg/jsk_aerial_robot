@@ -38,10 +38,9 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
   getParam<double>(ekf_nh, "Qd_tau_bz", Qd_tau_bz, 0.1);
 
   // IMU
-  double R_imu_sf, R_imu_q, R_imu_w;
+  double R_imu_sf, R_imu_omega;
   getParam<double>(ekf_nh, "R_imu_sf", R_imu_sf, 0.01);
-  getParam<double>(ekf_nh, "R_imu_q", R_imu_q, 0.1);
-  getParam<double>(ekf_nh, "R_imu_w", R_imu_w, 0.1);
+  getParam<double>(ekf_nh, "R_imu_omega", R_imu_omega, 0.1);
 
   // MoCap
   double R_mocap_p, R_mocap_q;
@@ -59,10 +58,9 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
   Q(0, 0) = Qd_f_ixy, Q(1, 1) = Qd_f_ixy, Q(2, 2) = Qd_f_iz;
   Q(3, 3) = Qd_tau_bxy, Q(4, 4) = Qd_tau_bxy, Q(5, 5) = Qd_tau_bz;
 
-  Eigen::MatrixXd R_imu = Eigen::MatrixXd::Zero(10, 10);
+  Eigen::MatrixXd R_imu = Eigen::MatrixXd::Zero(6, 6);
   R_imu(0, 0) = R_imu_sf, R_imu(1, 1) = R_imu_sf, R_imu(2, 2) = R_imu_sf;
-  R_imu(3, 3) = R_imu_q, R_imu(4, 4) = R_imu_q, R_imu(5, 5) = R_imu_q, R_imu(6, 6) = R_imu_q;
-  R_imu(7, 7) = R_imu_w, R_imu(8, 8) = R_imu_w, R_imu(9, 9) = R_imu_w;
+  R_imu(3, 3) = R_imu_omega, R_imu(4, 4) = R_imu_omega, R_imu(5, 5) = R_imu_omega;
 
   Eigen::MatrixXd R_mocap = Eigen::MatrixXd::Zero(7, 7);
   R_mocap(0, 0) = R_mocap_p, R_mocap(1, 1) = R_mocap_p, R_mocap(2, 2) = R_mocap_p;

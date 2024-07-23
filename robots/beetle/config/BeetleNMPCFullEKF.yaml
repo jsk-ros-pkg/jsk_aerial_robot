@@ -69,8 +69,7 @@ controller:
 
     # IMU
     R_imu_sf: 0.01
-    R_imu_q: 0.1
-    R_imu_w: 0.1
+    R_imu_omega: 0.1
 
     # Mocap
     R_mocap_p: 0.005
