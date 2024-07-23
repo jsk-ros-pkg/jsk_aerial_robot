@@ -170,6 +170,7 @@ void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
   dsfBIMUdqIB(0, 3) = -4 * qz * fId(0) + 2 * qw * fId(1) + 2 * qx * fId(2);
   dsfBIMUdqIB(1, 3) = -2 * qw * fId(0) - 4 * qz * fId(1) + 2 * qy * fId(2);
   dsfBIMUdqIB(2, 3) = 2 * qx * fId(0) + 2 * qy * fId(1);
+  dsfBIMUdqIB /= mass_;
 
   Eigen::MatrixXd dsfBIMUdA = Eigen::MatrixXd::Zero(3, 4);
   dsfBIMUdA(0, 0) = ft1 * p1_b.y() * cos(alpha1) / mass_ / sqrt_p1b_xy;
@@ -221,7 +222,7 @@ void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
   z_est(4) = ekf_.getX(11);
   z_est(5) = ekf_.getX(12);
 
-  //  ekf_.updateIMU(z, C_imu, z_est);
+  //  ekf_.updateIMU(z, C_imu, z_est);  // TODO: check the result
 }
 
 void nmpc::TiltQdServoNMPCwEKF::callbackMoCap(const geometry_msgs::PoseStampedConstPtr& msg)
