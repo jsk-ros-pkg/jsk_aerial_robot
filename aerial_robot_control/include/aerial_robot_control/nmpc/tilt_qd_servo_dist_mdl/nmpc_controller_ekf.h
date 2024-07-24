@@ -35,6 +35,8 @@ protected:
   std::unique_ptr<mpc_sim_solver::TiltQdServoDistMdlSimSolver> sim_solver_ptr_;
   EKFEstimator ekf_;
 
+  bool is_on_ground_ = true;
+
   inline void initMPCSolverPtr() override
   {
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoDistMdlMPCSolver>();

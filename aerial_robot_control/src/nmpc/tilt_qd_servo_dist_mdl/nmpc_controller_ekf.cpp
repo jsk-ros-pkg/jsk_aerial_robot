@@ -15,7 +15,7 @@ void nmpc::TiltQdServoNMPCwEKF::initialize(ros::NodeHandle nh, ros::NodeHandle n
   nmpc::TiltQdServoDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   sub_imu_ = nh_.subscribe("imu", 1, &TiltQdServoNMPCwEKF::callbackImu, this);
-  sub_mocap_ = nh_.subscribe("mocap", 1, &TiltQdServoNMPCwEKF::callbackMoCap, this);
+  sub_mocap_ = nh_.subscribe("mocap/pose", 1, &TiltQdServoNMPCwEKF::callbackMoCap, this);
 }
 
 void nmpc::TiltQdServoNMPCwEKF::initParams()
@@ -79,13 +79,49 @@ void nmpc::TiltQdServoNMPCwEKF::initParams()
 
 void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
 {
-  // time update  TODO: put this part after mpc_solver_ptr_->solve() in the future
+  /* time update */  // TODO: put this part after mpc_solver_ptr_->solve() in the future
+  std::vector<double> x(sim_solver_ptr_->NX_, 0.0);
   Eigen::VectorXd x_eigen = ekf_.getX();
-  std::vector<double> x = EKFEstimator::eigenVec2StdVec(x_eigen);
+  x = EKFEstimator::eigenVec2StdVec(x_eigen);
 
   std::vector<double> u(sim_solver_ptr_->NU_, 0.0);
   for (int i = 0; i < sim_solver_ptr_->NU_; i++)
     u[i] = getCommand(i);
+
+  // for ground contact
+  // if the robot is on the ground, set the disturbance to only support force
+  uint8_t navi_state = navigator_->getNaviState();
+  if ((navi_state != aerial_robot_navigation::TAKEOFF_STATE) && (navi_state != aerial_robot_navigation::LAND_STATE) &&
+      (navi_state != aerial_robot_navigation::HOVER_STATE))
+  {
+    is_on_ground_ = true;
+    x.at(5) = 0.0;  // vz
+    x.at(17) = 0.0;
+    x.at(18) = 0.0;
+    x.at(19) = mass_ * gravity_const_;
+    x.at(20) = 0.0;
+    x.at(21) = 0.0;
+    x.at(22) = 0.0;
+    std::fill(u.begin(), u.end(), 0.0);
+  }
+  else
+  {
+    if (is_on_ground_)  // the switch from on ground to takeoff
+    {
+      is_on_ground_ = false;
+      x.at(17) = 0.0;
+      x.at(18) = 0.0;
+      x.at(19) = 0.0;
+      x.at(20) = 0.0;
+      x.at(21) = 0.0;
+      x.at(22) = 0.0;
+    }
+  }
+
+//  std::cout << "x = ";
+//  for (int i = 0; i < x.size(); i++)
+//    std::cout << x[i] << " ";
+//  std::cout << std::endl;
 
   sim_solver_ptr_->solve(x, u);
 
@@ -94,7 +130,7 @@ void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
   Eigen::MatrixXd A = EKFEstimator::stdVec2EigenMat(sim_solver_ptr_->getMatrixA(), NX, NX);
   ekf_.predict(xo, A);
 
-  // IMU update
+  /* IMU update */
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   Eigen::Vector3d p1_b = rotor_p[0];
   Eigen::Vector3d p2_b = rotor_p[1];
@@ -222,7 +258,7 @@ void nmpc::TiltQdServoNMPCwEKF::callbackImu(const spinal::ImuConstPtr& msg)
   z_est(4) = ekf_.getX(11);
   z_est(5) = ekf_.getX(12);
 
-  //  ekf_.updateIMU(z, C_imu, z_est);  // TODO: check the result
+//  ekf_.updateIMU(z, C_imu, z_est);  // TODO: check the result
 }
 
 void nmpc::TiltQdServoNMPCwEKF::callbackMoCap(const geometry_msgs::PoseStampedConstPtr& msg)
