@@ -62,7 +62,6 @@ namespace Spine
   void setServoControlFlag(bool flag);
   void servoPositionCallback(const spinal::ServoControlCmd& control_msg);
   void servoCurrentCallback(const spinal::ServoControlCmd& control_msg);
-  void setTargetServoPosition(uint8_t index, int16_t position);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
   void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res);
