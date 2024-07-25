@@ -34,13 +34,9 @@
 #endif
 #include "state_estimate/state_estimate.h"
 
-#ifdef SIMULATION
-#include <sensor_msgs/JointState.h>
-#endif
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
-#include <std_msgs/UInt8MultiArray.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_srvs/SetBool.h>
@@ -65,19 +61,6 @@
 #define CONTROL_TERM_PUB_INTERVAL 100
 #define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
 #define PWM_PUB_INTERVAL 100 //100ms
-#define GIMBAL_CONTROL_PUB_INTERVAL 25 // 25ms. for simulation
-#define GIMBAL_CONTROL_SET_INTERVAL 10 // 10ms. for spine system
-
-/* gimbal control with xl430-w250t (hard code) */
-#define ANGLE_SIGN -1
-#define SERVO_RESOLUTION 2047 // for pi rad
-#define ZERO_POINT_OFFSET 2047
-
-/* subscribers which has to be same size with motor number */
-#define FOUR_AXIS_COMMAND 1
-#define RPY_GAIN 2
-#define P_MATRIX_INERTIA 3
-#define TORQUE_ALLOCATION_MATRIX_INV 4
 
 #define MOTOR_TEST 0
 
@@ -107,8 +90,6 @@ public:
   inline uint8_t getMotorNumber(){return motor_number_;}
 
   void setMotorNumber(uint8_t motor_number);
-  void setInitialMotorNumber(uint16_t motor_number){initial_motor_number_ = motor_number;}
-  inline uint8_t getInitialMotorNumber(){return initial_motor_number_;}
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   bool getIntegrateFlag(){return integrate_flag_; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
@@ -145,9 +126,6 @@ private:
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber torque_allocation_matrix_inv_sub_;
   ros::Subscriber sim_vol_sub_;
-  ros::Subscriber gimbal_dof_sub_;
-  ros::Subscriber gimbal_indices_sub_;
-  ros::Publisher gimbal_control_pub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
 
@@ -163,8 +141,6 @@ private:
   ros::Subscriber<spinal::PwmTest, AttitudeController> pwm_test_sub_;
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
-  ros::Subscriber<std_msgs::UInt8, AttitudeController> gimbal_dof_sub_;
-  ros::Subscriber<std_msgs::UInt8MultiArray, AttitudeController> gimbal_indices_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
@@ -177,19 +153,12 @@ private:
 
   int8_t uav_model_;
   uint8_t motor_number_;
-  uint16_t initial_motor_number_;
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
   bool force_landing_flag_;
   bool att_control_flag_;
-  uint8_t gimbal_dof_;
-  uint8_t gimbal_number_;
-  bool gimbal_indices_received_;
-  uint8_t gain_msg_size_;
-  uint8_t called_subscribers_;
-  uint8_t motor_number_error_subscribers_;
-  bool printed_motor_number_error_;
+
 
   float target_angle_[3];
   float target_angvel_[3];
@@ -220,8 +189,6 @@ private:
   // Thrust PWM Conversion
   float target_thrust_[MAX_MOTOR_NUMBER];
   float target_pwm_[MAX_MOTOR_NUMBER];
-  float target_gimbal_angles_[MAX_MOTOR_NUMBER];
-  uint8_t gimbal_indices_[MAX_MOTOR_NUMBER];
   float min_duty_;
   float max_duty_;
   float min_thrust_; // max thrust is variant according to the voltage
@@ -232,7 +199,7 @@ private:
   uint8_t motor_ref_index_;
   float v_factor_;
   uint32_t voltage_update_last_time_;
-  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_, gimbal_control_pub_last_time_;
+  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
@@ -242,8 +209,6 @@ private:
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
-  void gimbalDofCallback(const std_msgs::UInt8& msg);
-  void gimbalIndicesCallback(const std_msgs::UInt8MultiArray& msg);
   void thrustGainMapping();
   void maxYawGainIndex();
   void pwmTestCallback(const spinal::PwmTest& pwm_msg);
