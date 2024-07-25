@@ -34,7 +34,6 @@
 #endif
 #include "state_estimate/state_estimate.h"
 
-#include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Float32.h>
@@ -119,7 +118,6 @@ private:
 
 #ifdef SIMULATION
   ros::Subscriber four_axis_cmd_sub_;
-  ros::Subscriber target_angvel_sub_;
   ros::Subscriber pwm_info_sub_;
   ros::Subscriber rpy_gain_sub_;
   ros::Subscriber pwm_test_sub_;
@@ -135,7 +133,6 @@ private:
 
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
-  ros::Subscriber<geometry_msgs::Twist, AttitudeController> target_angvel_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
   ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
   ros::Subscriber<spinal::PwmTest, AttitudeController> pwm_test_sub_;
@@ -161,7 +158,6 @@ private:
 
 
   float target_angle_[3];
-  float target_angvel_[3];
   float error_angle_i_[3];
   float error_angle_i_limit_[3];
 
@@ -204,7 +200,6 @@ private:
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
   void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);
-  void targetAngvelCallback(const geometry_msgs::Twist &twist_msg);
   void pwmInfoCallback( const spinal::PwmInfo &info_msg);
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);

@@ -24,7 +24,6 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   control_feedback_state_pub_ = nh_->advertise<spinal::RollPitchYawTerm>("rpy/feedback_state", 1);
   anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("gyro_moment_compensation", 1);
   four_axis_cmd_sub_ = nh_->subscribe("four_axes/command", 1, &AttitudeController::fourAxisCommandCallback, this);
-  target_angvel_sub_ = nh_->subscribe("target_angvel", 1, &AttitudeController::targetAngvelCallback, this);
   pwm_info_sub_ = nh_->subscribe("motor_info", 1, &AttitudeController::pwmInfoCallback, this);
   rpy_gain_sub_ = nh_->subscribe("rpy/gain", 1, &AttitudeController::rpyGainCallback, this);
   p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
@@ -42,7 +41,6 @@ AttitudeController::AttitudeController():
   control_term_pub_("rpy/pid", &control_term_msg_),
   control_feedback_state_pub_("rpy/feedback_state", &control_feedback_state_msg_),
   four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
-  target_angvel_sub_("target_angvel", &AttitudeController::targetAngvelCallback, this),
   pwm_info_sub_("motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
@@ -77,7 +75,6 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(control_feedback_state_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
-  nh_->subscribe(target_angvel_sub_);
   nh_->subscribe(pwm_info_sub_);
   nh_->subscribe(rpy_gain_sub_);
   nh_->subscribe(pwm_test_sub_);
@@ -271,9 +268,6 @@ void AttitudeController::update(void)
           target_angle_[X] = 0;
           target_angle_[Y] = 0;
           target_angle_[Z] = 0;
-          target_angvel_[X] = 0;
-          target_angvel_[Y] = 0;
-          target_angvel_[Z] = 0;
 
           for(int i = 0; i < motor_number_; i++) extra_yaw_pi_term_[i] = 0;
         }
@@ -286,24 +280,23 @@ void AttitudeController::update(void)
         std_msgs::Float32MultiArray anti_gyro_msg;
 #endif
 
-        float error_angle[3], error_angvel[3];
+        float error_angle[3];
         for(int axis = 0; axis < 3; axis++)
           {
             error_angle[axis] = target_angle_[axis] - angles[axis];
-            error_angvel[axis] = target_angvel_[axis] - vel[axis];
             if(integrate_flag_) error_angle_i_[axis] += error_angle[axis] * DELTA_T;
 
             if(axis == X)
               {
                 control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.roll_d = error_angvel[axis]  * 1000;
+                control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
               }
             if(axis == Y)
               {
                 control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.pitch_d = error_angvel[axis]  * 1000;
+                control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
 
               }
             if(axis == Z)
@@ -321,7 +314,7 @@ void AttitudeController::update(void)
               {
                 p_term = error_angle[axis] * thrust_p_gain_[i][axis];
                 i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-                d_term = error_angvel[axis] * thrust_d_gain_[i][axis];
+                d_term = -vel[axis] * thrust_d_gain_[i][axis];
                 if(axis == X)
                   {
                     roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
@@ -405,8 +398,6 @@ void AttitudeController::reset(void)
   for(int i = 0; i < 3; i++)
     {
       target_angle_[i] = 0;
-      target_angvel_[i] = 0;
-
       error_angle_i_[i] = 0;
 
       torque_p_gain_[i] = 0;
@@ -488,24 +479,6 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
       if(max_yaw_term_index_ != -1)
         extra_yaw_pi_term_[i] = cmd_msg.angles[Z] * thrust_d_gain_[i][Z] / thrust_d_gain_[max_yaw_term_index_][Z];
     }
-
-#ifndef SIMULATION
-  /* mutex to protect the completion of following update  */
-  if(mutex_ != NULL) osMutexRelease(*mutex_);
-#endif
-}
-
-void AttitudeController::targetAngvelCallback( const geometry_msgs::Twist &twist_msg)
-{
-  if(!start_control_flag_) return;
-
-#ifndef SIMULATION
-  /* mutex to protect the completion of following update  */
-  if(mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
-#endif
-
-  target_angvel_[0] = twist_msg.angular.x;
-  target_angvel_[1] = twist_msg.angular.y;
 
 #ifndef SIMULATION
   /* mutex to protect the completion of following update  */
