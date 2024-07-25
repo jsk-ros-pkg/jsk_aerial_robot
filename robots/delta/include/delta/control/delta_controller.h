@@ -54,7 +54,6 @@ namespace aerial_robot_control
     ros::Publisher target_acc_cog_pub_;               // for debug
     ros::Publisher exerted_wrench_cog_pub_;               // for debug
     ros::Subscriber joint_state_sub_;
-    ros::Subscriber calc_gimbal_in_fc_sub_;
 
     tf2_ros::TransformBroadcaster br_;
     KDL::Frame contact_point_alined_;
@@ -89,7 +88,6 @@ namespace aerial_robot_control
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
     std::vector<double> target_acc_cog_;
-    bool calc_gimbal_in_fc_;
     bool hovering_approximate_;
 
     /* ground mode */
@@ -124,7 +122,6 @@ namespace aerial_robot_control
 
     /* ros callbacks */
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
-    void calcGimbalInFcCallback(const std_msgs::BoolPtr & msg);
 
     /* utils */
     void setControllerParams(std::string ns);
