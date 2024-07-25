@@ -19,7 +19,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   rolling_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::RollingNavigator>(navigator_);
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
-  robot_model_for_control_ = boost::make_shared<aerial_robot_model::RobotModel>();
+  robot_model_for_control_ = boost::make_shared<RollingRobotModel>();
+
+  first_run_ = true;
 
   rotor_tilt_.resize(motor_num_);
   lambda_trans_.resize(motor_num_, 0.0);
@@ -70,6 +72,8 @@ void RollingController::reset()
   torque_allocation_matrix_inv_pub_stamp_ = -1;
 
   ROS_INFO_STREAM("[control] reset controller\n");
+
+  first_run_ = true;
 }
 
 void RollingController::activate()
@@ -198,6 +202,7 @@ void RollingController::controlCore()
 
         calcAccFromCog();
         calcFlightFullLambda();
+        nonlinearWrenchAllocation();
         break;
       }
 
@@ -221,11 +226,14 @@ void RollingController::controlCore()
     }
 
   /* common part */
-  fullLambdaToActuatorInputs();
+  if(first_run_ || ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
+    fullLambdaToActuatorInputs();
   resolveGimbalOffset();
   processGimbalAngles();
   calcYawTerm();
   /* common part */
+
+  first_run_ = false;
 }
 
 void RollingController::fullLambdaToActuatorInputs()
