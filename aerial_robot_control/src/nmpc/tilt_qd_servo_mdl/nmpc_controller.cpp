@@ -38,10 +38,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   pub_viz_ref_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_ref", 1);
   pub_flight_cmd_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   pub_gimbal_control_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
-
-  pub_rpy_gain_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);  // tmp
-  pub_p_matrix_pseudo_inverse_inertia_ =
-      nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);  // tmp
+  pub_flight_config_cmd_spinal_ = nh_.advertise<spinal::FlightConfigCmd>("flight_config_cmd", 1);
 
   /* services */
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
@@ -73,6 +70,11 @@ bool nmpc::TiltQdServoNMPC::update()
   if (alloc_mat_.size() == 0)
   {
     initAllocMat();
+
+    // also for some commands that should be sent after takeoff
+    spinal::FlightConfigCmd flight_config_cmd;
+    flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+    pub_flight_config_cmd_spinal_.publish(flight_config_cmd);
   }
 
   this->controlCore();
