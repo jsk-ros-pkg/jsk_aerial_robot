@@ -221,12 +221,14 @@ void RollingController::controlCore()
     }
 
   /* common part */
-  wrenchAllocation();
+  fullLambdaToActuatorInputs();
+  resolveGimbalOffset();
+  processGimbalAngles();
   calcYawTerm();
   /* common part */
 }
 
-void RollingController::wrenchAllocation()
+void RollingController::fullLambdaToActuatorInputs()
 {
   auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
   auto gimbal_planning_angle = rolling_robot_model_->getGimbalPlanningAngle();
@@ -254,6 +256,12 @@ void RollingController::wrenchAllocation()
         }
       last_col += 2;
     }
+}
+
+void RollingController::resolveGimbalOffset()
+{
+  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
+  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
 
   /* solve round offset of gimbal angle */
   for(int i = 0; i < motor_num_; i++)
@@ -284,8 +292,12 @@ void RollingController::wrenchAllocation()
             }
         }
     }
+}
 
+void RollingController::processGimbalAngles()
+{
   /* update robot model by calculated gimbal angle */
+  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
   const auto& joint_index_map = robot_model_->getJointIndexMap();
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);

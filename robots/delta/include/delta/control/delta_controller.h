@@ -102,7 +102,9 @@ namespace aerial_robot_control
     void controlCore() override;
     void activate() override;
     void rosParamInit();
-    void wrenchAllocation();
+    void fullLambdaToActuatorInputs();
+    void resolveGimbalOffset();
+    void processGimbalAngles();
     void calcYawTerm();
 
     /* flight mode */
