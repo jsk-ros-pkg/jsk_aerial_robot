@@ -14,6 +14,7 @@
 #include <std_srvs/Trigger.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/Empty.h>
 
 /* tree database */
 #include "tree_database.h" // 
@@ -30,11 +31,11 @@ private:
   ros::NodeHandle nh_, nhp_;
 
   ros::Subscriber sub_laser_scan_;
-  ros::Subscriber sub_odom_;
+  ros::Subscriber sub_odom_, sub_erase_tree_;
   ros::Publisher pub_visualization_marker_;
   string laser_scan_topic_name_, odom_topic_name_;
   string tree_global_location_topic_name_;
-  string visualization_marker_topic_name_;
+  string visualization_marker_topic_name_, tree_database_erase_topic_name_;
 
   TreeDataBase tree_db_;
   vector<TreeHandlePtr> target_trees_;
@@ -49,6 +50,7 @@ private:
   // void visionDetectionCallback(const geometry_msgs::Vector3StampedConstPtr& vision_detection_msg);
   void uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg);
   void laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg);
+  void eraseTreeDBCallback(const std_msgs::Empty& msg);
   
 };
 

@@ -14,12 +14,14 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
   nhp_.param("tree_circle_regulation_thre", tree_circle_regulation_thre_, 0.01);
   nhp_.param("tree_global_location_topic_name", tree_global_location_topic_name_, string("tree_global_location"));
   nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("visualization_marker"));
+  nhp_.param("tree_database_erase_topic_name", tree_database_erase_topic_name_, string("tree_database_erase"));
 
   ros::TransportHints transport_hints;
   transport_hints.tcpNoDelay(true);
   sub_laser_scan_ = nh_.subscribe(laser_scan_topic_name_, 1, &TreeTracking::laserScanCallback, this, transport_hints);
   sub_odom_ = nh_.subscribe(odom_topic_name_, 1, &TreeTracking::uavOdomCallback, this);
-  pub_visualization_marker_ = nh_.advertise<visualization_msgs::MarkerArray>(visualization_marker_topic_name_, 1);
+  sub_erase_tree_ = nh_.subscribe(tree_database_erase_topic_name_, 1, &TreeTracking::eraseTreeDBCallback, this);
+  pub_visualization_marker_ = nh_.advertise<std_msgs::Empty>(tree_database_erase_topic_name_, 1);
 }
 
 // void TreeTracking::visionDetectionCallback(const geometry_msgs::Vector3StampedConstPtr& vision_detection_msg)
@@ -52,6 +54,10 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
 //   sub_vision_detection_.shutdown(); //stop
 // }
 
+void TreeTracking::eraseTreeDBCallback(const std_msgs::Empty& msg)
+{
+  tree_db_.eraseTreeDB();
+}
 void TreeTracking::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg)
 {
   tf::Quaternion uav_q(uav_msg->pose.pose.orientation.x,

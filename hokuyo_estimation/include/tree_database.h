@@ -62,6 +62,7 @@ public:
   void update();
   void setCenterTree(TreeHandlePtr center_tree) { center_tree_ = center_tree; }
   void visualization(std_msgs::Header header);
+  void eraseTreeDB();
   void save();
   bool load(string file_name);
 

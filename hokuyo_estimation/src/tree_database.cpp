@@ -157,7 +157,10 @@ void TreeDataBase::visualization(std_msgs::Header header)
   pub_visualization_marker_.publish(msg);
 }
 
-
+void TreeDataBase::eraseTreeDB()
+{
+  trees_.resize(0);
+}
 void TreeDataBase::save()
 {
   //boost::posix_time::ptime t = ros::Time::now().toBoost();
