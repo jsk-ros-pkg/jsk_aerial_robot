@@ -7,6 +7,7 @@
 #include <delta/model/delta_robot_model.h>
 #include <delta/navigation/delta_navigation.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <nlopt.hpp>
 #include <numeric>
 #include <OsqpEigen/OsqpEigen.h>
 #include <spinal/FourAxisCommand.h>
@@ -37,6 +38,10 @@ namespace aerial_robot_control
 
     boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModel() {return robot_model_;}
     boost::shared_ptr<RollingRobotModel> getRollingRobotModel() {return rolling_robot_model_;}
+    boost::shared_ptr<RollingRobotModel> getRobotModelForControl() {return robot_model_for_control_;}
+
+    std::vector<double> getRotorTilt() {return rotor_tilt_;}
+    Eigen::VectorXd getTargetWrenchAccCogForOpt() {return target_wrench_acc_cog_;}
 
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
@@ -65,9 +70,10 @@ namespace aerial_robot_control
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
-    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    boost::shared_ptr<RollingRobotModel> robot_model_for_control_;
 
     /* common part */
+    bool first_run_;
     std::vector<double> rotor_tilt_;
     std::vector<float> lambda_trans_;
     std::vector<float> lambda_all_;
@@ -114,6 +120,7 @@ namespace aerial_robot_control
     /* rolling mode */
     void standingPlanning();
     void calcStandingFullLambda();
+    void nonlinearWrenchAllocation();
 
     /* send command */
     void sendCmd();
@@ -131,3 +138,6 @@ namespace aerial_robot_control
     void printDebug();
   };
 };
+double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
+void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
+
