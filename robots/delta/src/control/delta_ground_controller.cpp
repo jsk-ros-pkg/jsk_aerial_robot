@@ -30,7 +30,7 @@ void RollingController::calcStandingFullLambda()
   /* normal pid result */
   Eigen::VectorXd target_wrench_target_frame;
   target_wrench_target_frame.resize(6);
-  target_wrench_target_frame.tail(3) = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
+  target_wrench_target_frame.tail(3) = rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
                                                                                                                             pid_controllers_.at(PITCH).result(),
                                                                                                                             pid_controllers_.at(YAW).result());
 
@@ -49,7 +49,7 @@ void RollingController::calcStandingFullLambda()
   target_wrench_target_frame.tail(3)
     = target_wrench_target_frame.tail(3)
     + gravity_compensate_weights_ * gravity_moment_from_contact_point_alined
-    + omega.cross(rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>() * omega);
+    + omega.cross(rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * omega);
 
   gravity_compensate_term_ = gravity_compensate_weights_ * gravity_moment_from_contact_point_alined;
 

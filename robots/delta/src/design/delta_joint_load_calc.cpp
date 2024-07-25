@@ -72,7 +72,7 @@ void DeltaJointLoadCalc::jointAngleSearch()
 
   transformable_robot_model_->setCogDesireOrientation(0.0, 0.0, 0.0);
   transformable_robot_model_->updateRobotModel(joint_positions_);
-  transformable_robot_model_->setTargetFrame("cog");
+  transformable_robot_model_->setControlFrame("cog");
   if(verbose_) std::cout << transformable_robot_model_->getFullWrenchAllocationMatrixFromControlFrame() << std::endl;
 
   /*    setCogDesireOrientation()
@@ -109,7 +109,7 @@ void DeltaJointLoadCalc::jointAngleSearch()
                   joint_positions_(joint_index_map.find("joint2")->second) = joint2;
                   transformable_robot_model_->updateRobotModel(joint_positions_);
 
-                  transformable_robot_model_->setTargetFrame("cog");
+                  transformable_robot_model_->setControlFrame("cog");
 
                   full_q_mat_inv_ = aerial_robot_model::pseudoinverse(transformable_robot_model_->getFullWrenchAllocationMatrixFromControlFrame("cog"));
 
