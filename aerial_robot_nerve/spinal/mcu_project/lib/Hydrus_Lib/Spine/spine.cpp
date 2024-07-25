@@ -109,11 +109,6 @@ namespace Spine
     }
   }
 
-  void setTargetServoPosition(uint8_t index, int16_t position)
-  {
-    servo_.at(index).get().setGoalPosition(position);
-  }
-
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
   {
     if (control_msg.index_length != control_msg.torque_enable_length) return;
