@@ -15,24 +15,14 @@ void RollingController::standingPlanning()
     }
 }
 
-void RollingController::calcStandingFullLambda()
+void RollingController::calcTargetWrenchForGroundControl()
 {
-  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
-  int num_of_planned_gimbals = std::accumulate(gimbal_planning_flag.begin(), gimbal_planning_flag.end(), 0);
-
-  int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals;
-  int n_constraints = 3 + 1 + 2 + 2 + n_variables;
-
-  Eigen::MatrixXd H = Eigen::MatrixXd::Identity(n_variables, n_variables);
-  Eigen::SparseMatrix<double> H_s;
-  H_s = H.sparseView();
-
   /* normal pid result */
   Eigen::VectorXd target_wrench_target_frame;
   target_wrench_target_frame.resize(6);
   target_wrench_target_frame.tail(3) = rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
-                                                                                                                            pid_controllers_.at(PITCH).result(),
-                                                                                                                            pid_controllers_.at(YAW).result());
+                                                                                                                             pid_controllers_.at(PITCH).result(),
+                                                                                                                             pid_controllers_.at(YAW).result());
 
   /* calculate gravity compensation term based on realtime orientation */
   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
@@ -52,6 +42,21 @@ void RollingController::calcStandingFullLambda()
     + omega.cross(rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * omega);
 
   gravity_compensate_term_ = gravity_compensate_weights_ * gravity_moment_from_contact_point_alined;
+
+  target_wrench_target_frame_ = target_wrench_target_frame;
+}
+
+void RollingController::calcGroundFullLambda()
+{
+  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
+  int num_of_planned_gimbals = std::accumulate(gimbal_planning_flag.begin(), gimbal_planning_flag.end(), 0);
+
+  int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals;
+  int n_constraints = 3 + 1 + 2 + 2 + n_variables;
+
+  Eigen::MatrixXd H = Eigen::MatrixXd::Identity(n_variables, n_variables);
+  Eigen::SparseMatrix<double> H_s;
+  H_s = H.sparseView();
 
   Eigen::MatrixXd planned_q_mat = rolling_robot_model_->getPlannedWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd full_q_mat = planned_q_mat;
@@ -75,9 +80,9 @@ void RollingController::calcStandingFullLambda()
 
   lower_bound.head(n_constraints - n_variables)
     <<
-    target_wrench_target_frame(ROLL),
-    target_wrench_target_frame(PITCH),
-    target_wrench_target_frame(YAW),
+    target_wrench_target_frame_(ROLL),
+    target_wrench_target_frame_(PITCH),
+    target_wrench_target_frame_(YAW),
     -INFINITY,
     -steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
@@ -86,9 +91,9 @@ void RollingController::calcStandingFullLambda()
 
   upper_bound.head(n_constraints - n_variables)
     <<
-    target_wrench_target_frame(ROLL),
-    target_wrench_target_frame(PITCH),
-    target_wrench_target_frame(YAW),
+    target_wrench_target_frame_(ROLL),
+    target_wrench_target_frame_(PITCH),
+    target_wrench_target_frame_(YAW),
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
     steering_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),

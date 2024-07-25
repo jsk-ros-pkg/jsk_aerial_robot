@@ -97,6 +97,7 @@ namespace aerial_robot_control
     bool hovering_approximate_;
 
     /* ground mode */
+    Eigen::VectorXd target_wrench_target_frame_;
     Eigen::Vector3d gravity_compensate_term_;
     double steering_mu_;
     Eigen::MatrixXd gravity_compensate_weights_;
@@ -116,11 +117,12 @@ namespace aerial_robot_control
     /* flight mode */
     void calcAccFromCog();
     void calcFlightFullLambda();
+    void nonlinearWrenchAllocation();
 
     /* rolling mode */
     void standingPlanning();
-    void calcStandingFullLambda();
-    void nonlinearWrenchAllocation();
+    void calcTargetWrenchForGroundControl();
+    void calcGroundFullLambda();
 
     /* send command */
     void sendCmd();

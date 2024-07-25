@@ -29,6 +29,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_gimbal_angles_.resize(motor_num_, 0.0);
 
   target_wrench_acc_cog_.resize(6);
+  target_wrench_target_frame_.resize(6);
+
   target_acc_cog_.resize(6);
 
   full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
@@ -213,7 +215,8 @@ void RollingController::controlCore()
         /* for stand */
         rolling_robot_model_->setControlFrame("cp");
         standingPlanning();
-        calcStandingFullLambda();
+        calcTargetWrenchForGroundControl();
+        calcGroundFullLambda();
         /* for stand */
         break;
       }
