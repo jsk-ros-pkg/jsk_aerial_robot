@@ -48,7 +48,7 @@ void RollingController::calcFlightFullLambda()
 
   /* change dimension from wrench to acc */
   full_q_mat.topRows(3) = 1.0 / robot_model_->getMass() * full_q_mat.topRows(3);
-  full_q_mat.bottomRows(3) = rolling_robot_model_->getInertiaFromTargetFrame<Eigen::Matrix3d>().inverse() * full_q_mat.bottomRows(3);
+  full_q_mat.bottomRows(3) = rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>().inverse() * full_q_mat.bottomRows(3);
 
   Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
 

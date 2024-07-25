@@ -189,7 +189,7 @@ void RollingController::controlCore()
     {
     case aerial_robot_navigation::FLYING_STATE:
       {
-        rolling_robot_model_->setTargetFrame("cog");
+        rolling_robot_model_->setControlFrame("cog");
 
         if(rolling_navigator_->getControllersResetFlag())
           {
@@ -211,7 +211,7 @@ void RollingController::controlCore()
     case aerial_robot_navigation::DOWN_STATE:
       {
         /* for stand */
-        rolling_robot_model_->setTargetFrame("cp");
+        rolling_robot_model_->setControlFrame("cp");
         standingPlanning();
         calcStandingFullLambda();
         /* for stand */
