@@ -29,13 +29,15 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_gimbal_angles_.resize(motor_num_, 0.0);
 
   target_wrench_acc_cog_.resize(6);
-  target_wrench_target_frame_.resize(6);
+  target_wrench_control_frame_.resize(6);
 
   target_acc_cog_.resize(6);
 
   full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_trans_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_rot_ = Eigen::VectorXd::Zero(2 * motor_num_);
+
+  opt_initial_x_.resize(2 * motor_num_);
 
   rosParamInit();
 
@@ -101,11 +103,12 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
-  getParam<double>(control_nh, "steering_mu", steering_mu_, 0.0);
+  getParam<double>(control_nh, "ground_mu", ground_mu_, 0.0);
 
   double circle_radius;
   getParam<double>(nh_, "circle_radius", circle_radius, 0.5);
   rolling_robot_model_->setCircleRadius(circle_radius);
+  robot_model_for_control_->setCircleRadius(circle_radius);
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
@@ -115,6 +118,13 @@ void RollingController::rosParamInit()
       std::string rotor_tilt_name = std::string("rotor_tilt") + std::to_string(i + 1);
       TiXmlElement* rotor_tilt_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement(rotor_tilt_name);
       rotor_tilt_attr->Attribute("value", &rotor_tilt_.at(i));
+    }
+
+  getParam<int>(control_nh, "opt_costs_num", opt_costs_num_, 0);
+  if(!control_nh.getParam("opt_cost_weights", opt_cost_weights_))
+    {
+      ROS_ERROR_STREAM("optimization cost is not set in rosparam");
+      opt_cost_weights_.resize(opt_costs_num_, 1.0);
     }
 
   rosoutControlParams("controller");
@@ -140,6 +150,7 @@ void RollingController::controlCore()
   /* set gain if ground navigation mode is updated */
   if(ground_navigation_mode_ != rolling_navigator_->getPrevGroundNavigationMode())
     {
+      first_run_ = true;
       ROS_WARN_STREAM("[control] change controller gain from "
                       << rolling_navigator_->indexToGroundNavigationModeString(rolling_navigator_->getPrevGroundNavigationMode()) << " to "
                       << rolling_navigator_->indexToGroundNavigationModeString(ground_navigation_mode_));
@@ -192,6 +203,7 @@ void RollingController::controlCore()
     case aerial_robot_navigation::FLYING_STATE:
       {
         rolling_robot_model_->setControlFrame("cog");
+        robot_model_for_control_->setControlFrame("cog");
 
         if(rolling_navigator_->getControllersResetFlag())
           {
@@ -214,6 +226,7 @@ void RollingController::controlCore()
       {
         /* for stand */
         rolling_robot_model_->setControlFrame("cp");
+        robot_model_for_control_->setControlFrame("cp");
         standingPlanning();
         calcTargetWrenchForGroundControl();
         calcGroundFullLambda();

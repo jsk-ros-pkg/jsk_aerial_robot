@@ -178,6 +178,11 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
 
 void RollingController::nonlinearWrenchAllocation()
 {
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray joint_positions = robot_model_->getJointPositions();
+  robot_model_for_control_->updateRobotModel(joint_positions);
+
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, 2 * motor_num_);
   slsqp_solver.set_min_objective(nonlinearWrenchAllocationMinObjective, robot_model_for_control_.get());
   slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6});

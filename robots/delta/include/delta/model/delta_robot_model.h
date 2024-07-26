@@ -36,6 +36,7 @@ public:
     return links_center_frame_from_cog_;
   }
   void setCircleRadius(double radius) {circle_radius_ = radius;}
+  void calcContactPoint();
   void setControlFrame(KDL::Frame frame){control_frame_ = frame;};
   void setControlFrame(std::string frame_name);
   KDL::Frame getControlFrame(){return control_frame_;}
@@ -84,8 +85,6 @@ private:
   /* gimbal planning */
   std::vector<int> gimbal_planning_flag_;
   std::vector<double> gimbal_planning_angle_;
-
-  void calcContactPoint();
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
