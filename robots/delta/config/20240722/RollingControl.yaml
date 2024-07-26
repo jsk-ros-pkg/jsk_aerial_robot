@@ -12,8 +12,9 @@ controller:
   wrench_estimate_flag: true
 
   rolling_minimum_lateral_force: 0.2
-  steering_mu: 3.0
-  full_lambda_mode: true
+  ground_mu: 3.0
+  opt_costs_num: 4
+  opt_cost_weights: [1.0, 2.0, 2.0, 1.0]
 
   xy:
     p_gain: 5.0

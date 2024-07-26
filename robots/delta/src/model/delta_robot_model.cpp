@@ -26,6 +26,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   control_frame_name_ = "cog";
   additional_frame_["cp"] = &contact_point_;
   setControlFrame(control_frame_name_);
+  circle_radius_ = 0.405; // hard coded
 
   contact_point_calc_thread_ = boost::thread([this]()
                                              {
@@ -100,15 +101,13 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       std::string s = std::to_string(i + 1);
 
       /* link */
-      KDL::Frame link_f, link_f_from_cog;
+      KDL::Frame link_f;
       fk_solver.JntToCart(joint_positions, link_f, std::string("link") + s);
-      link_f_from_cog = cog.Inverse() * link_f;
-      links_rotation_from_cog_.at(i) = link_f_from_cog.M;
-      links_rotation_from_control_frame_.at(i) = (control_frame.Inverse() * cog).M * links_rotation_from_cog_.at(i);
+      links_rotation_from_cog_.at(i) = (cog.Inverse() * link_f).M;
+      links_rotation_from_control_frame_.at(i) = (control_frame.Inverse() * link_f).M;
 
       /* rotor */
-      std::string rotor = thrust_link_ + s;
-      KDL::Frame rotor_f = seg_tf_map.at(rotor);
+      KDL::Frame rotor_f = seg_tf_map.at(thrust_link_ + s);
       rotors_origin_from_control_frame_.at(i) = (control_frame.Inverse() * rotor_f).p;
       rotors_normal_from_control_frame_.at(i) = (control_frame.Inverse() * rotor_f).M * KDL::Vector(0, 0, 1);
     }
@@ -151,8 +150,8 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   /* publish origin and normal for debug */
   geometry_msgs::PoseArray rotor_origin_msg;
   geometry_msgs::PoseArray rotor_normal_msg;
-  std::vector<Eigen::Vector3d> rotor_origin = getRotorsOriginFromCog<Eigen::Vector3d>();
-  std::vector<Eigen::Vector3d> rotor_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotor_origin = getRotorsOriginFromControlFrame<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotor_normal = getRotorsNormalFromControlFrame<Eigen::Vector3d>();
   for(int i = 0; i < getRotorNum(); i++)
     {
       geometry_msgs::Pose origin;

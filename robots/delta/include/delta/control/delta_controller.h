@@ -42,6 +42,11 @@ namespace aerial_robot_control
 
     std::vector<double> getRotorTilt() {return rotor_tilt_;}
     Eigen::VectorXd getTargetWrenchAccCogForOpt() {return target_wrench_acc_cog_;}
+    Eigen::VectorXd getTargetWrenchControlFrameForOpt() {return target_wrench_control_frame_;}
+    double getGroundMuForOpt() {return ground_mu_;}
+    std::vector<double> getOptInitialX() {return opt_initial_x_;};
+    std::vector<double> getOptCostWeights() {return opt_cost_weights_;}
+    int getGroundNavigationMode() {return ground_navigation_mode_;}
 
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
@@ -97,9 +102,12 @@ namespace aerial_robot_control
     bool hovering_approximate_;
 
     /* ground mode */
-    Eigen::VectorXd target_wrench_target_frame_;
+    std::vector<double> opt_initial_x_;
+    int opt_costs_num_;
+    std::vector<double> opt_cost_weights_;
+    Eigen::VectorXd target_wrench_control_frame_;
     Eigen::Vector3d gravity_compensate_term_;
-    double steering_mu_;
+    double ground_mu_;
     Eigen::MatrixXd gravity_compensate_weights_;
     double rolling_minimum_lateral_force_;
 
@@ -123,6 +131,7 @@ namespace aerial_robot_control
     void standingPlanning();
     void calcTargetWrenchForGroundControl();
     void calcGroundFullLambda();
+    void nonlinearGroundWrenchAllocation();
 
     /* send command */
     void sendCmd();
@@ -143,3 +152,6 @@ namespace aerial_robot_control
 double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
 void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
 
+double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
+void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
+void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
