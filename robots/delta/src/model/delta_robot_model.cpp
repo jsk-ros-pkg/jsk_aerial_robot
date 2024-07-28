@@ -191,11 +191,25 @@ void RollingRobotModel::setControlFrame(std::string frame_name)
       control_frame_name_ = frame_name;
       if(seg_tf_map.find(control_frame_name_) == seg_tf_map.end())
         {
-          frame = *(additional_frame_.at(control_frame_name_));
+          try
+            {
+              frame = *(additional_frame_.at(control_frame_name_));
+            }
+          catch(std::out_of_range error)
+            {
+              ROS_ERROR_STREAM("exception was throwed when accessing additional frame: " << error.what());
+            }
         }
       else
         {
-          frame = seg_tf_map.at(control_frame_name_);
+          try
+            {
+              frame = seg_tf_map.at(control_frame_name_);
+            }
+          catch(std::out_of_range error)
+            {
+              ROS_ERROR_STREAM("exception was throwed when accessing seg_tf_map: " << error.what());
+            }
         }
       setControlFrame(frame);
       return;
