@@ -7,7 +7,7 @@
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
-  <arg name="tree" default="dynamic_obstacle/real_RP_271_hokuyo_v1.1.2" />
+  <arg name="tree" default="dynamic_obstacle/real_RP_271_hokuyo_v1.1.3" />
   <arg name="policy_start_delay" default="1.0" />
   <arg name="nav_exec" default="True" />
   <arg name="launch_gazebo" default="True" />
