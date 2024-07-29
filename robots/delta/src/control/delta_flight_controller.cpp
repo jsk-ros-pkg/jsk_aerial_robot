@@ -206,8 +206,12 @@ void RollingController::nonlinearWrenchAllocation()
   std::vector<double> opt_x(2 * motor_num_);
   for(int i = 0; i < motor_num_; i++)
     {
-      opt_x.at(i) = std::clamp((double)lambda_all_.at(i), lb.at(i), ub.at(i));
-      opt_x.at(i + motor_num_) = angles::normalize_angle(target_gimbal_angles_.at(i));
+      opt_x.at(i) = std::clamp((double)full_lambda_all_.segment(2 * i, 2).norm(),
+                               lb.at(i),
+                               ub.at(i));
+      opt_x.at(i + motor_num_) = std::clamp((double)angles::normalize_angle(atan2(-full_lambda_all_(2 * i + 0), full_lambda_all_(2 * i + 1))),
+                                            lb.at(i + motor_num_),
+                                            ub.at(i + motor_num_));
     }
 
   double max_val;

@@ -52,7 +52,7 @@ void RollingController::calcGroundFullLambda()
   int num_of_planned_gimbals = std::accumulate(gimbal_planning_flag.begin(), gimbal_planning_flag.end(), 0);
 
   int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals;
-  int n_constraints = 3 + 1 + 2 + 2 + n_variables;
+  int n_constraints = 3 + 1 + 2 + 2 + n_variables; // moment(3) + force_z(1) + force_x(2) + force_y(2) + thrust limit(n_variables)
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Identity(n_variables, n_variables);
   Eigen::SparseMatrix<double> H_s;
@@ -63,13 +63,14 @@ void RollingController::calcGroundFullLambda()
   Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
   Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
-  A.topRows(3) = full_q_mat_rot;                                                           //    eq constraint about rpy torque
-  A.block(3, 0, 1, n_variables) = full_q_mat_trans.row(Z);                                           // in eq constraint about z
-  A.block(4, 0, 1, n_variables) = full_q_mat_trans.row(X) - ground_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
-  A.block(5, 0, 1, n_variables) = full_q_mat_trans.row(X) + ground_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about x
-  A.block(6, 0, 1, n_variables) = full_q_mat_trans.row(Y) - ground_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
-  A.block(7, 0, 1, n_variables) = full_q_mat_trans.row(Y) + ground_mu_ * full_q_mat_trans.row(Z);  // in eq constraint about y
-  A.block(8, 0, n_variables, n_variables) = Eigen::MatrixXd::Identity(n_variables, n_variables);     // in eq constraints about thrust limit
+  int last_row = 0;
+  A.block(last_row, 0, 3, n_variables) = full_q_mat_rot; last_row += 3;                              //    eq constraint about rpy torque
+  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Z); last_row += 1;                                       // in eq constraint about z
+  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(X) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
+  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(X) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
+  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Y) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
+  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Y) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
+  A.block(last_row, 0, n_variables, n_variables) = Eigen::MatrixXd::Identity(n_variables, n_variables); last_row += n_variables;    // in eq constraints about thrust limit
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
