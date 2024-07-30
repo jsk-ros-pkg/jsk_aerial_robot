@@ -24,7 +24,6 @@ public:
     contact_point_calc_thread_.join();
   }
 
-  void calcRobotModelFromFrame(std::string frame_name);
   template <class T> T getContactPoint();
   template <class T> std::vector<T> getLinksRotationFromCog();
   template <class T> std::vector<T> getLinksRotationFromControlFrame();
