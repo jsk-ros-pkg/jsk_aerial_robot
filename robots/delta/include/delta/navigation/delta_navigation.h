@@ -43,12 +43,10 @@ namespace aerial_robot_navigation
     void setControllersResetFlag(bool flag) {controllers_reset_flag_ = flag;}
     bool getControllersResetFlag() {return controllers_reset_flag_;}
 
-    double getCurrentTargetBaselinkRpyRoll() {return curr_target_baselink_rpy_roll_;}
-    double getCurrentTargetBaselinkRpyPitch() {return curr_target_baselink_rpy_pitch_;}
-    void setCurrentTargetBaselinkRpyRoll(double roll) {curr_target_baselink_rpy_roll_ = roll;}
-    void setCurrentTargetBaselinkRpyPitch(double pitch) {curr_target_baselink_rpy_pitch_ = pitch;}
     void setFinalTargetBaselinkQuat(tf::Quaternion quat) {final_target_baselink_quat_ = quat;}
+    tf::Quaternion getFinalTargetBaselinkQuat() {return final_target_baselink_quat_;}
     void setCurrentTargetBaselinkQuat(tf::Quaternion quat) {curr_target_baselink_quat_ = quat;}
+    tf::Quaternion getCurrentTargetBaselinkQuat() {return curr_target_baselink_quat_;}
 
     double getTargetPitchAngVel() {return target_pitch_ang_vel_;}
     double getTargetyawAngVel() {return target_yaw_ang_vel_;}
@@ -106,6 +104,7 @@ namespace aerial_robot_navigation
     bool yaw_ang_vel_updating_;
     double down_mode_roll_anglvel_;
     double down_start_time_;
+    tf::Quaternion down_start_baselink_quat_;
 
     /* standing mode trajectory generation */
     agi::Polynomial<> poly_;
@@ -123,7 +122,6 @@ namespace aerial_robot_navigation
     /* target baselink rotation */
     double prev_rotation_stamp_;
     tf::Quaternion curr_target_baselink_quat_, final_target_baselink_quat_;
-    double curr_target_baselink_rpy_roll_, curr_target_baselink_rpy_pitch_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
     bool baselink_rot_force_update_mode_;
