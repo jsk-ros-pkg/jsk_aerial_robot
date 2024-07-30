@@ -87,38 +87,34 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
   /* assume candidate of control frame is calculated before here */
   setControlFrame(control_frame_name_);
 
-  const auto seg_tf_map = fullForwardKinematics(joint_positions);
-  sensor_msgs::JointState joint_state = kdlJointToMsg(joint_positions);
-  KDL::TreeFkSolverPos_recursive fk_solver(getTree());
+  const auto& seg_tf_map = getSegmentsTf();
+  const auto& joint_index_map = getJointIndexMap();
 
   /* get frames */
   KDL::Frame cog = getCog<KDL::Frame>();
   KDL::Frame control_frame = getControlFrame();
 
-  /* link and rotor based on cog and control frame */
+  /* link and rotor information in each link */
   for(int i = 0; i < getRotorNum(); ++i)
     {
       std::string s = std::to_string(i + 1);
 
       /* link */
-      KDL::Frame link_f;
-      fk_solver.JntToCart(joint_positions, link_f, std::string("link") + s);
+      KDL::Frame link_f = seg_tf_map.at("link" + s);
       links_rotation_from_cog_.at(i) = (cog.Inverse() * link_f).M;
       links_rotation_from_control_frame_.at(i) = (control_frame.Inverse() * link_f).M;
+
+      /* circle center of link for contact point calculation */
+      KDL::Frame link_center_f = seg_tf_map.at(std::string("link") + s + std::string("_center"));
+      links_center_frame_from_cog_.at(i) = cog.Inverse() * link_center_f;
 
       /* rotor */
       KDL::Frame rotor_f = seg_tf_map.at(thrust_link_ + s);
       rotors_origin_from_control_frame_.at(i) = (control_frame.Inverse() * rotor_f).p;
       rotors_normal_from_control_frame_.at(i) = (control_frame.Inverse() * rotor_f).M * KDL::Vector(0, 0, 1);
-    }
 
-  /* circle center of each links */
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      std::string s = std::to_string(i + 1);
-      KDL::Frame f;
-      fk_solver.JntToCart(joint_positions, f, std::string("link") + s + std::string("_center"));
-      links_center_frame_from_cog_.at(i) = cog.Inverse() * f;
+      /* get current gimbal angles */
+      current_gimbal_angles_.at(i) = joint_positions(joint_index_map.find(std::string("gimbal") + std::to_string(i + 1))->second);
     }
 
   /* calculate inertia from root */
@@ -130,22 +126,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       link_inertia = link_inertia + f * inertia.second;
     }
   link_inertia_ = link_inertia;
-
-  /* get current gimbal angles */
-  for(int i = 0; i < joint_state.name.size(); i++)
-    {
-      if(joint_state.name.at(i).find("gimbal") != std::string::npos)
-        {
-          for(int j = 0; j < getRotorNum(); j++)
-            {
-              if(joint_state.name.at(i) == std::string("gimbal") + std::to_string(j + 1))
-                {
-                  std::lock_guard<std::mutex> lock(current_gimbal_angles_mutex_);
-                  current_gimbal_angles_.at(j) = joint_state.position.at(i);
-                }
-            }
-        }
-    }
 
   /* publish origin and normal for debug */
   geometry_msgs::PoseArray rotor_origin_msg;
