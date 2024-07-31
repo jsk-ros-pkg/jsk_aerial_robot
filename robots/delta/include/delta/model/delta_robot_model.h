@@ -44,6 +44,7 @@ public:
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame(std::string frame_name);
   Eigen::MatrixXd getPlannedWrenchAllocationMatrixFromControlFrame();
+  std::vector<double> getCurrentJointAngles() {return current_joint_angles_;}
   std::vector<double> getCurrentGimbalAngles() {return current_gimbal_angles_;}
   void setGimbalPlanningFlag(int index, int flag) {gimbal_planning_flag_.at(index) = flag;}
   std::vector<int> getGimbalPlanningFlag() {return gimbal_planning_flag_;}
@@ -64,6 +65,7 @@ private:
   std::mutex rotors_normal_control_frame_mutex_;
   std::mutex rotors_origin_control_frame_mutex_;
   std::mutex contact_point_mutex_;
+  std::mutex current_joint_angles_mutex_;
   std::mutex current_gimbal_angles_mutex_;
 
   KDL::Frame contact_point_;
@@ -81,6 +83,7 @@ private:
   std::vector<KDL::Vector> rotors_origin_from_control_frame_;
   std::vector<KDL::Vector> rotors_normal_from_control_frame_;
   std::vector<KDL::Frame> links_center_frame_from_cog_;
+  std::vector<double> current_joint_angles_;
   std::vector<double> current_gimbal_angles_;
 
   /* gimbal planning */

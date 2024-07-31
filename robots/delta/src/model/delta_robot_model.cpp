@@ -9,6 +9,7 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   rotors_origin_from_control_frame_.resize(rotor_num);
   rotors_normal_from_control_frame_.resize(rotor_num);
   links_center_frame_from_cog_.resize(rotor_num);
+  current_joint_angles_.resize(getJointNum() - rotor_num);
   current_gimbal_angles_.resize(rotor_num);
   thrust_link_ = "thrust";
 
@@ -116,6 +117,12 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
 
       /* get current gimbal angles */
       current_gimbal_angles_.at(i) = joint_positions(joint_index_map.find(std::string("gimbal") + std::to_string(i + 1))->second);
+    }
+
+  /* get current joint angles */
+  for(int i = 0; i < getJointNum() - getRotorNum(); i++)
+    {
+      current_joint_angles_.at(i) = joint_positions(joint_index_map.find(std::string("joint") + std::to_string(i + 1))->second);
     }
 
   /* calculate inertia from root */
