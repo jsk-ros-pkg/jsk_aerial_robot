@@ -21,7 +21,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullINDI.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -45,8 +45,7 @@ p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
-
-t_rotor = 0.0942  # time constant of rotor
+t_rotor = physical_params["t_rotor"]  # time constant of rotor
 
 
 class NMPCTiltQdServoThrustDist(NMPCBase):
@@ -90,10 +89,10 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         ft4 = ca.SX.sym("ft4")
         ft = ca.vertcat(ft1, ft2, ft3, ft4)
 
-        fd_i = ca.SX.sym("fd", 3)  # world frame
+        f_d_i = ca.SX.sym("fd", 3)  # world frame
         tau_d_b = ca.SX.sym("tau_d", 3)  # body frame
 
-        states = ca.vertcat(p, v, q, w, a, ft, fd_i, tau_d_b)
+        states = ca.vertcat(p, v, q, w, a, ft, f_d_i, tau_d_b)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
@@ -190,7 +189,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            (ca.mtimes(rot_ib, f_u_b) + fd_i) / mass + g_i,
+            (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
@@ -198,8 +197,8 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b)),
             (ac - a) / t_servo,
             (ftc - ft) / t_rotor,
-            ca.vertcat(0, 0, 0),
-            ca.vertcat(0, 0, 0)
+            ca.vertcat(0.0, 0.0, 0.0),
+            ca.vertcat(0.0, 0.0, 0.0),
         )
 
         # function
@@ -210,7 +209,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft, fd_i, tau_d_b)
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft, f_d_i, tau_d_b)
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
@@ -279,10 +278,10 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
+                nmpc_params["Qt"],
+                nmpc_params["Qt"],
+                nmpc_params["Qt"],
+                nmpc_params["Qt"],
                 0,
                 0,
                 0,
@@ -295,10 +294,10 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
 
         R = np.diag(
             [
-                1,
-                1,
-                1,
-                1,
+                nmpc_params["Rtc_d"],
+                nmpc_params["Rtc_d"],
+                nmpc_params["Rtc_d"],
+                nmpc_params["Rtc_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
@@ -314,7 +313,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
 
         # set constraints
         # # bx
-        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
+        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4, ft1, ft2, ft3, ft4
         ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
         ocp.constraints.lbx = np.array(
             [
@@ -356,7 +355,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         print("ubx: ", ocp.constraints.ubx)
 
         # # bx_e
-        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
+        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4, ft1, ft2, ft3, ft4
         ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
         ocp.constraints.lbx_e = np.array(
             [
@@ -397,41 +396,41 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         print("lbx_e: ", ocp.constraints.lbx_e)
         print("ubx_e: ", ocp.constraints.ubx_e)
 
-        # # bu
-        # ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c
-        ocp.constraints.idxbu = np.array([0, 1, 2, 3, 4, 5, 6, 7])
-        ocp.constraints.lbu = np.array(
-            [
-                nmpc_params["thrust_min"],
-                nmpc_params["thrust_min"],
-                nmpc_params["thrust_min"],
-                nmpc_params["thrust_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-            ]
-        )
-        ocp.constraints.ubu = np.array(
-            [
-                nmpc_params["thrust_max"],
-                nmpc_params["thrust_max"],
-                nmpc_params["thrust_max"],
-                nmpc_params["thrust_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-            ]
-        )
-        print("lbu: ", ocp.constraints.lbu)
-        print("ubu: ", ocp.constraints.ubu)
+        # # # bu
+        # # ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c
+        # ocp.constraints.idxbu = np.array([0, 1, 2, 3, 4, 5, 6, 7])
+        # ocp.constraints.lbu = np.array(
+        #     [
+        #         nmpc_params["thrust_min"],
+        #         nmpc_params["thrust_min"],
+        #         nmpc_params["thrust_min"],
+        #         nmpc_params["thrust_min"],
+        #         nmpc_params["a_min"],
+        #         nmpc_params["a_min"],
+        #         nmpc_params["a_min"],
+        #         nmpc_params["a_min"],
+        #     ]
+        # )
+        # ocp.constraints.ubu = np.array(
+        #     [
+        #         nmpc_params["thrust_max"],
+        #         nmpc_params["thrust_max"],
+        #         nmpc_params["thrust_max"],
+        #         nmpc_params["thrust_max"],
+        #         nmpc_params["a_max"],
+        #         nmpc_params["a_max"],
+        #         nmpc_params["a_max"],
+        #         nmpc_params["a_max"],
+        #     ]
+        # )
+        # print("lbu: ", ocp.constraints.lbu)
+        # print("ubu: ", ocp.constraints.ubu)
 
         # initial state
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
+        x_ref[17:21] = mass * gravity / 4  # ft1, ft2, ft3, ft4
         u_ref = np.zeros(nu)
-        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref

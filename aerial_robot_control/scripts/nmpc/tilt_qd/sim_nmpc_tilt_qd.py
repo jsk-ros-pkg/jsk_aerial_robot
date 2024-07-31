@@ -23,6 +23,7 @@ from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 
 # further consider the thrust delay
 from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 from tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
 if __name__ == "__main__":
@@ -58,6 +59,8 @@ if __name__ == "__main__":
     elif args.model == 6:
         nmpc = NMPCTiltQdServoThrust()
     elif args.model == 7:
+        nmpc = NMPCTiltQdServoThrustDist()
+    elif args.model == 8:
         nmpc = NMPCTiltQdServoDragDist()
     else:
         raise ValueError(f"Invalid control model {args.model}.")
@@ -133,7 +136,7 @@ if __name__ == "__main__":
         t_ctl += ts_sim
 
         # --------- update state estimation ---------
-        if isinstance(nmpc, NMPCTiltQdServoDist):
+        if isinstance(nmpc, NMPCTiltQdServoDist) or isinstance(nmpc, NMPCTiltQdServoThrustDist):
             x_now = np.zeros(nx)
             x_now[:nx - 6] = x_now_sim[:nx - 6]  # only remove the last 6 elements, which are the disturbances
         else:

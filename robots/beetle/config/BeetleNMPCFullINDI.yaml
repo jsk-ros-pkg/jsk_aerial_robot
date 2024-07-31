@@ -16,6 +16,7 @@ controller:
     kq_d_kt: 0.0153  #0.0171998
 
     num_rotors: 4
+    t_rotor: 0.0942  # real condition w/o propeller 0.0942 s; sim: try to set 0.0942 s
 
     num_servos: 4
     # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
@@ -50,7 +51,9 @@ controller:
     Qw_xy: 5
     Qw_z: 5
     Qa: 1
-    Rt: 1
+    Qt: 1  # t is for thrust
+
+    Rtc_d: 1  # difference of ftc
     Rac_d: 250  # difference of ac
 
     is_attitude_ctrl: false
