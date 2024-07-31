@@ -107,6 +107,7 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller_i_term.cpp
         src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller_ekf.cpp
         src/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller_indi.cpp
+        src/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_controller.cpp
         src/nmpc/tilt_tri_servo_mdl/nmpc_controller.cpp
         src/nmpc/tilt_bi_servo_mdl/nmpc_controller.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
@@ -120,6 +121,7 @@ target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/libacados_sim_solver_tilt_qd_servo_dist_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_dist_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_servo_thrust_dist_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_tri_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_tri_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_servo_mdl.so
