@@ -5,6 +5,52 @@
 #ifndef TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
 #define TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
 
+#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.h"
 #include "nmpc_solver.h"
+
+#include "spinal/ESCTelemetryArray.h"
+
+namespace aerial_robot_control
+{
+
+namespace nmpc
+{
+
+class TiltQdServoThrustDistNMPC : public nmpc::TiltQdServoDistNMPC
+{
+public:
+  void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
+
+protected:
+  double krpm2_d_thrust_;
+  std::vector<double> thrust_meas_;
+  ros::Subscriber sub_esc_telem_;
+
+  inline void initMPCSolverPtr() override
+  {
+    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoThrustDistMdlMPCSolver>();
+  }
+
+  void initParams() override;
+
+  void initCostW() override;
+
+  void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
+
+  void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
+                    const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
+                    vector<double>& u) const override;
+
+  void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
+
+  std::vector<double> meas2VecX() override;
+};
+
+}  // namespace nmpc
+
+}  // namespace aerial_robot_control
 
 #endif  // TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
