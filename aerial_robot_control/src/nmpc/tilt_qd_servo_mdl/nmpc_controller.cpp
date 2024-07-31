@@ -210,7 +210,7 @@ void nmpc::TiltQdServoNMPC::controlCore()
   prepareNMPCParams();
 
   /* prepare initial value */
-  odom_ = getOdom();  // TODO: should be moved to Estimator. it should be updated not using ROS。
+  odom_ = getOdom();  // TODO: should be moved to Estimator. it should not be updated by ROS.
   std::vector<double> bx0 = meas2VecX();
 
   /* solve */
