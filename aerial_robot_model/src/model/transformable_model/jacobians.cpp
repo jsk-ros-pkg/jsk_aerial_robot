@@ -7,12 +7,7 @@ Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, st
   const auto& tree = getTree();
   const auto seg_frames = getSegmentsTf();
   
-  Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse());
-
-  // std::cout << "cog desire orientation:\n" << aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>()) << std::endl;
-  // std::cout << "baselink M:\n" << aerial_robot_model::kdlToEigen(seg_frames.at(getBaselinkName()).M) << std::endl;
-  // std::cout << "baselink M inverse:\n" << aerial_robot_model::kdlToEigen(seg_frames.at(getBaselinkName()).M.Inverse()) << std::endl;
-  // std::cout << "root rot: \n" << root_rot << std::endl;
+  Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse()); // cog_R_base * (root_R_base).inv = cog_R_root
 
   KDL::TreeJntToJacSolver solver(tree);
   KDL::Jacobian jac(tree.getNrOfJoints());
@@ -26,7 +21,7 @@ Eigen::MatrixXd RobotModel::getJacobian(const KDL::JntArray& joint_positions, st
   // add virtual 6dof root
   Eigen::MatrixXd jac_all = Eigen::MatrixXd::Identity(6, 6 + getJointNum());
   jac_all.rightCols(getJointNum()) = jac_joint;
-  Eigen::Vector3d p = aerial_robot_model::kdlToEigen(seg_frames.at(segment_name).p + seg_frames.at(segment_name).M * offset);
+  Eigen::Vector3d p = aerial_robot_model::kdlToEigen(seg_frames.at(segment_name).p + seg_frames.at(segment_name).M * offset); // root_p_frame + root_R_frame * frame_p_point = root_p_point
   jac_all.block(0,3,3,3) = -aerial_robot_model::skew(p);
 
   jac_all.topRows(3) = root_rot * jac_all.topRows(3);

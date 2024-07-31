@@ -67,6 +67,7 @@ void RollingRobotModel::calcContactPoint()
             }
         }
     }
+  contacting_link_ = min_index_i;
   rot_mat = Eigen::AngleAxisd(min_index_j / 180.0 * M_PI, b3);
   Eigen::Vector3d center_p_cp_in_center = circle_radius_ * rot_mat * b1;
   Eigen::Vector3d cog_p_cp_in_cog = aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).p) + aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).M) * center_p_cp_in_center;

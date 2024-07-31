@@ -36,6 +36,7 @@ public:
   }
   void setCircleRadius(double radius) {circle_radius_ = radius;}
   void calcContactPoint();
+  int getContactingLink() {return contacting_link_;}
   void setControlFrame(KDL::Frame frame){control_frame_ = frame;};
   void setControlFrame(std::string frame_name);
   KDL::Frame getControlFrame(){return control_frame_;}
@@ -66,6 +67,7 @@ private:
   std::mutex current_gimbal_angles_mutex_;
 
   KDL::Frame contact_point_;
+  int contacting_link_;
 
   std::string thrust_link_;
   double circle_radius_;

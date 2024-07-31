@@ -133,6 +133,9 @@ namespace aerial_robot_control
     void calcGroundFullLambda();
     void nonlinearGroundWrenchAllocation();
 
+    /* joint control */
+    void calcJointTorque();
+
     /* send command */
     void sendCmd();
     void sendGimbalAngles();

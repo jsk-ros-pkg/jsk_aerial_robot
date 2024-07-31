@@ -60,6 +60,7 @@ add_library(delta_controller
   src/control/delta_controller_utils.cpp
   src/control/delta_flight_controller.cpp
   src/control/delta_ground_controller.cpp
+  src/control/delta_joint_controller.cpp
   )
 target_link_libraries(delta_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
 
