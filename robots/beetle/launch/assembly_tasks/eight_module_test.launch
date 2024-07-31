@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="headless" default="false"/>
+  <arg name="spawn_x_1" default="-1.0"/>
+  <arg name="spawn_y_1" default="0.0"/>
+  <arg name="spawn_yaw_1" default="0.0"/>
+  <arg name="spawn_x_2" default="0.0"/>
+  <arg name="spawn_y_2" default="0.0"/>
+  <arg name="spawn_yaw_2" default="0.0"/>
+  <arg name="spawn_x_3" default="1.0"/>
+  <arg name="spawn_y_3" default="0.0"/>
+  <arg name="spawn_yaw_3" default="0.0"/>
+  <arg name="spawn_x_4" default="2.0"/>
+  <arg name="spawn_y_4" default="0.0"/>
+  <arg name="spawn_yaw_4" default="0.0"/>
+
+  <arg name="spawn_x_5" default="3.0"/>
+  <arg name="spawn_y_5" default="0.0"/>
+  <arg name="spawn_yaw_5" default="0.0"/>
+  <arg name="spawn_x_6" default="4.0"/>
+  <arg name="spawn_y_6" default="0.0"/>
+  <arg name="spawn_yaw_6" default="0.0"/>
+  <arg name="spawn_x_7" default="5.0"/>
+  <arg name="spawn_y_7" default="0.0"/>
+  <arg name="spawn_yaw_7" default="0.0"/>
+  <arg name="spawn_x_8" default="6.0"/>
+  <arg name="spawn_y_8" default="0.0"/>
+  <arg name="spawn_yaw_8" default="0.0"/>
+
+  <group>
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="1"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="true"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_1)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_1)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_1)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="2"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_2)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_2)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_2)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="3"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_3)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_3)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_3)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="4"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_4)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_4)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_4)"/>
+    </include>
+
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="5"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_5)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_5)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_5)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="6"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_6)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_6)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_6)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="7"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_7)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_7)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_7)"/>
+    </include>
+
+    <include file="$(find beetle)/launch/bringup.launch">
+      <arg name="robot_id" value="8"/>
+      <arg name="real_machine" value="false"/>
+      <arg name="simulation" value="true"/>
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="launch_gazebo" value="false"/>
+      <arg name="estimate_mode" value="1"/>
+      <arg name="spawn_x" default="$(arg spawn_x_8)"/>
+      <arg name="spawn_y" default="$(arg spawn_y_8)"/>
+      <arg name="spawn_yaw" default="$(arg spawn_yaw_8)"/>
+    </include>
+
+  </group>
+
+</launch>

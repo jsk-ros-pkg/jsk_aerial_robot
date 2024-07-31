@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="robot_name_1" default="/beetle1" />
+  <arg name="robot_name_2" default="/beetle2" />
+  <arg name="robot_name_3" default="/beetle3" />
+  <arg name="robot_name_4" default="/beetle4" />
+
+  <node pkg="joy" type="joy_node" name="joy_node1" ns="$(arg robot_name_1)" output="screen" >
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
+  </node>
+
+  <node pkg="joy" type="joy_node" name="joy_node2" ns="$(arg robot_name_2)" output="screen" >
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
+  </node>
+
+  <node pkg="joy" type="joy_node" name="joy_node3" ns="$(arg robot_name_3)" output="screen" >
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
+  </node>
+
+  <node pkg="joy" type="joy_node" name="joy_node4" ns="$(arg robot_name_4)" output="screen" >
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
+  </node>
+</launch>

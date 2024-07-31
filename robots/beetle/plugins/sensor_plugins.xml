@@ -1,0 +1,7 @@
+<library path="lib/libbeetle_sensor_pluginlib">
+
+  <class name="sensor_plugin/beetle_imu" type="sensor_plugin::BeetleImu" base_class_type="sensor_plugin::SensorBase">
+    <description>Beetle IMU sensor plugin.</description>
+  </class>
+
+</library>
