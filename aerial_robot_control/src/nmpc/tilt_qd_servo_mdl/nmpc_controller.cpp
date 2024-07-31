@@ -71,7 +71,8 @@ bool nmpc::TiltQdServoNMPC::update()
   {
     initAllocMat();
 
-    // also for some commands that should be sent after takeoff
+    /* also for some commands that should be sent after takeoff */
+    // enable imu sending, only works in simulation. TODO: check its compatibility with real robot
     spinal::FlightConfigCmd flight_config_cmd;
     flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
     pub_flight_config_cmd_spinal_.publish(flight_config_cmd);
