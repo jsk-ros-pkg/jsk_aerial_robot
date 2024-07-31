@@ -7,6 +7,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include <sensor_msgs/JointState.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Int16.h>
 
@@ -53,8 +54,6 @@ namespace aerial_robot_navigation
     bool getPitchAngVelUpdating() {return pitch_ang_vel_updating_;}
     bool getYawAngVelUpdating() {return yaw_ang_vel_updating_;}
 
-    void setBaselinkRotForceUpdateMode(bool flag) {baselink_rot_force_update_mode_ = flag;}
-    bool getBaselinkRotForceUpdateMode() {return baselink_rot_force_update_mode_;}
     std::string indexToGroundNavigationModeString(int index);
 
     void setEstimatedExternalWrench(Eigen::VectorXd est_external_wrench) {est_external_wrench_ = est_external_wrench;}
@@ -64,6 +63,9 @@ namespace aerial_robot_navigation
     /* baselink rotation process */
     ros::Publisher desire_coord_pub_;
     ros::Subscriber final_target_baselink_quat_sub_, final_target_baselink_rpy_sub_;
+
+    /* transform planning */
+    ros::Subscriber joints_control_sub_;
 
     /* joy */
     ros::Subscriber joy_sub_;
@@ -75,6 +77,7 @@ namespace aerial_robot_navigation
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
 
     void rollingPlanner();
+    void transformPlanner();
     void baselinkRotationProcess();
     void groundModeProcess();
     void rosPublishProcess();
@@ -84,6 +87,7 @@ namespace aerial_robot_navigation
     void groundNavigationModeCallback(const std_msgs::Int16Ptr & msg);
     void setFinalTargetBaselinkQuatCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
     void setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
+    void jointsControlCallback(const sensor_msgs::JointStatePtr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
 
     /* navigation mode */
@@ -112,6 +116,13 @@ namespace aerial_robot_navigation
     double ground_trajectory_start_time_;
     double ground_trajectory_duration_;
 
+    /* joint transformation */
+    bool transforming_flag_;
+    double joint_angvel_;
+    double transform_finish_time_;
+    std::vector<double> transform_target_joint_angles_;
+    KDL::Rotation transform_initial_cog_R_contact_link_; // cog_R_contactlink
+
     /* motion planning based on external wrench estimation */
     Eigen::VectorXd est_external_wrench_;
     Eigen::VectorXd est_external_wrench_cog_;
@@ -124,6 +135,5 @@ namespace aerial_robot_navigation
     tf::Quaternion curr_target_baselink_quat_, final_target_baselink_quat_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
-    bool baselink_rot_force_update_mode_;
   };
 };
