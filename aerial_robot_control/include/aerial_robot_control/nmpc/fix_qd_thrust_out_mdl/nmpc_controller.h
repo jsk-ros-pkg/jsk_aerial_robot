@@ -23,6 +23,10 @@ protected:
   }
 
   void initAllocMat() override;
+
+  void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
+                    const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
+                    vector<double>& u) const override;
 };
 
 }  // namespace nmpc

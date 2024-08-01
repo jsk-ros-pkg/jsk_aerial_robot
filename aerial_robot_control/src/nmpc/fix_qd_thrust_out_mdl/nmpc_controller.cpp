@@ -43,6 +43,29 @@ void nmpc::FixQdNMPC::initAllocMat()
   alloc_mat_(5, 3) = -dr4 * kq_d_kt;
 }
 
+void nmpc::FixQdNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                   const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
+                                   const Eigen::VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const
+{
+  x.at(0) = ref_pos_i.x();
+  x.at(1) = ref_pos_i.y();
+  x.at(2) = ref_pos_i.z();
+  x.at(3) = ref_vel_i.x();
+  x.at(4) = ref_vel_i.y();
+  x.at(5) = ref_vel_i.z();
+  x.at(6) = ref_quat_ib.w();
+  x.at(7) = ref_quat_ib.x();
+  x.at(8) = ref_quat_ib.y();
+  x.at(9) = ref_quat_ib.z();
+  x.at(10) = ref_omega_b.x();
+  x.at(11) = ref_omega_b.y();
+  x.at(12) = ref_omega_b.z();
+
+  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
+  for (int i = 0; i < x_lambda.size(); i++)  // only for fixed multirotor
+    u.at(i) = x_lambda(i);
+}
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::FixQdNMPC, aerial_robot_control::ControlBase);
