@@ -75,6 +75,7 @@ namespace aerial_robot_navigation
     ros::Publisher ground_navigation_mode_pub_;
 
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
+    boost::shared_ptr<RollingRobotModel> robot_model_for_plan_;
 
     void rollingPlanner();
     void transformPlanner();
