@@ -36,9 +36,9 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
 {
   /* INDI */
   // step 1. calculate the rotor thrust and servo angle after t_nmpc_samp_, which considers the actuators' dynamics.
-  Eigen::VectorXd ft_cmd = Eigen::VectorXd::Zero(motor_num_);
-  Eigen::VectorXd ft_meas = Eigen::VectorXd::Zero(motor_num_);
-  Eigen::VectorXd ft_mpc = Eigen::VectorXd::Zero(motor_num_);
+  Eigen::VectorXd ft_cmd(motor_num_);
+  Eigen::VectorXd ft_meas(motor_num_);
+  Eigen::VectorXd ft_mpc(motor_num_);
   for (int i = 0; i < motor_num_; i++)
   {
     ft_cmd(i) = getCommand(i);
@@ -46,9 +46,9 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   }
   ft_mpc = ft_meas + t_nmpc_samp_ / ts_rotor_ * (ft_cmd - ft_meas);
 
-  Eigen::VectorXd alpha_cmd = Eigen::VectorXd::Zero(joint_num_);
-  Eigen::VectorXd alpha_meas = Eigen::VectorXd::Zero(joint_num_);
-  Eigen::VectorXd alpha_mpc = Eigen::VectorXd::Zero(joint_num_);
+  Eigen::VectorXd alpha_cmd(joint_num_);
+  Eigen::VectorXd alpha_meas(joint_num_);
+  Eigen::VectorXd alpha_mpc(joint_num_);
   for (int i = 0; i < joint_num_; i++)
   {
     alpha_cmd(i) = getCommand(i + motor_num_);
@@ -68,10 +68,10 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
     z_mpc(2 * i + 1) = ft_mpc(i) * cos(alpha_mpc(i));
   }
 
-  auto wBu_mpc = alloc_mat_ * z_mpc;
+  if (alloc_mat_.size() == 0)  // if alloc_mat is not initialized, do not use INDI
+    return;
 
-  auto fBu_mpc = wBu_mpc.head(3);
-  auto tauBu_mpc = wBu_mpc.tail(3);
+  Eigen::VectorXd wBu_mpc = alloc_mat_ * z_mpc;
 
   // step 3. calculate the inverse of allocation matrix from fBuMPC (consider the servo dynamics) to u.
   // TODO: maybe I should use the current state of thrust and servo angle to align with the original INDI paper?
@@ -80,12 +80,16 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   Eigen::VectorXd u_meas(motor_num_ + joint_num_);
   u_meas << ft_meas, alpha_meas;
 
-  Eigen::MatrixXd B_inv = u_cmd * ((1 / (fBu_mpc.transpose() * fBu_mpc)) * fBu_mpc.transpose());  // pseudo inverse
+  Eigen::MatrixXd B_inv = u_cmd * ((1 / (wBu_mpc.transpose() * wBu_mpc)) * wBu_mpc.transpose());  // pseudo inverse
 
   // step 4. incremental nonlinear dynamic inversion
   Eigen::Vector3d sf_b_imu(msg->acc_data[0], msg->acc_data[1], msg->acc_data[2]);
+  Eigen::VectorXd wB_meas(6);
+  wB_meas << mass_ * sf_b_imu,
+      Eigen::Vector3d::Zero();  // we must use wB_meas to get correct allocation result.  TODO: add angular acc
+  // TODO: add low-pass filter to wB_meas
 
-  auto delta_u = B_inv * (fBu_mpc - mass_ * sf_b_imu);
+  auto delta_u = B_inv * (wBu_mpc - wB_meas);
   auto u_indi = u_meas + delta_u;
 
   // step 5. send the command to the robot
