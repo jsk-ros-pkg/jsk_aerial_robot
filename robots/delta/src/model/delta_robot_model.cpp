@@ -74,11 +74,13 @@ void RollingRobotModel::calcContactPoint()
   Eigen::Vector3d cog_p_cp_in_cog = aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).p) + aerial_robot_model::kdlToEigen(links_center_frame_from_cog.at(min_index_i).M) * center_p_cp_in_center;
 
   auto cog = getCog<KDL::Frame>();
-  contact_point_.p.x(cog_p_cp_in_cog(0));
-  contact_point_.p.y(cog_p_cp_in_cog(1));
-  contact_point_.p.z(cog_p_cp_in_cog(2));
-  contact_point_.p = cog * contact_point_.p;
-  contact_point_.M = cog.M;
+  KDL::Frame contact_point;
+  contact_point.p.x(cog_p_cp_in_cog(0));
+  contact_point.p.y(cog_p_cp_in_cog(1));
+  contact_point.p.z(cog_p_cp_in_cog(2));
+  contact_point.p = cog * contact_point.p;
+  contact_point.M = cog.M;
+  setContactPoint(contact_point);
   /* contact point */
 }
 

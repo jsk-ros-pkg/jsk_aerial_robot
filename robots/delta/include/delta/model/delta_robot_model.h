@@ -92,6 +92,12 @@ private:
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
+
+  void setContactPoint(KDL::Frame contact_point)
+  {
+    std::lock_guard<std::mutex> lock(contact_point_mutex_);
+    contact_point_ = contact_point;
+  }
 };
 
 template<> inline std::vector<KDL::Rotation> RollingRobotModel::getLinksRotationFromCog()
