@@ -34,19 +34,29 @@ protected:
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoThrustDistMdlMPCSolver>();
   }
 
+  inline void initActuatorStates() override
+  {
+    nmpc::TiltQdServoNMPC::initActuatorStates();
+    thrust_meas_.resize(motor_num_, 0.0);
+  }
+
   void initParams() override;
 
   void initCostW() override;
 
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
 
+  void calcDisturbWrench() override
+  {
+  }
+
+  std::vector<double> meas2VecX() override;
+
   void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
                     const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
                     vector<double>& u) const override;
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
-
-  std::vector<double> meas2VecX() override;
 };
 
 }  // namespace nmpc

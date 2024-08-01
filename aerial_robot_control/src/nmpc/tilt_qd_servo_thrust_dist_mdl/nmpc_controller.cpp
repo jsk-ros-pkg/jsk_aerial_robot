@@ -14,7 +14,6 @@ void nmpc::TiltQdServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHa
 {
   TiltQdServoDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
-  thrust_meas_.resize(motor_num_, 0.0);
   sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &TiltQdServoThrustDistNMPC::callbackESCTelem, this);
 }
 
@@ -32,7 +31,7 @@ void nmpc::TiltQdServoThrustDistNMPC::initCostW()
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
   /* control parameters with dynamic reconfigure */
-  double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Qt, Rt, Rtc_d, Rac_d;
+  double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Qt, Rtc_d, Rac_d;
   getParam<double>(nmpc_nh, "Qp_xy", Qp_xy, 300);
   getParam<double>(nmpc_nh, "Qp_z", Qp_z, 400);
   getParam<double>(nmpc_nh, "Qv_xy", Qv_xy, 10);
@@ -139,3 +138,7 @@ void nmpc::TiltQdServoThrustDistNMPC::cfgNMPCCallback(aerial_robot_control::NMPC
 {
   // TODO: finish this part.
 }
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoThrustDistNMPC, aerial_robot_control::ControlBase);

@@ -21,7 +21,7 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullINDI.yaml")
+param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullServoThrustDist.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
