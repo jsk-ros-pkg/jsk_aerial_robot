@@ -58,11 +58,11 @@ public:
 protected:
   ros::Timer tmr_viz_;
 
-  ros::Publisher pub_viz_pred_;                         // for viz predictions
-  ros::Publisher pub_viz_ref_;                          // for viz reference
-  ros::Publisher pub_flight_cmd_;                       // for spinal
-  ros::Publisher pub_gimbal_control_;                   // for gimbal control
-  ros::Publisher pub_flight_config_cmd_spinal_;         // for spinal, enable the gyro measurement after the takeoff
+  ros::Publisher pub_viz_pred_;                  // for viz predictions
+  ros::Publisher pub_viz_ref_;                   // for viz reference
+  ros::Publisher pub_flight_cmd_;                // for spinal
+  ros::Publisher pub_gimbal_control_;            // for gimbal control
+  ros::Publisher pub_flight_config_cmd_spinal_;  // for spinal, enable the gyro measurement after the takeoff
 
   ros::ServiceClient srv_set_control_mode_;
   std::vector<boost::shared_ptr<NMPCControlDynamicConfig>> nmpc_reconf_servers_;
@@ -102,11 +102,9 @@ protected:
   virtual void initParams();
   virtual void initCostW();
   void setControlMode();
-  virtual inline void initJointStates()
+  virtual inline void initActuatorStates()
   {
-    joint_angles_.resize(joint_num_);
-    for (int i = 0; i < joint_num_; i++)
-      joint_angles_[i] = 0.0;
+    joint_angles_.resize(joint_num_, 0.0);
   }
 
   /* update() */
@@ -119,9 +117,9 @@ protected:
   void setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Vector3& ref_acc_i,
                   const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
                   const int& horizon_idx);
-  virtual void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
-                    const tf::Vector3& ref_omega_b, const VectorXd& ref_wrench_b, vector<double>& x,
-                    vector<double>& u) const;
+  virtual void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                            const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
+                            const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const;
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event) override;

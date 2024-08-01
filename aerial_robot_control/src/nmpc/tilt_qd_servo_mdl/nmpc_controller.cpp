@@ -52,7 +52,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* init some values */
   setControlMode();
 
-  initJointStates();
+  initActuatorStates();
   odom_ = nav_msgs::Odometry();
   odom_.pose.pose.orientation.w = 1;
   initPredXU(x_u_ref_, mpc_solver_ptr_->NN_, mpc_solver_ptr_->NX_, mpc_solver_ptr_->NU_);

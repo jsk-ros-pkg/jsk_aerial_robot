@@ -20,12 +20,10 @@ protected:
 
   void initCostW() override;
 
-  inline void initJointStates() override
+  inline void initActuatorStates() override
   {
-    nmpc::TiltQdServoNMPC::initJointStates();
-    joint_vel_.resize(joint_num_);
-    for (int i = 0; i < joint_num_; i++)
-      joint_vel_[i] = 0.0;
+    nmpc::TiltQdServoNMPC::initActuatorStates();
+    joint_vel_.resize(joint_num_, 0);
   }
 
   std::vector<double> meas2VecX() override;
