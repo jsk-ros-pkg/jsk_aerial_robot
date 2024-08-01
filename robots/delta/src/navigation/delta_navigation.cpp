@@ -20,6 +20,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
+  robot_model_for_plan_ = boost::make_shared<RollingRobotModel>();
 
   desire_coord_pub_ = nh_.advertise<geometry_msgs::Quaternion>("desire_coordinate", 1);
   final_target_baselink_quat_sub_ = nh_.subscribe("final_target_baselink_quat", 1, &RollingNavigator::setFinalTargetBaselinkQuatCallback, this);
@@ -287,21 +288,40 @@ void RollingNavigator::transformPlanner()
     {
       ROS_INFO_STREAM("[navigaton] finished transforming planning");
       transforming_flag_ = false;
-      return;
     }
   ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] planning baselink rotation with joint motion");
 
-  const auto& seg_tf_map = robot_model_->getSegmentsTf();
+  /* contacting state */
   int contacting_link_index = rolling_robot_model_->getContactingLink();
   std::string contacting_link_name = std::string("link") + std::to_string(contacting_link_index + 1);
+
+  /* update current target baselink rotation based on current joint angle */
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray joint_positions = robot_model_->getJointPositions();
+
+  /* if final run, target baselink rotation is calculated from target joint angle */
+  if(!transforming_flag_)
+    {
+      const auto& joint_index_map = robot_model_->getJointIndexMap();
+      for(int i = 0; i < robot_model_->getJointNum() - robot_model_->getRotorNum(); i++)
+        {
+          joint_positions(joint_index_map.find(std::string("joint") + std::to_string(i + 1))->second) = transform_target_joint_angles_.at(i);
+        }
+    }
+
+  robot_model_for_plan_->updateRobotModel(joint_positions);
+  const auto& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
   KDL::Frame baselink_frame = seg_tf_map.at(robot_model_->getBaselinkName());
   KDL::Frame contacting_link_frame = seg_tf_map.at(contacting_link_name);
 
+  /* calculate desired baselink rotation */
   KDL::Rotation current_target_baselink_rot = transform_initial_cog_R_contact_link_ * (contacting_link_frame.Inverse() * baselink_frame).M;
-
   double qx, qy, qz, qw;
   current_target_baselink_rot.GetQuaternion(qx, qy, qz, qw);
-  setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+
+  /* set current target. if final run, set only in final target */
+  if(transforming_flag_) setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
   setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
 }
 
