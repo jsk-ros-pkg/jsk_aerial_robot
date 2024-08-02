@@ -230,6 +230,7 @@ void RollingController::controlCore()
         standingPlanning();
         calcTargetWrenchForGroundControl();
         calcGroundFullLambda();
+        nonlinearGroundWrenchAllocation();
         /* for stand */
         break;
       }
@@ -242,8 +243,8 @@ void RollingController::controlCore()
     }
 
   /* common part */
-  if(first_run_ || ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
-    fullLambdaToActuatorInputs();
+  // if(first_run_)
+  //   fullLambdaToActuatorInputs();
   resolveGimbalOffset();
   processGimbalAngles();
   calcYawTerm();
