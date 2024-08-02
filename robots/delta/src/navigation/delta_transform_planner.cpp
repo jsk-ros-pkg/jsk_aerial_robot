@@ -3,6 +3,49 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;
 
+void RollingNavigator::transformPlanner()
+{
+  if(ros::Time::now().toSec() > transform_finish_time_)
+    {
+      ROS_INFO_STREAM("[navigaton] finished transforming planning");
+      transforming_flag_ = false;
+    }
+  ROS_INFO_STREAM_THROTTLE(2.0, "[navigation] planning baselink rotation with joint motion");
+
+  /* contacting state */
+  int contacting_link_index = rolling_robot_model_->getContactingLink();
+  std::string contacting_link_name = std::string("link") + std::to_string(contacting_link_index + 1);
+
+  /* update current target baselink rotation based on current joint angle */
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray joint_positions = robot_model_->getJointPositions();
+
+  /* if final run, target baselink rotation is calculated from target joint angle */
+  if(!transforming_flag_)
+    {
+      const auto& joint_index_map = robot_model_->getJointIndexMap();
+      for(int i = 0; i < robot_model_->getJointNum() - robot_model_->getRotorNum(); i++)
+        {
+          joint_positions(joint_index_map.find(std::string("joint") + std::to_string(i + 1))->second) = transform_target_joint_angles_.at(i);
+        }
+    }
+
+  robot_model_for_plan_->updateRobotModel(joint_positions);
+  const auto& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+  KDL::Frame baselink_frame = seg_tf_map.at(robot_model_->getBaselinkName());
+  KDL::Frame contacting_link_frame = seg_tf_map.at(contacting_link_name);
+
+  /* calculate desired baselink rotation */
+  KDL::Rotation current_target_baselink_rot = transform_initial_cog_R_contact_link_ * (contacting_link_frame.Inverse() * baselink_frame).M;
+  double qx, qy, qz, qw;
+  current_target_baselink_rot.GetQuaternion(qx, qy, qz, qw);
+
+  /* set current target. if final run, set only in final target */
+  if(transforming_flag_) setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+  setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+}
+
 void RollingNavigator::IK()
 {
   if(!ik_solving_flag_) return;
@@ -81,6 +124,67 @@ void RollingNavigator::IK()
       ROS_ERROR_STREAM("[navigation] could not solve ik");
       ik_solving_flag_ = false;
     }
+}
+
+void RollingNavigator::jointsControlCallback(const sensor_msgs::JointStatePtr & msg)
+{
+  /* error: size is not same */
+  if(msg->name.size() != msg->position.size())
+    {
+      ROS_ERROR_STREAM("[navigation] size of name " << msg->name.size() << " and position " << msg->position.size() << " is not same");
+      return;
+    }
+
+  /* normal transformation */
+  if(getCurrentGroundNavigationMode() != aerial_robot_navigation::ROLLING_STATE)
+    {
+      ROS_WARN_STREAM("[navigation] do not plan baselink rotation because current state is " << indexToGroundNavigationModeString(getCurrentGroundNavigationMode()));
+      return;
+    }
+
+  /* check contacting state */
+  int contacting_link_index = rolling_robot_model_->getContactingLink();
+  std::string contacting_link_name = std::string("link") + std::to_string(contacting_link_index + 1);
+  if(contacting_link_index == 1)
+    {
+      ROS_WARN_STREAM("[navigation] do not plan baselink rotation because baselink is contacting");
+      return;
+    }
+
+  /* get target joint angles */
+  std::vector<double> current_joint_angles = rolling_robot_model_->getCurrentJointAngles();
+  transform_target_joint_angles_.resize(current_joint_angles.size());
+  for(int i = 0; i < transform_target_joint_angles_.size(); i++)
+    {
+      transform_target_joint_angles_.at(i) = current_joint_angles.at(i);
+    }
+  for(int i = 0; i < msg->name.size(); i++)
+    {
+      for(int j = 0; j < transform_target_joint_angles_.size(); j++)
+        {
+          if(msg->name.at(i) == std::string("joint") + std::to_string(j + 1))
+            {
+              transform_target_joint_angles_.at(j) = msg->position.at(i);
+            }
+        }
+    }
+
+  /* calculate transforming duration */
+  double max_diff = 0.0;
+  for(int i = 0; i < transform_target_joint_angles_.size(); i++)
+    {
+      max_diff = std::max(max_diff, fabs(transform_target_joint_angles_.at(i) - current_joint_angles.at(i)));
+    }
+  transform_finish_time_ = ros::Time::now().toSec() + max_diff / joint_angvel_;
+
+  /* get initial rotation transfrom */
+  const auto& seg_tf_map = robot_model_->getSegmentsTf();
+  KDL::Frame transform_initial_cog = robot_model_->getCog<KDL::Frame>();
+  KDL::Frame transform_initial_contact_link = seg_tf_map.at(contacting_link_name);
+  transform_initial_cog_R_contact_link_ = (transform_initial_cog.Inverse() * transform_initial_contact_link).M;
+
+  ROS_INFO_STREAM("[navigation] start baselink rotation planning with joint motion from " << ros::Time::now().toSec() << " to " << transform_finish_time_);
+  transforming_flag_ = true;
 }
 
 void RollingNavigator::ikTargetRelEEPosCallback(const geometry_msgs::Vector3Ptr & msg)
