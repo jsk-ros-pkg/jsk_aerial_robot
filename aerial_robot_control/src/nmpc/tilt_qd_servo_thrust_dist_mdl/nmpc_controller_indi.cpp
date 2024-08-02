@@ -106,8 +106,24 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   auto u_indi = u_meas + delta_u;
 
   // step 5. send the command to the robot
+  // add a new vector the same size as u_indi
+  Eigen::VectorXd u(joint_num_ + motor_num_);
+
+  if (odom_.pose.pose.position.z < 0.2)  // INDI is not use because of the contact in takeoff
+  {
+    for (int i = 0; i < joint_num_ + motor_num_; i++)
+      u(i) = getCommand(i);
+  }
+  else
+  {
+    u = u_indi;
+    std::cout << "wBu_mpc: " << wBu_mpc << std::endl;
+    std::cout << "wB_meas: " << wB_meas << std::endl;
+    std::cout << "delta_u: " << delta_u << std::endl;
+  }
+
   for (int i = 0; i < motor_num_; i++)
-    flight_cmd_.base_thrust[i] = (float)u_indi(i);
+    flight_cmd_.base_thrust[i] = (float)u(i);
 
   gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
   gimbal_ctrl_cmd_.name.clear();
@@ -115,7 +131,7 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   for (int i = 0; i < joint_num_; i++)
   {
     gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
-    gimbal_ctrl_cmd_.position.push_back(u_indi(motor_num_ + i));
+    gimbal_ctrl_cmd_.position.push_back(u(motor_num_ + i));
   }
 
   pub_flight_cmd_.publish(flight_cmd_);
