@@ -34,7 +34,7 @@ navigation:
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
 
   # transformation planning
-  joint_angvel: 0.3  # rad/s actual value is 0.38. smaller is more safe
+  joint_angvel: 0.2  # rad/s actual value is 0.38. smaller is more safe
 
   # rolling mode
   rolling_max_pitch_ang_vel: 1.0

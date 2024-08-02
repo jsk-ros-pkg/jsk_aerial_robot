@@ -25,7 +25,9 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   desire_coord_pub_ = nh_.advertise<geometry_msgs::Quaternion>("desire_coordinate", 1);
   final_target_baselink_quat_sub_ = nh_.subscribe("final_target_baselink_quat", 1, &RollingNavigator::setFinalTargetBaselinkQuatCallback, this);
   final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &RollingNavigator::setFinalTargetBaselinkRpyCallback, this);
+  joints_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   joints_control_sub_ = nh_.subscribe("joints_ctrl", 1, &RollingNavigator::jointsControlCallback, this);
+  ik_target_rel_ee_pos_sub_ = nh_.subscribe("ik_target_rel_ee_pos", 1, &RollingNavigator::ikTargetRelEEPosCallback, this);
   joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   ground_navigation_mode_sub_ = nh_.subscribe("ground_navigation_command", 1, &RollingNavigator::groundNavigationModeCallback, this);
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
@@ -47,6 +49,8 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 void RollingNavigator::update()
 {
   BaseNavigator::update();
+
+  IK();
 
   if(transforming_flag_)
     transformPlanner();
@@ -289,7 +293,7 @@ void RollingNavigator::transformPlanner()
       ROS_INFO_STREAM("[navigaton] finished transforming planning");
       transforming_flag_ = false;
     }
-  ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] planning baselink rotation with joint motion");
+  ROS_INFO_STREAM_THROTTLE(2.0, "[navigation] planning baselink rotation with joint motion");
 
   /* contacting state */
   int contacting_link_index = rolling_robot_model_->getContactingLink();

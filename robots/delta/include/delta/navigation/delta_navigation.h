@@ -4,6 +4,7 @@
 #include <delta/model/delta_robot_model.h>
 #include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_control/trajectory/trajectory_reference/polynomial.hpp>
+#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
@@ -65,7 +66,9 @@ namespace aerial_robot_navigation
     ros::Subscriber final_target_baselink_quat_sub_, final_target_baselink_rpy_sub_;
 
     /* transform planning */
+    ros::Publisher joints_control_pub_;
     ros::Subscriber joints_control_sub_;
+    ros::Subscriber ik_target_rel_ee_pos_sub_;
 
     /* joy */
     ros::Subscriber joy_sub_;
@@ -78,6 +81,7 @@ namespace aerial_robot_navigation
     boost::shared_ptr<RollingRobotModel> robot_model_for_plan_;
 
     void rollingPlanner();
+    void IK();
     void transformPlanner();
     void baselinkRotationProcess();
     void groundModeProcess();
@@ -89,6 +93,7 @@ namespace aerial_robot_navigation
     void setFinalTargetBaselinkQuatCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
     void setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
     void jointsControlCallback(const sensor_msgs::JointStatePtr & msg);
+    void ikTargetRelEEPosCallback(const geometry_msgs::Vector3Ptr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
 
     /* navigation mode */
@@ -123,6 +128,14 @@ namespace aerial_robot_navigation
     double transform_finish_time_;
     std::vector<double> transform_target_joint_angles_;
     KDL::Rotation transform_initial_cog_R_contact_link_; // cog_R_contactlink
+
+    /* ik */
+    bool ik_solving_flag_;
+    int ik_solve_step_;
+    std::string ik_cl_name_, ik_ee_name_;
+    Eigen::Vector3d ik_target_cl_p_ee_in_initial_cog_;
+    KDL::JntArray ik_current_joint_positons_;
+    KDL::Rotation ik_initial_cog_R_cl_;
 
     /* motion planning based on external wrench estimation */
     Eigen::VectorXd est_external_wrench_;
