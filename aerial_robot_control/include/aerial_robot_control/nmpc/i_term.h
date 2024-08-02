@@ -5,10 +5,6 @@
 #ifndef AERIAL_ROBOT_CONTROL_I_TERM_H
 #define AERIAL_ROBOT_CONTROL_I_TERM_H
 
-#endif  // AERIAL_ROBOT_CONTROL_I_TERM_H
-
-#pragma once
-
 #include <algorithm>
 
 namespace aerial_robot_control
@@ -65,3 +61,5 @@ private:
   double error_last_round_;
 };
 }  // namespace aerial_robot_control
+
+#endif  // AERIAL_ROBOT_CONTROL_I_TERM_H
