@@ -303,13 +303,13 @@ void RollingController::resolveGimbalOffset()
               gimbal_candidate_minus -= 2 * M_PI;
               if(fabs(current_gimbal_angles.at(i) - gimbal_candidate_plus) < M_PI)
                 {
-                  ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_plus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  ROS_WARN_STREAM_THROTTLE(2.0, "[control] send " << gimbal_candidate_plus << " for gimbal" << i + 1);
                   target_gimbal_angles_.at(i) = gimbal_candidate_plus;
                   converge_flag = true;
                 }
               else if(fabs(current_gimbal_angles.at(i) - gimbal_candidate_minus) < M_PI)
                 {
-                  ROS_WARN_STREAM_THROTTLE(1.0, "[control] send angle " << gimbal_candidate_minus << " for gimbal" << i << " instead of " << target_gimbal_angles_.at(i));
+                  ROS_WARN_STREAM_THROTTLE(2.0, "[control] send " << gimbal_candidate_minus << " for gimbal" << i + 1);
                   target_gimbal_angles_.at(i) = gimbal_candidate_minus;
                   converge_flag = true;
                 }
