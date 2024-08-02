@@ -14,6 +14,15 @@ void nmpc::TiltQdServoThrustNMPCwINDI::initialize(ros::NodeHandle nh, ros::NodeH
 {
   TiltQdServoThrustDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
+  imu_acc_filters_.resize(3);
+
+  for (int i = 0; i < 3; i++)
+  {  // butterworth filter 2nd order with 12hz cutoff frequency
+    std::vector<std::vector<double>> sos = { { 1.0, 2.0, 1.0, 1.0, -1.4755, 0.5869 } };
+    std::vector<double> g = { 0.0279, 1 };
+    imu_acc_filters_[i].init(sos, g);
+  }
+
   sub_imu_ = nh_.subscribe("imu", 1, &TiltQdServoThrustNMPCwINDI::callbackImu, this);
 }
 
@@ -87,11 +96,11 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
     B_inv = u_cmd * (0 * wBu_mpc.transpose());
 
   // step 4. incremental nonlinear dynamic inversion
-  Eigen::Vector3d sf_b_imu(msg->acc_data[0], msg->acc_data[1], msg->acc_data[2]);
+  Eigen::Vector3d sf_b_imu(imu_acc_filters_[0].update(msg->acc_data[0]), imu_acc_filters_[1].update(msg->acc_data[1]),
+                           imu_acc_filters_[2].update(msg->acc_data[2]));
   Eigen::VectorXd wB_meas(6);
-  wB_meas << mass_ * sf_b_imu,
-      Eigen::Vector3d::Zero();  // we must use wB_meas to get correct allocation result.  TODO: add angular acc
-  // TODO: add low-pass filter to wB_meas
+  wB_meas << mass_ * sf_b_imu, Eigen::Vector3d::Zero();
+  // we must use wB_meas to get correct allocation result.  TODO: add angular acc
 
   auto delta_u = B_inv * (wBu_mpc - wB_meas);
   auto u_indi = u_meas + delta_u;

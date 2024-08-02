@@ -6,6 +6,7 @@
 #define TILT_QD_SERVO_THRUST_NMPC_INDI_CONTROLLER_INDI_H
 
 #include "nmpc_controller.h"
+#include "aerial_robot_control/nmpc/iir_filter.h"
 #include "spinal/Imu.h"
 
 namespace aerial_robot_control
@@ -25,6 +26,8 @@ public:
 protected:
   double ts_servo_, ts_rotor_;
   ros::Subscriber sub_imu_;
+
+  std::vector<IIRFilter> imu_acc_filters_;
 
   void initParams() override;
 
