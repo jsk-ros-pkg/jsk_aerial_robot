@@ -80,7 +80,11 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   Eigen::VectorXd u_meas(motor_num_ + joint_num_);
   u_meas << ft_meas, alpha_meas;
 
-  Eigen::MatrixXd B_inv = u_cmd * ((1 / (wBu_mpc.transpose() * wBu_mpc)) * wBu_mpc.transpose());  // pseudo inverse
+  Eigen::MatrixXd B_inv;
+  if (wBu_mpc.transpose() * wBu_mpc != 0)
+    B_inv = u_cmd * ((1 / (wBu_mpc.transpose() * wBu_mpc)) * wBu_mpc.transpose());  // pseudo inverse
+  else
+    B_inv = u_cmd * (0 * wBu_mpc.transpose());
 
   // step 4. incremental nonlinear dynamic inversion
   Eigen::Vector3d sf_b_imu(msg->acc_data[0], msg->acc_data[1], msg->acc_data[2]);
