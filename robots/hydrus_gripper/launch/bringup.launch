@@ -122,7 +122,7 @@
   </group>
 
   <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
-    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree).csv" />
+    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg movement)/hydrus/$(arg tree).csv" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
