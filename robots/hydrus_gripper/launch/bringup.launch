@@ -22,7 +22,7 @@
   <arg name="rs_d435" default="False"/>
 
   <arg name="tree" default="real_RP_271_v1.0.1" />
-  <arg name="movement" default="dynamic" />
+  <arg name="tree_movement" default="dynamic" />
 
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
@@ -115,14 +115,14 @@
   <group if= "$(eval arg('simulation') and not arg('real_machine'))">
     <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
       <param name="rate" value="20.0" />
-      <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg movement)/hydrus/$(arg tree).csv" />
+      <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
     </node>
   </group>
 
   <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
-    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg movement)/hydrus/$(arg tree).csv" />
+    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
