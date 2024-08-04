@@ -24,6 +24,7 @@
 
   <arg name="tree" default="real_RP_271_v1.0.1" />
   <arg name="tree_movement" default="dynamic" />
+  <arg name="policy_start_delay" default="1.0" />
 
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
@@ -119,6 +120,7 @@
       <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
       <param name="shift_x" value="$(arg shift_x)" />
       <param name="shift_y" value="$(arg shift_y)" />
+      <param name="policy_start_delay" value="$(arg policy_start_delay)" />
     </node>
   </group>
 
