@@ -2,7 +2,7 @@
 
 navigator:
   xy_control_mode: 0
-  takeoff_height: 0.6 #1.2
+  takeoff_height: 1.0 #1.2
   outdoor_takeoff_height: 2.0
 
   z_convergent_thresh: 0.10
