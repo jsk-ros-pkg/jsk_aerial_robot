@@ -17,6 +17,7 @@
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
+  <arg name="hokuyo" default="False" />
 
   <arg name="battery_type" default="True"/>
   <arg name="rs_d435" default="False"/>
@@ -121,8 +122,10 @@
     </node>
   </group>
 
+  ####### Polar Pixel calculation  ############
   <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
+    <param name="hokuyo" type="bool" value="$(arg hokuyo)"/>
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
@@ -130,4 +133,13 @@
     <param name="vel_calc_boundary" type="double" value="0.30" />
     <param name="print_yaw" type="bool" value="false" />
   </node>
+
+  ####### HOKUYO sensor launch  ############
+  <!-- real exec to use hokuyo sensor  -->
+  <include file="$(find hokuyo_estimation)/launch/bringup.launch" if= "$(arg hokuyo)">
+    <arg name="real_machine" value="$(arg real_machine)" />
+    <arg name="simulation" value="$(arg simulation)" />
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+  </include>
+
 </launch>

@@ -9,6 +9,10 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>hydrus</depend>
+
+  <exec_depend>urg_node</exec_depend>
+  <exec_depend>hokuyo_estimation</exec_depend>
+
   <export>
 
   </export>
