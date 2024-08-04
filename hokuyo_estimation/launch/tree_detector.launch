@@ -12,7 +12,7 @@
     <param name="verbose" value="false" />
     <param name="tree_margin_radius" value="0.50" />
     <param name="laser_scan_topic_name" value="scan_clustered" />
-    <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
+    <remap from="odom" to="uav/cog/odom" />
   </node>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/$(arg robot_ns)/rviz_config.rviz" if="$(arg show_rviz)"/>
