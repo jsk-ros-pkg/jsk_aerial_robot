@@ -7,7 +7,8 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
 {
   nhp_.param("urg_yaw_offset", urg_yaw_offset_, 0.0);
   nhp_.param("laser_scan_topic_name", laser_scan_topic_name_, string("scan"));
-  nhp_.param("uav_odom_topic_name", odom_topic_name_, string("odom"));
+  nhp_.param("uav_odom_topic_name", odom_topic_name_, string(""));
+  nhp_.param("frame_name", laser_scan_frame_name_, string(""));
   nhp_.param("tree_radius_max", tree_radius_max_, 0.3);
   nhp_.param("tree_radius_min", tree_radius_min_, 0.08);
   nhp_.param("tree_scan_angle_thre", tree_scan_angle_thre_, 0.1);
@@ -60,6 +61,7 @@ void TreeTracking::eraseTreeDBCallback(const std_msgs::Empty& msg)
 }
 void TreeTracking::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg)
 {
+  if (laser_scan_frame_name_ == ""){
   tf::Quaternion uav_q(uav_msg->pose.pose.orientation.x,
                        uav_msg->pose.pose.orientation.y,
                        uav_msg->pose.pose.orientation.z,
@@ -74,6 +76,23 @@ void TreeTracking::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg)
   //uav_odom_.setZ(uav_msg->pose.pose.position.z);
   uav_odom_.setZ(0);
   uav_roll_ = r; uav_pitch_ = p; uav_yaw_ = y;
+  }
+  else{
+    try{
+    listener.lookupTransform("/world", laser_scan_frame_name_, ros::Time(0), transform);
+    // Get the translation component of the transform
+    uav_odom_ = transform.getOrigin();
+    uav_odom_.setZ(0);
+
+    tf::Quaternion q = transform.getRotation();
+    tfScalar r,p,y;
+    tf::Matrix3x3(q).getRPY(r, p, y);
+      uav_roll_ = r; uav_pitch_ = p; uav_yaw_ = y;
+    } catch (tf::TransformException &ex) {
+    ROS_ERROR("%s", ex.what());
+    ros::Duration(1.0).sleep();
+    }
+  }
 }
 
 void TreeTracking::laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg)
