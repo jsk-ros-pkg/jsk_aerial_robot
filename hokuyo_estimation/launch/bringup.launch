@@ -15,6 +15,7 @@
     <include file="$(find hokuyo_estimation)/launch/tree_detector.launch">
       <!-- show rviz only in simulation -->
       <arg name="show_rviz" value="$(arg simulation)" />
+      <arg name="robot_ns" value="$(arg robot_ns)" />
     </include>
 
   </group>

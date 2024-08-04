@@ -15,6 +15,6 @@
     <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
   </node>
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/rviz_config.rviz" if="$(arg show_rviz)"/>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/$(arg robot_ns)/rviz_config.rviz" if="$(arg show_rviz)"/>
 
 </launch>
