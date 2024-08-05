@@ -1,7 +1,6 @@
 """
  Created by li-jinjie on 24-8-5.
 """
-import copy
 import time
 
 import numpy as np
@@ -84,6 +83,7 @@ if __name__ == "__main__":
 
     # ========== update ==========
     u_cmd = u_init
+    u_mpc = u_init
     t_ctl = 0.0
     t_indi = 0.0
     x_now_sim = x_init_sim
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
             # feedback, take the first action
             try:
-                u_cmd = ocp_solver.solve_for_x0(x_now)
+                u_mpc = ocp_solver.solve_for_x0(x_now)
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
@@ -173,10 +173,11 @@ if __name__ == "__main__":
         # -------- incremental nonlinear dynamic inverse --------
         # viz
         if hasattr(viz, "u_sim_mpc_all"):
-            u_mpc = copy.deepcopy(u_cmd)
             viz.update_u_mpc(i, u_mpc)
 
-        if args.dist_rej == 1:
+        if args.dist_rej == 0:
+            u_cmd = u_mpc
+        elif args.dist_rej == 1:
             if t_indi >= ts_indi:
                 t_indi = 0.0
 
@@ -196,35 +197,35 @@ if __name__ == "__main__":
                 wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
                 # wrench_cmd
-                ft_cmd = u_mpc[0:4]
-                a_cmd = u_mpc[4:]
+                ft_mpc = u_mpc[0:4]
+                a_mpc = u_mpc[4:]
 
-                z = np.zeros(8)
-                z[0] = ft_cmd[0] * np.sin(a_cmd[0])
-                z[1] = ft_cmd[0] * np.cos(a_cmd[0])
-                z[2] = ft_cmd[1] * np.sin(a_cmd[1])
-                z[3] = ft_cmd[1] * np.cos(a_cmd[1])
-                z[4] = ft_cmd[2] * np.sin(a_cmd[2])
-                z[5] = ft_cmd[2] * np.cos(a_cmd[2])
-                z[6] = ft_cmd[3] * np.sin(a_cmd[3])
-                z[7] = ft_cmd[3] * np.cos(a_cmd[3])
+                z_mpc = np.zeros(8)
+                z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
+                z_mpc[1] = ft_mpc[0] * np.cos(a_mpc[0])
+                z_mpc[2] = ft_mpc[1] * np.sin(a_mpc[1])
+                z_mpc[3] = ft_mpc[1] * np.cos(a_mpc[1])
+                z_mpc[4] = ft_mpc[2] * np.sin(a_mpc[2])
+                z_mpc[5] = ft_mpc[2] * np.cos(a_mpc[2])
+                z_mpc[6] = ft_mpc[3] * np.sin(a_mpc[3])
+                z_mpc[7] = ft_mpc[3] * np.cos(a_mpc[3])
 
-                wrench_cmd = np.dot(xr_ur_converter.alloc_mat, z)
+                wrench_mpc = np.dot(xr_ur_converter.alloc_mat, z_mpc)
 
                 # B_inv
-                wrench_cmd_tmp = np.dot(wrench_cmd.T, wrench_cmd)
+                wrench_mpc_tmp = np.dot(wrench_mpc.T, wrench_mpc)
 
-                # make a matrix as B_inv = u_cmd @ wrench_cmd.T
-                u_cmd_add_dim = np.expand_dims(u_cmd, axis=1)
-                wrench_cmd_add_dim = np.expand_dims(wrench_cmd, axis=1)
+                # make a matrix as B_inv = u_mpc @ wrench_cmd.T
+                u_mpc_add_dim = np.expand_dims(u_mpc, axis=1)
+                wrench_mpc_add_dim = np.expand_dims(wrench_mpc, axis=1)
 
-                if wrench_cmd_tmp == 0:
-                    B_inv = np.dot(u_cmd_add_dim, (0 * wrench_cmd_add_dim.T))
+                if wrench_mpc_tmp == 0:
+                    B_inv = np.dot(u_mpc_add_dim, (0 * wrench_mpc_add_dim.T))
                 else:
-                    B_inv = np.dot(u_cmd_add_dim, (1 / wrench_cmd_tmp * wrench_cmd_add_dim.T))
+                    B_inv = np.dot(u_mpc_add_dim, (1 / wrench_mpc_tmp * wrench_mpc_add_dim.T))
 
                 # indi
-                d_u = np.dot(B_inv, (wrench_cmd - wrench_meas))
+                d_u = np.dot(B_inv, (wrench_mpc - wrench_meas))
 
                 u_cmd = u_meas + d_u
 
