@@ -3,10 +3,9 @@
   ###########  launch config  ###########
   <arg name="real_machine" default="True" />
   <arg name="simulation" default="False" />
-  <arg name="control_mode" default="0" />
+  <arg name="headless" default="True" />
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
-  <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
@@ -24,6 +23,7 @@
   <arg name="robot_ns" value="delta$(arg robot_id)" />
   <arg name="mujoco" default="False" />
   <arg name="gdb" default="False" />
+  <arg name="model_test" default="False"/>
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -69,20 +69,20 @@
 
   <include file="$(find aerial_robot_control)/launch/motor_power.launch">
     <arg name="robot_ns" value="$(arg robot_ns)"/>
-    <arg name="config_path" value="$(find delta)/config/$(arg type)/MotorPower.yaml"/>
+    <arg name="config_path" value="$(find delta)/config/MotorPower_$(arg prop)inch.yaml"/>
   </include>
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" launch-prefix="gdb -ex run --args" if="$(arg gdb)">
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
-    <param name="main_rate" value="40"/>
+    <param name="main_rate" value="100"/>
   </node>
 
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" unless="$(arg gdb)">
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
-    <param name="main_rate" value="40"/>
+    <param name="main_rate" value="100"/>
   </node>
 
   ###########  Robot Model  ###########
@@ -93,7 +93,8 @@
     <arg name="robot_model" value="$(find delta)/robots/$(arg type)/rolling.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" unless="$(arg model_test)"/>
+    <arg name="rviz_config" value="$(arg config_dir)/robot_model.rviz" if="$(arg model_test)"/>
     <arg name="rviz_init_pose" value="$(arg config_dir)/$(arg type)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include >
@@ -123,13 +124,6 @@
     <arg name="spawn_roll" value="$(arg spawn_roll)" />
     <arg name="spawn_pitch" value="$(arg spawn_pitch)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
-  </include>
-
-  <include file="$(find delta)/launch/demo/spawn_slope.launch" if="$(arg simulation)">
-    <arg name="slope_x" value="3.0"/>
-    <arg name="slope_y" value="0.0"/>
-    <arg name="slope_z" value="0.0"/>
-    <arg name="slope_yaw" value="0.0"/>
   </include>
 
   ########## Simulation in Mujoco #########
