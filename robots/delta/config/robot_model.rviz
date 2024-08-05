@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1/Frames1
       Splitter Ratio: 0.6235294342041016
     Tree Height: 713
   - Class: rviz/Selection
@@ -190,11 +189,11 @@ Visualization Manager:
         delta/cog:
           Value: true
         delta/cog_alined:
-          Value: true
+          Value: false
         delta/contact_point:
           Value: true
         delta/contact_point_alined:
-          Value: true
+          Value: false
         delta/fc:
           Value: true
         delta/gimbal_link1:
@@ -239,8 +238,14 @@ Visualization Manager:
           Value: false
         delta/rotor_parent3:
           Value: false
-        world:
+        delta/thrust1:
           Value: true
+        delta/thrust2:
+          Value: true
+        delta/thrust3:
+          Value: true
+        world:
+          Value: false
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -261,7 +266,8 @@ Visualization Manager:
             delta/link1:
               delta/gimbal_link1:
                 delta/rotor_parent1:
-                  {}
+                  delta/thrust1:
+                    {}
               delta/high_lipo_single1:
                 {}
               delta/link1_center:
@@ -273,7 +279,8 @@ Visualization Manager:
                   {}
                 delta/gimbal_link2:
                   delta/rotor_parent2:
-                    {}
+                    delta/thrust2:
+                      {}
                 delta/high_lipo_single2:
                   {}
                 delta/link2_center:
@@ -283,7 +290,8 @@ Visualization Manager:
                 delta/link3:
                   delta/gimbal_link3:
                     delta/rotor_parent3:
-                      {}
+                      delta/thrust3:
+                        {}
                   delta/high_lipo_single3:
                     {}
                   delta/link3_center:
@@ -572,7 +580,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: world
+    Fixed Frame: delta/contact_point
     Frame Rate: 30
   Name: root
   Tools:
@@ -596,7 +604,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.362953186035156
+      Distance: 4.513303756713867
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -604,17 +612,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.20293310284614563
-        Y: 0.1906108409166336
-        Z: 0.6149450540542603
+        X: -0.10257582366466522
+        Y: 0.3218146860599518
+        Z: 0.8935418725013733
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.39479804039001465
+      Pitch: 0.09979823231697083
       Target Frame: <Fixed Frame>
-      Yaw: 4.663568496704102
+      Yaw: 4.708571910858154
     Saved: ~
 Window Geometry:
   Displays:
