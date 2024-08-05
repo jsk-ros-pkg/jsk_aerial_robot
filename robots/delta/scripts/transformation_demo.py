@@ -9,7 +9,7 @@ import math
 from sensor_msgs.msg import JointState
 from spinal.msg import DesireCoord
 
-rospy.init_node("rolling_transformation_demo")
+rospy.init_node("delta_transformation_demo")
 
 joint_control_pub = rospy.Publisher("/delta/joints_ctrl", JointState, queue_size=10)
 att_control_pub = rospy.Publisher("/delta/final_target_baselink_rot", DesireCoord, queue_size=1)
@@ -21,10 +21,10 @@ reverse_reset = rospy.get_param("~reverse_reset", False)
 desire_joint = JointState()
 desire_att = DesireCoord()
 
-pi = math.pi
+desire_joint.name = ["joint1", "joint2"]
 
 if demo_mode == 0: # circle
-    desire_joint.position = [pi / 3 * 2] * 2
+    desire_joint.position = [math.pi / 3 * 2] * 2
 
 elif demo_mode == 1: # zigzag
     desire_joint.position = [1.7, 1.7]
