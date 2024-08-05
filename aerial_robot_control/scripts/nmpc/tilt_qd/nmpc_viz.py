@@ -10,19 +10,24 @@ legend_alpha = 0.3
 
 
 class Visualizer:
-    def __init__(self, N_sim, nx, nu, x0):
+    def __init__(self, N_sim, nx, nu, x0, is_record_diff_u=False):
         self.x_sim_all = np.ndarray((N_sim + 1, nx))
         self.u_sim_all = np.ndarray((N_sim, nu))
+        if is_record_diff_u:
+            self.u_sim_mpc_all = np.ndarray((N_sim, nu))
         self.x_sim_all[0, :] = x0
         self.comp_time = np.zeros(N_sim)
 
         self.data_idx = 0
 
-    def update(self, i, x, u):
+    def update(self, i, x, u, ):
         self.x_sim_all[i + 1, :] = x
         self.u_sim_all[i, :] = u
 
         self.data_idx = i + 1
+
+    def update_u_mpc(self, i, u_mpc):
+        self.u_sim_mpc_all[i, :] = u_mpc
 
     def visualize(self, ocp_model_name: str, sim_model_name: str, ts_ctrl: float, ts_sim: float, t_total_sim: float,
                   t_servo_ctrl: float = 0.0, t_servo_sim: float = 0.0, t_sqp_start: float = 0, t_sqp_end: float = 0):
@@ -41,12 +46,12 @@ class Visualizer:
 
         time_data_x = np.arange(self.data_idx) * ts_sim
 
-        plt.subplot(5, 2, 1)
+        plt.subplot(6, 2, 1)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Position (m)")
         if is_plot_sqp:
@@ -57,32 +62,32 @@ class Visualizer:
             plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
         plt.grid(True)
 
-        plt.subplot(5, 2, 3)
+        plt.subplot(6, 2, 3)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 4], label="vy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 5], label="vz")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Velocity (m/s)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 5)
+        plt.subplot(6, 2, 5)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 6], label="qw")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 7], label="qx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 8], label="qy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 9], label="qz")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Quaternion")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 7)
+        plt.subplot(6, 2, 6)
         # use tf2 to convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
@@ -94,72 +99,107 @@ class Visualizer:
         plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
         plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Euler Angle (rad)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 2)
+        plt.subplot(6, 2, 2)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 10], label="wx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 11], label="wy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 12], label="wz")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Body Rate (rad/s)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 4)
+        plt.subplot(6, 2, 7)
         if x_sim_all.shape[1] > 13:
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 13], label="a1")
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 14], label="a2")
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 15], label="a3")
             plt.plot(time_data_x, x_sim_all[:self.data_idx, 16], label="a4")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Servo Angle (rad)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 6)
+        plt.subplot(6, 2, 8)
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 0], label="ft1")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 1], label="ft2")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 2], label="ft3")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 3], label="ft4")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Thrust (N)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        plt.subplot(5, 2, 8)
+        plt.subplot(6, 2, 9)
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 4], label="a1c")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 5], label="a2c")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 6], label="a3c")
         plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 7], label="a4c")
         plt.legend(framealpha=legend_alpha)
-        plt.xlabel("Time (s)")
+        # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("Servo Sngle Cmd (rad)")
+        plt.ylabel("Servo Angle Cmd (rad)")
+        plt.grid(True)
+        if is_plot_sqp:
+            plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+
+        plt.subplot(6, 2, 10)
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 0], label="ftc1")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 1], label="ftc2")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 2], label="ftc3")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 3], label="ftc4")
+        plt.legend(framealpha=legend_alpha)
+        # plt.xlabel("Time (s)")
+        plt.xlim([0, t_total_sim])
+        plt.ylabel("Thrust Cmd (N)")
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         print("Average computation time: ", np.mean(self.comp_time))
-        plt.subplot(5, 2, 9)
+        plt.subplot(6, 2, 4)
         plt.plot(time_data_x, self.comp_time)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Computation Time (s)")
         plt.grid(True)
+
+        # check if self.u_sim_mpc_all exists
+        if hasattr(self, 'u_sim_mpc_all'):
+            plt.subplot(6, 2, 11)
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 4], label="a1c_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 5], label="a2c_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 6], label="a3c_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 7], label="a4c_mpc")
+            plt.legend(framealpha=legend_alpha, loc="upper left")
+            plt.xlim([0, t_total_sim])
+            plt.ylabel("Servo Angle Cmd MPC (rad)")
+            plt.grid(True)
+
+            plt.subplot(6, 2, 12)
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 0], label="ft1_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 1], label="ft2_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 2], label="ft3_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 3], label="ft4_mpc")
+            plt.legend(framealpha=legend_alpha, loc="upper left")
+            plt.xlim([0, t_total_sim])
+            plt.ylabel("Thrust MPC (N)")
+            plt.grid(True)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 

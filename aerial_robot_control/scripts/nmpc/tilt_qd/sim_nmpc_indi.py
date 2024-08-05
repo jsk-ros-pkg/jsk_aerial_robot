@@ -1,6 +1,7 @@
 """
  Created by li-jinjie on 24-8-5.
 """
+import copy
 import time
 
 import numpy as np
@@ -72,7 +73,7 @@ if __name__ == "__main__":
 
     # ---------- Others ----------
     xr_ur_converter = nmpc.get_xr_ur_converter()
-    viz = Visualizer(N_sim, nx_sim, nu, x_init_sim)
+    viz = Visualizer(N_sim, nx_sim, nu, x_init_sim, is_record_diff_u=True)
 
     is_sqp_change = False
     t_sqp_start = 2.5
@@ -165,6 +166,11 @@ if __name__ == "__main__":
         viz.comp_time[i] = comp_time_end - comp_time_start
 
         # -------- incremental nonlinear dynamic inverse --------
+        # viz
+        if hasattr(viz, "u_sim_mpc_all"):
+            u_mpc = copy.deepcopy(u_cmd)
+            viz.update_u_mpc(i, u_mpc)
+
         if args.dist_rej == 1:
             # wrench_meas
             sf_b, ang_acc_b = nmpc.fake_sensor.update_acc(x_now_sim)
@@ -182,8 +188,8 @@ if __name__ == "__main__":
             wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
             # wrench_cmd
-            ft_cmd = u_cmd[0:4]
-            a_cmd = u_cmd[4:]
+            ft_cmd = u_mpc[0:4]
+            a_cmd = u_mpc[4:]
 
             z = np.zeros(8)
             z[0] = ft_cmd[0] * np.sin(a_cmd[0])
@@ -196,7 +202,6 @@ if __name__ == "__main__":
             z[7] = ft_cmd[3] * np.cos(a_cmd[3])
 
             wrench_cmd = np.dot(xr_ur_converter.alloc_mat, z)
-            print("wrench_cmd.shape", wrench_cmd.shape)
 
             # B_inv
             wrench_cmd_tmp = np.dot(wrench_cmd.T, wrench_cmd)
@@ -212,7 +217,6 @@ if __name__ == "__main__":
 
             # indi
             d_u = np.dot(B_inv, (wrench_cmd - wrench_meas))
-            print("d_u", d_u)
 
             u_cmd = u_meas + d_u
 
