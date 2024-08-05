@@ -45,11 +45,14 @@ if __name__ == "__main__":
     for stage in range(ocp_solver.N):
         ocp_solver.set(stage, "u", u_init)
 
+    # --------- INDI ---------
+    ts_indi = 0.005
+
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
     t_servo_sim = getattr(sim_nmpc, "t_servo", 0.0)
 
-    ts_sim = 0.005
+    ts_sim = 0.001
 
     disturbance = np.zeros(6)
     disturbance[2] = 1.0  # N, fz
@@ -82,11 +85,13 @@ if __name__ == "__main__":
     # ========== update ==========
     u_cmd = u_init
     t_ctl = 0.0
+    t_indi = 0.0
     x_now_sim = x_init_sim
     for i in range(N_sim):
         # --------- update time ---------
         t_now = i * ts_sim
         t_ctl += ts_sim
+        t_indi += ts_sim
 
         # --------- update state estimation ---------
         if isinstance(nmpc, NMPCTiltQdServoThrustDist):
@@ -172,53 +177,56 @@ if __name__ == "__main__":
             viz.update_u_mpc(i, u_mpc)
 
         if args.dist_rej == 1:
-            # wrench_meas
-            sf_b, ang_acc_b = nmpc.fake_sensor.update_acc(x_now_sim)
+            if t_indi >= ts_indi:
+                t_indi = 0.0
 
-            u_meas = np.zeros(8)
-            u_meas[0:4] = x_now_sim[17:21]
-            u_meas[4:] = x_now_sim[13:17]
+                # wrench_meas
+                sf_b, ang_acc_b = nmpc.fake_sensor.update_acc(x_now_sim)
 
-            w = x_now_sim[10:13]
-            mass = nmpc.fake_sensor.mass
-            iv = nmpc.fake_sensor.iv
+                u_meas = np.zeros(8)
+                u_meas[0:4] = x_now_sim[17:21]
+                u_meas[4:] = x_now_sim[13:17]
 
-            wrench_meas = np.zeros(6)
-            wrench_meas[0:3] = mass * sf_b
-            wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
+                w = x_now_sim[10:13]
+                mass = nmpc.fake_sensor.mass
+                iv = nmpc.fake_sensor.iv
 
-            # wrench_cmd
-            ft_cmd = u_mpc[0:4]
-            a_cmd = u_mpc[4:]
+                wrench_meas = np.zeros(6)
+                wrench_meas[0:3] = mass * sf_b
+                wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
-            z = np.zeros(8)
-            z[0] = ft_cmd[0] * np.sin(a_cmd[0])
-            z[1] = ft_cmd[0] * np.cos(a_cmd[0])
-            z[2] = ft_cmd[1] * np.sin(a_cmd[1])
-            z[3] = ft_cmd[1] * np.cos(a_cmd[1])
-            z[4] = ft_cmd[2] * np.sin(a_cmd[2])
-            z[5] = ft_cmd[2] * np.cos(a_cmd[2])
-            z[6] = ft_cmd[3] * np.sin(a_cmd[3])
-            z[7] = ft_cmd[3] * np.cos(a_cmd[3])
+                # wrench_cmd
+                ft_cmd = u_mpc[0:4]
+                a_cmd = u_mpc[4:]
 
-            wrench_cmd = np.dot(xr_ur_converter.alloc_mat, z)
+                z = np.zeros(8)
+                z[0] = ft_cmd[0] * np.sin(a_cmd[0])
+                z[1] = ft_cmd[0] * np.cos(a_cmd[0])
+                z[2] = ft_cmd[1] * np.sin(a_cmd[1])
+                z[3] = ft_cmd[1] * np.cos(a_cmd[1])
+                z[4] = ft_cmd[2] * np.sin(a_cmd[2])
+                z[5] = ft_cmd[2] * np.cos(a_cmd[2])
+                z[6] = ft_cmd[3] * np.sin(a_cmd[3])
+                z[7] = ft_cmd[3] * np.cos(a_cmd[3])
 
-            # B_inv
-            wrench_cmd_tmp = np.dot(wrench_cmd.T, wrench_cmd)
+                wrench_cmd = np.dot(xr_ur_converter.alloc_mat, z)
 
-            # make a matrix as B_inv = u_cmd @ wrench_cmd.T
-            u_cmd_add_dim = np.expand_dims(u_cmd, axis=1)
-            wrench_cmd_add_dim = np.expand_dims(wrench_cmd, axis=1)
+                # B_inv
+                wrench_cmd_tmp = np.dot(wrench_cmd.T, wrench_cmd)
 
-            if wrench_cmd_tmp == 0:
-                B_inv = np.dot(u_cmd_add_dim, (0 * wrench_cmd_add_dim.T))
-            else:
-                B_inv = np.dot(u_cmd_add_dim, (1 / wrench_cmd_tmp * wrench_cmd_add_dim.T))
+                # make a matrix as B_inv = u_cmd @ wrench_cmd.T
+                u_cmd_add_dim = np.expand_dims(u_cmd, axis=1)
+                wrench_cmd_add_dim = np.expand_dims(wrench_cmd, axis=1)
 
-            # indi
-            d_u = np.dot(B_inv, (wrench_cmd - wrench_meas))
+                if wrench_cmd_tmp == 0:
+                    B_inv = np.dot(u_cmd_add_dim, (0 * wrench_cmd_add_dim.T))
+                else:
+                    B_inv = np.dot(u_cmd_add_dim, (1 / wrench_cmd_tmp * wrench_cmd_add_dim.T))
 
-            u_cmd = u_meas + d_u
+                # indi
+                d_u = np.dot(B_inv, (wrench_cmd - wrench_meas))
+
+                u_cmd = u_meas + d_u
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
