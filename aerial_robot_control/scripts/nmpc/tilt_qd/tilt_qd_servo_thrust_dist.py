@@ -481,6 +481,7 @@ class XrUrConverter(XrUrConverterBase):
         self.mass = mass
         self.gravity = gravity
 
+        self.alloc_mat = self._get_alloc_mat()
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
@@ -541,8 +542,8 @@ class FakeSensor:
         self.mass = mass
         self.gravity = gravity
 
-        self.iv = ca.diag([Ixx, Iyy, Izz])
-        self.inv_iv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        self.iv = np.diag([Ixx, Iyy, Izz])
+        self.inv_iv = np.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
         self.g_i = np.array([0, 0, -gravity])
 
         self.dr1 = dr1

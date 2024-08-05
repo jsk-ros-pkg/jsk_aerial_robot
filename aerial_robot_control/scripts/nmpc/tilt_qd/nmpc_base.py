@@ -36,6 +36,7 @@ class XrUrConverterBase(ABC):
         self.mass = float()
         self.gravity = float()
 
+        self.alloc_mat = self._get_alloc_mat()
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = int()
 
@@ -90,7 +91,7 @@ class XrUrConverterBase(ABC):
 
         return xr, ur
 
-    def _get_alloc_mat_pinv(self):
+    def _get_alloc_mat(self):
         p1_b, p2_b, p3_b, p4_b = self.p1_b, self.p2_b, self.p3_b, self.p4_b
         dr1, dr2, dr3, dr4 = self.dr1, self.dr2, self.dr3, self.dr4
         kq_d_kt = self.kq_d_kt
@@ -152,6 +153,10 @@ class XrUrConverterBase(ABC):
         alloc_mat[4, 7] = -p4_b[0]
         alloc_mat[5, 7] = -dr4 * kq_d_kt
 
+        return alloc_mat
+
+    def _get_alloc_mat_pinv(self):
+        alloc_mat = self._get_alloc_mat()
         alloc_mat_pinv = np.linalg.pinv(alloc_mat)
         return alloc_mat_pinv
 

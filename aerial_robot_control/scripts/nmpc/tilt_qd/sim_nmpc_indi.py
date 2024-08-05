@@ -15,9 +15,9 @@ if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different disturbance rejection methods.")
     parser.add_argument(
-        "model",
+        "dist_rej",
         type=int,
-        help="The NMPC model to be simulated. Options: 0 (no disturbance rejection).",
+        help="The NMPC model to be simulated. Options: 0 (no disturbance rejection), 1 (INDI).",
     )
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
@@ -51,9 +51,9 @@ if __name__ == "__main__":
     ts_sim = 0.005
 
     disturbance = np.zeros(6)
-    disturbance[2] = 0.5  # N, fz
+    disturbance[2] = 1.0  # N, fz
 
-    t_total_sim = 15.0
+    t_total_sim = 3.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -95,26 +95,26 @@ if __name__ == "__main__":
             x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
-        target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+        target_xyz = np.array([[0.0, 0.0, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         if args.plot_type == 2:
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
-        if t_total_sim > 2.0:
-            if 2.0 <= t_now < 6:
-                target_xyz = np.array([[0.3, 0.6, 1.0]]).T
-
-                roll = 30.0 / 180.0 * np.pi
-                pitch = 60.0 / 180.0 * np.pi
-                yaw = 90.0 / 180.0 * np.pi
-                target_rpy = np.array([[roll, pitch, yaw]]).T
-
-            if t_now >= 6:
-                assert t_sqp_end <= 3.0
-                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-                target_rpy = np.array([[0.0, 0.0, 0.0]]).T
+        # if t_total_sim > 2.0:
+        #     if 2.0 <= t_now < 6:
+        #         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+        #
+        #         roll = 30.0 / 180.0 * np.pi
+        #         pitch = 60.0 / 180.0 * np.pi
+        #         yaw = 90.0 / 180.0 * np.pi
+        #         target_rpy = np.array([[roll, pitch, yaw]]).T
+        #
+        #     if t_now >= 6:
+        #         assert t_sqp_end <= 3.0
+        #         target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+        #         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
@@ -163,6 +163,58 @@ if __name__ == "__main__":
 
         comp_time_end = time.time()
         viz.comp_time[i] = comp_time_end - comp_time_start
+
+        # -------- incremental nonlinear dynamic inverse --------
+        if args.dist_rej == 1:
+            # wrench_meas
+            sf_b, ang_acc_b = nmpc.fake_sensor.update_acc(x_now_sim)
+
+            u_meas = np.zeros(8)
+            u_meas[0:4] = x_now_sim[17:21]
+            u_meas[4:] = x_now_sim[13:17]
+
+            w = x_now_sim[10:13]
+            mass = nmpc.fake_sensor.mass
+            iv = nmpc.fake_sensor.iv
+
+            wrench_meas = np.zeros(6)
+            wrench_meas[0:3] = mass * sf_b
+            wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
+
+            # wrench_cmd
+            ft_cmd = u_cmd[0:4]
+            a_cmd = u_cmd[4:]
+
+            z = np.zeros(8)
+            z[0] = ft_cmd[0] * np.sin(a_cmd[0])
+            z[1] = ft_cmd[0] * np.cos(a_cmd[0])
+            z[2] = ft_cmd[1] * np.sin(a_cmd[1])
+            z[3] = ft_cmd[1] * np.cos(a_cmd[1])
+            z[4] = ft_cmd[2] * np.sin(a_cmd[2])
+            z[5] = ft_cmd[2] * np.cos(a_cmd[2])
+            z[6] = ft_cmd[3] * np.sin(a_cmd[3])
+            z[7] = ft_cmd[3] * np.cos(a_cmd[3])
+
+            wrench_cmd = np.dot(xr_ur_converter.alloc_mat, z)
+            print("wrench_cmd.shape", wrench_cmd.shape)
+
+            # B_inv
+            wrench_cmd_tmp = np.dot(wrench_cmd.T, wrench_cmd)
+
+            # make a matrix as B_inv = u_cmd @ wrench_cmd.T
+            u_cmd_add_dim = np.expand_dims(u_cmd, axis=1)
+            wrench_cmd_add_dim = np.expand_dims(wrench_cmd, axis=1)
+
+            if wrench_cmd_tmp == 0:
+                B_inv = np.dot(u_cmd_add_dim, (0 * wrench_cmd_add_dim.T))
+            else:
+                B_inv = np.dot(u_cmd_add_dim, (1 / wrench_cmd_tmp * wrench_cmd_add_dim.T))
+
+            # indi
+            d_u = np.dot(B_inv, (wrench_cmd - wrench_meas))
+            print("d_u", d_u)
+
+            u_cmd = u_meas + d_u
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
