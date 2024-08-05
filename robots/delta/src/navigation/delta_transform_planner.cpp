@@ -183,7 +183,7 @@ void RollingNavigator::jointsControlCallback(const sensor_msgs::JointStatePtr & 
   KDL::Frame transform_initial_contact_link = seg_tf_map.at(contacting_link_name);
   transform_initial_cog_R_contact_link_ = (transform_initial_cog.Inverse() * transform_initial_contact_link).M;
 
-  ROS_INFO_STREAM("[navigation] start baselink rotation planning with joint motion from " << ros::Time::now().toSec() << " to " << transform_finish_time_);
+  ROS_INFO_STREAM("[navigation] start baselink rotation planning with joint motion from " << std::setprecision(12) << ros::Time::now().toSec() << " to " << transform_finish_time_);
   transforming_flag_ = true;
 }
 
