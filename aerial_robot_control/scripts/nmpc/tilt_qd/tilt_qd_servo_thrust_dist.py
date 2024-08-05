@@ -54,6 +54,8 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         self.t_servo = t_servo
         self.t_rotor = t_rotor
 
+        self.fake_sensor = FakeSensor()
+
     def set_name(self) -> str:
         model_name = "tilt_qd_servo_thrust_dist_mdl"
         return model_name
@@ -532,6 +534,95 @@ class XrUrConverter(XrUrConverterBase):
         ur = np.zeros([ocp_N, self.nu])
 
         return xr, ur
+
+
+class FakeSensor:
+    def __init__(self):
+        self.mass = mass
+        self.gravity = gravity
+
+        self.iv = ca.diag([Ixx, Iyy, Izz])
+        self.inv_iv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        self.g_i = np.array([0, 0, -gravity])
+
+        self.dr1 = dr1
+        self.p1_b = p1_b
+        self.dr2 = dr2
+        self.p2_b = p2_b
+        self.dr3 = dr3
+        self.p3_b = p3_b
+        self.dr4 = dr4
+        self.p4_b = p4_b
+        self.kq_d_kt = kq_d_kt
+
+        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        self.rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        self.rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        self.rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        self.rot_be4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
+
+    def update_acc(self, x):
+        qw, qx, qy, qz = x[6:10]
+        w = x[10:13]
+        a1, a2, a3, a4 = x[13:17]
+        ft1, ft2, ft3, ft4 = x[17:21]
+        f_d_i = x[21:24]
+        tau_d_b = x[24:27]
+
+        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
+        rot_ib = np.vstack((row_1, row_2, row_3))
+        rot_bi = rot_ib.T
+
+        rot_e1r1 = self.rot_e2r(a1)
+        rot_e2r2 = self.rot_e2r(a2)
+        rot_e3r3 = self.rot_e2r(a3)
+        rot_e4r4 = self.rot_e2r(a4)
+
+        ft_r1 = np.array([0, 0, ft1])
+        ft_r2 = np.array([0, 0, ft2])
+        ft_r3 = np.array([0, 0, ft3])
+        ft_r4 = np.array([0, 0, ft4])
+
+        tau_r1 = np.array([0, 0, -self.dr1 * ft1 * self.kq_d_kt])
+        tau_r2 = np.array([0, 0, -self.dr2 * ft2 * self.kq_d_kt])
+        tau_r3 = np.array([0, 0, -self.dr3 * ft3 * self.kq_d_kt])
+        tau_r4 = np.array([0, 0, -self.dr4 * ft4 * self.kq_d_kt])
+
+        f_u_b = (
+                np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1))
+                + np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2))
+                + np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3))
+                + np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4))
+        )
+
+        tau_u_b = (
+                np.dot(self.rot_be1, np.dot(rot_e1r1, tau_r1))
+                + np.dot(self.rot_be2, np.dot(rot_e2r2, tau_r2))
+                + np.dot(self.rot_be3, np.dot(rot_e3r3, tau_r3))
+                + np.dot(self.rot_be4, np.dot(rot_e4r4, tau_r4))
+                + np.cross(self.p1_b, np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1)))
+                + np.cross(self.p2_b, np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2)))
+                + np.cross(self.p3_b, np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3)))
+                + np.cross(self.p4_b, np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4)))
+        )
+
+        sf_b = (f_u_b + np.dot(rot_bi, f_d_i)) / self.mass  # specific force in body frame
+        ang_acc_b = np.dot(self.inv_iv, (-np.cross(w, np.dot(self.iv, w)) + tau_u_b + tau_d_b))
+
+        return sf_b, ang_acc_b
+
+    @staticmethod
+    def rot_e2r(a):
+        return np.array([
+            [1, 0, 0],
+            [0, np.cos(a), -np.sin(a)],
+            [0, np.sin(a), np.cos(a)]
+        ])
 
 
 if __name__ == "__main__":
