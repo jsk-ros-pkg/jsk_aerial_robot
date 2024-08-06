@@ -15,14 +15,17 @@ if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different disturbance rejection methods.")
     parser.add_argument(
-        "dist_rej",
+        "if_est_dist",
         type=int,
-        help="The NMPC model to be simulated. Options: "
-             "0 (no disturbance rejection), "
-             "1 (IMU and actuator sensors are used to estimate the disturbance), "
-             "2 (INDI, the B_inv is calculated using mpc command), "
-             "3 (INDI, the B_inv is calculated using shifted mpc command). "
+        help="Whether to estimate the disturbance. Options: 0 (no), 1 (yes)."
     )
+    parser.add_argument(
+        "indi_type",
+        type=int,
+        help="Whether to use INDI. Options: 0 (no), 1 (the B_inv is calculated using mpc command), "
+             "2 (the B_inv is calculated using shifted mpc command)."
+    )
+
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -182,10 +185,11 @@ if __name__ == "__main__":
             viz.update_u_mpc(i, u_mpc)
 
         # by default, the u_cmd is the mpc command
-        u_cmd = u_mpc
+        if args.indi_type == 0:
+            u_cmd = u_mpc
 
         # disturb est. is related to the sensor update frequency
-        if t_sensor >= ts_sensor and args.dist_rej != 0:
+        if t_sensor >= ts_sensor:
             t_sensor = 0.0
 
             # wrench_imu_b
@@ -226,7 +230,7 @@ if __name__ == "__main__":
             ft_mpc = u_mpc[0:4]
             a_mpc = u_mpc[4:]
 
-            if args.dist_rej == 3:
+            if args.indi_type == 2:
                 ft_mpc = ft_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - ft_sensor)
                 a_mpc = a_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - a_sensor)
 
@@ -243,12 +247,13 @@ if __name__ == "__main__":
             wrench_mpc_b = np.dot(xr_ur_converter.alloc_mat, z_mpc)
 
             # update disturbance estimation
-            # only use the wrench difference between the imu and the actuator sensor, no u_mpc
-            disturb_estimated[0:3] = np.dot(rot_ib, (wrench_imu_b[0:3] - wrench_sensor_b[0:3]))  # world frame
-            disturb_estimated[3:6] = wrench_imu_b[3:6] - wrench_sensor_b[3:6]  # body frame
+            if args.if_est_dist == 1:
+                # only use the wrench difference between the imu and the actuator sensor, no u_mpc
+                disturb_estimated[0:3] = np.dot(rot_ib, (wrench_imu_b[0:3] - wrench_sensor_b[0:3]))  # world frame
+                disturb_estimated[3:6] = wrench_imu_b[3:6] - wrench_sensor_b[3:6]  # body frame
 
             # --- for the methods that needs to update u_cmd, such as INDI ---
-            if args.dist_rej > 1:
+            if args.indi_type > 0:
                 # B_inv
                 wrench_mpc_tmp = np.dot(wrench_mpc_b.T, wrench_mpc_b)
 
