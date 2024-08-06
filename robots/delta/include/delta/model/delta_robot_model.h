@@ -70,6 +70,7 @@ private:
 
   KDL::Frame contact_point_;
   int contacting_link_;
+  double contacting_angle_in_link_;
 
   std::string thrust_link_;
   double circle_radius_;
