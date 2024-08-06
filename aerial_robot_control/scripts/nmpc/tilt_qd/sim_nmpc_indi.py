@@ -55,6 +55,7 @@ if __name__ == "__main__":
     # --------- INDI ---------
     ts_sensor = 0.005
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
+    disturb_nmpc_compd = np.zeros(6)  # f_d_i, tau_d_b. The disturbance that has been compensated by the nmpc.
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -174,6 +175,7 @@ if __name__ == "__main__":
             # feedback, take the first action
             try:
                 u_mpc = ocp_solver.solve_for_x0(x_now)
+                disturb_nmpc_compd = disturb_estimated
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
@@ -273,14 +275,17 @@ if __name__ == "__main__":
                 # the disturbance estimation residual
                 dist_wrench_res_b = np.zeros(6)
                 dist_est_now_b = wrench_u_imu_b - wrench_u_sensor_b
-                dist_wrench_res_b[0:3] = dist_est_now_b[0:3] - np.dot(rot_ib.T, disturb_estimated[0:3])
-                dist_wrench_res_b[3:6] = dist_est_now_b[3:6] - disturb_estimated[3:6]
+                dist_wrench_res_b[0:3] = dist_est_now_b[0:3] - np.dot(rot_ib.T, disturb_nmpc_compd[0:3])
+                dist_wrench_res_b[3:6] = dist_est_now_b[3:6] - disturb_nmpc_compd[3:6]
 
                 d_u = np.dot(B_inv, dist_wrench_res_b)
 
                 u_cmd = u_mpc + d_u
 
         # --------- update simulation ----------
+        disturbance[2] = 1.0  # N, fz
+        x_now_sim[-6:] = disturbance
+
         sim_solver.set("x", x_now_sim)
         sim_solver.set("u", u_cmd)
 
