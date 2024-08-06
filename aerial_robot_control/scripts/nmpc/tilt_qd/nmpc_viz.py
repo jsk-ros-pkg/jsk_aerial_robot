@@ -198,7 +198,7 @@ class Visualizer:
             plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 3], label="ft4_mpc")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
-            plt.ylabel("Thrust MPC (N)")
+            plt.ylabel("Thrust Cmd MPC (N)")
             plt.grid(True)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
