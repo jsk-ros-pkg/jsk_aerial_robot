@@ -17,7 +17,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "dist_rej",
         type=int,
-        help="The NMPC model to be simulated. Options: 0 (no disturbance rejection), 1 (INDI).",
+        help="The NMPC model to be simulated. Options: "
+             "0 (no disturbance rejection), "
+             "1 (INDI, the B_inv is calculated using mpc command), "
+             "2 (INDI, the B_inv is calculated using shifted mpc command).",
     )
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
@@ -50,6 +53,7 @@ if __name__ == "__main__":
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
     t_servo_sim = getattr(sim_nmpc, "t_servo", 0.0)
+    t_rotor_sim = getattr(sim_nmpc, "t_rotor", 0.0)
 
     ts_sim = 0.001
 
@@ -177,7 +181,7 @@ if __name__ == "__main__":
 
         if args.dist_rej == 0:
             u_cmd = u_mpc
-        elif args.dist_rej == 1:
+        else:
             if t_indi >= ts_indi:
                 t_indi = 0.0
 
@@ -197,8 +201,14 @@ if __name__ == "__main__":
                 wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
                 # wrench_cmd
-                ft_mpc = u_mpc[0:4]
-                a_mpc = u_mpc[4:]
+                if args.dist_rej == 1:
+                    ft_mpc = u_mpc[0:4]
+                    a_mpc = u_mpc[4:]
+                elif args.dist_rej == 2:
+                    ft_mpc = u_meas[0:4] + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - u_meas[0:4])
+                    a_mpc = u_meas[4:] + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - u_meas[4:])
+                else:
+                    raise Exception("Invalid disturbance rejection method.")
 
                 z_mpc = np.zeros(8)
                 z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
