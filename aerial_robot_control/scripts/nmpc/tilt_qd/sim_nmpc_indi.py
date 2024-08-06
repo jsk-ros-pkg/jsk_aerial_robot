@@ -19,8 +19,9 @@ if __name__ == "__main__":
         type=int,
         help="The NMPC model to be simulated. Options: "
              "0 (no disturbance rejection), "
-             "1 (INDI, the B_inv is calculated using mpc command), "
-             "2 (INDI, the B_inv is calculated using shifted mpc command).",
+             "1 (IMU and actuator sensors are used to estimate the disturbance), "
+             "2 (INDI, the B_inv is calculated using mpc command), "
+             "3 (INDI, the B_inv is calculated using shifted mpc command). "
     )
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
@@ -48,7 +49,8 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # --------- INDI ---------
-    ts_indi = 0.005
+    ts_sensor = 0.005
+    disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -89,18 +91,19 @@ if __name__ == "__main__":
     u_cmd = u_init
     u_mpc = u_init
     t_ctl = 0.0
-    t_indi = 0.0
+    t_sensor = 0.0
     x_now_sim = x_init_sim
     for i in range(N_sim):
         # --------- update time ---------
         t_now = i * ts_sim
         t_ctl += ts_sim
-        t_indi += ts_sim
+        t_sensor += ts_sim
 
         # --------- update state estimation ---------
         if isinstance(nmpc, NMPCTiltQdServoThrustDist):
             x_now = np.zeros(nx)
             x_now[:nx - 6] = x_now_sim[:nx - 6]  # copy elements except the last 6 elements, which are the disturbance
+            x_now[-6:] = disturb_estimated
         else:
             x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
@@ -182,33 +185,50 @@ if __name__ == "__main__":
         if args.dist_rej == 0:
             u_cmd = u_mpc
         else:
-            if t_indi >= ts_indi:
-                t_indi = 0.0
+            if t_sensor >= ts_sensor:  # disturb est. is related to the sensor update frequency
+                t_sensor = 0.0
 
-                # wrench_meas
-                sf_b, ang_acc_b = nmpc.fake_sensor.update_acc(x_now_sim)
-
-                u_meas = np.zeros(8)
-                u_meas[0:4] = x_now_sim[17:21]
-                u_meas[4:] = x_now_sim[13:17]
+                # wrench_imu_b
+                # - the wrench calculated from imu info
+                sf_b, ang_acc_b, rot_ib = nmpc.fake_sensor.update_acc(x_now_sim)
 
                 w = x_now_sim[10:13]
                 mass = nmpc.fake_sensor.mass
                 iv = nmpc.fake_sensor.iv
 
-                wrench_meas = np.zeros(6)
-                wrench_meas[0:3] = mass * sf_b
-                wrench_meas[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
+                wrench_imu_b = np.zeros(6)
+                wrench_imu_b[0:3] = mass * sf_b
+                wrench_imu_b[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
-                # wrench_cmd
-                if args.dist_rej == 1:
-                    ft_mpc = u_mpc[0:4]
-                    a_mpc = u_mpc[4:]
-                elif args.dist_rej == 2:
-                    ft_mpc = u_meas[0:4] + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - u_meas[0:4])
-                    a_mpc = u_meas[4:] + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - u_meas[4:])
-                else:
-                    raise Exception("Invalid disturbance rejection method.")
+                # wrench_sensor
+                # - the wrench calculated from actuator sensor
+                ft_sensor = x_now_sim[17:21]
+                a_sensor = x_now_sim[13:17]
+
+                z_sensor = np.zeros(8)
+                z_sensor[0] = ft_sensor[0] * np.sin(a_sensor[0])
+                z_sensor[1] = ft_sensor[0] * np.cos(a_sensor[0])
+                z_sensor[2] = ft_sensor[1] * np.sin(a_sensor[1])
+                z_sensor[3] = ft_sensor[1] * np.cos(a_sensor[1])
+                z_sensor[4] = ft_sensor[2] * np.sin(a_sensor[2])
+                z_sensor[5] = ft_sensor[2] * np.cos(a_sensor[2])
+                z_sensor[6] = ft_sensor[3] * np.sin(a_sensor[3])
+                z_sensor[7] = ft_sensor[3] * np.cos(a_sensor[3])
+
+                wrench_sensor_b = np.dot(xr_ur_converter.alloc_mat, z_sensor)
+
+                u_meas = np.zeros(8)
+                u_meas[0:4] = ft_sensor
+                u_meas[4:] = a_sensor
+
+                # wrench_mpc
+                # the wrench calculated from mpc command. the current command or the shifted command
+                ft_mpc = u_mpc[0:4]
+                a_mpc = u_mpc[4:]
+
+                if args.dist_rej == 3:
+                    ft_mpc = ft_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - ft_sensor)
+                    a_mpc = a_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - a_sensor)
 
                 z_mpc = np.zeros(8)
                 z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
@@ -220,24 +240,31 @@ if __name__ == "__main__":
                 z_mpc[6] = ft_mpc[3] * np.sin(a_mpc[3])
                 z_mpc[7] = ft_mpc[3] * np.cos(a_mpc[3])
 
-                wrench_mpc = np.dot(xr_ur_converter.alloc_mat, z_mpc)
+                wrench_mpc_b = np.dot(xr_ur_converter.alloc_mat, z_mpc)
 
-                # B_inv
-                wrench_mpc_tmp = np.dot(wrench_mpc.T, wrench_mpc)
-
-                # make a matrix as B_inv = u_mpc @ wrench_cmd.T
-                u_mpc_add_dim = np.expand_dims(u_mpc, axis=1)
-                wrench_mpc_add_dim = np.expand_dims(wrench_mpc, axis=1)
-
-                if wrench_mpc_tmp == 0:
-                    B_inv = np.dot(u_mpc_add_dim, (0 * wrench_mpc_add_dim.T))
+                # update disturbance estimation
+                if args.dist_rej == 1:
+                    u_cmd = u_mpc  # the u from mpc is used as the control command as usual
+                    # the disturbance is estimated by the wrench difference between the imu and the actuator sensor
+                    disturb_estimated[0:3] = np.dot(rot_ib, (wrench_imu_b[0:3] - wrench_sensor_b[0:3]))  # world frame
+                    disturb_estimated[3:6] = wrench_imu_b[3:6] - wrench_sensor_b[3:6]  # body frame
                 else:
-                    B_inv = np.dot(u_mpc_add_dim, (1 / wrench_mpc_tmp * wrench_mpc_add_dim.T))
+                    # B_inv
+                    wrench_mpc_tmp = np.dot(wrench_mpc_b.T, wrench_mpc_b)
 
-                # indi
-                d_u = np.dot(B_inv, (wrench_mpc - wrench_meas))
+                    # make a matrix as B_inv = u_mpc @ wrench_cmd.T
+                    u_mpc_add_dim = np.expand_dims(u_mpc, axis=1)
+                    wrench_mpc_add_dim = np.expand_dims(wrench_mpc_b, axis=1)
 
-                u_cmd = u_meas + d_u
+                    if wrench_mpc_tmp == 0:
+                        B_inv = np.dot(u_mpc_add_dim, (0 * wrench_mpc_add_dim.T))
+                    else:
+                        B_inv = np.dot(u_mpc_add_dim, (1 / wrench_mpc_tmp * wrench_mpc_add_dim.T))
+
+                    # indi
+                    d_u = np.dot(B_inv, (wrench_mpc_b - wrench_imu_b))
+
+                    u_cmd = u_meas + d_u
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)

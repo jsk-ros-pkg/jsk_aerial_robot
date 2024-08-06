@@ -615,7 +615,7 @@ class FakeSensor:
         sf_b = (f_u_b + np.dot(rot_bi, f_d_i)) / self.mass  # specific force in body frame
         ang_acc_b = np.dot(self.inv_iv, (-np.cross(w, np.dot(self.iv, w)) + tau_u_b + tau_d_b))
 
-        return sf_b, ang_acc_b
+        return sf_b, ang_acc_b, rot_ib
 
     @staticmethod
     def rot_e2r(a):
