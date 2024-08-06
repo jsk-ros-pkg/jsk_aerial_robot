@@ -1,6 +1,7 @@
 """
  Created by li-jinjie on 24-8-5.
 """
+import copy
 import time
 
 import numpy as np
@@ -10,6 +11,8 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 from nmpc_viz import Visualizer
 
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+
+np.random.seed(42)
 
 if __name__ == "__main__":
     # read arguments
@@ -52,8 +55,8 @@ if __name__ == "__main__":
     for stage in range(ocp_solver.N):
         ocp_solver.set(stage, "u", u_init)
 
-    # --------- INDI ---------
-    ts_sensor = 0.005
+    # --------- Disturb. Rej. ---------
+    ts_sensor = 0.0025
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
     disturb_nmpc_compd = np.zeros(6)  # f_d_i, tau_d_b. The disturbance that has been compensated by the nmpc.
 
@@ -175,7 +178,7 @@ if __name__ == "__main__":
             # feedback, take the first action
             try:
                 u_mpc = ocp_solver.solve_for_x0(x_now)
-                disturb_nmpc_compd = disturb_estimated
+                disturb_nmpc_compd = copy.deepcopy(disturb_estimated)
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
@@ -189,7 +192,7 @@ if __name__ == "__main__":
 
         # by default, the u_cmd is the mpc command
         if args.indi_type == 0:
-            u_cmd = u_mpc
+            u_cmd = copy.deepcopy(u_mpc)
 
         # disturb est. is related to the sensor update frequency
         if t_sensor >= ts_sensor:
@@ -197,11 +200,11 @@ if __name__ == "__main__":
 
             # wrench_u_imu_b
             # - the wrench calculated from imu info
-            sf_b, ang_acc_b, rot_ib = nmpc.fake_sensor.update_acc(x_now_sim)
+            sf_b, ang_acc_b, rot_ib = sim_nmpc.fake_sensor.update_acc(x_now_sim)
 
             w = x_now_sim[10:13]
-            mass = nmpc.fake_sensor.mass
-            iv = nmpc.fake_sensor.iv
+            mass = sim_nmpc.fake_sensor.mass
+            iv = sim_nmpc.fake_sensor.iv
 
             wrench_u_imu_b = np.zeros(6)
             wrench_u_imu_b[0:3] = mass * sf_b
@@ -280,10 +283,10 @@ if __name__ == "__main__":
 
                 d_u = np.dot(B_inv, dist_wrench_res_b)
 
-                u_cmd = u_mpc + d_u
+                u_cmd = copy.deepcopy(u_mpc + d_u)
 
         # --------- update simulation ----------
-        disturbance[2] = 1.0  # N, fz
+        disturbance[2] = np.random.normal(1.0, 3.0)  # N, fz
         x_now_sim[-6:] = disturbance
 
         sim_solver.set("x", x_now_sim)
