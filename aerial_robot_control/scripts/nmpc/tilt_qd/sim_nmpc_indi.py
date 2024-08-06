@@ -177,94 +177,94 @@ if __name__ == "__main__":
         comp_time_end = time.time()
         viz.comp_time[i] = comp_time_end - comp_time_start
 
-        # -------- incremental nonlinear dynamic inverse --------
-        # viz
+        # -------- sensor-based disturbance rejection --------
         if hasattr(viz, "u_sim_mpc_all"):
             viz.update_u_mpc(i, u_mpc)
 
-        if args.dist_rej == 0:
-            u_cmd = u_mpc
-        else:
-            if t_sensor >= ts_sensor:  # disturb est. is related to the sensor update frequency
-                t_sensor = 0.0
+        # by default, the u_cmd is the mpc command
+        u_cmd = u_mpc
 
-                # wrench_imu_b
-                # - the wrench calculated from imu info
-                sf_b, ang_acc_b, rot_ib = nmpc.fake_sensor.update_acc(x_now_sim)
+        # disturb est. is related to the sensor update frequency
+        if t_sensor >= ts_sensor and args.dist_rej != 0:
+            t_sensor = 0.0
 
-                w = x_now_sim[10:13]
-                mass = nmpc.fake_sensor.mass
-                iv = nmpc.fake_sensor.iv
+            # wrench_imu_b
+            # - the wrench calculated from imu info
+            sf_b, ang_acc_b, rot_ib = nmpc.fake_sensor.update_acc(x_now_sim)
 
-                wrench_imu_b = np.zeros(6)
-                wrench_imu_b[0:3] = mass * sf_b
-                wrench_imu_b[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
+            w = x_now_sim[10:13]
+            mass = nmpc.fake_sensor.mass
+            iv = nmpc.fake_sensor.iv
 
-                # wrench_sensor
-                # - the wrench calculated from actuator sensor
-                ft_sensor = x_now_sim[17:21]
-                a_sensor = x_now_sim[13:17]
+            wrench_imu_b = np.zeros(6)
+            wrench_imu_b[0:3] = mass * sf_b
+            wrench_imu_b[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
 
-                z_sensor = np.zeros(8)
-                z_sensor[0] = ft_sensor[0] * np.sin(a_sensor[0])
-                z_sensor[1] = ft_sensor[0] * np.cos(a_sensor[0])
-                z_sensor[2] = ft_sensor[1] * np.sin(a_sensor[1])
-                z_sensor[3] = ft_sensor[1] * np.cos(a_sensor[1])
-                z_sensor[4] = ft_sensor[2] * np.sin(a_sensor[2])
-                z_sensor[5] = ft_sensor[2] * np.cos(a_sensor[2])
-                z_sensor[6] = ft_sensor[3] * np.sin(a_sensor[3])
-                z_sensor[7] = ft_sensor[3] * np.cos(a_sensor[3])
+            # wrench_sensor
+            # - the wrench calculated from actuator sensor
+            ft_sensor = x_now_sim[17:21]
+            a_sensor = x_now_sim[13:17]
 
-                wrench_sensor_b = np.dot(xr_ur_converter.alloc_mat, z_sensor)
+            z_sensor = np.zeros(8)
+            z_sensor[0] = ft_sensor[0] * np.sin(a_sensor[0])
+            z_sensor[1] = ft_sensor[0] * np.cos(a_sensor[0])
+            z_sensor[2] = ft_sensor[1] * np.sin(a_sensor[1])
+            z_sensor[3] = ft_sensor[1] * np.cos(a_sensor[1])
+            z_sensor[4] = ft_sensor[2] * np.sin(a_sensor[2])
+            z_sensor[5] = ft_sensor[2] * np.cos(a_sensor[2])
+            z_sensor[6] = ft_sensor[3] * np.sin(a_sensor[3])
+            z_sensor[7] = ft_sensor[3] * np.cos(a_sensor[3])
 
-                u_meas = np.zeros(8)
-                u_meas[0:4] = ft_sensor
-                u_meas[4:] = a_sensor
+            wrench_sensor_b = np.dot(xr_ur_converter.alloc_mat, z_sensor)
 
-                # wrench_mpc
-                # the wrench calculated from mpc command. the current command or the shifted command
-                ft_mpc = u_mpc[0:4]
-                a_mpc = u_mpc[4:]
+            u_meas = np.zeros(8)
+            u_meas[0:4] = ft_sensor
+            u_meas[4:] = a_sensor
 
-                if args.dist_rej == 3:
-                    ft_mpc = ft_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - ft_sensor)
-                    a_mpc = a_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - a_sensor)
+            # wrench_mpc
+            # the wrench calculated from mpc command. the current command or the shifted command
+            ft_mpc = u_mpc[0:4]
+            a_mpc = u_mpc[4:]
 
-                z_mpc = np.zeros(8)
-                z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
-                z_mpc[1] = ft_mpc[0] * np.cos(a_mpc[0])
-                z_mpc[2] = ft_mpc[1] * np.sin(a_mpc[1])
-                z_mpc[3] = ft_mpc[1] * np.cos(a_mpc[1])
-                z_mpc[4] = ft_mpc[2] * np.sin(a_mpc[2])
-                z_mpc[5] = ft_mpc[2] * np.cos(a_mpc[2])
-                z_mpc[6] = ft_mpc[3] * np.sin(a_mpc[3])
-                z_mpc[7] = ft_mpc[3] * np.cos(a_mpc[3])
+            if args.dist_rej == 3:
+                ft_mpc = ft_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[0:4] - ft_sensor)
+                a_mpc = a_sensor + (ts_ctrl / t_rotor_sim) * (u_mpc[4:] - a_sensor)
 
-                wrench_mpc_b = np.dot(xr_ur_converter.alloc_mat, z_mpc)
+            z_mpc = np.zeros(8)
+            z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
+            z_mpc[1] = ft_mpc[0] * np.cos(a_mpc[0])
+            z_mpc[2] = ft_mpc[1] * np.sin(a_mpc[1])
+            z_mpc[3] = ft_mpc[1] * np.cos(a_mpc[1])
+            z_mpc[4] = ft_mpc[2] * np.sin(a_mpc[2])
+            z_mpc[5] = ft_mpc[2] * np.cos(a_mpc[2])
+            z_mpc[6] = ft_mpc[3] * np.sin(a_mpc[3])
+            z_mpc[7] = ft_mpc[3] * np.cos(a_mpc[3])
 
-                # update disturbance estimation
-                if args.dist_rej == 1:
-                    u_cmd = u_mpc  # the u from mpc is used as the control command as usual
-                    # the disturbance is estimated by the wrench difference between the imu and the actuator sensor
-                    disturb_estimated[0:3] = np.dot(rot_ib, (wrench_imu_b[0:3] - wrench_sensor_b[0:3]))  # world frame
-                    disturb_estimated[3:6] = wrench_imu_b[3:6] - wrench_sensor_b[3:6]  # body frame
+            wrench_mpc_b = np.dot(xr_ur_converter.alloc_mat, z_mpc)
+
+            # update disturbance estimation
+            # only use the wrench difference between the imu and the actuator sensor, no u_mpc
+            disturb_estimated[0:3] = np.dot(rot_ib, (wrench_imu_b[0:3] - wrench_sensor_b[0:3]))  # world frame
+            disturb_estimated[3:6] = wrench_imu_b[3:6] - wrench_sensor_b[3:6]  # body frame
+
+            # --- for the methods that needs to update u_cmd, such as INDI ---
+            if args.dist_rej > 1:
+                # B_inv
+                wrench_mpc_tmp = np.dot(wrench_mpc_b.T, wrench_mpc_b)
+
+                # make a matrix as B_inv = u_mpc @ wrench_cmd.T
+                u_mpc_add_dim = np.expand_dims(u_mpc, axis=1)
+                wrench_mpc_add_dim = np.expand_dims(wrench_mpc_b, axis=1)
+
+                if wrench_mpc_tmp == 0:
+                    B_inv = np.dot(u_mpc_add_dim, (0 * wrench_mpc_add_dim.T))
                 else:
-                    # B_inv
-                    wrench_mpc_tmp = np.dot(wrench_mpc_b.T, wrench_mpc_b)
+                    B_inv = np.dot(u_mpc_add_dim, (1 / wrench_mpc_tmp * wrench_mpc_add_dim.T))
 
-                    # make a matrix as B_inv = u_mpc @ wrench_cmd.T
-                    u_mpc_add_dim = np.expand_dims(u_mpc, axis=1)
-                    wrench_mpc_add_dim = np.expand_dims(wrench_mpc_b, axis=1)
+                # indi
+                d_u = np.dot(B_inv, (wrench_mpc_b - wrench_imu_b))
 
-                    if wrench_mpc_tmp == 0:
-                        B_inv = np.dot(u_mpc_add_dim, (0 * wrench_mpc_add_dim.T))
-                    else:
-                        B_inv = np.dot(u_mpc_add_dim, (1 / wrench_mpc_tmp * wrench_mpc_add_dim.T))
-
-                    # indi
-                    d_u = np.dot(B_inv, (wrench_mpc_b - wrench_imu_b))
-
-                    u_cmd = u_meas + d_u
+                u_cmd = u_meas + d_u
 
         # --------- update simulation ----------
         sim_solver.set("x", x_now_sim)
