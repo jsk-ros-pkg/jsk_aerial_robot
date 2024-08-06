@@ -4,7 +4,7 @@
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
   <group ns="$(arg robot_ns)">
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/rviz_config_visualize.rviz"/>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/$(arg robot_ns)/rviz_config.rviz"/>
 
   </group>
 </launch>
