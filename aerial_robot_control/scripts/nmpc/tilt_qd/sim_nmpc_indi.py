@@ -204,7 +204,11 @@ if __name__ == "__main__":
 
             w = x_now_sim[10:13]
             mass = sim_nmpc.fake_sensor.mass
+            gravity = sim_nmpc.fake_sensor.gravity
             iv = sim_nmpc.fake_sensor.iv
+
+            # add noise. real: scale = 0.00727 * gravity
+            sf_b += np.random.normal(0.0, 0.1, 3)
 
             wrench_u_imu_b = np.zeros(6)
             wrench_u_imu_b[0:3] = mass * sf_b
