@@ -6,7 +6,6 @@ import time
 
 import numpy as np
 import argparse
-from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
@@ -68,9 +67,11 @@ if __name__ == "__main__":
     ts_sim = 0.001
 
     disturbance = np.zeros(6)
+    disturbance[0] = 1.0
+    disturbance[1] = -1.0
     disturbance[2] = 1.0  # N, fz
 
-    t_total_sim = 3.0
+    t_total_sim = 5.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -259,8 +260,11 @@ if __name__ == "__main__":
             # update disturbance estimation
             if args.if_est_dist == 1:
                 # only use the wrench difference between the imu and the actuator sensor, no u_mpc
-                disturb_estimated[0:3] = np.dot(rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
-                disturb_estimated[3:6] = wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]  # body frame
+                alpha = 0.01
+                disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(rot_ib, (
+                        wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
+                disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
+                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
 
             # --- for the methods that needs to update u_cmd, such as INDI ---
             if args.indi_type > 0:
