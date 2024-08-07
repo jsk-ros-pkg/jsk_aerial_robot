@@ -281,7 +281,8 @@ if __name__ == "__main__":
                 dist_wrench_res_b[0:3] = dist_est_now_b[0:3] - np.dot(rot_ib.T, disturb_nmpc_compd[0:3])
                 dist_wrench_res_b[3:6] = dist_est_now_b[3:6] - disturb_nmpc_compd[3:6]
 
-                d_u = np.dot(B_inv, dist_wrench_res_b)
+                # NOTE THAT d_u should be negatively related to dist_wrench_res_b
+                d_u = np.dot(B_inv, -dist_wrench_res_b)
 
                 u_cmd = copy.deepcopy(u_mpc + d_u)
 
