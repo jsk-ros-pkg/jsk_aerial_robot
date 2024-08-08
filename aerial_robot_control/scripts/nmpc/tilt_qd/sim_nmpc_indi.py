@@ -66,10 +66,10 @@ if __name__ == "__main__":
 
     ts_sim = 0.001
 
-    disturbance = np.zeros(6)
-    disturbance[0] = 1.0
-    disturbance[1] = -1.0
-    disturbance[2] = 1.0  # N, fz
+    disturb_init = np.zeros(6)
+    disturb_init[0] = 1.0
+    disturb_init[1] = -1.0
+    disturb_init[2] = 1.0  # N, fz
 
     t_total_sim = 5.0
     if args.plot_type == 1:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     x_init_sim = np.zeros(nx_sim)
     x_init_sim[6] = 1.0  # qw
-    x_init_sim[-6:] = disturbance
+    x_init_sim[-6:] = disturb_init
 
     # ---------- Others ----------
     xr_ur_converter = nmpc.get_xr_ur_converter()
@@ -295,8 +295,12 @@ if __name__ == "__main__":
                 u_cmd = copy.deepcopy(u_mpc + d_u)
 
         # --------- update simulation ----------
-        disturbance[2] = np.random.normal(1.0, 3.0)  # N, fz
-        x_now_sim[-6:] = disturbance
+        disturb = copy.deepcopy(disturb_init)
+        # disturb[2] = np.random.normal(1.0, 3.0)  # N, fz
+        if 2.0 <= t_now < 3.0:
+            disturb[2] = -5.0
+
+        x_now_sim[-6:] = disturb
 
         sim_solver.set("x", x_now_sim)
         sim_solver.set("u", u_cmd)
