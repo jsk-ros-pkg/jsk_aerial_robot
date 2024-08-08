@@ -38,6 +38,8 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   transforming_flag_ = false;
 
+  rotation_control_link_name_ = robot_model_->getBaselinkName();
+
   controllers_reset_flag_ = false;
 
   target_pitch_ang_vel_ = 0.0;
@@ -71,6 +73,8 @@ void RollingNavigator::reset()
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
 
+  setRotationControlLink(robot_model_->getBaselinkName());
+
   controllers_reset_flag_ = false;
   ground_trajectory_mode_ = false;
   poly_.reset();
@@ -89,6 +93,8 @@ void RollingNavigator::reset()
 void RollingNavigator::startTakeoff()
 {
   BaseNavigator::startTakeoff();
+
+  setRotationControlLink(robot_model_->getBaselinkName());
 
   switch(current_ground_navigation_mode_)
     {
@@ -313,8 +319,41 @@ void RollingNavigator::rosPublishProcess()
   groundModeProcess();
 }
 
+void RollingNavigator::setRotationControlLink(std::string link_name)
+{
+  /* update controlled link's current rotation from cog_R_base */
+  const auto& seg_tf_map = robot_model_->getSegmentsTf();
+  KDL::Rotation curr_cog_R_base; tf::quaternionTFToKDL(curr_target_baselink_quat_, curr_cog_R_base);
+  KDL::Rotation final_cog_R_base; tf::quaternionTFToKDL(final_target_baselink_quat_, final_cog_R_base);
+
+  KDL::Frame base_f_link =  (seg_tf_map.at(robot_model_->getBaselinkName())).Inverse() * seg_tf_map.at(link_name);
+  curr_target_cog_R_link_ = curr_cog_R_base * base_f_link.M;
+  final_target_cog_R_link_ = final_cog_R_base * base_f_link.M;
+
+  if(rotation_control_link_name_ != link_name)
+    ROS_INFO_STREAM("[navigation] set rotation control link from "<< rotation_control_link_name_ << " to " << link_name);
+
+  rotation_control_link_name_ = link_name;
+}
+
 void RollingNavigator::baselinkRotationProcess()
 {
+  const auto& seg_tf_map = robot_model_->getSegmentsTf();
+  if(rotation_control_link_name_ == robot_model_->getBaselinkName())
+    {
+      tf::quaternionTFToKDL(curr_target_baselink_quat_, curr_target_cog_R_link_);
+      tf::quaternionTFToKDL(final_target_baselink_quat_, final_target_cog_R_link_);
+    }
+  else
+    {
+      KDL::Rotation link_R_base = (seg_tf_map.at(rotation_control_link_name_).Inverse() * seg_tf_map.at(robot_model_->getBaselinkName())).M;
+      tf::quaternionKDLToTF(curr_target_cog_R_link_ * link_R_base, curr_target_baselink_quat_);
+      tf::quaternionKDLToTF(final_target_cog_R_link_ * link_R_base, final_target_baselink_quat_);
+      curr_target_baselink_quat_.normalize(); // important
+      final_target_baselink_quat_.normalize(); // important
+    }
+
+  /* interpolation between final target and current command of cog_R_base */
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
     {
       tf::Quaternion delta_q = curr_target_baselink_quat_.inverse() * final_target_baselink_quat_;
@@ -343,6 +382,13 @@ void RollingNavigator::baselinkRotationProcess()
       desire_coord_pub_.publish(msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
+    }
+
+  /* update rotation matrix of controlling frame */
+  if(rotation_control_link_name_ != robot_model_->getBaselinkName())
+    {
+      KDL::Rotation cog_R_base; tf::quaternionTFToKDL(curr_target_baselink_quat_, cog_R_base);
+      curr_target_cog_R_link_ = cog_R_base * seg_tf_map.at(robot_model_->getBaselinkName()).Inverse().M * seg_tf_map.at(rotation_control_link_name_).M;
     }
 }
 

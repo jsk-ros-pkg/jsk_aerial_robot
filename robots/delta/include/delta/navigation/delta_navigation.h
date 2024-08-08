@@ -40,12 +40,16 @@ namespace aerial_robot_navigation
 
     void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
     void setGroundNavigationMode(int state);
+    void setGroundMotionMode(int state);
     inline int getCurrentGroundNavigationMode() {return current_ground_navigation_mode_;}
     inline int getPrevGroundNavigationMode() {return prev_ground_navigation_mode_;}
 
     void setControllersResetFlag(bool flag) {controllers_reset_flag_ = flag;}
     bool getControllersResetFlag() {return controllers_reset_flag_;}
 
+    void setRotationControlLink(std::string link_name);
+    void setCurrentTargetControlLinkRotation(KDL::Rotation rot) {curr_target_cog_R_link_ = rot;}
+    void setFinalTargetControlLinkRotation(KDL::Rotation rot) {final_target_cog_R_link_ = rot;}
     void setFinalTargetBaselinkQuat(tf::Quaternion quat) {final_target_baselink_quat_ = quat;}
     tf::Quaternion getFinalTargetBaselinkQuat() {return final_target_baselink_quat_;}
     void setCurrentTargetBaselinkQuat(tf::Quaternion quat) {curr_target_baselink_quat_ = quat;}
@@ -150,5 +154,7 @@ namespace aerial_robot_navigation
     tf::Quaternion curr_target_baselink_quat_, final_target_baselink_quat_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
+    std::string rotation_control_link_name_;
+    KDL::Rotation curr_target_cog_R_link_, final_target_cog_R_link_;
   };
 };
