@@ -11,6 +11,7 @@
 #include <sensor_msgs/JointState.h>
 #include <spinal/DesireCoord.h>
 #include <std_msgs/Int16.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace aerial_robot_navigation
 {
@@ -21,6 +22,12 @@ namespace aerial_robot_navigation
      STANDING_STATE,
      ROLLING_STATE,
      DOWN_STATE
+    };
+
+  enum motion_mode
+    {
+     LOCOMOTION_MODE,
+     MANIPULATION_MODE
     };
 
   class RollingNavigator : public BaseNavigator
@@ -61,18 +68,21 @@ namespace aerial_robot_navigation
     bool getYawAngVelUpdating() {return yaw_ang_vel_updating_;}
 
     std::string indexToGroundNavigationModeString(int index);
+    std::string indexToGroundMotionModeString(int index);
 
     void setEstimatedExternalWrench(Eigen::VectorXd est_external_wrench) {est_external_wrench_ = est_external_wrench;}
     void setEstimatedExternalWrenchCog(Eigen::VectorXd est_external_wrench_cog) {est_external_wrench_cog_ = est_external_wrench_cog;}
 
   private:
+    std::string tf_prefix_;
+    tf2_ros::TransformBroadcaster br_;
+
     /* baselink rotation process */
     ros::Publisher desire_coord_pub_;
     ros::Subscriber final_target_baselink_quat_sub_, final_target_baselink_rpy_sub_;
 
     /* transform planning */
     ros::Publisher joints_control_pub_;
-    ros::Subscriber joints_control_sub_;
     ros::Subscriber ik_target_rel_ee_pos_sub_;
 
     /* joy */
@@ -88,6 +98,8 @@ namespace aerial_robot_navigation
     void rollingPlanner();
     void IK();
     void transformPlanner();
+    void calcEndEffetorJacobian();
+    void fullBodyIKSolve();
     void baselinkRotationProcess();
     void groundModeProcess();
     void rosPublishProcess();
@@ -104,6 +116,9 @@ namespace aerial_robot_navigation
     /* navigation mode */
     int current_ground_navigation_mode_;
     int prev_ground_navigation_mode_;
+
+    /* motion mode */
+    int motion_mode_;
 
     /* flight mode variable */
     bool controllers_reset_flag_;
@@ -141,6 +156,12 @@ namespace aerial_robot_navigation
     Eigen::Vector3d ik_target_cl_p_ee_in_initial_cog_;
     KDL::JntArray ik_current_joint_positons_;
     KDL::Rotation ik_initial_cog_R_cl_;
+
+    /* fullBodyIK */
+    int full_body_ik_initial_contacting_link_;
+    KDL::Frame full_body_ik_initial_cl_f_cp_;
+    Eigen::Vector3d full_body_ik_initial_cp_p_ee_target_;
+    Eigen::MatrixXd full_body_ik_jacobian_;
 
     /* motion planning based on external wrench estimation */
     Eigen::VectorXd est_external_wrench_;
