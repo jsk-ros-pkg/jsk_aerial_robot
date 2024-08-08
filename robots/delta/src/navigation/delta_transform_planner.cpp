@@ -435,3 +435,59 @@ void RollingNavigator::fullBodyIKSolve()
     setFinalTargetControlLinkRotation(final_cog_R_base * (seg_tf_map.at(robot_model_->getBaselinkName()).Inverse() * seg_tf_map.at(cl_name)).M);
   }
 }
+
+void RollingNavigator::setGroundMotionMode(int state)
+{
+  switch(state)
+    {
+    case aerial_robot_navigation::LOCOMOTION_MODE:
+      {
+        setRotationControlLink(robot_model_->getBaselinkName());
+        motion_mode_ = aerial_robot_navigation::LOCOMOTION_MODE;
+        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
+        break;
+      }
+    case aerial_robot_navigation::MANIPULATION_MODE:
+      {
+        /* get contacting state */
+        full_body_ik_initial_contacting_link_ = rolling_robot_model_->getContactingLink();
+        std::string full_body_ik_contacting_link_name, ee_name;
+        if(full_body_ik_initial_contacting_link_ == 1) {
+          ROS_WARN_STREAM_THROTTLE(1.0, "[navigation] could not switch " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE) << " because contact link is not defined");
+          return;
+        }
+        else if(full_body_ik_initial_contacting_link_ == 0) {
+          full_body_ik_contacting_link_name = "link1";
+          ee_name = "link3_end";
+        }
+        else if(full_body_ik_initial_contacting_link_ == 2) {
+          full_body_ik_contacting_link_name = "link3_end";
+          ee_name = "link1";
+        }
+        else {
+          ROS_ERROR_STREAM("[navigation] contacting link index is invalid");
+          return;
+        }
+
+        /* update robot model with current state */
+        {
+          KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+          robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+          KDL::JntArray joint_positions = robot_model_->getJointPositions();
+          robot_model_for_plan_->updateRobotModel(joint_positions);
+          robot_model_for_plan_->calcContactPoint();
+        }
+        const std::map<std::string, KDL::Frame>& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+
+        KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
+        full_body_ik_initial_cp_p_ee_target_= kdlToEigen((contact_point.Inverse() * seg_tf_map.at(ee_name)).p);
+        full_body_ik_initial_cl_f_cp_ = seg_tf_map.at(full_body_ik_contacting_link_name).Inverse() * contact_point;
+        motion_mode_ = aerial_robot_navigation::MANIPULATION_MODE;
+        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
+        break;
+      }
+    default:
+      break;
+    }
+}
+

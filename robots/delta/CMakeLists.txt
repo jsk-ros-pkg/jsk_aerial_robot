@@ -68,7 +68,9 @@ add_library(delta_robot_model src/model/delta_robot_model.cpp)
 target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
 
 add_library(delta_navigation
+  src/navigation/delta_locomotion_planner.cpp
   src/navigation/delta_navigation.cpp
+  src/navigation/delta_navigation_utils.cpp
   src/navigation/delta_transform_planner.cpp)
 target_link_libraries(delta_navigation ${catkin_LIBRARIES})
 
