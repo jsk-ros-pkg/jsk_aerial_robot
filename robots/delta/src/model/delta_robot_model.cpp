@@ -91,6 +91,8 @@ void RollingRobotModel::calcContactPoint()
 
 void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   RobotModel::updateRobotModelImpl(joint_positions);
 
   /* assume candidate of control frame is calculated before here */
@@ -162,6 +164,10 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
     }
   rotor_origin_pub_.publish(rotor_origin_msg);
   rotor_normal_pub_.publish(rotor_normal_msg);
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  // std::cout << duration.count() << [us] << std::endl;
 }
 
 void RollingRobotModel::setControlFrame(std::string frame_name)

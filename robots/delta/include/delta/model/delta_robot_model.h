@@ -4,6 +4,7 @@
 
 #include <ros/ros.h>
 #include <boost/thread/thread.hpp>
+#include <chrono>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/PoseArray.h>
 #include <aerial_robot_model/model/transformable_aerial_robot_model.h>
@@ -35,8 +36,10 @@ public:
     return links_center_frame_from_cog_;
   }
   void setCircleRadius(double radius) {circle_radius_ = radius;}
+  double getCircleRadius() {return circle_radius_;}
   void calcContactPoint();
   int getContactingLink() {return contacting_link_;}
+  double getContactingAngleInLink() {return contacting_angle_in_link_;}
   void setControlFrame(KDL::Frame frame){control_frame_ = frame;};
   void setControlFrame(std::string frame_name);
   KDL::Frame getControlFrame(){return control_frame_;}
