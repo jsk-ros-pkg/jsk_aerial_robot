@@ -26,7 +26,6 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   final_target_baselink_quat_sub_ = nh_.subscribe("final_target_baselink_quat", 1, &RollingNavigator::setFinalTargetBaselinkQuatCallback, this);
   final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &RollingNavigator::setFinalTargetBaselinkRpyCallback, this);
   joints_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-  joints_control_sub_ = nh_.subscribe("joints_ctrl", 1, &RollingNavigator::jointsControlCallback, this);
   ik_target_rel_ee_pos_sub_ = nh_.subscribe("ik_target_rel_ee_pos", 1, &RollingNavigator::ikTargetRelEEPosCallback, this);
   joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   ground_navigation_mode_sub_ = nh_.subscribe("ground_navigation_command", 1, &RollingNavigator::groundNavigationModeCallback, this);
@@ -35,10 +34,13 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+  motion_mode_ = aerial_robot_navigation::LOCOMOTION_MODE;
 
   transforming_flag_ = false;
 
   rotation_control_link_name_ = robot_model_->getBaselinkName();
+
+  full_body_ik_initial_cp_p_ee_target_  = Eigen::Vector3d(0, 0, 0);
 
   controllers_reset_flag_ = false;
 
@@ -52,13 +54,18 @@ void RollingNavigator::update()
 {
   BaseNavigator::update();
 
-  IK();
 
-  if(transforming_flag_)
-    transformPlanner();
-  else
-    rollingPlanner();
+  if(motion_mode_ == aerial_robot_navigation::MANIPULATION_MODE)
+    {
+      calcEndEffetorJacobian();
+      fullBodyIKSolve();
+    }
+  else if(motion_mode_ == aerial_robot_navigation::LOCOMOTION_MODE)
+    {
+      rollingPlanner();
+    }
 
+  baselinkRotationProcess();
 
   rosPublishProcess();
 }
@@ -72,6 +79,9 @@ void RollingNavigator::reset()
 
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
   setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+  motion_mode_ = aerial_robot_navigation::LOCOMOTION_MODE;
+
+  full_body_ik_initial_cp_p_ee_target_ = Eigen::Vector3d(0, 0, 0);
 
   setRotationControlLink(robot_model_->getBaselinkName());
 
@@ -315,7 +325,6 @@ void RollingNavigator::rollingPlanner()
 
 void RollingNavigator::rosPublishProcess()
 {
-  baselinkRotationProcess();
   groundModeProcess();
 }
 
@@ -415,7 +424,7 @@ void RollingNavigator::rosParamInit()
   getParam<double>(navi_nh, "standing_baselink_roll_converged_thresh", standing_baselink_roll_converged_thresh_, 0.0);
   getParam<double>(navi_nh, "rolling_pitch_update_thresh", rolling_pitch_update_thresh_, 0.0);
   getParam<double>(navi_nh, "ground_trajectory_duration", ground_trajectory_duration_, 0.0);
-
+  getParam<std::string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 }
 
 void RollingNavigator::setGroundNavigationMode(int state)
@@ -468,6 +477,61 @@ void RollingNavigator::setGroundNavigationMode(int state)
   current_ground_navigation_mode_ = state;
 }
 
+void RollingNavigator::setGroundMotionMode(int state)
+{
+  switch(state)
+    {
+    case aerial_robot_navigation::LOCOMOTION_MODE:
+      {
+        setRotationControlLink(robot_model_->getBaselinkName());
+        motion_mode_ = aerial_robot_navigation::LOCOMOTION_MODE;
+        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
+        break;
+      }
+    case aerial_robot_navigation::MANIPULATION_MODE:
+      {
+        /* get contacting state */
+        full_body_ik_initial_contacting_link_ = rolling_robot_model_->getContactingLink();
+        std::string full_body_ik_contacting_link_name, ee_name;
+        if(full_body_ik_initial_contacting_link_ == 1) {
+          ROS_WARN_STREAM_THROTTLE(1.0, "[navigation] could not switch " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE) << " because contact link is not defined");
+          return;
+        }
+        else if(full_body_ik_initial_contacting_link_ == 0) {
+          full_body_ik_contacting_link_name = "link1";
+          ee_name = "link3_end";
+        }
+        else if(full_body_ik_initial_contacting_link_ == 2) {
+          full_body_ik_contacting_link_name = "link3_end";
+          ee_name = "link1";
+        }
+        else {
+          ROS_ERROR_STREAM("[navigation] contacting link index is invalid");
+          return;
+        }
+
+        /* update robot model with current state */
+        {
+          KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+          robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+          KDL::JntArray joint_positions = robot_model_->getJointPositions();
+          robot_model_for_plan_->updateRobotModel(joint_positions);
+          robot_model_for_plan_->calcContactPoint();
+        }
+        const std::map<std::string, KDL::Frame>& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+
+        KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
+        full_body_ik_initial_cp_p_ee_target_= kdlToEigen((contact_point.Inverse() * seg_tf_map.at(ee_name)).p);
+        full_body_ik_initial_cl_f_cp_ = seg_tf_map.at(full_body_ik_contacting_link_name).Inverse() * contact_point;
+        motion_mode_ = aerial_robot_navigation::MANIPULATION_MODE;
+        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
+        break;
+      }
+    default:
+      break;
+    }
+}
+
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
 {
   ROS_WARN_STREAM("[navigation] ground navigation command callback: switch mode to " << indexToGroundNavigationModeString(msg->data));
@@ -490,94 +554,155 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
 {
   sensor_msgs::Joy joy_cmd = (*joy_msg);
 
-  /* change ground navigation state */
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
+  /* change to locomotion mode */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_2] && motion_mode_ != aerial_robot_navigation::LOCOMOTION_MODE)
     {
-      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::STANDING_STATE));
-      setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
+      ROS_INFO_STREAM("[joy] change to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
+      setGroundMotionMode(aerial_robot_navigation::LOCOMOTION_MODE);
     }
 
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
+  /* change to manipulation mode when rolling state */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_2] && motion_mode_ != aerial_robot_navigation::MANIPULATION_MODE)
     {
-      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
-      setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
-    }
-
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
-    {
-      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::FLYING_STATE));
-      setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
-    }
-
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
-    {
-      ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::DOWN_STATE));
-      setGroundNavigationMode(aerial_robot_navigation::DOWN_STATE);
-    }
-
-  /* set target angular velocity around yaw based on R-stick hilizontal */
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
-    {
-      target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
-
-      addTargetYaw(loop_du_ * target_yaw_ang_vel_);
-      setTargetOmegaZ(target_yaw_ang_vel_);
-
-      yaw_ang_vel_updating_ = true;
-    }
-  else
-    {
-      if(yaw_ang_vel_updating_)
+      if(current_ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
         {
-          target_yaw_ang_vel_ = 0.0;
-
-          tf::Quaternion cog2baselink_rot;
-          tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
-          tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
-          double r, p, y;
-          cog_rot.getRPY(r, p, y);
-
-          setTargetYaw(y);
-          setTargetOmegaZ(0.0);
-
-          yaw_ang_vel_updating_ = false;
+          ROS_INFO_STREAM("[joy] change to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
+          setGroundMotionMode(aerial_robot_navigation::MANIPULATION_MODE);
+        }
+      else
+        {
+          ROS_WARN_STREAM_THROTTLE(0.5, "[joy] do not change " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE) << " because current ground navigation mode is not " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
         }
     }
 
-  /* set target angular velocity around pitch based on L-stick vertical */
-  if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
+  /* switch the planning mode switched by motion_mode */
+  switch(motion_mode_)
     {
-      target_pitch_ang_vel_ = rolling_max_pitch_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
-      pitch_ang_vel_updating_ = true;
-    }
-  else
-    {
-      if(pitch_ang_vel_updating_)
-        {
-          target_pitch_ang_vel_ = 0.0;
-          pitch_ang_vel_updating_ = false;
-        }
+    case aerial_robot_navigation::LOCOMOTION_MODE:
+      {
+        /* change ground navigation state */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
+          {
+            ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::STANDING_STATE));
+            setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
+          }
+
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
+          {
+            ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
+            setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
+          }
+
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
+          {
+            ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::FLYING_STATE));
+            setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
+          }
+
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
+          {
+            ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::DOWN_STATE));
+            setGroundNavigationMode(aerial_robot_navigation::DOWN_STATE);
+          }
+
+        /* set target angular velocity around yaw based on R-stick hilizontal */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
+          {
+            target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
+
+            addTargetYaw(loop_du_ * target_yaw_ang_vel_);
+            setTargetOmegaZ(target_yaw_ang_vel_);
+
+            yaw_ang_vel_updating_ = true;
+          }
+        else
+          {
+            if(yaw_ang_vel_updating_)
+              {
+                target_yaw_ang_vel_ = 0.0;
+
+                tf::Quaternion cog2baselink_rot;
+                tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+                tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+                double r, p, y;
+                cog_rot.getRPY(r, p, y);
+
+                setTargetYaw(y);
+                setTargetOmegaZ(0.0);
+
+                yaw_ang_vel_updating_ = false;
+              }
+          }
+
+        /* set target angular velocity around pitch based on L-stick vertical */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
+          {
+            target_pitch_ang_vel_ = rolling_max_pitch_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
+            pitch_ang_vel_updating_ = true;
+          }
+        else
+          {
+            if(pitch_ang_vel_updating_)
+              {
+                target_pitch_ang_vel_ = 0.0;
+                pitch_ang_vel_updating_ = false;
+              }
+          }
+        break;
+      }
+
+    case aerial_robot_navigation::MANIPULATION_MODE:
+      {
+        /* set end effector target x */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
+          {
+            full_body_ik_initial_cp_p_ee_target_(0) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
+          }
+        /* set end effector target x */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS]) > joy_stick_deadzone_)
+          {
+            full_body_ik_initial_cp_p_ee_target_(2) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS];
+          }
+        break;
+      }
     }
 }
 
 std::string RollingNavigator::indexToGroundNavigationModeString(int index)
 {
-  switch(index){
-  case aerial_robot_navigation::FLYING_STATE:
-    return "FLYING_STATE";
-    break;
-  case aerial_robot_navigation::STANDING_STATE:
-    return "STANDING_STATE";
-    break;
-  case aerial_robot_navigation::ROLLING_STATE:
-    return "ROLLING_STATE";
-    break;
-  case aerial_robot_navigation::DOWN_STATE:
-    return "DOWN_STATE";
-  default:
-    return "NONE";
-    break;
-  }
+  switch(index)
+    {
+    case aerial_robot_navigation::FLYING_STATE:
+      return "FLYING_STATE";
+      break;
+    case aerial_robot_navigation::STANDING_STATE:
+      return "STANDING_STATE";
+      break;
+    case aerial_robot_navigation::ROLLING_STATE:
+      return "ROLLING_STATE";
+      break;
+    case aerial_robot_navigation::DOWN_STATE:
+      return "DOWN_STATE";
+    default:
+      return "NONE";
+      break;
+    }
+}
+
+std::string RollingNavigator::indexToGroundMotionModeString(int index)
+{
+  switch(index)
+    {
+    case aerial_robot_navigation::LOCOMOTION_MODE:
+      return "LOCOMOTION_MODE";
+      break;
+    case aerial_robot_navigation::MANIPULATION_MODE:
+      return "MANIPULATION_MODE";
+      break;
+    default:
+      return "NONE";
+      break;
+    }
 }
 
 /* plugin registration */

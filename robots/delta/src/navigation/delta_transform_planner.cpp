@@ -229,3 +229,209 @@ void RollingNavigator::ikTargetRelEEPosCallback(const geometry_msgs::Vector3Ptr 
   ik_solve_step_ = 0;
   ik_solving_flag_ = true;
 }
+
+void RollingNavigator::calcEndEffetorJacobian()
+{
+  // double eps = 0.1;
+  double eps = 1e-6;
+
+  /* update robot model for planning with current state */
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray init_joint_positions = robot_model_->getJointPositions();
+  try {
+    robot_model_for_plan_->updateRobotModel(init_joint_positions);
+  }
+  catch(std::runtime_error e) {
+    return;
+  }
+  const auto& joint_index_map = robot_model_->getJointIndexMap();
+
+  /* contacting information */
+  robot_model_for_plan_->calcContactPoint();
+  double circle_radius = rolling_robot_model_->getCircleRadius();
+  int contacting_link = rolling_robot_model_->getContactingLink();
+  double contacting_angle_in_link = rolling_robot_model_->getContactingAngleInLink();
+  std::string cl_name, ee_name;
+  if(contacting_link == 0) {
+    cl_name = "link1";
+    ee_name = "link3_end";
+  }
+  else if(contacting_link == 1) {
+    return;
+  }
+  else if(contacting_link == 2) {
+    cl_name = "link3_end";
+    ee_name = "link1";
+  }
+
+  full_body_ik_jacobian_ = Eigen::MatrixXd::Zero(3, 1 + robot_model_->getJointNum() - robot_model_->getRotorNum()); // dp = J * [dtheta, dq(in R^2)]^T
+
+  /* calculate jacobian of end effector position w.r.t. desired coordinate pitch angle */
+  {
+    KDL::Rotation R_y_eps = KDL::Rotation::Identity();
+    R_y_eps.DoRotY(eps);
+
+    const std::map<std::string, KDL::Frame>& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+    KDL::Frame cog = robot_model_for_plan_->getCog<KDL::Frame>();
+    KDL::Frame contact_point = robot_model_for_plan_->getContactPoint<KDL::Frame>();
+    KDL::Frame d_contact_point;
+    std::vector<KDL::Frame> links_center_frame_from_cog = robot_model_for_plan_->getLinksCenterFrameFromCog();
+
+    /* new contact point position */
+    KDL::Vector link_i_center_p_dcp_in_link_i_center;
+    link_i_center_p_dcp_in_link_i_center.x(circle_radius * cos(contacting_angle_in_link + eps));
+    link_i_center_p_dcp_in_link_i_center.y(circle_radius * sin(contacting_angle_in_link + eps));
+    link_i_center_p_dcp_in_link_i_center.z(0.0);
+    KDL::Vector cog_p_dcp_in_cog = links_center_frame_from_cog.at(contacting_link) * link_i_center_p_dcp_in_link_i_center;
+    d_contact_point.p = cog * cog_p_dcp_in_cog;
+
+    /* new contact point rotation */
+    KDL::Rotation dcog_R_base = R_y_eps * cog_desire_orientation;
+    KDL::Rotation root_R_base = seg_tf_map.at(robot_model_->getBaselinkName()).M;
+    KDL::Rotation root_R_dcog = root_R_base * dcog_R_base.Inverse();
+    d_contact_point.M = root_R_dcog;
+
+    /* calculate the difference between contact point (cp) and end effector (ee) in each state */
+    Eigen::Vector3d cp_p_ee_in_cp = kdlToEigen((contact_point.Inverse() * seg_tf_map.at(ee_name)).p);
+    Eigen::Vector3d dcp_p_ee_in_cp = kdlToEigen((d_contact_point.Inverse() * seg_tf_map.at(ee_name)).p) + Eigen::Vector3d(circle_radius * eps, 0, 0); // dcp_p_ee_in_dcp + rolling offset (dcp is contacted to the ground)
+    full_body_ik_jacobian_.block(0, 0, 3, 1) = 1.0 / eps * (dcp_p_ee_in_cp - cp_p_ee_in_cp);
+  }
+
+  /* calculate contact point w.r.t contacting link frame */
+  const std::map<std::string, KDL::Frame>& current_seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+  KDL::Frame root_f_current_cp = robot_model_for_plan_->getContactPoint<KDL::Frame>();
+  KDL::Frame current_cl_f_current_cp = current_seg_tf_map.at(cl_name).Inverse() * root_f_current_cp;
+  KDL::Frame current_cp_f_current_ee = root_f_current_cp.Inverse() * current_seg_tf_map.at(ee_name);
+  Eigen::Vector3d current_cp_p_current_ee = kdlToEigen(current_cp_f_current_ee.p);
+
+  /* calculate jacobian of end effector position w.r.t. joint angles */
+  {
+    for(int i = 0; i < robot_model_->getJointNum() - robot_model_->getRotorNum(); i++)
+      {
+        KDL::JntArray joint_positions = init_joint_positions;
+        joint_positions(joint_index_map.find(std::string("joint") + std::to_string(i + 1))->second) += eps;
+        robot_model_for_plan_->updateRobotModel(joint_positions);
+
+        const std::map<std::string, KDL::Frame>& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+
+        KDL::Frame root_f_after_ee = seg_tf_map.at(ee_name);
+        KDL::Frame current_cp_f_after_ee = (seg_tf_map.at(cl_name) * current_cl_f_current_cp).Inverse() * root_f_after_ee;
+
+        Eigen::Vector3d current_cp_p_after_ee = kdlToEigen(current_cp_f_after_ee.p);
+        full_body_ik_jacobian_.block(0, 1 + i, 3, 1) = 1.0 / eps * (current_cp_p_after_ee - current_cp_p_current_ee);
+      }
+  }
+}
+
+void RollingNavigator::fullBodyIKSolve()
+{
+  std::string cl_name, ee_name;
+  if(full_body_ik_initial_contacting_link_ == 0) {
+    cl_name = "link1";
+    ee_name = "link3_end";
+  }
+  else if(full_body_ik_initial_contacting_link_ == 1) {
+    return;
+  }
+  else if(full_body_ik_initial_contacting_link_ == 2) {
+    cl_name = "link3_end";
+    ee_name = "link1";
+  }
+
+  /* update robot model for plan from current state */
+  {
+    KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+    robot_model_for_plan_->setCogDesireOrientation(cog_desire_orientation);
+    KDL::JntArray joint_positions = robot_model_->getJointPositions();
+    robot_model_for_plan_->updateRobotModel(joint_positions);
+    robot_model_for_plan_->calcContactPoint();
+  }
+  const std::map<std::string, KDL::Frame>& seg_tf_map = robot_model_for_plan_->getSegmentsTf();
+
+  /* calculate initial contact point */
+  KDL::Frame root_f_initial_cp =  seg_tf_map.at(cl_name) * full_body_ik_initial_cl_f_cp_;
+  geometry_msgs::TransformStamped initial_cp_tf = aerial_robot_model::kdlToMsg(root_f_initial_cp);
+  initial_cp_tf.header.stamp = ros::Time::now();
+  initial_cp_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
+  initial_cp_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("initial_cp"));
+  br_.sendTransform(initial_cp_tf);
+
+  /* calculate current contact point */
+  KDL::Frame root_f_current_cp = rolling_robot_model_->getContactPoint<KDL::Frame>();
+
+  /* calculate current rolling angle from initial contact state */
+  KDL::Rotation current_cp_R_initial_cp = (root_f_current_cp.Inverse() * root_f_initial_cp).M;
+  double whatever1, rolling_pitch, whatever2; current_cp_R_initial_cp.GetRPY(whatever1, rolling_pitch, whatever2);
+  double rolling_x_offset = rolling_robot_model_->getCircleRadius() * rolling_pitch;
+  // ROS_INFO_STREAM_THROTTLE(1.0, "currcp_R_init_cp rpy: " << whatever1 << " " << rolling_pitch << " " << whatever2);
+
+  /* calculate end effector convergence error considering rolling offset */
+  KDL::Frame current_cp_f_ee = root_f_current_cp.Inverse() * seg_tf_map.at(ee_name);
+  Eigen::Vector3d initial_cp_p_ee = Eigen::Vector3d(rolling_x_offset, 0, 0) + kdlToEigen(current_cp_f_ee.p); // rolling_offset + current_cp_p_ee_in_current_cp
+  Eigen::Vector3d ik_diff = full_body_ik_initial_cp_p_ee_target_ - initial_cp_p_ee;
+  // ROS_INFO_STREAM_THROTTLE(1.0, "ik diff: " << ik_diff.transpose());
+
+  /* tf debug */
+  {
+    KDL::Frame initial_cp_on_ground;
+    initial_cp_on_ground.p = KDL::Vector(-rolling_x_offset, 0, 0);
+    initial_cp_on_ground.M = KDL::Rotation::Identity();
+    geometry_msgs::TransformStamped initial_cp_on_ground_tf = aerial_robot_model::kdlToMsg(initial_cp_on_ground);
+    initial_cp_on_ground_tf.header.stamp = ros::Time::now();
+    initial_cp_on_ground_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
+    initial_cp_on_ground_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
+    br_.sendTransform(initial_cp_on_ground_tf);
+
+    KDL::Frame full_body_ik_target;
+    full_body_ik_target.p = KDL::Vector(full_body_ik_initial_cp_p_ee_target_(0), full_body_ik_initial_cp_p_ee_target_(1), full_body_ik_initial_cp_p_ee_target_(2));
+    full_body_ik_target.M = KDL::Rotation::Identity();
+    geometry_msgs::TransformStamped full_body_ik_target_tf = aerial_robot_model::kdlToMsg(full_body_ik_target);
+    full_body_ik_target_tf.header.stamp = ros::Time::now();
+    full_body_ik_target_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
+    full_body_ik_target_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("full_body_ik_target"));
+    br_.sendTransform(full_body_ik_target_tf);
+  }
+
+  /* calculate ik step */
+  Eigen::VectorXd ik_step = aerial_robot_model::pseudoinverse(full_body_ik_jacobian_) * ik_diff;
+
+  /* send current joint angle plus ik result */
+  const auto& joint_index_map = robot_model_->getJointIndexMap();
+  {
+    KDL::JntArray joint_positions = robot_model_->getJointPositions();
+    sensor_msgs::JointState msg;
+    msg.name = {"joint1", "joint2"};
+    msg.position = {};
+    bool ok = true;
+    for(int i = 0; i < robot_model_->getJointNum() - robot_model_->getRotorNum(); i++)
+      {
+        msg.position.push_back(joint_positions(joint_index_map.find(std::string("joint") + std::to_string(i + 1))->second) + ik_step(1 + i));
+        if(msg.position.back() < 0.0 || 2.0 / 3.0 * M_PI < msg.position.back())
+          {
+            ok = false;
+          }
+      }
+    if(ok)
+      joints_control_pub_.publish(msg);
+    else
+      {
+        std::string rosout_msg = "[navigation] ik result: ";
+        for(size_t i = 0; i < msg.position.size(); i++)
+          {
+            rosout_msg += std::to_string(msg.position.at(i)) + " ";
+          }
+        ROS_ERROR_STREAM_THROTTLE(3.0, rosout_msg);
+      }
+  }
+
+  /* calculate final contact point from ik result and bipass to baselinkRotationProcess */
+  {
+    KDL::Rotation R_y_eps = KDL::Rotation::Identity();
+    R_y_eps.DoRotY(ik_step(0));
+    KDL::Rotation current_cog_R_base = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+    KDL::Rotation final_cog_R_base = R_y_eps * current_cog_R_base;
+    setRotationControlLink(cl_name);
+    setFinalTargetControlLinkRotation(final_cog_R_base * (seg_tf_map.at(robot_model_->getBaselinkName()).Inverse() * seg_tf_map.at(cl_name)).M);
+  }
+}
