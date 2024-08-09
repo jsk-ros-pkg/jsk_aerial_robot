@@ -616,7 +616,8 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       {
         break;
       }
-    }}
+    }
+}
 
 void BaseNavigator::update()
 {
