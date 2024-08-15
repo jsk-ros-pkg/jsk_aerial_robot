@@ -269,39 +269,40 @@ if __name__ == "__main__":
 
             # --- for the methods that needs to update u_cmd, such as INDI ---
             if args.indi_type > 0:
-
                 # the disturbance estimation residual
                 dist_wrench_res_b = np.zeros(6)
                 dist_est_now_b = wrench_u_imu_b - wrench_u_sensor_b
                 dist_wrench_res_b[0:3] = dist_est_now_b[0:3] - np.dot(rot_ib.T, disturb_nmpc_compd[0:3])
                 dist_wrench_res_b[3:6] = dist_est_now_b[3:6] - disturb_nmpc_compd[3:6]
 
+            if args.indi_type > 0 and args.indi_type != 4:
                 # B_inv
-                if args.indi_type == 4:
-                    z = np.dot(xr_ur_converter.alloc_mat_pinv, -dist_wrench_res_b)
-                    print(z)
-                    d_u = np.zeros(8)
-                    d_u[0] = np.sqrt(z[0] ** 2 + z[1] ** 2)  # ft
-                    d_u[1] = np.sqrt(z[2] ** 2 + z[3] ** 2)
-                    d_u[2] = np.sqrt(z[4] ** 2 + z[5] ** 2)
-                    d_u[3] = np.sqrt(z[6] ** 2 + z[7] ** 2)
-                    d_u[4] = np.arctan2(z[0], z[1])  # alpha
-                    d_u[5] = np.arctan2(z[2], z[3])
-                    d_u[6] = np.arctan2(z[4], z[5])
-                    d_u[7] = np.arctan2(z[6], z[7])
+                wrench_u_b = wrench_u_sensor_b if args.indi_type == 3 else wrench_u_mpc_b
+                wrench_2norm_sq = np.dot(wrench_u_b.T, wrench_u_b)
+                if wrench_2norm_sq == 0:
+                    B_inv = np.dot(np.expand_dims(u_mpc, axis=1), (0 * np.expand_dims(wrench_u_b, axis=1).T))
                 else:
-                    wrench_u_b = wrench_u_sensor_b if args.indi_type == 3 else wrench_u_mpc_b
-                    wrench_2norm_sq = np.dot(wrench_u_b.T, wrench_u_b)
-                    if wrench_2norm_sq == 0:
-                        B_inv = np.dot(np.expand_dims(u_mpc, axis=1), (0 * np.expand_dims(wrench_u_b, axis=1).T))
-                    else:
-                        B_inv = np.dot(np.expand_dims(u_mpc, axis=1),
-                                       (1 / wrench_2norm_sq * np.expand_dims(wrench_u_b, axis=1).T))
+                    B_inv = np.dot(np.expand_dims(u_mpc, axis=1),
+                                   (1 / wrench_2norm_sq * np.expand_dims(wrench_u_b, axis=1).T))
 
-                    # NOTE THAT d_u should be negatively related to dist_wrench_res_b
-                    d_u = np.dot(B_inv, -dist_wrench_res_b)
+                # NOTE THAT d_u should be negatively related to dist_wrench_res_b
+                d_u = np.dot(B_inv, -dist_wrench_res_b)
 
                 u_cmd = copy.deepcopy(u_mpc + d_u)
+
+            if args.indi_type == 4:
+                d_z = np.dot(xr_ur_converter.alloc_mat_pinv, -dist_wrench_res_b)
+                z = z_mpc + d_z
+
+                u_cmd = np.zeros(8)
+                u_cmd[0] = np.sqrt(z[0] ** 2 + z[1] ** 2)  # ft
+                u_cmd[1] = np.sqrt(z[2] ** 2 + z[3] ** 2)
+                u_cmd[2] = np.sqrt(z[4] ** 2 + z[5] ** 2)
+                u_cmd[3] = np.sqrt(z[6] ** 2 + z[7] ** 2)
+                u_cmd[4] = np.arctan2(z[0], z[1])  # alpha
+                u_cmd[5] = np.arctan2(z[2], z[3])
+                u_cmd[6] = np.arctan2(z[4], z[5])
+                u_cmd[7] = np.arctan2(z[6], z[7])
 
         # --------- update simulation ----------
         disturb = copy.deepcopy(disturb_init)
