@@ -14,7 +14,7 @@
   <arg name="spawn_y_4" default="0.0"/>
   <arg name="spawn_yaw_4" default="0.0"/>
   <group>
-    <include file="$(find beetle)/launch/bringup.launch">
+    <include file="$(find ninja)/launch/bringup.launch">
       <arg name="robot_id" value="1"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -26,7 +26,7 @@
       <arg name="spawn_yaw" default="$(arg spawn_yaw_1)"/>
     </include>
 
-    <include file="$(find beetle)/launch/bringup.launch">
+    <include file="$(find ninja)/launch/bringup.launch">
       <arg name="robot_id" value="2"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -38,7 +38,7 @@
       <arg name="spawn_yaw" default="$(arg spawn_yaw_2)"/>
     </include>
 
-    <include file="$(find beetle)/launch/bringup.launch">
+    <include file="$(find ninja)/launch/bringup.launch">
       <arg name="robot_id" value="3"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>
@@ -50,7 +50,7 @@
       <arg name="spawn_yaw" default="$(arg spawn_yaw_3)"/>
     </include>
 
-    <include file="$(find beetle)/launch/bringup.launch">
+    <include file="$(find ninja)/launch/bringup.launch">
       <arg name="robot_id" value="4"/>
       <arg name="real_machine" value="false"/>
       <arg name="simulation" value="true"/>

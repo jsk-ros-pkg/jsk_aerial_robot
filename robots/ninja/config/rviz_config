@@ -7,10 +7,13 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
-        - /RobotModel1/Status1
         - /TF1
-      Splitter Ratio: 0.5
-    Tree Height: 579
+        - /TF1/Frames1
+        - /RobotModel2
+        - /RobotModel3
+        - /RobotModel3/Links1
+      Splitter Ratio: 0.6529411673545837
+    Tree Height: 740
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -64,6 +67,117 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        contact_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_palm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        gimbal_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        main_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pitch_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pitch_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_parent1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tail_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        yaw_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        yaw_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Name: RobotModel
       Robot Description: ninja1/robot_description
       TF Prefix: ninja1
@@ -76,51 +190,153 @@ Visualization Manager:
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
-        All Enabled: true
-        ninja1/base_link:
-          Value: true
+        All Enabled: false
+        ninja1/center_of_moving:
+          Value: false
+        ninja1/cog:
+          Value: false
         ninja1/contact_point:
-          Value: true
+          Value: false
         ninja1/dummy_arm:
-          Value: true
-        ninja1/dummy_gripper:
-          Value: true
-        ninja1/dummy_palm:
-          Value: true
+          Value: false
         ninja1/fc:
-          Value: true
+          Value: false
         ninja1/gimbal_link1:
-          Value: true
+          Value: false
         ninja1/gimbal_link2:
-          Value: true
+          Value: false
         ninja1/gimbal_link3:
-          Value: true
-        ninja1/head_link:
-          Value: true
+          Value: false
+        ninja1/main_body:
+          Value: false
+        ninja1/pitch_connect_point:
+          Value: false
+        ninja1/pitch_dock_link:
+          Value: false
         ninja1/root:
-          Value: true
+          Value: false
         ninja1/rotor_arm1:
-          Value: true
+          Value: false
         ninja1/rotor_arm2:
-          Value: true
+          Value: false
         ninja1/rotor_arm3:
-          Value: true
+          Value: false
         ninja1/rotor_parent1:
-          Value: true
+          Value: false
         ninja1/rotor_parent2:
-          Value: true
+          Value: false
         ninja1/rotor_parent3:
-          Value: true
+          Value: false
         ninja1/tail_link:
-          Value: true
+          Value: false
         ninja1/thrust1:
-          Value: true
+          Value: false
         ninja1/thrust2:
-          Value: true
+          Value: false
         ninja1/thrust3:
-          Value: true
+          Value: false
+        ninja1/yaw_connect_point:
+          Value: false
+        ninja1/yaw_dock_link:
+          Value: false
+        ninja2/center_of_moving:
+          Value: false
+        ninja2/cog:
+          Value: false
+        ninja2/contact_point:
+          Value: false
+        ninja2/dummy_arm:
+          Value: false
+        ninja2/fc:
+          Value: false
+        ninja2/gimbal_link1:
+          Value: false
+        ninja2/gimbal_link2:
+          Value: false
+        ninja2/gimbal_link3:
+          Value: false
+        ninja2/main_body:
+          Value: false
+        ninja2/pitch_connect_point:
+          Value: false
+        ninja2/pitch_dock_link:
+          Value: false
+        ninja2/root:
+          Value: false
+        ninja2/rotor_arm1:
+          Value: false
+        ninja2/rotor_arm2:
+          Value: false
+        ninja2/rotor_arm3:
+          Value: false
+        ninja2/rotor_parent1:
+          Value: false
+        ninja2/rotor_parent2:
+          Value: false
+        ninja2/rotor_parent3:
+          Value: false
+        ninja2/tail_link:
+          Value: false
+        ninja2/thrust1:
+          Value: false
+        ninja2/thrust2:
+          Value: false
+        ninja2/thrust3:
+          Value: false
+        ninja2/yaw_connect_point:
+          Value: false
+        ninja2/yaw_dock_link:
+          Value: false
+        ninja3/center_of_moving:
+          Value: false
+        ninja3/cog:
+          Value: false
+        ninja3/contact_point:
+          Value: false
+        ninja3/dummy_arm:
+          Value: false
+        ninja3/fc:
+          Value: false
+        ninja3/gimbal_link1:
+          Value: false
+        ninja3/gimbal_link2:
+          Value: false
+        ninja3/gimbal_link3:
+          Value: false
+        ninja3/main_body:
+          Value: false
+        ninja3/pitch_connect_point:
+          Value: false
+        ninja3/pitch_dock_link:
+          Value: false
+        ninja3/root:
+          Value: false
+        ninja3/rotor_arm1:
+          Value: false
+        ninja3/rotor_arm2:
+          Value: false
+        ninja3/rotor_arm3:
+          Value: false
+        ninja3/rotor_parent1:
+          Value: false
+        ninja3/rotor_parent2:
+          Value: false
+        ninja3/rotor_parent3:
+          Value: false
+        ninja3/tail_link:
+          Value: false
+        ninja3/thrust1:
+          Value: false
+        ninja3/thrust2:
+          Value: false
+        ninja3/thrust3:
+          Value: false
+        ninja3/yaw_connect_point:
+          Value: false
+        ninja3/yaw_dock_link:
+          Value: false
         world:
-          Value: true
+          Value: false
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -130,15 +346,17 @@ Visualization Manager:
       Tree:
         world:
           ninja1/root:
-            ninja1/base_link:
-              ninja1/dummy_arm:
-                ninja1/dummy_palm:
-                  ninja1/dummy_gripper:
-                    {}
+            ninja1/cog:
+              ninja1/center_of_moving:
+                {}
+            ninja1/contact_point:
+              {}
+            ninja1/main_body:
               ninja1/fc:
                 {}
-              ninja1/head_link:
-                {}
+              ninja1/pitch_dock_link:
+                ninja1/pitch_connect_point:
+                  {}
               ninja1/rotor_arm1:
                 ninja1/gimbal_link1:
                   ninja1/rotor_parent1:
@@ -155,15 +373,338 @@ Visualization Manager:
                     ninja1/rotor_parent3:
                       ninja1/thrust3:
                         {}
-            ninja1/contact_point:
+              ninja1/yaw_dock_link:
+                ninja1/dummy_arm:
+                  {}
+                ninja1/yaw_connect_point:
+                  {}
+          ninja2/root:
+            ninja2/cog:
+              ninja2/center_of_moving:
+                {}
+            ninja2/contact_point:
               {}
+            ninja2/main_body:
+              ninja2/fc:
+                {}
+              ninja2/pitch_dock_link:
+                ninja2/pitch_connect_point:
+                  {}
+              ninja2/rotor_arm1:
+                ninja2/gimbal_link1:
+                  ninja2/rotor_parent1:
+                    ninja2/thrust1:
+                      {}
+              ninja2/rotor_arm2:
+                ninja2/gimbal_link2:
+                  ninja2/rotor_parent2:
+                    ninja2/thrust2:
+                      {}
+              ninja2/tail_link:
+                ninja2/rotor_arm3:
+                  ninja2/gimbal_link3:
+                    ninja2/rotor_parent3:
+                      ninja2/thrust3:
+                        {}
+              ninja2/yaw_dock_link:
+                ninja2/dummy_arm:
+                  {}
+                ninja2/yaw_connect_point:
+                  {}
+          ninja3/root:
+            ninja3/cog:
+              ninja3/center_of_moving:
+                {}
+            ninja3/contact_point:
+              {}
+            ninja3/main_body:
+              ninja3/fc:
+                {}
+              ninja3/pitch_dock_link:
+                ninja3/pitch_connect_point:
+                  {}
+              ninja3/rotor_arm1:
+                ninja3/gimbal_link1:
+                  ninja3/rotor_parent1:
+                    ninja3/thrust1:
+                      {}
+              ninja3/rotor_arm2:
+                ninja3/gimbal_link2:
+                  ninja3/rotor_parent2:
+                    ninja3/thrust2:
+                      {}
+              ninja3/tail_link:
+                ninja3/rotor_arm3:
+                  ninja3/gimbal_link3:
+                    ninja3/rotor_parent3:
+                      ninja3/thrust3:
+                        {}
+              ninja3/yaw_dock_link:
+                ninja3/dummy_arm:
+                  {}
+                ninja3/yaw_connect_point:
+                  {}
       Update Interval: 0
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        contact_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_palm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        gimbal_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        main_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pitch_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pitch_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_parent1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tail_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        yaw_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        yaw_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: ninja2/robot_description
+      TF Prefix: ninja2
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        contact_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_palm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        gimbal_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        main_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pitch_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pitch_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_parent1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tail_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        yaw_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        yaw_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: ninja3/robot_description
+      TF Prefix: ninja3
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: ninja1/root
+    Fixed Frame: world
     Frame Rate: 30
   Name: root
   Tools:
@@ -195,25 +736,25 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.2957891821861267
-        Y: -0.22869902849197388
-        Z: 0.19320501387119293
+        X: 0.12429024279117584
+        Y: -0.22249750792980194
+        Z: 0.23218481242656708
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3003978431224823
+      Pitch: 0.660398006439209
       Target Frame: <Fixed Frame>
-      Yaw: 5.763594150543213
+      Yaw: 4.808602809906006
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 882
+  Height: 1043
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000156000002cefc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000002ce000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f000002cefc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d000002ce000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004f300000044fc0100000002fb0000000800540069006d00650100000000000004f3000003bc00fffffffb0000000800540069006d0065010000000000000450000000000000000000000282000002ce00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001560000036ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000036f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000036ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d0000036f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000009b800000044fc0100000002fb0000000800540069006d00650100000000000009b8000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000007470000036f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -222,6 +763,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1267
-  X: 382
-  Y: 117
+  Width: 2488
+  X: 72
+  Y: 0
