@@ -9,7 +9,7 @@ import argparse
 
 from nmpc_viz import Visualizer
 
-from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
 np.random.seed(42)
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
              "3 (the B_inv is calculated using sensor command); "
              "4 (the B_inv is calculated using the inverse of allocation matrix)."
     )
-
+    parser.add_argument("-b", "--if_use_ang_acc", type=int, default=1, help="Whether to use angular acceleration.")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -92,6 +92,10 @@ if __name__ == "__main__":
     # ---------- Others ----------
     xr_ur_converter = nmpc.get_xr_ur_converter()
     viz = Visualizer(N_sim, nx_sim, nu, x_init_sim, is_record_diff_u=True)
+
+    fir_param = [-0.5, 0, 0.5]  # central difference
+    gyro_differentiator = [FIRDifferentiator(fir_param, ts_sensor), FIRDifferentiator(fir_param, ts_sensor),
+                           FIRDifferentiator(fir_param, ts_sensor)]  # for gyro differentiation
 
     is_sqp_change = False
     t_sqp_start = 2.5
@@ -209,12 +213,20 @@ if __name__ == "__main__":
             gravity = sim_nmpc.fake_sensor.gravity
             iv = sim_nmpc.fake_sensor.iv
 
-            # add noise. real: scale = 0.00727 * gravity
-            sf_b += np.random.normal(0.0, 0.1, 3)
+            sf_b_imu = sf_b + np.random.normal(0.0, 0.1, 3)  # add noise. real: scale = 0.00727 * gravity
+            w_imu = w + np.random.normal(0.0, 0.001, 3)  # add noise. real: scale = 0.0008 rad/s
+
+            ang_acc_b_imu = np.zeros(3)
+            if args.if_use_ang_acc == 0:
+                ang_acc_b_imu[0] = gyro_differentiator[0].apply_single(w_imu[0])
+                ang_acc_b_imu[1] = gyro_differentiator[1].apply_single(w_imu[1])
+                ang_acc_b_imu[2] = gyro_differentiator[2].apply_single(w_imu[2])
+            else:
+                ang_acc_b_imu = ang_acc_b
 
             wrench_u_imu_b = np.zeros(6)
-            wrench_u_imu_b[0:3] = mass * sf_b
-            wrench_u_imu_b[3:6] = np.dot(iv, ang_acc_b) + np.cross(w, np.dot(iv, w))
+            wrench_u_imu_b[0:3] = mass * sf_b_imu
+            wrench_u_imu_b[3:6] = np.dot(iv, ang_acc_b_imu) + np.cross(w, np.dot(iv, w))
 
             # wrench_u_sensor_b
             # - the wrench calculated from actuator sensor
