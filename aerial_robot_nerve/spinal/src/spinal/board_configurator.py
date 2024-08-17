@@ -220,10 +220,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_IMU_SEND_FLAG
         elif self._command == 'pid_gain':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 pid_gains = list(map(lambda x: int(x), self._widget.lineEdit.text().split(',')))
                 if len(pid_gains) != 3:
                     raise ValueError('Input 3 gains(int)')
@@ -234,10 +231,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PID_GAIN
         elif self._command == 'profile_velocity':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -245,10 +239,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PROFILE_VEL
         elif self._command == 'send_data_flag':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -256,10 +247,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_SEND_DATA_FLAG
         elif self._command == 'current_limit':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -280,10 +268,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_DYNAMIXEL_TTL_RS485_MIXED
         elif self._command == 'external_encoder_flag':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -291,10 +276,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
         elif self._command == 'resolution[joint:servo]':
             try:
-                if(spinal_flag):
-                    req.data.append(int(self._raw_servo_id))
-                else:
-                    req.data.append(int(self._servo_index))
+                req.data.append(int(self._servo_index))
                 resolutions = list(map(lambda x: int(x), self._widget.lineEdit.text().split(':')))
                 if len(resolutions) != 2:
                     raise ValueError('Input 2 resoultion(int)')
