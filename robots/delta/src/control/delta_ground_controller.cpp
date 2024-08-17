@@ -389,13 +389,14 @@ void RollingController::nonlinearGroundWrenchAllocation()
     }
   robot_model_for_control_->updateRobotModel(joint_positions);
 
-  nlopt::opt slsqp_solver(nlopt::LD_SLSQP, 2 * motor_num_);
+  int n_variables = 2 * motor_num_;
+  nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearGroundWrenchAllocationMinObjective, this);
   slsqp_solver.add_equality_mconstraint(nonlinearGroundWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6});
   slsqp_solver.add_inequality_mconstraint(nonlinearGroundWrenchAllocationInEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
 
-  std::vector<double> lb(2 * motor_num_);
-  std::vector<double> ub(2 * motor_num_);
+  std::vector<double> lb(n_variables, -INFINITY);
+  std::vector<double> ub(n_variables, INFINITY);
   for(int i = 0; i < motor_num_; i++)
     {
       lb.at(i) = 0;
