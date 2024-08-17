@@ -9,6 +9,60 @@ import scienceplots
 legend_alpha = 0.3
 
 
+class SensorVisualizer:
+    def __init__(self, N_sim):
+        self.gyro_sim_all = np.ndarray((N_sim, 3))
+
+        self.ang_acc_real_all = np.ndarray((N_sim, 3))
+        self.ang_acc_est_all = np.ndarray((N_sim, 3))
+
+        self.sf_sim_all = np.ndarray((N_sim, 3))
+        self.lin_acc_est_all = np.ndarray((N_sim, 3))
+
+        self.data_idx = 0
+
+    def update_gyro(self, i, gyro, ang_acc_est, ang_acc_real):
+        self.gyro_sim_all[i, :] = gyro
+        self.ang_acc_est_all[i, :] = ang_acc_est
+        self.ang_acc_real_all[i, :] = ang_acc_real
+
+    def vis_gyro(self, ts_sim: float, t_total_sim: float):
+        plt.style.use(["science", "grid"])
+
+        # set font size
+        plt.rcParams.update({'font.size': 11})
+
+        fig = plt.figure(figsize=(7, 4.5))
+
+        time_data_x = np.arange(self.data_idx) * ts_sim
+
+        # two subplots, one plot gyro, another plot ang_acc
+        ax = plt.subplot(211)
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 0], label="gyro_x")
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 1], label="gyro_y")
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 2], label="gyro_z")
+        plt.ylabel("Gyro (rad/s)")
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
+
+        ax2 = plt.subplot(212, sharex=ax)
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 0], label="ang_acc_real_x")
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 1], label="ang_acc_real_y")
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 2], label="ang_acc_real_z")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 0], label="ang_acc_est_x")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 1], label="ang_acc_est_y")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 2], label="ang_acc_est_z")
+        plt.ylabel("Angular Acc. (rad/s^2)")
+        plt.xlabel("Time (s)")
+        plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
+
+        plt.xlim([-0.1, t_total_sim])
+
+        plt.tight_layout()
+        fig.subplots_adjust(hspace=0.15)
+
+        plt.show()
+
+
 class Visualizer:
     def __init__(self, N_sim, nx, nu, x0, is_record_diff_u=False):
         self.x_sim_all = np.ndarray((N_sim + 1, nx))
@@ -230,10 +284,10 @@ class Visualizer:
 
         time_data_x = np.arange(self.data_idx) * ts_sim
 
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
-        plt.ylabel("Position (m)", fontsize=label_size)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0] - 0.3, label="x")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1] - 0.6, label="y")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2] - 1.0, label="z")
+        plt.ylabel("Position Error (m)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
 
         euler = np.zeros((x_sim_all.shape[0], 3))
