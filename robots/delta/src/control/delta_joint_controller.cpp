@@ -3,6 +3,29 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
+void RollingController::jointTorquePreComputation()
+{
+  /* assume robot_model_for_control_ is updated with current cog_desire_orientation and joint_positions */
+  const int joint_num = robot_model_for_control_->getJointNum();
+  joint_torque_ = Eigen::VectorXd::Zero(joint_num); // gimbal1, joint1, gimbal2, joint2, gimbal3
+  const KDL::JntArray& joint_positions = robot_model_->getJointPositions();
+
+  /* calculate jacobians of gimbal neutral coordinate */
+  for(int i = 0; i < motor_num_; i++)
+    {
+      gimbal_neutral_coord_jacobians_.at(i) = robot_model_for_control_->getJacobian(joint_positions, std::string("gimbal_neutral_coord") + std::to_string(i + 1));
+    }
+
+  /* calculate coord jacobians for cog point and convert to joint torque */
+  const auto& inertia_map = robot_model_for_control_->getInertiaMap();
+  const auto gravity = robot_model_for_control_->getGravity();
+  for(const auto& inertia : inertia_map)
+    {
+      Eigen::MatrixXd cog_coord_jacobian = robot_model_for_control_->getJacobian(joint_positions, inertia.first, inertia.second.getCOG());
+      joint_torque_ -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-gravity);
+    }
+}
+
 void RollingController::calcJointTorque()
 {
   const auto& joint_positions = robot_model_->getJointPositions();

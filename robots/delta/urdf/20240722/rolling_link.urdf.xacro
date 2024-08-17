@@ -40,6 +40,40 @@
       </xacro:if>
     </joint>
 
+    <!-- gimbal neutral coord -->
+    <link name="gimbal_neutral_coord${self}">
+      <inertial>
+        <xacro:if value="${self == 1}">
+          <origin xyz="0 0 0" rpy="0 0 0" />
+        </xacro:if>
+        <xacro:if value="${self == 2}">
+          <origin xyz="0 0 0" rpy="0 0 0" />
+        </xacro:if>
+        <xacro:if value="${self == 3}">
+          <origin xyz="0 0 0" rpy="0 0 0" />
+        </xacro:if>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+    <joint name="gimbal_neutral_coord_joint${self}" type="fixed">
+      <parent link="link${self}"/>
+      <child link="gimbal_neutral_coord${self}"/>
+      <axis xyz="0 0 1"/>
+      <xacro:if value="${self == 1}">
+        <origin xyz="0.170 0 0" rpy="0 0 0" />
+      </xacro:if>
+      <xacro:if value="${self == 2}">
+        <origin xyz="0.2035 0 0" rpy="0 0 0" />
+      </xacro:if>
+      <xacro:if value="${self == 3}">
+        <origin xyz="0.2035 0 0" rpy="0 0 0" />
+      </xacro:if>
+    </joint>
+
     <!-- link joint -->
     <xacro:unless value="${self == child}">
       <joint name="joint${self}" type="revolute" >

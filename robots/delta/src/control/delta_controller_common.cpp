@@ -37,6 +37,9 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   full_lambda_trans_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_rot_ = Eigen::VectorXd::Zero(2 * motor_num_);
 
+  joint_torque_.resize(robot_model_->getJointNum());
+  gimbal_neutral_coord_jacobians_.resize(motor_num_);
+
   opt_initial_x_.resize(2 * motor_num_);
 
   rosParamInit();

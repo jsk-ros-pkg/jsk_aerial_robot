@@ -71,8 +71,8 @@ void RollingController::calcFlightFullLambda()
 
 double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
 {
-  // 0 ~ x.size()/2 : lambda
-  // x.size()/2 ~ x.size() : gimbal roll (phi)
+  // 0 ~ motor_num : lambda
+  // motor_num ~ 2 * motor_num : gimbal roll (phi)
 
   RollingRobotModel *rolling_robot_model = reinterpret_cast<RollingRobotModel*>(ptr);
   double ret = 0;
@@ -88,15 +88,13 @@ double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::
   // gradient
   // df/dlambda_i = 2 * lambda_i
   // df/dphi_i = 0
-  if(grad.size() > 0)
-    {
-      for(int i = 0; i < motor_num; i++)
-        {
-          grad.at(i) = 2 * x.at(i);
-          grad.at(i + motor_num) = 0;
-        }
-    }
+  if(grad.empty()) return ret;
 
+  for(int i = 0; i < motor_num; i++)
+    {
+      grad.at(i) = 2 * x.at(i);
+      grad.at(i + motor_num) = 0;
+    }
   return ret;
 }
 
@@ -144,6 +142,7 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
 
   if(grad == NULL) return;
 
+  /* dwrench_dlambda = Q */
   for(int j = 0; j < motor_num; j++)
     {
       for(int i = 0; i < 6; i++)
@@ -152,6 +151,7 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
         }
     }
 
+  /* gimbal part */
   Eigen::MatrixXd df_dphi = Eigen::MatrixXd::Zero(3, motor_num);
   Eigen::MatrixXd dtau_dphi = Eigen::MatrixXd::Zero(3, motor_num);
   for(int i = 0; i < motor_num; i++)
@@ -167,11 +167,118 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
     }
 
   for(int i = 0; i < 3; i++)
-     {
+    {
       for(int j = 0; j < 3; j++)
         {
           grad[i       * n + (j + 3)] = df_dphi(i, j);
           grad[(i + 3) * n + (j + 3)] = dtau_dphi(i, j);
+        }
+    }
+}
+
+void nonlinearFlightWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr)
+{
+  RollingController *controller = reinterpret_cast<RollingController*>(ptr);
+  auto robot_model_for_control = controller->getRobotModelForControl();
+
+  int motor_num = robot_model_for_control->getRotorNum();
+
+  const std::vector<Eigen::Matrix3d>& links_rotation_from_cog = robot_model_for_control->getLinksRotationFromCog<Eigen::Matrix3d>();
+  const std::vector<double>& rotor_tilt = controller->getRotorTilt();
+  const double m_f_rate = robot_model_for_control->getMFRate();
+  const auto& sigma = robot_model_for_control->getRotorDirection();
+
+  const int joint_num = robot_model_for_control->getJointNum();
+
+  /* get joint torque by mass */
+  Eigen::VectorXd tau = controller->getJointTorque(); // gimbal1, joint1, gimbal2, joint2, gimbal3
+
+  /* consider joint torque by thrust */
+  const std::vector<Eigen::MatrixXd>& gimbal_neutral_coord_jacobians = controller->getGimbalNeutralCoordJacobians();
+  for(int i = 0; i < motor_num; i++)
+    {
+      Eigen::Vector3d u_Li;
+      u_Li <<
+         sin(rotor_tilt.at(i)),
+        -sin(x[i + motor_num]) * cos(rotor_tilt.at(i)),
+         cos(x[i + motor_num]) * cos(rotor_tilt.at(i));
+
+      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+      thrust_wrench_unit.head(3) = links_rotation_from_cog.at(i) * u_Li;
+      thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * u_Li;
+
+      Eigen::VectorXd wrench = thrust_wrench_unit * x[i];
+      tau -= gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
+    }
+
+  /* set result using joint index */
+  std::vector<int> joint_index = std::vector<int>(0);
+  const std::vector<std::string>& joint_names = robot_model_for_control->getJointNames();
+  for(int i = 0; i < m; i++)
+    {
+      for(int j = 0; j < joint_names.size(); j++)
+        {
+          if(joint_names.at(j) == std::string("joint") + std::to_string(i + 1))
+            {
+              result[i] = x[2 * motor_num + i] - tau(j);
+              joint_index.push_back(j);
+            }
+        }
+    }
+
+  if(grad == NULL) return;
+
+  /* set gradient */
+  Eigen::MatrixXd dtau_dlambda = Eigen::MatrixXd::Zero(tau.size(), motor_num);
+  Eigen::MatrixXd dtau_dphi = Eigen::MatrixXd::Zero(tau.size(), motor_num);
+  for(int i = 0; i < motor_num; i++)
+    {
+      Eigen::Vector3d u_Li, du_Li_dphi;
+      u_Li <<
+         sin(rotor_tilt.at(i)),
+        -sin(x[i + motor_num]) * cos(rotor_tilt.at(i)),
+         cos(x[i + motor_num]) * cos(rotor_tilt.at(i));
+
+      du_Li_dphi <<
+        0,
+       -cos(x[i + motor_num]) * cos(rotor_tilt.at(i)),
+       -sin(x[i + motor_num]) * cos(rotor_tilt.at(i));
+
+      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+      thrust_wrench_unit.head(3) = links_rotation_from_cog.at(i) * u_Li;
+      thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * u_Li;
+
+      Eigen::VectorXd dthrust_wrench_unit_dphi = Eigen::VectorXd::Zero(6);
+      dthrust_wrench_unit_dphi.head(3) = links_rotation_from_cog.at(i) * du_Li_dphi;
+      dthrust_wrench_unit_dphi.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * du_Li_dphi;
+
+      dtau_dlambda.block(0, i, joint_num, 1) = -gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * thrust_wrench_unit;
+      dtau_dphi.block(0, i, joint_num, 1) = -gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * dthrust_wrench_unit_dphi * x[i];
+    }
+
+  /* thrust and gimbal part */
+  for(int i = 0; i < m; i++)
+    {
+      for(int j = 0; j < motor_num; j++)
+        {
+          grad[i * n + j] = -dtau_dlambda(joint_index.at(i), j);
+          grad[i * n + motor_num + j] = -dtau_dphi(joint_index.at(i), j);
+        }
+    }
+
+  /* joint torque part */
+  for(int i = 0; i < m; i++)
+    {
+      for(int j = 0; j < m; j++)
+        {
+          if(i == j)
+            {
+              grad[i * n + 2 * motor_num + j] = 1.0;
+            }
+          else
+            {
+              grad[i * n + 2 * motor_num + j] = 0.0;
+            }
         }
     }
 }
@@ -183,12 +290,13 @@ void RollingController::nonlinearWrenchAllocation()
   KDL::JntArray joint_positions = robot_model_->getJointPositions();
   robot_model_for_control_->updateRobotModel(joint_positions);
 
-  nlopt::opt slsqp_solver(nlopt::LD_SLSQP, 2 * motor_num_);
+  int n_variables = 2 * motor_num_;
+  nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearWrenchAllocationMinObjective, robot_model_for_control_.get());
   slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
 
-  std::vector<double> lb(2 * motor_num_);
-  std::vector<double> ub(2 * motor_num_);
+  std::vector<double> lb(n_variables, -INFINITY);
+  std::vector<double> ub(n_variables, INFINITY);
   for(int i = 0; i < motor_num_; i++)
     {
       lb.at(i) = 0;
@@ -203,7 +311,7 @@ void RollingController::nonlinearWrenchAllocation()
   slsqp_solver.set_ftol_rel(1e-6);
   slsqp_solver.set_maxeval(1000);
 
-  std::vector<double> opt_x(2 * motor_num_);
+  std::vector<double> opt_x(n_variables);
   for(int i = 0; i < motor_num_; i++)
     {
       opt_x.at(i) = std::clamp((double)full_lambda_all_.segment(2 * i, 2).norm(),
