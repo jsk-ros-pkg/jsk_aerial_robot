@@ -87,6 +87,7 @@ class ServoMonitor(Plugin):
         self._board_id = None
         self._servo_id = None
         self._command = None
+        self._servo_num = 0
 
         self._current_servo_serial_index = None
 
@@ -254,14 +255,24 @@ class ServoMonitor(Plugin):
             return 'No Error'
 
     def servoStateCallback(self, msg):
+        cnt = 0
         for s in msg.servos:
+            # process to avoid to read non exist servo
+            cnt +=1
+            if cnt > self._servo_num:
+                return
             self._table_data[s.index][self._headers.index("angle")] = s.angle
             self._table_data[s.index][self._headers.index("temperature")] = s.temp
             self._table_data[s.index][self._headers.index("load")] = s.load
             self._table_data[s.index][self._headers.index("error")] = self.error2string(int(s.error))
 
     def servoTorqueStatesCallback(self, msg):
+        cnt = 0
         for i, s in enumerate(msg.torque_enable):
+            # process to avoid to read non exist servo
+            cnt +=1
+            if cnt > self._servo_num:
+                return
             if PYTHON_VERSION == 2:
                 s = ord(s)
             self._table_data[i][self._headers.index("torque")] = "on" if bool(s) else "off"
@@ -297,6 +308,7 @@ class ServoMonitor(Plugin):
             res = self.get_board_info_client_()
 
             servo_index = 0
+            self._servo_num = 0
             self._table_data = []
             for b in res.boards:
                 for i, s in enumerate(b.servos):
@@ -314,6 +326,7 @@ class ServoMonitor(Plugin):
                     rowData.append(str(bool(s.send_data_flag)))
 
                     self._table_data.append(rowData)
+                    self._servo_num += 1
 
         except rospy.ServiceException as e:
             rospy.logerr("/get_board_info service call failed: %s"%e)
