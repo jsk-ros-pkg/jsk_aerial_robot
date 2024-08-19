@@ -19,12 +19,10 @@ find_package(Eigen3 REQUIRED)
 find_package(NLopt REQUIRED)
 find_package(OsqpEigen REQUIRED)
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${NLOPT_INCLUDE_DIRS}
-  ${OsqpEigen_INCLUDE_DIRS}
-  )
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 catkin_python_setup()
 
@@ -53,6 +51,13 @@ catkin_install_python(
     scripts/joy_stick_instruction.py
     scripts/transformation_demo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${NLOPT_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
   )
 
 add_library(delta_controller
