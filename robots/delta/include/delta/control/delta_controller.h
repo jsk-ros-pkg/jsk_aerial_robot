@@ -46,8 +46,9 @@ namespace aerial_robot_control
     const std::vector<Eigen::MatrixXd>& getGimbalNeutralCoordJacobians() {return gimbal_neutral_coord_jacobians_;}
     Eigen::VectorXd getJointTorque() {return joint_torque_;}
     double getGroundMuForOpt() {return ground_mu_;}
-    std::vector<double> getOptInitialX() {return opt_initial_x_;};
-    std::vector<double> getOptCostWeights() {return opt_cost_weights_;}
+    const std::vector<double>& getOptInitialX() {return opt_initial_x_;};
+    const std::vector<double>& getOptCostWeights() {return opt_cost_weights_;}
+    const double& getOptJointTorqueWeight() {return opt_joint_torque_weight_;}
 
     int getGroundNavigationMode() {return ground_navigation_mode_;}
 
@@ -73,7 +74,6 @@ namespace aerial_robot_control
     KDL::Frame cog_alined_;
 
     std::mutex contact_point_alined_mutex_;
-    std::mutex current_gimbal_angles_mutex_;
     std::mutex cog_alined_mutex_;
 
     boost::shared_ptr<aerial_robot_navigation::RollingNavigator> rolling_navigator_;
@@ -110,8 +110,11 @@ namespace aerial_robot_control
 
     /* ground mode */
     std::vector<double> opt_initial_x_;
+    std::vector<double> opt_x_prev_;
     int opt_costs_num_;
     std::vector<double> opt_cost_weights_;
+    bool opt_add_joint_torque_constraints_;
+    double opt_joint_torque_weight_;
     Eigen::VectorXd target_wrench_control_frame_;
     Eigen::Vector3d gravity_compensate_term_;
     double ground_mu_;
@@ -162,7 +165,7 @@ namespace aerial_robot_control
 };
 double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
 void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
-void nonlinearFlightWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
+void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);
 
 double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr);
 void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr);

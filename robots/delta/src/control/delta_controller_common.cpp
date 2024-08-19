@@ -40,8 +40,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_torque_.resize(robot_model_->getJointNum());
   gimbal_neutral_coord_jacobians_.resize(motor_num_);
 
-  opt_initial_x_.resize(2 * motor_num_);
-
   rosParamInit();
 
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
@@ -129,6 +127,8 @@ void RollingController::rosParamInit()
       ROS_ERROR_STREAM("optimization cost is not set in rosparam");
       opt_cost_weights_.resize(opt_costs_num_, 1.0);
     }
+  getParam<bool>(control_nh, "opt_add_joint_torque_constraint", opt_add_joint_torque_constraints_, false);
+  getParam<double>(control_nh, "opt_joint_torque_weight", opt_joint_torque_weight_, 0.0);
 
   rosoutControlParams("controller");
   rosoutControlParams("standing_controller");

@@ -189,8 +189,9 @@ void RollingController::calcGroundFullLambda()
 
 double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
 {
-  // 0 ~ x.size()/2 : lambda
-  // x.size()/2 ~ x.size() : gimbal roll (phi)
+  // 0 ~ motor_num : lambda
+  // motor_num ~ 2 * motor_num : gimbal roll (phi)
+  // 2 * motor_num ~ 2 * motor_num + joint_num - motor_num : joint torque (if necessary)
 
   RollingController *controller = reinterpret_cast<RollingController*>(ptr);
   auto robot_model_for_control = controller->getRobotModelForControl();
@@ -198,13 +199,13 @@ double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x,
   double ret = 0;
   int motor_num = robot_model_for_control->getRotorNum();
 
-  std::vector<double> opt_initial_x = controller->getOptInitialX();
-  std::vector<double> opt_cost_weights = controller->getOptCostWeights();
-  std::vector<double> current_gimbal_angles = robot_model_for_control->getCurrentGimbalAngles();
+  const std::vector<double>& opt_initial_x = controller->getOptInitialX();
+  const std::vector<double>& opt_cost_weights = controller->getOptCostWeights();
+  const std::vector<double>& current_gimbal_angles = robot_model_for_control->getCurrentGimbalAngles();
   int ground_navigation_mode = controller->getGroundNavigationMode();
 
   // objective
-  // f = sum(lambda_i * lambda_i) + sum((phi_i - phi_i_osqp)^2)
+  // thrust and gimbal part
   for(int i = 0; i < motor_num; i++)
     {
       ret += opt_cost_weights.at(0) * x.at(i) * x.at(i);
@@ -216,22 +217,37 @@ double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x,
         }
     }
 
-  // gradient
-  // df/dlambda_i = 2 * lambda_i
-  // df/dphi_i = 0
-  if(grad.size() > 0)
+  // joint torque part
+  const double torque_weight = controller->getOptJointTorqueWeight();
+  if(x.size() > 2 * motor_num)
     {
-      for(int i = 0; i < motor_num; i++)
+      for(int i = 0; i < x.size() - 2 * motor_num; i++)
         {
-          grad.at(i)             =  opt_cost_weights.at(0) * 2 * x.at(i);
-          grad.at(i + motor_num) =  opt_cost_weights.at(1) * 2 * (x.at(i + motor_num) - opt_initial_x.at(i + motor_num));
-          grad.at(i + motor_num) += opt_cost_weights.at(2) * 2 * (x.at(i + motor_num) - angles::normalize_angle(current_gimbal_angles.at(i)));
-          if(ground_navigation_mode == aerial_robot_navigation::ROLLING_STATE)
-            {
-              grad.at(i + motor_num) += opt_cost_weights.at(3) * 2 * (x.at(i + motor_num) - M_PI / 2.0);
-            }
+          ret += torque_weight * x.at(i + 2 * motor_num) * x.at(i + 2 * motor_num);
         }
     }
+
+  if(grad.empty()) return ret;
+
+  // set gradient
+  // thrust and gimbal part
+  for(int i = 0; i < motor_num; i++)
+    {
+      grad.at(i)             =  opt_cost_weights.at(0) * 2 * x.at(i);
+      grad.at(i + motor_num) =  opt_cost_weights.at(1) * 2 * (x.at(i + motor_num) - opt_initial_x.at(i + motor_num));
+      grad.at(i + motor_num) += opt_cost_weights.at(2) * 2 * (x.at(i + motor_num) - angles::normalize_angle(current_gimbal_angles.at(i)));
+      if(ground_navigation_mode == aerial_robot_navigation::ROLLING_STATE)
+        {
+          grad.at(i + motor_num) += opt_cost_weights.at(3) * 2 * (x.at(i + motor_num) - M_PI / 2.0);
+        }
+    }
+
+  // joint torque part
+  for(int i = 0; i < x.size() - 2 * motor_num; i++)
+    {
+      grad.at(i + 2 * motor_num) = torque_weight * 2 * x.at(i + 2 * motor_num);
+    }
+
   return ret;
 }
 
@@ -273,6 +289,7 @@ void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, un
 
   if(grad == NULL) return;
 
+  // thrust part
   for(int i = 0; i < 3; i++)
     {
       for(int j = 0; j < motor_num; j++)
@@ -281,6 +298,7 @@ void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, un
         }
     }
 
+  // gimbal part
   Eigen::MatrixXd dtau_dphi = Eigen::MatrixXd::Zero(3, motor_num);
   for(int i = 0; i < motor_num; i++)
     {
@@ -298,6 +316,15 @@ void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, un
       for(int j = 0; j < motor_num; j++)
         {
           grad[i * n + (j + motor_num)] = dtau_dphi(i, j);
+        }
+    }
+
+  // joint torque part
+  for(int i = 0; i < m; i++)
+    {
+      for(int j = 0; j < n - 2 * motor_num; j++)
+        {
+          grad[i * n + (j + 2 * motor_num)] = 0;
         }
     }
 }
@@ -343,7 +370,7 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
 
   if(grad == NULL) return;
 
-  // dc/dlambda
+  // thrust part
   for(int i = 0; i < motor_num; i++)
     {
       grad[0 * n + i] =  Q_trans(2, i);
@@ -353,7 +380,7 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
       grad[4 * n + i] = -Q_trans(1, i) + controller->getGroundMuForOpt() * Q_trans(2, i);
     }
 
-  // dc/dphi
+  // gimbal part
   Eigen::MatrixXd df_dphi = Eigen::MatrixXd::Zero(3, motor_num);
   for(int i = 0; i < motor_num; i++)
     {
@@ -374,27 +401,51 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
       grad[3 * n + (i + motor_num)] =  df_dphi(1, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
       grad[4 * n + (i + motor_num)] = -df_dphi(1, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
     }
+
+  // joint torque part
+  for(int i = 0; i < m; i++)
+    {
+      for(int j = 0; j < n - 2 * motor_num; j++)
+        {
+          grad[i * n + (j + 2 * motor_num)] = 0;
+        }
+    }
 }
 
 void RollingController::nonlinearGroundWrenchAllocation()
 {
+  int n_variables;
+  if(opt_add_joint_torque_constraints_)
+    n_variables = 2 * motor_num_ + robot_model_->getJointNum() - motor_num_;
+  else
+    n_variables = 2 * motor_num_;
+
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray joint_positions = robot_model_->getJointPositions();
   if(first_run_)
     {
+      opt_x_prev_.resize(n_variables, 0.0);
+      opt_initial_x_.resize(n_variables, 0.0);
       robot_model_for_control_->updateRobotModel(joint_positions);
       robot_model_for_control_->calcContactPoint();
       ROS_INFO_STREAM("calc contact point once");
     }
   robot_model_for_control_->updateRobotModel(joint_positions);
 
-  int n_variables = 2 * motor_num_;
+  if(n_variables > 2 * motor_num_) jointTorquePreComputation();
+
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearGroundWrenchAllocationMinObjective, this);
   slsqp_solver.add_equality_mconstraint(nonlinearGroundWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6});
   slsqp_solver.add_inequality_mconstraint(nonlinearGroundWrenchAllocationInEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
+  if(n_variables > 2 * motor_num_)
+    {
+      if(first_run_) ROS_INFO_STREAM("[control] add constraint about joint torque");
+      slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationTorqueConstraints, this, std::vector<double>(n_variables - 2 * motor_num_, 1e-4));
+    }
 
+  /* set bounds */
   std::vector<double> lb(n_variables, -INFINITY);
   std::vector<double> ub(n_variables, INFINITY);
   for(int i = 0; i < motor_num_; i++)
@@ -416,7 +467,9 @@ void RollingController::nonlinearGroundWrenchAllocation()
   slsqp_solver.set_ftol_rel(1e-8);
   slsqp_solver.set_maxeval(1000);
 
-  std::vector<double> opt_x(2 * motor_num_);
+  /* set initial variable */
+  std::vector<double> opt_x(n_variables);
+  // thrust and gimbal part (use osqp solution)
   for(int i = 0; i < motor_num_; i++)
     {
       opt_x.at(i) = std::clamp((double)full_lambda_all_.segment(2 * i, 2).norm(),
@@ -425,10 +478,18 @@ void RollingController::nonlinearGroundWrenchAllocation()
       opt_x.at(i + motor_num_) = std::clamp((double)angles::normalize_angle(atan2(-full_lambda_all_(2 * i + 0), full_lambda_all_(2 * i + 1))),
                                             lb.at(i + motor_num_),
                                             ub.at(i + motor_num_));
-      opt_initial_x_.at(i) = opt_x.at(i);
-      opt_initial_x_.at(i + motor_num_) = opt_x.at(i + motor_num_);
     }
 
+  // joint torque part (use previous solution)
+  for(int i = 0; i < n_variables - 2 * motor_num_; i++)
+    {
+      opt_x.at(2 * motor_num_ + i) = opt_x_prev_.at(2 * motor_num_ + i);
+    }
+
+  for(int i = 0; i < n_variables; i++)
+    opt_initial_x_.at(i) = opt_x.at(i);
+
+  /* solve optimization problem */
   double max_val;
   nlopt::result result;
   try
@@ -440,10 +501,14 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   if(result < 0) ROS_ERROR_STREAM("[nlopt] failed to solve. result is " << result);
 
+  /* set optimal variables to actuator input */
   for(int i = 0; i < motor_num_; i++)
     {
       lambda_all_.at(i) = opt_x.at(i);
       lambda_trans_.at(i) = opt_x.at(i);
       target_gimbal_angles_.at(i) = opt_x.at(i + motor_num_);
     }
+
+  for(int i = 0; i < n_variables; i++)
+    opt_x_prev_.at(i) = opt_x.at(i);
 }
