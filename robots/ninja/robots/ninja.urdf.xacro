@@ -11,7 +11,7 @@
   <xacro:ninja_gimbal_link self="3" rotor_direction="-1"/>
   <xacro:ninja_docking_mech_yaw/>
   <xacro:ninja_docking_mech_pitch/>
-  <xacro:ninja_tail_link/>
+  <xacro:battery/>
 
   ## dummy link for the contact point coordinate
   <link name="contact_point">

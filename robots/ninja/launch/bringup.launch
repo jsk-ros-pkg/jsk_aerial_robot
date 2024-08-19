@@ -13,7 +13,7 @@
   <arg name="direct_model_name" />
   <arg name="spawn_x" default="0.0"/>
   <arg name="spawn_y" default="0.0"/>
-  <arg name="spawn_z" default="0.0"/>
+  <arg name="spawn_z" default="0.05"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="config_dir" default="$(find ninja)/config"/>
   <arg name="robot_id" default="1" />

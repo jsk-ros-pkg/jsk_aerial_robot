@@ -24,22 +24,22 @@
     ## link
     <link name="main_body">
       <inertial>
-        <origin xyz="0.2237 0.0050 0.0126" rpy="0 0 0"/>
-        <mass value="0.74"/>
+        <origin xyz="-0.08759215 -0.00288270 -0.01603775" rpy="0 0 0"/>
+        <mass value="1.23541002"/>
         <inertia
-            ixx="0.0011933" iyy="0.0157954" izz="0.0157066"
-            ixy="-0.0008036" ixz="0.0002441" iyz="0.0000132"/>
+            ixx="0.00525317" iyy="0.04243332" izz="0.04586890"
+            ixy="0.00128324" ixz="0.00066518" iyz="-0.00004431"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-       <geometry>
-          <mesh filename="package://ninja/urdf/mesh/main_link.dae" scale="0.001 0.001 0.001"/>
+        <geometry>
+          <mesh filename="package://ninja/urdf/mesh/mainbody.dae" scale="1 1 1"/>
         </geometry>
       </visual>
       <collision>
-        <origin xyz="0.2 0 0" rpy="0 0 0"/>
+        <origin xyz="-0.12 0 -0.052" rpy="0 0 0"/>
         <geometry>
-          <box size="0.4 0.3 0.222"/>
+          <box size="0.30 0.3065 0.104"/>
         </geometry>
       </collision>
     </link>
@@ -59,7 +59,7 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="main_body"/>
-      <origin rpy="0 0 0" xyz="0.33 0 0.067"/>
+      <origin rpy="0 0 0" xyz="-0.04695 0 0.0369"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -77,7 +77,7 @@
     <joint name="base_arm_joint${child1}" type="fixed">
       <parent link="main_body"/>
       <child link="rotor_arm${child1}"/>
-      <origin rpy="0 0 ${pi/2}" xyz="0.329 0.065 0.018"/>
+      <origin rpy="0 0 ${pi/2}" xyz="0.008 0.02725 -0.0165"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -94,7 +94,7 @@
     <joint name="base_arm_joint${child2}" type="fixed">
       <parent link="main_body"/>
       <child link="rotor_arm${child2}"/>
-      <origin rpy="0 0 ${-pi/2}" xyz="0.329 -0.065 0.018"/>
+      <origin rpy="0 0 ${-pi/2}" xyz="0.008 -0.02725 -0.0165"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -109,9 +109,9 @@
       </inertial>
     </link>
     <joint name="base_arm_joint${child3}" type="fixed">
-      <parent link="tail_link"/>
+      <parent link="main_body"/>
       <child link="rotor_arm${child3}"/>
-      <origin rpy="0 0 0" xyz="0.076 0 0.0145"/>
+      <origin rpy="0 0 ${pi}" xyz="-0.0625 0 -0.0165"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -122,24 +122,24 @@
     <!-- yaw -->
     <link name="yaw_dock_link">
       <inertial>
-        <origin xyz="0.007 0 -0.038" rpy="0 0 0"/>
-        <mass value="0.081"/>
+        <origin xyz="0.05327516 -0.00002577 -0.02332311" rpy="0 0 0"/>
+        <mass value="0.21349624"/>
         <inertia
-            ixx="0.00022881" iyy="0.00022121" izz="0.0"
-            ixy="0.0" ixz="0.00002107" iyz="0.00000009"/>
+            ixx="0.00060141" iyy="0.00047550" izz="0.00067084"
+            ixy="0.00000015" ixz="-0.00001907" iyz="-0.00010342"/>
       </inertial>
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
         <geometry>
-          <mesh filename="package://ninja/urdf/mesh/head_link.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ninja/urdf/mesh/female_dock_mech.dae" scale="1 1 1"/>
         </geometry>
       </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.05 0.05 0.05"/>
-        </geometry>
-      </collision>
+      <!-- <collision> -->
+      <!--   <origin xyz="0 0 0" rpy="0 0 0"/> -->
+      <!--   <geometry> -->
+      <!--     <box size="0.05 0.05 0.05"/> -->
+      <!--   </geometry> -->
+      <!-- </collision> -->
     </link>
     <xacro:damping_factor link="yaw_dock_link"/>
 
@@ -147,7 +147,7 @@
       <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="yaw_dock_link"/>
-      <origin rpy="0 0 0" xyz="0.41 0 0.018"/>
+      <origin rpy="0 0 0" xyz="0.1935 0 0.0085"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -176,42 +176,10 @@
     <joint name="yaw_connect_point_joint" type="fixed">
       <parent link="yaw_dock_link"/>
       <child link="yaw_connect_point"/>
-      <origin rpy="0 0 0" xyz="0.025 0 0"/>
+      <origin rpy="0 0 0" xyz="0.037 0 -0.025"/>
       <axis xyz="0 0 1"/>
     </joint>
     
-  </xacro:macro>
-
-
-
-  <xacro:macro name="ninja_tail_link">
-    <!-- tail -->
-    <link name="tail_link">
-      <inertial>
-        <origin xyz="0.0356 -0.00294 0.00267" rpy="0 0 0"/>
-        <mass value="0.1212457"/>
-        <inertia
-            ixx="0.0000575" ixy="0.0000127" ixz="0.0000036"
-            iyy="0.0000946" iyz="0.0000010"
-            izz="0.0001120"/>
-      </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="package://ninja/urdf/mesh/tail_link.dae" scale="1 1 1"/>
-        </geometry>
-      </visual>
-    </link>
-    <xacro:damping_factor link="tail_link"/>
-
-    <joint name="tail_joint" type="fixed">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="0.2"/>
-      <parent link="main_body"/>
-      <child link="tail_link"/>
-      <origin rpy="0 0 ${pi}" xyz="-0.02 0 0.018"/>
-      <axis xyz="0 1 0"/>
-      <dynamics damping="0.8" friction="0.0"/>
-    </joint>
   </xacro:macro>
 
   <xacro:macro name="ninja_gimbal_link" params="self rotor_direction">
@@ -239,11 +207,11 @@
     #### gimbal link  ####
     <link name="gimbal_link${self}">
       <inertial>
-       <origin xyz="0.074 0.044 0.0" rpy="0 0 0"/>
-        <mass value="0.124"/>
+       <origin xyz="0.12 0.029 0.0000178" rpy="0 0 0"/>
+        <mass value="0.18778"/>
         <inertia
-            ixx="0.00080131" iyy="0.00021920" izz="0.00099608"
-            ixy="0.00012557" ixz="0.00000026" iyz="-0.00000061"/>
+            ixx="0.00119072" iyy="0.00041760" izz="0.00154581"
+            ixy="0.00012643" ixz=" -0.00000030" iyz="-0.00000017"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -260,7 +228,7 @@
       <limit effort="6.6" lower="-2.0" upper="2.0" velocity="3.0"/>
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 0 0" xyz="0.112 0.0877 0"/>
+      <origin rpy="0 0 0" xyz="0.162845 0.0735 0"/>
       <axis xyz="0 1 0"/>
     </joint>
     <transmission name="joint_tran${2*self}">
@@ -316,7 +284,7 @@
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="rotor_parent${self}"/>
       <child link="thrust${self}"/>
-      <origin rpy="0 0 0" xyz="0 -0.088 0.02"/>
+      <origin rpy="0 0 0" xyz="0 -0.0835 0.025"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
@@ -337,22 +305,22 @@
     <!-- pitch -->
     <link name="pitch_dock_link">
       <inertial>
-        <origin xyz="0.007 0 -0.038" rpy="0 0 0"/>
-        <mass value="0.081"/>
+        <origin xyz="-0.07842366 0.02368423 -0.00011723" rpy="0 0 0"/>
+        <mass value="0.28876670"/>
         <inertia
-            ixx="0.00022881" iyy="0.00022121" izz="0.0"
-            ixy="0.0" ixz="0.00002107" iyz="0.00000009"/>
+            ixx="0.00036857" iyy="0.00079765" izz="0.00084052"
+            ixy="-0.00002766" ixz="-0.00000557" iyz="-0.00000287"/>
       </inertial>
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${pi} ${pi} 0"/>
         <geometry>
-          <mesh filename="package://ninja/urdf/mesh/head_link.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ninja/urdf/mesh/male_dock_mech.dae" scale="1 1 1"/>
         </geometry>
       </visual>
       <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="-${0.1531/2} 0.025 0" rpy="0 0 0"/>
         <geometry>
-          <box size="0.05 0.05 0.05"/>
+          <box size="0.1531 0.064 0.064"/>
         </geometry>
       </collision>
     </link>
@@ -362,7 +330,7 @@
       <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="pitch_dock_link"/>
-      <origin rpy="0 0 0" xyz="-0.32 0 0.018"/>
+      <origin rpy="0 0 0" xyz="-0.434658 -0.025 -0.0165"/>
       <axis xyz="0 1 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
@@ -391,9 +359,60 @@
     <joint name="pitch_connect_point_joint" type="fixed">
       <parent link="pitch_dock_link"/>
       <child link="pitch_connect_point"/>
-      <origin rpy="0 0 0" xyz="-0.025 0 0"/>
+      <origin rpy="0 0 0" xyz="-0.1531 0.025 0"/>
       <axis xyz="0 0 1"/>
     </joint>
+
+  </xacro:macro>
+  
+  <xacro:macro name="battery">
+    <joint name="battry_1_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_1"/>
+      <origin rpy="-${pi/2} 0 ${pi}" xyz="-0.00891 0.0399 -0.069"/>
+      <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="battery_1">
+      <inertial>
+       <origin xyz="0.12 0.029 0.0000178" rpy="0 0 0"/>
+        <mass value="0.18778"/>
+        <inertia
+            ixx="0.00119072" iyy="0.00041760" izz="0.00154581"
+            ixy="0.00012643" ixz=" -0.00000030" iyz="-0.00000017"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://ninja/urdf/mesh/battery.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link="battery_1"/>
+
+    <joint name="battry_2_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_2"/>
+      <origin rpy="${-pi/2} 0 0" xyz="-0.00891 -0.0399 -0.069"/>
+      <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="battery_2">
+      <inertial>
+       <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
+        <mass value="0.40700000"/>
+        <inertia
+            ixx="0.00010170" iyy="0.00060259" izz="0.00062827"
+            ixy="0.000" ixz=" 0.000000" iyz="0.0000"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://ninja/urdf/mesh/battery.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link="battery_2"/>
 
   </xacro:macro>
   
