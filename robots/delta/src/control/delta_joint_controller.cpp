@@ -24,6 +24,20 @@ void RollingController::jointTorquePreComputation()
       Eigen::MatrixXd cog_coord_jacobian = robot_model_for_control_->getJacobian(joint_positions, inertia.first, inertia.second.getCOG());
       joint_torque_ -= cog_coord_jacobian.rightCols(joint_num).transpose() * inertia.second.getMass() * (-gravity);
     }
+
+
+  // contact force if ground mode
+  if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+    {
+      int contacting_link_index = rolling_robot_model_->getContactingLink();
+      std::string contacting_link_name = std::string("link") + std::to_string(contacting_link_index + 1);
+      KDL::Frame contacting_link_frame = robot_model_for_control_->getSegmentTf(contacting_link_name);
+      KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
+      KDL::Frame contacting_link_to_contact_point = contacting_link_frame.Inverse() * contact_point;
+      Eigen::MatrixXd contact_point_jacobian = robot_model_for_control_->getJacobian(joint_positions, contacting_link_name, contacting_link_to_contact_point.p);
+
+      joint_torque_ -= contact_point_jacobian.rightCols(joint_num).transpose() * est_external_wrench_cog_;
+    }
 }
 
 void RollingController::calcJointTorque()

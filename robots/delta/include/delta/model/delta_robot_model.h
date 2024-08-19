@@ -47,8 +47,8 @@ public:
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromControlFrame(std::string frame_name);
   Eigen::MatrixXd getPlannedWrenchAllocationMatrixFromControlFrame();
-  std::vector<double> getCurrentJointAngles() {return current_joint_angles_;}
-  std::vector<double> getCurrentGimbalAngles() {return current_gimbal_angles_;}
+  const std::vector<double>& getCurrentJointAngles() {return current_joint_angles_;}
+  const std::vector<double>& getCurrentGimbalAngles() {return current_gimbal_angles_;}
   void setGimbalPlanningFlag(int index, int flag) {gimbal_planning_flag_.at(index) = flag;}
   std::vector<int> getGimbalPlanningFlag() {return gimbal_planning_flag_;}
   void setGimbalPlanningAngle(int index, double angle) {gimbal_planning_angle_.at(index) = angle;}

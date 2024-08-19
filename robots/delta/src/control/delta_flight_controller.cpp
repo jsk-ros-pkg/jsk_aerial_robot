@@ -176,7 +176,7 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
     }
 }
 
-void nonlinearFlightWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr)
+void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr)
 {
   RollingController *controller = reinterpret_cast<RollingController*>(ptr);
   auto robot_model_for_control = controller->getRobotModelForControl();
@@ -271,14 +271,7 @@ void nonlinearFlightWrenchAllocationTorqueConstraints(unsigned m, double *result
     {
       for(int j = 0; j < m; j++)
         {
-          if(i == j)
-            {
-              grad[i * n + 2 * motor_num + j] = 1.0;
-            }
-          else
-            {
-              grad[i * n + 2 * motor_num + j] = 0.0;
-            }
+          grad[i * n + 2 * motor_num + j] = (i == j) ? 1.0 : 0.0;
         }
     }
 }
