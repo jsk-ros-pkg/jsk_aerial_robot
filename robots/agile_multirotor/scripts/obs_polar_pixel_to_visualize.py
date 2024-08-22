@@ -76,8 +76,8 @@ class PolarPixelVisualizeNode:
         # state_data: ObstacleArray
         # state_data header is 0 , should examine if it works
         obs_pp_visualize = LaserScan()
-        obs_pp_visualize.header.stamp = obs_polar_pixel.header.stamp
-        obs_pp_visualize.header.frame_id = "multirotor/debug/transition"
+        obs_pp_visualize.header.stamp = rospy.Time.now()
+        obs_pp_visualize.header.frame_id = "hydrus/debug/transition"
         obs_pp_visualize.angle_min = -self.max_rad
         obs_pp_visualize.angle_max = self.max_rad
         obs_pp_visualize.angle_increment = self.resolution_rad
@@ -108,7 +108,7 @@ class PolarPixelVisualizeNode:
         marker_data = Marker()
         marker_data.header.frame_id = "world"
         marker_data.header.stamp = rospy.Time.now()
-        marker_data.ns = "quadrotor"
+        marker_data.ns = "hydrus"
         marker_data.id = 0
 
         marker_data.action = Marker.ADD
@@ -120,8 +120,8 @@ class PolarPixelVisualizeNode:
         marker_data.pose.orientation.y = 0.0
         marker_data.pose.orientation.z = 0.0
         marker_data.pose.orientation.w = 1.0
-        marker_data.scale.x = self.body_r
-        marker_data.scale.y = self.body_r
+        marker_data.scale.x = 0.25
+        marker_data.scale.y = 0.25
         marker_data.scale.z = 0.1
         marker_data.color.a = 0.5
         marker_data.color.r = 1.0
@@ -133,7 +133,7 @@ class PolarPixelVisualizeNode:
         br.sendTransform((self.state.pos[0] + self.translation_position[0], self.state.pos[1] + self.translation_position[1], self.state.pos[2]),
                         (0, 0, 0, 1),
                         rospy.Time.now(),
-                        "multirotor/debug/transition",
+                        "hydrus/debug/transition",
                         "world")
 
     def start_callback(self, data):
