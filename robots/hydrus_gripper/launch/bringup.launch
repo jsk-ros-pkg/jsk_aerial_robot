@@ -22,8 +22,8 @@
   <arg name="battery_type" default="True"/>
   <arg name="rs_d435" default="False"/>
 
-  <arg name="tree" default="real_RP_271_v1.0.1" />
-  <arg name="tree_movement" default="dynamic" />
+  <arg name="tree" default="real_RP_254_v0.1.1" />
+  <arg name="tree_movement" default="static" />
   <arg name="policy_start_delay" default="1.0" />
 
   <arg name="shift_x" default="0.0"/>
