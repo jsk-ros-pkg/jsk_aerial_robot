@@ -112,6 +112,8 @@ namespace aerial_robot_navigation
     void jointsControlCallback(const sensor_msgs::JointStatePtr & msg);
     void ikTargetRelEEPosCallback(const geometry_msgs::Vector3Ptr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
+    void transformJoyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
+    void locomotionJoyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
 
     /* navigation mode */
     int current_ground_navigation_mode_;

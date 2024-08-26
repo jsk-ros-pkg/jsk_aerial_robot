@@ -491,3 +491,26 @@ void RollingNavigator::setGroundMotionMode(int state)
     }
 }
 
+void RollingNavigator::transformJoyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
+{
+  sensor_msgs::Joy joy_cmd = (*joy_msg);
+
+  switch(motion_mode_)
+    {
+    case aerial_robot_navigation::MANIPULATION_MODE:
+      {
+        /* set end effector target x */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
+          {
+            full_body_ik_initial_cp_p_ee_target_(0) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
+          }
+        /* set end effector target x */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS]) > joy_stick_deadzone_)
+          {
+            full_body_ik_initial_cp_p_ee_target_(2) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS];
+          }
+        break;
+      }
+    }
+}
+
