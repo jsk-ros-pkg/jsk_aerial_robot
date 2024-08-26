@@ -18,24 +18,24 @@ void HugmyNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the flight control */
   BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
-  perching_flag_sub_ = nh.subscribe("perching_flag", 1, &HugmyNavigator::perchingFlagCallback, this);
+  perching_flag_sub_ = nh_.subscribe("/perching_state", 1, &HugmyNavigator::perchingFlagCallback, this);
 }
 
 void HugmyNavigator::update()
 {
   BaseNavigator::update();
   if(perching_flag_){
-    takeoff_height_ = 0.5;
+    takeoff_height_ = init_height_ + 0.4;
+    ROS_ERROR("takeoff_height is %f", takeoff_height_);
     perching_flag_ = false;
   }
 }
 
 void HugmyNavigator::perchingFlagCallback(const std_msgs::UInt8& msg)
 {
-  if (msg->data == 1){
+  ROS_ERROR("perching is %o", perching_flag_);
+  if (msg.data == 1){
     perching_flag_ = true;
-  }else{
-    perching_flag_ = false;
   }
 }
 
