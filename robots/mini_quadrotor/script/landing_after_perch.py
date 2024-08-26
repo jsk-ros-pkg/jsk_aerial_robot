@@ -12,7 +12,7 @@ class Perching():
         self.air_pressure_sub = rospy.Subscriber('/sensor1',UInt8,self.air_pressure_sensor_cb)
         self.air_pressure_sensor_msg = UInt8()
         self.max_pressure = 50
-        self.max_pressure = 40
+        self.ready_pressure = 30
 
         #flight state
         self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
@@ -33,7 +33,7 @@ class Perching():
         # MODE and LARGE and STBY
         self.PWM_msg.index = [5]
         self.PWM_msg.percentage = [1.0]
-
+        self.arming_on_pub = rospy.Publisher('/quadrotor/teleop_command/start',Empty,queue_size=1)
         self.halt_pub = rospy.Publisher('/quadrotor/teleop_command/halt',Empty, queue_size=1)
         self.takeoff_pub = rospy.Publisher('/quadrotor/teleop_command/takeoff',Empty, queue_size=1)
 
@@ -53,7 +53,7 @@ class Perching():
     #perching flag == 4 #deperching
     def flight_state_cb(self,msg):
         self.flight_state_msg = msg
-        if self.flight_state_msg.data == 1: #2
+        if self.flight_state_msg.data == 5: #2
             self.flight_state_flag = True
 
 
@@ -68,15 +68,15 @@ class Perching():
 
     def joy_cb(self,msg):
         self.joy = msg
-        if self.joy.buttons[2] == 1:
+        if self.joy.buttons[4] == 1: #leftup
             self.perching_flag = 1
-        if self.joy.buttons[0] == 1:
+        if self.joy.buttons[7] == 1: #rightdown
             self.perching_flag = 2
-        if self.joy.buttons[5] == 1:
+        if self.joy.buttons[5] == 1: #rightup
             self.perching_flag = 3
-        if self.joy.buttons[6] == 1:
+        if self.joy.buttons[6] == 1: #leftdown
             self.perching_flag = 4
-        if self.joy.buttons[4] == 1:
+        if self.joy.buttons[3] == 1: #triangle
             self.perching_flag = 0
 
     def start_pump(self):
@@ -146,7 +146,7 @@ class Perching():
             self.perching_flag = 2
 
     def start_perching(self):
-        if flight_state_flag:
+        if self.flight_state_flag:
             print("start perching")
             self.halt_pub.publish(Empty())
             self.flight_state_flag = False
@@ -169,10 +169,11 @@ class Perching():
             self.stop_pump()
 
     def deperching(self):
+        self.arming_on_pub.publish(Empty())
         rospy.sleep(2.0)
         self.stop_solenoid_valve()
         print("stop_solenoid")
-        if not flight_state_flag:
+        if not self.flight_state_flag:
             print("take_off!!!")
             rospy.sleep(1.0)
             self.takeoff_pub.publish(Empty())
