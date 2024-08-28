@@ -111,6 +111,7 @@ namespace aerial_robot_navigation
     void setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
     void jointsControlCallback(const sensor_msgs::JointStatePtr & msg);
     void ikTargetRelEEPosCallback(const geometry_msgs::Vector3Ptr & msg);
+    void fullBodyIKTargetRelPosCallback(const geometry_msgs::Vector3Ptr & msg);
     void joyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
     void transformJoyCallback(const sensor_msgs::JoyConstPtr & joy_msg);
     void locomotionJoyCallback(const sensor_msgs::JoyConstPtr & joy_msg);

@@ -514,3 +514,8 @@ void RollingNavigator::transformJoyCallback(const sensor_msgs::JoyConstPtr & joy
     }
 }
 
+void RollingNavigator::fullBodyIKTargetRelPosCallback(const geometry_msgs::Vector3Ptr & msg)
+{
+  full_body_ik_initial_cp_p_ee_target_(0) += msg->x;
+  full_body_ik_initial_cp_p_ee_target_(2) += msg->z;
+}
