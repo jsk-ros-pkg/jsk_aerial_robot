@@ -163,6 +163,7 @@ namespace aerial_robot_navigation
     /* fullBodyIK */
     int full_body_ik_initial_contacting_link_;
     KDL::Frame full_body_ik_initial_cl_f_cp_;
+    tf::Transform full_body_ik_W_tf_initial_cp_;
     Eigen::Vector3d full_body_ik_initial_cp_p_ee_target_;
     Eigen::MatrixXd full_body_ik_jacobian_;
 
