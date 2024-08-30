@@ -377,20 +377,30 @@ void RollingNavigator::fullBodyIKSolve()
     KDL::Frame initial_cp_on_ground;
     initial_cp_on_ground.p = KDL::Vector(-rolling_x_offset, 0, 0);
     initial_cp_on_ground.M = KDL::Rotation::Identity();
-    geometry_msgs::TransformStamped initial_cp_on_ground_tf = aerial_robot_model::kdlToMsg(initial_cp_on_ground);
-    initial_cp_on_ground_tf.header.stamp = ros::Time::now();
-    initial_cp_on_ground_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
-    initial_cp_on_ground_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
-    br_.sendTransform(initial_cp_on_ground_tf);
+    geometry_msgs::TransformStamped initial_cp_on_ground_msg = aerial_robot_model::kdlToMsg(initial_cp_on_ground);
+    initial_cp_on_ground_msg.header.stamp = ros::Time::now();
+    initial_cp_on_ground_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
+    initial_cp_on_ground_msg.child_frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
+    br_.sendTransform(initial_cp_on_ground_msg);
 
     KDL::Frame full_body_ik_target;
     full_body_ik_target.p = KDL::Vector(full_body_ik_initial_cp_p_ee_target_(0), full_body_ik_initial_cp_p_ee_target_(1), full_body_ik_initial_cp_p_ee_target_(2));
     full_body_ik_target.M = KDL::Rotation::Identity();
-    geometry_msgs::TransformStamped full_body_ik_target_tf = aerial_robot_model::kdlToMsg(full_body_ik_target);
-    full_body_ik_target_tf.header.stamp = ros::Time::now();
-    full_body_ik_target_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
-    full_body_ik_target_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("full_body_ik_target"));
-    br_.sendTransform(full_body_ik_target_tf);
+    geometry_msgs::TransformStamped full_body_ik_target_msg = aerial_robot_model::kdlToMsg(full_body_ik_target);
+    full_body_ik_target_msg.header.stamp = ros::Time::now();
+    full_body_ik_target_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("initial_cp_on_ground"));
+    full_body_ik_target_msg.child_frame_id = tf::resolve(tf_prefix_, std::string("full_body_ik_target"));
+    br_.sendTransform(full_body_ik_target_msg);
+
+    tf::Transform full_body_ik_target_tf;
+    transformKDLToTF(full_body_ik_target, full_body_ik_target_tf);
+
+    geometry_msgs::TransformStamped world2target_msg;
+    transformTFToMsg(full_body_ik_W_tf_initial_cp_ * full_body_ik_target_tf, world2target_msg.transform);
+    world2target_msg.header.stamp = ros::Time::now();
+    world2target_msg.header.frame_id = "world";
+    world2target_msg.child_frame_id = tf::resolve(tf_prefix_, std::string("ik_target_W"));
+    br_.sendTransform(world2target_msg);
   }
 
   /* calculate ik step */
@@ -482,6 +492,19 @@ void RollingNavigator::setGroundMotionMode(int state)
         KDL::Frame contact_point = rolling_robot_model_->getContactPoint<KDL::Frame>();
         full_body_ik_initial_cp_p_ee_target_= kdlToEigen((contact_point.Inverse() * seg_tf_map.at(ee_name)).p);
         full_body_ik_initial_cl_f_cp_ = seg_tf_map.at(full_body_ik_contacting_link_name).Inverse() * contact_point;
+
+        nav_msgs::Odometry baselink_odom;
+        tf::pointTFToMsg(estimator_->getPos(Frame::BASELINK, estimate_mode_), baselink_odom.pose.pose.position);
+        tf::Quaternion q; estimator_->getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+        tf::quaternionTFToMsg(q, baselink_odom.pose.pose.orientation);
+        tf::Transform world2baselink_tf;
+        tf::poseMsgToTF(baselink_odom.pose.pose, world2baselink_tf);
+
+        tf::Transform baselink2cp_tf;
+        transformKDLToTF(seg_tf_map.at(robot_model_->getBaselinkName()).Inverse() * contact_point, baselink2cp_tf);
+
+        full_body_ik_W_tf_initial_cp_ = world2baselink_tf * baselink2cp_tf;
+
         motion_mode_ = aerial_robot_navigation::MANIPULATION_MODE;
         ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
         break;
