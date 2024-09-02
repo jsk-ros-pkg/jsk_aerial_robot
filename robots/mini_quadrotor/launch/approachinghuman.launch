@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <arg name="INPUT_IMAGE" default="/camera/color/image_raw" />
+  <arg name="realsense" default="true" />
+  <arg name="coral" default="true" />
+  <arg name="detector" default="$(find coral_usb)/launch/edgetpu_object_detector.launch" />
+
+  <!-- ROS depth image to OpenCV -->
+  <!-- <node pkg="mini_quadrotor" -->
+  <!--       type="converting_ROS_image_to_OpenCV.py" -->
+  <!--       name="ROS2OpenCV" output="screen"> -->
+  <!-- </node> -->
+
+  
+  <node pkg="mini_quadrotor"
+        type="merge.py"
+        name="merge_class_and_rect" output="screen">
+  </node>
+
+  <node pkg="mini_quadrotor"
+        type="approaching_human_with_depth.py"
+        name="approaching_human" output="screen">
+
+  <!-- launch coral -->
+  <include if="$(arg coral)" file="$(arg detector)">
+    <arg name="INPUT_IMAGE" value="$(arg INPUT_IMAGE)" />
+  </include>
+
+  <!-- launch realsense -->
+  <include if="$(arg realsense)" file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <rosparam>
+      align_depth: "true"
+    </rosparam>
+  </include>
+
+</launch>

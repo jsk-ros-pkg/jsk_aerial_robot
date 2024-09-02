@@ -1,0 +1,5 @@
+<library path="lib/libhugmy_navigation">
+  <class name="aerial_robot_navigation/hugmy_navigation" type="aerial_robot_navigation::HugmyNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description> hugmy navigation plugin </description>
+  </class>
+</library>

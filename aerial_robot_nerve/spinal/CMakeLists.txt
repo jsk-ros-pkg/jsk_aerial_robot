@@ -38,7 +38,7 @@ add_message_files(
   MotorInfo.msg
   PwmInfo.msg
   Pwms.msg
-  PwmTest.msg
+  PwmState.msg
   UavInfo.msg
   DesireCoord.msg
   FlightConfigCmd.msg

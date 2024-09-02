@@ -142,6 +142,7 @@ namespace aerial_robot_control
     getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.1);
     if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.1;
     loadParam(z_nh);
+    getParam<bool>(z_nh, "compensate_gravity", compensate_gravity_, false);
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
     pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
     pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Z)));
@@ -255,9 +256,9 @@ namespace aerial_robot_control
         target_acc_.setZ(0);
       }
 
-    pid_controllers_.at(Z).update(err_z, du_z, err_v_z, target_acc_.z());
+    double gravity_term = compensate_gravity_?robot_model_->getGravity3d().z():0;
 
-    if(pid_controllers_.at(Z).getErrI() < 0) pid_controllers_.at(Z).setErrI(0);
+    pid_controllers_.at(Z).update(err_z, du_z, err_v_z, target_acc_.z() + gravity_term);
 
     if(navigator_->getForceLandingFlag())
       {
