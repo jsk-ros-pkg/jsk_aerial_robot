@@ -522,15 +522,28 @@ void RollingNavigator::transformJoyCallback(const sensor_msgs::JoyConstPtr & joy
     {
     case aerial_robot_navigation::MANIPULATION_MODE:
       {
-        /* set end effector target x */
+        /* set end effector target x by R1 + L-stick vertical */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS]) > joy_stick_deadzone_)
           {
             full_body_ik_initial_cp_p_ee_target_(0) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_LEFT_UPWARDS];
           }
-        /* set end effector target x */
+
+        /* set end effector target z by R1 + R-stick vertical */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS]) > joy_stick_deadzone_)
           {
             full_body_ik_initial_cp_p_ee_target_(2) += 0.005 * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_UPWARDS];
+          }
+
+        /* set target yaw angvel by R1 + R-stick horizontal */
+        if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
+          {
+            setTargetOmegaZ(rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]);
+            yaw_ang_vel_updating_ = true;
+          }
+        else
+          {
+            setTargetOmegaZ(0.0);
+            yaw_ang_vel_updating_ = false;
           }
         break;
       }
