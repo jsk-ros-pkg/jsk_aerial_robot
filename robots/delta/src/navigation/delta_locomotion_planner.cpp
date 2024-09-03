@@ -228,36 +228,39 @@ void RollingNavigator::locomotionJoyCallback(const sensor_msgs::JoyConstPtr & jo
     case aerial_robot_navigation::LOCOMOTION_MODE:
       {
         /* change ground navigation state */
+        /* L1 + cross_up : standing state */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::STANDING_STATE)
           {
             ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::STANDING_STATE));
             setGroundNavigationMode(aerial_robot_navigation::STANDING_STATE);
           }
 
+        /* L1 + cross_down : rolling state */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_UP_DOWN] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::ROLLING_STATE)
           {
             ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
             setGroundNavigationMode(aerial_robot_navigation::ROLLING_STATE);
           }
 
+        /* L1 + cross_left : flying state */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == 1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::FLYING_STATE)
           {
             ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::FLYING_STATE));
             setGroundNavigationMode(aerial_robot_navigation::FLYING_STATE);
           }
 
+        /* L1 + cross_right : down state */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && joy_cmd.axes[PS4_AXIS_BUTTON_CROSS_LEFT_RIGHT] == -1.0 && current_ground_navigation_mode_ != aerial_robot_navigation::DOWN_STATE)
           {
             ROS_INFO_STREAM("[joy] change to " << indexToGroundNavigationModeString(aerial_robot_navigation::DOWN_STATE));
             setGroundNavigationMode(aerial_robot_navigation::DOWN_STATE);
           }
 
-        /* set target angular velocity around yaw based on R-stick hilizontal */
+        /* set target angular velocity around yaw based on R-stick horizontal */
         if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
           {
             target_yaw_ang_vel_ = rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS];
 
-            addTargetYaw(loop_du_ * target_yaw_ang_vel_);
             setTargetOmegaZ(target_yaw_ang_vel_);
 
             yaw_ang_vel_updating_ = true;
