@@ -36,7 +36,7 @@
    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
    ###########  Motor Config  ###########
-   <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/MotorInfo_5inch_noduct.yaml" command="load" />
 
    ###########  Servo Config  ###########
    <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load"/>

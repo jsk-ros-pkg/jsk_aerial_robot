@@ -5,8 +5,8 @@ servo_controller:
   gimbals:
     ctrl_pub_topic: servo/target_states
     torque_pub_topic: servo/torque_enable
-    angle_sgn: -1
-    angle_scale: 0.001534
+    angle_sgn: 1
+    angle_scale: 0.00076699
     zero_point_offset: 2047
 
     controller1:
