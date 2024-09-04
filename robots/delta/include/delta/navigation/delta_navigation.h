@@ -73,6 +73,8 @@ namespace aerial_robot_navigation
     void setEstimatedExternalWrench(Eigen::VectorXd est_external_wrench) {est_external_wrench_ = est_external_wrench;}
     void setEstimatedExternalWrenchCog(Eigen::VectorXd est_external_wrench_cog) {est_external_wrench_cog_ = est_external_wrench_cog;}
 
+    inline void addTargetYawNotRound(double value) {setTargetYaw(target_rpy_.z() + value);}
+
   private:
     std::string tf_prefix_;
     tf2_ros::TransformBroadcaster br_;

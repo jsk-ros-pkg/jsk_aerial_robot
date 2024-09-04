@@ -760,7 +760,7 @@ void BaseNavigator::update()
 
       /* uniform linear motion */
       addTargetPos(getTargetVel() * loop_du_);
-      addTargetYaw(getTargetOmega().z() * loop_du_);
+      // addTargetYaw(getTargetOmega().z() * loop_du_);
     }
 
   tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);

@@ -538,6 +538,7 @@ void RollingNavigator::transformJoyCallback(const sensor_msgs::JoyConstPtr & joy
         if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && fabs(joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_stick_deadzone_)
           {
             setTargetOmegaZ(rolling_max_yaw_ang_vel_ * joy_cmd.axes[PS4_AXIS_STICK_RIGHT_LEFTWARDS]);
+            addTargetYawNotRound(target_omega_.z() * loop_du_);
             yaw_ang_vel_updating_ = true;
           }
         else
