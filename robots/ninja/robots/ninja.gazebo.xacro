@@ -73,15 +73,9 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 0.01 0.01"/>
+        <box size="0.04 0.01 0.01"/>
       </geometry>
     </collision>
-    <!-- <visual> -->
-    <!--   <origin xyz="0 0 0" rpy="0.0 0 0"/> -->
-    <!--   <geometry> -->
-    <!--     <box size="0.05 0.05 0.05"/> -->
-    <!--   </geometry> -->
-    <!-- </visual> -->
   </link>  
 
   <!-- gazebo plugin for docking mech -->
