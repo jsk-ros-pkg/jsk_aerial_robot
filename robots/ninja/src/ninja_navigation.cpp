@@ -293,8 +293,8 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(2);
-                    joint_positions(0) = data.joint_pos_(YAW);
-                    joint_positions(1) = data.joint_pos_(PITCH);
+                    joint_positions(0) = data.joint_pos_(PITCH);
+                    joint_positions(1) = data.joint_pos_(YAW);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
