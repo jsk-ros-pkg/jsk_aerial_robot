@@ -90,4 +90,9 @@ namespace aerial_robot_navigation
     std::lock_guard<std::mutex> lock(mutex_com2base_);
     return com2base_;
   }
+
+  template<> inline Eigen::Affine3d NinjaNavigator::getCom2Base()
+  {
+    return aerial_robot_model::kdlToEigen(NinjaNavigator::getCom2Base<KDL::Frame>());
+  }  
 };

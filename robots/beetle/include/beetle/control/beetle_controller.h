@@ -36,7 +36,6 @@ namespace aerial_robot_control
     boost::shared_ptr<aerial_robot_navigation::BeetleNavigator> beetle_navigator_;
     
     ros::Publisher external_wrench_compensation_pub_;
-    ros::Publisher tagged_external_wrench_pub_;
     ros::Publisher whole_external_wrench_pub_;
     ros::Publisher internal_wrench_pub_;
     ros::Publisher wrench_comp_pid_pub_;
@@ -75,6 +74,8 @@ namespace aerial_robot_control
     void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:
+    ros::Publisher tagged_external_wrench_pub_;
+    
     virtual void ffInterWrenchCallback(const beetle::TaggedWrench & msg);
     void rosParamInit() override;
     void externalWrenchEstimate() override;
