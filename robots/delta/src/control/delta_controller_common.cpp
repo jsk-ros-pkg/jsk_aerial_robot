@@ -59,6 +59,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   exerted_wrench_cog_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/exerted_wrench_cog", 1);
+  nlopt_log_pub_ = nh.advertise<std_msgs::Float32MultiArray>("debug/nlopt_log", 1);
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
