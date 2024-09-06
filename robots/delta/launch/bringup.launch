@@ -64,7 +64,7 @@
   </group>
 
   ########### PWM debug ###########
-  <node pkg="delta" type="pwm_republisher" name="pwm_republisher" ns="$(arg robot_ns)" output="screen" if="$(arg simulation)">
+  <node pkg="delta" type="pwm_republisher" name="pwm_republisher" ns="$(arg robot_ns)" output="screen">
     <param name="motor_num" value="3"/>
   </node>
 
