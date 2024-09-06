@@ -66,7 +66,8 @@ namespace aerial_robot_control
     ros::Publisher full_q_mat_pub_;                   // for debug
     ros::Publisher operability_pub_;                  // for debug
     ros::Publisher target_acc_cog_pub_;               // for debug
-    ros::Publisher exerted_wrench_cog_pub_;               // for debug
+    ros::Publisher exerted_wrench_cog_pub_;           // for debug
+    ros::Publisher nlopt_log_pub_;                    // for debug
     ros::Subscriber joint_state_sub_;
 
     tf2_ros::TransformBroadcaster br_;

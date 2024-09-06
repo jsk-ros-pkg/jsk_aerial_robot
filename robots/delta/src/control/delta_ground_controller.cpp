@@ -501,6 +501,10 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   if(result < 0) ROS_ERROR_STREAM("[nlopt] failed to solve. result is " << result);
 
+  std_msgs::Float32MultiArray nlopt_log_msg;
+  for(int i = 0; i < opt_x.size(); i++) nlopt_log_msg.data.push_back(opt_x.at(i));
+  nlopt_log_pub_.publish(nlopt_log_msg);
+
   /* set optimal variables to actuator input */
   for(int i = 0; i < motor_num_; i++)
     {
