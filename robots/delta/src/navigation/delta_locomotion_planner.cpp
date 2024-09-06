@@ -137,6 +137,10 @@ void RollingNavigator::rollingPlanner()
             rot_mat = curr_target_baselink_rot;
           }
 
+        /* return when not need to set target baselink rotation */
+        if(!ground_trajectory_mode_ && !getPitchAngVelUpdating())
+          return;
+
         /* set desire coordinate */
         KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
         double qx, qy, qz, qw;
@@ -292,11 +296,8 @@ void RollingNavigator::locomotionJoyCallback(const sensor_msgs::JoyConstPtr & jo
           }
         else
           {
-            if(pitch_ang_vel_updating_)
-              {
-                target_pitch_ang_vel_ = 0.0;
-                pitch_ang_vel_updating_ = false;
-              }
+            target_pitch_ang_vel_ = 0;
+            pitch_ang_vel_updating_ = false;
           }
         break;
       }
