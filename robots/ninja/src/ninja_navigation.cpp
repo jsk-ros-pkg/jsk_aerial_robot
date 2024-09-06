@@ -391,10 +391,10 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     return;
   }
 
-  if( int(pre_target_pos_.x() * 1000) != int(getTargetPos().x() * 1000) ||
-      int(pre_target_pos_.y() * 1000) != int(getTargetPos().y() * 1000) ||
-      int(pre_target_pos_.z() * 1000) != int(getTargetPos().z() * 1000) ||
-      int(pre_target_rot_.z() * 1000) != int(getTargetRPY().z() * 1000)){
+  if( std::round(pre_target_pos_.x() * 1000) != std::round(getTargetPos().x() * 1000) ||
+      std::round(pre_target_pos_.y() * 1000) != std::round(getTargetPos().y() * 1000) ||
+      std::round(pre_target_pos_.z() * 1000) != std::round(getTargetPos().z() * 1000) ||
+      std::round(pre_target_rot_.z() * 1000) != std::round(getTargetRPY().z() * 1000)){
     setTargetCoMPoseFromCurrState();
     ROS_INFO("Target com pose is updated!");
   }
