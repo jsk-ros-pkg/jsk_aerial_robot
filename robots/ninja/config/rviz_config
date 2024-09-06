@@ -12,6 +12,7 @@ Panels:
         - /RobotModel2
         - /RobotModel3
         - /RobotModel3/Links1
+        - /RobotModel4
       Splitter Ratio: 0.6529411673545837
     Tree Height: 740
   - Class: rviz/Selection
@@ -67,6 +68,16 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        battery_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        battery_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         contact_point:
           Alpha: 1
           Show Axes: false
@@ -145,11 +156,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         rotor_parent3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tail_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -191,10 +197,14 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        ninja1/battery_1:
+          Value: false
+        ninja1/battery_2:
+          Value: false
         ninja1/center_of_moving:
           Value: false
         ninja1/cog:
-          Value: false
+          Value: true
         ninja1/contact_point:
           Value: false
         ninja1/dummy_arm:
@@ -227,8 +237,6 @@ Visualization Manager:
           Value: false
         ninja1/rotor_parent3:
           Value: false
-        ninja1/tail_link:
-          Value: false
         ninja1/thrust1:
           Value: false
         ninja1/thrust2:
@@ -239,10 +247,14 @@ Visualization Manager:
           Value: false
         ninja1/yaw_dock_link:
           Value: false
+        ninja2/battery_1:
+          Value: false
+        ninja2/battery_2:
+          Value: false
         ninja2/center_of_moving:
           Value: false
         ninja2/cog:
-          Value: false
+          Value: true
         ninja2/contact_point:
           Value: false
         ninja2/dummy_arm:
@@ -275,8 +287,6 @@ Visualization Manager:
           Value: false
         ninja2/rotor_parent3:
           Value: false
-        ninja2/tail_link:
-          Value: false
         ninja2/thrust1:
           Value: false
         ninja2/thrust2:
@@ -287,10 +297,14 @@ Visualization Manager:
           Value: false
         ninja2/yaw_dock_link:
           Value: false
+        ninja3/battery_1:
+          Value: false
+        ninja3/battery_2:
+          Value: false
         ninja3/center_of_moving:
           Value: false
         ninja3/cog:
-          Value: false
+          Value: true
         ninja3/contact_point:
           Value: false
         ninja3/dummy_arm:
@@ -323,8 +337,6 @@ Visualization Manager:
           Value: false
         ninja3/rotor_parent3:
           Value: false
-        ninja3/tail_link:
-          Value: false
         ninja3/thrust1:
           Value: false
         ninja3/thrust2:
@@ -334,6 +346,56 @@ Visualization Manager:
         ninja3/yaw_connect_point:
           Value: false
         ninja3/yaw_dock_link:
+          Value: false
+        ninja4/battery_1:
+          Value: false
+        ninja4/battery_2:
+          Value: false
+        ninja4/center_of_moving:
+          Value: false
+        ninja4/cog:
+          Value: true
+        ninja4/contact_point:
+          Value: false
+        ninja4/dummy_arm:
+          Value: false
+        ninja4/fc:
+          Value: false
+        ninja4/gimbal_link1:
+          Value: false
+        ninja4/gimbal_link2:
+          Value: false
+        ninja4/gimbal_link3:
+          Value: false
+        ninja4/main_body:
+          Value: false
+        ninja4/pitch_connect_point:
+          Value: false
+        ninja4/pitch_dock_link:
+          Value: false
+        ninja4/root:
+          Value: false
+        ninja4/rotor_arm1:
+          Value: false
+        ninja4/rotor_arm2:
+          Value: false
+        ninja4/rotor_arm3:
+          Value: false
+        ninja4/rotor_parent1:
+          Value: false
+        ninja4/rotor_parent2:
+          Value: false
+        ninja4/rotor_parent3:
+          Value: false
+        ninja4/thrust1:
+          Value: false
+        ninja4/thrust2:
+          Value: false
+        ninja4/thrust3:
+          Value: false
+        ninja4/yaw_connect_point:
+          Value: false
+        ninja4/yaw_dock_link:
           Value: false
         world:
           Value: false
@@ -352,6 +414,10 @@ Visualization Manager:
             ninja1/contact_point:
               {}
             ninja1/main_body:
+              ninja1/battery_1:
+                {}
+              ninja1/battery_2:
+                {}
               ninja1/fc:
                 {}
               ninja1/pitch_dock_link:
@@ -367,12 +433,11 @@ Visualization Manager:
                   ninja1/rotor_parent2:
                     ninja1/thrust2:
                       {}
-              ninja1/tail_link:
-                ninja1/rotor_arm3:
-                  ninja1/gimbal_link3:
-                    ninja1/rotor_parent3:
-                      ninja1/thrust3:
-                        {}
+              ninja1/rotor_arm3:
+                ninja1/gimbal_link3:
+                  ninja1/rotor_parent3:
+                    ninja1/thrust3:
+                      {}
               ninja1/yaw_dock_link:
                 ninja1/dummy_arm:
                   {}
@@ -385,6 +450,10 @@ Visualization Manager:
             ninja2/contact_point:
               {}
             ninja2/main_body:
+              ninja2/battery_1:
+                {}
+              ninja2/battery_2:
+                {}
               ninja2/fc:
                 {}
               ninja2/pitch_dock_link:
@@ -400,12 +469,11 @@ Visualization Manager:
                   ninja2/rotor_parent2:
                     ninja2/thrust2:
                       {}
-              ninja2/tail_link:
-                ninja2/rotor_arm3:
-                  ninja2/gimbal_link3:
-                    ninja2/rotor_parent3:
-                      ninja2/thrust3:
-                        {}
+              ninja2/rotor_arm3:
+                ninja2/gimbal_link3:
+                  ninja2/rotor_parent3:
+                    ninja2/thrust3:
+                      {}
               ninja2/yaw_dock_link:
                 ninja2/dummy_arm:
                   {}
@@ -418,6 +486,10 @@ Visualization Manager:
             ninja3/contact_point:
               {}
             ninja3/main_body:
+              ninja3/battery_1:
+                {}
+              ninja3/battery_2:
+                {}
               ninja3/fc:
                 {}
               ninja3/pitch_dock_link:
@@ -433,16 +505,51 @@ Visualization Manager:
                   ninja3/rotor_parent2:
                     ninja3/thrust2:
                       {}
-              ninja3/tail_link:
-                ninja3/rotor_arm3:
-                  ninja3/gimbal_link3:
-                    ninja3/rotor_parent3:
-                      ninja3/thrust3:
-                        {}
+              ninja3/rotor_arm3:
+                ninja3/gimbal_link3:
+                  ninja3/rotor_parent3:
+                    ninja3/thrust3:
+                      {}
               ninja3/yaw_dock_link:
                 ninja3/dummy_arm:
                   {}
                 ninja3/yaw_connect_point:
+                  {}
+          ninja4/root:
+            ninja4/cog:
+              ninja4/center_of_moving:
+                {}
+            ninja4/contact_point:
+              {}
+            ninja4/main_body:
+              ninja4/battery_1:
+                {}
+              ninja4/battery_2:
+                {}
+              ninja4/fc:
+                {}
+              ninja4/pitch_dock_link:
+                ninja4/pitch_connect_point:
+                  {}
+              ninja4/rotor_arm1:
+                ninja4/gimbal_link1:
+                  ninja4/rotor_parent1:
+                    ninja4/thrust1:
+                      {}
+              ninja4/rotor_arm2:
+                ninja4/gimbal_link2:
+                  ninja4/rotor_parent2:
+                    ninja4/thrust2:
+                      {}
+              ninja4/rotor_arm3:
+                ninja4/gimbal_link3:
+                  ninja4/rotor_parent3:
+                    ninja4/thrust3:
+                      {}
+              ninja4/yaw_dock_link:
+                ninja4/dummy_arm:
+                  {}
+                ninja4/yaw_connect_point:
                   {}
       Update Interval: 0
       Value: true
@@ -456,6 +563,16 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        battery_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        battery_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         contact_point:
           Alpha: 1
           Show Axes: false
@@ -534,11 +651,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         rotor_parent3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        tail_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -583,6 +695,16 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        battery_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        battery_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         contact_point:
           Alpha: 1
           Show Axes: false
@@ -665,7 +787,134 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        tail_link:
+        thrust1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        yaw_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        yaw_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: ninja3/robot_description
+      TF Prefix: ninja3
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        battery_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        battery_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        contact_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        dummy_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_palm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        gimbal_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gimbal_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        main_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pitch_connect_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pitch_dock_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_arm3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rotor_parent1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rotor_parent3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -695,8 +944,8 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: ninja3/robot_description
-      TF Prefix: ninja3
+      Robot Description: ninja4/robot_description
+      TF Prefix: ninja4
       Update Interval: 0
       Value: true
       Visual Enabled: true
@@ -728,7 +977,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.5869804620742798
+      Distance: 2.9822680950164795
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -736,17 +985,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.12429024279117584
-        Y: -0.22249750792980194
-        Z: 0.23218481242656708
+        X: -0.0981794074177742
+        Y: 0.19234484434127808
+        Z: 1.15351140499115
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.660398006439209
+      Pitch: 0.380398154258728
       Target Frame: <Fixed Frame>
-      Yaw: 4.808602809906006
+      Yaw: 4.798608779907227
     Saved: ~
 Window Geometry:
   Displays:
@@ -754,7 +1003,7 @@ Window Geometry:
   Height: 1043
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001560000036ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000036f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000036ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d0000036f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000009b800000044fc0100000002fb0000000800540069006d00650100000000000009b8000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000007470000036f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001c80000036ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000036f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000036ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d0000036f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000009b800000044fc0100000002fb0000000800540069006d00650100000000000009b8000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000006d50000036f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
