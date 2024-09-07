@@ -276,7 +276,7 @@ namespace aerial_robot_control
     whole_external_wrench_pub_.publish(wrench_msg);
 
     /* 2. calculate interactional wrench for each module*/
-    Eigen::VectorXd left_inter_wrench = Eigen::VectorXd::Zero(6);
+    Eigen::VectorXd left_inter_wrench = Eigen::VectorXd::Zero(6); //'left_inter_wrench' represents the wrench applied from right-side module to left-side module
     for(const auto & item : est_wrench_list_){
       if(assembly_flag[item.first]){
         Eigen::VectorXd right_inter_wrench = item.second - W_w + left_inter_wrench;
@@ -301,7 +301,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
-        wrench_comp_sum_left += ff_inter_wrench_list_[i] + inter_wrench_list_[i];
+        wrench_comp_sum_left += -ff_inter_wrench_list_[i] + inter_wrench_list_[i];
         // wrench_comp_list_[i] += wrench_comp_gain_ *  wrench_comp_sum_left;
         wrench_comp_list_[i] = wrench_comp_sum_left;
         right_module_id = i;
@@ -315,7 +315,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i <= max_modules_num; i++){
       if(assembly_flag[i]){
-        wrench_comp_sum_right -= -ff_inter_wrench_list_[left_module_id] + inter_wrench_list_[left_module_id];
+        wrench_comp_sum_right += ff_inter_wrench_list_[left_module_id] - inter_wrench_list_[left_module_id];
         // wrench_comp_list_[i] += wrench_comp_gain_ * wrench_comp_sum_right;
         wrench_comp_list_[i] = wrench_comp_sum_right;
         left_module_id = i;
