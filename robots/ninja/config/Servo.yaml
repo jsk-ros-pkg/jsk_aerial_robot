@@ -13,16 +13,26 @@ servo_controller:
     sample_freq: 50.0 # 50Hz
     cutoff_freq: 10.0 # 10Hz, test
 
-    controller1:
+    controller1_1:
       id: 6
       name: yaw_dock_joint
       angle_sgn: -1
       simulation:
         pid: {p: 50.0, i: 0.1, d: 2.0}
         init_value: 0
-        type: effort_controllers/JointPositionController        
+        type: effort_controllers/JointPositionController
 
-    controller2:
+    controller1_2:
+      id: 0
+      name: yaw_dock_joint
+      angle_sgn: -1
+      sub_controller: true
+      simulation:
+        pid: {p: 50.0, i: 0.1, d: 2.0}
+        init_value: 0
+        type: effort_controllers/JointEffortController
+
+    controller2_1:
       id: 7
       name: pitch_dock_joint
       angle_sgn: -1
@@ -30,6 +40,16 @@ servo_controller:
         pid: {p: 50.0, i: 0.1, d: 2.0}
         init_value: 0
         type: effort_controllers/JointPositionController
+
+    controller2_2:
+      id: 0
+      name: pitch_dock_joint
+      angle_sgn: -1
+      sub_controller: true
+      simulation:
+        pid: {p: 50.0, i: 0.1, d: 2.0}
+        init_value: 0
+        type: effort_controllers/JointEffortController
 
   gimbals:
     no_real_state: false
