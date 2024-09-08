@@ -26,9 +26,9 @@ controller:
     force_landing_descending_rate: -0.5
 
   roll:
-    p_gain: 24.0
+    p_gain: 30.0
     i_gain: 3.0
-    d_gain: 14.0
+    d_gain: 17.5
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
@@ -37,9 +37,9 @@ controller:
     start_rp_integration_height: 0.01
 
   pitch:
-    p_gain: 24.0
+    p_gain: 30.0
     i_gain: 3.0
-    d_gain: 13.5
+    d_gain: 17.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
