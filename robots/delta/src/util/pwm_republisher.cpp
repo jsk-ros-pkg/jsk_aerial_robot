@@ -4,7 +4,11 @@ MotorPWMRepublisher::MotorPWMRepublisher(ros::NodeHandle nh, ros::NodeHandle nhp
   nh_(nh),
   nhp_(nhp)
 {
-  nhp_.param("motor_num", motor_num_, 0);
+  delta_robot_model_ = boost::make_shared<RollingRobotModel>();
+
+  motor_num_ = delta_robot_model_->getRotorNum();
+  m_f_rate_ = delta_robot_model_->getMFRate();
+  nhp_.param("tf_prefix", tf_prefix_, std::string(""));
 
   /* motor pwms */
   motor_pwm_sub_ = nh_.subscribe("motor_pwms", 1, &MotorPWMRepublisher::motorPwmCallback, this);
@@ -26,6 +30,13 @@ MotorPWMRepublisher::MotorPWMRepublisher(ros::NodeHandle nh, ros::NodeHandle nhp
   for(int i = 0; i < motor_num_; i++)
     {
       gimbal_control_pubs_.push_back(nh_.advertise<std_msgs::Float32>("debug/gimbals_ctrl/gimbal" + std::to_string(i + 1), 1));
+    }
+
+  /* four axis command */
+  four_axis_command_sub_ = nh_.subscribe("four_axes/command", 1, &MotorPWMRepublisher::fourAxisCommandCallback, this);
+  for(int i = 0; i < motor_num_; i++)
+    {
+      thruster_wrench_pubs_.push_back(nh_.advertise<geometry_msgs::WrenchStamped>("debug/thruster_wrench/thruster" + std::to_string(i + 1), 1));
     }
 
   /* timer */
@@ -77,6 +88,20 @@ void MotorPWMRepublisher::gimbalsControlCallback(const sensor_msgs::JointState &
       std_msgs::Float32 msg;
       msg.data = joint_state_msg.position.at(i);
       gimbal_control_pubs_.at(i).publish(msg);
+    }
+}
+
+void MotorPWMRepublisher::fourAxisCommandCallback(const spinal::FourAxisCommand & msg)
+{
+  geometry_msgs::WrenchStamped thruster_wrench_msg;
+  std::map<int, int> rotor_direction = delta_robot_model_->getRotorDirection();
+
+  for(int i = 0; i < motor_num_; i++)
+    {
+      thruster_wrench_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("thrust") + std::to_string(i + 1));
+      thruster_wrench_msg.wrench.force.z = msg.base_thrust.at(i);
+      thruster_wrench_msg.wrench.torque.z = rotor_direction.at(i + 1) *  m_f_rate_ * msg.base_thrust.at(i);
+      thruster_wrench_pubs_.at(i).publish(thruster_wrench_msg);
     }
 }
 

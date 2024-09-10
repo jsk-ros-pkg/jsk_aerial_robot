@@ -65,7 +65,7 @@
 
   ########### PWM debug ###########
   <node pkg="delta" type="pwm_republisher" name="pwm_republisher" ns="$(arg robot_ns)" output="screen">
-    <param name="motor_num" value="3"/>
+    <param name="tf_prefix" value="$(arg robot_ns)"/>
   </node>
 
   <include file="$(find aerial_robot_control)/launch/motor_power.launch">
