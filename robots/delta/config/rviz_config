@@ -80,21 +80,18 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        high_lipo_single1:
+        gimbal_neutral_coord1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        high_lipo_single2:
+        gimbal_neutral_coord2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        high_lipo_single3:
+        gimbal_neutral_coord3:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         link1:
           Alpha: 1
           Show Axes: false
@@ -203,11 +200,11 @@ Visualization Manager:
           Value: true
         delta/gimbal_link3:
           Value: true
-        delta/high_lipo_single1:
+        delta/gimbal_neutral_coord1:
           Value: true
-        delta/high_lipo_single2:
+        delta/gimbal_neutral_coord2:
           Value: true
-        delta/high_lipo_single3:
+        delta/gimbal_neutral_coord3:
           Value: true
         delta/link1:
           Value: true
@@ -262,7 +259,7 @@ Visualization Manager:
               delta/gimbal_link1:
                 delta/rotor_parent1:
                   {}
-              delta/high_lipo_single1:
+              delta/gimbal_neutral_coord1:
                 {}
               delta/link1_center:
                 {}
@@ -274,7 +271,7 @@ Visualization Manager:
                 delta/gimbal_link2:
                   delta/rotor_parent2:
                     {}
-                delta/high_lipo_single2:
+                delta/gimbal_neutral_coord2:
                   {}
                 delta/link2_center:
                   {}
@@ -284,7 +281,7 @@ Visualization Manager:
                   delta/gimbal_link3:
                     delta/rotor_parent3:
                       {}
-                  delta/high_lipo_single3:
+                  delta/gimbal_neutral_coord3:
                     {}
                   delta/link3_center:
                     {}
@@ -494,7 +491,7 @@ Visualization Manager:
       Arrow Width: 0.20000000298023224
       Class: rviz/WrenchStamped
       Enabled: true
-      Force Arrow Scale: 0.004999999888241291
+      Force Arrow Scale: 0.009999999776482582
       Force Color: 204; 51; 51
       Hide Small Values: false
       History Length: 1
@@ -568,6 +565,51 @@ Visualization Manager:
       Unreliable: false
       Value: true
       Width: 0.009999999776482582
+    - Alpha: 1
+      Arrow Width: 0.20000000298023224
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.009999999776482582
+      Force Color: 245; 121; 0
+      Hide Small Values: false
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /delta/debug/thruster_wrench/thruster1
+      Torque Arrow Scale: 1
+      Torque Color: 115; 210; 22
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Width: 0.20000000298023224
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.009999999776482582
+      Force Color: 245; 121; 0
+      Hide Small Values: false
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /delta/debug/thruster_wrench/thruster2
+      Torque Arrow Scale: 1
+      Torque Color: 115; 210; 22
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Width: 0.20000000298023224
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.009999999776482582
+      Force Color: 245; 121; 0
+      Hide Small Values: false
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /delta/debug/thruster_wrench/thruster3
+      Torque Arrow Scale: 1
+      Torque Color: 115; 210; 22
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -596,7 +638,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.362953186035156
+      Distance: 3.8019487857818604
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -604,17 +646,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.20293310284614563
-        Y: 0.1906108409166336
-        Z: 0.6149450540542603
+        X: -0.10579679161310196
+        Y: 0.13471326231956482
+        Z: 0.47188204526901245
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.39479804039001465
+      Pitch: 0.4647977948188782
       Target Frame: <Fixed Frame>
-      Yaw: 4.663568496704102
+      Yaw: 4.638564586639404
     Saved: ~
 Window Geometry:
   Displays:

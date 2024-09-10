@@ -111,7 +111,7 @@ add_executable(mapping_optimization src/design/mapping_optimization.cpp)
 target_link_libraries(mapping_optimization ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_executable(pwm_republisher src/util/pwm_republisher.cpp)
-target_link_libraries(pwm_republisher ${catkin_LIBRARIES})
+target_link_libraries(pwm_republisher ${catkin_LIBRARIES} delta_robot_model)
 
 install(DIRECTORY include/${PROJECT_NAME}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
