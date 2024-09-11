@@ -49,6 +49,7 @@
 #include <gazebo/sensors/MagnetometerSensor.hh>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include "spinal/ESCTelemetryArray.h"
 #include <kdl/tree.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 #include <nav_msgs/Odometry.h>
@@ -100,8 +101,10 @@ protected:
   ros::Subscriber sim_vel_sub_, sim_pos_sub_;
   ros::Publisher ground_truth_pub_;
   ros::Publisher mocap_pub_;
+  ros::Publisher esc_telem_pub_;
   double ground_truth_pub_rate_;
   double mocap_pub_rate_;
+  double esc_telem_pub_rate_;
 
   double mocap_rot_noise_, mocap_pos_noise_;
   double ground_truth_pos_noise_, ground_truth_vel_noise_, ground_truth_rot_noise_, ground_truth_angular_noise_;
@@ -112,7 +115,7 @@ protected:
   geometry_msgs::TwistStamped cmd_vel_;
   geometry_msgs::PoseStamped cmd_pos_;
 
-  ros::Time last_ground_truth_time_, last_mocap_time_;
+  ros::Time last_ground_truth_time_, last_mocap_time_, last_esc_telem_time_;
 
   void cmdVelCallback(const geometry_msgs::TwistStampedConstPtr& cmd_vel)
   {
