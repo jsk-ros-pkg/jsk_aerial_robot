@@ -14,8 +14,11 @@ public:
 
     ros::Duration(0.1).sleep();
 
+    std::string ns = ros::this_node::getNamespace();
     nhp_.param("target_frame", target_frame_, std::string("root"));
+    target_frame_ = tf::resolve(ns, target_frame_);
     nhp_.param("reference_frame", reference_frame_, std::string("fixed_frame"));
+    reference_frame_ = tf::resolve(ns, reference_frame_);
     nhp_.param("tf_loop_rate", tf_loop_rate_, 60.0);
 
     intMarkerInit();
