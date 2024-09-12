@@ -41,7 +41,6 @@ namespace aerial_robot_model {
       joint_state_sub_ = nh_.subscribe("joint_states", 1, &RobotModelRos::jointStateCallback, this);
     }
 
-    desire_coordinate_sub_ = nh_.subscribe("desire_coordinate", 1, &RobotModelRos::desireCoordinateCallback, this);
     add_extra_module_service_ = nh_.advertiseService("add_extra_module", &RobotModelRos::addExtraModuleCallback, this);
  }
 
@@ -89,10 +88,5 @@ namespace aerial_robot_model {
       }
     ROS_ERROR("[extra module]: should not reach here ");
     return false;
-  }
-
-  void RobotModelRos::desireCoordinateCallback(const spinal::DesireCoordConstPtr& msg)
-  {
-    robot_model_->setCogDesireOrientation(msg->roll, msg->pitch, msg->yaw);
   }
 } //namespace aerial_robot_model
