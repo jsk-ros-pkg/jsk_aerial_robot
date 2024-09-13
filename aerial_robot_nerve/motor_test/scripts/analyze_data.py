@@ -6,9 +6,13 @@ import matplotlib.pyplot as plt
 
 def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     file_path = folder_path + file_name
-    data = pd.read_csv(file_path, sep=' ',
-                       names=["PWM", "fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature",
-                              "voltage", "State"])
+    column_names = []
+    if not has_telemetry:
+        column_names = ["PWM", "fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "State"]
+    else:
+        column_names = ["PWM", "fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature", "voltage", "State"]
+
+    data = pd.read_csv(file_path, sep=' ', names=column_names)
 
     # Filter out the rows where State is 'done'
     data = data[data['PWM'] != 'done']
