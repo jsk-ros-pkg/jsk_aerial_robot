@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
+def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     file_path = folder_path + file_name
     column_names = []
     if not has_telemetry:
@@ -85,14 +85,13 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     fit_eq_currency_fz = f"currency = {coeffs_currency_fz[0]:.4e} * fz^2 + {coeffs_currency_fz[1]:.4e} * fz + {coeffs_currency_fz[2]:.4f}"
     print(f"Fitting Equation (x:fz y:currency): {fit_eq_currency_fz}")
 
-    # 2nd-order polynomial fit for x:PWM_ratio y:fz
-    coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, 2)
+    # polynomial fit for x:PWM_ratio y:fz
+    coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, order)
     fit_eq_PWM_ratio_fz = f"fz = {coeffs_PWM_ratio_fz[0]:.4e} * PWM_Ratio_%^2 + {coeffs_PWM_ratio_fz[1]:.4e} * PWM_Ratio_% + {coeffs_PWM_ratio_fz[2]:.4f}"
     print(f"Fitting Equation (x:PWM_Ratio_% y:fz): {fit_eq_PWM_ratio_fz}")
     print(f"max fz: {np.max(fz):.4f} N")
-    print(f"polynominal2(10x): {10 * coeffs_PWM_ratio_fz[0]:.5f}")
-    print(f"polynominal1(10x): {10 * coeffs_PWM_ratio_fz[1]:.5f}")
-    print(f"polynominal0: {coeffs_PWM_ratio_fz[2]:.5f}")
+    for i in range(order + 1):
+        print("polynomial{}: {}".format(order - i, pow(10, order - i) * coeffs_PWM_ratio_fz[i]))
 
     # Create 3x2 subplots
     fig, axs = plt.subplots(3, 2, figsize=(12, 18))
@@ -173,7 +172,8 @@ if __name__ == '__main__':
     parser.add_argument('file_name', help='file name')
     parser.add_argument('has_telemetry', help='has telemetry, 0 or 1')
     parser.add_argument("--set_voltage", help="the voltage set in the test, float", default=0.0)
+    parser.add_argument("--order", help="fitting order of fz vs PWM_ratio", default=2)
     parser.add_argument('--folder_path', help='path to folder', default='~/.ros/')
     args = parser.parse_args()
 
-    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage))
+    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage), int(args.order))
