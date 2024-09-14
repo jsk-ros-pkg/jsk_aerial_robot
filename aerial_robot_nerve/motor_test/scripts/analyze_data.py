@@ -101,7 +101,7 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     fit_eq_fz_PWM_ratio = "PWM_ratio_% = "
     for i in range(order + 1):
         fit_eq_fz_PWM_ratio += "\n{:.4e} * fz^{} + ".format(coeffs_fz_PWM_ratio[i], order - i)
-    print("Fitting Equation (x:fz y:PWM_Ratio_%): {fit_eq_fz_PWM_ratio}")
+    print("Fitting Equation (x:fz y:PWM_Ratio_%): {}".format(fit_eq_fz_PWM_ratio))
     print("voltage: {}".format(set_voltage))
     print("max_thrust: {:.4f} # N".format(np.max(fz)))
     for i in range(order + 1):
