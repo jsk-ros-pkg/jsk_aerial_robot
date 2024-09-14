@@ -85,16 +85,31 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     fit_eq_currency_fz = f"currency = {coeffs_currency_fz[0]:.4e} * fz^2 + {coeffs_currency_fz[1]:.4e} * fz + {coeffs_currency_fz[2]:.4f}"
     print(f"Fitting Equation (x:fz y:currency): {fit_eq_currency_fz}")
 
-    # polynomial fit for x:PWM_ratio y:fz
+    # n-th order polynomial fit for x:PWM_ratio y:fz
     coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, order)
-    fit_eq_PWM_ratio_fz = f"fz = {coeffs_PWM_ratio_fz[0]:.4e} * PWM_Ratio_%^2 + {coeffs_PWM_ratio_fz[1]:.4e} * PWM_Ratio_% + {coeffs_PWM_ratio_fz[2]:.4f}"
+    fit_eq_PWM_ratio_fz = f"fz = "
+    for i in range(order + 1):
+        fit_eq_PWM_ratio_fz += f"\n{coeffs_PWM_ratio_fz[i]:.4e} * PWM_Ratio_%^{order - i} +"
+    print()
     print(f"Fitting Equation (x:PWM_Ratio_% y:fz): {fit_eq_PWM_ratio_fz}")
-    print(f"max fz: {np.max(fz):.4f} N")
     for i in range(order + 1):
         print("polynomial{}: {}".format(order - i, pow(10, order - i) * coeffs_PWM_ratio_fz[i]))
+    print()
 
-    # Create 3x2 subplots
-    fig, axs = plt.subplots(3, 2, figsize=(12, 18))
+    # n-th order polynomial fit for x:fz y:PWM_ratio
+    coeffs_fz_PWM_ratio = np.polyfit(fz, PWM_ratio, order)
+    fit_eq_fz_PWM_ratio = f"PWM_ratio_% = "
+    for i in range(order + 1):
+        fit_eq_fz_PWM_ratio += f"\n{coeffs_fz_PWM_ratio[i]:.4e} * fz^{order - i} + "
+    print(f"Fitting Equation (x:fz y:PWM_Ratio_%): {fit_eq_fz_PWM_ratio}")
+    print(f"voltage: {set_voltage}")
+    print(f"max_thrust: {np.max(fz):.4f} # N")
+    for i in range(order + 1):
+        print("polynomial{}: {}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_fz_PWM_ratio[i], order - i))
+    print()
+
+    # Create 3x3 subplots
+    fig, axs = plt.subplots(3, 3, figsize=(12, 18))
 
     # Plot 1: x:kRPM^2 y:fz
     if has_telemetry:
@@ -157,6 +172,17 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
         axs[2, 1].grid()
         axs[2, 1].text(0.95, 0.05, fit_eq_kRPM_PWM_ratio, horizontalalignment='right', verticalalignment='bottom',
                        transform=axs[2, 1].transAxes, fontsize=10, color='green')
+
+    # Plot 7: PWM_ratio vs fz
+    axs[0, 2].scatter(fz, PWM_ratio, color='blue', alpha=0.5, label='Data points')
+    axs[0, 2].plot(np.sort(fz), np.polyval(coeffs_fz_PWM_ratio, np.sort(fz)), color='red',
+                   label='Fitted polynomial')
+    axs[0, 2].set_title('PWM_Ratio_% vs fz')
+    axs[0, 2].set_xlabel('fz (N)')
+    axs[0, 2].set_ylabel('PWM_Ratio_%')
+    axs[0, 2].grid()
+    axs[0, 2].text(0.95, 0.05, fit_eq_fz_PWM_ratio, horizontalalignment='right', verticalalignment='bottom',
+                   transform=axs[0, 2].transAxes, fontsize=10, color='green')
 
     # title with the file name
     fig.suptitle(file_name)
