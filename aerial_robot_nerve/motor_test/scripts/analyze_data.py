@@ -37,7 +37,7 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     # Add a column for power
     if has_telemetry:
         average_values['Power'] = average_values['voltage'] * average_values['currency']
-        print(f"Average voltage: {average_values['voltage'].mean()}")
+        print("Average voltage: {}".format(average_values['voltage'].mean()))
     else:
         average_values['Power'] = set_voltage * average_values['currency']
 
@@ -67,45 +67,45 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     if has_telemetry:
         # Linear fit for x:kRPM^2 y:fz
         slope_kRPM2, intercept_kRPM2 = np.polyfit(kRPM2, fz, 1)
-        fit_eq_kRPM2 = f"fz = {slope_kRPM2:.4f} * kRPM^2 + {intercept_kRPM2:.4f}"
-        print(f"Fitting Equation (x:kRPM^2 y:fz): {fit_eq_kRPM2}")
+        fit_eq_kRPM2 = "fz = {:.4f} * kRPM^2 + {:.4f}".format(slope_kRPM2, intercept_kRPM2)
+        print("Fitting Equation (x:kRPM^2 y:fz): {}".format(fit_eq_kRPM2))
 
         # Linear fit for x: pwm_ratio y: kRPM
         slope_kRPM_PWM_ratio, intercept_kRPM_PWM_ratio = np.polyfit(PWM_ratio, kRPM, 1)
-        fit_eq_kRPM_PWM_ratio = f"kRPM = {slope_kRPM_PWM_ratio:.4f} * PWM_Ratio_% + {intercept_kRPM_PWM_ratio:.4f}"
-        print(f"Fitting Equation (x:PWM_Ratio_% y:kRPM): {fit_eq_kRPM_PWM_ratio}")
+        fit_eq_kRPM_PWM_ratio = "kRPM = {:.4f} * PWM_Ratio_% + {:.4f}".format(slope_kRPM_PWM_ratio, intercept_kRPM_PWM_ratio)
+        print("Fitting Equation (x:PWM_Ratio_% y:kRPM): {}".format(fit_eq_kRPM_PWM_ratio))
 
     # Linear fit for x:fz y:mz, note that the intercept must be 0. Only y=kx form.
     slope_mz_fz, intercept_mz_fz = np.polyfit(fz, mz, 1)
-    fit_eq_mz_fz = f"mz = {slope_mz_fz:.4f} * fz"
-    print(f"Fitting Equation (x:fz y:mz): {fit_eq_mz_fz}")
+    fit_eq_mz_fz = "mz = {:.4f} * fz".format(slope_mz_fz)
+    print("Fitting Equation (x:fz y:mz): {}".format(fit_eq_mz_fz))
 
     # 2nd-order polynomial fit for x:fz y:currency
     coeffs_currency_fz = np.polyfit(fz, currency, 2)
-    fit_eq_currency_fz = f"currency = {coeffs_currency_fz[0]:.4e} * fz^2 + {coeffs_currency_fz[1]:.4e} * fz + {coeffs_currency_fz[2]:.4f}"
-    print(f"Fitting Equation (x:fz y:currency): {fit_eq_currency_fz}")
+    fit_eq_currency_fz = "currency = {:.4f} * fz^2 + {:.4f} * fz + {:.4f}".format(coeffs_currency_fz[0], coeffs_currency_fz[1], coeffs_currency_fz[2])
+    print("Fitting Equation (x:fz y:currency): {}".format(fit_eq_currency_fz))
 
     # n-th order polynomial fit for x:PWM_ratio y:fz
     coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, order)
-    fit_eq_PWM_ratio_fz = f"fz = "
+    fit_eq_PWM_ratio_fz = "fz = "
     for i in range(order + 1):
-        fit_eq_PWM_ratio_fz += f"\n{coeffs_PWM_ratio_fz[i]:.4e} * PWM_Ratio_%^{order - i} +"
+        fit_eq_PWM_ratio_fz += "\n{:.4e} * PWM_Ratio_%^{} +".format(coeffs_PWM_ratio_fz[i], order - i)
     print()
-    print(f"Fitting Equation (x:PWM_Ratio_% y:fz): {fit_eq_PWM_ratio_fz}")
+    print("Fitting Equation (x:PWM_Ratio_% y:fz): {}".format(fit_eq_PWM_ratio_fz))
     for i in range(order + 1):
-        print("polynomial{}: {}".format(order - i, pow(10, order - i) * coeffs_PWM_ratio_fz[i]))
+        print("polynomial{}: {:.8f}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_PWM_ratio_fz[i], order -i))
     print()
 
     # n-th order polynomial fit for x:fz y:PWM_ratio
     coeffs_fz_PWM_ratio = np.polyfit(fz, PWM_ratio, order)
-    fit_eq_fz_PWM_ratio = f"PWM_ratio_% = "
+    fit_eq_fz_PWM_ratio = "PWM_ratio_% = "
     for i in range(order + 1):
-        fit_eq_fz_PWM_ratio += f"\n{coeffs_fz_PWM_ratio[i]:.4e} * fz^{order - i} + "
-    print(f"Fitting Equation (x:fz y:PWM_Ratio_%): {fit_eq_fz_PWM_ratio}")
-    print(f"voltage: {set_voltage}")
-    print(f"max_thrust: {np.max(fz):.4f} # N")
+        fit_eq_fz_PWM_ratio += "\n{:.4e} * fz^{} + ".format(coeffs_fz_PWM_ratio[i], order - i)
+    print("Fitting Equation (x:fz y:PWM_Ratio_%): {fit_eq_fz_PWM_ratio}")
+    print("voltage: {}".format(set_voltage))
+    print("max_thrust: {:.4f} # N".format(np.max(fz)))
     for i in range(order + 1):
-        print("polynomial{}: {}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_fz_PWM_ratio[i], order - i))
+        print("polynomial{}: {:.8f}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_fz_PWM_ratio[i], order - i))
     print()
 
     # Create 3x3 subplots
