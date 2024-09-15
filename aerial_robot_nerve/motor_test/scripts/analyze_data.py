@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
+def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order):
     file_path = folder_path + file_name
     column_names = []
     if not has_telemetry:
@@ -37,7 +37,7 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     # Add a column for power
     if has_telemetry:
         average_values['Power'] = average_values['voltage'] * average_values['currency']
-        print(f"Average voltage: {average_values['voltage'].mean()}")
+        print("Average voltage: {}".format(average_values['voltage'].mean()))
     else:
         average_values['Power'] = set_voltage * average_values['currency']
 
@@ -67,35 +67,49 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
     if has_telemetry:
         # Linear fit for x:kRPM^2 y:fz
         slope_kRPM2, intercept_kRPM2 = np.polyfit(kRPM2, fz, 1)
-        fit_eq_kRPM2 = f"fz = {slope_kRPM2:.4f} * kRPM^2 + {intercept_kRPM2:.4f}"
-        print(f"Fitting Equation (x:kRPM^2 y:fz): {fit_eq_kRPM2}")
+        fit_eq_kRPM2 = "fz = {:.4f} * kRPM^2 + {:.4f}".format(slope_kRPM2, intercept_kRPM2)
+        print("Fitting Equation (x:kRPM^2 y:fz): {}".format(fit_eq_kRPM2))
 
         # Linear fit for x: pwm_ratio y: kRPM
         slope_kRPM_PWM_ratio, intercept_kRPM_PWM_ratio = np.polyfit(PWM_ratio, kRPM, 1)
-        fit_eq_kRPM_PWM_ratio = f"kRPM = {slope_kRPM_PWM_ratio:.4f} * PWM_Ratio_% + {intercept_kRPM_PWM_ratio:.4f}"
-        print(f"Fitting Equation (x:PWM_Ratio_% y:kRPM): {fit_eq_kRPM_PWM_ratio}")
+        fit_eq_kRPM_PWM_ratio = "kRPM = {:.4f} * PWM_Ratio_% + {:.4f}".format(slope_kRPM_PWM_ratio, intercept_kRPM_PWM_ratio)
+        print("Fitting Equation (x:PWM_Ratio_% y:kRPM): {}".format(fit_eq_kRPM_PWM_ratio))
 
     # Linear fit for x:fz y:mz, note that the intercept must be 0. Only y=kx form.
     slope_mz_fz, intercept_mz_fz = np.polyfit(fz, mz, 1)
-    fit_eq_mz_fz = f"mz = {slope_mz_fz:.4f} * fz"
-    print(f"Fitting Equation (x:fz y:mz): {fit_eq_mz_fz}")
+    fit_eq_mz_fz = "mz = {:.4f} * fz".format(slope_mz_fz)
+    print("Fitting Equation (x:fz y:mz): {}".format(fit_eq_mz_fz))
 
     # 2nd-order polynomial fit for x:fz y:currency
     coeffs_currency_fz = np.polyfit(fz, currency, 2)
-    fit_eq_currency_fz = f"currency = {coeffs_currency_fz[0]:.4e} * fz^2 + {coeffs_currency_fz[1]:.4e} * fz + {coeffs_currency_fz[2]:.4f}"
-    print(f"Fitting Equation (x:fz y:currency): {fit_eq_currency_fz}")
+    fit_eq_currency_fz = "currency = {:.4f} * fz^2 + {:.4f} * fz + {:.4f}".format(coeffs_currency_fz[0], coeffs_currency_fz[1], coeffs_currency_fz[2])
+    print("Fitting Equation (x:fz y:currency): {}".format(fit_eq_currency_fz))
 
-    # 2nd-order polynomial fit for x:PWM_ratio y:fz
-    coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, 2)
-    fit_eq_PWM_ratio_fz = f"fz = {coeffs_PWM_ratio_fz[0]:.4e} * PWM_Ratio_%^2 + {coeffs_PWM_ratio_fz[1]:.4e} * PWM_Ratio_% + {coeffs_PWM_ratio_fz[2]:.4f}"
-    print(f"Fitting Equation (x:PWM_Ratio_% y:fz): {fit_eq_PWM_ratio_fz}")
-    print(f"max fz: {np.max(fz):.4f} N")
-    print(f"polynominal2(10x): {10 * coeffs_PWM_ratio_fz[0]:.5f}")
-    print(f"polynominal1(10x): {10 * coeffs_PWM_ratio_fz[1]:.5f}")
-    print(f"polynominal0: {coeffs_PWM_ratio_fz[2]:.5f}")
+    # n-th order polynomial fit for x:PWM_ratio y:fz
+    coeffs_PWM_ratio_fz = np.polyfit(PWM_ratio, fz, order)
+    fit_eq_PWM_ratio_fz = "fz = "
+    for i in range(order + 1):
+        fit_eq_PWM_ratio_fz += "\n{:.4e} * PWM_Ratio_%^{} +".format(coeffs_PWM_ratio_fz[i], order - i)
+    print()
+    print("Fitting Equation (x:PWM_Ratio_% y:fz): {}".format(fit_eq_PWM_ratio_fz))
+    for i in range(order + 1):
+        print("polynomial{}: {:.8f}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_PWM_ratio_fz[i], order -i))
+    print()
 
-    # Create 3x2 subplots
-    fig, axs = plt.subplots(3, 2, figsize=(12, 18))
+    # n-th order polynomial fit for x:fz y:PWM_ratio
+    coeffs_fz_PWM_ratio = np.polyfit(fz, PWM_ratio, order)
+    fit_eq_fz_PWM_ratio = "PWM_ratio_% = "
+    for i in range(order + 1):
+        fit_eq_fz_PWM_ratio += "\n{:.4e} * fz^{} + ".format(coeffs_fz_PWM_ratio[i], order - i)
+    print("Fitting Equation (x:fz y:PWM_Ratio_%): {}".format(fit_eq_fz_PWM_ratio))
+    print("voltage: {}".format(set_voltage))
+    print("max_thrust: {:.4f} # N".format(np.max(fz)))
+    for i in range(order + 1):
+        print("polynomial{}: {:.8f}  # x10^{}".format(order - i, pow(10, order - i) * coeffs_fz_PWM_ratio[i], order - i))
+    print()
+
+    # Create 3x3 subplots
+    fig, axs = plt.subplots(3, 3, figsize=(12, 18))
 
     # Plot 1: x:kRPM^2 y:fz
     if has_telemetry:
@@ -159,6 +173,17 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
         axs[2, 1].text(0.95, 0.05, fit_eq_kRPM_PWM_ratio, horizontalalignment='right', verticalalignment='bottom',
                        transform=axs[2, 1].transAxes, fontsize=10, color='green')
 
+    # Plot 7: PWM_ratio vs fz
+    axs[0, 2].scatter(fz, PWM_ratio, color='blue', alpha=0.5, label='Data points')
+    axs[0, 2].plot(np.sort(fz), np.polyval(coeffs_fz_PWM_ratio, np.sort(fz)), color='red',
+                   label='Fitted polynomial')
+    axs[0, 2].set_title('PWM_Ratio_% vs fz')
+    axs[0, 2].set_xlabel('fz (N)')
+    axs[0, 2].set_ylabel('PWM_Ratio_%')
+    axs[0, 2].grid()
+    axs[0, 2].text(0.95, 0.05, fit_eq_fz_PWM_ratio, horizontalalignment='right', verticalalignment='bottom',
+                   transform=axs[0, 2].transAxes, fontsize=10, color='green')
+
     # title with the file name
     fig.suptitle(file_name)
 
@@ -173,7 +198,8 @@ if __name__ == '__main__':
     parser.add_argument('file_name', help='file name')
     parser.add_argument('has_telemetry', help='has telemetry, 0 or 1')
     parser.add_argument("--set_voltage", help="the voltage set in the test, float", default=0.0)
+    parser.add_argument("--order", help="fitting order of fz vs PWM_ratio", default=2)
     parser.add_argument('--folder_path', help='path to folder', default='~/.ros/')
     args = parser.parse_args()
 
-    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage))
+    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage), int(args.order))
