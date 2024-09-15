@@ -44,6 +44,7 @@ namespace aerial_robot_navigation
     int getModuleState(){return module_state_;}
     int getReconfigFlag(){return reconfig_flag_;}
     int getMyID(){return my_id_;}
+    int getMyIndex(){return my_index_;}
     std::string getMyName(){return my_name_;}
     int getLeaderID(){return leader_id_;}
     std::vector<int> getModuleIDs(){return assembled_modules_ids_;}
@@ -66,6 +67,7 @@ namespace aerial_robot_navigation
     }
 
     std::map<int, bool> getAssemblyFlags(){return assembly_flags_;}
+    std::vector<int> getAssemblyIds(){return assembled_modules_ids_;}
     int getMaxModuleNum(){return max_modules_num_;}
 
     virtual void calcCenterOfMoving();  
@@ -82,6 +84,7 @@ namespace aerial_robot_navigation
     int pre_assembled_modules_;
     int my_id_;
     std::string my_name_;
+    int my_index_;
     int leader_id_;
     std::map<int, bool> assembly_flags_;
     bool reconfig_flag_;

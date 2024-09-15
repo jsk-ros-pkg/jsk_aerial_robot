@@ -14,7 +14,8 @@ BeetleNavigator::BeetleNavigator():
   leader_fix_flag_(false),
   tfBuffer_(),
   tfListener_(tfBuffer_),
-  pre_assembled_modules_(0)
+  pre_assembled_modules_(0),
+  my_index_(0)
 {
 }
 
