@@ -4,6 +4,7 @@
 #include <beetle/model/beetle_robot_model.h>
 #include <beetle/beetle_navigation.h>
 #include <beetle/TaggedWrench.h>
+#include <beetle/TaggedWrenches.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
 #include <beetle/sensor/imu.h>
 
@@ -31,6 +32,7 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate
                     ) override;
+    void setFfInterWrench(int id, Eigen::VectorXd des_int_wrench){ff_inter_wrench_list_[id] = des_int_wrench;}
   private:
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     boost::shared_ptr<aerial_robot_navigation::BeetleNavigator> beetle_navigator_;
@@ -39,6 +41,7 @@ namespace aerial_robot_control
     ros::Publisher whole_external_wrench_pub_;
     ros::Publisher internal_wrench_pub_;
     ros::Publisher wrench_comp_pid_pub_;
+    ros::Publisher des_inter_wrench_pub_;
     map<string, ros::Subscriber> ff_inter_wrench_subs_;
 
     aerial_robot_msgs::PoseControlPid wrench_pid_msg_;
@@ -69,12 +72,12 @@ namespace aerial_robot_control
     double I_comp_Ty_;
     double I_comp_Tz_;
     
-    void controlCore() override;
     void calcInteractionWrench();
     void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:
     ros::Publisher tagged_external_wrench_pub_;
+    void controlCore() override;
     
     virtual void ffInterWrenchCallback(const beetle::TaggedWrench & msg);
     void rosParamInit() override;

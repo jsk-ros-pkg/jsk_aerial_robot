@@ -55,6 +55,7 @@ namespace aerial_robot_control
     whole_external_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("whole_wrench", 1);
     internal_wrench_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("internal_wrench", 1);
     wrench_comp_pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/wrench_comp/pid", 1);
+    des_inter_wrench_pub_ = nh_.advertise<beetle::TaggedWrenches>("des_inter_wnrech", 1);
     int max_modules_num = beetle_navigator_->getMaxModuleNum();
     for(int i = 0; i < max_modules_num; i++){
       std::string module_name  = string("/") + beetle_navigator_->getMyName() + std::to_string(i+1);
@@ -211,6 +212,30 @@ namespace aerial_robot_control
 
       wrench_comp_pid_pub_.publish(wrench_pid_msg_);
 
+      /*publish desire internal wrench*/
+      beetle::TaggedWrenches all_tagged_des_wrenche_msg;
+      std::vector<int> assembled_ids = beetle_navigator_->getAssemblyIds();
+      all_tagged_des_wrenche_msg.tagged_wrenches.resize(assembled_ids.size());
+      int cnt =0;
+      for(const auto id: assembled_ids)
+        {
+          beetle::TaggedWrench tagged_des_wrench_msg;
+          geometry_msgs::WrenchStamped des_wrench_msg;
+          Eigen::VectorXd des_wrench = ff_inter_wrench_list_[id];
+          des_wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+          des_wrench_msg.wrench.force.x = des_wrench(0);
+          des_wrench_msg.wrench.force.y = des_wrench(1);
+          des_wrench_msg.wrench.force.z = des_wrench(2);
+          des_wrench_msg.wrench.torque.x = des_wrench(3);
+          des_wrench_msg.wrench.torque.y = des_wrench(4);
+          des_wrench_msg.wrench.torque.z = des_wrench(5);
+
+          tagged_des_wrench_msg.index = id;
+          tagged_des_wrench_msg.wrench = des_wrench_msg;
+          all_tagged_des_wrenche_msg.tagged_wrenches[cnt] = tagged_des_wrench_msg;
+          cnt ++;
+        }
+      des_inter_wrench_pub_.publish(all_tagged_des_wrenche_msg);
     }else{
       pid_controllers_.at(FX).reset();
       pid_controllers_.at(FY).reset();
