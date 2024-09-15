@@ -58,7 +58,6 @@ namespace aerial_robot_control
     int gimbal_dof_;
     int rotor_coef_;
 
-    bool update() override;
     void sendCmd() override;
     void sendFourAxisCommand();
     void sendGimbalCommand();
@@ -71,6 +70,7 @@ namespace aerial_robot_control
     virtual void setAttitudeGains();
     virtual void rosParamInit();
     virtual void controlCore() override;
+    bool update() override;
     Eigen::VectorXd additional_wrench_acc_cog_term_;
   };
 };

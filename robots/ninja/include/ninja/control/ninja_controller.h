@@ -7,6 +7,12 @@
 
 namespace aerial_robot_control
 {
+  enum
+    {
+     JOINT_PITCH = TZ +1,
+     JOINT_YAW,
+    };
+  
   class NinjaController: public BeetleController
   {
   public:
@@ -21,7 +27,17 @@ namespace aerial_robot_control
   private:
     boost::shared_ptr<aerial_robot_navigation::NinjaNavigator> ninja_navigator_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
+
+    double joint_p_gain_;
+    double joint_i_gain_;
+    double joint_d_gain_;
+
+    double joint_control_timestamp_;
   protected:
     void externalWrenchEstimate() override;
+    void rosParamInit() override;
+    void controlCore() override;
+    bool update() override;
+    void reset() override;
   };
 };

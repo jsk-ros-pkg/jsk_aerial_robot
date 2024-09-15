@@ -5,7 +5,8 @@ using namespace std;
 namespace aerial_robot_control
 {
   NinjaController::NinjaController():
-    BeetleController()
+    BeetleController(),
+    joint_control_timestamp_(-1)
   {}
   void NinjaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -17,6 +18,45 @@ namespace aerial_robot_control
     BeetleController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
     ninja_navigator_ = boost::dynamic_pointer_cast<aerial_robot_navigation::NinjaNavigator>(navigator);
     ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
+    pid_controllers_.push_back(PID("joint_pitch", joint_p_gain_, joint_i_gain_, joint_d_gain_));
+    pid_controllers_.push_back(PID("joint_yaw", joint_p_gain_, joint_i_gain_, joint_d_gain_));
+  }
+  bool NinjaController::update()
+  {
+    if(!ninja_navigator_->getControlFlag())
+      joint_control_timestamp_ = -1;
+    else if(ninja_navigator_->getControlFlag() && joint_control_timestamp_ < 0)
+      joint_control_timestamp_ = ros::Time::now().toSec();
+    return GimbalrotorController::update();
+  }
+
+  void NinjaController::controlCore()
+  {
+    if(ninja_navigator_->getCurrentAssembled() && joint_control_timestamp_ > 0 && ninja_navigator_->getFreeJointFlag())
+      {
+        int my_id = ninja_navigator_->getMyID();
+        int leader_id = ninja_navigator_->getLeaderID();
+        std::vector<int> assembled_modules_ids = ninja_navigator_->getAssemblyIds();
+        double du = ros::Time::now().toSec() - joint_control_timestamp_;
+        std::vector<double> joint_errs =  ninja_navigator_->getJointPosErr();
+        pid_controllers_.at(JOINT_PITCH).updateWoVel(joint_errs.at(0),du);
+        pid_controllers_.at(JOINT_YAW).updateWoVel(joint_errs.at(1),du);
+        Eigen::VectorXd joint_ff_wrench = Eigen::VectorXd::Zero(6);
+        joint_ff_wrench.topRows(4) = Eigen::VectorXd::Zero(4);
+        joint_ff_wrench(4) = pid_controllers_.at(JOINT_PITCH).result();
+        joint_ff_wrench(5) = pid_controllers_.at(JOINT_YAW).result();
+        if(my_id < leader_id)
+          {
+            setFfInterWrench(my_id,-joint_ff_wrench);
+          }
+        else if(my_id > leader_id)
+          {
+            int left_module_id = assembled_modules_ids[ninja_navigator_->getMyIndex() -1];
+            setFfInterWrench(left_module_id, joint_ff_wrench);
+          }
+      }
+    joint_control_timestamp_ = ros::Time::now().toSec();
+    BeetleController::controlCore();
   }
 
   void NinjaController::externalWrenchEstimate()
@@ -108,6 +148,28 @@ namespace aerial_robot_control
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
   }
 
+  void NinjaController::rosParamInit()
+  {
+    BeetleController::rosParamInit();
+    ros::NodeHandle control_nh(nh_, "controller");
+    ros::NodeHandle joint_nh(control_nh, "joint_comp");
+    getParam<double>(joint_nh, "p_gain", joint_p_gain_, 0.1);
+    getParam<double>(joint_nh, "i_gain", joint_i_gain_, 0.005);
+    getParam<double>(joint_nh, "d_gain", joint_d_gain_, 0.07);  
+  }
+
+  void NinjaController::reset()
+  {
+    BeetleController::reset();
+    pid_controllers_.at(JOINT_PITCH).reset();
+    pid_controllers_.at(JOINT_YAW).reset();
+    for(const auto & id : ninja_navigator_->getAssemblyIds())
+      {
+        Eigen::VectorXd reset_ff_wrench = Eigen::VectorXd::Zero(6);
+        setFfInterWrench(id,reset_ff_wrench); 
+      }
+    joint_control_timestamp_ = -1;
+  }
 } //namespace aerial_robot_controller
 
 /* plugin registration */
