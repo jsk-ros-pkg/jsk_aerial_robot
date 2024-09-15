@@ -22,6 +22,7 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setTargetCoMRotCallback, this);
   target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
+  joint_pos_errs_.resize(module_joint_num_);
 }
 
 void NinjaNavigator::update()
@@ -106,6 +107,11 @@ void NinjaNavigator::updateEntSysState()
   }
   setModuleNum(assembled_modules_ids_.size());
   std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
+
+  auto it = std::find(assembled_modules_ids_.begin(), assembled_modules_ids_.end(), my_id_);
+  if (it != assembled_modules_ids_.end()) {
+    my_index_ = std::distance(assembled_modules_ids_.begin(), it);
+  }
   if(control_flag_){
     reconfig_flag_ =  (pre_assembled_modules_ != module_num_) ? true : false;
     pre_assembled_modules_ = module_num_;
@@ -527,7 +533,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           switch(joint_process_func_)
             {
             case CONSTANT:
-              if(id == my_id_)
+              if(id == my_id_ && !free_joint_flag_)
                 {
                   joint_send_flag = true;
                   joints_ctrl_msg.name.push_back(target_joint_name);
@@ -554,6 +560,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
 
 void NinjaNavigator::morphingProcess()
 {
+  if(!getCurrentAssembled()) return;
   sensor_msgs::JointState joints_ctrl_msg;
   bool joint_send_flag = false;
   std::map<int, std::string> joint_map;
@@ -571,7 +578,7 @@ void NinjaNavigator::morphingProcess()
             {
               data.first_joint_processed_time_[i] = -1.0;
               data.joint_pos_(i) = data.goal_joint_pos_(i);
-              if(id == my_id_)
+              if(id == my_id_ && !free_joint_flag_)
                 {
                   joint_send_flag = true;
                   joints_ctrl_msg.name.push_back(joint_map[i]);
@@ -591,7 +598,7 @@ void NinjaNavigator::morphingProcess()
             default:
               break;
             }
-          if(id == my_id_)
+          if(id == my_id_ && !free_joint_flag_)
             {
               joint_send_flag = true;
               joints_ctrl_msg.name.push_back(joint_map[i]);
@@ -600,6 +607,46 @@ void NinjaNavigator::morphingProcess()
         }
     }
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
+
+  /* calculate joint pos err */
+  int neighbor_id_;
+  if(my_id_ < leader_id_)
+    neighbor_id_ = assembled_modules_ids_[my_index_+1];
+  else if(my_id_ > leader_id_)
+    neighbor_id_ = assembled_modules_ids_[my_index_-1];
+  else
+    return;
+  try
+    {
+      KDL::Frame myCog2NeighborCog;
+      geometry_msgs::TransformStamped transformStamped;
+      transformStamped = tfBuffer_.lookupTransform(my_name_ + std::to_string(my_id_) + std::string("/fc") ,
+                                                   my_name_ + std::to_string(neighbor_id_) + std::string("/fc"),
+                                                   ros::Time(0));
+      tf::transformMsgToKDL(transformStamped.transform, myCog2NeighborCog);
+      double joint_pos_roll, joint_pos_pitch, joint_pos_yaw;
+      // myCog2NeighborCog.M.GetRPY(joint_pos_roll, joint_pos_pitch, joint_pos_yaw);
+      if(my_id_ < leader_id_)
+        {
+          joint_pos_yaw = std::atan2(-myCog2NeighborCog.M(0,1),myCog2NeighborCog.M(0,0));
+          joint_pos_pitch = std::asin(myCog2NeighborCog.M(0,2));
+          joint_pos_errs_[0] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(0) - joint_pos_pitch;
+          joint_pos_errs_[1] = assembled_modules_data_[my_id_].goal_joint_pos_(1) - joint_pos_yaw;
+        }
+      else if(my_id_ > leader_id_)
+        {
+          joint_pos_yaw = std::atan2(-myCog2NeighborCog.M(0,1),myCog2NeighborCog.M(0,0));
+          joint_pos_pitch = std::asin(myCog2NeighborCog.M(0,2));
+          joint_pos_errs_[0] = assembled_modules_data_[my_id_].goal_joint_pos_(0) - (-joint_pos_pitch);
+          joint_pos_errs_[1] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(1) - (-joint_pos_yaw);
+        }
+    }
+  catch (tf2::TransformException& ex)
+    {
+      ROS_ERROR_STREAM("not exist neighbor mentioned. ID is "<<neighbor_id_ );
+      return;
+    }
+
 }
 
 
@@ -609,6 +656,7 @@ void NinjaNavigator::rosParamInit()
   getParam<double>(nh, "morphing_vel", morphing_vel_, M_PI/4.0);
   getParam<double>(nh, "joint_pos_change_thresh", joint_pos_chnage_thresh_, 0.01);
   getParam<int>(nh, "joint_process_func", joint_process_func_, CONSTANT);
+  getParam<bool>(nh, "free_joint_flag", free_joint_flag_, false);
   BeetleNavigator::rosParamInit();
 }
 

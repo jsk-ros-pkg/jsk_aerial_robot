@@ -6,6 +6,7 @@
 #include <ninja/model/ninja_robot_model.h>
 #include <geometry_msgs/Pose.h>
 #include <regex>
+#include <aerial_robot_control/control/utils/pid.h>
 
 namespace aerial_robot_navigation
 {
@@ -36,6 +37,7 @@ namespace aerial_robot_navigation
     KDL::JntArray goal_joint_pos_;
     KDL::JntArray start_joint_pos_;
 
+
   };
   class NinjaNavigator : public BeetleNavigator
   {
@@ -53,6 +55,8 @@ namespace aerial_robot_navigation
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
     void morphingProcess();
 
+    bool getFreeJointFlag(){return free_joint_flag_;}
+    std::vector<double> getJointPosErr(){return joint_pos_errs_;}
     template<class T> T getCom2Base();
   protected:
     std::mutex mutex_com2base_;
@@ -74,6 +78,7 @@ namespace aerial_robot_navigation
     ros::Publisher joint_control_pub_;
 
     std::map<int, ModuleData> assembled_modules_data_;
+    std::vector<double> joint_pos_errs_;
 
     KDL::Rotation target_com_rot_;
     KDL::Frame com2base_;
@@ -83,6 +88,8 @@ namespace aerial_robot_navigation
     double morphing_vel_;
     double joint_pos_chnage_thresh_;
     int joint_process_func_;
+
+    bool free_joint_flag_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
