@@ -307,7 +307,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
-  osTimerStart(kondoServoTimerHandle, KONDO_SERVO_UPDATE_INTERVAL); // ms
+  osTimerStart(kondoServoTimerHandle, SERVO_UPDATE_INTERVAL); // ms
 
   /* USER CODE END RTOS_TIMERS */
 

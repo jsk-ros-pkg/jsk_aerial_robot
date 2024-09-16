@@ -23,9 +23,9 @@ void KondoServo::init(UART_HandleTypeDef* huart, ros::NodeHandle* nh)
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
   HAL_HalfDuplex_EnableReceiver(huart_);
-  HAL_UART_Receive_DMA(huart, kondo_rx_buf_, RX_BUFFER_SIZE);
+  HAL_UART_Receive_DMA(huart, servo_rx_buf_, RX_BUFFER_SIZE);
 
-  memset(kondo_rx_buf_, 0, RX_BUFFER_SIZE);
+  memset(servo_rx_buf_, 0, RX_BUFFER_SIZE);
   memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
 
   servo_state_msg_.servos_length = 4;
@@ -101,15 +101,15 @@ int KondoServo::readOneByte()
   if (__HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE))
   {
     __HAL_UART_CLEAR_FLAG(huart_, UART_CLEAR_NEF | UART_CLEAR_OREF | UART_FLAG_RXNE | UART_FLAG_ORE);
-    HAL_UART_Receive_DMA(huart_, kondo_rx_buf_, RX_BUFFER_SIZE);  // restart
+    HAL_UART_Receive_DMA(huart_, servo_rx_buf_, RX_BUFFER_SIZE);  // restart
   }
-  uint32_t dma_write_ptr = (KONDO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (KONDO_BUFFER_SIZE);
+  uint32_t dma_write_ptr = (SERVO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (SERVO_BUFFER_SIZE);
 
   int c = -1;
-  if (kondo_rd_ptr_ != dma_write_ptr)
+  if (servo_rd_ptr_ != dma_write_ptr)
   {
-    c = (int)kondo_rx_buf_[kondo_rd_ptr_++];
-    kondo_rd_ptr_ %= KONDO_BUFFER_SIZE;
+    c = (int)servo_rx_buf_[servo_rd_ptr_++];
+    servo_rd_ptr_ %= SERVO_BUFFER_SIZE;
   }
   return c;
 }
@@ -123,15 +123,15 @@ void KondoServo::registerPos()
 
 bool KondoServo::available()
 {
-  uint32_t dma_write_ptr = (KONDO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (KONDO_BUFFER_SIZE);
-  return (kondo_rd_ptr_ != dma_write_ptr);
+  uint32_t dma_write_ptr = (SERVO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (SERVO_BUFFER_SIZE);
+  return (servo_rd_ptr_ != dma_write_ptr);
 }
 
 void KondoServo::servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
 {
   for (int i = 0; i < cmd_msg.index_length; i++)
   {
-    uint8_t servo_id = cmd_msg.index[i] ;  // gimbal1
+    uint8_t servo_id = cmd_msg.index[i];  // gimbal1
     if (servo_id >= MAX_SERVO_NUM)
       continue;
 

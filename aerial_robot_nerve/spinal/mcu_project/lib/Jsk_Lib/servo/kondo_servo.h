@@ -10,35 +10,20 @@
 
 #include "config.h"
 #include "base_servo.h"
-#include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <map>
 
-#define KONDO_SERVO_UPDATE_INTERVAL 2
-
-#define MAX_SERVO_NUM 32
 #define KONDO_SERVO_POSITION_MIN 3500
 #define KONDO_SERVO_POSITION_MAX 11500
 #define KONDO_SERVO_ANGLE_MIN -2.36
 #define KONDO_SERVO_ANGLE_MAX 2.36
-#define KONDO_BUFFER_SIZE 512
 #define KONDO_POSITION_TX_SIZE 3
 #define KONDO_POSITION_RX_SIZE 3
 
 #define KONDO_SERVO_ANGLE_LIMIT_MIN -1.57  // -90 degree
 #define KONDO_SERVO_ANGLE_LIMIT_MAX 1.57  // 90 degree
-
-namespace
-{
-  #ifdef STM32H7
-    uint8_t kondo_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".KondoRxBufferSection")));
-  #else
-    uint8_t kondo_rx_buf_[KONDO_BUFFER_SIZE];
-  #endif
-  uint32_t kondo_rd_ptr_ = 0;
-}
 
 class KondoServo: public BaseServo
 {
