@@ -52,12 +52,13 @@ if __name__ == "__main__":
     elif args.model == 1:
         nmpc = NMPCTiltQdServo()
     elif args.model == 2:
-        nmpc = NMPCTiltQdServoDist()
-    elif args.model == 3:
         nmpc = NMPCTiltQdThrust()
-    elif args.model == 4:
+    elif args.model == 3:
         nmpc = NMPCTiltQdServoThrust()
-    elif args.model == 5:
+
+    elif args.model == 21:
+        nmpc = NMPCTiltQdServoDist()
+    elif args.model == 22:
         nmpc = NMPCTiltQdServoThrustDist()
 
     # archiving methods
@@ -146,11 +147,13 @@ if __name__ == "__main__":
         # --------- update state estimation ---------
         if isinstance(nmpc, NMPCTiltQdServoDist) or isinstance(nmpc, NMPCTiltQdServoThrustDist):
             x_now = np.zeros(nx)
-            x_now[:nx - 6] = copy.deepcopy(x_now_sim[:nx - 6])  # only remove the last 6 elements, which are the disturbances
-        if isinstance(nmpc, NMPCTiltQdThrust):
-            x_now[13:17] = copy.deepcopy(x_now_sim[17:21])
+            x_now[:nx - 6] = copy.deepcopy(
+                x_now_sim[:nx - 6])  # only remove the last 6 elements, which are the disturbances
         else:
             x_now = copy.deepcopy(x_now_sim[:nx])  # the dimension of x_now may be smaller than x_now_sim
+
+        if isinstance(nmpc, NMPCTiltQdThrust):
+            x_now[13:17] = copy.deepcopy(x_now_sim[17:21])
 
         # -------- update control target --------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
