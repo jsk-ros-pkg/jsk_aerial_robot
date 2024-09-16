@@ -49,7 +49,7 @@
 #include <Spine/spine.h>
 
 #include "dshot_esc/dshot.h"
-#include "kondo_servo/kondo_servo.h"
+#include "servo/kondo_servo.h"
 
 /* USER CODE END Includes */
 

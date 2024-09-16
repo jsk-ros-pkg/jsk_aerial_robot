@@ -33,7 +33,7 @@
 /* RTOS */
 #include "cmsis_os.h"
 /* gimbal servo*/
-#include <kondo_servo/kondo_servo.h>
+#include <servo/kondo_servo.h>
 /* dshot esc */
 #include "dshot_esc/dshot.h"
 #endif

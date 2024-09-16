@@ -9,6 +9,7 @@
 #define __KONDO_SERVO_H
 
 #include "config.h"
+#include "base_servo.h"
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
@@ -39,7 +40,7 @@ namespace
   uint32_t kondo_rd_ptr_ = 0;
 }
 
-class KondoServo
+class KondoServo: public BaseServo
 {
 private:
   UART_HandleTypeDef* huart_;
@@ -94,10 +95,10 @@ public:
   {
   }
 
-  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh);
-  bool available();
-  void setTargetPos(const std::map<uint16_t, float>& servo_map);
-  void update();
+  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh) override;
+  bool available() override;
+  void setTargetPos(const std::map<uint16_t, float>& servo_map) override;
+  void update() override;
 };
 
 #endif
