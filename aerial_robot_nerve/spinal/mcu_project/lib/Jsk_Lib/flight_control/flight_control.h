@@ -71,7 +71,7 @@ public:
   {
   }
 
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BaseServo* servo, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DirectServo* servo, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
   {
     nh_ = nh;
 
@@ -158,7 +158,7 @@ private:
   AttitudeController att_controller_;
 #ifndef SIMULATION
   StateEstimate* estimator_;
-  BaseServo* servo_;
+  DirectServo* servo_;
   BatteryStatus* bat_;
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef*  pwm_htim2_;

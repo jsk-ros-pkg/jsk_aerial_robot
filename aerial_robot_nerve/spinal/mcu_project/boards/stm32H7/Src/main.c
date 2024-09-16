@@ -49,7 +49,7 @@
 #include <Spine/spine.h>
 
 #include "dshot_esc/dshot.h"
-#include "servo/kondo_servo.h"
+#include "servo/servo.h"
 
 /* USER CODE END Includes */
 
@@ -118,7 +118,7 @@ BatteryStatus battery_status_;
 DShot dshot_;
 
 /* driver instances */
-KondoServo servo_;
+DirectServo servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -253,7 +253,7 @@ int main(void)
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 # elif KONDO_FLAG
-  servo_.init(&huart3, &nh_);
+  servo_.init(&huart3, &nh_, NULL);
   estimator_.init(&imu_, &baro_, NULL, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 #endif
   dshot_.init(DSHOT600, &htim1, TIM_CHANNEL_1, &htim1, TIM_CHANNEL_2, &htim1, TIM_CHANNEL_3, &htim1, TIM_CHANNEL_4);
@@ -307,7 +307,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
-  osTimerStart(kondoServoTimerHandle, SERVO_UPDATE_INTERVAL); // ms
+  osTimerStart(kondoServoTimerHandle, 1); // ms
 
   /* USER CODE END RTOS_TIMERS */
 

@@ -65,7 +65,7 @@ AttitudeController::AttitudeController()
 }
 
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
-                              BaseServo* servo, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+                              DirectServo* servo, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
@@ -1123,7 +1123,7 @@ void AttitudeController::pwmConversion()
 #else
   if (gimbal_dof_)
   {
-    std::map<uint16_t, float> gimbal_map;
+    std::map<uint8_t, float> gimbal_map;
     for (int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
     {
       if (start_control_flag_)
@@ -1138,7 +1138,7 @@ void AttitudeController::pwmConversion()
         gimbal_map[i + 1] = 100.0;
       }
     }
-    servo_->setTargetPos(gimbal_map);
+    servo_->setGoalAngle(gimbal_map, ValueType::RADIAN);
   }
 #endif
 }
