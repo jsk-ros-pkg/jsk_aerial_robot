@@ -1,6 +1,7 @@
 """
  Created by li-jinjie on 24-3-9.
 """
+import copy
 import time
 
 import numpy as np
@@ -26,6 +27,9 @@ from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 from tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
+# only consider the thrust delay
+from tilt_qd_thrust import NMPCTiltQdThrust
+
 if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different NMPC models.")
@@ -46,21 +50,25 @@ if __name__ == "__main__":
     if args.model == 0:
         nmpc = NMPCTiltQdNoServo()
     elif args.model == 1:
-        nmpc = NMPCTiltQdServoOldCost()
-    elif args.model == 2:
-        nmpc = NMPCTiltQdNoServoNewCost()
-    elif args.model == 3:
         nmpc = NMPCTiltQdServo()
-    elif args.model == 4:
+    elif args.model == 2:
         nmpc = NMPCTiltQdServoDist()
+    elif args.model == 3:
+        nmpc = NMPCTiltQdThrust()
+    elif args.model == 4:
+        nmpc = NMPCTiltQdServoThrust()
     elif args.model == 5:
+        nmpc = NMPCTiltQdServoThrustDist()
+
+    # archiving methods
+    elif args.model == 91:
+        nmpc = NMPCTiltQdNoServoNewCost()
+    elif args.model == 92:
+        nmpc = NMPCTiltQdServoOldCost()
+    elif args.model == 93:
         nmpc = NMPCTiltQdServoVelInput()
         alpha_integ = np.zeros(4)
-    elif args.model == 6:
-        nmpc = NMPCTiltQdServoThrust()
-    elif args.model == 7:
-        nmpc = NMPCTiltQdServoThrustDist()
-    elif args.model == 8:
+    elif args.model == 94:
         nmpc = NMPCTiltQdServoDragDist()
     else:
         raise ValueError(f"Invalid control model {args.model}.")
@@ -138,9 +146,11 @@ if __name__ == "__main__":
         # --------- update state estimation ---------
         if isinstance(nmpc, NMPCTiltQdServoDist) or isinstance(nmpc, NMPCTiltQdServoThrustDist):
             x_now = np.zeros(nx)
-            x_now[:nx - 6] = x_now_sim[:nx - 6]  # only remove the last 6 elements, which are the disturbances
+            x_now[:nx - 6] = copy.deepcopy(x_now_sim[:nx - 6])  # only remove the last 6 elements, which are the disturbances
+        if isinstance(nmpc, NMPCTiltQdThrust):
+            x_now[13:17] = copy.deepcopy(x_now_sim[17:21])
         else:
-            x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
+            x_now = copy.deepcopy(x_now_sim[:nx])  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T

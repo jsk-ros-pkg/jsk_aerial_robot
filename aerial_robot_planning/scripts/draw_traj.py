@@ -38,7 +38,7 @@ def main(file_path, type):
         data_xyz_ref['__time'] = data_xyz['__time']
         data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'] = -0.095
         data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'] = -0.015
-        data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'] = 1.0
+        data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'] = 0.6
 
     data_xyz = data_xyz.dropna()
     data_xyz_ref = data_xyz_ref.dropna()
@@ -364,7 +364,7 @@ def main(file_path, type):
         plt.subplot(2, 2, 1)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'])
-        plt.plot(t_ref, x_ref, label='X$_r$', linestyle="--")
+        # plt.plot(t_ref, x_ref, label='X$_r$', linestyle="--")
 
         t = np.array(data_xyz['__time']) - t_bias
         x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
@@ -377,7 +377,7 @@ def main(file_path, type):
         # ------
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'])
-        plt.plot(t_ref, y_ref, label='Y$_r$', linestyle="--")
+        # plt.plot(t_ref, y_ref, label='Y$_r$', linestyle="--")
 
         t = np.array(data_xyz['__time']) - t_bias
         y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
@@ -402,9 +402,13 @@ def main(file_path, type):
         print(f'RMSE Z (m): {rmse_z}')
 
         plt.ylabel('Position (m)', fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, loc='center left', ncol=3)
+        plt.xlim(0, 28)
+        plt.legend(framealpha=legend_alpha, loc='center', ncol=2)
 
-    # --------------------------------
+        # add a yellow arrow at 18.5432, -0.2201, pointing to the right
+        plt.arrow(16.0, -0.2201, 2.0, 0, head_width=0.1, head_length=1.2, width=0.03, fc='y', ec='y', color="#EDB120")
+
+        # --------------------------------
         plt.subplot(2, 2, 2)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         roll_ref = np.array(data_euler_ref['roll'])
@@ -460,7 +464,11 @@ def main(file_path, type):
         print(f'RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}')
 
         plt.ylabel('Attitude ($^\\circ$)', fontsize=label_size)
+        plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc='upper left', ncol=3)
+
+        # add a yellow arrow at 11.0, -22.875, pointing to the right
+        plt.arrow(11.0, -22.875, 2.0, 0, head_width=5, head_length=1.2, width=1.6, fc='y', ec='y', color="b")
 
         # --------------------------------
         plt.subplot(2, 2, 3)
@@ -475,7 +483,8 @@ def main(file_path, type):
         plt.plot(t, thrust4, label='$f_{c4}$')
         plt.ylabel('Thrust Cmd (N)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, loc='upper right', ncol=2)
+        plt.xlim(0, 28)
+        plt.legend(framealpha=legend_alpha, loc='upper left', ncol=2)
 
         # --------------------------------
         plt.subplot(2, 2, 4)
@@ -490,7 +499,8 @@ def main(file_path, type):
         plt.plot(t, servo4, label='$\\alpha_{c4}$')
         plt.ylabel('Servo Cmd ($^\\circ$)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, loc='upper right', ncol=2)
+        plt.xlim(0, 28)
+        plt.legend(framealpha=legend_alpha, loc='upper left', ncol=2)
 
         # --------------------------------
         plt.tight_layout()
