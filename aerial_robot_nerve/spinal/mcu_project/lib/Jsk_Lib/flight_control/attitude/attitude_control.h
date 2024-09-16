@@ -33,7 +33,7 @@
 /* RTOS */
 #include "cmsis_os.h"
 /* gimbal servo*/
-#include <servo/kondo_servo.h>
+#include <servo/base_servo.h>
 /* dshot esc */
 #include "dshot_esc/dshot.h"
 #endif
@@ -86,7 +86,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BaseServo* servo,
             DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
@@ -223,7 +223,7 @@ private:
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
-  KondoServo* kondo_servo_;
+  BaseServo* servo_;
   DShot* dshot_;
 #endif
 

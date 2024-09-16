@@ -118,7 +118,7 @@ BatteryStatus battery_status_;
 DShot dshot_;
 
 /* driver instances */
-KondoServo kondo_servo_;
+KondoServo servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -253,12 +253,12 @@ int main(void)
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 # elif KONDO_FLAG
-  kondo_servo_.init(&huart3, &nh_);
+  servo_.init(&huart3, &nh_);
   estimator_.init(&imu_, &baro_, NULL, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 #endif
   dshot_.init(DSHOT600, &htim1, TIM_CHANNEL_1, &htim1, TIM_CHANNEL_2, &htim1, TIM_CHANNEL_3, &htim1, TIM_CHANNEL_4);
   dshot_.initTelemetry(&huart2);
-  controller_.init(&htim1, &htim4, &estimator_, &kondo_servo_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim4, &estimator_, &servo_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
@@ -1295,7 +1295,7 @@ void kondoServoCallback(void const * argument)
 {
   /* USER CODE BEGIN kondoServoCallback */
 #ifdef KONDO_FLAG
-  kondo_servo_.update();
+  servo_.update();
 #endif
   /* USER CODE END kondoServoCallback */
 }
