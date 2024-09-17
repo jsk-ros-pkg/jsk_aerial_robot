@@ -126,6 +126,10 @@ install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design 
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
+install(TARGETS delta_controller delta_robot_model delta_navigation
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  )
+
 install(FILES requirements.txt
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
