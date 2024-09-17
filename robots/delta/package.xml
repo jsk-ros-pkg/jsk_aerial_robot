@@ -10,7 +10,6 @@
   <author email="sugihara@jsk.imi.i.u-tokyo.ac.jp">Kazuki Sugihara</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <buildtool_depend>catkin_virtualenv</buildtool_depend>
 
   <build_depend>aerial_robot_control</build_depend>
   <build_depend>aerial_robot_estimation</build_depend>
