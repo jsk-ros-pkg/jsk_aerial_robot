@@ -29,7 +29,9 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ik_target_rel_ee_pos_sub_ = nh_.subscribe("full_body_ik_target", 1, &RollingNavigator::fullBodyIKTargetRelPosCallback, this);
   joy_sub_ = nh_.subscribe("joy", 1, &RollingNavigator::joyCallback, this);
   ground_navigation_mode_sub_ = nh_.subscribe("ground_navigation_command", 1, &RollingNavigator::groundNavigationModeCallback, this);
+  ground_motion_mode_sub_ = nh_.subscribe("ground_motion_command", 1, &RollingNavigator::groundMotionModeCallback, this);
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
+  ground_motion_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_motion_ack", 1);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
@@ -240,6 +242,9 @@ void RollingNavigator::groundModeProcess()
   std_msgs::Int16 msg;
   msg.data = current_ground_navigation_mode_;
   ground_navigation_mode_pub_.publish(msg);
+
+  msg.data = motion_mode_;
+  ground_motion_mode_pub_.publish(msg);
 }
 
 void RollingNavigator::rosParamInit()
@@ -263,8 +268,14 @@ void RollingNavigator::rosParamInit()
 
 void RollingNavigator::groundNavigationModeCallback(const std_msgs::Int16Ptr & msg)
 {
-  ROS_WARN_STREAM("[navigation] ground navigation command callback: switch mode to " << indexToGroundNavigationModeString(msg->data));
+  ROS_INFO_STREAM("[navigation] ground navigation command callback: switch mode to " << indexToGroundNavigationModeString(msg->data));
   setGroundNavigationMode(msg->data);
+}
+
+void RollingNavigator::groundMotionModeCallback(const std_msgs::Int16Ptr & msg)
+{
+  ROS_INFO_STREAM("[navigation] ground motion mode callback: switch mode to " << indexToGroundMotionModeString(msg->data));
+  setGroundMotionMode(msg->data);
 }
 
 void RollingNavigator::setFinalTargetBaselinkQuatCallback(const geometry_msgs::QuaternionStampedConstPtr & msg)
