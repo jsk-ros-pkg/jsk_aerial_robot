@@ -22,7 +22,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rolling_robot_model_ = boost::dynamic_pointer_cast<RollingRobotModel>(robot_model_);
   robot_model_for_plan_ = boost::make_shared<RollingRobotModel>();
 
-  desire_coord_pub_ = nh_.advertise<geometry_msgs::Quaternion>("desire_coordinate", 1);
+  desire_coord_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
   final_target_baselink_quat_sub_ = nh_.subscribe("final_target_baselink_quat", 1, &RollingNavigator::setFinalTargetBaselinkQuatCallback, this);
   final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &RollingNavigator::setFinalTargetBaselinkRpyCallback, this);
   joints_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
@@ -219,11 +219,12 @@ void RollingNavigator::baselinkRotationProcess()
       robot_model_->setCogDesireOrientation(rot);
 
       /* send to spinal */
-      geometry_msgs::Quaternion msg;
-      msg.x = curr_target_baselink_quat_.x();
-      msg.y = curr_target_baselink_quat_.y();
-      msg.z = curr_target_baselink_quat_.z();
-      msg.w = curr_target_baselink_quat_.w();
+      spinal::DesireCoord msg;
+      double r,p,y;
+      tf::Matrix3x3(curr_target_baselink_quat_).getRPY(r, p, y);
+      msg.roll = r;
+      msg.pitch = p;
+      msg.yaw = y;
       desire_coord_pub_.publish(msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();

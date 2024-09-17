@@ -47,7 +47,7 @@ private:
   ros::Timer timer_;
 
   void motorPwmCallback(const spinal::PwmsPtr & pwm_msg);
-  void desireCoordinateCallback(const geometry_msgs::Quaternion & msg);
+  void desireCoordinateCallback(const spinal::DesireCoord & msg);
   void gimbalsControlCallback(const sensor_msgs::JointState & joint_state_msg);
   void fourAxisCommandCallback(const spinal::FourAxisCommand & msg);
   void timerCallback(const ros::TimerEvent & e);
