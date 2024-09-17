@@ -109,6 +109,7 @@ namespace aerial_robot_navigation
     void rosParamInit() override;
 
     void groundNavigationModeCallback(const std_msgs::Int16Ptr & msg);
+    void groundMotionModeCallback(const std_msgs::Int16Ptr & msg);
     void setFinalTargetBaselinkQuatCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
     void setFinalTargetBaselinkRpyCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
     void jointsControlCallback(const sensor_msgs::JointStatePtr & msg);
