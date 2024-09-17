@@ -228,7 +228,7 @@
       <limit effort="6.6" lower="-2.0" upper="2.0" velocity="3.0"/>
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 0 0" xyz="0.162845 0.0735 0"/>
+      <origin rpy="0 0 0" xyz="0.162845 0.09285 0"/>
       <axis xyz="0 1 0"/>
     </joint>
     <transmission name="joint_tran${2*self}">
@@ -253,9 +253,9 @@
             izz="0.0005261"/>
       </inertial>
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 ${-pi/2}"/>
+        <origin xyz="0 -0.09285 0" rpy="0 0 ${pi}"/>
         <geometry>
-          <mesh filename="package://ninja/urdf/mesh/rotor_link_CW.dae" scale="1 1 1"/>
+          <mesh filename="package://ninja/urdf/mesh/5inch_edf.dae" scale="1 1 1"/>
         </geometry>
       </visual>
     </link>
@@ -284,7 +284,7 @@
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="rotor_parent${self}"/>
       <child link="thrust${self}"/>
-      <origin rpy="0 0 0" xyz="0 -0.0835 0.025"/>
+      <origin rpy="0 0 0" xyz="0 -0.09285 0.025"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
