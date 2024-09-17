@@ -54,13 +54,10 @@ void MotorPWMRepublisher::motorPwmCallback(const spinal::PwmsPtr & pwm_msg)
     }
 }
 
-void MotorPWMRepublisher::desireCoordinateCallback(const geometry_msgs::Quaternion & msg)
+void MotorPWMRepublisher::desireCoordinateCallback(const spinal::DesireCoord & msg)
 {
-  tf::Quaternion quat = tf::Quaternion(msg.x, msg.y, msg.z, msg.w);
-  double r,p,y;
-  tf::Matrix3x3(quat).getRPY(r, p, y);
-  desire_coordinate_roll_ = r;
-  desire_coordinate_pitch_ = p;
+  desire_coordinate_roll_ = msg.roll;
+  desire_coordinate_pitch_ = msg.pitch;
 }
 
 void MotorPWMRepublisher::gimbalsControlCallback(const sensor_msgs::JointState & joint_state_msg)
