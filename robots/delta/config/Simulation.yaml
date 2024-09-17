@@ -3,9 +3,6 @@
 sensor_plugin:
   mocap:
     ground_truth_sub_name: ground_truth
-  gps:
-    estimate_mode: 4 #1 << 2
-    ned_flag: true # hector_gazebo_plugins/GPS
 
 # ground truth parameter
 # global namespace
