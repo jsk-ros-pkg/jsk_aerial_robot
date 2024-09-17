@@ -26,7 +26,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 catkin_python_setup()
 
 catkin_package(
-  INCLUDE_DIRS include test
+  INCLUDE_DIRS include
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
   LIBRARIES delta_controller delta_robot_model delta_navigation
   )
@@ -94,7 +94,7 @@ install(DIRECTORY config launch plugins scripts
   USE_SOURCE_PERMISSIONS
   )
 
-install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design mapping_optimization pwm_republisher
+install(TARGETS delta_joint_load_calc delta_optimal_design opt full_search fc_t_output optimal_design mapping_optimization pwm_republisher
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
