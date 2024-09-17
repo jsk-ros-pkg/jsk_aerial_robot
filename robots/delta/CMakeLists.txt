@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
-  catkin_virtualenv
   hydrus
   mujoco_ros_control
   pluginlib
@@ -30,27 +29,6 @@ catkin_package(
   INCLUDE_DIRS include test
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
   LIBRARIES delta_controller delta_robot_model delta_navigation
-  )
-
-catkin_generate_virtualenv(
-  INPUT_REQUIREMENTS requirements.in
-  PYTHON_INTERPRETER python3
-  )
-
-catkin_install_python(
-  PROGRAMS
-    scripts/delta/common_states.py
-    scripts/delta/delta_interface.py
-    scripts/demos/brick_pick_demo.py
-    scripts/demos/door_opening_demo.py
-    scripts/demos/gimbal_demo.py
-    scripts/gimbal_test.py
-    scripts/feasible_control_convex_plot.py
-    scripts/joint_load_plot.py
-    scripts/joint_test.py
-    scripts/joy_stick_instruction.py
-    scripts/transformation_demo.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
 include_directories(
@@ -122,10 +100,6 @@ install(TARGETS delta_optimal_design opt full_search fc_t_output optimal_design 
 
 install(TARGETS delta_controller delta_robot_model delta_navigation
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  )
-
-install(FILES requirements.txt
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
 
 mujoco_model_convert(
