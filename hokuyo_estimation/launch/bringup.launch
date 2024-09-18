@@ -6,19 +6,19 @@
   <arg name="robot_ns" default="" />
   <arg name="sensor" default="hokuyo" />
 
-  <group ns="$(arg robot_ns)">
+  <!-- <group ns="$(arg robot_ns)"> -->
     <group if= "$(eval not arg('simulation') and arg('real_machine') and sensor=='hokuyo')">
       <include file="$(find hokuyo_estimation)/launch/urg_node.launch">
 	<arg name="robot_ns" value="$(arg robot_ns)" />
       </include>
     </group>
 
-    <group if= "$(eval not arg('simulation') and arg('real_machine') and sensor=='livox')">
-      <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch">
-	<!-- <arg name="robot_ns" value="$(arg robot_ns)" /> -->
-	<arg name="xfer_format" value="0" />
-      </include>
-    </group>
+    <!-- <group if= "$(eval not arg('simulation') and arg('real_machine') and sensor=='livox')"> -->
+    <!--   <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch"> -->
+    <!-- 	<!-\- <arg name="robot_ns" value="$(arg robot_ns)" /> -\-> -->
+    <!-- 	<arg name="xfer_format" value="0" /> -->
+    <!--   </include> -->
+    <!-- </group> -->
 
 
     <include file="$(find hokuyo_estimation)/launch/tree_detector.launch">
@@ -28,5 +28,5 @@
       <arg name="sensor" value="$(arg sensor)" />
     </include>
 
-  </group>
+  <!-- </group> -->
 </launch>
