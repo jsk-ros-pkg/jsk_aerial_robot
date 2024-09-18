@@ -1121,24 +1121,24 @@ void AttitudeController::pwmConversion()
     gimbal_control_pub_.publish(gimbal_control_msg);
   }
 #else
-  if (gimbal_dof_)
-  {
-    std::map<uint8_t, float> gimbal_map;
-    for (int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
-    {
-      if (start_control_flag_)
-      {
-        gimbal_map[i + 1] = target_gimbal_angles_[i];
-        int target_angle = (int)(target_gimbal_angles_[i] * 10);
-      }
-      else
-      {
-        // gimbal_map[i+1] = 0;
-        // int target_angle = (int)(0);
-        gimbal_map[i + 1] = 100.0;
-      }
-    }
-    servo_->setGoalAngle(gimbal_map, ValueType::RADIAN);
-  }
+//  if (gimbal_dof_)
+//  {
+//    std::map<uint8_t, float> gimbal_map;
+//    for (int i = 0; i < motor_number_ / (gimbal_dof_ + 1); i++)
+//    {
+//      if (start_control_flag_)
+//      {
+//        gimbal_map[i + 1] = target_gimbal_angles_[i];
+//        int target_angle = (int)(target_gimbal_angles_[i] * 10);
+//      }
+//      else
+//      {
+//        // gimbal_map[i+1] = 0;
+//        // int target_angle = (int)(0);
+//        gimbal_map[i + 1] = 100.0;
+//      }
+//    }
+//    servo_->setGoalAngle(gimbal_map, ValueType::RADIAN);
+//  }  // These parts are used by Junichiro's code
 #endif
 }
