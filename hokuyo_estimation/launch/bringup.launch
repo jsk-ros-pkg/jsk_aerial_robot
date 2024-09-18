@@ -16,7 +16,7 @@
     <group if= "$(eval not arg('simulation') and arg('real_machine') and sensor=='livox')">
       <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch">
 	<!-- <arg name="robot_ns" value="$(arg robot_ns)" /> -->
-	<arg name="xfer_format" value="1" />
+	<arg name="xfer_format" value="0" />
       </include>
     </group>
 
@@ -25,6 +25,7 @@
       <!-- show rviz only in simulation -->
       <arg name="show_rviz" value="$(arg simulation)" />
       <arg name="robot_ns" value="$(arg robot_ns)" />
+      <arg name="sensor" value="$(arg sensor)" />
     </include>
 
   </group>
