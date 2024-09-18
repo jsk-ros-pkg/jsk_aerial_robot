@@ -1,8 +1,8 @@
 # aerial robot third party
 - git:
     local-name: aerial_robot_3rdparty
-    uri: https://github.com/sugikazu75/aerial_robot_3rdparty.git
-    version: develop/casadi/sample
+    uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
+    version: master
 
 # kalman filter
 - git:
@@ -51,7 +51,19 @@
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
 
+# ros controller
 - git:
      local-name: ros_controllers
      uri: https://github.com/sugikazu75/ros_controllers.git
      version: develop/abs_position_control
+
+# catkinized casadi
+- git:
+     local-name: casadi_catkin
+     uri: https://github.com/sugikazu75/casadi_catkin.git
+     version: master
+
+- git:
+     local-name: casadi_eigen
+     uri: https://github.com/sugikazu75/casadi_eigen.git
+     version: master
