@@ -51,6 +51,7 @@ void DirectServo::sendData()
   uint32_t now_time = HAL_GetTick();
   if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
     {
+	  servo_state_msg_.stamp = nh_->now();
       for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
         const ServoData& s = servo_handler_.getServo()[i];
         if (s.send_data_flag_ != 0) {
@@ -66,6 +67,7 @@ void DirectServo::sendData()
       servo_state_pub_.publish(&servo_state_msg_);
       servo_last_pub_time_ = now_time;
     }
+
   if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
     {
       for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
