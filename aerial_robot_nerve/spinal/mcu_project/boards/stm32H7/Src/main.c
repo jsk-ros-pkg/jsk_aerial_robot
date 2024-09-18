@@ -246,23 +246,29 @@ int main(void)
 #endif
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
+
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   battery_status_.init(&hadc1, &nh_, false);
 
 #if GPS_FLAG
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-# elif KONDO_FLAG
-  servo_.init(&huart3, &nh_, NULL);
-  estimator_.init(&imu_, &baro_, NULL, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+#else
+  estimator_.init(&imu_, &baro_, NULL, &nh_);
 #endif
+
   dshot_.init(DSHOT600, &htim1, TIM_CHANNEL_1, &htim1, TIM_CHANNEL_2, &htim1, TIM_CHANNEL_3, &htim1, TIM_CHANNEL_4);
   dshot_.initTelemetry(&huart2);
+
   controller_.init(&htim1, &htim4, &estimator_, &servo_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-#if NERVE_COMM
+#if KONDO_FLAG
+  servo_.init(&huart3, &nh_, NULL);
+#elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
@@ -307,7 +313,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
-  osTimerStart(kondoServoTimerHandle, 1); // ms
+  osTimerStart(kondoServoTimerHandle, 20); // ms
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -1135,8 +1141,6 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  IMU_ROS_CMD::init(&nh_);
-  IMU_ROS_CMD::addImu(&imu_);
   imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
