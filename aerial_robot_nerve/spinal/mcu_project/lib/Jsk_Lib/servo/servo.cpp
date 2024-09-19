@@ -23,12 +23,14 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   nh_->advertiseService(board_info_srv_);
 
   //temp
-  servo_state_msg_.servos_length = MAX_SERVO_NUM;
-  servo_state_msg_.servos = new spinal::ServoState[MAX_SERVO_NUM];
-  servo_torque_state_msg_.torque_enable_length = MAX_SERVO_NUM;
-  servo_torque_state_msg_.torque_enable = new uint8_t[MAX_SERVO_NUM];
-
   servo_handler_.init(huart, mutex);
+
+  unsigned int actual_servo_num = servo_handler_.getServoNum();
+
+  servo_state_msg_.servos_length = actual_servo_num;
+  servo_state_msg_.servos = new spinal::ServoState[actual_servo_num];
+  servo_torque_state_msg_.torque_enable_length = actual_servo_num;
+  servo_torque_state_msg_.torque_enable = new uint8_t[actual_servo_num];
 
   servo_last_pub_time_ = 0;
   servo_torque_last_pub_time_ = 0;
