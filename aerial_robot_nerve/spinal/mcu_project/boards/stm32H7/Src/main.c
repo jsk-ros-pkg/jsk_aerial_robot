@@ -315,7 +315,7 @@ int main(void)
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
 
 #ifdef SERVO_FLAG
-  osTimerStart(ServoTimerHandle, 20); // ms
+  osTimerStart(ServoTimerHandle, 50); // ms
 #endif
 
   /* USER CODE END RTOS_TIMERS */
