@@ -25,7 +25,7 @@
   <arg name="airframe" default="quadrotor" />
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
   <arg name="config_dir" default="$(find agile_multirotor)/config/" />
-  <arg name="hokuyo" default="False" />
+  <arg name="lidar" default="False" />
   <arg name="body_r" default="0.325" />
   <arg name="rate" default="20.0" />
 
@@ -121,7 +121,7 @@
 
   <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/multirotor/$(arg tree).csv" />
-    <param name="hokuyo" type="bool" value="$(arg hokuyo)"/>
+    <param name="hokuyo" type="bool" value="$(arg lidar)"/>
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)"/>
@@ -137,7 +137,7 @@
 
   ####### HOKUYO sensor launch  ############
   <!-- real exec to use hokuyo sensor  -->
-  <include file="$(find hokuyo_estimation)/launch/bringup.launch" if= "$(arg hokuyo)">
+  <include file="$(find hokuyo_estimation)/launch/bringup.launch" if= "$(arg lidar)">
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
