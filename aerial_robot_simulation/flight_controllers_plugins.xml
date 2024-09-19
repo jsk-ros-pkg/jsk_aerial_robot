@@ -6,4 +6,10 @@
     </description>
   </class>
 
+  <class name="flight_controllers/MujocoAttitudeController" type="flight_controllers::MujocoAttitudeController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      The Attitude Controller using part of the flight controller function in micro-baord.
+    </description>
+  </class>
+
 </library>

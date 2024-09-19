@@ -2,6 +2,19 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* [Hydrus][URDF] remove unecessary URDF files (`#560 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/560>`_)
+* Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)
+* [Hydrus] refactor CAD model realted to propeller to enable the visible rotation in gazebo and update the missing CAD model (remove the fixed propeller)
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+
+1.3.2 (2023-02-01)
+------------------
+* [Hydrus][Controller]Fix bug about thrust allocation in tilted robot (`#539 <https://github.com/jsk-ros-pkg/aerial_robot/issues/539>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)

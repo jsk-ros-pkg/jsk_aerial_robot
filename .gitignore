@@ -111,3 +111,10 @@ tags
 /agileflight
 
 /robots/hydrus/config/obstacle_world/
+# Jetbrains
+.idea/
+*cmake-build-debug/
+
+# mujoco
+MUJOCO_LOG.txt
+robots/**/mujoco

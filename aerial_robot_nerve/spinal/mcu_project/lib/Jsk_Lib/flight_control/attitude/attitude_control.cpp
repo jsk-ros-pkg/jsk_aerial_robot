@@ -262,7 +262,6 @@ void AttitudeController::pwmsControl(void)
     Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
 #endif
   }
-  return;
 #endif
 
   /* direct pwm type */
@@ -753,10 +752,42 @@ void AttitudeController::maxYawGainIndex()
     }
 }
 
-void AttitudeController::pwmTestCallback(const std_msgs::Float32& pwm_msg)
+void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 {
-  pwm_test_flag_ = true;
-  pwm_test_value_ = pwm_msg.data; //2000ms
+#ifndef SIMULATION  
+  if(pwm_msg.pwms_length && !pwm_test_flag_)
+    {
+      pwm_test_flag_ = true;
+      nh_->logwarn("Enter pwm test mode");
+    }
+  else if(!pwm_msg.pwms_length && pwm_test_flag_)
+    {
+      pwm_test_flag_ = false;
+      nh_->logwarn("Escape from pwm test mode");
+      return;
+    }
+
+  if(pwm_msg.motor_index_length)
+    {
+      /*Individual test mode*/
+      if(pwm_msg.motor_index_length != pwm_msg.pwms_length)
+        {
+          nh_->logerror("The number of index does not match the number of pwms.");
+          return;
+        }
+      for(int i = 0; i < pwm_msg.motor_index_length; i++){
+        int motor_index = pwm_msg.motor_index[i];
+        pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+      }
+    }
+  else
+    {
+      /*Simultaneous test mode*/
+      for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
+        pwm_test_value_[i] = pwm_msg.pwms[0];
+      }
+    }
+#endif  
 }
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
@@ -928,7 +959,7 @@ void AttitudeController::pwmConversion()
     {
       for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
         {
-          target_pwm_[i] = pwm_test_value_;
+          target_pwm_[i] = pwm_test_value_[i];
         }
       return;
     }

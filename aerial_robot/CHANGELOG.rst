@@ -2,6 +2,13 @@
 Changelog for package aerial_robot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* [Mini Quadrotor] support the common quadrotor platform (`#546 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/546>`_)
+
+1.3.2 (2023-02-01)
+------------------
+
 1.3.1 (2022-07-02)
 ------------------
 * Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)

@@ -2,6 +2,12 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+
+1.3.2 (2023-02-01)
+------------------
+
 1.3.1 (2022-07-02)
 ------------------
 * Modify README.md for motor test (`#509 <https://github.com/jsk-ros-pkg/aerial_robot/issues/509>`_)

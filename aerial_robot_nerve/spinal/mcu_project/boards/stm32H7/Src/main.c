@@ -35,7 +35,8 @@
 #include <spinal/Imu.h>
 
 #include "flashmemory/flashmemory.h"
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 #include "sensors/imu/imu_ros_cmd.h"
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
@@ -100,7 +101,11 @@ osMailQId canMsgMailHandle;
 ros::NodeHandle nh_;
 
 /* sensor instances */
+#if IMU_MPU
 IMUOnboard imu_;
+#elif IMU_ICM
+ICM20948 imu_;
+#endif
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
@@ -229,6 +234,8 @@ int main(void)
 #endif
 
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
@@ -291,7 +298,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of coreTask */
-  osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 512);
+  osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 1024);
   coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
 
   /* definition and creation of rosSpinTask */
@@ -648,10 +655,10 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -979,7 +986,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, LED0_Pin|LED1_Pin|LED2_Pin|BAROCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(IMUCS_GPIO_Port, IMUCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, IMUCS_Pin|SPI1_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : LED0_Pin LED1_Pin LED2_Pin */
   GPIO_InitStruct.Pin = LED0_Pin|LED1_Pin|LED2_Pin;
@@ -994,6 +1001,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(IMUCS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BAROCS_Pin */
   GPIO_InitStruct.Pin = BAROCS_Pin;
@@ -1042,8 +1056,6 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  IMU_ROS_CMD::init(&nh_);
-  IMU_ROS_CMD::addImu(&imu_);
   imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
@@ -1055,7 +1067,6 @@ void coreTaskFunc(void const * argument)
 #if NERVE_COMM
       Spine::send();
 #endif
-
       imu_.update();
       baro_.update();
       gps_.update();

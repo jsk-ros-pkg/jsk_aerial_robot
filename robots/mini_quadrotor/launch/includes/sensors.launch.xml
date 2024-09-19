@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="quadrotor" />
+
+  <group ns="$(arg robot_ns)">
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal)/launch/bridge.launch" >
+          <arg name="mode" value="serial" />
+          <arg name="serial_port" value="/dev/flight_controller" />
+        </include>
+
+        <!-- mocap -->
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+
+        <!-- livox mid360 & fast lio -->
+        <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
+        <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
+          <arg name="rviz" value="false" />
+        </include>
+
+      </group>
+    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find aerial_robot_base)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/lio/livox_mid360.yaml" command="load" />
+  </group>
+
+</launch>

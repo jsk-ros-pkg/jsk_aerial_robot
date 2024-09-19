@@ -23,6 +23,8 @@
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus_xi$(arg robot_id)" />
+  <arg name="mujoco" default="False" />
+
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -83,10 +85,12 @@
   </include >
 
   ###########  Servo Bridge  ###########
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" output="screen" ns="$(arg robot_ns)" />
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" output="screen" ns="$(arg robot_ns)">
+    <param name="use_mujoco" value="true" if="$(arg mujoco)"/>
+  </node>
 
   ########## Simulation in Gazebo #########
-  <include file="$(find aerial_robot_simulation)/launch/simulation.launch" if = "$(eval arg('simulation') * (1 - arg('real_machine')))" >
+  <include file="$(find aerial_robot_simulation)/launch/gazebo.launch" if = "$(eval arg('simulation') and not arg('real_machine') and not arg('mujoco'))" >
     <arg name="robot_ns" default="$(arg robot_ns)" />
     <arg name="launch_gazebo" default="$(arg launch_gazebo)" />
     <arg name="gui" value="false" if="$(arg headless)"/>
@@ -100,5 +104,12 @@
 
   ######### init gimbal angles #########
   <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" if="$(arg init_gimbal_angle)"/>
+
+  ########## Simulation in Mujoco #########
+  <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="mujoco_model" value="$(find hydrus_xi)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
+  </include>
 
 </launch>

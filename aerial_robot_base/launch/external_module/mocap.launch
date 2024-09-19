@@ -6,8 +6,7 @@
     type="mocap_node"
     name="mocap_node"
     respawn="false"
-    launch-prefix=""
-    required="true">
+    launch-prefix="">
     <rosparam subst_value="true">
       rigid_bodies:
          '$(arg robot_id)':
@@ -16,6 +15,7 @@
                child_frame_id: baselink
                parent_frame_id: world
       optitrack_config:
+         enable_optitrack: true
          multicast_address: 239.255.42.99
          command_port: 1510
          data_port: 1511

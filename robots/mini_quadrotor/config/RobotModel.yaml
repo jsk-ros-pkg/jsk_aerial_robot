@@ -1,0 +1,11 @@
+# robot model plugin
+robot_model_plugin_name: multirotor_robot_model
+
+wrench_mat_det_thre: 0
+
+# feasible control configuration
+fc_t_min_thre: 0.01
+fc_rp_min_thre: 1.8
+rp_position_margin_thre: 0.13 # deprecated
+
+

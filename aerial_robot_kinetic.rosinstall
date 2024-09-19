@@ -2,7 +2,7 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: ros-kinetic
+    version: b10f5bf
 
 # kalman filter
 - git:
@@ -16,13 +16,16 @@
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
     version: c4570c0 
 
-# RTK-GPS (forked)
+# RTK-GPS
+# support RTK based GPS module.
+# TODO: create PR
 - git:
     local-name: ublox_gps
     uri: https://github.com/tongtybj/ublox.git
     version: holybro_rtk_m8p
 
-# rosserial (forked)
+# rosserial
+# [rosserial server] implement rosservice server (https://github.com/ros-drivers/rosserial/pull/615)
 - git:
     local-name: rosserial
     uri: https://github.com/tongtybj/rosserial.git

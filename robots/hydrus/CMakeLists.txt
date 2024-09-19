@@ -1,29 +1,26 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(hydrus)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   aerial_robot_msgs
   aerial_robot_control
   aerial_robot_model
+  mujoco_ros_control
   spinal
   eigen_conversions
   tf_conversions
   std_srvs
-  dynamic_reconfigure
   )
 
 find_package(Eigen3 REQUIRED)
 
-generate_dynamic_reconfigure_options(
-  cfg/LQI.cfg)
-
 catkin_package(
   INCLUDE_DIRS include test
   LIBRARIES hydrus_robot_model hydrus_controller_pluginlib hydrus_numerical_jacobians
-  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs dynamic_reconfigure
+  CATKIN_DEPENDS roscpp aerial_robot_msgs aerial_robot_control aerial_robot_model spinal eigen_conversions tf_conversions std_srvs
 )
 
 # Eigen requires optimization to get good performance
@@ -59,7 +56,7 @@ add_library(hydrus_controller_pluginlib
   src/hydrus_lqi_controller.cpp
   src/hydrus_tilted_lqi_controller.cpp)
 target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
 
 # test
 # pre-build test code
@@ -92,6 +89,9 @@ install(DIRECTORY bin
 
 add_executable(observation_conversion_node src/observation_cal.cpp)
 target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

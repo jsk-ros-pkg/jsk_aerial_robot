@@ -2,6 +2,16 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* [Mini Quadrotor] support the common quadrotor platform (`#546 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/546>`_)
+* [Estimate][IMU] add standard configuration for spianl IMU
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_ )
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+1.3.2 (2023-02-01)
+------------------
+
 1.3.1 (2022-07-02)
 ------------------
 * [aerial_robot_base]  Explicitly stop timer and async spinner for safe destruction (`#515 <https://github.com/jsk-ros-pkg/aerial_robot/issues/515>`_)

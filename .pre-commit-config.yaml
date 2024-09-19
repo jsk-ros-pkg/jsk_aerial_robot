@@ -1,0 +1,32 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-yaml
+      - id: check-xml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+
+    # Python
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+      - id: black
+        language: python
+        args: [--line-length=120]
+
+    # C++
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.3
+    hooks:
+      - id: clang-format
+
+#    # YAML  - still bad support for comments in YAML files
+#  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+#    rev: 0.2.1    # or other specific tag
+#    hooks:
+#      - id: yamlfmt
+#        args: [--mapping, '2', --sequence, '4', --offset, '2', --width, '120']

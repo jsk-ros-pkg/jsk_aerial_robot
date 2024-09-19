@@ -10,27 +10,31 @@ BaseNavigator::BaseNavigator():
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
   i_term_fix_(false),
+  target_ang_acc_(0, 0, 0),
+  init_height_(0), land_height_(0),
   force_att_control_flag_(false),
+  trajectory_mode_(false),
+  trajectory_reset_time_(0),
+  teleop_reset_time_(0),
   low_voltage_flag_(false),
+  high_voltage_flag_(false),
   prev_xy_control_mode_(ACC_CONTROL_MODE),
-  vel_control_flag_(false),
-  pos_control_flag_(false),
   xy_control_flag_(false),
-  z_control_flag_(false),
-  yaw_control_flag_(false),
   vel_based_waypoint_(false),
   gps_waypoint_(false),
   gps_waypoint_time_(0),
   joy_stick_heart_beat_(false),
   joy_stick_prev_time_(0),
-  teleop_flag_(true)
+  teleop_flag_(true),
+  land_check_start_time_(0)
 {
   setNaviState(ARM_OFF_STATE);
 }
 
 void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                               double loop_du)
 {
   nh_ = nh;
   nhp_ = nhp;
@@ -39,7 +43,10 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   robot_model_ = robot_model;
   estimator_ = estimator;
+  loop_du_ = loop_du;
 
+  pose_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::poseCallback, this, ros::TransportHints().tcpNoDelay());
+  simple_move_base_goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &BaseNavigator::simpleMoveBaseGoalCallback, this, ros::TransportHints().tcpNoDelay());
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
   hokuyo_time_sub_ = nh_.subscribe("debug/hokuyo_time", 1, &BaseNavigator::hokuyoTimeCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -71,6 +78,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
   policy_pos_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/pos/time", 10);
   policy_scan_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/scan/time", 10);
+  path_pub_ = nh_.advertise<nav_msgs::Path>("trajectory", 1);
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
@@ -95,6 +103,7 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
     voltage += ( (bat_resistance_voltage_rate_ * voltage +  bat_resistance_) * hovering_current_);
 
   float average_voltage = voltage / bat_cell_;
+  float input_cell = voltage / VOLTAGE_100P;
   float percentage = 0;
   if(average_voltage  > VOLTAGE_90P) percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
   else if (average_voltage  > VOLTAGE_80P) percentage = (average_voltage - VOLTAGE_80P) / (VOLTAGE_90P - VOLTAGE_80P) * 10 + 80;
@@ -123,6 +132,13 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   else
     low_voltage_flag_  = false;
 
+  if(input_cell - bat_cell_ > high_voltage_cell_thre_)
+    {
+      high_voltage_flag_ = true;
+    }
+  else
+    high_voltage_flag_ = false;
+
   if(power_info_pub_.getNumSubscribers() == 0) return;
 
   geometry_msgs::Vector3Stamped power_info_msgs;
@@ -132,6 +148,28 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
   power_info_pub_.publish(power_info_msgs);
 
 }
+
+void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+{
+  if (traj_generator_ptr_.get() == nullptr)
+    {
+      ROS_DEBUG("traj_generator_ptr_ is null");
+    }
+
+  generateNewTrajectory(*msg);
+}
+
+void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+{
+  if (traj_generator_ptr_.get() == nullptr)
+    {
+      ROS_DEBUG("traj_generator_ptr_ is null");
+    }
+  geometry_msgs::PoseStamped target_pose = *msg;
+  target_pose.pose.position.z = getTargetPos().z();
+  generateNewTrajectory(target_pose);
+}
+
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
@@ -146,12 +184,41 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(0);
+      setTargetOmegaZ(0);
+    }
+  if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      setTargetOmegaZ(msg->target_omega_z);
+
+      teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(msg->target_omega_z);
+      setTargetOmegaZ(msg->target_omega_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
+    }
+
+  /* z */
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      setTargetVelZ(msg->target_vel_z);
+      teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(msg->target_vel_z);
+
+      trajectory_mode_ = true;
+      trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
     }
 
   /* xy control */
@@ -160,14 +227,6 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
     case aerial_robot_msgs::FlightNav::POS_MODE:
       {
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            /* check the transformation */
-            tf::Transform cog2baselink_tf;
-            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
-            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
-              * cog2baselink_tf.getOrigin();
-          }
 
         tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
         target_delta.setZ(0);
@@ -191,13 +250,11 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       }
     case aerial_robot_msgs::FlightNav::VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do vel nav for baselink");
-            return;
-          }
-        /* should be in COG frame */
-        xy_control_mode_ = VEL_CONTROL_MODE;
+        /* do not switch to pure vel mode */
+        xy_control_mode_ = POS_CONTROL_MODE;
+
+        teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
         switch(msg->control_frame)
           {
           case WORLD_FRAME:
@@ -208,7 +265,8 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -222,17 +280,14 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
       }
     case aerial_robot_msgs::FlightNav::POS_VEL_MODE:
       {
-        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
-          {
-            ROS_ERROR("[Flight nav] can not do pos_vel nav for baselink");
-            return;
-          }
-
         xy_control_mode_ = POS_CONTROL_MODE;
         setTargetPosX(msg->target_pos_x);
         setTargetPosY(msg->target_pos_y);
         setTargetVelX(msg->target_vel_x);
         setTargetVelY(msg->target_vel_y);
+
+        trajectory_mode_ = true;
+        trajectory_reset_time_ = trajectory_reset_duration_ + ros::Time::now().toSec();
 
         break;
       }
@@ -246,12 +301,14 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
           {
           case WORLD_FRAME:
             {
-              target_acc_.setValue(msg->target_acc_x, msg->target_acc_y, 0);
+              setTargetAccX(msg->target_acc_x);
+              setTargetAccY(msg->target_acc_y);
               break;
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
               break;
@@ -531,160 +588,162 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
       setNaviState(LAND_STATE);
       //update
-      setTargetXyFromCurrentState();
-      setTargetYawFromCurrentState();
-      setTargetPosZ(estimator_->getLandingHeight());
       ROS_INFO("Joy Control: Land state");
 
       return;
     }
 
-  /* Motion: Up/Down */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS]) > joy_z_deadzone_)
+  teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
+  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
+  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
+  double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+
+  /* Motion: Z (Height) */
+  if(getNaviState() == HOVER_STATE)
     {
-      if(getNaviState() == HOVER_STATE)
+      if(fabs(raw_z_cmd) > joy_stick_deadzone_)
         {
-          z_control_flag_ = true;
-          if(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS] >= 0)
-            addTargetPosZ(joy_target_z_interval_);
-          else
-            addTargetPosZ(-joy_target_z_interval_);
+          setTargetVelZ(raw_z_cmd * max_teleop_z_vel_);
+          //ROS_INFO("raw_z_cmd: %f, max_tleeop_z_vel: %f, target_vel_z: %f", raw_z_cmd, max_teleop_z_vel_, target_vel_.z());
         }
-    }
-  else
-    {
-      if(z_control_flag_)
+      else
         {
-          z_control_flag_= false;
-          setTargetZFromCurrentState();
-          ROS_INFO("Joy Control: fixed z state, target pos z is %f",target_pos_.z());
+          setTargetVelZ(0);
         }
     }
 
   /* Motion: Yaw */
-  /* this is the yaw_angle control */
-  if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
+  if(getNaviState() == HOVER_STATE)
     {
-      double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
-        + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
-      setTargetYaw(angles::normalize_angle(target_yaw));
-      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
-
-      yaw_control_flag_ = true;
-    }
-  else
-    {
-      if(yaw_control_flag_)
+      if(fabs(raw_yaw_cmd) > joy_stick_deadzone_)
         {
-          yaw_control_flag_= false;
-          setTargetYawFromCurrentState();
-          setTargetOmageZ(0);
-          ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
+          setTargetOmegaZ(raw_yaw_cmd * max_teleop_yaw_vel_);
+        }
+      else
+        {
+          setTargetOmegaZ(0);
         }
     }
 
-  /* turn to ACC_CONTROL_MODE */
+  /* Motion: XY */
+
+  /* mode selection */
+  /* switch to acc model */
   if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
     {
-      ROS_WARN("Foce change to attitude control");
-      force_att_control_flag_ = true;
-      estimator_->setForceAttControlFlag(force_att_control_flag_);
-      xy_control_mode_ = ACC_CONTROL_MODE;
+      if (xy_control_mode_ != ACC_CONTROL_MODE)
+        {
+          ROS_WARN("Force siwtch to attitude control mode");
+          force_att_control_flag_ = true;
+          estimator_->setForceAttControlFlag(force_att_control_flag_);
+          xy_control_mode_ = ACC_CONTROL_MODE;
+        }
     }
 
-  /* change to vel control mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && !vel_control_flag_)
+  /* switch to pure vel mode */
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1)
     {
-      ROS_INFO("change to vel pos-based control");
-      vel_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = VEL_CONTROL_MODE;
-      target_vel_.setValue(0, 0, 0);
-      target_acc_.setValue(0, 0, 0);
+      if (xy_control_mode_ != VEL_CONTROL_MODE)
+        {
+          ROS_INFO("switch to pure vel control mode");
+          force_att_control_flag_ = false;
+          setTargetZeroVel();
+          setTargetZeroAcc();
+          xy_control_mode_ = VEL_CONTROL_MODE;
+        }
     }
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 0 && vel_control_flag_)
-    vel_control_flag_ = false;
 
-  /* change to pos control mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1 && !pos_control_flag_)
+  /* siwthc to pos mode */
+  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1)
     {
-      ROS_INFO("change to pos control");
-      pos_control_flag_ = true;
-      force_att_control_flag_ = false;
-      xy_control_mode_ = POS_CONTROL_MODE;
-      setTargetXyFromCurrentState();
-      target_acc_.setValue(0, 0, 0);
+      if (xy_control_mode_ != POS_CONTROL_MODE)
+        {
+          ROS_INFO("change to pos control");
+          force_att_control_flag_ = false;
+          setTargetXyFromCurrentState();
+          xy_control_mode_ = POS_CONTROL_MODE;
+        }
     }
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 0 && pos_control_flag_)
-    pos_control_flag_ = false;
+
+  /* finish if teleop flag is not true */
+  if(!teleop_flag_) return;
 
   /* mode oriented state */
+  control_frame_ = WORLD_FRAME;
+  tf::Matrix3x3 local_frame_rot;
+  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2])
+    {
+      control_frame_ = LOCAL_FRAME;
+
+      /* convert the frame */
+      const auto segments_tf = robot_model_->getSegmentsTf();
+      if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
+        {
+          ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
+          setTargetZeroAcc();
+          return;
+        }
+
+      tf::Transform teleop_local_frame_tf;
+      std::string baselink = robot_model_->getBaselinkName();
+      tf::transformKDLToTF(segments_tf.at(baselink).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+
+      double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      local_frame_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(yaw_angle)) * teleop_local_frame_tf.getBasis();
+    }
+
+
   switch (xy_control_mode_)
     {
-    // case ACC_CONTROL_MODE:
-    //   {
-    //     if(teleop_flag_)
-    //       {
-    //         control_frame_ = WORLD_FRAME;
-    //         if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
-
-    //         /* acc command */
-    //         target_acc_.setValue(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G,
-    //                              joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * max_target_tilt_angle_ * aerial_robot_estimation::G, 0);
-
-    //         if(control_frame_ == LOCAL_FRAME)
-    //           {
-    //             tf::Vector3 target_acc = target_acc_;
-    //             /* convert the frame */
-    //             const auto segments_tf = robot_model_->getSegmentsTf();
-    //             if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
-    //               {
-    //                 ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
-    //                 target_acc.setValue(0,0,0);
-    //               }
-    //             tf::Transform teleop_local_frame_tf;
-    //             tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
-
-    //             target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
-    //           }
-    //       }
-    //     break;
-    //   }
-    case VEL_CONTROL_MODE:
+    case POS_CONTROL_MODE:
       {
-        if(teleop_flag_)
+        if(fabs(raw_x_cmd) < joy_stick_deadzone_) raw_x_cmd = 0;
+        if(fabs(raw_y_cmd) < joy_stick_deadzone_) raw_y_cmd = 0;
+
+        /* vel command */
+        setTargetVelX(raw_x_cmd * max_teleop_xy_vel_);
+        setTargetVelY(raw_y_cmd * max_teleop_xy_vel_);
+
+        if(control_frame_ == LOCAL_FRAME)
           {
-            control_frame_ = WORLD_FRAME;
-            if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2]) control_frame_ = LOCAL_FRAME;
-
-            tf::Vector3 target_vel(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS]) * max_target_vel_,
-                                 joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * fabs(joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS]) * max_target_vel_, 0);
-
-            /* defualt: world frame control */
-            /* L2 trigger: fc(cog/ baselink frame) frame control */
-            if(control_frame_ == LOCAL_FRAME)
-              {
-                tf::Vector3 target_vel_tmp = target_vel;
-                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
-              }
-
-            /* interpolation for vel target */
-            if(target_vel.x() - target_vel_.x() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else if (target_vel.x() - target_vel_.x() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(joy_target_vel_interval_, 0, 0);
-            else
-              target_vel_.setX(target_vel.x());
-
-            if(target_vel.y() - target_vel_.y() > joy_target_vel_interval_)
-              target_vel_ += tf::Vector3(0, joy_target_vel_interval_, 0);
-            else if (target_vel.y() - target_vel_.y() < - joy_target_vel_interval_)
-              target_vel_ -= tf::Vector3(0, joy_target_vel_interval_, 0);
-            else
-              target_vel_.setY(target_vel.y());
+            tf::Vector3 target_vel = frameConversion(getTargetVel(), local_frame_rot);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
           }
         break;
       }
+    case VEL_CONTROL_MODE:
+      {
+        /* vel command */
+        setTargetVelX(raw_x_cmd * fabs(raw_x_cmd) * max_teleop_xy_vel_);
+        setTargetVelY(raw_y_cmd * fabs(raw_y_cmd) * max_teleop_xy_vel_);
+
+        if(control_frame_ == LOCAL_FRAME)
+          {
+            tf::Vector3 target_vel = frameConversion(getTargetVel(), local_frame_rot);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
+          }
+
+        break;
+      }
+    // case ACC_CONTROL_MODE:
+    //   {
+    //     /* acc command */
+    //     double acc_scale = max_teleop_rp_angle_ * aerial_robot_estimation::G;
+    //     setTargetAccX(raw_x_cmd * acc_scale);
+    //     setTargetAccY(raw_y_cmd * acc_scale);
+
+    //     if(control_frame_ == LOCAL_FRAME)
+    //       {
+    //         tf::Vector3 target_acc = frameConversion(getTargetAcc(), local_frame_rot);
+    //         setTargetAccX(target_acc.x());
+    //         setTargetAccY(target_acc.y());
+    //       }
+    //     break;
+    //   }
     default:
       {
         break;
@@ -698,6 +757,7 @@ void BaseNavigator::update()
     {
       if(getNaviState() == LAND_STATE)
         {
+          // reset to hover state and do manually landing
           setTargetZFromCurrentState();
           setNaviState(HOVER_STATE);
         }
@@ -710,7 +770,7 @@ void BaseNavigator::update()
           if(xy_control_mode_ == VEL_CONTROL_MODE ||
              xy_control_mode_ == POS_CONTROL_MODE)
             {
-              ROS_ERROR("No estimation for X, Y state, change to attitude control mode");
+              ROS_WARN("No estimation for X, Y state, change to attitude control mode");
               prev_xy_control_mode_ = xy_control_mode_;
               xy_control_mode_ = ACC_CONTROL_MODE;
             }
@@ -720,9 +780,11 @@ void BaseNavigator::update()
           if(xy_control_mode_ == ACC_CONTROL_MODE &&
              prev_xy_control_mode_ != ACC_CONTROL_MODE)
             {
-              ROS_ERROR("Estimation for X, Y state is established, siwtch back to the xy control mode");
+              ROS_INFO("Estimation for X, Y state is established, siwtch back to the xy control mode");
               xy_control_mode_ = prev_xy_control_mode_;
             }
+
+          ROS_INFO_ONCE("\n \n ======================  \n Ready for takeoff !!! \n ====================== \n");
         }
     }
 
@@ -759,23 +821,88 @@ void BaseNavigator::update()
       if(normal_land && !force_att_control_flag_)
         {
           setNaviState(LAND_STATE);
-          setTargetXyFromCurrentState();
-          setTargetYawFromCurrentState();
-          setTargetPosZ(estimator_->getLandingHeight());
         }
     }
 
-  tf::Vector3 delta = target_pos_ - estimator_->getPos(Frame::COG, estimate_mode_);
+  /* update the target pos and velocity */
+  if (trajectory_mode_)
+    {
+      if (traj_generator_ptr_.get() == nullptr)
+        {
+          if (ros::Time::now().toSec() > trajectory_reset_time_)
+            {
+              setTargetZeroVel();
+              setTargetZeroAcc();
+
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
+
+              trajectory_mode_ = false;
+
+              ROS_INFO("[Flight nav] stop trajectory mode in POS-VEL mode");
+            }
+        }
+      else
+        {
+          // trajectory following mode
+          double t = ros::Time::now().toSec();
+          double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
+          if (t > end_t)
+            {
+              ROS_INFO("[Nav] reach the end of trajectory");
+
+              setTargetZeroVel();
+              setTargetZeroAcc();
+
+              setTargetZeroOmega();
+              setTargetZeroAngAcc();
+
+              trajectory_mode_ = false;
+
+              traj_generator_ptr_.reset();
+            }
+          else
+            {
+              agi::QuadState target_state = traj_generator_ptr_->getState(t);
+              setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
+              setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
+              setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
+
+              double target_yaw = target_state.getYaw();
+              double target_omega_z = target_state.w(2);
+              double target_ang_acc_z = target_state.tau(2);
+              setTargetYaw(target_yaw);
+              setTargetOmegaZ(target_omega_z);
+              setTargetAngAccZ(target_ang_acc_z);
+
+              tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+            }
+        }
+    }
+  else
+    {
+      /* force reset velocity in idling mode */
+      if (ros::Time::now().toSec() > teleop_reset_time_)
+        {
+          setTargetZeroVel();
+          setTargetOmegaZ(0);
+        }
+
+      /* uniform linear motion */
+      addTargetPos(getTargetVel() * loop_du_);
+      addTargetYaw(getTargetOmega().z() * loop_du_);
+    }
+
+  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 curr_vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  tf::Vector3 delta = target_pos_ - curr_pos;
 
   /* check the hard landing in force_landing model */
   if(force_landing_flag_)
     {
-      if(!estimator_->getLandingMode()) estimator_->setLandingMode(true);
-      if(estimator_->getLandedFlag() && force_landing_auto_stop_flag_)
-        {
-          ROS_WARN("hard touch to the ground in force landing mode, disarm motor");
-          setNaviState(STOP_STATE);
-        }
+      // TODO: check from altitude if possible (with sanity of estimator)
     }
 
   switch(getNaviState())
@@ -786,6 +913,12 @@ void BaseNavigator::update()
         if(low_voltage_flag_)
           {
             setNaviState(ARM_OFF_STATE);
+            break;
+          }
+        if(high_voltage_flag_)
+          {
+            setNaviState(ARM_OFF_STATE);
+            ROS_ERROR("high voltage!");
             break;
           }
 
@@ -808,40 +941,48 @@ void BaseNavigator::update()
         if(xy_control_mode_ == POS_CONTROL_MODE)
           {
             if (fabs(delta.z()) > z_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ || fabs(delta.y()) > xy_convergent_thresh_)
-              convergent_start_time_ = ros::Time::now().toSec();
+              hover_convergent_start_time_ = ros::Time::now().toSec();
           }
         else
           {
-            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            if (fabs(delta.z()) > z_convergent_thresh_) hover_convergent_start_time_ = ros::Time::now().toSec();
           }
-        if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+        if (ros::Time::now().toSec() - hover_convergent_start_time_ > hover_convergent_duration_)
           {
-            convergent_start_time_ = ros::Time::now().toSec();
+            hover_convergent_start_time_ = ros::Time::now().toSec();
             setNaviState(HOVER_STATE);
             i_term_fix_ = true;
-            ROS_WARN("Hovering!");
-
+            ROS_INFO("\n \n ======================  \n Hover!!! \n ====================== \n");
           }
         break;
       }
     case LAND_STATE:
       {
-        //for estimator landing mode
-        estimator_->setLandingMode(true);
-
         if (getNaviState() > START_STATE)
           {
-            if (fabs(delta.z()) > z_convergent_thresh_) convergent_start_time_ = ros::Time::now().toSec();
+            updateLandCommand();
 
-            if (ros::Time::now().toSec() - convergent_start_time_ > convergent_duration_)
+            if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
               {
-                convergent_start_time_ = ros::Time::now().toSec();
+                double delta = curr_pos.z() - land_height_;
+                double vel = curr_vel.z();
 
-                ROS_ERROR("disarm motors");
-                setNaviState(STOP_STATE);
+                ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
 
-                setTargetXyFromCurrentState();
-                setTargetYawFromCurrentState();
+                if (fabs(delta) < land_pos_convergent_thresh_ &&
+                    vel > -land_vel_convergent_thresh_)
+                  {
+                    ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
+                    ROS_INFO("Start disarming motors");
+                    setNaviState(STOP_STATE);
+                  }
+                else
+                  {
+                    // not staedy, update the land height
+                    land_height_ = curr_pos.z();
+                  }
+
+                land_check_start_time_ = ros::Time::now().toSec();
               }
           }
         else
@@ -916,9 +1057,7 @@ void BaseNavigator::update()
 
                 xy_control_mode_ = POS_CONTROL_MODE;
                 vel_based_waypoint_ = false;
-                setTargetVelX(0);
-                setTargetVelY(0);
-                setTargetVelZ(0);
+                setTargetZeroVel();
               }
           }
         break;
@@ -953,6 +1092,98 @@ void BaseNavigator::update()
   flight_state_pub_.publish(state_msg);
 }
 
+void BaseNavigator::updateLandCommand()
+{
+  // update pos and vel for z
+  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+
+  addTargetPosZ(land_descend_vel_ * loop_du_);
+  setTargetVelZ(land_descend_vel_);
+}
+
+
+void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
+{
+  if (traj_generator_ptr_.get() != nullptr)
+    {
+      ROS_WARN("[Nav] force to finish the last trajectory following");
+      traj_generator_ptr_.reset();
+    }
+
+  agi::QuadState start_state;
+  start_state.setZero();
+  tf::Vector3 last_target_pos = getTargetPos();
+  start_state.p = agi::Vector<3>(last_target_pos.x(), last_target_pos.y(), last_target_pos.z());
+  tf::Vector3 last_target_vel = getTargetVel();
+  start_state.v = agi::Vector<3>(last_target_vel.x(), last_target_vel.y(), last_target_vel.z());
+  tf::Vector3 last_target_acc = getTargetAcc();
+  start_state.a = agi::Vector<3>(last_target_acc.x(), last_target_acc.y(), last_target_acc.z());
+
+  double last_target_yaw_angle = getTargetRPY().z();
+  start_state.setYaw(last_target_yaw_angle);
+  double last_target_omega_z = getTargetOmega().z();
+  start_state.w(2) = last_target_omega_z;
+  start_state.t = ros::Time::now().toSec();
+
+  agi::QuadState end_state;
+  end_state.setZero();
+  Eigen::Vector3d p;
+  tf::pointMsgToEigen(pose.pose.position, p);
+  end_state.p = p;
+  agi::Quaternion q;
+  tf::quaternionMsgToEigen(pose.pose.orientation, q);
+  if (std::fabs(1 - q.squaredNorm())  < 1e-6)
+    {
+      end_state.q(q);
+    }
+  else
+    {
+      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f], reset as the start state", q.x(), q.y(), q.z(), q.w());
+      end_state.q(start_state.q());
+
+    }
+
+  double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
+  double du_rot = fabs(end_state.getYaw() - start_state.getYaw()) / trajectory_mean_yaw_rate_;
+  double du = std::max(du_tran, trajectory_min_du_);
+  if (!enable_latch_yaw_trajectory_)
+    {
+      du = std::max(du_rot, du);
+    }
+
+  end_state.t = start_state.t + du;
+
+  ROS_INFO_STREAM("[Nav] revceive the new target pose of " << end_state.p.transpose()
+                  << " (yaw: " << end_state.getYaw() << ")"
+                  << " which starts with the last target pose: " << start_state.p.transpose()
+                  << " (yaw: " << start_state.getYaw() << ")"
+                  << " and target vel: " << start_state.v.transpose()
+                  << " (omega z: " << start_state.w(2) << ")"
+                  << " and target acc: " << start_state.a.transpose());
+
+  traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(start_state, end_state);
+
+  trajectory_mode_ = true;
+
+  double dt = 0.02;
+  nav_msgs::Path msg;
+  msg.header.stamp.fromSec(start_state.t);
+  msg.header.frame_id = "world";
+
+  for (double t = 0; t <= du; t += dt) {
+    geometry_msgs::PoseStamped pose_stamp;
+    pose_stamp.header.stamp = msg.header.stamp + ros::Duration(t);
+    pose_stamp.header.frame_id = msg.header.frame_id;
+
+    agi::QuadState state = traj_generator_ptr_->getState(start_state.t + t);
+
+    tf::pointEigenToMsg(state.p, pose_stamp.pose.position);
+    tf::quaternionEigenToMsg(state.q(), pose_stamp.pose.orientation);
+    msg.poses.push_back(pose_stamp);
+  }
+  path_pub_.publish(msg);
+
+}
 
 void BaseNavigator::rosParamInit()
 {
@@ -962,12 +1193,32 @@ void BaseNavigator::rosParamInit()
   ros::NodeHandle nh(nh_, "navigation");
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);
   getParam<double>(nh, "takeoff_height", takeoff_height_, 0.0);
-  getParam<double>(nh, "convergent_duration", convergent_duration_, 1.0);
+
+  getParam<double>(nh, "land_descend_vel",land_descend_vel_, -0.3);
+  if (land_descend_vel_ >= 0) {
+    ROS_WARN("land_descend_vel_ (current value: %f) should be negative", land_descend_vel_);
+    land_descend_vel_ == -0.3;
+  }
+
+  getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
+  getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
+  if (land_check_duration_ < 0.5) {
+    ROS_WARN("land_check_duration_ (current value: %f) should be not smaller than 0.5", land_check_duration_);
+    land_check_duration_ = 0.5;
+  }
+
+  getParam<double>(nh, "trajectory_reset_duration", trajectory_reset_duration_, 0.5);
+  getParam<double>(nh, "teleop_reset_duration", teleop_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
-  getParam<double>(nh, "max_target_vel", max_target_vel_, 0.0);
-  getParam<double>(nh, "max_target_yaw_rate", max_target_yaw_rate_, 0.0);
-  getParam<double>(nh, "max_target_tilt_angle", max_target_tilt_angle_, 1.0);
+  getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);
+  getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.05);
+
+  //*** trajectory
+  getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.5);
+  getParam<double>(nh, "trajectory_mean_yaw_rate", trajectory_mean_yaw_rate_, 0.3);
+  getParam<double>(nh, "trajectory_min_du", trajectory_min_du_, 2.0);
+  getParam<bool>(nh, "enable_latch_yaw_trajectory", enable_latch_yaw_trajectory_, false);
 
   //*** auto vel nav
   getParam<double>(nh, "nav_vel_limit", nav_vel_limit_, 0.2);
@@ -979,10 +1230,11 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "gps_waypoint_check_du", gps_waypoint_check_du_, 1.0);
 
   //*** teleop navigation
-  getParam<double>(nh, "joy_target_vel_interval", joy_target_vel_interval_, 0.0);
-  getParam<double>(nh, "joy_target_z_interval", joy_target_z_interval_, 0.0);
-  getParam<double>(nh, "joy_z_deadzone", joy_z_deadzone_, 0.2);
-  getParam<double>(nh, "joy_yaw_deadzone", joy_yaw_deadzone_, 0.2);
+  getParam<double>(nh, "max_teleop_xy_vel", max_teleop_xy_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_z_vel", max_teleop_z_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_yaw_vel", max_teleop_yaw_vel_, 0.5);
+  getParam<double>(nh, "max_teleop_rp_angle", max_teleop_rp_angle_, 0.2);
+  getParam<double>(nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(nh, "joy_stick_heart_beat_du", joy_stick_heart_beat_du_, 2.0);
   getParam<double>(nh, "force_landing_to_halt_du", force_landing_to_halt_du_, 1.0);
   getParam<bool>(nh, "force_landing_auto_stop_flag", force_landing_auto_stop_flag_, true);
@@ -993,6 +1245,7 @@ void BaseNavigator::rosParamInit()
   ros::NodeHandle bat_nh(nh_, "bat_info");
   getParam<int>(bat_nh, "bat_cell", bat_cell_, 0); // Lipo battery cell
   getParam<double>(bat_nh, "low_voltage_thre", low_voltage_thre_, 0.1); // Lipo battery cell
+  getParam<double>(bat_nh, "high_voltage_cell_thre", high_voltage_cell_thre_, 1.0);
   getParam<double>(bat_nh, "bat_resistance", bat_resistance_, 0.0); //Battery internal resistance
   getParam<double>(bat_nh, "bat_resistance_voltage_rate", bat_resistance_voltage_rate_, 0.0); //Battery internal resistance_voltage_rate
   getParam<double>(bat_nh, "hovering_current", hovering_current_, 0.0); // current at hovering state

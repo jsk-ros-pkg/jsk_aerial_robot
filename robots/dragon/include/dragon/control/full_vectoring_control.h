@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/pose_linear_controller.h>
+#include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <spinal/FourAxisCommand.h>
@@ -74,7 +74,7 @@ namespace aerial_robot_control
     ros::Publisher interfrence_marker_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
-    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    boost::shared_ptr<aerial_robot_model::transformable::RobotModel> robot_model_for_control_;
     std::vector<float> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd target_vectoring_f_;

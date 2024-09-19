@@ -47,7 +47,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define USE_ETH // comment out if we do not have eth
+// #define USE_ETH // comment out if we do not have eth
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
@@ -86,6 +86,8 @@ void Error_Handler(void);
 #define RMII_TXD1_GPIO_Port GPIOB
 #define IMUCS_Pin GPIO_PIN_6
 #define IMUCS_GPIO_Port GPIOB
+#define SPI1_CS_Pin GPIO_PIN_7
+#define SPI1_CS_GPIO_Port GPIOB
 #define BAROCS_Pin GPIO_PIN_1
 #define BAROCS_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */

@@ -2,6 +2,23 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+
+1.3.2 (2023-02-01)
+------------------
+* [Spinal][CAN] fix bug about the motor pwm in spinal-neuron system (`#538 <https://github.com/jsk-ros-pkg/aerial_robot/issues/538>`_)
+* [rqt][spinal] fix the compatibility in Python3 (`#535 <https://github.com/jsk-ros-pkg/aerial_robot/issues/535>`_)
+* [Spinal][Neuron][Servo] solve the joint pulley round offset problem (`#534 <https://github.com/jsk-ros-pkg/aerial_robot/issues/534>`_)
+* [Spinal][motor][PWM] set the desired PWM output to timer handllers regardless of the CAN connection (`#531 <https://github.com/jsk-ros-pkg/aerial_robot/issues/531>`_)
+* [Spinal] refactor the process when no nueron connected (`#533 <https://github.com/jsk-ros-pkg/aerial_robot/issues/533>`_)
+* [Spinal][rosserial] use UART for STM32H7 as default (`#530 <https://github.com/jsk-ros-pkg/aerial_robot/issues/530>`_)
+* [Spinal] remove unnecessary files (`#532 <https://github.com/jsk-ros-pkg/aerial_robot/issues/532>`_)
+* [Spinal][rosserial] increase the size of OUTPUT_SIZE for publisher (`#522 <https://github.com/jsk-ros-pkg/aerial_robot/issues/522>`_)
+* [Spinal] refactor the callback process according to the value of motor_number (`#519 <https://github.com/jsk-ros-pkg/aerial_robot/issues/519>`_)
+* [rqt_gui][rosparam] improve the parse process about the servo information based on rosparam (`#518 <https://github.com/jsk-ros-pkg/aerial_robot/issues/518>`_)
+
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)

@@ -2,6 +2,16 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* [Navigation] refactor landing and halt command during vel acc-based mode (`#553 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/553>`_)
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+1.3.2 (2023-02-01)
+------------------
+* Refactor the flight navigation procedure: add message to inform user that ready for takeoff (`#528 <https://github.com/jsk-ros-pkg/aerial_robot/issues/528>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 

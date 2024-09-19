@@ -2,6 +2,16 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.3 (2023-10-26)
+------------------
+* Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)
+* [Hydrus_XI] refactor CAD model realted to propeller to enable the visible rotation in gazebo
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+1.3.2 (2023-02-01)
+------------------
+* [Hydrus XI] refactor the description about dependency (`#536 <https://github.com/jsk-ros-pkg/aerial_robot/issues/536>`_)
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
