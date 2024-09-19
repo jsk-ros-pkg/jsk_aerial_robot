@@ -141,6 +141,8 @@
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="sensor" value="hokuyo" if= "$(eval arg('estimate_mode')==1)"/>
+    <arg name="sensor" value="livox" if= "$(eval arg('estimate_mode')==0)"/>
   </include>
 
 </launch>
