@@ -99,7 +99,7 @@ osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
 osTimerId coreTaskTimerHandle;
-osTimerId kondoServoTimerHandle;
+osTimerId ServoTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
 osSemaphoreId coreTaskSemHandle;
@@ -147,7 +147,7 @@ void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
-void kondoServoCallback(void const * argument);
+void ServoCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -266,7 +266,7 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-#if KONDO_FLAG
+#if SERVO_FLAG
   servo_.init(&huart3, &nh_, NULL);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
@@ -306,14 +306,17 @@ int main(void)
   osTimerDef(coreTaskTimer, coreTaskEvokeCb);
   coreTaskTimerHandle = osTimerCreate(osTimer(coreTaskTimer), osTimerPeriodic, NULL);
 
-  /* definition and creation of kondoServoTimer */
-  osTimerDef(kondoServoTimer, kondoServoCallback);
-  kondoServoTimerHandle = osTimerCreate(osTimer(kondoServoTimer), osTimerPeriodic, NULL);
+  /* definition and creation of ServoTimer */
+  osTimerDef(ServoTimer, ServoCallback);
+  ServoTimerHandle = osTimerCreate(osTimer(ServoTimer), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
-  osTimerStart(kondoServoTimerHandle, 20); // ms
+
+#ifdef SERVO_FLAG
+  osTimerStart(ServoTimerHandle, 20); // ms
+#endif
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -1294,14 +1297,12 @@ void coreTaskEvokeCb(void const * argument)
   /* USER CODE END coreTaskEvokeCb */
 }
 
-/* kondoServoCallback function */
-void kondoServoCallback(void const * argument)
+/* ServoCallback function */
+void ServoCallback(void const * argument)
 {
-  /* USER CODE BEGIN kondoServoCallback */
-#ifdef KONDO_FLAG
+  /* USER CODE BEGIN ServoCallback */
   servo_.update();
-#endif
-  /* USER CODE END kondoServoCallback */
+  /* USER CODE END ServoCallback */
 }
 
 /* MPU Configuration */
