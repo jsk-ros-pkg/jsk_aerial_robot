@@ -25,11 +25,9 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
-<<<<<<< HEAD
+
   <arg name="body_r" default="0.325" />
-=======
   <arg name="mujoco" default="False" />
->>>>>>> master
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -135,5 +133,6 @@
     <arg name="headless" value="$(arg headless)"/>
     <arg name="mujoco_model" value="$(find hydrus)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
+
 
 </launch>
