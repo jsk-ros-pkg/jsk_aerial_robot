@@ -6,7 +6,7 @@
   <arg name="robot_ns" default="" />
   <arg name="sensor" default="hokuyo" />
 
-  <!-- <group ns="$(arg robot_ns)"> -->
+  <group ns="$(arg robot_ns)">
     <group if= "$(eval not arg('simulation') and arg('real_machine') and sensor=='hokuyo')">
       <include file="$(find hokuyo_estimation)/launch/urg_node.launch">
 	<arg name="robot_ns" value="$(arg robot_ns)" />
@@ -28,5 +28,5 @@
       <arg name="sensor" value="$(arg sensor)" />
     </include>
 
-  <!-- </group> -->
+  </group>
 </launch>
