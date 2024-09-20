@@ -7,7 +7,8 @@ using namespace aerial_robot_navigation;
 
 NinjaNavigator::NinjaNavigator():
   BeetleNavigator(),
-  module_joint_num_(2)
+  module_joint_num_(2),
+  morphing_flag_(false)
 {
 }
 
@@ -20,15 +21,27 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
   target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1); //for debug
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
-  target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setTargetCoMRotCallback, this);
+  target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setGoalCoMRotCallback, this);
   target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
   joint_pos_errs_.resize(module_joint_num_);
+  prev_morphing_stamp_ = ros::Time::now().toSec();
 }
 
 void NinjaNavigator::update()
 {
   updateEntSysState();
-  morphingProcess();
+  if(ros::Time::now().toSec() - prev_morphing_stamp_ > morphing_process_interval_)
+    {
+      comRotationProcess();
+      morphingProcess();
+      morphing_flag_ = true;
+      prev_morphing_stamp_ = ros::Time::now().toSec();
+    }
+  else
+    {
+      morphing_flag_ = false;
+    }
+       
   BeetleNavigator::update();
   bool current_assembled = getCurrentAssembled();
   if(current_assembled){
@@ -88,7 +101,8 @@ void NinjaNavigator::updateEntSysState()
         assembled_modules_ids_.push_back(id);
         ModuleData module_data(id);
         ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_data.module_tree_);
-        module_data.joint_pos_ = KDL::JntArray(module_joint_num_); //docking yaw and pitch
+        module_data.des_joint_pos_ = KDL::JntArray(module_joint_num_); //docking yaw and pitch
+        module_data.est_joint_pos_ = KDL::JntArray(module_joint_num_);
         module_data.goal_joint_pos_ = KDL::JntArray(module_joint_num_);
         module_data.start_joint_pos_ = KDL::JntArray(module_joint_num_);
         module_data.first_joint_processed_time_ = std::vector<double>(2,-1);
@@ -212,7 +226,7 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
-                    joint_positions(0) = data.joint_pos_(YAW);
+                    joint_positions(0) = data.des_joint_pos_(YAW);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0)
                       {
                         ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
@@ -230,8 +244,8 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(2);
-                    joint_positions(0) = data.joint_pos_(PITCH);
-                    joint_positions(1) = data.joint_pos_(YAW);
+                    joint_positions(0) = data.des_joint_pos_(PITCH);
+                    joint_positions(1) = data.des_joint_pos_(YAW);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
@@ -248,7 +262,7 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
-                    joint_positions(0) = data.joint_pos_(PITCH);
+                    joint_positions(0) = data.des_joint_pos_(PITCH);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
@@ -282,7 +296,7 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
-                    joint_positions(0) = data.joint_pos_(YAW);
+                    joint_positions(0) = data.des_joint_pos_(YAW);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
@@ -299,8 +313,8 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(2);
-                    joint_positions(0) = data.joint_pos_(PITCH);
-                    joint_positions(1) = data.joint_pos_(YAW);
+                    joint_positions(0) = data.des_joint_pos_(PITCH);
+                    joint_positions(1) = data.des_joint_pos_(YAW);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
@@ -317,7 +331,7 @@ void NinjaNavigator::calcCenterOfMoving()
                     KDL::ChainFkSolverPos_recursive fk_solver(chain);
                     KDL::Frame frame;
                     KDL::JntArray joint_positions(1);
-                    joint_positions(0) = data.joint_pos_(PITCH);
+                    joint_positions(0) = data.des_joint_pos_(PITCH);
                     if (fk_solver.JntToCart(joint_positions, frame) < 0) {
                       ROS_ERROR_STREAM("Failed to compute FK for module" << it.first);
                       return;
@@ -356,7 +370,7 @@ void NinjaNavigator::calcCenterOfMoving()
 
 void NinjaNavigator::convertTargetPosFromCoG2CoM()
 {
-  if(!control_flag_) return;
+  if(!control_flag_ || !morphing_flag_) return;
 
   bool current_assembled = getCurrentAssembled();
   bool reconfig_flag = getReconfigFlag();
@@ -389,10 +403,11 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     tf::Vector3 target_rot;
     double target_roll, target_pitch, target_yaw;
     target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
+    ROS_ERROR_STREAM("id : " << my_id_ <<" yaw: "<< target_yaw << " pitch: "<<target_pitch<< " roll: "<<target_roll);
     target_rot.setX(target_roll);
     target_rot.setY(target_pitch);
     target_rot.setZ(target_yaw);
-    setFinalTargetBaselinkRot(target_rot);
+    forceSetTargetBaselinkRot(target_rot);
     setTargetYaw(target_rot.z());
     return;
   }
@@ -425,7 +440,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
       getNaviState() == TAKEOFF_STATE){
     setTargetPos(target_pos);
     setTargetYaw(target_rot.z());
-    setFinalTargetBaselinkRot(target_rot);  
+    forceSetTargetBaselinkRot(target_rot);  
   }
 
   pre_target_pos_.setX(target_pos.x());
@@ -434,6 +449,24 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   pre_target_rot_.setX(target_rot.x());
   pre_target_rot_.setY(target_rot.y());
   pre_target_rot_.setZ(target_rot.z());
+}
+
+void NinjaNavigator::comRotationProcess()
+{
+  double target_roll, target_pitch, target_yaw;
+  double goal_roll, goal_pitch, goal_yaw;
+  target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
+  goal_com_rot_.GetEulerZYX(goal_yaw, goal_pitch, goal_roll);
+  tf::Vector3 target_com_rot(target_roll, target_pitch, target_yaw);
+  tf::Vector3 goal_com_rot(goal_roll, goal_pitch, goal_yaw);
+  if(target_com_rot == goal_com_rot) return;
+
+  if((goal_com_rot- target_com_rot).length() > com_rot_change_thresh_)
+    target_com_rot += ((goal_com_rot - target_com_rot).normalize() * com_rot_change_thresh_);
+  else
+    target_com_rot = goal_com_rot;
+
+  setTargetComRot(KDL::Rotation::RPY(target_com_rot.x(), target_com_rot.y(), target_com_rot.z()));  
 }
 
 void NinjaNavigator::setTargetCoMPoseFromCurrState()
@@ -461,9 +494,9 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
 
 }
 
-void NinjaNavigator::setTargetCoMRotCallback(const spinal::DesireCoordConstPtr & msg)
+void NinjaNavigator::setGoalCoMRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
-  setTargetComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
+  setGoalComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
 }
 
 void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg)
@@ -527,9 +560,9 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           if(target_joint_name == "yaw_dock_joint") axis = YAW;
           if(target_joint_name == "pitch_dock_joint") axis = PITCH;
           data.goal_joint_pos_(axis) = target_joint_angle;
-          data.start_joint_pos_(axis) = data.joint_pos_(axis);
+          data.start_joint_pos_(axis) = data.des_joint_pos_(axis);
           data.first_joint_processed_time_[axis] = ros::Time::now().toSec();
-          double conv_time = abs(data.goal_joint_pos_(axis) - data.joint_pos_(axis)) / morphing_vel_;          
+          double conv_time = abs(data.goal_joint_pos_(axis) - data.des_joint_pos_(axis)) / morphing_vel_;          
           switch(joint_process_func_)
             {
             case CONSTANT:
@@ -540,7 +573,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
                   joints_ctrl_msg.position.push_back(target_joint_angle);
                 }
               data.first_joint_processed_time_[axis] = -1;
-              data.joint_pos_(axis) = target_joint_angle;
+              data.des_joint_pos_(axis) = target_joint_angle;
               break;
             case FRAC:
               data.joint_process_coef_[axis] = 99.0/conv_time;
@@ -574,26 +607,26 @@ void NinjaNavigator::morphingProcess()
         {
           double t = ros::Time::now().toSec() - data.first_joint_processed_time_[i];
           if(data.first_joint_processed_time_[i] < 0) continue;
-          if(abs(data.goal_joint_pos_(i) - data.joint_pos_(i)) < joint_pos_chnage_thresh_)
+          if(abs(data.goal_joint_pos_(i) - data.des_joint_pos_(i)) < joint_pos_chnage_thresh_)
             {
               data.first_joint_processed_time_[i] = -1.0;
-              data.joint_pos_(i) = data.goal_joint_pos_(i);
+              data.des_joint_pos_(i) = data.goal_joint_pos_(i);
               if(id == my_id_ && !free_joint_flag_)
                 {
                   joint_send_flag = true;
                   joints_ctrl_msg.name.push_back(joint_map[i]);
-                  joints_ctrl_msg.position.push_back(data.joint_pos_(i));
+                  joints_ctrl_msg.position.push_back(data.des_joint_pos_(i));
                   ROS_INFO_STREAM("Morphing of module"<<my_id_ << "'s " <<(joint_map[i]).c_str() << " has finished. (" << t << " sec)");
-                }              
+                }
               continue;
             }
           switch(joint_process_func_)
             {
             case FRAC:
-              data.joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - 1/(data.joint_process_coef_[i] * t + 1) );
+              data.des_joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - 1/(data.joint_process_coef_[i] * t + 1) );
               break;
             case EXP:
-              data.joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - exp(-data.joint_process_coef_[i] * t));
+              data.des_joint_pos_(i) = data.start_joint_pos_(i) + (data.goal_joint_pos_(i) - data.start_joint_pos_(i)) * (1 - exp(-data.joint_process_coef_[i] * t));
               break;
             default:
               break;
@@ -602,51 +635,79 @@ void NinjaNavigator::morphingProcess()
             {
               joint_send_flag = true;
               joints_ctrl_msg.name.push_back(joint_map[i]);
-              joints_ctrl_msg.position.push_back(data.joint_pos_(i));
+              joints_ctrl_msg.position.push_back(data.des_joint_pos_(i));
             }
         }
     }
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 
   /* calculate joint pos err */
+  for(auto it = assembled_modules_data_.begin(); it != assembled_modules_data_.end(); ++it)
+    {
+      int id = it->first;
+      ModuleData& data = it->second;
+      int left_id, right_id;
+      if(it != assembled_modules_data_.begin())
+        {
+          auto left = std::prev(it);
+          left_id = left->first;
+          try
+            {
+              KDL::Frame myCog2LeftCog;
+              geometry_msgs::TransformStamped transformStamped;
+              transformStamped = tfBuffer_.lookupTransform(my_name_ + std::to_string(id) + std::string("/fc") ,
+                                                           my_name_ + std::to_string(left_id) + std::string("/fc"),
+                                                           ros::Time(0));
+              tf::transformMsgToKDL(transformStamped.transform, myCog2LeftCog);
+              data.est_joint_pos_(PITCH) = std::asin(myCog2LeftCog.M(0,2));
+            }
+          catch (tf2::TransformException& ex)
+            {
+              ROS_ERROR("cannot estimate joint position");
+              return;
+            }
+        }
+      if(it != assembled_modules_data_.end())
+        {
+          auto right = std::next(it);
+          right_id = right->first;
+          try
+            {
+              KDL::Frame myCog2RightCog;
+              geometry_msgs::TransformStamped transformStamped;
+              transformStamped = tfBuffer_.lookupTransform(my_name_ + std::to_string(id) + std::string("/fc") ,
+                                                           my_name_ + std::to_string(right_id) + std::string("/fc"),
+                                                           ros::Time(0));
+              tf::transformMsgToKDL(transformStamped.transform, myCog2RightCog);  
+              data.est_joint_pos_(YAW) = std::atan2(-myCog2RightCog.M(0,1),myCog2RightCog.M(0,0));
+            }
+          catch (tf2::TransformException& ex)
+            {
+              ROS_ERROR("cannot estimate joint position");
+              return;
+            }
+        }
+    }
+ 
   int neighbor_id_;
   if(my_id_ < leader_id_)
-    neighbor_id_ = assembled_modules_ids_[my_index_+1];
-  else if(my_id_ > leader_id_)
-    neighbor_id_ = assembled_modules_ids_[my_index_-1];
-  else
-    return;
-  try
     {
-      KDL::Frame myCog2NeighborCog;
-      geometry_msgs::TransformStamped transformStamped;
-      transformStamped = tfBuffer_.lookupTransform(my_name_ + std::to_string(my_id_) + std::string("/fc") ,
-                                                   my_name_ + std::to_string(neighbor_id_) + std::string("/fc"),
-                                                   ros::Time(0));
-      tf::transformMsgToKDL(transformStamped.transform, myCog2NeighborCog);
-      double joint_pos_roll, joint_pos_pitch, joint_pos_yaw;
-      // myCog2NeighborCog.M.GetRPY(joint_pos_roll, joint_pos_pitch, joint_pos_yaw);
-      if(my_id_ < leader_id_)
-        {
-          joint_pos_yaw = std::atan2(-myCog2NeighborCog.M(0,1),myCog2NeighborCog.M(0,0));
-          joint_pos_pitch = std::asin(myCog2NeighborCog.M(0,2));
-          joint_pos_errs_[0] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(0) - joint_pos_pitch;
-          joint_pos_errs_[1] = assembled_modules_data_[my_id_].goal_joint_pos_(1) - joint_pos_yaw;
-        }
-      else if(my_id_ > leader_id_)
-        {
-          joint_pos_yaw = std::atan2(-myCog2NeighborCog.M(0,1),myCog2NeighborCog.M(0,0));
-          joint_pos_pitch = std::asin(myCog2NeighborCog.M(0,2));
-          joint_pos_errs_[0] = assembled_modules_data_[my_id_].goal_joint_pos_(0) - (-joint_pos_pitch);
-          joint_pos_errs_[1] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(1) - (-joint_pos_yaw);
-        }
+      neighbor_id_ = assembled_modules_ids_[my_index_+1];
+      joint_pos_errs_[PITCH] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(PITCH) - assembled_modules_data_[neighbor_id_].est_joint_pos_(PITCH);
+      joint_pos_errs_[YAW] = assembled_modules_data_[my_id_].goal_joint_pos_(YAW) - assembled_modules_data_[my_id_].est_joint_pos_(YAW);
     }
-  catch (tf2::TransformException& ex)
+  else if(my_id_ > leader_id_)
     {
-      ROS_ERROR_STREAM("not exist neighbor mentioned. ID is "<<neighbor_id_ );
+      neighbor_id_ = assembled_modules_ids_[my_index_-1];
+      joint_pos_errs_[PITCH] = assembled_modules_data_[my_id_].goal_joint_pos_(PITCH) - assembled_modules_data_[my_id_].est_joint_pos_(PITCH); 
+     joint_pos_errs_[YAW] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(YAW) - assembled_modules_data_[neighbor_id_].est_joint_pos_(YAW);
+      // ROS_ERROR_STREAM("pitch: " << joint_pos_errs_[PITCH]);
+      // ROS_ERROR_STREAM("yaw: " << joint_pos_errs_[YAW]);
+    }
+  else
+    {
       return;
     }
-
 }
 
 
@@ -657,6 +718,8 @@ void NinjaNavigator::rosParamInit()
   getParam<double>(nh, "joint_pos_change_thresh", joint_pos_chnage_thresh_, 0.01);
   getParam<int>(nh, "joint_process_func", joint_process_func_, CONSTANT);
   getParam<bool>(nh, "free_joint_flag", free_joint_flag_, false);
+  getParam<double>(nh, "com_rot_change_thresh", com_rot_change_thresh_, 0.02);
+  getParam<double>(nh, "morphing_process_interval", morphing_process_interval_, 0.1);
   BeetleNavigator::rosParamInit();
 }
 

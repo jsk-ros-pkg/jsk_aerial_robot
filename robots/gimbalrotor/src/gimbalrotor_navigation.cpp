@@ -64,6 +64,15 @@ void GimbalrotorNavigator::baselinkRotationProcess()
     }
 }
 
+void GimbalrotorNavigator::forceSetTargetBaselinkRot(tf::Vector3 target_baselink_rot){
+  final_target_baselink_rot_ = target_baselink_rot;
+  curr_target_baselink_rot_ = target_baselink_rot;
+  spinal::DesireCoord target_baselink_rot_msg;
+  target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
+  target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
+  curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);  
+}
+
 void GimbalrotorNavigator::rosParamInit()
 {
   BaseNavigator::rosParamInit();

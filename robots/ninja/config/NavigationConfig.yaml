@@ -37,7 +37,9 @@ navigation:
   # desire tilt
   baselink_rot_pub_interval: 0.5
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
+  com_rot_change_thrush: 0.01
 
   #morphing
-  morphing_vel: 0.05
+  morphing_vel: 0.04
   joint_process_func: 2 # 0 -> CONSTANT, 1 -> FRAC, 2 -> EXP
+  free_joint_flag: false

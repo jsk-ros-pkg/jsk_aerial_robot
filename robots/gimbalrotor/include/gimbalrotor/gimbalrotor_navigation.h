@@ -24,6 +24,7 @@ namespace aerial_robot_navigation
     tf::Vector3 getFinalTargetBaselinkRot(){return final_target_baselink_rot_;}
  
     void setFinalTargetBaselinkRot(tf::Vector3 final_target_baselink_rot){final_target_baselink_rot_ = final_target_baselink_rot;}
+    void forceSetTargetBaselinkRot(tf::Vector3 target_baselink_rot);
   protected:
     void rosParamInit() override;
     virtual void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);

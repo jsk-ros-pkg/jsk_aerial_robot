@@ -26,17 +26,17 @@ namespace aerial_robot_navigation
   class ModuleData
   {
   public:
-    ModuleData(int id): id_(id), joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
-    ModuleData(): id_(1), joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
+    ModuleData(int id): id_(id), des_joint_pos_(), est_joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
+    ModuleData(): id_(1), des_joint_pos_(), est_joint_pos_(), goal_joint_pos_(), start_joint_pos_(), module_tree_(), first_joint_processed_time_(), joint_process_coef_(){}
     int id_;
-    KDL::JntArray joint_pos_;
+    KDL::JntArray des_joint_pos_;
+    KDL::JntArray est_joint_pos_;
     KDL::Tree module_tree_;
 
     std::vector<double> first_joint_processed_time_;
     std::vector<double> joint_process_coef_;
     KDL::JntArray goal_joint_pos_;
     KDL::JntArray start_joint_pos_;
-
 
   };
   class NinjaNavigator : public BeetleNavigator
@@ -51,6 +51,7 @@ namespace aerial_robot_navigation
                     double loop_du) override;
     void update() override;
     void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
+    void setGoalComRot(KDL::Rotation goal_com_rot){ goal_com_rot_ = goal_com_rot;}
     void setTargetCoMPoseFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
     void morphingProcess();
@@ -68,8 +69,9 @@ namespace aerial_robot_navigation
 
   private:
     void convertTargetPosFromCoG2CoM() override;
-    void setTargetCoMRotCallback(const spinal::DesireCoordConstPtr & msg);
+    void setGoalCoMRotCallback(const spinal::DesireCoordConstPtr & msg);
     void assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg);
+    void comRotationProcess();
 
     ros::Publisher target_com_pose_pub_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
@@ -80,6 +82,7 @@ namespace aerial_robot_navigation
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;
 
+    KDL::Rotation goal_com_rot_;
     KDL::Rotation target_com_rot_;
     KDL::Frame com2base_;
     KDL::Frame test_frame_;
@@ -90,6 +93,12 @@ namespace aerial_robot_navigation
     int joint_process_func_;
 
     bool free_joint_flag_;
+
+    double morphing_process_interval_;
+    double prev_morphing_stamp_;
+    bool morphing_flag_;
+
+    double com_rot_change_thresh_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
