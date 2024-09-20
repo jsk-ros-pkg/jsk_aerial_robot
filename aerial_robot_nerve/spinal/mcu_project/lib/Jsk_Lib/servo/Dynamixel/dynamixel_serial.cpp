@@ -229,7 +229,7 @@ void DynamixelSerial::update()
     }
     if (instruction_last_.first == INST_GET_PRESENT_POS)
     {
-    	flag_new_servo_data_ = true;
+      setROSCommFlag(true);
     }
   }
   read_status_packet_flag_ = false;

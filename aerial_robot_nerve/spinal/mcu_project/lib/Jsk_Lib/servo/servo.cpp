@@ -51,7 +51,7 @@ void DirectServo::sendData(bool flag_send_asap)
 {
   uint32_t now_time = HAL_GetTick();
 
-  if (flag_send_asap && servo_handler_.flag_new_servo_data_ == true)  // This setting will ignore the setting of SERVO_PUB_INTERVAL and pub the information once the measurement is updated.
+  if (flag_send_asap && servo_handler_.getROSCommFlag() == true)  // This setting will ignore the setting of SERVO_PUB_INTERVAL and pub the information once the measurement is updated.
   {
 	  servo_state_msg_.stamp = nh_->now();
       for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
@@ -69,7 +69,7 @@ void DirectServo::sendData(bool flag_send_asap)
       servo_state_pub_.publish(&servo_state_msg_);
       servo_last_pub_time_ = now_time;
 
-      servo_handler_.flag_new_servo_data_ = false;
+      servo_handler_.setROSCommFlag(false);
   }
   else
   {
