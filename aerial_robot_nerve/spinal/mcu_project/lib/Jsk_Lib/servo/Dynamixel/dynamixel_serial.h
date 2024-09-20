@@ -326,6 +326,8 @@ class DynamixelSerial
 public:
   DynamixelSerial(){}
 
+  bool flag_new_servo_data_ = false;
+
   // void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
   void init(UART_HandleTypeDef* huart,  osMutexId* mutex = NULL);
   void ping();

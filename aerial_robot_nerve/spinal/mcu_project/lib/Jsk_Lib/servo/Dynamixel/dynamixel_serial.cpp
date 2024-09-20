@@ -443,6 +443,7 @@ void DynamixelSerial::update()
             if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
             readStatusPacket(instruction.first);
           }
+          flag_new_servo_data_ = true;
         }
       }
 
