@@ -345,6 +345,10 @@ public:
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
   ServoData& getOneServo(uint8_t id);
   uint8_t getServoIndex(uint8_t id);
+
+  void setROSCommFlag(bool flag) {flag_send_ros_ = flag;}
+  bool getROSCommFlag() const {return flag_send_ros_;}
+
 private:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex
@@ -363,6 +367,9 @@ private:
   /* uart rx */
   // uint8_t rx_buf_[RX_BUFFER_SIZE];
   uint32_t rd_ptr_;
+
+  /* ros comm */
+  bool flag_send_ros_ = false;
 
   /* a new and quicker method to read servo data */
   bool read_status_packet_flag_ = false;
