@@ -366,6 +366,11 @@ private:
   // uint8_t rx_buf_[RX_BUFFER_SIZE];
   uint32_t rd_ptr_;
 
+  /* a new and quicker method to read servo data */
+  bool read_status_packet_flag_ = false;
+  std::pair<uint8_t, uint8_t> instruction_last_ = std::make_pair(255, 255);
+
+
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
   int8_t readStatusPacket(uint8_t status_packet_instruction);
 
