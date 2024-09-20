@@ -227,7 +227,10 @@ void DynamixelSerial::update()
       if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
       readStatusPacket(instruction_last_.first);
     }
-    flag_new_servo_data_ = true;
+    if (instruction_last_.first == INST_GET_PRESENT_POS)
+    {
+    	flag_new_servo_data_ = true;
+    }
   }
   read_status_packet_flag_ = false;
 
