@@ -315,7 +315,7 @@ int main(void)
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
 
 #ifdef SERVO_FLAG
-  osTimerStart(ServoTimerHandle, 50); // ms
+  osTimerStart(ServoTimerHandle, 5); // ms  Should be quicker than the minimumal period of the servo in dynamixel_serial.h, i.e.,10ms
 #endif
 
   /* USER CODE END RTOS_TIMERS */
