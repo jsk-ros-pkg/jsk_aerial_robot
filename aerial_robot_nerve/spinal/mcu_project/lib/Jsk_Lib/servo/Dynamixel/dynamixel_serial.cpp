@@ -227,6 +227,10 @@ void DynamixelSerial::update()
       if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
       readStatusPacket(instruction_last_.first);
     }
+    if (instruction_last_.first == INST_GET_PRESENT_POS)
+    {
+    	flag_new_servo_data_ = true;
+    }
   }
   read_status_packet_flag_ = false;
 
@@ -447,15 +451,6 @@ void DynamixelSerial::update()
         default:
           break;
         }
-
-//        /* receive data process */
-//        if(read_status_packet_flag_) {
-//          for (unsigned int i = 0; i < servo_num_; i++) {
-//            if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
-//            readStatusPacket(instruction.first);
-//          }
-//        }
-//        read_status_packet_flag_ = false;
 
         if (read_status_packet_flag_) {
           instruction_last_ = instruction;
