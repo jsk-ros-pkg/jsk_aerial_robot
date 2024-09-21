@@ -141,7 +141,10 @@ void NinjaNavigator::calcCenterOfMoving()
   geometry_msgs::Point cog_com_dist_msg;
   if(!module_num_ || module_num_ == 1 || !assembly_flags_[my_id_]){
     // pre_assembled_modules_ = module_num_;
-    KDL::Frame com_frame = ninja_robot_model_->getCog2Baselink<KDL::Frame>();;
+
+    KDL::Frame raw_cog2base; // co2base conversion without desire coord process
+    raw_cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
+    KDL::Frame com_frame = raw_cog2base;
     setCoM2Base(com_frame);
     current_assembled_ = false;
     module_state_ = SEPARATED;
@@ -205,7 +208,10 @@ void NinjaNavigator::calcCenterOfMoving()
     std::string right_dock = "yaw_connect_point";
     if(my_id_ == leader_id_)
       {
-        setCoM2Base(com_frame * ninja_robot_model_->getCog2Baselink<KDL::Frame>());
+        KDL::Frame raw_cog2base; // co2base conversion without desire coord process
+        raw_cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
+        KDL::Frame com_frame = raw_cog2base;
+        setCoM2Base(com_frame);
       }
     else
       {
