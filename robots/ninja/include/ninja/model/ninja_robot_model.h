@@ -6,7 +6,11 @@
 #include <unordered_set>
 
 using namespace aerial_robot_model;
-
+enum module_joint
+  {
+   PITCH,
+   YAW
+  };
 class NinjaRobotModel : public BeetleRobotModel{
 public:
   NinjaRobotModel(bool init_with_rosparam = true,
@@ -18,6 +22,7 @@ public:
   const KDL::Vector& getInitCog2BaseVec(){ return cog2baselink_vector_; }
 
   void copyTreeStructure(const KDL::Tree& source_tree, KDL::Tree& destination_tree);
+  void setJointFree(KDL::Chain& source_chain, const std::string joint_name, const int rot_direction);
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;

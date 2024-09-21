@@ -9,8 +9,14 @@ namespace aerial_robot_control
 {
   enum
     {
-     JOINT_PITCH = TZ +1,
-     JOINT_YAW,
+     JOINT_TY = TZ +1,
+     JOINT_TZ,
+    };
+
+  enum joint_rot
+    {
+     PITCH_JOINT,
+     YAW_JOINT
     };
   
   class NinjaController: public BeetleController
@@ -33,7 +39,11 @@ namespace aerial_robot_control
     double joint_d_gain_;
 
     double joint_control_timestamp_;
+
+    KDL::Tree module_tree_for_control_;
+
   protected:
+    void calcInteractionWrench() override;
     void externalWrenchEstimate() override;
     void rosParamInit() override;
     void controlCore() override;

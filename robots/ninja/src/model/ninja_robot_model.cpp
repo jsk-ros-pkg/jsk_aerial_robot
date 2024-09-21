@@ -57,6 +57,37 @@ void NinjaRobotModel::copyTreeStructure(const KDL::Tree& source_tree, KDL::Tree&
   }
 }
 
+void NinjaRobotModel::setJointFree(KDL::Chain& source_chain, const std::string joint_name, const int rot_direction)
+{
+  KDL::Chain new_chain;
+    
+  for (unsigned int i = 0; i < source_chain.getNrOfSegments(); ++i)
+    {
+      KDL::Segment seg = source_chain.getSegment(i);        
+      if (seg.getJoint().getName() == joint_name)
+        {
+          KDL::Segment modified_segment;
+          switch(rot_direction)
+            {
+            case PITCH:
+              modified_segment = KDL::Segment(seg.getName(), KDL::Joint(KDL::Joint::RotY), seg.getFrameToTip(), seg.getInertia());
+              break;
+            case YAW:
+              modified_segment = KDL::Segment(seg.getName(), KDL::Joint(KDL::Joint::RotZ), seg.getFrameToTip(), seg.getInertia());
+              break;
+            default:
+              ROS_ERROR("This joint direction is unsupported");
+              return;
+              break;
+            }
+          new_chain.addSegment(modified_segment);
+        } else {
+        new_chain.addSegment(seg);
+      }
+    }
+  source_chain = new_chain;
+}
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

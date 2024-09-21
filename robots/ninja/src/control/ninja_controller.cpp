@@ -20,6 +20,7 @@ namespace aerial_robot_control
     ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
     pid_controllers_.push_back(PID("joint_pitch", joint_p_gain_, joint_i_gain_, joint_d_gain_));
     pid_controllers_.push_back(PID("joint_yaw", joint_p_gain_, joint_i_gain_, joint_d_gain_));
+    // ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_tree_for_control_);
   }
   bool NinjaController::update()
   {
@@ -39,12 +40,12 @@ namespace aerial_robot_control
         std::vector<int> assembled_modules_ids = ninja_navigator_->getAssemblyIds();
         double du = ros::Time::now().toSec() - joint_control_timestamp_;
         std::vector<double> joint_errs =  ninja_navigator_->getJointPosErr();
-        pid_controllers_.at(JOINT_PITCH).updateWoVel(joint_errs.at(0),du);
-        pid_controllers_.at(JOINT_YAW).updateWoVel(joint_errs.at(1),du);
+        pid_controllers_.at(JOINT_TY).updateWoVel(joint_errs.at(0),du);
+        pid_controllers_.at(JOINT_TZ).updateWoVel(joint_errs.at(1),du);
         Eigen::VectorXd joint_ff_wrench = Eigen::VectorXd::Zero(6);
         joint_ff_wrench.topRows(4) = Eigen::VectorXd::Zero(4);
-        joint_ff_wrench(4) = pid_controllers_.at(JOINT_PITCH).result();
-        joint_ff_wrench(5) = pid_controllers_.at(JOINT_YAW).result();
+        joint_ff_wrench(4) = pid_controllers_.at(JOINT_TY).result();
+        joint_ff_wrench(5) = pid_controllers_.at(JOINT_TZ).result();
         if(my_id < leader_id)
           {
             setFfInterWrench(my_id,-joint_ff_wrench);
@@ -115,6 +116,7 @@ namespace aerial_robot_control
 
     Eigen::VectorXd est_external_wrench_cog = est_external_wrench_;
     est_external_wrench_cog.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
+    // ROS_ERROR_STREAM(cog_rot);
 
     geometry_msgs::WrenchStamped wrench_msg;
     wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
@@ -148,6 +150,86 @@ namespace aerial_robot_control
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
   }
 
+  void NinjaController::calcInteractionWrench()
+  {
+    /* 1. calculate external wrench W_w for whole system (e.g. ground effects, model error and etc..)*/
+    Eigen::VectorXd W_w = Eigen::VectorXd::Zero(6);
+    Eigen::VectorXd W_sum = Eigen::VectorXd::Zero(6);
+    int module_num = 0;
+    std::map<int, bool> assembly_flag = ninja_navigator_->getAssemblyFlags();
+
+    for(const auto & item : est_wrench_list_){
+      if(assembly_flag[item.first]){
+        W_sum += item.second;
+        module_num ++;
+      }
+    }
+
+    if(!module_num) return;
+    W_w = W_sum / module_num;
+    geometry_msgs::WrenchStamped wrench_msg;
+    wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.wrench.force.x = W_w(0);
+    wrench_msg.wrench.force.y = W_w(1);
+    wrench_msg.wrench.force.z = W_w(2);
+    wrench_msg.wrench.torque.x = W_w(3);
+    wrench_msg.wrench.torque.y = W_w(4);
+    wrench_msg.wrench.torque.z = W_w(5);
+    whole_external_wrench_pub_.publish(wrench_msg);
+
+    /* 2. calculate interactional wrench for each module*/
+    Eigen::VectorXd left_inter_wrench = Eigen::VectorXd::Zero(6); //'left_inter_wrench' represents the wrench applied from right-side module to left-side module
+    for(const auto & item : est_wrench_list_){
+      if(assembly_flag[item.first]){
+        Eigen::VectorXd right_inter_wrench = item.second - W_w + left_inter_wrench;
+        inter_wrench_list_[item.first] = right_inter_wrench;
+        left_inter_wrench = right_inter_wrench;
+      }else{
+        inter_wrench_list_[item.first] = Eigen::VectorXd::Zero(6);
+      }
+    }
+    int my_id = ninja_navigator_->getMyID();
+    wrench_msg.wrench.force.x = inter_wrench_list_[my_id](0);
+    wrench_msg.wrench.force.y = inter_wrench_list_[my_id](1);
+    wrench_msg.wrench.force.z = inter_wrench_list_[my_id](2);
+    wrench_msg.wrench.torque.x = inter_wrench_list_[my_id](3);
+    wrench_msg.wrench.torque.y = inter_wrench_list_[my_id](4);
+    wrench_msg.wrench.torque.z = inter_wrench_list_[my_id](5);
+    internal_wrench_pub_.publish(wrench_msg);
+    /* 3. calculate wrench compensation term for each module*/
+    int leader_id = ninja_navigator_->getLeaderID();
+    /* 3.1. process of leader*/
+    // wrench_comp_list_[leader_id] = -est_wrench_list_[leader_id] - W_w;
+    /* 3.2. process from leader to left*/
+    int right_module_id = leader_id;
+    Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
+    for(int i = leader_id-1; i > 0; i--){
+      if(assembly_flag[i]){
+        wrench_comp_sum_left += -ff_inter_wrench_list_[i] + inter_wrench_list_[i];
+        // wrench_comp_list_[i] += wrench_comp_gain_ *  wrench_comp_sum_left;
+        wrench_comp_list_[i] = wrench_comp_sum_left;
+        right_module_id = i;
+      }else{
+        wrench_comp_list_[i] = Eigen::VectorXd::Zero(6);
+      }
+    }
+    /* 3.3. process from leader to right*/
+    int max_modules_num = ninja_navigator_->getMaxModuleNum();
+    int left_module_id = leader_id;
+    Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
+    for(int i = leader_id+1; i <= max_modules_num; i++){
+      if(assembly_flag[i]){
+        wrench_comp_sum_right += ff_inter_wrench_list_[left_module_id] - inter_wrench_list_[left_module_id];
+        // wrench_comp_list_[i] += wrench_comp_gain_ * wrench_comp_sum_right;
+        wrench_comp_list_[i] = wrench_comp_sum_right;
+        left_module_id = i;
+      }else{
+        wrench_comp_list_[i] = Eigen::VectorXd::Zero(6);
+      }
+    }
+  }
+  
+
   void NinjaController::rosParamInit()
   {
     BeetleController::rosParamInit();
@@ -161,8 +243,8 @@ namespace aerial_robot_control
   void NinjaController::reset()
   {
     BeetleController::reset();
-    pid_controllers_.at(JOINT_PITCH).reset();
-    pid_controllers_.at(JOINT_YAW).reset();
+    pid_controllers_.at(JOINT_TY).reset();
+    pid_controllers_.at(JOINT_TZ).reset();
     for(const auto & id : ninja_navigator_->getAssemblyIds())
       {
         Eigen::VectorXd reset_ff_wrench = Eigen::VectorXd::Zero(6);
