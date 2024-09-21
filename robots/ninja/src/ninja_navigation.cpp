@@ -50,10 +50,13 @@ void NinjaNavigator::update()
         KDL::Frame current_com;
         KDL::Frame target_cog_pose;
         KDL::Frame target_com_pose;
+        KDL::Frame raw_base2cog; // base2cog conversion without desire coord process
         geometry_msgs::TransformStamped transformStamped;
         target_com_pose.M = target_com_rot_;
         tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
-        target_cog_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse();
+        raw_base2cog.p = ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse().p;
+        // target_cog_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse();
+        target_cog_pose = target_com_pose * getCom2Base<KDL::Frame>() * raw_base2cog;
 
         geometry_msgs::TransformStamped tf;
 
@@ -388,30 +391,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     return;
   }else if(!current_assembled){
     return;
-  }else if(my_id_ == leader_id_){
-    KDL::Frame target_my_pose;
-    if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE)
-      {
-        setTargetPosX(target_pos_candidate_.x());
-        setTargetPosY(target_pos_candidate_.y());
-        setTargetPosZ(getTargetPos().z());
-      }
-    else
-      {
-        setTargetPos(target_pos_candidate_);
-      }
-    tf::Vector3 target_rot;
-    double target_roll, target_pitch, target_yaw;
-    target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
-    ROS_ERROR_STREAM("id : " << my_id_ <<" yaw: "<< target_yaw << " pitch: "<<target_pitch<< " roll: "<<target_roll);
-    target_rot.setX(target_roll);
-    target_rot.setY(target_pitch);
-    target_rot.setZ(target_yaw);
-    forceSetTargetBaselinkRot(target_rot);
-    setTargetYaw(target_rot.z());
-    return;
   }
-
   if( std::round(pre_target_pos_.x() * 1000) != std::round(getTargetPos().x() * 1000) ||
       std::round(pre_target_pos_.y() * 1000) != std::round(getTargetPos().y() * 1000) ||
       std::round(pre_target_pos_.z() * 1000) != std::round(getTargetPos().z() * 1000) ||
@@ -423,9 +403,12 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   /*Target pose conversion*/
   KDL::Frame target_com_pose;
   KDL::Frame target_my_pose;
+  KDL::Frame raw_base2cog; // base2cog conversion without desire coord process
   target_com_pose.M = target_com_rot_;
   tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
-  target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse(); // com -> cog
+  raw_base2cog.p = ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse().p;
+  // target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse(); // com -> cog
+  target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
 
   tf::Vector3 target_pos, target_rot;
   double target_roll, target_pitch, target_yaw;
@@ -434,6 +417,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   target_rot.setX(target_roll);
   target_rot.setY(target_pitch);
   target_rot.setZ(target_yaw);
+  ROS_ERROR_STREAM("id : " << my_id_ <<" yaw: "<< target_yaw << " pitch: "<<target_pitch<< " roll: "<<target_roll);
 
   /*Set new target pose*/
   if( getNaviState() == HOVER_STATE ||
@@ -453,20 +437,35 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
 
 void NinjaNavigator::comRotationProcess()
 {
+  if(!control_flag_) return;
   double target_roll, target_pitch, target_yaw;
   double goal_roll, goal_pitch, goal_yaw;
   target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
   goal_com_rot_.GetEulerZYX(goal_yaw, goal_pitch, goal_roll);
-  tf::Vector3 target_com_rot(target_roll, target_pitch, target_yaw);
-  tf::Vector3 goal_com_rot(goal_roll, goal_pitch, goal_yaw);
-  if(target_com_rot == goal_com_rot) return;
-
-  if((goal_com_rot- target_com_rot).length() > com_rot_change_thresh_)
-    target_com_rot += ((goal_com_rot - target_com_rot).normalize() * com_rot_change_thresh_);
-  else
-    target_com_rot = goal_com_rot;
-
-  setTargetComRot(KDL::Rotation::RPY(target_com_rot.x(), target_com_rot.y(), target_com_rot.z()));  
+  //roll
+  if(target_roll != goal_roll){
+    if(abs(goal_roll- target_roll) > com_roll_change_thresh_)
+      target_roll += ((goal_roll - target_roll) * com_roll_change_thresh_);
+    else
+      target_roll = goal_roll;
+  }
+  //pitch
+  if(target_pitch != goal_pitch)
+    {
+      if(abs(goal_pitch- target_pitch) > com_pitch_change_thresh_)
+        target_pitch += ((goal_pitch - target_pitch) * com_pitch_change_thresh_);
+      else
+        target_pitch = goal_pitch;
+    }
+  //yaw
+  if(target_yaw != goal_yaw)
+    {
+      if(abs(goal_yaw- target_yaw) > com_yaw_change_thresh_)
+        target_yaw += ((goal_yaw - target_yaw) * com_yaw_change_thresh_);
+      else
+        target_yaw = goal_yaw;
+    }
+  setTargetComRot(KDL::Rotation::RPY(target_roll, target_pitch, target_yaw));
 }
 
 void NinjaNavigator::setTargetCoMPoseFromCurrState()
@@ -481,9 +480,23 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
         tf::transformMsgToKDL(transformStamped.transform, current_com);
         tf::Vector3 target_com_pos;
         tf::vectorKDLToTF(current_com.p, target_com_pos);
-        if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) target_com_pos.setZ(getTargetPos().z());
-        setTargetPosCand(target_com_pos);
-        setTargetComRot(current_com.M);
+
+        double current_roll, current_pitch, current_yaw;
+        current_com.M.GetEulerZYX(current_yaw, current_pitch, current_roll);
+        
+        if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE)
+          {
+            target_com_pos.setZ(getTargetPos().z());
+            setTargetPosCand(target_com_pos);
+            setTargetComRot(KDL::Rotation::RPY(0,0,current_yaw));
+            setGoalComRot(KDL::Rotation::RPY(0,0,current_yaw));
+          }
+        else
+          {
+            setTargetPosCand(target_com_pos);
+            setTargetComRot(current_com.M);
+            setGoalComRot(current_com.M);
+          }
       }
     catch (tf2::TransformException& ex)
       {
@@ -593,7 +606,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
 
 void NinjaNavigator::morphingProcess()
 {
-  if(!getCurrentAssembled()) return;
+  if(!getCurrentAssembled() || !control_flag_) return;
   sensor_msgs::JointState joints_ctrl_msg;
   bool joint_send_flag = false;
   std::map<int, std::string> joint_map;
@@ -718,7 +731,10 @@ void NinjaNavigator::rosParamInit()
   getParam<double>(nh, "joint_pos_change_thresh", joint_pos_chnage_thresh_, 0.01);
   getParam<int>(nh, "joint_process_func", joint_process_func_, CONSTANT);
   getParam<bool>(nh, "free_joint_flag", free_joint_flag_, false);
-  getParam<double>(nh, "com_rot_change_thresh", com_rot_change_thresh_, 0.02);
+  getParam<double>(nh, "com_roll_change_thresh", com_roll_change_thresh_, 0.02);
+  getParam<double>(nh, "com_yaw_pitch_thresh", com_pitch_change_thresh_, 0.02);
+  getParam<double>(nh, "com_yaw_change_thresh", com_yaw_change_thresh_, 0.02);
+  
   getParam<double>(nh, "morphing_process_interval", morphing_process_interval_, 0.1);
   BeetleNavigator::rosParamInit();
 }

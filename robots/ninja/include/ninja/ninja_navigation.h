@@ -98,7 +98,9 @@ namespace aerial_robot_navigation
     double prev_morphing_stamp_;
     bool morphing_flag_;
 
-    double com_rot_change_thresh_;
+    double com_roll_change_thresh_;
+    double com_pitch_change_thresh_;
+    double com_yaw_change_thresh_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

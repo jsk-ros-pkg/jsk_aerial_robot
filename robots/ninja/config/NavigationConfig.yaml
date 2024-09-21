@@ -37,7 +37,9 @@ navigation:
   # desire tilt
   baselink_rot_pub_interval: 0.5
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
-  com_rot_change_thrush: 0.01
+  com_roll_change_thresh: 0.005
+  com_pitch_change_thresh: 0.005
+  com_yaw_change_thresh: 0.02
 
   #morphing
   morphing_vel: 0.04
