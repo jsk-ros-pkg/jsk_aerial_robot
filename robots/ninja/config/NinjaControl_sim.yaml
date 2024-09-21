@@ -25,7 +25,11 @@ controller:
   wrench_comp:
     p_gain: 0.1
     d_gain: 0.07
-    i_gain: 0.00
+    i_gain: 0.01
+  joint_pid:
+    p_gain: 0.2
+    d_gain: 0.1
+    i_gain: 0.01
   xy:
     p_gain: 1.5
     i_gain: 0.05
