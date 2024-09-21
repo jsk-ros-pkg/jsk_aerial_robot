@@ -7,7 +7,8 @@ namespace aerial_robot_control
   BeetleController::BeetleController():
     GimbalrotorController(),
     pd_wrench_comp_mode_(false),
-    pre_module_state_(SEPARATED)
+    pre_module_state_(SEPARATED),
+    des_wrench_pub_flag_(false)
   {
   }
 
@@ -124,7 +125,11 @@ namespace aerial_robot_control
           pid_controllers_.at(index).setDGain(wrench_comp_d_gain_ / std::pow(2, module_num -2) );
           pid_controllers_.at(index).setIGain(wrench_comp_i_gain_ / std::pow(2, module_num -2) );
         }
-      Eigen::VectorXd wrench_comp_term = wrench_comp_list_[my_id];
+      Eigen::VectorXd wrench_comp_term_cog = wrench_comp_list_[my_id]; // regarding cog
+      Eigen::Matrix3d cog_rot;
+      tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimate_mode_), cog_rot);
+      Eigen::VectorXd wrench_comp_term = wrench_comp_term_cog; 
+      wrench_comp_term.head(3) = cog_rot * wrench_comp_term.head(3); // regarding world
 
       /* current version: I term reconfig mehod */
       Eigen::VectorXd I_reconfig_acc_cog_term = Eigen::VectorXd::Zero(6);
@@ -213,29 +218,32 @@ namespace aerial_robot_control
       wrench_comp_pid_pub_.publish(wrench_pid_msg_);
 
       /*publish desire internal wrench*/
-      beetle::TaggedWrenches all_tagged_des_wrenche_msg;
-      std::vector<int> assembled_ids = beetle_navigator_->getAssemblyIds();
-      all_tagged_des_wrenche_msg.tagged_wrenches.resize(assembled_ids.size());
-      int cnt =0;
-      for(const auto id: assembled_ids)
+      if(des_wrench_pub_flag_)
         {
-          beetle::TaggedWrench tagged_des_wrench_msg;
-          geometry_msgs::WrenchStamped des_wrench_msg;
-          Eigen::VectorXd des_wrench = ff_inter_wrench_list_[id];
-          des_wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
-          des_wrench_msg.wrench.force.x = des_wrench(0);
-          des_wrench_msg.wrench.force.y = des_wrench(1);
-          des_wrench_msg.wrench.force.z = des_wrench(2);
-          des_wrench_msg.wrench.torque.x = des_wrench(3);
-          des_wrench_msg.wrench.torque.y = des_wrench(4);
-          des_wrench_msg.wrench.torque.z = des_wrench(5);
+          beetle::TaggedWrenches all_tagged_des_wrenche_msg;
+          std::vector<int> assembled_ids = beetle_navigator_->getAssemblyIds();
+          all_tagged_des_wrenche_msg.tagged_wrenches.resize(assembled_ids.size());
+          int cnt =0;
+          for(const auto id: assembled_ids)
+            {
+              beetle::TaggedWrench tagged_des_wrench_msg;
+              geometry_msgs::WrenchStamped des_wrench_msg;
+              Eigen::VectorXd des_wrench = ff_inter_wrench_list_[id];
+              des_wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+              des_wrench_msg.wrench.force.x = des_wrench(0);
+              des_wrench_msg.wrench.force.y = des_wrench(1);
+              des_wrench_msg.wrench.force.z = des_wrench(2);
+              des_wrench_msg.wrench.torque.x = des_wrench(3);
+              des_wrench_msg.wrench.torque.y = des_wrench(4);
+              des_wrench_msg.wrench.torque.z = des_wrench(5);
 
-          tagged_des_wrench_msg.index = id;
-          tagged_des_wrench_msg.wrench = des_wrench_msg;
-          all_tagged_des_wrenche_msg.tagged_wrenches[cnt] = tagged_des_wrench_msg;
-          cnt ++;
+              tagged_des_wrench_msg.index = id;
+              tagged_des_wrench_msg.wrench = des_wrench_msg;
+              all_tagged_des_wrenche_msg.tagged_wrenches[cnt] = tagged_des_wrench_msg;
+              cnt ++;
+            }
+          des_inter_wrench_pub_.publish(all_tagged_des_wrenche_msg);
         }
-      des_inter_wrench_pub_.publish(all_tagged_des_wrenche_msg);
     }else{
       pid_controllers_.at(FX).reset();
       pid_controllers_.at(FY).reset();

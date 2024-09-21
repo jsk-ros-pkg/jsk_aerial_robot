@@ -37,11 +37,6 @@ namespace aerial_robot_control
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     boost::shared_ptr<aerial_robot_navigation::BeetleNavigator> beetle_navigator_;
     
-    ros::Publisher external_wrench_compensation_pub_;
-    ros::Publisher whole_external_wrench_pub_;
-    ros::Publisher internal_wrench_pub_;
-    ros::Publisher wrench_comp_pid_pub_;
-    ros::Publisher des_inter_wrench_pub_;
     map<string, ros::Subscriber> ff_inter_wrench_subs_;
 
     aerial_robot_msgs::PoseControlPid wrench_pid_msg_;
@@ -55,10 +50,7 @@ namespace aerial_robot_control
 
     int pre_module_state_;
 
-    std::map<int, Eigen::VectorXd> est_wrench_list_;
-    std::map<int, Eigen::VectorXd> inter_wrench_list_;
-    std::map<int, Eigen::VectorXd> wrench_comp_list_;
-    std::map<int, Eigen::VectorXd> ff_inter_wrench_list_;
+    bool des_wrench_pub_flag_;
 
     double comp_term_update_freq_;
     double prev_comp_update_time_;
@@ -72,11 +64,21 @@ namespace aerial_robot_control
     double I_comp_Ty_;
     double I_comp_Tz_;
     
-    void calcInteractionWrench();
     void estExternalWrenchCallback(const beetle::TaggedWrench & msg);
 
   protected:
+    std::map<int, Eigen::VectorXd> est_wrench_list_;
+    std::map<int, Eigen::VectorXd> inter_wrench_list_;
+    std::map<int, Eigen::VectorXd> wrench_comp_list_;
+    std::map<int, Eigen::VectorXd> ff_inter_wrench_list_;
+
+    virtual void calcInteractionWrench();
     ros::Publisher tagged_external_wrench_pub_;
+    ros::Publisher external_wrench_compensation_pub_;
+    ros::Publisher whole_external_wrench_pub_;
+    ros::Publisher internal_wrench_pub_;
+    ros::Publisher wrench_comp_pid_pub_;
+    ros::Publisher des_inter_wrench_pub_;
     void controlCore() override;
     
     virtual void ffInterWrenchCallback(const beetle::TaggedWrench & msg);
