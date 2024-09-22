@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name = "module_ids" default=""/>
+  <node pkg="ninja" type="assembly_motion.py" name="" output="screen" >
+    <param name = "module_ids" value="$(arg module_ids)"/>
+  </node>
+</launch>
