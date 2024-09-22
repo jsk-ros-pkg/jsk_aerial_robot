@@ -8,7 +8,7 @@ from std_msgs.msg import Empty, String, Bool
 from aerial_robot_msgs.msg import FlightNav
 from spinal.msg import ServoControlCmd
 from diagnostic_msgs.msg import KeyValue
-from beetle.kondo_control import KondoControl
+from ninja.kondo_control_api import KondoControl
 import numpy as np
 import tf
 
@@ -26,7 +26,7 @@ class Filter(logging.Filter):
 class SwitchState(smach.State):
     # release docking mechanism and switch control mode
     def __init__(self,
-                 robot_name = 'beetle1',
+                 robot_name = 'ninja1',
                  robot_id = 1,
                  male_servo_id = 5,
                  real_machine = False,
@@ -34,7 +34,7 @@ class SwitchState(smach.State):
                  lock_servo_angle_male = 8300,
                  unlock_servo_angle_female = 11000,
                  lock_servo_angle_female = 5600,
-                 neighboring = 'beetle2',
+                 neighboring = 'ninja2',
                  neighboring_id = 2,
                  female_servo_id = 6,
                  separate_dir = -1):
@@ -96,10 +96,10 @@ class SwitchState(smach.State):
 class SeparateState(smach.State):
     # keep away target robot from leader
     def __init__(self,
-                 robot_name = 'beetle1',
+                 robot_name = 'ninja1',
                  robot_id = 1,
                  separate_vel = -0.5,
-                 neighboring = 'beetle2',
+                 neighboring = 'ninja2',
                  target_dist_from_neighboring = 1.25):
 
         smach.State.__init__(self, outcomes=['done','in_process'])

@@ -4,7 +4,7 @@ import rospy
 import time
 from diagnostic_msgs.msg import KeyValue
 from std_msgs.msg import Bool
-from ninja.kondo_control import KondoControl
+from ninja.kondo_control_api import KondoControl
 
 if __name__=="__main__":
     rospy.init_node("switch_cmd_pub")

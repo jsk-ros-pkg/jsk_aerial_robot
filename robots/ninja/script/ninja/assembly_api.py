@@ -9,7 +9,7 @@ from aerial_robot_msgs.msg import FlightNav
 from spinal.msg import DesireCoord
 from geometry_msgs.msg import PoseStamped
 from diagnostic_msgs.msg import KeyValue
-from beetle.kondo_control import KondoControl
+from ninja.kondo_control_api import KondoControl
 import numpy as np
 import tf
 
@@ -24,7 +24,7 @@ Standby -> Approach -> Assembly
 
 class StandbyState(smach.State):
     def __init__(self,
-                 robot_name = 'beetle1',
+                 robot_name = 'ninja1',
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
@@ -33,9 +33,9 @@ class StandbyState(smach.State):
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
                  lock_servo_angle_female = 5600,
-                 leader = 'beetle2',
+                 leader = 'ninja2',
                  leader_id = 2,
-                 airframe_size = 0.52,
+                 airframe_size = 0.818258,
                  x_offset = 0.12,
                  y_offset = 0,
                  z_offset = 0,
@@ -45,7 +45,7 @@ class StandbyState(smach.State):
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
-                 root_fc_dis = 0.129947,
+                 root_fc_dis = [-0.04695,0,0.0369],
                  attach_dir = -1.0):
 
         smach.State.__init__(self, outcomes=['done','in_process','emergency'])
@@ -127,7 +127,7 @@ class StandbyState(smach.State):
 
         # set target odom in leader coordinate
         #TODO: determine leader namespace dynamically
-        self.br.sendTransform((self.target_offset[0], self.target_offset[1] , self.target_offset[2] + self.root_fc_dis),
+        self.br.sendTransform((self.target_offset[0] + self.root_fc_dis[0], self.target_offset[1] +self.root_fc_dis[1], self.target_offset[2] + self.root_fc_dis[2]),
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
@@ -187,7 +187,7 @@ class StandbyState(smach.State):
         
 class ApproachState(smach.State):
     def __init__(self,
-                 robot_name = 'beetle1',
+                 robot_name = 'ninja1',
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
@@ -196,9 +196,9 @@ class ApproachState(smach.State):
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
                  lock_servo_angle_female = 5600,
-                 leader = 'beetle2',
+                 leader = 'ninja2',
                  leader_id = 2,
-                 airframe_size = 0.52,
+                 airframe_size = 0.818258,
                  x_offset = 0,
                  y_offset = 0,
                  z_offset = 0,
@@ -208,7 +208,7 @@ class ApproachState(smach.State):
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
-                 root_fc_dis = 0.129947,
+                 root_fc_dis = [-0.04695,0,0.0369],
                  x_danger_thre = 0.02,
                  y_danger_thre = 0.1,
                  z_danger_thre = 0.1,
@@ -287,7 +287,7 @@ class ApproachState(smach.State):
 
         # set target odom in leader coordinate
         #TODO: determine leader namespace dynamically
-        self.br.sendTransform((self.target_offset[0] - 0.05 * self.attach_dir, self.target_offset[1] , self.target_offset[2] + self.root_fc_dis),
+        self.br.sendTransform((self.target_offset[0] - 0.05 * self.attach_dir+self.root_fc_dis[0], self.target_offset[1]+self.root_fc_dis[1] , self.target_offset[2] + self.root_fc_dis[2]),
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
@@ -350,7 +350,7 @@ class ApproachState(smach.State):
 
 class AssemblyState(smach.State):
     def __init__(self,
-                 robot_name = 'beetle1',
+                 robot_name = 'ninja1',
                  robot_id = 1,
                  male_servo_id = 5,
                  female_servo_id = 6,
@@ -359,7 +359,7 @@ class AssemblyState(smach.State):
                  lock_servo_angle_male = 8800,
                  unlock_servo_angle_female = 11000,
                  lock_servo_angle_female = 5600,
-                 leader = 'beetle2',
+                 leader = 'ninja2',
                  leader_id = 2,
                  attach_dir = -1.0):
         smach.State.__init__(self, outcomes=['done','emergency'])

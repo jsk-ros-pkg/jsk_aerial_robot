@@ -5,7 +5,7 @@ import smach
 import smach_ros
 import math
 import numpy as np
-from beetle.disassembly import * 
+from ninja.disassembly_api import * 
 
 class DisassemblyDemo():
     def __init__(self):
@@ -19,20 +19,20 @@ class DisassemblyDemo():
 
             with sm_sub1:
                 smach.StateMachine.add('SwitchState1_2',
-                                       SwitchState(robot_name = 'beetle1', robot_id = 1, neighboring = 'beetle2', neighboring_id = 2, separate_dir = -1),
+                                       SwitchState(robot_name = 'ninja1', robot_id = 1, neighboring = 'ninja2', neighboring_id = 2, separate_dir = -1),
                                        transitions={'done':'SeparateState1_2'})
 
                 smach.StateMachine.add('SeparateState1_2',
-                                       SeparateState(robot_name = 'beetle1', robot_id = 1, neighboring = 'beetle2'),
+                                       SeparateState(robot_name = 'ninja1', robot_id = 1, neighboring = 'ninja2'),
                                        transitions={'done':'succeeded_1_2','in_process':'SeparateState1_2'})
 
             with sm_sub2:
                 smach.StateMachine.add('SwitchState2_3',
-                                       SwitchState(robot_name = 'beetle3', robot_id = 3, neighboring = 'beetle2', neighboring_id = 2, separate_dir = 1), 
+                                       SwitchState(robot_name = 'ninja3', robot_id = 3, neighboring = 'ninja2', neighboring_id = 2, separate_dir = 1), 
                                        transitions={'done':'SeparateState2_3'})
 
                 smach.StateMachine.add('SeparateState2_3',
-                                       SeparateState(robot_name = 'beetle3', robot_id = 3, neighboring = 'beetle2',separate_vel = 0.12),
+                                       SeparateState(robot_name = 'ninja3', robot_id = 3, neighboring = 'ninja2',separate_vel = 0.12),
                                        transitions={'done':'succeeded_2_3','in_process':'SeparateState2_3'})
 
             smach.StateMachine.add('SUB2',
