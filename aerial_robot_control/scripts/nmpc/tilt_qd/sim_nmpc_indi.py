@@ -7,7 +7,7 @@ import time
 import numpy as np
 import argparse
 
-from nmpc_viz import Visualizer
+from nmpc_viz import Visualizer, SensorVisualizer
 
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
@@ -71,8 +71,11 @@ if __name__ == "__main__":
     disturb_init[0] = 1.0
     disturb_init[1] = -1.0
     disturb_init[2] = 1.0  # N, fz
+    disturb_init[3] = 0.1
+    disturb_init[4] = -0.1
+    disturb_init[5] = 0.1
 
-    t_total_sim = 5.0
+    t_total_sim = 8.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -122,7 +125,7 @@ if __name__ == "__main__":
             x_now = x_now_sim[:nx]  # the dimension of x_now may be smaller than x_now_sim
 
         # -------- update control target --------
-        target_xyz = np.array([[0.0, 0.0, 1.0]]).T
+        target_xyz = np.array([[0.0, 0.5, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         if args.plot_type == 2:
@@ -319,8 +322,15 @@ if __name__ == "__main__":
         # --------- update simulation ----------
         disturb = copy.deepcopy(disturb_init)
         # disturb[2] = np.random.normal(1.0, 3.0)  # N, fz
-        if 2.0 <= t_now < 3.0:
-            disturb[2] = -5.0
+        # if 2.0 <= t_now < 3.0:
+        #     disturb[0] = 5.0
+        #     disturb[1] = -5.0
+        #     disturb[2] = -5.0
+        #
+        # if 5.0 <= t_now < 6.0:
+        #     disturb[3] = 0.5
+        #     disturb[4] = -0.5
+        #     disturb[5] = 0.5
 
         x_now_sim[-6:] = disturb
 
