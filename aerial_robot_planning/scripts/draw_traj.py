@@ -116,6 +116,12 @@ def main(file_path, type):
          '/beetle1/gimbals_ctrl/gimbal3/position', '/beetle1/gimbals_ctrl/gimbal4/position']]
     data_servo_angle_cmd = data_servo_angle_cmd.dropna()
 
+    # # real servo angle
+    # data_servo_angle = data[
+    #     ['__time', '/beetle1/joint_states/gimbal1/position', '/beetle1/joint_states/gimbal2/position',
+    #      '/beetle1/joint_states/gimbal3/position', '/beetle1/joint_states/gimbal4/position']]
+    # data_servo_angle = data_servo_angle.dropna()
+
     # ======= plotting =========
     if type == 0:
         plt.style.use(["science", "grid"])
@@ -264,6 +270,17 @@ def main(file_path, type):
         plt.plot(t, servo3, label='$\\alpha_{c3}$')
         servo4 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal4/position']) * 180 / np.pi
         plt.plot(t, servo4, label='$\\alpha_{c4}$')
+
+        # t = np.array(data_servo_angle['__time']) - t_bias
+        # servo1_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal1/position']) * 180 / np.pi
+        # plt.plot(t, servo1_real, label='$\\alpha_{1}$', linestyle='--')
+        # servo2_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal2/position']) * 180 / np.pi
+        # plt.plot(t, servo2_real, label='$\\alpha_{2}$', linestyle='--')
+        # servo3_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal3/position']) * 180 / np.pi
+        # plt.plot(t, servo3_real, label='$\\alpha_{3}$', linestyle='--')
+        # servo4_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal4/position']) * 180 / np.pi
+        # plt.plot(t, servo4_real, label='$\\alpha_{4}$', linestyle='--')
+
         plt.ylabel('Servo Cmd ($^\\circ$)', fontsize=label_size)
         plt.xlabel('Time (s)', fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc='upper left')
