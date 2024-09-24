@@ -44,7 +44,7 @@ void NinjaNavigator::update()
        
   BeetleNavigator::update();
   bool current_assembled = getCurrentAssembled();
-  if(current_assembled){
+  if(current_assembled && !getReconfigFlag()){
     try
       {
         KDL::Frame current_com;
@@ -379,7 +379,7 @@ void NinjaNavigator::calcCenterOfMoving()
 
 void NinjaNavigator::convertTargetPosFromCoG2CoM()
 {
-  if(!control_flag_ || !morphing_flag_) return;
+  if(!control_flag_) return;
 
   bool current_assembled = getCurrentAssembled();
   bool reconfig_flag = getReconfigFlag();
@@ -423,7 +423,6 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   target_rot.setX(target_roll);
   target_rot.setY(target_pitch);
   target_rot.setZ(target_yaw);
-  ROS_ERROR_STREAM("id : " << my_id_ <<" yaw: "<< target_yaw << " pitch: "<<target_pitch<< " roll: "<<target_roll);
 
   /*Set new target pose*/
   if( getNaviState() == HOVER_STATE ||
