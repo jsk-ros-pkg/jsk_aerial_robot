@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <arg name = "module_ids" default=""/>
+  <arg name = "real_machine" default="true"/>
   <node pkg="ninja" type="assembly_motion.py" name="" output="screen" >
     <param name = "module_ids" value="$(arg module_ids)"/>
+    <param name = "real_machine" value="$(arg real_machine)"/>
   </node>
 </launch>

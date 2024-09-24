@@ -10,6 +10,7 @@ from spinal.msg import DesireCoord
 from geometry_msgs.msg import PoseStamped
 from diagnostic_msgs.msg import KeyValue
 from ninja.kondo_control_api import KondoControl
+from ninja.utils import coordTransformer
 import numpy as np
 import tf
 
@@ -46,7 +47,9 @@ class StandbyState(smach.State):
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
                  root_fc_dis = [-0.04695,0,0.0369],
-                 attach_dir = -1.0):
+                 attach_dir = -1.0,
+                 approach_mode = 'nav',
+                 run_rate = 40):
 
         smach.State.__init__(self, outcomes=['done','in_process','emergency'])
 
@@ -73,6 +76,8 @@ class StandbyState(smach.State):
         self.yaw_tol = yaw_tol
         self.root_fc_dis = root_fc_dis
         self.attach_dir = attach_dir
+        self.approach_mode = approach_mode
+        self.run_rate = rospy.Rate(run_rate)
 
         # flags
         self.emergency_flag = False
@@ -84,6 +89,7 @@ class StandbyState(smach.State):
 
         # publisher
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
+        self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
@@ -97,6 +103,9 @@ class StandbyState(smach.State):
 
         # messages
         self.docking_msg = Bool()
+
+        # utils
+        self.coordTransformer = coordTransformer(self.robot_name)
 
         # position offset while StandbyState
         if(self.attach_dir < 0):
@@ -152,7 +161,7 @@ class StandbyState(smach.State):
         elif self.emergency_flag:
             return 'emergency'
         else:
-            # x,y,z and yaw
+            # Nav(x,y,z and yaw)
             nav_msg_follower = FlightNav()
             nav_msg_follower.target = 0
             nav_msg_follower.control_frame = 0
@@ -163,13 +172,32 @@ class StandbyState(smach.State):
             nav_msg_follower.target_pos_y = target_pos[1]
             nav_msg_follower.target_pos_z = target_pos[2]
             nav_msg_follower.target_yaw = target_att[2]
-            self.follower_nav_pub.publish(nav_msg_follower)
+            # Trajectory(x,y,z and yaw)
+            target_pos_cog = self.coordTransformer.posTransform('fc','cog',target_pos)
+            traj_msg_follower = PoseStamped()
+            traj_msg_follower.header.stamp = rospy.Time.now()
+            traj_msg_follower.pose.position.x = target_pos_cog[0]
+            traj_msg_follower.pose.position.y = target_pos_cog[1]
+            traj_msg_follower.pose.position.z = target_pos_cog[2]
+            traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
+            traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
+            traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
+            traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
+            
+            if(self.approach_mode == 'nav'):
+                self.follower_nav_pub.publish(nav_msg_follower)
+            elif(self.approach_mode == 'trajectory'):
+                self.follower_traj_pub.publish(traj_msg_follower)
+            else:
+                rospy.logerr("Invalid approach mode is setted")
+                return 'fail'
 
             # roll and pitch
             link_rot_follower = DesireCoord()
             link_rot_follower.roll = target_att[0]
             link_rot_follower.pitch = target_att[1]
             # self.follower_att_pub.publish(link_rot_follower)
+            self.run_rate.sleep()
             return 'in_process'
 
     def emergencyCb(self,msg):
@@ -215,7 +243,9 @@ class ApproachState(smach.State):
                  roll_danger_thre = 0.35,
                  pitch_danger_thre = 0.35,
                  yaw_danger_thre = 0.35,
-                 attach_dir = -1.0):
+                 attach_dir = -1.0,
+                 approach_mode = 'nav',
+                 run_rate = 40):
 
         smach.State.__init__(self, outcomes=['done','in_process','fail','emergency'])
 
@@ -248,6 +278,8 @@ class ApproachState(smach.State):
         self.pitch_danger_thre = pitch_danger_thre
         self.yaw_danger_thre = yaw_danger_thre
         self.attach_dir = attach_dir
+        self.approach_mode = approach_mode
+        self.run_rate = rospy.Rate(run_rate)
 
         # flags
         self.emergency_flag = False        
@@ -258,10 +290,14 @@ class ApproachState(smach.State):
 
         # publisher
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
+        self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
 
         # subscriber
-        self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)        
+        self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)
+
+        # utils
+        self.coordTransformer = coordTransformer(self.robot_name)        
 
         # position offset while ApproachState
         if(self.attach_dir < 0):
@@ -314,7 +350,7 @@ class ApproachState(smach.State):
         elif np.all(np.greater(np.abs(pos_error),self.pos_danger_thre)) or np.all(np.greater(np.abs(att_error),self.att_danger_thre)):
             return 'fail'
         else:
-            # x,y,z and yaw
+            # Nav(x,y,z and yaw)
             nav_msg_follower = FlightNav()
             nav_msg_follower.target = 0
             nav_msg_follower.control_frame = 0
@@ -325,14 +361,31 @@ class ApproachState(smach.State):
             nav_msg_follower.target_pos_y = target_pos[1]
             nav_msg_follower.target_pos_z = target_pos[2]
             nav_msg_follower.target_yaw = target_att[2]
-            self.follower_nav_pub.publish(nav_msg_follower)
+            # Trajectory(x,y,z and yaw)
+            target_pos_cog = self.coordTransformer.posTransform('fc','cog',target_pos)
+            traj_msg_follower = PoseStamped()
+            traj_msg_follower.header.stamp = rospy.Time.now()
+            traj_msg_follower.pose.position.x = target_pos_cog[0]
+            traj_msg_follower.pose.position.y = target_pos_cog[1]
+            traj_msg_follower.pose.position.z = target_pos_cog[2]
+            traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
+            traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
+            traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
+            traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
+            if(self.approach_mode == 'nav'):
+                self.follower_nav_pub.publish(nav_msg_follower)
+            elif(self.approach_mode == 'trajectory'):
+                self.follower_traj_pub.publish(traj_msg_follower)
+            else:
+                rospy.logerr("Invalid approach mode is setted")
+                return 'fail'
 
             # roll and pitch
             link_rot_follower = DesireCoord()
             link_rot_follower.roll = target_att[0]
             link_rot_follower.pitch = target_att[1]
             # self.follower_att_pub.publish(link_rot_follower)
-
+            self.run_rate.sleep()
             return 'in_process'
 
     def emergencyCb(self,msg):
