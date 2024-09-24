@@ -180,7 +180,7 @@
 
   <!-- livox mid360 -->
   <xacro:extra_module name = "lidar_imu" parent = "main_body" visible = "0" > <!-- should be IMU frame -->
-    <origin xyz="${0.011} ${0.02329} ${0.0425 + 0.047 - 0.04412}" rpy="0 0 0"/> <!-- TODO: the true pos -->
+    <origin xyz="${0.0} ${0.0} ${0.103 + 0.047 - 0.04412}" rpy="0 0 0"/> <!-- TODO: the true pos -->
     <inertial>
       <mass value = "00" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
