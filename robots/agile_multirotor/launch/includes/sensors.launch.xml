@@ -57,6 +57,9 @@
         <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
           <arg name="rviz" value="false" />
         </include>
+
+	<!-- set 326_world coordinate from init camera_init-->
+	<node pkg="tf2_ros" type="static_transform_publisher" name="static_tf_publisher" args="2.0 0 0 0 0 0 camera_init 326_world" />
       </group>
     </group>
 
