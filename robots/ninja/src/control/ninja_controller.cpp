@@ -205,7 +205,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_left = Eigen::VectorXd::Zero(6);
     for(int i = leader_id-1; i > 0; i--){
       if(assembly_flag[i]){
-        wrench_comp_sum_left += -ff_inter_wrench_list_[i] + inter_wrench_list_[i];
+        wrench_comp_sum_left += ff_inter_wrench_list_[i] + inter_wrench_list_[i];
         // wrench_comp_list_[i] += wrench_comp_gain_ *  wrench_comp_sum_left;
         wrench_comp_list_[i] = wrench_comp_sum_left;
         right_module_id = i;
@@ -219,7 +219,7 @@ namespace aerial_robot_control
     Eigen::VectorXd wrench_comp_sum_right = Eigen::VectorXd::Zero(6);
     for(int i = leader_id+1; i <= max_modules_num; i++){
       if(assembly_flag[i]){
-        wrench_comp_sum_right += ff_inter_wrench_list_[left_module_id] - inter_wrench_list_[left_module_id];
+        wrench_comp_sum_right +=- ff_inter_wrench_list_[left_module_id] - inter_wrench_list_[left_module_id];
         // wrench_comp_list_[i] += wrench_comp_gain_ * wrench_comp_sum_right;
         wrench_comp_list_[i] = wrench_comp_sum_right;
         left_module_id = i;
@@ -227,6 +227,15 @@ namespace aerial_robot_control
         wrench_comp_list_[i] = Eigen::VectorXd::Zero(6);
       }
     }
+    /* 4. convert compensation wrench from CoM to CoG coordinates */
+    if(ninja_navigator_->getCurrentAssembled())
+      {
+        Eigen::VectorXd wrench_comp_com = wrench_comp_list_[ninja_navigator_->getMyID()];
+        Eigen::VectorXd wrench_comp_cog = wrench_comp_com;
+        Eigen::Matrix3d com2cog = (ninja_robot_model_->getCog2Baselink<Eigen::Affine3d>() * ninja_navigator_->getCom2Base<Eigen::Affine3d>().inverse()).rotation();
+        wrench_comp_cog.head(3) = com2cog * wrench_comp_com.head(3);
+        wrench_comp_list_[ninja_navigator_->getMyID()] = wrench_comp_cog;
+      }
   }
   
 
