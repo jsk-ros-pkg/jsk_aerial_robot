@@ -23,6 +23,7 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setGoalCoMRotCallback, this);
   target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
+  tfBuffer_.setUsingDedicatedThread(true);
   joint_pos_errs_.resize(module_joint_num_);
   prev_morphing_stamp_ = ros::Time::now().toSec();
 }
@@ -479,6 +480,7 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
   if(current_assembled){
     try
       {
+        tfBuffer_.canTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving"), ros::Time::now(), ros::Duration(0.1));
         KDL::Frame current_com;
         geometry_msgs::TransformStamped transformStamped;
         transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
