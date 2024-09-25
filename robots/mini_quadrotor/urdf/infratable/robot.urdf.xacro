@@ -7,14 +7,14 @@
   <thrust_link name="thrust" />
 
   <!-- kinematics [m] -->
-  <xacro:property name="rotor_x" value="0.090" />
-  <xacro:property name="rotor_y" value="0.090" />
+  <xacro:property name="rotor_x" value="0.08479" />
+  <xacro:property name="rotor_y" value="0.08479" />
   <!-- <xacro:property name="rotor_z" value="0.330" /> -->
   <!-- <xacro:property name="rotor_z" value="0.055" /> -->
-  <xacro:property name="rotor_z" value="0.180" />
+  <xacro:property name="rotor_z" value="0.0024" />
 
   <!-- dynamics -->
-  <m_f_rate value="-0.011" /> <!-- drag torque rate -->
+  <m_f_rate value="-0.0068" /> <!-- drag torque rate -->
   <xacro:property name="max_force" value="8.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
 
@@ -109,11 +109,11 @@
   <link name="main_body">
     <inertial>
       <mass value = "1.45" />
-      <origin xyz="0 0 0.017" rpy="0 0 0"/>
+      <origin xyz="0.0001458 -0.00117927 0.00925351" rpy="0 0 0"/>
       <inertia
-          ixx="0.0021" ixy="0" ixz="0"
-          iyy="0.0015" iyz="0"
-          izz="0.0032"/>
+          ixx="0.00934471" ixy="0.00000254" ixz="-0.00002280"
+          iyy="0.00939415" iyz="0.00000342"
+          izz="0.01536758"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
