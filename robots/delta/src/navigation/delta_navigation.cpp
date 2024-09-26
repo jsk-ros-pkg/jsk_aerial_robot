@@ -256,6 +256,9 @@ void RollingNavigator::rosParamInit()
 
   getParam<double>(navi_nh, "baselink_rot_change_thresh", baselink_rot_change_thresh_, 0.02);  // the threshold to change the baselink rotation
   getParam<double>(navi_nh, "baselink_rot_pub_interval", baselink_rot_pub_interval_, 0.1); // the rate to pub baselink rotation command
+  getParam<double>(navi_nh, "baselink_rot_angvel", baselink_rot_angvel_, 1.0);
+  baselink_rot_change_thresh_ = baselink_rot_angvel_ * baselink_rot_pub_interval_;
+
   getParam<double>(navi_nh, "joint_angvel", joint_angvel_, 1.0);
   getParam<double>(navi_nh, "joy_stick_deadzone", joy_stick_deadzone_, 0.2);
   getParam<double>(navi_nh, "rolling_max_pitch_ang_vel", rolling_max_pitch_ang_vel_, 0.0);

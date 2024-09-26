@@ -32,6 +32,7 @@ navigation:
   # desire tilt
   baselink_rot_pub_interval: 0.020
   baselink_rot_change_thresh: 0.01 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
+  baselink_rot_angvel: 0.1755
 
   # transformation planning
   joint_angvel: 0.2  # rad/s actual value is 0.38. smaller is more safe

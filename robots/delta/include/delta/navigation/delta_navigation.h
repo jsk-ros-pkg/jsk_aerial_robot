@@ -184,6 +184,7 @@ namespace aerial_robot_navigation
     tf::Quaternion curr_target_baselink_quat_, final_target_baselink_quat_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
+    double baselink_rot_angvel_;
     std::string rotation_control_link_name_;
     KDL::Rotation curr_target_cog_R_link_, final_target_cog_R_link_;
   };
