@@ -32,6 +32,7 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ground_motion_mode_sub_ = nh_.subscribe("ground_motion_command", 1, &RollingNavigator::groundMotionModeCallback, this);
   ground_navigation_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_navigation_ack", 1);
   ground_motion_mode_pub_ = nh_.advertise<std_msgs::Int16>("ground_motion_ack", 1);
+  estimated_steep_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("estimated_steep", 1);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 
   setPrevGroundNavigationMode(aerial_robot_navigation::NONE);
@@ -41,6 +42,10 @@ void RollingNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   transforming_flag_ = false;
 
   rotation_control_link_name_ = robot_model_->getBaselinkName();
+
+  est_external_wrench_ = Eigen::VectorXd::Zero(6);
+  est_external_wrench_cog_ = Eigen::VectorXd::Zero(6);
+  estimated_steep_ = Eigen::VectorXd::Zero(2);
 
   full_body_ik_initial_cp_p_ee_target_  = Eigen::Vector3d(0, 0, 0);
 
@@ -56,6 +61,7 @@ void RollingNavigator::update()
 {
   BaseNavigator::update();
 
+  estimateSteep();
 
   if(motion_mode_ == aerial_robot_navigation::MANIPULATION_MODE)
     {
@@ -159,9 +165,45 @@ void RollingNavigator::startTakeoff()
   setTargetYawFromCurrentState();
 }
 
+void RollingNavigator::estimateSteep()
+{
+  /* steep estimation */
+  if(getCurrentGroundNavigationMode() == aerial_robot_navigation::ROLLING_STATE)
+    {
+      tf::Quaternion cog2baselink_rot;
+      tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+      tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+      double r, p, y;
+      cog_rot.getRPY(r, p, y);
+
+      KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+      KDL::Frame cog_alined;
+      cog_alined.p = cog.p;
+      cog_alined.M = cog.M;
+      cog_alined.M.DoRotX(-r);
+      cog_alined.M.DoRotY(-p);
+
+      Eigen::Vector3d est_external_force_cog_alined = kdlToEigen(cog_alined.M).inverse() * kdlToEigen(cog.M) * est_external_wrench_cog_.head(3);
+      Eigen::VectorXd estimated_steep = Eigen::VectorXd::Zero(2);
+      estimated_steep(0) = atan2(est_external_force_cog_alined(1), sqrt(est_external_force_cog_alined(0) * est_external_force_cog_alined(0) + est_external_force_cog_alined(2) * est_external_force_cog_alined(2)));
+      estimated_steep(1) = atan2(est_external_force_cog_alined(0), est_external_force_cog_alined(2));
+
+      estimated_steep_
+        = (steep_estimation_lpf_factor_ - 1.0) / steep_estimation_lpf_factor_ * estimated_steep_
+        + 1.0 / steep_estimation_lpf_factor_ * estimated_steep;
+    }
+}
+
 void RollingNavigator::rosPublishProcess()
 {
   groundModeProcess();
+
+  std_msgs::Float64MultiArray estimated_steep_msg;
+  for(int i = 0; i < estimated_steep_.size(); i++)
+    {
+      estimated_steep_msg.data.push_back(estimated_steep_(i));
+    }
+  estimated_steep_pub_.publish(estimated_steep_msg);
 }
 
 void RollingNavigator::setRotationControlLink(std::string link_name)
@@ -267,6 +309,7 @@ void RollingNavigator::rosParamInit()
   getParam<double>(navi_nh, "standing_baselink_roll_converged_thresh", standing_baselink_roll_converged_thresh_, 0.0);
   getParam<double>(navi_nh, "rolling_pitch_update_thresh", rolling_pitch_update_thresh_, 0.0);
   getParam<double>(navi_nh, "ground_trajectory_duration", ground_trajectory_duration_, 0.0);
+  getParam<double>(navi_nh, "steep_estimation_lpf_factor", steep_estimation_lpf_factor_, 20.0);
   getParam<std::string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 }
 
