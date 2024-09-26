@@ -10,6 +10,8 @@
 #include <geometry_msgs/QuaternionStamped.h>
 #include <sensor_msgs/JointState.h>
 #include <spinal/DesireCoord.h>
+#include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Int16.h>
 #include <tf2_ros/transform_broadcaster.h>
 
@@ -73,6 +75,8 @@ namespace aerial_robot_navigation
     void setEstimatedExternalWrench(Eigen::VectorXd est_external_wrench) {est_external_wrench_ = est_external_wrench;}
     void setEstimatedExternalWrenchCog(Eigen::VectorXd est_external_wrench_cog) {est_external_wrench_cog_ = est_external_wrench_cog;}
 
+    Eigen::VectorXd getEstimatedSteep() {return estimated_steep_;}
+
     inline void addTargetYawNotRound(double value) {setTargetYaw(target_rpy_.z() + value);}
 
   private:
@@ -96,9 +100,13 @@ namespace aerial_robot_navigation
     ros::Subscriber ground_motion_mode_sub_;
     ros::Publisher ground_motion_mode_pub_;
 
+    /* state estimation */
+    ros::Publisher estimated_steep_pub_;
+
     boost::shared_ptr<RollingRobotModel> rolling_robot_model_;
     boost::shared_ptr<RollingRobotModel> robot_model_for_plan_;
 
+    void estimateSteep();
     void rollingPlanner();
     void IK();
     void transformPlanner();
@@ -175,6 +183,8 @@ namespace aerial_robot_navigation
     /* motion planning based on external wrench estimation */
     Eigen::VectorXd est_external_wrench_;
     Eigen::VectorXd est_external_wrench_cog_;
+    Eigen::VectorXd estimated_steep_;
+    double steep_estimation_lpf_factor_;
 
     /* param for joy stick control */
     double joy_stick_deadzone_;
