@@ -118,8 +118,10 @@ namespace aerial_robot_control
     est_external_wrench_cog.head(3) = cog_rot.inverse() * est_external_wrench_.head(3);
     // ROS_ERROR_STREAM(cog_rot);
 
+    std::string my_name = ninja_navigator_->getMyName() + std::to_string(ninja_navigator_->getMyID());
     geometry_msgs::WrenchStamped wrench_msg;
     wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.header.frame_id =my_name + "/cog";
     wrench_msg.wrench.force.x = est_external_wrench_cog(0);
     wrench_msg.wrench.force.y = est_external_wrench_cog(1);
     wrench_msg.wrench.force.z = est_external_wrench_cog(2);
@@ -135,6 +137,7 @@ namespace aerial_robot_control
 
     geometry_msgs::WrenchStamped wrench_msg_com;
     wrench_msg_com.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg_com.header.frame_id = my_name + "/cog";
     wrench_msg_com.wrench.force.x = est_external_wrench_com(0);
     wrench_msg_com.wrench.force.y = est_external_wrench_com(1);
     wrench_msg_com.wrench.force.z = est_external_wrench_com(2);
@@ -167,8 +170,13 @@ namespace aerial_robot_control
 
     if(!module_num) return;
     W_w = W_sum / module_num;
+
+    int my_id = ninja_navigator_->getMyID();
+    std::string my_name = ninja_navigator_->getMyName() + std::to_string(my_id);
+
     geometry_msgs::WrenchStamped wrench_msg;
     wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.header.frame_id =my_name + "/cog";
     wrench_msg.wrench.force.x = W_w(0);
     wrench_msg.wrench.force.y = W_w(1);
     wrench_msg.wrench.force.z = W_w(2);
@@ -188,7 +196,8 @@ namespace aerial_robot_control
         inter_wrench_list_[item.first] = Eigen::VectorXd::Zero(6);
       }
     }
-    int my_id = ninja_navigator_->getMyID();
+    wrench_msg.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    wrench_msg.header.frame_id =my_name + "/cog";
     wrench_msg.wrench.force.x = inter_wrench_list_[my_id](0);
     wrench_msg.wrench.force.y = inter_wrench_list_[my_id](1);
     wrench_msg.wrench.force.z = inter_wrench_list_[my_id](2);
