@@ -462,7 +462,7 @@ class AssemblyState(smach.State):
             self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
         time.sleep(1.0)
         if not self.real_machine:
-            rospy.sleep(5.0)
+            rospy.sleep(1.0)
         self.nav_msg.pos_xy_nav_mode= 6
         self.follower_nav_pub.publish(self.nav_msg)
         self.leader_nav_pub.publish(self.nav_msg)
