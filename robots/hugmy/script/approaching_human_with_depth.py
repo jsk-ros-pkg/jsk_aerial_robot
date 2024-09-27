@@ -122,15 +122,14 @@ class Approaching_human():
         # if self.flight_state_msg.data == 3:
         #     self.flight_start_flag = True
             # print(self.flight_start_flag.data)
-        if self.flight_state_msg.data == 5:#5
-            self.flight_state_flag = True
-        else:
-            self.flight_state_flag = False
-
-        # if self.flight_state_flag:
-        #     if self.flight_start_flag:
-        #         rospy.sleep(2.0)
-        #         self.flight_start_flag = False
+        #demo
+        # if self.flight_state_msg.data == 5: #5
+        #     self.flight_state_flag = True
+        # else:
+        #     self.flight_state_flag = False
+        ####test
+        self.flight_state_flag = True
+            
         if self.rotate_cnt >= 20:
             self.rotate_flag = True
             self.rotate_cnt = 0
@@ -262,10 +261,10 @@ class Approaching_human():
         self.target_pos.x = self.output
         rospy.loginfo("vel: %s",self.output)
 
-    def ready_for_perching(self):
-        self.perching_cnt += 1
-        print("perching")
-        print(self.perching_cnt)
+    # def ready_for_perching(self):
+    #     self.perching_cnt += 1
+    #     print("perching")
+    #     print(self.perching_cnt)
 
 
     def timerCallback(self,event):
@@ -282,7 +281,7 @@ class Approaching_human():
                 self.pos_cal()
                 print(self.land_cnt)
                 self.target_pos_pub.publish(self.target_pos)
-                 # self.eye_control()
+                self.eye_control()
                 self.PD_control()
                 self.move_msg.target_vel_x = self.output
                 #######self.move_pub.publish(self.move_msg)
