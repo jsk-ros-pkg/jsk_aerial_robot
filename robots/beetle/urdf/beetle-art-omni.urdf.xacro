@@ -17,18 +17,18 @@
     <joint name="root_joint" type="fixed">
       <parent link="root"/>
       <child link="base_link"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0.099"/>
       <axis xyz="0 0 1"/>
     </joint>
 
     ## link
     <link name="base_link">
       <inertial>
-        <origin xyz="0.00001058 0.00029285 0.00900796" rpy="0 0 0"/>
-        <mass value="1.9328"/>
+        <origin xyz="0.00001050 0.00029063 0.00895728" rpy="0 0 0"/>
+        <mass value="1.9614"/>
         <inertia
-            ixx="0.01443196" iyy="0.01374647" izz="0.01963902"
-            ixy="-0.00000627" ixz="0.00009049" iyz="0.00006575"/>
+            ixx="0.01465916" iyy="0.01396881" izz="0.01999070"
+            ixy="-0.00000632" ixz="0.00009113" iyz="0.00006625"/>
       </inertial>   
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -37,9 +37,9 @@
         </geometry>
       </visual>
       <collision>
-        <origin xyz="0 0 0.1205" rpy="0 0 0"/>
+        <origin xyz="0 0 0.0385" rpy="0 0 0"/>
         <geometry>
-          <box size="0.52 0.52 0.241"/>
+          <box size="0.35 0.35 0.275"/>
         </geometry>
       </collision>
     </link>
@@ -59,7 +59,7 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="base_link"/>
-      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.12947"/>  # should be aligned with the position of IMU
+      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06647"/>  # should be aligned with the position of IMU
       <axis xyz="0 0 1"/>
     </joint>
 
