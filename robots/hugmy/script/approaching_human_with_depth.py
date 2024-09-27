@@ -12,6 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import Empty
 from std_msgs.msg import UInt8
+from std_msgs.msg import Float32
 from aerial_robot_msgs.msg import FlightNav
 from nav_msgs.msg import Odometry
 
@@ -73,12 +74,13 @@ class Approaching_human():
         self.min_depth = 10.0
 
         #eye_module
-        # self.eye_pub = rospy.Publisher('/serial_node/look_at',Point,queue_size = 1)
-        # self.eye_move_msg = Point()
+        self.eye_pub = rospy.Publisher('/look_at',Float32,queue_size = 1)
+        self.eye_move_msg = Float32()
 
-        # self.perching_cnt = 0
-        # self.perching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
-        # self.perching_data = UInt8()
+        #perching
+        self.perching_cnt = 0
+        self.perching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
+        self.perching_data = UInt8()
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -177,16 +179,16 @@ class Approaching_human():
         self.move_pub.publish(self.move_msg)
         self.rotate_flag = False
 
-    # def eye_control(self):
-    #     self.eye_move_msg.x = self.max_rect_pixel_pos.x * 6.0 /self.camera_width + 2.0
-    #     self.eye_move_msg.y = 1.0
-    #     self.eye_pub.publish(self.eye_move_msg)
+    def eye_control(self):
+        self.eye_move_msg = - self.max_rect_pixel_pos.x * 7 /640 + (400/640*7)
+        # self.eye_move_msg.y = 1.0
+        self.eye_pub.publish(self.eye_move_msg)
 
     def relative_pos(self):
         #calculate depth of the center of the rect
         self.max_rect_pixel_pos.x = int(self.max_rect.x + (self.max_rect.width/2))
         self.max_rect_pixel_pos.y = int(self.max_rect.y + (self.max_rect.height/2))
-        # old measear depth
+        # old measure depth
         # depth = self.cv_image.item(self.max_rect_pixel_pos.y,self.max_rect_pixel_pos.x)
         # print(depth)
         # self.target_pos.y = depth
@@ -303,9 +305,6 @@ class Approaching_human():
                         self.perching_data = 1
                         self.perching_pub.publish(self.perching_data)
                         rospy.logwarn("Perching: %s", self.perching_data)
-                        # happy
-                        #self.eye_expression_data = 6
-                        #self.eye_express_pub.publish(self.eye_expression_data)
                         ###### rospy.loginfo("land!")
                         ###### self.land_pub.publish()
                         rospy.sleep(5.0)
