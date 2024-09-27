@@ -86,28 +86,28 @@
     </xacro:macro>
 
     ## dummy rotor arms
-    <xacro:dummy_rotor_arm id = "${child1}" x = "0.121218" y="0.121572" z = "0.1185" yaw = "${pi/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.121218" y="0.121572" z = "0.1185" yaw = "${pi*3.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.121218" y="-0.121572" z = "0.1185" yaw = "${pi*5.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child4}" x = "0.121218" y="-0.121572" z = "0.1185" yaw = "${-pi/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.17938" y="0.17938" z = "0.0171" yaw = "${pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.17938" y="0.17938" z = "0.0171" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.17938" y="-0.17938" z = "0.0171" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.17938" y="-0.17938" z = "0.0171" yaw = "${-pi*1.0/4.0}"/>
 
     ## dummy link for the contact point coordinate
-      <link name="contact_point">
-        <inertial>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-          <mass value="0.0001"/>
-          <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.0001" iyz="0.0"
-              izz="0.0001"/>
-        </inertial>
-      </link>
-      <joint name="cp_base_joint" type="fixed">
-        <parent link="base_link"/>
-        <child link="contact_point"/>
-        <origin rpy="0 0 0" xyz="0.26 0 0"/>
-        <axis xyz="0 0 1"/>
-      </joint>
+    <link name="contact_point">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia
+                ixx="0.000001" ixy="0.0" ixz="0.0"
+                iyy="0.0001" iyz="0.0"
+                izz="0.0001"/>
+      </inertial>
+    </link>
+    <joint name="cp_base_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="contact_point"/>
+      <origin rpy="0 0 0" xyz="0.26 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
 
     <xacro:friction self="base_link"/>
   </xacro:macro>
@@ -117,16 +117,16 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.02239457 0.0 0.00766902" rpy="0 0 0"/>
-        <mass value="0.15429"/>
+        <origin xyz="0.02085225 0.0 -0.01276312" rpy="0 0 0"/>
+        <mass value="0.15944"/>
         <inertia
-            ixx="0.00006797" iyy="0.00006788" izz="0.00007058"
-            ixy="0.00000001" ixz="0.00000122" iyz="0.00000"/>
+            ixx="0.00007281" iyy="0.00007289" izz="0.00007635"
+            ixy="0.0" ixz="0.0" iyz="0.0"/>
       </inertial>
       <collision>
-        <origin xyz="0.0 0 0" rpy="0 0 0"/>
+        <origin xyz="0.06 0 0" rpy="0 0 0"/>
         <geometry>
-          <cylinder radius="0.02" length="0.033"/>
+          <box size="0.11 0.11 0.05"/>
         </geometry>
       </collision>
       <visual>
@@ -167,7 +167,7 @@
 
     #### gimbal joints ####
     <joint name="gimbal${self}" type="revolute">
-      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <limit effort="6.6" lower="-3.141593" upper="3.141593" velocity="3.0"/>
       <parent link="rotor_arm${self}"/>
       <child link="gimbal_link${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -175,7 +175,7 @@
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-    <transmission name="joint_tran${self}">1.570796
+    <transmission name="joint_tran${self}">3.141593
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="gimbal${self}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -189,7 +189,7 @@
     <joint name="rotor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 0 0" xyz="0.02335 0.0 0.0"/>
+      <origin rpy="0 0 0" xyz="0.02185 0.0 0.0"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
