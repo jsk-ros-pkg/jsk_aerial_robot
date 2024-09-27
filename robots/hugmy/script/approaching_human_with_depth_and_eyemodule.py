@@ -159,25 +159,19 @@ class Approaching_human():
         # self.move_msg.target_yaw = yaw
         rospy.loginfo("rotate_yaw: %s",self.move_msg.target_yaw)
         # self.move_msg.target_pos_z = self.max_rect_pos.y * 0.001 + my height
-        self.move_pub.publish(self.move_msg)
+        self.move_pub.publish(self.move_msg) ######
         self.rotate_flag = False
 
     def eye_normal_control(self):
         # normal
-        self.eye_expression_data = 0
+        self.eye_expression_data = 7
         self.eye_express_pub.publish(self.eye_expression_data)
         self.eye_move_msg = - self.max_rect_pixel_pos.x * 7 /640 + (400/640*7)
-        rospy.loginfo("eye: %s",self.max_rect_pixel_pos.x )
-        rospy.loginfo("eye: %s",self.eye_move_msg.x)
         self.eye_pub.publish(self.eye_move_msg)
 
     def eye_confuse_control(self):
-        # normal
-        self.eye_expression_data = 2
+        self.eye_expression_data = 5
         self.eye_express_pub.publish(self.eye_expression_data)
-        self.eye_move_msg.x = 0.0
-        self.eye_move_msg.y = 0.0
-        self.eye_pub.publish(self.eye_move_msg)
 
     def relative_pos(self):
         #calculate depth of the center of the rect
