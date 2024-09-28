@@ -99,6 +99,7 @@ namespace aerial_robot_control
     int ground_navigation_mode_;
     double torque_allocation_matrix_inv_pub_stamp_;
     double torque_allocation_matrix_inv_pub_interval_;
+    std::vector<float> nlopt_log_;
 
     /* joint torque */
     Eigen::VectorXd joint_torque_;

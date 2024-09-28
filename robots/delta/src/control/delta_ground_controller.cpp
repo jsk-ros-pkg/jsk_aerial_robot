@@ -423,14 +423,17 @@ void RollingController::nonlinearGroundWrenchAllocation()
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray joint_positions = robot_model_->getJointPositions();
+
   if(first_run_)
     {
       opt_x_prev_.resize(n_variables, 0.0);
       opt_initial_x_.resize(n_variables, 0.0);
+      nlopt_log_.resize(n_variables, 0.0);
       robot_model_for_control_->updateRobotModel(joint_positions);
       robot_model_for_control_->calcContactPoint();
       ROS_INFO_STREAM("calc contact point once");
     }
+
   robot_model_for_control_->updateRobotModel(joint_positions);
 
   if(n_variables > 2 * motor_num_) jointTorquePreComputation();
@@ -501,9 +504,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   if(result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
 
-  std_msgs::Float32MultiArray nlopt_log_msg;
-  for(int i = 0; i < opt_x.size(); i++) nlopt_log_msg.data.push_back(opt_x.at(i));
-  nlopt_log_pub_.publish(nlopt_log_msg);
+  for(int i = 0; i < opt_x.size(); i++) nlopt_log_.at(i) = opt_x.at(i);
 
   /* set optimal variables to actuator input */
   for(int i = 0; i < motor_num_; i++)

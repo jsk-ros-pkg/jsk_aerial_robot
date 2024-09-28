@@ -464,6 +464,11 @@ void RollingController::sendCmd()
   operability_msg.data =sqrt(det);
   operability_pub_.publish(operability_msg);
 
+  /* nlopt log */
+  std_msgs::Float32MultiArray nlopt_log_msg;
+  nlopt_log_msg.data = nlopt_log_;
+  nlopt_log_pub_.publish(nlopt_log_msg);
+
   sendGimbalAngles();
 
   sendFourAxisCommand();
