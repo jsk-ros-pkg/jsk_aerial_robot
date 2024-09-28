@@ -46,9 +46,7 @@ protected:
 
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
 
-  void calcDisturbWrench() override
-  {
-  }
+  void calcDisturbWrench() override = 0;
 
   std::vector<double> meas2VecX() override;
 

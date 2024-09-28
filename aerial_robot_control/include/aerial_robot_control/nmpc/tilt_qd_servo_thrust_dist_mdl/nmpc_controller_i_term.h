@@ -1,9 +1,9 @@
 //
-// Created by lijinjie on 23/11/29.
+// Created by li-jinjie on 24-9-28.
 //
 
-#ifndef TILT_QD_SERVO_NMPC_W_ITERM_CONTROLLER_H
-#define TILT_QD_SERVO_NMPC_W_ITERM_CONTROLLER_H
+#ifndef TILT_QD_SERVO_THRUST_NMPC_W_ITERM_CONTROLLER_H
+#define TILT_QD_SERVO_THRUST_NMPC_W_ITERM_CONTROLLER_H
 
 #include "nmpc_controller.h"
 #include "aerial_robot_control/nmpc/i_term.h"
@@ -18,7 +18,7 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class TiltQdServoNMPCwITerm : public TiltQdServoDistNMPC
+class TiltQdServoThrustNMPCwITerm : public TiltQdServoThrustDistNMPC
 {
 protected:
   ITerm pos_i_term_[6];  // for x, y, z, roll, pitch, yaw
@@ -34,4 +34,4 @@ protected:
 
 }  // namespace aerial_robot_control
 
-#endif  // TILT_QD_SERVO_NMPC_W_ITERM_CONTROLLER_H
+#endif  // TILT_QD_SERVO_THRUST_NMPC_W_ITERM_CONTROLLER_H
