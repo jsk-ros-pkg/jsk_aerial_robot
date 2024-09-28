@@ -499,7 +499,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
   catch(std::runtime_error error)
     {}
 
-  if(result < 0) ROS_ERROR_STREAM("[nlopt] failed to solve. result is " << result);
+  if(result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
 
   std_msgs::Float32MultiArray nlopt_log_msg;
   for(int i = 0; i < opt_x.size(); i++) nlopt_log_msg.data.push_back(opt_x.at(i));
