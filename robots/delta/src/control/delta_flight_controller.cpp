@@ -194,7 +194,7 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
   Eigen::VectorXd tau = controller->getJointTorque(); // gimbal1, joint1, gimbal2, joint2, gimbal3
 
   /* consider joint torque by thrust */
-  const std::vector<Eigen::MatrixXd>& gimbal_neutral_coord_jacobians = controller->getGimbalNeutralCoordJacobians();
+  const std::vector<Eigen::MatrixXd>& gimbal_link_jacobians = controller->getGimbalLinkJacobians();
   for(int i = 0; i < motor_num; i++)
     {
       Eigen::Vector3d u_Li;
@@ -208,7 +208,7 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
       thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * u_Li;
 
       Eigen::VectorXd wrench = thrust_wrench_unit * x[i];
-      tau -= gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
+      tau -= gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
     }
 
   /* set result using joint index */
@@ -252,8 +252,8 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
       dthrust_wrench_unit_dphi.head(3) = links_rotation_from_cog.at(i) * du_Li_dphi;
       dthrust_wrench_unit_dphi.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * du_Li_dphi;
 
-      dtau_dlambda.block(0, i, joint_num, 1) = -gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * thrust_wrench_unit;
-      dtau_dphi.block(0, i, joint_num, 1) = -gimbal_neutral_coord_jacobians.at(i).rightCols(joint_num).transpose() * dthrust_wrench_unit_dphi * x[i];
+      dtau_dlambda.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * thrust_wrench_unit;
+      dtau_dphi.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * dthrust_wrench_unit_dphi * x[i];
     }
 
   /* thrust and gimbal part */
