@@ -13,7 +13,7 @@ void RollingController::jointTorquePreComputation()
   /* calculate jacobians of gimbal neutral coordinate */
   for(int i = 0; i < motor_num_; i++)
     {
-      gimbal_neutral_coord_jacobians_.at(i) = robot_model_for_control_->getJacobian(joint_positions, std::string("gimbal_neutral_coord") + std::to_string(i + 1));
+      gimbal_link_jacobians_.at(i) = robot_model_for_control_->getJacobian(joint_positions, std::string("gimbal_link") + std::to_string(i + 1));
     }
 
   /* calculate coord jacobians for cog point and convert to joint torque */
@@ -26,7 +26,7 @@ void RollingController::jointTorquePreComputation()
     }
 
 
-  // contact force if ground mode
+  /* contact force if ground mode */
   if(ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
       int contacting_link_index = rolling_robot_model_->getContactingLink();

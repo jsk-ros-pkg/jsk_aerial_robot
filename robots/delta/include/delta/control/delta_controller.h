@@ -43,7 +43,7 @@ namespace aerial_robot_control
     const std::vector<double>& getRotorTilt() {return rotor_tilt_;}
     Eigen::VectorXd getTargetWrenchAccCogForOpt() {return target_wrench_acc_cog_;}
     Eigen::VectorXd getTargetWrenchControlFrameForOpt() {return target_wrench_control_frame_;}
-    const std::vector<Eigen::MatrixXd>& getGimbalNeutralCoordJacobians() {return gimbal_neutral_coord_jacobians_;}
+    const std::vector<Eigen::MatrixXd>& getGimbalLinkJacobians() {return gimbal_link_jacobians_;}
     Eigen::VectorXd getJointTorque() {return joint_torque_;}
     double getGroundMuForOpt() {return ground_mu_;}
     const std::vector<double>& getOptInitialX() {return opt_initial_x_;};
@@ -102,7 +102,7 @@ namespace aerial_robot_control
 
     /* joint torque */
     Eigen::VectorXd joint_torque_;
-    std::vector<Eigen::MatrixXd> gimbal_neutral_coord_jacobians_;
+    std::vector<Eigen::MatrixXd> gimbal_link_jacobians_;
 
     /* flight mode */
     Eigen::VectorXd target_wrench_acc_cog_;
