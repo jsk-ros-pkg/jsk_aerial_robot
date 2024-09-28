@@ -52,10 +52,6 @@
     <description>NMPC controller for beetle with full model, considering servo and thrust. Use INDI for disturbance rejection. </description>
   </class>
 
-  <class name="aerial_robot_control/nmpc_tilt_qd_servo_w_cog_end_dist/nmpc_controller" type="aerial_robot_control::nmpc_tilt_qd_servo_w_cog_end_dist::NMPCController" base_class_type="aerial_robot_control::ControlBase">
-      <description>NMPC controller for beetle with full model and consider I term and drag model </description>
-  </class>
-
   <class name="aerial_robot_control/nmpc_controller/tilt_tri/servo_nmpc" type="aerial_robot_control::nmpc::TiltTriServoNMPC" base_class_type="aerial_robot_control::ControlBase">
     <description>NMPC controller for tilt tri </description>
   </class>
