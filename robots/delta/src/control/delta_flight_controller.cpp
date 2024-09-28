@@ -278,12 +278,18 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
 
 void RollingController::nonlinearWrenchAllocation()
 {
+  int n_variables = 2 * motor_num_;
+
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray joint_positions = robot_model_->getJointPositions();
   robot_model_for_control_->updateRobotModel(joint_positions);
 
-  int n_variables = 2 * motor_num_;
+  if(first_run_)
+    {
+      nlopt_log_.resize(n_variables, 0.0);
+    }
+
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearWrenchAllocationMinObjective, robot_model_for_control_.get());
   slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
@@ -326,9 +332,7 @@ void RollingController::nonlinearWrenchAllocation()
 
   if (result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
 
-  std_msgs::Float32MultiArray nlopt_log_msg;
-  for(int i = 0; i < opt_x.size(); i++) nlopt_log_msg.data.push_back(opt_x.at(i));
-  nlopt_log_pub_.publish(nlopt_log_msg);
+  for(int i = 0; i < opt_x.size(); i++) nlopt_log_.at(i) = opt_x.at(i);
 
   for(int i = 0; i < motor_num_; i++)
     {
