@@ -453,8 +453,11 @@ void RollingNavigator::setGroundMotionMode(int state)
     case aerial_robot_navigation::LOCOMOTION_MODE:
       {
         setRotationControlLink(robot_model_->getBaselinkName());
+        if(motion_mode_ != aerial_robot_navigation::LOCOMOTION_MODE)
+          {
+            ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
+          }
         motion_mode_ = aerial_robot_navigation::LOCOMOTION_MODE;
-        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
         break;
       }
     case aerial_robot_navigation::MANIPULATION_MODE:
@@ -505,8 +508,11 @@ void RollingNavigator::setGroundMotionMode(int state)
 
         full_body_ik_W_tf_initial_cp_ = world2baselink_tf * baselink2cp_tf;
 
+        if(motion_mode_ != aerial_robot_navigation::MANIPULATION_MODE)
+          {
+            ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
+          }
         motion_mode_ = aerial_robot_navigation::MANIPULATION_MODE;
-        ROS_INFO_STREAM("[navigation] switch to " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE));
         break;
       }
     default:
