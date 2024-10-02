@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
+def analyze_data(folder_path, file_name, has_telemetry, set_voltage, if_reverse):
     file_path = folder_path + file_name
     data = pd.read_csv(file_path, sep=' ',
                        names=["PWM", "fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature",
@@ -23,6 +23,9 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage):
         columns_to_average = ["fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency"]
     else:
         columns_to_average = ["fx", "fy", "fz", "f_norm", "mx", "my", "mz", "currency", "RPM", "temperature", "voltage"]
+
+    if if_reverse:
+        valid_data.loc[:, ['fz', 'mz']] *= -1
 
     # Group by 'PWM' and calculate the average for each specified column
     average_values = valid_data.groupby('PWM')[columns_to_average].mean()
@@ -173,8 +176,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file_name', help='file name')
     parser.add_argument('has_telemetry', help='has telemetry, 0 or 1')
-    parser.add_argument("--set_voltage", help="the voltage set in the test, float", default=0.0)
-    parser.add_argument('--folder_path', help='path to folder', default='~/.ros/')
+    parser.add_argument("--set_voltage", "-s", help="the voltage set in the test, float", default=0.0)
+    parser.add_argument('--folder_path', "-f", help='path to folder', default='~/.ros/')
+    parser.add_argument('--if_reverse', "-r", help='if the force sensor is reversed,0 or 1', default='0')
     args = parser.parse_args()
 
-    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage))
+    analyze_data(args.folder_path, args.file_name, int(args.has_telemetry), float(args.set_voltage), int(args.if_reverse))
