@@ -3,38 +3,38 @@ motor_info:
         max_pwm: 0.9 # 1800 ~ dshot 1600
         min_thrust: 0.0 # [N]
         force_landing_thrust: 6.0 # [N]
-        krpm_rate: 8.31255 # 1/0.1203 (kRPM)^2/N
+        krpm_rate: 7.7991 # 5 / (0.1299 + 0.1283 + 0.1285 + 0.1276 + 0.1268) (kRPM)^2/N
         rotor_damping_rate: 0.1062 # = dt/t_thrust = 0.01 (guess) / 0.0942
         m_f_rate: -0.0153
         pwm_conversion_mode: 0 # SQRT Mode
         vel_ref_num: 5
         ref1:
-                voltage: 24.17 # [V]
-                max_thrust: 18.3590 # [N]
-                polynominal2: 0.07188 # x10
-                polynominal1: -5.13410  # x10
-                polynominal0: 7.17114 # x1
+                voltage: 25.09 # [V]
+                max_thrust: 24.4020 # [N]
+                polynominal2: 0.10233 # x10
+                polynominal1: -7.94781  # x10
+                polynominal0: 13.64510 # x1
         ref2:
-                voltage: 23.24 # [V]
-                max_thrust: 17.8578 # [N]
-                polynominal2: 0.07595 # x10
-                polynominal1: -5.99231  # x10
-                polynominal0: 10.67755 # x1
+                voltage: 24.14 # [V]
+                max_thrust: 22.7408 # [N]
+                polynominal2: 0.09770 # x10
+                polynominal1: -7.72323  # x10
+                polynominal0: 13.75112 # x1
         ref3:
-                voltage: 22.31 # [V]
-                max_thrust: 16.6075 # [N]
-                polynominal2: 0.07275 # x10
-                polynominal1: -5.83702  # x10
-                polynominal0: 10.67715 # x1
+                voltage: 23.23 # [V]
+                max_thrust: 21.6353 # [N]
+                polynominal2: 0.09316 # x10
+                polynominal1: -7.43807  # x10
+                polynominal0: 13.49263 # x1
         ref4:
-                voltage: 21.38 # [V]
-                max_thrust: 15.5294 # [N]
-                polynominal2: 0.06666 # x10
-                polynominal1: -5.28465 # x10
-                polynominal0: 9.43016 # x1
+                voltage: 22.33 # [V]
+                max_thrust: 20.1849 # [N]
+                polynominal2: 0.08862 # x10
+                polynominal1: -7.18631 # x10
+                polynominal0: 13.45463 # x1
         ref5:
-                voltage: 20.44 # [V]
-                max_thrust: 14.6201 # [N]
-                polynominal2: 0.06519 # x10
-                polynominal1: -5.34097  # x10
-                polynominal0: 10.11535 # x1
+                voltage: 21.40 # [V]
+                max_thrust: 18.7075 # [N]
+                polynominal2: 0.08281 # x10
+                polynominal1: -6.74855  # x10
+                polynominal0: 12.70799 # x1
