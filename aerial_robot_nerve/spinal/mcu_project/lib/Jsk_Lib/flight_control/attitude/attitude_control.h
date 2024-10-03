@@ -31,8 +31,6 @@
 #include "battery_status/battery_status.h"
 /* RTOS */
 #include "cmsis_os.h"
-/* gimbal servo*/
-#include <kondo_servo/kondo_servo.h>
 /* dshot esc */
 #include "dshot_esc/dshot.h"
 #endif
@@ -82,7 +80,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo,
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
             DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
@@ -153,21 +151,8 @@ private:
     att_control_flag_ = req.data;
   }
 
-  ros::ServiceServer<spinal::SetControlMode::Request, spinal::SetControlMode::Response, AttitudeController>
-      control_mode_srv_;
-  void setControlModeCallback(const spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res)
-  {
-    if (req.is_attitude == false && req.is_body_rate == false)
-    {
-    	nh_->logwarn("Note: attitude mode and body rate mode are both set to false, use only thrust cmd now!");
-    }
-    is_attitude_ctrl_ = req.is_attitude;
-    is_body_rate_ctrl_ = req.is_body_rate;
-  }
-
   BatteryStatus* bat_;
   osMutexId* mutex_;
-  KondoServo* kondo_servo_;
   DShot* dshot_;
 #endif
 
