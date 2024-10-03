@@ -13,7 +13,7 @@ controller:
     p3: [ -0.194848, -0.195048, 0.009204 ] # position of motor 3
     dr4: -1  # direction of motor 4
     p4: [ 0.194813, -0.195048, 0.009204 ] # position of motor 4
-    kq_d_kt: 0.0153  #0.0171998
+    kq_d_kt: 0.0165
 
     num_rotors: 4
 

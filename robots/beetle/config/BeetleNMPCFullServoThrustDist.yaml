@@ -13,7 +13,7 @@ controller:
     p3: [ -0.194848, -0.195048, 0.009204 ] # position of motor 3
     dr4: -1  # direction of motor 4
     p4: [ 0.194813, -0.195048, 0.009204 ] # position of motor 4
-    kq_d_kt: 0.0153  #0.0171998
+    kq_d_kt: 0.0165  #0.0171998
 
     num_rotors: 4
     t_rotor: 0.0942  # real condition w/o propeller 0.0942 s; sim: try to set 0.0942 s
@@ -73,7 +73,7 @@ controller:
 
     i_gain_x: 0
     i_gain_y: 0
-    i_gain_z: 5
+    i_gain_z: 0
     i_gain_roll: 0.0
     i_gain_pitch: 0.0
     i_gain_yaw: 0.0
