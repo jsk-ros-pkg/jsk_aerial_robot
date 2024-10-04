@@ -63,11 +63,13 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   bat_ = bat;
   mutex_ = mutex;
 
-  //  /* TODO: dshot should be compatible with PWM */
-  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
-  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
-  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
-  //  HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
+  if(!dshot_)
+    {
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
+    }    
 
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
@@ -94,7 +96,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
 void AttitudeController::baseInit()
 {
-  // base param for uav model
+ // base param for uav model
   motor_number_ = 0;
   uav_model_ = -1;
   rotor_devider_ = 1;
@@ -189,46 +191,51 @@ void AttitudeController::pwmsControl(void)
   }
 #endif
 
-  /* direct pwm type */
-  uint16_t motor_value[4] = { 0, 0, 0, 0 };
-  for (int i = 0; i < 4; i++)
-  {
-    // target_pwm_: 0.5 ~ 1.0
-    uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
-
-    if (motor_v > DSHOT_MAX_THROTTLE)
-      motor_v = DSHOT_MAX_THROTTLE;
-    else if (motor_v < DSHOT_MIN_THROTTLE)
-      motor_v = DSHOT_MIN_THROTTLE;
-    
-    motor_value[i] = motor_v;
-  }
-
-  dshot_->write(motor_value, dshot_->is_telemetry_);
-
-  if (dshot_->is_telemetry_)
-  {
-    if (dshot_->esc_reader_.is_update_all_msg_)
+  if(dshot_)
     {
-      esc_telem_msg_.stamp = nh_->now();
-      esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
-      esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
-      esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
-      esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
-      esc_telem_pub_.publish(&esc_telem_msg_);
+      /* direct pwm type */
+      uint16_t motor_value[4] = { 0, 0, 0, 0 };
+      for (int i = 0; i < 4; i++)
+        {
+          // target_pwm_: 0.5 ~ 1.0
+          uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
 
-      float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
-                    dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
-      bat_->update(voltage_ave);
+          if (motor_v > DSHOT_MAX_THROTTLE)
+            motor_v = DSHOT_MAX_THROTTLE;
+          else if (motor_v < DSHOT_MIN_THROTTLE)
+            motor_v = DSHOT_MIN_THROTTLE;
+    
+          motor_value[i] = motor_v;
+        }
 
-      dshot_->esc_reader_.is_update_all_msg_ = false;
+      dshot_->write(motor_value, dshot_->is_telemetry_);
+
+      if (dshot_->is_telemetry_)
+        {
+          if (dshot_->esc_reader_.is_update_all_msg_)
+            {
+              esc_telem_msg_.stamp = nh_->now();
+              esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+              esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
+              esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
+              esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
+              esc_telem_pub_.publish(&esc_telem_msg_);
+
+              float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
+                                          dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
+              bat_->update(voltage_ave);
+
+              dshot_->esc_reader_.is_update_all_msg_ = false;
+            }
+        }
     }
-  }
-
-  //  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
-  //  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
-  //  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
-  //  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+  else
+    {
+      pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+    }
 
   pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
