@@ -14,6 +14,7 @@
 
 #include <config.h>
 #include "flashmemory/flashmemory.h"
+#include "dshot_esc/dshot.h"
 
 /* ros */
 #include <ros.h>
@@ -28,14 +29,15 @@ class BatteryStatus
 {
 public:
   BatteryStatus():  voltage_status_pub_("battery_voltage_status", &voltage_status_msg_),
-                    adc_scale_sub_("set_adc_scale", &BatteryStatus::adcScaleCallback, this)
+                    adc_scale_sub_("set_adc_scale", &BatteryStatus::adcScaleCallback, this),
+                    is_adc_measure_(true)
   {
   }
 
   ~BatteryStatus(){}
 
 
-  void init(ADC_HandleTypeDef *hadc, ros::NodeHandle* nh, bool is_adc_measure=true)
+  void init(ADC_HandleTypeDef *hadc, ros::NodeHandle* nh)
   {
     nh_ = nh;
     nh_->advertise(voltage_status_pub_);
@@ -43,12 +45,18 @@ public:
     hadc_ = hadc;
 
     voltage_ = -1;
-    is_adc_measure_ = is_adc_measure;
     ros_pub_last_time_ = HAL_GetTick();
 
     FlashMemory::addValue(&adc_scale_, sizeof(float));
 
     HAL_ADC_Start(hadc_);
+  }
+
+  void init(ADC_HandleTypeDef *hadc, ros::NodeHandle* nh, DShot* dshot)
+  {
+    dshot_ = dshot;
+    is_adc_measure_ = false;
+    init(hadc, nh);
   }
 
   void adcScaleCallback(const std_msgs::Float32& cmd_msg)
@@ -60,20 +68,28 @@ public:
     nh_->loginfo("overwrite adc scale");
   }
 
-  void update(float voltage = -1)
+  void update()
   {
-    if (voltage == -1)  // no new data
-    {
-      if (!is_adc_measure_)
-        return;
-
-      if (HAL_ADC_PollForConversion(hadc_, 10) == HAL_OK)
-        adc_value_ = HAL_ADC_GetValue(hadc_);
-
-      HAL_ADC_Start(hadc_);
-
-      voltage = adc_scale_ * adc_value_;
-    }
+    float voltage;
+    if(is_adc_measure_)
+      {
+        if (HAL_ADC_PollForConversion(hadc_, 10) == HAL_OK) adc_value_ = HAL_ADC_GetValue(hadc_);
+        HAL_ADC_Start(hadc_);
+        voltage = adc_scale_ * adc_value_;
+      }
+    else
+      {
+        if (dshot_->is_telemetry_)
+          {
+            if (dshot_->esc_reader_.is_update_all_msg_)
+              {
+                float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
+                                            dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
+                voltage_ = TELE_VOLTAGE_SCALE * voltage_ave;
+                dshot_->esc_reader_.is_update_all_msg_ = false;
+              }
+          }
+      }
 
     if(voltage_ < 0) voltage_ = voltage;
 
@@ -99,6 +115,7 @@ public:
 private:
   ros::NodeHandle* nh_;
   ADC_HandleTypeDef *hadc_;
+  DShot* dshot_;
 
   float adc_value_;
   float adc_scale_;
