@@ -4,8 +4,11 @@
 
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <aerial_robot_msgs/WrenchAllocationMatrix.h>
+#include <delta/DynamicReconfigureLevels.h>
 #include <delta/model/delta_robot_model.h>
 #include <delta/navigation/delta_navigation.h>
+#include <delta/nloptConfig.h>
+#include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <nlopt.hpp>
 #include <numeric>
@@ -21,6 +24,8 @@
 #include <std_msgs/UInt8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
+
+using nloptConfig = dynamic_reconfigure::Server<delta::nloptConfig>;
 
 namespace aerial_robot_control
 {
@@ -113,7 +118,6 @@ namespace aerial_robot_control
     /* ground mode */
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
-    int opt_costs_num_;
     std::vector<double> opt_cost_weights_;
     bool opt_add_joint_torque_constraints_;
     double opt_joint_torque_weight_;
@@ -122,6 +126,7 @@ namespace aerial_robot_control
     double ground_mu_;
     Eigen::MatrixXd gravity_compensate_weights_;
     double rolling_minimum_lateral_force_;
+    boost::shared_ptr<nloptConfig> nlopt_reconf_server_;
 
     /* common part */
     bool update() override;
@@ -160,6 +165,7 @@ namespace aerial_robot_control
     void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
 
     /* utils */
+    void cfgNloptCallback(delta::nloptConfig &config, uint32_t level);
     void setControllerParams(std::string ns);
     void rosoutControlParams(std::string ns);
     void printDebug();
