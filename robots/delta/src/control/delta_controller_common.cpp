@@ -122,14 +122,19 @@ void RollingController::rosParamInit()
       rotor_tilt_attr->Attribute("value", &rotor_tilt_.at(i));
     }
 
-  getParam<int>(control_nh, "opt_costs_num", opt_costs_num_, 0);
-  if(!control_nh.getParam("opt_cost_weights", opt_cost_weights_))
-    {
-      ROS_ERROR_STREAM("optimization cost is not set in rosparam");
-      opt_cost_weights_.resize(opt_costs_num_, 1.0);
-    }
+  /* get optimization weights for nonlinear wrench allocation */
   getParam<bool>(control_nh, "opt_add_joint_torque_constraint", opt_add_joint_torque_constraints_, false);
-  getParam<double>(control_nh, "opt_joint_torque_weight", opt_joint_torque_weight_, 0.0);
+  ros::NodeHandle nlopt_nh(control_nh, "nlopt");
+  {
+    double whatever; opt_cost_weights_.resize(0);
+    getParam<double>(nlopt_nh, "thrust_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
+    getParam<double>(nlopt_nh, "gimbal_linear_solution_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
+    getParam<double>(nlopt_nh, "gimbal_current_angle_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
+    getParam<double>(nlopt_nh, "gimbal_center_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
+    getParam<double>(nlopt_nh, "joint_torque_weight", opt_joint_torque_weight_, 0.0);
+  }
+  nlopt_reconf_server_ = boost::make_shared<nloptConfig>(nlopt_nh);
+  nlopt_reconf_server_->setCallback(boost::bind(&RollingController::cfgNloptCallback, this, _1, _2));
 
   rosoutControlParams("controller");
   rosoutControlParams("standing_controller");

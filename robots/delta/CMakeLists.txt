@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   hydrus
+  message_generation
   mujoco_ros_control
   pluginlib
   roscpp
@@ -24,6 +25,15 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 catkin_python_setup()
+
+add_message_files(FILES
+  DynamicReconfigureLevels.msg
+  )
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+
+generate_dynamic_reconfigure_options(
+  cfg/nlopt.cfg
+  )
 
 catkin_package(
   INCLUDE_DIRS include

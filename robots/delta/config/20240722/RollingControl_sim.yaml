@@ -13,10 +13,13 @@ controller:
 
   rolling_minimum_lateral_force: 0.2
   ground_mu: 2.0
-  opt_costs_num: 4
-  opt_cost_weights: [1.0, 2.0, 4.0, 1.0]
   opt_add_joint_torque_constraint: true
-  opt_joint_torque_weight: 1.0
+  nlopt:
+    thrust_weight: 1.0
+    gimbal_linear_solution_dist_weight: 1.0
+    gimbal_current_angle_dist_weight: 3.0
+    gimbal_center_dist_weight: 2.0
+    joint_torque_weight: 6.0
 
   xy:
     p_gain: 4.0

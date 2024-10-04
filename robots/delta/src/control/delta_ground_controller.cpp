@@ -517,3 +517,38 @@ void RollingController::nonlinearGroundWrenchAllocation()
   for(int i = 0; i < n_variables; i++)
     opt_x_prev_.at(i) = opt_x.at(i);
 }
+
+void RollingController::cfgNloptCallback(delta::nloptConfig &config, uint32_t level)
+{
+  using Levels = delta::DynamicReconfigureLevels;
+  switch(level)
+    {
+    case Levels::RECONFIGURE_THRUST_WEIGHT:
+      opt_cost_weights_.at(level) = config.thrust_weight;
+      ROS_INFO_STREAM("change weight at " << level << " to " << opt_cost_weights_.at(level));
+      break;
+
+    case Levels::RECONFIGURE_GIMBAL_LINEAR_SOLUTION_DIST_WEIGHT:
+      opt_cost_weights_.at(level) = config.gimbal_linear_solution_dist_weight;
+      ROS_INFO_STREAM("change weight at " << level << " to " << opt_cost_weights_.at(level));
+      break;
+
+    case Levels::RECONFIGURE_GIMBAL_CURRENT_ANGLE_DIST_WEIGHT:
+      opt_cost_weights_.at(level) = config.gimbal_current_angle_dist_weight;
+      ROS_INFO_STREAM("change weight at " << level << " to " << opt_cost_weights_.at(level));
+      break;
+
+    case Levels::RECONFIGURE_GIMBAL_CENTER_DIST_WEIGHT:
+      opt_cost_weights_.at(level) = config.gimbal_center_dist_weight;
+      ROS_INFO_STREAM("change weight at " << level << " to " << opt_cost_weights_.at(level));
+      break;
+
+    case Levels::RECONFIGURE_JOINT_TORQUE_WEIGHT:
+      opt_joint_torque_weight_ = config.joint_torque_weight;
+      ROS_INFO_STREAM("change weight at " << level << " to " << opt_joint_torque_weight_);
+      break;
+
+    default:
+      break;
+    }
+}
