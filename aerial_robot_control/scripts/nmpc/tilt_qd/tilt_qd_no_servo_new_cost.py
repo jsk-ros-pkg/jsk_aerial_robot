@@ -20,14 +20,18 @@ from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCNoServoNewCost.yaml")
-with open(param_path, "r") as f:
-    param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
-nmpc_params = param_dict["controller"]["nmpc"]
+physical_param_path = os.path.join(rospack.get_path("beetle"), "config", "PhysParamBeetleArt.yaml")
+with open(physical_param_path, "r") as f:
+    physical_param_dict = yaml.load(f, Loader=yaml.FullLoader)
+physical_params = physical_param_dict["physical"]
+
+nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCNoServoNewCost.yaml")
+with open(nmpc_param_path, "r") as f:
+    nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
+nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
-physical_params = param_dict["controller"]["physical"]
 mass = physical_params["mass"]
 gravity = physical_params["gravity"]
 Ixx = physical_params["inertia_diag"][0]
@@ -45,7 +49,6 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 
 class NMPCTiltQdNoServoNewCost(NMPCBase):
-
     def __init__(self):
         super(NMPCTiltQdNoServoNewCost, self).__init__()
 
@@ -95,13 +98,13 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
 
         # transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -147,20 +150,20 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
         tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
 
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # dynamic model
@@ -209,8 +212,9 @@ class NMPCTiltQdNoServoNewCost(NMPCBase):
 
         # get file path for acados
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   ocp_model.name)
+        folder_path = os.path.join(
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", ocp_model.name
+        )
         self._mkdir(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"

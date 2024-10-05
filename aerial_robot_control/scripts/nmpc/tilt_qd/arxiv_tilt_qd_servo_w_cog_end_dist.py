@@ -3,9 +3,8 @@
 """
 Author: LI Jinjie
 File: nmpc_over_act_full.py
-Date: 2023/11/27 9:43 PM
-Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
-The plus version also considers the time constant of the rotor.
+Date: 2024/03/01 4:02 PM
+Description: consider disturbance. The output of the NMPC controller is the thrust and the servo angle
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -14,21 +13,24 @@ import numpy as np
 import yaml
 import rospkg
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
-from tf_conversions import transformations as tf
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITermDrag.yaml")
-with open(param_path, "r") as f:
-    param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
-nmpc_params = param_dict["controller"]["nmpc"]
+physical_param_path = os.path.join(rospack.get_path("beetle"), "config", "PhysParamBeetleArt.yaml")
+with open(physical_param_path, "r") as f:
+    physical_param_dict = yaml.load(f, Loader=yaml.FullLoader)
+physical_params = physical_param_dict["physical"]
+
+nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITermDrag.yaml")
+with open(nmpc_param_path, "r") as f:
+    nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
+nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
-physical_params = param_dict["controller"]["physical"]
 mass = physical_params["mass"]
 gravity = physical_params["gravity"]
 Ixx = physical_params["inertia_diag"][0]
@@ -46,23 +48,14 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 
-t_rotor = 0.0942  # time constant of rotor
 
-c0 = physical_params["c0"]
-c1 = physical_params["c1"]
-c2 = physical_params["c2"]
-c3 = physical_params["c3"]
-c4 = physical_params["c4"]
-
-
-class NMPCTiltQdServoThrustDrag(NMPCBase):
+class NMPCTiltQdServoWCogEndDist(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServoThrustDrag, self).__init__()
+        super(NMPCTiltQdServoWCogEndDist, self).__init__()
         self.t_servo = t_servo
 
     def set_name(self) -> str:
-        model_name = "tilt_qd_servo_thrust_drag_mdl"
-        return model_name
+        return "tilt_qd_servo_w_cog_end_dist_mdl"
 
     def set_ts_ctrl(self) -> float:
         return nmpc_params["T_samp"]
@@ -89,43 +82,50 @@ class NMPCTiltQdServoThrustDrag(NMPCBase):
         a4 = ca.SX.sym("a4")
         a = ca.vertcat(a1, a2, a3, a4)
 
-        ft1 = ca.SX.sym("ft1")
-        ft2 = ca.SX.sym("ft2")
-        ft3 = ca.SX.sym("ft3")
-        ft4 = ca.SX.sym("ft4")
-        ft = ca.vertcat(ft1, ft2, ft3, ft4)
-
-        states = ca.vertcat(p, v, q, w, a, ft)
+        states = ca.vertcat(p, v, q, w, a)
 
         # parameters
         qwr = ca.SX.sym("qwr")  # reference for quaternions
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
+        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # control inputs
-        ftc1 = ca.SX.sym("ftc1")
-        ftc2 = ca.SX.sym("ftc2")
-        ftc3 = ca.SX.sym("ftc3")
-        ftc4 = ca.SX.sym("ftc4")
-        ftc = ca.vertcat(ftc1, ftc2, ftc3, ftc4)
+        ft1 = ca.SX.sym("ft1")
+        ft2 = ca.SX.sym("ft2")
+        ft3 = ca.SX.sym("ft3")
+        ft4 = ca.SX.sym("ft4")
+        ft = ca.vertcat(ft1, ft2, ft3, ft4)
         a1c = ca.SX.sym("a1c")
         a2c = ca.SX.sym("a2c")
         a3c = ca.SX.sym("a3c")
         a4c = ca.SX.sym("a4c")
         ac = ca.vertcat(a1c, a2c, a3c, a4c)
-        controls = ca.vertcat(ftc, ac)
+        controls = ca.vertcat(ft, ac)
+
+        # cog disturbance
+        f_dist_i = ca.SX.sym("f_dist_i", 3)
+        m_dist_b = ca.SX.sym("m_dist_b", 3)
+
+        # end disturbance
+        fd1 = ca.SX.sym("fd1")
+        fd2 = ca.SX.sym("fd2")
+        fd3 = ca.SX.sym("fd3")
+        fd4 = ca.SX.sym("fd4")
+        fz_dist_r = ca.vertcat(fd1, fd2, fd3, fd4)
+
+        parameters = ca.vertcat(quaternion, f_dist_i, m_dist_b, fz_dist_r)
 
         # transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -160,68 +160,58 @@ class NMPCTiltQdServoThrustDrag(NMPCBase):
         g_i = np.array([0, 0, -gravity])
 
         # wrench
-        dr_a1 = dr1 * a1
-        dr_a2 = dr2 * a2
-        dr_a3 = dr3 * a3
-        dr_a4 = dr4 * a4
-        fd1 = (c4 * dr_a1 ** 4 + c3 * dr_a1 ** 3 + c2 * dr_a1 ** 2 + c1 * dr_a1 + c0) * ft1
-        fd2 = (c4 * dr_a2 ** 4 + c3 * dr_a2 ** 3 + c2 * dr_a2 ** 2 + c1 * dr_a2 + c0) * ft2
-        fd3 = (c4 * dr_a3 ** 4 + c3 * dr_a3 ** 3 + c2 * dr_a3 ** 2 + c1 * dr_a3 + c0) * ft3
-        fd4 = (c4 * dr_a4 ** 4 + c3 * dr_a4 ** 3 + c2 * dr_a4 ** 2 + c1 * dr_a4 + c0) * ft4
-
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
         tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd2) * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd3) * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd4) * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd1) * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd1) * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd1) * kq_d_kt)
 
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # dynamic model
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_dist_i / mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + m_dist_b)),
             (ac - a) / t_servo,
-            (ftc - ft) / t_rotor,
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
-        control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
+        control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
 
         # acados model
-        x_dot = ca.SX.sym("x_dot", 21)
+        x_dot = ca.SX.sym("x_dot", 17)
         f_impl = x_dot - func(states, controls)
 
         model = AcadosModel()
@@ -244,12 +234,11 @@ class NMPCTiltQdServoThrustDrag(NMPCBase):
 
         # get file path for acados
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   ocp_model.name)
+        folder_path = os.path.join(
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", ocp_model.name
+        )
         self._mkdir(folder_path)
         os.chdir(folder_path)
-        # acados_models_dir = "acados_models"
-        # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
 
         acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
         sys.path.insert(0, acados_source_path)
@@ -286,20 +275,16 @@ class NMPCTiltQdServoThrustDrag(NMPCBase):
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                1,
-                1,
-                1,
-                1,
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
+                nmpc_params["Rt"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
                 nmpc_params["Rac_d"],
@@ -448,7 +433,7 @@ class XrUrConverter(XrUrConverterBase):
         super(XrUrConverter, self).__init__()
 
     def _set_nx_nu(self):
-        self.nx = 21
+        self.nx = 17
         self.nu = 8
 
     def _set_physical_params(self):
@@ -468,60 +453,9 @@ class XrUrConverter(XrUrConverterBase):
         self.alloc_mat_pinv = self._get_alloc_mat_pinv()
         self.ocp_N = nmpc_params["N_node"]
 
-    def pose_point_2_xr_ur(self, target_xyz, target_rpy):
-        roll = target_rpy.item(0)
-        pitch = target_rpy.item(1)
-        yaw = target_rpy.item(2)
-
-        q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
-        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
-
-        # convert [0,0,gravity] to body frame
-        q_inv = tf.quaternion_inverse(q)
-        rot = tf.quaternion_matrix(q_inv)
-        fg_i = np.array([0, 0, self.mass * self.gravity, 0])
-        fg_b = rot @ fg_i
-        target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
-
-        # a quicker method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
-        x = self.alloc_mat_pinv @ target_wrench
-
-        a1_ref = np.arctan2(x[0, 0], x[1, 0])
-        ft1_ref = np.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
-        a2_ref = np.arctan2(x[2, 0], x[3, 0])
-        ft2_ref = np.sqrt(x[2, 0] ** 2 + x[3, 0] ** 2)
-        a3_ref = np.arctan2(x[4, 0], x[5, 0])
-        ft3_ref = np.sqrt(x[4, 0] ** 2 + x[5, 0] ** 2)
-        a4_ref = np.arctan2(x[6, 0], x[7, 0])
-        ft4_ref = np.sqrt(x[6, 0] ** 2 + x[7, 0] ** 2)
-
-        # get x and u, set reference
-        ocp_N = self.ocp_N
-
-        xr = np.zeros([ocp_N + 1, self.nx])
-        xr[:, 0] = target_xyz.item(0)  # x
-        xr[:, 1] = target_xyz.item(1)  # y
-        xr[:, 2] = target_xyz.item(2)  # z
-        xr[:, 6] = target_qwxyz.item(0)  # qx
-        xr[:, 7] = target_qwxyz.item(1)  # qx
-        xr[:, 8] = target_qwxyz.item(2)  # qy
-        xr[:, 9] = target_qwxyz.item(3)  # qz
-        xr[:, 13] = a1_ref
-        xr[:, 14] = a2_ref
-        xr[:, 15] = a3_ref
-        xr[:, 16] = a4_ref
-        xr[:, 17] = ft1_ref
-        xr[:, 18] = ft2_ref
-        xr[:, 19] = ft3_ref
-        xr[:, 20] = ft4_ref
-
-        ur = np.zeros([ocp_N, self.nu])
-
-        return xr, ur
-
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServoThrustDrag()
+    nmpc = NMPCTiltQdServoWCogEndDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

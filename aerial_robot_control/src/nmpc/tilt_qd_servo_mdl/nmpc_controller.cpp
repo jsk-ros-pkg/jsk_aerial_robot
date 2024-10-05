@@ -126,7 +126,7 @@ void nmpc::TiltQdServoNMPC::initParams()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
-  ros::NodeHandle physical_nh(control_nh, "physical");
+  ros::NodeHandle physical_nh(nh_, "physical");
 
   getParam<double>(physical_nh, "mass", mass_, 0.5);
   getParam<double>(physical_nh, "gravity_const", gravity_const_, 9.81);

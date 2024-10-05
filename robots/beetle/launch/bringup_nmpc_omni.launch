@@ -44,6 +44,7 @@
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
+    <rosparam file="$(arg config_dir)/PhysParamBeetleOmni.yaml" command="load" />
     <rosparam file="$(arg config_dir)/BeetleNMPCFullITerm.yaml" command="load" if="$(eval arg('nmpc_mode') == 0)"/>
     <rosparam file="$(arg config_dir)/BeetleNMPCFullServoThrustDist.yaml" command="load" if="$(eval arg('nmpc_mode') == 1)"/>
     <rosparam file="$(arg config_dir)/BeetleNMPCFullServoThrustINDI.yaml" command="load" if="$(eval arg('nmpc_mode') == 2)"/>

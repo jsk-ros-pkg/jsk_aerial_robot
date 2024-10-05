@@ -16,7 +16,7 @@ from tilt_qd_no_servo_new_cost import NMPCTiltQdNoServoNewCost
 # consider the servo delay
 from tilt_qd_servo import NMPCTiltQdServo
 from tilt_qd_servo_dist import NMPCTiltQdServoDist
-from archives.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
+from arxiv_tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
 
 from tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
 from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
@@ -24,7 +24,7 @@ from tilt_qd_servo_vel_input import NMPCTiltQdServoVelInput
 # further consider the thrust delay
 from tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
-from archives.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+from arxiv_tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
 # only consider the thrust delay
 from tilt_qd_thrust import NMPCTiltQdThrust
@@ -37,9 +37,13 @@ if __name__ == "__main__":
         type=int,
         help="The NMPC model to be simulated. Options: 0 (no_servo_delay), 1 (old servo cost), 2 (full).",
     )
-    parser.add_argument("-sim", "--sim_model", type=int, default=0,
-                        help="The simulation model. "
-                             "Options: 0 (default: NMPCTiltQdServoThrust), 1 (NMPCTiltQdServoThrustDrag).")
+    parser.add_argument(
+        "-sim",
+        "--sim_model",
+        type=int,
+        default=0,
+        help="The simulation model. " "Options: 0 (default: NMPCTiltQdServoThrust), 1 (NMPCTiltQdServoThrustDrag).",
+    )
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -146,8 +150,9 @@ if __name__ == "__main__":
         # --------- update state estimation ---------
         if isinstance(nmpc, NMPCTiltQdServoDist) or isinstance(nmpc, NMPCTiltQdServoThrustDist):
             x_now = np.zeros(nx)
-            x_now[:nx - 6] = copy.deepcopy(
-                x_now_sim[:nx - 6])  # only remove the last 6 elements, which are the disturbances
+            x_now[: nx - 6] = copy.deepcopy(
+                x_now_sim[: nx - 6]
+            )  # only remove the last 6 elements, which are the disturbances
         else:
             x_now = copy.deepcopy(x_now_sim[:nx])  # the dimension of x_now may be smaller than x_now_sim
 
@@ -247,11 +252,32 @@ if __name__ == "__main__":
 
     # ========== visualize ==========
     if args.plot_type == 0:
-        viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                      t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+        viz.visualize(
+            ocp_solver.acados_ocp.model.name,
+            sim_solver.model_name,
+            ts_ctrl,
+            ts_sim,
+            t_total_sim,
+            t_servo_ctrl=t_servo_ctrl,
+            t_servo_sim=t_servo_sim,
+        )
     elif args.plot_type == 1:
-        viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                           t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+        viz.visualize_less(
+            ocp_solver.acados_ocp.model.name,
+            sim_solver.model_name,
+            ts_ctrl,
+            ts_sim,
+            t_total_sim,
+            t_servo_ctrl=t_servo_ctrl,
+            t_servo_sim=t_servo_sim,
+        )
     elif args.plot_type == 2:
-        viz.visualize_rpy(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                          t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+        viz.visualize_rpy(
+            ocp_solver.acados_ocp.model.name,
+            sim_solver.model_name,
+            ts_ctrl,
+            ts_sim,
+            t_total_sim,
+            t_servo_ctrl=t_servo_ctrl,
+            t_servo_sim=t_servo_sim,
+        )

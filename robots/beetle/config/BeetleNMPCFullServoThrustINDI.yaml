@@ -1,28 +1,6 @@
 aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_qd/servo_thrust_nmpc_w_indi
 
 controller:
-  physical:
-    mass: 2.773  # no battery: 2.773-0.821=1.952 ; with battery: 2.773; in sim: 2.99194 # kg
-    gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
-    inertia_diag: [0.04170, 0.03945, 0.07068] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
-    dr1: 1  # direction of motor 1
-    p1: [ 0.137712, 0.137882, 0.0297217 ] # position of motor 1
-    dr2: -1  # direction of motor 2
-    p2: [ -0.137745, 0.137882, 0.0297217 ] # position of motor 2
-    dr3: 1  # direction of motor 3
-    p3: [ -0.137745, -0.138284, 0.0297217 ] # position of motor 3
-    dr4: -1  # direction of motor 4
-    p4: [ 0.137712, -0.138284, 0.0297217 ] # position of motor 4
-    kq_d_kt: 0.0153  #0.0171998
-
-    num_rotors: 4
-    t_rotor: 0.0942  # real condition w/o propeller 0.0942 s; sim: try to set 0.0942 s
-
-    num_servos: 4
-    # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
-    # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
-    t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec
-
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
     T_pred: 2.0  # seconds
