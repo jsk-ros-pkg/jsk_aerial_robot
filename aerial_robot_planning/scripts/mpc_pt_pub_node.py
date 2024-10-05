@@ -53,6 +53,10 @@ class MPCPtPubNode:
             self.traj = LemniscateTraj(loop_num)
         elif traj_type == 3:
             self.traj = LemniscateTrajOmni(loop_num)
+        elif traj_type == 4:
+            self.traj = PitchRotationTraj(loop_num)
+        elif traj_type == 5:
+            self.traj = RollRotationTraj(loop_num)
         else:
             raise ValueError("Invalid trajectory type!")
 
@@ -79,6 +83,9 @@ class MPCPtPubNode:
 
         # 2. calculate the reference points
         is_ref_different = True
+
+        if isinstance(self.traj, PitchRotationTraj) or isinstance(self.traj, RollRotationTraj):
+            is_ref_different = False
 
         t_has_started = rospy.Time.now().to_sec() - self.start_time
         for i in range(self.N_nmpc + 1):
@@ -130,8 +137,11 @@ class MPCPtPubNode:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
     parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
-    parser.add_argument("traj_type", type=int,
-                        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni")
+    parser.add_argument(
+        "traj_type",
+        type=int,
+        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni",
+    )
     parser.add_argument("-num", "--loop_num", type=int, default=np.inf, help="Loop number for the trajectory")
     args = parser.parse_args()
 

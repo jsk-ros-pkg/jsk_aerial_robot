@@ -18,7 +18,7 @@ class BaseTraj:
         return x, y, vx, vy, ax, ay
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
 
 
@@ -81,8 +81,8 @@ class CircleTraj(BaseTraj):
         y = self.r * np.sin(self.omega * t)
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
-        ax = -self.r * self.omega ** 2 * np.cos(self.omega * t)
-        ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
+        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
         return x, y, vx, vy, ax, ay
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
@@ -92,8 +92,8 @@ class CircleTraj(BaseTraj):
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
         vz = 0.0
-        ax = -self.r * self.omega ** 2 * np.cos(self.omega * t)
-        ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
+        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
         az = 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
 
@@ -115,8 +115,8 @@ class LemniscateTraj(BaseTraj):
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
 
-        ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
-        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
+        ax = -self.a * self.omega**2 * np.cos(self.omega * t)
+        ay = -4 * self.a * self.omega**2 * np.sin(2 * self.omega * t)
 
         return x, y, vx, vy, ax, ay
 
@@ -131,9 +131,9 @@ class LemniscateTraj(BaseTraj):
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t) / 2
         vz = 2 * self.z_range * self.omega * np.cos(2 * self.omega * t + np.pi)
 
-        ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
-        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
-        az = -4 * self.z_range * self.omega ** 2 * np.sin(2 * self.omega * t + np.pi)
+        ax = -self.a * self.omega**2 * np.cos(self.omega * t)
+        ay = -4 * self.a * self.omega**2 * np.sin(2 * self.omega * t) / 2
+        az = -4 * self.z_range * self.omega**2 * np.sin(2 * self.omega * t + np.pi)
 
         return x, y, z, vx, vy, vz, ax, ay, az
 
@@ -154,8 +154,70 @@ class LemniscateTrajOmni(LemniscateTraj):
         pitch_rate = -self.a_orientation * self.omega * np.sin(self.omega * t)
         yaw_rate = np.pi / 2 * self.omega * np.cos(self.omega * t + np.pi / 2)
 
-        roll_acc = -2 * -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
-        pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
-        yaw_acc = - np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
+        roll_acc = -2 * -4 * self.a_orientation * self.omega**2 * np.sin(2 * self.omega * t) / 2
+        pitch_acc = -self.a_orientation * self.omega**2 * np.cos(self.omega * t)
+        yaw_acc = -np.pi / 2 * self.omega**2 * np.sin(self.omega * t + np.pi / 2)
+
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class PitchRotationTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
+        self.omega = 2 * np.pi / self.T  # angular velocity
+
+    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        # Calculate the pitch angle based on time
+        t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
+
+        max_pitch = 2.5
+
+        if t <= self.T / 2:
+            pitch = max_pitch * (2 * t / self.T)  # from 0 to max_pitch rad
+        else:
+            pitch = max_pitch * (2 - 2 * t / self.T)  # from max_pitch to 0 rad
+
+        roll = 0.0
+        yaw = 0.0
+
+        roll_rate = 0.0
+        pitch_rate = -5.0 * self.omega if t <= self.T / 2 else 5.0 * self.omega
+        yaw_rate = 0.0
+
+        roll_acc = 0.0
+        pitch_acc = 0.0
+        yaw_acc = 0.0
+
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class RollRotationTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
+        self.omega = 2 * np.pi / self.T  # angular velocity
+
+    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        # Calculate the pitch angle based on time
+        t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
+
+        max_roll = 2.5
+
+        if t <= self.T / 2:
+            roll = max_roll * (2 * t / self.T)  # from 0 to max_roll rad
+        else:
+            roll = max_roll * (2 - 2 * t / self.T)  # from max_roll to 0 rad
+
+        pitch = 0.0
+        yaw = 0.0
+
+        roll_rate = 0.0
+        pitch_rate = 0.0
+        yaw_rate = 0.0
+
+        roll_acc = 0.0
+        pitch_acc = 0.0
+        yaw_acc = 0.0
 
         return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
