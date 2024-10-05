@@ -57,6 +57,8 @@ class MPCPtPubNode:
             self.traj = PitchRotationTraj(loop_num)
         elif traj_type == 5:
             self.traj = RollRotationTraj(loop_num)
+        elif traj_type == 6:
+            self.traj = PitchSetPtTraj(loop_num)
         else:
             raise ValueError("Invalid trajectory type!")
 

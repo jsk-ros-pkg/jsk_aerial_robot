@@ -221,3 +221,46 @@ class RollRotationTraj(BaseTraj):
         yaw_acc = 0.0
 
         return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class PitchSetPtTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.t_converge = 8.0
+        self.pitch_values = [
+            0.0,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            2.5,
+            2.0,
+            1.5,
+            1.0,
+            0.5,
+            0.0,
+            -0.5,
+            -1.0,
+            -1.5,
+            -2.0,
+            -2.5,
+            -2.0,
+            -1.5,
+            -1.0,
+            -0.5,
+            0.0,
+        ]
+        self.T = len(self.pitch_values) * self.t_converge
+
+    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        roll, yaw = 0.0, 0.0
+        roll_rate, yaw_rate = 0.0, 0.0
+        roll_acc, yaw_acc = 0.0, 0.0
+
+        index = min(int(t // self.t_converge), len(self.pitch_values) - 1)
+        pitch = self.pitch_values[index]
+
+        pitch_rate = 0.0
+        pitch_acc = 0.0
+
+        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
