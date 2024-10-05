@@ -7,46 +7,19 @@ Date: 2023/11/27 9:43 PM
 Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
 """
 from __future__ import print_function  # be compatible with python2
-import os
 import sys
 import numpy as np
-import yaml
-import rospkg
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
-
-# read parameters from yaml
-rospack = rospkg.RosPack()
-
-physical_param_path = os.path.join(rospack.get_path("beetle"), "config", "PhysParamBeetleArt.yaml")
-with open(physical_param_path, "r") as f:
-    physical_param_dict = yaml.load(f, Loader=yaml.FullLoader)
-physical_params = physical_param_dict["physical"]
+from phys_param_beetle_art import *
 
 nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
 with open(nmpc_param_path, "r") as f:
     nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
-
-mass = physical_params["mass"]
-gravity = physical_params["gravity"]
-Ixx = physical_params["inertia_diag"][0]
-Iyy = physical_params["inertia_diag"][1]
-Izz = physical_params["inertia_diag"][2]
-dr1 = physical_params["dr1"]
-p1_b = physical_params["p1"]
-dr2 = physical_params["dr2"]
-p2_b = physical_params["p2"]
-dr3 = physical_params["dr3"]
-p3_b = physical_params["p3"]
-dr4 = physical_params["dr4"]
-p4_b = physical_params["p4"]
-kq_d_kt = physical_params["kq_d_kt"]
-
-t_servo = physical_params["t_servo"]  # time constant of servo
 
 
 class NMPCTiltQdServo(NMPCBase):
