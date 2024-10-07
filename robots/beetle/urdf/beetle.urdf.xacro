@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_link" >
+
+  <xacro:macro name="beetle_center_link" params="child1 child2 child3 child4">
+    ## dummy
+    <link name="root">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="base_link"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    ## link
+    <link name="base_link">
+      <inertial>
+        <origin xyz="0.0071144 0.0004661 0.1372857" rpy="0 0 0"/>
+        <mass value="2.7703823"/>
+        <inertia
+            ixx="0.0527268" iyy="0.0895178" izz="0.1192811"
+            ixy="-0.0001722" ixz="0.0008599" iyz="0.0000395"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 3.141592"/>
+        <geometry>
+          <mesh filename="package://beetle/urdf/mesh/base_link.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.1205" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.52 0.52 0.241"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <xacro:damping_factor link="base_link"/>
+
+    <link name="fc">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="fc_joint" type="fixed">
+      <child link="fc"/>
+      <parent link="base_link"/>
+      <origin rpy="0 0 0" xyz="0 0 0.12947"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    ## rotor arm macro
+    <xacro:macro name="dummy_rotor_arm" params="id x y z yaw">
+      ## link
+      <link name="rotor_arm${id}">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      ## joint
+      <joint name="base_arm_joint${id}" type="fixed">
+        <parent link="base_link"/>
+        <child link="rotor_arm${id}"/>
+        <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:macro>
+
+    ## dummy rotor arms
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.12129" y="0.12150" z = "0.1185" yaw = "${pi/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.12129" y="0.12150" z = "0.1185" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.12129" y="-0.12150" z = "0.1185" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.12129" y="-0.12150" z = "0.1185" yaw = "${-pi/4.0}"/>
+
+    ## dummy link for the contact point coordinate
+      <link name="contact_point">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      <joint name="cp_base_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="contact_point"/>
+        <origin rpy="0 0 0" xyz="0.26 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>    
+
+    <xacro:friction self="base_link"/>
+  </xacro:macro>
+
+  <xacro:macro name="beetle_thrust_link" params="self rotor_direction">
+    ## link
+    #### rotor parent link (virtual) ####
+    <link name="gimbal_link${self}">
+      <inertial>
+        <origin xyz="0.0223521 0.0 0.00776312" rpy="0 0 0"/>
+        <mass value="0.15944"/>
+        <inertia
+            ixx="0.00007458" iyy="0.00007325" izz="0.00007756"
+            ixy="0.00000001" ixz="0.00000084" iyz="0.00000001"/>
+      </inertial>
+      <collision>
+        <origin xyz="0.0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.02" length="0.033"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://beetle/urdf/mesh/rotor_module.dae"/>
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link="gimbal_link${self}"/>
+
+    ## rotor parent link (virtual)
+    <link name="rotor_parent${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+
+    ## thrust link (virtual)
+    <link name="thrust${self}">
+      <inertial>      
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.005"/>
+        <inertia
+            ixx="0.001" ixy="0.0" ixz="0.0"
+            iyy="0.001" iyz="0.0"
+            izz="0.001"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link="thrust${self}"/>
+
+    #### joints ####
+
+    #### gimbal joints ####
+    <joint name="gimbal${self}" type="revolute">
+      <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
+      <parent link="rotor_arm${self}"/>
+      <child link="gimbal_link${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
+    <transmission name="joint_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    #### rotor parent link joint (virtual) ####
+    <joint name="rotor_parent_link_joint${self}" type="fixed">
+      <parent link="gimbal_link${self}"/>
+      <child link="rotor_parent${self}"/>
+      <origin rpy="0 0 0" xyz="0.018 0.00 0.00438"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    #### rotor joint (virtual) ####
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <parent link="rotor_parent${self}"/>
+      <child link="thrust${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor_actuator${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+  </xacro:macro>
+</robot>

@@ -15,6 +15,7 @@
 #ifndef SIMULATION
 #include "config.h"
 #include <ros.h>
+#include <sensor_msgs/JointState.h>
 #else
 #include <ros/ros.h>
 #endif
@@ -31,6 +32,8 @@
 #include "battery_status/battery_status.h"
 /* RTOS */
 #include "cmsis_os.h"
+/* gimbal servo*/
+#include <kondo_servo/kondo_servo.h>
 #endif
 #include "state_estimate/state_estimate.h"
 
@@ -59,6 +62,7 @@
 #define CONTROL_TERM_PUB_INTERVAL 100
 #define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
 #define PWM_PUB_INTERVAL 100 //100ms
+#define GIMBAL_CONTROL_PUB_INTERVAL 25 //25ms
 
 #define MOTOR_TEST 0
 
@@ -77,7 +81,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, KondoServo* kondo_servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -85,9 +89,11 @@ public:
 
   void setStartControlFlag(bool start_control_flag);
   void setUavModel(int8_t uav_model);
-  inline uint8_t getMotorNumber(){return motor_number_;}
+  inline uint16_t getMotorNumber(){return motor_number_;}
 
-  void setMotorNumber(uint8_t motor_number);
+  void setMotorNumber(uint16_t motor_number);
+  void setGimbalDof(uint8_t gimbal_dof){gimbal_dof_ = gimbal_dof; }
+  uint16_t getGimbalDof(){return gimbal_dof_; }
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
   bool getIntegrateFlag(){return integrate_flag_; }
   void setIntegrateFlag(bool integrate_flag){integrate_flag_ = integrate_flag; }
@@ -124,6 +130,7 @@ private:
   ros::Subscriber torque_allocation_matrix_inv_sub_;
   ros::Subscriber sim_vol_sub_;
   ros::Publisher anti_gyro_pub_;
+  ros::Publisher gimbal_control_pub_;
   ros::ServiceServer att_control_srv_;
 
   bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; return true;}
@@ -143,12 +150,13 @@ private:
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
+  KondoServo* kondo_servo_;
 #endif
 
   StateEstimate* estimator_;
-
   int8_t uav_model_;
-  uint8_t motor_number_;
+  uint16_t motor_number_;
+  uint8_t gimbal_dof_;
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;
@@ -184,6 +192,7 @@ private:
   // Thrust PWM Conversion
   float target_thrust_[MAX_MOTOR_NUMBER];
   float target_pwm_[MAX_MOTOR_NUMBER];
+  float target_gimbal_angles_[MAX_MOTOR_NUMBER];
   float min_duty_;
   float max_duty_;
   float min_thrust_; // max thrust is variant according to the voltage
@@ -194,7 +203,7 @@ private:
   uint8_t motor_ref_index_;
   float v_factor_;
   uint32_t voltage_update_last_time_;
-  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
+  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_, gimbal_control_pub_last_time_;;
   uint32_t pwm_pub_last_time_;
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
