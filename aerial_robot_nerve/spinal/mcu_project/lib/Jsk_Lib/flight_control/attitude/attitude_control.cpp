@@ -380,6 +380,7 @@ void AttitudeController::reset(void)
     {
       target_thrust_[i] = 0;
       target_pwm_[i] = IDLE_DUTY;
+      pwm_test_value_[i] = IDLE_DUTY;
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
