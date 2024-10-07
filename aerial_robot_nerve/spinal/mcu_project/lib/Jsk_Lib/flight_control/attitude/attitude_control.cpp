@@ -28,7 +28,6 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   rpy_gain_sub_ = nh_->subscribe("rpy/gain", 1, &AttitudeController::rpyGainCallback, this);
   p_matrix_pseudo_inverse_inertia_sub_ = nh_->subscribe("p_matrix_pseudo_inverse_inertia", 1, &AttitudeController::pMatrixInertiaCallback, this);
   pwm_test_sub_ = nh_->subscribe("pwm_test", 1, &AttitudeController::pwmTestCallback, this);
-  pwm_indiv_test_sub_ = nh_->subscribe("pwm_indiv_test", 1, &AttitudeController::pwmIndivTestCallback, this);
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
@@ -46,7 +45,6 @@ AttitudeController::AttitudeController():
   rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
-  pwm_indiv_test_sub_("pwm_indiv_test", &AttitudeController::pwmIndivTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
 {
@@ -80,7 +78,6 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe(pwm_info_sub_);
   nh_->subscribe(rpy_gain_sub_);
   nh_->subscribe(pwm_test_sub_);
-  nh_->subscribe(pwm_indiv_test_sub_);
   nh_->subscribe(p_matrix_pseudo_inverse_inertia_sub_);
   nh_->subscribe(torque_allocation_matrix_inv_sub_);
 
@@ -382,13 +379,8 @@ void AttitudeController::reset(void)
   for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
     {
       target_thrust_[i] = 0;
-      if (i < 4){
-        target_pwm_[i] = IDLE_DUTY;
-      }else{
-	target_pwm_[4] = 0.0;
-        target_pwm_[5] = 1.0;
-	
-      }
+      target_pwm_[i] = IDLE_DUTY;
+      pwm_test_value_[i] = IDLE_DUTY;
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
@@ -699,30 +691,6 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
     }
 #endif  
 }
-
-
-void AttitudeController::pwmIndivTestCallback(const spinal::PwmState& pwm_msg)
-{
-#ifdef SIMULATION
-  if (pwm_msg.index.size() == pwm_msg.percentage.size())
-#else
-    if (pwm_msg.index_length == pwm_msg.percentage_length)
-#endif
-      {
-#ifdef SIMULATION
-        for(int i = 0; i < pwm_msg.index.size(); i++)
-#else
-          for(int i = 0; i < pwm_msg.index_length; i++)
-#endif
-            {
-              size_t index = pwm_msg.index[i];
-              target_pwm_[index] = pwm_msg.percentage[i];
-              // target_pwm_[pwm_msg.index[i]] = pwm_msg.percentage[i];
-            }
-        return;
-      }
-}
-
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
 {
