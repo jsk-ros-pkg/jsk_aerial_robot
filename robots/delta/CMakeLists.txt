@@ -8,11 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
+  dynamic_reconfigure
+  geometry_msgs
   hydrus
   message_generation
   mujoco_ros_control
   pluginlib
   roscpp
+  std_msgs
   )
 
 find_package(Eigen3 REQUIRED)
@@ -34,10 +37,11 @@ generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 generate_dynamic_reconfigure_options(
   cfg/nlopt.cfg
   )
+add_dependencies(${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_py)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs hydrus pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure geometry_msgs hydrus message_runtime pluginlib roscpp std_msgs
   LIBRARIES delta_controller delta_robot_model delta_navigation
   )
 
@@ -56,6 +60,7 @@ add_library(delta_controller
   src/control/delta_joint_controller.cpp
   )
 target_link_libraries(delta_controller ${catkin_LIBRARIES} ${OsqpEigen_LIBRARIES} ${NLOPT_LIBRARIES})
+add_dependencies(delta_controller ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 
 add_library(delta_robot_model src/model/delta_robot_model.cpp)
 target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
