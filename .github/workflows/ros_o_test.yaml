@@ -44,7 +44,7 @@ jobs:
           cp -r ${GITHUB_WORKSPACE} ${CATKIN_WS}/src
           wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
           wstool update -t src
-          rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
+          rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO --skip-keys="libgeographiclib-dev"
           catkin build aerial_robot --no-status
           catkin build --catkin-make-args run_tests -- -i --no-deps --no-status -p 1 -j 1 aerial_robot
           catkin_test_results --verbose build || catkin_test_results --all build
