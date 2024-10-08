@@ -37,7 +37,7 @@ jobs:
 
       - name: Setup ROS workspace
         run: |
-          source /opt/ros/noetic/setup.bash
+          source /opt/ros/one/setup.bash
           mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS}
           wstool init src
           cp -r ${GITHUB_WORKSPACE} ${CATKIN_WS}/src
