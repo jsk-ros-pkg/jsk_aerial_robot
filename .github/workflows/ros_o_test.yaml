@@ -42,7 +42,7 @@ jobs:
           mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS}
           wstool init src
           cp -r ${GITHUB_WORKSPACE} ${CATKIN_WS}/src
-          wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall
+          wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
           wstool update -t src
           rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
           catkin build
