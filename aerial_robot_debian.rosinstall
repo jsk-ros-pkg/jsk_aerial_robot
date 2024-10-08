@@ -1,0 +1,70 @@
+# aerial robot third party
+- git:
+    local-name: aerial_robot_3rdparty
+    uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
+    version: b10f5bf
+
+# kalman filter
+- git:
+    local-name: kalman_filter
+    uri: https://github.com/sugikazu75/kalman_filter.git
+    version: C++17
+
+# the sensor interface
+- git:
+    local-name: sensor_interface
+    uri: https://github.com/JSKAerialRobot/sensor_interface.git
+    version: c4570c0 
+
+# RTK-GPS
+# support RTK based GPS module.
+# TODO: create PR
+- git:
+    local-name: ublox_gps
+    uri: https://github.com/sugikazu75/ublox.git
+    version: holybro_rtk_m8p
+
+# rosserial
+# [rosserial server] implement rosservice server (https://github.com/ros-drivers/rosserial/pull/615)
+- git:
+    local-name: rosserial
+    uri: https://github.com/tongtybj/rosserial.git
+    version: rosservice_server
+
+# livox ros driver
+# modification for quick build of ROS1 version
+- git:
+    local-name: livox_ros_driver2
+    uri: https://github.com/tongtybj/livox_ros_driver2.git
+    version: PR/ros1
+
+# fast lio
+# modification for fast odometry based on EKF
+- git:
+    local-name: fast_lio
+    uri: https://github.com/tongtybj/FAST_LIO
+    version: PR/odometry
+
+# realsense
+#- git:
+#    local-name: realsense-ros
+#    uri: https://github.com/tongtybj/realsense-ros.git
+#    version: multi_realsense_t265
+
+# geographic info
+- git:
+    local-name: geographic_info
+    uri: https://github.com/ros-geographic-info/geographic_info.git
+    vetsion: master
+
+# mavros
+- git:
+    local-name: mavros
+    uri: https://github.com/mavlink/mavros.git
+    version: master
+
+# unique identifier
+- git:
+    local-name: unique_identifier
+    uri: https://github.com/ros-geographic-info/unique_identifier.git
+    version: master
