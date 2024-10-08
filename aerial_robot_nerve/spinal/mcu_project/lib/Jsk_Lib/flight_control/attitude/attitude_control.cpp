@@ -379,8 +379,13 @@ void AttitudeController::reset(void)
   for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
     {
       target_thrust_[i] = 0;
-      target_pwm_[i] = IDLE_DUTY;
-      pwm_test_value_[i] = IDLE_DUTY;
+      if (i <= 3){
+        target_pwm_[i] = IDLE_DUTY;
+        pwm_test_value_[i] = IDLE_DUTY;
+      }else{
+        target_pwm_[i] = 0;
+        pwm_test_value_[i] = 0;
+      }
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
@@ -656,7 +661,7 @@ void AttitudeController::maxYawGainIndex()
 
 void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 {
-#ifndef SIMULATION  
+#ifndef SIMULATION
   if(pwm_msg.pwms_length && !pwm_test_flag_)
     {
       pwm_test_flag_ = true;
@@ -679,6 +684,16 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         }
       for(int i = 0; i < pwm_msg.motor_index_length; i++){
         int motor_index = pwm_msg.motor_index[i];
+        /*fail safe*/
+        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < MAX_PWM)
+        //   {
+        //     pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+        //   }
+        // else
+        //   {
+        //     nh_->logwarn("The value of pwm is invalid for motors");
+        //     pwm_test_value_[motor_index] = IDLE_DUTY;
+        //   }
         pwm_test_value_[motor_index] = pwm_msg.pwms[i];
       }
     }
@@ -686,10 +701,20 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
     {
       /*Simultaneous test mode*/
       for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
+        /*fail safe*/
+        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < MAX_PWM)
+        //   {
+        //      pwm_test_value_[i] = pwm_msg.pwms[0];
+        //   }
+        // else
+        //   {
+        //     nh_->logwarn("The value of pwm is invalid for motors");
+        //     pwm_test_value_[i] = IDLE_DUTY;
+        //   }
         pwm_test_value_[i] = pwm_msg.pwms[0];
       }
     }
-#endif  
+#endif
 }
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
