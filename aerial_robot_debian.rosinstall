@@ -55,7 +55,7 @@
 - git:
     local-name: geographic_info
     uri: https://github.com/ros-geographic-info/geographic_info.git
-    vetsion: master
+    version: master
 
 # mavros
 - git:
