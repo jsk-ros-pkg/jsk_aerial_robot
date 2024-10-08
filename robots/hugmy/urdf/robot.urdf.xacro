@@ -154,10 +154,17 @@
   </xacro:extra_module>
 
   <!-- propellers -->
-  <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
-  <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
-  <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" />
-  <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "-1" />
+  <xacro:propeller_module id = "1" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "2" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "3" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "4" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "1" />
+
+  
+  <!-- propellers -->
+  <!-- <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" /> -->
+  <!-- <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" /> -->
+  <!-- <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" /> -->
+  <!-- <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "-1" /> -->
 
 
 </robot>
