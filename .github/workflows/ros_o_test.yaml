@@ -29,6 +29,7 @@ jobs:
           echo "yaml https://raw.githubusercontent.com/v4hn/ros-o-builder/jammy-one-unstable/repository/local.yaml debian" | sudo tee /etc/ros/rosdep/sources.list.d/1-v4hn_ros-o-builder.list
           rosdep update
           sudo apt-get install -y ros-one-desktop-full
+          pip3 install python3-wstool
 
       - name: Checkout
         uses: actions/checkout@v3
