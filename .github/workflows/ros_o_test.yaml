@@ -2,7 +2,7 @@ on: [push, pull_request]
 
 jobs:
   ci:
-    runs-on: ubuntu:jammy
+    runs-on: ubuntu-22.04
     name: ros_o_build_test
     strategy:
       fail-fast: false
