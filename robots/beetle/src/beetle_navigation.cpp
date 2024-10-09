@@ -145,10 +145,14 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* this is the yaw_angle control */
   if(fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
     {
-      double target_yaw = estimator_->getState(State::YAW_COG, estimate_mode_)[0]
+      tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+      double r,p,y;
+      base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+
+      double target_yaw = y
         + joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
       setTargetYaw(angles::normalize_angle(target_yaw));
-      setTargetOmageZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
+      setTargetOmegaZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
 
       yaw_control_flag_ = true;
     }
@@ -158,7 +162,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           yaw_control_flag_= false;
           setTargetYawFromCurrentState();
-          setTargetOmageZ(0);
+          setTargetOmegaZ(0);
           ROS_INFO("Joy Control: fixed yaw state, target yaw angle is %f", getTargetRPY().z());
         }
     }
@@ -258,7 +262,11 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                 tf::Transform teleop_local_frame_tf;
                 tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
 
-                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_COG, estimate_mode_)[0])) * teleop_local_frame_tf.getBasis());
+                tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+                double r,p,y;
+                base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+
+                target_acc_ = frameConversion(target_acc,  tf::Matrix3x3(tf::createQuaternionFromYaw(y)) * teleop_local_frame_tf.getBasis());
               }
           }
         break;
@@ -281,7 +289,12 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             if(control_frame_ == LOCAL_FRAME)
               {
                 tf::Vector3 target_vel_tmp = target_vel;
-                target_vel = frameConversion(target_vel_tmp,  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+
+                tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+                double r,p,y;
+                base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+
+                target_vel = frameConversion(target_vel_tmp,  y);
               }
 
             /* interpolation for vel target */
@@ -319,12 +332,12 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(0);
+      setTargetOmegaZ(0);
     }
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
     {
       setTargetYaw(angles::normalize_angle(msg->target_yaw));
-      setTargetOmageZ(msg->target_omega_z);
+      setTargetOmegaZ(msg->target_omega_z);
     }
 
   /* xy control */
@@ -388,7 +401,11 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+              double r,p,y;
+              base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0),  y);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
               break;
@@ -431,7 +448,11 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+              double r,p,y;
+              base_rot.getRPY(r, p, y); // we assume the orientation of baselink at the initial phase should not be entire vertical
+
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), y);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
               break;

@@ -76,7 +76,7 @@ namespace sensor_plugin
           }
 
         acc_b_[i] = imu_msg->acc_data[i];
-        euler_[i] = imu_msg->angles[i];
+        wz_b_[i] = imu_msg->angles[i];
         omega_[i] = imu_msg->gyro_data[i];
         mag_[i] = imu_msg->mag_data[i];
       }

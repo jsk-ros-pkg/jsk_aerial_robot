@@ -258,9 +258,9 @@ void nmpc::TiltQdServoNMPC::prepareNMPCRef()
       navigator_->setTargetRoll((float)target_rpy.x());
       navigator_->setTargetPitch((float)target_rpy.y());
       navigator_->setTargetYaw((float)target_rpy.z());
-      navigator_->setTargetOmageX(0.0);
-      navigator_->setTargetOmageY(0.0);
-      navigator_->setTargetOmageZ(0.0);
+      navigator_->setTargetOmegaX(0.0);
+      navigator_->setTargetOmegaY(0.0);
+      navigator_->setTargetOmegaZ(0.0);
     }
   }
 
