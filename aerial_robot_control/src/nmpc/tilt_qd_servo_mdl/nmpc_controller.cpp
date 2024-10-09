@@ -353,6 +353,15 @@ void nmpc::TiltQdServoNMPC::callbackJointStates(const sensor_msgs::JointStateCon
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
 void nmpc::TiltQdServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
 {
+  // add a check to avoid the singular point for euler angle
+  if (msg->pitch == M_PI / 2.0 or msg->pitch == -M_PI / 2.0)
+  {
+    ROS_WARN(
+        "The pitch angle is set to PI/2 or -PI/2, which is a singular point for euler angle."
+        " Please set other values for the pitch angle.");
+    return;
+  }
+
   navigator_->setTargetRoll(msg->roll);
   navigator_->setTargetPitch(msg->pitch);
   navigator_->setTargetYaw(msg->yaw);
@@ -495,10 +504,11 @@ nav_msgs::Odometry nmpc::TiltQdServoNMPC::getOdom()
 {
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Vector3 rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
+  tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
   tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+
   tf::Quaternion q;
-  q.setRPY(rpy.x(), rpy.y(), rpy.z());
+  cog_rot.getRotation(q);
 
   // check the sign of the quaternion, avoid the flip of the quaternion
   double qe_c_w = q.w() * odom_.pose.pose.orientation.w + q.x() * odom_.pose.pose.orientation.x +
