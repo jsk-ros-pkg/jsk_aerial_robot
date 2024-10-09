@@ -685,7 +685,7 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
       for(int i = 0; i < pwm_msg.motor_index_length; i++){
         int motor_index = pwm_msg.motor_index[i];
         /*fail safe*/
-        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < MAX_PWM)
+        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < max_duty_)
         //   {
         //     pwm_test_value_[motor_index] = pwm_msg.pwms[i];
         //   }
@@ -702,7 +702,7 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
       /*Simultaneous test mode*/
       for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
         /*fail safe*/
-        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < MAX_PWM)
+        // if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < max_duty_)
         //   {
         //      pwm_test_value_[i] = pwm_msg.pwms[0];
         //   }
