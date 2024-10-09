@@ -380,6 +380,7 @@ void AttitudeController::reset(void)
     {
       target_thrust_[i] = 0;
       target_pwm_[i] = IDLE_DUTY;
+      pwm_test_value_[i] = IDLE_DUTY;
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
@@ -678,17 +679,35 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         }
       for(int i = 0; i < pwm_msg.motor_index_length; i++){
         int motor_index = pwm_msg.motor_index[i];
-        pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+                /*fail safe*/
+        if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] <= MAX_PWM)
+          {
+            pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+          }
+        else
+          {
+            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motor");
+            pwm_test_value_[motor_index] = IDLE_DUTY;
+          }
       }
     }
   else
     {
       /*Simultaneous test mode*/
       for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
-        pwm_test_value_[i] = pwm_msg.pwms[0];
+        /*fail safe*/
+        if (pwm_msg.pwms[0] >= IDLE_DUTY && pwm_msg.pwms[0] <= MAX_PWM)
+          {
+            pwm_test_value_[i] = pwm_msg.pwms[0];
+          }
+        else
+          {
+            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motors");
+            pwm_test_value_[i] = IDLE_DUTY;
+          }
       }
     }
-#endif  
+#endif
 }
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
