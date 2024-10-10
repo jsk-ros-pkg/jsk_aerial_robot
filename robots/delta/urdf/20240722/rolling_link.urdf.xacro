@@ -8,18 +8,60 @@
   <xacro:include filename="$(find delta)/urdf/20240722/thrust.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20240722/battery.urdf.xacro" />
 
-  <xacro:macro name="delta_module" params="self child rotor_direction battery">
+  <xacro:macro name="delta_module" params="self child rotor_direction battery baselink">
 
     <xacro:if value="${self == 1}">
       <xacro:link1/>
     </xacro:if>
 
-    <xacro:if value="${self == 2}">
+    <xacro:if value="${self != 1 and self != child}">
       <xacro:link2/>
     </xacro:if>
 
-    <xacro:if value="${self == 3}">
+    <xacro:if value="${self == child}">
       <xacro:link3/>
+    </xacro:if>
+
+    <!-- dummy root link for KDL -->
+    <xacro:if value="${self == 1}">
+      <link name="root">
+        <xacro:virtual_inertial/>
+      </link>
+      <joint name="root_joint" type="fixed">
+        <parent link="root"/>
+        <child link="link${self}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+    </xacro:if>
+
+    <!-- processors -->
+    <xacro:if value="${baselink}">
+      <link name="fc_link">
+        <xacro:virtual_inertial/>
+      </link>
+      <joint name="fc_link_joint" type="fixed">
+        <parent link="link${self}"/>
+        <child link="fc_link"/>
+        <axis xyz="0 0 1"/>
+        <origin xyz="0.0735 0 0" rpy="0 0 0"/>
+      </joint>
+      <link name="fc">
+        <inertial>
+          <origin xyz="0.02959036 -0.00076922 -0.00886856" rpy="0 0 0"/>
+          <mass value="0.12308403"/>
+          <inertia
+              ixx="0.00008649" ixy="-0.00000081" ixz="0.00000124"
+              iyy="0.00006899" iyz="0.00000148"
+              izz="0.00008508"/>
+        </inertial>
+      </link>
+      <joint name="fc_joint" type="fixed">
+        <parent link="fc_link"/>
+        <child link="fc"/>
+        <axis xyz="0 0 1"/>
+        <origin xyz="0.0129 -0.0012 0.020" rpy="0 0 0"/>
+      </joint>
     </xacro:if>
 
     <!-- gimbal joint -->
@@ -32,12 +74,9 @@
       <xacro:if value="${self == 1}">
         <origin xyz="0.170 0 0" rpy="0 0 0" />
       </xacro:if>
-      <xacro:if value="${self == 2}">
+      <xacro:unless value="${self == 1}">
         <origin xyz="0.2035 0 0" rpy="0 0 0" />
-      </xacro:if>
-      <xacro:if value="${self == 3}">
-        <origin xyz="0.2035 0 0" rpy="0 0 0" />
-      </xacro:if>
+      </xacro:unless>
     </joint>
 
     <!-- link joint -->
@@ -51,22 +90,15 @@
         <xacro:if value="${self == 1}">
           <origin xyz="0.494 0 0" rpy="0 0 0" />
         </xacro:if>
-        <xacro:if value="${self == 2}">
+        <xacro:unless value="${self == 1}">
           <origin xyz="0.5275 0 0" rpy="0 0 0" />
-        </xacro:if>
+        </xacro:unless>
       </joint>
     </xacro:unless>
 
     <!-- rotor parent (virtual) -->
     <link name="rotor_parent${self}">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.00001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000002"/>
-      </inertial>
+      <xacro:virtual_inertial/>
     </link>
     <joint name="rotor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
@@ -85,14 +117,7 @@
 
     <!-- thrust link -->
     <link name="thrust${self}">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.00001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000002"/>
-      </inertial>
+      <xacro:virtual_inertial/>
     </link>
     <xacro:damping_factor link="thrust${self}" />
     <joint name="rotor${self}" type="continuous">
@@ -112,12 +137,9 @@
         <xacro:if value="${self == 1}">
           <origin xyz="0.3735 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
         </xacro:if>
-        <xacro:if value="${self == 2}">
+        <xacro:unless value="${self == 1}">
           <origin xyz="0.407 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
-        </xacro:if>
-        <xacro:if value="${self == 3}">
-          <origin xyz="0.407 -0.038 0" rpy="${pi / 2} 0 ${-pi / 2}"/>
-        </xacro:if>
+        </xacro:unless>
       </joint>
     </xacro:if>
 

@@ -4,6 +4,7 @@
 
   <xacro:macro name="link3">
 
+    <!-- link -->
     <link name="link3">
       <inertial>
         <origin xyz="0.26112729 -0.04939508 0.00100978" rpy="0 0 0"/>
@@ -25,6 +26,7 @@
     </link>
     <xacro:large_friction link="link3"/>
 
+    <!-- link end frame -->
     <link name="link3_end">
       <xacro:virtual_inertial/>
     </link>
@@ -77,6 +79,7 @@
       <axis xyz="0 0 1"/>
     </joint>
 
+    <!-- gimbal -->
     <link name="gimbal_link3">
       <inertial>
         <origin xyz="0.00779810 -0.00000202 0.01075117" rpy="0 0 0"/>
@@ -92,6 +95,7 @@
       </visual>
     </link>
 
+    <!-- center of link -->
     <link name="link3_center">
       <xacro:virtual_inertial/>
     </link>
