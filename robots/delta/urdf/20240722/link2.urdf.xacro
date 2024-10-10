@@ -4,24 +4,14 @@
 
   <xacro:macro name="link2">
 
-    <!-- fc frame -->
-    <link name="fc">
-      <xacro:virtual_inertial/>
-    </link>
-    <joint name="fc_joint" type="fixed">
-      <child link="fc" />
-      <parent link="link2" />
-      <origin xyz="0.0864 -0.0012 0.020" rpy="0 0 0" />
-      <axis xyz="0 0 1"/>
-    </joint>
-
+    <!-- link -->
     <link name="link2">
       <inertial>
-        <origin xyz="0.27430376 -0.03531382 0.00536770" rpy="0 0 0"/>
-        <mass value="0.93865101"/>
+        <origin xyz="0.29984170 -0.04053992 0.00751982" rpy="0 0 0"/>
+        <mass value="0.81525662"/>
         <inertia
-             ixx="0.00427555" iyy="0.03420212" izz="0.03701377"
-            ixy="-0.00115915" ixz="0.00112391" iyz="0.00018003" />
+             ixx="0.00398803" iyy="0.02991643" izz="0.03256914"
+            ixy="-0.00033115" ixz="0.00077590" iyz="0.00024828" />
       </inertial>
       <visual>
         <geometry>
@@ -58,6 +48,7 @@
       <axis xyz="0 0 1"/>
     </joint>
 
+    <!-- gimbal -->
     <link name="gimbal_link2">
       <inertial>
         <origin xyz="0.01035776 -0.00000204 0.01055007" rpy="0 0 0"/>
@@ -73,6 +64,7 @@
       </visual>
     </link>
 
+    <!-- center of link -->
     <link name="link2_center">
       <xacro:virtual_inertial/>
     </link>

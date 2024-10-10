@@ -4,17 +4,7 @@
 
   <xacro:macro name="link1">
 
-    <!-- dummy root link for KDL -->
-    <link name="root">
-      <xacro:virtual_inertial/>
-    </link>
-    <joint name="root_joint" type="fixed">
-      <parent link="root"/>
-      <child link="link1"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-
+    <!-- link -->
     <link name="link1">
       <inertial>
         <origin xyz="0.27442477 -0.04145571 0.00766623" rpy="0 0 0"/>
@@ -58,6 +48,7 @@
       <axis xyz="0 0 1"/>
     </joint>
 
+    <!-- gimbal -->
     <link name="gimbal_link1">
       <inertial>
         <origin xyz="0.00787449 -0.00000198 0.01067283" rpy="0 0 0"/>
@@ -73,6 +64,7 @@
       </visual>
     </link>
 
+    <!-- center of link -->
     <link name="link1_center">
       <xacro:virtual_inertial/>
     </link>

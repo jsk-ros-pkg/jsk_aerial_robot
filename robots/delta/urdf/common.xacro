@@ -28,14 +28,14 @@
 
   <!-- macro of inertial of virtual link -->
   <xacro:macro name="virtual_inertial" params="x:=0 y:=0 z:=0">
-    <inerial>
+    <inertial>
       <origin xyz="${x} ${y} ${z}"/>
       <mass value="0.00001"/>
       <inertia
           ixx="0.000001" ixy="0.0" ixz="0.0"
           iyy="0.000001" iyz="0.0"
           izz="0.000002"/>
-    </inerial>
+    </inertial>
   </xacro:macro>
 
   <xacro:macro name="damping_factor" params="link">
