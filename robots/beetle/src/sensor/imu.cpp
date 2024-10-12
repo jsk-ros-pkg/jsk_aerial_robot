@@ -76,7 +76,7 @@ namespace sensor_plugin
           }
 
         acc_b_[i] = imu_msg->acc_data[i];
-        euler_[i] = imu_msg->angles[i];
+        g_b_[i] = imu_msg->angles[i];
         omega_[i] = imu_msg->gyro_data[i];
         mag_[i] = imu_msg->mag_data[i];
       }
@@ -91,10 +91,6 @@ namespace sensor_plugin
     omega_msg.header.stamp = imu_msg->stamp;
     tf::vector3TFToMsg(filtered_omega, omega_msg.vector);
     omega_filter_pub_.publish(omega_msg);
-
-    // workaround: use raw roll&pitch omega (not filtered in spinal) for both angular and linear CoG velocity estimation, yaw is still filtered
-    // note: this is different with hydrus-like control which use filtered omega for CoG estimation
-    omega_.setZ(filtered_omega.z());
 
     // get filtered angular and linear velocity of CoG
     tf::Transform cog2baselink_tf;
