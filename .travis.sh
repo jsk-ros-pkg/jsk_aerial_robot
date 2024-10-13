@@ -69,6 +69,28 @@ if [[ "$ROS_DISTRO" = "kinetic" ]]; then
     export CC='gcc-7'
 fi
 
+# use latest cmake
+# https://qiita.com/sunrise_lover/items/810977fede4b979c382b
+if [[ "$ROS_DISTRO" = "kinetic" ]]; then
+    cmake --version
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+    sudo apt-get install -y software-properties-common
+    sudo apt-get install -y apt-transport-https
+    sudo apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+    sudo apt update
+    sudo apt install -y cmake
+    cmake --version
+fi
+if [[ "$ROS_DISTRO" = "melodic" ]]; then
+    cmake --version
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+    sudo apt-get install -y software-properties-common
+    sudo apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+    sudo apt update
+    sudo apt install -y cmake
+    cmake --version
+fi
+
 # Build
 catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 catkin build --no-status
