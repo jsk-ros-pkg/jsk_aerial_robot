@@ -63,6 +63,11 @@
     uri: https://github.com/mavlink/mavros.git
     version: master
 
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/sugikazu75/mocap_optitrack.git
+    version: C++17
+
 # unique identifier
 - git:
     local-name: unique_identifier
