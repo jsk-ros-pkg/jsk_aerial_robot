@@ -34,6 +34,7 @@
  *********************************************************************/
 
 #include <aerial_robot_estimation/sensor/imu.h>
+#include <aerial_robot_estimation/sensor/vo.h>
 
 namespace
 {
@@ -47,17 +48,11 @@ namespace sensor_plugin
     sensor_plugin::SensorBase(),
     calib_count_(200),
     acc_b_(0, 0, 0),
-    euler_(0, 0, 0),
+    wz_b_(0, 0, 0),
     omega_(0, 0, 0),
     mag_(0, 0, 0),
-    acc_l_(0, 0, 0),
-    acc_w_(0, 0, 0),
-    acc_non_bias_w_(0, 0, 0),
     acc_bias_b_(0, 0, 0),
-    acc_bias_l_(0, 0, 0),
-    acc_bias_w_(0, 0, 0),
-    sensor_dt_(0),
-    treat_imu_as_ground_truth_(true)
+    sensor_dt_(0)
   {
     state_.states.resize(3);
     state_.states[0].id = "x";
@@ -66,6 +61,14 @@ namespace sensor_plugin
     state_.states[1].state.resize(2);
     state_.states[2].id = "z";
     state_.states[2].state.resize(2);
+
+    acc_w_.at(0) = tf::Vector3(0, 0, 0);
+    acc_w_.at(1) = tf::Vector3(0, 0, 0);
+    acc_non_bias_w_.at(0) = tf::Vector3(0, 0, 0);
+    acc_non_bias_w_.at(1) = tf::Vector3(0, 0, 0);
+    acc_bias_w_.at(0) = tf::Vector3(0, 0, 0);
+    acc_bias_w_.at(1) = tf::Vector3(0, 0, 0);
+
   }
 
   void Imu::initialize(ros::NodeHandle nh,
@@ -96,11 +99,11 @@ namespace sensor_plugin
             return;
           }
 
-        acc_b_[i] = imu_msg->acc_data[i];
-        euler_[i] = imu_msg->angles[i];
-        omega_[i] = imu_msg->gyro_data[i];
-        mag_[i] = imu_msg->mag_data[i];
-      }
+        acc_b_[i] = imu_msg->acc_data[i]; // baselink frame
+        omega_[i] = imu_msg->gyro_data[i];  // baselink frame
+        mag_[i] = imu_msg->mag_data[i];  // baselink frame
+        wz_b_[i] = imu_msg->angles[i];  // workaround to avoid the singularity of RPY Euler angles.
+       }
 
     estimateProcess();
     updateHealthStamp();
@@ -118,62 +121,76 @@ namespace sensor_plugin
     /* set the time internal */
     sensor_dt_ = imu_stamp_.toSec() - prev_time.toSec();
 
-    tf::Matrix3x3 r; r.setRPY(euler_[0], euler_[1], euler_[2]);
-
-    /* project acc onto level frame using body frame value */
-    tf::Matrix3x3 orientation;
-    orientation.setRPY(euler_[0], euler_[1], 0);
-#if 1
-    acc_l_ = orientation * acc_b_  - tf::Vector3(0, 0, aerial_robot_estimation::G); /* use x,y for factor4 and z for factor3 */
-    //acc_l_.setZ((orientation * tf::Vector3(0, 0, acc_[Frame::BODY].z())).z() - aerial_robot_estimation::G);
-#else  // use approximation
-    acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, aerial_robot_estimation::G);
-#endif
-
-    /* base link */
-    /* roll & pitch */
-    estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[0]);
-    estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[1]);
-    estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[0]);
-    estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[1]);
-
-    /* yaw */
-    if(!estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
-      estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[2]);
-
-    if(!estimator_->getStateStatus(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE))
-      estimator_->setState(State::YAW_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 0, euler_[2]);
-
-    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, omega_);
-    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, omega_);
-
-    /* COG */
-    /* TODO: only imu can assign to cog state for estimate mode and experiment mode */
     tf::Transform cog2baselink_tf;
     tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
-    double roll, pitch, yaw;
-    (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-    estimator_->setEuler(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+    // convert to CoG frame, since in the current system, CoG frame is never being sigular due to RPY euler
+    tf::Vector3 wz_c = cog2baselink_tf.getBasis() * wz_b_;
+    tf::Vector3 cog_euler;
+    cog_euler[0] = atan2(wz_c.y() , wz_c.z());
+    cog_euler[1] = atan2(-wz_c.x() , sqrt(wz_c.y() * wz_c.y() + wz_c.z() * wz_c.z()));
 
-    (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-    estimator_->setEuler(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, tf::Vector3(roll, pitch, yaw));
-    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
-
-    /* Ground Truth if necessary */
-    if(treat_imu_as_ground_truth_)
+    // 1. egomotion estimate mode
+    //  check whether have valid rotation from VO sensor
+    for(const auto& handler: estimator_->getVoHandlers())
       {
-        /* set baselink angles for roll and pitch, yaw is obtained from mocap */
-        estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler_[0]);
-        estimator_->setState(State::PITCH_BASE, aerial_robot_estimation::GROUND_TRUTH, 0, euler_[1]);
-        /* set cog angles for all axes */
-        (estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH) * cog2baselink_tf.inverse().getBasis()).getRPY(roll, pitch, yaw);
-        estimator_->setEuler(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, tf::Vector3(roll, pitch, yaw));
+        if(handler->getStatus() == Status::ACTIVE)
+          {
+            auto vo_handler = boost::dynamic_pointer_cast<sensor_plugin::VisualOdometry>(handler);
+
+            if (vo_handler->rotValid())
+              {
+                tf::Matrix3x3 cog_rot_by_vo = vo_handler->getRawBaselinkTF().getBasis() * cog2baselink_tf.getBasis().inverse();
+                // we replace the yaw angle from the spinal with the value from VO.
+                double r,p,y;
+                cog_rot_by_vo.getRPY(r, p, y);
+                cog_euler[2] = y;
+                break;
+              }
+          }
+      }
+
+    cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE).setRPY(cog_euler[0], cog_euler[1], cog_euler[2]);
+    estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE));
+    base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) = cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) * cog2baselink_tf.getBasis();
+    estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE));
+
+    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, omega_);
+
+    // 2. experiment estimate mode
+    if(estimator_->getStateStatus(State::CoG::Rot, aerial_robot_estimation::GROUND_TRUTH))
+      {
+        tf::Matrix3x3 gt_cog_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH) * cog2baselink_tf.getBasis().inverse();
+        double r,p,y;
+        gt_cog_rot.getRPY(r, p, y);
+        cog_euler[2] = y;
+      }
+    cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE).setRPY(cog_euler[0], cog_euler[1], cog_euler[2]);
+    estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE));
+    base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) = cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) * cog2baselink_tf.getBasis();
+    estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE));
+
+    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
+    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, omega_);
+
+    // 3.  ground truth mode
+    if (!estimator_->hasGroundTruthOdom())
+      {
         /* set baselink angular velocity for all axes using imu omega */
         estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, omega_);
         /* set cog angular velocity for all axes using imu omega */
         estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega_);
+      }
+
+    // 4. set the rotation and angular velocity for the temporal queue for other sensor with time delay
+    estimator_->updateQueue(imu_stamp_.toSec(), base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE),
+                            base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE), omega_);
+
+    for (int i = 0; i < 2; i++)
+      {
+        acc_w_.at(i) = base_rot_.at(i) * acc_b_ - tf::Vector3(0, 0, aerial_robot_estimation::G);
+        acc_non_bias_w_.at(i) = acc_w_.at(i) - acc_bias_w_.at(i);
       }
 
     /* bais calibration */
@@ -190,12 +207,16 @@ namespace sensor_plugin
           }
 
         /* acc bias */
-        acc_bias_l_ += acc_l_;
+        for (int i = 0; i < 2; i++)
+          acc_bias_w_.at(i) += acc_w_.at(i);
 
         if(bias_calib == calib_count_)
           {
-            acc_bias_l_ /= calib_count_;
-            ROS_WARN("accX bias is %f, accY bias is %f, accZ bias is %f, dt is %f[sec]", acc_bias_l_.x(), acc_bias_l_.y(), acc_bias_l_.z(), sensor_dt_);
+            for (int i = 0; i < 2; i++)
+              acc_bias_w_.at(i) /= calib_count_;
+
+            tf::Vector3 acc_bias_b = base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE).inverse() * acc_bias_w_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE);
+            ROS_INFO("acc bias w.r.t body frame: [%f, %f, %f], dt: %f[sec]", acc_bias_b.x(), acc_bias_b.y(), acc_bias_b.z(), sensor_dt_);
 
             estimator_->setQueueSize(1/sensor_dt_);
 
@@ -205,10 +226,6 @@ namespace sensor_plugin
             for(int mode = 0; mode < 2; mode++)
               {
                 if(!getFuserActivate(mode)) continue;
-
-                tf::Matrix3x3 orientation;
-                orientation.setRPY(0, 0, (estimator_->getState(State::YAW_BASE, mode))[0]);
-                acc_bias_w_ = orientation * acc_bias_l_;
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
@@ -227,15 +244,15 @@ namespace sensor_plugin
                             kf->setPredictionNoiseCovariance(input_noise_sigma);
                             if(level_acc_bias_noise_sigma_ > 0)
                               {
-                                if(id & (1 << State::X_BASE)) kf->setInitState(acc_bias_w_.x(),2);
-                                if(id & (1 << State::Y_BASE)) kf->setInitState(acc_bias_w_.y(),2);
+                                if(id & (1 << State::X_BASE)) kf->setInitState(acc_bias_w_.at(mode).x(),2);
+                                if(id & (1 << State::Y_BASE)) kf->setInitState(acc_bias_w_.at(mode).y(),2);
                               }
                           }
                         if(id & (1 << State::Z_BASE))
                           {
                             input_noise_sigma << z_acc_noise_sigma_, z_acc_bias_noise_sigma_;
                             kf->setPredictionNoiseCovariance(input_noise_sigma);
-                            if(z_acc_bias_noise_sigma_ > 0) kf->setInitState(acc_bias_w_.z(), 2);
+                            if(z_acc_bias_noise_sigma_ > 0) kf->setInitState(acc_bias_w_.at(mode).z(), 2);
                           }
                         start_predict = true;
                       }
@@ -272,11 +289,6 @@ namespace sensor_plugin
           {
             if(getFuserActivate(mode))
               {
-                tf::Matrix3x3 orientation;
-                orientation.setRPY(0, 0, (estimator_->getState(State::YAW_BASE, mode))[0]);
-
-                acc_w_ = orientation * acc_l_;
-                acc_non_bias_w_ = orientation * (acc_l_ - acc_bias_l_);
 
                 for(auto& fuser : estimator_->getFuser(mode))
                   {
@@ -293,17 +305,17 @@ namespace sensor_plugin
                         VectorXd input_val(1);
                         if(id & (1 << State::X_BASE))
                           {
-                            input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.x(): acc_non_bias_w_.x());
+                            input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.at(mode).x(): acc_non_bias_w_.at(mode).x());
                             axis = State::X_BASE;
                           }
                         else if(id & (1 << State::Y_BASE))
                           {
-                            input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.y(): acc_non_bias_w_.y());
+                            input_val << ((level_acc_bias_noise_sigma_ > 0)?acc_w_.at(mode).y(): acc_non_bias_w_.at(mode).y());
                             axis = State::Y_BASE;
                           }
                         else if(id & (1 << State::Z_BASE))
                           {
-                            input_val << ((z_acc_bias_noise_sigma_ > 0)?acc_w_.z(): acc_non_bias_w_.z());
+                            input_val << ((z_acc_bias_noise_sigma_ > 0)?acc_w_.at(mode).z(): acc_non_bias_w_.at(mode).z());
                             axis = State::Z_BASE;
 
                             /* considering the undescend mode, such as the phase of takeoff, the velocity should not below than 0 */
@@ -311,7 +323,7 @@ namespace sensor_plugin
                               kf->resetState();
 
                             /* get the estiamted offset(bias) */
-                            if(z_acc_bias_noise_sigma_ > 0) acc_bias_b_.setZ((kf->getEstimateState())(2));
+                            if(z_acc_bias_noise_sigma_ > 0) acc_bias_w_.at(mode).setZ((kf->getEstimateState())(2));
                           }
 
                         kf->prediction(input_val, imu_stamp_.toSec(), params);
@@ -322,14 +334,18 @@ namespace sensor_plugin
 
                     if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
                       {
+                        tf::Vector3 acc_bias_b = base_rot_.at(mode).inverse() * acc_bias_w_.at(mode);
+
+                        double r, p, y;
+                        base_rot_.at(mode).getRPY(r, p, y);
                         if(id & (1 << State::X_BASE) && (id & (1 << State::Y_BASE)))
                           {
-                            params.push_back(euler_[0]);
-                            params.push_back(euler_[1]);
-                            params.push_back(euler_[2]);
+                            params.push_back(r);
+                            params.push_back(p);
+                            params.push_back(y);
                             params.push_back(acc_b_[0]);
                             params.push_back(acc_b_[1]);
-                            params.push_back(acc_b_[2] - acc_bias_b_.z());
+                            params.push_back(acc_b_[2] - acc_bias_b.z());
 
                             VectorXd input_val(5);
                             input_val <<
@@ -352,37 +368,22 @@ namespace sensor_plugin
           }
 
         /* TODO: set z acc: should use kf reuslt? */
-        estimator_->setState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 2, acc_non_bias_w_.z());
-        estimator_->setState(State::Z_BASE, aerial_robot_estimation::EXPERIMENT_ESTIMATE, 2, acc_non_bias_w_.z());
+        for (int i = 0; i < 2; i++)
+          estimator_->setState(State::Z_BASE, i, 2, acc_non_bias_w_.at(i).z());
 
-        /* set the rotation and angular velocity for the temporal queue for other sensor with time delay */
-        estimator_->updateQueue(imu_stamp_.toSec(), euler_[0], euler_[1], omega_);
-        /* TODO: we ignore yaw becuase it is relatively slower than other axes in the case of under -actuated system */
-
-        /* 2017.7.25: calculate the state in COG frame using the Baselink frame */
-        /* pos_cog = pos_baselink - R * pos_cog2baselink */
-        int estimate_mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
-        estimator_->setPos(Frame::COG, estimate_mode,
-                           estimator_->getPos(Frame::BASELINK, estimate_mode)
-                           + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * cog2baselink_tf.inverse().getOrigin());
-        estimator_->setVel(Frame::COG, estimate_mode,
-                           estimator_->getVel(Frame::BASELINK, estimate_mode)
-                           + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
-
-
-        estimate_mode = aerial_robot_estimation::EXPERIMENT_ESTIMATE;
-        estimator_->setPos(Frame::COG, estimate_mode,
-                           estimator_->getPos(Frame::BASELINK, estimate_mode)
-                           + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * cog2baselink_tf.inverse().getOrigin());
-        estimator_->setVel(Frame::COG, estimate_mode,
-                           estimator_->getVel(Frame::BASELINK, estimate_mode)
-                           + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                           * (estimator_->getAngularVel(Frame::BASELINK, estimate_mode).cross(cog2baselink_tf.inverse().getOrigin())));
-
-        /* no acc, we do not have the angular acceleration */
+        /* calculate the state in COG frame using the Baselink frame */
+        /* TODO: the joint velocity */
+        for (int i = 0; i < 2; i++)
+          {
+            estimator_->setPos(Frame::COG, i,
+                               estimator_->getPos(Frame::BASELINK, i)
+                               + estimator_->getOrientation(Frame::BASELINK, i)
+                               * cog2baselink_tf.inverse().getOrigin());
+            estimator_->setVel(Frame::COG, i,
+                               estimator_->getVel(Frame::BASELINK, i)
+                               + estimator_->getOrientation(Frame::BASELINK, i)
+                               * (estimator_->getAngularVel(Frame::BASELINK, i).cross(cog2baselink_tf.inverse().getOrigin())));
+          }
 
         publishAccData();
         publishRosImuData();
@@ -399,9 +400,9 @@ namespace sensor_plugin
             state_.states[0].state[i].y = vel.x();
             state_.states[1].state[i].y = vel.y();
             state_.states[2].state[i].y = vel.z();
-            state_.states[0].state[i].z = acc_w_.x();
-            state_.states[1].state[i].z = acc_w_.y();
-            state_.states[2].state[i].z = acc_w_.z();
+            state_.states[0].state[i].z = acc_w_.at(i).x();
+            state_.states[1].state[i].z = acc_w_.at(i).y();
+            state_.states[2].state[i].z = acc_w_.at(i).z();
           }
         state_pub_.publish(state_);
       }
@@ -414,8 +415,8 @@ namespace sensor_plugin
     acc_data.header.stamp = imu_stamp_;
 
     tf::vector3TFToMsg(acc_b_, acc_data.acc_body_frame);
-    tf::vector3TFToMsg(acc_w_, acc_data.acc_world_frame);
-    tf::vector3TFToMsg(acc_non_bias_w_, acc_data.acc_non_bias_world_frame);
+    tf::vector3TFToMsg(acc_w_.at(0), acc_data.acc_world_frame);
+    tf::vector3TFToMsg(acc_non_bias_w_.at(0), acc_data.acc_non_bias_world_frame);
 
     acc_pub_.publish(acc_data);
   }
@@ -424,7 +425,9 @@ namespace sensor_plugin
   {
     sensor_msgs::Imu imu_data;
     imu_data.header.stamp = imu_stamp_;
-    imu_data.orientation = tf::createQuaternionMsgFromRollPitchYaw(euler_[0], euler_[1], euler_[2]);
+    tf::Quaternion q;
+    base_rot_.at(0).getRotation(q);
+    tf::quaternionTFToMsg(q, imu_data.orientation);
     tf::vector3TFToMsg(omega_, imu_data.angular_velocity);
     tf::vector3TFToMsg(acc_b_, imu_data.linear_acceleration);
     imu_pub_.publish(imu_data);

@@ -37,7 +37,9 @@ class EstimatorAlgorithm
 public:
 
   EstimatorAlgorithm():
-    acc_(), gyro_(), mag_(), prev_mag_(), pre1_(), pre2_(), mag_dec_valid_(false)
+    acc_(), gyro_(), mag_(), prev_mag_(),
+    est_g_(), est_m_(),
+    pre1_(), pre2_(), mag_dec_valid_(false)
   {
     r_.identity();
     mag_declination_ = 0;
@@ -110,6 +112,8 @@ public:
   ap::Vector3f getAcc(uint8_t frame){return acc_[frame];}
   ap::Vector3f getMag(uint8_t frame){return mag_[frame];}
   ap::Matrix3f getDesiredCoord() {return r_;}
+  ap::Vector3f getEstG(uint8_t frame){return est_g_[frame];}
+  ap::Vector3f getEstM(uint8_t frame){return est_m_[frame];}
 
 #ifndef SIMULATION
   bool getMagDecValid() { return mag_dec_valid_; }
@@ -128,6 +132,8 @@ protected:
   ap::Vector3f prev_mag_; /* for lpf filter method for mag */
   ap::Matrix3f r_;
   std::array<ap::Vector3f, 2> rpy_;
+  std::array<ap::Vector3f, 2> est_g_; /* estimated vetor of gravity */
+  std::array<ap::Vector3f, 2> est_m_; /* estimated vetor of magnet */
 
   /* IIR lpf */
   float rx_freq_;
