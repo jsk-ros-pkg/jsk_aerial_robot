@@ -167,7 +167,7 @@ void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedC
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
-  if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
+  if(getNaviState() == LAND_STATE) return;
 
   gps_waypoint_ = false;
 
