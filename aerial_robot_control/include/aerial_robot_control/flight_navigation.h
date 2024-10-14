@@ -558,7 +558,11 @@ namespace aerial_robot_navigation
 
     void setTargetYawFromCurrentState()
     {
-      double yaw = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+      tf::Quaternion cog2baselink_rot;
+      tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
+      tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
+      double r, p, y; cog_rot.getRPY(r, p, y);
+      double yaw = y;
       setTargetYaw(yaw);
 
       // set the velocty to zero
