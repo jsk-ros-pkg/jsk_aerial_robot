@@ -77,7 +77,7 @@ namespace sensor_plugin
     double sensor_dt_;
 
     /* imu */
-    tf::Vector3 wz_b_; /* unit z axis of world frame in baselink frame */
+    tf::Vector3 g_b_; /* the *opposite* gravity vector in baselink frame */
     tf::Vector3 omega_; /* the omega both of body frame */
     tf::Vector3 mag_; /* the magnetometer of body frame */
     /* acc */
