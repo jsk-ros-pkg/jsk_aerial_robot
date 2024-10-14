@@ -459,6 +459,15 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
   double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
 
+  /* if L1 or R1 is pressed ignore the command from stick*/
+  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] || joy_cmd.buttons[PS3_BUTTON_REAR_RIGHT_1])
+    {
+      raw_x_cmd = 0.0;
+      raw_y_cmd = 0.0;
+      raw_z_cmd = 0.0;
+      raw_yaw_cmd = 0.0;
+    }
+
   /* Motion: Z (Height) */
   if(getNaviState() == HOVER_STATE)
     {
