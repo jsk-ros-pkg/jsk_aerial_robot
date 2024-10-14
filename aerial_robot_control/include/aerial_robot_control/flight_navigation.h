@@ -362,7 +362,7 @@ namespace aerial_robot_navigation
       land_height_ = 0;
     }
 
-    void startTakeoff()
+    virtual void startTakeoff()
     {
       if(getNaviState() == TAKEOFF_STATE) return;
 
