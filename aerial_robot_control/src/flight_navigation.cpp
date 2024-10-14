@@ -499,41 +499,41 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* mode selection */
   /* switch to acc model */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
-    {
-      if (xy_control_mode_ != ACC_CONTROL_MODE)
-        {
-          ROS_WARN("Force siwtch to attitude control mode");
-          force_att_control_flag_ = true;
-          estimator_->setForceAttControlFlag(force_att_control_flag_);
-          xy_control_mode_ = ACC_CONTROL_MODE;
-        }
-    }
+  // if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
+  //   {
+  //     if (xy_control_mode_ != ACC_CONTROL_MODE)
+  //       {
+  //         ROS_WARN("Force siwtch to attitude control mode");
+  //         force_att_control_flag_ = true;
+  //         estimator_->setForceAttControlFlag(force_att_control_flag_);
+  //         xy_control_mode_ = ACC_CONTROL_MODE;
+  //       }
+  //   }
 
   /* switch to pure vel mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1)
-    {
-      if (xy_control_mode_ != VEL_CONTROL_MODE)
-        {
-          ROS_INFO("switch to pure vel control mode");
-          force_att_control_flag_ = false;
-          setTargetZeroVel();
-          setTargetZeroAcc();
-          xy_control_mode_ = VEL_CONTROL_MODE;
-        }
-    }
+  // if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1)
+  //   {
+  //     if (xy_control_mode_ != VEL_CONTROL_MODE)
+  //       {
+  //         ROS_INFO("switch to pure vel control mode");
+  //         force_att_control_flag_ = false;
+  //         setTargetZeroVel();
+  //         setTargetZeroAcc();
+  //         xy_control_mode_ = VEL_CONTROL_MODE;
+  //       }
+  //   }
 
   /* siwthc to pos mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1)
-    {
-      if (xy_control_mode_ != POS_CONTROL_MODE)
-        {
-          ROS_INFO("change to pos control");
-          force_att_control_flag_ = false;
-          setTargetXyFromCurrentState();
-          xy_control_mode_ = POS_CONTROL_MODE;
-        }
-    }
+  // if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1)
+  //   {
+  //     if (xy_control_mode_ != POS_CONTROL_MODE)
+  //       {
+  //         ROS_INFO("change to pos control");
+  //         force_att_control_flag_ = false;
+  //         setTargetXyFromCurrentState();
+  //         xy_control_mode_ = POS_CONTROL_MODE;
+  //       }
+  //   }
 
   /* finish if teleop flag is not true */
   if(!teleop_flag_) return;
@@ -541,26 +541,26 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* mode oriented state */
   control_frame_ = WORLD_FRAME;
   tf::Matrix3x3 local_frame_rot;
-  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2])
-    {
-      control_frame_ = LOCAL_FRAME;
+  // if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2])
+  //   {
+  //     control_frame_ = LOCAL_FRAME;
 
-      /* convert the frame */
-      const auto segments_tf = robot_model_->getSegmentsTf();
-      if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
-        {
-          ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
-          setTargetZeroAcc();
-          return;
-        }
+  //     /* convert the frame */
+  //     const auto segments_tf = robot_model_->getSegmentsTf();
+  //     if(segments_tf.find(teleop_local_frame_) == segments_tf.end())
+  //       {
+  //         ROS_ERROR("can not find %s in kinematics model", teleop_local_frame_.c_str());
+  //         setTargetZeroAcc();
+  //         return;
+  //       }
 
-      tf::Transform teleop_local_frame_tf;
-      std::string baselink = robot_model_->getBaselinkName();
-      tf::transformKDLToTF(segments_tf.at(baselink).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
+  //     tf::Transform teleop_local_frame_tf;
+  //     std::string baselink = robot_model_->getBaselinkName();
+  //     tf::transformKDLToTF(segments_tf.at(baselink).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
 
-      double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
-      local_frame_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(yaw_angle)) * teleop_local_frame_tf.getBasis();
-    }
+  //     double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+  //     local_frame_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(yaw_angle)) * teleop_local_frame_tf.getBasis();
+  //   }
 
 
   switch (xy_control_mode_)
