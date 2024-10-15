@@ -42,6 +42,8 @@
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
 #define GPS_FLAG 1
+//2.1.3 Direct Servo Control
+#define SERVO_FLAG 1
 
 
 //2.2 State Estimate

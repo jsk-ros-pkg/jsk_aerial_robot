@@ -46,6 +46,8 @@ add_message_files(
   TorqueAllocationMatrixInv.msg
   ESCTelemetry.msg
   ESCTelemetryArray.msg
+  JointProfile.msg
+  JointProfiles.msg
   )
 
 add_service_files(
@@ -55,6 +57,7 @@ add_service_files(
   SetAttitudeGains.srv
   ImuCalib.srv
   MagDeclination.srv
+  SetDirectServoConfig.srv
 )
 
 generate_messages(

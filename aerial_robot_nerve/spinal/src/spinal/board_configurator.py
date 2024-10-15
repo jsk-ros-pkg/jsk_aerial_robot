@@ -34,6 +34,7 @@ class BoardConfigurator(Plugin):
 
         self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
+        self.direct_servo_config_client_ = rospy.ServiceProxy(robot_ns + '/direct_servo_config', SetDirectServoConfig)
         self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
 
         from argparse import ArgumentParser
@@ -162,16 +163,16 @@ class BoardConfigurator(Plugin):
         row = self._widget.boardInfoTreeView.currentIndex().row()
         param = self._widget.boardInfoTreeView.currentIndex().sibling(row, 0).data()
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
-
         board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed']
         servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag', 'external_encoder_flag', 'resolution[joint:servo]']
-
         if value and (param in servo_param_list):
+            raw_servo_id = self._widget.boardInfoTreeView.currentIndex().sibling(0,1).data()
             servo_index = self._widget.boardInfoTreeView.currentIndex().parent().data()
             board_id = self._widget.boardInfoTreeView.currentIndex().parent().parent().parent().data()
             self._widget.paramLabel.setText('board_id: ' + board_id + ' servo_index: ' + servo_index + ' ' + param)
             self._board_id = board_id
             self._servo_index = servo_index
+            self._raw_servo_id = raw_servo_id
             self._command = param
             self._current_servo_serial_index = int(self._widget.boardInfoTreeView.currentIndex().parent().child(1, 1).data())
         elif value and (param in board_param_list):
@@ -183,17 +184,25 @@ class BoardConfigurator(Plugin):
             self._board_id = None
             self._command = None
             self._servo_index = None
+            self._raw_servo_id = None
             self._widget.paramLabel.setText('')
 
     def configureButtonCallback(self):
-        req = SetBoardConfigRequest()
-        if self._board_id:
-            req.data.append(int(self._board_id))
-        else:
+        req = None
+        spinal_flag = False
+        if self._board_id == None:
             rospy.logerr("board id is not registered")
             return
+        elif self._board_id == '0':
+            spinal_flag = True
+            req = SetDirectServoConfigRequest()
+        else:
+            req = SetBoardConfigRequest()
+            req.data.append(int(self._board_id))
 
         if self._command == 'board_id':
+            if spinal_flag:
+                return
             try:
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
@@ -201,6 +210,8 @@ class BoardConfigurator(Plugin):
                 return
             req.command = req.SET_SLAVE_ID
         elif self._command == 'imu_send_data_flag':
+            if spinal_flag:
+                return
             try:
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
@@ -280,9 +291,16 @@ class BoardConfigurator(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            res = self.set_board_config_client_(req)
+            res = None;
+            if(spinal_flag):
+                res = self.direct_servo_config_client_(req)
+            else:
+                res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
             rospy.sleep(1)
             self.updateButtonCallback()
         except rospy.ServiceException as e:
-            print("/set_board_config service call failed: {}".format(e))
+            if(spinal_flag):
+                print("/direct_servo_config service call failed: {}".format(e))
+            else:
+                print("/set_board_config service call failed: {}".format(e))
