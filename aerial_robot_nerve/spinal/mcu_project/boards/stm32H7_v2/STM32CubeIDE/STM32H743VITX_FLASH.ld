@@ -189,6 +189,8 @@ PROVIDE ( _end = . );
 . = ABSOLUTE(0x24044400);
 *(.GpsRxBufferSection)
 . = ABSOLUTE(0x24044800);
+*(.ServoRxBufferSection)
+. = ABSOLUTE(0x24044C00);
 *(.EscRxBufferSection)
 . = ABSOLUTE(0x24045000);
 *(.DShotBufferSection1)

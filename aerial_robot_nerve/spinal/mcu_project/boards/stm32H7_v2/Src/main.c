@@ -44,6 +44,8 @@
 
 #include "battery_status/battery_status.h"
 
+#include "servo/servo.h"
+
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
 
@@ -85,10 +87,12 @@ DMA_HandleTypeDef hdma_tim1_ch3;
 DMA_HandleTypeDef hdma_tim1_ch4;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart3_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 
@@ -98,6 +102,7 @@ osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
 osThreadId canRxHandle;
+osThreadId servoTaskHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -118,6 +123,8 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* servo instance */
+DirectServo servo_;
 DShot dshot_;
 
 
@@ -141,12 +148,14 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART6_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void canRxTask(void const * argument);
+void ServoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -206,6 +215,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM4_Init();
   MX_USART6_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
@@ -257,8 +267,9 @@ int main(void)
   controller_.init(&htim1, &htim4, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
-
-#if NERVE_COMM        
+#if SERVO_FLAG
+  servo_.init(&huart2, &nh_, NULL);
+#elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
@@ -334,6 +345,10 @@ int main(void)
   /* definition and creation of canRx */
   osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
   canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, ServoTaskCallback, osPriorityIdle, 0, 256);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -415,10 +430,11 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_USART6
-                              |RCC_PERIPHCLK_FDCAN|RCC_PERIPHCLK_USART1
-                              |RCC_PERIPHCLK_SPI1|RCC_PERIPHCLK_I2C3
-                              |RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_I2C1;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_USART2
+                              |RCC_PERIPHCLK_USART6|RCC_PERIPHCLK_FDCAN
+                              |RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_SPI1
+                              |RCC_PERIPHCLK_I2C3|RCC_PERIPHCLK_ADC
+                              |RCC_PERIPHCLK_I2C1;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 100;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
@@ -909,6 +925,54 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 1000000;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -1027,6 +1091,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
@@ -1071,14 +1138,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : IMUCS_Pin */
   GPIO_InitStruct.Pin = IMUCS_Pin;
@@ -1158,7 +1217,7 @@ void coreTaskFunc(void const * argument)
       estimator_.update();
       controller_.update();
 
-#if NERVE_COMM      
+#if !SERVO_FLAG && NERVE_COMM      
       Spine::update();
 #endif
 
@@ -1281,6 +1340,27 @@ __weak void canRxTask(void const * argument)
   /* USER CODE END canRxTask */
 }
 
+/* USER CODE BEGIN Header_ServoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ServoTaskCallback */
+__weak void ServoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN ServoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+#if SERVO_FLAG
+    servo_.update();
+    osDelay(1);
+#endif
+  }
+  /* USER CODE END ServoTaskCallback */
+}
+
 /* coreTaskEvokeCb function */
 void coreTaskEvokeCb(void const * argument)
 {
@@ -1334,7 +1414,7 @@ void MPU_Config(void)
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER2;
   MPU_InitStruct.BaseAddress = 0x24044400;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
