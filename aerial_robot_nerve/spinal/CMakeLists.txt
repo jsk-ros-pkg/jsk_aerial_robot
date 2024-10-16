@@ -102,6 +102,10 @@ add_dependencies(${PROJECT_NAME}_generate_stm32f7_ros_lib ${catkin_EXPORTED_TARG
 add_custom_target(${PROJECT_NAME}_generate_stm32h7_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32H7 --support_rtos --support_ethernet)
 add_dependencies(${PROJECT_NAME}_generate_stm32h7_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 
+# generate ros_lib for STM32H7_v2
+add_custom_target(${PROJECT_NAME}_generate_stm32h7_v2_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32H7_v2 --support_rtos --support_ethernet)
+add_dependencies(${PROJECT_NAME}_generate_stm32h7_v2_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+
 
 install(DIRECTORY ${SPINAL_DIRS}
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
