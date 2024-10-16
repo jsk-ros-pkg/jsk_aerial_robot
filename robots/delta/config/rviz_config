@@ -65,6 +65,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        fc_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         gimbal_link1:
           Alpha: 1
           Show Axes: false
@@ -80,18 +84,15 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        gimbal_neutral_coord1:
+        lidar_imu:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        gimbal_neutral_coord2:
+        lidar_imu_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        gimbal_neutral_coord3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
+          Value: true
         link1:
           Alpha: 1
           Show Axes: false
@@ -194,17 +195,17 @@ Visualization Manager:
           Value: true
         delta/fc:
           Value: true
+        delta/fc_link:
+          Value: true
         delta/gimbal_link1:
           Value: true
         delta/gimbal_link2:
           Value: true
         delta/gimbal_link3:
           Value: true
-        delta/gimbal_neutral_coord1:
+        delta/lidar_imu:
           Value: true
-        delta/gimbal_neutral_coord2:
-          Value: true
-        delta/gimbal_neutral_coord3:
+        delta/lidar_imu_link:
           Value: true
         delta/link1:
           Value: true
@@ -236,6 +237,12 @@ Visualization Manager:
           Value: false
         delta/rotor_parent3:
           Value: false
+        delta/thrust1:
+          Value: true
+        delta/thrust2:
+          Value: true
+        delta/thrust3:
+          Value: true
         world:
           Value: true
       Marker Alpha: 1
@@ -258,21 +265,23 @@ Visualization Manager:
             delta/link1:
               delta/gimbal_link1:
                 delta/rotor_parent1:
+                  delta/thrust1:
+                    {}
+              delta/lidar_imu_link:
+                delta/lidar_imu:
                   {}
-              delta/gimbal_neutral_coord1:
-                {}
               delta/link1_center:
                 {}
               delta/link1_leg:
                 {}
               delta/link2:
-                delta/fc:
-                  {}
+                delta/fc_link:
+                  delta/fc:
+                    {}
                 delta/gimbal_link2:
                   delta/rotor_parent2:
-                    {}
-                delta/gimbal_neutral_coord2:
-                  {}
+                    delta/thrust2:
+                      {}
                 delta/link2_center:
                   {}
                 delta/link2_leg:
@@ -280,9 +289,8 @@ Visualization Manager:
                 delta/link3:
                   delta/gimbal_link3:
                     delta/rotor_parent3:
-                      {}
-                  delta/gimbal_neutral_coord3:
-                    {}
+                      delta/thrust3:
+                        {}
                   delta/link3_center:
                     {}
                   delta/link3_end:
@@ -610,6 +618,66 @@ Visualization Manager:
       Torque Color: 115; 210; 22
       Unreliable: false
       Value: true
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: surround
+          Position Transformer: XYZ
+          Queue Size: 1
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.009999999776482582
+          Style: Points
+          Topic: /delta/cloud_registered
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.10000000149011612
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 1000
+          Enabled: true
+          Invert Rainbow: true
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: currPoints
+          Position Transformer: XYZ
+          Queue Size: 100000
+          Selectable: true
+          Size (Pixels): 1
+          Size (m): 0.009999999776482582
+          Style: Points
+          Topic: /delta/cloud_registered
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+      Enabled: true
+      Name: mapping
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -638,7 +706,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.8019487857818604
+      Distance: 3.9982943534851074
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -646,17 +714,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.10579679161310196
-        Y: 0.13471326231956482
-        Z: 0.47188204526901245
+        X: -0.0341668464243412
+        Y: 0.8581686615943909
+        Z: -0.20403560996055603
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4647977948188782
+      Pitch: 0.5797958374023438
       Target Frame: <Fixed Frame>
-      Yaw: 4.638564586639404
+      Yaw: 4.718569278717041
     Saved: ~
 Window Geometry:
   Displays:
