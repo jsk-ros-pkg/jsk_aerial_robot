@@ -96,14 +96,10 @@
     </link>
 
     <!-- center of link -->
-    <link name="link3_center">
-      <xacro:virtual_inertial/>
-    </link>
-    <joint name="link3_center_joint" type="fixed">
-      <parent link="link3"/>
-      <child link="link3_center"/>
+    <xacro:extra_module name="link3_center" parent="link3">
       <origin xyz="0.26375 0.15228 0" rpy="0 0 ${pi}"/>
-    </joint>
+      <xacro:virtual_inertial/>
+    </xacro:extra_module>
 
   </xacro:macro>
 </robot>

@@ -22,48 +22,6 @@
       <xacro:link3/>
     </xacro:if>
 
-    <!-- dummy root link for KDL -->
-    <xacro:if value="${self == 1}">
-      <link name="root">
-        <xacro:virtual_inertial/>
-      </link>
-      <joint name="root_joint" type="fixed">
-        <parent link="root"/>
-        <child link="link${self}"/>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
-        <axis xyz="0 0 1"/>
-      </joint>
-    </xacro:if>
-
-    <!-- processors -->
-    <xacro:if value="${baselink}">
-      <link name="fc_link">
-        <xacro:virtual_inertial/>
-      </link>
-      <joint name="fc_link_joint" type="fixed">
-        <parent link="link${self}"/>
-        <child link="fc_link"/>
-        <axis xyz="0 0 1"/>
-        <origin xyz="0.0735 0 0" rpy="0 0 0"/>
-      </joint>
-      <link name="fc">
-        <inertial>
-          <origin xyz="0.02959036 -0.00076922 -0.00886856" rpy="0 0 0"/>
-          <mass value="0.12308403"/>
-          <inertia
-              ixx="0.00008649" ixy="-0.00000081" ixz="0.00000124"
-              iyy="0.00006899" iyz="0.00000148"
-              izz="0.00008508"/>
-        </inertial>
-      </link>
-      <joint name="fc_joint" type="fixed">
-        <parent link="fc_link"/>
-        <child link="fc"/>
-        <axis xyz="0 0 1"/>
-        <origin xyz="0.0129 -0.0012 0.020" rpy="0 0 0"/>
-      </joint>
-    </xacro:if>
-
     <!-- gimbal joint -->
     <joint name="gimbal${self}" type="revolute">
       <limit effort="3" lower="-15.0" upper="15.0" velocity="12.5"/>
@@ -97,13 +55,7 @@
     </xacro:unless>
 
     <!-- rotor parent (virtual) -->
-    <link name="rotor_parent${self}">
-      <xacro:virtual_inertial/>
-    </link>
-    <joint name="rotor_parent_link_joint${self}" type="fixed">
-      <parent link="gimbal_link${self}"/>
-      <child link="rotor_parent${self}"/>
-      <axis xyz="0 0 1"/>
+    <xacro:extra_module name="rotor_parent${self}" parent="gimbal_link${self}">
       <xacro:if value="${self == 1}">
         <origin xyz="0 0 0" rpy="0 ${rotor_tilt1} 0"/>
       </xacro:if>
@@ -113,7 +65,8 @@
       <xacro:if value="${self == 3}">
         <origin xyz="0 0 0" rpy="0 ${rotor_tilt3} 0"/>
       </xacro:if>
-    </joint>
+      <xacro:virtual_inertial/>
+    </xacro:extra_module>
 
     <!-- thrust link -->
     <link name="thrust${self}">
