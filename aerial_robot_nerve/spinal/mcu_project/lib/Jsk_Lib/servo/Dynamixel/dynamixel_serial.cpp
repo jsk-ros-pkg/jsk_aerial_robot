@@ -982,16 +982,26 @@ void DynamixelSerial::cmdSyncWriteLed()
 void DynamixelSerial::cmdSyncWritePositionGains()
 {
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[i * 6 + 0] = servo_[i].d_gain_ & 0xFF;
-		parameters[i * 6 + 1] = (servo_[i].d_gain_ >> 8) & 0xFF;
-		parameters[i * 6 + 2] = servo_[i].i_gain_ & 0xFF;
-		parameters[i * 6 + 3] = (servo_[i].i_gain_ >> 8) & 0xFF;
-		parameters[i * 6 + 4] = servo_[i].p_gain_ & 0xFF;
-		parameters[i * 6 + 5] = (servo_[i].p_gain_ >> 8) & 0xFF;
+        /*p_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].p_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].p_gain_ >> 8) & 0xFF;
 	}
+	cmdSyncWrite(CTRL_POSITION_P_GAIN, parameters, 2);
 
-	cmdSyncWrite(CTRL_POSITION_D_GAIN, parameters, POSITION_GAINS_BYTE_LEN);
+        /*i_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].i_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].i_gain_ >> 8) & 0xFF;
+	}
+	cmdSyncWrite(CTRL_POSITION_I_GAIN, parameters, 2);
+
+        /*d_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].d_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].d_gain_ >> 8) & 0xFF;
+	}
+	cmdSyncWrite(CTRL_POSITION_D_GAIN, parameters, 2);
 }
 
 void DynamixelSerial::cmdSyncWriteProfileVelocity()
