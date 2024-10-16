@@ -9,4 +9,50 @@
   <xacro:delta_module self="2" child="3" rotor_direction="-1" battery="0" baselink="true"/>
   <xacro:delta_module self="3" child="3" rotor_direction="1" battery="0" baselink="false"/>
 
+  <!-- dummy root link for KDL -->
+  <link name="root">
+    <xacro:virtual_inertial/>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="link1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- processors -->
+  <xacro:extra_module name="fc_link" parent="link2">
+    <origin xyz="0.0735 0 0" rpy="0 0 0"/>
+    <xacro:virtual_inertial/>
+  </xacro:extra_module>
+
+  <xacro:extra_module name="fc" parent="fc_link">
+    <origin xyz="0.0129 -0.0012 0.020" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0.02959036 -0.00076922 -0.00886856" rpy="0 0 0"/>
+      <mass value="0.12308403"/>
+      <inertia
+          ixx="0.00008649" ixy="-0.00000081" ixz="0.00000124"
+          iyy="0.00006899" iyz="0.00000148"
+          izz="0.00008508"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- vio sensor -->
+  <xacro:extra_module name="lidar_imu_link" parent="link3" visible="1" model_url="package://delta/urdf/mesh/20240722/livox.dae" active="1">
+    <origin xyz="0.38 -0.01 0" rpy="0 ${pi/2} ${-pi/2}"/> <!-- TODO: set correct lidar position-->
+    <inertial>
+      <mass value="0.262"/>
+      <origin xyz="0.00056844 -0.00077518 0.02201163" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00012235" ixy="0.00000001" ixz="-0.00000027"
+          iyy="0.00013184" iyz="0.00000000"  izz="0.00013077"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <xacro:extra_module name="lidar_imu" parent="lidar_imu_link">
+    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <xacro:virtual_inertial/>
+  </xacro:extra_module>
+
 </robot>
