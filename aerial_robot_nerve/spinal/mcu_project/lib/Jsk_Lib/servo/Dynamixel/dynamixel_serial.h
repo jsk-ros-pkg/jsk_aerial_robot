@@ -151,7 +151,7 @@
 #define INSTRUCTION_PACKET_SIZE 64
 #define STATUS_PACKET_SIZE 		64
 
-#define MAX_SERVO_NUM			8
+#define MAX_SERVO_NUM			10
 #define PING_TRIAL_NUM			100
 
 //read status packet
