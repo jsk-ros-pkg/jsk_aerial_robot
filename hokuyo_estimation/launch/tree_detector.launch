@@ -9,8 +9,9 @@
     <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
         <remap from="cloud_in" to="cloud_registered"/>
         <remap from="scan" to="scan"/>
+	<param name="target_frame" value="$(arg robot_ns)/laser_frame"/>
         <rosparam>
-            target_frame: camera_init # Leave disabled to output scan in pointcloud frame
+            <!-- target_frame: $(arg robot_ns)/laser_frame # Leave disabled to output scan in pointcloud frame -->
             transform_tolerance: 0.01
             min_height: 0.0
             max_height: 2.0
