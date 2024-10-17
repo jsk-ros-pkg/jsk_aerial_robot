@@ -1,0 +1,18 @@
+physical:
+  mass: 1.52127  # sim: 1.52127 # kg
+  gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
+  inertia_diag: [ 0.025102, 0.0190842, 0.0387961 ] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
+  dr1: 1  # direction of motor 1
+  p1: [ 0.0864353, -0.23752, 0.0259075 ] # position of motor 1
+  dr2: -1  # direction of motor 2
+  p2: [ 0.0864353, 0.23748, 0.0259075 ] # position of motor 2
+  dr3: 1  # direction of motor 3
+  p3: [ -0.211065, -0.00002, 0.0259075 ] # position of motor 3
+  kq_d_kt: 0.0172  # sim: 0.0172
+
+  num_rotors: 3
+
+  num_servos: 3
+  # the identified params in simulation are 1/1.619, 1/1.646, 1/1.530, 1/1.542. so the average is 1/1.584 = 0.6312 s
+  # the identified params in real is 1/0.0501 ~ 20s (slowest servo of four servos); the weighted average is ~ 15s
+  t_servo: 0.085883  # real in flight 0.044228, no propeller 0.085883; sim: 0.15858 sec

@@ -16,34 +16,15 @@ from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
 from nmpc_base import NMPCBase, XrUrConverterBase
+from phys_param_birotor import *
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
 param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBiRotorNMPC.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
-
 nmpc_params = param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
-
-physical_params = param_dict["controller"]["physical"]
-mass = physical_params["mass"]
-gravity = physical_params["gravity"]
-Ixx = physical_params["inertia_diag"][0]
-Iyy = physical_params["inertia_diag"][1]
-Izz = physical_params["inertia_diag"][2]
-dr1 = physical_params["dr1"]
-p1_b = physical_params["p1"]
-dr2 = physical_params["dr2"]
-p2_b = physical_params["p2"]
-kq_d_kt = physical_params["kq_d_kt"]
-
-# servo parameters
-kps = physical_params["kps"]
-kds = physical_params["kds"]
-mus = physical_params["mus"]
-
-i_sxx = physical_params["servo_inertia_x"]
 
 
 class NMPCTiltBi2OrdServo(NMPCBase):
@@ -104,13 +85,13 @@ class NMPCTiltBi2OrdServo(NMPCBase):
 
         # transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -141,10 +122,10 @@ class NMPCTiltBi2OrdServo(NMPCBase):
 
         f_u_b = ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)) + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
         )
 
         tau_s_e1 = ca.vertcat(kps * (a1c - a1) + kds * (0 - b1), 0, 0)
