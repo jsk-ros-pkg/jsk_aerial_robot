@@ -26,7 +26,7 @@ with open(param_path, "r") as f:
 nmpc_params = param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
-physical_params = param_dict["controller"]["physical"]
+physical_params = param_dict["physical"]
 mass = physical_params["mass"]
 gravity = physical_params["gravity"]
 Ixx = physical_params["inertia_diag"][0]
@@ -53,8 +53,9 @@ class NMPCFixQdThrustOut(object):
 
         # get file path for acados
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc",
-                                   opt_model.name)
+        folder_path = os.path.join(
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", opt_model.name
+        )
         safe_mkdir_recursive(folder_path)
         os.chdir(folder_path)
         # acados_models_dir = "acados_models"

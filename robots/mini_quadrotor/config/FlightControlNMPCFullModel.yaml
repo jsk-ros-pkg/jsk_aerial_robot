@@ -1,23 +1,24 @@
 aerial_robot_control_name: aerial_robot_control/nmpc_controller/fix_qd/nmpc
 
+physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in this section
+  mass: 1.0564 # kg
+  gravity: 9.798 # m/s^2
+  inertia_diag: [ 0.00867032, 0.00867103, 0.00979117 ] # kg m^2
+  dr1: -1  # direction of motor 1
+  p1: [ -0.0865752, -0.085, 0.0108557 ] # position of motor 1
+  dr2: 1  # direction of motor 2
+  p2: [ 0.0834248, -0.085, 0.0108557 ] # position of motor 2
+  dr3: -1  # direction of motor 3
+  p3: [ 0.0834248, 0.085, 0.0108557 ] # position of motor 3
+  dr4: 1  # direction of motor 4
+  p4: [ -0.0865752, 0.085, 0.0108557 ] # position of motor 4
+  kq_d_kt: 0.011
+
+  num_rotors: 4
+  num_servos: 0
+
+
 controller:
-  physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in this section
-    mass: 1.0564 # kg
-    gravity: 9.798 # m/s^2
-    inertia_diag: [ 0.00867032, 0.00867103, 0.00979117 ] # kg m^2
-    dr1: -1  # direction of motor 1
-    p1: [ -0.0865752, -0.085, 0.0108557 ] # position of motor 1
-    dr2: 1  # direction of motor 2
-    p2: [ 0.0834248, -0.085, 0.0108557 ] # position of motor 2
-    dr3: -1  # direction of motor 3
-    p3: [ 0.0834248, 0.085, 0.0108557 ] # position of motor 3
-    dr4: 1  # direction of motor 4
-    p4: [ -0.0865752, 0.085, 0.0108557 ] # position of motor 4
-    kq_d_kt: 0.011
-
-    num_rotors: 4
-    num_servos: 0
-
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
     T_pred: 2.0  # seconds
