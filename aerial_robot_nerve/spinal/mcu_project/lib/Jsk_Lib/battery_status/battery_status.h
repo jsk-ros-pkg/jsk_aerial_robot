@@ -14,6 +14,7 @@
 
 #include <config.h>
 #include "flashmemory/flashmemory.h"
+#include "dshot_esc/dshot.h"
 
 /* ros */
 #include <ros.h>
@@ -35,7 +36,7 @@ public:
   ~BatteryStatus(){}
 
 
-  void init(ADC_HandleTypeDef *hadc, ros::NodeHandle* nh)
+  void init(ADC_HandleTypeDef *hadc, ros::NodeHandle* nh, bool is_adc_measure=true)
   {
     nh_ = nh;
     nh_->advertise(voltage_status_pub_);
@@ -43,6 +44,7 @@ public:
     hadc_ = hadc;
 
     voltage_ = -1;
+    is_adc_measure_ = is_adc_measure;
     ros_pub_last_time_ = HAL_GetTick();
 
     FlashMemory::addValue(&adc_scale_, sizeof(float));
@@ -56,17 +58,27 @@ public:
     voltage_ = -1; // reset
     FlashMemory::erase();
     FlashMemory::write();
-    nh_->loginfo("overwrite adc sacle");
+    nh_->loginfo("overwrite adc scale");
   }
 
-  void update()
+  void update(float voltage = -1)
   {
-    if(HAL_ADC_PollForConversion(hadc_,10) == HAL_OK)
-      adc_value_ = HAL_ADC_GetValue(hadc_);
+    if (voltage == -1) //no new data
+      {
+        if (!is_adc_measure_)
+          return;
+        if(HAL_ADC_PollForConversion(hadc_, 10) == HAL_OK)
+          adc_value_ = HAL_ADC_GetValue(hadc_);
+        
+        HAL_ADC_Start(hadc_);
+        
+        voltage = adc_scale_ * adc_value_;
+      }
+    else
+      {
+        voltage = TELE_VOLTAGE_SCALE * voltage;
+      }
 
-    HAL_ADC_Start(hadc_);
-
-    float voltage =  adc_scale_ * adc_value_;
     if(voltage_ < 0) voltage_ = voltage;
 
     /* filtering */
@@ -83,6 +95,8 @@ public:
   ros::Publisher voltage_status_pub_;
   ros::Subscriber<std_msgs::Float32, BatteryStatus> adc_scale_sub_;
   std_msgs::Float32 voltage_status_msg_;
+
+  bool is_adc_measure_;
 
   inline float getVoltage() {return voltage_;}
 

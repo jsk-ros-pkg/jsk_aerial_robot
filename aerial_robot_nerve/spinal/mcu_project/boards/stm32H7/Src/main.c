@@ -35,7 +35,8 @@
 #include <spinal/Imu.h>
 
 #include "flashmemory/flashmemory.h"
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 #include "sensors/imu/imu_ros_cmd.h"
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
@@ -80,9 +81,11 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart3_rx;
 
 osThreadId coreTaskHandle;
@@ -103,13 +106,14 @@ osMailQId canMsgMailHandle;
 ros::NodeHandle nh_;
 
 /* sensor instances */
+#if IMU_MPU
 IMUOnboard imu_;
+#elif IMU_ICM
+ICM20948 imu_;
+#endif
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
-
-/* servo instance */
-DirectServo servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -130,6 +134,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_USART2_UART_Init(void);
 void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
@@ -195,6 +200,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM1_Init();
   MX_TIM4_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
@@ -415,10 +421,10 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_FDCAN
-                              |RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_SPI1
-                              |RCC_PERIPHCLK_I2C3|RCC_PERIPHCLK_ADC
-                              |RCC_PERIPHCLK_I2C1;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_USART2
+                              |RCC_PERIPHCLK_FDCAN|RCC_PERIPHCLK_USART1
+                              |RCC_PERIPHCLK_SPI1|RCC_PERIPHCLK_I2C3
+                              |RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_I2C1;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 100;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
@@ -487,7 +493,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_15;
+  sConfig.Channel = ADC_CHANNEL_18;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -669,10 +675,10 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -745,7 +751,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 10000;
+  sConfigOC.Pulse = 1000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -910,6 +916,54 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 1000000;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -925,7 +979,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 1000000;
+  huart3.Init.BaudRate = 19200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -976,6 +1030,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
 
 }
 
@@ -1000,7 +1057,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, LED0_Pin|LED1_Pin|LED2_Pin|BAROCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(IMUCS_GPIO_Port, IMUCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, IMUCS_Pin|SPI1_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : LED0_Pin LED1_Pin LED2_Pin */
   GPIO_InitStruct.Pin = LED0_Pin|LED1_Pin|LED2_Pin;
@@ -1015,6 +1072,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(IMUCS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BAROCS_Pin */
   GPIO_InitStruct.Pin = BAROCS_Pin;
@@ -1074,7 +1138,6 @@ void coreTaskFunc(void const * argument)
 #if NERVE_COMM
       Spine::send();
 #endif
-
       imu_.update();
       baro_.update();
 #if GPS_FLAG      
@@ -1333,6 +1396,21 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER6;
+  MPU_InitStruct.BaseAddress = 0x24044800;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_1KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */

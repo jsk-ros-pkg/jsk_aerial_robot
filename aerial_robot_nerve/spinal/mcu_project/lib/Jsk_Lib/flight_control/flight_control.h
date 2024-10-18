@@ -100,6 +100,10 @@ public:
     pwm_test_flag_ = false;
     integrate_flag_ = false;
   }
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+  {
+    init(htim1, htim2, estimator, NULL, bat, nh, mutex);
+  }
 #endif
 
   void update()

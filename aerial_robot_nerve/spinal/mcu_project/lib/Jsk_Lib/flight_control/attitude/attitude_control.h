@@ -36,6 +36,7 @@
 #include <kondo_servo/kondo_servo.h> //TODO: support kondo servo
 #include <servo/servo.h>
 #endif
+
 #include "state_estimate/state_estimate.h"
 
 #include <std_msgs/UInt8.h>
@@ -43,6 +44,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_srvs/SetBool.h>
 #include <spinal/Pwms.h>
+#include <spinal/PwmTest.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/PwmInfo.h>
@@ -141,12 +143,18 @@ private:
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
   ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
-  ros::Subscriber<std_msgs::Float32, AttitudeController> pwm_test_sub_;
+  ros::Subscriber<spinal::PwmTest, AttitudeController> pwm_test_sub_;
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
-  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+  ros::Publisher esc_telem_pub_;
+  spinal::ESCTelemetryArray esc_telem_msg_;
+
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+  {
+    att_control_flag_ = req.data;
+  }
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
@@ -208,7 +216,7 @@ private:
   uint32_t voltage_update_last_time_;
   uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
-  float pwm_test_value_; // PWM Test
+  float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
   void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);
   void pwmInfoCallback( const spinal::PwmInfo &info_msg);
@@ -217,7 +225,7 @@ private:
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
   void thrustGainMapping();
   void maxYawGainIndex();
-  void pwmTestCallback(const std_msgs::Float32& pwm_msg);
+  void pwmTestCallback(const spinal::PwmTest& pwm_msg);
   void pwmConversion(void);
   void pwmsControl(void);
 
