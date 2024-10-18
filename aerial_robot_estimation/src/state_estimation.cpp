@@ -142,6 +142,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   /* Baselink */
   /* Rotation */
   tf::Quaternion q; getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  q.normalize();
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.angular);
 
@@ -171,6 +172,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   /* COG */
   /* Rotation */
   getOrientation(Frame::COG, estimate_mode_).getRotation(q);
+  q.normalize();
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::COG, estimate_mode_), odom_state.twist.twist.angular);
   /* Translation */

@@ -441,6 +441,7 @@ namespace sensor_plugin
     imu_data.header.stamp = imu_stamp_;
     tf::Quaternion q;
     base_rot_.at(0).getRotation(q);
+    q.normalize();
     tf::quaternionTFToMsg(q, imu_data.orientation);
     tf::vector3TFToMsg(omega_, imu_data.angular_velocity);
     tf::vector3TFToMsg(acc_b_, imu_data.linear_acceleration);
