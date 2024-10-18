@@ -51,3 +51,5 @@ sensor_plugin:
                 # fusion_mode: 2 # ONLY_POS_MODE = 0, ONLY_VEL_MODE = 1, POS_VEL_MODE = 2 (default)
                 # param_verbose: true
                 throttle_rate: 120 # Hz
+                downwards_vo_min_height: -1.0
+                downwards_vo_max_height: 3.0
