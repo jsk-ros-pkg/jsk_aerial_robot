@@ -256,13 +256,13 @@ int main(void)
 
 #if SERVO_FLAG
   servo_.init(&huart3, &nh_, NULL);
-  controller_.init(&htim1, &htim4, &estimator_, &servo_, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim4, &estimator_, NULL, &servo_, &battery_status_, &nh_, &flightControlMutexHandle);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
-  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim4, &estimator_, NULL, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #else
-  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim4, &estimator_, NULL, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
   
   /* USER CODE END 2 */

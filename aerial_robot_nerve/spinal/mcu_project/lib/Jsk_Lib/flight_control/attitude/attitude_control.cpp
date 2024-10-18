@@ -53,13 +53,14 @@ AttitudeController::AttitudeController():
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
   nh_ = nh;
   estimator_ = estimator;
+  dshot_ = dshot;
   // kondo_servo_ = kondo_servo;
   servo_ = servo;
   bat_ = bat;
@@ -216,12 +217,12 @@ void AttitudeController::pwmsControl(void)
         {
           if (dshot_->esc_reader_.is_update_all_msg_)
             {
-              esc_telem_msg_.stamp = nh_->now();
-              esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
-              esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
-              esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
-              esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
-              esc_telem_pub_.publish(&esc_telem_msg_);
+              // esc_telem_msg_.stamp = nh_->now();
+              // esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+              // esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
+              // esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
+              // esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
+              // esc_telem_pub_.publish(&esc_telem_msg_);
 
               float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
                                           dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;

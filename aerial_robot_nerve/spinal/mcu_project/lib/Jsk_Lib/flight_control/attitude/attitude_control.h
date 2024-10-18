@@ -32,6 +32,8 @@
 #include "battery_status/battery_status.h"
 /* RTOS */
 #include "cmsis_os.h"
+/* dshot esc*/
+#include "dshot_esc/dshot.h"
 /* gimbal servo*/
 #include <kondo_servo/kondo_servo.h> //TODO: support kondo servo
 #include <servo/servo.h>
@@ -82,7 +84,7 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -159,8 +161,8 @@ private:
   BatteryStatus* bat_;
   osMutexId* mutex_;
   KondoServo* kondo_servo_; // TODO
+  DShot* dshot_;
   DirectServo* servo_;
-
 #endif
 
   StateEstimate* estimator_;
