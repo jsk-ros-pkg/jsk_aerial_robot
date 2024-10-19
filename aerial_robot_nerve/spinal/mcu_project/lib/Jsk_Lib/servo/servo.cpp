@@ -8,7 +8,7 @@
 
 #include "servo.h"
 
-#define  SERVO_PUB_INTERVAL 100 // 50Hz
+#define  SERVO_PUB_INTERVAL 20 // 50Hz
 #define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
 
 void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
