@@ -4,7 +4,8 @@
 namespace
 {
 #ifdef STM32H7
-  uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+  // uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
+  uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
 #else
   uint8_t rx_buf_[RX_BUFFER_SIZE];
 #endif
@@ -219,6 +220,21 @@ uint8_t DynamixelSerial::getServoIndex(uint8_t id)
 
 void DynamixelSerial::update()
 {
+  /* receive data process */
+  /* For one round, change from "send -> receive" to " receive -> send" */
+  /* This setting can accelerate the receiving process */
+  if(read_status_packet_flag_) {
+    for (unsigned int i = 0; i < servo_num_; i++) {
+      if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
+      readStatusPacket(instruction_last_.first);
+    }
+    if (instruction_last_.first == INST_GET_PRESENT_POS)
+    {
+      setROSCommFlag(true);
+    }
+  }
+  read_status_packet_flag_ = false;
+
   uint32_t current_time = HAL_GetTick();
 
   /* send position command to servo */
@@ -312,7 +328,6 @@ void DynamixelSerial::update()
   std::pair<uint8_t, uint8_t> instruction;
   while(instruction_buffer_.pop(instruction))
     {
-      bool read_status_packet_flag = false;
       uint8_t servo_index = instruction.second;
 
       if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
@@ -400,49 +415,46 @@ void DynamixelSerial::update()
         switch (instruction.first) {
         case INST_GET_PRESENT_POS: /* read servo position(angle) */
           cmdSyncReadPresentPosition(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_PRESENT_CURRENT: /* read servo load */
           cmdSyncReadPresentCurrent(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
           cmdSyncReadPresentTemperature(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_PRESENT_MOVING: /* read servo movement */
           cmdSyncReadMoving(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_HARDWARE_ERROR_STATUS:
           cmdSyncReadHardwareErrorStatus(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_HOMING_OFFSET:
           cmdSyncReadHomingOffset(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_POSITION_GAINS:
           cmdSyncReadPositionGains(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_PROFILE_VELOCITY:
           cmdSyncReadProfileVelocity(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         case INST_GET_CURRENT_LIMIT:
           cmdSyncReadCurrentLimit(false);
-          read_status_packet_flag = true;
+          read_status_packet_flag_ = true;
           break;
         default:
           break;
         }
-        /* receive data process */
-        if(read_status_packet_flag) {
-          for (unsigned int i = 0; i < servo_num_; i++) {
-            if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
-            readStatusPacket(instruction.first);
-          }
+
+        if (read_status_packet_flag_) {
+          instruction_last_ = instruction;
         }
       }
 
@@ -970,16 +982,26 @@ void DynamixelSerial::cmdSyncWriteLed()
 void DynamixelSerial::cmdSyncWritePositionGains()
 {
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[i * 6 + 0] = servo_[i].d_gain_ & 0xFF;
-		parameters[i * 6 + 1] = (servo_[i].d_gain_ >> 8) & 0xFF;
-		parameters[i * 6 + 2] = servo_[i].i_gain_ & 0xFF;
-		parameters[i * 6 + 3] = (servo_[i].i_gain_ >> 8) & 0xFF;
-		parameters[i * 6 + 4] = servo_[i].p_gain_ & 0xFF;
-		parameters[i * 6 + 5] = (servo_[i].p_gain_ >> 8) & 0xFF;
+        /*p_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].p_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].p_gain_ >> 8) & 0xFF;
 	}
+	cmdSyncWrite(CTRL_POSITION_P_GAIN, parameters, 2);
 
-	cmdSyncWrite(CTRL_POSITION_D_GAIN, parameters, POSITION_GAINS_BYTE_LEN);
+        /*i_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].i_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].i_gain_ >> 8) & 0xFF;
+	}
+	cmdSyncWrite(CTRL_POSITION_I_GAIN, parameters, 2);
+
+        /*d_gain*/
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          parameters[i * 2 + 0] = servo_[i].d_gain_ & 0xFF;
+          parameters[i * 2 + 1] = (servo_[i].d_gain_ >> 8) & 0xFF;
+	}
+	cmdSyncWrite(CTRL_POSITION_D_GAIN, parameters, 2);
 }
 
 void DynamixelSerial::cmdSyncWriteProfileVelocity()
