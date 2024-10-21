@@ -17,7 +17,6 @@
 #include <dynamic_reconfigure/server.h>
 
 /* protocol */
-#include "nav_msgs/Odometry.h"
 #include "trajectory_msgs/MultiDOFJointTrajectory.h"
 #include "trajectory_msgs/MultiDOFJointTrajectoryPoint.h"
 #include "geometry_msgs/PoseArray.h"
@@ -93,7 +92,6 @@ protected:
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
   ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
 
-  nav_msgs::Odometry odom_;
   aerial_robot_msgs::PredXU x_u_ref_;
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
@@ -131,7 +129,6 @@ protected:
 
   /* utils */
   // get functions
-  nav_msgs::Odometry getOdom();
   double getCommand(int idx_u, double t_pred = 0.0);
 
   // conversion functions
