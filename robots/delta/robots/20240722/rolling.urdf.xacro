@@ -20,38 +20,51 @@
     <axis xyz="0 0 1"/>
   </joint>
 
-  <!-- processors -->
+  <!-- flight controller -->
   <xacro:extra_module name="fc_link" parent="link2">
     <origin xyz="0.0735 0 0" rpy="0 0 0"/>
-    <xacro:virtual_inertial/>
+    <inertial>
+      <origin xyz="0.02700000 0.00000000 0.01130642" rpy="0 0 0"/>
+      <mass value="0.02687673"/>
+      <inertia
+          ixx="0.00001064" ixy="0.00000000" ixz="0.00000000"
+          iyy="0.00001198" iyz="0.00000000"
+          izz="0.00001584"/>
+    </inertial>
   </xacro:extra_module>
 
   <xacro:extra_module name="fc" parent="fc_link">
-    <origin xyz="0.0129 -0.0012 0.020" rpy="0 0 0"/>
+    <origin xyz="0.0099 -0.0012 0.019" rpy="0 0 0"/>
+    <xacro:virtual_inertial/>
+  </xacro:extra_module>
+
+  <!-- onboard computer -->
+  <xacro:extra_module name="vim4" parent="link3">
+    <origin xyz="0.3635 0.01 0" rpy="${-pi/2} 0 0"/>
     <inertial>
-      <origin xyz="0.02959036 -0.00076922 -0.00886856" rpy="0 0 0"/>
-      <mass value="0.12308403"/>
+      <origin xyz="0.00146548 0.00262274 0.01119251" rpy="0 0 0"/>
+      <mass value="0.06613440"/>
       <inertia
-          ixx="0.00008649" ixy="-0.00000081" ixz="0.00000124"
-          iyy="0.00006899" iyz="0.00000148"
-          izz="0.00008508"/>
+          ixx="0.00001715" ixy="-0.00000087" ixz="0.00000023"
+          iyy="0.00003523" iyz="0.00000039"
+          izz="0.00004879"/>
     </inertial>
   </xacro:extra_module>
 
   <!-- vio sensor -->
   <xacro:extra_module name="lidar_imu_link" parent="link3" visible="1" model_url="package://delta/urdf/mesh/20240722/livox.dae" active="1">
-    <origin xyz="0.38 -0.01 0" rpy="0 ${pi/2} ${-pi/2}"/> <!-- TODO: set correct lidar position-->
+    <origin xyz="0.3635 -0.01 0" rpy="0 ${pi/2} ${-pi/2}"/>
     <inertial>
-      <mass value="0.262"/>
-      <origin xyz="0.00056844 -0.00077518 0.02201163" rpy="0 0 0"/>
+      <mass value="0.27636213"/>
+      <origin xyz="-0.00018920 -0.00000603 0.02463791" rpy="0 0 0"/>
       <inertia
-          ixx="0.00012235" ixy="0.00000001" ixz="-0.00000027"
-          iyy="0.00013184" iyz="0.00000000"  izz="0.00013077"/>
+          ixx="0.00014336" ixy="0.00000001" ixz="-0.00000005"
+          iyy="0.00014607" iyz="0.00000003"  izz="0.00014571"/>
     </inertial>
   </xacro:extra_module>
 
   <xacro:extra_module name="lidar_imu" parent="lidar_imu_link">
-    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <origin xyz="0 0 0.03905" rpy="0 0 0"/>
     <xacro:virtual_inertial/>
   </xacro:extra_module>
 
