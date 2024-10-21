@@ -44,10 +44,11 @@ void nmpc::TiltQdServoThrustNMPCwITerm::calcDisturbWrench()
 {
   /* update I term */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  double qw = odom_.pose.pose.orientation.w;
-  double qx = odom_.pose.pose.orientation.x;
-  double qy = odom_.pose.pose.orientation.y;
-  double qz = odom_.pose.pose.orientation.z;
+  tf::Quaternion q = estimator_->getQuat(Frame::COG, estimate_mode_);
+  double qw = q.w();
+  double qx = q.x();
+  double qy = q.y();
+  double qz = q.z();
 
   tf::Vector3 target_pos;
   double qwr, qxr, qyr, qzr;

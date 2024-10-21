@@ -52,10 +52,11 @@ void nmpc::TiltQdServoNMPCwINDI::callbackImu(const spinal::ImuConstPtr& msg)
   fBu(2) = ft1 * cos(alpha1) + ft2 * cos(alpha2) + ft3 * cos(alpha3) + ft4 * cos(alpha4);
 
   // calculate RIB
-  double& qw = odom_.pose.pose.orientation.w;
-  double& qx = odom_.pose.pose.orientation.x;
-  double& qy = odom_.pose.pose.orientation.y;
-  double& qz = odom_.pose.pose.orientation.z;
+  tf::Quaternion q = estimator_->getQuat(Frame::COG, estimate_mode_);
+  double qw = q.w();
+  double qx = q.x();
+  double qy = q.y();
+  double qz = q.z();
 
   Eigen::Matrix3d RIB = Eigen::Matrix3d::Zero();
   RIB(0, 0) = 1 - 2 * qy * qy - 2 * qz * qz;
@@ -73,10 +74,10 @@ void nmpc::TiltQdServoNMPCwINDI::callbackImu(const spinal::ImuConstPtr& msg)
   // fId = RIB.(m * sfBIMU - fBu)
   Eigen::Vector3d fId = RIB * (mass_ * sfBIMU - fBu);
 
-  if (odom_.pose.pose.position.z > 0.05)
+  if (estimator_->getPos(Frame::COG, estimate_mode_).z() > 0.05)
   {
-//    dist_force_w_.x = fId(0);
-//    dist_force_w_.y = fId(1);
+    //    dist_force_w_.x = fId(0);
+    //    dist_force_w_.y = fId(1);
     dist_force_w_.z = fId(2);
   }
 }

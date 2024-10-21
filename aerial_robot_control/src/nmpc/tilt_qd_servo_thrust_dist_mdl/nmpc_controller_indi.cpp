@@ -109,7 +109,7 @@ void nmpc::TiltQdServoThrustNMPCwINDI::callbackImu(const spinal::ImuConstPtr& ms
   // add a new vector the same size as u_indi
   Eigen::VectorXd u(joint_num_ + motor_num_);
 
-  if (odom_.pose.pose.position.z < 0.2)  // INDI is not use because of the contact in takeoff
+  if (estimator_->getPos(Frame::COG, estimate_mode_).z() < 0.2)  // INDI is not use because of the contact in takeoff
   {
     for (int i = 0; i < joint_num_ + motor_num_; i++)
       u(i) = getCommand(i);

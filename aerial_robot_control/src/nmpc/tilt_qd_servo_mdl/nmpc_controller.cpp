@@ -53,8 +53,6 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   setControlMode();
 
   initActuatorStates();
-  odom_ = nav_msgs::Odometry();
-  odom_.pose.pose.orientation.w = 1;
   initPredXU(x_u_ref_, mpc_solver_ptr_->NN_, mpc_solver_ptr_->NX_, mpc_solver_ptr_->NU_);
 
   reset();
@@ -92,7 +90,6 @@ void nmpc::TiltQdServoNMPC::reset()
     printPhysicalParams();
 
   /* reset controller using odom */
-  odom_ = getOdom();  // TODO: move to Estimator. like joint_angles_, it should be updated in a timer/estimator
   std::vector<double> x_vec = meas2VecX();
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);
 
@@ -210,7 +207,6 @@ void nmpc::TiltQdServoNMPC::controlCore()
   prepareNMPCParams();
 
   /* prepare initial value */
-  odom_ = getOdom();  // TODO: should be moved to Estimator. it should not be updated by ROS.
   std::vector<double> bx0 = meas2VecX();
 
   /* solve */
@@ -499,46 +495,6 @@ void nmpc::TiltQdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
   }
 }
 
-// TODO: should be moved to Estimator
-nav_msgs::Odometry nmpc::TiltQdServoNMPC::getOdom()
-{
-  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
-  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  tf::Vector3 omega = estimator_->getAngularVel(Frame::COG, estimate_mode_);
-
-  tf::Quaternion q;
-  cog_rot.getRotation(q);
-
-  // check the sign of the quaternion, avoid the flip of the quaternion
-  double qe_c_w = q.w() * odom_.pose.pose.orientation.w + q.x() * odom_.pose.pose.orientation.x +
-                  q.y() * odom_.pose.pose.orientation.y + q.z() * odom_.pose.pose.orientation.z;
-  if (qe_c_w < 0)
-  {
-    q.setW(-q.w());
-    q.setX(-q.x());
-    q.setY(-q.y());
-    q.setZ(-q.z());
-  }
-
-  nav_msgs::Odometry odom;
-  odom.pose.pose.position.x = pos.x();
-  odom.pose.pose.position.y = pos.y();
-  odom.pose.pose.position.z = pos.z();
-  odom.pose.pose.orientation.w = q.w();
-  odom.pose.pose.orientation.x = q.x();
-  odom.pose.pose.orientation.y = q.y();
-  odom.pose.pose.orientation.z = q.z();
-  odom.twist.twist.linear.x = vel.x();
-  odom.twist.twist.linear.y = vel.y();
-  odom.twist.twist.linear.z = vel.z();
-  odom.twist.twist.angular.x = omega.x();
-  odom.twist.twist.angular.y = omega.y();
-  odom.twist.twist.angular.z = omega.z();
-
-  return odom;
-}
-
 double nmpc::TiltQdServoNMPC::getCommand(int idx_u, double t_pred)
 {
   if (t_pred == 0)
@@ -551,19 +507,25 @@ double nmpc::TiltQdServoNMPC::getCommand(int idx_u, double t_pred)
 std::vector<double> nmpc::TiltQdServoNMPC::meas2VecX()
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
-  bx0[0] = odom_.pose.pose.position.x;
-  bx0[1] = odom_.pose.pose.position.y;
-  bx0[2] = odom_.pose.pose.position.z;
-  bx0[3] = odom_.twist.twist.linear.x;
-  bx0[4] = odom_.twist.twist.linear.y;
-  bx0[5] = odom_.twist.twist.linear.z;
-  bx0[6] = odom_.pose.pose.orientation.w;
-  bx0[7] = odom_.pose.pose.orientation.x;
-  bx0[8] = odom_.pose.pose.orientation.y;
-  bx0[9] = odom_.pose.pose.orientation.z;
-  bx0[10] = odom_.twist.twist.angular.x;
-  bx0[11] = odom_.twist.twist.angular.y;
-  bx0[12] = odom_.twist.twist.angular.z;
+
+  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  tf::Quaternion quat  = estimator_->getQuat(Frame::COG, estimate_mode_);
+  tf::Vector3 ang_vel = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+
+  bx0[0] = pos.x();
+  bx0[1] = pos.y();
+  bx0[2] = pos.z();
+  bx0[3] = vel.x();
+  bx0[4] = vel.y();
+  bx0[5] = vel.z();
+  bx0[6] = quat.w();
+  bx0[7] = quat.x();
+  bx0[8] = quat.y();
+  bx0[9] = quat.z();
+  bx0[10] = ang_vel.x();
+  bx0[11] = ang_vel.y();
+  bx0[12] = ang_vel.z();
   for (int i = 0; i < joint_num_; i++)
     bx0[13 + i] = joint_angles_[i];
   return bx0;

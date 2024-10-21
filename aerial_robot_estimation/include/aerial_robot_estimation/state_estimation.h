@@ -272,6 +272,15 @@ namespace aerial_robot_estimation
       return tf::Vector3(r, p, y);
     }
 
+    tf::Quaternion getQuat(int frame, int estimate_mode)
+    {
+      tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+      tf::Quaternion q;
+      rot.getRotation(q);
+
+      return q;
+    }
+
     tf::Vector3 getAngularVel(int frame, int estimate_mode)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
