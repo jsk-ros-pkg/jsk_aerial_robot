@@ -7,8 +7,8 @@
 # kalman filter
 - git:
     local-name: kalman_filter
-    uri: https://github.com/sugikazu75/kalman_filter.git
-    version: C++17
+    uri: https://github.com/JSKAerialRobot/kalman_filter.git
+    version: 5c7a410
 
 # the sensor interface
 - git:
@@ -21,7 +21,7 @@
 # TODO: create PR
 - git:
     local-name: ublox_gps
-    uri: https://github.com/sugikazu75/ublox.git
+    uri: https://github.com/tongtybj/ublox.git
     version: holybro_rtk_m8p
 
 # rosserial
