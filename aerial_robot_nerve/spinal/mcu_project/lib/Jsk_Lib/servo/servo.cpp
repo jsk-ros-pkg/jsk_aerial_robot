@@ -112,12 +112,12 @@ void DirectServo::torqueEnable(const std::map<uint8_t, float>& servo_map)
     {
       JointProf joint_prof = joint_profiles_[servo.first];
       uint8_t index = servo.first;
+      if(index >= servo_handler_.getServoNum())
+        {
+          nh_->logerror("Invalid Servo ID!");
+          return;
+        }
       ServoData& s = servo_handler_.getServo()[index];
-      if(s == servo_handler_.getOneServo(0)){ 
-        nh_->logerror("Invalid Servo ID!");
-        return;
-      }
-
       if(servo.second && !s.torque_enable_){
         s.torque_enable_ = true;
         servo_handler_.setTorque(index);
@@ -142,12 +142,12 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
       }
 
       uint8_t index = servo.first;
+      if(index >= servo_handler_.getServoNum())
+        {
+          nh_->logerror("Invalid Servo ID!");
+          return;
+        }
       ServoData& s = servo_handler_.getServo()[index];
-      if(s == servo_handler_.getOneServo(0)){ 
-        nh_->logerror("Invalid Servo ID!");
-        return;
-      }
-
       s.setGoalPosition(goal_pos);
       if (! s.torque_enable_) {
         s.torque_enable_ = true;
@@ -162,11 +162,12 @@ void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_ms
   if (control_msg.index_length != control_msg.angles_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
     uint8_t index = control_msg.index[i];
+    if(index >= servo_handler_.getServoNum())
+      {
+        nh_->logerror("Invalid Servo ID!");
+        return;
+      }
     ServoData& s = servo_handler_.getServo()[index];
-    if(s == servo_handler_.getOneServo(0)){ 
-      nh_->logerror("Invalid Servo ID!");
-      return;
-    }
     int32_t goal_pos = static_cast<int32_t>(control_msg.angles[i]);
     s.setGoalPosition(goal_pos);
     if (! s.torque_enable_) {
@@ -181,11 +182,12 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
   if (control_msg.index_length != control_msg.torque_enable_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
     uint8_t index = control_msg.index[i];
+    if(index >= servo_handler_.getServoNum())
+      {
+        nh_->logerror("Invalid Servo ID!");
+        return;
+      }
     ServoData& s = servo_handler_.getServo()[index];
-    if(s == servo_handler_.getOneServo(0)){ 
-      nh_->logerror("Invalid Servo ID!");
-      return;
-    }
     s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
     servo_handler_.setTorque(index);
 
@@ -208,12 +210,12 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
     }
 
   uint8_t servo_index = req.data[0];
+  if(servo_index >= servo_handler_.getServoNum())
+    {
+      nh_->logerror("Invalid Servo ID!");
+      return;
+    }
   ServoData& s = servo_handler_.getServo()[servo_index];
-  if(s == servo_handler_.getOneServo(0)){ 
-    nh_->logerror("Invalid Servo ID!");
-    return;
-  }
-
   switch (command) {
   case spinal::SetDirectServoConfig::Request::SET_SERVO_HOMING_OFFSET:
     {
