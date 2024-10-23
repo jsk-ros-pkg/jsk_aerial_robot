@@ -38,6 +38,20 @@ void nmpc::TiltQdServoNMPCwITerm::initParams()
   pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);   // roll
   pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
   pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
+
+  polygon_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<polygon_base::RegularPolygon>>("aerial_robot_control", "polygon_base::RegularPolygon");
+
+  try
+  {
+    polygon_ptr_ = polygon_loader_ptr_->createInstance("polygon_plugins::Triangle");
+    polygon_ptr_->initialize(10.0);
+    ROS_INFO("Triangle area: %.2f", polygon_ptr_->area());
+  }
+  catch(pluginlib::PluginlibException& ex)
+  {
+    ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+  }
+
 }
 
 void nmpc::TiltQdServoNMPCwITerm::calcDisturbWrench()

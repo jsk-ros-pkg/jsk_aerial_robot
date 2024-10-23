@@ -24,6 +24,7 @@
 
   <export>
     <aerial_robot_control plugin="${prefix}/plugins/flight_control_plugins.xml" />
+    <aerial_robot_control plugin="${prefix}/plugins/wrench_est_plugins.xml" />
   </export>
 
 </package>
