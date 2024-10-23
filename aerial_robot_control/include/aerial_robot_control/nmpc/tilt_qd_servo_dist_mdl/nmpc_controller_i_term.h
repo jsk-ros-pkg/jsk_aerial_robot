@@ -11,7 +11,7 @@
 #include "geometry_msgs/WrenchStamped.h"
 
 #include <pluginlib/class_loader.h>
-#include "aerial_robot_control/wrench_est/polygon_base.h"
+#include "aerial_robot_control/wrench_est/wrench_est_base.h"
 
 using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::NMPCConfig>;
 
@@ -24,8 +24,8 @@ namespace nmpc
 class TiltQdServoNMPCwITerm : public TiltQdServoDistNMPC
 {
 public:
-  boost::shared_ptr<pluginlib::ClassLoader<polygon_base::RegularPolygon>> polygon_loader_ptr_;
-  boost::shared_ptr<polygon_base::RegularPolygon> polygon_ptr_;
+  boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>> polygon_loader_ptr_;
+  boost::shared_ptr<aerial_robot_control::WrenchEstBase> polygon_ptr_;
 
 protected:
   ITerm pos_i_term_[6];  // for x, y, z, roll, pitch, yaw

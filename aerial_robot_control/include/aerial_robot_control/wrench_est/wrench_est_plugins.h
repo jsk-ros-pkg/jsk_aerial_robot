@@ -2,18 +2,18 @@
 // Created by li-jinjie on 24-10-23.
 //
 
-#ifndef AERIAL_ROBOT_CONTROL_POLYGON_PLUGINS_H
-#define AERIAL_ROBOT_CONTROL_POLYGON_PLUGINS_H
+#ifndef AERIAL_ROBOT_CONTROL_WRENCH_EST_PLUGINS_H
+#define AERIAL_ROBOT_CONTROL_WRENCH_EST_PLUGINS_H
 
-#include "aerial_robot_control/wrench_est/polygon_base.h"
+#include "aerial_robot_control/wrench_est/wrench_est_base.h"
 #include <cmath>
 
-namespace polygon_plugins
+namespace aerial_robot_control
 {
-class Triangle : public polygon_base::RegularPolygon
+class WrenchEstITerm : public aerial_robot_control::WrenchEstBase
 {
 public:
-  Triangle(){}
+  WrenchEstITerm(){}
 
   void initialize(double side_length)
   {
@@ -34,10 +34,10 @@ private:
   double side_length_;
 };
 
-class Square : public polygon_base::RegularPolygon
+class WrenchEstAcc : public aerial_robot_control::WrenchEstBase
 {
 public:
-  Square(){}
+  WrenchEstAcc(){}
 
   void initialize(double side_length)
   {
@@ -55,4 +55,4 @@ private:
 };
 };
 
-#endif  // AERIAL_ROBOT_CONTROL_POLYGON_PLUGINS_H
+#endif  // AERIAL_ROBOT_CONTROL_WRENCH_EST_PLUGINS_H

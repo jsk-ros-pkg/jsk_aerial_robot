@@ -90,9 +90,9 @@ foreach(script ${ACADOS_PYTHON_SCRIPTS})
   list(APPEND ACADOS_PYTHON_TARGETS ${script_name})
 endforeach()
 
-### polygon_plugins
-add_library(polygon_plugins src/wrench_est/polygon_plugins.cpp)
-target_link_libraries(polygon_plugins ${catkin_LIBRARIES})
+### wrench_est_plugins
+add_library(wrench_est_plugins src/wrench_est/wrench_est_plugins.cpp)
+target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
 
 ### flight control plugin
 add_library(flight_control_pluginlib
@@ -139,7 +139,7 @@ target_link_libraries (flight_navigation ${catkin_LIBRARIES})
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS control_utils flight_control_pluginlib flight_navigation polygon_plugins
+install(TARGETS control_utils flight_control_pluginlib flight_navigation wrench_est_plugins
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
