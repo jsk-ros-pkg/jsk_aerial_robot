@@ -49,7 +49,8 @@ AttitudeController::AttitudeController():
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
-  esc_telem_pub_("esc_telem", &esc_telem_msg_)
+  esc_telem_pub_("esc_telem", &esc_telem_msg_),
+  gimbal_command_pub_("debug/gimbal_commnd", &gimbal_command_msg_)
 {
 }
 
@@ -83,6 +84,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
   nh_->advertise(esc_telem_pub_);
+  nh_->advertise(gimbal_command_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
   nh_->subscribe(pwm_info_sub_);
@@ -125,6 +127,7 @@ void AttitudeController::baseInit()
 
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
+  gimbal_command_pub_last_time_ = 0;
 
   reset();
 }
@@ -429,6 +432,8 @@ void AttitudeController::reset(void)
     {
       target_thrust_[i] = 0;
       target_pwm_[i] = IDLE_DUTY;
+
+      pwm_test_value_[i] = IDLE_DUTY;
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
@@ -764,6 +769,7 @@ void AttitudeController::setMotorNumber(uint16_t motor_number)
 	  if(motor_number == 0) return;
 
       size_t control_term_msg_size  = motor_number;
+      size_t gimbal_command_msg_size = motor_number / rotor_coef_ * gimbal_dof_;
 
 #ifdef SIMULATION
       pwms_msg_.motor_value.resize(motor_number);
@@ -773,6 +779,8 @@ void AttitudeController::setMotorNumber(uint16_t motor_number)
       control_term_msg_.motors_length = control_term_msg_size;
       pwms_msg_.motor_value = new uint16_t[motor_number];
       control_term_msg_.motors = new spinal::RollPitchYawTerm[control_term_msg_size];
+      gimbal_command_msg_.index_length = gimbal_command_msg_size;
+      gimbal_command_msg_.angles_length = gimbal_command_msg_size;
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
 
@@ -1057,16 +1065,22 @@ void AttitudeController::pwmConversion()
                 f_i.y = target_thrust_[i*3+1];
                 f_i.z = target_thrust_[i*3+2];
             
-                float gimbal_candidate_roll = atan2f(-f_i.y, f_i.z);
-                float gimbal_candidate_pitch = atan2f(f_i.x, -f_i.y * sin(gimbal_candidate_roll) + f_i.z * cos(gimbal_candidate_roll));
+                // float gimbal_candidate_roll = atan2f(-f_i.y, f_i.z);
+                // float gimbal_candidate_pitch = atan2f(f_i.x, -f_i.y * sin(gimbal_candidate_roll) + f_i.z * cos(gimbal_candidate_roll));
+                target_gimbal_angles_[2*i] = atan2f(-f_i.y, f_i.z);
+                target_gimbal_angles_[2*i+1] = atan2f(f_i.x, -f_i.y * sin(target_gimbal_angles_[2*i]) + f_i.z * cos(target_gimbal_angles_[2*i]));
                 target_thrust_[i] = ap::pythagorous3(f_i.x,f_i.y,f_i.z);
+                if(target_gimbal_angles_[2*i]>2.0 || target_gimbal_angles_[2*i]<-2.0)
+                  {
+                    int8_t a = 1;
+                  }
 
                 /* simple lpf */
-                if(std::isfinite(gimbal_candidate_roll) && std::isfinite(gimbal_candidate_pitch)){
-                  target_gimbal_angles_[2*i] =(target_gimbal_angles_[2*i]+ gimbal_candidate_roll)/2;
-                  target_gimbal_angles_[2*i+1] =(target_gimbal_angles_[2*i+1]+ gimbal_candidate_pitch)/2;
+                // if(std::isfinite(gimbal_candidate_roll) && std::isfinite(gimbal_candidate_pitch)){
+                //   target_gimbal_angles_[2*i] =(target_gimbal_angles_[2*i]+ gimbal_candidate_roll)/2;
+                //   target_gimbal_angles_[2*i+1] =(target_gimbal_angles_[2*i+1]+ gimbal_candidate_pitch)/2;
             
-                }
+                // }
                 break;
               }
             case 1:
@@ -1074,11 +1088,12 @@ void AttitudeController::pwmConversion()
                 ap::Vector3f f_i;
                 f_i.x = target_thrust_[i*2];
                 f_i.z = target_thrust_[i*2+1];
-                float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+                // float gimbal_candidate = atan2f(-f_i.x, f_i.z);
+                target_gimbal_angles_[i] = atan2f(-f_i.x, f_i.z);
                 target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
 
                 /* simple lpf */
-                if(std::isfinite(gimbal_candidate)) target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
+                // if(std::isfinite(gimbal_candidate)) target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
 
                 break;
               }
@@ -1136,6 +1151,9 @@ void AttitudeController::pwmConversion()
             {
               gimbal_map[2*i] =  target_gimbal_angles_[2*i];
               gimbal_map[2*i+1] = target_gimbal_angles_[2*i+1];
+              //for debug
+              gimbal_command_msg_.angles[2*i] = static_cast<int16_t>(target_gimbal_angles_[2*i] * 100);
+              gimbal_command_msg_.angles[2*i+1] = static_cast<int16_t>(target_gimbal_angles_[2*i+1] * 100);
             }
           else
             {
@@ -1144,9 +1162,18 @@ void AttitudeController::pwmConversion()
             }
         }
         if(start_control_flag_)
-          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+          {
+            servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+            if(HAL_GetTick() - gimbal_command_pub_last_time_ > GIMBAL_COOMMAND_PUB_INTERVAL)
+              {
+                gimbal_command_pub_last_time_ = HAL_GetTick();
+                gimbal_command_pub_.publish(&gimbal_command_msg_);
+              }
+          }
         else
-          servo_->torqueEnable(gimbal_map);
+          {
+            servo_->torqueEnable(gimbal_map);
+          }
         break;
       }
     case 1:
@@ -1154,14 +1181,29 @@ void AttitudeController::pwmConversion()
         std::map<uint8_t, float> gimbal_map;
         for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
           if(start_control_flag_)
-            gimbal_map[i] = target_gimbal_angles_[i];
+            {
+              gimbal_map[i] = target_gimbal_angles_[i];
+              //for debug
+              gimbal_command_msg_.angles[i] = static_cast<int16_t>(target_gimbal_angles_[i] * 100);
+            }
           else
-            gimbal_map[i] = 0;
+            {
+              gimbal_map[i] = 0;
+            }
         }
         if(start_control_flag_)
-          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+          {
+            servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
+            if(HAL_GetTick() - gimbal_command_pub_last_time_ > GIMBAL_COOMMAND_PUB_INTERVAL)
+              {
+                gimbal_command_pub_last_time_ = HAL_GetTick();
+                gimbal_command_pub_.publish(&gimbal_command_msg_);
+              }
+          }
         else
-          servo_->torqueEnable(gimbal_map);
+          {
+            servo_->torqueEnable(gimbal_map);
+          }
         break;
       }
     default:
