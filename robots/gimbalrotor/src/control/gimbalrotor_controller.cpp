@@ -35,6 +35,7 @@ namespace aerial_robot_control
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
+    send_att_gains_cmd_sub_ = nh_.subscribe("send_att_gain_cmd", 1, &GimbalrotorController::sendAttGainCmdCallback, this);
   }
 
   void GimbalrotorController::reset()
@@ -352,6 +353,11 @@ namespace aerial_robot_control
       rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
       rpy_gain_pub_.publish(rpy_gain_msg);
     }
+  }
+
+  void GimbalrotorController::sendAttGainCmdCallback(const std_msgs::Empty & msg)
+  {
+    setAttitudeGains();
   }
 } //namespace aerial_robot_controller
 
