@@ -39,13 +39,12 @@ void nmpc::TiltQdServoNMPCwITerm::initParams()
   pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
   pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
 
-  polygon_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>>("aerial_robot_control", "aerial_robot_control::WrenchEstBase");
+  wrench_est_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>>("aerial_robot_control", "aerial_robot_control::WrenchEstBase");
 
   try
   {
-    polygon_ptr_ = polygon_loader_ptr_->createInstance("aerial_robot_control::WrenchEstITerm");
-    polygon_ptr_->initialize(10.0);
-    ROS_INFO("Triangle area: %.2f", polygon_ptr_->area());
+    wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance("aerial_robot_control::WrenchEstITerm");
+    wrench_est_ptr_->initialize(nh_, estimator_, ctrl_loop_du_);
   }
   catch(pluginlib::PluginlibException& ex)
   {

@@ -24,8 +24,8 @@ namespace nmpc
 class TiltQdServoNMPCwITerm : public TiltQdServoDistNMPC
 {
 public:
-  boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>> polygon_loader_ptr_;
-  boost::shared_ptr<aerial_robot_control::WrenchEstBase> polygon_ptr_;
+  boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>> wrench_est_loader_ptr_;
+  boost::shared_ptr<aerial_robot_control::WrenchEstBase> wrench_est_ptr_;
 
 protected:
   ITerm pos_i_term_[6];  // for x, y, z, roll, pitch, yaw

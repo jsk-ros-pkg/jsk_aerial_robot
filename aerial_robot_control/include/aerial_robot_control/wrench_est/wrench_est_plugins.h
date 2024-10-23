@@ -10,49 +10,46 @@
 
 namespace aerial_robot_control
 {
+
 class WrenchEstITerm : public aerial_robot_control::WrenchEstBase
 {
 public:
-  WrenchEstITerm(){}
+  WrenchEstITerm() = default;
 
-  void initialize(double side_length)
+  void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                  double ctrl_loop_du) override
   {
-    side_length_ = side_length;
+    double du = getCtrlLoopDu();
+    ROS_INFO("WrenchEstITerm initialize %f", du);
   }
 
-  double area()
+  void update() override
   {
-    return 0.5 * side_length_ * getHeight();
-  }
-
-  double getHeight()
-  {
-    return sqrt((side_length_ * side_length_) - ((side_length_ / 2) * (side_length_ / 2)));
+    // do nothing
   }
 
 private:
-  double side_length_;
 };
 
 class WrenchEstAcc : public aerial_robot_control::WrenchEstBase
 {
 public:
-  WrenchEstAcc(){}
+  WrenchEstAcc() = default;
 
-  void initialize(double side_length)
+  void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                  double ctrl_loop_du) override
   {
-    side_length_ = side_length;
+    ROS_INFO("WrenchEstAcc initialize");
   }
 
-  double area()
+  void update() override
   {
-    return side_length_ * side_length_;
+    // do nothing
   }
 
 private:
-  double side_length_;
+};
 
-};
-};
+};  // namespace aerial_robot_control
 
 #endif  // AERIAL_ROBOT_CONTROL_WRENCH_EST_PLUGINS_H
