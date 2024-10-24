@@ -44,7 +44,7 @@ void nmpc::TiltQdServoNMPCwITerm::initParams()
   try
   {
     wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance("aerial_robot_control::WrenchEstITerm");
-    wrench_est_ptr_->initialize(nh_, estimator_, ctrl_loop_du_);
+    wrench_est_ptr_->initialize(nh_, ctrl_loop_du_);
   }
   catch(pluginlib::PluginlibException& ex)
   {

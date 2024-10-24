@@ -11,19 +11,18 @@
 namespace aerial_robot_control
 {
 
-class WrenchEstITerm : public aerial_robot_control::WrenchEstBase
+class WrenchEstITerm : public WrenchEstBase
 {
 public:
   WrenchEstITerm() = default;
 
-  void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                  double ctrl_loop_du) override
+  void initialize(ros::NodeHandle nh, double ctrl_loop_du) override
   {
     double du = getCtrlLoopDu();
     ROS_INFO("WrenchEstITerm initialize %f", du);
   }
 
-  void update() override
+  void update(geometry_msgs::Pose pose_ref, geometry_msgs::Pose pose) override
   {
     // do nothing
   }
@@ -36,13 +35,12 @@ class WrenchEstAcc : public aerial_robot_control::WrenchEstBase
 public:
   WrenchEstAcc() = default;
 
-  void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                  double ctrl_loop_du) override
+  void initialize(ros::NodeHandle nh, double ctrl_loop_du) override
   {
     ROS_INFO("WrenchEstAcc initialize");
   }
 
-  void update() override
+  void update(geometry_msgs::Pose pose_ref, geometry_msgs::Pose pose) override
   {
     // do nothing
   }
