@@ -7,7 +7,13 @@
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
 #include "i_term.h"
-#include <cmath>
+
+/* dynamic reconfigure */
+#include <dynamic_reconfigure/server.h>
+#include "aerial_robot_msgs/DynamicReconfigureLevels.h"
+#include "aerial_robot_control/ITermConfig.h"
+
+using ITermDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::ITermConfig>;
 
 namespace aerial_robot_control
 {
@@ -47,6 +53,10 @@ public:
     pos_i_term_[3].initialize(i_gain_roll, mx_limit, freq);   // roll
     pos_i_term_[4].initialize(i_gain_pitch, my_limit, freq);  // pitch
     pos_i_term_[5].initialize(i_gain_yaw, mz_limit, freq);    // yaw
+
+    /* init dynamic reconfigure */
+    reconf_servers_.push_back(boost::make_shared<ITermDynamicConfig>(i_term_nh));
+    reconf_servers_.back()->setCallback(boost::bind(&WrenchEstITerm::cfgCallback, this, _1, _2));
   }
 
   void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
@@ -81,7 +91,60 @@ public:
   }
 
 private:
-  ITerm pos_i_term_[6]; // x, y, z, roll, pitch, yaw
+  ITerm pos_i_term_[6];  // x, y, z, roll, pitch, yaw
+
+  std::vector<boost::shared_ptr<ITermDynamicConfig>> reconf_servers_;
+
+  void cfgCallback(ITermConfig& config, uint32_t level)
+  {
+    using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
+
+    if (config.i_gain_flag)
+    {
+      try
+      {
+        switch (level)
+        {
+          case Levels::RECONFIGURE_I_GAIN_X: {
+            pos_i_term_[0].setIGain(config.i_gain_x);
+            ROS_INFO_STREAM("change i_gain_x for '" << config.i_gain_x << "'");
+            break;
+          }
+          case Levels::RECONFIGURE_I_GAIN_Y: {
+            pos_i_term_[1].setIGain(config.i_gain_y);
+            ROS_INFO_STREAM("change i_gain_y for '" << config.i_gain_y << "'");
+            break;
+          }
+          case Levels::RECONFIGURE_I_GAIN_Z: {
+            pos_i_term_[2].setIGain(config.i_gain_z);
+            ROS_INFO_STREAM("change i_gain_z for '" << config.i_gain_z << "'");
+            break;
+          }
+          case Levels::RECONFIGURE_I_GAIN_ROLL: {
+            pos_i_term_[3].setIGain(config.i_gain_roll);
+            ROS_INFO_STREAM("change i_gain_roll for '" << config.i_gain_roll << "'");
+            break;
+          }
+          case Levels::RECONFIGURE_I_GAIN_PITCH: {
+            pos_i_term_[4].setIGain(config.i_gain_pitch);
+            ROS_INFO_STREAM("change i_gain_pitch for '" << config.i_gain_pitch << "'");
+            break;
+          }
+          case Levels::RECONFIGURE_I_GAIN_YAW: {
+            pos_i_term_[5].setIGain(config.i_gain_yaw);
+            ROS_INFO_STREAM("change i_gain_yaw for '" << config.i_gain_yaw << "'");
+            break;
+          }
+          default:
+            break;
+        }
+      }
+      catch (std::invalid_argument& e)
+      {
+        ROS_ERROR_STREAM("I Term config failed: " << e.what());
+      }
+    }
+  }
 };
 
 class WrenchEstAcc : public aerial_robot_control::WrenchEstBase

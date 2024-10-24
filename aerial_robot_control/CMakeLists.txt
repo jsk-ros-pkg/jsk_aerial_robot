@@ -25,6 +25,7 @@ generate_dynamic_reconfigure_options(
   cfg/PID.cfg
   cfg/LQI.cfg
   cfg/NMPC.cfg
+  cfg/ITerm.cfg
   )
 
 ### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
@@ -44,7 +45,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES control_utils flight_control_pluginlib flight_navigation
+  LIBRARIES control_utils flight_control_pluginlib flight_navigation wrench_est_plugins
   CATKIN_DEPENDS aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure pluginlib roscpp spinal tf
 )
 
@@ -93,6 +94,7 @@ endforeach()
 ### wrench_est_plugins
 add_library(wrench_est_plugins src/wrench_est/wrench_est_plugins.cpp)
 target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
+add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
 
 ### flight control plugin
 add_library(flight_control_pluginlib
