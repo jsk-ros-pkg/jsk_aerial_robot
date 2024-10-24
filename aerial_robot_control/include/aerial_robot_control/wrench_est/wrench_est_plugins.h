@@ -6,7 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_PLUGINS_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
-#include "aerial_robot_control/nmpc/i_term.h"
+#include "i_term.h"
 #include <cmath>
 
 namespace aerial_robot_control
