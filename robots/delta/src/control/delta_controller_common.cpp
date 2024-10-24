@@ -28,11 +28,6 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   lambda_all_.resize(motor_num_, 0.0);
   target_gimbal_angles_.resize(motor_num_, 0.0);
 
-  target_wrench_acc_cog_.resize(6);
-  target_wrench_control_frame_.resize(6);
-
-  target_acc_cog_.resize(6);
-
   full_lambda_all_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_trans_ = Eigen::VectorXd::Zero(2 * motor_num_);
   full_lambda_rot_ = Eigen::VectorXd::Zero(2 * motor_num_);
@@ -46,18 +41,15 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
-  gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
-  gimbal_indices_pub_ = nh_.advertise<std_msgs::UInt8MultiArray>("gimbal_indices", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
 
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
-  target_wrench_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_acc_cog", 1);
+  target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   gravity_compensate_term_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gravity_compensate_term", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
-  target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   exerted_wrench_cog_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/exerted_wrench_cog", 1);
   nlopt_log_pub_ = nh.advertise<std_msgs::Float32MultiArray>("debug/nlopt_log", 1);
 
@@ -101,8 +93,6 @@ void RollingController::rosParamInit()
   ros::NodeHandle control_nh(nh_, "controller");
 
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
-  getParam<bool>(control_nh, "use_sr_inv", use_sr_inv_, false);
-  getParam<double>(control_nh, "sr_inv_weight", sr_inv_weight_, 0.0);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
   getParam<double>(control_nh, "ground_mu", ground_mu_, 0.0);
@@ -114,6 +104,7 @@ void RollingController::rosParamInit()
 
   getParam<string>(nhp_, "tf_prefix", tf_prefix_, std::string(""));
 
+  /* get tilt angle of each thruster */
   auto robot_model_xml = robot_model_->getRobotModelXml("robot_description");
   for(int i = 0; i < motor_num_; i++)
     {
@@ -180,7 +171,7 @@ void RollingController::controlCore()
               ROS_ERROR_STREAM("[control] could not find parameter gravity_compensate_weights");
             else
               ROS_WARN_STREAM("[control] set ros parameter gravity_compensate_weights as [" << gravity_compensate_weights.at(0) << " " << gravity_compensate_weights.at(1) << " " << gravity_compensate_weights.at(2) << "]");
-            gravity_compensate_weights_ = Eigen::MatrixXd::Zero(3, 3);
+            gravity_compensate_weights_ = Eigen::Matrix3d::Zero();
             for(int i = 0; i < 3; i++)
               gravity_compensate_weights_(i, i) = gravity_compensate_weights.at(i);
 
@@ -225,6 +216,7 @@ void RollingController::controlCore()
 
         calcAccFromCog();
         calcFlightFullLambda();
+
         nonlinearWrenchAllocation();
         break;
       }
@@ -236,60 +228,24 @@ void RollingController::controlCore()
         /* for stand */
         rolling_robot_model_->setControlFrame("cp");
         robot_model_for_control_->setControlFrame("cp");
+
         standingPlanning();
-        calcTargetWrenchForGroundControl();
+        calcFeedbackTermForGroundControl();
+        calcFeedforwardTermForGroundControl();
         calcGroundFullLambda();
         nonlinearGroundWrenchAllocation();
         /* for stand */
         break;
       }
-
-    default:
-      {
-        ROS_ERROR_STREAM_THROTTLE(1.0, "[control] ground navigation mode is incorrect");
-        break;
-      }
     }
 
   /* common part */
-  // if(first_run_)
-  //   fullLambdaToActuatorInputs();
   resolveGimbalOffset();
   processGimbalAngles();
   calcYawTerm();
   /* common part */
 
   first_run_ = false;
-}
-
-void RollingController::fullLambdaToActuatorInputs()
-{
-  auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
-  auto gimbal_planning_angle = rolling_robot_model_->getGimbalPlanningAngle();
-  auto current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
-
-  int last_col = 0;
-  for(int i = 0; i < motor_num_; i++)
-    {
-      if(gimbal_planning_flag.at(i))
-        {
-          lambda_trans_.at(i) = full_lambda_trans_(last_col);
-          lambda_all_.at(i) = full_lambda_all_(last_col);
-          target_gimbal_angles_.at(i) = gimbal_planning_angle.at(i);
-          ROS_INFO_STREAM_THROTTLE(0.1, "[control] send planned gimbal" << i << " angle " << target_gimbal_angles_.at(i) << " current angle: " << current_gimbal_angles.at(i));
-        }
-      else
-        {
-          Eigen::VectorXd full_lambda_trans_i = full_lambda_trans_.segment(last_col, 2);
-          Eigen::VectorXd full_lambda_all_i = full_lambda_all_.segment(last_col, 2);
-          lambda_trans_.at(i) = full_lambda_trans_i.norm() / fabs(cos(rotor_tilt_.at(i)));
-          lambda_all_.at(i) = full_lambda_all_i.norm() / fabs(cos(rotor_tilt_.at(i)));
-
-          double gimbal_angle_i = atan2(-full_lambda_all_i(0), full_lambda_all_i(1));
-          target_gimbal_angles_.at(i) = gimbal_angle_i;
-        }
-      last_col += 2;
-    }
 }
 
 void RollingController::resolveGimbalOffset()
@@ -392,14 +348,6 @@ void RollingController::sendCmd()
     }
   target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
-  /*  target wrench in cog frame (flying mode) */
-  std_msgs::Float32MultiArray target_wrench_acc_cog_msg;
-  for(int i = 0; i < target_wrench_acc_cog_.size(); i++)
-    {
-      target_wrench_acc_cog_msg.data.push_back(target_wrench_acc_cog_(i));
-    }
-  target_wrench_acc_cog_pub_.publish(target_wrench_acc_cog_msg);
-
   /* gravity compensate term (ground mode) */
   std_msgs::Float32MultiArray gravity_compensate_term_msg;
   for(int i = 0; i < 3; i++)
@@ -424,9 +372,10 @@ void RollingController::sendCmd()
   /* target acc in world frame */
   // consider rotation in all axis
   std_msgs::Float32MultiArray target_acc_cog_msg;
-  for(int i = 0; i < target_acc_cog_.size(); i++)
+  Eigen::VectorXd target_acc_cog = getTargetAccCog();
+  for(int i = 0; i < target_acc_cog.size(); i++)
     {
-      target_acc_cog_msg.data.push_back(target_acc_cog_.at(i));
+      target_acc_cog_msg.data.push_back(target_acc_cog(i));
     }
   target_acc_cog_pub_.publish(target_acc_cog_msg);
 

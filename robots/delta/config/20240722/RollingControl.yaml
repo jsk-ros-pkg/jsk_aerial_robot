@@ -4,11 +4,7 @@ controller:
   control_verbose: false
   torque_allocation_matrix_inv_pub_interval: 0.02
   wrench_allocation_matrix_pub_interval: 0.1
-  use_sr_inv: false
-  sr_inv_weight: 0.1
   hovering_approximate: false
-  gimbal_lpf_factor: 1.0 # don't set to 0
-  realtime_gimbal_allocation: true
   wrench_estimate_flag: true
 
   rolling_minimum_lateral_force: 0.2
