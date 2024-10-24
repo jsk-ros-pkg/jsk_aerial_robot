@@ -1,32 +1,32 @@
 motor_info:
         min_pwm: 0.5 # 1000 [ms]
-        max_pwm: 0.85 # 1700 [ms]
+        max_pwm: 1.0 # 1700 [ms]
         min_thrust: 2.0 #  [N]
         force_landing_thrust: 6.0 #[N]
-        m_f_rate: -0.0157
+        m_f_rate: -0.068
         pwm_conversion_mode: 0 # SQRT Mode
         vel_ref_num: 4
         ref1:
-                voltage: 24.2
-                max_thrust: 21.37 # N 
-                polynominal2: 0.164519167 # x10
-                polynominal1: -16.225736115  # x10
-                polynominal0: 40.4484933567 # x1
+                voltage: 25.2
+                max_thrust: 18.2 # N 
+                polynominal2: 0.049570979 # x10
+                polynominal1: -1.694028402  # x10
+                polynominal0: -6.3614083809 # x1
         ref2:
-                voltage: 23.2
-                max_thrust: 19.97 # N 
-                polynominal2: 0.157560162 # x10
-                polynominal1: -15.703193407  # x10
-                polynominal0: 39.6576127189 # x1
-        ref3:
-                voltage: 22.2
-                max_thrust: 18.44 # N 
-                polynominal2: 0.145649905 # x10
-                polynominal1: -14.480281285 # x10
-                polynominal0: 36.4201880726 # x1
-        ref4:
-                voltage: 21.2
+                voltage: 24.2
                 max_thrust: 17.2 # N 
-                polynominal2: 0.127998309 # x10
-                polynominal1: -12.364605078  # x10
-                polynominal0: 29.8408179290 # x1
+                polynominal2: 0.053368778 # x10
+                polynominal1: -2.573161795   # x10
+                polynominal0: -2.5061175679 # x1
+        ref3:
+                voltage: 23.2
+                max_thrust: 16.3 # N 
+                polynominal2: 0.048899305 # x10
+                polynominal1: -2.190795284 # x10
+                polynominal0: -3.4027746294 # x1
+        ref4:
+                voltage: 22.2
+                max_thrust: 14.7 # N 
+                polynominal2: 0.038181188 # x10
+                polynominal1: -1.049692278  # x10
+                polynominal0: -6.4712746734 # x1
