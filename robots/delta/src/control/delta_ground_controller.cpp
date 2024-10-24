@@ -447,7 +447,12 @@ void RollingController::nonlinearGroundWrenchAllocation()
   slsqp_solver.add_inequality_mconstraint(nonlinearGroundWrenchAllocationInEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
   if(n_variables > 2 * motor_num_)
     {
-      if(first_run_) ROS_INFO_STREAM("[control] add constraint about joint torque");
+      if(first_run_)
+        {
+          ROS_INFO_STREAM("[control] add constraint about joint torque");
+          if(!getUseEstimatedExternalForce()) ROS_INFO_STREAM("[control] do not use estimated external force to joint torque calculation");
+          else ROS_WARN_STREAM("[control] use estimated external force to joint torque calculation");
+        }
       slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationTorqueConstraints, this, std::vector<double>(n_variables - 2 * motor_num_, 1e-4));
     }
 
