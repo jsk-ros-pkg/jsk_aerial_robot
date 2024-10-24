@@ -18,6 +18,9 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   initMPCSolverPtr();
   mpc_solver_ptr_->initialize();
 
+  /* init plugins */
+  initPlugins();
+
   /* init general parameters */
   initParams();
 

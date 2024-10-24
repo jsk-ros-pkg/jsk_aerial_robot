@@ -7,7 +7,7 @@
 
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_controller.h"
 #include "nmpc_solver.h"
-#include "aerial_robot_control/nmpc/i_term.h"
+#include "aerial_robot_control/wrench_est/wrench_est_base.h"
 
 #include "geometry_msgs/WrenchStamped.h"
 
@@ -27,6 +27,9 @@ public:
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
 
+  boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>> wrench_est_loader_ptr_;
+  boost::shared_ptr<aerial_robot_control::WrenchEstBase> wrench_est_ptr_;
+
 protected:
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
   geometry_msgs::Vector3 dist_force_w_ = geometry_msgs::Vector3();
@@ -36,6 +39,8 @@ protected:
   {
     mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoDistMdlMPCSolver>();
   }
+
+  void initPlugins() override;
 
   std::vector<double> meas2VecX() override;
 

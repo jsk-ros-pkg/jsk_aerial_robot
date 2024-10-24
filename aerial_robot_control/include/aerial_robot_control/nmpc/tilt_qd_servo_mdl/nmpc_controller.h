@@ -97,6 +97,7 @@ protected:
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
   /* initialize() */
+  virtual void initPlugins() {};
   virtual void initParams();
   virtual void initCostW();
   void setControlMode();
