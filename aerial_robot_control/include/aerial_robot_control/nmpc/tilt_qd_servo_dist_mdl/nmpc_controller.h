@@ -39,7 +39,7 @@ protected:
 
   std::vector<double> meas2VecX() override;
 
-  virtual void calcDisturbWrench() = 0;
+  virtual void calcDisturbWrench();
 
   void callbackViz(const ros::TimerEvent& event) override;
 };

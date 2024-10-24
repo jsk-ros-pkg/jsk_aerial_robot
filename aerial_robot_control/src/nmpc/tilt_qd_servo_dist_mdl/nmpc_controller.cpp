@@ -32,6 +32,10 @@ std::vector<double> nmpc::TiltQdServoDistNMPC::meas2VecX()
   return bx0;
 }
 
+void nmpc::TiltQdServoDistNMPC::calcDisturbWrench()
+{
+}
+
 /**
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
@@ -57,3 +61,7 @@ void nmpc::TiltQdServoDistNMPC::callbackViz(const ros::TimerEvent& event)
 
   pub_disturb_wrench_.publish(dist_wrench_);
 }
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoDistNMPC, aerial_robot_control::ControlBase);
