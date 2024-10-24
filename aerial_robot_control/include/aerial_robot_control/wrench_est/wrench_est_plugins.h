@@ -22,7 +22,8 @@ public:
     ROS_INFO("WrenchEstITerm initialize %f", du);
   }
 
-  void update(geometry_msgs::Pose pose_ref, geometry_msgs::Pose pose) override
+  void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
+              const tf::Quaternion& q) override
   {
     // do nothing
   }
@@ -40,7 +41,8 @@ public:
     ROS_INFO("WrenchEstAcc initialize");
   }
 
-  void update(geometry_msgs::Pose pose_ref, geometry_msgs::Pose pose) override
+  void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
+              const tf::Quaternion& q) override
   {
     // do nothing
   }

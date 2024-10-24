@@ -6,9 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_BASE_H
 
 #include <ros/ros.h>
-#include "geometry_msgs/Vector3.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/Twist.h"
+#include <tf/tf.h>
 
 namespace aerial_robot_control
 {
@@ -16,7 +14,8 @@ class WrenchEstBase
 {
 public:
   virtual void initialize(ros::NodeHandle nh, double ctrl_loop_du) = 0;
-  virtual void update(geometry_msgs::Pose pose_ref, geometry_msgs::Pose pose) = 0;
+  virtual void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
+                      const tf::Quaternion& q) = 0;
   virtual ~WrenchEstBase() = default;
 
   /* getter */
