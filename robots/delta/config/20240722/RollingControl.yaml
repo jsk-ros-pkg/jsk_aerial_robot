@@ -9,6 +9,7 @@ controller:
 
   rolling_minimum_lateral_force: 0.2
   ground_mu: 3.0
+  use_estimated_external_force: false
   opt_add_joint_torque_constraint: true
   nlopt:
     thrust_weight: 1.0

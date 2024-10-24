@@ -52,7 +52,9 @@ namespace aerial_robot_control
     Eigen::Vector3d getTargetWrenchCpFbTerm() {return target_wrench_cp_fb_term_;}
     Eigen::Vector3d getGravityCompensateTerm() {return gravity_compensate_term_;}
     const std::vector<Eigen::MatrixXd>& getGimbalLinkJacobians() {return gimbal_link_jacobians_;}
+    Eigen::MatrixXd getContactPointJacobian() {return contact_point_jacobian_;}
     Eigen::VectorXd getJointTorque() {return joint_torque_;}
+    bool getUseEstimatedExternalForce() {return use_estimated_external_force_;}
     double getGroundMu() {return ground_mu_;}
     const std::vector<double>& getOptInitialX() {return opt_initial_x_;};
     const std::vector<double>& getOptCostWeights() {return opt_cost_weights_;}
@@ -108,6 +110,7 @@ namespace aerial_robot_control
     /* joint torque */
     Eigen::VectorXd joint_torque_;
     std::vector<Eigen::MatrixXd> gimbal_link_jacobians_;
+    Eigen::MatrixXd contact_point_jacobian_;
 
     /* flight mode */
     Eigen::VectorXd target_acc_cog_;
@@ -119,6 +122,7 @@ namespace aerial_robot_control
     Eigen::Vector3d target_wrench_cp_fb_term_;
     Eigen::Matrix3d gravity_compensate_weights_;
     Eigen::Vector3d gravity_compensate_term_;
+    bool use_estimated_external_force_;
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
     std::vector<double> opt_cost_weights_;
@@ -150,7 +154,6 @@ namespace aerial_robot_control
 
     /* joint control */
     void jointTorquePreComputation();
-    void calcJointTorque();
 
     /* send command */
     void sendCmd();

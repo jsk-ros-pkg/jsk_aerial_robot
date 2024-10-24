@@ -96,6 +96,7 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
   getParam<double>(control_nh, "ground_mu", ground_mu_, 0.0);
+  getParam<bool>(control_nh, "use_estimated_external_force", use_estimated_external_force_, true);
 
   double circle_radius;
   getParam<double>(nh_, "circle_radius", circle_radius, 0.5);

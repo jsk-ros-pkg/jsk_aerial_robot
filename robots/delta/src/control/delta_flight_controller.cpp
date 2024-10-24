@@ -162,12 +162,15 @@ void nonlinearWrenchAllocationEqConstraints(unsigned m, double *result, unsigned
 
 void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsigned n, const double* x, double* grad, void* ptr)
 {
+  // tau + J_{lambda}^{t} w_{lambda} + J_{m_i}^{t} m_{i}g + J_{ext}^t w_{ext} = 0
+  // w_{ext} = [-f_{lambda, x}, -f_{lambda, y}, mg - f_{lambda, z}]^t or use estimated external wrench
+
   RollingController *controller = reinterpret_cast<RollingController*>(ptr);
   auto robot_model_for_control = controller->getRobotModelForControl();
 
   int motor_num = robot_model_for_control->getRotorNum();
 
-  const std::vector<Eigen::Matrix3d>& links_rotation_from_cog = robot_model_for_control->getLinksRotationFromCog<Eigen::Matrix3d>();
+  const std::vector<Eigen::Matrix3d>& links_rotation_from_control_frame = robot_model_for_control->getLinksRotationFromControlFrame<Eigen::Matrix3d>();
   const std::vector<double>& rotor_tilt = controller->getRotorTilt();
   const double m_f_rate = robot_model_for_control->getMFRate();
   const auto& sigma = robot_model_for_control->getRotorDirection();
@@ -178,7 +181,9 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
   Eigen::VectorXd tau = controller->getJointTorque(); // gimbal1, joint1, gimbal2, joint2, gimbal3
 
   /* consider joint torque by thrust */
+  Eigen::Vector3d exerted_force_cp = Eigen::Vector3d::Zero();
   const std::vector<Eigen::MatrixXd>& gimbal_link_jacobians = controller->getGimbalLinkJacobians();
+  Eigen::MatrixXd contact_point_jacobian = controller->getContactPointJacobian();
   for(int i = 0; i < motor_num; i++)
     {
       Eigen::Vector3d u_Li;
@@ -188,11 +193,28 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
          cos(x[i + motor_num]) * cos(rotor_tilt.at(i));
 
       Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
-      thrust_wrench_unit.head(3) = links_rotation_from_cog.at(i) * u_Li;
-      thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * u_Li;
+      thrust_wrench_unit.head(3) = links_rotation_from_control_frame.at(i) * u_Li;
+      thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_control_frame.at(i) * u_Li;
 
       Eigen::VectorXd wrench = thrust_wrench_unit * x[i];
       tau -= gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * wrench;
+
+      exerted_force_cp += thrust_wrench_unit.head(3) * x[i];
+    }
+
+  /* consider joint torque by external force */
+  int ground_navigation_mode = controller->getGroundNavigationMode();
+  if(ground_navigation_mode == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode == aerial_robot_navigation::ROLLING_STATE || ground_navigation_mode == aerial_robot_navigation::DOWN_STATE)
+    {
+      if(!controller->getUseEstimatedExternalForce())
+        {
+          Eigen::VectorXd contact_wrench = Eigen::VectorXd::Zero(6);
+          contact_wrench.head(3) = Eigen::Vector3d(-exerted_force_cp(0),
+                                                   -exerted_force_cp(1),
+                                                   robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2) - exerted_force_cp(2));
+
+          tau -= contact_point_jacobian.rightCols(joint_num).transpose() * contact_wrench;
+        }
     }
 
   /* set result using joint index */
@@ -228,16 +250,30 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
        -cos(x[i + motor_num]) * cos(rotor_tilt.at(i)),
        -sin(x[i + motor_num]) * cos(rotor_tilt.at(i));
 
-      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
-      thrust_wrench_unit.head(3) = links_rotation_from_cog.at(i) * u_Li;
-      thrust_wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * u_Li;
+      Eigen::VectorXd thrust_wrench_uniti = Eigen::VectorXd::Zero(6);
+      thrust_wrench_uniti.head(3) = links_rotation_from_control_frame.at(i) * u_Li;
+      thrust_wrench_uniti.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_control_frame.at(i) * u_Li;
 
-      Eigen::VectorXd dthrust_wrench_unit_dphi = Eigen::VectorXd::Zero(6);
-      dthrust_wrench_unit_dphi.head(3) = links_rotation_from_cog.at(i) * du_Li_dphi;
-      dthrust_wrench_unit_dphi.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_cog.at(i) * du_Li_dphi;
+      Eigen::VectorXd dthrust_wrench_uniti_dphi = Eigen::VectorXd::Zero(6);
+      dthrust_wrench_uniti_dphi.head(3) = links_rotation_from_control_frame.at(i) * du_Li_dphi;
+      dthrust_wrench_uniti_dphi.tail(3) = m_f_rate * sigma.at(i + 1) * links_rotation_from_control_frame.at(i) * du_Li_dphi;
 
-      dtau_dlambda.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * thrust_wrench_unit;
-      dtau_dphi.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * dthrust_wrench_unit_dphi * x[i];
+      dtau_dlambda.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * thrust_wrench_uniti;
+      dtau_dphi.block(0, i, joint_num, 1) = -gimbal_link_jacobians.at(i).rightCols(joint_num).transpose() * dthrust_wrench_uniti_dphi * x[i];
+
+      if(ground_navigation_mode == aerial_robot_navigation::STANDING_STATE || ground_navigation_mode == aerial_robot_navigation::ROLLING_STATE || ground_navigation_mode == aerial_robot_navigation::DOWN_STATE)
+        {
+          if(!controller->getUseEstimatedExternalForce())
+            {
+              Eigen::VectorXd thrust_force_uniti = Eigen::VectorXd::Zero(6);
+              Eigen::VectorXd dthrust_force_uniti_dphi = Eigen::VectorXd::Zero(6);
+              thrust_force_uniti.head(3) = thrust_wrench_uniti.head(3);
+              dthrust_force_uniti_dphi.head(3) = dthrust_wrench_uniti_dphi.head(3);
+
+              dtau_dlambda.block(0, i, joint_num, 1) -= contact_point_jacobian.rightCols(joint_num).transpose() * links_rotation_from_control_frame.at(i) * (-thrust_force_uniti);
+              dtau_dphi.block(0, i, joint_num, 1) -= contact_point_jacobian.rightCols(joint_num).transpose() * links_rotation_from_control_frame.at(i) * (-dthrust_force_uniti_dphi) * x[i];
+            }
+        }
     }
 
   /* thrust and gimbal part */
