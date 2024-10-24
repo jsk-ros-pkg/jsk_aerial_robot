@@ -6,5 +6,4 @@
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
 #include "aerial_robot_control/wrench_est/wrench_est_plugins.h"
 
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::WrenchEstITerm, aerial_robot_control::WrenchEstBase)
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::WrenchEstAcc, aerial_robot_control::WrenchEstBase)

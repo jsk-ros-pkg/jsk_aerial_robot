@@ -92,7 +92,7 @@ foreach(script ${ACADOS_PYTHON_SCRIPTS})
 endforeach()
 
 ### wrench_est_plugins
-add_library(wrench_est_plugins src/wrench_est/wrench_est_plugins.cpp)
+add_library(wrench_est_plugins src/wrench_est/wrench_est_i_term.cpp src/wrench_est/wrench_est_plugins.cpp)
 target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
 add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
 
