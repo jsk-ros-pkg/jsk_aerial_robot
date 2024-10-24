@@ -2,7 +2,11 @@
     <class type="aerial_robot_control::WrenchEstITerm" base_class_type="aerial_robot_control::WrenchEstBase">
         <description>Wrench estimation using I Term.</description>
     </class>
-    <class type="aerial_robot_control::WrenchEstAcc" base_class_type="aerial_robot_control::WrenchEstBase">
+    <class type="aerial_robot_control::WrenchEstAcceleration" base_class_type="aerial_robot_control::WrenchEstBase">
         <description>Wrench estimation using Acceleration-based method.</description>
     </class>
+    <class type="aerial_robot_control::WrenchEstMomentum" base_class_type="aerial_robot_control::WrenchEstBase">
+        <description>Wrench estimation using Momentum-based method.</description>
+    </class>
+
 </library>
