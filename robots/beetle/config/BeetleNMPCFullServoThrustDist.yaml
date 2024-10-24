@@ -1,5 +1,4 @@
 aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_qd/servo_thrust_dist_nmpc
-wrench_estimator_name: aerial_robot_control::WrenchEstITerm
 
 controller:
   nmpc:
@@ -40,19 +39,3 @@ controller:
 
     is_print_phys_params: false
     is_debug: false
-
-  i_term:
-    # disturb_rej
-    limit_fx: 5.0
-    limit_fy: 5.0
-    limit_fz: 5.0
-    limit_mx: 1.0
-    limit_my: 1.0
-    limit_mz: 1.0
-
-    i_gain_x: 0
-    i_gain_y: 0
-    i_gain_z: 5
-    i_gain_roll: 0.0
-    i_gain_pitch: 0.0
-    i_gain_yaw: 0.0

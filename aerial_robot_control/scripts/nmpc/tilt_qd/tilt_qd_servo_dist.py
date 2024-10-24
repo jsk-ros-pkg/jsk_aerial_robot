@@ -22,7 +22,7 @@ from phys_param_beetle_omni import *
 # read parameters from yaml
 rospack = rospkg.RosPack()
 
-nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullITerm.yaml")
+nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullDist.yaml")
 with open(nmpc_param_path, "r") as f:
     nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
