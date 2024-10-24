@@ -138,3 +138,7 @@ void nmpc::TiltQdServoThrustDistNMPC::cfgNMPCCallback(aerial_robot_control::NMPC
 {
   // TODO: finish this part.
 }
+
+/* plugin registration */
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoThrustDistNMPC, aerial_robot_control::ControlBase);

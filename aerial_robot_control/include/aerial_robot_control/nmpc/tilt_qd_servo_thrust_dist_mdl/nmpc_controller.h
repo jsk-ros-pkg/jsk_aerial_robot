@@ -46,8 +46,6 @@ protected:
 
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
 
-  void calcDisturbWrench() override = 0;
-
   std::vector<double> meas2VecX() override;
 
   void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i, const tf::Quaternion& ref_quat_ib,
