@@ -15,15 +15,26 @@ void RollingController::standingPlanning()
     }
 }
 
-void RollingController::calcTargetWrenchForGroundControl()
+void RollingController::calcFeedbackTermForGroundControl()
 {
   /* normal pid result */
-  Eigen::VectorXd target_wrench_control_frame;
-  target_wrench_control_frame.resize(6);
-  target_wrench_control_frame.tail(3) = rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
-                                                                                                                              pid_controllers_.at(PITCH).result(),
-                                                                                                                              pid_controllers_.at(YAW).result());
+  Eigen::Vector3d target_wrench_cp;
+  target_wrench_cp = rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * Eigen::Vector3d(pid_controllers_.at(ROLL).result(),
+                                                                                                           pid_controllers_.at(PITCH).result(),
+                                                                                                           pid_controllers_.at(YAW).result());
 
+  Eigen::Vector3d omega;
+  tf::vectorTFToEigen(omega_, omega);
+
+  target_wrench_cp
+    = target_wrench_cp
+    + omega.cross(rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * omega);
+
+  setTargetWrenchCpFbTerm(target_wrench_cp);
+}
+
+void RollingController::calcFeedforwardTermForGroundControl()
+{
   /* calculate gravity compensation term based on realtime orientation */
   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
   KDL::Frame contact_point_alined_to_cog = contact_point_alined_.Inverse() * cog;
@@ -32,18 +43,7 @@ void RollingController::calcTargetWrenchForGroundControl()
   Eigen::VectorXd gravity = robot_model_->getGravity3d();
   Eigen::Vector3d gravity_moment_from_contact_point_alined = contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
 
-  /* use sum of pid result and gravity compensation torque for attitude control */
-  Eigen::Vector3d omega;
-  tf::vectorTFToEigen(omega_, omega);
-
-  target_wrench_control_frame.tail(3)
-    = target_wrench_control_frame.tail(3)
-    + gravity_compensate_weights_ * gravity_moment_from_contact_point_alined
-    + omega.cross(rolling_robot_model_->getInertiaFromControlFrame<Eigen::Matrix3d>() * omega);
-
   gravity_compensate_term_ = gravity_compensate_weights_ * gravity_moment_from_contact_point_alined;
-
-  target_wrench_control_frame_ = target_wrench_control_frame;
 }
 
 void RollingController::calcGroundFullLambda()
@@ -79,11 +79,13 @@ void RollingController::calcGroundFullLambda()
   Eigen::VectorXd lower_bound(n_constraints);
   Eigen::VectorXd upper_bound(n_constraints);
 
+  Eigen::Vector3d target_wrench_cp = getTargetWrenchCpFbTerm() + getGravityCompensateTerm();
+
   lower_bound.head(n_constraints - n_variables)
     <<
-    target_wrench_control_frame_(ROLL),
-    target_wrench_control_frame_(PITCH),
-    target_wrench_control_frame_(YAW),
+    target_wrench_cp(0),
+    target_wrench_cp(1),
+    target_wrench_cp(2),
     -INFINITY,
     -ground_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
     -INFINITY,
@@ -92,9 +94,9 @@ void RollingController::calcGroundFullLambda()
 
   upper_bound.head(n_constraints - n_variables)
     <<
-    target_wrench_control_frame_(ROLL),
-    target_wrench_control_frame_(PITCH),
-    target_wrench_control_frame_(YAW),
+    target_wrench_cp(0),
+    target_wrench_cp(1),
+    target_wrench_cp(2),
     robot_model_->getMass() * robot_model_->getGravity()(Z),
     INFINITY,
     ground_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z),
@@ -267,7 +269,7 @@ void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, un
   double m_f_rate = robot_model_for_control->getMFRate();
   std::map<int, int> rotor_direction = robot_model_for_control->getRotorDirection();
 
-  Eigen::VectorXd target_wrench_control_frame = controller->getTargetWrenchControlFrameForOpt();
+  Eigen::Vector3d target_wrench_cp = controller->getTargetWrenchCpFbTerm() + controller->getGravityCompensateTerm();
 
   Eigen::VectorXd lambda = Eigen::VectorXd::Zero(motor_num);
   for(int i = 0; i < motor_num; i++) lambda(i) = x[i];
@@ -284,7 +286,7 @@ void nonlinearGroundWrenchAllocationEqConstraints(unsigned m, double *result, un
       Q_rot.block(0, i, 3, 1) = (aerial_robot_model::skew(rotors_origin_from_control_frame.at(i)) + m_f_rate * rotor_direction.at(i + 1) * Eigen::MatrixXd::Identity(3, 3)) * links_rotation_from_control_frame.at(i) * u_Li;
     }
 
-  Eigen::VectorXd torque_diff = Q_rot * lambda - target_wrench_control_frame.tail(3);
+  Eigen::VectorXd torque_diff = Q_rot * lambda - target_wrench_cp;
   for(int i = 0; i < m; i++) result[i] = torque_diff(i);
 
   if(grad == NULL) return;
@@ -361,12 +363,13 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
       Q_trans.block(0, i, 3, 1) = links_rotation_from_control_frame.at(i) * u_Li;
     }
 
+  double ground_mu = controller->getGroundMu();
   Eigen::VectorXd exerted_force = Q_trans * lambda;
   result[0] =  exerted_force(2) - robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
-  result[1] =  exerted_force(0) + controller->getGroundMuForOpt() * exerted_force(2) - controller->getGroundMuForOpt() * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
-  result[2] = -exerted_force(0) + controller->getGroundMuForOpt() * exerted_force(2) - controller->getGroundMuForOpt() * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
-  result[3] =  exerted_force(1) + controller->getGroundMuForOpt() * exerted_force(2) - controller->getGroundMuForOpt() * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
-  result[4] = -exerted_force(1) + controller->getGroundMuForOpt() * exerted_force(2) - controller->getGroundMuForOpt() * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
+  result[1] =  exerted_force(0) + ground_mu * exerted_force(2) - ground_mu * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
+  result[2] = -exerted_force(0) + ground_mu * exerted_force(2) - ground_mu * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
+  result[3] =  exerted_force(1) + ground_mu * exerted_force(2) - ground_mu * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
+  result[4] = -exerted_force(1) + ground_mu * exerted_force(2) - ground_mu * robot_model_for_control->getMass() * robot_model_for_control->getGravity()(2);
 
   if(grad == NULL) return;
 
@@ -374,10 +377,10 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
   for(int i = 0; i < motor_num; i++)
     {
       grad[0 * n + i] =  Q_trans(2, i);
-      grad[1 * n + i] =  Q_trans(0, i) + controller->getGroundMuForOpt() * Q_trans(2, i);
-      grad[2 * n + i] = -Q_trans(0, i) + controller->getGroundMuForOpt() * Q_trans(2, i);
-      grad[3 * n + i] =  Q_trans(1, i) + controller->getGroundMuForOpt() * Q_trans(2, i);
-      grad[4 * n + i] = -Q_trans(1, i) + controller->getGroundMuForOpt() * Q_trans(2, i);
+      grad[1 * n + i] =  Q_trans(0, i) + ground_mu * Q_trans(2, i);
+      grad[2 * n + i] = -Q_trans(0, i) + ground_mu * Q_trans(2, i);
+      grad[3 * n + i] =  Q_trans(1, i) + ground_mu * Q_trans(2, i);
+      grad[4 * n + i] = -Q_trans(1, i) + ground_mu * Q_trans(2, i);
     }
 
   // gimbal part
@@ -396,10 +399,10 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
   for(int i = 0; i < motor_num; i++)
     {
       grad[0 * n + (i + motor_num)] =  df_dphi(2, i);
-      grad[1 * n + (i + motor_num)] =  df_dphi(0, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
-      grad[2 * n + (i + motor_num)] = -df_dphi(0, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
-      grad[3 * n + (i + motor_num)] =  df_dphi(1, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
-      grad[4 * n + (i + motor_num)] = -df_dphi(1, i) + controller->getGroundMuForOpt() * df_dphi(2, i);
+      grad[1 * n + (i + motor_num)] =  df_dphi(0, i) + ground_mu * df_dphi(2, i);
+      grad[2 * n + (i + motor_num)] = -df_dphi(0, i) + ground_mu * df_dphi(2, i);
+      grad[3 * n + (i + motor_num)] =  df_dphi(1, i) + ground_mu * df_dphi(2, i);
+      grad[4 * n + (i + motor_num)] = -df_dphi(1, i) + ground_mu * df_dphi(2, i);
     }
 
   // joint torque part
