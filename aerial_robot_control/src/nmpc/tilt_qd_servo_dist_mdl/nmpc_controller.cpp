@@ -24,9 +24,14 @@ void nmpc::TiltQdServoDistNMPC::initPlugins()
       "aerial_robot_control", "aerial_robot_control::WrenchEstBase");
   try
   {
-    wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance("aerial_robot_control::WrenchEstITerm");
+    // 1. read the plugin name from the parameter server
+    std::string wrench_estimator_name;
+    nh_.param("wrench_estimator_name", wrench_estimator_name, std::string("aerial_robot_control::WrenchEstITerm"));
+
+    // 2. load the plugin
+    wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance(wrench_estimator_name);
     wrench_est_ptr_->initialize(nh_, ctrl_loop_du_);
-    ROS_INFO("Wrench estimator plugin loaded");  // TODO: change to instance name variable
+    ROS_INFO("load wrench estimator plugin: %s", wrench_estimator_name.c_str());
   }
   catch (pluginlib::PluginlibException& ex)
   {
