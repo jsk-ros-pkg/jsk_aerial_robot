@@ -111,4 +111,9 @@
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
+    ###########  Joy Stick  ###########
+    <include file="$(find aerial_robot_base)/launch/external_module/joy_stick.launch" >
+      <arg name="robot_name" value="$(arg robot_ns)" />
+    </include >
+
 </launch>
