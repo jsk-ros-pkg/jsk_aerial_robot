@@ -298,7 +298,11 @@ void nonlinearWrenchAllocationTorqueConstraints(unsigned m, double *result, unsi
 
 void RollingController::nonlinearWrenchAllocation()
 {
-  int n_variables = 2 * motor_num_;
+  int n_variables;
+  if(aerial_mode_add_joint_torque_constraints_)
+    n_variables = 2 * motor_num_ + robot_model_->getJointNum() - motor_num_;
+  else
+    n_variables = 2 * motor_num_;
 
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
@@ -307,12 +311,20 @@ void RollingController::nonlinearWrenchAllocation()
 
   if(first_run_)
     {
+      opt_x_prev_.resize(n_variables, 0.0);
       nlopt_log_.resize(n_variables, 0.0);
     }
+
+  if(n_variables > 2 * motor_num_) jointTorquePreComputation();
 
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearWrenchAllocationMinObjective, robot_model_for_control_.get());
   slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
+  if(n_variables > 2 * motor_num_)
+    {
+      if(first_run_) ROS_INFO_STREAM("[control] add constraint about joint torque for aerial mode");
+      slsqp_solver.add_equality_mconstraint(nonlinearWrenchAllocationTorqueConstraints, this, std::vector<double>(n_variables - 2 * motor_num_, 1e-4));
+    }
 
   std::vector<double> lb(n_variables, -INFINITY);
   std::vector<double> ub(n_variables, INFINITY);
@@ -330,7 +342,9 @@ void RollingController::nonlinearWrenchAllocation()
   slsqp_solver.set_ftol_rel(1e-6);
   slsqp_solver.set_maxeval(1000);
 
-  std::vector<double> opt_x(n_variables);
+  /* set initial variable */
+  std::vector<double> opt_x(n_variables, 0);
+  // thrust and gimbal part (use MP-invese matrix based solution)
   for(int i = 0; i < motor_num_; i++)
     {
       opt_x.at(i) = std::clamp((double)full_lambda_all_.segment(2 * i, 2).norm() / fabs(cos(rotor_tilt_.at(i))),
@@ -339,6 +353,12 @@ void RollingController::nonlinearWrenchAllocation()
       opt_x.at(i + motor_num_) = std::clamp((double)angles::normalize_angle(atan2(-full_lambda_all_(2 * i + 0), full_lambda_all_(2 * i + 1))),
                                             lb.at(i + motor_num_),
                                             ub.at(i + motor_num_));
+    }
+
+  // joint torque part (use previous solution)
+  for(int i = 0; i < n_variables - 2 * motor_num_; i++)
+    {
+      opt_x.at(2 * motor_num_ + i) = opt_x_prev_.at(2 * motor_num_ + i);
     }
 
   double max_val;
@@ -352,8 +372,14 @@ void RollingController::nonlinearWrenchAllocation()
 
   if (result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
 
-  for(int i = 0; i < opt_x.size(); i++) nlopt_log_.at(i) = opt_x.at(i);
+  for(int i = 0; i < opt_x.size(); i++)
+    {
+      nlopt_log_.at(i) = opt_x.at(i);
+      opt_x_prev_.at(i) = opt_x.at(i);
+    }
 
+
+  /* set optimal variables to actuator input */
   for(int i = 0; i < motor_num_; i++)
     {
       lambda_all_.at(i) = opt_x.at(i);
