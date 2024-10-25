@@ -9,10 +9,10 @@
 namespace aerial_robot_navigation
 {
 
-class BeetleOmniNavigator : public GimbalrotorNavigator
+class BeetleOmniNavigator : public BaseNavigator
 {
 public:
-  BeetleOmniNavigator() : GimbalrotorNavigator() {};
+  BeetleOmniNavigator() : BaseNavigator() {};
   ~BeetleOmniNavigator() override = default;
 
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
