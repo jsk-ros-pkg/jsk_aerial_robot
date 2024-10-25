@@ -418,7 +418,7 @@ void nonlinearGroundWrenchAllocationInEqConstraints(unsigned m, double *result, 
 void RollingController::nonlinearGroundWrenchAllocation()
 {
   int n_variables;
-  if(opt_add_joint_torque_constraints_)
+  if(ground_mode_add_joint_torque_constraints_)
     n_variables = 2 * motor_num_ + robot_model_->getJointNum() - motor_num_;
   else
     n_variables = 2 * motor_num_;
@@ -449,7 +449,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
     {
       if(first_run_)
         {
-          ROS_INFO_STREAM("[control] add constraint about joint torque");
+          ROS_INFO_STREAM("[control] add constraint about joint torque for ground mode");
           if(!getUseEstimatedExternalForce()) ROS_INFO_STREAM("[control] do not use estimated external force to joint torque calculation");
           else ROS_WARN_STREAM("[control] use estimated external force to joint torque calculation");
         }
@@ -479,7 +479,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
   slsqp_solver.set_maxeval(1000);
 
   /* set initial variable */
-  std::vector<double> opt_x(n_variables);
+  std::vector<double> opt_x(n_variables, 0);
   // thrust and gimbal part (use osqp solution)
   for(int i = 0; i < motor_num_; i++)
     {
@@ -512,7 +512,11 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   if(result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
 
-  for(int i = 0; i < opt_x.size(); i++) nlopt_log_.at(i) = opt_x.at(i);
+  for(int i = 0; i < n_variables; i++)
+    {
+      nlopt_log_.at(i) = opt_x.at(i);
+      opt_x_prev_.at(i) = opt_x.at(i);
+    }
 
   /* set optimal variables to actuator input */
   for(int i = 0; i < motor_num_; i++)
@@ -521,9 +525,6 @@ void RollingController::nonlinearGroundWrenchAllocation()
       lambda_trans_.at(i) = opt_x.at(i);
       target_gimbal_angles_.at(i) = opt_x.at(i + motor_num_);
     }
-
-  for(int i = 0; i < n_variables; i++)
-    opt_x_prev_.at(i) = opt_x.at(i);
 }
 
 void RollingController::cfgNloptCallback(delta::nloptConfig &config, uint32_t level)

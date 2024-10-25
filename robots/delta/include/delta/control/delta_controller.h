@@ -115,6 +115,7 @@ namespace aerial_robot_control
     /* flight mode */
     Eigen::VectorXd target_acc_cog_;
     bool hovering_approximate_;
+    bool aerial_mode_add_joint_torque_constraints_;
 
     /* ground mode */
     double ground_mu_;
@@ -126,7 +127,7 @@ namespace aerial_robot_control
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
     std::vector<double> opt_cost_weights_;
-    bool opt_add_joint_torque_constraints_;
+    bool ground_mode_add_joint_torque_constraints_;
     double opt_joint_torque_weight_;
     boost::shared_ptr<nloptConfig> nlopt_reconf_server_;
 

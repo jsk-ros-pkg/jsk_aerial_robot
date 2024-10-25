@@ -115,7 +115,8 @@ void RollingController::rosParamInit()
     }
 
   /* get optimization weights for nonlinear wrench allocation */
-  getParam<bool>(control_nh, "opt_add_joint_torque_constraint", opt_add_joint_torque_constraints_, false);
+  getParam<bool>(control_nh, "aerial_mode_add_joint_torque_constraint", aerial_mode_add_joint_torque_constraints_, false);
+  getParam<bool>(control_nh, "ground_mode_add_joint_torque_constraint", ground_mode_add_joint_torque_constraints_, false);
   ros::NodeHandle nlopt_nh(control_nh, "nlopt");
   {
     double whatever; opt_cost_weights_.resize(0);

@@ -4,13 +4,15 @@ controller:
   control_verbose: false
   torque_allocation_matrix_inv_pub_interval: 0.02
   wrench_allocation_matrix_pub_interval: 0.1
-  hovering_approximate: false
   wrench_estimate_flag: true
+
+  hovering_approximate: false
+  aerial_mode_add_joint_torque_constraint: false
 
   rolling_minimum_lateral_force: 0.2
   ground_mu: 3.0
   use_estimated_external_force: false
-  opt_add_joint_torque_constraint: true
+  ground_mode_add_joint_torque_constraint: true
   nlopt:
     thrust_weight: 1.0
     gimbal_linear_solution_dist_weight: 1.0
