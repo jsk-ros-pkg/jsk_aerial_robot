@@ -379,11 +379,11 @@
 
     <link name="battery_1">
       <inertial>
-       <origin xyz="0.12 0.029 0.0000178" rpy="0 0 0"/>
-        <mass value="0.18778"/>
+        <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
+        <mass value="0.40700000"/>
         <inertia
-            ixx="0.00119072" iyy="0.00041760" izz="0.00154581"
-            ixy="0.00012643" ixz=" -0.00000030" iyz="-0.00000017"/>
+            ixx="0.00010170" iyy="0.00060259" izz="0.00062827"
+            ixy="0.000" ixz=" 0.000000" iyz="0.0000"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -403,7 +403,7 @@
 
     <link name="battery_2">
       <inertial>
-       <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
+        <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
         <mass value="0.40700000"/>
         <inertia
             ixx="0.00010170" iyy="0.00060259" izz="0.00062827"
