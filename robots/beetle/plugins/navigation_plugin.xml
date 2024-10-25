@@ -3,3 +3,9 @@
     <description>plugin for beetle navigation </description>
   </class>
 </library>
+
+<library path="lib/libbeetle_navigation">
+<class name="aerial_robot_navigation/beetle_omni_navigation" type="aerial_robot_navigation::BeetleNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+  <description>plugin for beetle navigation </description>
+</class>
+</library>
