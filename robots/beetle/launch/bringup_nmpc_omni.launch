@@ -32,8 +32,9 @@
     <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
     <param name = "robot_id" value="$(arg robot_id)"/>
+
    ###########  Robot Model  ###########
-   <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/BeetleOmniRobotModel.yaml" command="load" />
 
    ###########  Motor Config  ###########
    <rosparam file="$(arg config_dir)/MotorInfoDShot.yaml" command="load" />

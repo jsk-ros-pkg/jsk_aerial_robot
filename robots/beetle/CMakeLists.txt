@@ -35,7 +35,7 @@ add_dependencies(beetle_sensor_pluginlib aerial_robot_msgs_generate_messages_cpp
 add_library(beetle_controller src/control/beetle_controller.cpp)
 target_link_libraries(beetle_controller beetle_sensor_pluginlib ${catkin_LIBRARIES})
 
-add_library(beetle_robot_model src/model/beetle_robot_model.cpp)
+add_library(beetle_robot_model src/model/beetle_robot_model.cpp src/model/beetle_omni_robot_model.cpp)
 target_link_libraries(beetle_robot_model ${catkin_LIBRARIES})
 
 add_library(beetle_navigation src/beetle_navigation.cpp src/beetle_omni_navigation.cpp)

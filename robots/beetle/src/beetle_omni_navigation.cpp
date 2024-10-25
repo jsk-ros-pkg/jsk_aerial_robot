@@ -1,6 +1,6 @@
 // -*- mode: c++ -*-
 
-#include <beetle/beetle_omni_navigation.h>
+#include "beetle/beetle_omni_navigation.h"
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;
@@ -12,14 +12,7 @@ void BeetleOmniNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   GimbalrotorNavigator::initialize(nh, nhp, robot_model, estimator);
   nh_ = nh;
   nhp_ = nhp;
-  beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleRobotModel>(robot_model);
-}
-
-void BeetleOmniNavigator::update()
-{
-  beetle_robot_model_->calcCenterOfMoving();
-  GimbalrotorNavigator::update();
-  beetle_robot_model_->setHoveringFlag((getNaviState() == HOVER_STATE));
+  beetle_robot_model_ = boost::dynamic_pointer_cast<BeetleOmniRobotModel>(robot_model);
 }
 
 /* plugin registration */
