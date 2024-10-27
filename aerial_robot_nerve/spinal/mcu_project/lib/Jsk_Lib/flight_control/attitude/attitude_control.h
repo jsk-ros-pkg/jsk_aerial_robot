@@ -86,6 +86,7 @@ public:
   void setStartControlFlag(bool start_control_flag);
   void setUavModel(int8_t uav_model);
   inline uint8_t getMotorNumber(){return motor_number_;}
+  inline const ap::Matrix3f getOffsetRotation()  { return offset_rot_; }
 
   void setMotorNumber(uint8_t motor_number);
   void setPwmTestMode(bool pwm_test_flag){pwm_test_flag_ = pwm_test_flag; }
@@ -107,7 +108,6 @@ private:
 #endif
 
   ros::NodeHandle* nh_;
-
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
   ros::Publisher control_feedback_state_pub_;
@@ -123,6 +123,7 @@ private:
   ros::Subscriber p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber torque_allocation_matrix_inv_sub_;
   ros::Subscriber sim_vol_sub_;
+  ros::Subscriber offset_rot_sub_;
   ros::Publisher anti_gyro_pub_;
   ros::ServiceServer att_control_srv_;
 
@@ -137,6 +138,7 @@ private:
   ros::Subscriber<spinal::PwmTest, AttitudeController> pwm_test_sub_;
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
   ros::Subscriber<spinal::TorqueAllocationMatrixInv, AttitudeController> torque_allocation_matrix_inv_sub_;
+  ros::Subscriber<spinal::DesireCoord, AttitudeController> offset_rot_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
@@ -173,6 +175,9 @@ private:
   float extra_yaw_pi_term_[MAX_MOTOR_NUMBER]; //[N]
   int max_yaw_term_index_;
 
+  // Offset Rotation from the control frame to the estimation frame
+  ap::Matrix3f offset_rot_;
+
   // Gyro Moment Compensation
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
   ap::Matrix3f inertia_;
@@ -203,6 +208,8 @@ private:
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
+  void offsetRotCallback(const spinal::DesireCoord& msg);
+
   void thrustGainMapping();
   void maxYawGainIndex();
   void pwmTestCallback(const spinal::PwmTest& pwm_msg);
@@ -220,15 +227,8 @@ private:
   }
 
 #ifdef SIMULATION
-  bool use_ground_truth_;
   uint32_t HAL_GetTick(){ return ros::Time::now().toSec() * 1000; }
-
 public:
-  void useGroundTruth(bool flag) { use_ground_truth_ = flag; }
-  void setTrueRPY(float r, float p, float y) {true_angles_.x = r; true_angles_.y = p; true_angles_.z = y; }
-  void setTrueAngular(float wx, float wy, float wz) {true_vel_.x = wx; true_vel_.y = wy; true_vel_.z = wz; }
-  ap::Vector3f true_angles_;
-  ap::Vector3f true_vel_;
   float DELTA_T;
   double prev_time_;
 #endif

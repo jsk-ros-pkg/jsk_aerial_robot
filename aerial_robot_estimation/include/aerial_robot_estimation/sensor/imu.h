@@ -77,11 +77,11 @@ namespace sensor_plugin
     double sensor_dt_;
 
     /* imu */
-    tf::Vector3 g_b_; /* the *opposite* gravity vector in baselink frame */
     tf::Vector3 omega_; /* the omega both of body frame */
     tf::Vector3 mag_; /* the magnetometer of body frame */
-    /* acc */
     tf::Vector3 acc_b_; /* the acceleration in baselink frame */
+    tf::Matrix3x3 raw_rot_; /* the raw rotation matrix from IMU */
+    /* acc */
     std::array<tf::Vector3, 2> acc_w_; /* the acceleration in world frame, for estimate_mode and expriment_mode */
     std::array<tf::Vector3, 2> acc_non_bias_w_; /* the acceleration without bias in world frame for estimate_mode and expriment_mode */
     /* acc bias */

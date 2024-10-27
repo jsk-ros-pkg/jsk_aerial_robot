@@ -48,7 +48,6 @@ namespace sensor_plugin
     sensor_plugin::SensorBase(),
     calib_count_(200),
     acc_b_(0, 0, 0),
-    g_b_(0, 0, 0),
     omega_(0, 0, 0),
     mag_(0, 0, 0),
     acc_bias_b_(0, 0, 0),
@@ -69,6 +68,7 @@ namespace sensor_plugin
     acc_bias_w_.at(0) = tf::Vector3(0, 0, 0);
     acc_bias_w_.at(1) = tf::Vector3(0, 0, 0);
 
+    raw_rot_.setIdentity();
   }
 
   void Imu::initialize(ros::NodeHandle nh,
@@ -92,18 +92,27 @@ namespace sensor_plugin
 
     for(int i = 0; i < 3; i++)
       {
-        if(std::isnan(imu_msg->acc_data[i]) || std::isnan(imu_msg->angles[i]) ||
-           std::isnan(imu_msg->gyro_data[i]) || std::isnan(imu_msg->mag_data[i]))
+        if(std::isnan(imu_msg->acc[i]) || std::isnan(imu_msg->gyro[i]) || std::isnan(imu_msg->mag[i]))
           {
-            ROS_ERROR_THROTTLE(1.0, "IMU sensor publishes Nan value!");
+            ROS_ERROR_THROTTLE(1.0, "IMU plugin receives Nan value in IMU sensors !");
             return;
           }
 
-        acc_b_[i] = imu_msg->acc_data[i]; // baselink frame
-        omega_[i] = imu_msg->gyro_data[i];  // baselink frame
-        mag_[i] = imu_msg->mag_data[i];  // baselink frame
-        g_b_[i] = imu_msg->angles[i];  // workaround to avoid the singularity of RPY Euler angles.
+        acc_b_[i] = imu_msg->acc[i]; // baselink frame
+        omega_[i] = imu_msg->gyro[i];  // baselink frame
+        mag_[i] = imu_msg->mag[i];  // baselink frame
        }
+
+    if(std::isnan(imu_msg->quaternion[0]) || std::isnan(imu_msg->quaternion[1]) ||
+       std::isnan(imu_msg->quaternion[2]) || std::isnan(imu_msg->quaternion[3]))
+      {
+        ROS_ERROR_THROTTLE(1.0, "IMU plugin receives Nan value in Quaternion!");
+        return;
+      }
+
+    tf::Quaternion raw_q(imu_msg->quaternion[0], imu_msg->quaternion[1],
+                         imu_msg->quaternion[2], imu_msg->quaternion[3]);
+    raw_rot_ = tf::Matrix3x3(raw_q);
 
     estimateProcess();
     updateHealthStamp();
@@ -124,11 +133,9 @@ namespace sensor_plugin
     tf::Transform cog2baselink_tf;
     tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
 
-    tf::Vector3 wz_b = g_b_.normalize();
-
-    tf::Vector3 mag = mag_.normalize();
-    tf::Vector3 wx_b = mag.cross(wz_b);
-    wx_b.normalize();
+    tf::Vector3 wx_b = raw_rot_.getRow(0);
+    tf::Vector3 wy_b = raw_rot_.getRow(1);
+    tf::Vector3 wz_b = raw_rot_.getRow(2);
 
     // 1. egomotion estimate mode
     //  check whether have valid rotation from VO sensor
@@ -143,16 +150,15 @@ namespace sensor_plugin
                 tf::Matrix3x3 vo_rot = vo_handler->getRawBaselinkTF().getBasis();
                 // we replace the wx_b with the value from VO.
                 wx_b = vo_rot.transpose() * tf::Vector3(1,0,0);
+                wy_b = wz_b.cross(wx_b);
+                wy_b.normalize();
                 break;
               }
           }
       }
 
-    tf::Vector3 wy_b = wz_b.cross(wx_b);
-    wy_b.normalize();
-    tf::Matrix3x3 rot(wx_b.x(), wx_b.y(), wx_b.z(),
-                      wy_b.x(), wy_b.y(), wy_b.z(),
-                      wz_b.x(), wz_b.y(), wz_b.z());
+    tf::Matrix3x3 rot;
+    rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
 
     base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) = rot;
     estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, rot);
@@ -170,13 +176,11 @@ namespace sensor_plugin
         tf::Matrix3x3 gt_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
         // we replace the wx_b with the value from ground truth.
         wx_b = gt_rot.transpose() * tf::Vector3(1,0,0);
+        wy_b = wz_b.cross(wx_b);
+        wy_b.normalize();
       }
 
-    wy_b = wz_b.cross(wx_b);
-    wy_b.normalize();
-    rot = tf::Matrix3x3(wx_b.x(), wx_b.y(), wx_b.z(),
-                        wy_b.x(), wy_b.y(), wy_b.z(),
-                        wz_b.x(), wz_b.y(), wz_b.z());
+    rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
 
     base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) = rot;
     estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, rot);

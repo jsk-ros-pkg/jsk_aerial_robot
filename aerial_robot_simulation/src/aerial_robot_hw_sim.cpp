@@ -276,13 +276,11 @@ namespace gazebo_ros_control
     odom_msg.twist.twist.angular.z = w.Z() + gazebo::addNoise(ground_truth_angular_curr_drift_.Z(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
 
     /* set ground truth for controller: use the value with noise */
-    spinal_interface_.setTrueBaselinkOrientation(q_noise.X(),
-                                                 q_noise.Y(),
-                                                 q_noise.Z(),
-                                                 q_noise.W());
-    spinal_interface_.setTrueBaselinkAngular(odom_msg.twist.twist.angular.x,
-                                             odom_msg.twist.twist.angular.y,
-                                             odom_msg.twist.twist.angular.z);
+    spinal_interface_.setGroundTruthStates(q_noise.X(), q_noise.Y(),
+                                           q_noise.Z(), q_noise.W(),
+                                           odom_msg.twist.twist.angular.x,
+                                           odom_msg.twist.twist.angular.y,
+                                           odom_msg.twist.twist.angular.z);
 
 
     if(time.toSec() - last_ground_truth_time_.toSec() > ground_truth_pub_rate_)

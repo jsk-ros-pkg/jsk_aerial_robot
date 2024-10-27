@@ -58,7 +58,6 @@ public:
 
   inline AttitudeController& getAttController(){ return att_controller_;}
 
-  void useGroundTruth(bool flag) { att_controller_.useGroundTruth(flag); }
 #else
   FlightControl():
     config_ack_pub_("flight_config_ack", &config_ack_msg_),

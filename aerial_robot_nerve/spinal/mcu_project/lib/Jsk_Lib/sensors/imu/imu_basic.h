@@ -23,12 +23,9 @@ private:
   static constexpr uint8_t ACC_LPF_FACTOR = 42; // old: 16
   static constexpr uint8_t GYRO_LPF_FACTOR = 12; //old: 8
   static constexpr int MAG_OUTLIER_MAX_COUNT = 500; //= 500ms, 1count = 1ms
-  Vector3f gyro_, acc_, mag_; //board frame
-  Vector3f gyro_v_, acc_v_, mag_v_; //virtual frame
-  bool virtual_frame_; /* flag to decide wether use virtual frame */
-
+  Vector3f gyro_, acc_, mag_;
   Vector3f raw_acc_, raw_gyro_, raw_mag_;
-  Vector3f raw_gyro_p_, raw_acc_p_;
+  Vector3f raw_acc_p_, raw_gyro_p_;
   Vector3f mag_max_, mag_min_;
   bool mag_filtering_flag_;
   uint16_t mag_outlier_counter_;
@@ -52,33 +49,9 @@ protected:
 public:
   IMU();
   void init();
-  Vector3f getGyro(bool force_board_frame = false)
-  {
-    if(force_board_frame) return gyro_;
-
-    if(virtual_frame_) return gyro_v_;
-    else return gyro_;
-  }
-
-  Vector3f getAcc(bool force_board_frame = false)
-  {
-    if(force_board_frame) return acc_;
-
-    if(virtual_frame_) return acc_v_;
-    else return acc_;
-  }
-
-  Vector3f getMag(bool force_board_frame = false)
-  {
-    if(force_board_frame) return mag_;
-
-    if(virtual_frame_) return mag_v_;
-    else return mag_;
-  }
-
-  inline void setGyroV(Vector3f gyro_v) { gyro_v_ = gyro_v; }
-  inline void setAccV(Vector3f acc_v) { acc_v_ = acc_v; }
-  inline void setMagV(Vector3f mag_v) { mag_v_ = mag_v; }
+  Vector3f getGyro() { return gyro_; }
+  Vector3f getAcc() { return acc_; }
+  Vector3f getMag() { return mag_; }
 
   bool getUpdate() {return update_;}
   void setUpdate(bool update) {update_ = update;}
@@ -99,8 +72,7 @@ public:
   void accCalib(bool flag, float duration);
   void magCalib(bool flag, float duration);
   void resetCalib() ;
-  inline bool getVirtualFrame() {return virtual_frame_;}
-  inline void setVirtualFrame(bool virtual_frame) { virtual_frame_ = virtual_frame;}
+
 
   static constexpr uint32_t GYRO_DEFAULT_CALIB_DURATION = 3; // 3s
   static constexpr uint32_t ACC_DEFAULT_CALIB_DURATION = 5; // 5s
