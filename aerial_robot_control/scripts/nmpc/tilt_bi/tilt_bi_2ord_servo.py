@@ -20,7 +20,7 @@ from phys_param_birotor import *
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBiRotorNMPC.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBi2OrdRotorNMPC.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = param_dict["controller"]["nmpc"]

@@ -1,0 +1,41 @@
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltBi2OrdServoMdlMPCSolver
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_bi/2_ord_servo_nmpc
+
+controller:
+  nmpc:
+    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+    T_pred: 2.0  # seconds
+    T_integ: 0.1  # seconds
+
+    # constraint
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
+
+    v_max: 1
+    v_min: -1
+
+    thrust_max: 18 # N
+    thrust_min: 0 # N
+
+    a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
+    a_min: -1.5708
+
+    # params for the cost function
+    Qp_xy: 300
+    Qp_z: 400
+    Qv_xy: 10
+    Qv_z: 10
+    Qq_xy: 300
+    Qq_z: 600
+    Qw_xy: 5
+    Qw_z: 5
+    Qa: 1
+    Qb: 5
+    Rt: 1
+    Rac_d: 250  # difference of ac
+
+    is_attitude_ctrl: false
+    is_body_rate_ctrl: false
+
+    is_print_phys_params: false
+    is_debug: false

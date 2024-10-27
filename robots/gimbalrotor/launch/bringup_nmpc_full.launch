@@ -20,7 +20,7 @@
   <arg name="config_dir" default="$(find gimbalrotor)/config"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="gimbalrotor$(arg robot_id)" />
-  <arg name="airframe" default="tri" />
+  <arg name="airframe" default="tri" /> <!-- tri or bi or bi2 -->
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -40,7 +40,7 @@
 
    ###########  Servo Config  ###########
    <rosparam file="$(arg config_dir)/tri/Servo.yaml" command="load" if="$(eval airframe =='tri')"/>
-   <rosparam file="$(arg config_dir)/bi/Servo.yaml" command="load" if="$(eval airframe =='bi')"/>
+   <rosparam file="$(arg config_dir)/bi/Servo.yaml" command="load" if="$(eval airframe == 'bi' or airframe == 'bi2')"/>
 
    ###########  Battery Config  ###########
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -48,8 +48,9 @@
    ###########  Control  ###########
    <rosparam file="$(arg config_dir)/PhysParamTrirotor.yaml" command="load" if="$(eval airframe =='tri')" />
    <rosparam file="$(arg config_dir)/TiltTriRotorNMPC.yaml" command="load" if="$(eval airframe =='tri')" />
-   <rosparam file="$(arg config_dir)/PhysParamBirotor.yaml" command="load" if="$(eval airframe =='bi')" />
-   <rosparam file="$(arg config_dir)/TiltBiRotorNMPC.yaml" command="load" if="$(eval airframe =='bi')" />
+   <rosparam file="$(arg config_dir)/PhysParamBirotor.yaml" command="load" if="$(eval airframe == 'bi' or airframe == 'bi2')" />
+   <rosparam file="$(arg config_dir)/TiltBiRotorNMPC.yaml" command="load" if="$(eval airframe == 'bi')" />
+    <rosparam file="$(arg config_dir)/TiltBi2OrdRotorNMPC.yaml" command="load" if="$(eval airframe =='bi2')" />
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
@@ -74,7 +75,7 @@
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
     <arg name="robot_model" value="$(find gimbalrotor)/robots/tri/gimbalrotor.$(arg description_mode).xacro" if="$(eval airframe=='tri')"/>
-    <arg name="robot_model" value="$(find gimbalrotor)/robots/bi/gimbalrotor.$(arg description_mode).xacro" if="$(eval airframe=='bi')"/>
+    <arg name="robot_model" value="$(find gimbalrotor)/robots/bi/gimbalrotor.$(arg description_mode).xacro" if="$(eval airframe== 'bi' or airframe =='bi2')"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/nmpc.rviz" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
