@@ -38,7 +38,7 @@ target_link_libraries(beetle_controller beetle_sensor_pluginlib ${catkin_LIBRARI
 add_library(beetle_robot_model src/model/beetle_robot_model.cpp src/model/beetle_omni_robot_model.cpp)
 target_link_libraries(beetle_robot_model ${catkin_LIBRARIES})
 
-add_library(beetle_navigation src/beetle_navigation.cpp src/beetle_omni_navigation.cpp)
+add_library(beetle_navigation src/beetle_navigation.cpp)
 target_link_libraries(beetle_navigation ${catkin_LIBRARIES})
 
 install(TARGETS beetle_sensor_pluginlib beetle_robot_model beetle_controller beetle_navigation 
