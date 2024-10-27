@@ -23,7 +23,9 @@ class WrenchEstITerm : public WrenchEstBase
 public:
   WrenchEstITerm() = default;
 
-  void initialize(ros::NodeHandle nh, double ctrl_loop_du) override;
+  void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
+                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator, double ctrl_loop_du) override;
   void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
               const tf::Quaternion& q) override;
 

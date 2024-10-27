@@ -30,7 +30,7 @@ void nmpc::TiltQdServoDistNMPC::initPlugins()
 
     // 2. load the plugin
     wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance(wrench_estimator_name);
-    wrench_est_ptr_->initialize(nh_, ctrl_loop_du_);
+    wrench_est_ptr_->initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
     ROS_INFO("load wrench estimator plugin: %s", wrench_estimator_name.c_str());
   }
   catch (pluginlib::PluginlibException& ex)

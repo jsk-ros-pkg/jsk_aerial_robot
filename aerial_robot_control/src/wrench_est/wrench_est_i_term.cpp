@@ -7,9 +7,12 @@
 namespace aerial_robot_control
 {
 
-void WrenchEstITerm::initialize(ros::NodeHandle nh, double ctrl_loop_du)
+void WrenchEstITerm::initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
+                                boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
+                                boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator,
+                                double ctrl_loop_du)
 {
-  setCtrlLoopDu(ctrl_loop_du);
+  WrenchEstBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
 
   ros::NodeHandle i_term_nh(nh, "controller/i_term");
 

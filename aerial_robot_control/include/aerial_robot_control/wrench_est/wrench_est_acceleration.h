@@ -15,8 +15,11 @@ class WrenchEstAcceleration : public aerial_robot_control::WrenchEstBase
 public:
   WrenchEstAcceleration() = default;
 
-  void initialize(ros::NodeHandle nh, double ctrl_loop_du) override
+  void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
+                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator, double ctrl_loop_du)
   {
+    WrenchEstBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
     ROS_INFO("WrenchEstAcceleration initialize");
   }
 
