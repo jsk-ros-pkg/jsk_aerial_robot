@@ -29,11 +29,6 @@ protected:
   std::vector<double> thrust_meas_;
   ros::Subscriber sub_esc_telem_;
 
-  inline void initMPCSolverPtr() override
-  {
-    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoThrustDistMdlMPCSolver>();
-  }
-
   inline void initActuatorStates() override
   {
     nmpc::TiltQdServoNMPC::initActuatorStates();

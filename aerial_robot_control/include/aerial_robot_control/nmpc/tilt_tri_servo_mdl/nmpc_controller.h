@@ -17,11 +17,6 @@ namespace nmpc
 class TiltTriServoNMPC : public nmpc::TiltQdServoNMPC
 {
 protected:
-  inline void initMPCSolverPtr() override
-  {
-    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltTriServoMdlMPCSolver>();
-  }
-
   void initAllocMat() override;
 };
 

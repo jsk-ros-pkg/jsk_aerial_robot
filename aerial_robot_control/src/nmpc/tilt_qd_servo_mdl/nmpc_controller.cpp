@@ -12,11 +12,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                        boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                        double ctrl_loop_du)
 {
-  ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
-
-  /* init mpc solver */
-  initMPCSolverPtr();
-  mpc_solver_ptr_->initialize();
+  BaseMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   /* init plugins */
   initPlugins();
@@ -513,7 +509,7 @@ std::vector<double> nmpc::TiltQdServoNMPC::meas2VecX()
 
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Quaternion quat  = estimator_->getQuat(Frame::COG, estimate_mode_);
+  tf::Quaternion quat = estimator_->getQuat(Frame::COG, estimate_mode_);
   tf::Vector3 ang_vel = estimator_->getAngularVel(Frame::COG, estimate_mode_);
 
   bx0[0] = pos.x();

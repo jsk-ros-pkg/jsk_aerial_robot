@@ -35,11 +35,6 @@ protected:
   geometry_msgs::Vector3 dist_force_w_ = geometry_msgs::Vector3();
   geometry_msgs::Vector3 dist_torque_cog_ = geometry_msgs::Vector3();
 
-  inline void initMPCSolverPtr() override
-  {
-    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltQdServoDistMdlMPCSolver>();
-  }
-
   void initPlugins() override;
 
   std::vector<double> meas2VecX() override;

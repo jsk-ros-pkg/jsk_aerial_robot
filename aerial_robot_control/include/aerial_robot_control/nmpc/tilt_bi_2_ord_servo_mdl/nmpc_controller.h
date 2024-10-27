@@ -31,11 +31,6 @@ protected:
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg) override;
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
-
-  inline void initMPCSolverPtr() override
-  {
-    mpc_solver_ptr_ = std::make_unique<mpc_solver::TiltBi2OrdServoMdlMPCSolver>();
-  }
 };
 
 };  // namespace nmpc

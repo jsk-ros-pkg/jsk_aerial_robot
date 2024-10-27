@@ -22,7 +22,47 @@ class BaseMPC : public ControlBase
 {
 public:
 protected:
+  // define MPC solver
+  boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::mpc_solver::BaseMPCSolver>> mpc_solver_loader_ptr_;
+  boost::shared_ptr<aerial_robot_control::mpc_solver::BaseMPCSolver> mpc_solver_ptr_;
+
   /* initialize() */
+  inline void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                         boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                         boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                         boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                         double ctrl_loop_du) override
+  {
+    ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
+
+    /* init mpc solver plugin */
+    mpc_solver_loader_ptr_ =
+        boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::mpc_solver::BaseMPCSolver>>(
+            "aerial_robot_control", "aerial_robot_control::mpc_solver::BaseMPCSolver");
+
+    try
+    {
+      // 1. read the plugin name from the parameter server
+      std::string mpc_solver_name;
+      if (!nh_.getParam("mpc_solver_name", mpc_solver_name))
+      {
+        ROS_ERROR(
+            "mpc_solver_name for mpc_solver_plugin is not loaded. "
+            "You must specify the mpc_solver_name in the launch file.");
+        return;
+      }
+
+      // 2. load the plugin
+      mpc_solver_ptr_ = mpc_solver_loader_ptr_->createInstance(mpc_solver_name);
+      mpc_solver_ptr_->initialize();
+      ROS_INFO("load mpc solver plugin: %s", mpc_solver_name.c_str());
+    }
+    catch (pluginlib::PluginlibException& ex)
+    {
+      ROS_ERROR("mpc_solver_plugin: The plugin failed to load for some reason. Error: %s", ex.what());
+    }
+  }
+
   // define the ROS msg related to MPC
   inline static void initPredXU(aerial_robot_msgs::PredXU& x_u, int nn, int nx, int nu)
   {
@@ -53,9 +93,6 @@ protected:
     x_u.u.data.resize(nn * nu);
     std::fill(x_u.u.data.begin(), x_u.u.data.end(), 0.0);
   }
-  // define MPC solver
-  std::unique_ptr<mpc_solver::BaseMPCSolver> mpc_solver_ptr_;
-  virtual inline void initMPCSolverPtr() = 0;
 
   /* update() */
   // 1. set reference for NMPC
