@@ -35,7 +35,7 @@ void nmpc::TiltQdServoDistNMPC::initPlugins()
   }
   catch (pluginlib::PluginlibException& ex)
   {
-    ROS_ERROR("The plugin failed to load for some reason. Error: %s", ex.what());
+    ROS_ERROR("wrench_est_plugin: The plugin failed to load for some reason. Error: %s", ex.what());
   }
 }
 
