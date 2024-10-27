@@ -222,21 +222,10 @@ void nmpc::TiltQdServoNMPC::controlCore()
 
 void nmpc::TiltQdServoNMPC::prepareNMPCRef()
 {
-  if (!is_traj_tracking_)
+  /* if in trajectory tracking mode, the ref is set by callbackSetRefXU.
+   * So here we check if the traj info is still received. If not, we turn off the tracking mode */
+  if (is_traj_tracking_)
   {
-    /* point mode --> set target */
-    tf::Vector3 target_pos = navigator_->getTargetPos();
-    tf::Vector3 target_vel = navigator_->getTargetVel();
-    tf::Vector3 target_rpy = navigator_->getTargetRPY();
-    tf::Quaternion target_quat;
-    target_quat.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-    tf::Vector3 target_omega = navigator_->getTargetOmega();
-
-    setXrUrRef(target_pos, target_vel, tf::Vector3(0, 0, 0), target_quat, target_omega, tf::Vector3(0, 0, 0), -1);
-  }
-  else
-  {
-    /* tracking mode */
     if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
     {
       ROS_INFO("Trajectory tracking mode is off!");
@@ -257,9 +246,19 @@ void nmpc::TiltQdServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
     }
+
+    return;
   }
 
-  /* prepare reference */
+  /* if not in tracking mode, we use point mode --> set target */
+  tf::Vector3 target_pos = navigator_->getTargetPos();
+  tf::Vector3 target_vel = navigator_->getTargetVel();
+  tf::Vector3 target_rpy = navigator_->getTargetRPY();
+  tf::Quaternion target_quat;
+  target_quat.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+  tf::Vector3 target_omega = navigator_->getTargetOmega();
+
+  setXrUrRef(target_pos, target_vel, tf::Vector3(0, 0, 0), target_quat, target_omega, tf::Vector3(0, 0, 0), -1);
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
@@ -365,20 +364,27 @@ void nmpc::TiltQdServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& ms
 /* TODO: this function should be combined with the inner planning framework */
 void nmpc::TiltQdServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
+  /* failsafe check */
   if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
   {
     ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
     return;
   }
 
-  x_u_ref_ = *msg;
-  receive_time_ = ros::Time::now();
-
+  /* switch tracking mode */
   if (!is_traj_tracking_)
   {
     ROS_INFO("Trajectory tracking mode is on!");
     is_traj_tracking_ = true;
   }
+
+  /* receive info */
+  x_u_ref_ = *msg;
+  receive_time_ = ros::Time::now();
+
+  /* set reference */
+  rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
+  mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
 
 void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
