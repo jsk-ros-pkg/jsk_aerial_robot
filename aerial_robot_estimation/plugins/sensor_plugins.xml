@@ -4,6 +4,10 @@
     <description>IMU sensor plugin.</description>
   </class>
 
+  <class name="sensor_plugin/imu_4_wrench_est" type="sensor_plugin::Imu4WrenchEst" base_class_type="sensor_plugin::SensorBase">
+    <description>IMU sensor plugin with 4 wrench estimation.</description>
+  </class>
+
   <class name="sensor_plugin/optical_flow" type="sensor_plugin::OpticalFlow" base_class_type="sensor_plugin::SensorBase">
     <description>Optical Flow sensor plugin.</description>
   </class>

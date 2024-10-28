@@ -51,6 +51,7 @@ add_library(sensor_pluginlib
   src/sensor/mocap.cpp
   src/sensor/gps.cpp
   src/sensor/imu.cpp
+  src/sensor/imu_4_wrench_est.cpp
   src/sensor/plane_detection.cpp)
 
 target_link_libraries(sensor_pluginlib ${catkin_LIBRARIES})
