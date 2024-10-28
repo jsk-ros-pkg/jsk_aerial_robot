@@ -59,7 +59,7 @@
     <rosparam file="$(arg config_dir)/WrenchEstITerm.yaml" command="load" if="$(eval arg('wrench_est_mode') == 0)"/>
 
    ###########  Sensor Fusion  ###########
-   <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/BeetleOmniStateEstimation.yaml" command="load" />
    <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
    ###########  Navigation  ###########
