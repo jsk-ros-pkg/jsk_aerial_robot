@@ -1,3 +1,4 @@
+
 #include <common_observation_cal.h>
 
 ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
@@ -28,8 +29,17 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     while (std::getline(ifs, line)) {
       std::vector<std::string> strvec = split(line, ',');
       Eigen::Vector3d tree_vel;
-      tree_vel(0) = stof(strvec.at(3));
-      tree_vel(1) = stof(strvec.at(4));
+      try {
+          tree_vel(0) = std::stof(strvec.at(3));
+      } catch (const std::invalid_argument& e) {
+          tree_vel(0) = 0.0f;
+      }
+      try {
+          tree_vel(1) = std::stof(strvec.at(4));
+      } catch (const std::invalid_argument& e) {
+          tree_vel(1) = 0.0f;
+      }
+
       tree_vel(2) = 0.f;
       velocities_.push_back(tree_vel);
       Eigen::Vector3d tree_pos;
