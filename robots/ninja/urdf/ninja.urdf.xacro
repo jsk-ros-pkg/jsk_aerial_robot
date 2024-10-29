@@ -24,12 +24,12 @@
     ## link
     <link name="main_body">
       <inertial>
-        <origin xyz="-0.08989427 -0.00260694 -0.01604721" rpy="0 0 0"/>
-        <mass value="1.32590383"/>
+        <origin xyz="-0.08859352 -0.00340645 -0.01623433" rpy="0 0 0"/>
+        <mass value="1.41458199"/>
         <inertia
-            ixx = "0.00565938" ixy = "0.00127382" ixz = "0.00065740"
-            iyx = "0.00127382" iyy = "0.04578657" iyz = "-0.00004725"
-            izx = "0.00065740" izy = "-0.00004725" izz = "0.04949468"/>
+            ixx = "0.00677420" ixy = "0.00173147" ixz = "0.00081701"
+            iyx = "0.00173147" iyy = "0.05074341" iyz = "-0.00005705"
+            izx = "0.00081701" izy = "-0.00005705" izz = "0.05529837"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -123,19 +123,19 @@
     <!-- yaw -->
     <link name="yaw_dock_link">
       <inertial>
-        <origin xyz="0.06781112 -0.00002493 -0.02345044" rpy="0 0 0"/>
-        <mass value="0.21443253"/>
+        <origin xyz="0.06974525 0.00038438 -0.02390949" rpy="0 0 0"/>
+        <mass value="0.30727535"/>
         <inertia
-            ixx = "0.00093162" ixy = "0.00000022" ixz = "-0.00002253"
-            iyx = "0.00000022" iyy = "0.00071768" iyz = "-0.00010593"
-            izx = "-0.00002253" izy = "-0.00010593" izz = "0.00091594"/>
+            ixx = "0.00056834" ixy = "-0.00000383" ixz = "-0.00002348"
+            iyx = "-0.00000383" iyy = "0.00074609" iyz = "-0.00000529"
+            izx = "-0.00002348" izy = "-0.00000529" izz = "0.00067836"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
         <geometry>
-          <mesh filename="package://ninja/urdf/mesh/female_dock_mech.dae" scale="1 1 1"/>
+          <mesh filename="package://ninja/urdf/mesh/male_dock_mech.dae" scale="1 1 1"/>
         </geometry>
-      </visual>
+      </visual>      
       <!-- <collision> -->
       <!--   <origin xyz="0 0 0" rpy="0 0 0"/> -->
       <!--   <geometry> -->
@@ -146,7 +146,7 @@
     <xacro:damping_factor link="yaw_dock_link"/>
 
     <joint name="yaw_dock_joint" type="revolute">
-      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.2"/>
+      <limit effort="10" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="yaw_dock_link"/>
       <origin rpy="0 0 0" xyz="0.1935 0 0.0085"/>
@@ -178,7 +178,7 @@
     <joint name="yaw_connect_point_joint" type="fixed">
       <parent link="yaw_dock_link"/>
       <child link="yaw_connect_point"/>
-      <origin rpy="0 0 0" xyz="0.037 0 -0.025"/>
+      <origin rpy="0 0 0" xyz="0.1531 0 -0.025"/>
       <axis xyz="0 0 1"/>
     </joint>
     
@@ -210,7 +210,7 @@
     <link name="gimbal_link${self}">
       <inertial>
        <origin xyz="0.12245044 0.03129270 0.00001719" rpy="0 0 0"/>
-        <mass value="0.19445396"/>
+       <mass value="0.19445396"/>
         <inertia
             ixx = "0.00119253" ixy = "0.00015756" ixz = "-0.00000029"
             iyx = "0.00015756" iyy = "0.00043864" iyz = "-0.00000018"
@@ -248,12 +248,12 @@
     ## rotor parent link
     <link name="rotor_parent${self}">
       <inertial>
-        <origin xyz="0.09 0 0" rpy="0 0 ${-pi/2}"/>
-        <mass value="0.220"/>
+        <origin xyz="-0.0000209 -0.0725606 0.0007205" rpy="0 0 0"/>
+        <mass value="0.2051889"/>
         <inertia
-            ixx="0.0002011" ixy="0.0000001" ixz="0.0000003"
-            iyy="0.0004337" iyz="0.0"
-            izz="0.0005261"/>
+            ixx = "0.0004283" ixy = "0.0000000" ixz = "0.0000001"
+            iyx = "0.0000000" iyy = "0.0002249" iyz = "-0.0000001"
+            izx = "0.0000001" izy = "-0.0000001" izz = "0.0005545"/>
       </inertial>
       <visual>
         <origin xyz="0 -0.09285 0" rpy="0 0 ${pi}"/>
@@ -308,17 +308,17 @@
     <!-- pitch -->
     <link name="pitch_dock_link">
       <inertial>
-        <origin xyz="-0.06961517 0.02389743 -0.00688546" rpy="0 0 0"/>
-        <mass value="0.30174800"/>
+        <origin xyz="-0.05345739 0.02283891 0.00003454" rpy="0 0 0"/>
+        <mass value="0.15375166"/>
         <inertia
-            ixx = "0.00053278" ixy = "-0.00002216" ixz = "0.00003995"
-            iyx = "-0.00002216" iyy = "0.00065740" iyz = "-0.00000804"
-            izx = "0.00003995" izy = "-0.00000804" izz = "0.00073599"/>
+            ixx = "0.00044124" ixy = "-0.00001776" ixz = "0.00000015"
+            iyx = "-0.00001776" iyy = "0.00046036" iyz = "-0.00006736"
+            izx = "0.00000015" izy = "-0.00006736" izz = "0.00038793"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="${pi} ${pi} 0"/>
         <geometry>
-          <mesh filename="package://ninja/urdf/mesh/male_dock_mech.dae" scale="1 1 1"/>
+          <mesh filename="package://ninja/urdf/mesh/female_dock_mech.dae" scale="1 1 1"/>
         </geometry>
       </visual>
       <collision>
@@ -331,7 +331,7 @@
     <xacro:damping_factor link="pitch_dock_link"/>
 
     <joint name="pitch_dock_joint" type="revolute">
-      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.2"/>
+      <limit effort="10" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="pitch_dock_link"/>
       <origin rpy="0 0 0" xyz="-0.434658 -0.025 -0.0165"/>
@@ -363,7 +363,7 @@
     <joint name="pitch_connect_point_joint" type="fixed">
       <parent link="pitch_dock_link"/>
       <child link="pitch_connect_point"/>
-      <origin rpy="0 0 0" xyz="-0.1531 0.025 0"/>
+      <origin rpy="0 0 0" xyz="-0.037 0.025 0"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -373,17 +373,18 @@
     <joint name="battry_1_joint" type="fixed">
       <parent link="main_body"/>
       <child link="battery_1"/>
-      <origin rpy="-${pi/2} 0 ${pi}" xyz="-0.00891 0.0399 -0.069"/>
+      <origin rpy="0 0 ${pi/2-0.977}" xyz="-0.10215 -0.07574 -0.04"/>
       <axis xyz="0 0 0"/>
     </joint>
 
     <link name="battery_1">
       <inertial>
-        <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
-        <mass value="0.40700000"/>
+        <origin xyz="0.0 0.0 -0.019" rpy="0 0 0"/>
+        <mass value="0.44600000"/>
         <inertia
-            ixx="0.00010170" iyy="0.00060259" izz="0.00062827"
-            ixy="0.000" ixz=" 0.000000" iyz="0.0000"/>
+            ixx = "0.00012215" ixy = "0.00000000" ixz = "0.00000000"
+            iyx = "0.00000000" iyy = "0.00067139" iyz = "0.00000000"
+            izx = "0.00000000" izy = "0.00000000" izz = "0.00068918"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -397,17 +398,18 @@
     <joint name="battry_2_joint" type="fixed">
       <parent link="main_body"/>
       <child link="battery_2"/>
-      <origin rpy="${-pi/2} 0 0" xyz="-0.00891 -0.0399 -0.069"/>
+      <origin rpy="0 0 -${pi/2-0.977}" xyz="-0.10215 0.07574 -0.04"/>
       <axis xyz="0 0 0"/>
     </joint>
 
     <link name="battery_2">
       <inertial>
-        <origin xyz="0 0.0 00.01700000" rpy="0 0 0"/>
-        <mass value="0.40700000"/>
+        <origin xyz="0.0 0.0 -0.01900000" rpy="0 0 0"/>
+        <mass value="0.44600000"/>
         <inertia
-            ixx="0.00010170" iyy="0.00060259" izz="0.00062827"
-            ixy="0.000" ixz=" 0.000000" iyz="0.0000"/>
+            ixx = "0.00012215" ixy = "0.00000000" ixz = "0.00000000"
+            iyx = "0.00000000" iyy = "0.00067139" iyz = "0.00000000"
+            izx = "0.00000000" izy = "0.00000000" izz = "0.00068918"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
