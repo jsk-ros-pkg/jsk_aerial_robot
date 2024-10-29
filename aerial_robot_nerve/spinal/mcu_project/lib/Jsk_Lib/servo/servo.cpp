@@ -13,6 +13,15 @@
 
 void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
+  /*setup pin configuration*/
+#if !STM32H7_V2
+#ifdef STM32H7
+  HAL_UART_DeInit(huart);
+  huart->Init.BaudRate = 1000000;
+  HAL_UART_Init(huart);
+#endif
+#endif
+  
   nh_ = nh;
   nh_->subscribe(servo_ctrl_sub_);
   nh_->subscribe(servo_torque_ctrl_sub_);
