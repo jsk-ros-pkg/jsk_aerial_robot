@@ -114,11 +114,14 @@ osMailQId canMsgMailHandle;
 ros::NodeHandle nh_;
 
 /* sensor instances */
-#if IMU_MPU
+#ifdef IMU_MPU
 IMUOnboard imu_;
-#elif IMU_ICM
+#else
+#ifdef IMU_ICM
 ICM20948 imu_;
 #endif
+#endif
+
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;

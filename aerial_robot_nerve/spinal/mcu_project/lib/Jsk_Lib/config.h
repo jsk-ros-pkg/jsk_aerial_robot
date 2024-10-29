@@ -30,18 +30,24 @@
 //0. Comm Type
 #define NERVE_COMM 1
 
+//1. Specials board options
+#define STM32H7_V2 1
+
 //2. Enable Flags
 //* Please set/reset follwing flags according to your utility.
 
 //2.1 Sensors
 //2.1.1 IMU Sensor
 #define IMU_FLAG 1
-#define IMU_MPU 0
-#define IMU_ICM 1
+#if STM32H7_V2
+#define IMU_ICM
+#else
+#define IMU_MPU
+#endif
 //2.1.2 Barometer Sensor
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
-#define GPS_FLAG 1
+#define GPS_FLAG 0
 //2.1.3 Direct Servo Control
 #define SERVO_FLAG 1
 
