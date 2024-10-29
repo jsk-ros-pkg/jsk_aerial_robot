@@ -45,24 +45,47 @@ namespace aerial_robot_control
     boost::shared_ptr<RollingRobotModel> getRollingRobotModel() {return rolling_robot_model_;}
     boost::shared_ptr<RollingRobotModel> getRobotModelForControl() {return robot_model_for_control_;}
 
+    void calcFlightControlInput();
+    void calcGroundControlInput();
+
     const std::vector<double>& getRotorTilt() {return rotor_tilt_;}
     void setTargetAccCog(Eigen::VectorXd target_acc_cog) {target_acc_cog_ = target_acc_cog;}
     Eigen::VectorXd getTargetAccCog() {return target_acc_cog_;}
     void setTargetWrenchCpFbTerm(Eigen::Vector3d target_wrench_cp_fb_term) {target_wrench_cp_fb_term_ = target_wrench_cp_fb_term;}
     Eigen::Vector3d getTargetWrenchCpFbTerm() {return target_wrench_cp_fb_term_;}
+    void setGravityCompensateWeights(std::vector<double> weights)
+    {
+      for(int i = 0; i < 3; i++)
+        gravity_compensate_weights_(i, i) = weights.at(i);
+    }
+    void setGravityCompensateWeights(Eigen::Vector3d weights){
+      for(int i = 0; i < 3; i++)
+        gravity_compensate_weights_(i, i) = weights(i);
+    }
+    void setGravityCompensateWeights(double roll, double pitch, double yaw) {
+      gravity_compensate_weights_(0, 0) = roll;
+      gravity_compensate_weights_(1, 1) = pitch;
+      gravity_compensate_weights_(2, 2) = yaw;
+    }
     Eigen::Vector3d getGravityCompensateTerm() {return gravity_compensate_term_;}
     const std::vector<Eigen::MatrixXd>& getGimbalLinkJacobians() {return gimbal_link_jacobians_;}
     Eigen::MatrixXd getContactPointJacobian() {return contact_point_jacobian_;}
     Eigen::VectorXd getJointTorque() {return joint_torque_;}
     bool getUseEstimatedExternalForce() {return use_estimated_external_force_;}
     double getGroundMu() {return ground_mu_;}
+    void setJointTorqueLimit(double joint_torque_limit) {joint_torque_limit_ = joint_torque_limit;}
     double getJointTorqueLimit() {return joint_torque_limit_;}
     const std::vector<double>& getOptInitialX() {return opt_initial_x_;};
     const std::vector<double>& getOptCostWeights() {return opt_cost_weights_;}
     const double& getOptJointTorqueWeight() {return opt_joint_torque_weight_;}
+    const int getNLOptResult() {return nlopt_result_;}
     const std::vector<float> getNLOptLog() {return nlopt_log_;}
-
+    void setGroundNavigationMode(int ground_navigation_mode) {ground_navigation_mode_ = ground_navigation_mode;}
     int getGroundNavigationMode() {return ground_navigation_mode_;}
+    void setFirstRun(bool first_run) {first_run_ = first_run;}
+
+    /* ros callbacks */
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
 
   private:
     ros::Publisher rpy_gain_pub_;                     // for spinal
@@ -92,6 +115,7 @@ namespace aerial_robot_control
 
     /* common part */
     bool first_run_;
+    int nlopt_result_;
     std::vector<double> rotor_tilt_;
     std::vector<float> lambda_trans_;
     std::vector<float> lambda_all_;
@@ -168,9 +192,6 @@ namespace aerial_robot_control
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
-
-    /* ros callbacks */
-    void jointStateCallback(const sensor_msgs::JointStateConstPtr & msg);
 
     /* utils */
     void cfgNloptCallback(delta::nloptConfig &config, uint32_t level);

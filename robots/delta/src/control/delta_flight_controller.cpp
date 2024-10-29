@@ -3,6 +3,18 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
+void RollingController::calcFlightControlInput()
+{
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray joint_positions = robot_model_->getJointPositions();
+  robot_model_for_control_->updateRobotModel(joint_positions);
+  jointTorquePreComputation();
+
+  calcFlightFullLambda();
+  nonlinearWrenchAllocation();
+}
+
 void RollingController::calcAccFromCog()
 {
   tf::Quaternion cog2baselink_rot;
@@ -51,6 +63,12 @@ void RollingController::calcFlightFullLambda()
   full_lambda_trans_ = full_q_mat_inv.leftCols(3) * getTargetAccCog().head(3);
   full_lambda_rot_ = full_q_mat_inv.rightCols(3) * getTargetAccCog().tail(3);
   full_lambda_all_ = full_lambda_trans_ + full_lambda_rot_;
+
+  if(control_verbose_)
+    {
+      ROS_INFO_STREAM("[control][flight] target acc: " << getTargetAccCog().transpose());
+      ROS_INFO_STREAM("[control][flight] full_lambda: " << full_lambda_all_.transpose());
+    }
 }
 
 double nonlinearWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
@@ -304,18 +322,11 @@ void RollingController::nonlinearWrenchAllocation()
   else
     n_variables = 2 * motor_num_;
 
-  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
-  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
-  KDL::JntArray joint_positions = robot_model_->getJointPositions();
-  robot_model_for_control_->updateRobotModel(joint_positions);
-
   if(first_run_)
     {
       opt_x_prev_.resize(n_variables, 0.0);
       nlopt_log_.resize(n_variables, 0.0);
     }
-
-  if(n_variables > 2 * motor_num_) jointTorquePreComputation();
 
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearWrenchAllocationMinObjective, robot_model_for_control_.get());
@@ -360,22 +371,51 @@ void RollingController::nonlinearWrenchAllocation()
                                             ub.at(i + motor_num_));
     }
 
-  // joint torque part (use previous solution)
+  // joint torque part (calculate from jacobian and full lambda)
+  Eigen::VectorXd joint_torque = getJointTorque();
+  std::vector<Eigen::MatrixXd> gimbal_link_jacobians = getGimbalLinkJacobians();
+  std::vector<Eigen::Matrix3d> links_rotation_from_cog = robot_model_for_control_->getLinksRotationFromCog<Eigen::Matrix3d>();
+  double m_f_rate = robot_model_->getMFRate();
+  std::map<int, int> rotor_direction = robot_model_->getRotorDirection();
+  for(int i = 0; i < motor_num_; i++)
+    {
+      Eigen::VectorXd gimbal_link_wrench = Eigen::VectorXd::Zero(6);
+      gimbal_link_wrench.head(3) = links_rotation_from_cog.at(i) * Eigen::Vector3d(0, full_lambda_all_(2 * i + 0), full_lambda_all_(2 * i + 1));
+      gimbal_link_wrench.tail(3) = links_rotation_from_cog.at(i) * m_f_rate * rotor_direction.at(i + 1) * Eigen::Vector3d(0, full_lambda_all_(2 * i + 0), full_lambda_all_(2 * i + 1));
+
+      joint_torque -= gimbal_link_jacobians.at(i).rightCols(robot_model_->getJointNum()).transpose() * gimbal_link_wrench;
+    }
+
+  std::vector<std::string> joint_names = robot_model_->getJointNames();
   for(int i = 0; i < n_variables - 2 * motor_num_; i++)
     {
-      opt_x.at(2 * motor_num_ + i) = opt_x_prev_.at(2 * motor_num_ + i);
+      auto it = std::find(joint_names.begin(), joint_names.end(), "joint" + std::to_string(i + 1));
+      int index = std::distance(joint_names.begin(), it);
+      opt_x.at(2 * motor_num_ + i) = std::clamp(joint_torque(index),
+                                                lb.at(2 * motor_num_ + i),
+                                                ub.at(2 * motor_num_ + i));
+      // opt_x.at(2 * motor_num_ + i) = opt_x_prev_.at(2 * motor_num_ + i); // use previous optimal solution
     }
+
+  std::string init_x_string = "";
+  for(int i = 0; i < opt_x.size(); i++)
+    {
+      init_x_string = init_x_string + std::to_string(opt_x.at(i)) + " ";
+    }
+  if(control_verbose_)
+    ROS_INFO_STREAM("[control][flight][nlopt] initial variable: " << init_x_string);
 
   double max_val;
   nlopt::result result;
   try
     {
       result = slsqp_solver.optimize(opt_x, max_val);
+      nlopt_result_ = result;
     }
   catch(std::runtime_error error)
     {}
 
-  if (result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
+  if (result < 0) ROS_ERROR_STREAM("[nlopt] failed to solve. result is " << result);
 
   for(int i = 0; i < opt_x.size(); i++)
     {

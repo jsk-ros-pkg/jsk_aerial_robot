@@ -21,6 +21,19 @@ void RollingController::groundMotionPlanning()
     }
 }
 
+void RollingController::calcGroundControlInput()
+{
+  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+  KDL::JntArray joint_positions = robot_model_->getJointPositions();
+  robot_model_for_control_->updateRobotModel(joint_positions);
+  jointTorquePreComputation();
+
+  calcFeedforwardTermForGroundControl();
+  calcGroundFullLambda();
+  nonlinearGroundWrenchAllocation();
+}
+
 void RollingController::calcFeedbackTermForGroundControl()
 {
   /* normal pid result */
@@ -50,6 +63,12 @@ void RollingController::calcFeedforwardTermForGroundControl()
   Eigen::Vector3d gravity_moment_from_contact_point_alined = contact_point_alined_to_cog_p_skew * robot_model_->getMass() * gravity;
 
   gravity_compensate_term_ = gravity_compensate_weights_ * gravity_moment_from_contact_point_alined;
+
+  if(control_verbose_)
+    {
+      ROS_INFO_STREAM("[control][ground] cp_align to cog p: " << contact_point_alined_to_cog_p.transpose());
+      ROS_INFO_STREAM("[control][ground] gravity_compensate_term: " << gravity_compensate_term_.transpose());
+    }
 }
 
 void RollingController::calcGroundFullLambda()
@@ -158,6 +177,9 @@ void RollingController::calcGroundFullLambda()
   Eigen::VectorXd upper_bound = Eigen::VectorXd::Zero(n_constraints);
 
   Eigen::Vector3d target_wrench_cp = getTargetWrenchCpFbTerm() + getGravityCompensateTerm();
+
+  if(control_verbose_)
+    ROS_INFO_STREAM("[control][ground][OSQP] target wrench cp: " << target_wrench_cp.transpose());
 
   /* moment(3), force_z(1), force_x(2), force_y(2) */
   lower_bound.head(n_constraints - n_variables)
@@ -287,6 +309,9 @@ void RollingController::calcGroundFullLambda()
       full_lambda_all_ = full_lambda;
       full_lambda_trans_ = full_lambda;
     }
+
+  if(control_verbose_)
+    ROS_INFO_STREAM("[control][ground] full_lambda: " << full_lambda_all_.transpose());
 }
 
 double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
@@ -596,6 +621,14 @@ void RollingController::nonlinearGroundWrenchAllocation()
                                                 ub.at(2 * motor_num_ + i));
     }
 
+  if(control_verbose_)
+    {
+      std::string init_x_string = "";
+      for(int i = 0; i < opt_x.size(); i++)
+        init_x_string = init_x_string + std::to_string(opt_x.at(i)) + " ";
+      ROS_INFO_STREAM("[control][ground][nlopt] initial variable: " << init_x_string);
+    }
+
   for(int i = 0; i < n_variables; i++)
     opt_initial_x_.at(i) = opt_x.at(i);
 
@@ -605,11 +638,23 @@ void RollingController::nonlinearGroundWrenchAllocation()
   try
     {
       result = slsqp_solver.optimize(opt_x, max_val);
+      nlopt_result_ = result;
     }
   catch(std::runtime_error error)
     {}
 
   if(result < 0) ROS_ERROR_STREAM_THROTTLE(1.0, "[nlopt] failed to solve. result is " << result);
+
+  if(control_verbose_)
+    {
+      std::string solution_string = "";
+      for(int i = 0; i < opt_x.size(); i++)
+        solution_string = solution_string + std::to_string(opt_x.at(i)) + " ";
+      if(result < 0 || result == 5 || result == 6)
+        ROS_WARN_STREAM("[control][ground][nlopt] solution: " << solution_string);
+      else if(result > 0)
+        ROS_INFO_STREAM("[control][ground][nlopt] solution: " << solution_string);
+    }
 
   for(int i = 0; i < n_variables; i++)
     {

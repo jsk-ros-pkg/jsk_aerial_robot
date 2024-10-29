@@ -206,9 +206,7 @@ void RollingController::controlCore()
               ROS_ERROR_STREAM("[control] could not find parameter gravity_compensate_weights");
             else
               ROS_WARN_STREAM("[control] set ros parameter gravity_compensate_weights as [" << gravity_compensate_weights.at(0) << " " << gravity_compensate_weights.at(1) << " " << gravity_compensate_weights.at(2) << "]");
-            gravity_compensate_weights_ = Eigen::Matrix3d::Zero();
-            for(int i = 0; i < 3; i++)
-              gravity_compensate_weights_(i, i) = gravity_compensate_weights.at(i);
+            setGravityCompensateWeights(gravity_compensate_weights);
 
             break;
           }
@@ -222,9 +220,7 @@ void RollingController::controlCore()
               ROS_ERROR_STREAM("[control] could not find parameter gravity_compensate_weights");
             else
               ROS_WARN_STREAM("[control] set ros parameter gravity_compensate_weights as [" << gravity_compensate_weights.at(0) << " " << gravity_compensate_weights.at(1) << " " << gravity_compensate_weights.at(2) << "]");
-            gravity_compensate_weights_ = Eigen::MatrixXd::Zero(3, 3);
-            for(int i = 0; i < 3; i++)
-              gravity_compensate_weights_(i, i) = gravity_compensate_weights.at(i);
+            setGravityCompensateWeights(gravity_compensate_weights);
 
             break;
           }
@@ -237,9 +233,7 @@ void RollingController::controlCore()
     {
     case aerial_robot_navigation::FLYING_STATE:
       {
-        rolling_robot_model_->setControlFrame("cog");
-        robot_model_for_control_->setControlFrame("cog");
-
+        /* reset controllers when mode is changed to aerial mode */
         if(rolling_navigator_->getControllersResetFlag())
           {
             for(auto& controller: pid_controllers_)
@@ -249,10 +243,24 @@ void RollingController::controlCore()
             rolling_navigator_->setControllersResetFlag(false);
           }
 
-        calcAccFromCog();
-        calcFlightFullLambda();
+        /* update control frame */
+        rolling_robot_model_->setControlFrame("cog");
+        robot_model_for_control_->setControlFrame("cog");
 
+        /* update robot model for control */
+        KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+        robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+        KDL::JntArray joint_positions = robot_model_->getJointPositions();
+        robot_model_for_control_->updateRobotModel(joint_positions);
+        jointTorquePreComputation();
+
+        /* calculate feedback term */
+        calcAccFromCog();
+
+        /* calculate control input */
+        calcFlightFullLambda();
         nonlinearWrenchAllocation();
+
         break;
       }
 
@@ -260,24 +268,26 @@ void RollingController::controlCore()
     case aerial_robot_navigation::ROLLING_STATE:
     case aerial_robot_navigation::DOWN_STATE:
       {
-        /* for stand */
+        /* update control frame */
         rolling_robot_model_->setControlFrame("cp");
         robot_model_for_control_->setControlFrame("cp");
 
-        groundMotionPlanning();
-        calcFeedbackTermForGroundControl();
-        calcFeedforwardTermForGroundControl();
-
+        /* update robot model */
         KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
         robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
         KDL::JntArray joint_positions = robot_model_->getJointPositions();
         robot_model_for_control_->updateRobotModel(joint_positions);
+        jointTorquePreComputation();
 
-        if(ground_mode_add_joint_torque_constraints_)
-          jointTorquePreComputation();
+        /* set control configuration and calculate feedback term */
+        groundMotionPlanning();
+        calcFeedbackTermForGroundControl();
+
+        /* calculate feedforward term and control input */
+        calcFeedforwardTermForGroundControl();
         calcGroundFullLambda();
         nonlinearGroundWrenchAllocation();
-        /* for stand */
+
         break;
       }
     }
@@ -549,6 +559,16 @@ void RollingController::setAttitudeGains()
 void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr & state)
 {
   sensor_msgs::JointState joint_state = *state;
+
+  if(control_verbose_)
+    {
+      std::string joint_state_string = "[control][jointStateCallback] ";
+      for(int i = 0; i < joint_state.name.size(); i++)
+        {
+          joint_state_string += joint_state.name.at(i) + ": " + std::to_string(joint_state.position.at(i)) + "  ";
+        }
+      ROS_INFO_STREAM(joint_state_string);
+    }
 
   /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
