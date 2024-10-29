@@ -10,7 +10,6 @@
 #ifndef DSHOT_H
 #define DSHOT_H
 
-#include <stm32h7xx_hal.h>
 #include <stdbool.h>
 #include <cstdint>
 #include <math.h>  // lrintf
