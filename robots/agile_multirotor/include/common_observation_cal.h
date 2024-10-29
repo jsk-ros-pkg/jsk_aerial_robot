@@ -98,6 +98,7 @@ private:
   bool have_hokuyo_data_, moving_obstacle_;
   ros::Time obstacle_start_moving_time_;
   double policy_start_delay_;
+  bool headless_;
   float obstacle_moving_time_;
   size_t gazebo_obstacle_id_;
   float gazebo_pos_x_, gazebo_pos_y_;

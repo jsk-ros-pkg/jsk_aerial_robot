@@ -13,6 +13,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
   pnh_.getParam("body_r", body_r_);
   pnh_.getParam("policy_start_delay", policy_start_delay_);
+  pnh_.getParam("headless", headless_);
 
   //   file = file + ".csv";
   if (!from_hokuyo_){
@@ -44,6 +45,7 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
                             &ObstacleCalculator::StartObstacleCallback, this);
       marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
       "/" + quad_name + "/visualization_marker", 1);
+      // std::cout << "tree_pos" << tree_pos(0) << " " << tree_pos(1) << " " << tree_pos(2) << std::endl;
     }
   }
   else {
@@ -164,11 +166,12 @@ void ObstacleCalculator::CalculatorCallback(
 
     for (; it_pos != positions_.end() && it_vel != velocities_.end(); ++it_pos, ++it_vel) {
       Eigen::Vector3d tree_pos = *it_pos + obstacle_moving_time_*(*it_vel);
-      if (obstacle_id == gazebo_obstacle_id_){
-	// calc difference of obstacle this code and gazebo
-	tree_pos[0] = gazebo_pos_x_;
-	tree_pos[1] = gazebo_pos_y_;
+      if (obstacle_id == gazebo_obstacle_id_ && !headless_){
+      	// calc difference of obstacle this code and gazebo
+      	tree_pos[0] = gazebo_pos_x_;
+      	tree_pos[1] = gazebo_pos_y_;
       }
+      // std::cout << "tree_pos " << tree_pos[0] << " " << tree_pos[1] << std::endl;
       visualization_msgs::Marker marker;
       marker.header.frame_id = "world";
       marker.ns = "tree";
@@ -188,6 +191,7 @@ void ObstacleCalculator::CalculatorCallback(
 
       obstacle_id++;
     }
+    // std::cout << "marker_pub_ is called " << std::endl;
     marker_pub_.publish(marker_array_msg);
   }
   else{
