@@ -8,7 +8,7 @@
   <xacro:include filename="$(find delta)/urdf/20240722/thrust.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/20240722/battery.urdf.xacro" />
 
-  <xacro:macro name="delta_module" params="self child rotor_direction battery baselink">
+  <xacro:macro name="delta_module" params="self child rotor_direction battery">
 
     <xacro:if value="${self == 1}">
       <xacro:link1/>
