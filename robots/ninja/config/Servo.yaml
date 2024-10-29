@@ -14,7 +14,7 @@ servo_controller:
     cutoff_freq: 10.0 # 10Hz, test
 
     controller1:
-      id: 6
+      id: 7
       name: yaw_dock_joint
       angle_sgn: -1
       simulation:
@@ -33,9 +33,9 @@ servo_controller:
     #     type: effort_controllers/JointEffortController
 
     controller2:
-      id: 7
+      id: 6
       name: pitch_dock_joint
-      angle_sgn: -1
+      angle_sgn: 1
       simulation:
         pid: {p: 50.0, i: 0.1, d: 2.0}
         init_value: 0
