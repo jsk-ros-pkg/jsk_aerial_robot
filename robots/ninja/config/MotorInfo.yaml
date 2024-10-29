@@ -1,6 +1,6 @@
 motor_info:
         min_pwm: 0.5 # 1000 [ms]
-        max_pwm: 1.0 # 1700 [ms]
+        max_pwm: 0.98 # 1700 [ms]
         min_thrust: 2.0 #  [N]
         force_landing_thrust: 6.0 #[N]
         m_f_rate: -0.068
@@ -8,25 +8,29 @@ motor_info:
         vel_ref_num: 4
         ref1:
                 voltage: 25.2
-                max_thrust: 18.2 # N 
+                # max_thrust: 18.2 # N
+                max_thrust: 30 # N
                 polynominal2: 0.049570979 # x10
                 polynominal1: -1.694028402  # x10
                 polynominal0: -6.3614083809 # x1
         ref2:
                 voltage: 24.2
-                max_thrust: 17.2 # N 
+                # max_thrust: 17.2 # N
+                max_thrust: 30 # N                
                 polynominal2: 0.053368778 # x10
                 polynominal1: -2.573161795   # x10
                 polynominal0: -2.5061175679 # x1
         ref3:
                 voltage: 23.2
-                max_thrust: 16.3 # N 
+                # max_thrust: 16.3 # N
+                max_thrust: 30 # N                
                 polynominal2: 0.048899305 # x10
                 polynominal1: -2.190795284 # x10
                 polynominal0: -3.4027746294 # x1
         ref4:
                 voltage: 22.2
-                max_thrust: 14.7 # N 
+                # max_thrust: 14.7 # N
+                max_thrust: 30 # N                
                 polynominal2: 0.038181188 # x10
                 polynominal1: -1.049692278  # x10
                 polynominal0: -6.4712746734 # x1
