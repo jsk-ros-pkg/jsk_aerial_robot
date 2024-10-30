@@ -65,11 +65,36 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   if(!dshot_)
     {
+      HAL_TIM_PWM_Stop(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_Base_Stop(pwm_htim1_);
+      HAL_TIM_Base_DeInit(pwm_htim1_);
+
+      pwm_htim1_->Init.Prescaler = 3;
+      pwm_htim1_->Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+      pwm_htim1_->Init.Period = 50000;
+
+      TIM_OC_InitTypeDef sConfigOC = {0};
+      sConfigOC.OCMode = TIM_OCMODE_PWM1;
+      sConfigOC.Pulse = 1000;
+      sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+      sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+
+      while(HAL_TIM_Base_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_ConfigChannel(pwm_htim1_, &sConfigOC, TIM_CHANNEL_1) != HAL_OK);
+
+      if (pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] != NULL) {
+        HAL_DMA_DeInit(pwm_htim1_->hdma[TIM_DMA_ID_UPDATE]);
+        pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] = NULL;
+      }
+
+      HAL_TIM_Base_Start(pwm_htim1_);
+
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
-    }    
+    }
 
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
