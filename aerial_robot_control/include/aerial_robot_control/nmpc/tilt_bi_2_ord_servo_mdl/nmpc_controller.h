@@ -5,7 +5,7 @@
 #ifndef TILT_BI_2_ORD_SERVO_NMPC_CONTROLLER_H
 #define TILT_BI_2_ORD_SERVO_NMPC_CONTROLLER_H
 
-#include "aerial_robot_control/nmpc/tilt_bi_servo_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_controller.h"
 #include "nmpc_solver.h"
 
 namespace aerial_robot_control
@@ -13,7 +13,7 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class TiltBi2OrdServoNMPC : public nmpc::TiltBiServoNMPC
+class TiltBi2OrdServoNMPC : public nmpc::TiltQdServoNMPC
 {
 protected:
   std::vector<double> joint_vel_;
