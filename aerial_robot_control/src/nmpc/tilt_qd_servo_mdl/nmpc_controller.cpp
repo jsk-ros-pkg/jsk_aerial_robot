@@ -561,76 +561,34 @@ void nmpc::TiltQdServoNMPC::printPhysicalParams()
 
 void nmpc::TiltQdServoNMPC::initAllocMat()
 {
-  alloc_mat_ = Eigen::Matrix<double, 6, 8>::Zero();
-
+  int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  Eigen::Vector3d p1_b = rotor_p[0];
-  Eigen::Vector3d p2_b = rotor_p[1];
-  Eigen::Vector3d p3_b = rotor_p[2];
-  Eigen::Vector3d p4_b = rotor_p[3];
-
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
-  int dr1 = rotor_dr.find(1)->second;
-  int dr2 = rotor_dr.find(2)->second;
-  int dr3 = rotor_dr.find(3)->second;
-  int dr4 = rotor_dr.find(4)->second;
-
   double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
 
-  double sqrt_p1b_xy = sqrt(p1_b.x() * p1_b.x() + p1_b.y() * p1_b.y());
-  double sqrt_p2b_xy = sqrt(p2_b.x() * p2_b.x() + p2_b.y() * p2_b.y());
-  double sqrt_p3b_xy = sqrt(p3_b.x() * p3_b.x() + p3_b.y() * p3_b.y());
-  double sqrt_p4b_xy = sqrt(p4_b.x() * p4_b.x() + p4_b.y() * p4_b.y());
+  // construct alloc_mat_
+  alloc_mat_ = Eigen::MatrixXd::Zero(6, 2 * rotor_num);
 
-  // - force
-  alloc_mat_(0, 0) = p1_b.y() / sqrt_p1b_xy;
-  alloc_mat_(1, 0) = -p1_b.x() / sqrt_p1b_xy;
-  alloc_mat_(2, 1) = 1;
+  for (int i = 0; i < rotor_num; i++)
+  {
+    Eigen::Vector3d p_b = rotor_p[i];
+    int dr = rotor_dr.find(i)->second;
+    double sqrt_p_xy = sqrt(p_b.x() * p_b.x() + p_b.y() * p_b.y());
 
-  alloc_mat_(0, 2) = p2_b.y() / sqrt_p2b_xy;
-  alloc_mat_(1, 2) = -p2_b.x() / sqrt_p2b_xy;
-  alloc_mat_(2, 3) = 1;
+    // - force
+    alloc_mat_(0, 2 * i) = p_b.y() / sqrt_p_xy;
+    alloc_mat_(1, 2 * i) = -p_b.x() / sqrt_p_xy;
+    alloc_mat_(2, 2 * i + 1) = 1;
 
-  alloc_mat_(0, 4) = p3_b.y() / sqrt_p3b_xy;
-  alloc_mat_(1, 4) = -p3_b.x() / sqrt_p3b_xy;
-  alloc_mat_(2, 5) = 1;
+    // - torque
+    alloc_mat_(3, 2 * i) = -dr * kq_d_kt * p_b.y() / sqrt_p_xy + p_b.x() * p_b.z() / sqrt_p_xy;
+    alloc_mat_(4, 2 * i) = dr * kq_d_kt * p_b.x() / sqrt_p_xy + p_b.y() * p_b.z() / sqrt_p_xy;
+    alloc_mat_(5, 2 * i) = -p_b.x() * p_b.x() / sqrt_p_xy - p_b.y() * p_b.y() / sqrt_p_xy;
 
-  alloc_mat_(0, 6) = p4_b.y() / sqrt_p4b_xy;
-  alloc_mat_(1, 6) = -p4_b.x() / sqrt_p4b_xy;
-  alloc_mat_(2, 7) = 1;
-
-  // - torque
-  alloc_mat_(3, 0) = -dr1 * kq_d_kt * p1_b.y() / sqrt_p1b_xy + p1_b.x() * p1_b.z() / sqrt_p1b_xy;
-  alloc_mat_(4, 0) = dr1 * kq_d_kt * p1_b.x() / sqrt_p1b_xy + p1_b.y() * p1_b.z() / sqrt_p1b_xy;
-  alloc_mat_(5, 0) = -p1_b.x() * p1_b.x() / sqrt_p1b_xy - p1_b.y() * p1_b.y() / sqrt_p1b_xy;
-
-  alloc_mat_(3, 1) = p1_b.y();
-  alloc_mat_(4, 1) = -p1_b.x();
-  alloc_mat_(5, 1) = -dr1 * kq_d_kt;
-
-  alloc_mat_(3, 2) = -dr2 * kq_d_kt * p2_b.y() / sqrt_p2b_xy + p2_b.x() * p2_b.z() / sqrt_p2b_xy;
-  alloc_mat_(4, 2) = dr2 * kq_d_kt * p2_b.x() / sqrt_p2b_xy + p2_b.y() * p2_b.z() / sqrt_p2b_xy;
-  alloc_mat_(5, 2) = -p2_b.x() * p2_b.x() / sqrt_p2b_xy - p2_b.y() * p2_b.y() / sqrt_p2b_xy;
-
-  alloc_mat_(3, 3) = p2_b.y();
-  alloc_mat_(4, 3) = -p2_b.x();
-  alloc_mat_(5, 3) = -dr2 * kq_d_kt;
-
-  alloc_mat_(3, 4) = -dr3 * kq_d_kt * p3_b.y() / sqrt_p3b_xy + p3_b.x() * p3_b.z() / sqrt_p3b_xy;
-  alloc_mat_(4, 4) = dr3 * kq_d_kt * p3_b.x() / sqrt_p3b_xy + p3_b.y() * p3_b.z() / sqrt_p3b_xy;
-  alloc_mat_(5, 4) = -p3_b.x() * p3_b.x() / sqrt_p3b_xy - p3_b.y() * p3_b.y() / sqrt_p3b_xy;
-
-  alloc_mat_(3, 5) = p3_b.y();
-  alloc_mat_(4, 5) = -p3_b.x();
-  alloc_mat_(5, 5) = -dr3 * kq_d_kt;
-
-  alloc_mat_(3, 6) = -dr4 * kq_d_kt * p4_b.y() / sqrt_p4b_xy + p4_b.x() * p4_b.z() / sqrt_p4b_xy;
-  alloc_mat_(4, 6) = dr4 * kq_d_kt * p4_b.x() / sqrt_p4b_xy + p4_b.y() * p4_b.z() / sqrt_p4b_xy;
-  alloc_mat_(5, 6) = -p4_b.x() * p4_b.x() / sqrt_p4b_xy - p4_b.y() * p4_b.y() / sqrt_p4b_xy;
-
-  alloc_mat_(3, 7) = p4_b.y();
-  alloc_mat_(4, 7) = -p4_b.x();
-  alloc_mat_(5, 7) = -dr4 * kq_d_kt;
+    alloc_mat_(3, 2 * i + 1) = p_b.y();
+    alloc_mat_(4, 2 * i + 1) = -p_b.x();
+    alloc_mat_(5, 2 * i + 1) = -dr * kq_d_kt;
+  }
 
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
