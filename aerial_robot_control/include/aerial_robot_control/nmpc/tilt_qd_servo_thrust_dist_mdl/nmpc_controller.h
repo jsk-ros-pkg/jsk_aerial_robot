@@ -31,7 +31,7 @@ protected:
 
   inline void initActuatorStates() override
   {
-    nmpc::TiltQdServoNMPC::initActuatorStates();
+    nmpc::TiltMtServoNMPC::initActuatorStates();
     thrust_meas_.resize(motor_num_, 0.0);
   }
 

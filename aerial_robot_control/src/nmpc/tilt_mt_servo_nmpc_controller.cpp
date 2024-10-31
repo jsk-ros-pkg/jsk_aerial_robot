@@ -2,11 +2,11 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_mt_servo_nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                        boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                        boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                                        boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
@@ -27,10 +27,10 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
-  nmpc_reconf_servers_.back()->setCallback(boost::bind(&TiltQdServoNMPC::cfgNMPCCallback, this, _1, _2));
+  nmpc_reconf_servers_.back()->setCallback(boost::bind(&TiltMtServoNMPC::cfgNMPCCallback, this, _1, _2));
 
   /* timers */
-  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltQdServoNMPC::callbackViz, this);
+  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltMtServoNMPC::callbackViz, this);
 
   /* publishers */
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
@@ -43,10 +43,10 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
 
   /* subscribers */
-  sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltQdServoNMPC::callbackJointStates, this);
-  sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltQdServoNMPC::callbackSetRPY, this);
-  sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltQdServoNMPC::callbackSetRefXU, this);
-  sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltQdServoNMPC::callbackSetRefTraj, this);
+  sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltMtServoNMPC::callbackJointStates, this);
+  sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltMtServoNMPC::callbackSetRPY, this);
+  sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltMtServoNMPC::callbackSetRefXU, this);
+  sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltMtServoNMPC::callbackSetRefTraj, this);
 
   /* init some values */
   setControlMode();
@@ -58,7 +58,7 @@ void nmpc::TiltQdServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ROS_INFO("MPC Controller initialized!");
 }
 
-bool nmpc::TiltQdServoNMPC::update()
+bool nmpc::TiltMtServoNMPC::update()
 {
   if (!ControlBase::update())
     return false;
@@ -81,7 +81,7 @@ bool nmpc::TiltQdServoNMPC::update()
   return true;
 }
 
-void nmpc::TiltQdServoNMPC::reset()
+void nmpc::TiltMtServoNMPC::reset()
 {
   ControlBase::reset();
 
@@ -118,7 +118,7 @@ void nmpc::TiltQdServoNMPC::reset()
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
-void nmpc::TiltQdServoNMPC::initParams()
+void nmpc::TiltMtServoNMPC::initParams()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -138,7 +138,7 @@ void nmpc::TiltQdServoNMPC::initParams()
   getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
 }
 
-void nmpc::TiltQdServoNMPC::initCostW()
+void nmpc::TiltMtServoNMPC::initCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -180,7 +180,7 @@ void nmpc::TiltQdServoNMPC::initCostW()
   mpc_solver_ptr_->setCostWeight(true, true);
 }
 
-void nmpc::TiltQdServoNMPC::setControlMode()
+void nmpc::TiltMtServoNMPC::setControlMode()
 {
   bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
   if (!res)
@@ -199,7 +199,7 @@ void nmpc::TiltQdServoNMPC::setControlMode()
            set_control_mode_srv.request.is_body_rate);
 }
 
-void nmpc::TiltQdServoNMPC::controlCore()
+void nmpc::TiltMtServoNMPC::controlCore()
 {
   prepareNMPCRef();
 
@@ -220,7 +220,7 @@ void nmpc::TiltQdServoNMPC::controlCore()
   // The result is stored in mpc_solver_ptr_->uo_
 }
 
-void nmpc::TiltQdServoNMPC::prepareNMPCRef()
+void nmpc::TiltMtServoNMPC::prepareNMPCRef()
 {
   /* if in trajectory tracking mode, the ref is set by callbackSetRefXU.
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
@@ -263,11 +263,11 @@ void nmpc::TiltQdServoNMPC::prepareNMPCRef()
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
 
-void nmpc::TiltQdServoNMPC::prepareNMPCParams()
+void nmpc::TiltMtServoNMPC::prepareNMPCParams()
 {
 }
 
-void nmpc::TiltQdServoNMPC::sendCmd()
+void nmpc::TiltMtServoNMPC::sendCmd()
 {
   /* get result */
   // - thrust
@@ -297,7 +297,7 @@ void nmpc::TiltQdServoNMPC::sendCmd()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc::TiltQdServoNMPC::callbackViz(const ros::TimerEvent& event)
+void nmpc::TiltMtServoNMPC::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_ptr_->x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -338,14 +338,14 @@ void nmpc::TiltQdServoNMPC::callbackViz(const ros::TimerEvent& event)
   pub_viz_ref_.publish(ref_poses);
 }
 
-void nmpc::TiltQdServoNMPC::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+void nmpc::TiltMtServoNMPC::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
   for (int i = 0; i < joint_num_; i++)
     joint_angles_[i] = msg->position[i];
 }
 
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
-void nmpc::TiltQdServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
+void nmpc::TiltMtServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
 {
   // add a check to avoid the singular point for euler angle
   if (msg->pitch == M_PI / 2.0 or msg->pitch == -M_PI / 2.0)
@@ -362,7 +362,7 @@ void nmpc::TiltQdServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& ms
 }
 
 /* TODO: this function should be combined with the inner planning framework */
-void nmpc::TiltQdServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
+void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   /* failsafe check */
   if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
@@ -387,7 +387,7 @@ void nmpc::TiltQdServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
 
-void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
+void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
 {
   if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
     ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
@@ -415,7 +415,7 @@ void nmpc::TiltQdServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   callbackSetRefXU(aerial_robot_msgs::PredXUConstPtr(new aerial_robot_msgs::PredXU(x_u_ref_)));
 }
 
-void nmpc::TiltQdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
@@ -500,7 +500,7 @@ void nmpc::TiltQdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
   }
 }
 
-double nmpc::TiltQdServoNMPC::getCommand(int idx_u, double t_pred)
+double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double t_pred)
 {
   if (t_pred == 0)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
@@ -509,7 +509,7 @@ double nmpc::TiltQdServoNMPC::getCommand(int idx_u, double t_pred)
          t_pred / t_nmpc_integ_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
-std::vector<double> nmpc::TiltQdServoNMPC::meas2VecX()
+std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
 
@@ -536,7 +536,7 @@ std::vector<double> nmpc::TiltQdServoNMPC::meas2VecX()
   return bx0;
 }
 
-void nmpc::TiltQdServoNMPC::printPhysicalParams()
+void nmpc::TiltMtServoNMPC::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;
   cout << "gravity: " << robot_model_->getGravity() << endl;
@@ -559,7 +559,7 @@ void nmpc::TiltQdServoNMPC::printPhysicalParams()
   }
 }
 
-void nmpc::TiltQdServoNMPC::initAllocMat()
+void nmpc::TiltMtServoNMPC::initAllocMat()
 {
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
@@ -604,7 +604,7 @@ void nmpc::TiltQdServoNMPC::initAllocMat()
  * @param horizon_idx - set -1 for adding the target point to the end of the reference trajectory, 0 ~ NN for adding
  * the target point to the horizon_idx interval
  */
-void nmpc::TiltQdServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+void nmpc::TiltMtServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                                        const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
                                        const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
                                        const int& horizon_idx)
@@ -672,7 +672,7 @@ void nmpc::TiltQdServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::V
     std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * horizon_idx);
 }
 
-void nmpc::TiltQdServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                                          const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
                                          const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const
 {
@@ -701,4 +701,4 @@ void nmpc::TiltQdServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoNMPC, aerial_robot_control::ControlBase)
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtServoNMPC, aerial_robot_control::ControlBase)

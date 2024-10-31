@@ -5,7 +5,7 @@
 #ifndef Fix_QD_NMPC_CONTROLLER_H
 #define Fix_QD_NMPC_CONTROLLER_H
 
-#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_mt_servo_nmpc_controller.h"
 #include "nmpc_solver.h"
 
 namespace aerial_robot_control
@@ -14,7 +14,7 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class FixQdNMPC : public nmpc::TiltQdServoNMPC
+class FixQdNMPC : public nmpc::TiltMtServoNMPC
 {
 protected:
   void initAllocMat() override;

@@ -118,7 +118,7 @@ void nmpc::TiltQdServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i,
 
 std::vector<double> nmpc::TiltQdServoThrustDistNMPC::meas2VecX()
 {
-  auto bx0 = TiltQdServoNMPC::meas2VecX();
+  auto bx0 = TiltMtServoNMPC::meas2VecX();
 
   for (int i = 0; i < motor_num_; i++)
     bx0[13 + joint_num_ + i] = thrust_meas_[i];

@@ -12,7 +12,7 @@ void nmpc::TiltQdServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
                                            boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                            double ctrl_loop_du)
 {
-  TiltQdServoNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
+  TiltMtServoNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 }
@@ -41,7 +41,7 @@ void nmpc::TiltQdServoDistNMPC::initPlugins()
 
 std::vector<double> nmpc::TiltQdServoDistNMPC::meas2VecX()
 {
-  vector<double> bx0 = TiltQdServoNMPC::meas2VecX();
+  vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
 
   /* disturbance rejection */
   calcDisturbWrench();
@@ -103,7 +103,7 @@ void nmpc::TiltQdServoDistNMPC::calcDisturbWrench()
  */
 void nmpc::TiltQdServoDistNMPC::callbackViz(const ros::TimerEvent& event)
 {
-  TiltQdServoNMPC::callbackViz(event);
+  TiltMtServoNMPC::callbackViz(event);
 
   /* disturbance wrench */
   geometry_msgs::WrenchStamped dist_wrench_;
