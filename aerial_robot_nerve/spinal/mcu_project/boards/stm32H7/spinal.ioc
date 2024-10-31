@@ -1,5 +1,5 @@
 #MicroXplorer Configuration settings - do not modify
-ADC1.Channel-3\#ChannelRegularConversion=ADC_CHANNEL_18
+ADC1.Channel-3\#ChannelRegularConversion=ADC_CHANNEL_15
 ADC1.IPParameters=Rank-3\#ChannelRegularConversion,Channel-3\#ChannelRegularConversion,SamplingTime-3\#ChannelRegularConversion,OffsetNumber-3\#ChannelRegularConversion,OffsetSignedSaturation-3\#ChannelRegularConversion,NbrOfConversionFlag,Resolution,master
 ADC1.NbrOfConversionFlag=1
 ADC1.OffsetNumber-3\#ChannelRegularConversion=ADC_OFFSET_NONE
