@@ -182,11 +182,11 @@
   <xacro:extra_module name = "lidar_imu" parent = "main_body" visible = "0" > <!-- should be IMU frame -->
     <origin xyz="${0.011} ${0.02329} ${0.103 + 0.047 - 0.04412}" rpy="0 0 0"/> <!-- TODO: the true pos -->
     <inertial>
-      <mass value = "00" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value = "0.262" />
+      <origin xyz="-0.011 -0.02329 0.04412" rpy="0 0 0"/>
       <inertia
-          ixx="0.0" ixy="0.0" ixz="0.0"
-          iyy="0.0" iyz="0.0" izz="0.0"/>
+          ixx="0.00111" ixy="0.0" ixz="0.0"
+          iyy="0.00125" iyz="0.0" izz="0.00122"/>
     </inertial>
   </xacro:extra_module>
 
@@ -197,8 +197,8 @@
       <mass value = "0.270" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia
-          ixx="0.0" ixy="0.0" ixz="0.0"
-          iyy="0.0" iyz="0.0" izz="0.0"/>
+          ixx="0.000407" ixy="0.0" ixz="0.0"
+          iyy="0.000438" iyz="0.0" izz="0.000048"/>
     </inertial>
   </xacro:extra_module>
 
