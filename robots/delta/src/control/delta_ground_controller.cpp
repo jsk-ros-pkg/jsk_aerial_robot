@@ -563,6 +563,12 @@ void RollingController::nonlinearGroundWrenchAllocation()
         }
     }
 
+  for(int i = 2 * motor_num_; i < n_variables; i++)
+    {
+      lb.at(i) = -joint_torque_limit_;
+      ub.at(i) =  joint_torque_limit_;
+    }
+
   slsqp_solver.set_lower_bounds(lb);
   slsqp_solver.set_upper_bounds(ub);
   slsqp_solver.set_xtol_rel(1e-6);

@@ -120,7 +120,7 @@ void RollingController::rosParamInit()
       rotor_tilt_attr->Attribute("value", &rotor_tilt_.at(i));
     }
 
-  /* get gimbal angle limit */
+  /* get gimbal angle limit and joint torque limit*/
   gimbal_limits_.resize(0);
   auto urdf_model = robot_model_->getUrdfModel();
   std::vector<urdf::LinkSharedPtr> urdf_links;
@@ -133,6 +133,10 @@ void RollingController::rosParamInit()
             {
               gimbal_limits_.push_back(link->parent_joint->limits->lower);
               gimbal_limits_.push_back(link->parent_joint->limits->upper);
+            }
+          if(link->parent_joint->name=="joint1")
+            {
+              joint_torque_limit_ = link->parent_joint->limits->effort;
             }
         }
     }
