@@ -1230,8 +1230,8 @@ __weak void servoTaskCallback(void const * argument)
   {
 #if SERVO_FLAG
     servo_.update();
-    osDelay(1);
 #endif
+    osDelay(1);
   }
   /* USER CODE END servoTaskCallback */
 }
