@@ -20,7 +20,7 @@
   <arg name="robot_ns" value="beetle$(arg robot_id)" />
 
   <arg name="nmpc_mode" default="0" />
-  <arg name="wrench_est_mode" default="0" />
+  <arg name="wrench_est_mode" default="it" />  <!-- it for iterm; mom for momentum; acc for acceleration -->
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -56,7 +56,8 @@
     <rosparam file="$(arg config_dir)/BeetleNMPCNoServoDelay.yaml" command="load" if="$(eval arg('nmpc_mode') == 6)"/>
 
    ###########  Wrench Estimation  ###########
-    <rosparam file="$(arg config_dir)/WrenchEstITerm.yaml" command="load" if="$(eval arg('wrench_est_mode') == 0)"/>
+    <rosparam file="$(arg config_dir)/WrenchEstITerm.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'it')"/>
+    <rosparam file="$(arg config_dir)/WrenchEstMomentum.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'mom')"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/BeetleOmniStateEstimation.yaml" command="load" />
