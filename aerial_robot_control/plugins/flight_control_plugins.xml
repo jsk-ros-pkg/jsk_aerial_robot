@@ -32,11 +32,11 @@
 
   <!-- servo -->
   <class name="aerial_robot_control/nmpc_controller/tilt_mt/servo_nmpc" type="aerial_robot_control::nmpc::TiltMtServoNMPC" base_class_type="aerial_robot_control::ControlBase">
-      <description>NMPC controller for beetle with full model </description>
+      <description>NMPC controller for tilt-multirotor with full model </description>
   </class>
 
-  <class name="aerial_robot_control/nmpc_controller/tilt_qd/servo_dist_nmpc" type="aerial_robot_control::nmpc::TiltQdServoDistNMPC" base_class_type="aerial_robot_control::ControlBase">
-      <description>NMPC controller for beetle with full model and consider disturbance </description>
+  <class name="aerial_robot_control/nmpc_controller/tilt_mt/servo_dist_nmpc" type="aerial_robot_control::nmpc::TiltMtServoDistNMPC" base_class_type="aerial_robot_control::ControlBase">
+      <description>NMPC controller for tilt-multirotor with full model and consider disturbance </description>
   </class>
 
   <!-- servo & thrust -->
@@ -49,10 +49,6 @@
   </class>
 
 <!-- tiltable birotor -->
-  <class name="aerial_robot_control/nmpc_controller/tilt_bi/servo_nmpc" type="aerial_robot_control::nmpc::TiltBiServoNMPC" base_class_type="aerial_robot_control::ControlBase">
-    <description>NMPC controller for tilt bi </description>
-  </class>
-
   <class name="aerial_robot_control/nmpc_controller/tilt_bi/2_ord_servo_nmpc" type="aerial_robot_control::nmpc::TiltBi2OrdServoNMPC" base_class_type="aerial_robot_control::ControlBase">
     <description>NMPC controller for tilt bi considering 2-ord servo model </description>
   </class>

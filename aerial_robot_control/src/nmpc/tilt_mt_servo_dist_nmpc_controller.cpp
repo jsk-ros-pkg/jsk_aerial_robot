@@ -2,11 +2,11 @@
 // Created by lijinjie on 24/07/18.
 //
 
-#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_mt_servo_dist_nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltQdServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                            boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                            boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                                            boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
@@ -17,7 +17,7 @@ void nmpc::TiltQdServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 }
 
-void nmpc::TiltQdServoDistNMPC::initPlugins()
+void nmpc::TiltMtServoDistNMPC::initPlugins()
 {
   /* plugin: wrench estimator */
   wrench_est_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>>(
@@ -39,7 +39,7 @@ void nmpc::TiltQdServoDistNMPC::initPlugins()
   }
 }
 
-std::vector<double> nmpc::TiltQdServoDistNMPC::meas2VecX()
+std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
 {
   vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
 
@@ -54,7 +54,7 @@ std::vector<double> nmpc::TiltQdServoDistNMPC::meas2VecX()
   return bx0;
 }
 
-void nmpc::TiltQdServoDistNMPC::calcDisturbWrench()
+void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
 {
   /* get the current state */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
@@ -101,7 +101,7 @@ void nmpc::TiltQdServoDistNMPC::calcDisturbWrench()
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc::TiltQdServoDistNMPC::callbackViz(const ros::TimerEvent& event)
+void nmpc::TiltMtServoDistNMPC::callbackViz(const ros::TimerEvent& event)
 {
   TiltMtServoNMPC::callbackViz(event);
 
@@ -125,4 +125,4 @@ void nmpc::TiltQdServoDistNMPC::callbackViz(const ros::TimerEvent& event)
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoDistNMPC, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtServoDistNMPC, aerial_robot_control::ControlBase);

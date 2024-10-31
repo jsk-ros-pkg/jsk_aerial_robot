@@ -12,14 +12,14 @@ void nmpc::TiltQdServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHa
                                                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                                                  double ctrl_loop_du)
 {
-  TiltQdServoDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
+  TiltMtServoDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
   sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &TiltQdServoThrustDistNMPC::callbackESCTelem, this);
 }
 
 void nmpc::TiltQdServoThrustDistNMPC::initParams()
 {
-  TiltQdServoDistNMPC::initParams();
+  TiltMtServoDistNMPC::initParams();
 
   ros::NodeHandle motor_nh(nh_, "motor_info");
   getParam<double>(motor_nh, "krpm_rate", krpm2_d_thrust_, 0.0);
