@@ -31,6 +31,12 @@ public:
     setCtrlLoopDu(ctrl_loop_du);
   };
 
+  void inline init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
+  {
+    alloc_mat_ = alloc_mat;
+    alloc_mat_pinv_ = alloc_mat_pinv;
+  }
+
   virtual void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
                       const tf::Quaternion& q) = 0;
   virtual ~WrenchEstBase() = default;
@@ -89,6 +95,9 @@ protected:
   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
+
+  Eigen::MatrixXd alloc_mat_;
+  Eigen::MatrixXd alloc_mat_pinv_;
 
 private:
   double ctrl_loop_du_;
