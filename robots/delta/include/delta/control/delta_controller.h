@@ -56,6 +56,7 @@ namespace aerial_robot_control
     Eigen::VectorXd getJointTorque() {return joint_torque_;}
     bool getUseEstimatedExternalForce() {return use_estimated_external_force_;}
     double getGroundMu() {return ground_mu_;}
+    double getJointTorqueLimit() {return joint_torque_limit_;}
     const std::vector<double>& getOptInitialX() {return opt_initial_x_;};
     const std::vector<double>& getOptCostWeights() {return opt_cost_weights_;}
     const double& getOptJointTorqueWeight() {return opt_joint_torque_weight_;}
@@ -110,6 +111,7 @@ namespace aerial_robot_control
 
     /* joint torque */
     Eigen::VectorXd joint_torque_;
+    double joint_torque_limit_;
     std::vector<Eigen::MatrixXd> gimbal_link_jacobians_;
     Eigen::MatrixXd contact_point_jacobian_;
 
