@@ -2,7 +2,7 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: b10f5bf
+    version: 4085d3a
 
 # kalman filter
 - git:
@@ -14,7 +14,7 @@
 - git:
     local-name: sensor_interface
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
-    version: c4570c0 
+    version: e8286e7
 
 # RTK-GPS
 # support RTK based GPS module.
