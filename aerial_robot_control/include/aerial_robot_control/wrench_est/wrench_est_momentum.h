@@ -95,8 +95,10 @@ public:
 
     integrate_term_ += (J_t * target_wrench_cog - N + est_external_wrench_) * dt;
 
-    // TODO: check: for est_external_wrench_, force is in world frame, torque is in CoG frame
+    // for est_external_wrench_, force is in world frame, torque is in CoG frame
     est_external_wrench_ = momentum_observer_matrix_ * (sum_momentum - init_sum_momentum_ - integrate_term_);
+
+    prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
     /* set value */
     setDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
