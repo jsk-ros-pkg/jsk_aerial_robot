@@ -1,6 +1,8 @@
 wrench_estimator_name: aerial_robot_control::WrenchEstITerm
 
 controller:
+  if_use_est_wrench_4_control: true
+
   i_term:
     # disturb_rej
     limit_fx: 5.0

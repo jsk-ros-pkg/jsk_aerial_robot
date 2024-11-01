@@ -1,6 +1,8 @@
 wrench_estimator_name: aerial_robot_control::WrenchEstMomentum
 
 controller:
+  if_use_est_wrench_4_control: false
+
   momentum_observer:
     momentum_observer_force_weight: 3.0
     momentum_observer_torque_weight: 2.5
