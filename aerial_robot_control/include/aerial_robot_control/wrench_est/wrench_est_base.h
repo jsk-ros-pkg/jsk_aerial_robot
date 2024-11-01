@@ -29,6 +29,9 @@ public:
     navigator_ = navigator;
 
     setCtrlLoopDu(ctrl_loop_du);
+
+    dist_force_w_ = geometry_msgs::Vector3();
+    dist_torque_cog_ = geometry_msgs::Vector3();
   };
 
   void inline init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
