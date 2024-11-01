@@ -31,9 +31,6 @@ void nmpc::TiltMtServoDistNMPC::initPlugins()
     // 2. load the plugin
     wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance(wrench_estimator_name);
     wrench_est_ptr_->initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
-    wrench_est_ptr_->init_alloc_mtx(alloc_mat_, alloc_mat_pinv_);
-    //TODO: In this time, the alloc_mat_ and alloc_mat_pinv_ may not be initialized. This place might work
-    // because we pass the reference of the alloc_mat_ and alloc_mat_pinv_ to the wrench_est_ptr_.
     ROS_INFO("load wrench estimator plugin: %s", wrench_estimator_name.c_str());
   }
   catch (pluginlib::PluginlibException& ex)
@@ -124,6 +121,14 @@ void nmpc::TiltMtServoDistNMPC::callbackViz(const ros::TimerEvent& event)
   dist_wrench_.header.stamp = ros::Time::now();
 
   pub_disturb_wrench_.publish(dist_wrench_);
+}
+
+void nmpc::TiltMtServoDistNMPC::initAllocMat()
+{
+  TiltMtServoNMPC::initAllocMat();
+
+  if (wrench_est_ptr_ != nullptr)
+    wrench_est_ptr_->init_alloc_mtx(alloc_mat_, alloc_mat_pinv_);
 }
 
 /* plugin registration */
