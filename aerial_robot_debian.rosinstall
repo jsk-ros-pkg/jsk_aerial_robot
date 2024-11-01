@@ -50,26 +50,3 @@
 #    local-name: realsense-ros
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
-
-# geographic info
-- git:
-    local-name: geographic_info
-    uri: https://github.com/ros-geographic-info/geographic_info.git
-    version: master
-
-# mavros
-- git:
-    local-name: mavros
-    uri: https://github.com/mavlink/mavros.git
-    version: master
-
-- git:
-    local-name: mocap_optitrack
-    uri: https://github.com/sugikazu75/mocap_optitrack.git
-    version: C++17
-
-# unique identifier
-- git:
-    local-name: unique_identifier
-    uri: https://github.com/ros-geographic-info/unique_identifier.git
-    version: master
