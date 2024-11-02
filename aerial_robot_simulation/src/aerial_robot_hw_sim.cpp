@@ -193,8 +193,10 @@ namespace gazebo_ros_control
     simulation_nh.param("mocap_pub_rate", mocap_pub_rate_, 0.01); // [sec]
     simulation_nh.param("mocap_pos_noise", mocap_pos_noise_, 0.001); // m
     simulation_nh.param("mocap_rot_noise", mocap_rot_noise_, 0.001); // rad
+    simulation_nh.param("esc_telem_pub_rate", esc_telem_pub_rate_, 0.02); // [sec]
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
+    esc_telem_pub_ = model_nh.advertise<spinal::ESCTelemetryArray>("esc_telem", 1);
 
     return true;
   }
@@ -309,6 +311,44 @@ namespace gazebo_ros_control
 
         mocap_pub_.publish(pose_msg);
         last_mocap_time_ = time;
+      }
+
+      if (time.toSec() - last_esc_telem_time_.toSec() > esc_telem_pub_rate_)
+      {
+        spinal::ESCTelemetryArray esc_telem_msg;
+        esc_telem_msg.stamp = time;
+        if (rotor_n_dof_ > 4)
+        {
+          ROS_ERROR_STREAM("Sorry, currently the esc_telem_msg only support 4 to align with F55A ESC, so the ESC telemetry is not published");
+          return;
+        }
+
+        for (int j = 0; j < rotor_n_dof_; j++)
+        {
+          hardware_interface::RotorHandle rotor = spinal_interface_.getHandle(sim_rotors_.at(j)->GetName());
+          // rotor.getSpeed(); is rad/s. convert it to rpm
+          auto rpm = rotor.getRPM();
+
+          switch (j)
+          {
+            case 0:
+              esc_telem_msg.esc_telemetry_1.rpm = rpm;
+              break;
+            case 1:
+              esc_telem_msg.esc_telemetry_2.rpm = rpm;
+              break;
+            case 2:
+              esc_telem_msg.esc_telemetry_3.rpm = rpm;
+              break;
+            case 3:
+              esc_telem_msg.esc_telemetry_4.rpm = rpm;
+              break;
+            default:
+              break;
+          }
+        }
+        esc_telem_pub_.publish(esc_telem_msg);
+        last_esc_telem_time_ = time;
       }
   }
 
