@@ -2,6 +2,10 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Spinal][PwmTest] send pwm value to each servo independently (`#613 <https://github.com/jsk-ros-pkg/aerial_robot/issues/613>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 
