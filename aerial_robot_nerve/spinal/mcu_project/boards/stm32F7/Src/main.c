@@ -372,7 +372,7 @@ int main(void)
   kondo_servo_.init(&huart3, &nh_);
 
   /* Magnetic Encoder */
-  encoder_.init(&hi2c2, &nh_);
+  encoder_.init(&hi2c2);
 
 #if NERVE_COMM
   /* NERVE */

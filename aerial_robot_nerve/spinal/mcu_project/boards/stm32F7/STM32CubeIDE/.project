@@ -288,4 +288,24 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Middlewares/Third_Party/FreeRTOS/Source/timers.c</locationURI>
 		</link>
 	</linkedResources>
+	<filteredResources>
+		<filter>
+			<id>1730210878449</id>
+			<name>Application/Jsk_Lib</name>
+			<type>30</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-STM32H7</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1730210878450</id>
+			<name>Application/Jsk_Lib</name>
+			<type>30</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-STM32H7_V2</arguments>
+			</matcher>
+		</filter>
+	</filteredResources>
 </projectDescription>
