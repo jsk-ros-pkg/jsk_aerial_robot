@@ -55,5 +55,6 @@ namespace aerial_robot_control
 
   protected:
     bool checkRobotModel() override;
+    void controlCore() override;
   };
 };
