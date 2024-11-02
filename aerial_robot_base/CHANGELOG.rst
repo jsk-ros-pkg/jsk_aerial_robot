@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * [base][mocap]: add an option "enable_optitrack: true" (`#621 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/621>`_)
 * [rosbag] add joy topic in control record Merge pull request (`#605 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/605>`_)
 * [Mocap] remove the "required" flag to allow the onboard-sensor-only flight  (`#604 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/604>`_)

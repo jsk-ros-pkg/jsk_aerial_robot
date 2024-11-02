@@ -2,8 +2,8 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * Resolve dependency to other package (`#610 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/610>`_)
 * [Navigation] trajectory generation based on optimization methods (e.g. minimum snap trajectory) (`#556 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/556>`_)
 * [CMake] use C++17 compiler for all packages that contain C++ files  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)

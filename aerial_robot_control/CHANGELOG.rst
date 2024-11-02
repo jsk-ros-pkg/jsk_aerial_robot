@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * [Navigation][Land] improve the landing process to be more safe and precise (`#603 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/603>`_)
 * [navigation] failsafe for high input voltage (`#588 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/588>`_)
 * [Control][Landing][Bug]  revert the missing initialization for variable about force landing Merge pull request (`#585 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/585>`_)

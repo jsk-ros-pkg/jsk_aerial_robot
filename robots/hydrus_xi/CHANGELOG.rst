@@ -2,8 +2,8 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * Resolve dependency to other package (`#610 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/610>`_)
 * [Hydrus_XI][CMake] refactor the dependent packages (`#582 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/582>`_)
 * [CMake] using C++17 for related packages (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)

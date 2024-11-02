@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>aerial_robot</name>
-  <version>1.3.3</version>
+  <version>1.3.4</version>
   <description>Software of JSK lab for aerial robot</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</maintainer>

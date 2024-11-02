@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * [Estimation][IMU] refactor the index designation of KF based estimation result  (`#602 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/602>`_)
 * [Estimation][VO/VIO] refactor the process of KF based estimation with visual odometry (`#601 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/601>`_)
 * [Gazebo][Mocap][Subscriber] solve the topic delay related to the ground_truth pose Merge pull request (`#587 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/587>`_)

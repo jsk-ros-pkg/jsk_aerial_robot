@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_simulation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.4 (2024-11-02)
+------------------
 * [CMake] using C++17 for related packages (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
 * [MuJoCo] enable to use mujoco simulator (`#557 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/557>`_)
 * [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
