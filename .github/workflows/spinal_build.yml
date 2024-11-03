@@ -39,7 +39,7 @@ jobs:
         run: |
           bash /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
-          catkin build --no-status spinal
+          catkin build --no-status # spinal
           bash devel/setup.bash
       - name: Build project
         run: |
