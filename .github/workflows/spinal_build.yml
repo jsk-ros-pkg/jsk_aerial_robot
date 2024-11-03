@@ -37,7 +37,7 @@ jobs:
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
       - name: Build ROS Package
         run: |
-          bash /opt/ros/$ROS_DISTRO/setup.bash
+          bash /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
           catkin build --no-status spinal
           bash devel/setup.bash
