@@ -26,20 +26,18 @@ jobs:
 
       - name: Build project
         run: |
-          /opt/st/stm32cubeide_1.16.0/stm32cubeide --launcher.suppressErrors -nosplash \
+          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
             -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-            -data /tmp/stm-workspace \
-            -import "STM32CubeIDE"
-
-          /opt/st/stm32cubeide_1.16.0/stm32cubeide --launcher.suppressErrors -nosplash \
-            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-            -data /tmp/stm-workspace \
-            -build BLE_p2pServer/Debug
+            -data ~/STM32CubeIDE/workspace_1.8.0/ \
+            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
+            -cleanBuild spinal\Debug \
+            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+            -Dorg.eclipse.cdt.core.build.parallel.threads=12
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: BLE_p2pServer.artifacts
-          # The output artifacts are BLE_p2pServer.elf, BLE_p2pServer.map, etc.
+          # The output artifacts are spinal.elf, spinal.map, etc.
           # Use a wildcard pattern to get them all
-          path: STM32CubeIDE/Debug/BLE_p2pServer.*
+          path: STM32CubeIDE/Debug/spinal.*
