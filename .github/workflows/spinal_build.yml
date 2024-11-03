@@ -36,6 +36,7 @@ jobs:
           ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
           cd ~/catkin_ws
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
+        shell: bash
       - name: Build ROS Package
         run: |
           # bash
@@ -44,6 +45,7 @@ jobs:
           catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
           catkin build
           source devel/setup.bash
+          shell: bash
       - name: Build project
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
