@@ -41,7 +41,8 @@ jobs:
           # bash
           # source /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
-          catkin build --no-status # spinal
+          catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
+          catkin build
           # source devel/setup.bash
       - name: Build project
         run: |
