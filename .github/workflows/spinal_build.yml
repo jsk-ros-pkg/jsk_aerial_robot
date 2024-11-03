@@ -1,0 +1,45 @@
+name: Build STM32 Project
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+  # enable manual triggering
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/sugihara-16/docker_test/stm32cubeide_1.8.0_build_env:2024-11-03
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # submodules too
+          submodules: recursive
+
+      - name: Build project
+        run: |
+          /opt/st/stm32cubeide_1.16.0/stm32cubeide --launcher.suppressErrors -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data /tmp/stm-workspace \
+            -import "STM32CubeIDE"
+
+          /opt/st/stm32cubeide_1.16.0/stm32cubeide --launcher.suppressErrors -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data /tmp/stm-workspace \
+            -build BLE_p2pServer/Debug
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: BLE_p2pServer.artifacts
+          # The output artifacts are BLE_p2pServer.elf, BLE_p2pServer.map, etc.
+          # Use a wildcard pattern to get them all
+          path: STM32CubeIDE/Debug/BLE_p2pServer.*
