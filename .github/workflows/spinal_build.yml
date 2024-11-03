@@ -1,16 +1,5 @@
-name: Build STM32 Project
+name: Build Spinal Firmware
 on : [push, pull_request, workflow_dispatch]
-
-# on:
-#   pull_request:
-#     branches:
-#       - main
-#   push:
-#     branches:
-#       - main
-
-#   # enable manual triggering
-#   workflow_dispatch:
 
 jobs:
   build:
@@ -24,8 +13,8 @@ jobs:
         with:
           # submodules too
           submodules: recursive
-
-      - name: Install ROS packages with rosdep
+          
+      - name: Install ROS packages with rosdep # Setup Github ws as a catkin ws
         run: |
           source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
@@ -36,7 +25,8 @@ jobs:
           cd ~/catkin_ws
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
         shell: bash
-      - name: Build ROS Package
+        
+      - name: Build Spinal as ROS Package # Build Spinal to generate ROS libraries
         run: |
           source /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
@@ -44,7 +34,8 @@ jobs:
           catkin build spinal
           source devel/setup.bash
         shell: bash
-      - name: Build project
+
+      - name: Build Spinal as STM32CubeIDE project # Build Spinal firmware with STM32CubeIDE
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
             -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
@@ -54,10 +45,8 @@ jobs:
             -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
             -Dorg.eclipse.cdt.core.build.parallel.threads=12
 
-      - name: Upload artifacts
+      - name: Upload artifacts # Upload required files for flash.
         uses: actions/upload-artifact@v4
         with:
           name: spinal.artifacts
-          # The output artifacts are spinal.elf, spinal.map, etc.
-          # Use a wildcard pattern to get them all
           path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
