@@ -1,15 +1,16 @@
 name: Build STM32 Project
+on : [push, pull_request, workflow_dispatch]
 
-on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#   push:
+#     branches:
+#       - main
 
-  # enable manual triggering
-  workflow_dispatch:
+#   # enable manual triggering
+#   workflow_dispatch:
 
 jobs:
   build:
