@@ -54,7 +54,7 @@ class AttitudeEstimate
 public:
   ~AttitudeEstimate(){}
 #ifdef SIMULATION
-  AttitudeEstimate(){}
+  AttitudeEstimate(): acc_(0,0,9.8), mag_(1,0,0){}
 
   void init(ros::NodeHandle* nh)
   {
