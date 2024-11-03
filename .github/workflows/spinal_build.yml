@@ -47,12 +47,7 @@ jobs:
 
       - name: Clean up STM32CubeIDE # Clean up STM32CubeIDE WS to build same name project
         run: |
-          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
-            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-            -data ~/STM32CubeIDE/workspace_1.8.0/ \
-            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
-            -cleanBuild spinal/Debug \
-            -vmargs -Ddelete.project=true
+          rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
 
       - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
         run: |
