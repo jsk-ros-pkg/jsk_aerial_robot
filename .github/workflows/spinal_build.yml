@@ -34,8 +34,7 @@ jobs:
           mkdir -p ~/catkin_ws/src
           ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
           cd ~/catkin_ws
-          # rosdep install --from-paths src --ignore-src -r -s
-          # rosdep install --from-paths src --ignore-src -r -y
+          rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
       - name: Build ROS Package
         run: |
           source /opt/ros/$ROS_DISTRO/setup.bash
