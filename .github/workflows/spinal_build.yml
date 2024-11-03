@@ -35,7 +35,7 @@ jobs:
           source devel/setup.bash
         shell: bash
 
-      - name: Build Spinal as STM32CubeIDE project # Build Spinal firmware with STM32CubeIDE
+      - name: Build Spinal H7 as STM32CubeIDE project # Build Spinal H7 firmware with STM32CubeIDE
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
             -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
@@ -45,8 +45,24 @@ jobs:
             -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
             -Dorg.eclipse.cdt.core.build.parallel.threads=12
 
-      - name: Upload artifacts # Upload required files for flash.
+      - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
+        run: |
+          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data ~/STM32CubeIDE/workspace_1.8.0/ \
+            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
+            -cleanBuild spinal/Debug \
+            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+
+      - name: Upload H7 artifacts # Upload required H7 files for flash.
         uses: actions/upload-artifact@v4
         with:
-          name: spinal.artifacts
+          name: SpinalH7.artifacts
           path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
+
+      - name: Upload F7 artifacts # Upload required F7 files for flash.
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpinalF7.artifacts
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/Debug/spinal.*          
