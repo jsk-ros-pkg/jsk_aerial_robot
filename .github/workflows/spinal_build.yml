@@ -45,7 +45,7 @@ jobs:
           catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
           catkin build
           source devel/setup.bash
-          shell: bash
+        shell: bash
       - name: Build project
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
