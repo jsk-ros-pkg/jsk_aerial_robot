@@ -60,4 +60,4 @@ jobs:
           name: spinal.artifacts
           # The output artifacts are spinal.elf, spinal.map, etc.
           # Use a wildcard pattern to get them all
-          path: aerial_robot_nerve/spinal/mcu_project/board/stm32H7/STM32CubeIDE/Debug/spinal.*
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
