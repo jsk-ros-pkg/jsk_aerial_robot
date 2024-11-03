@@ -27,7 +27,6 @@ jobs:
 
       - name: Install ROS packages with rosdep
         run: |
-          # bash
           source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
           sudo rosdep init
@@ -39,7 +38,6 @@ jobs:
         shell: bash
       - name: Build ROS Package
         run: |
-          # bash
           source /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
           catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
@@ -62,4 +60,4 @@ jobs:
           name: spinal.artifacts
           # The output artifacts are spinal.elf, spinal.map, etc.
           # Use a wildcard pattern to get them all
-          path: STM32CubeIDE/Debug/spinal.*
+          path: aerial_robot_nerve/spinal/mcu_project/board/stm32H7/STM32CubeIDE/Debug/spinal.*
