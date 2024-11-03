@@ -28,6 +28,7 @@ jobs:
       - name: Install ROS packages with rosdep
         run: |
           bash /opt/ros/noetic/setup.bash
+          rm /etc/ros/rosdep/sources.list.d/20-default.list
           sudo rosdep init
           rosdep update
           mkdir -p ~/catkin_ws/src
