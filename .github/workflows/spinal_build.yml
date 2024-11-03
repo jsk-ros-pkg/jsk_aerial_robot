@@ -27,7 +27,8 @@ jobs:
 
       - name: Install ROS packages with rosdep
         run: |
-          bash /opt/ros/noetic/setup.bash
+          bash
+          source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
           sudo rosdep init
           rosdep update
@@ -37,10 +38,11 @@ jobs:
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
       - name: Build ROS Package
         run: |
-          bash /opt/ros/noetic/setup.bash
+          bash
+          source /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
           catkin build --no-status # spinal
-          bash devel/setup.bash
+          source devel/setup.bash
       - name: Build project
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
