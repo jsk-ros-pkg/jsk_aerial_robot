@@ -33,8 +33,8 @@ jobs:
           mkdir -p ~/catkin_ws/src
           ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
           cd ~/catkin_ws
-          rosdep install --from-paths src --ignore-src -r -s  # do a dry-run first
-          rosdep install --from-paths src --ignore-src -r -y
+          # rosdep install --from-paths src --ignore-src -r -s
+          # rosdep install --from-paths src --ignore-src -r -y
       - name: Build ROS Package
         run: |
           source /opt/ros/$ROS_DISTRO/setup.bash
