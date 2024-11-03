@@ -37,10 +37,10 @@ jobs:
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
       - name: Build ROS Package
         run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
+          bash /opt/ros/$ROS_DISTRO/setup.bash
           cd ~/catkin_ws
           catkin build --no-status spinal
-          source devel/setup.bash
+          bash devel/setup.bash
       - name: Build project
         run: |
           /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
