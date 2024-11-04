@@ -31,6 +31,7 @@ public:
   boost::shared_ptr<aerial_robot_control::WrenchEstBase> wrench_est_ptr_;
 
 protected:
+  bool if_use_est_wrench_4_control_;
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
   geometry_msgs::Vector3 dist_force_w_ = geometry_msgs::Vector3();
   geometry_msgs::Vector3 dist_torque_cog_ = geometry_msgs::Vector3();
@@ -42,6 +43,8 @@ protected:
   virtual void calcDisturbWrench();
 
   void callbackViz(const ros::TimerEvent& event) override;
+
+  void initAllocMat() override;
 };
 
 }  // namespace nmpc

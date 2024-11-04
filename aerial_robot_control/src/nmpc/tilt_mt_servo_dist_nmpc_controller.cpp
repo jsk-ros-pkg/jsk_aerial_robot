@@ -14,6 +14,9 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 {
   TiltMtServoNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
+  ros::NodeHandle control_nh(nh_, "controller");
+  getParam<bool>(control_nh, "if_use_est_wrench_4_control", if_use_est_wrench_4_control_, false);
+
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 }
 
@@ -45,12 +48,17 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
 
   /* disturbance rejection */
   calcDisturbWrench();
-  bx0[13 + joint_num_ + 0] = dist_force_w_.x;
-  bx0[13 + joint_num_ + 1] = dist_force_w_.y;
-  bx0[13 + joint_num_ + 2] = dist_force_w_.z;
-  bx0[13 + joint_num_ + 3] = dist_torque_cog_.x;
-  bx0[13 + joint_num_ + 4] = dist_torque_cog_.y;
-  bx0[13 + joint_num_ + 5] = dist_torque_cog_.z;
+
+  if (if_use_est_wrench_4_control_)
+  {
+    bx0[13 + joint_num_ + 0] = dist_force_w_.x;
+    bx0[13 + joint_num_ + 1] = dist_force_w_.y;
+    bx0[13 + joint_num_ + 2] = dist_force_w_.z;
+    bx0[13 + joint_num_ + 3] = dist_torque_cog_.x;
+    bx0[13 + joint_num_ + 4] = dist_torque_cog_.y;
+    bx0[13 + joint_num_ + 5] = dist_torque_cog_.z;
+  }
+
   return bx0;
 }
 
@@ -121,6 +129,14 @@ void nmpc::TiltMtServoDistNMPC::callbackViz(const ros::TimerEvent& event)
   dist_wrench_.header.stamp = ros::Time::now();
 
   pub_disturb_wrench_.publish(dist_wrench_);
+}
+
+void nmpc::TiltMtServoDistNMPC::initAllocMat()
+{
+  TiltMtServoNMPC::initAllocMat();
+
+  if (wrench_est_ptr_ != nullptr)
+    wrench_est_ptr_->init_alloc_mtx(alloc_mat_, alloc_mat_pinv_);
 }
 
 /* plugin registration */
