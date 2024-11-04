@@ -60,7 +60,7 @@
       init_joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
       init_joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
       tasks:
-        - command: "rostopic pub -1 /dragon/final_target_baselink_rot spinal/DesireCoord -- -1.5708 0.0 0.0 0"
+        - command: "rostopic pub -1 /dragon/final_target_baselink_rpy geometry_msgs/Vector3Stamped '{vector: {x: -1.5708, y: 0.0, z: 0.0}}'"
           threshold: [0.06, 0.06, 0.06]
           angle_threshold: 0.02
           timeout: 15
