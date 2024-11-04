@@ -66,20 +66,20 @@ public:
     Eigen::VectorXd target_torque_cog = target_wrench_cog.tail(3);
 
     // force estimation
-    Eigen::Vector3d acc_cog;
-    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), acc_cog);  // the acceleration of CoG point in CoG frame
+    Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
+    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), specific_force_cog);
 
     double mass = robot_model_->getMass();
 
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
 
-    auto est_external_force_now =
-        cog_rot * (mass * acc_cog - target_torque_cog) - mass * robot_model_->getGravity().topRows(3);
+    auto est_external_force_now = cog_rot * (mass * specific_force_cog - target_force_cog);
 
     // low pass filter  TODO: try a better filter
-    est_external_force_ = force_acc_alpha_matrix_ * est_external_force_now +
-                          (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_;
+    // TODO: put this part to the estimator to perform the same frequency with the IMU.
+    est_external_force_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_ +
+                          force_acc_alpha_matrix_ * est_external_force_now;
 
     setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
 
