@@ -72,6 +72,8 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
                        estimator_->getOrientation(Frame::BASELINK, estimate_mode) *
                            (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
 
+  setFilteredAccCogInCog(cog2baselink_tf.getBasis() * acc_b_);
+
   estimateProcess();
   updateHealthStamp();
 }

@@ -62,12 +62,6 @@ public:
     filtered_vel_cog_in_w_ = filtered_vel_cog_in_w;
   }
 
-  void setFilteredOmegaDotCogInCog(const tf::Vector3 filtered_omega_dot_cog_in_cog)
-  {
-    boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    filtered_omega_dot_cog_in_cog_ = filtered_omega_dot_cog_in_cog;
-  }
-
   void setFilteredAccCogInCog(const tf::Vector3 filtered_acc_cog_in_cog)
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
@@ -86,12 +80,6 @@ public:
     return filtered_vel_cog_in_w_;
   }
 
-  const tf::Vector3 getFilteredOmegaDotCogInCog()
-  {
-    boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    return filtered_omega_dot_cog_in_cog_;
-  }
-
   const tf::Vector3 getFilteredAccCogInCog()
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
@@ -107,7 +95,6 @@ protected:
   tf::Vector3 filtered_vel_cog_in_w_;          // cog point, world frame
   tf::Vector3 filtered_omega_cog_in_cog_;      // cog point, cog frame
   tf::Vector3 filtered_acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
-  tf::Vector3 filtered_omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
   IirFilter lpf_omega_;                        // for gyro
 
   ros::Publisher omega_filter_pub_;  // debug
