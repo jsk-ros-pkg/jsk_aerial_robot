@@ -83,7 +83,7 @@ namespace aerial_robot_control
     if(gimbal_calc_in_fc_ && i_term_rp_calc_in_pc_){
       target_ang_acc_x = pid_controllers_.at(ROLL).getITerm();
       target_ang_acc_y = pid_controllers_.at(PITCH).getITerm();
-      target_ang_acc_z = pid_controllers_.at(YAW).result();
+      target_ang_acc_z = 0;
       target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, 0.0);
     }else{
       target_ang_acc_x = pid_controllers_.at(ROLL).result();
