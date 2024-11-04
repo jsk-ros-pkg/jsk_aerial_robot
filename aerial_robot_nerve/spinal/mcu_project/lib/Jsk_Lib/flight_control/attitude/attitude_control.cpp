@@ -130,6 +130,8 @@ void AttitudeController::baseInit()
   motor_number_ = 0;
   uav_model_ = -1;
   rotor_devider_ = 1;
+  gimbal_dof_ = 0;
+  rotor_coef_ = 0;
 
   start_control_flag_ = false;
   force_landing_flag_ = false;
@@ -794,7 +796,6 @@ void AttitudeController::setMotorNumber(uint16_t motor_number)
 	  if(motor_number == 0) return;
 
       size_t control_term_msg_size  = motor_number;
-      size_t gimbal_command_msg_size = motor_number / rotor_coef_ * gimbal_dof_;
 
 #ifdef SIMULATION
       pwms_msg_.motor_value.resize(motor_number);
@@ -804,8 +805,12 @@ void AttitudeController::setMotorNumber(uint16_t motor_number)
       control_term_msg_.motors_length = control_term_msg_size;
       pwms_msg_.motor_value = new uint16_t[motor_number];
       control_term_msg_.motors = new spinal::RollPitchYawTerm[control_term_msg_size];
-      gimbal_command_msg_.index_length = gimbal_command_msg_size;
-      gimbal_command_msg_.angles_length = gimbal_command_msg_size;
+      if(gimbal_dof_)
+        {
+          size_t gimbal_command_msg_size = motor_number / rotor_coef_ * gimbal_dof_;
+          gimbal_command_msg_.index_length = gimbal_command_msg_size;
+          gimbal_command_msg_.angles_length = gimbal_command_msg_size;
+        }
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
 

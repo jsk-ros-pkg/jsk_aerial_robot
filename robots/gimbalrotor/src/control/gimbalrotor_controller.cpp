@@ -48,7 +48,7 @@ namespace aerial_robot_control
   void GimbalrotorController::rosParamInit()
   {
     ros::NodeHandle control_nh(nh_, "controller");
-    getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
+    getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 0);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
     getParam<bool>(control_nh, "i_term_rp_calc_in_pc", i_term_rp_calc_in_pc_, false);
   }
@@ -56,11 +56,12 @@ namespace aerial_robot_control
   bool GimbalrotorController::update()
   {
     sendGimbalCommand();
-    if(gimbal_calc_in_fc_){
-      std_msgs::UInt8 msg;
+    std_msgs::UInt8 msg;
+    if(gimbal_calc_in_fc_)
       msg.data = gimbal_dof_;
-      gimbal_dof_pub_.publish(msg);
-    }
+    else
+      msg.data = 0;
+    gimbal_dof_pub_.publish(msg);
 
     return PoseLinearController::update();
   }

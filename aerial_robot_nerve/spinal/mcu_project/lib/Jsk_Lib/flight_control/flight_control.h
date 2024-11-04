@@ -245,7 +245,7 @@ void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
 /* get DoF of gimbal rotation */
 void gimbalDofCallback(const std_msgs::UInt8& gimbal_msg)
   {
-    if(gimbal_msg.data && !gimbal_set_flag_)
+    if(!gimbal_set_flag_)
       {
         att_controller_.setGimbalDof(gimbal_msg.data);
         att_controller_.setRotorCoef(gimbal_msg.data + 1);
