@@ -135,18 +135,17 @@
         <geometry>
           <mesh filename="package://ninja/urdf/mesh/male_dock_mech.dae" scale="1 1 1"/>
         </geometry>
-      </visual>      
-      <!-- <collision> -->
-      <!--   <origin xyz="0 0 0" rpy="0 0 0"/> -->
-      <!--   <geometry> -->
-      <!--     <box size="0.05 0.05 0.05"/> -->
-      <!--   </geometry> -->
-      <!-- </collision> -->
+      </visual>
+      <collision>
+        <origin xyz="0 0.0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <box size="0.1531 0.064 0.064"/>
+        </geometry>
+      </collision>
     </link>
     <xacro:damping_factor link="yaw_dock_link"/>
-
     <joint name="yaw_dock_joint" type="revolute">
-      <limit effort="10" lower="-3.14" upper="3.14" velocity="0.2"/>
+      <limit effort="6.6" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="yaw_dock_link"/>
       <origin rpy="0 0 0" xyz="0.1935 0 0.0085"/>
@@ -209,15 +208,33 @@
     #### gimbal link  ####
     <link name="gimbal_link${self}">
       <inertial>
-       <origin xyz="0.12245044 0.03129270 0.00001719" rpy="0 0 0"/>
-       <mass value="0.19445396"/>
+        <xacro:if value="${self==1}">
+          <origin xyz="0.12245044 -0.03129270 -0.00001719" rpy="${pi} 0 0"/>
+          <mass value="0.19445396"/>
+        </xacro:if>
+        <xacro:if value="${self==2}">
+          <origin xyz="0.12245044 0.03129270 0.00001719" rpy="0 0 0"/>
+          <mass value="0.19445396"/>
+        </xacro:if>
+        <xacro:if value="${self==3}">
+          <origin xyz="0.12245044 -0.03129270 -0.00001719" rpy="${pi} 0 0"/>
+          <mass value="0.19445396"/>
+        </xacro:if>
         <inertia
             ixx = "0.00119253" ixy = "0.00015756" ixz = "-0.00000029"
             iyx = "0.00015756" iyy = "0.00043864" iyz = "-0.00000018"
             izx = "-0.00000029" izy = "-0.00000018" izz = "0.00156562"/>
       </inertial>
       <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <xacro:if value="${self==1}">
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self==2}">
+          <origin xyz="0 0 0" rpy="${pi} 0 0"/>
+        </xacro:if>
+        <xacro:if value="${self==3}">
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:if>
         <geometry>
           <mesh filename="package://ninja/urdf/mesh/gimbal_link.dae" scale="1 1 1"/>
         </geometry>
@@ -321,17 +338,17 @@
           <mesh filename="package://ninja/urdf/mesh/female_dock_mech.dae" scale="1 1 1"/>
         </geometry>
       </visual>
-      <collision>
-        <origin xyz="-${0.1531/2} 0.025 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.1531 0.064 0.064"/>
-        </geometry>
-      </collision>
+      <!-- <collision> -->
+      <!--   <origin xyz="0 0 0" rpy="0 0 0"/> -->
+      <!--   <geometry> -->
+      <!--     <box size="0.05 0.05 0.05"/> -->
+      <!--   </geometry> -->
+      <!-- </collision> -->
     </link>
     <xacro:damping_factor link="pitch_dock_link"/>
 
     <joint name="pitch_dock_joint" type="revolute">
-      <limit effort="10" lower="-3.14" upper="3.14" velocity="0.2"/>
+      <limit effort="20" lower="-3.14" upper="3.14" velocity="0.2"/>
       <parent link="main_body"/>
       <child link="pitch_dock_link"/>
       <origin rpy="0 0 0" xyz="-0.434658 -0.025 -0.0165"/>
