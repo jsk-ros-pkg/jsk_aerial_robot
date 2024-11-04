@@ -1,0 +1,8 @@
+wrench_estimator_name: aerial_robot_control::WrenchEstAcceleration
+
+controller:
+  if_use_est_wrench_4_control: true
+
+  acceleration_observer:
+    force_alpha_weight: 0.1  # alpha for low-pass filter  (0.0 ~ 1.0)
+    torque_alpha_weight: 0.1  # alpha for low-pass filter  (0.0 ~ 1.0)
