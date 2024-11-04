@@ -23,11 +23,13 @@ public:
     WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
 
     // acceleration-based method for the force estimation
-    force_acc_matrix_ = Eigen::MatrixXd::Identity(3, 3);
+    force_acc_alpha_matrix_ = Eigen::MatrixXd::Identity(3, 3);
     double force_alpha_weight;
     ros::NodeHandle acceleration_nh(nh_, "controller/acceleration_observer");
     getParam<double>(acceleration_nh, "force_alpha_weight", force_alpha_weight, 0.5);
-    force_acc_matrix_ *= force_alpha_weight;
+    force_acc_alpha_matrix_ *= force_alpha_weight;
+
+    est_external_force_ = Eigen::VectorXd::Zero(3);
 
     // momentum-based method for the torque estimation
     torque_mom_matrix_ = Eigen::MatrixXd::Identity(3, 3);
@@ -50,7 +52,7 @@ public:
     // this function comes from Dragon:
     // https://github.com/jsk-ros-pkg/jsk_aerial_robot/blob/master/robots/dragon/src/control/full_vectoring_control.cpp#L783C6-L783C35
     if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
-        navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)   // TODO: move this part to outside
+        navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)  // TODO: move this part to outside
     {
       prev_est_wrench_timestamp_ = 0;
       integrate_term_ = Eigen::VectorXd::Zero(3);
@@ -62,6 +64,24 @@ public:
     Eigen::VectorXd target_wrench_cog = calWrenchFromActuatorMeas();
     Eigen::VectorXd target_force_cog = target_wrench_cog.head(3);
     Eigen::VectorXd target_torque_cog = target_wrench_cog.tail(3);
+
+    // force estimation
+    Eigen::Vector3d acc_cog;
+    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), acc_cog);  // the acceleration of CoG point in CoG frame
+
+    double mass = robot_model_->getMass();
+
+    Eigen::Matrix3d cog_rot;
+    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
+
+    auto est_external_force_now =
+        cog_rot * (mass * acc_cog - target_torque_cog) - mass * robot_model_->getGravity().topRows(3);
+
+    // low pass filter  TODO: try a better filter
+    est_external_force_ = force_acc_alpha_matrix_ * est_external_force_now +
+                          (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_;
+
+    setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
 
     // torque estimation
     Eigen::Vector3d omega_cog;
@@ -88,11 +108,12 @@ public:
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
     setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
-
   }
 
 private:
-  Eigen::MatrixXd force_acc_matrix_;
+  // acceleration-based method for the force estimation
+  Eigen::MatrixXd force_acc_alpha_matrix_;
+  Eigen::VectorXd est_external_force_;
 
   // momentum-based method for the torque estimation
   Eigen::MatrixXd torque_mom_matrix_;
