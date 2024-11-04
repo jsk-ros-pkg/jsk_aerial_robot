@@ -510,19 +510,20 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr& joy_msg)
   /* mode oriented state */
   switch (xy_control_mode_)
   {
-    case POS_CONTROL_MODE:
-    {
-      if (teleop_flag_)
-      {
-        control_frame_ = WORLD_FRAME;
-
-        tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
-        double vec = 0.5;
-        setTargetPosX(pos_cog.x() - joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * vec);
-        setTargetPosY(pos_cog.y() + joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * vec);
-      }
-      break;
-    }
+      // TODO: the teleop control for POS_CONTROL_MODE might drift in the real world, so comment it out temporarily
+//    case POS_CONTROL_MODE:
+//    {
+//      if (teleop_flag_)
+//      {
+//        control_frame_ = WORLD_FRAME;
+//
+//        tf::Vector3 pos_cog = estimator_->getPos(Frame::COG, estimate_mode_);
+//        double vec = 0.1;
+//        setTargetPosX(pos_cog.x() - joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS] * vec);
+//        setTargetPosY(pos_cog.y() + joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS] * vec);
+//      }
+//      break;
+//    }
 
     case ACC_CONTROL_MODE: {
       if (teleop_flag_)
