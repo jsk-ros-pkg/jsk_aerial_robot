@@ -58,6 +58,7 @@
    ###########  Wrench Estimation  ###########
     <rosparam file="$(arg config_dir)/WrenchEstITerm.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'it')"/>
     <rosparam file="$(arg config_dir)/WrenchEstMomentum.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'mom')"/>
+    <rosparam file="$(arg config_dir)/WrenchEstMomAcc.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'ma')"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/BeetleOmniStateEstimation.yaml" command="load" />
