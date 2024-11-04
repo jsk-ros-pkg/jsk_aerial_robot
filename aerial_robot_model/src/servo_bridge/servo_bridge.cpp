@@ -73,12 +73,16 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   mujoco_control_input_pub_ = nh_.advertise<sensor_msgs::JointState>("mujoco/ctrl_input", 1);
   /* common publisher: torque on/off command */
   servo_torque_ctrl_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoTorqueCmd>(torque_pub_topic, 1)));
+  /* common publisher: joint profiles */
+  joint_profile_pub_ = nh_.advertise<spinal::JointProfiles>("joint_profiles",1);
+  /* subscriber: uav info */
+  uav_info_sub_ = nh_.subscribe<spinal::UavInfo>("uav_info", 1, &ServoBridge::uavInfoCallback, this);
 
 
   /* get additional config for servos from ros parameters */
   XmlRpc::XmlRpcValue all_servos_params;
   nh_.getParam("servo_controller", all_servos_params);
-
+  spinal::JointProfiles joint_profiles_msg;
   for(auto servo_group_params: all_servos_params)
     {
       if (servo_group_params.second.getType() != XmlRpc::XmlRpcValue::TypeStruct)
@@ -126,7 +130,8 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
               double lower_limit = urdf_model.getJoint(servo_params.second["name"])->limits->lower;
 
               /* get parameters from rosparam */
-              int angle_sgn = servo_params.second.hasMember("angle_sgn")?
+              int servo_id = servo_params.second["id"]; 
+              int angle_sgn = servo_params.second.hasMember("angle_sgn")? 
                 servo_params.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
               int zero_point_offset = servo_params.second.hasMember("zero_point_offset")?
                 servo_params.second["zero_point_offset"]:servo_group_params.second["zero_point_offset"];
@@ -391,3 +396,29 @@ bool ServoBridge::servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_s
   return true;
 }
 
+void ServoBridge::uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg)
+{
+  /* Send servo profiles to Spinal*/
+  spinal::JointProfiles joint_profiles_msg;
+  for(auto servo_group : servos_handler_){
+    for(auto servo : servo_group.second){
+      spinal::JointProfile joint_profile;
+      if(servo_group.first == "joints"){
+        joint_profile.type = spinal::JointProfile::JOINT;
+      }
+      else if(servo_group.first == "gimbals"){
+        joint_profile.type = spinal::JointProfile::GIMBAL;
+      }
+      else{
+        ROS_ERROR("Invalid servo type. Please define 'joints' or 'gimbals'.");
+        continue;
+      }
+      joint_profile.servo_id = servo->getId();
+      joint_profile.angle_sgn = servo->getAngleSgn();
+      joint_profile.angle_scale = servo->getAngleScale();
+      joint_profile.zero_point_offset = servo->getZeroPointOffset();
+      joint_profiles_msg.joints.push_back(joint_profile);
+    }
+  }
+  joint_profile_pub_.publish(joint_profiles_msg);
+}
