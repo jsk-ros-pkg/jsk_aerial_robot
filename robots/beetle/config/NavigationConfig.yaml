@@ -12,6 +12,8 @@ navigation:
   outdoor_takeoff_height: 1.5
   convergent_duration: 5.0
 
+#  z_convergent_thresh: 0.5
+
   # teleop operation
   max_target_vel: 0.5
   joy_target_vel_interval: 0.005  # 0.2 / 20 = 0.01, 0.005 ~ 0.01  m/s
