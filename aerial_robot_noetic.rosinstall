@@ -50,3 +50,9 @@
 #    local-name: realsense-ros
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
+
+# mocap optitrack
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/sugikazu75/mocap_optitrack.git
+    version: NatNet4.0/C++17
