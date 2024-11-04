@@ -1,0 +1,58 @@
+# aerial robot third party
+- git:
+    local-name: aerial_robot_3rdparty
+    uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
+    version: 4085d3a
+
+# kalman filter
+- git:
+    local-name: kalman_filter
+    uri: https://github.com/JSKAerialRobot/kalman_filter.git
+    version: 5c7a410
+
+# the sensor interface
+- git:
+    local-name: sensor_interface
+    uri: https://github.com/JSKAerialRobot/sensor_interface.git
+    version: e8286e7
+
+# RTK-GPS
+# support RTK based GPS module.
+# TODO: create PR
+- git:
+    local-name: ublox_gps
+    uri: https://github.com/tongtybj/ublox.git
+    version: holybro_rtk_m8p
+
+# rosserial
+# [rosserial server] implement rosservice server (https://github.com/ros-drivers/rosserial/pull/615)
+- git:
+    local-name: rosserial
+    uri: https://github.com/tongtybj/rosserial.git
+    version: rosservice_server
+
+# livox ros driver
+# modification for quick build of ROS1 version
+- git:
+    local-name: livox_ros_driver2
+    uri: https://github.com/tongtybj/livox_ros_driver2.git
+    version: PR/ros1
+
+# fast lio
+# modification for fast odometry based on EKF
+- git:
+    local-name: fast_lio
+    uri: https://github.com/tongtybj/FAST_LIO
+    version: PR/odometry
+
+# realsense
+#- git:
+#    local-name: realsense-ros
+#    uri: https://github.com/tongtybj/realsense-ros.git
+#    version: multi_realsense_t265
+
+# mocap optitrack
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/sugikazu75/mocap_optitrack.git
+    version: 50fb60d
