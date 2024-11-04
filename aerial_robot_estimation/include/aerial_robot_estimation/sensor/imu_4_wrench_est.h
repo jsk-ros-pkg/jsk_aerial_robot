@@ -43,50 +43,73 @@ using namespace std;
 
 namespace sensor_plugin
 {
-  class Imu4WrenchEst :public sensor_plugin::Imu
+class Imu4WrenchEst : public sensor_plugin::Imu
+{
+public:
+  void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator, string sensor_name,
+                  int index) override;
+
+  void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
   {
-  public:
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    filtered_omega_cog_ = filtered_omega_cog;
+  }
 
-    void initialize(ros::NodeHandle nh,
-                    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                    string sensor_name, int index) override;
+  void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(vel_mutex_);
+    filtered_vel_cog_ = filtered_vel_cog;
+  }
 
-    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      filtered_omega_cog_ = filtered_omega_cog;
-    }
+  void setFilteredOmegaDotCog(const tf::Vector3 filtered_omega_dot_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    filtered_omega_dot_cog_ = filtered_omega_dot_cog;
+  }
 
-    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      filtered_vel_cog_ = filtered_vel_cog;
-    }
+  void setFilteredAccCog(const tf::Vector3 filtered_acc_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(vel_mutex_);
+    filtered_acc_cog_ = filtered_acc_cog;
+  }
 
-    const tf::Vector3 getFilteredOmegaCog()
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      return filtered_omega_cog_;
-    }
+  const tf::Vector3 getFilteredOmegaCog()
+  {
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    return filtered_omega_cog_;
+  }
 
-    const tf::Vector3 getFilteredVelCog()
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      return filtered_vel_cog_;
-    }
+  const tf::Vector3 getFilteredVelCog()
+  {
+    boost::lock_guard<boost::mutex> lock(vel_mutex_);
+    return filtered_vel_cog_;
+  }
 
-  protected:
+  const tf::Vector3 getFilteredOmegaDotCog()
+  {
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    return filtered_omega_dot_cog_;
+  }
 
-    void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
+  const tf::Vector3 getFilteredAccCog()
+  {
+    boost::lock_guard<boost::mutex> lock(vel_mutex_);
+    return filtered_acc_cog_;
+  }
 
-    // work around to obtain filter states
-    boost::mutex omega_mutex_;
-    boost::mutex vel_mutex_;
-    tf::Vector3 filtered_vel_cog_;
-    tf::Vector3 filtered_omega_cog_;
-    IirFilter lpf_omega_; // for gyro
+protected:
+  void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
 
-    ros::Publisher omega_filter_pub_; // debug
-  };
+  // work around to obtain filter states
+  boost::mutex omega_mutex_;
+  boost::mutex vel_mutex_;
+  tf::Vector3 filtered_vel_cog_;        // cog point, world frame
+  tf::Vector3 filtered_acc_cog_;        // cog point, world frame
+  tf::Vector3 filtered_omega_cog_;      // cog point, cog frame
+  tf::Vector3 filtered_omega_dot_cog_;  // cog point, cog frame. Use dot means numerical derivative
+  IirFilter lpf_omega_;                 // for gyro
+
+  ros::Publisher omega_filter_pub_;  // debug
 };
+};  // namespace sensor_plugin
