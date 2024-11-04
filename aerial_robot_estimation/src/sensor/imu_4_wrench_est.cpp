@@ -67,10 +67,10 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
   tf::Transform cog2baselink_tf;
   tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
   int estimate_mode = estimator_->getEstimateMode();
-  setFilteredOmegaCog(cog2baselink_tf.getBasis() * filtered_omega);
-  setFilteredVelCog(estimator_->getVel(Frame::BASELINK, estimate_mode)
-                    + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
-                          * (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
+  setFilteredOmegaCogInCog(cog2baselink_tf.getBasis() * filtered_omega);
+  setFilteredVelCogInW(estimator_->getVel(Frame::BASELINK, estimate_mode) +
+                       estimator_->getOrientation(Frame::BASELINK, estimate_mode) *
+                           (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
 
   estimateProcess();
   updateHealthStamp();
