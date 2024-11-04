@@ -359,7 +359,7 @@ int main(void)
   extra_servo_.init(&htim3, &htim5, &nh_);
 
   /* Magnetic Encoder */
-  encoder_.init(&hi2c2);
+  encoder_.init(&hi2c2, &nh_);
 
 #if NERVE_COMM
   /* NERVE */
