@@ -84,18 +84,23 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 
 
         //initialize encoder: only can support one encoder
-        // encoder_handler_.init(hi2c); // Magnetic Encoder
-
+#ifndef SPINAL
+        encoder_handler_.init(hi2c); // Magnetic Encoder
+#endif
 	for (int i = 0; i < MAX_SERVO_NUM; i++) {
           servo_[i].hardware_error_status_ = 0;
           if(servo_[i].servo_resolution_ == 65535 || servo_[i].joint_resolution_ == 65535){
+#ifndef SPINAL
             if(servo_[i].external_encoder_flag_)
               servo_[i].hardware_error_status_ = 1 << RESOLUTION_RATIO_ERROR;  // 0b01000000;
+#endif
             servo_[i].resolution_ratio_ = 1;
           }
           else{
             servo_[i].resolution_ratio_ = (float)servo_[i].servo_resolution_ / (float)servo_[i].joint_resolution_;
+#ifndef SPINAL
             if(servo_[i].external_encoder_flag_) encoder_handler_.setOffset(servo_[i].joint_offset_);
+#endif
           }
 	}
 
@@ -139,8 +144,10 @@ void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
   if(servo_[servo_index].external_encoder_flag_){
 	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
-	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
+#ifndef SPINAL
+	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
 	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
+#endif
 	servo_[servo_index].first_get_pos_flag_ = true;
 	FlashMemory::erase();
 	FlashMemory::write();
@@ -672,6 +679,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		if (s != servo_.end()) {
                   s->hardware_error_status_ &= ((1 << ENCODER_CONNECT_ERROR) - 1); // &= 0b01111111
                   if(s->external_encoder_flag_) {
+#ifndef SPINAL
                     encoder_handler_.update();
                     if(encoder_handler_.connected()) {
                       s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
@@ -686,6 +694,9 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                     else {
                       s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
                     }
+#else
+                    return 0;
+#endif
                   }
                   else {
                     if (s->first_get_pos_flag_) {
