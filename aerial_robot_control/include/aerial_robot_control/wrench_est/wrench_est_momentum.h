@@ -5,16 +5,13 @@
 #ifndef AERIAL_ROBOT_CONTROL_WRENCH_EST_MOMENTUM_H
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_MOMENTUM_H
 
-#include "aerial_robot_control/wrench_est/wrench_est_base.h"
+#include "aerial_robot_control/wrench_est/wrench_est_actuator_meas_base.h"
 #include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
-
-#include "sensor_msgs/JointState.h"
-#include "spinal/ESCTelemetryArray.h"
 
 namespace aerial_robot_control
 {
 
-class WrenchEstMomentum : public aerial_robot_control::WrenchEstBase
+class WrenchEstMomentum : public aerial_robot_control::WrenchEstActuatorMeasBase
 {
 public:
   WrenchEstMomentum() = default;
@@ -23,7 +20,7 @@ public:
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator, double ctrl_loop_du) override
   {
-    WrenchEstBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
+    WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
 
     // initialize the matrix
     momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6, 6);
@@ -38,16 +35,6 @@ public:
     init_sum_momentum_ = Eigen::VectorXd::Zero(6);
     integrate_term_ = Eigen::VectorXd::Zero(6);
     prev_est_wrench_timestamp_ = 0;
-
-    // TODO: combine this part with the controller. especially the subscriber part.
-    ros::NodeHandle motor_nh(nh_, "motor_info");
-    getParam<double>(motor_nh, "krpm_rate", krpm2_d_thrust_, 0.0);
-
-    joint_angles_.resize(robot_model_->getJointNum(), 0.0);
-    sub_joint_states_ = nh_.subscribe("joint_states", 1, &WrenchEstMomentum::callbackJointStates, this);
-
-    thrust_meas_.resize(robot_model_->getRotorNum(), 0.0);
-    sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &WrenchEstMomentum::callbackESCTelem, this);
   }
 
   void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
@@ -65,8 +52,8 @@ public:
 
     Eigen::Vector3d vel_w, omega_cog;
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
-    tf::vectorTFToEigen(imu_handler->getFilteredVelCog(), vel_w);        // the vel of CoG point in world frame
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCog(), omega_cog);  // the omega of CoG point in CoG frame
+    tf::vectorTFToEigen(imu_handler->getFilteredVelCogInW(), vel_w);        // the vel of CoG point in world frame
+    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
 
@@ -105,57 +92,12 @@ public:
     setDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
   }
 
-  Eigen::VectorXd calWrenchFromActuatorMeas()
-  {
-    Eigen::VectorXd z = Eigen::VectorXd::Zero(2 * robot_model_->getRotorNum());
-    for (int i = 0; i < robot_model_->getRotorNum(); i++)
-    {
-      z(2 * i) = thrust_meas_[i] * sin(joint_angles_[i]);
-      z(2 * i + 1) = thrust_meas_[i] * cos(joint_angles_[i]);
-    }
-
-    // allocate * z
-    Eigen::VectorXd est_wrench_b = alloc_mat_ * z;
-    return est_wrench_b;
-  }
-
 private:
   Eigen::VectorXd init_sum_momentum_;
   Eigen::VectorXd est_external_wrench_;
   Eigen::MatrixXd momentum_observer_matrix_;
   Eigen::VectorXd integrate_term_;
   double prev_est_wrench_timestamp_;
-
-  // for servo angles
-  std::vector<double> joint_angles_;
-
-  ros::Subscriber sub_joint_states_;
-  void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
-  {
-    for (int i = 0; i < robot_model_->getJointNum(); i++)
-      joint_angles_[i] = msg->position[i];
-  }
-
-  // for actual thrust
-  std::vector<double> thrust_meas_;
-
-  ros::Subscriber sub_esc_telem_;
-  double krpm2_d_thrust_;
-  void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
-  {
-    double krpm;
-    krpm = (double)msg->esc_telemetry_1.rpm * 0.001;
-    thrust_meas_[0] = krpm * krpm / krpm2_d_thrust_;
-
-    krpm = (double)msg->esc_telemetry_2.rpm * 0.001;
-    thrust_meas_[1] = krpm * krpm / krpm2_d_thrust_;
-
-    krpm = (double)msg->esc_telemetry_3.rpm * 0.001;
-    thrust_meas_[2] = krpm * krpm / krpm2_d_thrust_;
-
-    krpm = (double)msg->esc_telemetry_4.rpm * 0.001;
-    thrust_meas_[3] = krpm * krpm / krpm2_d_thrust_;
-  }
 };
 
 };  // namespace aerial_robot_control
