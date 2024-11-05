@@ -103,6 +103,10 @@ namespace aerial_robot_navigation
     ros::Subscriber assembly_target_rot_sub_;
 
     double max_target_roll_pitch_rate_;
+    bool joy_roll_positive_flag_;
+    bool joy_roll_negative_flag_;
+    bool joy_pitch_positive_flag_;
+    bool joy_pitch_negative_flag_;
 
     bool roll_pitch_control_flag_;
     bool pre_assembled_ ; 
