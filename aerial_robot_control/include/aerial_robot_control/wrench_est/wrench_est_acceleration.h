@@ -96,6 +96,9 @@ public:
                            torque_acc_alpha_matrix_ * external_torque_now;
 
     setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
+
+    prev_est_wrench_timestamp_ = ros::Time::now().toSec();
+    prev_omega_cog_ = omega_cog;
   }
 
 private:
