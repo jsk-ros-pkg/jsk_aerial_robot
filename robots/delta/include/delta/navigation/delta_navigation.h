@@ -47,6 +47,8 @@ namespace aerial_robot_navigation
     void reset() override;
     void startTakeoff() override;
 
+    void setTargetBaselinkAttitudeFromCurrentStete();
+
     void setPrevGroundNavigationMode(int mode) {prev_ground_navigation_mode_ = mode;}
     void setGroundNavigationMode(int state);
     void setGroundMotionMode(int state);

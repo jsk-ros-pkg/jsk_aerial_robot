@@ -130,30 +130,7 @@ void RollingNavigator::startTakeoff()
       }
     case aerial_robot_navigation::ROLLING_STATE:
       { /* if rolling mode, set current baselink rotation as target baselink roation when starting */
-        ground_trajectory_mode_ = false;
-        Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
-
-        tf::Vector3 baselink_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
-        double target_roll, target_pitch;
-        target_roll = M_PI / 2.0;
-        if(baselink_euler.x() > 0)
-          target_pitch = baselink_euler.y();
-        else
-          target_pitch = M_PI - baselink_euler.y();
-
-        ROS_INFO_STREAM("[navigation] current baselink roll: " << baselink_euler.x() << " pitch: " << baselink_euler.y());
-        ROS_INFO_STREAM("[navigation] set desire coordinate same as baselink roll: " << target_roll << " pitch: " << target_pitch << "\n");
-
-        /* calculate desire orientation */
-        Eigen::Matrix3d rot_mat;
-        rot_mat = Eigen::AngleAxisd(target_pitch, b2) * Eigen::AngleAxisd(target_roll, b1);
-
-        /* set desire coordinate */
-        KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
-        double qx, qy, qz, qw;
-        rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
-        setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
-        setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+        setTargetBaselinkAttitudeFromCurrentStete();
         break;
       }
     default:
@@ -163,6 +140,33 @@ void RollingNavigator::startTakeoff()
   /* set iniital baselink rotation to robot_model and set current yaw angle as target */
   baselinkRotationProcess();
   setTargetYawFromCurrentState();
+}
+
+void RollingNavigator::setTargetBaselinkAttitudeFromCurrentStete()
+{
+  ground_trajectory_mode_ = false;
+
+  tf::Vector3 baselink_euler = estimator_->getEuler(Frame::BASELINK, estimate_mode_);
+  double target_roll, target_pitch;
+  target_roll = M_PI / 2.0;
+  if(baselink_euler.x() > 0)
+    target_pitch = baselink_euler.y();
+  else
+    target_pitch = M_PI - baselink_euler.y();
+
+  ROS_INFO_STREAM_THROTTLE(0.1, "[navigation] current baselink roll: " << baselink_euler.x() << " pitch: " << baselink_euler.y());
+  ROS_INFO_STREAM_THROTTLE(0.1, "[navigation] set desire coordinate same as baselink roll: " << target_roll << " pitch: " << target_pitch << "\n");
+
+  /* calculate desire orientation */
+  Eigen::Matrix3d rot_mat;
+  rot_mat = Eigen::AngleAxisd(target_pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(target_roll, Eigen::Vector3d::UnitX());
+
+  /* set desire coordinate */
+  KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
+  double qx, qy, qz, qw;
+  rot_mat_kdl.GetQuaternion(qx, qy, qz, qw);
+  setCurrentTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
+  setFinalTargetBaselinkQuat(tf::Quaternion(qx, qy, qz, qw));
 }
 
 void RollingNavigator::estimateSteep()
