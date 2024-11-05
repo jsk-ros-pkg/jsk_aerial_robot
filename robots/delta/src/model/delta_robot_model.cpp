@@ -198,7 +198,7 @@ void RollingRobotModel::setControlFrame(std::string frame_name)
             }
           catch(std::out_of_range error)
             {
-              ROS_ERROR_STREAM("exception was throwed when accessing additional frame: " << error.what());
+              ROS_ERROR_STREAM("exception was throwed when accessing additional frame " << control_frame_name_ << ": " << error.what());
             }
         }
       else
@@ -209,7 +209,7 @@ void RollingRobotModel::setControlFrame(std::string frame_name)
             }
           catch(std::out_of_range error)
             {
-              ROS_ERROR_STREAM("exception was throwed when accessing seg_tf_map: " << error.what());
+              ROS_ERROR_STREAM("exception was throwed when accessing seg_tf_map " << control_frame_name_ << ": " << error.what());
             }
         }
       setControlFrame(frame);
