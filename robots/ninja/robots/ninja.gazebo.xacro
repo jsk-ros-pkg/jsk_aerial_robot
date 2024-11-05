@@ -23,7 +23,7 @@
   <joint name="base_dummy_arm_joint" type="fixed">
     <parent link="yaw_dock_link"/>
     <child link="dummy_arm"/>
-    <origin xyz="0.017 0 -0.025" rpy="0 0 0"/>
+    <origin xyz="0.132 0 -0.025" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
   </joint>
 
@@ -44,6 +44,12 @@
           ixx="0.0001" ixy="0.0000" ixz="0.0000"
           iyy="0.0001" iyz="0.0000" izz="0.0001"/>
     </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.01"/>
+      </geometry>
+    </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -70,6 +76,12 @@
           ixx="0.0001" ixy="0.0000" ixz="0.0000"
           iyy="0.0001" iyz="0.0000" izz="0.0001"/>
     </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.01 0.01"/>
+      </geometry>
+    </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
