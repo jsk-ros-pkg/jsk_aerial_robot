@@ -94,6 +94,7 @@ namespace aerial_robot_control
     std::vector<double> rotor_tilt_;
     std::vector<float> lambda_trans_;
     std::vector<float> lambda_all_;
+    std::vector<double> gimbal_limits_; // min, max
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd full_lambda_all_;
     Eigen::VectorXd full_lambda_trans_;
