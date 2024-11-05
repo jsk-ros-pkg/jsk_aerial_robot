@@ -474,7 +474,7 @@ class AssemblyState(smach.State):
         self.flag_msg.key = str(self.leader_id)
         self.flag_msg.value = '1'
         self.flag_pub_leader.publish(self.flag_msg)
-        rospy.sleep(5.0)
+        rospy.sleep(3.0)
         return 'done'
 
     def emergencyCb(self,msg):
