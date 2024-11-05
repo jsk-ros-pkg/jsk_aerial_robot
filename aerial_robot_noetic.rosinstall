@@ -46,3 +46,9 @@
     local-name: general-message-pkgs
     uri: https://github.com/JenniferBuehler/general-message-pkgs.git
     version: f0c7a0c
+
+# mocap
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/Li-Jinjie/mocap_optitrack
+    version: PR/fix-NatNet4.0
