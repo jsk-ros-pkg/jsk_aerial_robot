@@ -43,7 +43,6 @@ public:
     if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
         navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)  // TODO: move this part to outside
     {
-      prev_est_wrench_timestamp_ = 0;
       return;
     }
 
@@ -72,22 +71,13 @@ public:
     setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
 
     // torque estimation
-    Eigen::Vector3d omega_cog;
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
-
-    if (prev_est_wrench_timestamp_ == 0)  // first time
-    {
-      prev_est_wrench_timestamp_ = ros::Time::now().toSec();
-      prev_omega_cog_ = omega_cog;
-      return;
-    }
-
-    double dt = ros::Time::now().toSec() - prev_est_wrench_timestamp_;
-    Eigen::Vector3d ang_acc_cog = (omega_cog - prev_omega_cog_) / dt;  // TODO: use a better differentiator
+    Eigen::Vector3d omega_cog, omega_dot_cog;
+    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);
+    tf::vectorTFToEigen(imu_handler->getFilteredOmegaDotCogInCog(), omega_dot_cog);
 
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
     Eigen::VectorXd torque_imu_cog_ =
-        inertia * ang_acc_cog + aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
+        inertia * omega_dot_cog + aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
 
     auto external_torque_now = torque_imu_cog_ - target_torque_cog;
 
@@ -96,15 +86,9 @@ public:
                            torque_acc_alpha_matrix_ * external_torque_now;
 
     setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
-
-    prev_est_wrench_timestamp_ = ros::Time::now().toSec();
-    prev_omega_cog_ = omega_cog;
   }
 
 private:
-  double prev_est_wrench_timestamp_;
-  Eigen::Vector3d prev_omega_cog_;
-
   // acceleration-based method
   Eigen::MatrixXd force_acc_alpha_matrix_;
   Eigen::VectorXd est_external_force_;
