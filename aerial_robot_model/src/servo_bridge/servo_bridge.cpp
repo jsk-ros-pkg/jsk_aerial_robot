@@ -148,10 +148,8 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
                 servo_group_params.second["sample_freq"]:(servo_params.second.hasMember("sample_freq")?servo_params.second["sample_freq"]: XmlRpc::XmlRpcValue(0.0));
               double cutoff_freq = servo_group_params.second.hasMember("cutoff_freq")?
                 servo_group_params.second["cutoff_freq"]:(servo_params.second.hasMember("cutoff_freq")?servo_params.second["cutoff_freq"]: XmlRpc::XmlRpcValue(0.0));
-              if(!servo_params.second.hasMember("sub_controller"))
-                {
-                  servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, upper_limit, lower_limit, torque_scale, !no_real_state_flags_.at(group_name), filter_flag, sample_freq, cutoff_freq)));
-                }
+
+              servo_group_handler.push_back(SingleServoHandlePtr(new SingleServoHandle(servo_params.second["name"], servo_params.second["id"], angle_sgn, zero_point_offset, angle_scale, upper_limit, lower_limit, torque_scale, !no_real_state_flags_.at(group_name), filter_flag, sample_freq, cutoff_freq)));
 
               /* rosparam and load controller for gazebo */
               if(simulation_mode_)
@@ -193,29 +191,26 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
                     ROS_ERROR("Failed to call service %s", controller_loader.getService().c_str());
 
                   /* start the controller */
-                  if(!servo_params.second.hasMember("sub_controller"))
-                    {
-                      ros::ServiceClient controller_starter = nh_.serviceClient<controller_manager_msgs::SwitchController>(nh_.getNamespace() + std::string("/controller_manager/switch_controller"));
-                      controller_manager_msgs::SwitchController switch_srv;
-                      switch_srv.request.start_controllers.push_back(load_srv.request.name);
-                      switch_srv.request.strictness = controller_manager_msgs::SwitchController::Request::STRICT;
+                  ros::ServiceClient controller_starter = nh_.serviceClient<controller_manager_msgs::SwitchController>(nh_.getNamespace() + std::string("/controller_manager/switch_controller"));
+                  controller_manager_msgs::SwitchController switch_srv;
+                  switch_srv.request.start_controllers.push_back(load_srv.request.name);
+                  switch_srv.request.strictness = controller_manager_msgs::SwitchController::Request::STRICT;
 
-                      if (controller_starter.call(switch_srv))
-                        ROS_INFO("start servo controller for %s", string(servo_params.second["name"]).c_str());
-                      else
-                        ROS_ERROR("Failed to call service %s", controller_starter.getService().c_str());
+                  if (controller_starter.call(switch_srv))
+                    ROS_INFO("start servo controller for %s", string(servo_params.second["name"]).c_str());
+                  else
+                    ROS_ERROR("Failed to call service %s", controller_starter.getService().c_str());
 
-                      /* init the servo command publisher to the controller */
-                      servo_ctrl_sim_pubs_[servo_group_params.first].push_back(nh_.advertise<std_msgs::Float64>(load_srv.request.name + string("/command"), 1));
-                      // wait for the publisher initialization
-                      while(servo_ctrl_sim_pubs_[servo_group_params.first].back().getNumSubscribers() == 0 && ros::ok())
-                        ros::Duration(0.1).sleep();
+                  /* init the servo command publisher to the controller */
+                  servo_ctrl_sim_pubs_[servo_group_params.first].push_back(nh_.advertise<std_msgs::Float64>(load_srv.request.name + string("/command"), 1));
+                  // wait for the publisher initialization
+                  while(servo_ctrl_sim_pubs_[servo_group_params.first].back().getNumSubscribers() == 0 && ros::ok())
+                    ros::Duration(0.1).sleep();
 
-                      /* set the initial angle */
-                      std_msgs::Float64 msg;
-                      nh_.getParam(string("servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation/init_value"), msg.data);
-                      servo_ctrl_sim_pubs_[servo_group_params.first].back().publish(msg);
-                    }
+                  /* set the initial angle */
+                  std_msgs::Float64 msg;
+                  nh_.getParam(string("servo_controller/") + servo_group_params.first + string("/") + servo_params.first + string("/simulation/init_value"), msg.data);
+                  servo_ctrl_sim_pubs_[servo_group_params.first].back().publish(msg);
                 }
             }
         }
@@ -418,7 +413,6 @@ void ServoBridge::uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg)
         ROS_ERROR("Invalid servo type. Please define 'joints' or 'gimbals'.");
         continue;
       }
-      if(!servo->getId()) continue; //only for simulation
       joint_profile.servo_id = servo->getId();
       joint_profile.angle_sgn = servo->getAngleSgn();
       joint_profile.angle_scale = servo->getAngleScale();

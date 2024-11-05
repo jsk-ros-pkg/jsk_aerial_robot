@@ -48,7 +48,7 @@ public:
 
   void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
   void update();
-  void sendData();
+  void sendData(bool flag_send_asap);
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
   DynamixelSerial& getServoHnadler() {return servo_handler_;}

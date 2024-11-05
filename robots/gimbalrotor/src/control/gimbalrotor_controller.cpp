@@ -35,6 +35,7 @@ namespace aerial_robot_control
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
+    send_att_gains_cmd_sub_ = nh_.subscribe("send_att_gain_cmd", 1, &GimbalrotorController::sendAttGainCmdCallback, this);
   }
 
   void GimbalrotorController::reset()
@@ -47,7 +48,7 @@ namespace aerial_robot_control
   void GimbalrotorController::rosParamInit()
   {
     ros::NodeHandle control_nh(nh_, "controller");
-    getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
+    getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 0);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
     getParam<bool>(control_nh, "i_term_rp_calc_in_pc", i_term_rp_calc_in_pc_, false);
   }
@@ -55,11 +56,12 @@ namespace aerial_robot_control
   bool GimbalrotorController::update()
   {
     sendGimbalCommand();
-    if(gimbal_calc_in_fc_){
-      std_msgs::UInt8 msg;
+    std_msgs::UInt8 msg;
+    if(gimbal_calc_in_fc_)
       msg.data = gimbal_dof_;
-      gimbal_dof_pub_.publish(msg);
-    }
+    else
+      msg.data = 0;
+    gimbal_dof_pub_.publish(msg);
 
     return PoseLinearController::update();
   }
@@ -81,7 +83,7 @@ namespace aerial_robot_control
     if(gimbal_calc_in_fc_ && i_term_rp_calc_in_pc_){
       target_ang_acc_x = pid_controllers_.at(ROLL).getITerm();
       target_ang_acc_y = pid_controllers_.at(PITCH).getITerm();
-      target_ang_acc_z = pid_controllers_.at(YAW).result();
+      target_ang_acc_z = 0;
       target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, 0.0);
     }else{
       target_ang_acc_x = pid_controllers_.at(ROLL).result();
@@ -352,6 +354,11 @@ namespace aerial_robot_control
       rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
       rpy_gain_pub_.publish(rpy_gain_msg);
     }
+  }
+
+  void GimbalrotorController::sendAttGainCmdCallback(const std_msgs::Empty & msg)
+  {
+    setAttitudeGains();
   }
 } //namespace aerial_robot_controller
 

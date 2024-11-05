@@ -7,6 +7,7 @@
 #include <aerial_robot_estimation/state_estimation.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt32.h>
+#include <std_msgs/Empty.h>
 #include <gimbalrotor/model/gimbalrotor_robot_model.h>
 
 namespace aerial_robot_control
@@ -66,10 +67,12 @@ namespace aerial_robot_control
     bool gimbal_calc_in_fc_;
     bool i_term_rp_calc_in_pc_;
     ros::Publisher rpy_gain_pub_; //for spinal
+    ros::Subscriber send_att_gains_cmd_sub_; //for spinal
     virtual void reset() override;
     virtual void setAttitudeGains();
     virtual void rosParamInit();
     virtual void controlCore() override;
+    void sendAttGainCmdCallback(const std_msgs::Empty & msg);
     bool update() override;
     Eigen::VectorXd additional_wrench_acc_cog_term_;
   };

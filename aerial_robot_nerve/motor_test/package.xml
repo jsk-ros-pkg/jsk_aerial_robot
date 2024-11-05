@@ -14,11 +14,13 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>std_srvs</build_depend>
   <build_depend>takasako_sps</build_depend>
+  <build_depend>spinal</build_depend>
 
   <run_depend>geometry_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>std_srvs</run_depend>
   <run_depend>takasako_sps</run_depend>
+  <run_depend>spinal</run_depend>
 
 </package>

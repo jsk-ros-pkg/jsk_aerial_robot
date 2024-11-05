@@ -7,6 +7,7 @@
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <takasako_sps/PowerInfo.h>
+#include <spinal/PwmTest.h>
 
 namespace Mode
 {
@@ -39,7 +40,7 @@ public:
     nhp_.param("power_info_sub_name", topic_name, std::string("power_info"));
     power_info_sub_ = nh_.subscribe(topic_name, 1, &MotorTest::powerInfoCallback, this, ros::TransportHints().tcpNoDelay());
     nhp_.param("motor_pwm_sub_name", topic_name, std::string("power_pwm"));
-    motor_pwm_pub_ = nh_.advertise<std_msgs::Float32>(topic_name,1);
+    motor_pwm_pub_ = nh_.advertise<spinal::PwmTest>(topic_name,1);
 
     start_cmd_sub_ =  nh_.subscribe("start_log_cmd", 1,  &MotorTest::startCallback, this, ros::TransportHints().tcpNoDelay());
     sps_on_pub_ = nh.advertise<std_msgs::Empty>("/power_on_cmd", 1);
@@ -100,8 +101,8 @@ private:
 
     pwm_value_ = min_pwm_value_;
 
-    std_msgs::Float32 cmd_msg;
-    cmd_msg.data = pwm_value_  / pwm_range_;
+    spinal::PwmTest cmd_msg;
+    cmd_msg.pwms.push_back(pwm_value_  / pwm_range_);
     motor_pwm_pub_.publish(cmd_msg);
     init_time_ = ros::Time::now();
     ROS_INFO("start pwm test");
@@ -170,8 +171,8 @@ private:
               {
                 if(once_flag_)
                   {
-                    std_msgs::Float32 cmd_msg;
-                    cmd_msg.data = stop_pwm_value_ / pwm_range_;
+                    spinal::PwmTest cmd_msg;
+                    cmd_msg.pwms.push_back(stop_pwm_value_  / pwm_range_);
                     motor_pwm_pub_.publish(cmd_msg);
                     once_flag_ = false;
                     ROS_WARN("STOP");
@@ -206,8 +207,8 @@ private:
         if(pwm_value_ > max_pwm_value_)
           {
             start_flag_ = false;
-            std_msgs::Float32 cmd_msg;
-            cmd_msg.data = stop_pwm_value_ / pwm_range_;
+            spinal::PwmTest cmd_msg;
+            cmd_msg.pwms.push_back(stop_pwm_value_  / pwm_range_);
             motor_pwm_pub_.publish(cmd_msg);
 
             ROS_WARN("finish pwm test");
@@ -220,8 +221,8 @@ private:
         if(once_flag_)
           {
             ROS_INFO("target_pwm: %d", pwm_value_);
-            std_msgs::Float32 cmd_msg;
-            cmd_msg.data = pwm_value_ / pwm_range_;
+            spinal::PwmTest cmd_msg;
+            cmd_msg.pwms.push_back(pwm_value_  / pwm_range_);
             motor_pwm_pub_.publish(cmd_msg);
           }
       }
