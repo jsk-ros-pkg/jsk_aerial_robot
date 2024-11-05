@@ -41,7 +41,7 @@ class AssemblyDemo():
                 else:
                     smach.StateMachine.add('SUB'+str(i),
                                            sub_sm,
-                                           transitions={'succeeded_'+motion_prefix:'SUB1'+str(i+1), 'interupted_'+motion_prefix:'interupted'})
+                                           transitions={'succeeded_'+motion_prefix:'SUB'+str(i+1), 'interupted_'+motion_prefix:'interupted'})
 
         sis = smach_ros.IntrospectionServer('smach_server', sm_top, '/SM_ROOT')
         sis.start()
