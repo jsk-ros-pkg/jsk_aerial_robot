@@ -16,5 +16,15 @@
 	This is a filter which do filter by difference of range.
     </description>
   </class>
+</library>
+
+   <library path="lib/liblaser_range_inf_filter">
+    <class name="laser_filters/LaserRangeInfFilter" type="laser_filters::LaserRangeInfFilter"
+	    base_class_type="filters::FilterBase<sensor_msgs::LaserScan>">
+    <description>
+	This is a filter which do filter inf of range.
+    </description>
+  </class>
   </library>
+
 </class_libraries>
