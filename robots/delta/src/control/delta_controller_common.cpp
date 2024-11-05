@@ -284,8 +284,22 @@ void RollingController::resolveGimbalOffset()
           double gimbal_candidate_minus = target_gimbal_angles_.at(i);
           while(!converge_flag)
             {
-              gimbal_candidate_plus += 2 * M_PI;
-              gimbal_candidate_minus -= 2 * M_PI;
+              bool viorate_limit_minus = false, viorate_limit_plus = false;
+              if((gimbal_limits_.at(0) <= gimbal_candidate_minus - 2 * M_PI) && (gimbal_candidate_minus - 2 * M_PI <= gimbal_limits_.at(1)))
+                gimbal_candidate_minus -= 2 * M_PI;
+              else viorate_limit_minus = true;
+
+              if((gimbal_limits_.at(0) <= gimbal_candidate_plus + 2 * M_PI) && (gimbal_candidate_plus + 2 * M_PI < gimbal_limits_.at(1)))
+                gimbal_candidate_plus += 2 * M_PI;
+              else viorate_limit_plus = true;
+
+              if(viorate_limit_minus && viorate_limit_plus)
+                {
+                  target_gimbal_angles_.at(i) = (fabs(target_gimbal_angles_.at(i) - gimbal_candidate_minus) <= fabs(target_gimbal_angles_.at(i) - gimbal_candidate_plus)) ? gimbal_candidate_minus : gimbal_candidate_plus;
+                  ROS_WARN_STREAM_THROTTLE(2.0, "[control] send " << target_gimbal_angles_.at(i) << " for gimbal" << i + 1 << " for limitation");
+                  converge_flag = true;
+                }
+
               if(fabs(current_gimbal_angles.at(i) - gimbal_candidate_plus) < M_PI)
                 {
                   ROS_WARN_STREAM_THROTTLE(2.0, "[control] send " << gimbal_candidate_plus << " for gimbal" << i + 1);
