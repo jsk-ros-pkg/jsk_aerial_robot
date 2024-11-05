@@ -94,8 +94,7 @@ endforeach()
 ### wrench estimation plugin
 add_library(wrench_est_plugins
         src/wrench_est/wrench_est_i_term.cpp
-        src/wrench_est/wrench_est_acceleration.cpp
-        src/wrench_est/wrench_est_momentum.cpp
+        src/wrench_est/wrench_est_actuator_meas.cpp
 )
 target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
 add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
