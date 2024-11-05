@@ -22,6 +22,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   robot_model_for_control_ = boost::make_shared<RollingRobotModel>();
 
   first_run_ = true;
+  is_osqp_solved_ = true;
 
   rotor_tilt_.resize(motor_num_);
   lambda_trans_.resize(motor_num_, 0.0);
@@ -253,7 +254,7 @@ void RollingController::controlCore()
         rolling_robot_model_->setControlFrame("cp");
         robot_model_for_control_->setControlFrame("cp");
 
-        standingPlanning();
+        groundMotionPlanning();
         calcFeedbackTermForGroundControl();
         calcFeedforwardTermForGroundControl();
         calcGroundFullLambda();

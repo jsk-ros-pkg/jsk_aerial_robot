@@ -3,7 +3,7 @@
 using namespace aerial_robot_model;
 using namespace aerial_robot_control;
 
-void RollingController::standingPlanning()
+void RollingController::groundMotionPlanning()
 {
   if(!start_rp_integration_)
     {
@@ -12,6 +12,12 @@ void RollingController::standingPlanning()
       flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
       navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
       ROS_WARN_ONCE("start roll/pitch I control");
+    }
+
+  if(!is_osqp_solved_)
+    {
+      rolling_navigator_->setTargetBaselinkAttitudeFromCurrentStete();
+      ROS_ERROR_STREAM_THROTTLE(0.1, "[control] set target baselink attitude as current state because osqp is not solved");
     }
 }
 
@@ -165,7 +171,10 @@ void RollingController::calcGroundFullLambda()
   if(!solver.solve())
     {
       ROS_WARN_STREAM("[control][OSQP] could not solve QP!");
+      is_osqp_solved_ = false;
     }
+  else is_osqp_solved_ = true;
+
   auto solution = solver.getSolution();
 
   /* reconstruct full lambda */
@@ -185,8 +194,11 @@ void RollingController::calcGroundFullLambda()
         }
     }
 
-  full_lambda_all_ = full_lambda;
-  full_lambda_trans_ = full_lambda;
+  if(is_osqp_solved_)
+    {
+      full_lambda_all_ = full_lambda;
+      full_lambda_trans_ = full_lambda;
+    }
 }
 
 double nonlinearGroundWrenchAllocationMinObjective(const std::vector<double> &x, std::vector<double> &grad, void *ptr)
