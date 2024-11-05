@@ -62,6 +62,12 @@ public:
     filtered_vel_cog_in_w_ = filtered_vel_cog_in_w;
   }
 
+  void setFilteredOmegaDotCogInCog(const tf::Vector3 filtered_omega_dot_cog_in_cog)
+  {
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    filtered_omega_dot_cog_in_cog_ = filtered_omega_dot_cog_in_cog;
+  }
+
   void setFilteredAccCogInCog(const tf::Vector3 filtered_acc_cog_in_cog)
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
@@ -80,6 +86,12 @@ public:
     return filtered_vel_cog_in_w_;
   }
 
+  const tf::Vector3 getFilteredOmegaDotCogInCog()
+  {
+    boost::lock_guard<boost::mutex> lock(omega_mutex_);
+    return filtered_omega_dot_cog_in_cog_;
+  }
+
   const tf::Vector3 getFilteredAccCogInCog()
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
@@ -89,6 +101,8 @@ public:
 protected:
   void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
 
+  double sample_freq_;
+
   // work around to obtain filter states
   boost::mutex omega_mutex_;
   boost::mutex vel_mutex_;
@@ -97,6 +111,11 @@ protected:
   tf::Vector3 filtered_acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
   IirFilter lpf_omega_;                        // for gyro
 
+  tf::Vector3 filtered_omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
+  IirFilter lpf_omega_dot_;
+  tf::Vector3 prev_omega_;
+
   ros::Publisher omega_filter_pub_;  // debug
+  ros::Publisher omega_dot_filter_pub_;  // debug
 };
 };  // namespace sensor_plugin
