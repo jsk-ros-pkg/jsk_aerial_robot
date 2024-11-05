@@ -124,6 +124,7 @@ namespace aerial_robot_control
     Eigen::Vector3d target_wrench_cp_fb_term_;
     Eigen::Matrix3d gravity_compensate_weights_;
     Eigen::Vector3d gravity_compensate_term_;
+    bool is_osqp_solved_;
     bool use_estimated_external_force_;
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
@@ -142,13 +143,13 @@ namespace aerial_robot_control
     void processGimbalAngles();
     void calcYawTerm();
 
-    /* flight mode */
+    /* aerial mode */
     void calcAccFromCog();
     void calcFlightFullLambda();
     void nonlinearWrenchAllocation();
 
-    /* rolling mode */
-    void standingPlanning();
+    /*  ground mode */
+    void groundMotionPlanning();
     void calcFeedbackTermForGroundControl();
     void calcFeedforwardTermForGroundControl();
     void calcGroundFullLambda();
