@@ -1,4 +1,6 @@
 scan_filter_chain:
+- name: range_inf_filter
+  type: laser_filters/LaserInfFilter
 - name: shadows
   type: laser_filters/ScanShadowsFilter
   params:

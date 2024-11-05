@@ -8,8 +8,15 @@
   </node>
 
   <!-- shadow_laser_filter -->
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_shadow_laser_filter">
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_fill_in_inf_filter">
     <remap from="scan" to="scan" />
+    <remap from="scan_filtered" to="debug/inf_filtered" />
+    <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserInfFilter.yaml" />
+  </node>
+
+  <!-- shadow_laser_filter -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="debug_shadow_laser_filter">
+    <remap from="scan" to="debug/inf_filtered" />
     <remap from="scan_filtered" to="debug/shadow_filtered" />
     <rosparam command="load" file="$(find hokuyo_estimation)/param/LaserShadowFilter.yaml" />
   </node>
