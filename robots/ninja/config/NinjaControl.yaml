@@ -29,7 +29,7 @@ controller:
   xy:
     p_gain: 12
     i_gain: 0.05
-    d_gain: 8
+    d_gain: 6
     limit_sum: 4.0
     limit_p: 12.0
     limit_i: 5.0
@@ -38,7 +38,7 @@ controller:
   z:
     p_gain: 8
     i_gain: 2.0
-    d_gain: 5
+    d_gain: 5.0
     limit_err_p: 1.0
     limit_sum: 25.0 # N for clamping thrust force
     limit_p: 25.0
@@ -48,8 +48,8 @@ controller:
 
   roll:
     p_gain: 25.0 #8~25
-    i_gain: 2.0
-    d_gain: 12.0 #4~11
+    i_gain: 3.0
+    d_gain: 10.0 #4~11
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 10.0
@@ -59,8 +59,8 @@ controller:
 
   pitch:
     p_gain: 25.0 #8~25
-    i_gain: 2.0
-    d_gain: 6 #4~11
+    i_gain: 3.0
+    d_gain: 4 #4~11
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 10.0
@@ -70,8 +70,8 @@ controller:
 
   yaw:
     p_gain: 15.0
-    i_gain: 1.0
-    d_gain: 12.0
+    i_gain: 3.0
+    d_gain: 5.0
     limit_err_p: 0.4
     limit_sum: 20.0
     limit_p: 20.0
