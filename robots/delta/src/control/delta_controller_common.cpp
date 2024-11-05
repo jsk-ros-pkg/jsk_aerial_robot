@@ -114,6 +114,23 @@ void RollingController::rosParamInit()
       rotor_tilt_attr->Attribute("value", &rotor_tilt_.at(i));
     }
 
+  /* get gimbal angle limit */
+  gimbal_limits_.resize(0);
+  auto urdf_model = robot_model_->getUrdfModel();
+  std::vector<urdf::LinkSharedPtr> urdf_links;
+  urdf_model.getLinks(urdf_links);
+  for(const auto& link: urdf_links)
+    {
+      if(link->parent_joint)
+        {
+          if(link->parent_joint->name=="gimbal1")
+            {
+              gimbal_limits_.push_back(link->parent_joint->limits->lower);
+              gimbal_limits_.push_back(link->parent_joint->limits->upper);
+            }
+        }
+    }
+
   /* get optimization weights for nonlinear wrench allocation */
   getParam<bool>(control_nh, "aerial_mode_add_joint_torque_constraint", aerial_mode_add_joint_torque_constraints_, false);
   getParam<bool>(control_nh, "ground_mode_add_joint_torque_constraint", ground_mode_add_joint_torque_constraints_, false);
