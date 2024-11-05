@@ -2,9 +2,7 @@
 
 ## Installation
 
-1. catkin build the workspace through the main README.md.
-2. checkout the develop/MPC_tilt_mt branch.
-3. install the acados manually.
+1. Install acados
 
 The version of acados should be aligned with the version of 3rdparty/acados/CMakeLists.txt -> GIT_TAG.
 
@@ -12,8 +10,35 @@ Specifically, first:
 ```bash
 git clone https://github.com/acados/acados.git --branch v0.3.3
 ```
+Then, follow the instructions below:
+- Install acados itself: Please follow the instructions on the acados website https://docs.acados.org/installation/index.html
+- Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html
+- Pay attention that you must execute the step 6 to install t_renderer.
 
-Then, follow the instructions in the acados website https://docs.acados.org/installation/index.html to install the acados.
+2. install the ros related packages
+
+```bash
+source /opt/ros/noetic/setup.bash
+mkdir -p ~/path_to_ws/src
+cd ~/path_to_ws/src
+```
+We use rosdep to manage the dependencies. So, 
+if you have never done this in your computer before, do the following:
+
+```bash
+sudo rosdep init
+rosdep update
+```
+
+Then, do the following:
+
+```bash
+wstool init src
+git clone git@github.com:Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt  # -b means the branch
+wstool merge -t src src/jsk_aerial_robot_dev/aerial_robot_noetic.rosinstall
+wstool update -t src  # install those unofficial packages
+rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic # install the dependencies, aka the packages in the package.xml
+```
 
 4. For the first run, uncomment these code in aerial_robot_control/CMakeLists.txt
 ```bash
@@ -31,6 +56,13 @@ set(ACADOS_PYTHON_SCRIPTS
 ```
 
 5. catkin build the workspace again.
+
+```bash
+cd ~/path_to_ws
+catkin build
+```
+
+6. If the building is successful, comment the code in step 4.
 
 ## Run the simulation
 
