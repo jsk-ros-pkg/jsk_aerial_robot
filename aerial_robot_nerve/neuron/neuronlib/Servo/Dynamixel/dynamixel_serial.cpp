@@ -57,6 +57,8 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
                 Flashmemory::addValue(&(servo_[i].joint_offset_), 4);
 	}
 	Flashmemory::addValue(&(ttl_rs485_mixed_), 2);
+        Flashmemory::addValue(&(pulley_skip_thresh_), 2);
+        Flashmemory::addValue(&(internal_offset_lpf_rate_), 4);
 
 	Flashmemory::read();
 
@@ -85,6 +87,12 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
             if(servo_[i].external_encoder_flag_) encoder_handler_.setOffset(servo_[i].joint_offset_);
           }
 	}
+
+        if (std::isnan(internal_offset_lpf_rate_)) {
+          internal_offset_lpf_rate_ = 1.0f;
+          Flashmemory::erase();
+          Flashmemory::write();
+        }
 }
 
 void DynamixelSerial::ping()
@@ -98,6 +106,7 @@ void DynamixelSerial::ping()
 void DynamixelSerial::reboot(uint8_t servo_index)
 {
 	cmdReboot(servo_[servo_index].id_);
+	servo_[servo_index].first_get_pos_flag_ = true;
 }
 
 void DynamixelSerial::setTorque(uint8_t servo_index)
@@ -119,7 +128,13 @@ void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
   if(servo_[servo_index].external_encoder_flag_){
-	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 int32_t joint_offset = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 if(joint_offset >= 0){
+		 servo_[servo_index].joint_offset_ = joint_offset % 4096;
+	 }
+	 else {
+		 servo_[servo_index].joint_offset_ = joint_offset % -4096;
+	 }
 	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
 	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
 	servo_[servo_index].first_get_pos_flag_ = true;
@@ -626,12 +641,21 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                     if(encoder_handler_.connected()) {
                       s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
 
+                      int32_t internal_offset = s->resolution_ratio_ * s->present_position_ - present_position;
                       if (s->first_get_pos_flag_) {
-                        s->internal_offset_ = s->resolution_ratio_ * s->present_position_ - present_position;
+                        s->internal_offset_ = internal_offset;
                         s->first_get_pos_flag_ = false;
                       }
+                      else {
+                        // check pulley skip
+                        int32_t diff = internal_offset - s->internal_offset_; // this should be proportional to joint load.
+                        // TODO: use diff to estimate the joint torque
+                        if (abs(diff) > pulley_skip_thresh_) {
+                          s->hardware_error_status_ |= 1 << PULLEY_SKIP_ERROR;
+                        }
 
-                      // TODO: check tooth jump
+                        s->internal_offset_ = (1 - internal_offset_lpf_rate_) * internal_offset + internal_offset_lpf_rate_ * s->internal_offset_;
+                      }
                     }
                     else {
                       s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
@@ -669,7 +693,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000000;
+                  s->hardware_error_status_ &=  ((1 << PULLEY_SKIP_ERROR) + (1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000010;
                   s->hardware_error_status_ |= parameters[0];
 		}
 		return 0;
@@ -1113,4 +1137,16 @@ HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
           return HAL_TIMEOUT;
         }
     }
+}
+
+void DynamixelSerial::setInternalOffsetLPFRate(float value)
+{
+  if (value < 0) {
+    value = 0;
+  }
+  if (value > 1) {
+    value = 1;
+  }
+
+  internal_offset_lpf_rate_ = value;
 }

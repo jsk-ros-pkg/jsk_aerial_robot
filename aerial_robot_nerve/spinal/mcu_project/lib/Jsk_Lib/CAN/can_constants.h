@@ -53,6 +53,8 @@ namespace CAN {
         constexpr uint8_t BOARD_CONFIG_SET_EXTERNAL_ENCODER_FLAG = 9;
         constexpr uint8_t BOARD_CONFIG_SET_RESOLUTION_RATIO = 10;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_ROUND_OFFSET = 11;
+	constexpr uint8_t BOARD_CONFIG_SET_SERVO_PULLEY_SKIP_THRESH = 12;
+  	constexpr uint8_t BOARD_CONFIG_SET_SERVO_INTERNAL_OFFSET_LPF_RATE = 13;
 }
 
 
