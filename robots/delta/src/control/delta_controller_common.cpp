@@ -72,6 +72,11 @@ void RollingController::reset()
   ROS_INFO_STREAM("[control] reset controller\n");
 
   first_run_ = true;
+
+  std::vector<double> current_gimbal_angles = rolling_robot_model_->getCurrentGimbalAngles();
+  for(int i = 0; i < motor_num_; i++)
+    target_gimbal_angles_.at(i) = current_gimbal_angles.at(i);
+  sendGimbalAngles();
 }
 
 void RollingController::activate()
