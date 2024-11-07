@@ -24,16 +24,16 @@
     ## link
     <link name="base_link">
       <inertial>
-        <origin xyz="0.00001050 0.00029063 0.00895728" rpy="0 0 0"/>
-        <mass value="1.9614"/>
+        <origin xyz="0.00000845 0.00023419 0.02260762" rpy="0 0 0"/>
+        <mass value="2.3096"/>
         <inertia
-            ixx="0.01465916" iyy="0.01396881" izz="0.01999070"
-            ixy="-0.00000632" ixz="0.00009113" iyz="0.00006625"/>
+            ixx="0.03155716" iyy="0.03084096" izz="0.03900553"
+            ixy="-0.00000599" ixz="0.00008620" iyz="0.00005548"/>
       </inertial>   
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://beetle/urdf/mesh/base_link_beetle_art_omni.dae"/>
+          <mesh filename="package://beetle/urdf/mesh/base_link_beetle_art_omni_w_guard.dae"/>
         </geometry>
       </visual>
       <collision>

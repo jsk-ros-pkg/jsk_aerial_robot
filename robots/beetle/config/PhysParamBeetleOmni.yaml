@@ -1,15 +1,15 @@
 physical:
-  mass: 2.61971  # no battery: 1.772kg ; with battery: 2.6kg;
+  mass: 2.96781  # no battery: 2.125kg ; with battery: 2.9kg;
   gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
-  inertia_diag: [ 0.04398, 0.04339, 0.07442 ] # kg m^2
+  inertia_diag: [ 0.0610297, 0.0603134, 0.0933303 ] # kg m^2
   dr1: 1  # direction of motor 1
-  p1: [ 0.194813, 0.194613, 0.009204 ] # position of motor 1
+  p1: [ 0.194824, 0.194648, -0.00154359 ] # position of motor 1
   dr2: -1  # direction of motor 2
-  p2: [ -0.194848, 0.194613, 0.009204 ] # position of motor 2
+  p2: [ -0.194837, 0.194648, -0.00154359 ] # position of motor 2
   dr3: 1  # direction of motor 3
-  p3: [ -0.194848, -0.195048, 0.009204 ] # position of motor 3
+  p3: [ -0.194837, -0.195013, -0.00154359 ] # position of motor 3
   dr4: -1  # direction of motor 4
-  p4: [ 0.194813, -0.195048, 0.009204 ] # position of motor 4
+  p4: [ 0.194824, -0.195013, -0.00154359 ] # position of motor 4
   kq_d_kt: 0.0165
 
   # these parameters are for the beetle art. TODO: recalibrate these parameters
