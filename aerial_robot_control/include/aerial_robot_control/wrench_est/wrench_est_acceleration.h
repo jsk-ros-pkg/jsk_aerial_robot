@@ -35,8 +35,7 @@ public:
     est_external_torque_ = Eigen::VectorXd::Zero(3);
   }
 
-  void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
-              const tf::Quaternion& q) override
+  void update() override
   {
     // this function comes from Dragon:
     // https://github.com/jsk-ros-pkg/jsk_aerial_robot/blob/master/robots/dragon/src/control/full_vectoring_control.cpp#L783C6-L783C35

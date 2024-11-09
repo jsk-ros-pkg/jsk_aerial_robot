@@ -92,10 +92,7 @@ foreach(script ${ACADOS_PYTHON_SCRIPTS})
 endforeach()
 
 ### wrench estimation plugin
-add_library(wrench_est_plugins
-        src/wrench_est/wrench_est_i_term.cpp
-        src/wrench_est/wrench_est_actuator_meas.cpp
-)
+add_library(wrench_est_plugins src/wrench_est/wrench_est_actuator_meas.cpp)
 target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
 add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
 
@@ -134,8 +131,8 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_controller_indi.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
   )
-target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils mpc_solver_plugins)
-add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg mpc_solver_plugins)
+target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils mpc_solver_plugins wrench_est_plugins)
+add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg mpc_solver_plugins wrench_est_plugins)
 
 ### flight navigation
 add_library (flight_navigation src/flight_navigation.cpp)

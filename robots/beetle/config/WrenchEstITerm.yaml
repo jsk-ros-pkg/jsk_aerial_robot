@@ -1,8 +1,5 @@
-wrench_estimator_name: aerial_robot_control::WrenchEstITerm
-
+# I Term is always used and has higher priority than the other wrench estimation methods.
 controller:
-  if_use_est_wrench_4_control: true
-
   i_term:
     # disturb_rej
     limit_fx: 5.0

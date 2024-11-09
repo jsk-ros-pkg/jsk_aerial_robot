@@ -35,6 +35,8 @@ public:
     sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &WrenchEstActuatorMeasBase::callbackESCTelem, this);
   }
 
+  virtual void update() = 0;
+
   Eigen::VectorXd calWrenchFromActuatorMeas()
   {
     Eigen::VectorXd z = Eigen::VectorXd::Zero(2 * robot_model_->getRotorNum());
@@ -81,6 +83,15 @@ private:
     thrust_meas_[3] = krpm * krpm / krpm2_d_thrust_;
   }
 };
+
+class WrenchEstNone : public WrenchEstActuatorMeasBase
+{
+  void update() override
+  {
+    // do nothing
+  }
+};
+
 
 };  // namespace aerial_robot_control
 

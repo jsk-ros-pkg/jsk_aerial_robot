@@ -22,14 +22,16 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
 void nmpc::TiltMtServoDistNMPC::initPlugins()
 {
+  wrench_est_i_term_.initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
+
   /* plugin: wrench estimator */
-  wrench_est_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstBase>>(
-      "aerial_robot_control", "aerial_robot_control::WrenchEstBase");
+  wrench_est_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstActuatorMeasBase>>(
+      "aerial_robot_control", "aerial_robot_control::WrenchEstActuatorMeasBase");
   try
   {
     // 1. read the plugin name from the parameter server
     std::string wrench_estimator_name;
-    nh_.param("wrench_estimator_name", wrench_estimator_name, std::string("aerial_robot_control::WrenchEstITerm"));
+    nh_.param("wrench_estimator_name", wrench_estimator_name, std::string("aerial_robot_control::WrenchEstNone"));
 
     // 2. load the plugin
     wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance(wrench_estimator_name);
@@ -49,15 +51,12 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
   /* disturbance rejection */
   calcDisturbWrench();
 
-  if (if_use_est_wrench_4_control_)
-  {
-    bx0[13 + joint_num_ + 0] = dist_force_w_.x;
-    bx0[13 + joint_num_ + 1] = dist_force_w_.y;
-    bx0[13 + joint_num_ + 2] = dist_force_w_.z;
-    bx0[13 + joint_num_ + 3] = dist_torque_cog_.x;
-    bx0[13 + joint_num_ + 4] = dist_torque_cog_.y;
-    bx0[13 + joint_num_ + 5] = dist_torque_cog_.z;
-  }
+  bx0[13 + joint_num_ + 0] = dist_force_w_.x;
+  bx0[13 + joint_num_ + 1] = dist_force_w_.y;
+  bx0[13 + joint_num_ + 2] = dist_force_w_.z;
+  bx0[13 + joint_num_ + 3] = dist_torque_cog_.x;
+  bx0[13 + joint_num_ + 4] = dist_torque_cog_.y;
+  bx0[13 + joint_num_ + 5] = dist_torque_cog_.z;
 
   return bx0;
 }
@@ -91,18 +90,35 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   }
 
   /* update I term */
+  wrench_est_i_term_.update(target_pos, target_q, pos, q);
+  dist_force_w_ = wrench_est_i_term_.getDistForceW();
+  dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+
+  /* update the external wrench estimator */
   if (wrench_est_ptr_ != nullptr)
   {
-    wrench_est_ptr_->update(target_pos, target_q, pos, q);
+    // TODO: pass the dist from I term to the wrench estimator
+    wrench_est_ptr_->update();
   }
   else
   {
     ROS_ERROR("wrench_est_ptr_ is nullptr");
   }
 
-  /* get the disturbance wrench */
-  dist_force_w_ = wrench_est_ptr_->getDistForceW();
-  dist_torque_cog_ = wrench_est_ptr_->getDistTorqueCOG();
+  /* add the external wrench */
+  if (if_use_est_wrench_4_control_)
+  { // dist_force_w_ = dist_force_w_ + wrench_est_ptr_->getDistForceW();
+    geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
+    geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+
+    dist_force_w_.x += external_force_w.x;
+    dist_force_w_.y += external_force_w.y;
+    dist_force_w_.z += external_force_w.z;
+
+    dist_torque_cog_.x += external_torque_cog.x;
+    dist_torque_cog_.y += external_torque_cog.y;
+    dist_torque_cog_.z += external_torque_cog.z;
+  }
 }
 
 /**

@@ -40,8 +40,6 @@ public:
     alloc_mat_pinv_ = alloc_mat_pinv;
   }
 
-  virtual void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos,
-                      const tf::Quaternion& q) = 0;
   virtual ~WrenchEstBase() = default;
 
   /* getter */
