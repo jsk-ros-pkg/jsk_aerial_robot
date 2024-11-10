@@ -66,10 +66,12 @@ namespace aerial_robot_control
   {
     PoseLinearController::controlCore();
     tf::Matrix3x3 uav_rot = estimator_->getOrientation(Frame::COG, estimate_mode_);
+    tf::Matrix3x3 uav_rot_yaw = tf::Matrix3x3(tf::createQuaternionFromRPY(0.0, 0.0, rpy_.z()));
     tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                              pid_controllers_.at(Y).result(),
                              pid_controllers_.at(Z).result());
-    tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
+    //tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
+    tf::Vector3 target_acc_cog = uav_rot_yaw.inverse() * target_acc_w; 
     Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
     target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
 

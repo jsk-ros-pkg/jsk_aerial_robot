@@ -242,7 +242,8 @@ namespace sensor_plugin
           }
 
         /** step1: ^{w}H_{b'}, b': level frame of b **/
-        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        // tf::Transform w_bdash_f(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(0.0));
 
         tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))

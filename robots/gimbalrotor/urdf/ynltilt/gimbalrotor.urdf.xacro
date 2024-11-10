@@ -23,13 +23,24 @@
 
     ## link
     <link name="base_link">
+    ## inertial of no attachment
       <inertial>
-        <origin xyz="0.001 0.00007 0.00275" rpy="0 0 0"/>
-        <mass value="0.958"/>
+        <origin xyz="0.00009021 -0.00005299 0.04639014" rpy="0 0 0"/>
+        <mass value="1.16544411"/>
         <inertia
-            ixx="0.01097918" iyy="0.01101753" izz="0.01953502"
-            ixy="-0.00000048" ixz="0.0000" iyz="0.00000"/>
+            ixx="0.01251517" iyy="0.01254829" izz="0.01920936"
+            ixy="-0.00000046" ixz="-0.00000278" iyz="-0.00001104"/>
       </inertial>
+    ## inertial with pruning tools
+      <!-- <inertial> -->
+      <!--   <origin xyz="0.05514 0.00149 0.03734" rpy="0 0 0"/> -->
+      <!--   <mass value="1.38734"/> -->
+      <!--   <inertia -->
+      <!--       ixx="0.01325195352" ixy="0.00068117226" ixz="-0.00359026615" -->
+      <!--       iyx="0.00068117226" iyy="0.03735952771" iyz="-0.00013486816" -->
+      <!--       izx="-0.00359026615" izy="-0.00013486186" izz="0.04350508718"/> -->
+      <!-- </inertial> -->
+
       <visual>
         <origin xyz="0 0 -0.0" rpy="0 0 0"/>
         <geometry>
@@ -140,12 +151,12 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.018 0.00 0.00438" rpy="0 0 0"/>
-        <mass value="0.1095"/>
+        <origin xyz="0.0412 0.00 0.0184" rpy="0 0 0"/>
+        <mass value="0.14"/>
         <inertia
-            ixx="0.00002989" ixy="0.0000"     ixz="-0.0000" 
-                             iyy="0.00002848" iyz="0.00000"
-                                              izz="0.0002698"
+            ixx="0.00003614" ixy="0.0000"     ixz="0.00000471" 
+                             iyy="0.00004251" iyz="0.00000"
+                                              izz="0.00002946"
         />
       </inertial>
       <collision>
@@ -260,7 +271,7 @@
   </xacro:macro>
 
   <xacro:extra_module name = "lidar_imu" parent = "base_link" visible = "0" > <!-- should be IMU frame -->
-    <origin xyz="${0.0} ${0.0} ${0.145}" rpy="0 0 ${pi/2.0}"/> <!-- TODO: the true pos -->
+    <origin xyz="${0.0} ${0.0} ${0.145}" rpy="0 0 ${-pi/2.0}"/> <!-- TODO: the true pos -->
     <inertial>
       <mass value = "00" />
       <origin xyz="0 0 0" rpy="0 0 0"/>

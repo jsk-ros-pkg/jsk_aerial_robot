@@ -6,7 +6,7 @@
   <arg name="real_machine" default="$(arg rm)" />
   <arg name="simulation" default="$(arg sim)" />
   <arg name="control_mode" default="0" />
-  <arg name="estimate_mode"  default= "1" />
+  <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
@@ -18,9 +18,9 @@
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="config_dir" default="$(find gimbalrotor)/config"/>
-  <arg name="robot_id" default="" />
+  <arg name="robot_id" default="1" />
   <arg name="robot_ns" value="gimbalrotor$(arg robot_id)" />
-  <arg name="airframe" default="quad" />
+  <arg name="airframe" default="ynltilt" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -36,7 +36,7 @@
    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
    ###########  Motor Config  ###########
-   <rosparam file="$(arg config_dir)/MotorInfo_5inch_noduct.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/MotorInfo_9inch.yaml" command="load" />
 
    ###########  Servo Config  ###########
    <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load"/>
@@ -77,6 +77,13 @@
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include >
 
+  ###########  Pruning Servo by Kamada ###########
+  <node pkg="aerial_robot_base" 
+        type="prune_servo_listener.py" 
+        name="dynamixel_controller" 
+        output="screen">
+  </node>
+  
   ##########  Sensors  ##########
   <include file="$(find gimbalrotor)/launch/include/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />

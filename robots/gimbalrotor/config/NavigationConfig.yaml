@@ -8,7 +8,7 @@ navigation:
   # Attitude Control Mode: 4
 
 
-  takeoff_height: 1.2 #1.0
+  takeoff_height: 0.3 #1.0
   outdoor_takeoff_height: 1.5
 
   # teleop operation
@@ -21,6 +21,8 @@ navigation:
   cmd_vel_lev2_gain : 2.0
   # nav_vel_limit : 0.2
   # vel_nav_threshold : 0.01
+  # land_pos_convergent_thresh: 0.1
+  # land_vel_convergent_thresh: 1.0
 
   gain_tunning_mode: 0
   max_target_tilt_angle: 0.2
