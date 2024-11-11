@@ -105,51 +105,68 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   dist_force_w_ = wrench_est_i_term_.getDistForceW();
   dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
 
-  /* update the external wrench estimator */
-  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
-      navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
-    return;
-
-  if (wrench_est_ptr_ != nullptr)
-    wrench_est_ptr_->update();
-  else
-    ROS_ERROR("wrench_est_ptr_ is nullptr");
-
-  /* add the external wrench */
-  if (if_use_est_wrench_4_control_)
+  /* update the external wrench estimator based on the Nav State */
+  // For the first time to add the external wrench, take away I term to ensure the continuity of the disturb wrench.
+  // When change from Hovering to Landing, shut down the wrench est. and give back the ITerm.
+  switch (navigator_->getNaviState())
   {
-    // 1. get the external wrench
-    geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
-    geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+    case aerial_robot_navigation::HOVER_STATE: {
+      /* get external wrench */
+      if (wrench_est_ptr_ != nullptr)
+        wrench_est_ptr_->update();
+      else
+        ROS_ERROR("wrench_est_ptr_ is nullptr");
+      geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
+      geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
 
-    // 2. for the first time to add the external wrench, take away I term to ensure the continuity of the disturb wrench
-    // TODO: use nav_ to do this job. When change from Hovering to Landing, shut down wrench est. and give back the ITerm.
-    if (!wrench_est_i_term_.if_take_away_i_term_)
-    {
-      wrench_est_i_term_.takeAwayITerm(external_force_w, external_torque_cog);
-      dist_force_w_ = wrench_est_i_term_.getDistForceW();
-      dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+      if (if_use_est_wrench_4_control_)
+      {
+        /* If est. wrench is used in control, take away the ITerm */
+        if (!wrench_est_i_term_.getTakeAwayFlag())
+        {
+          wrench_est_i_term_.takeAwayITerm(external_force_w, external_torque_cog);
+          dist_force_w_ = wrench_est_i_term_.getDistForceW();
+          dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+        }
+
+        /* add the external wrench */
+        dist_force_w_.x += external_force_w.x;
+        dist_force_w_.y += external_force_w.y;
+        dist_force_w_.z += external_force_w.z;
+
+        dist_torque_cog_.x += external_torque_cog.x;
+        dist_torque_cog_.y += external_torque_cog.y;
+        dist_torque_cog_.z += external_torque_cog.z;
+      }
+
+      break;
     }
 
-    dist_force_w_.x += external_force_w.x;
-    dist_force_w_.y += external_force_w.y;
-    dist_force_w_.z += external_force_w.z;
+    case aerial_robot_navigation::LAND_STATE: {
+      if (wrench_est_i_term_.getTakeAwayFlag())
+      {
+        /* get external wrench */
+        if (wrench_est_ptr_ != nullptr)
+          wrench_est_ptr_->update();
+        else
+          ROS_ERROR("wrench_est_ptr_ is nullptr");
+        geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
+        geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
 
-    dist_torque_cog_.x += external_torque_cog.x;
-    dist_torque_cog_.y += external_torque_cog.y;
-    dist_torque_cog_.z += external_torque_cog.z;
+        /* give back the ITerm */
+        wrench_est_i_term_.giveBackITerm(external_force_w, external_torque_cog);
+        dist_force_w_ = wrench_est_i_term_.getDistForceW();
+        dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+      }
+
+      break;
+    }
+
+    default:
+      break;
   }
-}
 
-/**
- * @brief callbackViz: publish the predicted trajectory and reference trajectory
- * @param [ros::TimerEvent&] event
- */
-void nmpc::TiltMtServoDistNMPC::callbackViz(const ros::TimerEvent& event)
-{
-  TiltMtServoNMPC::callbackViz(event);
-
-  /* disturbance wrench */
+  /* publish the disturbance wrench */
   geometry_msgs::WrenchStamped dist_wrench_;
   dist_wrench_.header.frame_id = "beetle1/cog";
 

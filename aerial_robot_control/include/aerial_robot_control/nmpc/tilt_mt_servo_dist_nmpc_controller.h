@@ -47,8 +47,6 @@ protected:
 
   virtual void calcDisturbWrench();
 
-  void callbackViz(const ros::TimerEvent& event) override;
-
   void initAllocMat() override;
 };
 
