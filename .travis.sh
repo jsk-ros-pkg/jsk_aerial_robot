@@ -22,12 +22,6 @@ source /opt/ros/${ROS_DISTRO}/setup.bash
 
 # Setup for rosdep
 sudo rosdep init
-# use snapshot of rosdep list
-    # https://github.com/ros/rosdistro/pull/31570#issuecomment-1000497517
-if [[ "$ROS_DISTRO" = "kinetic" ]]; then
-    sudo rm /etc/ros/rosdep/sources.list.d/20-default.list
-    sudo wget https://gist.githubusercontent.com/cottsay/b27a46e53b8f7453bf9ff637d32ea283/raw/476b3714bb90cfbc6b8b9d068162fc6408fa7f76/30-xenial.list -O /etc/ros/rosdep/sources.list.d/30-xenial.list
-fi
 rosdep update --include-eol-distros
 
 # Install source code
@@ -38,36 +32,6 @@ wstool init src
 wstool merge -t src src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
-
-if [ ${ROS_DISTRO} = 'kinetic' ]; then
-    path=~/.gazebo/models/sun
-    echo "manually download the sun gazebo model to ${path}"
-    mkdir -p ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_2.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_3.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model-1_4.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/sun/model.config -P ${path}
-
-    path=~/.gazebo/models/ground_plane
-    echo "manually download the ground_plane gazebo model to ${path}"
-    mkdir -p ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model-1_2.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model-1_3.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model-1_4.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model.sdf -P ${path}
-    wget https://raw.githubusercontent.com/osrf/gazebo_models/master/ground_plane/model.config -P ${path}
-fi
-
-if [[ "$ROS_DISTRO" = "kinetic" ]]; then
-    # to use c++17
-    sudo apt-get install -y software-properties-common
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-    sudo apt update
-    sudo apt install -y g++-7
-    export CXX='g++-7'
-    export CC='gcc-7'
-fi
 
 # Build
 catkin config --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
