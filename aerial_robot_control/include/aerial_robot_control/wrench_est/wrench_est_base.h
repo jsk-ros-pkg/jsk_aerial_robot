@@ -17,6 +17,8 @@ namespace aerial_robot_control
 class WrenchEstBase
 {
 public:
+  virtual ~WrenchEstBase() = default;
+
   virtual inline void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
                                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator,
@@ -30,17 +32,20 @@ public:
 
     setCtrlLoopDu(ctrl_loop_du);
 
+    reset();
+  };
+
+  virtual void reset()
+  {
     dist_force_w_ = geometry_msgs::Vector3();
     dist_torque_cog_ = geometry_msgs::Vector3();
-  };
+  }
 
   void inline init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
   {
     alloc_mat_ = alloc_mat;
     alloc_mat_pinv_ = alloc_mat_pinv;
   }
-
-  virtual ~WrenchEstBase() = default;
 
   /* getter */
   inline geometry_msgs::Vector3 getDistForceW()
@@ -90,7 +95,6 @@ protected:
       ROS_INFO_STREAM("[" << nh.getNamespace() << "] " << param_name << ": " << param);
   }
 
-protected:
   ros::NodeHandle nh_;
 
   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
