@@ -53,6 +53,16 @@ public:
     error_last_round_ = 0;
   }
 
+  /**
+   * @brief change the i term by a offset control input u
+   * @param u_offset the offset of the control input
+   */
+  void changeITerm(double u_offset)
+  {
+    if (i_gain_ > 0.001)
+      i_term_ += u_offset / i_gain_;
+  }
+
 private:
   double i_gain_;
   double u_limit_;

@@ -21,6 +21,8 @@ namespace aerial_robot_control
 class WrenchEstITerm : public WrenchEstBase
 {
 public:
+  bool if_take_away_i_term_ = false;
+
   WrenchEstITerm() = default;
 
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
@@ -89,6 +91,28 @@ public:
 
     setDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
     setDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
+  }
+
+  void takeAwayITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
+  {
+    pos_i_term_[0].changeITerm(-dist_force_w.x);
+    pos_i_term_[1].changeITerm(-dist_force_w.y);
+    pos_i_term_[2].changeITerm(-dist_force_w.z);
+    pos_i_term_[3].changeITerm(-dist_torque_cog.x);
+    pos_i_term_[4].changeITerm(-dist_torque_cog.y);
+    pos_i_term_[5].changeITerm(-dist_torque_cog.z);
+    if_take_away_i_term_ = true;
+  }
+
+  void giveBackITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
+  {
+    pos_i_term_[0].changeITerm(dist_force_w.x);
+    pos_i_term_[1].changeITerm(dist_force_w.y);
+    pos_i_term_[2].changeITerm(dist_force_w.z);
+    pos_i_term_[3].changeITerm(dist_torque_cog.x);
+    pos_i_term_[4].changeITerm(dist_torque_cog.y);
+    pos_i_term_[5].changeITerm(dist_torque_cog.z);
+    if_take_away_i_term_ = false;
   }
 
   void reset() override
