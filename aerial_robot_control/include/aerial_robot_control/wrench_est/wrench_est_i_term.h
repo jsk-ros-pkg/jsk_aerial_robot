@@ -91,6 +91,14 @@ public:
     setDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
   }
 
+  void reset() override
+  {
+    WrenchEstBase::reset();
+
+    for (auto& i_term : pos_i_term_)
+      i_term.reset();
+  }
+
 private:
   ITerm pos_i_term_[6];  // x, y, z, roll, pitch, yaw
 
