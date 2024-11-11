@@ -30,7 +30,11 @@ public:
     getParam<double>(acceleration_nh, "torque_alpha_weight", torque_alpha_weight, 0.5);
     force_acc_alpha_matrix_ *= force_alpha_weight;
     torque_acc_alpha_matrix_ *= torque_alpha_weight;
+  }
 
+  void reset() override
+  {
+    WrenchEstActuatorMeasBase::reset();
     est_external_force_ = Eigen::VectorXd::Zero(3);
     est_external_torque_ = Eigen::VectorXd::Zero(3);
   }

@@ -30,7 +30,11 @@ public:
     getParam<double>(momentum_nh, "momentum_observer_torque_weight", torque_weight, 2.0);
     momentum_observer_matrix_.topRows(3) *= force_weight;
     momentum_observer_matrix_.bottomRows(3) *= torque_weight;
+  }
 
+  void reset() override
+  {
+    WrenchEstActuatorMeasBase::reset();
     est_external_wrench_ = Eigen::VectorXd::Zero(6);
     init_sum_momentum_ = Eigen::VectorXd::Zero(6);
     integrate_term_ = Eigen::VectorXd::Zero(6);
@@ -44,8 +48,7 @@ public:
     if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
         navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)   // TODO: move this part to outside
     {
-      prev_est_wrench_timestamp_ = 0;
-      integrate_term_ = Eigen::VectorXd::Zero(6);
+      reset();
       return;
     }
 

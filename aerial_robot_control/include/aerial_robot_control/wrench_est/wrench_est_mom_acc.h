@@ -29,20 +29,21 @@ public:
     getParam<double>(acceleration_nh, "force_alpha_weight", force_alpha_weight, 0.5);
     force_acc_alpha_matrix_ *= force_alpha_weight;
 
-    est_external_force_ = Eigen::VectorXd::Zero(3);
-
     // momentum-based method for the torque estimation
     torque_mom_matrix_ = Eigen::MatrixXd::Identity(3, 3);
-
     double torque_weight;
     ros::NodeHandle momentum_nh(nh_, "controller/momentum_observer");
     getParam<double>(momentum_nh, "momentum_observer_torque_weight", torque_weight, 2.0);
     torque_mom_matrix_ *= torque_weight;
+  }
 
+  void reset() override
+  {
+    WrenchEstActuatorMeasBase::reset();
+    est_external_force_ = Eigen::VectorXd::Zero(3);
     est_external_torque_ = Eigen::VectorXd::Zero(3);
     init_sum_momentum_ = Eigen::VectorXd::Zero(3);
     integrate_term_ = Eigen::VectorXd::Zero(3);
-
     prev_est_wrench_timestamp_ = 0;
   }
 
@@ -53,8 +54,7 @@ public:
     if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
         navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)  // TODO: move this part to outside
     {
-      prev_est_wrench_timestamp_ = 0;
-      integrate_term_ = Eigen::VectorXd::Zero(3);
+      reset();
       return;
     }
 
