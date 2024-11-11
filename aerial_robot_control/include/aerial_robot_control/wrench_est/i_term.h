@@ -38,9 +38,9 @@ public:
 
     double u_sat = std::max(std::min(u, u_limit_), -u_limit_);
 
-    // integral anti-windup: adjust integrator to keep u out of saturation
-    if (i_gain_ != 0)
-      i_term_ += (dt_ / i_gain_) * (u_sat - u);
+    // integral anti-windup: if u -> saturation, then i_term_ -> saturation / i_gain_
+    if (i_gain_ > 0.001)
+      i_term_ = u_sat / i_gain_;
 
     error_last_round_ = error;
 
