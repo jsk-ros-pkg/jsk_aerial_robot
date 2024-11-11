@@ -124,7 +124,9 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
         /* If est. wrench is used in control, take away the ITerm */
         if (!wrench_est_i_term_.getTakeAwayFlag())
         {
+          ROS_INFO("Take away the ITerm!");
           wrench_est_i_term_.takeAwayITerm(external_force_w, external_torque_cog);
+          wrench_est_i_term_.update(target_pos, target_q, pos, q);
           dist_force_w_ = wrench_est_i_term_.getDistForceW();
           dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
         }
@@ -154,7 +156,9 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
         geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
 
         /* give back the ITerm */
+        ROS_INFO("Give back the ITerm!");
         wrench_est_i_term_.giveBackITerm(external_force_w, external_torque_cog);
+        wrench_est_i_term_.update(target_pos, target_q, pos, q);
         dist_force_w_ = wrench_est_i_term_.getDistForceW();
         dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
       }
