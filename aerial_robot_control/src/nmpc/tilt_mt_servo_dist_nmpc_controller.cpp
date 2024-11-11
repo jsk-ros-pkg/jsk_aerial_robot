@@ -25,12 +25,14 @@ void nmpc::TiltMtServoDistNMPC::reset()
   TiltMtServoNMPC::reset();
 
   wrench_est_i_term_.reset();
+
   if (wrench_est_ptr_ != nullptr)
     wrench_est_ptr_->reset();
 }
 
 void nmpc::TiltMtServoDistNMPC::initPlugins()
 {
+  /* I Term is always loaded  */
   wrench_est_i_term_.initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
 
   /* plugin: wrench estimator */
@@ -103,24 +105,27 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   dist_force_w_ = wrench_est_i_term_.getDistForceW();
   dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
 
-
-
   /* update the external wrench estimator */
   if (wrench_est_ptr_ != nullptr)
-  {
-    // TODO: pass the dist from I term to the wrench estimator
     wrench_est_ptr_->update();
-  }
   else
-  {
     ROS_ERROR("wrench_est_ptr_ is nullptr");
-  }
 
   /* add the external wrench */
   if (if_use_est_wrench_4_control_)
-  { // dist_force_w_ = dist_force_w_ + wrench_est_ptr_->getDistForceW();
+  {
+    // 1. get the external wrench
     geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
     geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+
+    // 2. for the first time to add the external wrench, take away I term to ensure the continuity of the disturbance wrench
+    // TODO: use nav_ to do this job. When change from Hovering to Landing, shut down wrench est. and give back the I term.
+    if (!wrench_est_i_term_.if_take_away_i_term_)
+    {
+      wrench_est_i_term_.takeAwayITerm(external_force_w, external_torque_cog);
+      dist_force_w_ = wrench_est_i_term_.getDistForceW();
+      dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+    }
 
     dist_force_w_.x += external_force_w.x;
     dist_force_w_.y += external_force_w.y;
