@@ -92,7 +92,6 @@ class WrenchEstNone : public WrenchEstActuatorMeasBase
   }
 };
 
-
 };  // namespace aerial_robot_control
 
 #endif  // AERIAL_ROBOT_CONTROL_WRENCH_EST_ACTUATOR_MEAS_BASE_H
