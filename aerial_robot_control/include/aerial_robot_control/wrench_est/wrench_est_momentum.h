@@ -43,15 +43,6 @@ public:
 
   void update() override
   {
-    // this function comes from Dragon:
-    // https://github.com/jsk-ros-pkg/jsk_aerial_robot/blob/master/robots/dragon/src/control/full_vectoring_control.cpp#L783C6-L783C35
-    if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
-        navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)   // TODO: move this part to outside
-    {
-      reset();
-      return;
-    }
-
     Eigen::Vector3d vel_w, omega_cog;
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
     tf::vectorTFToEigen(imu_handler->getFilteredVelCogInW(), vel_w);        // the vel of CoG point in world frame

@@ -106,6 +106,10 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
 
   /* update the external wrench estimator */
+  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE &&
+      navigator_->getNaviState() != aerial_robot_navigation::LAND_STATE)
+    return;
+
   if (wrench_est_ptr_ != nullptr)
     wrench_est_ptr_->update();
   else
@@ -118,8 +122,8 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
     geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
     geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
 
-    // 2. for the first time to add the external wrench, take away I term to ensure the continuity of the disturbance wrench
-    // TODO: use nav_ to do this job. When change from Hovering to Landing, shut down wrench est. and give back the I term.
+    // 2. for the first time to add the external wrench, take away I term to ensure the continuity of the disturb wrench
+    // TODO: use nav_ to do this job. When change from Hovering to Landing, shut down wrench est. and give back the ITerm.
     if (!wrench_est_i_term_.if_take_away_i_term_)
     {
       wrench_est_i_term_.takeAwayITerm(external_force_w, external_torque_cog);
