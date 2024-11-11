@@ -106,20 +106,28 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
 
   /* update the external wrench estimator based on the Nav State */
-  // For the first time to add the external wrench, take away I term to ensure the continuity of the disturb wrench.
-  // When change from Hovering to Landing, shut down the wrench est. and give back the ITerm.
-  switch (navigator_->getNaviState())
+  auto nav_state = navigator_->getNaviState();
+
+  if (nav_state == aerial_robot_navigation::TAKEOFF_STATE || nav_state == aerial_robot_navigation::HOVER_STATE ||
+      nav_state == aerial_robot_navigation::LAND_STATE)
   {
-    case aerial_robot_navigation::HOVER_STATE: {
+    if (estimator_->getPos(Frame::COG, estimate_mode_).z() > 0.3)  // TODO: change to a state: IN_AIR
+    {
       /* get external wrench */
       if (wrench_est_ptr_ != nullptr)
         wrench_est_ptr_->update();
       else
         ROS_ERROR("wrench_est_ptr_ is nullptr");
-      geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
-      geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+    }
 
-      if (if_use_est_wrench_4_control_)
+    geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
+    geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+
+    // For the first time to add the external wrench, take away I term to ensure the continuity of the disturb wrench.
+    // When change from Hovering to Landing, shut down the wrench est. and give back the ITerm.
+    if (if_use_est_wrench_4_control_)
+    {
+      if (nav_state == aerial_robot_navigation::HOVER_STATE)
       {
         /* If est. wrench is used in control, take away the ITerm */
         if (!wrench_est_i_term_.getTakeAwayFlag())
@@ -141,33 +149,19 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
         dist_torque_cog_.z += external_torque_cog.z;
       }
 
-      break;
-    }
-
-    case aerial_robot_navigation::LAND_STATE: {
-      if (wrench_est_i_term_.getTakeAwayFlag())
+      if (nav_state == aerial_robot_navigation::LAND_STATE)
       {
-        /* get external wrench */
-        if (wrench_est_ptr_ != nullptr)
-          wrench_est_ptr_->update();
-        else
-          ROS_ERROR("wrench_est_ptr_ is nullptr");
-        geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
-        geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
-
-        /* give back the ITerm */
-        ROS_INFO("Give back the ITerm!");
-        wrench_est_i_term_.giveBackITerm(external_force_w, external_torque_cog);
-        wrench_est_i_term_.update(target_pos, target_q, pos, q);
-        dist_force_w_ = wrench_est_i_term_.getDistForceW();
-        dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+        if (wrench_est_i_term_.getTakeAwayFlag())
+        {
+          /* give back the ITerm */
+          ROS_INFO("Give back the ITerm!");
+          wrench_est_i_term_.giveBackITerm(external_force_w, external_torque_cog);
+          wrench_est_i_term_.update(target_pos, target_q, pos, q);
+          dist_force_w_ = wrench_est_i_term_.getDistForceW();
+          dist_torque_cog_ = wrench_est_i_term_.getDistTorqueCOG();
+        }
       }
-
-      break;
     }
-
-    default:
-      break;
   }
 
   /* publish the disturbance wrench */
