@@ -19,10 +19,9 @@ public:
   WrenchEstActuatorMeasBase() = default;
 
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
-                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
-                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator, double ctrl_loop_du) override
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator, double ctrl_loop_du) override
   {
-    WrenchEstBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
+    WrenchEstBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
     // TODO: combine this part with the controller. especially the subscriber part.
     ros::NodeHandle motor_nh(nh_, "motor_info");

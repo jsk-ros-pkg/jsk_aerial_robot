@@ -8,7 +8,6 @@
 #include <ros/ros.h>
 #include <tf/tf.h>
 #include <aerial_robot_control/control/base/base.h>
-#include <aerial_robot_control/flight_navigation.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_model/model/aerial_robot_model_ros.h>
 
@@ -21,14 +20,12 @@ public:
 
   virtual inline void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
-                                 boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator,
                                  double ctrl_loop_du)
   {
     nh_ = nh;
 
     robot_model_ = robot_model;
     estimator_ = estimator;
-    navigator_ = navigator;
 
     setCtrlLoopDu(ctrl_loop_du);
 

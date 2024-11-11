@@ -17,10 +17,9 @@ public:
   WrenchEstMomentum() = default;
 
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
-                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
-                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator>& navigator, double ctrl_loop_du) override
+                  boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator, double ctrl_loop_du) override
   {
-    WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, navigator, ctrl_loop_du);
+    WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
     // initialize the matrix
     momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6, 6);

@@ -33,7 +33,7 @@ void nmpc::TiltMtServoDistNMPC::reset()
 void nmpc::TiltMtServoDistNMPC::initPlugins()
 {
   /* I Term is always loaded  */
-  wrench_est_i_term_.initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
+  wrench_est_i_term_.initialize(nh_, robot_model_, estimator_, ctrl_loop_du_);
 
   /* plugin: wrench estimator */
   wrench_est_loader_ptr_ = boost::make_shared<pluginlib::ClassLoader<aerial_robot_control::WrenchEstActuatorMeasBase>>(
@@ -46,7 +46,7 @@ void nmpc::TiltMtServoDistNMPC::initPlugins()
 
     // 2. load the plugin
     wrench_est_ptr_ = wrench_est_loader_ptr_->createInstance(wrench_estimator_name);
-    wrench_est_ptr_->initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
+    wrench_est_ptr_->initialize(nh_, robot_model_, estimator_, ctrl_loop_du_);
     ROS_INFO("load wrench estimator plugin: %s", wrench_estimator_name.c_str());
   }
   catch (pluginlib::PluginlibException& ex)
