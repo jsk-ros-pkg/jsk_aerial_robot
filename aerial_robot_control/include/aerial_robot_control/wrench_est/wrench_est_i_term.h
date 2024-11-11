@@ -21,8 +21,6 @@ namespace aerial_robot_control
 class WrenchEstITerm : public WrenchEstBase
 {
 public:
-  bool if_take_away_i_term_ = false;
-
   WrenchEstITerm() = default;
 
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
@@ -114,6 +112,11 @@ public:
     if_take_away_i_term_ = false;
   }
 
+  bool getTakeAwayFlag() const
+  {
+    return if_take_away_i_term_;
+  }
+
   void reset() override
   {
     WrenchEstBase::reset();
@@ -123,6 +126,8 @@ public:
   }
 
 private:
+  bool if_take_away_i_term_ = false;
+
   ITerm pos_i_term_[6];  // x, y, z, roll, pitch, yaw
 
   std::vector<boost::shared_ptr<ITermDynamicConfig>> reconf_servers_;
