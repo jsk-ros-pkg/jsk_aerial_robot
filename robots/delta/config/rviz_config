@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
-      Splitter Ratio: 0.6235294342041016
+      Splitter Ratio: 0.6499999761581421
     Tree Height: 713
   - Class: rviz/Selection
     Name: Selection
@@ -172,6 +172,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        vim4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: RobotModel
       Robot Description: delta/robot_description
       TF Prefix: delta
@@ -243,6 +247,8 @@ Visualization Manager:
           Value: true
         delta/thrust3:
           Value: true
+        delta/vim4:
+          Value: true
         world:
           Value: true
       Marker Alpha: 1
@@ -267,9 +273,6 @@ Visualization Manager:
                 delta/rotor_parent1:
                   delta/thrust1:
                     {}
-              delta/lidar_imu_link:
-                delta/lidar_imu:
-                  {}
               delta/link1_center:
                 {}
               delta/link1_leg:
@@ -291,6 +294,9 @@ Visualization Manager:
                     delta/rotor_parent3:
                       delta/thrust3:
                         {}
+                  delta/lidar_imu_link:
+                    delta/lidar_imu:
+                      {}
                   delta/link3_center:
                     {}
                   delta/link3_end:
@@ -298,6 +304,8 @@ Visualization Manager:
                   delta/link3_leg1:
                     {}
                   delta/link3_leg2:
+                    {}
+                  delta/vim4:
                     {}
       Update Interval: 0
       Value: true
@@ -678,6 +686,27 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: mapping
+    - Align Bottom: false
+      Background Alpha: 0.800000011920929
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 0.800000011920929
+      Foreground Color: 25; 255; 240
+      Invert Shadow: false
+      Name: OverlayText
+      Overtake BG Color Properties: false
+      Overtake FG Color Properties: false
+      Overtake Position Properties: true
+      Topic: /rosconsole_overlay_text/output
+      Value: true
+      font: DejaVu Sans Mono
+      height: 200
+      left: 0
+      line width: 2
+      text size: 8
+      top: 640
+      width: 600
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -706,7 +735,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.9982943534851074
+      Distance: 6.086740970611572
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -722,9 +751,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5797958374023438
+      Pitch: 0.49479568004608154
       Target Frame: <Fixed Frame>
-      Yaw: 4.718569278717041
+      Yaw: 4.693565845489502
     Saved: ~
 Window Geometry:
   Displays:

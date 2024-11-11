@@ -132,4 +132,6 @@
     <arg name="mujoco_model" value="$(find delta)/mujoco/$(arg type)/robot.xml"/>
   </include>
 
+  <node pkg="jsk_rviz_plugins" type="rosconsole_overlay_text.py" name="rosconsole_overlay_text"/>
+
 </launch>
