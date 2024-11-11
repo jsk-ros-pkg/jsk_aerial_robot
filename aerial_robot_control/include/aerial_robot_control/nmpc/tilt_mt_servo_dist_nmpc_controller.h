@@ -28,6 +28,8 @@ public:
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
 
+  void reset() override;
+
   aerial_robot_control::WrenchEstITerm wrench_est_i_term_;  // I term is indispensable to eliminate steady error.
 
   boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstActuatorMeasBase>> wrench_est_loader_ptr_;

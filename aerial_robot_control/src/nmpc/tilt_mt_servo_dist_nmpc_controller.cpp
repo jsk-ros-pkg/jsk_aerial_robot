@@ -20,6 +20,15 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 }
 
+void nmpc::TiltMtServoDistNMPC::reset()
+{
+  TiltMtServoNMPC::reset();
+
+  wrench_est_i_term_.reset();
+  if (wrench_est_ptr_ != nullptr)
+    wrench_est_ptr_->reset();
+}
+
 void nmpc::TiltMtServoDistNMPC::initPlugins()
 {
   wrench_est_i_term_.initialize(nh_, robot_model_, estimator_, navigator_, ctrl_loop_du_);
