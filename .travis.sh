@@ -2,27 +2,41 @@
 
 set -ex
 
-apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed build-essential # for docker
+apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed build-essential ca-certificates # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
-sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
-wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-sudo apt-get update -qq
 
 # Install ROS
-if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
-    sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon python-is-python3
+if [[ "$ROS_DISTRO" ==  "one" ]]; then
+    sudo apt-get install -y python3-pip
+    pip3 install catkin-tools
+    echo "deb [trusted=yes] https://raw.githubusercontent.com/sugikazu75/ros-o-builder/jammy-one-unstable/repository ./" | sudo tee /etc/apt/sources.list.d/sugikazu75_ros-o-builder.list
+    sudo apt update
+    sudo apt install -y python3-rosdep2
+    echo "yaml https://raw.githubusercontent.com/sugikazu75/ros-o-builder/jammy-one-unstable/repository/local.yaml debian" | sudo tee /etc/ros/rosdep/sources.list.d/1-sugikazu75_ros-o-builder.list
+    rosdep update
+    sudo apt-get install -y ros-one-desktop-full
+    sudo apt-get install -y python3-wstool
 else
-    sudo apt-get install -y -q python-catkin-pkg python-catkin-tools python-rosdep python-wstool python-rosinstall-generator
+    sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
+    wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    sudo apt-get update -qq
+
+    if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
+        sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon python-is-python3
+    else
+        sudo apt-get install -y -q python-catkin-pkg python-catkin-tools python-rosdep python-wstool python-rosinstall-generator
+    fi
+    sudo apt-get install -y -q ros-$ROS_DISTRO-catkin
+
+    # Setup for rosdep
+    sudo rosdep init
+    rosdep update --include-eol-distros
 fi
-sudo apt-get install -y -q ros-$ROS_DISTRO-catkin
+
 
 source /opt/ros/${ROS_DISTRO}/setup.bash
-
-# Setup for rosdep
-sudo rosdep init
-rosdep update --include-eol-distros
 
 # Install source code
 mkdir -p ~/catkin_ws/src
