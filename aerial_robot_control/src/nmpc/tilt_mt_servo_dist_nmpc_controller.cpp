@@ -28,6 +28,9 @@ void nmpc::TiltMtServoDistNMPC::reset()
 
   if (wrench_est_ptr_ != nullptr)
     wrench_est_ptr_->reset();
+
+  dist_force_w_ = geometry_msgs::Vector3();
+  dist_torque_cog_ = geometry_msgs::Vector3();
 }
 
 void nmpc::TiltMtServoDistNMPC::initPlugins()
