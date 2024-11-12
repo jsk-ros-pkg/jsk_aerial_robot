@@ -9,15 +9,7 @@ echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
 
 # Install ROS
 if [[ "$ROS_DISTRO" ==  "one" ]]; then
-    sudo apt-get install -y python3-pip
-    pip3 install catkin-tools
-    echo "deb [trusted=yes] https://raw.githubusercontent.com/sugikazu75/ros-o-builder/jammy-one-unstable/repository ./" | sudo tee /etc/apt/sources.list.d/sugikazu75_ros-o-builder.list
-    sudo apt update
-    sudo apt install -y python3-rosdep2
-    echo "yaml https://raw.githubusercontent.com/sugikazu75/ros-o-builder/jammy-one-unstable/repository/local.yaml debian" | sudo tee /etc/ros/rosdep/sources.list.d/1-sugikazu75_ros-o-builder.list
-    rosdep update
-    sudo apt-get install -y ros-one-desktop-full
-    sudo apt-get install -y python3-wstool
+    ${CI_SOURCE_PATH}/configure.sh
 else
     sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
     wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
