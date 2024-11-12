@@ -18,18 +18,10 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
 {
   Imu::initialize(nh, robot_model, estimator, std::string("sensor_plugin/imu"), index);
 
-  // low pass filter
-  double cutoff_freq;
-  getParam<double>("cutoff_freq", cutoff_freq, 20.0);
   getParam<double>("sample_freq", sample_freq_, 200.0);
-  lpf_omega_ = IirFilter(sample_freq_, cutoff_freq, 3);
-  lpf_omega_dot_ = IirFilter(sample_freq_, cutoff_freq, 3);  // TODO: need to tune the cutoff frequency
 
   // debug
-  omega_filter_pub_ = indexed_nhp_.advertise<geometry_msgs::Vector3Stamped>(string("filter_angular_velocity"), 1);
-  omega_dot_filter_pub_ =
-      indexed_nhp_.advertise<geometry_msgs::Vector3Stamped>(string("filter_angular_acceleration"), 1);
-
+  pub_acc_ = indexed_nhp_.advertise<geometry_msgs::AccelStamped>(string("acc_lin_ang"), 1);
   ROS_INFO("Imu type: Imu4WrenchEst");
 }
 
@@ -37,7 +29,6 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
 void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
 {
   imu_stamp_ = imu_msg->stamp;
-  tf::Vector3 filtered_omega;
 
   for (int i = 0; i < 3; i++)
   {
@@ -56,30 +47,27 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
 
   if (first_flag)
   {
-    lpf_omega_.setInitValues(omega_);
-    lpf_omega_dot_.setInitValues(tf::Vector3(0, 0, 0));
     prev_omega_ = omega_;
     first_flag = false;
     return;
   }
 
-  filtered_omega = lpf_omega_.filterFunction(omega_);
-  geometry_msgs::Vector3Stamped omega_msg;
-  omega_msg.header.stamp = imu_msg->stamp;
-  tf::vector3TFToMsg(filtered_omega, omega_msg.vector);
-  omega_filter_pub_.publish(omega_msg);
-
   // get omega dot
-  tf::Vector3 omega_dot, filtered_omega_dot;
+  tf::Vector3 omega_dot;
   omega_dot = (omega_ - prev_omega_) * sample_freq_;
-  filtered_omega_dot = lpf_omega_dot_.filterFunction(omega_dot);
-
   prev_omega_ = omega_;
 
-  geometry_msgs::Vector3Stamped omega_dot_msg;
-  omega_dot_msg.header.stamp = imu_msg->stamp;
-  tf::vector3TFToMsg(filtered_omega_dot, omega_dot_msg.vector);
-  omega_dot_filter_pub_.publish(omega_dot_msg);
+  // assign values. TODO: We don't use lpf filter now, since we don't know why using the IIR filter causes 50ms delay.
+  tf::Vector3 filtered_acc = acc_b_;
+  tf::Vector3 filtered_omega = omega_;
+  tf::Vector3 filtered_omega_dot = omega_dot;
+
+  // publish acc
+  geometry_msgs::AccelStamped acc_msg;
+  acc_msg.header.stamp = imu_msg->stamp;
+  tf::vector3TFToMsg(filtered_acc, acc_msg.accel.linear);
+  tf::vector3TFToMsg(filtered_omega_dot, acc_msg.accel.angular);
+  pub_acc_.publish(acc_msg);
 
   // get filtered angular and linear velocity of CoG
   tf::Transform cog2baselink_tf;
@@ -91,7 +79,7 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
                            (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
 
   // TODO: this is a simple version of the acceleration estimation. Need to improve.
-  setFilteredAccCogInCog(cog2baselink_tf.getBasis() * acc_b_);
+  setFilteredAccCogInCog(cog2baselink_tf.getBasis() * filtered_acc);
   setFilteredOmegaDotCogInCog(cog2baselink_tf.getBasis() * filtered_omega_dot);
 
   estimateProcess();

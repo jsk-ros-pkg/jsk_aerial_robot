@@ -36,7 +36,7 @@
 #pragma once
 
 #include <aerial_robot_estimation/sensor/imu.h>
-#include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/AccelStamped.h>
 
 using namespace Eigen;
 using namespace std;
@@ -109,13 +109,10 @@ protected:
   tf::Vector3 filtered_vel_cog_in_w_;          // cog point, world frame
   tf::Vector3 filtered_omega_cog_in_cog_;      // cog point, cog frame
   tf::Vector3 filtered_acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
-  IirFilter lpf_omega_;                        // for gyro
 
   tf::Vector3 filtered_omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
-  IirFilter lpf_omega_dot_;
   tf::Vector3 prev_omega_;
 
-  ros::Publisher omega_filter_pub_;  // debug
-  ros::Publisher omega_dot_filter_pub_;  // debug
+  ros::Publisher pub_acc_;
 };
 };  // namespace sensor_plugin
