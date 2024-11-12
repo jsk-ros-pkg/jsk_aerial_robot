@@ -81,6 +81,14 @@ public:
   }
 
 protected:
+  ros::NodeHandle nh_;
+
+  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
+  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
+
+  Eigen::MatrixXd alloc_mat_;
+  Eigen::MatrixXd alloc_mat_pinv_;
+
   WrenchEstBase() = default;
 
   template <class T>
@@ -91,15 +99,6 @@ protected:
     if (param_verbose_)
       ROS_INFO_STREAM("[" << nh.getNamespace() << "] " << param_name << ": " << param);
   }
-
-  ros::NodeHandle nh_;
-
-  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
-  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
-  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator_;
-
-  Eigen::MatrixXd alloc_mat_;
-  Eigen::MatrixXd alloc_mat_pinv_;
 
 private:
   double ctrl_loop_du_;
