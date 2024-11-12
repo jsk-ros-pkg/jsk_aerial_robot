@@ -316,6 +316,8 @@ public:
           id_(id),
           goal_current_(0),
           internal_offset_(0),
+          pulley_skip_time_(0),
+          pulley_skip_reset_du_(1000),
           operating_mode_(0),
           hardware_error_status_(0),
           torque_enable_(false),
@@ -331,7 +333,9 @@ public:
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
-        uint8_t present_temp_;
+	uint32_t pulley_skip_time_;
+	uint32_t pulley_skip_reset_du_;
+	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
   	uint16_t model_number_;
