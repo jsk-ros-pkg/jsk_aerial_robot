@@ -88,6 +88,10 @@ void nmpc::TiltMtServoNMPC::reset()
   if (is_print_phys_params_)
     printPhysicalParams();
 
+  /* free alloc_mat_ */
+  alloc_mat_.resize(0, 0);
+  alloc_mat_pinv_.resize(0, 0);
+
   /* reset controller using odom */
   std::vector<double> x_vec = meas2VecX();
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);
