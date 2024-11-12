@@ -18,6 +18,11 @@ class WrenchEstActuatorMeasBase : public WrenchEstBase
 public:
   WrenchEstActuatorMeasBase() = default;
 
+  void initWrenchPub() override
+  {
+    pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("dist_w_f_cog_tq/ext", 1);
+  }
+
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator, double ctrl_loop_du) override
   {

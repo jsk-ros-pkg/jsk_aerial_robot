@@ -29,8 +29,13 @@ public:
 
     setCtrlLoopDu(ctrl_loop_du);
 
+    tmr_pub_dist_wrench_ = nh_.createTimer(ros::Duration(0.1), &WrenchEstBase::cbPubDistWrench, this);
+    initWrenchPub();  // TODO: this function is only used to specify the topic name. Try a more elegant method later
+
     reset();
   };
+
+  virtual void initWrenchPub() = 0;
 
   virtual void reset()
   {
@@ -42,6 +47,18 @@ public:
   {
     alloc_mat_ = alloc_mat;
     alloc_mat_pinv_ = alloc_mat_pinv;
+  }
+
+  // Note that force is in world frame, and torque is in CoG frame. Only for debug.
+  void cbPubDistWrench(const ros::TimerEvent& event)
+  {
+    geometry_msgs::WrenchStamped dist_wrench_;
+    dist_wrench_.header.stamp = ros::Time::now();
+
+    dist_wrench_.wrench.force = dist_force_w_;
+    dist_wrench_.wrench.torque = dist_torque_cog_;
+
+    pub_disturb_wrench_.publish(dist_wrench_);
   }
 
   /* getter */
@@ -88,6 +105,9 @@ protected:
 
   Eigen::MatrixXd alloc_mat_;
   Eigen::MatrixXd alloc_mat_pinv_;
+
+  ros::Timer tmr_pub_dist_wrench_;
+  ros::Publisher pub_disturb_wrench_;
 
   WrenchEstBase() = default;
 
