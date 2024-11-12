@@ -258,7 +258,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
@@ -300,7 +300,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
               tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
@@ -549,7 +549,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       std::string baselink = robot_model_->getBaselinkName();
       tf::transformKDLToTF(segments_tf.at(baselink).Inverse() * segments_tf.at(teleop_local_frame_), teleop_local_frame_tf);
 
-      double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+      double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
       local_frame_rot = tf::Matrix3x3(tf::createQuaternionFromYaw(yaw_angle)) * teleop_local_frame_tf.getBasis();
     }
 
@@ -735,7 +735,7 @@ void BaseNavigator::update()
               setTargetAngAccZ(target_ang_acc_z);
 
               tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
               ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
             }
         }
