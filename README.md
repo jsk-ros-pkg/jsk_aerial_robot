@@ -6,7 +6,7 @@
 
 ## Setup
 
-### Ubuntu 18.04, 22.04
+### Ubuntu 18.04, 20.04
 
 #### Install ROS1 from official site
 - Melodic: https://wiki.ros.org/melodic/Installation/Ubuntu
