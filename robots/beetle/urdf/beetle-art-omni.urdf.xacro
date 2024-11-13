@@ -60,7 +60,6 @@
       <child link="fc"/>
       <parent link="base_link"/>
       <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06647"/>  # should be aligned with the position of IMU
-      <axis xyz="0 0 1"/>
     </joint>
 
     ## rotor arm macro
@@ -81,7 +80,6 @@
         <parent link="base_link"/>
         <child link="rotor_arm${id}"/>
         <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
-        <axis xyz="0 0 1"/>
       </joint>
     </xacro:macro>
 
@@ -172,7 +170,6 @@
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
       <origin rpy="0 0 0" xyz="0.02185 0.0 0.0"/>
-      <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 
     #### rotor joint (virtual) ####
