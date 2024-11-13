@@ -92,7 +92,7 @@ protected:
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
   ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
 
-  aerial_robot_msgs::PredXU x_u_ref_;
+  aerial_robot_msgs::PredXU x_u_ref_;  // TODO: maybe we should remove x_u_ref_ and use xr_ & ur_ inside mpc_solver_ptr_
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 

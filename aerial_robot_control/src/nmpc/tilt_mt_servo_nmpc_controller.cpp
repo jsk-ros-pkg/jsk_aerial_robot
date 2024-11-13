@@ -323,13 +323,13 @@ void nmpc::TiltMtServoNMPC::callbackViz(const ros::TimerEvent& event)
     pred_poses.poses.push_back(pred_pose);
 
     geometry_msgs::Pose ref_pose;
-    ref_pose.position.x = x_u_ref_.x.data.at(i * NX);
-    ref_pose.position.y = x_u_ref_.x.data.at(i * NX + 1);
-    ref_pose.position.z = x_u_ref_.x.data.at(i * NX + 2);
-    ref_pose.orientation.w = x_u_ref_.x.data.at(i * NX + 6);
-    ref_pose.orientation.x = x_u_ref_.x.data.at(i * NX + 7);
-    ref_pose.orientation.y = x_u_ref_.x.data.at(i * NX + 8);
-    ref_pose.orientation.z = x_u_ref_.x.data.at(i * NX + 9);
+    ref_pose.position.x = mpc_solver_ptr_->xr_[i][0];
+    ref_pose.position.y = mpc_solver_ptr_->xr_[i][1];
+    ref_pose.position.z = mpc_solver_ptr_->xr_[i][2];
+    ref_pose.orientation.w = mpc_solver_ptr_->xr_[i][6];
+    ref_pose.orientation.x = mpc_solver_ptr_->xr_[i][7];
+    ref_pose.orientation.y = mpc_solver_ptr_->xr_[i][8];
+    ref_pose.orientation.z = mpc_solver_ptr_->xr_[i][9];
     ref_poses.poses.push_back(ref_pose);
   }
 
