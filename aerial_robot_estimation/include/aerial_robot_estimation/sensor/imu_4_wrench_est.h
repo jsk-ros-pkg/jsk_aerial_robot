@@ -101,8 +101,6 @@ public:
 protected:
   void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
 
-  double sample_freq_;
-
   // work around to obtain filter states
   boost::mutex omega_mutex_;
   boost::mutex vel_mutex_;
@@ -112,6 +110,8 @@ protected:
 
   tf::Vector3 filtered_omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
   tf::Vector3 prev_omega_;
+  double prev_time_;
+
 
   ros::Publisher pub_acc_;
 };

@@ -18,10 +18,8 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
 {
   Imu::initialize(nh, robot_model, estimator, std::string("sensor_plugin/imu"), index);
 
-  getParam<double>("sample_freq", sample_freq_, 200.0);
-
   // debug
-  pub_acc_ = indexed_nhp_.advertise<geometry_msgs::AccelStamped>(string("acc_lin_ang"), 1);
+  pub_acc_ = indexed_nhp_.advertise<geometry_msgs::AccelStamped>(string("acc_lin_ang_baselink"), 1);
   ROS_INFO("Imu type: Imu4WrenchEst");
 }
 
@@ -48,14 +46,17 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
   if (first_flag)
   {
     prev_omega_ = omega_;
+    prev_time_ = imu_msg->stamp.toSec();
     first_flag = false;
     return;
   }
 
   // get omega dot
   tf::Vector3 omega_dot;
-  omega_dot = (omega_ - prev_omega_) * sample_freq_;
+
+  omega_dot = (omega_ - prev_omega_) / (imu_msg->stamp.toSec() - prev_time_);
   prev_omega_ = omega_;
+  prev_time_ = imu_msg->stamp.toSec();
 
   // assign values. TODO: We don't use lpf filter now, since we don't know why using the IIR filter causes 50ms delay.
   tf::Vector3 filtered_acc = acc_b_;
