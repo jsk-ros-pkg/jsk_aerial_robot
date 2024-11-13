@@ -1,15 +1,13 @@
 <?xml version="1.0"?>
-<robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_common" >
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_common" >
 
   <!-- general attribute -->
   <baselink name="fc" />
   <thrust_link name="thrust" />
 
-  <m_f_rate value="-0.0165" /> <!-- drug torque rate -->
+  <m_f_rate value="-0.0165" /> <!-- drag torque rate -->
   <xacro:property name="max_force" value="30.0" /> <!-- [N] -->
   <xacro:property name="min_force" value="1.0" /> <!-- [N] -->
-
 
   <!-- friction -->
   <xacro:macro name="friction" params="self">

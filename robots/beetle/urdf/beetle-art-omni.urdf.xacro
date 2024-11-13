@@ -1,28 +1,12 @@
 <?xml version="1.0"?>
-<robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_link" >
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_link" >
 
   <xacro:macro name="beetle_center_link" params="child1 child2 child3 child4">
     ## dummy
-    <link name="root">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.00001"/>
-        <inertia
-            ixx="0.000001" ixy="0.0" ixz="0.0"
-            iyy="0.000001" iyz="0.0"
-            izz="0.000001"/>
-      </inertial>
-    </link>
-    <joint name="root_joint" type="fixed">
-      <parent link="root"/>
-      <child link="base_link"/>
-      <origin rpy="0 0 0" xyz="0 0 0.099"/>
-      <axis xyz="0 0 1"/>
-    </joint>
+    <link name="root"/>
 
-    ## link
-    <link name="base_link">
+    ## main body
+    <link name="main_body">
       <inertial>
         <origin xyz="0.00000845 0.00023419 0.02260762" rpy="0 0 0"/>
         <mass value="2.3096"/>
@@ -33,7 +17,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://beetle/urdf/mesh/base_link_beetle_art_omni_w_guard.dae"/>
+          <mesh filename="package://beetle/urdf/mesh/main_body_beetle_art_omni_w_guard.dae"/>
         </geometry>
       </visual>
       <collision>
@@ -43,9 +27,13 @@
         </geometry>
       </collision>
     </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="main_body"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
 
-    <xacro:damping_factor link="base_link"/>
-
+    ## fc: flight controller. Note that "baselink" is assigned to "fc" in common.xacro by default
     <link name="fc">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -58,7 +46,7 @@
     </link>
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
-      <parent link="base_link"/>
+      <parent link="main_body"/>
       <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06647"/>  # should be aligned with the position of IMU
     </joint>
 
@@ -77,7 +65,7 @@
       </link>
       ## joint
       <joint name="base_arm_joint${id}" type="fixed">
-        <parent link="base_link"/>
+        <parent link="main_body"/>
         <child link="rotor_arm${id}"/>
         <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
       </joint>
@@ -89,7 +77,7 @@
     <xacro:dummy_rotor_arm id = "${child3}" x = "-0.17938" y="-0.17938" z = "0.0171" yaw = "${pi*5.0/4.0}"/>
     <xacro:dummy_rotor_arm id = "${child4}" x = "0.17938" y="-0.17938" z = "0.0171" yaw = "${-pi*1.0/4.0}"/>
 
-    <xacro:friction self="base_link"/>
+    <xacro:friction self="main_body"/>
   </xacro:macro>
 
   <xacro:macro name="beetle_thrust_link" params="self rotor_direction">
