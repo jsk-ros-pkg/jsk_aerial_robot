@@ -78,6 +78,11 @@ public:
 
   void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
   {
+    // reset ref
+    xr_ = x_init;
+    ur_ = u_init;
+
+    // reset solver
     if (x_init.size() != NN_ + 1 || u_init.size() != NN_)
       throw std::length_error("x_init or u_init size is not equal to NN_ + 1 or NN_");
 
@@ -91,6 +96,9 @@ public:
     if (x_init[NN_].size() != NX_)
       throw std::length_error("x_init[NN_] size is not equal to NX_");
     ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
+
+    // update xo_, uo_
+    getSolution();
   }
 
   void resetByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
