@@ -2,6 +2,15 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.4 (2024-11-02)
+------------------
+* Resolve dependency to other package (`#610 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/610>`_)
+* [Hydrus_XI][CMake] refactor the dependent packages (`#582 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/582>`_)
+* [CMake] using C++17 for related packages (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [MuJoCo] enable to use mujoco simulator (`#557 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/557>`_)
+* [Navigation] improve the landing motion for all robots (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 * Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)

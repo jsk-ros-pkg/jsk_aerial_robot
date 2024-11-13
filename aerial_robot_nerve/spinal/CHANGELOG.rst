@@ -2,6 +2,14 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.4 (2024-11-02)
+------------------
+* [Spinal] Fix bug that sends zero pwm value to motors on reset (`#625 <https://github.com/jsk-ros-pkg/aerial_robot/issues/625>`_)
+* [Spinal][PwmTest] workaround to send pwm value to each servo independently (`#613 <https://github.com/jsk-ros-pkg/aerial_robot/issues/613>`_)
+* Resolve dependency to other package Merge pull request (`#610 <https://github.com/jsk-ros-pkg/aerial_robot/issues/610>`_)
+* [Spinal][IMU] developing a interface for ICM20948 Merge pull request (`#599 <https://github.com/jsk-ros-pkg/aerial_robot/issues/599>`_)
+* [Spinal][STM32H7] correct the initialization order of spinal-IMU Merge pull request (`#586 <https://github.com/jsk-ros-pkg/aerial_robot/issues/586>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 

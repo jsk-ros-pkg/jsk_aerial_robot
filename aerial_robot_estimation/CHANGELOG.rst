@@ -2,6 +2,16 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.4 (2024-11-02)
+------------------
+* [Estimation][IMU] refactor the index designation of KF based estimation result  (`#602 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/602>`_)
+* [Estimation][VO/VIO] refactor the process of KF based estimation with visual odometry (`#601 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/601>`_)
+* [Gazebo][Mocap][Subscriber] solve the topic delay related to the ground_truth pose Merge pull request (`#587 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/587>`_)
+* [CMake] use C++17 compiler for all packages that contain C++ files (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [GPS] remove "register" specifier for GPS time calculation. (`#580 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/580>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [Navigation] improve the landing motion for all robots  (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 * [Estimation][VO] Refactor throttle/decimate process (`#558 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/558>`_)

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>aerial_robot_simulation</name>
-  <version>1.3.3</version>
+  <version>1.3.4</version>
   <description>The aerial_robot_simulation package</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">chou</maintainer>

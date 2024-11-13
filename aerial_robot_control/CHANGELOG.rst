@@ -2,6 +2,18 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.4 (2024-11-02)
+------------------
+* [Navigation][Land] improve the landing process to be more safe and precise (`#603 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/603>`_)
+* [navigation] failsafe for high input voltage (`#588 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/588>`_)
+* [Control][Landing][Bug]  revert the missing initialization for variable about force landing Merge pull request (`#585 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/585>`_)
+* [Navigation][Land] refactor the landing convergence condition  (`#583 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/583>`_)
+* [CMake] use C++17 compiler for all packages that contain C++ files  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [Navigation] trajectory generation based on optimization methods (e.g. minimum snap trajectory)  (`#556 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/556>`_)
+* [Navigation] improve keyboard teleopration that allows to move the robot with uniform linear motion (`#555 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/555>`_)
+* [Navigation] improve the landing motion for all robots  (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 * [Navigation] refactor landing and halt command during vel acc-based mode (`#553 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/553>`_)

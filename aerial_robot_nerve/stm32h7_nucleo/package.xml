@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>stm32h7_nucleo</name>
-  <version>1.3.3</version>
+  <version>1.3.4</version>
   <description>The stm32h7_nucleo package</description>
 
   <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>

@@ -2,6 +2,17 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.4 (2024-11-02)
+------------------
+* [base][mocap]: add an option "enable_optitrack: true" (`#621 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/621>`_)
+* [rosbag] add joy topic in control record Merge pull request (`#605 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/605>`_)
+* [Mocap] remove the "required" flag to allow the onboard-sensor-only flight  (`#604 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/604>`_)
+* [Livox LiDAR + FAST LIO] enable to use Livox ros driver and FAST LIO as default (`#600 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/600>`_)
+* [CMake] use C++17 compiler for all packages that contain C++ files  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [Navigation] improve keyboard teleopration that allows to move the robot with uniform linear motion (`#555 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/555>`_)
+* [Navigation] improve the landing motion for all robots  (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
 1.3.3 (2023-10-26)
 ------------------
 * [Mini Quadrotor] support the common quadrotor platform (`#546 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/546>`_)
