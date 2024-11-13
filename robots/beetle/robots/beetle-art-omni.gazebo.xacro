@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
-<robot
-    xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle-art-omni" >
-  <xacro:arg name="robot_name" default="beetle-art-omni" />
-
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle-art-omni" >
+  <!-- robot itself -->
   <xacro:include filename="$(find beetle)/robots/beetle-art-omni.urdf.xacro" />
 
   <!-- gazebo plugin for default controller and sensors -->

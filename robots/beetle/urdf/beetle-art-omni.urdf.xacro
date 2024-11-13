@@ -194,6 +194,15 @@
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-
   </xacro:macro>
+
+<!-- Define beetle -->
+  <xacro:arg name="robot_name" default="beetle-art-omni" />
+
+  <xacro:beetle_center_link child1="1" child2="2" child3="3" child4="4"/>
+  <xacro:beetle_thrust_link self="1" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="2" rotor_direction="-1"/>
+  <xacro:beetle_thrust_link self="3" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="4" rotor_direction="-1"/>
+
 </robot>
