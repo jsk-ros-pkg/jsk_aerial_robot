@@ -606,6 +606,7 @@ void BeetleNavigator::update()
   GimbalrotorNavigator::update();
   setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
   convertTargetPosFromCoG2CoM();
+  land_height_ = getInitHeight();
 }
 
 void BeetleNavigator::rotateContactPointFrame()
