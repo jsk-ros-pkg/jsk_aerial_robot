@@ -140,6 +140,9 @@ void nmpc::TiltMtServoNMPC::initParams()
   getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
   getParam<bool>(nmpc_nh, "is_print_phys_params", is_print_phys_params_, false);
   getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
+
+  if (is_debug_)
+    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 }
 
 void nmpc::TiltMtServoNMPC::initCostW()
@@ -215,7 +218,7 @@ void nmpc::TiltMtServoNMPC::controlCore()
   /* solve */
   try
   {
-    mpc_solver_ptr_->solve(bx0);
+    mpc_solver_ptr_->solve(bx0, is_debug_);
   }
   catch (mpc_solver::AcadosSolveException& e)
   {
