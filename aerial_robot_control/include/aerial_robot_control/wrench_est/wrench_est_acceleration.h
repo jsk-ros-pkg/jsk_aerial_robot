@@ -38,7 +38,7 @@ public:
     est_external_torque_ = Eigen::VectorXd::Zero(3);
   }
 
-  void update() override
+  Eigen::VectorXd calDistWrench()
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
@@ -52,17 +52,7 @@ public:
 
     double mass = robot_model_->getMass();
 
-    Eigen::Matrix3d cog_rot;
-    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
-
-    auto est_external_force_now = cog_rot * (mass * specific_force_cog - target_force_cog);
-
-    // low pass filter  TODO: try a better filter
-    // TODO: put this part to the estimator to perform the same frequency with the IMU.
-    est_external_force_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_ +
-                          force_acc_alpha_matrix_ * est_external_force_now;
-
-    setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
+    auto external_force_cog = mass * specific_force_cog - target_force_cog;
 
     // torque estimation
     Eigen::Vector3d omega_cog, omega_dot_cog;
@@ -73,7 +63,36 @@ public:
     Eigen::VectorXd torque_imu_cog =
         inertia * omega_dot_cog + aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
 
-    auto external_torque_now = torque_imu_cog - target_torque_cog;
+    auto external_torque_cog = torque_imu_cog - target_torque_cog;
+
+    // combine the force and torque
+    Eigen::VectorXd external_wrench_cog(6);
+    external_wrench_cog << external_force_cog, external_torque_cog;
+    return external_wrench_cog;
+  }
+
+  void update() override
+  {
+    /* calculate the external wrench in the CoG frame */
+    Eigen::VectorXd external_wrench_cog = calDistWrench();
+    Eigen::VectorXd external_force_cog = external_wrench_cog.head(3);
+    Eigen::VectorXd external_torque_cog = external_wrench_cog.tail(3);
+
+    /* force */
+    Eigen::Matrix3d cog_rot;
+    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
+
+    auto est_external_force_now = cog_rot * external_force_cog;
+
+    // low pass filter  TODO: try a better filter
+    // TODO: put this part to the estimator to perform the same frequency with the IMU.
+    est_external_force_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_ +
+                          force_acc_alpha_matrix_ * est_external_force_now;
+
+    setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
+
+    /* torque */
+    const auto& external_torque_now = external_torque_cog;
 
     // low pass filter  TODO: try a better filter
     est_external_torque_ = (Eigen::MatrixXd::Identity(3, 3) - torque_acc_alpha_matrix_) * est_external_torque_ +
