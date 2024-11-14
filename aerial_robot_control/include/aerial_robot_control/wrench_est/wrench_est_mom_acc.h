@@ -6,7 +6,6 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_MOM_ACC_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_actuator_meas_base.h"
-#include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
 
 namespace aerial_robot_control
 {

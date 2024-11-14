@@ -6,6 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_ACTUATOR_MEAS_BASE_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
+#include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
 
 #include "sensor_msgs/JointState.h"
 #include "spinal/ESCTelemetryArray.h"
