@@ -34,7 +34,7 @@ public:
   void reset() override
   {
     WrenchEstActuatorMeasBase::reset();
-    est_ext_force_w_filtered_ = Eigen::VectorXd::Zero(3);
+    est_ext_force_cog_filtered_ = Eigen::VectorXd::Zero(3);
     est_ext_torque_cog_filtered_ = Eigen::VectorXd::Zero(3);
   }
 
@@ -79,22 +79,24 @@ public:
     Eigen::VectorXd external_torque_cog = external_wrench_cog.tail(3);
 
     /* force */
-    Eigen::Matrix3d cog_rot;
-    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
-
-    auto est_ext_force_w = cog_rot * external_force_cog;
-
     // low pass filter  TODO: try a better filter
     // TODO: put this part to the estimator to perform the same frequency with the IMU.
-    est_ext_force_w_filtered_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_ext_force_w_filtered_ +
-                          force_acc_alpha_matrix_ * est_ext_force_w;
+    est_ext_force_cog_filtered_ =
+        (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_ext_force_cog_filtered_ +
+        force_acc_alpha_matrix_ * external_force_cog;
 
-    setDistForceW(est_ext_force_w_filtered_(0), est_ext_force_w_filtered_(1), est_ext_force_w_filtered_(2));
+    // coordinate transformation
+    Eigen::Matrix3d cog_rot;
+    tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
+    auto est_ext_force_w_filtered = cog_rot * est_ext_force_cog_filtered_;
+
+    setDistForceW(est_ext_force_w_filtered(0), est_ext_force_w_filtered(1), est_ext_force_w_filtered(2));
 
     /* torque */
     // low pass filter  TODO: try a better filter
-    est_ext_torque_cog_filtered_ = (Eigen::MatrixXd::Identity(3, 3) - torque_acc_alpha_matrix_) * est_ext_torque_cog_filtered_ +
-                           torque_acc_alpha_matrix_ * external_torque_cog;
+    est_ext_torque_cog_filtered_ =
+        (Eigen::MatrixXd::Identity(3, 3) - torque_acc_alpha_matrix_) * est_ext_torque_cog_filtered_ +
+        torque_acc_alpha_matrix_ * external_torque_cog;
 
     setDistTorqueCOG(est_ext_torque_cog_filtered_(0), est_ext_torque_cog_filtered_(1), est_ext_torque_cog_filtered_(2));
   }
@@ -102,7 +104,7 @@ public:
 private:
   // acceleration-based method
   Eigen::MatrixXd force_acc_alpha_matrix_;
-  Eigen::VectorXd est_ext_force_w_filtered_;
+  Eigen::VectorXd est_ext_force_cog_filtered_;  // TODO: combine these two variables and matrices to a single one
 
   Eigen::MatrixXd torque_acc_alpha_matrix_;
   Eigen::VectorXd est_ext_torque_cog_filtered_;
