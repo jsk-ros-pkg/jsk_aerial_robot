@@ -571,7 +571,7 @@ void nmpc::TiltMtServoNMPC::initAllocMat()
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
-  double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
+  double kq_d_kt = abs(robot_model_->getThrustWrenchUnits()[0][5]);  // PAY ATTENTION: should be positive value
 
   // construct alloc_mat_
   alloc_mat_ = Eigen::MatrixXd::Zero(6, 2 * rotor_num);
@@ -579,7 +579,8 @@ void nmpc::TiltMtServoNMPC::initAllocMat()
   for (int i = 0; i < rotor_num; i++)
   {
     Eigen::Vector3d p_b = rotor_p[i];
-    int dr = rotor_dr.find(i)->second;
+    int dr = rotor_dr.find(i + 1)->second;  // PAY ATTENTION: the rotor index starts from 1!!!!!!!!!!!!!!!!!!!!!
+
     double sqrt_p_xy = sqrt(p_b.x() * p_b.x() + p_b.y() * p_b.y());
 
     // - force
