@@ -191,6 +191,10 @@ class PitchRotationTraj(BaseTraj):
 
         return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
+class PitchRotationTrajOpposite(PitchRotationTraj):
+    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc = super().get_3d_orientation(t)
+        return roll, -pitch, yaw, roll_rate, -pitch_rate, yaw_rate, roll_acc, -pitch_acc, yaw_acc
 
 class RollRotationTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
