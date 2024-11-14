@@ -225,6 +225,23 @@ void nmpc::TiltMtServoNMPC::controlCore()
     ROS_WARN("NMPC solver failed, no action: %s", e.what());
   }
   // The result is stored in mpc_solver_ptr_->uo_
+
+  /* get result */
+  // - thrust
+  for (int i = 0; i < motor_num_; i++)
+  {
+    flight_cmd_.base_thrust[i] = (float)getCommand(i);
+  }
+
+  // - servo angle
+  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
+  gimbal_ctrl_cmd_.name.clear();
+  gimbal_ctrl_cmd_.position.clear();
+  for (int i = 0; i < joint_num_; i++)
+  {
+    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
+    gimbal_ctrl_cmd_.position.push_back(getCommand(motor_num_ + i));
+  }
 }
 
 void nmpc::TiltMtServoNMPC::prepareNMPCRef()
@@ -276,23 +293,6 @@ void nmpc::TiltMtServoNMPC::prepareNMPCParams()
 
 void nmpc::TiltMtServoNMPC::sendCmd()
 {
-  /* get result */
-  // - thrust
-  for (int i = 0; i < motor_num_; i++)
-  {
-    flight_cmd_.base_thrust[i] = (float)getCommand(i);
-  }
-
-  // - servo angle
-  gimbal_ctrl_cmd_.header.stamp = ros::Time::now();
-  gimbal_ctrl_cmd_.name.clear();
-  gimbal_ctrl_cmd_.position.clear();
-  for (int i = 0; i < joint_num_; i++)
-  {
-    gimbal_ctrl_cmd_.name.emplace_back("gimbal" + std::to_string(i + 1));
-    gimbal_ctrl_cmd_.position.push_back(getCommand(motor_num_ + i));
-  }
-
   /* publish */
   if (motor_num_ > 0)
     pub_flight_cmd_.publish(flight_cmd_);
