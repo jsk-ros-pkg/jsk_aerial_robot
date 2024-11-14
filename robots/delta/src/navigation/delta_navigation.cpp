@@ -345,14 +345,14 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
 {
   sensor_msgs::Joy joy_cmd = (*joy_msg);
 
-  /* change to locomotion mode */
+  /* change to locomotion mode by L2 */
   if(joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_2] && motion_mode_ != aerial_robot_navigation::LOCOMOTION_MODE)
     {
       ROS_INFO_STREAM("[joy] change to " << indexToGroundMotionModeString(aerial_robot_navigation::LOCOMOTION_MODE));
       setGroundMotionMode(aerial_robot_navigation::LOCOMOTION_MODE);
     }
 
-  /* change to manipulation mode when rolling state */
+  /* change to manipulation mode when rolling state by R2 */
   if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_2] && motion_mode_ != aerial_robot_navigation::MANIPULATION_MODE)
     {
       if(current_ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
@@ -364,6 +364,21 @@ void RollingNavigator::joyCallback(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           ROS_WARN_STREAM_THROTTLE(0.5, "[joy] do not change " << indexToGroundMotionModeString(aerial_robot_navigation::MANIPULATION_MODE) << " because current ground navigation mode is not " << indexToGroundNavigationModeString(aerial_robot_navigation::ROLLING_STATE));
         }
+    }
+
+  /* set joint angles to become circular form by R1 + L1 */
+  if(joy_cmd.buttons[PS4_BUTTON_REAR_RIGHT_1] && joy_cmd.buttons[PS4_BUTTON_REAR_LEFT_1])
+    {
+      setGroundMotionMode(aerial_robot_navigation::LOCOMOTION_MODE);
+      sensor_msgs::JointState msg;
+      int joint_num = robot_model_->getJointNum() - robot_model_->getRotorNum();
+      for(int i = 0; i < joint_num; i++)
+        {
+          msg.name.push_back("joint" + std::to_string(i + 1));
+          msg.position.push_back(2.0 * M_PI / robot_model_->getRotorNum());
+        }
+      joints_control_pub_.publish(msg);
+      ROS_INFO_STREAM_THROTTLE(1.0, "[navigation] set joint angles to become circular form and switch to locomotion mode");
     }
 
   locomotionJoyCallback(joy_msg);
