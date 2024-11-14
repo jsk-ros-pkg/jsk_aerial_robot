@@ -70,10 +70,10 @@ public:
     tf::vectorTFToEigen(imu_handler->getFilteredOmegaDotCogInCog(), omega_dot_cog);
 
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
-    Eigen::VectorXd torque_imu_cog_ =
+    Eigen::VectorXd torque_imu_cog =
         inertia * omega_dot_cog + aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
 
-    auto external_torque_now = torque_imu_cog_ - target_torque_cog;
+    auto external_torque_now = torque_imu_cog - target_torque_cog;
 
     // low pass filter  TODO: try a better filter
     est_external_torque_ = (Eigen::MatrixXd::Identity(3, 3) - torque_acc_alpha_matrix_) * est_external_torque_ +
