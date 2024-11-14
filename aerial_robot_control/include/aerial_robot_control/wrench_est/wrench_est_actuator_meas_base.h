@@ -41,7 +41,7 @@ public:
 
   virtual void update() = 0;
 
-  Eigen::VectorXd calWrenchFromActuatorMeas()
+  Eigen::VectorXd calcWrenchFromActuatorMeas()
   {
     Eigen::VectorXd z = Eigen::VectorXd::Zero(2 * robot_model_->getRotorNum());
     for (int i = 0; i < robot_model_->getRotorNum(); i++)
