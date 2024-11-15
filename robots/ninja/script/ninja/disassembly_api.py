@@ -8,7 +8,7 @@ from std_msgs.msg import Empty, String, Bool
 from aerial_robot_msgs.msg import FlightNav
 from spinal.msg import ServoControlCmd
 from diagnostic_msgs.msg import KeyValue
-from ninja.kondo_control_api import KondoControl
+from ninja.dynamixel_control_api import DynamixelControl
 import numpy as np
 import tf
 
@@ -28,12 +28,10 @@ class SwitchState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 male_servo_id = 5,
+                 male_servo_id = 8,
                  real_machine = False,
-                 unlock_servo_angle_male = 7000,
-                 lock_servo_angle_male = 8300,
-                 unlock_servo_angle_female = 11000,
-                 lock_servo_angle_female = 5600,
+                 unlock_servo_angle_male = 4000,
+                 default_servo_angle_male = 2500,
                  neighboring = 'ninja2',
                  neighboring_id = 2,
                  female_servo_id = 6,
@@ -45,20 +43,18 @@ class SwitchState(smach.State):
         self.male_servo_id = male_servo_id
         self.real_machine = real_machine
         self.unlock_servo_angle_male = unlock_servo_angle_male
-        self.lock_servo_angle_male = lock_servo_angle_male
-        self.unlock_servo_angle_female = unlock_servo_angle_female
-        self.lock_servo_angle_female = lock_servo_angle_female
+        self.default_servo_angle_male = default_servo_angle_male
         self.neighboring = neighboring
         self.neighboring_id = neighboring_id
         self.female_servo_id = female_servo_id
         self.separate_dir = separate_dir
 
         if(separate_dir > 0):
-            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.female_servo_id,self.real_machine)
-            self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.male_servo_id,self.real_machine)
+            # self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.female_servo_id,self.real_machine)
+            self.dynamixel_servo_neighboring = DynamixelControl(self.neighboring,self.neighboring_id,self.male_servo_id,self.real_machine)
         else:
-            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
-            self.kondo_servo_neighboring = KondoControl(self.neighboring,self.neighboring_id,self.female_servo_id,self.real_machine)
+            self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
+            # self.dynamixel_servo_neighboring = DynamixelControl(self.neighboring,self.neighboring_id,self.female_servo_id,self.real_machine)
             
         self.flag_pub = rospy.Publisher('/' + self.robot_name + '/assembly_flag', KeyValue, queue_size = 1)
         self.flag_pub_neighboring = rospy.Publisher('/' + self.neighboring + '/assembly_flag', KeyValue, queue_size = 1)
@@ -77,20 +73,15 @@ class SwitchState(smach.State):
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '0'
         self.flag_pub.publish(self.flag_msg)
-        rospy.loginfo("ok-1")
         if self.real_machine:
             if(self.separate_dir > 0):
-                rospy.loginfo("ok0")
-                self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_female)
-                self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_male)
+                self.dynamixel_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_male)
             else:
-                rospy.loginfo("ok-1")
-                self.kondo_servo.sendTargetAngle(self.unlock_servo_angle_male)
-                self.kondo_servo_neighboring.sendTargetAngle(self.unlock_servo_angle_female)
+                self.dynamixel_servo.sendTargetAngle(self.unlock_servo_angle_male)
         else:
             self.docking_msg.data = False
             self.docking_pub.publish(self.docking_msg)
-        time.sleep(5.0)
+        time.sleep(3.0)
         return 'done'
 
 class SeparateState(smach.State):
@@ -98,7 +89,7 @@ class SeparateState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 separate_vel = -0.5,
+                 separate_vel = -0.2,
                  neighboring = 'ninja2',
                  target_dist_from_neighboring = 1.25):
 

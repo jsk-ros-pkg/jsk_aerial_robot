@@ -25,7 +25,7 @@ class DisassemblyDemo():
                 direction = 1 if target_follower_id > target_leader_id else -1
                 with sub_sm:
                     smach.StateMachine.add('SwitchState'+  motion_prefix,
-                                           SwitchState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, neighboring = 'ninja'+str(target_leader_id), neighboring_id = target_leader_id, separate_dir = direction),
+                                           SwitchState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id,real_machine=self.real_machine, neighboring = 'ninja'+str(target_leader_id), neighboring_id = target_leader_id, separate_dir = direction),
                                            transitions={'done':'SeparateState'+motion_prefix})
 
                     smach.StateMachine.add('SeparateState'+motion_prefix,
