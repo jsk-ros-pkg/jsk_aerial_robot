@@ -10,6 +10,7 @@ import argparse
 current_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, current_path)
 
+import math
 import yaml
 import rospy
 import rospkg
@@ -66,7 +67,7 @@ class MocapControl_node():
 
         # Sub
         self.hand_pose_sub = rospy.Subscriber(
-            "/hand/mocap/pose",
+            "/mocap_node_arm/hand/mocap/pose",
             PoseStamped,
             self.hand_position_callback,
             queue_size=1
@@ -74,7 +75,7 @@ class MocapControl_node():
 
         # Sub
         self.arm_pose_sub = rospy.Subscriber(
-            "/arm/mocap/pose",
+            "/mocap_node_arm/arm/mocap/pose",
             PoseStamped,
             self.arm_position_callback,
             queue_size=1
@@ -94,8 +95,8 @@ class MocapControl_node():
             self.hand_position.pose.position.z - self.arm_position.pose.position.z
         ]
 
-        distance = sum([x ** 2 for x in direction])/2
-        if distance > 0.5:
+        distance = math.sqrt(sum([x ** 2 for x in direction]))
+        if distance > 0.25:
             move_position = [direction[i] + getattr(self.uav_odom.pose.pose.position, axis) for i, axis in
                              enumerate(['x', 'y', 'z'])]
         else:
