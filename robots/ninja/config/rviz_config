@@ -13,7 +13,10 @@ Panels:
         - /RobotModel3
         - /RobotModel3/Links1
         - /RobotModel4
-      Splitter Ratio: 0.6529411673545837
+        - /WrenchStamped1
+        - /WrenchStamped2
+        - /WrenchStamped3
+      Splitter Ratio: 0.6541849970817566
     Tree Height: 740
   - Class: rviz/Selection
     Name: Selection
@@ -237,6 +240,10 @@ Visualization Manager:
           Value: false
         ninja1/rotor_parent3:
           Value: false
+        ninja1/target_cog_pose:
+          Value: true
+        ninja1/target_com_pose:
+          Value: true
         ninja1/thrust1:
           Value: false
         ninja1/thrust2:
@@ -287,6 +294,10 @@ Visualization Manager:
           Value: false
         ninja2/rotor_parent3:
           Value: false
+        ninja2/target_cog_pose:
+          Value: true
+        ninja2/target_com_pose:
+          Value: true
         ninja2/thrust1:
           Value: false
         ninja2/thrust2:
@@ -337,6 +348,10 @@ Visualization Manager:
           Value: false
         ninja3/rotor_parent3:
           Value: false
+        ninja3/target_cog_pose:
+          Value: true
+        ninja3/target_com_pose:
+          Value: true
         ninja3/thrust1:
           Value: false
         ninja3/thrust2:
@@ -346,56 +361,6 @@ Visualization Manager:
         ninja3/yaw_connect_point:
           Value: false
         ninja3/yaw_dock_link:
-          Value: false
-        ninja4/battery_1:
-          Value: false
-        ninja4/battery_2:
-          Value: false
-        ninja4/center_of_moving:
-          Value: false
-        ninja4/cog:
-          Value: true
-        ninja4/contact_point:
-          Value: false
-        ninja4/dummy_arm:
-          Value: false
-        ninja4/fc:
-          Value: false
-        ninja4/gimbal_link1:
-          Value: false
-        ninja4/gimbal_link2:
-          Value: false
-        ninja4/gimbal_link3:
-          Value: false
-        ninja4/main_body:
-          Value: false
-        ninja4/pitch_connect_point:
-          Value: false
-        ninja4/pitch_dock_link:
-          Value: false
-        ninja4/root:
-          Value: false
-        ninja4/rotor_arm1:
-          Value: false
-        ninja4/rotor_arm2:
-          Value: false
-        ninja4/rotor_arm3:
-          Value: false
-        ninja4/rotor_parent1:
-          Value: false
-        ninja4/rotor_parent2:
-          Value: false
-        ninja4/rotor_parent3:
-          Value: false
-        ninja4/thrust1:
-          Value: false
-        ninja4/thrust2:
-          Value: false
-        ninja4/thrust3:
-          Value: false
-        ninja4/yaw_connect_point:
-          Value: false
-        ninja4/yaw_dock_link:
           Value: false
         world:
           Value: false
@@ -443,6 +408,10 @@ Visualization Manager:
                   {}
                 ninja1/yaw_connect_point:
                   {}
+          ninja1/target_cog_pose:
+            {}
+          ninja1/target_com_pose:
+            {}
           ninja2/root:
             ninja2/cog:
               ninja2/center_of_moving:
@@ -479,6 +448,10 @@ Visualization Manager:
                   {}
                 ninja2/yaw_connect_point:
                   {}
+          ninja2/target_cog_pose:
+            {}
+          ninja2/target_com_pose:
+            {}
           ninja3/root:
             ninja3/cog:
               ninja3/center_of_moving:
@@ -515,42 +488,10 @@ Visualization Manager:
                   {}
                 ninja3/yaw_connect_point:
                   {}
-          ninja4/root:
-            ninja4/cog:
-              ninja4/center_of_moving:
-                {}
-            ninja4/contact_point:
-              {}
-            ninja4/main_body:
-              ninja4/battery_1:
-                {}
-              ninja4/battery_2:
-                {}
-              ninja4/fc:
-                {}
-              ninja4/pitch_dock_link:
-                ninja4/pitch_connect_point:
-                  {}
-              ninja4/rotor_arm1:
-                ninja4/gimbal_link1:
-                  ninja4/rotor_parent1:
-                    ninja4/thrust1:
-                      {}
-              ninja4/rotor_arm2:
-                ninja4/gimbal_link2:
-                  ninja4/rotor_parent2:
-                    ninja4/thrust2:
-                      {}
-              ninja4/rotor_arm3:
-                ninja4/gimbal_link3:
-                  ninja4/rotor_parent3:
-                    ninja4/thrust3:
-                      {}
-              ninja4/yaw_dock_link:
-                ninja4/dummy_arm:
-                  {}
-                ninja4/yaw_connect_point:
-                  {}
+          ninja3/target_cog_pose:
+            {}
+          ninja3/target_com_pose:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -827,128 +768,57 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        battery_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        battery_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        contact_point:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_arm:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        dummy_palm:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        fc:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        gimbal_link1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gimbal_link2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gimbal_link3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        main_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        pitch_connect_point:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        pitch_dock_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        root:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_arm1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_arm2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_arm3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rotor_parent1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rotor_parent2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rotor_parent3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        yaw_connect_point:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        yaw_dock_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel
       Robot Description: ninja4/robot_description
       TF Prefix: ninja4
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 0.5
+      Arrow Width: 0.30000001192092896
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.5
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /ninja1/internal_wrench
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Unreliable: true
+      Value: true
+    - Alpha: 0.5
+      Arrow Width: 0.30000001192092896
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.5
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /ninja2/internal_wrench
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Arrow Width: 0.30000001192092896
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.5
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /ninja3/internal_wrench
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -977,7 +847,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.9822680950164795
+      Distance: 2.723729372024536
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -985,17 +855,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.0981794074177742
-        Y: 0.19234484434127808
-        Z: 1.15351140499115
+        X: -0.09440077841281891
+        Y: -0.12096423655748367
+        Z: 0.8789822459220886
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.380398154258728
+      Pitch: 0.17039868235588074
       Target Frame: <Fixed Frame>
-      Yaw: 4.798608779907227
+      Yaw: 4.708604335784912
     Saved: ~
 Window Geometry:
   Displays:
