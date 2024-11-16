@@ -146,4 +146,7 @@
     <arg name="sensor" value="livox" if= "$(eval arg('estimate_mode')==0)"/>
   </include>
 
+  ####### make laser_frame_level tf  ############
+  <node pkg="agile_multirotor" type="laser_frame_level.py" name="laser_frame_level" output="screen" ns="$(arg robot_ns)"/>
+
 </launch>
