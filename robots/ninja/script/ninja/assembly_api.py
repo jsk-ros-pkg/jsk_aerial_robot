@@ -9,7 +9,7 @@ from aerial_robot_msgs.msg import FlightNav
 from spinal.msg import DesireCoord
 from geometry_msgs.msg import PoseStamped
 from diagnostic_msgs.msg import KeyValue
-from ninja.kondo_control_api import KondoControl
+from ninja.dynamixel_control_api import DynamixelControl
 from ninja.utils import coordTransformer
 import numpy as np
 import tf
@@ -27,13 +27,10 @@ class StandbyState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 male_servo_id = 5,
+                 male_servo_id = 8,
                  female_servo_id = 6,
                  real_machine = True,
-                 unlock_servo_angle_male = 7000,
-                 lock_servo_angle_male = 8800,
-                 unlock_servo_angle_female = 11000,
-                 lock_servo_angle_female = 5600,
+                 standby_servo_angle_male = 2500,
                  leader = 'ninja2',
                  leader_id = 2,
                  airframe_size = 0.818258,
@@ -46,7 +43,8 @@ class StandbyState(smach.State):
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
-                 root_fc_dis = [-0.04695,0,0.0369],
+                 # root_fc_dis = [-0.04695,0,0.0369],
+                 root_fc_dis = [0.0,0,0.0],
                  attach_dir = -1.0,
                  approach_mode = 'nav',
                  run_rate = 40):
@@ -58,10 +56,7 @@ class StandbyState(smach.State):
         self.male_servo_id = male_servo_id
         self.female_servo_id = female_servo_id
         self.real_machine = real_machine
-        self.unlock_servo_angle_male = unlock_servo_angle_male
-        self.lock_servo_angle_male = lock_servo_angle_male
-        self.unlock_servo_angle_female = unlock_servo_angle_female
-        self.lock_servo_angle_female = lock_servo_angle_female
+        self.standby_servo_angle_male = standby_servo_angle_male
         self.leader = leader
         self.leader_id = leader_id
         self.airframe_size = airframe_size
@@ -93,11 +88,11 @@ class StandbyState(smach.State):
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
-            self.kondo_servo = KondoControl(self.leader,self.leader_id,self.female_servo_id,self.real_machine)
+            self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
         else:
             self.follower_docking_pub = rospy.Publisher(self.leader+"/docking_cmd", Bool, queue_size=10)
-            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.female_servo_id,self.real_machine)
-            
+            self.dynamixel_servo = DynamixelControl(self.leader,self.leader_id,self.male_servo_id,self.real_machine)            
+
         # subscriber
         self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)
 
@@ -118,7 +113,7 @@ class StandbyState(smach.State):
     def execute(self, userdata):
         if not self.follower_male_mech_activated:
             if self.real_machine:
-                self.kondo_servo.sendTargetAngle(self.lock_servo_angle_female)
+                self.dynamixel_servo.sendTargetAngle(self.standby_servo_angle_male)
             else:
                 self.docking_msg.data = True
                 self.follower_docking_pub.publish(self.docking_msg)
@@ -126,21 +121,21 @@ class StandbyState(smach.State):
         # calculate current follower position in leader coordinate
         #TODO: determine leader namespace dynamically
         try:
-            leader_from_world = self.listener.lookupTransform('/world', self.leader+'/root', rospy.Time(0))
+            leader_from_world = self.listener.lookupTransform('/world', self.leader+'/fc', rospy.Time(0))
         except (tf.LookupException, tf_from_neighboring.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
         try:
-            follower_from_leader = self.listener.lookupTransform(self.leader+'/root', self.robot_name+'/root', rospy.Time(0))
+            follower_from_leader = self.listener.lookupTransform(self.leader+'/fc', self.robot_name+'/fc', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
 
         # set target odom in leader coordinate
         #TODO: determine leader namespace dynamically
-        self.br.sendTransform((self.target_offset[0] + self.root_fc_dis[0], self.target_offset[1] +self.root_fc_dis[1], self.target_offset[2] + self.root_fc_dis[2]),
+        self.br.sendTransform((self.target_offset[0], self.target_offset[1], self.target_offset[2]),
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
-                              self.leader+"/root")
+                              self.leader+"/fc")
 
         # convert target position from leader coord to world coord
         try:
@@ -150,11 +145,16 @@ class StandbyState(smach.State):
         target_pos = homo_transformed_target_odom[0]
         target_att = tf.transformations.euler_from_quaternion(homo_transformed_target_odom[1])
 
+        self.br.sendTransform((target_pos[0], target_pos[1], target_pos[2]),
+                              tf.transformations.quaternion_from_euler(target_att[0], target_att[1], target_att[2]),
+                             rospy.Time.now(),
+                              "follower_target_fc",
+                              "/world")
+
         pos_error = np.array(self.target_offset - follower_from_leader[0])
         if(pos_error[0] * self.attach_dir > 0):
             pos_error[0] = 0.0
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
-        rospy.loginfo(pos_error)
         #check if pos and att error are within the torrelance
         if np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol)):
             return 'done'
@@ -173,16 +173,16 @@ class StandbyState(smach.State):
             nav_msg_follower.target_pos_z = target_pos[2]
             nav_msg_follower.target_yaw = target_att[2]
             # Trajectory(x,y,z and yaw)
-            target_pos_cog = self.coordTransformer.posTransform('fc','cog',target_pos)
-            traj_msg_follower = PoseStamped()
-            traj_msg_follower.header.stamp = rospy.Time.now()
-            traj_msg_follower.pose.position.x = target_pos_cog[0]
-            traj_msg_follower.pose.position.y = target_pos_cog[1]
-            traj_msg_follower.pose.position.z = target_pos_cog[2]
-            traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
-            traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
-            traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
-            traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
+            # traj_msg_follower = PoseStamped()
+            # target_pos_cog = self.coordTransformer.posTransform('root','cog',target_pos)
+            # traj_msg_follower.header.stamp = rospy.Time.now()
+            # traj_msg_follower.pose.position.x = target_pos_cog[0]
+            # traj_msg_follower.pose.position.y = target_pos_cog[1]
+            # traj_msg_follower.pose.position.z = target_pos_cog[2]
+            # traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
+            # traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
+            # traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
+            # traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
             
             if(self.approach_mode == 'nav'):
                 self.follower_nav_pub.publish(nav_msg_follower)
@@ -217,13 +217,9 @@ class ApproachState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 male_servo_id = 5,
+                 male_servo_id = 8,
                  female_servo_id = 6,
                  real_machine = True,
-                 unlock_servo_angle_male = 7000,
-                 lock_servo_angle_male = 8800,
-                 unlock_servo_angle_female = 11000,
-                 lock_servo_angle_female = 5600,
                  leader = 'ninja2',
                  leader_id = 2,
                  airframe_size = 0.818258,
@@ -236,7 +232,8 @@ class ApproachState(smach.State):
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
-                 root_fc_dis = [-0.04695,0,0.0369],
+                 # root_fc_dis = [-0.04695,0,0.0369],
+                 root_fc_dis = [0.0,0,0.0],                 
                  x_danger_thre = 0.02,
                  y_danger_thre = 0.1,
                  z_danger_thre = 0.1,
@@ -254,10 +251,6 @@ class ApproachState(smach.State):
         self.male_servo_id = male_servo_id
         self.female_servo_id = female_servo_id
         self.real_machine = real_machine
-        self.unlock_servo_angle_male = unlock_servo_angle_male
-        self.lock_servo_angle_male = lock_servo_angle_male
-        self.unlock_servo_angle_female = unlock_servo_angle_female
-        self.lock_servo_angle_female = lock_servo_angle_female
         self.leader = leader
         self.leader_id = leader_id
         self.airframe_size = airframe_size
@@ -293,6 +286,13 @@ class ApproachState(smach.State):
         self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
 
+        if(self.attach_dir < 0):
+            self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
+            self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
+        else:
+            self.follower_docking_pub = rospy.Publisher(self.leader+"/docking_cmd", Bool, queue_size=10)
+            self.dynamixel_servo = DynamixelControl(self.leader,self.leader_id,self.male_servo_id,self.real_machine)
+
         # subscriber
         self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)
 
@@ -314,10 +314,12 @@ class ApproachState(smach.State):
         self.att_danger_thre = np.array([self.roll_danger_thre, self.pitch_danger_thre, self.yaw_danger_thre]) 
 
     def execute(self, userdata):
+        if self.real_machine:
+            self.dynamixel_servo.torqueEnable(0)
         # calculate now follower position in leader coordinate
         #TODO: determine leader namespace dynamically
         try:
-            follower_from_leader = self.listener.lookupTransform(self.leader+'/root', self.robot_name+'/root', rospy.Time(0))
+            follower_from_leader = self.listener.lookupTransform(self.leader+'/fc', self.robot_name+'/fc', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return 'in_process'
 
@@ -327,7 +329,7 @@ class ApproachState(smach.State):
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
-                              self.leader+"/root")
+                              self.leader+"/fc")
 
         # convert target position from leader coord to world coord
         try:
@@ -362,7 +364,7 @@ class ApproachState(smach.State):
             nav_msg_follower.target_pos_z = target_pos[2]
             nav_msg_follower.target_yaw = target_att[2]
             # Trajectory(x,y,z and yaw)
-            target_pos_cog = self.coordTransformer.posTransform('fc','cog',target_pos)
+            target_pos_cog = self.coordTransformer.posTransform('root','cog',target_pos)
             traj_msg_follower = PoseStamped()
             traj_msg_follower.header.stamp = rospy.Time.now()
             traj_msg_follower.pose.position.x = target_pos_cog[0]
@@ -405,13 +407,9 @@ class AssemblyState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 male_servo_id = 5,
+                 male_servo_id = 8,
                  female_servo_id = 6,
                  real_machine = True,
-                 unlock_servo_angle_male = 7000,
-                 lock_servo_angle_male = 8800,
-                 unlock_servo_angle_female = 11000,
-                 lock_servo_angle_female = 5600,
                  leader = 'ninja2',
                  leader_id = 2,
                  attach_dir = -1.0):
@@ -422,10 +420,6 @@ class AssemblyState(smach.State):
         self.male_servo_id = male_servo_id
         self.female_servo_id = female_servo_id
         self.real_machine = real_machine
-        self.unlock_servo_angle_male = unlock_servo_angle_male
-        self.lock_servo_angle_male = lock_servo_angle_male
-        self.unlock_servo_angle_female = unlock_servo_angle_female
-        self.lock_servo_angle_female = lock_servo_angle_female
         self.leader = leader
         self.leader_id = leader_id
         self.attach_dir = attach_dir
@@ -438,10 +432,10 @@ class AssemblyState(smach.State):
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
         self.assembly_nav_pub = rospy.Publisher("/assembly/uav/nav", FlightNav, queue_size=10)
-        if(self.attach_dir < 0):
-            self.kondo_servo = KondoControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
-        else:
-            self.kondo_servo = KondoControl(self.leader,self.leader_id,self.male_servo_id,self.real_machine)
+        # if(self.attach_dir < 0):
+        #     self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
+        # else:
+        #     self.dynamixel_servo = DynamixelControl(self.leader,self.leader_id,self.male_servo_id,self.real_machine)
         self.flag_pub = rospy.Publisher('/' + self.robot_name + '/assembly_flag', KeyValue, queue_size = 1)
         self.flag_pub_leader = rospy.Publisher('/' + self.leader + '/assembly_flag', KeyValue, queue_size = 1)
 
@@ -458,9 +452,9 @@ class AssemblyState(smach.State):
     def execute(self, userdata):
         if self.emergency_flag:
             return 'emergency'
-        if self.real_machine:
-            self.kondo_servo.sendTargetAngle(self.lock_servo_angle_male)
-        time.sleep(1.0)
+        # if self.real_machine:
+        #     self.dynamixel_servo.sendTargetAngle(self.lock_servo_angle_male)
+        # time.sleep(1.0)
         if not self.real_machine:
             rospy.sleep(1.0)
         self.nav_msg.pos_xy_nav_mode= 6
