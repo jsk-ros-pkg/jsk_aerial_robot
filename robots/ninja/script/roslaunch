@@ -1,0 +1,193 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import re
+import socket
+import sys
+from copy import deepcopy
+
+import roslaunch
+import roslaunch.loader
+from roslaunch.xmlloader import XmlLoader
+from roslaunch.core import printlog, printerrlog, _printerrlog_handlers
+from roslaunch.remoteprocess import SSHChildROSLaunchProcess
+
+roslaunch.xmlloader._is_default = {'true': True, 'scope': False, 'parent': False, 'false': False, 'never': False }
+roslaunch.xmlloader._assignable = {'true': True, 'scope': True, 'parent': True, 'false': True, 'never': False }
+# maps machine 'default' attribute to whether this sets the default_machine in
+# the loader context
+roslaunch.xmlloader._is_context_default = {'true': True, 'scope': True, 'parent': True, 'false': False, 'never': False }
+
+orig_node_tag = XmlLoader._node_tag
+
+
+def patched_node_tag(self, tag, context, ros_config, default_machine, *args, **kwargs):
+    result = orig_node_tag(self, tag, context, ros_config, default_machine, *args, **kwargs)
+    if isinstance(result, roslaunch.Node):
+        machine, = self.opt_attrs(tag, context, ('machine',))
+        if not machine:
+            if context.default_machine:
+                machine = context.default_machine.name
+            elif default_machine:
+                machine = default_machine.name
+        result.machine_name = machine
+    return result
+
+
+XmlLoader._node_tag = patched_node_tag
+
+orig_machine_tag = XmlLoader._machine_tag
+
+
+def patched_machine_tag(self, tag, context, *args, **kwargs):
+    m, is_default = orig_machine_tag(self, tag, context, *args, **kwargs)
+    default, = self.opt_attrs(tag, context, ('default',))
+    default = (default or 'false').lower()
+
+    try:
+        is_context_default = roslaunch.xmlloader._is_context_default[default]
+    except KeyError as e:
+        raise roslaunch.xmlloader.XmlParseException("Invalid value for 'attribute': %s" % default)
+
+    if is_context_default:
+        if default == 'parent':
+            context.parent.default_machine = m
+        else:
+            context.default_machine = m
+
+    return m, is_default
+
+
+XmlLoader._machine_tag = patched_machine_tag
+
+orig_loader_context_init = roslaunch.loader.LoaderContext.__init__
+
+
+def patched_loader_context_init(self, *args, **kwargs):
+    default_machine = None
+    if 'default_machine' in kwargs:
+        default_machine = kwargs['default_machine']
+        del kwargs['default_machine']
+    orig_loader_context_init(self, *args, **kwargs)
+    self.default_machine = default_machine
+
+
+roslaunch.loader.LoaderContext.__init__ = patched_loader_context_init
+
+
+def patched_loader_context_child(self, ns):
+    if ns:
+        if ns[0] == '/':  # global (discouraged)
+            child_ns = ns
+        elif ns == roslaunch.loader.PRIV_NAME:  # ~name
+            # private names can only be scoped privately or globally
+            child_ns = roslaunch.loader.PRIV_NAME
+        else:
+            child_ns = roslaunch.loader.ns_join(self.ns, ns)
+    else:
+        child_ns = self.ns
+    return roslaunch.loader.LoaderContext(child_ns, self.filename, parent=self,
+                                          params=self.params, env_args=self.env_args[:],
+                                          resolve_dict=deepcopy(self.resolve_dict),
+                                          arg_names=self.arg_names[:], include_resolve_dict=self.include_resolve_dict,
+                                          default_machine=self.default_machine)
+
+
+roslaunch.loader.LoaderContext.child = patched_loader_context_child
+
+SSHChildROSLaunchProcess.line_buf_info = ""
+SSHChildROSLaunchProcess.line_buf_err = ""
+
+
+def printlog_raw(msg, file=sys.stderr):
+    for h in _printerrlog_handlers:
+        try:
+            h(msg)
+        except:
+            pass
+    try:
+        print(msg, file=sys.stderr)
+    except:
+        pass
+
+
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
+def patched_is_alive(self):
+    """
+    :returns: ``True`` if the process is alive. is_alive needs to be
+        called periodically as it drains the SSH buffer, ``bool``
+    """
+    if self.started and not self.ssh:
+        return False
+    elif not self.started:
+        return True  # not started is equivalent to alive in our logic
+    s = self.ssherr
+    s.channel.settimeout(0)
+    try:
+        # drain the pipes
+        data = s.read(128)
+        if not len(data):
+            self.is_dead = True
+            return False
+        # #2012 il8n: ssh *should* be UTF-8, but often isn't
+        # (e.g. Japan)
+        data = data.decode('utf-8')
+        lines = data.split("\n")
+        if len(lines) > 0:
+            if len(self.line_buf_err) > 0:
+                lines[0] = self.line_buf_err + lines[0]
+                self.line_buf_err = ""
+            if data[-1] != "\n":
+                self.line_buf_err = lines[-1]
+                lines = lines[:-1]
+            for line in lines:
+                if line.startswith("\033") and len(line) >= 5:
+                    printlog_raw(line[:(5 if line[4] == "m" else 4)] + "remote[%s]:\033[0m %s" % (self.name, line), file=sys.stderr)
+                elif len(ansi_escape.sub('', line).strip()) > 0:
+                    printerrlog("remote[%s]: %s" % (self.name, line))
+    except socket.timeout:
+        pass
+    except IOError:
+        return False
+    except UnicodeDecodeError:
+        # #2012: soft fail, printing is not essential. This occurs
+        # with older machines that don't send utf-8 over ssh
+        pass
+
+    s = self.sshout
+    s.channel.settimeout(0)
+    try:
+        # drain the pipes
+        data = s.read(128)
+        if not len(data):
+            self.is_dead = True
+            return False
+        # #2012 il8n: ssh *should* be UTF-8, but often isn't
+        # (e.g. Japan)
+        data = data.decode('utf-8')
+        lines = data.split("\n")
+        if len(lines) > 0:
+            if len(self.line_buf_info) > 0:
+                lines[0] = self.line_buf_info + lines[0]
+                self.line_buf_info = ""
+            if data[-1] != "\n":
+                self.line_buf_info = lines[-1]
+                lines = lines[:-1]
+            for line in lines:
+                if line.startswith("\033") and len(line) >= 5:
+                    printlog_raw(line[:(5 if line[4] == "m" else 4)] + "remote[%s]:\033[0m %s" % (self.name, line), file=sys.stdout)
+                elif len(ansi_escape.sub('', line).strip()) > 0:
+                    printerrlog("remote[%s]: %s" % (self.name, line))
+    except socket.timeout:
+        pass
+    except IOError:
+        return False
+    return True
+
+SSHChildROSLaunchProcess.is_alive = patched_is_alive
+
+
+roslaunch.main()
