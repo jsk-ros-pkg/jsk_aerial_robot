@@ -12,15 +12,14 @@ void Servo::setTorqueEnable(bool torque_enable)
   if (force_servo_off_) return;
 
   torque_enable_ = torque_enable;
-
-  if (!torque_enable_) goal_position_valid_flag_ = false;
 }
 
 void CANServo::sendData()
 {
   uint16_t target_angle[4];
   for (unsigned int i = 0 ; i < servo_.size(); i++) {
-    target_angle[i] = ((servo_[i].goal_position_valid_flag_ ? 1 : 0) << 15) | (servo_[i].goal_position_ & 0x7FFF);
+    target_angle[i] = ((servo_[i].goal_position_ack_ ? 1 : 0) << 15) | (servo_[i].goal_position_ & 0x7FFF);
+    servo_[i].goal_position_ack_ = false;
   }
   sendMessage(CAN::MESSAGEID_RECEIVE_SERVO_ANGLE, m_slave_id, servo_.size() * 2, reinterpret_cast<uint8_t*>(target_angle), 0);
 
@@ -41,9 +40,10 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_
   bool receive_target_position = (servo_data.status >> 2) & 0x01;
   if (receive_target_position) { // tricky process to save slot
     servo_[message_id].goal_position_ = servo_data.angle;
-    servo_[message_id].goal_position_valid_flag_ = true;
+    servo_[message_id].goal_position_ack_ = true;
   } else {
     servo_[message_id].present_position_ = servo_data.angle;
+    servo_[message_id].goal_position_ack_ = false;
   }
 
   servo_[message_id].present_current_ = servo_data.current;
@@ -51,6 +51,5 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_
 
   if (servo_[message_id].force_servo_off_) {
     servo_[message_id].torque_enable_ = false;
-    servo_[message_id].goal_position_valid_flag_ = false;
   }
 }

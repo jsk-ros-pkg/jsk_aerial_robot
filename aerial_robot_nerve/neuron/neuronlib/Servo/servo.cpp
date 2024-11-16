@@ -59,11 +59,18 @@ void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
         if (sign != 0) {
           goal_pos = 0xFFFF8000 | goal_pos;
         }
-        bool valid = (((data[i * 2 + 1] >> 7) & 0x01) != 0) ? true : false;
-        if (valid) {
-          s.setGoalPosition(goal_pos);
-          s.send_goal_position_ = false;
-        }
+
+        if (!s.torque_enable_) continue;
+
+        if (s.send_goal_position_)
+          {
+            bool ack = ((data[i * 2 + 1] >> 7) & 0x01);
+            if (!ack) continue;;
+
+            s.send_goal_position_ = false;
+          }
+
+        s.setGoalPosition(goal_pos);
       }
       break;
     }
