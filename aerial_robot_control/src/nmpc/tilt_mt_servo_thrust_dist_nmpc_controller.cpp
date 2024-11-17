@@ -2,11 +2,11 @@
 // Created by jinjie on 24/07/31.
 //
 
-#include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_controller.h"
+#include "aerial_robot_control/nmpc/tilt_mt_servo_thrust_dist_nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltQdServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+void nmpc::TiltMtServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                                  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                                                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
@@ -14,10 +14,10 @@ void nmpc::TiltQdServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHa
 {
   TiltMtServoDistNMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
-  sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &TiltQdServoThrustDistNMPC::callbackESCTelem, this);
+  sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &TiltMtServoThrustDistNMPC::callbackESCTelem, this);
 }
 
-void nmpc::TiltQdServoThrustDistNMPC::initParams()
+void nmpc::TiltMtServoThrustDistNMPC::initParams()
 {
   TiltMtServoDistNMPC::initParams();
 
@@ -25,7 +25,7 @@ void nmpc::TiltQdServoThrustDistNMPC::initParams()
   getParam<double>(motor_nh, "krpm_rate", krpm2_d_thrust_, 0.0);
 }
 
-void nmpc::TiltQdServoThrustDistNMPC::initCostW()
+void nmpc::TiltMtServoThrustDistNMPC::initCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -73,8 +73,8 @@ void nmpc::TiltQdServoThrustDistNMPC::initCostW()
   mpc_solver_ptr_->setCostWeight(true, true);
 }
 
-void nmpc::TiltQdServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
-{
+void nmpc::TiltMtServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
+{  // TODO: support different motor number
   double krpm = (double)msg->esc_telemetry_1.rpm * 0.001;
   thrust_meas_[0] = krpm * krpm / krpm2_d_thrust_;
 
@@ -88,7 +88,7 @@ void nmpc::TiltQdServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetr
   thrust_meas_[3] = krpm * krpm / krpm2_d_thrust_;
 }
 
-void nmpc::TiltQdServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+void nmpc::TiltMtServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                                                    const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
                                                    const Eigen::VectorXd& ref_wrench_b, vector<double>& x,
                                                    vector<double>& u) const
@@ -116,7 +116,7 @@ void nmpc::TiltQdServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i,
   }
 }
 
-std::vector<double> nmpc::TiltQdServoThrustDistNMPC::meas2VecX()
+std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX()
 {
   auto bx0 = TiltMtServoNMPC::meas2VecX();
 
@@ -134,11 +134,11 @@ std::vector<double> nmpc::TiltQdServoThrustDistNMPC::meas2VecX()
   return bx0;
 }
 
-void nmpc::TiltQdServoThrustDistNMPC::cfgNMPCCallback(aerial_robot_control::NMPCConfig& config, uint32_t level)
+void nmpc::TiltMtServoThrustDistNMPC::cfgNMPCCallback(aerial_robot_control::NMPCConfig& config, uint32_t level)
 {
   // TODO: finish this part.
 }
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltQdServoThrustDistNMPC, aerial_robot_control::ControlBase);
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtServoThrustDistNMPC, aerial_robot_control::ControlBase);

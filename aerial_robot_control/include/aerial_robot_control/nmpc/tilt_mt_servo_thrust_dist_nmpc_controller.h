@@ -6,7 +6,7 @@
 #define TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/nmpc/tilt_mt_servo_dist_nmpc_controller.h"
-#include "nmpc_solver.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_solver.h"
 
 #include "spinal/ESCTelemetryArray.h"
 
@@ -16,7 +16,7 @@ namespace aerial_robot_control
 namespace nmpc
 {
 
-class TiltQdServoThrustDistNMPC : public nmpc::TiltMtServoDistNMPC
+class TiltMtServoThrustDistNMPC : public nmpc::TiltMtServoDistNMPC
 {
 public:
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
