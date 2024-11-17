@@ -333,8 +333,6 @@ public:
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
   uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
   void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
-  float getInternalOffsetLPFRate() const {return internal_offset_lpf_rate_;}
-  void setInternalOffsetLPFRate(float value);
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -347,7 +345,6 @@ private:
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
   uint16_t pulley_skip_thresh_;
-  float internal_offset_lpf_rate_;
   uint32_t set_pos_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
