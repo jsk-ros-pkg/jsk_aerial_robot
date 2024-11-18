@@ -32,7 +32,10 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ninja_robot_model ninja_controller ninja_navigation
   CATKIN_DEPENDS aerial_robot_control aerial_robot_model aerial_robot_msgs pluginlib roscpp gimbalrotor diagnostic_msgs std_msgs geometry_msgs message_runtime beetle
-)
+  )
+
+configure_file(script/roslaunch ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_BIN_DESTINATION}/roslaunch COPYONLY)
+
 
 include_directories(
   include
@@ -67,6 +70,6 @@ install(DIRECTORY script
   USE_SOURCE_PERMISSIONS
 )
 
-# catkin_install_python(PROGRAMS script/ninja/kondo_control.py
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#   )
+catkin_install_python(PROGRAMS script/roslaunch
+  DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+  )
