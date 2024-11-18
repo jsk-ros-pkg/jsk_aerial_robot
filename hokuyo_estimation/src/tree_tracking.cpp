@@ -10,8 +10,8 @@ TreeTracking::TreeTracking(ros::NodeHandle nh, ros::NodeHandle nhp):
   nhp_.param("uav_odom_topic_name", odom_topic_name_, string(""));
   nhp_.param("frame_name", laser_scan_frame_name_, string(""));
   nhp_.param("tree_radius_max", tree_radius_max_, 0.3);
-  nhp_.param("tree_radius_min", tree_radius_min_, 0.08);
-  nhp_.param("tree_scan_angle_thre", tree_scan_angle_thre_, 0.1);
+  nhp_.param("tree_radius_min", tree_radius_min_, 0.04);
+  nhp_.param("tree_scan_angle_thre", tree_scan_angle_thre_, 2.0);
   nhp_.param("tree_circle_regulation_thre", tree_circle_regulation_thre_, 0.02);
   nhp_.param("tree_global_location_topic_name", tree_global_location_topic_name_, string("tree_global_location"));
   nhp_.param("visualization_marker_topic_name", visualization_marker_topic_name_, string("visualization_marker"));
