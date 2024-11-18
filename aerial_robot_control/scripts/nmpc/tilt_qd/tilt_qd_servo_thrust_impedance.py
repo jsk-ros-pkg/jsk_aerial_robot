@@ -2,10 +2,9 @@
 # -*- encoding: ascii -*-
 """
 Author: LI Jinjie
-File: nmpc_over_act_full.py
+File: tilt_qd_servo_thrust_impedance.py
 Date: 2024/07/09 16:13 PM
-Description: Consider the full dynamics of the aerial robot, including the dynamics of the rotors and servos. Also consider
-the disturbances.
+Description: impedance control.
 """
 from __future__ import print_function  # be compatible with python2
 import os
@@ -30,17 +29,22 @@ with open(nmpc_param_path, "r") as f:
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
+M_imp = np.diag([1.5, 1.5, 1.5])
+M_imp_inv = np.diag([1 / M_imp[0, 0], 1 / M_imp[1, 1], 1 / M_imp[2, 2]])
+D_imp = np.diag([10, 10, 10])
+K_imp = np.diag([6, 6, 6])
 
-class NMPCTiltQdServoThrustDist(NMPCBase):
+
+class NMPCTiltQdServoThrustImpedance(NMPCBase):
     def __init__(self):
-        super(NMPCTiltQdServoThrustDist, self).__init__()
+        super(NMPCTiltQdServoThrustImpedance, self).__init__()
         self.t_servo = t_servo
         self.t_rotor = t_rotor
 
         self.fake_sensor = FakeSensor()
 
     def set_name(self) -> str:
-        model_name = "tilt_qd_servo_thrust_dist_mdl"
+        model_name = "tilt_qd_servo_thrust_impedance_mdl"
         return model_name
 
     def set_ts_ctrl(self) -> float:
@@ -103,13 +107,13 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
 
         # transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -155,20 +159,20 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
 
         f_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # dynamic model
@@ -186,6 +190,8 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
             ca.vertcat(0.0, 0.0, 0.0),
         )
 
+        a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i
+
         # function
         func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
@@ -194,7 +200,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft, f_d_i, tau_d_b)
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft, a_i - ca.mtimes(M_imp_inv, f_d_i), tau_d_b)
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
@@ -243,6 +249,9 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         ocp.dims.np = n_params
         ocp.parameter_values = np.zeros(n_params)
 
+        weight = np.concatenate([K_imp, D_imp, M_imp])
+        weight_mtx = np.dot(weight, weight.T)
+
         # cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
         Q = np.diag(
@@ -253,7 +262,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
                 nmpc_params["Qv_xy"],
                 nmpc_params["Qv_xy"],
                 nmpc_params["Qv_z"],
-                0,
+                0.0,
                 nmpc_params["Qq_xy"],
                 nmpc_params["Qq_xy"],
                 nmpc_params["Qq_z"],
@@ -268,14 +277,19 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
                 nmpc_params["Qt"],
                 nmpc_params["Qt"],
                 nmpc_params["Qt"],
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
             ]
         )
+        Q[0:6, 0:6] = weight_mtx[0:6, 0:6]
+        Q[21:24, 21:24] = weight_mtx[6:9, 6:9]
+        Q[0:6, 21:24] = weight_mtx[0:6, 6:9]
+        Q[21:24, 0:6] = weight_mtx[6:9, 0:6]
+
         print("Q: \n", Q)
 
         R = np.diag(
@@ -557,9 +571,9 @@ class FakeSensor:
         f_d_i = x[21:24]
         tau_d_b = x[24:27]
 
-        row_1 = np.array([1 - 2 * qy**2 - 2 * qz**2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
-        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx**2 - 2 * qz**2, 2 * qy * qz - 2 * qw * qx])
-        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx**2 - 2 * qy**2])
+        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
         rot_ib = np.vstack((row_1, row_2, row_3))
         rot_bi = rot_ib.T
 
@@ -579,21 +593,21 @@ class FakeSensor:
         tau_r4 = np.array([0, 0, -self.dr4 * ft4 * self.kq_d_kt])
 
         f_u_b = (
-            np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1))
-            + np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2))
-            + np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3))
-            + np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4))
+                np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1))
+                + np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2))
+                + np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3))
+                + np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4))
         )
 
         tau_u_b = (
-            np.dot(self.rot_be1, np.dot(rot_e1r1, tau_r1))
-            + np.dot(self.rot_be2, np.dot(rot_e2r2, tau_r2))
-            + np.dot(self.rot_be3, np.dot(rot_e3r3, tau_r3))
-            + np.dot(self.rot_be4, np.dot(rot_e4r4, tau_r4))
-            + np.cross(self.p1_b, np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1)))
-            + np.cross(self.p2_b, np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2)))
-            + np.cross(self.p3_b, np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3)))
-            + np.cross(self.p4_b, np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4)))
+                np.dot(self.rot_be1, np.dot(rot_e1r1, tau_r1))
+                + np.dot(self.rot_be2, np.dot(rot_e2r2, tau_r2))
+                + np.dot(self.rot_be3, np.dot(rot_e3r3, tau_r3))
+                + np.dot(self.rot_be4, np.dot(rot_e4r4, tau_r4))
+                + np.cross(self.p1_b, np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1)))
+                + np.cross(self.p2_b, np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2)))
+                + np.cross(self.p3_b, np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3)))
+                + np.cross(self.p4_b, np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4)))
         )
 
         sf_b = (f_u_b + np.dot(rot_bi, f_d_i)) / self.mass  # specific force in body frame
@@ -639,7 +653,7 @@ class FIRDifferentiator:
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServoThrustDist()
+    nmpc = NMPCTiltQdServoThrustImpedance()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
