@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name = "robot_name" default="robot"/>
+  <arg name = "IP" default="192.168.1.10"/>
+  <arg name = "user" default="user"/>
+  <arg name = "password" default="password"/>
+  <arg name = "env_path" default="~/ros/jsk_aerial_robot_ws/devel/env.sh"/>
+  <machine name="$(arg robot)" address="$(arg IP)" env-loader="$(arg env_path)" user="$(arg user)" password="$(arg password)">
+  </machine>
+  <node machine="$(arg robot)" name="bringup" pkg="ninja" type="bringup.py" output="screen">
+  </node>
+</launch>
