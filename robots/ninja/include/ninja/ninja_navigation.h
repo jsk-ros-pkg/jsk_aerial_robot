@@ -53,6 +53,7 @@ namespace aerial_robot_navigation
     void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
     void setGoalComRot(KDL::Rotation goal_com_rot){ goal_com_rot_ = goal_com_rot;}
     void setTargetCoMPoseFromCurrState();
+    void setTargetJointPosFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
     void morphingProcess();
 
@@ -71,16 +72,22 @@ namespace aerial_robot_navigation
     void convertTargetPosFromCoG2CoM() override;
     void setGoalCoMRotCallback(const spinal::DesireCoordConstPtr & msg);
     void assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg);
+    void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
+    void moduleJointsCallback(const sensor_msgs::JointStateConstPtr& state);
     void comRotationProcess();
 
     ros::Publisher target_com_pose_pub_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
     ros::Subscriber target_com_rot_sub_;
     ros::Subscriber target_joints_pos_sub_;
+    ros::Subscriber joint_state_sub_;
     ros::Publisher joint_control_pub_;
+    ros::Publisher dock_joints_pos_pub_;
+    map<string, ros::Subscriber> module_joints_subs_;
 
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;
+    std::map<int, KDL::JntArray> all_modules_joints_pos_;
 
     KDL::Rotation goal_com_rot_;
     KDL::Rotation target_com_rot_;

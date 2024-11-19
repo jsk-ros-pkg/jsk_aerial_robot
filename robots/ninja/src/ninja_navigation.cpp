@@ -21,16 +21,25 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
   target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1); //for debug
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
+  dock_joints_pos_pub_ = nh_.advertise<sensor_msgs::JointState>("dock_joints_pos", 1);
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setGoalCoMRotCallback, this);
   target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
+  joint_state_sub_ = nh_.subscribe("joint_states", 1, &NinjaNavigator::jointStateCallback, this);
   tfBuffer_.setUsingDedicatedThread(true);
   joint_pos_errs_.resize(module_joint_num_);
   prev_morphing_stamp_ = ros::Time::now().toSec();
+  for(int i = 0; i < getMaxModuleNum(); i++){
+    std::string module_name  = string("/") + getMyName() + std::to_string(i+1);
+    module_joints_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/dock_joints_pos"), 1, &NinjaNavigator::moduleJointsCallback, this)));
+    KDL::JntArray joints_pos(2);
+    all_modules_joints_pos_.insert(make_pair(i+1,joints_pos));
+  }
 }
 
 void NinjaNavigator::update()
 {
   updateEntSysState();
+
   if(ros::Time::now().toSec() - prev_morphing_stamp_ > morphing_process_interval_)
     {
       comRotationProcess();
@@ -393,6 +402,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     return;
   } else if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
     setTargetCoMPoseFromCurrState();
+    setTargetJointPosFromCurrState();
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
     return;
@@ -514,6 +524,20 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
 
 }
 
+void NinjaNavigator::setTargetJointPosFromCurrState()
+{
+  for(auto & it:assembled_modules_data_)
+    {
+      ModuleData& data = it.second;
+      data.goal_joint_pos_ = all_modules_joints_pos_[data.id_];
+      data.des_joint_pos_ = all_modules_joints_pos_[data.id_];
+      data.first_joint_processed_time_[YAW] = -1.0;
+      data.first_joint_processed_time_[PITCH] = -1.0;
+      ROS_INFO_STREAM("Module" << data.id_ << "-> " << "yaw: "<<data.des_joint_pos_(YAW)<< ", pitch: "<<data.des_joint_pos_(PITCH));
+    }
+  calcCenterOfMoving();
+}
+
 void NinjaNavigator::setGoalCoMRotCallback(const spinal::DesireCoordConstPtr & msg)
 {
   setGoalComRot(KDL::Rotation::RPY(msg->roll, msg->pitch, msg->yaw));
@@ -610,6 +634,53 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
     }
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 }
+
+void NinjaNavigator::jointStateCallback(const sensor_msgs::JointStateConstPtr& states)
+{
+  // send docking joint positions to other modules
+  sensor_msgs::JointState joint_states = *states;
+  sensor_msgs::JointState dock_joint_pos_msg;
+  for(int i =0; i< joint_states.name.size(); i++) {
+    if(joint_states.name[i] =="yaw_dock_joint")
+      {
+        dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/yaw"));
+        dock_joint_pos_msg.position.push_back(joint_states.position[i]);
+      }
+    else if(joint_states.name[i] =="pitch_dock_joint")
+      {
+        dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/pitch"));
+        dock_joint_pos_msg.position.push_back(joint_states.position[i]);
+      }
+  }
+  dock_joints_pos_pub_.publish(dock_joint_pos_msg);
+}
+
+void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr& state)
+{
+  sensor_msgs::JointState joint_states = *state;
+  for(int i=0; i<joint_states.name.size(); i++)
+    {
+      // Extract id and joint name
+      int id;
+      std::string joint_name;
+      size_t pos = joint_states.name[i].find('/');
+          
+      std::string module_name = joint_states.name[i].substr(0, pos);
+      joint_name = joint_states.name[i].substr(pos + 1);
+      std::regex numberRegex("\\d+");
+      std::smatch match;
+      if (std::regex_search(module_name, match, numberRegex))
+        id = std::stoi(match.str(0));
+      else
+        return;
+      KDL::JntArray& module_joint_pos = all_modules_joints_pos_[id];
+      int axis;
+      if(joint_name == "yaw") axis = YAW;
+      if(joint_name == "pitch") axis = PITCH;
+      module_joint_pos(axis) = joint_states.position[i];
+    }
+}
+
 
 void NinjaNavigator::morphingProcess()
 {
