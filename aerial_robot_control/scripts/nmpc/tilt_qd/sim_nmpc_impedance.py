@@ -49,7 +49,6 @@ if __name__ == "__main__":
     # --------- Disturb. Rej. ---------
     ts_sensor = 0.0025
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
-    disturb_nmpc_compd = np.zeros(6)  # f_d_i, tau_d_b. The disturbance that has been compensated by the nmpc.
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -171,7 +170,6 @@ if __name__ == "__main__":
             # feedback, take the first action
             try:
                 u_mpc = ocp_solver.solve_for_x0(x_now)
-                disturb_nmpc_compd = copy.deepcopy(disturb_estimated)
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 break
