@@ -195,7 +195,8 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
             ca.vertcat(0.0, 0.0, 0.0),
         )
 
-        a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i
+        lin_a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i
+        ang_a_b = ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b))
 
         # function
         func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
@@ -206,7 +207,7 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft,
-                             a_i - ca.mtimes(pM_imp_inv, f_d_i), tau_d_b)
+                             lin_a_i - ca.mtimes(pM_imp_inv, f_d_i), ang_a_b - ca.mtimes(oM_imp_inv, tau_d_b))
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
@@ -255,9 +256,6 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         ocp.dims.np = n_params
         ocp.parameter_values = np.zeros(n_params)
 
-        p_weight = np.concatenate([pK_imp, pD_imp, pM_imp])
-        p_weight_mtx = np.dot(p_weight, p_weight.T)
-
         # cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
         Q = np.diag(
@@ -291,10 +289,20 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
                 0.0,
             ]
         )
+
+        p_weight = np.concatenate([pK_imp, pD_imp, pM_imp])
+        p_weight_mtx = np.dot(p_weight, p_weight.T)
         Q[0:6, 0:6] = p_weight_mtx[0:6, 0:6]
         Q[21:24, 21:24] = p_weight_mtx[6:9, 6:9]
         Q[0:6, 21:24] = p_weight_mtx[0:6, 6:9]
         Q[21:24, 0:6] = p_weight_mtx[6:9, 0:6]
+
+        o_weight = np.concatenate([oK_imp, oD_imp, oM_imp])
+        o_weight_mtx = np.dot(o_weight, o_weight.T)
+        Q[7:13, 7:13] = o_weight_mtx[0:6, 0:6]
+        Q[24:27, 24:27] = o_weight_mtx[6:9, 6:9]
+        Q[7:13, 24:27] = o_weight_mtx[0:6, 6:9]
+        Q[24:27, 7:13] = o_weight_mtx[6:9, 0:6]
 
         print("Q: \n", Q)
 
