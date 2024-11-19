@@ -23,16 +23,21 @@ from phys_param_beetle_omni import *
 # read parameters from yaml
 rospack = rospkg.RosPack()
 
-nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullServoThrustDist.yaml")
+nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullServoThrustImp.yaml")
 with open(nmpc_param_path, "r") as f:
     nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
-M_imp = np.diag([1.5, 1.5, 1.5])
-M_imp_inv = np.diag([1 / M_imp[0, 0], 1 / M_imp[1, 1], 1 / M_imp[2, 2]])
-D_imp = np.diag([10, 10, 10])
-K_imp = np.diag([6, 6, 6])
+pM_imp = np.diag([nmpc_params["pMxy"], nmpc_params["pMxy"], nmpc_params["pMz"]])
+pM_imp_inv = np.diag([1 / pM_imp[0, 0], 1 / pM_imp[1, 1], 1 / pM_imp[2, 2]])
+pD_imp = np.diag([nmpc_params["pDxy"], nmpc_params["pDxy"], nmpc_params["pDz"]])
+pK_imp = np.diag([nmpc_params["pKxy"], nmpc_params["pKxy"], nmpc_params["pKz"]])
+
+oM_imp = np.diag([nmpc_params["oMxy"], nmpc_params["oMxy"], nmpc_params["oMz"]])
+oM_imp_inv = np.diag([1 / oM_imp[0, 0], 1 / oM_imp[1, 1], 1 / oM_imp[2, 2]])
+oD_imp = np.diag([nmpc_params["oDxy"], nmpc_params["oDxy"], nmpc_params["oDz"]])
+oK_imp = np.diag([nmpc_params["oKxy"], nmpc_params["oKxy"], nmpc_params["oKz"]])
 
 
 class NMPCTiltQdServoThrustImpedance(NMPCBase):
@@ -200,7 +205,8 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft, a_i - ca.mtimes(M_imp_inv, f_d_i), tau_d_b)
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft,
+                             a_i - ca.mtimes(pM_imp_inv, f_d_i), tau_d_b)
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model
@@ -249,26 +255,26 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         ocp.dims.np = n_params
         ocp.parameter_values = np.zeros(n_params)
 
-        weight = np.concatenate([K_imp, D_imp, M_imp])
-        weight_mtx = np.dot(weight, weight.T)
+        p_weight = np.concatenate([pK_imp, pD_imp, pM_imp])
+        p_weight_mtx = np.dot(p_weight, p_weight.T)
 
         # cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
         Q = np.diag(
             [
-                nmpc_params["Qp_xy"],
-                nmpc_params["Qp_xy"],
-                nmpc_params["Qp_z"],
-                nmpc_params["Qv_xy"],
-                nmpc_params["Qv_xy"],
-                nmpc_params["Qv_z"],
                 0.0,
-                nmpc_params["Qq_xy"],
-                nmpc_params["Qq_xy"],
-                nmpc_params["Qq_z"],
-                nmpc_params["Qw_xy"],
-                nmpc_params["Qw_xy"],
-                nmpc_params["Qw_z"],
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
                 nmpc_params["Qa"],
@@ -285,10 +291,10 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
                 0.0,
             ]
         )
-        Q[0:6, 0:6] = weight_mtx[0:6, 0:6]
-        Q[21:24, 21:24] = weight_mtx[6:9, 6:9]
-        Q[0:6, 21:24] = weight_mtx[0:6, 6:9]
-        Q[21:24, 0:6] = weight_mtx[6:9, 0:6]
+        Q[0:6, 0:6] = p_weight_mtx[0:6, 0:6]
+        Q[21:24, 21:24] = p_weight_mtx[6:9, 6:9]
+        Q[0:6, 21:24] = p_weight_mtx[0:6, 6:9]
+        Q[21:24, 0:6] = p_weight_mtx[6:9, 0:6]
 
         print("Q: \n", Q)
 
