@@ -49,7 +49,7 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         self.fake_sensor = FakeSensor()
 
     def set_name(self) -> str:
-        model_name = "tilt_qd_servo_thrust_impedance_mdl"
+        model_name = "tilt_qd_servo_thrust_dist_imp_mdl"
         return model_name
 
     def set_ts_ctrl(self) -> float:

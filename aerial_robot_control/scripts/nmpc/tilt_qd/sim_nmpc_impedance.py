@@ -10,7 +10,7 @@ import argparse
 
 from nmpc_viz import Visualizer, SensorVisualizer
 
-from tilt_qd_servo_thrust_impedance import NMPCTiltQdServoThrustImpedance
+from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
 np.random.seed(42)
