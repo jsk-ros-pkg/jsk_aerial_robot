@@ -29,13 +29,15 @@ with open(nmpc_param_path, "r") as f:
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
+epsilon = nmpc_params["epsilon"]
+
 pM_imp = np.diag([nmpc_params["pMxy"], nmpc_params["pMxy"], nmpc_params["pMz"]])
-pM_imp_inv = np.diag([1 / pM_imp[0, 0], 1 / pM_imp[1, 1], 1 / pM_imp[2, 2]])
+pM_imp_inv = np.diag([1 / (pM_imp[0, 0] + epsilon), 1 / (pM_imp[1, 1] + epsilon), 1 / (pM_imp[2, 2] + epsilon)])
 pD_imp = np.diag([nmpc_params["pDxy"], nmpc_params["pDxy"], nmpc_params["pDz"]])
 pK_imp = np.diag([nmpc_params["pKxy"], nmpc_params["pKxy"], nmpc_params["pKz"]])
 
 oM_imp = np.diag([nmpc_params["oMxy"], nmpc_params["oMxy"], nmpc_params["oMz"]])
-oM_imp_inv = np.diag([1 / oM_imp[0, 0], 1 / oM_imp[1, 1], 1 / oM_imp[2, 2]])
+oM_imp_inv = np.diag([1 / (oM_imp[0, 0] + epsilon), 1 / (oM_imp[1, 1] + epsilon), 1 / (oM_imp[2, 2] + epsilon)])
 oD_imp = np.diag([nmpc_params["oDxy"], nmpc_params["oDxy"], nmpc_params["oDz"]])
 oK_imp = np.diag([nmpc_params["oKxy"], nmpc_params["oKxy"], nmpc_params["oKz"]])
 

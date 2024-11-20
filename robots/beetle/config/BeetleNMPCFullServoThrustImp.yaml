@@ -21,6 +21,7 @@ controller:
     a_min: -3.1416
 
     # params for the cost function
+    epsilon: 0.00001  # avoid the dividend is 0 when M = 0
     # position
     pMxy: 1.5
     pMz: 1.5
