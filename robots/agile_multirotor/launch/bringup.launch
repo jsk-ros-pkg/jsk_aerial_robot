@@ -119,7 +119,19 @@
 
   ####### Polar Pixel calculation  ############
 
-  <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
+  <!-- <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)"> -->
+  <!--   <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/multirotor/$(arg tree).csv" /> -->
+  <!--   <param name="hokuyo" type="bool" value="$(arg lidar)"/> -->
+  <!--   <param name="shift_x" type="double" value="$(arg shift_x)" /> -->
+  <!--   <param name="shift_y" type="double" value="$(arg shift_y)" /> -->
+  <!--   <param name="robot_ns" value="$(arg robot_ns)"/> -->
+  <!--   <param name="print_yaw" type="bool" value="false" /> -->
+  <!--   <param name="vel_calc_boundary" type="double" value="0.30" /> -->
+  <!--   <param name="body_r" type="double" value="$(arg body_r)" /> -->
+  <!--   <param name="policy_start_delay" value="$(arg policy_start_delay)" /> -->
+  <!--   <param name="headless" value="$(arg headless)" /> -->
+  <!-- </node> -->
+  <node pkg="agile_multirotor" type="raw_lidar_to_observation_node" name="raw_lidar_to_observation_node" output="screen" ns="$(arg robot_ns)">
     <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/multirotor/$(arg tree).csv" />
     <param name="hokuyo" type="bool" value="$(arg lidar)"/>
     <param name="shift_x" type="double" value="$(arg shift_x)" />
@@ -131,7 +143,6 @@
     <param name="policy_start_delay" value="$(arg policy_start_delay)" />
     <param name="headless" value="$(arg headless)" />
   </node>
-
   <!-- <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
     <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
   </node> -->

@@ -36,3 +36,6 @@ target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LI
 
 add_executable(common_observation_conversion_node src/common_observation_cal.cpp)
 target_link_libraries(common_observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+
+add_executable(raw_lidar_to_observation_node src/raw_lidar_to_observation_cal.cpp)
+target_link_libraries(raw_lidar_to_observation_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
