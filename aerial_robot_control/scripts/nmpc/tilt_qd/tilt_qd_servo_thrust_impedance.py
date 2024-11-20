@@ -32,12 +32,10 @@ nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 epsilon = nmpc_params["epsilon"]
 
 pM_imp = np.diag([nmpc_params["pMxy"], nmpc_params["pMxy"], nmpc_params["pMz"]])
-pM_imp_inv = np.diag([1 / (pM_imp[0, 0] + epsilon), 1 / (pM_imp[1, 1] + epsilon), 1 / (pM_imp[2, 2] + epsilon)])
 pD_imp = np.diag([nmpc_params["pDxy"], nmpc_params["pDxy"], nmpc_params["pDz"]])
 pK_imp = np.diag([nmpc_params["pKxy"], nmpc_params["pKxy"], nmpc_params["pKz"]])
 
 oM_imp = np.diag([nmpc_params["oMxy"], nmpc_params["oMxy"], nmpc_params["oMz"]])
-oM_imp_inv = np.diag([1 / (oM_imp[0, 0] + epsilon), 1 / (oM_imp[1, 1] + epsilon), 1 / (oM_imp[2, 2] + epsilon)])
 oD_imp = np.diag([nmpc_params["oDxy"], nmpc_params["oDxy"], nmpc_params["oDz"]])
 oK_imp = np.diag([nmpc_params["oKxy"], nmpc_params["oKxy"], nmpc_params["oKz"]])
 
@@ -95,7 +93,20 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
+        qr = ca.vertcat(qwr, qxr, qyr, qzr)
+
+        mpx = ca.SX.sym("mpx")  # virtual mass
+        mpy = ca.SX.sym("mpy")
+        mpz = ca.SX.sym("mpz")
+        mp = ca.vertcat(mpx, mpy, mpz)
+
+        mqx = ca.SX.sym("mqx")  # virtual inertia
+        mqy = ca.SX.sym("mqy")
+        mqz = ca.SX.sym("mqz")
+        mq = ca.vertcat(mqx, mqy, mqz)
+
+        parameters = ca.vertcat(qr, mp, mq)
+
 
         # control inputs
         ft1c = ca.SX.sym("ft1c")
@@ -208,8 +219,18 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
         qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
 
+        p_mtx_imp_inv = ca.SX.zeros(3, 3)
+        p_mtx_imp_inv[0, 0] = 1 / (mpx + epsilon)
+        p_mtx_imp_inv[1, 1] = 1 / (mpy + epsilon)
+        p_mtx_imp_inv[2, 2] = 1 / (mpz + epsilon)
+
+        o_mtx_imp_inv = ca.SX.zeros(3, 3)
+        o_mtx_imp_inv[0, 0] = 1 / (mqx + epsilon)
+        o_mtx_imp_inv[1, 1] = 1 / (mqy + epsilon)
+        o_mtx_imp_inv[2, 2] = 1 / (mqz + epsilon)
+
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft,
-                             lin_a_i - ca.mtimes(pM_imp_inv, f_d_i), ang_a_b - ca.mtimes(oM_imp_inv, tau_d_b))
+                             lin_a_i - ca.mtimes(p_mtx_imp_inv, f_d_i), ang_a_b - ca.mtimes(o_mtx_imp_inv, tau_d_b))
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
         # acados model

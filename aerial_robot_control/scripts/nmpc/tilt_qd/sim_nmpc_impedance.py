@@ -155,16 +155,31 @@ if __name__ == "__main__":
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
+
                 params = np.zeros(n_param)
                 params[0:4] = quaternion_r
+                if isinstance(nmpc, NMPCTiltQdServoThrustImpedance):
+                    # for impedance control
+                    W = nmpc.get_ocp_solver().acados_ocp.cost.W
+                    # pMxy, pMxy, pMz, oMxy, oMxy, oMz
+                    params[4:] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+
                 ocp_solver.set(j, "p", params)  # for nonlinear quaternion error
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
+
             params = np.zeros(n_param)
             params[0:4] = quaternion_r
+            if isinstance(nmpc, NMPCTiltQdServoThrustImpedance):
+                # for impedance control
+                W_e = nmpc.get_ocp_solver().acados_ocp.cost.W_e
+                # pMxy, pMxy, pMz, oMxy, oMxy, oMz
+                params[4:] = np.sqrt(
+                    np.array([W_e[21, 21], W_e[22, 22], W_e[23, 23], W_e[24, 24], W_e[25, 25], W_e[26, 26]]))
+
             ocp_solver.set(ocp_solver.N, "p", params)  # for nonlinear quaternion error
 
             # feedback, take the first action
@@ -257,7 +272,6 @@ if __name__ == "__main__":
                     wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
             disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
                     wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
-
 
         # --------- update simulation ----------
         disturb = copy.deepcopy(disturb_init)
