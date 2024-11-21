@@ -108,6 +108,8 @@ namespace aerial_robot_navigation
     double com_roll_change_thresh_;
     double com_pitch_change_thresh_;
     double com_yaw_change_thresh_;
+
+    bool disassembly_flag_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

@@ -141,6 +141,7 @@ void NinjaNavigator::updateEntSysState()
   }
   if(control_flag_){
     reconfig_flag_ =  (pre_assembled_modules_ != module_num_) ? true : false;
+    disassembly_flag_ = (module_num_ < pre_assembled_modules_) ? true : false;
     pre_assembled_modules_ = module_num_;
   }
 }
@@ -402,7 +403,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     return;
   } else if((!pre_assembled_  && current_assembled) || (current_assembled && reconfig_flag)){ //assembly or reconfig process
     setTargetCoMPoseFromCurrState();
-    setTargetJointPosFromCurrState();
+    if(!disassembly_flag_) setTargetJointPosFromCurrState(); //bad implementation
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
     return;
