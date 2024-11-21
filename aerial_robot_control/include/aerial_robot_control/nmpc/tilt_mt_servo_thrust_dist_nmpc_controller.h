@@ -6,7 +6,6 @@
 #define TILT_MT_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/nmpc/tilt_mt_servo_dist_nmpc_controller.h"
-#include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_solver.h"
 
 #include "spinal/ESCTelemetryArray.h"
 

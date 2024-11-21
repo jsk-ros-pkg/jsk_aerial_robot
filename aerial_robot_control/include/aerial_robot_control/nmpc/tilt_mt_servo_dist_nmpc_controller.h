@@ -6,7 +6,6 @@
 #define TILT_MT_SERVO_DIST_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/nmpc/tilt_mt_servo_nmpc_controller.h"
-#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_solver.h"
 #include "aerial_robot_control/wrench_est/wrench_est_actuator_meas_base.h"
 #include "aerial_robot_control/wrench_est/wrench_est_i_term.h"
 

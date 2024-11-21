@@ -6,7 +6,6 @@
 #define TILT_MT_SERVO_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/nmpc/base_mpc_controller.h"
-#include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>
