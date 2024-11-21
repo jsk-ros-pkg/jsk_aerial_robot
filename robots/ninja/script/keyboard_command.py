@@ -21,6 +21,8 @@ t:  takeoff
 l:  land
 f:  force landing
 h:  halt (force stop motor)
+x:  motion start
+y:  motion interrupt
 
      q           w           e           [
 (turn left)  (forward)  (turn right)  (move up)
@@ -66,7 +68,6 @@ if __name__=="__main__":
         start_pubs = []
         takeoff_pubs = []
         force_landing_pubs = []
-        motion_start_pubs =[]
         nav_pubs = []
 
         xy_vel   = rospy.get_param("xy_vel", 0.2)
@@ -80,8 +81,10 @@ if __name__=="__main__":
                 start_pubs.append(rospy.Publisher(ns + '/start', Empty, queue_size=1))
                 takeoff_pubs.append(rospy.Publisher(ns + '/takeoff', Empty, queue_size=1))
                 force_landing_pubs.append(rospy.Publisher(ns + '/force_landing', Empty, queue_size=1))
-                motion_start_pubs.append(rospy.Publisher('task_start', Empty, queue_size=1))
                 nav_pubs.append(rospy.Publisher(name + '/uav/nav', FlightNav, queue_size=1))
+
+                motion_start_pub = rospy.Publisher('motion_start', Empty, queue_size=1)
+                motion_interrupt_pub = rospy.Publisher("/emergency_assembly_interuption",Empty,queue_size=1)
 
         try:
                 while(True):
@@ -115,9 +118,11 @@ if __name__=="__main__":
                                         takeoff_pub.publish(Empty())
                                 msg = "send takeoff command"
                         if key == 'x':
-                                for motion_start_pub in motion_start_pubs:
-                                        motion_start_pub.publish()
+                                motion_start_pub.publish()
                                 msg = "send task-start command"
+                        if key == 'y':
+                                motion_interrupt_pub.publish()
+                                msg = "send tast-interrupt command"                                
                         if key == 'w':
                                 nav_msg.pos_xy_nav_mode = FlightNav.VEL_MODE
                                 nav_msg.target_vel_x = xy_vel
