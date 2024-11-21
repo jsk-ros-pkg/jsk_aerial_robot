@@ -25,7 +25,7 @@ class AcadosSolveException : public std::runtime_error
 {
 public:
   int status_;
-  explicit AcadosSolveException(int status) : std::runtime_error(createErrorMessage(status)), status_(status){};
+  explicit AcadosSolveException(int status) : std::runtime_error(createErrorMessage(status)), status_(status) {};
 
 private:
   static std::string createErrorMessage(int status)
@@ -209,29 +209,45 @@ public:
 
   void setCostWDiagElement(int index, double value, bool is_set_WN = true)
   {
-    if (index >= NY_)
-      throw std::length_error("index should be less than NY_ = NX_ + NU_");
+    // For Q, is_set_WN should be true. For R, is_set_WN should be false.
+    setCostWeightElement(index, index, value, is_set_WN);
+  }
 
-    W_[index + index * (NY_)] = value;
+  void setCostWeightElement(int idx, int idy, double value, bool is_set_NN = true)
+  {
+    if (idx >= NY_ || idy >= NY_)
+      throw std::length_error("idx or idy should be less than NY_ = NX_ + NU_");
 
-    if (is_set_WN)
+    W_[idx + idy * NY_] = value;
+
+    setCostWeightMid(W_);
+
+    if (is_set_NN)
     {
-      if (index >= NX_)
-        throw std::length_error("index should be less than NX_");
+      if (idx >= NX_ || idy >= NX_)
+        throw std::length_error("idx or idy should be less than NX_");
 
-      WN_[index + index * NX_] = value;
+      WN_[idx + idy * NX_] = value;
+
+      setCostWeightEnd(WN_);
     }
   }
 
-  void setCostWeight(bool is_update_W, bool is_update_WN)
+  void setCostWeightMid(std::vector<double> W)
   {
-    if (is_update_W)
-    {
-      for (int i = 0; i < NN_; i++)
-        ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W_.data());
-    }
-    if (is_update_WN)
-      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN_.data());
+    if (W.size() != NY_ * NY_)
+      throw std::length_error("W size is not equal to NY_ * NY_, please check.");
+
+    for (int i = 0; i < NN_; i++)
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W.data());
+  }
+
+  void setCostWeightEnd(std::vector<double> WN)
+  {
+    if (WN.size() != NX_ * NX_)
+      throw std::length_error("W size is not equal to NX_ * NX_, please check.");
+
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN.data());
   }
 
   /* Getters */
