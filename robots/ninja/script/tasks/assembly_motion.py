@@ -30,23 +30,47 @@ class AssemblyDemo():
                 direction = 1 if target_follower_id > target_leader_id else -1
                 with sub_sm:
                     smach.StateMachine.add('StandbyState'+ motion_prefix,
-                                           StandbyState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, leader = 'ninja'+str(target_leader_id), leader_id = target_leader_id, attach_dir = direction, real_machine = self.real_machine),
-                                           transitions={'done':'ApproachState' + motion_prefix, 'in_process': 'StandbyState'+motion_prefix, 'emergency':'interupted_'+motion_prefix})
+                                           StandbyState(robot_name = 'ninja'+str(target_follower_id),
+                                                        robot_id = target_follower_id,
+                                                        leader = 'ninja'+str(target_leader_id),
+                                                        leader_id = target_leader_id,
+                                                        attach_dir = direction,
+                                                        real_machine = self.real_machine),
+                                           transitions={'done':'ApproachState' + motion_prefix,
+                                                        'in_process': 'StandbyState'+motion_prefix,
+                                                        'emergency':'interupted_'+motion_prefix})
 
                     smach.StateMachine.add('ApproachState' + motion_prefix,
-                                           ApproachState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, leader = 'ninja'+str(target_leader_id), leader_id = target_leader_id, attach_dir = direction, real_machine = self.real_machine),
-                                           transitions={'done':'AssemblyState'+ motion_prefix, 'in_process':'ApproachState'+motion_prefix, 'fail':'StandbyState'+motion_prefix, 'emergency':'interupted_'+motion_prefix})
+                                           ApproachState(robot_name = 'ninja'+str(target_follower_id),
+                                                         robot_id = target_follower_id,
+                                                         leader = 'ninja'+str(target_leader_id),
+                                                         leader_id = target_leader_id,
+                                                         attach_dir = direction,
+                                                         real_machine = self.real_machine),
+                                           transitions={'done':'AssemblyState'+ motion_prefix,
+                                                        'in_process':'ApproachState'+motion_prefix,
+                                                        'fail':'StandbyState'+motion_prefix,
+                                                        'emergency':'interupted_'+motion_prefix})
 
-                    smach.StateMachine.add('AssemblyState'+motion_prefix, AssemblyState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, leader = 'ninja'+str(target_leader_id), leader_id = target_leader_id, attach_dir = direction, real_machine = self.real_machine),
-                                           transitions={'done':'succeeded_'+motion_prefix, 'emergency':'interupted_'+motion_prefix})
+                    smach.StateMachine.add('AssemblyState'+motion_prefix,
+                                           AssemblyState(robot_name = 'ninja'+str(target_follower_id),
+                                                         robot_id = target_follower_id,
+                                                         leader = 'ninja'+str(target_leader_id),
+                                                         leader_id = target_leader_id,
+                                                         attach_dir = direction,
+                                                         real_machine = self.real_machine),
+                                           transitions={'done':'succeeded_'+motion_prefix,
+                                                        'emergency':'interupted_'+motion_prefix})
                 if(i == len(self.module_ids)-1):
                     smach.StateMachine.add('SUB'+str(i),
                                            sub_sm,
-                                           transitions={'succeeded_'+motion_prefix:'succeeded', 'interupted_'+motion_prefix:'interupted'})
+                                           transitions={'succeeded_'+motion_prefix:'succeeded',
+                                                        'interupted_'+motion_prefix:'interupted'})
                 else:
                     smach.StateMachine.add('SUB'+str(i),
                                            sub_sm,
-                                           transitions={'succeeded_'+motion_prefix:'SUB'+str(i+1), 'interupted_'+motion_prefix:'interupted'})
+                                           transitions={'succeeded_'+motion_prefix:'SUB'+str(i+1),
+                                                        'interupted_'+motion_prefix:'interupted'})
 
         sis = smach_ros.IntrospectionServer('smach_server', sm_top, '/SM_ROOT')
         sis.start()
