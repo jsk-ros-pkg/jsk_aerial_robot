@@ -19,6 +19,7 @@
 #include <time.h>
 #include <gazebo_msgs/ModelState.h>
 #include <geometry_msgs/Point.h>
+#include <sensor_msgs/LaserScan.h>
 
 using Scalar = double;
 static constexpr int Dynamic = Eigen::Dynamic;
@@ -106,7 +107,7 @@ private:
   std::vector<std::string> split(std::string &input, char delimiter);
 
   void CalculatorCallback(const nav_msgs::Odometry::ConstPtr &msg);
-  void VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
+  void ScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
   void StartObstacleCallback(const std_msgs::Empty::ConstPtr &msg);
   // void RecordMarkerCallback(const std_msgs::Empty::ConstPtr &msg);
   void SetGazeboObstacleCallback(const gazebo_msgs::ModelState::ConstPtr &msg);

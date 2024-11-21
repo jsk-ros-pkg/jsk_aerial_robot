@@ -62,8 +62,8 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
     // record_marker_ = false;
     have_hokuyo_data_ = false;
 
-    marker_sub_ = nh_.subscribe("/" + quad_name + "/visualization_marker", 1,
-                            &ObstacleCalculator::VisualizationMarkerCallback, this);
+    marker_sub_ = nh_.subscribe("/" + quad_name + "/scan", 1,
+                            &ObstacleCalculator::ScanCallback, this);
     // record_sub_ = nh_.subscribe("/" + quad_name + "/obstacle_record", 1,
     //                         &ObstacleCalculator::RecordMarkerCallback, this);
   }
@@ -97,25 +97,22 @@ void ObstacleCalculator::SetGazeboObstacleCallback(const gazebo_msgs::ModelState
   gazebo_pos_y_ = msg->pose.position.y;
 }
 
-void ObstacleCalculator::VisualizationMarkerCallback(const visualization_msgs::MarkerArray::ConstPtr &msg){
+void ObstacleCalculator::ScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg){
 
   // if (record_marker_){
   positions_.clear();
   radius_list_.clear();
-    for (const visualization_msgs::Marker &tree_data : msg->markers) {
-      if (tree_data.ns=="tree_diameter") continue;
-      Eigen::Vector3d tree_pos;
-      geometry_msgs::Point position = tree_data.pose.position;
-      tree_pos(0) = position.x; //world coodinate
-      tree_pos(1) = position.y; //world coodinate
-      tree_pos(2) = 0;
+  std::vector<float> scan_data(msg->ranges.begin(), msg->ranges.end());
+    for (size_t i=0; i< scan_data.size(); i++) {
+      float range = 0.0;
+      float theta = 0.0;
+      Eigen::Vector3d body_tree_pos(range*std::cos(theta), range*std::sin(theta), 0);
+      Eigen::Vector3d tree_pos(range*std::cos(theta), range*std::sin(theta), 0);
       positions_.push_back(tree_pos);
-
-      geometry_msgs::Vector3 scale = tree_data.scale;
-      radius_list_.push_back(scale.x/2);
-      have_hokuyo_data_ = true;
+      radius_list_.push_back(0.0);
       // record_marker_ = false;
     }
+  have_hokuyo_data_ = true;
   // }
 }
 
