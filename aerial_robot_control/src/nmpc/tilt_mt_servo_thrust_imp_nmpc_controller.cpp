@@ -75,10 +75,6 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   }
 }
 
-void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()
-{
-}
-
 void nmpc::TiltMtServoThrustImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
 }

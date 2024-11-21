@@ -19,8 +19,6 @@ class TiltMtServoThrustImpNMPC : public TiltMtServoThrustDistNMPC
 protected:
   void initCostW() override;
 
-  void prepareNMPCParams() override;
-
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
 };
 

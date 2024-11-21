@@ -141,11 +141,13 @@ protected:
 
   void setCostWeightByImpMDK(bool is_set_WN = true)
   {
+    /* ------- step 0: size check -------- */
     if (W_.size() != NY_ * NY_)
       throw std::length_error("W size is not equal to NY_ * NY_, please check.");
     if (WN_.size() != NX_ * NX_)
       throw std::length_error("WN size is not equal to NX_ * NX_, please check.");
 
+    /* -------- step 1: set W matrix using M, D, and K ------- */
     // position
     Eigen::MatrixXd pK_imp = Eigen::DiagonalMatrix<double, 3>(pK_[0], pK_[1], pK_[2]);
     Eigen::MatrixXd pD_imp = Eigen::DiagonalMatrix<double, 3>(pD_[0], pD_[1], pD_[2]);
@@ -196,15 +198,24 @@ protected:
     W_ = std::vector<double>(W_mtx.data(), W_mtx.data() + W_mtx.size());
     setCostWeightMid(W_);
 
+    /* -------- step 2: update parameters -------- */
+    std::vector<int> M_idx = { 4, 5, 6, 7, 8, 9 };
+    std::vector<double> M = { pM_[0], pM_[1], pM_[2], oM_[0], oM_[1], oM_[2] };
+    for (int i = 0; i < NN_; i++)
+      acadosUpdateParamsSparse(i, M_idx, M, 6);
+
+    /* -------- step 3: update WN related values -------- */
     if (is_set_WN)
     {
       Eigen::MatrixXd WN_mtx = W_mtx.block(0, 0, NX_, NX_);
       WN_ = std::vector<double>(WN_mtx.data(), WN_mtx.data() + WN_mtx.size());
       setCostWeightEnd(WN_);
 
-      // std::cout << "W matrix:\n" << W_mtx << std::endl;
-      // std::cout << "WN matrix:\n" << WN_mtx << std::endl;
+      acadosUpdateParamsSparse(NN_, M_idx, M, 6);
     }
+
+    // std::cout << "W matrix:\n" << W_mtx << std::endl;
+    // std::cout << "WN matrix:\n" << WN_mtx << std::endl;
   }
 
   // acados functions that using multiple times
