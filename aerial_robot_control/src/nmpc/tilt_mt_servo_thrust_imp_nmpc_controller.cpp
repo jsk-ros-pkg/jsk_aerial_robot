@@ -33,6 +33,17 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   getParam<double>(nmpc_nh, "Rtc_d", Rtc_d, 1);
   getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
 
+  // diagonal matrix
+  for (int i = 13; i < 13 + joint_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Qa);
+  for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Qt);
+
+  for (int i = mpc_solver_ptr_->NX_; i < mpc_solver_ptr_->NX_ + motor_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Rtc_d, false);
+  for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
+
   // impedance matrix
   auto imp_mpc_solver_ptr =
       boost::dynamic_pointer_cast<mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver>(mpc_solver_ptr_);
@@ -62,17 +73,6 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   {
     ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");
   }
-
-  // diagonal matrix
-  for (int i = 13; i < 13 + joint_num_; ++i)
-    mpc_solver_ptr_->setCostWDiagElement(i, Qa);
-  for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
-    mpc_solver_ptr_->setCostWDiagElement(i, Qt);
-
-  for (int i = mpc_solver_ptr_->NX_; i < mpc_solver_ptr_->NX_ + motor_num_; ++i)
-    mpc_solver_ptr_->setCostWDiagElement(i, Rtc_d, false);
-  for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
-    mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 }
 
 void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()

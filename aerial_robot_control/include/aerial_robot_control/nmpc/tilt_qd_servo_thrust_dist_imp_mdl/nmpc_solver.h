@@ -201,6 +201,9 @@ protected:
       Eigen::MatrixXd WN_mtx = W_mtx.block(0, 0, NX_, NX_);
       WN_ = std::vector<double>(WN_mtx.data(), WN_mtx.data() + WN_mtx.size());
       setCostWeightEnd(WN_);
+
+      // std::cout << "W matrix:\n" << W_mtx << std::endl;
+      // std::cout << "WN matrix:\n" << WN_mtx << std::endl;
     }
   }
 
