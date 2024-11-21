@@ -493,8 +493,10 @@ void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
           ROS_INFO_STREAM("change Rac_d for NMPC '" << config.Rac_d << "'");
           break;
         }
-        default:
+        default: {
+          ROS_INFO_STREAM("The setting variable is not in the list!");
           break;
+        }
       }
     }
     catch (std::invalid_argument& e)
