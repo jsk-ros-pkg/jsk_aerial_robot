@@ -103,11 +103,13 @@ void ObstacleCalculator::ScanCallback(const sensor_msgs::LaserScan::ConstPtr &ms
   positions_.clear();
   radius_list_.clear();
   std::vector<float> scan_data(msg->ranges.begin(), msg->ranges.end());
+  float scan_angle_min = msg->angle_min;
+  float scan_angle_increment = msg->angle_increment;
     for (size_t i=0; i< scan_data.size(); i++) {
-      float range = 0.0;
-      float theta = 0.0;
+      float range = scan_data[i];
+      float theta = scan_angle_min + scan_angle_increment * i;
       Eigen::Vector3d body_tree_pos(range*std::cos(theta), range*std::sin(theta), 0);
-      Eigen::Vector3d tree_pos(range*std::cos(theta), range*std::sin(theta), 0);
+      Eigen::Vector3d tree_pos = body_tree_pos;
       positions_.push_back(tree_pos);
       radius_list_.push_back(0.0);
       // record_marker_ = false;
