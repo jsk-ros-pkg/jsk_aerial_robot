@@ -20,6 +20,8 @@
        command_port: 1510
        data_port: 1511
   </rosparam>
+  <remap from="~hand/mocap/pose" to="/hand/mocap/pose" />
+  <remap from="~arm/mocap/pose" to="/arm/mocap/pose" />
 </node>
 
 </launch>

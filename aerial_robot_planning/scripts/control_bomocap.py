@@ -67,7 +67,7 @@ class MocapControl_node():
 
         # Sub
         self.hand_pose_sub = rospy.Subscriber(
-            "/mocap_node_arm/hand/mocap/pose",
+            "/hand/mocap/pose",
             PoseStamped,
             self.hand_position_callback,
             queue_size=1
@@ -75,7 +75,7 @@ class MocapControl_node():
 
         # Sub
         self.arm_pose_sub = rospy.Subscriber(
-            "/mocap_node_arm/arm/mocap/pose",
+            "/arm/mocap/pose",
             PoseStamped,
             self.arm_position_callback,
             queue_size=1
