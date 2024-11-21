@@ -8,7 +8,44 @@ using namespace aerial_robot_control;
 
 void nmpc::TiltMtServoThrustImpNMPC::initCostW()
 {
-  TiltMtServoThrustDistNMPC::initCostW();
+  ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+
+  /* control parameters with dynamic reconfigure */
+  double pMxy, pMz, pDxy, pDz, pKxy, pKz, oMxy, oMz, oDxy, oDz, oKxy, oKz, Qa, Qt, Rtc_d, Rac_d;
+  getParam<double>(nmpc_nh, "pMxy", pMxy, 1.5);
+  getParam<double>(nmpc_nh, "pMz", pMz, 1.5);
+  getParam<double>(nmpc_nh, "pDxy", pDxy, 10);
+  getParam<double>(nmpc_nh, "pDz", pDz, 10);
+  getParam<double>(nmpc_nh, "pKxy", pKxy, 6);
+  getParam<double>(nmpc_nh, "pKz", pKz, 6);
+
+  getParam<double>(nmpc_nh, "oMxy", oMxy, 0.9);
+  getParam<double>(nmpc_nh, "oMz", oMz, 0.9);
+  getParam<double>(nmpc_nh, "oDxy", oDxy, 10);
+  getParam<double>(nmpc_nh, "oDz", oDz, 10);
+  getParam<double>(nmpc_nh, "oKxy", oKxy, 6);
+  getParam<double>(nmpc_nh, "oKz", oKz, 6);
+
+  getParam<double>(nmpc_nh, "Qa", Qa, 0);
+  getParam<double>(nmpc_nh, "Qt", Qt, 0);
+
+  getParam<double>(nmpc_nh, "Rtc_d", Rtc_d, 1);
+  getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
+
+  // impedance matrix
+  // TODO: implement this part.
+
+  // diagonal matrix
+  for (int i = 13; i < 13 + joint_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Qa);
+  for (int i = 13 + joint_num_; i < 13 + joint_num_ + motor_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Qt);
+
+  for (int i = mpc_solver_ptr_->NX_; i < mpc_solver_ptr_->NX_ + motor_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Rtc_d, false);
+  for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
+    mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 }
 
 void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()
