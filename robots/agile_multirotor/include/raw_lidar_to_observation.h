@@ -103,6 +103,8 @@ private:
   float obstacle_moving_time_;
   size_t gazebo_obstacle_id_;
   float gazebo_pos_x_, gazebo_pos_y_;
+  Eigen::Matrix3d R_;
+  Eigen::Vector3d quad_pos_;
 
   std::vector<std::string> split(std::string &input, char delimiter);
 

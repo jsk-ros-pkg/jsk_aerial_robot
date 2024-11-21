@@ -109,7 +109,7 @@ void ObstacleCalculator::ScanCallback(const sensor_msgs::LaserScan::ConstPtr &ms
       float range = scan_data[i];
       float theta = scan_angle_min + scan_angle_increment * i;
       Eigen::Vector3d body_tree_pos(range*std::cos(theta), range*std::sin(theta), 0);
-      Eigen::Vector3d tree_pos = body_tree_pos;
+      Eigen::Vector3d tree_pos =  R_ * body_tree_pos + quad_pos_;
       positions_.push_back(tree_pos);
       radius_list_.push_back(0.0);
       // record_marker_ = false;
@@ -137,8 +137,7 @@ void ObstacleCalculator::CalculatorCallback(
   }
   obstacle_moving_time_ = (msg->header.stamp - obstacle_start_moving_time_).toSec();
 
-  Eigen::Vector3d pos;
-  tf::pointMsgToEigen(msg->pose.pose.position, pos);
+  tf::pointMsgToEigen(msg->pose.pose.position, quad_pos_);
 
   visualization_msgs::MarkerArray marker_array_msg;
   marker_array_msg.markers.resize(positions_.size());
@@ -153,10 +152,10 @@ void ObstacleCalculator::CalculatorCallback(
   if (euler[2] > M_PI /2) euler[2] = M_PI;
   else if (euler[2] < -M_PI /2) euler[2] = -M_PI;
   else euler[2] = 0.0;
-  Eigen::Matrix3d R = (Eigen::AngleAxis<Scalar>(euler[0], Vector<3>::UnitX()) *
+  R_ = (Eigen::AngleAxis<Scalar>(euler[0], Vector<3>::UnitX()) *
         Eigen::AngleAxis<Scalar>(euler[1], Vector<3>::UnitY()) *
         Eigen::AngleAxis<Scalar>(euler[2], Vector<3>::UnitZ())).toRotationMatrix();
-  Eigen::Matrix3d R_T = R.transpose();
+  Eigen::Matrix3d R_T = R_.transpose();
   Eigen::Vector3d poll_x(R_T(0, 0), R_T(1, 0), R_T(2, 0));
   Eigen::Vector3d poll_y(R_T(0, 1), R_T(1, 1), R_T(2, 1));
   Eigen::Vector3d poll_z(R_T(0, 2), R_T(1, 2), R_T(2, 2));
@@ -192,9 +191,9 @@ void ObstacleCalculator::CalculatorCallback(
       marker.scale.x = 0.25;
       marker.scale.y = 0.25;
       marker.scale.z = 2.0;
-      Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
+      Eigen::Vector3d converted_pos = R_T * (tree_pos - quad_pos_);
       converted_positions.push_back(converted_pos);
-      Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
+      Eigen::Vector2d converted_pos_2d = {(tree_pos - quad_pos_)[0], (tree_pos - quad_pos_)[1]}; //world coordinate
       min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
       marker_array_msg.markers[obstacle_id] = marker;
 
@@ -206,9 +205,9 @@ void ObstacleCalculator::CalculatorCallback(
   else{
     size_t obstacle_id = 0;
     for (const auto &tree_pos : positions_) {
-      Eigen::Vector3d converted_pos = R_T * (tree_pos - pos);
+      Eigen::Vector3d converted_pos = R_T * (tree_pos - quad_pos_);
       converted_positions.push_back(converted_pos);
-      Eigen::Vector2d converted_pos_2d = {(tree_pos - pos)[0], (tree_pos - pos)[1]}; //world coordinate
+      Eigen::Vector2d converted_pos_2d = {(tree_pos - quad_pos_)[0], (tree_pos - quad_pos_)[1]}; //world coordinate
       min_dist = std::min(min_dist, converted_pos_2d.norm() - radius_list_[obstacle_id]);
       obstacle_id++;
     }
@@ -218,14 +217,14 @@ void ObstacleCalculator::CalculatorCallback(
   obs_min_dist_pub_.publish(min_dist_msg);
 
   Vector<Vision::Theta_Cuts> sphericalboxel =
-      getsphericalboxel<Vector<Vision::Theta_Cuts>>(converted_positions, poll_x, poll_y, poll_z, theta_list_, pos);
+      getsphericalboxel<Vector<Vision::Theta_Cuts>>(converted_positions, poll_x, poll_y, poll_z, theta_list_, quad_pos_);
 
   Vector<3> vel_2d = {vel[0], vel[1], 0};
   Vector<3> body_vel = R_T * vel_2d;
   Vector<Vision::ACC_Theta_Cuts> acc_sphericalboxel =
-    getsphericalboxel<Vector<Vision::ACC_Theta_Cuts>>(converted_positions, poll_x, poll_y, poll_z, acc_theta_list_, pos, body_vel);
+    getsphericalboxel<Vector<Vision::ACC_Theta_Cuts>>(converted_positions, poll_x, poll_y, poll_z, acc_theta_list_, quad_pos_, body_vel);
 
-  get_common_sphericalboxel(converted_positions, poll_x, poll_y, poll_z, R_T, vel, omega, pos);
+  get_common_sphericalboxel(converted_positions, poll_x, poll_y, poll_z, R_T, vel, omega, quad_pos_);
 
   aerial_robot_msgs::ObstacleArray obstacle_msg;
   //   obstacle_msg.header.stamp = ros::Time(state.t);
