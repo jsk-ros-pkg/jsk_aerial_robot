@@ -2,8 +2,8 @@
 // Created by jinjie on 24/07/31.
 //
 
-#ifndef TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
-#define TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
+#ifndef TILT_MT_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
+#define TILT_MT_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
 
 #include "aerial_robot_control/nmpc/tilt_mt_servo_dist_nmpc_controller.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_solver.h"
@@ -54,4 +54,4 @@ protected:
 
 }  // namespace aerial_robot_control
 
-#endif  // TILT_QD_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
+#endif  // TILT_MT_SERVO_THRUST_DIST_NMPC_CONTROLLER_H
