@@ -129,6 +129,7 @@ add_library(flight_control_pluginlib
         src/nmpc/tilt_mt_servo_nmpc_controller.cpp
         src/nmpc/tilt_mt_servo_dist_nmpc_controller.cpp
         src/nmpc/tilt_mt_servo_thrust_dist_nmpc_controller.cpp
+        src/nmpc/tilt_mt_servo_thrust_imp_nmpc_controller.cpp
         src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils mpc_solver_plugins wrench_est_plugins)
