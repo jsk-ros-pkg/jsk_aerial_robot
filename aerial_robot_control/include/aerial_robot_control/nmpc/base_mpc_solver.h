@@ -233,23 +233,6 @@ public:
     }
   }
 
-  void setCostWeightMid(std::vector<double> W)
-  {
-    if (W.size() != NY_ * NY_)
-      throw std::length_error("W size is not equal to NY_ * NY_, please check.");
-
-    for (int i = 0; i < NN_; i++)
-      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W.data());
-  }
-
-  void setCostWeightEnd(std::vector<double> WN)
-  {
-    if (WN.size() != NX_ * NX_)
-      throw std::length_error("W size is not equal to NX_ * NX_, please check.");
-
-    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN.data());
-  }
-
   /* Getters */
   std::vector<double> getMatrixA(int stage)
   {
@@ -387,6 +370,23 @@ protected:
   ocp_nlp_out* nlp_out_ = nullptr;
   ocp_nlp_solver* nlp_solver_ = nullptr;
   void* nlp_opts_ = nullptr;
+
+  void setCostWeightMid(std::vector<double> W)  // if you want to make this function public, make sure W_ = W
+  {
+    if (W.size() != NY_ * NY_)
+      throw std::length_error("W size is not equal to NY_ * NY_, please check.");
+
+    for (int i = 0; i < NN_; i++)
+      ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, i, "W", W.data());
+  }
+
+  void setCostWeightEnd(std::vector<double> WN)  // if you want to make this function public, make sure WN_ = WN
+  {
+    if (WN.size() != NX_ * NX_)
+      throw std::length_error("W size is not equal to NX_ * NX_, please check.");
+
+    ocp_nlp_cost_model_set(nlp_config_, nlp_dims_, nlp_in_, NN_, "W", WN.data());
+  }
 
   inline void setFeedbackConstraints(const std::vector<double>& bx0)
   {
