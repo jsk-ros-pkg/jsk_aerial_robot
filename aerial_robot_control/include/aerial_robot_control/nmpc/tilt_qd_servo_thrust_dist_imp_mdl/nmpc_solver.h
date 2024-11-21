@@ -8,6 +8,8 @@
 #include "aerial_robot_control/nmpc/base_mpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_imp_mdl/c_generated_code/acados_solver_tilt_qd_servo_thrust_dist_imp_mdl.h"
 
+#include "Eigen/Dense"
+
 namespace aerial_robot_control
 {
 
@@ -84,8 +86,123 @@ public:
                 << std::endl;
   };
 
+  void setImpedanceWeight(const std::string& type, const double value, const bool is_update_W_WN = true)
+  {
+    if (type == "pMx")
+      pM_[0] = value;
+    else if (type == "pMy")
+      pM_[1] = value;
+    else if (type == "pMz")
+      pM_[2] = value;
+    else if (type == "pDx")
+      pD_[0] = value;
+    else if (type == "pDy")
+      pD_[1] = value;
+    else if (type == "pDz")
+      pD_[2] = value;
+    else if (type == "pKx")
+      pK_[0] = value;
+    else if (type == "pKy")
+      pK_[1] = value;
+    else if (type == "pKz")
+      pK_[2] = value;
+    else if (type == "oMx")
+      oM_[0] = value;
+    else if (type == "oMy")
+      oM_[1] = value;
+    else if (type == "oMz")
+      oM_[2] = value;
+    else if (type == "oDx")
+      oD_[0] = value;
+    else if (type == "oDy")
+      oD_[1] = value;
+    else if (type == "oDz")
+      oD_[2] = value;
+    else if (type == "oKx")
+      oK_[0] = value;
+    else if (type == "oKy")
+      oK_[1] = value;
+    else if (type == "oKz")
+      oK_[2] = value;
+    else
+      std::cout << "Not working. Invalid impedance weight type: " << type << std::endl;
+
+    if (is_update_W_WN)
+      setCostWeightByImpMDK();
+  }
+
 protected:
   tilt_qd_servo_thrust_dist_imp_mdl_solver_capsule* acados_ocp_capsule_ = nullptr;
+
+  // impedance related
+  double pM_[3], oM_[3];
+  double pD_[3], oD_[3];
+  double pK_[3], oK_[3];
+
+  void setCostWeightByImpMDK(bool is_set_WN = true)
+  {
+    if (W_.size() != NY_ * NY_)
+      throw std::length_error("W size is not equal to NY_ * NY_, please check.");
+    if (WN_.size() != NX_ * NX_)
+      throw std::length_error("WN size is not equal to NX_ * NX_, please check.");
+
+    // position
+    Eigen::MatrixXd pK_imp = Eigen::DiagonalMatrix<double, 3>(pK_[0], pK_[1], pK_[2]);
+    Eigen::MatrixXd pD_imp = Eigen::DiagonalMatrix<double, 3>(pD_[0], pD_[1], pD_[2]);
+    Eigen::MatrixXd pM_imp = Eigen::DiagonalMatrix<double, 3>(pM_[0], pM_[1], pM_[2]);
+
+    Eigen::MatrixXd p_weight(9, 3);
+    p_weight.block<3, 3>(0, 0) = pK_imp;
+    p_weight.block<3, 3>(3, 0) = pD_imp;
+    p_weight.block<3, 3>(6, 0) = pM_imp;
+
+    Eigen::MatrixXd p_weight_mtx = p_weight * p_weight.transpose();
+
+    // orientation
+    Eigen::MatrixXd oK_imp = Eigen::DiagonalMatrix<double, 3>(oK_[0], oK_[1], oK_[2]);
+    Eigen::MatrixXd oD_imp = Eigen::DiagonalMatrix<double, 3>(oD_[0], oD_[1], oD_[2]);
+    Eigen::MatrixXd oM_imp = Eigen::DiagonalMatrix<double, 3>(oM_[0], oM_[1], oM_[2]);
+
+    Eigen::MatrixXd o_weight(9, 3);
+    o_weight.block<3, 3>(0, 0) = oK_imp;
+    o_weight.block<3, 3>(3, 0) = oD_imp;
+    o_weight.block<3, 3>(6, 0) = oM_imp;
+
+    Eigen::MatrixXd o_weight_mtx = o_weight * o_weight.transpose();
+
+    // convert W_ from std::vector to Eigen::matrix
+    Eigen::MatrixXd W_mtx = Eigen::Map<Eigen::MatrixXd>(W_.data(), NY_, NY_);
+
+    // assign values: position
+    //  W[0:6, 0:6] = p_weight_mtx[0:6, 0:6]
+    W_mtx.block<6, 6>(0, 0) = p_weight_mtx.block<6, 6>(0, 0);
+    // W[21:24, 21:24] = p_weight_mtx[6:9, 6:9]
+    W_mtx.block<3, 3>(21, 21) = p_weight_mtx.block<3, 3>(6, 6);
+    // W[0:6, 21:24] = p_weight_mtx[0:6, 6:9]
+    W_mtx.block<6, 3>(0, 21) = p_weight_mtx.block<6, 3>(0, 6);
+    // W[21:24, 0:6] = p_weight_mtx[6:9, 0:6]
+    W_mtx.block<3, 6>(21, 0) = p_weight_mtx.block<3, 6>(6, 0);
+
+    // assign values: orientation
+    // W[7:13, 7:13] = o_weight_mtx[0:6, 0:6]
+    W_mtx.block<6, 6>(7, 7) = o_weight_mtx.block<6, 6>(0, 0);
+    // W[24:27, 24:27] = o_weight_mtx[6:9, 6:9]
+    W_mtx.block<3, 3>(24, 24) = o_weight_mtx.block<3, 3>(6, 6);
+    // W[7:13, 24:27] = o_weight_mtx[0:6, 6:9]
+    W_mtx.block<6, 3>(7, 24) = o_weight_mtx.block<6, 3>(0, 6);
+    // W[24:27, 7:13] = o_weight_mtx[6:9, 0:6]
+    W_mtx.block<3, 6>(24, 7) = o_weight_mtx.block<3, 6>(6, 0);
+
+    W_ = std::vector<double>(W_mtx.data(), W_mtx.data() + W_mtx.size());
+    setCostWeightMid(W_);
+
+    if (is_set_WN)
+    {
+      Eigen::MatrixXd WN_mtx = W_mtx.block(0, 0, NX_, NX_);
+      WN_ = std::vector<double>(WN_mtx.data(), WN_mtx.data() + WN_mtx.size());
+      setCostWeightEnd(WN_);
+    }
+  }
 
   // acados functions that using multiple times
   inline int acadosUpdateParams(int stage, std::vector<double>& value) override

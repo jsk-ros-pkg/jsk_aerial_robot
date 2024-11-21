@@ -34,7 +34,34 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
 
   // impedance matrix
-  // TODO: implement this part.
+  auto imp_mpc_solver_ptr =
+      boost::dynamic_pointer_cast<mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver>(mpc_solver_ptr_);
+  if (imp_mpc_solver_ptr)
+  {
+    imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pMy", pMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pMz", pMz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDx", pDxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDy", pDxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDz", pDz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKx", pKxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKy", pKxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKz", pKz, false);
+
+    imp_mpc_solver_ptr->setImpedanceWeight("oMx", oMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oMy", oMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oMz", oMz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDx", oDxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDy", oDxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDz", oDz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKx", oKxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKy", oKxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKz", oKz, true);  // update W and WN
+  }
+  else
+  {
+    ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");
+  }
 
   // diagonal matrix
   for (int i = 13; i < 13 + joint_num_; ++i)
