@@ -15,6 +15,11 @@ class AssemblyDemo():
     def main(self):
         sm_top = smach.StateMachine(outcomes=['succeeded','interupted'])
         with sm_top:
+
+            smach.StateMachine.add('IdleState',
+                                   IdleState(),
+                                   transitions={'idle':'IdleState','start':'SUB1'})
+
             for i,item in enumerate(self.module_ids):
                 if i == 0:
                     continue

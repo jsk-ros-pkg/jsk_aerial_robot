@@ -17,11 +17,33 @@ import tf
 #### state classes ####
 
 """
-Standby -> Approach -> Assembly
+Idle -> Standby -> Approach -> Assembly
  ^            |          |
  | _ _ _ _ _ _|_ _ _ _ _ |
                 
 """
+
+class IdleState(smach.State):
+    def __init__(self,
+                 run_rate = 40):
+
+        smach.State.__init__(self, outcomes=['idle','start'])
+
+        self.run_rate = rospy.Rate(run_rate)
+        self.motion_start_flag = False
+
+        # subscriber
+        self.emergency_stop_sub = rospy.Subscriber("/motion_start", Empty, self.motionStartCb)
+
+    def execute(self, userdata):
+        if self.motion_start_flag:
+            return 'start'
+        else:
+            self.run_rate.sleep()
+            return 'idle'
+
+    def motionStartCb(self,msg):
+        self.motion_start_flag = True
 
 class StandbyState(smach.State):
     def __init__(self,
