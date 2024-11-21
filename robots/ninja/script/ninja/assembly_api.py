@@ -259,7 +259,7 @@ class ApproachState(smach.State):
                  real_machine = True,
                  leader = 'ninja2',
                  leader_id = 2,
-                 x_offset = 0,
+                 x_offset = -0.05,
                  y_offset = 0,
                  z_offset = 0,
                  x_tol = 0.02,
@@ -368,11 +368,17 @@ class ApproachState(smach.State):
 
         # set target odom in leader coordinate
         #TODO: determine leader namespace dynamically
-        self.br.sendTransform((self.target_offset[0] - 0.05 * self.attach_dir, self.target_offset[1], self.target_offset[2]),
+        self.br.sendTransform((self.target_offset[0], self.target_offset[1], self.target_offset[2]),
                               tf.transformations.quaternion_from_euler(0, 0, 0),
                               rospy.Time.now(),
                               "follower_target_odom",
                               self.leader+"/"+ self.leader_cp_name)
+
+        self.br.sendTransform((self.target_cog_pos[0], self.target_cog_pos[1], self.target_cog_pos[2]),
+                              tf.transformations.quaternion_from_euler(self.target_att[0], self.target_att[1], self.target_att[2]),
+                              rospy.Time.now(),
+                              "follower_target_cog",
+                              "world")
 
         pos_error = np.array(self.target_offset[:3] - follower_from_leader[0])
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
