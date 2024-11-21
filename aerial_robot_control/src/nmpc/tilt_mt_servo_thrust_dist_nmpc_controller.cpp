@@ -69,8 +69,6 @@ void nmpc::TiltMtServoThrustDistNMPC::initCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rtc_d, false);
   for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
-
-  mpc_solver_ptr_->setCostWeight(true, true);
 }
 
 void nmpc::TiltMtServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)

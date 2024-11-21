@@ -184,7 +184,6 @@ void nmpc::TiltMtServoNMPC::initCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rt, false);
   for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
-  mpc_solver_ptr_->setCostWeight(true, true);
 }
 
 void nmpc::TiltMtServoNMPC::setControlMode()
@@ -502,8 +501,6 @@ void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
     {
       ROS_ERROR_STREAM("NMPC config failed: " << e.what());
     }
-
-    mpc_solver_ptr_->setCostWeight(true, true);
   }
 }
 

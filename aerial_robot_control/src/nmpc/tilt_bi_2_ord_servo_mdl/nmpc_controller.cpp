@@ -48,7 +48,6 @@ void nmpc::TiltBi2OrdServoNMPC::initCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rt, false);
   for (int i = 19; i < 21; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
-  mpc_solver_ptr_->setCostWeight(true, true);
 }
 
 std::vector<double> nmpc::TiltBi2OrdServoNMPC::meas2VecX()
@@ -57,7 +56,7 @@ std::vector<double> nmpc::TiltBi2OrdServoNMPC::meas2VecX()
 
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
-  tf::Quaternion quat  = estimator_->getQuat(Frame::COG, estimate_mode_);
+  tf::Quaternion quat = estimator_->getQuat(Frame::COG, estimate_mode_);
   tf::Vector3 ang_vel = estimator_->getAngularVel(Frame::COG, estimate_mode_);
 
   bx0[0] = pos.x();
@@ -166,7 +165,6 @@ void nmpc::TiltBi2OrdServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t lev
       default:
         break;
     }
-    mpc_solver_ptr_->setCostWeight(true, true);
   }
 }
 
