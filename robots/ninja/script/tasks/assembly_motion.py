@@ -8,9 +8,10 @@ import numpy as np
 from ninja.assembly_api import * 
 
 class AssemblyDemo():
-    def __init__(self,module_ids,real_machine):
+    def __init__(self,module_ids,real_machine,approach_mode):
         self.module_ids = module_ids
         self.real_machine = real_machine
+        self.approach_mode = approach_mode
         rospy.loginfo(self.module_ids)
     def main(self):
         sm_top = smach.StateMachine(outcomes=['succeeded','interupted'])
@@ -35,7 +36,8 @@ class AssemblyDemo():
                                                         leader = 'ninja'+str(target_leader_id),
                                                         leader_id = target_leader_id,
                                                         attach_dir = direction,
-                                                        real_machine = self.real_machine),
+                                                        real_machine = self.real_machine,
+                                                        approach_mode = self.approach_mode),
                                            transitions={'done':'ApproachState' + motion_prefix,
                                                         'in_process': 'StandbyState'+motion_prefix,
                                                         'emergency':'interupted_'+motion_prefix})
@@ -46,7 +48,8 @@ class AssemblyDemo():
                                                          leader = 'ninja'+str(target_leader_id),
                                                          leader_id = target_leader_id,
                                                          attach_dir = direction,
-                                                         real_machine = self.real_machine),
+                                                         real_machine = self.real_machine,
+                                                         approach_mode = self.approach_mode),
                                            transitions={'done':'AssemblyState'+ motion_prefix,
                                                         'in_process':'ApproachState'+motion_prefix,
                                                         'fail':'StandbyState'+motion_prefix,
@@ -81,12 +84,13 @@ if __name__ == '__main__':
     rospy.init_node("assembly_motion")
     modules_str = rospy.get_param("module_ids", default="")
     rm = rospy.get_param("real_machine", default=True)
+    approach_mode = rospy.get_param("approach_mode", default = "nav")
     modules = []
     if(modules_str):
         modules = [int(x) for x in modules_str.split(',')]
     else:
         rospy.loginfo("No module ID is designated!")
     try:
-        assembly_motion = AssemblyDemo(module_ids = modules, real_machine=rm);
+        assembly_motion = AssemblyDemo(module_ids = modules, real_machine=rm, approach_mode = approach_mode);
         assembly_motion.main()
     except rospy.ROSInterruptException: pass

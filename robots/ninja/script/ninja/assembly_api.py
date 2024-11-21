@@ -80,6 +80,8 @@ class StandbyState(smach.State):
         self.standby_servo_angle_male = standby_servo_angle_male
         self.leader = leader
         self.leader_id = leader_id
+        self.leader_target_pose = []
+        self.leader_pre_target_pose = []
         self.target_offset = np.zeros(4)
         self.x_offset = x_offset
         self.y_offset = y_offset
@@ -104,7 +106,6 @@ class StandbyState(smach.State):
         # flags
         self.emergency_flag = False
         self.follower_male_mech_activated = False
-        self.leader_target_pose_set_flag = False
 
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
@@ -140,9 +141,6 @@ class StandbyState(smach.State):
         self.att_error_tol = np.array([self.roll_tol, self.pitch_tol, self.yaw_tol]) # attitude error torelance
 
     def execute(self, userdata):
-        if not self.leader_target_pose_set_flag:
-            return 'in_process'
-
         if not self.follower_male_mech_activated:
             if self.real_machine:
                 self.dynamixel_servo.sendTargetAngle(self.standby_servo_angle_male)
@@ -184,7 +182,6 @@ class StandbyState(smach.State):
         elif self.emergency_flag:
             return 'emergency'
         else:
-            # Nav(x,y,z and yaw)
             nav_msg_follower = FlightNav()
             nav_msg_follower.target = 1
             nav_msg_follower.control_frame = 0
@@ -195,25 +192,27 @@ class StandbyState(smach.State):
             nav_msg_follower.target_pos_y = self.target_cog_pos[1]
             nav_msg_follower.target_pos_z = self.target_cog_pos[2]
             nav_msg_follower.target_yaw = self.target_att[2]
-            # Trajectory(x,y,z and yaw)
-            # traj_msg_follower = PoseStamped()
-            # target_pos_cog = self.coordTransformer.posTransform('root','cog',target_pos)
-            # traj_msg_follower.header.stamp = rospy.Time.now()
-            # traj_msg_follower.pose.position.x = target_pos_cog[0]
-            # traj_msg_follower.pose.position.y = target_pos_cog[1]
-            # traj_msg_follower.pose.position.z = target_pos_cog[2]
-            # traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
-            # traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
-            # traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
-            # traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
-            
-            if(self.approach_mode == 'nav'):
-                self.follower_nav_pub.publish(nav_msg_follower)
-            elif(self.approach_mode == 'trajectory'):
-                self.follower_traj_pub.publish(traj_msg_follower)
-            else:
-                rospy.logerr("Invalid approach mode is setted")
-                return 'fail'
+
+            traj_msg_follower = PoseStamped()
+            traj_msg_follower.header.stamp = rospy.Time.now()
+            traj_msg_follower.pose.position.x = self.target_cog_pos[0]
+            traj_msg_follower.pose.position.y = self.target_cog_pos[1]
+            traj_msg_follower.pose.position.z = self.target_cog_pos[2]
+            target_att_qr = tf.transformations.quaternion_from_euler(self.target_att[0], self.target_att[1], self.target_att[2])
+            traj_msg_follower.pose.orientation.x = target_att_qr[0]
+            traj_msg_follower.pose.orientation.y = target_att_qr[1]
+            traj_msg_follower.pose.orientation.z = target_att_qr[2]
+            traj_msg_follower.pose.orientation.w = target_att_qr[3]
+
+            if self.leader_target_pose != self.leader_pre_target_pose:
+                self.leader_pre_target_pose = self.leader_target_pose
+                if(self.approach_mode == 'nav'):
+                    self.follower_nav_pub.publish(nav_msg_follower)
+                elif(self.approach_mode == 'trajectory'):
+                    self.follower_traj_pub.publish(traj_msg_follower)
+                else:
+                    rospy.logerr("Invalid approach mode is setted")
+                    return 'fail'
 
             # roll and pitch
             link_rot_follower = DesireCoord()
@@ -241,6 +240,7 @@ class StandbyState(smach.State):
         leader_target_y = msg.y.target_p
         leader_target_z = msg.z.target_p
         leader_target_yaw = msg.yaw.target_p
+        self.leader_target_pose = [leader_target_x, leader_target_y, leader_target_z, leader_target_yaw]
         leader_dock_point_2_cog_homo = np.eye(4)
         follower_dock_point_2_cog_trans = None
         leader_cog_2_world_home = self.coordTransformer.getHomoMatFromVector([leader_target_x, leader_target_y, leader_target_z], [0,0,leader_target_yaw])
@@ -249,8 +249,6 @@ class StandbyState(smach.State):
         target_cp_pos = (leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ self.target_offset)[:3]
         self.target_att = np.array([0,0,leader_target_yaw])
         self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
-        if not self.leader_target_pose_set_flag:
-            self.leader_target_pose_set_flag = True
 
 class ApproachState(smach.State):
     def __init__(self,
@@ -291,6 +289,7 @@ class ApproachState(smach.State):
         self.real_machine = real_machine
         self.leader = leader
         self.leader_id = leader_id
+        self.leader_pre_target_pose = []
         self.target_offset = np.zeros(4)
         self.x_offset = x_offset
         self.y_offset = y_offset
@@ -319,7 +318,6 @@ class ApproachState(smach.State):
 
         # flags
         self.emergency_flag = False
-        self.leader_target_pose_set_flag = False
 
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
@@ -389,7 +387,6 @@ class ApproachState(smach.State):
         elif np.all(np.greater(np.abs(pos_error),self.pos_danger_thre)) or np.all(np.greater(np.abs(att_error),self.att_danger_thre)):
             return 'fail'
         else:
-            # Nav(x,y,z and yaw)
             nav_msg_follower = FlightNav()
             nav_msg_follower.target = 1
             nav_msg_follower.control_frame = 0
@@ -400,24 +397,28 @@ class ApproachState(smach.State):
             nav_msg_follower.target_pos_y = self.target_cog_pos[1]
             nav_msg_follower.target_pos_z = self.target_cog_pos[2]
             nav_msg_follower.target_yaw = self.target_att[2]
-            # Trajectory(x,y,z and yaw)
-            # target_pos_cog = self.coordTransformer.posTransform('root','cog',target_pos)
-            # traj_msg_follower = PoseStamped()
-            # traj_msg_follower.header.stamp = rospy.Time.now()
-            # traj_msg_follower.pose.position.x = target_pos_cog[0]
-            # traj_msg_follower.pose.position.y = target_pos_cog[1]
-            # traj_msg_follower.pose.position.z = target_pos_cog[2]
-            # traj_msg_follower.pose.orientation.x = homo_transformed_target_odom[1][0]
-            # traj_msg_follower.pose.orientation.y = homo_transformed_target_odom[1][1]
-            # traj_msg_follower.pose.orientation.z = homo_transformed_target_odom[1][2]
-            # traj_msg_follower.pose.orientation.w = homo_transformed_target_odom[1][3]
-            if(self.approach_mode == 'nav'):
-                self.follower_nav_pub.publish(nav_msg_follower)
-            elif(self.approach_mode == 'trajectory'):
-                self.follower_traj_pub.publish(traj_msg_follower)
-            else:
-                rospy.logerr("Invalid approach mode is setted")
-                return 'fail'
+
+            traj_msg_follower = PoseStamped()
+            traj_msg_follower.header.stamp = rospy.Time.now()
+            traj_msg_follower.pose.position.x = self.target_cog_pos[0]
+            traj_msg_follower.pose.position.y = self.target_cog_pos[1]
+            traj_msg_follower.pose.position.z = self.target_cog_pos[2]
+            target_att_qr = tf.transformations.quaternion_from_euler(self.target_att[0], self.target_att[1], self.target_att[2])
+            traj_msg_follower.pose.orientation.x = target_att_qr[0]
+            traj_msg_follower.pose.orientation.y = target_att_qr[1]
+            traj_msg_follower.pose.orientation.z = target_att_qr[2]
+            traj_msg_follower.pose.orientation.w = target_att_qr[3]
+
+            if self.leader_target_pose != self.leader_pre_target_pose:
+                self.leader_pre_target_pose = self.leader_target_pose
+                if(self.approach_mode == 'nav'):
+                    self.follower_nav_pub.publish(nav_msg_follower)
+                elif(self.approach_mode == 'trajectory'):
+                    rospy.loginfo('okokookooko')
+                    self.follower_traj_pub.publish(traj_msg_follower)
+                else:
+                    rospy.logerr("Invalid approach mode is setted")
+                    return 'fail'
 
             # roll and pitch
             link_rot_follower = DesireCoord()
@@ -445,6 +446,7 @@ class ApproachState(smach.State):
         leader_target_y = msg.y.target_p
         leader_target_z = msg.z.target_p
         leader_target_yaw = msg.yaw.target_p
+        self.leader_target_pose = [leader_target_x, leader_target_y, leader_target_z, leader_target_yaw]
         leader_dock_point_2_cog_homo = np.eye(4)
         follower_dock_point_2_cog_trans = None
         leader_cog_2_world_home = self.coordTransformer.getHomoMatFromVector([leader_target_x, leader_target_y, leader_target_z], [0,0,leader_target_yaw])
@@ -453,9 +455,6 @@ class ApproachState(smach.State):
         target_cp_pos = (leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ self.target_offset)[:3]
         self.target_att = np.array([0,0,leader_target_yaw])
         self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
-        if not self.leader_target_pose_set_flag:
-            self.leader_target_pose_set_flag = True        
-
 class AssemblyState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
