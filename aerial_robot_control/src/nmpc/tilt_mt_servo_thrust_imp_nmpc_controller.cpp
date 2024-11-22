@@ -12,20 +12,20 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
   /* control parameters with dynamic reconfigure */
-  double pMxy, pMz, pDxy, pDz, pKxy, pKz, oMxy, oMz, oDxy, oDz, oKxy, oKz, Qa, Qt, Rtc_d, Rac_d;
+  double pMxy, pMz, Qv_xy, Qv_z, Qp_xy, Qp_z, oMxy, oMz, Qw_xy, Qw_z, Qq_xy, Qq_z, Qa, Qt, Rtc_d, Rac_d;
   getParam<double>(nmpc_nh, "pMxy", pMxy, 1.5);
   getParam<double>(nmpc_nh, "pMz", pMz, 1.5);
-  getParam<double>(nmpc_nh, "pDxy", pDxy, 10);
-  getParam<double>(nmpc_nh, "pDz", pDz, 10);
-  getParam<double>(nmpc_nh, "pKxy", pKxy, 6);
-  getParam<double>(nmpc_nh, "pKz", pKz, 6);
+  getParam<double>(nmpc_nh, "Qv_xy", Qv_xy, 10);
+  getParam<double>(nmpc_nh, "Qv_z", Qv_z, 10);
+  getParam<double>(nmpc_nh, "Qp_xy", Qp_xy, 6);
+  getParam<double>(nmpc_nh, "Qp_z", Qp_z, 6);
 
   getParam<double>(nmpc_nh, "oMxy", oMxy, 0.9);
   getParam<double>(nmpc_nh, "oMz", oMz, 0.9);
-  getParam<double>(nmpc_nh, "oDxy", oDxy, 10);
-  getParam<double>(nmpc_nh, "oDz", oDz, 10);
-  getParam<double>(nmpc_nh, "oKxy", oKxy, 6);
-  getParam<double>(nmpc_nh, "oKz", oKz, 6);
+  getParam<double>(nmpc_nh, "Qw_xy", Qw_xy, 10);
+  getParam<double>(nmpc_nh, "Qw_z", Qw_z, 10);
+  getParam<double>(nmpc_nh, "Qq_xy", Qq_xy, 6);
+  getParam<double>(nmpc_nh, "Qq_z", Qq_z, 6);
 
   getParam<double>(nmpc_nh, "Qa", Qa, 0);
   getParam<double>(nmpc_nh, "Qt", Qt, 0);
@@ -52,22 +52,22 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
     imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("pMy", pMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("pMz", pMz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDx", pDxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDy", pDxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDz", pDz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKx", pKxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKy", pKxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKz", pKz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDx", Qv_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDy", Qv_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDz", Qv_z, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKx", Qp_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKy", Qp_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKz", Qp_z, false);
 
     imp_mpc_solver_ptr->setImpedanceWeight("oMx", oMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("oMy", oMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("oMz", oMz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDx", oDxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDy", oDxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDz", oDz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKx", oKxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKy", oKxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKz", oKz, true);  // update W and WN
+    imp_mpc_solver_ptr->setImpedanceWeight("oDx", Qw_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDy", Qw_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDz", Qw_z, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKx", Qq_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKy", Qq_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKz", Qq_z, true);  // update W and WN
   }
   else
   {

@@ -25,18 +25,18 @@ controller:
     # position
     pMxy: 1.5
     pMz: 1.5
-    pDxy: 10
-    pDz: 10
-    pKxy: 6
-    pKz: 6
+    Qv_xy: 10  # pDxy
+    Qv_z: 10  # pDz
+    Qp_xy: 6  # pKxy
+    Qp_z: 6  # pKz
 
     # orientation
     oMxy: 0.9
     oMz: 0.9
-    oDxy: 10
-    oDz: 10
-    oKxy: 6
-    oKz: 6
+    Qw_xy: 10  # oDxy
+    Qw_z: 10  # oDz
+    Qq_xy: 6  # oKxy
+    Qq_z: 6  # oKz
 
     # actuators
     Qa: 0
