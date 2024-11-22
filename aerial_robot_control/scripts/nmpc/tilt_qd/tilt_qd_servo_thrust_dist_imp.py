@@ -32,12 +32,12 @@ nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 epsilon = nmpc_params["epsilon"]
 
 pM_imp = np.diag([nmpc_params["pMxy"], nmpc_params["pMxy"], nmpc_params["pMz"]])
-pD_imp = np.diag([nmpc_params["pDxy"], nmpc_params["pDxy"], nmpc_params["pDz"]])
-pK_imp = np.diag([nmpc_params["pKxy"], nmpc_params["pKxy"], nmpc_params["pKz"]])
+pD_imp = np.diag([nmpc_params["Qv_xy"], nmpc_params["Qv_xy"], nmpc_params["Qv_z"]])
+pK_imp = np.diag([nmpc_params["Qp_xy"], nmpc_params["Qp_xy"], nmpc_params["Qp_z"]])
 
 oM_imp = np.diag([nmpc_params["oMxy"], nmpc_params["oMxy"], nmpc_params["oMz"]])
-oD_imp = np.diag([nmpc_params["oDxy"], nmpc_params["oDxy"], nmpc_params["oDz"]])
-oK_imp = np.diag([nmpc_params["oKxy"], nmpc_params["oKxy"], nmpc_params["oKz"]])
+oD_imp = np.diag([nmpc_params["Qw_xy"], nmpc_params["Qw_xy"], nmpc_params["Qw_z"]])
+oK_imp = np.diag([nmpc_params["Qq_xy"], nmpc_params["Qq_xy"], nmpc_params["Qq_z"]])
 
 
 class NMPCTiltQdServoThrustImpedance(NMPCBase):

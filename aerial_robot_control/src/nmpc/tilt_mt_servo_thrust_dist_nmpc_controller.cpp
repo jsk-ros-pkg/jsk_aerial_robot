@@ -134,7 +134,7 @@ std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX()
 
 void nmpc::TiltMtServoThrustDistNMPC::cfgNMPCCallback(aerial_robot_control::NMPCConfig& config, uint32_t level)
 {
-    using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
+  using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
   {
     try
