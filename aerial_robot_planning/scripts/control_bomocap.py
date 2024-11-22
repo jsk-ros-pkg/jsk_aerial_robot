@@ -1,6 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
- Created by li-jiaxuan on 24-10-27.
+@File    : control_bomocap.py
+@Author  : Li_Jia_Xuan
+@Date    : 2024-11-01 16:28
+@Software: PyCharm
 """
 
 import sys
@@ -24,6 +28,53 @@ param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = param_dict["controller"]["nmpc"]
+
+class HandPosition():
+    def __init__(self):
+        self.hand_position = PoseStamped()
+
+        # Sub
+        self.hand_pose_sub = rospy.Subscriber(
+            "/hand/mocap/pose",
+            PoseStamped,
+            self.hand_position_callback,
+            queue_size=1
+        ) # 100HZ
+
+    def hand_position_callback(self, msg: PoseStamped):
+        self.hand_position = msg
+
+class ArmPosition():
+    def __init__(self):
+
+        self.arm_position = PoseStamped()
+
+         # Sub
+        self.arm_pose_sub = rospy.Subscriber(
+            "/arm/mocap/pose",
+            PoseStamped,
+            self.arm_position_callback,
+            queue_size=1
+        ) # 100HZ
+
+    def arm_position_callback(self,msg: PoseStamped):
+        self.arm_position = msg
+
+class DronePosition():
+    def __init__(self, robot_name: str) -> None:
+        self.robot_name = robot_name
+
+        self.uav_odom = Odometry()
+        self.drone_pose_sub = rospy.Subscriber(
+            f"/{robot_name}/uav/cog/odom",
+            Odometry,
+            self.sub_odom_callback,
+            queue_size = 1
+        )
+
+
+    def sub_odom_callback(self, msg: Odometry):
+        self.uav_odom = msg
 
 class MocapControl_node():
     """
