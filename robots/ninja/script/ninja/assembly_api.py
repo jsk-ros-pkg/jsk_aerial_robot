@@ -241,14 +241,28 @@ class StandbyState(smach.State):
         leader_target_z = msg.z.target_p
         leader_target_yaw = msg.yaw.target_p
         self.leader_target_pose = [leader_target_x, leader_target_y, leader_target_z, leader_target_yaw]
-        leader_dock_point_2_cog_homo = np.eye(4)
-        follower_dock_point_2_cog_trans = None
+        # calculate target position of follower's docking mechanism.
         leader_cog_2_world_home = self.coordTransformer.getHomoMatFromVector([leader_target_x, leader_target_y, leader_target_z], [0,0,leader_target_yaw])
         leader_dock_point_2_cog_homo = np.linalg.inv(self.coordTransformer.getHomoMatFromCoordName(self.leader+'/'+ self.leader_cp_name, self.leader+'/'+ 'cog'))
-        follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
         target_cp_pos = (leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ self.target_offset)[:3]
-        self.target_att = np.array([0,0,leader_target_yaw])
-        self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
+        # calculate target pose of follower's docking mechanism.
+        relative_pose_of_cp = np.eye(4)
+        relative_pose_of_cp[:3,3] = self.target_offset[:3]
+        rotation_matrix = tf.transformations.euler_matrix(0,0,0)
+        relative_pose_of_cp[:3, :3] = rotation_matrix[:3, :3]
+        target_cp_pose = leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ relative_pose_of_cp
+        target_cp_pos = target_cp_pose[:3,3]
+        target_cp_att = np.array(tf.transformations.euler_from_matrix(target_cp_pose[:3,:3]))
+
+        # follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
+        # self.target_att = np.array([0,0,leader_target_yaw])
+        # self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
+
+        follower_dock_point_2_cog_homo = self.coordTransformer.getHomoMatFromCoordName(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
+        target_cog_pose = target_cp_pose @ follower_dock_point_2_cog_homo
+        self.target_att = np.array(tf.transformations.euler_from_matrix(target_cog_pose[:3,:3]))
+        # rospy.loginfo(self.target_att)
+        self.target_cog_pos = target_cog_pose[:3,3]
 
 class ApproachState(smach.State):
     def __init__(self,
@@ -420,7 +434,6 @@ class ApproachState(smach.State):
                 if(self.approach_mode == 'nav'):
                     self.follower_nav_pub.publish(nav_msg_follower)
                 elif(self.approach_mode == 'trajectory'):
-                    rospy.loginfo('okokookooko')
                     self.follower_traj_pub.publish(traj_msg_follower)
                 else:
                     rospy.logerr("Invalid approach mode is setted")
@@ -453,14 +466,29 @@ class ApproachState(smach.State):
         leader_target_z = msg.z.target_p
         leader_target_yaw = msg.yaw.target_p
         self.leader_target_pose = [leader_target_x, leader_target_y, leader_target_z, leader_target_yaw]
-        leader_dock_point_2_cog_homo = np.eye(4)
-        follower_dock_point_2_cog_trans = None
+        # calculate target position of follower's docking mechanism.
         leader_cog_2_world_home = self.coordTransformer.getHomoMatFromVector([leader_target_x, leader_target_y, leader_target_z], [0,0,leader_target_yaw])
         leader_dock_point_2_cog_homo = np.linalg.inv(self.coordTransformer.getHomoMatFromCoordName(self.leader+'/'+ self.leader_cp_name, self.leader+'/'+ 'cog'))
-        follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
         target_cp_pos = (leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ self.target_offset)[:3]
-        self.target_att = np.array([0,0,leader_target_yaw])
-        self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
+        # calculate target pose of follower's docking mechanism.
+        relative_pose_of_cp = np.eye(4)
+        relative_pose_of_cp[:3,3] = self.target_offset[:3]
+        rotation_matrix = tf.transformations.euler_matrix(0,0,0)
+        relative_pose_of_cp[:3, :3] = rotation_matrix[:3, :3]
+        target_cp_pose = leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ relative_pose_of_cp
+        target_cp_pos = target_cp_pose[:3,3]
+        target_cp_att = np.array(tf.transformations.euler_from_matrix(target_cp_pose[:3,:3]))
+
+        # follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
+        # self.target_att = np.array([0,0,leader_target_yaw])
+        # self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
+
+        follower_dock_point_2_cog_homo = self.coordTransformer.getHomoMatFromCoordName(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
+        target_cog_pose = target_cp_pose @ follower_dock_point_2_cog_homo
+        self.target_att = np.array(tf.transformations.euler_from_matrix(target_cog_pose[:3,:3]))
+        # rospy.loginfo(self.target_att)
+        self.target_cog_pos = target_cog_pose[:3,3]
+
 class AssemblyState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
