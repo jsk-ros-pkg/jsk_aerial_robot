@@ -124,6 +124,7 @@ namespace aerial_robot_control
     Eigen::Vector3d target_wrench_cp_fb_term_;
     Eigen::Matrix3d gravity_compensate_weights_;
     Eigen::Vector3d gravity_compensate_term_;
+    Eigen::VectorXd osqp_solution_;
     bool is_osqp_solved_;
     bool use_estimated_external_force_;
     std::vector<double> opt_initial_x_;

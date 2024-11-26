@@ -257,6 +257,14 @@ void RollingController::controlCore()
         groundMotionPlanning();
         calcFeedbackTermForGroundControl();
         calcFeedforwardTermForGroundControl();
+
+        KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
+        robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+        KDL::JntArray joint_positions = robot_model_->getJointPositions();
+        robot_model_for_control_->updateRobotModel(joint_positions);
+
+        if(ground_mode_add_joint_torque_constraints_)
+          jointTorquePreComputation();
         calcGroundFullLambda();
         nonlinearGroundWrenchAllocation();
         /* for stand */
