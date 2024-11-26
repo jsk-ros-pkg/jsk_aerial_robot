@@ -57,36 +57,109 @@ void RollingController::calcGroundFullLambda()
   auto gimbal_planning_flag = rolling_robot_model_->getGimbalPlanningFlag();
   int num_of_planned_gimbals = std::accumulate(gimbal_planning_flag.begin(), gimbal_planning_flag.end(), 0);
 
-  int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals;
-  int n_constraints = 3 + 1 + 2 + 2 + n_variables; // moment(3) + force_z(1) + force_x(2) + force_y(2) + thrust limit(n_variables)
+  int n_variables = 2 * (motor_num_ - num_of_planned_gimbals) + 1 * num_of_planned_gimbals; // full lambda part
+  if(ground_mode_add_joint_torque_constraints_)
+    n_variables += robot_model_->getJointNum() - motor_num_; // joint part
 
-  Eigen::MatrixXd H = Eigen::MatrixXd::Identity(n_variables, n_variables);
-  Eigen::SparseMatrix<double> H_s;
-  H_s = H.sparseView();
+  int n_constraints = 3 + 1 + 2 + 2 + n_variables; // moment(3) + force_z(1) + force_x(2) + force_y(2) + constraints for variables
 
+  /* convertion matrix */
   Eigen::MatrixXd planned_q_mat = rolling_robot_model_->getPlannedWrenchAllocationMatrixFromControlFrame();
   Eigen::MatrixXd full_q_mat = planned_q_mat;
   Eigen::MatrixXd full_q_mat_trans = full_q_mat.topRows(3);
   Eigen::MatrixXd full_q_mat_rot = full_q_mat.bottomRows(3);
+
+  /* hessian */
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(n_variables, n_variables);
+  for(int i = 0; i < full_q_mat.cols(); i++)
+    H(i, i) = 1.0;
+  Eigen::SparseMatrix<double> H_s;
+  H_s = H.sparseView();
+
+  /* gradient */
+  Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n_variables);
+
+  /* constraints */
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
   int last_row = 0;
-  A.block(last_row, 0, 3, n_variables) = full_q_mat_rot; last_row += 3;                              //    eq constraint about rpy torque
-  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Z); last_row += 1;                                       // in eq constraint about z
-  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(X) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
-  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(X) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
-  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Y) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
-  A.block(last_row, 0, 1, n_variables) = full_q_mat_trans.row(Y) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
-  A.block(last_row, 0, n_variables, n_variables) = Eigen::MatrixXd::Identity(n_variables, n_variables); last_row += n_variables;    // in eq constraints about thrust limit
+  A.block(last_row, 0, 3, full_q_mat.cols()) = full_q_mat_rot; last_row += 3;                              //    eq constraint about rpy torque
+  A.block(last_row, 0, 1, full_q_mat.cols()) = full_q_mat_trans.row(Z); last_row += 1;                                       // in eq constraint about z
+  A.block(last_row, 0, 1, full_q_mat.cols()) = full_q_mat_trans.row(X) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
+  A.block(last_row, 0, 1, full_q_mat.cols()) = full_q_mat_trans.row(X) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;   // in eq constraint about x
+  A.block(last_row, 0, 1, full_q_mat.cols()) = full_q_mat_trans.row(Y) - ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
+  A.block(last_row, 0, 1, full_q_mat.cols()) = full_q_mat_trans.row(Y) + ground_mu_ * full_q_mat_trans.row(Z); last_row += 1;  // in eq constraint about y
+  A.block(last_row, 0, n_variables, n_variables) = Eigen::MatrixXd::Identity(n_variables, n_variables); last_row += full_q_mat.cols();    // in eq constraints about thrust limit. increment last_row row of lambda part
+
+  /* joint torque equality constraints */
+  /* get joint index */
+  std::vector<int> joint_index = std::vector<int>(0);
+  const std::vector<std::string>& joint_names = robot_model_for_control_->getJointNames();
+  for(int i = 0; i < robot_model_->getJointNum() - motor_num_; i++)
+    {
+      for(int j = 0; j < joint_names.size(); j++)
+        {
+          if(joint_names.at(j) == std::string("joint") + std::to_string(i + 1))
+            {
+              joint_index.push_back(j);
+            }
+        }
+    }
+  if(ground_mode_add_joint_torque_constraints_)
+    {
+      // tau + J_{lambda}^{t} w_{lambda} + J_{m_i}^{t} m_{i}g + J_{ext}^t w_{ext} = 0
+      const int joint_num = robot_model_->getJointNum();
+      const std::vector<Eigen::Matrix3d>& links_rotation_from_control_frame = robot_model_for_control_->getLinksRotationFromControlFrame<Eigen::Matrix3d>();
+      const auto& sigma = robot_model_->getRotorDirection();
+      const double m_f_rate = robot_model_->getMFRate();
+      for(int i = 0; i < robot_model_->getJointNum() - motor_num_; i++) // i: for each joint
+        {
+          /* thrust part */
+          int last_col = 0;
+          for(int j = 0; j < motor_num_; j++) // j: for each rotor
+            {
+              if(!gimbal_planning_flag.at(j))
+                {
+                  Eigen::VectorXd y_thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+                  Eigen::VectorXd z_thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+                  y_thrust_wrench_unit.head(3) = links_rotation_from_control_frame.at(j) * Eigen::Vector3d::UnitY();
+                  y_thrust_wrench_unit.tail(3) = links_rotation_from_control_frame.at(j) * Eigen::Vector3d::UnitY() * sigma.at(j + 1) * m_f_rate;
+                  z_thrust_wrench_unit.head(3) = links_rotation_from_control_frame.at(j) * Eigen::Vector3d::UnitZ();
+                  z_thrust_wrench_unit.tail(3) = links_rotation_from_control_frame.at(j) * Eigen::Vector3d::UnitZ() * sigma.at(j + 1) * m_f_rate;
+                  A(last_row, last_col + 0) += (gimbal_link_jacobians_.at(j).rightCols(joint_num).transpose() * y_thrust_wrench_unit)(joint_index.at(i));
+                  A(last_row, last_col + 1) += (gimbal_link_jacobians_.at(j).rightCols(joint_num).transpose() * z_thrust_wrench_unit)(joint_index.at(i));
+                  last_col += 2;
+                }
+              else
+                {
+                  Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+                  thrust_wrench_unit.head(3) = full_q_mat.col(last_col).head(3); // rotor axis in control frame
+                  thrust_wrench_unit.tail(3) = full_q_mat.col(last_col).head(3) * sigma.at(j + i) * m_f_rate; // use rotor axis to calculate wrench unit
+                  A(last_row, last_col) += (gimbal_link_jacobians_.at(j).rightCols(joint_num).transpose() * thrust_wrench_unit)(joint_index.at(i));
+                  last_col +=1;
+                }
+            }
+
+          /* external force part */
+          if(!getUseEstimatedExternalForce())
+            {
+              Eigen::MatrixXd full_q_mat_trans_extended = Eigen::MatrixXd::Zero(6, full_q_mat.cols());
+              full_q_mat_trans_extended.block(0, 0, 3, full_q_mat.cols()) = full_q_mat_trans;
+              A.block(last_row, 0, 1, full_q_mat.cols()) -= (contact_point_jacobian_.rightCols(joint_num).transpose() * full_q_mat_trans_extended).row(joint_index.at(i));
+            }
+
+          last_row += 1;
+        }
+    }
 
   Eigen::SparseMatrix<double> A_s;
   A_s = A.sparseView();
-  Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n_variables);
 
-  Eigen::VectorXd lower_bound(n_constraints);
-  Eigen::VectorXd upper_bound(n_constraints);
+  Eigen::VectorXd lower_bound = Eigen::VectorXd::Zero(n_constraints);
+  Eigen::VectorXd upper_bound = Eigen::VectorXd::Zero(n_constraints);
 
   Eigen::Vector3d target_wrench_cp = getTargetWrenchCpFbTerm() + getGravityCompensateTerm();
 
+  /* moment(3), force_z(1), force_x(2), force_y(2) */
   lower_bound.head(n_constraints - n_variables)
     <<
     target_wrench_cp(0),
@@ -109,6 +182,7 @@ void RollingController::calcGroundFullLambda()
     INFINITY,
     ground_mu_ * robot_model_->getMass() * robot_model_->getGravity()(Z);
 
+  /* thrust element part */
   int last_col = n_constraints - n_variables;
   for(int i = 0; i < motor_num_; i++)
     {
@@ -130,6 +204,19 @@ void RollingController::calcGroundFullLambda()
             }
 
           last_col += 2;
+        }
+    }
+
+  /* joint torque part */
+  for(int i = last_col; i < n_constraints; i++)
+    {
+      lower_bound(i) = joint_torque_(joint_index.at(i - last_col));
+      upper_bound(i) = joint_torque_(joint_index.at(i - last_col));
+      if(!getUseEstimatedExternalForce())
+        {
+          const int joint_num = robot_model_->getJointNum();
+          lower_bound(i) -= (contact_point_jacobian_.rightCols(joint_num).transpose() * robot_model_->getMass() * robot_model_->getGravity())(joint_index.at(i - last_col));
+          upper_bound(i) -= (contact_point_jacobian_.rightCols(joint_num).transpose() * robot_model_->getMass() * robot_model_->getGravity())(joint_index.at(i - last_col));
         }
     }
 
@@ -170,12 +257,13 @@ void RollingController::calcGroundFullLambda()
 
   if(!solver.solve())
     {
-      ROS_WARN_STREAM("[control][OSQP] could not solve QP!");
+      ROS_WARN_STREAM_THROTTLE(0.1, "[control][OSQP] could not solve QP!");
       is_osqp_solved_ = false;
     }
   else is_osqp_solved_ = true;
 
   auto solution = solver.getSolution();
+  osqp_solution_ = solution;
 
   /* reconstruct full lambda */
   Eigen::VectorXd full_lambda = Eigen::VectorXd::Zero(2 * motor_num_);
@@ -435,23 +523,14 @@ void RollingController::nonlinearGroundWrenchAllocation()
   else
     n_variables = 2 * motor_num_;
 
-  KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
-  robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
-  KDL::JntArray joint_positions = robot_model_->getJointPositions();
-
   if(first_run_)
     {
       opt_x_prev_.resize(n_variables, 0.0);
       opt_initial_x_.resize(n_variables, 0.0);
       nlopt_log_.resize(n_variables, 0.0);
-      robot_model_for_control_->updateRobotModel(joint_positions);
       robot_model_for_control_->calcContactPoint();
       ROS_INFO_STREAM("calc contact point once");
     }
-
-  robot_model_for_control_->updateRobotModel(joint_positions);
-
-  if(n_variables > 2 * motor_num_) jointTorquePreComputation();
 
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearGroundWrenchAllocationMinObjective, this);
@@ -492,7 +571,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   /* set initial variable */
   std::vector<double> opt_x(n_variables, 0);
-  // thrust and gimbal part (use osqp solution)
+  // thrust and gimbal part (calculate from osqp solution)
   for(int i = 0; i < motor_num_; i++)
     {
       opt_x.at(i) = std::clamp((double)full_lambda_all_.segment(2 * i, 2).norm() / fabs(cos(rotor_tilt_.at(i))),
@@ -503,10 +582,10 @@ void RollingController::nonlinearGroundWrenchAllocation()
                                             ub.at(i + motor_num_));
     }
 
-  // joint torque part (use previous solution)
+  // joint torque part (use osqp solution)
   for(int i = 0; i < n_variables - 2 * motor_num_; i++)
     {
-      opt_x.at(2 * motor_num_ + i) = opt_x_prev_.at(2 * motor_num_ + i);
+      opt_x.at(2 * motor_num_ + i) = osqp_solution_(2 * motor_num_ + i);
     }
 
   for(int i = 0; i < n_variables; i++)
