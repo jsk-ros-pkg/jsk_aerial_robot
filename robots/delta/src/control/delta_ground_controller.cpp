@@ -534,7 +534,7 @@ void RollingController::nonlinearGroundWrenchAllocation()
 
   nlopt::opt slsqp_solver(nlopt::LD_SLSQP, n_variables);
   slsqp_solver.set_min_objective(nonlinearGroundWrenchAllocationMinObjective, this);
-  slsqp_solver.add_equality_mconstraint(nonlinearGroundWrenchAllocationEqConstraints, this, {1e-6, 1e-6, 1e-6});
+  slsqp_solver.add_equality_mconstraint(nonlinearGroundWrenchAllocationEqConstraints, this, opt_attitude_control_thresholds_);
   slsqp_solver.add_inequality_mconstraint(nonlinearGroundWrenchAllocationInEqConstraints, this, {1e-6, 1e-6, 1e-6, 1e-6, 1e-6});
   if(n_variables > 2 * motor_num_)
     {
@@ -646,6 +646,21 @@ void RollingController::cfgNloptCallback(delta::nloptConfig &config, uint32_t le
     case Levels::RECONFIGURE_JOINT_TORQUE_WEIGHT:
       opt_joint_torque_weight_ = config.joint_torque_weight;
       ROS_INFO_STREAM("change weight at " << level << " to " << opt_joint_torque_weight_);
+      break;
+
+    case Levels::RECONFIGURE_ATTITUDE_CONTROL_ROLL_THRESHOLD:
+      opt_attitude_control_thresholds_.at(0) = config.attitude_control_roll_threshold;
+      ROS_INFO_STREAM("change threshold for roll control to " << opt_attitude_control_thresholds_.at(0));
+      break;
+
+    case Levels::RECONFIGURE_ATTITUDE_CONTROL_PITCH_THRESHOLD:
+      opt_attitude_control_thresholds_.at(1) = config.attitude_control_pitch_threshold;
+      ROS_INFO_STREAM("change threshold for pitch control to " << opt_attitude_control_thresholds_.at(1));
+      break;
+
+    case Levels::RECONFIGURE_ATTITUDE_CONTROL_YAW_THRESHOLD:
+      opt_attitude_control_thresholds_.at(2) = config.attitude_control_yaw_threshold;
+      ROS_INFO_STREAM("change threshold for yaw control to " << opt_attitude_control_thresholds_.at(2));
       break;
 
     default:

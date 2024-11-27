@@ -127,10 +127,11 @@ namespace aerial_robot_control
     Eigen::VectorXd osqp_solution_;
     bool is_osqp_solved_;
     bool use_estimated_external_force_;
+    bool ground_mode_add_joint_torque_constraints_;
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
     std::vector<double> opt_cost_weights_;
-    bool ground_mode_add_joint_torque_constraints_;
+    std::vector<double> opt_attitude_control_thresholds_;
     double opt_joint_torque_weight_;
     boost::shared_ptr<nloptConfig> nlopt_reconf_server_;
 

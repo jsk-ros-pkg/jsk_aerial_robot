@@ -19,6 +19,9 @@ controller:
     gimbal_current_angle_dist_weight: 3.0
     gimbal_center_dist_weight: 2.0
     joint_torque_weight: 6.0
+    attitude_control_roll_threshold: 0.0001
+    attitude_control_pitch_threshold: 0.0001
+    attitude_control_yaw_threshold: 0.0001
 
   xy:
     p_gain: 5.0
