@@ -75,12 +75,10 @@ PolynomialTrajectory<PolyType>::PolynomialTrajectory(
   yaw_.scale(start_state_.t, duration_);
 
   addStateConstraint(start_state_);
-  addStateConstraint(end_state_);
-
   for (size_t i = 1; i < states_.size() - 1; i++) {
     addStateConstraint(states_.at(i), 0); // only consider the position constraints for the intermediate points
   }
-
+  addStateConstraint(end_state_);
 
   if (!x_.solve()) std::cout << "Could not solve x-axis!" << std::endl;
   if (!y_.solve()) std::cout << "Could not solve y-axis!" << std::endl;
@@ -116,9 +114,21 @@ bool PolynomialTrajectory<PolyType>::addStateConstraint(const QuadState& state, 
   z_.addConstraint(state.t, constraints.row(2).transpose());
 
   // ToDo: Yaw relative to initial yaw.
-  const Scalar yaw_angle = state.getYaw();
+  Scalar yaw_angle = state.getYaw();
   if (std::isfinite(yaw_angle))
-    yaw_.addConstraint(state.t, Vector<3>(yaw_angle, state.w.z(), 0));
+    {
+      if (std::isfinite(prev_constraint_.t))
+        {
+          Scalar prev_yaw_angle = prev_constraint_.getYaw();
+          Scalar diff = yaw_angle - prev_yaw_angle;
+          if (diff > M_PI) yaw_angle -= 2 * M_PI;
+          if (diff < -M_PI) yaw_angle += 2 * M_PI;
+        }
+      yaw_.addConstraint(state.t, Vector<3>(yaw_angle, state.w.z(), 0));
+    }
+
+
+  prev_constraint_ = state;
 
   return true;
 }
