@@ -591,7 +591,9 @@ void RollingController::nonlinearGroundWrenchAllocation()
   // joint torque part (use osqp solution)
   for(int i = 0; i < n_variables - 2 * motor_num_; i++)
     {
-      opt_x.at(2 * motor_num_ + i) = osqp_solution_(2 * motor_num_ + i);
+      opt_x.at(2 * motor_num_ + i) = std::clamp(osqp_solution_(2 * motor_num_ + i),
+                                                lb.at(2 * motor_num_ + i),
+                                                ub.at(2 * motor_num_ + i));
     }
 
   for(int i = 0; i < n_variables; i++)
