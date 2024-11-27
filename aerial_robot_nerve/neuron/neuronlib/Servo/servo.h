@@ -24,6 +24,9 @@ public:
 	void sendData() override;
 	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 
+	bool getConnect() {return connect_;}
+	void setConnect(bool connect) {connect_ = connect;}
+
 private:
 	struct CANServoData{
 		int16_t angle;
@@ -35,6 +38,7 @@ private:
 		:angle(angle), temperature(temperature), moving(moving), current(current), error(error){}
 	};
 
+	bool connect_;
 	DynamixelSerial servo_handler_;
 	friend class Initializer;
 };

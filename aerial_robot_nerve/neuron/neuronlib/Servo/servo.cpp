@@ -11,6 +11,7 @@
 void Servo::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL)
 {
   servo_handler_.init(huart, hi2c, mutex);
+  connect_ = false;
 }
 
 void Servo::update()
@@ -35,6 +36,8 @@ void Servo::sendData()
 
 void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
+	if (!connect_) return;
+
 	switch (message_id) {
 		case CAN::MESSAGEID_RECEIVE_SERVO_ANGLE:
 		{
