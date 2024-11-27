@@ -142,12 +142,18 @@ void RollingController::rosParamInit()
   getParam<bool>(control_nh, "ground_mode_add_joint_torque_constraint", ground_mode_add_joint_torque_constraints_, false);
   ros::NodeHandle nlopt_nh(control_nh, "nlopt");
   {
-    double whatever; opt_cost_weights_.resize(0);
+    double whatever;
+    opt_cost_weights_.resize(0);
     getParam<double>(nlopt_nh, "thrust_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
     getParam<double>(nlopt_nh, "gimbal_linear_solution_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
     getParam<double>(nlopt_nh, "gimbal_current_angle_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
     getParam<double>(nlopt_nh, "gimbal_center_dist_weight", whatever, 1.0); opt_cost_weights_.push_back(whatever);
     getParam<double>(nlopt_nh, "joint_torque_weight", opt_joint_torque_weight_, 0.0);
+
+    opt_attitude_control_thresholds_.resize(0);
+    getParam<double>(nlopt_nh, "attitude_control_roll_threshold", whatever, 0.0001); opt_attitude_control_thresholds_.push_back(whatever);
+    getParam<double>(nlopt_nh, "attitude_control_pitch_threshold", whatever, 0.0001); opt_attitude_control_thresholds_.push_back(whatever);
+    getParam<double>(nlopt_nh, "attitude_control_yaw_threshold", whatever, 0.0001); opt_attitude_control_thresholds_.push_back(whatever);
   }
   nlopt_reconf_server_ = boost::make_shared<nloptConfig>(nlopt_nh);
   nlopt_reconf_server_->setCallback(boost::bind(&RollingController::cfgNloptCallback, this, _1, _2));
