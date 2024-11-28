@@ -55,12 +55,12 @@ class StandbyState(smach.State):
                  standby_servo_angle_male = 2500,
                  leader = 'ninja2',
                  leader_id = 2,
-                 x_offset = 0.12,
+                 x_offset = 0.15,
                  y_offset = 0,
                  z_offset = 0,
-                 x_tol = 0.01,
-                 y_tol = 0.01,
-                 z_tol = 0.01,
+                 x_tol = 0.02,
+                 y_tol = 0.02,
+                 z_tol = 0.02,
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
                  yaw_tol = 0.08,
@@ -228,9 +228,9 @@ class StandbyState(smach.State):
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
         if self.attach_dir < 0:
-            nav_msg_follower.target_pos_x = -1.5
+            nav_msg_follower.target_pos_x = -1.0
         else:
-            nav_msg_follower.target_pos_x = 1.5
+            nav_msg_follower.target_pos_x = 1.0
         nav_msg_follower.target_pos_y = 0
         self.follower_nav_pub.publish(nav_msg_follower)
         self.emergency_flag = True
@@ -273,10 +273,13 @@ class ApproachState(smach.State):
                  real_machine = True,
                  leader = 'ninja2',
                  leader_id = 2,
-                 x_offset = -0.05,
+                 contact_vel_x = 0.1,
+                 contact_vel_y = 0,
+                 contact_vel_z = 0,
+                 x_offset = 0,
                  y_offset = 0,
                  z_offset = 0,
-                 x_tol = 0.02,
+                 x_tol = 0.015,
                  y_tol = 0.02,
                  z_tol = 0.02,
                  roll_tol = 0.08,
@@ -305,6 +308,9 @@ class ApproachState(smach.State):
         self.leader_id = leader_id
         self.leader_pre_target_pose = []
         self.target_offset = np.zeros(4)
+        self.contact_vel_x = contact_vel_x
+        self.contact_vel_y = contact_vel_y
+        self.contact_vel_z = contact_vel_z
         self.x_offset = x_offset
         self.y_offset = y_offset
         self.z_offset = z_offset
@@ -341,6 +347,7 @@ class ApproachState(smach.State):
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
+        self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
 
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
@@ -407,16 +414,30 @@ class ApproachState(smach.State):
         elif np.all(np.greater(np.abs(pos_error),self.pos_danger_thre)) or np.all(np.greater(np.abs(att_error),self.att_danger_thre)):
             return 'fail'
         else:
+            #follower
+            # nav_msg_follower = FlightNav()
+            # nav_msg_follower.target = 1
+            # nav_msg_follower.control_frame = 0
+            # nav_msg_follower.pos_xy_nav_mode=2
+            # nav_msg_follower.pos_z_nav_mode=2
+            # nav_msg_follower.yaw_nav_mode = 2
+            # nav_msg_follower.target_pos_x = self.target_cog_pos[0]
+            # nav_msg_follower.target_pos_y = self.target_cog_pos[1]
+            # nav_msg_follower.target_pos_z = self.target_cog_pos[2]
+            # nav_msg_follower.target_yaw = self.target_att[2]
+
+            #follower
             nav_msg_follower = FlightNav()
             nav_msg_follower.target = 1
-            nav_msg_follower.control_frame = 0
-            nav_msg_follower.pos_xy_nav_mode=2
-            nav_msg_follower.pos_z_nav_mode=2
-            nav_msg_follower.yaw_nav_mode = 2
-            nav_msg_follower.target_pos_x = self.target_cog_pos[0]
-            nav_msg_follower.target_pos_y = self.target_cog_pos[1]
-            nav_msg_follower.target_pos_z = self.target_cog_pos[2]
-            nav_msg_follower.target_yaw = self.target_att[2]
+            nav_msg_follower.control_frame = 1
+            nav_msg_follower.pos_xy_nav_mode=1
+            nav_msg_follower.target_vel_x = self.contact_vel_x * self.attach_dir*(-1.0)
+            #leader
+            nav_msg_leader = FlightNav()
+            nav_msg_leader.target = 1
+            nav_msg_leader.control_frame = 1
+            nav_msg_leader.pos_xy_nav_mode=1
+            nav_msg_leader.target_vel_x = self.contact_vel_x * self.attach_dir
 
             traj_msg_follower = PoseStamped()
             traj_msg_follower.header.stamp = rospy.Time.now()
@@ -429,15 +450,17 @@ class ApproachState(smach.State):
             traj_msg_follower.pose.orientation.z = target_att_qr[2]
             traj_msg_follower.pose.orientation.w = target_att_qr[3]
 
-            if self.leader_target_pose != self.leader_pre_target_pose:
-                self.leader_pre_target_pose = self.leader_target_pose
-                if(self.approach_mode == 'nav'):
-                    self.follower_nav_pub.publish(nav_msg_follower)
-                elif(self.approach_mode == 'trajectory'):
-                    self.follower_traj_pub.publish(traj_msg_follower)
-                else:
-                    rospy.logerr("Invalid approach mode is setted")
-                    return 'fail'
+            # if self.leader_target_pose != self.leader_pre_target_pose:
+            #     self.leader_pre_target_pose = self.leader_target_pose
+            #     if(self.approach_mode == 'nav'):
+            #         self.follower_nav_pub.publish(nav_msg_follower)
+            #     elif(self.approach_mode == 'trajectory'):
+            #         self.follower_traj_pub.publish(traj_msg_follower)
+            #     else:
+            #         rospy.logerr("Invalid approach mode is setted")
+            #         return 'fail'
+            self.follower_nav_pub.publish(nav_msg_follower)
+            self.leader_nav_pub.publish(nav_msg_leader)
 
             # roll and pitch
             link_rot_follower = DesireCoord()
@@ -448,16 +471,22 @@ class ApproachState(smach.State):
             return 'in_process'
 
     def emergencyCb(self,msg):
+        #follower
         nav_msg_follower = FlightNav()
         nav_msg_follower.target = 0
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
         if self.attach_dir < 0:
-            nav_msg_follower.target_pos_x = -1.5
+            nav_msg_follower.target_pos_x = -1.0
         else:
-            nav_msg_follower.target_pos_x = 1.5
+            nav_msg_follower.target_pos_x = 1.0
         nav_msg_follower.target_pos_y = 0
+        #leader
+        nav_msg_leader = FlightNav()
+        nav_msg_leader.pos_xy_nav_mode= 6
+        
         self.follower_nav_pub.publish(nav_msg_follower)
+        self.leader_nav_pub.publish(nav_msg_leader)
         self.emergency_flag = True
 
     def leaderTargetPoseCb(self, msg):
@@ -556,9 +585,9 @@ class AssemblyState(smach.State):
         nav_msg_follower.control_frame = 0
         nav_msg_follower.pos_xy_nav_mode=2
         if self.attach_dir < 0:
-            nav_msg_follower.target_pos_x = -1.5
+            nav_msg_follower.target_pos_x = -1.0
         else:
-            nav_msg_follower.target_pos_x = 1.5
+            nav_msg_follower.target_pos_x = 1.0
         nav_msg_follower.target_pos_y = 0
         self.follower_nav_pub.publish(nav_msg_follower)
         self.emergency_flag = True
