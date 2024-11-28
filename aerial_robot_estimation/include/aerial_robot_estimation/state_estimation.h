@@ -470,6 +470,7 @@ namespace aerial_robot_estimation
     vector<boost::shared_ptr<sensor_plugin::SensorBase> > vo_handlers_;
     vector<boost::shared_ptr<sensor_plugin::SensorBase> > gps_handlers_;
     vector<boost::shared_ptr<sensor_plugin::SensorBase> > plane_detection_handlers_;
+    vector<boost::shared_ptr<sensor_plugin::SensorBase> > lio_handlers_;
 
     /* mutex */
     boost::mutex state_mutex_;
