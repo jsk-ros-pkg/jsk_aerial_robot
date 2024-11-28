@@ -455,13 +455,15 @@ namespace sensor_plugin
     if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
       {
         double height = estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0];
-        rot_valid_ = false;
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
           {
 
             //ROS_WARN_THROTTLE(1, "%s, the height %f is not valid for vo to do downards vo", indexed_nhp_.getNamespace().c_str(), height);
+            rot_valid_ = false;
             return;
           }
+        else
+          rot_valid_ = true;
       }
     else
       {
