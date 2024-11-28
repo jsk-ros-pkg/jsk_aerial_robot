@@ -28,4 +28,8 @@
     <description>Plane Detection sensor plugin.</description>
   </class>
 
+  <class name="sensor_plugin/lio" type="sensor_plugin::LidarInertialOdometry" base_class_type="sensor_plugin::SensorBase">
+    <description>Lidar Inertial Odometry sensor plugin.</description>
+  </class>
+
 </library>
