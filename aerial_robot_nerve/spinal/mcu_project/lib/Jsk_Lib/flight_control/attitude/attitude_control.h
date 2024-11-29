@@ -46,6 +46,7 @@
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
+#include <spinal/SetControlMode.h>
 
 #define IDLE_DUTY 0.5f
 #define FORCE_LANDING_INTEGRAL 0.0025f // 500Hz * 0.0025 = 1.25 N / sec
@@ -131,6 +132,20 @@ private:
   void setSimVolCallback(const std_msgs::Float32 vol_msg) { sim_voltage_ = vol_msg.data; }
   float sim_voltage_;
 
+  ros::ServiceServer control_mode_srv_;
+  bool setControlModeCallback(spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res)
+  {
+    if (req.is_attitude == false && req.is_body_rate==false)
+    {
+      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
+      return false;
+    }
+
+    is_attitude_ctrl_ = req.is_attitude;
+    is_body_rate_ctrl_ = req.is_body_rate;
+    return true;
+  }
+
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
   ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
@@ -141,6 +156,16 @@ private:
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
   void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+
+  ros::ServiceServer<spinal::SetControlMode::Request, spinal::SetControlMode::Response, AttitudeController> control_mode_srv_;
+  void setControlModeCallback(const spinal::SetControlMode::Request& req, spinal::SetControlMode::Response& res) {
+    if (req.is_attitude == false && req.is_body_rate == false)
+    {
+      ROS_ERROR("invalid: attitude and body rate control mode can not be set both to false.");
+    }
+    is_attitude_ctrl_ = req.is_attitude;
+    is_body_rate_ctrl_ = req.is_body_rate;
+  }
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
@@ -158,6 +183,7 @@ private:
 
 
   float target_angle_[3];
+  float target_ang_vel_[3];
   float error_angle_i_[3];
   float error_angle_i_limit_[3];
 
@@ -177,6 +203,10 @@ private:
   // Gyro Moment Compensation
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
   ap::Matrix3f inertia_;
+
+  // control level
+  bool is_attitude_ctrl_;
+  bool is_body_rate_ctrl_;
 
   // Failsafe
   bool failsafe_;
@@ -227,9 +257,14 @@ private:
 public:
   void useGroundTruth(bool flag) { use_ground_truth_ = flag; }
   void setTrueRPY(float r, float p, float y) {true_angles_.x = r; true_angles_.y = p; true_angles_.z = y; }
-  void setTrueAngular(float wx, float wy, float wz) {true_vel_.x = wx; true_vel_.y = wy; true_vel_.z = wz; }
+  void setTrueAngular(float wx, float wy, float wz)
+  {
+    true_ang_vel_.x = wx;
+    true_ang_vel_.y = wy;
+    true_ang_vel_.z = wz;
+  }
   ap::Vector3f true_angles_;
-  ap::Vector3f true_vel_;
+  ap::Vector3f true_ang_vel_;
   float DELTA_T;
   double prev_time_;
 #endif

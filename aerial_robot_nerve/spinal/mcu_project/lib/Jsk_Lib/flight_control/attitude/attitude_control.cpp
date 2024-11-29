@@ -31,6 +31,8 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+  control_mode_srv_ = nh_->advertiseService("set_control_mode", &AttitudeController::setControlModeCallback, this);
+
   baseInit();
 }
 
@@ -46,7 +48,8 @@ AttitudeController::AttitudeController():
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  control_mode_srv_("set_control_mode", &AttitudeController::setControlModeCallback, this)
 {
 }
 
@@ -82,6 +85,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe(torque_allocation_matrix_inv_sub_);
 
   nh_->advertiseService(att_control_srv_);
+  nh_->advertiseService(control_mode_srv_);
 
   baseInit();
 }
@@ -115,6 +119,10 @@ void AttitudeController::baseInit()
 
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
+
+  // control mode: attitude or body rate
+  is_attitude_ctrl_ = true;
+  is_body_rate_ctrl_ = false;
 
   reset();
 }
@@ -225,20 +233,20 @@ void AttitudeController::update(void)
         }
 
       ap::Vector3f angles;
-      ap::Vector3f vel;
+      ap::Vector3f ang_vel;
 #ifdef SIMULATION
       if(use_ground_truth_)
         {
           angles = true_angles_;
-          vel = true_vel_;
+          ang_vel = true_ang_vel_;
         }
       else
         {
           angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-          vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
+          ang_vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
         }
 
-      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_vel_.x, vel.x, true_vel_.y, vel.y, true_vel_.z, vel.z);
+      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_ang_vel_.x, ang_vel.x, true_ang_vel_.y, ang_vel.y, true_ang_vel_.z, ang_vel.z);
 
       if(prev_time_ < 0) DELTA_T = 0;
       else DELTA_T = ros::Time::now().toSec() - prev_time_;
@@ -275,66 +283,87 @@ void AttitudeController::update(void)
       // linear control method
       {
         /* gyro moment */
-        ap::Vector3f gyro_moment = vel % (inertia_ * vel);
+        ap::Vector3f gyro_moment = ang_vel % (inertia_ * ang_vel);
 #ifdef SIMULATION
         std_msgs::Float32MultiArray anti_gyro_msg;
 #endif
 
-        float error_angle[3];
-        for(int axis = 0; axis < 3; axis++)
+      float error_angle[3];
+      float error_ang_vel[3];
+      for (int axis = 0; axis < 3; axis++)
+      {
+        error_angle[axis] = target_angle_[axis] - angles[axis];
+
+        if (is_body_rate_ctrl_)
+          error_ang_vel[axis] = target_ang_vel_[axis] - ang_vel[axis];
+        else
+          error_ang_vel[axis] = 0 - ang_vel[axis];
+
+        if (integrate_flag_)
+          error_angle_i_[axis] += error_angle[axis] * DELTA_T;
+
+        if (axis == X)
+        {
+          control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
+          control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
+          control_feedback_state_msg_.roll_d = error_ang_vel[axis] * 1000;
+        }
+        if (axis == Y)
+        {
+          control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
+          control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
+          control_feedback_state_msg_.pitch_d = error_ang_vel[axis] * 1000;
+        }
+        if (axis == Z)
+        {
+          control_feedback_state_msg_.yaw_d = error_ang_vel[axis] * 1000;
+        }
+      }
+
+      float p_term = 0;
+      float i_term = 0;
+      float d_term = 0;
+      for (int i = 0; i < motor_number_; i++)
+      {
+        for (int axis = 0; axis < 3; axis++)
+        {
+          if (is_attitude_ctrl_)
           {
-            error_angle[axis] = target_angle_[axis] - angles[axis];
-            if(integrate_flag_) error_angle_i_[axis] += error_angle[axis] * DELTA_T;
-
-            if(axis == X)
-              {
-                control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
-                control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
-              }
-            if(axis == Y)
-              {
-                control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
-                control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
-
-              }
-            if(axis == Z)
-              {
-                control_feedback_state_msg_.yaw_d = vel[axis] * 1000;
-              }
+            p_term = error_angle[axis] * thrust_p_gain_[i][axis];
+            i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
+            d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
+          }
+          else
+          {
+            p_term = 0;
+            i_term = 0;
+            d_term = error_ang_vel[axis] * thrust_d_gain_[i][axis];
           }
 
-        float p_term = 0;
-        float i_term = 0;
-        float d_term = 0;
-        for(int i = 0; i < motor_number_; i++)
+          if (axis == X)
           {
-            for(int axis = 0; axis < 3; axis++)
-              {
-                p_term = error_angle[axis] * thrust_p_gain_[i][axis];
-                i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-                d_term = -vel[axis] * thrust_d_gain_[i][axis];
-                if(axis == X)
-                  {
-                    roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
-                    control_term_msg_.motors[i].roll_p = p_term * 1000;
-                    control_term_msg_.motors[i].roll_i= i_term * 1000;
-                    control_term_msg_.motors[i].roll_d = d_term * 1000;
-                  }
-                if(axis == Y)
-                  {
-                    roll_pitch_term_[i] += (p_term + i_term + d_term); // [N]
-                    control_term_msg_.motors[i].pitch_p = p_term * 1000;
-                    control_term_msg_.motors[i].pitch_i = i_term * 1000;
-                    control_term_msg_.motors[i].pitch_d = d_term * 1000;
-                  }
-                if(axis == Z)
-                  {
-                    yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
-                    control_term_msg_.motors[i].yaw_d = d_term * 1000; //d_term;
-                  }
-              }
+            roll_pitch_term_[i] = p_term + i_term + d_term;  // [N]
+            control_term_msg_.motors[i].roll_p = p_term * 1000;
+            control_term_msg_.motors[i].roll_i = i_term * 1000;
+            control_term_msg_.motors[i].roll_d = d_term * 1000;
+          }
+          if (axis == Y)
+          {
+            roll_pitch_term_[i] += (p_term + i_term + d_term);  // [N]
+            control_term_msg_.motors[i].pitch_p = p_term * 1000;
+            control_term_msg_.motors[i].pitch_i = i_term * 1000;
+            control_term_msg_.motors[i].pitch_d = d_term * 1000;
+          }
+          if (axis == Z)
+          {
+            if (is_attitude_ctrl_)
+              yaw_term_[i] = extra_yaw_pi_term_[i] + d_term;
+            else
+              yaw_term_[i] = d_term;
+
+            control_term_msg_.motors[i].yaw_d = d_term * 1000;  // d_term;
+          }
+        }
 
             /* gyro moment compensation */
             float gyro_moment_compensate =
@@ -396,10 +425,11 @@ void AttitudeController::reset(void)
         }
     }
 
-  for(int i = 0; i < 3; i++)
-    {
-      target_angle_[i] = 0;
-      error_angle_i_[i] = 0;
+  for (int i = 0; i < 3; i++)
+  {
+    target_angle_[i] = 0;
+    target_ang_vel_[i] = 0;
+    error_angle_i_[i] = 0;
 
       torque_p_gain_[i] = 0;
       torque_i_gain_[i] = 0;
@@ -468,13 +498,21 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
   if(!failsafe_) failsafe_ = true;
   flight_command_last_stamp_ = HAL_GetTick();
 
+  // get msg data from spinal::FourAxisCommand
   target_angle_[X] = cmd_msg.angles[0];
   target_angle_[Y] = cmd_msg.angles[1];
 
-  for(int i = 0; i < motor_number_; i++)
-    {
-      // base thrust is about the z control
-      base_thrust_term_[i] = cmd_msg.base_thrust[i];
+  if (is_body_rate_ctrl_)
+  {
+    target_ang_vel_[X] = cmd_msg.body_rates[0];
+    target_ang_vel_[Y] = cmd_msg.body_rates[1];
+    target_ang_vel_[Z] = cmd_msg.body_rates[2];
+  }
+
+  for (int i = 0; i < motor_number_; i++)
+  {
+    // base thrust is about the z control
+    base_thrust_term_[i] = cmd_msg.base_thrust[i];
 
       // reconstruct the pi term for yaw (temporary measure for pwm saturation avoidance)
       if(max_yaw_term_index_ != -1)
