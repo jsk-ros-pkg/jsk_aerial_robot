@@ -39,6 +39,7 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 void NinjaNavigator::update()
 {
   updateEntSysState();
+  updateMyState();
 
   if(ros::Time::now().toSec() - prev_morphing_stamp_ > morphing_process_interval_)
     {
@@ -134,11 +135,6 @@ void NinjaNavigator::updateEntSysState()
   }
   setModuleNum(assembled_modules_ids_.size());
   std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
-
-  auto it = std::find(assembled_modules_ids_.begin(), assembled_modules_ids_.end(), my_id_);
-  if (it != assembled_modules_ids_.end()) {
-    my_index_ = std::distance(assembled_modules_ids_.begin(), it);
-  }
   if(control_flag_){
     reconfig_flag_ =  (pre_assembled_modules_ != module_num_) ? true : false;
     disassembly_flag_ = (module_num_ < pre_assembled_modules_) ? true : false;
@@ -146,19 +142,31 @@ void NinjaNavigator::updateEntSysState()
   }
 }
 
+void NinjaNavigator::updateMyState()
+{
+  auto it = std::find(assembled_modules_ids_.begin(), assembled_modules_ids_.end(), my_id_);
+  if(!module_num_ || module_num_ == 1 || it == assembled_modules_ids_.end())
+    {
+      current_assembled_ = false;
+      module_state_ = SEPARATED;
+    }
+  else
+    {
+      my_index_ = std::distance(assembled_modules_ids_.begin(), it);
+      if(control_flag_) current_assembled_ = true;
+    }
+}
+
 void NinjaNavigator::calcCenterOfMoving()
 {
   /*Check state*/
   geometry_msgs::Point cog_com_dist_msg;
-  if(!module_num_ || module_num_ == 1 || !assembly_flags_[my_id_]){
-    // pre_assembled_modules_ = module_num_;
+  if(!current_assembled_){
 
     KDL::Frame raw_cog2base; // co2base conversion without desire coord process
     raw_cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
     KDL::Frame com_frame = raw_cog2base;
     setCoM2Base(com_frame);
-    current_assembled_ = false;
-    module_state_ = SEPARATED;
     cog_com_dist_msg.x = Cog2CoM_.p.x();
     cog_com_dist_msg.y = Cog2CoM_.p.y();
     cog_com_dist_msg.z = Cog2CoM_.p.z();
@@ -685,7 +693,9 @@ void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr&
 
 void NinjaNavigator::morphingProcess()
 {
+  if(getMyID() == 2)   ROS_ERROR_STREAM("ok1");
   if(!getCurrentAssembled() || !control_flag_) return;
+  if(getMyID() == 2)   ROS_ERROR_STREAM("ok2");
   sensor_msgs::JointState joints_ctrl_msg;
   bool joint_send_flag = false;
   std::map<int, std::string> joint_map;
@@ -731,6 +741,7 @@ void NinjaNavigator::morphingProcess()
             }
         }
     }
+  if(getMyID() == 2)   ROS_ERROR_STREAM("ok3");
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 
   /* calculate joint pos err */
@@ -780,6 +791,7 @@ void NinjaNavigator::morphingProcess()
             }
         }
     }
+  if(getMyID() == 2)   ROS_ERROR_STREAM("ok4");
  
   int neighbor_id_;
   if(my_id_ < leader_id_)
@@ -792,7 +804,7 @@ void NinjaNavigator::morphingProcess()
     {
       neighbor_id_ = assembled_modules_ids_[my_index_-1];
       joint_pos_errs_[PITCH] = assembled_modules_data_[my_id_].goal_joint_pos_(PITCH) - assembled_modules_data_[my_id_].est_joint_pos_(PITCH); 
-     joint_pos_errs_[YAW] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(YAW) - assembled_modules_data_[neighbor_id_].est_joint_pos_(YAW);
+      joint_pos_errs_[YAW] = assembled_modules_data_[neighbor_id_].goal_joint_pos_(YAW) - assembled_modules_data_[neighbor_id_].est_joint_pos_(YAW);
       // ROS_ERROR_STREAM("pitch: " << joint_pos_errs_[PITCH]);
       // ROS_ERROR_STREAM("yaw: " << joint_pos_errs_[YAW]);
     }
@@ -800,6 +812,7 @@ void NinjaNavigator::morphingProcess()
     {
       return;
     }
+  if(getMyID() == 2)   ROS_ERROR_STREAM("ok5");
 }
 
 

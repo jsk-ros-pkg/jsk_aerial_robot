@@ -66,6 +66,7 @@ namespace aerial_robot_navigation
     void calcCenterOfMoving() override;
     void rosParamInit() override;
     void updateEntSysState();
+    void updateMyState();
     void updateAssemblyTree();
 
   private:
