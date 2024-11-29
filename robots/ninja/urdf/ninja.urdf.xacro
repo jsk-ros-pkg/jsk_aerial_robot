@@ -177,7 +177,7 @@
     <joint name="yaw_connect_point_joint" type="fixed">
       <parent link="yaw_dock_link"/>
       <child link="yaw_connect_point"/>
-      <origin rpy="0 0 0" xyz="0.14085 0 -0.025"/>
+      <origin rpy="0 0 0" xyz="0.14085 0 -0.030"/>
       <axis xyz="0 0 1"/>
     </joint>
     
