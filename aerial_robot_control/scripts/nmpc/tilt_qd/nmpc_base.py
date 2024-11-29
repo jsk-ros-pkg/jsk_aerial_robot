@@ -1,13 +1,12 @@
 """
  Created by li-jinjie on 24-3-9.
 """
-import os
-import errno
-import shutil
 import numpy as np
 from tf_conversions import transformations as tf
 from abc import ABC, abstractmethod
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+
+from rh_base import RecedingHorizonBase
 
 
 class XrUrConverterBase(ABC):
@@ -161,34 +160,18 @@ class XrUrConverterBase(ABC):
         return alloc_mat_pinv
 
 
-class NMPCBase(ABC):
+class NMPCBase(RecedingHorizonBase):
     def __init__(self, is_build: bool = True):
+        super().__init__(is_build)
         self.ts_ctrl = self.set_ts_ctrl()
-
-        self._ocp_model = self.create_acados_model(self.set_name())
-        self._ocp_solver = self.create_acados_ocp_solver(self._ocp_model, is_build)
         self._xr_ur_converter = self.create_xr_ur_converter()
-
-    def get_ocp_model(self) -> AcadosModel:
-        return self._ocp_model
-
-    def get_ocp_solver(self) -> AcadosOcpSolver:
-        return self._ocp_solver
 
     def get_xr_ur_converter(self) -> XrUrConverterBase:
         return self._xr_ur_converter
 
     @abstractmethod
-    def set_name(self) -> str:
-        return "xxx_mdl"
-
-    @abstractmethod
     def set_ts_ctrl(self) -> float:
         return float()
-
-    @abstractmethod
-    def create_acados_model(self, model_name: str) -> AcadosModel:
-        pass
 
     @staticmethod
     def create_acados_sim_solver(ocp_model: AcadosModel, ts_sim: float, is_build: bool) -> AcadosSimSolver:
@@ -204,30 +187,5 @@ class NMPCBase(ABC):
         return acados_sim_solver
 
     @abstractmethod
-    def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
-        pass
-
-    @abstractmethod
     def create_xr_ur_converter(self) -> XrUrConverterBase:
         pass
-
-    @staticmethod
-    def _mkdir(directory, overwrite=False):
-        safe_mkdir_recursive(directory, overwrite)
-
-
-def safe_mkdir_recursive(directory, overwrite=False):
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directory):
-                pass
-            else:
-                raise
-    else:
-        if overwrite:
-            try:
-                shutil.rmtree(directory)
-            except:
-                print("Error while removing directory {}".format(directory))
