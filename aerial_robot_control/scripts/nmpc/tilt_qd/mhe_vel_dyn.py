@@ -45,6 +45,9 @@ class MHEVelDyn(NMPCBase):
 
         states = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)
 
+        # sensor
+        measurements = ca.vertcat(v_w, omega_g)
+
         # parameters
         f_u_w = ca.SX.sym("f_u", 3)
         tau_u_g = ca.SX.sym("tau_u", 3)
@@ -74,7 +77,8 @@ class MHEVelDyn(NMPCBase):
         func = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        cost_state_y = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)
+        cost_state_y = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)  # for arriving cost
+        cost_measurement_y = ca.vertcat(v_w, omega_g)
         cost_noise_y = ca.vertcat(w_f, w_tau)
 
         # acados model
@@ -90,15 +94,16 @@ class MHEVelDyn(NMPCBase):
         model.u = noise
         model.p = controls
 
-        model.cost_y_expr_0 = ca.vertcat(cost_state_y, cost_noise_y, cost_state_y)  # y, u, x
-        model.cost_y_expr = ca.vertcat(cost_state_y, cost_noise_y)  # y, u
-        model.cost_y_expr_e = cost_state_y  # y
+        model.cost_y_expr_0 = ca.vertcat(cost_measurement_y, cost_noise_y, cost_state_y)  # y, u, x
+        model.cost_y_expr = ca.vertcat(cost_measurement_y, cost_noise_y)  # y, u
+        model.cost_y_expr_e = cost_measurement_y  # y
 
         return model
 
     def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         nx = ocp_model.x.size()[0]
-        nu = ocp_model.u.size()[0]
+        nw = ocp_model.u.size()[0]
+        ny = ocp_model.cost_y_expr.size()[0] - nw
         n_params = ocp_model.p.size()[0]
 
         # get file path for acados
@@ -152,12 +157,6 @@ class MHEVelDyn(NMPCBase):
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
             ]
         )
         print("Q_R: \n", Q_R)
@@ -176,13 +175,13 @@ class MHEVelDyn(NMPCBase):
 
         ocp.cost.cost_type_0 = "NONLINEAR_LS"
         # concatenate the diagonal matrix: W_0 = diag(Q_R, R_Q, Q_P)
-        W = np.block([[Q_R, np.zeros((nx, nu))], [np.zeros((nu, nx)), R_Q]])
-        ocp.cost.W_0 = np.block([[W, np.zeros((nx + nu, nx))], [np.zeros((nx, nx + nu)), Q_P]])
+        W = np.block([[Q_R, np.zeros((ny, nw))], [np.zeros((nw, ny)), R_Q]])
+        ocp.cost.W_0 = np.block([[W, np.zeros((ny + nw, nx))], [np.zeros((nx, ny + nw)), Q_P]])
 
         print("W_0: \n", ocp.cost.W_0)
 
         ocp.cost.cost_type = "NONLINEAR_LS"
-        ocp.cost.W = np.block([[Q_R, np.zeros((nx, nu))], [np.zeros((nu, nx)), R_Q]])
+        ocp.cost.W = np.block([[Q_R, np.zeros((ny, nw))], [np.zeros((nw, ny)), R_Q]])
 
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W_e = Q_R  # weight matrix at terminal shooting node (N).
@@ -190,9 +189,9 @@ class MHEVelDyn(NMPCBase):
         # # set constraints
 
         # initial state
-        ocp.cost.yref_0 = np.zeros(nx + nu + nx)
-        ocp.cost.yref = np.zeros(nx + nu)
-        ocp.cost.yref_e = np.zeros(nx)
+        ocp.cost.yref_0 = np.zeros(ny + nw + nx)
+        ocp.cost.yref = np.zeros(ny + nw)
+        ocp.cost.yref_e = np.zeros(ny)
 
         # solver options
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
