@@ -27,7 +27,7 @@ void Servo::sendData()
 			CANServoData data(static_cast<int16_t>(s.getPresentPosition()),
 							  s.present_temp_,
 							  s.moving_,
-							  s.force_servo_off_,
+							  !connect_ || s.force_servo_off_,
 							  s.present_current_,
 							  s.hardware_error_status_);
 			sendMessage(CAN::MESSAGEID_SEND_SERVO_LIST[i], m_slave_id, 8, reinterpret_cast<uint8_t*>(&data), 1);
