@@ -228,6 +228,8 @@ namespace Spine
         if (send_board_index == slave_num_) send_board_index = 0;
       }
     }
+
+    can_initializer_.sendData(); // if necessary
   }
 
   void update(void)
