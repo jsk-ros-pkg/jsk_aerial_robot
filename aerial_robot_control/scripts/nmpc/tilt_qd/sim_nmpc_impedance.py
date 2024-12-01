@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("nmpc_type", type=int, help="The type of NMPC. 0 means disturbance , 1 means impedance.")
     parser.add_argument("-e", "--est_dist_type", type=int, default=1,
                         help="The type of disturbance estimation. 0 means no, 1 means acc, 2 means mhe.")
-    parser.add_argument("-b", "--if_use_ang_acc", type=int, default=1, help="Whether to use angular acceleration.")
+    parser.add_argument("-b", "--if_use_ang_acc", type=int, default=0, help="Whether to use ground truth angular acceleration.")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -87,9 +87,9 @@ if __name__ == "__main__":
     xr_ur_converter = nmpc.get_xr_ur_converter()
     viz = Visualizer(N_sim, nx_sim, nu, x_init_sim, is_record_est_disturb=True)
 
-    fir_param = [-0.5, 0, 0.5]  # central difference
-    gyro_differentiator = [FIRDifferentiator(fir_param, ts_sensor), FIRDifferentiator(fir_param, ts_sensor),
-                           FIRDifferentiator(fir_param, ts_sensor)]  # for gyro differentiation
+    fir_param = [1, -1]  # central difference [0.5, 0, -0.5] # backward difference [1, -1]
+    gyro_differentiator = [FIRDifferentiator(fir_param, 1 / ts_sensor), FIRDifferentiator(fir_param, 1 / ts_sensor),
+                           FIRDifferentiator(fir_param, 1 / ts_sensor)]  # for gyro differentiation
 
     is_sqp_change = False
     t_sqp_start = 2.5
