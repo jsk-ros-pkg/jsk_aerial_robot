@@ -693,9 +693,7 @@ void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr&
 
 void NinjaNavigator::morphingProcess()
 {
-  if(getMyID() == 2)   ROS_ERROR_STREAM("ok1");
   if(!getCurrentAssembled() || !control_flag_) return;
-  if(getMyID() == 2)   ROS_ERROR_STREAM("ok2");
   sensor_msgs::JointState joints_ctrl_msg;
   bool joint_send_flag = false;
   std::map<int, std::string> joint_map;
@@ -741,7 +739,6 @@ void NinjaNavigator::morphingProcess()
             }
         }
     }
-  if(getMyID() == 2)   ROS_ERROR_STREAM("ok3");
   if(joint_send_flag) joint_control_pub_.publish(joints_ctrl_msg);
 
   /* calculate joint pos err */
@@ -791,8 +788,7 @@ void NinjaNavigator::morphingProcess()
             }
         }
     }
-  if(getMyID() == 2)   ROS_ERROR_STREAM("ok4");
- 
+
   int neighbor_id_;
   if(my_id_ < leader_id_)
     {
@@ -812,7 +808,6 @@ void NinjaNavigator::morphingProcess()
     {
       return;
     }
-  if(getMyID() == 2)   ROS_ERROR_STREAM("ok5");
 }
 
 
