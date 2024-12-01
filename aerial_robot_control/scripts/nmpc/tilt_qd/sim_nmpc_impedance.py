@@ -3,7 +3,6 @@
 """
 import copy
 import time
-from email.policy import default
 
 import numpy as np
 import argparse
