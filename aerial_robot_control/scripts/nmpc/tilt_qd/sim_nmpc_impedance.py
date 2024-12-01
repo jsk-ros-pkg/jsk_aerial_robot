@@ -246,27 +246,6 @@ if __name__ == "__main__":
 
             wrench_u_sensor_b = np.dot(xr_ur_converter.alloc_mat, z_sensor)
 
-            u_meas = np.zeros(8)
-            u_meas[0:4] = ft_sensor
-            u_meas[4:] = a_sensor
-
-            # wrench_u_mpc_b
-            # the wrench calculated from mpc command. the current command or the shifted command
-            ft_mpc = u_mpc[0:4]
-            a_mpc = u_mpc[4:]
-
-            z_mpc = np.zeros(8)
-            z_mpc[0] = ft_mpc[0] * np.sin(a_mpc[0])
-            z_mpc[1] = ft_mpc[0] * np.cos(a_mpc[0])
-            z_mpc[2] = ft_mpc[1] * np.sin(a_mpc[1])
-            z_mpc[3] = ft_mpc[1] * np.cos(a_mpc[1])
-            z_mpc[4] = ft_mpc[2] * np.sin(a_mpc[2])
-            z_mpc[5] = ft_mpc[2] * np.cos(a_mpc[2])
-            z_mpc[6] = ft_mpc[3] * np.sin(a_mpc[3])
-            z_mpc[7] = ft_mpc[3] * np.cos(a_mpc[3])
-
-            wrench_u_mpc_b = np.dot(xr_ur_converter.alloc_mat, z_mpc)
-
             # update disturbance estimation
             # # only use the wrench difference between the imu and the actuator sensor, no u_mpc
             if args.est_dist_type == 1:
