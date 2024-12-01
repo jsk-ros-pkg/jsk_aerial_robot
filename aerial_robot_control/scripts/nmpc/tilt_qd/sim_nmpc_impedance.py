@@ -285,7 +285,7 @@ if __name__ == "__main__":
                 mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, :3] = x_now[3:6]  # v_w
-                mhe_yref_list[-1, 3:6] = x_now[10:13]  # omega_g
+                mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
                 mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
 
