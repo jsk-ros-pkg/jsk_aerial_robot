@@ -18,6 +18,7 @@ if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation for impedance control.")
 
+    parser.add_argument("nmpc_type", type=int, help="The type of NMPC. 0 means disturbance , 1 means impedance.")
     parser.add_argument("-e", "--est_dist_type", type=int, default=1,
                         help="The type of disturbance estimation. 0 means no, 1 means acc, 2 means mhe.")
     parser.add_argument("-b", "--if_use_ang_acc", type=int, default=1, help="Whether to use angular acceleration.")
@@ -27,7 +28,13 @@ if __name__ == "__main__":
 
     # ========== init ==========
     # ---------- Controller ----------
-    nmpc = NMPCTiltQdServoThrustImpedance()
+    if args.nmpc_type == 0:
+        nmpc = NMPCTiltQdServoThrustDist()
+    elif args.nmpc_type == 1:
+        nmpc = NMPCTiltQdServoThrustImpedance()
+    else:
+        raise ValueError("Invalid NMPC type.")
+
     t_servo_ctrl = getattr(nmpc, "t_servo", 0.0)
     ts_ctrl = nmpc.ts_ctrl
 
