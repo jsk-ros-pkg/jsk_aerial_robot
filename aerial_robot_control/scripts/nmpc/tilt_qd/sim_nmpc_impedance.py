@@ -54,7 +54,7 @@ if __name__ == "__main__":
         ocp_solver.set(stage, "u", u_init)
 
     # --------- Disturb. Rej. ---------
-    ts_sensor = 0.0025
+    ts_sensor = 0.01
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
 
     # ---------- Simulator ----------
@@ -215,7 +215,7 @@ if __name__ == "__main__":
             iv = sim_nmpc.fake_sensor.iv
 
             sf_b_imu = sf_b + np.random.normal(0.0, 0.1, 3)  # add noise. real: scale = 0.00727 * gravity
-            w_imu = w + np.random.normal(0.0, 0.001, 3)  # add noise. real: scale = 0.0008 rad/s
+            w_imu = w + np.random.normal(0.0, 0.01, 3)  # add noise. real: scale = 0.0008 rad/s
 
             ang_acc_b_imu = np.zeros(3)
             if args.if_use_ang_acc == 0:
@@ -270,10 +270,11 @@ if __name__ == "__main__":
             # update disturbance estimation
             # # only use the wrench difference between the imu and the actuator sensor, no u_mpc
             if args.est_dist_type == 1:
-                alpha = 0.01
-                disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(rot_ib, (
+                alpha_force = 0.1
+                disturb_estimated[0:3] = (1 - alpha_force) * disturb_estimated[0:3] + alpha_force * np.dot(rot_ib, (
                         wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
-                disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
+                alpha_torque = 0.05
+                disturb_estimated[3:6] = (1 - alpha_torque) * disturb_estimated[3:6] + alpha_torque * (
                         wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
 
         # --------- update simulation ----------
