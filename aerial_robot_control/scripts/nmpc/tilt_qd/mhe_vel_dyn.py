@@ -99,7 +99,7 @@ class MHEVelDyn(RecedingHorizonBase):
     def create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
         nx = ocp_model.x.size()[0]
         nw = ocp_model.u.size()[0]
-        ny = ocp_model.cost_y_expr.size()[0] - nw
+        n_meas = ocp_model.cost_y_expr.size()[0] - nw
         n_params = ocp_model.p.size()[0]
 
         # get file path for acados
@@ -171,13 +171,13 @@ class MHEVelDyn(RecedingHorizonBase):
 
         ocp.cost.cost_type_0 = "NONLINEAR_LS"
         # concatenate the diagonal matrix: W_0 = diag(Q_R, R_Q, Q_P)
-        W = np.block([[Q_R, np.zeros((ny, nw))], [np.zeros((nw, ny)), R_Q]])
-        ocp.cost.W_0 = np.block([[W, np.zeros((ny + nw, nx))], [np.zeros((nx, ny + nw)), Q_P]])
+        W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
+        ocp.cost.W_0 = np.block([[W, np.zeros((n_meas + nw, nx))], [np.zeros((nx, n_meas + nw)), Q_P]])
 
         print("W_0: \n", ocp.cost.W_0)
 
         ocp.cost.cost_type = "NONLINEAR_LS"
-        ocp.cost.W = np.block([[Q_R, np.zeros((ny, nw))], [np.zeros((nw, ny)), R_Q]])
+        ocp.cost.W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
 
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W_e = Q_R  # weight matrix at terminal shooting node (N).
@@ -185,9 +185,9 @@ class MHEVelDyn(RecedingHorizonBase):
         # # set constraints
 
         # initial state
-        ocp.cost.yref_0 = np.zeros(ny + nw + nx)
-        ocp.cost.yref = np.zeros(ny + nw)
-        ocp.cost.yref_e = np.zeros(ny)
+        ocp.cost.yref_0 = np.zeros(n_meas + nw + nx)
+        ocp.cost.yref = np.zeros(n_meas + nw)
+        ocp.cost.yref_e = np.zeros(n_meas)
 
         # solver options
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
