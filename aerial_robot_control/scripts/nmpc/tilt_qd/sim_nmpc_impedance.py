@@ -18,7 +18,8 @@ if __name__ == "__main__":
     # read arguments
     parser = argparse.ArgumentParser(description="Run the simulation for impedance control.")
 
-    parser.add_argument("-e", "--if_est_dist", type=int, default=1, help="Whether to estimate the disturbance.")
+    parser.add_argument("-e", "--est_dist_type", type=int, default=1,
+                        help="The type of disturbance estimation. 0 means no, 1 means acc, 2 means mhe.")
     parser.add_argument("-b", "--if_use_ang_acc", type=int, default=1, help="Whether to use angular acceleration.")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     # ---------- Others ----------
     xr_ur_converter = nmpc.get_xr_ur_converter()
-    viz = Visualizer(N_sim, nx_sim, nu, x_init_sim, is_record_diff_u=True)
+    viz = Visualizer(N_sim, nx_sim, nu, x_init_sim, is_record_est_disturb=True)
 
     fir_param = [-0.5, 0, 0.5]  # central difference
     gyro_differentiator = [FIRDifferentiator(fir_param, ts_sensor), FIRDifferentiator(fir_param, ts_sensor),
@@ -100,11 +101,10 @@ if __name__ == "__main__":
         t_sensor += ts_sim
 
         # --------- update state estimation ---------
-        if args.if_est_dist == 1:
-            assert isinstance(nmpc, NMPCTiltQdServoThrustImpedance) or isinstance(nmpc, NMPCTiltQdServoThrustDist)
-            x_now = np.zeros(nx)
-            x_now[:nx - 6] = x_now_sim[:nx - 6]  # copy elements except the last 6 elements, which are the disturbance
-            x_now[-6:] = disturb_estimated
+        assert isinstance(nmpc, NMPCTiltQdServoThrustImpedance) or isinstance(nmpc, NMPCTiltQdServoThrustDist)
+        x_now = np.zeros(nx)
+        x_now[:nx - 6] = x_now_sim[:nx - 6]  # copy elements except the last 6 elements, which are the disturbance
+        x_now[-6:] = disturb_estimated
 
         # -------- update control target --------
         target_xyz = np.array([[0.0, 0.5, 1.0]]).T
@@ -191,15 +191,11 @@ if __name__ == "__main__":
         comp_time_end = time.time()
         viz.comp_time[i] = comp_time_end - comp_time_start
 
-        # -------- sensor-based disturbance rejection --------
-        if hasattr(viz, "u_sim_mpc_all"):
-            viz.update_u_mpc(i, u_mpc)
-
         # by default, the u_cmd is the mpc command
         u_cmd = copy.deepcopy(u_mpc)
 
         # disturb est. is related to the sensor update frequency
-        if t_sensor >= ts_sensor:
+        if t_sensor >= ts_sensor and args.est_dist_type != 0:
             t_sensor = 0.0
 
             # wrench_u_imu_b
@@ -266,24 +262,28 @@ if __name__ == "__main__":
 
             # update disturbance estimation
             # # only use the wrench difference between the imu and the actuator sensor, no u_mpc
-            alpha = 0.005
-            disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(rot_ib, (
-                    wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
-            disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
-                    wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
+            if args.est_dist_type == 1:
+                alpha = 0.01
+                disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(rot_ib, (
+                        wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
+                disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
+                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
 
         # --------- update simulation ----------
         disturb = copy.deepcopy(disturb_init)
+
+        # random disturbance
         # disturb[2] = np.random.normal(1.0, 3.0)  # N, fz
-        # if 2.0 <= t_now < 3.0:
-        #     disturb[0] = 5.0
-        #     disturb[1] = -5.0
-        #     disturb[2] = -2.0
-        #
-        # if 5.0 <= t_now < 6.0:
-        #     disturb[3] = 0.5
-        #     disturb[4] = -0.5
-        #     disturb[5] = 0.5
+
+        if 2.0 <= t_now < 3.0:
+            disturb[0] = 3.0
+            disturb[1] = -5.0
+            disturb[2] = -2.0
+
+        if 5.0 <= t_now < 6.0:
+            disturb[3] = 0.3
+            disturb[4] = -0.5
+            disturb[5] = 0.2
 
         x_now_sim[-6:] = disturb
 
@@ -298,11 +298,12 @@ if __name__ == "__main__":
 
         # --------- update visualizer ----------
         viz.update(i, x_now_sim, u_cmd)  # note that the recording frequency of u_cmd is the same as ts_sim
+        viz.update_est_disturb(i, disturb_estimated[0:3], disturb_estimated[3:6])
 
     # ========== visualize ==========
     if args.plot_type == 0:
-        viz.visualize(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
-                      t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
+        viz.visualize_w_disturb(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
+                                t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
     elif args.plot_type == 1:
         viz.visualize_less(ocp_solver.acados_ocp.model.name, sim_solver.model_name, ts_ctrl, ts_sim, t_total_sim,
                            t_servo_ctrl=t_servo_ctrl, t_servo_sim=t_servo_sim)
