@@ -11,7 +11,7 @@ import casadi as ca
 
 from rh_base import RecedingHorizonBase
 
-from phys_param_beetle_art import *
+from phys_param_beetle_omni import *
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
