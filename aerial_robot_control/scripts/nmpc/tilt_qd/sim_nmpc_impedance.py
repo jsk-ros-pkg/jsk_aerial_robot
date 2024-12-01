@@ -12,6 +12,8 @@ from nmpc_viz import Visualizer, SensorVisualizer
 from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
+from mhe_vel_dyn import MHEVelDyn
+
 np.random.seed(42)
 
 if __name__ == "__main__":
@@ -21,7 +23,8 @@ if __name__ == "__main__":
     parser.add_argument("nmpc_type", type=int, help="The type of NMPC. 0 means disturbance , 1 means impedance.")
     parser.add_argument("-e", "--est_dist_type", type=int, default=1,
                         help="The type of disturbance estimation. 0 means no, 1 means acc, 2 means mhe.")
-    parser.add_argument("-b", "--if_use_ang_acc", type=int, default=0, help="Whether to use ground truth angular acceleration.")
+    parser.add_argument("-b", "--if_use_ang_acc", type=int, default=0,
+                        help="Whether to use ground truth angular acceleration.")
     parser.add_argument("-p", "--plot_type", type=int, default=0, help="The type of plot. Options: 0 (full), 1, 2.")
 
     args = parser.parse_args()
@@ -56,6 +59,22 @@ if __name__ == "__main__":
     # --------- Disturb. Rej. ---------
     ts_sensor = 0.01
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
+
+    # - MHE
+    global mhe_solver, mhe_yref_0, mhe_yref_list, n_meas, x0_bar, mhe_u_list
+    if args.est_dist_type == 2:
+        mhe = MHEVelDyn()
+        mhe_solver = mhe.get_ocp_solver()
+
+        x0_bar = np.zeros(mhe_solver.acados_ocp.dims.nx)
+        # initialize MHE solver
+        for stage in range(mhe_solver.N + 1):
+            mhe_solver.set(stage, "x", x0_bar)
+
+        n_meas = 6  # number of the measurements
+        mhe_yref_0 = np.zeros(n_meas + mhe_solver.acados_ocp.dims.nu + mhe_solver.acados_ocp.dims.nx)
+        mhe_yref_list = np.zeros((mhe_solver.N, n_meas + mhe_solver.acados_ocp.dims.nu))
+        mhe_u_list = np.zeros((mhe_solver.N, mhe_solver.acados_ocp.dims.np))
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -255,6 +274,41 @@ if __name__ == "__main__":
                 alpha_torque = 0.05
                 disturb_estimated[3:6] = (1 - alpha_torque) * disturb_estimated[3:6] + alpha_torque * (
                         wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
+
+            elif args.est_dist_type == 2:
+                # step 1: shift u_list
+                mhe_u_list[:-1, :] = mhe_u_list[1:, :]
+                mhe_u_list[-1, :3] = np.dot(rot_ib, wrench_u_sensor_b[:3])  # f_u_w
+                mhe_u_list[-1, 3:] = wrench_u_sensor_b[3:]  # tau_u_g
+
+                # step 2: shift yref_list
+                mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
+                mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
+                mhe_yref_list[-1, :3] = x_now[3:6]  # v_w
+                mhe_yref_list[-1, 3:6] = x_now[10:13]  # omega_g
+
+                mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
+
+                # step 3: fill yref and p
+                mhe_solver.set(0, "yref", mhe_yref_0)
+                mhe_solver.set(0, "p", mhe_u_list[0, :])
+
+                for stage in range(1, mhe_solver.N):
+                    mhe_solver.set(stage, "yref", mhe_yref_list[stage - 1, :])
+                    mhe_solver.set(stage, "p", mhe_u_list[stage, :])
+
+                mhe_solver.set(mhe_solver.N, "yref", mhe_yref_list[mhe_solver.N - 1, :n_meas])
+
+                # step 4: solve
+                mhe_solver.solve()
+
+                # step 5: update disturbance estimation
+                mhe_x = mhe_solver.get(0, "x")
+                disturb_estimated[0:3] = mhe_x[6:9]
+                disturb_estimated[3:6] = mhe_x[9:12]
+
+                # step 6: update x0_bar
+                x0_bar = mhe_solver.get(1, "x")
 
         # --------- update simulation ----------
         disturb = copy.deepcopy(disturb_init)
