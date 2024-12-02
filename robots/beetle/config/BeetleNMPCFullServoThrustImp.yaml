@@ -39,8 +39,8 @@ controller:
     Qq_z: 6  # oKz
 
     # actuators
-    Qa: 0
-    Qt: 0  # t is for thrust
+    Qa: 2
+    Qt: 2  # t is for thrust
 
     Rtc_d: 1  # difference of ftc
     Rac_d: 250  # difference of ac
