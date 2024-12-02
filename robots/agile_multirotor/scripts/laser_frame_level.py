@@ -34,6 +34,7 @@ def main():
             # Reset roll and pitch to zero
             roll = 0.0
             pitch = 0.0
+            yaw = 0.0
             new_quaternion = quaternion_from_euler(roll, pitch, yaw)
 
             # Define the new transform
