@@ -48,7 +48,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
-  gravity_compensate_term_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gravity_compensate_term", 1);
+  gravity_compensate_term_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/gravity_compensate_term", 1);
   wrench_allocation_matrix_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/wrench_allocation_matrix", 1);
   full_q_mat_pub_ = nh_.advertise<aerial_robot_msgs::WrenchAllocationMatrix>("debug/full_q_mat", 1);
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
@@ -420,12 +420,15 @@ void RollingController::sendCmd()
   target_vectoring_force_pub_.publish(target_vectoring_force_msg);
 
   /* gravity compensate term (ground mode) */
-  std_msgs::Float32MultiArray gravity_compensate_term_msg;
-  for(int i = 0; i < 3; i++)
-    {
-      gravity_compensate_term_msg.data.push_back(gravity_compensate_term_(i));
-    }
-  gravity_compensate_term_pub_.publish(gravity_compensate_term_msg);
+  geometry_msgs::WrenchStamped gravity_compensate_wrench_msg;
+  gravity_compensate_wrench_msg.header.frame_id = tf::resolve(tf_prefix_, std::string("contact_point"));
+  gravity_compensate_wrench_msg.wrench.force.x = 0;
+  gravity_compensate_wrench_msg.wrench.force.y = 0;
+  gravity_compensate_wrench_msg.wrench.force.z = 0;
+  gravity_compensate_wrench_msg.wrench.torque.x = gravity_compensate_term_(0);
+  gravity_compensate_wrench_msg.wrench.torque.y = gravity_compensate_term_(1);
+  gravity_compensate_wrench_msg.wrench.torque.z = gravity_compensate_term_(2);
+  gravity_compensate_term_pub_.publish(gravity_compensate_wrench_msg);
 
   /* wrench allocation matrix */
   aerial_robot_msgs::WrenchAllocationMatrix wrench_allocation_matrix_msg;
