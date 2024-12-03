@@ -13,14 +13,6 @@ RollingRobotModel::RollingRobotModel(bool init_with_rosparam, bool verbose, doub
   current_gimbal_angles_.resize(rotor_num);
   thrust_link_ = "thrust";
 
-  ros::NodeHandle nh;
-  feasible_control_force_pub_  = nh.advertise<geometry_msgs::PoseArray>("feasible_control_force_convex", 1);
-  feasible_control_torque_pub_ = nh.advertise<geometry_msgs::PoseArray>("feasible_control_torque_convex", 1);
-  feasible_control_force_radius_pub_  = nh.advertise<std_msgs::Float32>("feasible_control_force_radius", 1);
-  feasible_control_torque_radius_pub_ = nh.advertise<std_msgs::Float32>("feasible_control_torque_radius", 1);
-  rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
-  rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
-
   gimbal_planning_flag_.resize(getRotorNum(), 0);
   gimbal_planning_angle_.resize(getRotorNum(), 0.0);
 
@@ -143,27 +135,6 @@ void RollingRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_position
       link_inertia = link_inertia + f * inertia.second;
     }
   link_inertia_ = link_inertia;
-
-  /* publish origin and normal for debug */
-  geometry_msgs::PoseArray rotor_origin_msg;
-  geometry_msgs::PoseArray rotor_normal_msg;
-  std::vector<Eigen::Vector3d> rotor_origin = getRotorsOriginFromControlFrame<Eigen::Vector3d>();
-  std::vector<Eigen::Vector3d> rotor_normal = getRotorsNormalFromControlFrame<Eigen::Vector3d>();
-  for(int i = 0; i < getRotorNum(); i++)
-    {
-      geometry_msgs::Pose origin;
-      origin.position.x = rotor_origin.at(i)(0);
-      origin.position.y = rotor_origin.at(i)(1);
-      origin.position.z = rotor_origin.at(i)(2);
-      rotor_origin_msg.poses.push_back(origin);
-      geometry_msgs::Pose normal;
-      normal.position.x = rotor_normal.at(i)(0);
-      normal.position.y = rotor_normal.at(i)(1);
-      normal.position.z = rotor_normal.at(i)(2);
-      rotor_normal_msg.poses.push_back(normal);
-    }
-  rotor_origin_pub_.publish(rotor_origin_msg);
-  rotor_normal_pub_.publish(rotor_normal_msg);
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);

@@ -100,6 +100,8 @@ namespace aerial_robot_control
     ros::Publisher operability_pub_;                  // for debug
     ros::Publisher exerted_wrench_cog_pub_;           // for debug
     ros::Publisher nlopt_log_pub_;                    // for debug
+    ros::Publisher rotor_origin_pub_;
+    ros::Publisher rotor_normal_pub_;
     ros::Subscriber joint_state_sub_;
     ros::Subscriber correct_baselink_pose_sub_;
 

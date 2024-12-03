@@ -54,6 +54,8 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   operability_pub_ = nh_.advertise<std_msgs::Float32>("debug/operability", 1);
   exerted_wrench_cog_pub_ = nh_.advertise<geometry_msgs::WrenchStamped>("debug/exerted_wrench_cog", 1);
   nlopt_log_pub_ = nh.advertise<std_msgs::Float32MultiArray>("debug/nlopt_log", 1);
+  rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
+  rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 
   ground_navigation_mode_ = rolling_navigator_->getCurrentGroundNavigationMode();
 
@@ -606,6 +608,27 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   cog_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   cog_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog_alined"));
   br_.sendTransform(cog_alined_tf);
+
+  /* publish origin and normal for debug */
+  geometry_msgs::PoseArray rotor_origin_msg;
+  geometry_msgs::PoseArray rotor_normal_msg;
+  std::vector<Eigen::Vector3d> rotor_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotor_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  for(int i = 0; i < motor_num_; i++)
+    {
+      geometry_msgs::Pose origin;
+      origin.position.x = rotor_origin.at(i)(0);
+      origin.position.y = rotor_origin.at(i)(1);
+      origin.position.z = rotor_origin.at(i)(2);
+      rotor_origin_msg.poses.push_back(origin);
+      geometry_msgs::Pose normal;
+      normal.position.x = rotor_normal.at(i)(0);
+      normal.position.y = rotor_normal.at(i)(1);
+      normal.position.z = rotor_normal.at(i)(2);
+      rotor_normal_msg.poses.push_back(normal);
+    }
+  rotor_origin_pub_.publish(rotor_origin_msg);
+  rotor_normal_pub_.publish(rotor_normal_msg);
 }
 
 void RollingController::correctBaselinkPoseCallback(const std_msgs::BoolPtr & msg)

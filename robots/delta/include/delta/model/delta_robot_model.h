@@ -56,11 +56,6 @@ public:
   template <class T> T getInertiaFromControlFrame();
 
 private:
-  ros::Publisher feasible_control_force_pub_, feasible_control_torque_pub_;
-  ros::Publisher feasible_control_force_radius_pub_, feasible_control_torque_radius_pub_;
-  ros::Publisher rotor_origin_pub_;
-  ros::Publisher rotor_normal_pub_;
-
   boost::thread contact_point_calc_thread_;
 
   std::mutex links_rotation_mutex_;
