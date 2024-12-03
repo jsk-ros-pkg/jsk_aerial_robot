@@ -44,6 +44,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
+  correct_baselink_pose_sub_ = nh_.subscribe("correct_baselink_pose", 1, &RollingController::correctBaselinkPoseCallback, this);
 
   target_vectoring_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_vectoring_force", 1);
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
@@ -103,6 +104,7 @@ void RollingController::rosParamInit()
   getParam<double>(control_nh, "rolling_minimum_lateral_force", rolling_minimum_lateral_force_, 0.0);
   getParam<double>(control_nh, "ground_mu", ground_mu_, 0.0);
   getParam<bool>(control_nh, "use_estimated_external_force", use_estimated_external_force_, true);
+  getParam<bool>(control_nh, "correct_baselink_pose", correct_baselink_pose_, true);
 
   double circle_radius;
   getParam<double>(nh_, "circle_radius", circle_radius, 0.5);
@@ -614,6 +616,12 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
   cog_alined_tf.header.frame_id = tf::resolve(tf_prefix_, std::string("root"));
   cog_alined_tf.child_frame_id = tf::resolve(tf_prefix_, std::string("cog_alined"));
   br_.sendTransform(cog_alined_tf);
+}
+
+void RollingController::correctBaselinkPoseCallback(const std_msgs::BoolPtr & msg)
+{
+  correct_baselink_pose_ = msg->data;
+  ROS_INFO_STREAM("[control] set baselink pose correction flag as " << (correct_baselink_pose_ ? "true" : "false"));
 }
 
 /* plugin registration */

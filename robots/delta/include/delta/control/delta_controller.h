@@ -101,6 +101,7 @@ namespace aerial_robot_control
     ros::Publisher exerted_wrench_cog_pub_;           // for debug
     ros::Publisher nlopt_log_pub_;                    // for debug
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber correct_baselink_pose_sub_;
 
     tf2_ros::TransformBroadcaster br_;
     KDL::Frame contact_point_alined_;
@@ -153,6 +154,7 @@ namespace aerial_robot_control
     Eigen::VectorXd osqp_solution_;
     bool is_osqp_solved_;
     bool use_estimated_external_force_;
+    bool correct_baselink_pose_;
     bool ground_mode_add_joint_torque_constraints_;
     std::vector<double> opt_initial_x_;
     std::vector<double> opt_x_prev_;
@@ -192,6 +194,9 @@ namespace aerial_robot_control
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
     void setAttitudeGains();
+
+    /* ros callbacks */
+    void correctBaselinkPoseCallback(const std_msgs::BoolPtr & msg);
 
     /* utils */
     void cfgNloptCallback(delta::nloptConfig &config, uint32_t level);

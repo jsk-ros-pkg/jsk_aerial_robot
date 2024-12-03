@@ -14,7 +14,7 @@ void RollingController::groundMotionPlanning()
       ROS_WARN_ONCE("start roll/pitch I control");
     }
 
-  if(!is_osqp_solved_ && ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
+  if(correct_baselink_pose_ && !is_osqp_solved_ && ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
     {
       rolling_navigator_->setTargetBaselinkAttitudeFromCurrentStete();
       ROS_ERROR_STREAM_THROTTLE(0.1, "[control] set target baselink attitude as current state because osqp is not solved");
