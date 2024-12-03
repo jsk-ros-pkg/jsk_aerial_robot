@@ -5,8 +5,8 @@
   <xacro:include filename="$(find delta)/urdf/20240722/rolling_link.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/common.xacro" />
 
-  <xacro:delta_module self="1" child="2" rotor_direction="1" battery="0"/>
-  <xacro:delta_module self="2" child="3" rotor_direction="-1" battery="0"/>
+  <xacro:delta_module self="1" child="2" rotor_direction="1" battery="1"/>
+  <xacro:delta_module self="2" child="3" rotor_direction="-1" battery="1"/>
   <xacro:delta_module self="3" child="3" rotor_direction="1" battery="0"/>
 
   <!-- dummy root link for KDL -->
