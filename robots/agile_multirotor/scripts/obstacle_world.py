@@ -69,8 +69,9 @@ class ObstacleWorld:
         except pd.errors.EmptyDataError as e:
             print("tree data is empty")
             # print("self.obs: ",self.obs)
-        self.spawnWall("wall_body", 0.5, np.array([3.2,0.2,1]) + np.array([shift_x,shift_y,0]), 0.01, 0.6, 2)
+        self.spawnWall("wall_body", 0.5, np.array([3.2,0.1,1]) + np.array([shift_x,shift_y,0]), 0.01, 0.6, 2)
         self.spawnWall("wall_pole", 0.5, np.array([3.2,-0.90,1]) + np.array([shift_x,shift_y,0]), 0.01, 0.1, 2)
+        self.spawnWall("stepladder", 0.5, np.array([1.0,1.3,0.92]) + np.array([shift_x,shift_y,0]), 0.842, 0.92, 1.84)
         # self.spawnWall("right_wall", 0.5, np.array([40,wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
         # self.spawnWall("left_wall", 0.5, np.array([40,-wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
         # self.spawnWall("back_wall", 0.5, np.array([-0.7,-0.4,2]) + np.array([shift_x,shift_y,0]), 0.01, 1.5, 4)
