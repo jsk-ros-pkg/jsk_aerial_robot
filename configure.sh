@@ -18,4 +18,5 @@ if [ "$DISTRO" = "jammy" ]; then
     rosdep update
     sudo apt install -y ros-one-desktop-full
     sudo apt install -y python3-wstool
+    sudo pip3 install -U catkin_tools
 fi
