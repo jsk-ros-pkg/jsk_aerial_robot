@@ -138,6 +138,9 @@ protected:
   void printPhysicalParams();
 
   virtual void initAllocMat();
+
+private:
+  tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.
 };
 
 }  // namespace nmpc

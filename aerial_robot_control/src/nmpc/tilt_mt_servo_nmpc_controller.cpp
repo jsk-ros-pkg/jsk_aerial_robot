@@ -54,6 +54,8 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   initActuatorStates();
   initPredXU(x_u_ref_, mpc_solver_ptr_->NN_, mpc_solver_ptr_->NX_, mpc_solver_ptr_->NU_);
 
+  quat_prev_.setW(1.0);
+
   reset();
   ROS_INFO("MPC Controller initialized!");
 }
@@ -523,6 +525,18 @@ std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
   tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
   tf::Quaternion quat = estimator_->getQuat(Frame::COG, estimate_mode_);
   tf::Vector3 ang_vel = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+
+  // === check the sign of the quaternion, avoid the flip of the quaternion. ===
+  // This is quite important because of the warm-starting of the NMPC solver. The quaternion should be continuous.
+  double qe_c_w =
+      quat.w() * quat_prev_.w() + quat.x() * quat_prev_.x() + quat.y() * quat_prev_.y() + quat.z() * quat_prev_.z();
+  if (qe_c_w < 0)
+  {
+    quat = quat.operator-();
+  }
+
+  quat_prev_ = quat;
+  // =========================
 
   bx0[0] = pos.x();
   bx0[1] = pos.y();
