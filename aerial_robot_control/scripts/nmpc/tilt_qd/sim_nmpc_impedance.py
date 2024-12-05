@@ -347,8 +347,8 @@ if __name__ == "__main__":
 
                 # step 5: update disturbance estimation
                 mhe_x = mhe_solver.get(0, "x")
-                disturb_estimated[0:3] = mhe_x[6:9]
-                disturb_estimated[3:6] = mhe_x[9:12]
+                disturb_estimated[0:3] = mhe_x[3:6]
+                disturb_estimated[3:6] = mhe_x[6:9]
 
                 # step 6: update x0_bar
                 x0_bar = mhe_solver.get(1, "x")

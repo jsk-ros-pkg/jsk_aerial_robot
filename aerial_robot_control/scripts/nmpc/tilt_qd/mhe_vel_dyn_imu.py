@@ -34,12 +34,11 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
     def create_acados_model(self, model_name: str) -> AcadosModel:
         # model states
-        v_w = ca.SX.sym("v", 3)
         omega_g = ca.SX.sym("omega", 3)
         f_d_w = ca.SX.sym("fd", 3)  # world frame
         tau_d_g = ca.SX.sym("tau_d", 3)  # cog frame
 
-        states = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)
+        states = ca.vertcat(omega_g, f_d_w, tau_d_g)
 
         # parameters
         f_u_g = ca.SX.sym("f_u", 3)
@@ -84,7 +83,6 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
         # dynamic model
         ds = ca.vertcat(
-            (ca.mtimes(rot_wg, f_u_g) + f_d_w) / mass + g_i,
             ca.mtimes(inv_iv, (-ca.cross(omega_g, ca.mtimes(iv, omega_g)) + tau_u_g + tau_d_g)),
             w_f,
             w_tau,
@@ -146,9 +144,6 @@ class MHEVelDynIMU(RecedingHorizonBase):
         # cost function
         Q_P = np.diag(
             [
-                mhe_params["P_v"],
-                mhe_params["P_v"],
-                mhe_params["P_v"],
                 mhe_params["P_omega"],
                 mhe_params["P_omega"],
                 mhe_params["P_omega"],
