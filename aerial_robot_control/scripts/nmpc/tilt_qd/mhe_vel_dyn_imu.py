@@ -73,7 +73,9 @@ class MHEVelDynIMU(RecedingHorizonBase):
         rot_gw = rot_wg.T
 
         # sensor function
-        measurements = ca.vertcat(f_u_g + ca.mtimes(rot_gw, f_d_w) / mass, omega_g)
+        measurements = ca.vertcat(
+            (f_u_g + ca.mtimes(rot_gw, f_d_w)) / mass,
+            omega_g)
 
         # inertial
         iv = ca.diag([Ixx, Iyy, Izz])

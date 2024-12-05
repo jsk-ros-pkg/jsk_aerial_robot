@@ -13,6 +13,7 @@ from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
 from mhe_vel_dyn import MHEVelDyn
+from mhe_vel_dyn_imu import MHEVelDynIMU
 
 np.random.seed(42)
 
@@ -61,9 +62,16 @@ if __name__ == "__main__":
     disturb_estimated = np.zeros(6)  # f_d_i, tau_d_b. Note that they are in different frames.
 
     # - MHE
-    global mhe_solver, mhe_yref_0, mhe_yref_list, n_meas, x0_bar, mhe_u_list
-    if args.est_dist_type == 2:
-        mhe = MHEVelDyn()
+    global mhe, mhe_solver, mhe_yref_0, mhe_yref_list, n_meas, x0_bar, mhe_u_list
+
+    if args.est_dist_type > 1:
+        if args.est_dist_type == 2:
+            mhe = MHEVelDyn()
+            n_meas = 6  # number of the measurements
+        elif args.est_dist_type == 3:
+            mhe = MHEVelDynIMU()
+            n_meas = 6  # number of the measurements
+
         mhe_solver = mhe.get_ocp_solver()
 
         x0_bar = np.zeros(mhe_solver.acados_ocp.dims.nx)
@@ -71,7 +79,6 @@ if __name__ == "__main__":
         for stage in range(mhe_solver.N + 1):
             mhe_solver.set(stage, "x", x0_bar)
 
-        n_meas = 6  # number of the measurements
         mhe_yref_0 = np.zeros(n_meas + mhe_solver.acados_ocp.dims.nu + mhe_solver.acados_ocp.dims.nx)
         mhe_yref_list = np.zeros((mhe_solver.N, n_meas + mhe_solver.acados_ocp.dims.nu))
         mhe_u_list = np.zeros((mhe_solver.N, mhe_solver.acados_ocp.dims.np))
@@ -85,7 +92,7 @@ if __name__ == "__main__":
 
     disturb_init = np.zeros(6)
 
-    t_total_sim = 8.0
+    t_total_sim = 2.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -285,6 +292,42 @@ if __name__ == "__main__":
                 mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, :3] = x_now[3:6]  # v_w
+                mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
+
+                mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
+
+                # step 3: fill yref and p
+                mhe_solver.set(0, "yref", mhe_yref_0)
+                mhe_solver.set(0, "p", mhe_u_list[0, :])
+
+                for stage in range(1, mhe_solver.N):
+                    mhe_solver.set(stage, "yref", mhe_yref_list[stage - 1, :])
+                    mhe_solver.set(stage, "p", mhe_u_list[stage, :])
+
+                mhe_solver.set(mhe_solver.N, "yref", mhe_yref_list[mhe_solver.N - 1, :n_meas])
+
+                # step 4: solve
+                mhe_solver.solve()
+
+                # step 5: update disturbance estimation
+                mhe_x = mhe_solver.get(0, "x")
+                disturb_estimated[0:3] = mhe_x[6:9]
+                disturb_estimated[3:6] = mhe_x[9:12]
+
+                # step 6: update x0_bar
+                x0_bar = mhe_solver.get(1, "x")
+
+            elif args.est_dist_type == 3:
+                # step 1: shift u_list
+                mhe_u_list[:-1, :] = mhe_u_list[1:, :]
+                mhe_u_list[-1, 0:3] = wrench_u_sensor_b[:3]  # f_u_g
+                mhe_u_list[-1, 3:6] = wrench_u_sensor_b[3:]  # tau_u_g
+                mhe_u_list[-1, 6:10] = x_now_sim[6:10]  # q
+
+                # step 2: shift yref_list
+                mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
+                mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
+                mhe_yref_list[-1, 0:3] = sf_b_imu  # acc specific force, from sensor
                 mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
                 mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
