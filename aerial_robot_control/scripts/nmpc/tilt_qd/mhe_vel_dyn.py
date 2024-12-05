@@ -41,7 +41,7 @@ class MHEVelDyn(RecedingHorizonBase):
 
         states = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)
 
-        # sensor
+        # sensor function
         measurements = ca.vertcat(v_w, omega_g)
 
         # parameters
@@ -73,10 +73,6 @@ class MHEVelDyn(RecedingHorizonBase):
         func = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        cost_state_y = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)  # for arriving cost
-        cost_measurement_y = ca.vertcat(v_w, omega_g)
-        cost_noise_y = ca.vertcat(w_f, w_tau)
-
         # acados model
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - func(states, noise)
@@ -90,9 +86,9 @@ class MHEVelDyn(RecedingHorizonBase):
         model.u = noise
         model.p = controls
 
-        model.cost_y_expr_0 = ca.vertcat(cost_measurement_y, cost_noise_y, cost_state_y)  # y, u, x
-        model.cost_y_expr = ca.vertcat(cost_measurement_y, cost_noise_y)  # y, u
-        model.cost_y_expr_e = cost_measurement_y  # y
+        model.cost_y_expr_0 = ca.vertcat(measurements, noise, states)  # y, u, x
+        model.cost_y_expr = ca.vertcat(measurements, noise)  # y, u
+        model.cost_y_expr_e = measurements  # y
 
         return model
 
