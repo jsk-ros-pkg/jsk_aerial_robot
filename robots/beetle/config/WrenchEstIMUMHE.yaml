@@ -14,7 +14,7 @@ controller:
     P_f_d: 0.1
     P_tau_d: 0.1
 
-    R_v: 0.1
+    R_a: 0.1
     R_omega: 0.1
 
     Q_w_f: 0.1

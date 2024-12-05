@@ -41,20 +41,39 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
         states = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)
 
-        # sensor
-        measurements = ca.vertcat(v_w, omega_g)
-
         # parameters
-        f_u_w = ca.SX.sym("f_u", 3)
+        f_u_g = ca.SX.sym("f_u", 3)
         tau_u_g = ca.SX.sym("tau_u", 3)
 
-        controls = ca.vertcat(f_u_w, tau_u_g)  # u
+        qw = ca.SX.sym("qw")
+        qx = ca.SX.sym("qx")
+        qy = ca.SX.sym("qy")
+        qz = ca.SX.sym("qz")
+        q = ca.vertcat(qw, qx, qy, qz)
+
+        controls = ca.vertcat(f_u_g, tau_u_g, q)  # u as parameters
 
         # process noise
         w_f = ca.SX.sym("w_f", 3)
         w_tau = ca.SX.sym("w_tau", 3)
 
         noise = ca.vertcat(w_f, w_tau)
+
+        # transformation matrix
+        row_1 = ca.horzcat(
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+        )
+        row_2 = ca.horzcat(
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+        )
+        row_3 = ca.horzcat(
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+        )
+        rot_wg = ca.vertcat(row_1, row_2, row_3)
+        rot_gw = rot_wg.T
+
+        # sensor function
+        measurements = ca.vertcat(f_u_g + ca.mtimes(rot_gw, f_d_w) / mass, omega_g)
 
         # inertial
         iv = ca.diag([Ixx, Iyy, Izz])
@@ -63,7 +82,7 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
         # dynamic model
         ds = ca.vertcat(
-            (f_u_w + f_d_w) / mass + g_i,
+            (ca.mtimes(rot_wg, f_u_g) + f_d_w) / mass + g_i,
             ca.mtimes(inv_iv, (-ca.cross(omega_g, ca.mtimes(iv, omega_g)) + tau_u_g + tau_d_g)),
             w_f,
             w_tau,
@@ -73,10 +92,6 @@ class MHEVelDynIMU(RecedingHorizonBase):
         func = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        cost_state_y = ca.vertcat(v_w, omega_g, f_d_w, tau_d_g)  # for arriving cost
-        cost_measurement_y = ca.vertcat(v_w, omega_g)
-        cost_noise_y = ca.vertcat(w_f, w_tau)
-
         # acados model
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - func(states, noise)
@@ -90,9 +105,9 @@ class MHEVelDynIMU(RecedingHorizonBase):
         model.u = noise
         model.p = controls
 
-        model.cost_y_expr_0 = ca.vertcat(cost_measurement_y, cost_noise_y, cost_state_y)  # y, u, x
-        model.cost_y_expr = ca.vertcat(cost_measurement_y, cost_noise_y)  # y, u
-        model.cost_y_expr_e = cost_measurement_y  # y
+        model.cost_y_expr_0 = ca.vertcat(measurements, noise, states)  # y, u, x
+        model.cost_y_expr = ca.vertcat(measurements, noise)  # y, u
+        model.cost_y_expr_e = measurements  # y
 
         return model
 
@@ -147,9 +162,9 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
         Q_R = np.diag(
             [
-                mhe_params["R_v"],
-                mhe_params["R_v"],
-                mhe_params["R_v"],
+                mhe_params["R_a"],
+                mhe_params["R_a"],
+                mhe_params["R_a"],
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
