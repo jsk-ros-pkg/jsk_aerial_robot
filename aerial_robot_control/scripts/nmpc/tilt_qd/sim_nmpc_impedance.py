@@ -310,7 +310,7 @@ if __name__ == "__main__":
                 mhe_solver.solve()
 
                 # step 5: update disturbance estimation
-                mhe_x = mhe_solver.get(0, "x")
+                mhe_x = mhe_solver.get(mhe_solver.N, "x")
                 disturb_estimated[0:3] = mhe_x[6:9]
                 disturb_estimated[3:6] = mhe_x[9:12]
 
@@ -346,7 +346,7 @@ if __name__ == "__main__":
                 mhe_solver.solve()
 
                 # step 5: update disturbance estimation
-                mhe_x = mhe_solver.get(0, "x")
+                mhe_x = mhe_solver.get(mhe_solver.N, "x")  # Note that in MHE, we want the last state!
                 disturb_estimated[0:3] = mhe_x[3:6]
                 disturb_estimated[3:6] = mhe_x[6:9]
 
