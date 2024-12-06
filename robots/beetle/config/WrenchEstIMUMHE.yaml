@@ -9,13 +9,12 @@ controller:
     T_integ: 0.01  # seconds
 
     # arrival cost
-    P_v: 0.1
     P_omega: 0.1
     P_f_d: 0.1
     P_tau_d: 0.1
 
-    R_a: 0.1
+    R_a: 1.0
     R_omega: 0.1
 
-    Q_w_f: 0.1
+    Q_w_f: 0.0001
     Q_w_tau: 0.1
