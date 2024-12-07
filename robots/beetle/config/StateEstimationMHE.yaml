@@ -1,0 +1,21 @@
+# Sensor Fuser Loader
+estimation:
+        mhe:
+                T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+                T_pred: 0.2  # seconds
+                T_integ: 0.01  # seconds
+
+                # arrival cost
+                P_p: 0.1
+                P_v: 0.1
+                P_a_sf: 0.1
+                P_q: 0.1
+                P_omega: 0.1
+
+                R_p: 10
+                R_a_sf: 10
+                R_q: 10
+                R_omega: 10
+
+                Q_w_a_sf: 0.1
+                Q_w_omega: 0.1
