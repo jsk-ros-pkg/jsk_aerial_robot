@@ -41,16 +41,9 @@ class MHEVelDynIMU(RecedingHorizonBase):
         states = ca.vertcat(omega_g, f_d_w, tau_d_g)
 
         # parameters
-        f_u_g = ca.SX.sym("f_u", 3)
         tau_u_g = ca.SX.sym("tau_u", 3)
 
-        qw = ca.SX.sym("qw")
-        qx = ca.SX.sym("qx")
-        qy = ca.SX.sym("qy")
-        qz = ca.SX.sym("qz")
-        q = ca.vertcat(qw, qx, qy, qz)
-
-        controls = ca.vertcat(f_u_g, tau_u_g, q)  # u as parameters
+        controls = ca.vertcat(tau_u_g)  # u as parameters
 
         # process noise
         w_f = ca.SX.sym("w_f", 3)
@@ -58,28 +51,12 @@ class MHEVelDynIMU(RecedingHorizonBase):
 
         noise = ca.vertcat(w_f, w_tau)
 
-        # transformation matrix
-        row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
-        )
-        row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
-        )
-        row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
-        )
-        rot_wg = ca.vertcat(row_1, row_2, row_3)
-        rot_gw = rot_wg.T
-
         # sensor function
-        measurements = ca.vertcat(
-            (f_u_g + ca.mtimes(rot_gw, f_d_w)) / mass,
-            omega_g)
+        measurements = ca.vertcat(f_d_w, omega_g)
 
         # inertial
         iv = ca.diag([Ixx, Iyy, Izz])
         inv_iv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        g_i = np.array([0, 0, -gravity])
 
         # dynamic model
         ds = ca.vertcat(

@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     disturb_init = np.zeros(6)
 
-    t_total_sim = 2.0
+    t_total_sim = 8.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -320,14 +320,12 @@ if __name__ == "__main__":
             elif args.est_dist_type == 3:
                 # step 1: shift u_list
                 mhe_u_list[:-1, :] = mhe_u_list[1:, :]
-                mhe_u_list[-1, 0:3] = wrench_u_sensor_b[:3]  # f_u_g
-                mhe_u_list[-1, 3:6] = wrench_u_sensor_b[3:]  # tau_u_g
-                mhe_u_list[-1, 6:10] = x_now_sim[6:10]  # q
+                mhe_u_list[-1, 0:3] = wrench_u_sensor_b[3:6]  # tau_u_g
 
                 # step 2: shift yref_list
                 mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
-                mhe_yref_list[-1, 0:3] = sf_b_imu  # acc specific force, from sensor
+                mhe_yref_list[-1, 0:3] = np.dot(rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # f_d_w
                 mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
                 mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
