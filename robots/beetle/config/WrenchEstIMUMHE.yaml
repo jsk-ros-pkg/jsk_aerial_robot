@@ -10,11 +10,11 @@ controller:
 
     # arrival cost
     P_omega: 0.1
-    P_f_d: 0.1
+    P_f_d: 50
     P_tau_d: 0.1
 
-    R_a: 1.0
+    R_a: 0.1
     R_omega: 0.1
 
-    Q_w_f: 0.0001
+    Q_w_f: 10
     Q_w_tau: 0.1
