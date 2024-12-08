@@ -110,6 +110,7 @@ target_link_libraries(mpc_solver_plugins ${catkin_LIBRARIES} acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_tri_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_tri_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_servo_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/wrench_est/mhe_wrench_est_acc_mom_mdl/c_generated_code/libacados_ocp_solver_mhe_wrench_est_acc_mom_mdl.so
 )
 if(ACADOS_PYTHON_TARGETS)
   add_dependencies(mpc_solver_plugins ${ACADOS_PYTHON_TARGETS})
