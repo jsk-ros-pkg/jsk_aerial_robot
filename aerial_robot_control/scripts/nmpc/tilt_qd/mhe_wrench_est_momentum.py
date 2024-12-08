@@ -23,13 +23,13 @@ mhe_params = mhe_param_dict["controller"]["mhe"]
 mhe_params["N_node"] = int(mhe_params["T_pred"] / mhe_params["T_integ"])
 
 
-class MHEVelDyn(RecedingHorizonBase):
+class MHEWrenchEstMomentum(RecedingHorizonBase):
     def __init__(self):
-        super(MHEVelDyn, self).__init__()
+        super(MHEWrenchEstMomentum, self).__init__()
         self.t_servo = t_servo
 
     def set_name(self) -> str:
-        model_name = "mhe_vel_dyn_mdl"
+        model_name = "mhe_wrench_est_momentum_mdl"
         return model_name
 
     def create_acados_model(self, model_name: str) -> AcadosModel:
@@ -205,7 +205,7 @@ class MHEVelDyn(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    nmpc = MHEVelDyn()
+    nmpc = MHEWrenchEstMomentum()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

@@ -12,8 +12,8 @@ from nmpc_viz import Visualizer, SensorVisualizer
 from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
 from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
 
-from mhe_vel_dyn import MHEVelDyn
-from mhe_vel_dyn_imu import MHEVelDynIMU
+from mhe_wrench_est_momentum import MHEWrenchEstMomentum
+from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
 
 np.random.seed(42)
 
@@ -66,10 +66,10 @@ if __name__ == "__main__":
 
     if args.est_dist_type > 1:
         if args.est_dist_type == 2:
-            mhe = MHEVelDyn()
+            mhe = MHEWrenchEstMomentum()
             n_meas = 6  # number of the measurements
         elif args.est_dist_type == 3:
-            mhe = MHEVelDynIMU()
+            mhe = MHEWrenchEstAccMom()
             n_meas = 6  # number of the measurements
 
         mhe_solver = mhe.get_ocp_solver()
