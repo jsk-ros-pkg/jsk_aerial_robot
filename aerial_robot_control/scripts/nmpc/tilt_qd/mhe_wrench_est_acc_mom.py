@@ -136,9 +136,9 @@ class MHEWrenchEstAccMom(RecedingHorizonBase):
 
         Q_R = np.diag(
             [
-                mhe_params["R_a"],
-                mhe_params["R_a"],
-                mhe_params["R_a"],
+                mhe_params["R_f_d"],
+                mhe_params["R_f_d"],
+                mhe_params["R_f_d"],
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
                 mhe_params["R_omega"],
