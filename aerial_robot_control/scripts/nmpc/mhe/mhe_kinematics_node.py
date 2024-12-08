@@ -79,7 +79,7 @@ class MHEKinematicsNode:
         self.mhe_p_list[-1, :] = np.array([quat_meas.w, quat_meas.x, quat_meas.y, quat_meas.z])
 
         # step 2: shift yref_list
-        self.mhe_yref_0[:self.mhe_nm] = self.mhe_yref_list[0, :self.mhe_nm]
+        self.mhe_yref_0[:self.mhe_nm + self.mhe_nu] = self.mhe_yref_list[0, :self.mhe_nm + self.mhe_nu]
         self.mhe_yref_0[self.mhe_nm + self.mhe_nu:] = self.x0_bar
 
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]

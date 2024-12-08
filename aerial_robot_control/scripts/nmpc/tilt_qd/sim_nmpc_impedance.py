@@ -289,12 +289,13 @@ if __name__ == "__main__":
                 mhe_u_list[-1, 3:] = wrench_u_sensor_b[3:]  # tau_u_g
 
                 # step 2: shift yref_list
-                mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
+                mhe_nu = mhe_solver.acados_ocp.dims.nu
+                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, :3] = x_now[3:6]  # v_w
                 mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
-
-                mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
 
                 # step 3: fill yref and p
                 mhe_solver.set(0, "yref", mhe_yref_0)
@@ -323,12 +324,13 @@ if __name__ == "__main__":
                 mhe_u_list[-1, 0:3] = wrench_u_sensor_b[3:6]  # tau_u_g
 
                 # step 2: shift yref_list
-                mhe_yref_0[:n_meas] = mhe_yref_list[0, :n_meas]
+                mhe_nu = mhe_solver.acados_ocp.dims.nu
+                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = np.dot(rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # f_d_w
                 mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
-
-                mhe_yref_0[n_meas + mhe_solver.acados_ocp.dims.nu:] = x0_bar
 
                 # step 3: fill yref and p
                 mhe_solver.set(0, "yref", mhe_yref_0)
