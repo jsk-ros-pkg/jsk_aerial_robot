@@ -4,8 +4,6 @@
 
 import sys
 import numpy as np
-import yaml
-import rospkg
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 import casadi as ca
 
@@ -19,7 +17,7 @@ rospack = rospkg.RosPack()
 mhe_param_path = os.path.join(rospack.get_path("beetle"), "config", "StateEstimationMHE.yaml")
 with open(mhe_param_path, "r") as f:
     mhe_param_dict = yaml.load(f, Loader=yaml.FullLoader)
-mhe_params = mhe_param_dict["controller"]["mhe"]
+mhe_params = mhe_param_dict["estimation"]["mhe"]
 mhe_params["N_node"] = int(mhe_params["T_pred"] / mhe_params["T_integ"])
 
 
@@ -250,7 +248,7 @@ if __name__ == "__main__":
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
     print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
-    print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
+    print("number of noise: ", acados_ocp_solver.acados_ocp.dims.nu)
     print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
     print("T_samp: ", mhe_params["T_samp"])
     print("T_pred: ", mhe_params["T_pred"])
