@@ -174,19 +174,19 @@ class MHEKinematics(RecedingHorizonBase):
 
         Q_R = np.diag(
             [
-                mhe_params["R_p"],
-                mhe_params["R_p"],
-                mhe_params["R_p"],
-                mhe_params["R_a_sf"],
-                mhe_params["R_a_sf"],
-                mhe_params["R_a_sf"],
-                mhe_params["R_q"],  # TODO: This error should also be considered as quaternion error.
-                mhe_params["R_q"],
-                mhe_params["R_q"],
-                mhe_params["R_q"],
-                mhe_params["R_omega"],
-                mhe_params["R_omega"],
-                mhe_params["R_omega"],
+                1 / (mhe_params["R_p"] ** 2),
+                1 / (mhe_params["R_p"] ** 2),
+                1 / (mhe_params["R_p"] ** 2),
+                1 / (mhe_params["R_a_sf"] ** 2),
+                1 / (mhe_params["R_a_sf"] ** 2),
+                1 / (mhe_params["R_a_sf"] ** 2),
+                1 / (mhe_params["R_q"] ** 2),  # TODO: This error should also be considered as quaternion error.
+                1 / (mhe_params["R_q"] ** 2),
+                1 / (mhe_params["R_q"] ** 2),
+                1 / (mhe_params["R_q"] ** 2),
+                1 / (mhe_params["R_omega"] ** 2),
+                1 / (mhe_params["R_omega"] ** 2),
+                1 / (mhe_params["R_omega"] ** 2),
             ]
         )
         print("Q_R: \n", Q_R)

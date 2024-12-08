@@ -12,10 +12,11 @@ estimation:
                 P_q: 0.1
                 P_omega: 0.1
 
-                R_p: 10
-                R_a_sf: 10
-                R_q: 10
-                R_omega: 10
+                # noise sigma
+                R_p: 0.001
+                R_a_sf: 0.07
+                R_q: 0.01
+                R_omega: 0.008
 
                 Q_w_a_sf: 0.1
                 Q_w_omega: 0.1
