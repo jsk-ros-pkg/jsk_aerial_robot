@@ -33,12 +33,16 @@ class MHEKinematicsNode:
 
         # initialize MHE solver
         self.x0_bar = np.zeros(self.mhe_nx)
+        self.x0_bar[9] = 1.0  # initial quaternion
         for stage in range(self.mhe_N + 1):
             self.mhe_solver.set(stage, "x", self.x0_bar)
 
         self.mhe_yref_0 = np.zeros(self.mhe_nm + self.mhe_nu + self.mhe_nx)
+        self.mhe_yref_0[6] = 1.0  # initial quaternion
         self.mhe_yref_list = np.zeros((self.mhe_N, self.mhe_nm + self.mhe_nu))
+        self.mhe_yref_list[:, 6] = 1.0  # initial quaternion
         self.mhe_p_list = np.zeros((self.mhe_N, self.mhe_np))
+        self.mhe_p_list[:, 0] = 1.0  # initial quaternion
 
         # Subscribers
         imu_topic = f"/{self.robot_name}/imu"
