@@ -5,7 +5,7 @@
 #ifndef MHE_WRENCH_EST_ACC_MOM_SOLVER_H
 #define MHE_WRENCH_EST_ACC_MOM_SOLVER_H
 
-#include "aerial_robot_control/nmpc/base_mpc_solver.h"
+#include "aerial_robot_control/nmpc/base_mhe_solver.h"
 #include "aerial_robot_control/wrench_est/mhe_wrench_est_acc_mom_mdl/c_generated_code/acados_solver_mhe_wrench_est_acc_mom_mdl.h"
 
 
@@ -15,7 +15,7 @@ namespace aerial_robot_control
 namespace mhe_solver
 {
 
-class MHEWrenchEstAccMom : public mpc_solver::BaseMPCSolver
+class MHEWrenchEstAccMom : public mhe_solver::BaseMHESolver
 {
 public:
   MHEWrenchEstAccMom()
@@ -56,6 +56,9 @@ public:
     NPHI_ = MHE_WRENCH_EST_ACC_MOM_MDL_NPHI;
     NPHIN_ = MHE_WRENCH_EST_ACC_MOM_MDL_NPHIN;
     NR_ = MHE_WRENCH_EST_ACC_MOM_MDL_NR;
+
+    // only for MHE
+    NM_ = 6;
 
     // acados functions that only using once
     acados_ocp_capsule_ = mhe_wrench_est_acc_mom_mdl_acados_create_capsule();
