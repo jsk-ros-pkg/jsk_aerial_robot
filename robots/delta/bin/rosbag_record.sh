@@ -5,4 +5,4 @@ if [ $# -ne 1 ];then
     exit 1
 fi
 
-rosbag record -a -x "(.*)/cloud_registered(.*)" -o $1
+rosbag record -a -x ".*/cloud_registered.*|.*/compressedDepth.*|.*/theora.*|.*/image" -o $1

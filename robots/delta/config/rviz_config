@@ -84,6 +84,16 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        high_lipo_single1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        high_lipo_single2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         lidar_imu:
           Alpha: 1
           Show Axes: false
@@ -207,6 +217,10 @@ Visualization Manager:
           Value: true
         delta/gimbal_link3:
           Value: true
+        delta/high_lipo_single1:
+          Value: true
+        delta/high_lipo_single2:
+          Value: true
         delta/lidar_imu:
           Value: true
         delta/lidar_imu_link:
@@ -273,6 +287,8 @@ Visualization Manager:
                 delta/rotor_parent1:
                   delta/thrust1:
                     {}
+              delta/high_lipo_single1:
+                {}
               delta/link1_center:
                 {}
               delta/link1_leg:
@@ -285,6 +301,8 @@ Visualization Manager:
                   delta/rotor_parent2:
                     delta/thrust2:
                       {}
+                delta/high_lipo_single2:
+                  {}
                 delta/link2_center:
                   {}
                 delta/link2_leg:
@@ -707,6 +725,11 @@ Visualization Manager:
       text size: 8
       top: 640
       width: 600
+    - Class: jsk_rviz_plugin/RvizScenePublisher
+      Enabled: true
+      Name: RvizScenePublisher
+      Value: true
+      topic_name: /rviz/image
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
