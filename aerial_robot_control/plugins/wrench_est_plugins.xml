@@ -12,4 +12,8 @@
         <description>Wrench estimation using Acceleration-based method.</description>
     </class>
 
+    <class type="aerial_robot_control::WrenchEstMHEAccMom" base_class_type="aerial_robot_control::WrenchEstActuatorMeasBase">
+        <description>Wrench estimation using MHE based acc + mom method.</description>
+    </class>
+
 </library>
