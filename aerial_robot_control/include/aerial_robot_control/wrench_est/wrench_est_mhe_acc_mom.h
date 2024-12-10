@@ -69,8 +69,8 @@ public:
     mhe_solver_.solve();
     auto x_est = mhe_solver_.getEstimatedState(mhe_solver_.NN_);
 
-    setDistForceW(x_est.at(6), x_est.at(7), x_est.at(8));
-    setDistTorqueCOG(x_est.at(9), x_est.at(10), x_est.at(11));
+    setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
+    setDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
   }
 
 private:

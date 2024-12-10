@@ -1,7 +1,7 @@
 wrench_estimator_name: aerial_robot_control::WrenchEstMHEAccMom
 
 controller:
-  if_use_est_wrench_4_control: false
+  if_use_est_wrench_4_control: true
 
   mhe:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
