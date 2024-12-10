@@ -1,4 +1,4 @@
-#wrench_estimator_name: aerial_robot_control::WrenchEstMomentum
+wrench_estimator_name: aerial_robot_control::WrenchEstMHEAccMom
 
 controller:
   if_use_est_wrench_4_control: false
