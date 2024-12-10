@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
         mhe_yref_0 = np.zeros(n_meas + mhe_solver.acados_ocp.dims.nu + mhe_solver.acados_ocp.dims.nx)
         mhe_yref_list = np.zeros((mhe_solver.N, n_meas + mhe_solver.acados_ocp.dims.nu))
-        mhe_u_list = np.zeros((mhe_solver.N, mhe_solver.acados_ocp.dims.np))
+        mhe_u_list = np.zeros((mhe_solver.N + 1, mhe_solver.acados_ocp.dims.np))
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -306,6 +306,7 @@ if __name__ == "__main__":
                     mhe_solver.set(stage, "p", mhe_u_list[stage, :])
 
                 mhe_solver.set(mhe_solver.N, "yref", mhe_yref_list[mhe_solver.N - 1, :n_meas])
+                mhe_solver.set(mhe_solver.N, "p", mhe_u_list[mhe_solver.N, :])
 
                 # step 4: solve
                 mhe_solver.solve()
