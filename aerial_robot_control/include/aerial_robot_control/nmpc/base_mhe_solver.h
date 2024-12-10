@@ -120,6 +120,15 @@ public:
     return 0;
   }
 
+  /* Getters */
+  std::vector<double> getEstimatedState(int idx)
+  {
+    if (idx < 0 || idx > NN_)
+      throw std::out_of_range("idx is out of range");
+
+    return xo_[idx];
+  }
+
   /* Setters */
   void setRTIPhase(int rti_phase = 0)  //  (1) preparation, (2) feedback, (0) both.
   {
