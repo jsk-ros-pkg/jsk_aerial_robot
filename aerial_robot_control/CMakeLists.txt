@@ -77,6 +77,7 @@ set(ACADOS_PYTHON_SCRIPTS
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_tri/tilt_tri_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_2ord_servo.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/mhe_wrench_est_acc_mom.py
 )
 
 foreach(script ${ACADOS_PYTHON_SCRIPTS})

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- encoding: ascii -*-
 '''
  Created by jinjie on 24/11/29.
 '''
