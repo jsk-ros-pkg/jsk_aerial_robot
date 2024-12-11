@@ -14,6 +14,7 @@ from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiat
 
 from mhe_wrench_est_momentum import MHEWrenchEstMomentum
 from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+from mhe_wrench_est_new_meas import MHEVelDynIMU
 
 np.random.seed(42)
 
@@ -70,6 +71,9 @@ if __name__ == "__main__":
             n_meas = 6  # number of the measurements
         elif args.est_dist_type == 3:
             mhe = MHEWrenchEstAccMom()
+            n_meas = 6  # number of the measurements
+        elif args.est_dist_type == 4:
+            mhe = MHEVelDynIMU()
             n_meas = 6  # number of the measurements
 
         mhe_solver = mhe.get_ocp_solver()
@@ -331,6 +335,44 @@ if __name__ == "__main__":
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = np.dot(rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # f_d_w
+                mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
+
+                # step 3: fill yref and p
+                mhe_solver.set(0, "yref", mhe_yref_0)
+                mhe_solver.set(0, "p", mhe_u_list[0, :])
+
+                for stage in range(1, mhe_solver.N):
+                    mhe_solver.set(stage, "yref", mhe_yref_list[stage - 1, :])
+                    mhe_solver.set(stage, "p", mhe_u_list[stage, :])
+
+                mhe_solver.set(mhe_solver.N, "yref", mhe_yref_list[mhe_solver.N - 1, :n_meas])
+                mhe_solver.set(mhe_solver.N, "p", mhe_u_list[mhe_solver.N, :])
+
+                # step 4: solve
+                mhe_solver.solve()
+
+                # step 5: update disturbance estimation
+                mhe_x = mhe_solver.get(mhe_solver.N, "x")  # Note that in MHE, we want the last state!
+                disturb_estimated[0:3] = mhe_x[3:6]
+                disturb_estimated[3:6] = mhe_x[6:9]
+
+                # step 6: update x0_bar
+                x0_bar = mhe_solver.get(1, "x")
+
+            elif args.est_dist_type == 4:
+                # step 1: shift u_list
+                mhe_u_list[:-1, :] = mhe_u_list[1:, :]
+                mhe_u_list[-1, 0:3] = wrench_u_sensor_b[:3]  # f_u_g
+                mhe_u_list[-1, 3:6] = wrench_u_sensor_b[3:]  # tau_u_g
+                mhe_u_list[-1, 6:10] = x_now_sim[6:10]  # q
+
+                # step 2: shift yref_list
+                mhe_nu = mhe_solver.acados_ocp.dims.nu
+                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+
+                mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
+                mhe_yref_list[-1, 0:3] = sf_b_imu
                 mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
                 # step 3: fill yref and p
