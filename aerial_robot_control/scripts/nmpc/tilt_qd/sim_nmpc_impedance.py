@@ -342,6 +342,7 @@ if __name__ == "__main__":
                     mhe_solver.set(stage, "p", mhe_u_list[stage, :])
 
                 mhe_solver.set(mhe_solver.N, "yref", mhe_yref_list[mhe_solver.N - 1, :n_meas])
+                mhe_solver.set(mhe_solver.N, "p", mhe_u_list[mhe_solver.N, :])
 
                 # step 4: solve
                 mhe_solver.solve()
