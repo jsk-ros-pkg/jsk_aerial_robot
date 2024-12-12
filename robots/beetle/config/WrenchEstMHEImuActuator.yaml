@@ -17,8 +17,8 @@ controller:
 
     # standard deviation
     R_a: 2
-    R_omega: 1
-    R_alpha: 0.1
+    R_omega: 0.5
+    R_alpha: 0.05
     R_ft: 0.1
 
     Q_w_f: 1.0

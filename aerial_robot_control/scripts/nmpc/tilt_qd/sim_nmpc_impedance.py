@@ -155,19 +155,19 @@ if __name__ == "__main__":
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
-        # if t_total_sim > 2.0:
-        #     if 2.0 <= t_now < 6:
-        #         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
-        #
-        #         roll = 30.0 / 180.0 * np.pi
-        #         pitch = 60.0 / 180.0 * np.pi
-        #         yaw = 90.0 / 180.0 * np.pi
-        #         target_rpy = np.array([[roll, pitch, yaw]]).T
-        #
-        #     if t_now >= 6:
-        #         assert t_sqp_end <= 3.0
-        #         target_xyz = np.array([[1.0, 1.0, 1.0]]).T
-        #         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
+        if t_total_sim > 2.0:
+            if 2.0 <= t_now < 6:
+                target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+
+                roll = 30.0 / 180.0 * np.pi
+                pitch = 60.0 / 180.0 * np.pi
+                yaw = 90.0 / 180.0 * np.pi
+                target_rpy = np.array([[roll, pitch, yaw]]).T
+
+            if t_now >= 6:
+                assert t_sqp_end <= 3.0
+                target_xyz = np.array([[1.0, 1.0, 1.0]]).T
+                target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         xr, ur = xr_ur_converter.pose_point_2_xr_ur(target_xyz, target_rpy)
 
@@ -265,8 +265,8 @@ if __name__ == "__main__":
 
             # wrench_u_sensor_b
             # - the wrench calculated from actuator sensor
-            ft_sensor = x_now_sim[17:21]
-            a_sensor = x_now_sim[13:17]
+            ft_sensor = x_now_sim[17:21] + np.random.normal(0.0, 0.1, 4)
+            a_sensor = x_now_sim[13:17] + np.random.normal(0.0, 0.05, 4)
 
             z_sensor = np.zeros(8)
             z_sensor[0] = ft_sensor[0] * np.sin(a_sensor[0])
