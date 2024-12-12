@@ -562,16 +562,6 @@ void RollingController::jointStateCallback(const sensor_msgs::JointStateConstPtr
 {
   sensor_msgs::JointState joint_state = *state;
 
-  if(control_verbose_)
-    {
-      std::string joint_state_string = "[control][jointStateCallback] ";
-      for(int i = 0; i < joint_state.name.size(); i++)
-        {
-          joint_state_string += joint_state.name.at(i) + ": " + std::to_string(joint_state.position.at(i)) + "  ";
-        }
-      ROS_INFO_STREAM(joint_state_string);
-    }
-
   /* tf of contact point */
   geometry_msgs::TransformStamped contact_point_tf = rolling_robot_model_->getContactPoint<geometry_msgs::TransformStamped>();
   contact_point_tf.header = state->header;
