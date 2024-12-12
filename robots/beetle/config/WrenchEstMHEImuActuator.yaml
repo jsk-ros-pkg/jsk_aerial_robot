@@ -1,0 +1,25 @@
+wrench_estimator_name: aerial_robot_control::WrenchEstMHEAccMom
+
+controller:
+  if_use_est_wrench_4_control: false
+
+  mhe:
+    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+    T_pred: 0.2  # seconds
+    T_integ: 0.01  # seconds
+
+    # arrival cost
+    P_omega: 0.1
+    P_f_d: 10
+    P_tau_d: 0.1
+    P_alpha: 0.1
+    P_ft: 0.1
+
+    # standard deviation
+    R_a: 2
+    R_omega: 1
+    R_alpha: 0.1
+    R_ft: 0.1
+
+    Q_w_f: 1.0
+    Q_w_tau: 0.1
