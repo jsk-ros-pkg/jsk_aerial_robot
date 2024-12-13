@@ -2,7 +2,7 @@
 
 ## Installation
 
-1. Install acados
+### 1. Install acados
 
 The version of acados should be aligned with the version of 3rdparty/acados/CMakeLists.txt -> GIT_TAG.
 
@@ -15,7 +15,9 @@ Then, follow the instructions below:
 - Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html
 - Pay attention that you must execute the step 6 in https://docs.acados.org/python_interface/index.html to install t_renderer.
 
-2. install the ros related packages
+### 2. install the ros related packages
+
+### 2.1 for ubuntu 20.04 and ROS Noetic
 
 ```bash
 source /opt/ros/noetic/setup.bash
@@ -40,7 +42,34 @@ wstool update -t src  # install those unofficial packages
 rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic # install the dependencies, aka the packages in the package.xml
 ```
 
-4. For the first run, uncomment these code in aerial_robot_control/CMakeLists.txt
+### 2.2 for ubuntu 22.04 and ROS-O
+
+```bash
+source /opt/ros/one/setup.bash
+mkdir -p ~/path_to_ws/src
+cd ~/path_to_ws/src
+```
+
+We use rosdep to manage the dependencies. So,
+if you have never done this in your computer before, do the following:
+
+```bash
+sudo rosdep init
+rosdep update
+```
+
+Then, do the following:
+
+```bash
+wstool init src
+git clone git@github.com:Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt  # -b means the branch
+./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o in jammy
+wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
+wstool update -t src
+rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
+```
+
+### 3. For the first run, uncomment these code in aerial_robot_control/CMakeLists.txt
 ```bash
 set(ACADOS_PYTHON_SCRIPTS
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_angvel_out.py
@@ -55,28 +84,31 @@ set(ACADOS_PYTHON_SCRIPTS
 )
 ```
 
-5. catkin build the workspace again.
+### 4. catkin build the workspace again.
 
 ```bash
 cd ~/path_to_ws
 catkin build
 ```
 
-6. If the building is successful, comment the code in step 4.
+### 5. If the building is successful, comment the code in step 4.
 
 ## Run the simulation
 
-1. run the simulation with the following command:
+### 1. Start the simulation
+Run the simulation with the following command:
 ```bash
 roslaunch beetle bringup_nmpc_omni.launch real_machine:=false simulation:=True headless:=False nmpc_mode:=0
 ```
-2. run the keyboard with the following command:
+### 2. Start the keyboard script
+Run the keyboard with the following command:
 ```bash
 rosrun aerial_robot_base keyboard_command.py
 ```
 Then input 'r' to arm the robot and input 't' to takeoff the robot.
 
-3. After the main window printed 'Hovering', please run the following command to send a trajectory:
+### 3. Send the trajectory
+**After the main window printed 'Hovering'**, please run the following command to send a trajectory:
 ```bash
 rosrun aerial_robot_planning mpc_pt_pub_node.py beetle1 3 -num 1
 ```
