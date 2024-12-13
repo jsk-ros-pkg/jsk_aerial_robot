@@ -312,7 +312,7 @@ Scalar ObstacleCalculator::getClosestDistance(
 
   Scalar y_n = calc_dist_from_wall(-1, Cell, wall_y_pos_, poll_y, quad_wall_pos[1]); //[m]
   Scalar x_p = calc_dist_from_wall(+1, Cell, wall_x_pos_, poll_x, quad_wall_pos[0]); //[m]
-  Scalar rmin = std::min(std::min(std::min(y_p, y_n),x_p), max_detection_range_); //[m] from wall
+  Scalar rmin = std::min(std::min(y_p, y_n), max_detection_range_); //[m] from wall
   for (int i = 0; i < positions_.size(); i++) {
     Eigen::Vector3d pos = converted_positions[i];
     Scalar radius = radius_list_[i] + body_r_;
