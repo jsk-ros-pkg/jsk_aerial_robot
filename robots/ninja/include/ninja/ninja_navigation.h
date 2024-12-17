@@ -55,6 +55,10 @@ namespace aerial_robot_navigation
     void setTargetCoMPoseFromCurrState();
     void setTargetJointPosFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
+    inline void setTargetVelCandX( float value){  target_vel_candidate_.setX(value);}
+    inline void setTargetVelCandY( float value){  target_vel_candidate_.setY(value);}
+    inline void setTargetVelCandZ( float value){  target_vel_candidate_.setZ(value);}
+    
     void morphingProcess();
 
     bool getFreeJointFlag(){return free_joint_flag_;}
@@ -69,6 +73,8 @@ namespace aerial_robot_navigation
     void updateMyState();
     void updateAssemblyTree();
 
+    void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+
   private:
     void convertTargetPosFromCoG2CoM() override;
     void setGoalCoMRotCallback(const spinal::DesireCoordConstPtr & msg);
@@ -82,9 +88,12 @@ namespace aerial_robot_navigation
     ros::Subscriber target_com_rot_sub_;
     ros::Subscriber target_joints_pos_sub_;
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber target_com_pos_sub_;
     ros::Publisher joint_control_pub_;
     ros::Publisher dock_joints_pos_pub_;
     map<string, ros::Subscriber> module_joints_subs_;
+
+    tf::Vector3 target_vel_candidate_;
 
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;

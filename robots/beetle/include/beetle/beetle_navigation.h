@@ -114,10 +114,10 @@ namespace aerial_robot_navigation
 
     void rosParamInit() override;
     virtual void convertTargetPosFromCoG2CoM();
+    virtual void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
 
   private:
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
-    void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();

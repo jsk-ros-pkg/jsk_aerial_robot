@@ -19,7 +19,7 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 {
   BeetleNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
   ninja_robot_model_ = boost::dynamic_pointer_cast<NinjaRobotModel>(robot_model);
-  target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("target_com_pose", 1); //for debug
+  target_com_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("debug/target_com_pose", 1); //for debug
   joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
   dock_joints_pos_pub_ = nh_.advertise<sensor_msgs::JointState>("dock_joints_pos", 1);
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setGoalCoMRotCallback, this);
@@ -687,6 +687,106 @@ void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr&
       if(joint_name == "yaw") axis = YAW;
       if(joint_name == "pitch") axis = PITCH;
       module_joint_pos(axis) = joint_states.position[i];
+    }
+}
+
+void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
+{
+  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE || getModuleState() == SEPARATED) return;
+
+  gps_waypoint_ = false;
+
+  if(force_att_control_flag_) return;
+
+  /* xy control */
+  switch(msg->pos_xy_nav_mode)
+    {
+    case aerial_robot_msgs::FlightNav::POS_MODE:
+      {
+        tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
+        tf::Vector3 target_delta = getTargetPosCand() - target_cog_pos;
+        target_delta.setZ(0);
+
+        if(target_delta.length() > vel_nav_threshold_)
+          {
+            ROS_WARN("start vel nav control for waypoint");
+            vel_based_waypoint_ = true;
+            xy_control_mode_ = VEL_CONTROL_MODE;
+          }
+
+        if(!vel_based_waypoint_)
+          xy_control_mode_ = POS_CONTROL_MODE;
+
+        setTargetPosCandX(target_cog_pos.x());
+        setTargetPosCandY(target_cog_pos.y());
+
+        setTargetVelCandX(0);
+        setTargetVelCandY(0);
+
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::VEL_MODE:
+      {
+        /* do not switch to pure vel mode */
+        xy_control_mode_ = POS_CONTROL_MODE;
+
+        teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              setTargetVelCandX(msg->target_vel_x);
+              setTargetVelCandY(msg->target_vel_y);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+              double current_com_roll, current_com_pitch, current_com_yaw;
+              try
+                {
+                  tfBuffer_.canTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving"), ros::Time::now(), ros::Duration(0.1));
+                  KDL::Frame current_com;
+                  geometry_msgs::TransformStamped transformStamped;
+                  transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
+                  tf::transformMsgToKDL(transformStamped.transform, current_com);
+
+                  current_com.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
+                }
+              catch (tf2::TransformException& ex)
+                {
+                  ROS_ERROR_STREAM("CoM is not defined");
+                  return;
+                }
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
+              setTargetVelCandX(target_vel.x());
+              setTargetVelCandY(target_vel.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::STAY_HERE_MODE:
+      {
+        xy_control_mode_ = POS_CONTROL_MODE;
+        setTargetVelCandX(0);
+        setTargetVelCandY(0);
+        setTargetCoMPoseFromCurrState();
+        break;
+      }
+    }
+
+  /* z */
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
+      setTargetPosCandZ(target_cog_pos.z());
+
+      setTargetVelCandZ(0);
     }
 }
 
