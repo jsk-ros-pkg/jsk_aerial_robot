@@ -272,6 +272,21 @@ void DynamixelSerial::update()
     } else {
       instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, 0));
     }
+
+    // check the latest error status
+    for (unsigned int i = 0; i < servo_num_; i++) {
+      if (servo_[i].hardware_error_status_ != 0) {
+        servo_[i].force_servo_off_ = true;
+
+        if (servo_[i].torque_enable_) {
+          servo_[i].torque_enable_= false;
+          setTorque(i); // servo off
+        }
+      }
+      else {
+        servo_[i].force_servo_off_ = false;
+      }
+    }
   }
 
 
