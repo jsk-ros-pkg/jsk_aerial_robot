@@ -45,9 +45,17 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic # install 
 ### 2.2 for ubuntu 22.04 and ROS-O
 
 ```bash
-source /opt/ros/one/setup.bash
 mkdir -p ~/path_to_ws/src
 cd ~/path_to_ws/src
+git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt  # -b means the branch
+```
+
+Please install ROS-O for ubuntu 22.04:
+
+```bash
+./jsk_aerial_robot_dev/configure.sh # for configuration especially for ros-o in jammy
+source /opt/ros/one/setup.bash
+cd ..
 ```
 
 We use rosdep to manage the dependencies. So,
@@ -62,9 +70,7 @@ Then, do the following:
 
 ```bash
 wstool init src
-git clone git@github.com:Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt  # -b means the branch
-./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o in jammy
-wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
+wstool merge -t src src/jsk_aerial_robot_dev/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 ```
@@ -84,14 +90,14 @@ set(ACADOS_PYTHON_SCRIPTS
 )
 ```
 
-### 4. catkin build the workspace again.
+### 4. catkin build the workspace.
 
 ```bash
 cd ~/path_to_ws
 catkin build
 ```
 
-### 5. If the building is successful, comment the code in step 4.
+### 5. If the building is successful, comment the code in step 3.
 
 ## Run the simulation
 
