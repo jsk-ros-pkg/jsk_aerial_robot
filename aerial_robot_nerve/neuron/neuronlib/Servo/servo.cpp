@@ -11,6 +11,7 @@
 void Servo::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL)
 {
   servo_handler_.init(huart, hi2c, mutex);
+  connect_ = false;
 }
 
 void Servo::update()
@@ -26,6 +27,7 @@ void Servo::sendData()
 			CANServoData data(static_cast<int16_t>(s.getPresentPosition()),
 							  s.present_temp_,
 							  s.moving_,
+							  !connect_ || s.force_servo_off_,
 							  s.present_current_,
 							  s.hardware_error_status_);
 			sendMessage(CAN::MESSAGEID_SEND_SERVO_LIST[i], m_slave_id, 8, reinterpret_cast<uint8_t*>(&data), 1);
@@ -35,6 +37,8 @@ void Servo::sendData()
 
 void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
+	if (!connect_) return;
+
 	switch (message_id) {
 		case CAN::MESSAGEID_RECEIVE_SERVO_ANGLE:
 		{
@@ -48,10 +52,12 @@ void Servo::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)
 				}
 				s.setGoalPosition(goal_pos);
 				bool torque_enable = (((data[i * 2 + 1] >> 7) & 0x01) != 0) ? true : false;
-				if (s.torque_enable_ != torque_enable) {
-					s.torque_enable_ = torque_enable;
-					servo_handler_.setTorque(i);
-				}
+                                if (!s.force_servo_off_) {
+                                  if (s.torque_enable_ != torque_enable) {
+                                    s.torque_enable_ = torque_enable;
+                                    servo_handler_.setTorque(i);
+                                  }
+                                }
 			}
 			break;
 		}

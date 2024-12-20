@@ -9,7 +9,16 @@
 
 void CANInitializer::sendData()
 {
-	return;
+  // reconnection with reboot neuron
+  if (reboot_id_ > 0) {
+
+    // wait for the neuron completely reboot, 5000ms
+    if (HAL_GetTick() - reboot_time_ > 5000) {
+      requestConfig(reboot_id_);
+      reboot_time_ = 0;
+      reboot_id_ = 0;
+    }
+  }
 }
 
 void CANInitializer::initDevices()
@@ -18,9 +27,15 @@ void CANInitializer::initDevices()
 	HAL_Delay(200);
 	std::sort(neuron_.begin(), neuron_.end());
 	for (unsigned int i = 0; i < neuron_.size(); i++) {
-		sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, neuron_.at(i).getSlaveId(), 0, nullptr, 1);
+		uint8_t slave_id = neuron_.at(i).getSlaveId();
+		requestConfig(slave_id);
 		HAL_Delay(200);
 	}
+}
+
+void CANInitializer::requestConfig(uint8_t slave_id)
+{
+	sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, slave_id, 0, nullptr, 1);
 }
 
 void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
@@ -144,6 +159,8 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			uint8_t send_data[1];
 			send_data[0] = CAN::BOARD_CONFIG_REBOOT;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data, 1);
+			reboot_id_ = slave_id;
+			reboot_time_ = HAL_GetTick();
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:

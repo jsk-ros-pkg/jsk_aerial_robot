@@ -62,6 +62,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 	case CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST:
 	{
 		sendBoardConfig();
+		servo_.setConnect(true);
 	}
 	break;
 	case CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST:
