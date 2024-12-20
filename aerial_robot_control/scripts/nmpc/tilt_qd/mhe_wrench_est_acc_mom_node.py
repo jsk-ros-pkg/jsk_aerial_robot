@@ -10,7 +10,9 @@ from spinal.msg import Imu, ESCTelemetry, ESCTelemetryArray, FourAxisCommand
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped
 
-from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist, FIRDifferentiator
+from tilt_qd_servo_thrust_dist import XrUrConverter
+
+import phys_param_beetle_omni as phys_omni
 
 
 class MHEWrenchEstAccMomNode:
@@ -48,8 +50,7 @@ class MHEWrenchEstAccMomNode:
                                                          queue_size=10)
 
         # Others
-        self.sim_nmpc = NMPCTiltQdServoThrustDist()
-        self.alloc_mat = self.sim_nmpc.get_xr_ur_converter().alloc_mat
+        self.alloc_mat = XrUrConverter()._get_alloc_mat()
 
         # Subscribers -- always initialize subscribers last
         imu_topic = f"/{self.robot_name}/imu"
@@ -69,15 +70,12 @@ class MHEWrenchEstAccMomNode:
         rospy.loginfo(f" - {joint_states_topic}")
         rospy.loginfo(f" - {esc_telem_topic}")
 
-    def imu_callback(self, imu_data: Imu):
-        """
-        Callback function for the IMU topic.
+        # Timer
+        self.dist_est_timer = rospy.Timer(rospy.Duration(0.01), self.dist_est_timer_callback)
 
-        :param imu_data: Incoming IMU data (sensor_msgs/Imu).
-        """
-        self.latest_imu_data = imu_data
+    def dist_est_timer_callback(self, event):
 
-        if self.latest_esc_telem is None or self.latest_joint_states is None:
+        if self.latest_imu_data is None or self.latest_esc_telem is None or self.latest_joint_states is None:
             return
 
         # Calculate wrench_u_sensor_b
@@ -106,10 +104,12 @@ class MHEWrenchEstAccMomNode:
         wrench_u_sensor_b = np.dot(self.alloc_mat, z_sensor)
 
         # Calculate wrench_u_imu_b
-        sf_b_imu = np.array([imu_data.acc_data[0], imu_data.acc_data[1], imu_data.acc_data[2]])
-        w_imu = np.array([imu_data.gyro_data[0], imu_data.gyro_data[1], imu_data.gyro_data[2]])
+        sf_b_imu = np.array(
+            [self.latest_imu_data.acc_data[0], self.latest_imu_data.acc_data[1], self.latest_imu_data.acc_data[2]])
+        w_imu = np.array(
+            [self.latest_imu_data.gyro_data[0], self.latest_imu_data.gyro_data[1], self.latest_imu_data.gyro_data[2]])
         force_u_imu_b = np.zeros(3)
-        force_u_imu_b[0:3] = self.sim_nmpc.fake_sensor.mass * sf_b_imu
+        force_u_imu_b[0:3] = phys_omni.mass * sf_b_imu
 
         # step 1: shift u_list
         self.mhe_p_list[:-1, :] = self.mhe_p_list[1:, :]
@@ -122,7 +122,7 @@ class MHEWrenchEstAccMomNode:
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]
 
         self.mhe_yref_list[-1, 0:3] = (
-                    force_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # f_d_w  TODO: convert from b to w frames
+                force_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # f_d_w  TODO: convert from b to w frames
         self.mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
         # step 3: fill yref and p
@@ -155,6 +155,14 @@ class MHEWrenchEstAccMomNode:
 
         # step 7: publish estimated disturbance
         self.est_dist_wrench_publisher.publish(disturb_estimated)
+
+    def imu_callback(self, imu_data: Imu):
+        """
+        Callback function for the IMU topic.
+
+        :param imu_data: Incoming IMU data (sensor_msgs/Imu).
+        """
+        self.latest_imu_data = imu_data
 
     def joint_states_callback(self, joint_states: JointState):
         """
