@@ -94,6 +94,9 @@ namespace aerial_robot_navigation
     map<string, ros::Subscriber> module_joints_subs_;
 
     tf::Vector3 target_vel_candidate_;
+    double asm_vel_nav_threshold_;
+    int asm_xy_control_mode_;
+    int asm_vel_based_waypoint_;
 
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;

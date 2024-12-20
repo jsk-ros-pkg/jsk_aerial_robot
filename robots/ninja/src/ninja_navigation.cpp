@@ -707,7 +707,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
         tf::Vector3 target_delta = getTargetPosCand() - target_cog_pos;
         target_delta.setZ(0);
 
-        if(target_delta.length() > vel_nav_threshold_)
+        if(target_delta.length() > asm_vel_nav_threshold_)
           {
             ROS_WARN("start vel nav control for waypoint");
             vel_based_waypoint_ = true;
