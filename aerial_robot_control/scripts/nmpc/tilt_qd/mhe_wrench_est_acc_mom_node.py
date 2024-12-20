@@ -8,7 +8,7 @@ from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
 import rospy
 from spinal.msg import Imu, ESCTelemetry, ESCTelemetryArray, FourAxisCommand
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import WrenchStamped
+from geometry_msgs.msg import WrenchStamped, PoseStamped
 
 from tilt_qd_servo_thrust_dist import XrUrConverter
 
@@ -54,6 +54,7 @@ class MHEWrenchEstAccMomNode:
         # Others
         self.alloc_mat = XrUrConverter()._get_alloc_mat()
         self.disturb_estimate_acc = np.zeros(6)
+        self.rot_ib = np.eye(3)
 
         # Subscribers -- always initialize subscribers last
         imu_topic = f"/{self.robot_name}/imu"
@@ -71,6 +72,10 @@ class MHEWrenchEstAccMomNode:
         esc_telem_topic = f"/{self.robot_name}/esc_telem"
         self.esc_telem_subscriber = rospy.Subscriber(esc_telem_topic, ESCTelemetryArray, self.esc_telem_callback)
         self.latest_esc_telem = None
+
+        mocap_topic = f"/{self.robot_name}/mocap/pose"
+        self.mocap_subscriber = rospy.Subscriber(mocap_topic, PoseStamped, self.mocap_callback)
+        self.latest_mocap_pose = None
 
         rospy.loginfo(f"MHE Node initialized for {self.robot_name}. Subscribing to:")
         rospy.loginfo(f" - {imu_topic}")
@@ -134,8 +139,7 @@ class MHEWrenchEstAccMomNode:
 
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]
 
-        self.mhe_yref_list[-1, 0:3] = (
-                wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # f_d_w  TODO: convert from b to w frames
+        self.mhe_yref_list[-1, 0:3] = np.dot(self.rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # f_d_w
         self.mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
         # step 3: fill yref and p
@@ -171,10 +175,9 @@ class MHEWrenchEstAccMomNode:
         self.mhe_wrench_est_publisher.publish(disturb_estimated)
 
         ### acceleration-based disturbance estimation
-
         alpha_force = 0.1
-        self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * (
-                wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # TODO: convert from b to w frames
+        self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * np.dot(
+            self.rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
 
         alpha_torque = 0.05
         self.disturb_estimate_acc[3:6] = (1 - alpha_torque) * self.disturb_estimate_acc[3:6] + alpha_torque * (
@@ -218,6 +221,23 @@ class MHEWrenchEstAccMomNode:
         :param esc_telem: Incoming ESC telemetry data (spinal.msg.ESCTelemetryArray).
         """
         self.latest_esc_telem = esc_telem
+
+    def mocap_callback(self, pose_data: PoseStamped):
+        """
+        Callback function for the Mocap Pose topic.
+
+        :param pose_data: Incoming Mocap Pose data (geometry_msgs/PoseStamped).
+        """
+        self.latest_mocap_pose = pose_data
+        qw = pose_data.pose.orientation.w
+        qx = pose_data.pose.orientation.x
+        qy = pose_data.pose.orientation.y
+        qz = pose_data.pose.orientation.z
+
+        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
+        self.rot_ib = np.vstack((row_1, row_2, row_3))
 
     def run(self):
         """
