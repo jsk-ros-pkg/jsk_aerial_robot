@@ -46,16 +46,23 @@ class MHEWrenchEstAccMomNode:
         self.mhe_p_list = np.zeros((self.mhe_N + 1, self.mhe_np))
 
         # Publishers
-        self.est_dist_wrench_publisher = rospy.Publisher(f"/{self.robot_name}/mhe/dist_wrench", WrenchStamped,
-                                                         queue_size=10)
+        self.mhe_wrench_est_publisher = rospy.Publisher(f"/{self.robot_name}/test_dist_est/mhe/", WrenchStamped,
+                                                        queue_size=10)
+        self.acc_wrench_est_publisher = rospy.Publisher(f"/{self.robot_name}/test_dist_est/acc", WrenchStamped,
+                                                        queue_size=10)
 
         # Others
         self.alloc_mat = XrUrConverter()._get_alloc_mat()
+        self.disturb_estimate_acc = np.zeros(6)
 
         # Subscribers -- always initialize subscribers last
         imu_topic = f"/{self.robot_name}/imu"
         self.imu_subscriber = rospy.Subscriber(imu_topic, Imu, self.imu_callback)
         self.latest_imu_data = None
+        self.latest_imu_data_time = None
+
+        self.last_imu_data = None
+        self.last_imu_data_time = None
 
         joint_states_topic = f"/{self.robot_name}/joint_states"
         self.joint_states_subscriber = rospy.Subscriber(joint_states_topic, JointState, self.joint_states_callback)
@@ -75,7 +82,7 @@ class MHEWrenchEstAccMomNode:
 
     def dist_est_timer_callback(self, event):
 
-        if self.latest_imu_data is None or self.latest_esc_telem is None or self.latest_joint_states is None:
+        if self.last_imu_data is None or self.latest_esc_telem is None or self.latest_joint_states is None:
             return
 
         # Calculate wrench_u_sensor_b
@@ -108,8 +115,14 @@ class MHEWrenchEstAccMomNode:
             [self.latest_imu_data.acc_data[0], self.latest_imu_data.acc_data[1], self.latest_imu_data.acc_data[2]])
         w_imu = np.array(
             [self.latest_imu_data.gyro_data[0], self.latest_imu_data.gyro_data[1], self.latest_imu_data.gyro_data[2]])
-        force_u_imu_b = np.zeros(3)
-        force_u_imu_b[0:3] = phys_omni.mass * sf_b_imu
+
+        w_last = np.array(
+            [self.last_imu_data.gyro_data[0], self.last_imu_data.gyro_data[1], self.last_imu_data.gyro_data[2]])
+        ang_acc_b_imu = (w_imu - w_last) / (self.latest_imu_data_time - self.last_imu_data_time)
+
+        wrench_u_imu_b = np.zeros(6)
+        wrench_u_imu_b[0:3] = phys_omni.mass * sf_b_imu
+        wrench_u_imu_b[3:6] = np.dot(phys_omni.iv, ang_acc_b_imu) + np.cross(w_imu, np.dot(phys_omni.iv, w_imu))
 
         # step 1: shift u_list
         self.mhe_p_list[:-1, :] = self.mhe_p_list[1:, :]
@@ -122,7 +135,7 @@ class MHEWrenchEstAccMomNode:
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]
 
         self.mhe_yref_list[-1, 0:3] = (
-                force_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # f_d_w  TODO: convert from b to w frames
+                wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # f_d_w  TODO: convert from b to w frames
         self.mhe_yref_list[-1, 3:6] = w_imu  # omega_g, from sensor
 
         # step 3: fill yref and p
@@ -154,7 +167,29 @@ class MHEWrenchEstAccMomNode:
         disturb_estimated.wrench.torque.z = mhe_x[8]
 
         # step 7: publish estimated disturbance
-        self.est_dist_wrench_publisher.publish(disturb_estimated)
+        disturb_estimated.header.stamp = rospy.Time.now()
+        self.mhe_wrench_est_publisher.publish(disturb_estimated)
+
+        ### acceleration-based disturbance estimation
+
+        alpha_force = 0.1
+        self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * (
+                wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])  # TODO: convert from b to w frames
+
+        alpha_torque = 0.05
+        self.disturb_estimate_acc[3:6] = (1 - alpha_torque) * self.disturb_estimate_acc[3:6] + alpha_torque * (
+                wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
+
+        acc_wrench_estimated = WrenchStamped()
+        acc_wrench_estimated.wrench.force.x = self.disturb_estimate_acc[0]
+        acc_wrench_estimated.wrench.force.y = self.disturb_estimate_acc[1]
+        acc_wrench_estimated.wrench.force.z = self.disturb_estimate_acc[2]
+        acc_wrench_estimated.wrench.torque.x = self.disturb_estimate_acc[3]
+        acc_wrench_estimated.wrench.torque.y = self.disturb_estimate_acc[4]
+        acc_wrench_estimated.wrench.torque.z = self.disturb_estimate_acc[5]
+
+        acc_wrench_estimated.header.stamp = rospy.Time.now()
+        self.acc_wrench_est_publisher.publish(acc_wrench_estimated)
 
     def imu_callback(self, imu_data: Imu):
         """
@@ -162,7 +197,11 @@ class MHEWrenchEstAccMomNode:
 
         :param imu_data: Incoming IMU data (sensor_msgs/Imu).
         """
+        self.last_imu_data_time = self.latest_imu_data_time
+        self.last_imu_data = self.latest_imu_data
+
         self.latest_imu_data = imu_data
+        self.latest_imu_data_time = rospy.get_time()
 
     def joint_states_callback(self, joint_states: JointState):
         """
