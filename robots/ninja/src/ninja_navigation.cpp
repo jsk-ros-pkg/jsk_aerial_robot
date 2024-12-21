@@ -8,7 +8,9 @@ using namespace aerial_robot_navigation;
 NinjaNavigator::NinjaNavigator():
   BeetleNavigator(),
   module_joint_num_(2),
-  morphing_flag_(false)
+  morphing_flag_(false),
+  asm_teleop_reset_time_(0),
+  asm_vel_based_waypoint_(false)
 {
 }
 
@@ -52,6 +54,7 @@ void NinjaNavigator::update()
     {
       morphing_flag_ = false;
     }
+  comMovingProcess();
        
   BeetleNavigator::update();
   bool current_assembled = getCurrentAssembled();
@@ -493,6 +496,71 @@ void NinjaNavigator::comRotationProcess()
   setTargetComRot(KDL::Rotation::RPY(target_roll, target_pitch, target_yaw));
 }
 
+void NinjaNavigator::comMovingProcess()
+{
+  if(!getCurrentAssembled() || !control_flag_) return;
+  if(getNaviState() != HOVER_STATE) return;
+  /* get current com position*/
+  tf::Vector3 current_com_pos;
+  try
+    {
+      KDL::Frame current_com;
+      geometry_msgs::TransformStamped transformStamped;
+      transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
+      tf::transformMsgToKDL(transformStamped.transform, current_com);
+      tf::vectorKDLToTF(current_com.p, current_com_pos);
+    }
+  catch (tf2::TransformException& ex)
+    {
+      ROS_ERROR_STREAM("CoM is not defined");
+      return;
+    }
+  
+  tf::Vector3 delta = getTargetFinalPosCand() - current_com_pos;
+
+  /* process for vel_vased_waypoint mode */
+  if(asm_vel_based_waypoint_)
+    {
+      if(delta.length() > asm_vel_nav_threshold_)
+        {
+          tf::Vector3 nav_vel = delta * asm_nav_vel_limit_/delta.length();
+          setTargetVelCand(nav_vel);
+          asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+        }
+      else
+        {
+          asm_vel_based_waypoint_ = false;
+          ROS_WARN("back to assembly pos nav control for way point");
+          setTargetVelCand(tf::Vector3(0,0,0));
+          asm_xy_control_mode_ = POS_CONTROL_MODE;
+        }
+    }
+
+  switch(asm_xy_control_mode_)
+    {
+    case POS_CONTROL_MODE:
+      {
+        setTargetPosCand(target_final_pos_candidate_);
+        break;
+      }
+    case VEL_CONTROL_MODE:
+      {
+        if(ros::Time::now().toSec() > asm_teleop_reset_time_)
+          {
+            setTargetVelCand(tf::Vector3(0,0,0));
+            asm_xy_control_mode_ = POS_CONTROL_MODE;
+            setFinalTargetPosCand(getTargetPosCand());
+          }
+        else
+          {
+            tf::Vector3 new_target_com_pos = getTargetPosCand() + getTargetVelCand()*loop_du_;
+            setTargetPosCand(new_target_com_pos);
+          }
+        break;  
+      }
+    }
+}
+
 void NinjaNavigator::setTargetCoMPoseFromCurrState()
 {
   bool current_assembled = getCurrentAssembled();
@@ -514,15 +582,18 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
           {
             target_com_pos.setZ(getTargetPos().z());
             setTargetPosCand(target_com_pos);
+            setFinalTargetPosCand(target_com_pos);
             setTargetComRot(KDL::Rotation::RPY(0,0,current_yaw));
             setGoalComRot(KDL::Rotation::RPY(0,0,current_yaw));
           }
         else
           {
             setTargetPosCand(target_com_pos);
+            setFinalTargetPosCand(target_com_pos);
             setTargetComRot(current_com.M);
             setGoalComRot(current_com.M);
           }
+        asm_xy_control_mode_ = POS_CONTROL_MODE;
       }
     catch (tf2::TransformException& ex)
       {
@@ -703,22 +774,23 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
     {
     case aerial_robot_msgs::FlightNav::POS_MODE:
       {
+        ROS_ERROR("start pos mode");
         tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
         tf::Vector3 target_delta = getTargetPosCand() - target_cog_pos;
         target_delta.setZ(0);
 
         if(target_delta.length() > asm_vel_nav_threshold_)
           {
-            ROS_WARN("start vel nav control for waypoint");
-            vel_based_waypoint_ = true;
-            xy_control_mode_ = VEL_CONTROL_MODE;
+            ROS_WARN("start assembly vel nav control for waypoint");
+            asm_vel_based_waypoint_ = true;
+            asm_xy_control_mode_ = VEL_CONTROL_MODE;
           }
 
         if(!vel_based_waypoint_)
-          xy_control_mode_ = POS_CONTROL_MODE;
+          asm_xy_control_mode_ = POS_CONTROL_MODE;
 
-        setTargetPosCandX(target_cog_pos.x());
-        setTargetPosCandY(target_cog_pos.y());
+        setFinalTargetPosCandX(target_cog_pos.x());
+        setFinalTargetPosCandY(target_cog_pos.y());
 
         setTargetVelCandX(0);
         setTargetVelCandY(0);
@@ -727,10 +799,9 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
       }
     case aerial_robot_msgs::FlightNav::VEL_MODE:
       {
-        /* do not switch to pure vel mode */
-        xy_control_mode_ = POS_CONTROL_MODE;
+        asm_xy_control_mode_ = VEL_CONTROL_MODE;
 
-        teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+        asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
 
         switch(msg->control_frame)
           {
@@ -923,6 +994,11 @@ void NinjaNavigator::rosParamInit()
   getParam<double>(nh, "com_yaw_change_thresh", com_yaw_change_thresh_, 0.02);
   
   getParam<double>(nh, "morphing_process_interval", morphing_process_interval_, 0.1);
+
+  getParam<double>(nh, "asm_nav_vel_limit_", asm_nav_vel_limit_, 0.1);
+  getParam<double>(nh, "asm_vel_nav_threshold_", asm_vel_nav_threshold_, 0.4);
+  getParam<double>(nh, "asm_teleop_reset_duration_", asm_teleop_reset_duration_, 0.5);
+
   BeetleNavigator::rosParamInit();
 }
 
