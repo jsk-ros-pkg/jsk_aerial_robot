@@ -27,6 +27,8 @@ public:
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                   boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator, double ctrl_loop_du) override;
 
+  bool update() override;
+
   void reset() override;
 
   aerial_robot_control::WrenchEstITerm wrench_est_i_term_;  // I term is indispensable to eliminate steady error.
@@ -44,9 +46,11 @@ protected:
 
   std::vector<double> meas2VecX() override;
 
-  virtual void calcDisturbWrench();
-
   void initAllocMat() override;
+
+  /* external wrench estimation */
+  void calcDisturbWrench();
+  void pubDisturbWrench() const;
 };
 
 }  // namespace nmpc
