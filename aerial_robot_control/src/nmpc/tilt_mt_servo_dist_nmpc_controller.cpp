@@ -174,11 +174,11 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   dist_wrench_.wrench.torque = dist_torque_cog_;
 
   tf::Matrix3x3 rot_mtx_cog2w = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  tf::Vector3 dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
-  tf::Vector3 dist_force_cog = rot_mtx_cog2w.inverse() * dist_force_w;
-  dist_wrench_.wrench.force.x = dist_force_cog.x();
-  dist_wrench_.wrench.force.y = dist_force_cog.y();
-  dist_wrench_.wrench.force.z = dist_force_cog.z();
+  tf::Vector3 tf_dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
+  tf::Vector3 tf_dist_force_cog = rot_mtx_cog2w.inverse() * tf_dist_force_w;
+  dist_wrench_.wrench.force.x = tf_dist_force_cog.x();
+  dist_wrench_.wrench.force.y = tf_dist_force_cog.y();
+  dist_wrench_.wrench.force.z = tf_dist_force_cog.z();
 
   dist_wrench_.header.stamp = ros::Time::now();
 
