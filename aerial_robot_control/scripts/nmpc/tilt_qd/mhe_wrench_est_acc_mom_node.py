@@ -14,6 +14,19 @@ from tilt_qd_servo_thrust_dist import XrUrConverter
 
 import phys_param_beetle_omni as phys_omni
 
+import rospkg
+import yaml
+import os
+
+# read parameters from yaml
+rospack = rospkg.RosPack()
+
+mhe_param_path = os.path.join(rospack.get_path("beetle"), "config", "WrenchEstMHEAccMom.yaml")
+with open(mhe_param_path, "r") as f:
+    mhe_param_dict = yaml.load(f, Loader=yaml.FullLoader)
+mhe_params = mhe_param_dict["controller"]["mhe"]
+mhe_params["N_node"] = int(mhe_params["T_pred"] / mhe_params["T_integ"])
+
 
 class MHEWrenchEstAccMomNode:
     def __init__(self, robot_name):
@@ -83,7 +96,7 @@ class MHEWrenchEstAccMomNode:
         rospy.loginfo(f" - {esc_telem_topic}")
 
         # Timer
-        self.dist_est_timer = rospy.Timer(rospy.Duration(0.01), self.dist_est_timer_callback)
+        self.dist_est_timer = rospy.Timer(rospy.Duration(mhe_params["T_samp"]), self.dist_est_timer_callback)
 
     def dist_est_timer_callback(self, event):
 
@@ -170,10 +183,6 @@ class MHEWrenchEstAccMomNode:
         disturb_estimated.wrench.torque.y = mhe_x[7]
         disturb_estimated.wrench.torque.z = mhe_x[8]
 
-        # step 7: publish estimated disturbance
-        disturb_estimated.header.stamp = rospy.Time.now()
-        self.mhe_wrench_est_publisher.publish(disturb_estimated)
-
         ### acceleration-based disturbance estimation
         alpha_force = 0.1
         self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * np.dot(
@@ -190,6 +199,11 @@ class MHEWrenchEstAccMomNode:
         acc_wrench_estimated.wrench.torque.x = self.disturb_estimate_acc[3]
         acc_wrench_estimated.wrench.torque.y = self.disturb_estimate_acc[4]
         acc_wrench_estimated.wrench.torque.z = self.disturb_estimate_acc[5]
+
+        # publish estimated disturbance
+        # pub them together to minimize the time difference
+        disturb_estimated.header.stamp = rospy.Time.now()
+        self.mhe_wrench_est_publisher.publish(disturb_estimated)
 
         acc_wrench_estimated.header.stamp = rospy.Time.now()
         self.acc_wrench_est_publisher.publish(acc_wrench_estimated)
