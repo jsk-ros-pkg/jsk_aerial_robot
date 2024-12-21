@@ -6,6 +6,37 @@
 
 using namespace aerial_robot_control;
 
+void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()
+{
+  auto dist_force_w = wrench_est_i_term_.getDistForceW();
+  auto dist_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
+
+  vector<int> idx = { 10, 11, 12, 13, 14, 15 };
+  vector<double> p = { dist_force_w.x,    dist_force_w.y,    dist_force_w.z,
+                       dist_torque_cog.x, dist_torque_cog.y, dist_torque_cog.z };
+  mpc_solver_ptr_->setParamSparseAllStages(idx, p);
+}
+
+std::vector<double> nmpc::TiltMtServoThrustImpNMPC::meas2VecX()
+{
+  auto bx0 = TiltMtServoNMPC::meas2VecX();
+
+  for (int i = 0; i < motor_num_; i++)
+    bx0[13 + joint_num_ + i] = thrust_meas_[i];
+
+  /* disturbance rejection */
+  geometry_msgs::Vector3 external_force_w = wrench_est_ptr_->getDistForceW();
+  geometry_msgs::Vector3 external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+
+  bx0[13 + joint_num_ + motor_num_ + 0] = external_force_w.x;
+  bx0[13 + joint_num_ + motor_num_ + 1] = external_force_w.y;
+  bx0[13 + joint_num_ + motor_num_ + 2] = external_force_w.z;
+  bx0[13 + joint_num_ + motor_num_ + 3] = external_torque_cog.x;
+  bx0[13 + joint_num_ + motor_num_ + 4] = external_torque_cog.y;
+  bx0[13 + joint_num_ + motor_num_ + 5] = external_torque_cog.z;
+  return bx0;
+}
+
 void nmpc::TiltMtServoThrustImpNMPC::initCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
