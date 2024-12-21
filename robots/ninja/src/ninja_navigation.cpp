@@ -436,12 +436,18 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   target_com_pose.M = target_com_rot_;
   tf::vectorTFToKDL(getTargetPosCand(),target_com_pose.p);
   raw_base2cog.p = ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse().p;
-  // target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().Inverse(); // com -> cog
   target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
 
-  tf::Vector3 target_pos, target_rot;
+  /*Target twist conversion*/
+  KDL::Frame target_com_twist;
+  KDL::Frame target_my_twist;
+  tf::vectorTFToKDL(getTargetVelCand(),target_com_twist.p);
+  target_my_twist = target_com_twist * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
+
+  tf::Vector3 target_pos, target_rot, target_vel;
   double target_roll, target_pitch, target_yaw;
   tf::vectorKDLToTF(target_my_pose.p, target_pos);
+  tf::vectorKDLToTF(target_my_twist.p, target_vel);
   target_my_pose.M.GetEulerZYX(target_yaw, target_pitch, target_roll);
   target_rot.setX(target_roll);
   target_rot.setY(target_pitch);
@@ -451,6 +457,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   if( getNaviState() == HOVER_STATE ||
       getNaviState() == TAKEOFF_STATE){
     setTargetPos(target_pos);
+    setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
     forceSetTargetBaselinkRot(target_rot);  
   }
