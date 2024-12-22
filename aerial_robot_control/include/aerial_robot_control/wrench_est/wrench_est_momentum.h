@@ -81,6 +81,8 @@ public:
     /* set value */
     setDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
     setDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
+
+    WrenchEstActuatorMeasBase::update();
   }
 
 private:

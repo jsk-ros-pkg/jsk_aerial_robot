@@ -40,9 +40,29 @@ public:
     sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &WrenchEstActuatorMeasBase::callbackESCTelem, this);
   }
 
-  virtual void update() = 0;
+  void reset() override
+  {
+    WrenchEstBase::reset();
 
-  Eigen::VectorXd calcWrenchFromActuatorMeas()
+    is_offset_ = false;
+    offset_count_ = 0;
+    offset_force_w_ = Eigen::Vector3d::Zero();
+    offset_torque_cog_ = Eigen::Vector3d::Zero();
+  }
+
+  /* MUST be overridden in derived classes, put it after the disturbance wrench is estimated */
+  virtual void update()
+  {
+    if (!is_offset_)
+    {
+      // when the is_offset is false, the offset values are updated but not specified to the result.
+      offset_count_++;
+      offset_force_w_ = offset_force_w_ + (dist_force_w_ - offset_force_w_) / offset_count_;
+      offset_torque_cog_ = offset_torque_cog_ + (dist_torque_cog_ - offset_torque_cog_) / offset_count_;
+    }
+  }
+
+  Eigen::VectorXd calcWrenchFromActuatorMeas() const
   {
     Eigen::VectorXd z = Eigen::VectorXd::Zero(2 * robot_model_->getRotorNum());
     for (int i = 0; i < robot_model_->getRotorNum(); i++)
@@ -56,7 +76,55 @@ public:
     return est_wrench_cog;
   }
 
+  // add offset function
+  geometry_msgs::Vector3 getDistForceW() const override
+  {
+    Eigen::Vector3d result = is_offset_ ? (dist_force_w_ - offset_force_w_) : dist_force_w_;
+
+    geometry_msgs::Vector3 dist_force_w_ros;
+    dist_force_w_ros.x = result(0);
+    dist_force_w_ros.y = result(1);
+    dist_force_w_ros.z = result(2);
+
+    return dist_force_w_ros;
+  }
+  geometry_msgs::Vector3 getDistTorqueCOG() const override
+  {
+    Eigen::Vector3d result = is_offset_ ? (dist_torque_cog_ - offset_torque_cog_) : dist_torque_cog_;
+
+    geometry_msgs::Vector3 dist_torque_cog_ros;
+    dist_torque_cog_ros.x = result(0);
+    dist_torque_cog_ros.y = result(1);
+    dist_torque_cog_ros.z = result(2);
+
+    return dist_torque_cog_ros;
+  }
+
+  bool getOffsetFlag() const
+  {
+    return is_offset_;
+  }
+  void toggleOffsetFlag()
+  {
+    is_offset_ = !is_offset_;
+
+    if (is_offset_)
+    {
+      ROS_INFO("The offset for external wrench -> true, the average offset samples: %d", offset_count_);
+      ROS_INFO("The offset force in world frame (N): %f, %f, %f", offset_force_w_(0), offset_force_w_(1), offset_force_w_(2));
+      ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", offset_torque_cog_(0), offset_torque_cog_(1), offset_torque_cog_(2));
+    }
+    else
+      ROS_INFO("The offset for external wrench -> false");
+  }
+
 private:
+  // for offset
+  bool is_offset_ = false;
+  int offset_count_ = 0;
+  Eigen::Vector3d offset_force_w_;     // offset estimated force in world frame
+  Eigen::Vector3d offset_torque_cog_;  // offset estimated torque in cog frame
+
   // for servo angles
   std::vector<double> joint_angles_;
 

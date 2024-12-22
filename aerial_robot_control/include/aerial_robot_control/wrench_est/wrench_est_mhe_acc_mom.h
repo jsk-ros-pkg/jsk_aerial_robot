@@ -71,6 +71,8 @@ public:
 
     setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
     setDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
+
+    WrenchEstActuatorMeasBase::update();
   }
 
 private:
