@@ -8,6 +8,41 @@ using namespace aerial_robot_control;
 
 void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()
 {
+  // TODO: wrap this part to a function
+  /* get the current state */
+  tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  tf::Quaternion q = estimator_->getQuat(Frame::COG, estimate_mode_);
+
+  /* get the target state */
+  tf::Vector3 target_pos;
+  tf::Quaternion target_q;
+  if (is_traj_tracking_)
+  {
+    target_pos.setX(x_u_ref_.x.data.at(0));
+    target_pos.setY(x_u_ref_.x.data.at(1));
+    target_pos.setZ(x_u_ref_.x.data.at(2));
+
+    target_q.setW(x_u_ref_.x.data.at(6));
+    target_q.setX(x_u_ref_.x.data.at(7));
+    target_q.setY(x_u_ref_.x.data.at(8));
+    target_q.setZ(x_u_ref_.x.data.at(9));
+  }
+  else
+  {
+    target_pos = navigator_->getTargetPos();
+
+    tf::Vector3 target_rpy = navigator_->getTargetRPY();
+    target_q.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
+  }
+
+  /* update I term */
+  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  // if the norm of vel is less than 0.2 m/s, than the I term is updated.
+  if (vel.length() < 0.1)
+  {
+    wrench_est_i_term_.update(target_pos, target_q, pos, q);
+  }
+
   auto dist_force_w = wrench_est_i_term_.getDistForceW();
   auto dist_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
 
@@ -35,6 +70,40 @@ std::vector<double> nmpc::TiltMtServoThrustImpNMPC::meas2VecX()
   bx0[13 + joint_num_ + motor_num_ + 4] = external_torque_cog.y;
   bx0[13 + joint_num_ + motor_num_ + 5] = external_torque_cog.z;
   return bx0;
+}
+
+void nmpc::TiltMtServoThrustImpNMPC::calcDisturbWrench()
+{
+  /* update the external wrench estimator based on the Nav State */
+  auto nav_state = navigator_->getNaviState();
+
+  if (nav_state == aerial_robot_navigation::TAKEOFF_STATE || nav_state == aerial_robot_navigation::HOVER_STATE ||
+      nav_state == aerial_robot_navigation::LAND_STATE)
+  {
+    if (estimator_->getPos(Frame::COG, estimate_mode_).z() > 0.3)  // TODO: change to a state: IN_AIR
+    {
+      /* get external wrench */
+      if (wrench_est_ptr_ != nullptr)
+        wrench_est_ptr_->update();
+      else
+        ROS_ERROR("wrench_est_ptr_ is nullptr");
+    }
+
+    // TODO: 1. move this function to tilt_mt_servo_dist_nmpc_controller.cpp
+    // TODO: 2. change the logic, change if_use_est_wrench_4_control_ to the place where the external wrench is added to
+    // controller
+
+    // the external wrench is only added when the robot is in the hover state
+    if (if_use_est_wrench_4_control_ && nav_state == aerial_robot_navigation::HOVER_STATE)
+    {
+      if (!wrench_est_ptr_->getOffsetFlag())
+        wrench_est_ptr_->toggleOffsetFlag();
+
+      // TODO: change this part to ext_force_w_ and mdl_err_force_w_
+      dist_force_w_ = wrench_est_ptr_->getDistForceW();
+      dist_torque_cog_ = wrench_est_ptr_->getDistTorqueCOG();
+    }
+  }
 }
 
 void nmpc::TiltMtServoThrustImpNMPC::initCostW()

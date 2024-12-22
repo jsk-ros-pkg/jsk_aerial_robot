@@ -21,6 +21,8 @@ protected:
 
   std::vector<double> meas2VecX() override;
 
+  void calcDisturbWrench() override;
+
   void initCostW() override;
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
