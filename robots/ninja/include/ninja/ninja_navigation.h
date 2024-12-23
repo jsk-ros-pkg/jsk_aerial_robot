@@ -58,12 +58,20 @@ namespace aerial_robot_navigation
     inline void setTargetVelCandX( float value){  target_vel_candidate_.setX(value);}
     inline void setTargetVelCandY( float value){  target_vel_candidate_.setY(value);}
     inline void setTargetVelCandZ( float value){  target_vel_candidate_.setZ(value);}
+    inline void setTargetVelCand( tf::Vector3 value){  target_vel_candidate_ = value ;}
+    inline void setFinalTargetPosCandX( float value){  target_final_pos_candidate_.setX(value);}
+    inline void setFinalTargetPosCandY( float value){  target_final_pos_candidate_.setY(value);}
+    inline void setFinalTargetPosCandZ( float value){  target_final_pos_candidate_.setZ(value);}
+    inline void setFinalTargetPosCand( tf::Vector3 value){  target_final_pos_candidate_ = value ;}
     
     void morphingProcess();
 
     bool getFreeJointFlag(){return free_joint_flag_;}
     std::vector<double> getJointPosErr(){return joint_pos_errs_;}
     template<class T> T getCom2Base();
+    inline tf::Vector3 getTargetFinalPosCand() {return target_final_pos_candidate_;}
+    inline tf::Vector3 getTargetVelCand() {return target_vel_candidate_;}
+
   protected:
     std::mutex mutex_com2base_;
     
@@ -82,6 +90,7 @@ namespace aerial_robot_navigation
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void moduleJointsCallback(const sensor_msgs::JointStateConstPtr& state);
     void comRotationProcess();
+    void comMovingProcess();
 
     ros::Publisher target_com_pose_pub_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
@@ -93,7 +102,15 @@ namespace aerial_robot_navigation
     ros::Publisher dock_joints_pos_pub_;
     map<string, ros::Subscriber> module_joints_subs_;
 
+    tf::Vector3 target_final_pos_candidate_;
     tf::Vector3 target_vel_candidate_;
+
+    double asm_vel_nav_threshold_;
+    double asm_nav_vel_limit_;
+    int asm_xy_control_mode_;
+    bool asm_vel_based_waypoint_;
+    double asm_teleop_reset_duration_;
+    double asm_teleop_reset_time_;
 
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;

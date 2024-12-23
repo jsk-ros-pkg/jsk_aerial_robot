@@ -19,25 +19,25 @@ print(reset)
 desire_joint = JointState()
 desire_att = DesireCoord()
 
-desire_joint.name = ['mod1/yaw','mod2/pitch','mod2/yaw','mod3/pitch','mod3/yaw','mod4/pitch']
+desire_joint.name = ['mod1/pitch','mod1/yaw','mod2/pitch','mod2/yaw','mod3/pitch','mod3/yaw','mod4/pitch']
 
 if reset:
     rospy.loginfo('reset')
-    desire_joint.position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    desire_joint.position = [0.0,0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     desire_att.pitch = 0
     desire_att.roll = 0
 elif demo_mode == 0: # V shape
     rospy.loginfo('mode 0')
-    desire_joint.position = [-1.5,-0.7,0.0,1.4,-1.5,0.0]
+    desire_joint.position = [0.0, -1.5,-0.7,0.0,1.4,-1.5,0.0]
     desire_att.pitch = 0.7
 elif demo_mode == 1: # spiral
     rospy.loginfo('mode 1')
-    desire_joint.position = [-1.0,-0.6,-1.5,0.8,-1.5,1.0]
+    desire_joint.position = [0.0, -1.0,-0.6,-1.5,0.8,-1.5,1.0]
     desire_att.pitch = -0.2
     desire_att.yaw = math.pi/2.0
 elif demo_mode == 2: # circle
-    rospy.loginfo('mode 1')
-    desire_joint.position = [-1.57,-0.0,-1.57,0.0,-1.57,0.0]
+    rospy.loginfo('mode 2')
+    desire_joint.position = [1.57,-1.57,0.0,-1.57,0.0,-1.57,0.0]
 # elif demo_mode == 2: # mode model
 #     rospy.loginfo('mode 2')
 #     desire_joint.position = [0.0, half_pi, -1.5, 0.0, 0.0, half_pi]

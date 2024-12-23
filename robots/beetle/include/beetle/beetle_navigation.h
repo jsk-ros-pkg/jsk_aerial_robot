@@ -86,6 +86,8 @@ namespace aerial_robot_navigation
     std::string my_name_;
     int my_index_;
     int leader_id_;
+    int left_id_;
+    int right_id_;
     std::map<int, bool> assembly_flags_;
     bool reconfig_flag_;
     bool current_assembled_;
