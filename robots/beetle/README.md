@@ -12,8 +12,8 @@ git clone https://github.com/acados/acados.git --branch v0.3.3
 ```
 Then, follow the instructions below:
 - Install acados itself: Please follow the instructions on the acados website https://docs.acados.org/installation/index.html
-- Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html
-- Pay attention that you must execute the step 6 in https://docs.acados.org/python_interface/index.html to install t_renderer.
+- Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html, but don't create virtual env in step 2. The virtual env has compatibility problem with ROS env.
+- Pay attention that you must execute the step 5 in https://docs.acados.org/python_interface/index.html to test the installation. This step should automatically install t_renderer. If something wrong, please follow step 6 to manually install t_renderer.
 
 ### 2. install the ros related packages
 
