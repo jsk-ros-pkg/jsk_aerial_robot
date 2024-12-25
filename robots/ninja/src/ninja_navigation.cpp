@@ -138,8 +138,11 @@ void NinjaNavigator::updateEntSysState()
   }
   setModuleNum(assembled_modules_ids_.size());
   std::sort(assembled_modules_ids_.begin(), assembled_modules_ids_.end());
-  left_id_ = assembled_modules_ids_.front();
-  right_id_ = assembled_modules_ids_.back();
+  if(assembled_modules_ids_.size() >= 2)
+    {
+      left_id_ = assembled_modules_ids_.front();
+      right_id_ = assembled_modules_ids_.back();
+    }
   if(control_flag_){
     reconfig_flag_ =  (pre_assembled_modules_ != module_num_) ? true : false;
     disassembly_flag_ = (module_num_ < pre_assembled_modules_) ? true : false;
