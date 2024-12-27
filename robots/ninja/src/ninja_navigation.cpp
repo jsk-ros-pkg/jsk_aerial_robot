@@ -42,6 +42,7 @@ void NinjaNavigator::update()
 {
   updateEntSysState();
   updateMyState();
+  calcCenterOfMoving();
 
   if(ros::Time::now().toSec() - prev_morphing_stamp_ > morphing_process_interval_)
     {
@@ -55,8 +56,13 @@ void NinjaNavigator::update()
       morphing_flag_ = false;
     }
   comMovingProcess();
-       
-  BeetleNavigator::update();
+
+  GimbalrotorNavigator::update();
+  setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
+  convertTargetPosFromCoG2CoM();
+  land_height_ = getInitHeight();  
+
+  //for debug
   bool current_assembled = getCurrentAssembled();
   if(current_assembled && !getReconfigFlag()){
     try
@@ -90,7 +96,7 @@ void NinjaNavigator::update()
       }
     catch (tf2::TransformException& ex)
       {
-        ROS_ERROR_STREAM("CoM is not defined");
+        ROS_ERROR_STREAM("CoM is not defined (update)");
         return;
       }
     if(control_flag_)
@@ -401,7 +407,7 @@ void NinjaNavigator::calcCenterOfMoving()
     }
   }
 
-  if(control_flag_) current_assembled_ = true;
+  // if(control_flag_) current_assembled_ = true;
 }
 
 void NinjaNavigator::convertTargetPosFromCoG2CoM()
@@ -444,15 +450,15 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
 
   /*Target twist conversion*/
-  KDL::Frame target_com_twist;
-  KDL::Frame target_my_twist;
-  tf::vectorTFToKDL(getTargetVelCand(),target_com_twist.p);
-  target_my_twist = target_com_twist * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
+  KDL::Vector target_com_vel;
+  KDL::Vector target_my_vel;
+  tf::vectorTFToKDL(getTargetVelCand(),target_com_vel);
+  target_my_vel = (getCom2Base<KDL::Frame>() * raw_base2cog).M * target_com_vel; // com -> cog
 
   tf::Vector3 target_pos, target_rot, target_vel;
   double target_roll, target_pitch, target_yaw;
   tf::vectorKDLToTF(target_my_pose.p, target_pos);
-  tf::vectorKDLToTF(target_my_twist.p, target_vel);
+  tf::vectorKDLToTF(target_my_vel, target_vel);
   target_my_pose.M.GetEulerZYX(target_yaw, target_pitch, target_roll);
   target_rot.setX(target_roll);
   target_rot.setY(target_pitch);
@@ -524,7 +530,7 @@ void NinjaNavigator::comMovingProcess()
     }
   catch (tf2::TransformException& ex)
     {
-      ROS_ERROR_STREAM("CoM is not defined");
+      ROS_ERROR_STREAM("CoM is not defined (comMovingProcess)");
       return;
     }
   
@@ -553,6 +559,7 @@ void NinjaNavigator::comMovingProcess()
     case POS_CONTROL_MODE:
       {
         setTargetPosCand(target_final_pos_candidate_);
+        setTargetVelCand(tf::Vector3(0,0,0));
         break;
       }
     case VEL_CONTROL_MODE:
@@ -594,6 +601,7 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
           {
             target_com_pos.setZ(getTargetPos().z());
             setTargetPosCand(target_com_pos);
+            setTargetVelCand(tf::Vector3(0,0,0));
             setFinalTargetPosCand(target_com_pos);
             setTargetComRot(KDL::Rotation::RPY(0,0,current_yaw));
             setGoalComRot(KDL::Rotation::RPY(0,0,current_yaw));
@@ -601,15 +609,18 @@ void NinjaNavigator::setTargetCoMPoseFromCurrState()
         else
           {
             setTargetPosCand(target_com_pos);
+            setTargetVelCand(tf::Vector3(0,0,0));
             setFinalTargetPosCand(target_com_pos);
             setTargetComRot(current_com.M);
             setGoalComRot(current_com.M);
           }
         asm_xy_control_mode_ = POS_CONTROL_MODE;
+        asm_vel_based_waypoint_ = false;
+        asm_teleop_reset_time_ = ros::Time::now().toSec();
       }
     catch (tf2::TransformException& ex)
       {
-        ROS_ERROR_STREAM("CoM is not defined");
+        ROS_ERROR_STREAM("CoM is not defined (setTargetCoMPoseFromCurrState)");
         return;
       }
   }
@@ -838,7 +849,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
                 }
               catch (tf2::TransformException& ex)
                 {
-                  ROS_ERROR_STREAM("CoM is not defined");
+                  ROS_ERROR_STREAM("CoM is not defined (assemblyNavCallback)");
                   return;
                 }
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
@@ -861,7 +872,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
                 }
               catch (tf2::TransformException& ex)
                 {
-                  ROS_ERROR_STREAM("CoM is not defined");
+                  ROS_ERROR_STREAM("CoM is not defined (assemblyNavCallback)");
                   return;
                 }
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
@@ -884,7 +895,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
                 }
               catch (tf2::TransformException& ex)
                 {
-                  ROS_ERROR_STREAM("CoM is not defined");
+                  ROS_ERROR_STREAM("CoM is not defined (assemblyNavCallback)");
                   return;
                 }
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
@@ -901,7 +912,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
       }
     case aerial_robot_msgs::FlightNav::STAY_HERE_MODE:
       {
-        xy_control_mode_ = POS_CONTROL_MODE;
+        asm_xy_control_mode_ = POS_CONTROL_MODE;
         setTargetVelCandX(0);
         setTargetVelCandY(0);
         setTargetCoMPoseFromCurrState();
