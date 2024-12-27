@@ -254,10 +254,6 @@ class StandbyState(smach.State):
         target_cp_pos = target_cp_pose[:3,3]
         target_cp_att = np.array(tf.transformations.euler_from_matrix(target_cp_pose[:3,:3]))
 
-        # follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
-        # self.target_att = np.array([0,0,leader_target_yaw])
-        # self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
-
         follower_dock_point_2_cog_homo = self.coordTransformer.getHomoMatFromCoordName(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
         target_cog_pose = target_cp_pose @ follower_dock_point_2_cog_homo
         self.target_att = np.array(tf.transformations.euler_from_matrix(target_cog_pose[:3,:3]))
@@ -348,7 +344,8 @@ class ApproachState(smach.State):
         self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
-
+        self.assembly_nav_pub = rospy.Publisher("/assembly/uav/nav", FlightNav, queue_size=10)
+        
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
             self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
@@ -438,17 +435,26 @@ class ApproachState(smach.State):
             nav_msg_leader.control_frame = 1
             nav_msg_leader.pos_xy_nav_mode=1
             nav_msg_leader.target_vel_x = self.contact_vel_x * self.attach_dir
+            #assembly
+            nav_msg_assembly = FlightNav()
+            if self.attach_dir < 0:
+                nav_msg_assembly.target = 2
+            else:
+                nav_msg_assembly.target = 3
+            nav_msg_assembly.control_frame = 1
+            nav_msg_assembly.pos_xy_nav_mode=1
+            nav_msg_assembly.target_vel_x = self.contact_vel_x * self.attach_dir
 
-            traj_msg_follower = PoseStamped()
-            traj_msg_follower.header.stamp = rospy.Time.now()
-            traj_msg_follower.pose.position.x = self.target_cog_pos[0]
-            traj_msg_follower.pose.position.y = self.target_cog_pos[1]
-            traj_msg_follower.pose.position.z = self.target_cog_pos[2]
-            target_att_qr = tf.transformations.quaternion_from_euler(self.target_att[0], self.target_att[1], self.target_att[2])
-            traj_msg_follower.pose.orientation.x = target_att_qr[0]
-            traj_msg_follower.pose.orientation.y = target_att_qr[1]
-            traj_msg_follower.pose.orientation.z = target_att_qr[2]
-            traj_msg_follower.pose.orientation.w = target_att_qr[3]
+            # traj_msg_follower = PoseStamped()
+            # traj_msg_follower.header.stamp = rospy.Time.now()
+            # traj_msg_follower.pose.position.x = self.target_cog_pos[0]
+            # traj_msg_follower.pose.position.y = self.target_cog_pos[1]
+            # traj_msg_follower.pose.position.z = self.target_cog_pos[2]
+            # target_att_qr = tf.transformations.quaternion_from_euler(self.target_att[0], self.target_att[1], self.target_att[2])
+            # traj_msg_follower.pose.orientation.x = target_att_qr[0]
+            # traj_msg_follower.pose.orientation.y = target_att_qr[1]
+            # traj_msg_follower.pose.orientation.z = target_att_qr[2]
+            # traj_msg_follower.pose.orientation.w = target_att_qr[3]
 
             # if self.leader_target_pose != self.leader_pre_target_pose:
             #     self.leader_pre_target_pose = self.leader_target_pose
@@ -461,6 +467,7 @@ class ApproachState(smach.State):
             #         return 'fail'
             self.follower_nav_pub.publish(nav_msg_follower)
             self.leader_nav_pub.publish(nav_msg_leader)
+            self.assembly_nav_pub.publish(nav_msg_leader)
 
             # roll and pitch
             link_rot_follower = DesireCoord()
@@ -507,10 +514,6 @@ class ApproachState(smach.State):
         target_cp_pose = leader_cog_2_world_home @ leader_dock_point_2_cog_homo @ relative_pose_of_cp
         target_cp_pos = target_cp_pose[:3,3]
         target_cp_att = np.array(tf.transformations.euler_from_matrix(target_cp_pose[:3,:3]))
-
-        # follower_dock_point_2_cog_trans = self.coordTransformer.getTransform(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
-        # self.target_att = np.array([0,0,leader_target_yaw])
-        # self.target_cog_pos = target_cp_pos[:3]+np.array(tf.transformations.euler_matrix(self.target_att[0],self.target_att[1],self.target_att[2]))[:3, :3] @ np.array(follower_dock_point_2_cog_trans[0])
 
         follower_dock_point_2_cog_homo = self.coordTransformer.getHomoMatFromCoordName(self.robot_name+'/'+self.follower_cp_name, self.robot_name+'/'+'cog')
         target_cog_pose = target_cp_pose @ follower_dock_point_2_cog_homo
