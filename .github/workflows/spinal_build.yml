@@ -5,7 +5,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/sugihara-16/docker_test/stm32cubeide_1.8.0_build_env:2024-11-03
+      image: ghcr.io/ut-dragon-lab/stm32cubeide_1.8.0_build_env:latest
 
     steps:
       - name: Checkout code
