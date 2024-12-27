@@ -846,50 +846,52 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
               setTargetVelCandY(target_vel.y());
               break;
             }
-          // case LEFT_DOCK:
-          //   {
-          //     try
-          //       {
-          //         tfBuffer_.canTransform("world", my_name_ + std::to_string(left_id_) + std::string("/pitch_connect_point"), ros::Time::now(), ros::Duration(0.1));
-          //         KDL::Frame current_com;
-          //         geometry_msgs::TransformStamped transformStamped;
-          //         transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(left_id_) + std::string("/pitch_connect_point") , ros::Time(0));
-          //         tf::transformMsgToKDL(transformStamped.transform, current_com);
+          case LEFT_DOCK:
+            {
+              double current_com_roll, current_com_pitch, current_com_yaw;
+              try
+                {
+                  tfBuffer_.canTransform("world", my_name_ + std::to_string(left_id_) + std::string("/pitch_connect_point"), ros::Time::now(), ros::Duration(0.1));
+                  KDL::Frame current_left_dock;
+                  geometry_msgs::TransformStamped transformStamped;
+                  transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(left_id_) + std::string("/pitch_connect_point") , ros::Time(0));
+                  tf::transformMsgToKDL(transformStamped.transform, current_left_dock);
 
-          //         current_com.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
-          //       }
-          //     catch (tf2::TransformException& ex)
-          //       {
-          //         ROS_ERROR_STREAM("CoM is not defined");
-          //         return;
-          //       }
-          //     tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
-          //     setTargetVelCandX(target_vel.x());
-          //     setTargetVelCandY(target_vel.y());
-          //     break;
-          //   }
-          // case RIGHT_DOCK:
-          //   {
-          //     try
-          //       {
-          //         tfBuffer_.canTransform("world", my_name_ + std::to_string(right_id_) + std::string("/yaw_connect_point"), ros::Time::now(), ros::Duration(0.1));
-          //         KDL::Frame current_com;
-          //         geometry_msgs::TransformStamped transformStamped;
-          //         transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(right_id_) + std::string("/yaw_connect_point") , ros::Time(0));
-          //         tf::transformMsgToKDL(transformStamped.transform, current_com);
+                  current_left_dock.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
+                }
+              catch (tf2::TransformException& ex)
+                {
+                  ROS_ERROR_STREAM("CoM is not defined");
+                  return;
+                }
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
+              setTargetVelCandX(target_vel.x());
+              setTargetVelCandY(target_vel.y());
+              break;
+            }
+          case RIGHT_DOCK:
+            {
+              double current_com_roll, current_com_pitch, current_com_yaw;
+              try
+                {
+                  tfBuffer_.canTransform("world", my_name_ + std::to_string(right_id_) + std::string("/yaw_connect_point"), ros::Time::now(), ros::Duration(0.1));
+                  KDL::Frame current_right_dock;
+                  geometry_msgs::TransformStamped transformStamped;
+                  transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(right_id_) + std::string("/yaw_connect_point") , ros::Time(0));
+                  tf::transformMsgToKDL(transformStamped.transform, current_right_dock);
 
-          //         current_com.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
-          //       }
-          //     catch (tf2::TransformException& ex)
-          //       {
-          //         ROS_ERROR_STREAM("CoM is not defined");
-          //         return;
-          //       }
-          //     tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
-          //     setTargetVelCandX(target_vel.x());
-          //     setTargetVelCandY(target_vel.y());              
-          //     break;
-          //   }
+                  current_right_dock.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
+                }
+              catch (tf2::TransformException& ex)
+                {
+                  ROS_ERROR_STREAM("CoM is not defined");
+                  return;
+                }
+              tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
+              setTargetVelCandX(target_vel.x());
+              setTargetVelCandY(target_vel.y());
+              break;
+            }
           default:
             {
               break;

@@ -8,6 +8,8 @@ uint8 STAY_HERE_MODE = 6
 
 uint8 WORLD_FRAME = 0
 uint8 LOCAL_FRAME = 1
+uint8 LEFT_DOCK = 2
+uint8 RIGHT_DOCK = 3
 
 uint8 BASELINK = 0
 uint8 COG = 1

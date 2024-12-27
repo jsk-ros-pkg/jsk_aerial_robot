@@ -22,7 +22,13 @@ namespace aerial_robot_navigation
      FRAC,
      EXP
     };
-  
+
+  enum ninja_control_frame
+    {
+     LEFT_DOCK = LOCAL_FRAME + 1,
+     RIGHT_DOCK
+    };
+
   class ModuleData
   {
   public:
