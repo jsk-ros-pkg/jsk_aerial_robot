@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.3.4 (2024-11-02)
 ------------------
 

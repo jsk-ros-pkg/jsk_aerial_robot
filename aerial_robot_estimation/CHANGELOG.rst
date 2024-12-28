@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.3.4 (2024-11-02)
 ------------------
 * [Estimation][IMU] refactor the index designation of KF based estimation result  (`#602 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/602>`_)

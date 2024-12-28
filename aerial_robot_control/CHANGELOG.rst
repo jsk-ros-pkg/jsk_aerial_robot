@@ -2,6 +2,12 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Navigation][Trajectory] solve the discontinued problem of yaw rotation (`#634 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/634>`_)
+* [control][navigation] Skip following target_pose trajectory during landing (`#633 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/633>`_)
+
+
 1.3.4 (2024-11-02)
 ------------------
 * [Navigation][Land] improve the landing process to be more safe and precise (`#603 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/603>`_)

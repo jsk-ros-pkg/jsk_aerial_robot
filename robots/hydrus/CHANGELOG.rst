@@ -2,6 +2,9 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.3.4 (2024-11-02)
 ------------------
 * [CMake] using C++17 for related packages (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
