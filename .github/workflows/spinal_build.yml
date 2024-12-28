@@ -1,5 +1,5 @@
 name: Build Spinal Firmware
-on : [push, pull_request, workflow_dispatch]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
         with:
           # submodules too
           submodules: recursive
-          
+
       - name: Install ROS packages with rosdep # Setup Github ws as a catkin ws
         run: |
           source /opt/ros/noetic/setup.bash
@@ -25,75 +25,105 @@ jobs:
           cd ~/catkin_ws
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
         shell: bash
-        
-      - name: Build Spinal as ROS Package # Build Spinal to generate ROS libraries
-        run: |
-          source /opt/ros/noetic/setup.bash
-          cd ~/catkin_ws
-          catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
-          catkin build spinal
-          source devel/setup.bash
-        shell: bash
 
-      - name: Build Spinal H7 as STM32CubeIDE project # Build Spinal H7 firmware with STM32CubeIDE
+      # =========================
+      # Repeat ROS Build and H7 Build 5 times
+      # =========================
+      - name: Build Spinal as ROS + H7 (up to 5 times)
         run: |
-          # build firmware five times and it's determined as successful if just one of five was succeeded.
           for i in {1..5}; do
-            echo "=== Attempt #$i for H7 Build ==="
+            echo "======================================="
+            echo "=== [Attempt $i/5] Build Spinal as ROS Package ==="
+            (
+              # --- Build Spinal as ROS Package ---
+              source /opt/ros/noetic/setup.bash
+              cd ~/catkin_ws
+              catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
+              catkin build spinal
+              source devel/setup.bash
+            ) || {
+              echo "Build Spinal as ROS Package failed on attempt #$i."
+              echo "Cleaning up STM32CubeIDE workspace..."
+              rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+              continue
+            }
+
+            echo "=== [Attempt $i/5] Build Spinal H7 as STM32CubeIDE project ==="
+            # --- Build Spinal H7 as STM32CubeIDE project ---
             /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
               -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
               -data ~/STM32CubeIDE/workspace_1.8.0/ \
               -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
               -cleanBuild spinal/Debug \
               -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-              -Dorg.eclipse.cdt.core.build.parallel.threads=12
-            
-            if [ $? -eq 0 ]; then
-              echo "Build Spinal H7 succeeded on attempt #$i."
-              exit 0
-            else
+                      -Dorg.eclipse.cdt.core.build.parallel.threads=12 || {
               echo "Build Spinal H7 failed on attempt #$i."
-            fi
-            
+              echo "Cleaning up STM32CubeIDE workspace..."
+              rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+              continue
+            }
+
+            echo "All builds (ROS + H7) succeeded on attempt #$i."
+            exit 0
           done
-          
-          echo "All 5 attempts for Spinal H7 have failed."
+
+          echo "All 5 attempts (ROS + H7) have failed. Exiting with error."
           exit 1
 
-      - name: Clean up STM32CubeIDE # Clean up STM32CubeIDE WS to build same name project
-        run: |
-          rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+      - name: Upload H7 artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpinalH7.artifacts
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
 
-      - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
+      # =========================
+      # Repeat ROS Build and F7 Build 5 times
+      # =========================
+      - name: Build Spinal as ROS + F7 (up to 5 times)
+        if: success() 
         run: |
           for i in {1..5}; do
-            echo "=== Attempt #$i for F7 Build ==="
+            echo "======================================="
+            echo "=== [Attempt $i/5] Build Spinal as ROS Package ==="
+            (
+              # --- Build Spinal as ROS Package ---
+              source /opt/ros/noetic/setup.bash
+              cd ~/catkin_ws
+              catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
+              catkin build spinal
+              source devel/setup.bash
+            ) || {
+              echo "Build Spinal as ROS Package failed on attempt #$i."
+              echo "Cleaning up STM32CubeIDE workspace..."
+              rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+              continue
+            }
+
+            echo "=== [Attempt $i/5] Build Spinal F7 as STM32CubeIDE project ==="
+            # --- Build Spinal F7 as STM32CubeIDE project ---
             /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
               -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
               -data ~/STM32CubeIDE/workspace_1.8.0/ \
               -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
               -cleanBuild spinal/Debug \
               -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-              -Dorg.eclipse.cdt.core.build.parallel.threads=12
-
-            if [ $? -eq 0 ]; then
-              echo "Build Spinal F7 succeeded on attempt #$i."
-              exit 0
-            else
+                      -Dorg.eclipse.cdt.core.build.parallel.threads=12 || {
               echo "Build Spinal F7 failed on attempt #$i."
-            fi
+              echo "Cleaning up STM32CubeIDE workspace..."
+              rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+              continue
+            }
+
+            echo "All builds (ROS + F7) succeeded on attempt #$i."
+            exit 0
           done
-          
-          echo "All 5 attempts for Spinal F7 have failed."
+
+          echo "All 5 attempts (ROS + F7) have failed. Exiting with error."
           exit 1
 
-      - name: Upload H7 artifacts # Upload required H7 files for flash.
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpinalH7.artifacts
-          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
-
-      - name: Upload F7 artifacts # Upload required F7 files for flash.
+      - name: Upload F7 artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: SpinalF7.artifacts
