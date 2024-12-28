@@ -37,13 +37,28 @@ jobs:
 
       - name: Build Spinal H7 as STM32CubeIDE project # Build Spinal H7 firmware with STM32CubeIDE
         run: |
-          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
-            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-            -data ~/STM32CubeIDE/workspace_1.8.0/ \
-            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
-            -cleanBuild spinal/Debug \
-            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+          # build firmware five times and it's determined as successful if just one of five was succeeded.
+          for i in {1..5}; do
+            echo "=== Attempt #$i for H7 Build ==="
+            /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+              -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+              -data ~/STM32CubeIDE/workspace_1.8.0/ \
+              -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
+              -cleanBuild spinal/Debug \
+              -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+              -Dorg.eclipse.cdt.core.build.parallel.threads=12
+            
+            if [ $? -eq 0 ]; then
+              echo "Build Spinal H7 succeeded on attempt #$i."
+              exit 0
+            else
+              echo "Build Spinal H7 failed on attempt #$i."
+            fi
+            
+          done
+          
+          echo "All 5 attempts for Spinal H7 have failed."
+          exit 1
 
       - name: Clean up STM32CubeIDE # Clean up STM32CubeIDE WS to build same name project
         run: |
@@ -51,13 +66,26 @@ jobs:
 
       - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
         run: |
-          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
-            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-            -data ~/STM32CubeIDE/workspace_1.8.0/ \
-            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
-            -cleanBuild spinal/Debug \
-            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+          for i in {1..5}; do
+            echo "=== Attempt #$i for F7 Build ==="
+            /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+              -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+              -data ~/STM32CubeIDE/workspace_1.8.0/ \
+              -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
+              -cleanBuild spinal/Debug \
+              -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+              -Dorg.eclipse.cdt.core.build.parallel.threads=12
+
+            if [ $? -eq 0 ]; then
+              echo "Build Spinal F7 succeeded on attempt #$i."
+              exit 0
+            else
+              echo "Build Spinal F7 failed on attempt #$i."
+            fi
+          done
+          
+          echo "All 5 attempts for Spinal F7 have failed."
+          exit 1
 
       - name: Upload H7 artifacts # Upload required H7 files for flash.
         uses: actions/upload-artifact@v4
@@ -69,4 +97,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SpinalF7.artifacts
-          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/Debug/spinal.*          
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/Debug/spinal.*
