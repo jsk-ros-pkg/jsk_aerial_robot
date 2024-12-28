@@ -1,5 +1,5 @@
 uint8 index # from 0
-int32 angle
-int32 rpm
-int32 current # load
+float32 angle # [rad]
+float32 velocity # [rad/s]
+float32 current # [A]
 

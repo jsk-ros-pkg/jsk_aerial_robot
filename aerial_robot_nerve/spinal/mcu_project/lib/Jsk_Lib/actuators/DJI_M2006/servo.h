@@ -57,7 +57,11 @@ namespace DJI_M2006
     int32_t last_pos_measurement_;
     int32_t counts_;
     int32_t rpm_;
-    int32_t current_;
+    int32_t m_current_;
+
+    float output_ang_;
+    float output_vel_;
+    float current_;
 
     int16_t goal_current_;
 

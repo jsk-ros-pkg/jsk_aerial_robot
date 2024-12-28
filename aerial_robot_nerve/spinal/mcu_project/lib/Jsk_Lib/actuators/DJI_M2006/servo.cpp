@@ -16,8 +16,13 @@ Servo::Servo(): servo_state_pub_("servo/states", &servo_state_msg_), servo_cmd_s
 
   rotations_ = 0;
   last_pos_measurement_ = kCountsPerRev;
+
   counts_ = 0;
   rpm_ = 0;
+  m_current_ = 0;
+
+  output_ang_ = 0;
+  output_vel_ = 0;
   current_ = 0;
 
   goal_current_ = 0;
@@ -51,7 +56,7 @@ void Servo::receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data
 {
   uint16_t counts = uint16_t((data[0] << 8) | data[1]);
   rpm_ = int16_t((data[2] << 8) | data[3]);
-  current_ = int16_t((data[4] << 8) | data[5]);
+  m_current_ = int16_t((data[4] << 8) | data[5]);
 
   if (last_pos_measurement_ == 8192) {
     last_pos_measurement_ = counts;
@@ -70,6 +75,10 @@ void Servo::receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data
 
   counts_ = rotations_ * kCountsPerRev + counts;
   last_pos_measurement_ = counts;
+
+  output_ang_ = counts_ / kCountsPerRad; // TODO: rectify the offset;
+  output_vel_ = rpm_ / kRPMPerRadS;
+  current_ = m_current_ / 1000.0f;
 }
 
 void Servo::update(void)
@@ -90,8 +99,8 @@ void Servo::update(void)
     {
       /* send servo */
       servo_state_msg_.index = 0;
-      servo_state_msg_.angle = counts_;
-      servo_state_msg_.rpm = rpm_;
+      servo_state_msg_.angle = output_ang_;
+      servo_state_msg_.velocity = output_vel_;
       servo_state_msg_.current = current_;
 
       servo_state_pub_.publish(&servo_state_msg_);
