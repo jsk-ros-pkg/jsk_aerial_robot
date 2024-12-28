@@ -11,7 +11,7 @@
 #include <ros.h>
 #include <CAN/can_device_manager.h>
 #include <spinal/ServoExtendedState.h>
-#include <spinal/ServoControlCmd.h>
+#include <spinal/ServoExtendedCmd.h>
 
 #include "math/AP_Math.h"
 
@@ -37,7 +37,7 @@ namespace DJI_M2006
     void init(CAN_GeranlHandleTypeDef* hcan, osMailQId* handle, ros::NodeHandle* nh, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 
     void update(void);
-    void servoControlCallback(const spinal::ServoControlCmd& control_msg);
+    void servoControlCallback(const spinal::ServoExtendedCmd& control_msg);
 
     void sendData() override;
     void receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data) override;
@@ -45,7 +45,7 @@ namespace DJI_M2006
   private:
     ros::NodeHandle* nh_;
     ros::Publisher servo_state_pub_;
-    ros::Subscriber<spinal::ServoControlCmd, Servo> servo_cmd_sub_;
+    ros::Subscriber<spinal::ServoExtendedCmd, Servo> servo_cmd_sub_;
     spinal::ServoExtendedState servo_state_msg_;
 
     uint32_t last_connected_time_;
@@ -57,13 +57,33 @@ namespace DJI_M2006
     int32_t last_pos_measurement_;
     int32_t counts_;
     int32_t rpm_;
-    int32_t m_current_;
+    int32_t m_curr_;
 
-    float output_ang_;
+    float output_pos_;
     float output_vel_;
-    float current_;
+    float curr_;
 
-    int16_t goal_current_;
+    float filter_vel_;
+    float filter_vel_p_;
+
+    int8_t control_mode_;
+    float goal_value_;
+    float goal_pos_;
+    float goal_vel_;
+    float goal_curr_;
+
+
+    // PID velocity control
+    float v_k_p_;
+    float v_k_i_;
+    float v_i_term_;
+
+    // PID position control
+    float p_k_p_;
+    float p_k_i_;
+    float p_k_d_;
+    float p_i_term_;
+
 
     // Constants specific to the C610 + M2006 setup.
     static const uint32_t canTxId = 0x200;
@@ -76,8 +96,18 @@ namespace DJI_M2006
     static constexpr float kResistance = 0.100;
     static constexpr float kVoltageConstant = 100.0;
 
+    static const uint8_t POS_MODE = 0;
+    static const uint8_t VEL_MODE = 1;
+    static const uint8_t CUR_MODE = 2;
+
+    static constexpr float MAX_CURRENT = 10.0; // [A]
     static constexpr int32_t SERVO_PUB_INTERVAL = 10; // [ms]
     static constexpr int32_t SERVO_CTRL_INTERVAL = 2; // [ms]
+
+    static constexpr uint8_t GYRO_LPF_FACTOR = 20;
+
+    void calcPosPid();
+    void calcVelPid();
   };
 }
 #endif
