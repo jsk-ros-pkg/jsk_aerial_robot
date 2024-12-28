@@ -2,8 +2,8 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.5 (2024-12-28)
+------------------
 * [SYSID] [Motor Test] add a py script to analyze motor_test data (`#591 <https://github.com/jsk-ros-pkg/aerial_robot/issues/591>`_)
 * Change to C++17 to support ubuntu22.04 (`#626 <https://github.com/jsk-ros-pkg/aerial_robot/issues/626>`_)
 

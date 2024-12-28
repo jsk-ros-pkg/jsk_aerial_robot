@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.5 (2024-12-28)
+------------------
 * [Mocap][Multicast][IGMP] create a script to force send IGMP report to router periodically (`#641 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/641>`_)
 
 1.3.4 (2024-11-02)
