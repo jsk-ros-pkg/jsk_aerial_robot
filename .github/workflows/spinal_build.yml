@@ -15,6 +15,7 @@ jobs:
           submodules: recursive
           
       - name: Install ROS packages with rosdep # Setup Github ws as a catkin ws
+        shell: bash
         run: |
           source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
@@ -24,20 +25,21 @@ jobs:
           ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
           cd ~/catkin_ws
           rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
-        shell: bash
         
       - name: Build Spinal as ROS Package # Build Spinal to generate ROS libraries
+        shell: bash
         run: |
           source /opt/ros/noetic/setup.bash
           cd ~/catkin_ws
           catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
           catkin build spinal
           source devel/setup.bash
-        shell: bash
 
       - name: Build Spinal H7 as STM32CubeIDE project # Build Spinal H7 firmware with STM32CubeIDE
+        shell: bash
         run: |
-          # build firmware five times and it's determined as successful if just one of five was succeeded.
+          # set default result to avoid build interruption
+          set +e
           for i in {1..5}; do
             echo "=== Attempt #$i for H7 Build ==="
             /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
@@ -46,26 +48,29 @@ jobs:
               -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
               -cleanBuild spinal/Debug \
               -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-              -Dorg.eclipse.cdt.core.build.parallel.threads=12
+                      -Dorg.eclipse.cdt.core.build.parallel.threads=12
             
+            # check build result
             if [ $? -eq 0 ]; then
               echo "Build Spinal H7 succeeded on attempt #$i."
-              exit 0
+              exit 0  # success
             else
               echo "Build Spinal H7 failed on attempt #$i."
             fi
-            
           done
-          
+
           echo "All 5 attempts for Spinal H7 have failed."
           exit 1
 
       - name: Clean up STM32CubeIDE # Clean up STM32CubeIDE WS to build same name project
+        shell: bash
         run: |
           rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
 
       - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
+        shell: bash
         run: |
+          set +e
           for i in {1..5}; do
             echo "=== Attempt #$i for F7 Build ==="
             /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
@@ -74,11 +79,11 @@ jobs:
               -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
               -cleanBuild spinal/Debug \
               -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
-              -Dorg.eclipse.cdt.core.build.parallel.threads=12
+                      -Dorg.eclipse.cdt.core.build.parallel.threads=12
 
             if [ $? -eq 0 ]; then
               echo "Build Spinal F7 succeeded on attempt #$i."
-              exit 0
+              exit 0  #success
             else
               echo "Build Spinal F7 failed on attempt #$i."
             fi
