@@ -1,0 +1,72 @@
+name: Build Spinal Firmware
+on : [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ut-dragon-lab/stm32cubeide_1.8.0_build_env:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # submodules too
+          submodules: recursive
+          
+      - name: Install ROS packages with rosdep # Setup Github ws as a catkin ws
+        run: |
+          source /opt/ros/noetic/setup.bash
+          rm /etc/ros/rosdep/sources.list.d/20-default.list
+          sudo rosdep init
+          rosdep update
+          mkdir -p ~/catkin_ws/src
+          ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
+          cd ~/catkin_ws
+          rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic
+        shell: bash
+        
+      - name: Build Spinal as ROS Package # Build Spinal to generate ROS libraries
+        run: |
+          source /opt/ros/noetic/setup.bash
+          cd ~/catkin_ws
+          catkin config --cmake-args -Dcatkin_DIR=/opt/ros/noetic/share/catkin/cmake
+          catkin build spinal
+          source devel/setup.bash
+        shell: bash
+
+      - name: Build Spinal H7 as STM32CubeIDE project # Build Spinal H7 firmware with STM32CubeIDE
+        run: |
+          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data ~/STM32CubeIDE/workspace_1.8.0/ \
+            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/ \
+            -cleanBuild spinal/Debug \
+            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+
+      - name: Clean up STM32CubeIDE # Clean up STM32CubeIDE WS to build same name project
+        run: |
+          rm -rf ~/STM32CubeIDE/workspace_1.8.0/.metadata
+
+      - name: Build Spinal F7 as STM32CubeIDE project # Build Spinal F7 firmware with STM32CubeIDE
+        run: |
+          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data ~/STM32CubeIDE/workspace_1.8.0/ \
+            -import aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/ \
+            -cleanBuild spinal/Debug \
+            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+
+      - name: Upload H7 artifacts # Upload required H7 files for flash.
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpinalH7.artifacts
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
+
+      - name: Upload F7 artifacts # Upload required F7 files for flash.
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpinalF7.artifacts
+          path: aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/Debug/spinal.*          
