@@ -24,12 +24,14 @@ class DisassemblyDemo():
                 sub_sm = smach.StateMachine(outcomes=['succeeded_'+motion_prefix])
                 direction = 1 if target_follower_id > target_leader_id else -1
                 with sub_sm:
+                    rospy.loginfo(motion_prefix)
+                    rospy.loginfo(direction)
                     smach.StateMachine.add('SwitchState'+  motion_prefix,
                                            SwitchState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id,real_machine=self.real_machine, neighboring = 'ninja'+str(target_leader_id), neighboring_id = target_leader_id, separate_dir = direction),
                                            transitions={'done':'SeparateState'+motion_prefix})
 
                     smach.StateMachine.add('SeparateState'+motion_prefix,
-                                           SeparateState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, neighboring = 'ninja'+str(target_leader_id)),
+                                           SeparateState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, neighboring = 'ninja'+str(target_leader_id),separate_vel = direction * 0.2),
                                            transitions={'done':'succeeded_'+motion_prefix,'in_process':'SeparateState'+motion_prefix})
                 if(i == len(self.module_ids)-2):
                     smach.StateMachine.add('SUB'+str(i),
