@@ -18,6 +18,11 @@ tmux send-keys -t ${session_name}:${main_w}.1 'ssh ' ${robot2} C-m
 tmux send-keys -t ${session_name}:${main_w}.2 'ssh ' ${robot3} C-m
 tmux send-keys -t ${session_name}:${main_w}.3 'ssh ' ${robot4} C-m
 
+tmux send-keys -t ${session_name}:${main_w}.0 'roscd ninja' C-m
+tmux send-keys -t ${session_name}:${main_w}.1 'roscd ninja' C-m
+tmux send-keys -t ${session_name}:${main_w}.2 'roscd ninja' C-m
+tmux send-keys -t ${session_name}:${main_w}.3 'roscd ninja' C-m
+
 
 # tmux send-keys -t ${session_name}:${main_w}.1 'roslaunch mecanum_control bringup_remote.launch robot_name:=' ${robot1} C-m
 # tmux send-keys -t ${session_name}:${sub_w}.0 'roslaunch mecanum_control bringup_remote.launch robot_name:=' ${robot2} C-m
