@@ -78,20 +78,20 @@ namespace CAN {
   {
     hfdcan_ = hfdcan;
 
-    /* message filter for message with standard id */
-    FDCAN_FilterTypeDef sFilterConfig;
-    sFilterConfig.IdType = FDCAN_STANDARD_ID;
-    sFilterConfig.FilterIndex = 0;
-    sFilterConfig.FilterType = FDCAN_FILTER_MASK;
-    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    sFilterConfig.FilterID1 = 0x000;
-    sFilterConfig.FilterID2 = 0x000;
-    HAL_FDCAN_ConfigFilter(hfdcan_, &sFilterConfig);
+    // /* message filter for message with standard id */
+    // FDCAN_FilterTypeDef sFilterConfig;
+    // sFilterConfig.IdType = FDCAN_STANDARD_ID;
+    // sFilterConfig.FilterIndex = 0;
+    // sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+    // sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    // sFilterConfig.FilterID1 = 0x000;
+    // sFilterConfig.FilterID2 = 0x000;
+    // HAL_FDCAN_ConfigFilter(hfdcan_, &sFilterConfig);
 
     /* message filter for message with extended id */
     FDCAN_FilterTypeDef eFilterConfig;
     eFilterConfig.IdType = FDCAN_EXTENDED_ID;
-    eFilterConfig.FilterIndex = 1;
+    eFilterConfig.FilterIndex = 0;
     eFilterConfig.FilterType = FDCAN_FILTER_MASK;
     eFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
     eFilterConfig.FilterID1 = 0x000;
