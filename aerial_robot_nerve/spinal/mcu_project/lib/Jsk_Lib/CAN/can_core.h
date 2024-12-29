@@ -63,7 +63,7 @@ namespace CAN {
 namespace CAN {
   void init(FDCAN_HandleTypeDef* hfdcan);
   FDCAN_HandleTypeDef* getHcanInstance();
-  void sendMessage(uint32_t identifier, uint32_t DLC, uint8_t* data, uint32_t timeout);
+  void sendMessage(uint32_t identifier, uint32_t DLC, uint8_t* data, uint32_t timeout, bool is_extended_id=false);
   void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
 
   inline void CAN_START()

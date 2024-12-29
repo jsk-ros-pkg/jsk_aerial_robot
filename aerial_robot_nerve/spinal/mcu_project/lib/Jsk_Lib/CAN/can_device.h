@@ -39,7 +39,7 @@ protected:
 public:
 	CANDirectDevice(){}
 	CANDirectDevice(uint32_t identifier):m_identifier(identifier){}
-	void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout){CAN::sendMessage(identifier, dlc, data, timeout);}
+	void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout, bool is_extended_id=false){CAN::sendMessage(identifier, dlc, data, timeout, is_extended_id);}
 	virtual void sendData() = 0;
 	virtual void receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data) = 0;
 };

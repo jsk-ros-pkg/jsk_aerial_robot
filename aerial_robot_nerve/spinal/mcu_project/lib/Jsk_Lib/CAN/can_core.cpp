@@ -78,6 +78,7 @@ namespace CAN {
   {
     hfdcan_ = hfdcan;
 
+    /* message filter for message with standard id */
     FDCAN_FilterTypeDef sFilterConfig;
     sFilterConfig.IdType = FDCAN_STANDARD_ID;
     sFilterConfig.FilterIndex = 0;
@@ -86,6 +87,17 @@ namespace CAN {
     sFilterConfig.FilterID1 = 0x000;
     sFilterConfig.FilterID2 = 0x000;
     HAL_FDCAN_ConfigFilter(hfdcan_, &sFilterConfig);
+
+    /* message filter for message with extended id */
+    FDCAN_FilterTypeDef eFilterConfig;
+    eFilterConfig.IdType = FDCAN_EXTENDED_ID;
+    eFilterConfig.FilterIndex = 1;
+    eFilterConfig.FilterType = FDCAN_FILTER_MASK;
+    eFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    eFilterConfig.FilterID1 = 0x000;
+    eFilterConfig.FilterID2 = 0x000;
+    HAL_FDCAN_ConfigFilter(hfdcan_, &eFilterConfig);
+
     /*
        Configure global filter:
        - Reject all remote frames with STD and EXT ID
@@ -123,9 +135,14 @@ namespace CAN {
     sendMessage(identifier, dlc, data, timeout);
   }
 
-  void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout, bool is_extended_id)
   {
     tx_header_.Identifier = identifier;
+
+    if(is_extended_id) // id length
+      tx_header_.IdType = FDCAN_EXTENDED_ID;
+    else
+      tx_header_.IdType = FDCAN_STANDARD_ID;
 
     if (dlc <= 8) { // calssic  model
       tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
