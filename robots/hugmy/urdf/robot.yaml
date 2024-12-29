@@ -1,0 +1,48 @@
+larm:
+  - joint_1_3: larm-1-p
+  - joint_2_3: larm-2-p
+  - joint_3_3: larm-3-p
+  - joint_4_3: larm-4-p
+  - joint_5_3: larm-5-p
+
+lleg:
+  - joint_1_4: lleg-1-p
+  - joint_2_4: lleg-2-p
+  - joint_3_4: lleg-3-p
+  - joint_4_4: lleg-4-p
+  - joint_5_4: lleg-5-p
+
+rarm:
+  - joint_1_2: rarm-1-p
+  - joint_2_2: rarm-2-p
+  - joint_3_2: rarm-3-p
+  - joint_4_2: rarm-4-p
+  - joint_5_2: rarm-5-p
+
+rleg:
+  - joint_1_1: rleg-1-p
+  - joint_2_1: rleg-2-p
+  - joint_3_1: rleg-3-p
+  - joint_4_1: rleg-4-p
+  - joint_5_1: rleg-5-p
+
+
+larm-end-coords:
+  parent: main_body
+  translate: [-0.05391, 0.0175, -0.0039]
+  rotate: [0, 0, 1, 540]
+
+lleg-end-coords:
+    parent: main_body
+    translate: [-0.0175, -0.05391, -0.0039]
+    rotate: [0, 0, 1, 630]
+
+rarm-end-coords:
+    parent: main_body
+    translate: [0.0175, 0.05391, -0.0039]
+    rotate: [0, 0, 1, 450]
+
+rleg-end-coords:
+    parent: main_body
+    translate: [0.05391, -0.0175, -0.0039]
+    rotate: [0, 0, 1, 360]
