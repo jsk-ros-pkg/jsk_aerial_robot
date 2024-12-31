@@ -363,6 +363,9 @@ namespace aerial_robot_model {
     ROS_INFO_STREAM_ONCE("[aerial_robot_model] robot mass is " << mass_);
 
     setInertia((cog.Inverse() * link_inertia).getRotationalInertia());
+    Eigen::Matrix3d print_inertia = getInertia<Eigen::Matrix3d>();
+    ROS_INFO_STREAM_ONCE("[aerial_robot_model] robot inertia is \n" << print_inertia);
+
     setCog2Baselink(cog.Inverse() * f_baselink);
 
     /* thrust point based on COG */
