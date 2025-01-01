@@ -255,18 +255,18 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
     {
       ROS_INFO("Trajectory tracking mode is off!");
       is_traj_tracking_ = false;
-      tf::Vector3 target_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-      tf::Vector3 target_rpy = navigator_->getTargetRPY();
+      tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+      tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
 
-      navigator_->setTargetPosX((float)target_pos.x());
-      navigator_->setTargetPosY((float)target_pos.y());
-      navigator_->setTargetPosZ((float)target_pos.z());
+      navigator_->setTargetPosX((float)current_pos.x());
+      navigator_->setTargetPosY((float)current_pos.y());
+      navigator_->setTargetPosZ((float)current_pos.z());
       navigator_->setTargetVelX(0.0);
       navigator_->setTargetVelY(0.0);
       navigator_->setTargetVelZ(0.0);
-      navigator_->setTargetRoll((float)target_rpy.x());
-      navigator_->setTargetPitch((float)target_rpy.y());
-      navigator_->setTargetYaw((float)target_rpy.z());
+      navigator_->setTargetRoll(0.0);
+      navigator_->setTargetPitch(0.0);
+      navigator_->setTargetYaw((float)current_rpy.z());
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
