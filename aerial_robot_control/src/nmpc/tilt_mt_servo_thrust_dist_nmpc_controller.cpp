@@ -122,12 +122,21 @@ std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX()
     bx0[13 + joint_num_ + i] = thrust_meas_[i];
 
   /* disturbance rejection */
-  bx0[13 + joint_num_ + motor_num_ + 0] = dist_force_w_.x;
-  bx0[13 + joint_num_ + motor_num_ + 1] = dist_force_w_.y;
-  bx0[13 + joint_num_ + motor_num_ + 2] = dist_force_w_.z;
-  bx0[13 + joint_num_ + motor_num_ + 3] = dist_torque_cog_.x;
-  bx0[13 + joint_num_ + motor_num_ + 4] = dist_torque_cog_.y;
-  bx0[13 + joint_num_ + motor_num_ + 5] = dist_torque_cog_.z;
+  geometry_msgs::Vector3 external_force_w;  // default: 0
+  geometry_msgs::Vector3 external_torque_cog;  // default: 0
+
+  if (if_use_est_wrench_4_control_)
+  {
+    external_force_w = wrench_est_ptr_->getDistForceW();
+    external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+  }
+
+  bx0[13 + joint_num_ + motor_num_ + 0] = external_force_w.x;
+  bx0[13 + joint_num_ + motor_num_ + 1] = external_force_w.y;
+  bx0[13 + joint_num_ + motor_num_ + 2] = external_force_w.z;
+  bx0[13 + joint_num_ + motor_num_ + 3] = external_torque_cog.x;
+  bx0[13 + joint_num_ + motor_num_ + 4] = external_torque_cog.y;
+  bx0[13 + joint_num_ + motor_num_ + 5] = external_torque_cog.z;
   return bx0;
 }
 
