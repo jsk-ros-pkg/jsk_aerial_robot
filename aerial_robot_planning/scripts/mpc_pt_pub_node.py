@@ -10,21 +10,12 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, current_path)
 
 import rospy
-import rospkg
-import yaml
 import tf_conversions as tf
 from trajs import *
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
-
-# read parameters from yaml
-rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFull.yaml")
-with open(param_path, "r") as f:
-    param_dict = yaml.load(f, Loader=yaml.FullLoader)
-nmpc_params = param_dict["controller"]["nmpc"]
 
 
 class MPCPtPubNode:
@@ -34,6 +25,14 @@ class MPCPtPubNode:
         rospy.init_node(self.node_name, anonymous=False)
         self.namespace = rospy.get_namespace().rstrip("/")
 
+        # get the parameters
+        try:
+            self.T_pred = rospy.get_param(f"{robot_name}/controller/nmpc/T_pred")
+            self.T_integ = rospy.get_param(f"{robot_name}/controller/nmpc/T_integ")
+            self.T_samp = rospy.get_param(f"{robot_name}/controller/nmpc/T_samp")
+        except KeyError:
+            raise KeyError("Parameters for NMPC not found! Please ensure that the NMPC controller is running!")
+
         # Sub --> feedback
         self.uav_odom = Odometry()
         rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self.sub_odom_callback)
@@ -42,7 +41,7 @@ class MPCPtPubNode:
         self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=5)
 
         # nmpc and robot related
-        self.N_nmpc = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
+        self.N_nmpc = int(self.T_pred / self.T_integ)
 
         # traj
         if traj_type == 0:
@@ -96,7 +95,7 @@ class MPCPtPubNode:
             traj_pt = MultiDOFJointTrajectoryPoint()
 
             if is_ref_different:
-                t_pred = i * nmpc_params["T_integ"]  # all future reference points are different
+                t_pred = i * self.T_integ  # all future reference points are different
             else:
                 t_pred = 0.0
 
