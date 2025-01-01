@@ -117,17 +117,22 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 
 std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
 {
-  vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
-
   /* disturbance rejection */
-  geometry_msgs::Vector3 external_force_w;  // default: 0, 0, 0
+  geometry_msgs::Vector3 external_force_w;     // default: 0, 0, 0
   geometry_msgs::Vector3 external_torque_cog;  // default: 0, 0, 0
 
-  if (if_use_est_wrench_4_control_)
+  auto nav_state = navigator_->getNaviState();
+  if (if_use_est_wrench_4_control_ && nav_state == aerial_robot_navigation::HOVER_STATE)
   {
+    if (!wrench_est_ptr_->getOffsetFlag())
+      wrench_est_ptr_->toggleOffsetFlag();
+
+    // the external wrench is only added when the robot is in the hover state
     external_force_w = wrench_est_ptr_->getDistForceW();
     external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
   }
+
+  vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
 
   bx0[13 + joint_num_ + 0] = external_force_w.x;
   bx0[13 + joint_num_ + 1] = external_force_w.y;
@@ -144,25 +149,18 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
   /* update the external wrench estimator based on the Nav State */
   auto nav_state = navigator_->getNaviState();
 
-  if (nav_state == aerial_robot_navigation::TAKEOFF_STATE || nav_state == aerial_robot_navigation::HOVER_STATE ||
-      nav_state == aerial_robot_navigation::LAND_STATE)
-  {
-    if (estimator_->getPos(Frame::COG, estimate_mode_).z() > 0.3)  // TODO: change to a state: IN_AIR
-    {
-      /* get external wrench */
-      if (wrench_est_ptr_ != nullptr)
-        wrench_est_ptr_->update();
-      else
-        ROS_ERROR("wrench_est_ptr_ is nullptr");
-    }
+  if (nav_state != aerial_robot_navigation::TAKEOFF_STATE && nav_state != aerial_robot_navigation::HOVER_STATE &&
+      nav_state != aerial_robot_navigation::LAND_STATE)
+    return;
 
-    // the external wrench is only added when the robot is in the hover state
-    if (if_use_est_wrench_4_control_ && nav_state == aerial_robot_navigation::HOVER_STATE)
-    {
-      if (!wrench_est_ptr_->getOffsetFlag())
-        wrench_est_ptr_->toggleOffsetFlag();
-    }
-  }
+  if (estimator_->getPos(Frame::COG, estimate_mode_).z() < 0.3)  // TODO: change to a state: IN_AIR
+    return;
+
+  /* get external wrench */
+  if (wrench_est_ptr_ != nullptr)
+    wrench_est_ptr_->update();
+  else
+    ROS_ERROR("wrench_est_ptr_ is nullptr");
 }
 
 void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
