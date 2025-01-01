@@ -20,7 +20,8 @@
   <arg name="robot_ns" value="beetle$(arg robot_id)" />
 
   <arg name="nmpc_mode" default="0" />
-  <arg name="wrench_est_mode" default="none" />  <!-- none; mom for momentum; ma for hybrid mode ; acc for acceleration -->
+  <arg name="wrench_est_mode" default="none" />
+    <!-- none; mom for momentum; ma for hybrid mode ; acc for acceleration; mhe_ma for mhe with acc and momentum est. -->
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -59,6 +60,7 @@
     <rosparam file="$(arg config_dir)/WrenchEstMomentum.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'mom')"/>
     <rosparam file="$(arg config_dir)/WrenchEstMomAcc.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'ma')"/>
     <rosparam file="$(arg config_dir)/WrenchEstAcceleration.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'acc')"/>
+    <rosparam file="$(arg config_dir)/WrenchEstMHEAccMom.yaml" command="load" if="$(eval arg('wrench_est_mode') == 'mhe_ma')"/>
 
 
    ###########  Sensor Fusion  ###########

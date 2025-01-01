@@ -58,7 +58,7 @@ public:
   virtual ~BaseMPCSolver() = default;  // if the class has virtual functions, then the destructor should be virtual, but
                                        // not pure virtual.
 
-  void initialize()
+  void initialize(bool have_quat = true)
   {
     xr_ = std::vector<std::vector<double>>(NN_ + 1, std::vector<double>(NX_, 0));
     ur_ = std::vector<std::vector<double>>(NN_, std::vector<double>(NU_, 0));
@@ -71,8 +71,12 @@ public:
 
     setRTIPhase();
 
+    if (NP_ == 0)
+      return;
+
     std::vector<double> p(NP_, 0);
-    p[0] = 1.0;  // quaternion
+    if (have_quat)
+      p[0] = 1.0;  // quaternion
     setParameters(p);
   };
 
@@ -162,7 +166,7 @@ public:
   }
 
   void setReference(const std::vector<std::vector<double>>& xr, const std::vector<std::vector<double>>& ur,
-                    bool is_set_quat = false)
+                    bool is_set_quat = true)
   {
     if (xr.size() != NN_ + 1 || ur.size() != NN_)
       throw std::length_error("xr or ur size is not equal to NN_ + 1 or NN_");

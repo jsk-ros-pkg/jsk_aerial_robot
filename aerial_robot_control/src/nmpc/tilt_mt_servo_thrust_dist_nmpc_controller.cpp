@@ -122,7 +122,6 @@ std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX()
     bx0[13 + joint_num_ + i] = thrust_meas_[i];
 
   /* disturbance rejection */
-  calcDisturbWrench();
   bx0[13 + joint_num_ + motor_num_ + 0] = dist_force_w_.x;
   bx0[13 + joint_num_ + motor_num_ + 1] = dist_force_w_.y;
   bx0[13 + joint_num_ + motor_num_ + 2] = dist_force_w_.z;

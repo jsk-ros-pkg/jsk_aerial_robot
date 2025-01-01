@@ -77,6 +77,7 @@ set(ACADOS_PYTHON_SCRIPTS
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_tri/tilt_tri_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_servo.py
 #        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_2ord_servo.py
+#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/mhe_wrench_est_acc_mom.py
 )
 
 foreach(script ${ACADOS_PYTHON_SCRIPTS})
@@ -94,7 +95,9 @@ endforeach()
 
 ### wrench estimation plugin
 add_library(wrench_est_plugins src/wrench_est/wrench_est_actuator_meas.cpp)
-target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES})
+target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES} acados
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/wrench_est/mhe_wrench_est_acc_mom_mdl/c_generated_code/libacados_ocp_solver_mhe_wrench_est_acc_mom_mdl.so
+)
 add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
 
 ### mpc solver plugin

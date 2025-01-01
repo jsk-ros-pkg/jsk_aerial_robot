@@ -20,6 +20,19 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
 }
 
+bool nmpc::TiltMtServoDistNMPC::update()
+{
+  if (!TiltMtServoNMPC::update())
+    return false;
+
+  // pub the est. wrench used by the controller, not the latest one. so this line is put before calcDisturbWrench()
+  pubDisturbWrench();
+
+  calcDisturbWrench();
+
+  return true;
+}
+
 void nmpc::TiltMtServoDistNMPC::reset()
 {
   TiltMtServoNMPC::reset();
@@ -63,8 +76,6 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
   vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
 
   /* disturbance rejection */
-  calcDisturbWrench();
-
   bx0[13 + joint_num_ + 0] = dist_force_w_.x;
   bx0[13 + joint_num_ + 1] = dist_force_w_.y;
   bx0[13 + joint_num_ + 2] = dist_force_w_.z;
@@ -166,19 +177,21 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
       }
     }
   }
+}
 
-  /* publish the disturbance wrench */
+void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
+{
   geometry_msgs::WrenchStamped dist_wrench_;
   dist_wrench_.header.frame_id = "beetle1/cog";
 
   dist_wrench_.wrench.torque = dist_torque_cog_;
 
   tf::Matrix3x3 rot_mtx_cog2w = estimator_->getOrientation(Frame::COG, estimate_mode_);
-  tf::Vector3 dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
-  tf::Vector3 dist_force_cog = rot_mtx_cog2w.inverse() * dist_force_w;
-  dist_wrench_.wrench.force.x = dist_force_cog.x();
-  dist_wrench_.wrench.force.y = dist_force_cog.y();
-  dist_wrench_.wrench.force.z = dist_force_cog.z();
+  tf::Vector3 tf_dist_force_w = tf::Vector3(dist_force_w_.x, dist_force_w_.y, dist_force_w_.z);
+  tf::Vector3 tf_dist_force_cog = rot_mtx_cog2w.inverse() * tf_dist_force_w;
+  dist_wrench_.wrench.force.x = tf_dist_force_cog.x();
+  dist_wrench_.wrench.force.y = tf_dist_force_cog.y();
+  dist_wrench_.wrench.force.z = tf_dist_force_cog.z();
 
   dist_wrench_.header.stamp = ros::Time::now();
 
