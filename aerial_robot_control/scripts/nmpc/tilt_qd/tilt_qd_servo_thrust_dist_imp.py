@@ -108,7 +108,7 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         f_d_i_para = ca.SX.sym("fd_para", 3)  # world frame
         tau_d_b_para = ca.SX.sym("tau_d_para", 3)  # body frame
 
-        parameters = ca.vertcat(qr, mp, mq, f_d_i_para, tau_d_b_para)
+        parameters = ca.vertcat(qr, f_d_i_para, tau_d_b_para, mp, mq)
 
         # control inputs
         ft1c = ca.SX.sym("ft1c")

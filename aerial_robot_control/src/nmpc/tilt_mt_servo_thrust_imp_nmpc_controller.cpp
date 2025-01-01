@@ -46,7 +46,7 @@ void nmpc::TiltMtServoThrustImpNMPC::prepareNMPCParams()
   auto dist_force_w = wrench_est_i_term_.getDistForceW();
   auto dist_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
 
-  vector<int> idx = { 10, 11, 12, 13, 14, 15 };
+  vector<int> idx = { 4, 5, 6, 7, 8, 9 };
   vector<double> p = { dist_force_w.x,    dist_force_w.y,    dist_force_w.z,
                        dist_torque_cog.x, dist_torque_cog.y, dist_torque_cog.z };
   mpc_solver_ptr_->setParamSparseAllStages(idx, p);

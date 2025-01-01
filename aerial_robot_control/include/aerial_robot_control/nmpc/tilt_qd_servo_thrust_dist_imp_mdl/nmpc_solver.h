@@ -199,7 +199,7 @@ protected:
     setCostWeightMid(W_);
 
     /* -------- step 2: update parameters -------- */
-    std::vector<int> M_idx = { 4, 5, 6, 7, 8, 9 };
+    std::vector<int> M_idx = { 10, 11, 12, 13, 14, 15 };
     std::vector<double> M = { pM_[0], pM_[1], pM_[2], oM_[0], oM_[1], oM_[2] };
     for (int i = 0; i < NN_; i++)
       acadosUpdateParamsSparse(i, M_idx, M, 6);

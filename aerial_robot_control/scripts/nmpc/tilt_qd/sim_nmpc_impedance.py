@@ -202,7 +202,7 @@ if __name__ == "__main__":
                     # for impedance control
                     W = nmpc.get_ocp_solver().acados_ocp.cost.W
                     # pMxy, pMxy, pMz, oMxy, oMxy, oMz
-                    params[4:10] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                    params[10:16] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
 
                 ocp_solver.set(j, "p", params)  # for nonlinear quaternion error
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
                 # for impedance control
                 W_e = nmpc.get_ocp_solver().acados_ocp.cost.W_e
                 # pMxy, pMxy, pMz, oMxy, oMxy, oMz
-                params[4:10] = np.sqrt(
+                params[10:16] = np.sqrt(
                     np.array([W_e[21, 21], W_e[22, 22], W_e[23, 23], W_e[24, 24], W_e[25, 25], W_e[26, 26]]))
 
             ocp_solver.set(ocp_solver.N, "p", params)  # for nonlinear quaternion error
