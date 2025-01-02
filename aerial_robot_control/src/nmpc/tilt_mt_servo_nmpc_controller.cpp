@@ -420,7 +420,7 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
                tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
   }
 
-  callbackSetRefXU(aerial_robot_msgs::PredXUConstPtr(new aerial_robot_msgs::PredXU(x_u_ref_)));
+  callbackSetRefXU(boost::make_shared<const aerial_robot_msgs::PredXU>(x_u_ref_));
 }
 
 void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
@@ -572,7 +572,7 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
   }
   cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
   cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
-  robot_model_->getThrustWrenchUnits();
+
   for (const auto& vec : robot_model_->getThrustWrenchUnits())
   {
     std::cout << "thrust wrench units: " << vec << std::endl;
