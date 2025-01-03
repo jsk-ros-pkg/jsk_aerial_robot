@@ -92,9 +92,10 @@ class MHEKinematics(RecedingHorizonBase):
         func = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
-        qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
-        qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
+        # qe = qr^* multiply q
+        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         # sensor function
         meas_y = ca.vertcat(p, a_sf, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w)

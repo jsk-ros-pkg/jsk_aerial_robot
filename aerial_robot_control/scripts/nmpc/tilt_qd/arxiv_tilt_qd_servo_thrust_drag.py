@@ -189,9 +189,10 @@ class NMPCTiltQdServoThrustDrag(NMPCBase):
         func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
-        qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
-        qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
+        # qe = qr^* multiply q
+        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
         control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
