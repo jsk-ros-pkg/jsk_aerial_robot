@@ -28,6 +28,9 @@ from trajs import (
     PitchRotationTrajOpposite,
 )
 
+import tf_conversions as tf
+from geometry_msgs.msg import Pose, Quaternion, Vector3
+
 
 def traj_factory(traj_type, loop_num):
     if traj_type == 0:
@@ -122,10 +125,43 @@ class InitState(smach.State):
             input_keys=["robot_name", "traj_type", "loop_num"],
             output_keys=[],
         )
+        self.rate = rospy.Rate(20)  # 20 Hz loop checking if finished
 
     def execute(self, userdata):
-        rospy.loginfo("State: INIT -- Sleeping for 5 seconds.")
-        time.sleep(5)
+        rospy.loginfo("State: INIT -- Start to reach the first point of the trajectory.")
+
+        # traj
+        traj = traj_factory(userdata.traj_type, userdata.loop_num)
+
+        # position
+        x, y, z, vx, vy, vz, ax, ay, az = traj.get_3d_pt(0.0)
+
+        # orientation
+        try:
+            (roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
+        except AttributeError:
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+            r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
+            r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
+
+        # convert roll pitch yaw to quaternion
+        q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
+        init_pose = Pose(
+            position=Vector3(x, y, z),
+            orientation=Quaternion(q[0], q[1], q[2], q[3]),
+        )
+
+        # Create the node instance
+        mpc_node = MPCSinglePtPub(userdata.robot_name, init_pose)
+
+        # Wait here until the node signals it is finished or ROS shuts down
+        while not rospy.is_shutdown():
+            if mpc_node.finished:
+                rospy.loginfo("INIT: MPCSinglePtPub says the init pose is reached.")
+                break
+            self.rate.sleep()
+
         rospy.loginfo("Initialization done. Going to TRACK state.")
         return "go_track"
 
@@ -145,7 +181,7 @@ class TrackState(smach.State):
             input_keys=["robot_name", "traj_type", "loop_num"],
             output_keys=[],
         )
-        self.rate = rospy.Rate(20)  # 20 Hz loop while tracking
+        self.rate = rospy.Rate(20)  # 20 Hz loop check if finished
 
     def execute(self, userdata):
         rospy.loginfo(
