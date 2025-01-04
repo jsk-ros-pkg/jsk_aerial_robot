@@ -1,29 +1,48 @@
 """
  Created by li-jinjie on 24-1-3.
 """
+# !/usr/bin/env python3
 
 import sys
 import os
+import time
 import argparse
 
-current_path = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, current_path)
-
 import rospy
+
+# Insert current folder into path so we can import from "trajs" or other local files
+current_path = os.path.abspath(os.path.dirname(__file__))
+if current_path not in sys.path:
+    sys.path.insert(0, current_path)
+
 import tf_conversions as tf
-from trajs import *
+import numpy as np  # Assuming you need numpy for np.inf
+from trajs import (
+    SetPointTraj,
+    CircleTraj,
+    LemniscateTraj,
+    LemniscateTrajOmni,
+    PitchRotationTraj,
+    RollRotationTraj,
+    PitchSetPtTraj,
+    PitchRotationTrajOpposite,
+)
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
 
-class MPCPtPubNode:
-    def __init__(self, robot_name: str, traj_type: int, loop_num: int) -> None:
+###############################################
+# Original MPCPtPubNode
+###############################################
+class MPCPtPub:
+    def __init__(self, robot_name: str, traj_type: int, loop_num: int = np.inf):
         self.robot_name = robot_name
-        self.node_name = "mpc_pt_pub_node"
-        rospy.init_node(self.node_name, anonymous=False)
+        self.node_name = "mpc_pt_pub"
+
         self.namespace = rospy.get_namespace().rstrip("/")
+        self.finished = False  # Flag to indicate trajectory is done
 
         # get the parameters
         try:
@@ -86,8 +105,8 @@ class MPCPtPubNode:
 
         # 2. calculate the reference points
         is_ref_different = True
-
         if isinstance(self.traj, PitchRotationTraj) or isinstance(self.traj, RollRotationTraj):
+            # For these trajectories, the same reference is used for the entire horizon
             is_ref_different = False
 
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -95,7 +114,7 @@ class MPCPtPubNode:
             traj_pt = MultiDOFJointTrajectoryPoint()
 
             if is_ref_different:
-                t_pred = i * self.T_integ  # all future reference points are different
+                t_pred = i * self.T_integ
             else:
                 t_pred = 0.0
 
@@ -105,13 +124,13 @@ class MPCPtPubNode:
             x, y, z, vx, vy, vz, ax, ay, az = self.traj.get_3d_pt(t_cal)
 
             # orientation
-            # check if there is get_3d_orientation method inside self.traj
             try:
-                roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc = self.traj.get_3d_orientation(t_cal)
+                (roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = self.traj.get_3d_orientation(t_cal)
             except AttributeError:
                 roll, pitch, yaw = 0.0, 0.0, 0.0
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
+
             q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
             qx, qy, qz, qw = q
 
@@ -130,26 +149,9 @@ class MPCPtPubNode:
         # 4. check if the trajectory is finished
         if self.traj.check_finished(rospy.Time.now().to_sec() - self.start_time):
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished!")
-            rospy.signal_shutdown("Trajectory finished!")
+            self.tmr_pt_pub.shutdown()
+            self.finished = True  # Instead of shutting down, mark as finished
             return
 
     def sub_odom_callback(self, msg: Odometry):
         self.uav_odom = msg
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="MPC Point Trajectory Publisher Node")
-    parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
-    parser.add_argument(
-        "traj_type",
-        type=int,
-        help="Trajectory type: 0 for set-point, 1 for Circular, 2 for Lemniscate, 3 for Lemniscate omni",
-    )
-    parser.add_argument("-num", "--loop_num", type=int, default=np.inf, help="Loop number for the trajectory")
-    args = parser.parse_args()
-
-    try:
-        node = MPCPtPubNode(args.robot_name, args.traj_type, args.loop_num)
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
