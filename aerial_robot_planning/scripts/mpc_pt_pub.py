@@ -18,8 +18,6 @@ if current_path not in sys.path:
 import tf_conversions as tf
 import math
 from abc import ABC, abstractmethod
-import numpy as np  # Assuming you need numpy for np.inf
-from trajs import BaseTraj, PitchRotationTraj, RollRotationTraj
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose

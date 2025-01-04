@@ -9,6 +9,7 @@ class BaseTraj:
     def __init__(self, loop_num: int = np.inf) -> None:
         self.T = float()
         self.loop_num = loop_num
+        self.use_constant_ref = False
 
     def check_finished(self, t: float) -> bool:
         return t > self.T * self.loop_num
@@ -166,6 +167,7 @@ class PitchRotationTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
+        self.use_constant_ref = True
 
     def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
@@ -201,6 +203,7 @@ class RollRotationTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
+        self.use_constant_ref = True
 
     def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
