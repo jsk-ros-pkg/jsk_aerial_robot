@@ -17,32 +17,26 @@ if current_path not in sys.path:
 
 import tf_conversions as tf
 import numpy as np  # Assuming you need numpy for np.inf
-from trajs import (
-    SetPointTraj,
-    CircleTraj,
-    LemniscateTraj,
-    LemniscateTrajOmni,
-    PitchRotationTraj,
-    RollRotationTraj,
-    PitchSetPtTraj,
-    PitchRotationTrajOpposite,
-)
+from trajs import BaseTraj, PitchRotationTraj, RollRotationTraj
 
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3
+from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
 
 ###############################################
 # Original MPCPtPubNode
 ###############################################
-class MPCPtPub:
-    def __init__(self, robot_name: str, traj_type: int, loop_num: int = np.inf):
+class MPCTrajPtPub:
+    def __init__(self, robot_name: str, traj: BaseTraj):
         self.robot_name = robot_name
-        self.node_name = "mpc_pt_pub"
+        self.node_name = "mpc_traj_pt_pub"
 
         self.namespace = rospy.get_namespace().rstrip("/")
         self.finished = False  # Flag to indicate trajectory is done
+
+        self.traj = traj
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
 
         # get the parameters
         try:
@@ -61,28 +55,6 @@ class MPCPtPub:
 
         # nmpc and robot related
         self.N_nmpc = int(self.T_pred / self.T_integ)
-
-        # traj
-        if traj_type == 0:
-            self.traj = SetPointTraj(loop_num)
-        elif traj_type == 1:
-            self.traj = CircleTraj(loop_num)
-        elif traj_type == 2:
-            self.traj = LemniscateTraj(loop_num)
-        elif traj_type == 3:
-            self.traj = LemniscateTrajOmni(loop_num)
-        elif traj_type == 4:
-            self.traj = PitchRotationTraj(loop_num)
-        elif traj_type == 5:
-            self.traj = RollRotationTraj(loop_num)
-        elif traj_type == 6:
-            self.traj = PitchSetPtTraj(loop_num)
-        elif traj_type == 7:
-            self.traj = PitchRotationTrajOpposite(loop_num)
-        else:
-            raise ValueError("Invalid trajectory type!")
-
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory type: {self.traj.__str__()}")
 
         self.start_time = rospy.Time.now().to_sec()
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")

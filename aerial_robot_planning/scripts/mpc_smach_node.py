@@ -15,8 +15,18 @@ import numpy as np
 current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
-from mpc_pt_pub import MPCPtPub
+from mpc_pt_pub import MPCTrajPtPub, MPCSinglePtPub
 
+from trajs import (
+    SetPointTraj,
+    CircleTraj,
+    LemniscateTraj,
+    LemniscateTrajOmni,
+    PitchRotationTraj,
+    RollRotationTraj,
+    PitchSetPtTraj,
+    PitchRotationTrajOpposite,
+)
 
 ###############################################
 # SMACH States
@@ -120,11 +130,33 @@ class TrackState(smach.State):
             f"State: TRACK -- Starting MPCPtPubNode for robot={userdata.robot_name}, "
             f"traj_type={userdata.traj_type}, loop_num={userdata.loop_num}"
         )
+
+        # traj
+        traj_type = userdata.traj_type
+        loop_num = userdata.loop_num
+        if traj_type == 0:
+            traj = SetPointTraj(loop_num)
+        elif traj_type == 1:
+            traj = CircleTraj(loop_num)
+        elif traj_type == 2:
+            traj = LemniscateTraj(loop_num)
+        elif traj_type == 3:
+            traj = LemniscateTrajOmni(loop_num)
+        elif traj_type == 4:
+            traj = PitchRotationTraj(loop_num)
+        elif traj_type == 5:
+            traj = RollRotationTraj(loop_num)
+        elif traj_type == 6:
+            traj = PitchSetPtTraj(loop_num)
+        elif traj_type == 7:
+            traj = PitchRotationTrajOpposite(loop_num)
+        else:
+            raise ValueError("Invalid trajectory type!")
+
         # Create the node instance
-        mpc_node = MPCPtPub(
+        mpc_node = MPCTrajPtPub(
             robot_name=userdata.robot_name,
-            traj_type=userdata.traj_type,
-            loop_num=userdata.loop_num,
+            traj=traj,
         )
 
         # Wait here until the node signals it is finished or ROS shuts down
