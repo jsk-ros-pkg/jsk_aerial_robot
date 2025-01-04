@@ -28,6 +28,28 @@ from trajs import (
     PitchRotationTrajOpposite,
 )
 
+
+def traj_factory(traj_type, loop_num):
+    if traj_type == 0:
+        return SetPointTraj(loop_num)
+    elif traj_type == 1:
+        return CircleTraj(loop_num)
+    elif traj_type == 2:
+        return LemniscateTraj(loop_num)
+    elif traj_type == 3:
+        return LemniscateTrajOmni(loop_num)
+    elif traj_type == 4:
+        return PitchRotationTraj(loop_num)
+    elif traj_type == 5:
+        return RollRotationTraj(loop_num)
+    elif traj_type == 6:
+        return PitchSetPtTraj(loop_num)
+    elif traj_type == 7:
+        return PitchRotationTrajOpposite(loop_num)
+    else:
+        raise ValueError("Invalid trajectory type!")
+
+
 ###############################################
 # SMACH States
 ###############################################
@@ -132,26 +154,7 @@ class TrackState(smach.State):
         )
 
         # traj
-        traj_type = userdata.traj_type
-        loop_num = userdata.loop_num
-        if traj_type == 0:
-            traj = SetPointTraj(loop_num)
-        elif traj_type == 1:
-            traj = CircleTraj(loop_num)
-        elif traj_type == 2:
-            traj = LemniscateTraj(loop_num)
-        elif traj_type == 3:
-            traj = LemniscateTrajOmni(loop_num)
-        elif traj_type == 4:
-            traj = PitchRotationTraj(loop_num)
-        elif traj_type == 5:
-            traj = RollRotationTraj(loop_num)
-        elif traj_type == 6:
-            traj = PitchSetPtTraj(loop_num)
-        elif traj_type == 7:
-            traj = PitchRotationTrajOpposite(loop_num)
-        else:
-            raise ValueError("Invalid trajectory type!")
+        traj = traj_factory(userdata.traj_type, userdata.loop_num)
 
         # Create the node instance
         mpc_node = MPCTrajPtPub(
