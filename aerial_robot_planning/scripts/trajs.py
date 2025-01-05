@@ -3,6 +3,7 @@
 """
 import numpy as np
 from typing import Tuple
+import tf_conversions as tf
 
 
 class BaseTraj:
@@ -82,8 +83,8 @@ class CircleTraj(BaseTraj):
         y = self.r * np.sin(self.omega * t)
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
-        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
-        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
+        ax = -self.r * self.omega ** 2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
         return x, y, vx, vy, ax, ay
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
@@ -93,8 +94,8 @@ class CircleTraj(BaseTraj):
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
         vz = 0.0
-        ax = -self.r * self.omega**2 * np.cos(self.omega * t)
-        ay = -self.r * self.omega**2 * np.sin(self.omega * t)
+        ax = -self.r * self.omega ** 2 * np.cos(self.omega * t)
+        ay = -self.r * self.omega ** 2 * np.sin(self.omega * t)
         az = 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
 
@@ -116,8 +117,8 @@ class LemniscateTraj(BaseTraj):
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t)
 
-        ax = -self.a * self.omega**2 * np.cos(self.omega * t)
-        ay = -4 * self.a * self.omega**2 * np.sin(2 * self.omega * t)
+        ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
+        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t)
 
         return x, y, vx, vy, ax, ay
 
@@ -132,9 +133,9 @@ class LemniscateTraj(BaseTraj):
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t) / 2
         vz = 2 * self.z_range * self.omega * np.cos(2 * self.omega * t + np.pi)
 
-        ax = -self.a * self.omega**2 * np.cos(self.omega * t)
-        ay = -4 * self.a * self.omega**2 * np.sin(2 * self.omega * t) / 2
-        az = -4 * self.z_range * self.omega**2 * np.sin(2 * self.omega * t + np.pi)
+        ax = -self.a * self.omega ** 2 * np.cos(self.omega * t)
+        ay = -4 * self.a * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
+        az = -4 * self.z_range * self.omega ** 2 * np.sin(2 * self.omega * t + np.pi)
 
         return x, y, z, vx, vy, vz, ax, ay, az
 
@@ -144,22 +145,24 @@ class LemniscateTrajOmni(LemniscateTraj):
         super().__init__(loop_num)
         self.a_orientation = 0.5
 
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
         t = t + self.T * 1 / 4
 
         roll = -2 * self.a_orientation * np.sin(2 * self.omega * t) / 2
         pitch = self.a_orientation * np.cos(self.omega * t)
         yaw = np.pi / 2 * np.sin(self.omega * t + np.pi) + np.pi / 2
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
 
         roll_rate = -2 * 2 * self.a_orientation * self.omega * np.cos(2 * self.omega * t) / 2
         pitch_rate = -self.a_orientation * self.omega * np.sin(self.omega * t)
         yaw_rate = np.pi / 2 * self.omega * np.cos(self.omega * t + np.pi / 2)
 
-        roll_acc = -2 * -4 * self.a_orientation * self.omega**2 * np.sin(2 * self.omega * t) / 2
-        pitch_acc = -self.a_orientation * self.omega**2 * np.cos(self.omega * t)
-        yaw_acc = -np.pi / 2 * self.omega**2 * np.sin(self.omega * t + np.pi / 2)
+        roll_acc = -2 * -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
+        pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
+        yaw_acc = -np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
 
-        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
 class PitchRotationTraj(BaseTraj):
@@ -169,7 +172,8 @@ class PitchRotationTraj(BaseTraj):
         self.omega = 2 * np.pi / self.T  # angular velocity
         self.use_constant_ref = True
 
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
         t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
 
@@ -183,6 +187,8 @@ class PitchRotationTraj(BaseTraj):
         roll = 0.0
         yaw = 0.0
 
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
         roll_rate = 0.0
         pitch_rate = -5.0 * self.omega if t <= self.T / 2 else 5.0 * self.omega
         yaw_rate = 0.0
@@ -191,12 +197,15 @@ class PitchRotationTraj(BaseTraj):
         pitch_acc = 0.0
         yaw_acc = 0.0
 
-        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
 
 class PitchRotationTrajOpposite(PitchRotationTraj):
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc = super().get_3d_orientation(t)
-        return roll, -pitch, yaw, roll_rate, -pitch_rate, yaw_rate, roll_acc, -pitch_acc, yaw_acc
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc = super().get_3d_orientation(t)
+        return qw, qx, -qy, qz, roll_rate, -pitch_rate, yaw_rate, roll_acc, -pitch_acc, yaw_acc
+
 
 class RollRotationTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
@@ -205,7 +214,8 @@ class RollRotationTraj(BaseTraj):
         self.omega = 2 * np.pi / self.T  # angular velocity
         self.use_constant_ref = True
 
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
         t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
 
@@ -219,6 +229,8 @@ class RollRotationTraj(BaseTraj):
         pitch = 0.0
         yaw = 0.0
 
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
         roll_rate = 0.0
         pitch_rate = 0.0
         yaw_rate = 0.0
@@ -227,7 +239,7 @@ class RollRotationTraj(BaseTraj):
         pitch_acc = 0.0
         yaw_acc = 0.0
 
-        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
 class PitchSetPtTraj(BaseTraj):
@@ -259,7 +271,8 @@ class PitchSetPtTraj(BaseTraj):
         ]
         self.T = len(self.pitch_values) * self.t_converge
 
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
         roll, yaw = 0.0, 0.0
         roll_rate, yaw_rate = 0.0, 0.0
         roll_acc, yaw_acc = 0.0, 0.0
@@ -267,7 +280,9 @@ class PitchSetPtTraj(BaseTraj):
         index = min(int(t // self.t_converge), len(self.pitch_values) - 1)
         pitch = self.pitch_values[index]
 
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
         pitch_rate = 0.0
         pitch_acc = 0.0
 
-        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc

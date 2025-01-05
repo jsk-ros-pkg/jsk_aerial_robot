@@ -31,26 +31,23 @@ from trajs import (
 import tf_conversions as tf
 from geometry_msgs.msg import Pose, Quaternion, Vector3
 
+traj_cls_list = [
+    SetPointTraj,
+    CircleTraj,
+    LemniscateTraj,
+    LemniscateTrajOmni,
+    PitchRotationTraj,
+    RollRotationTraj,
+    PitchSetPtTraj,
+    PitchRotationTrajOpposite,
+]
+
 
 def traj_factory(traj_type, loop_num):
-    if traj_type == 0:
-        return SetPointTraj(loop_num)
-    elif traj_type == 1:
-        return CircleTraj(loop_num)
-    elif traj_type == 2:
-        return LemniscateTraj(loop_num)
-    elif traj_type == 3:
-        return LemniscateTrajOmni(loop_num)
-    elif traj_type == 4:
-        return PitchRotationTraj(loop_num)
-    elif traj_type == 5:
-        return RollRotationTraj(loop_num)
-    elif traj_type == 6:
-        return PitchSetPtTraj(loop_num)
-    elif traj_type == 7:
-        return PitchRotationTrajOpposite(loop_num)
-    else:
+    if traj_type not in range(len(traj_cls_list)):
         raise ValueError("Invalid trajectory type!")
+
+    return traj_cls_list[traj_type](loop_num)
 
 
 ###############################################
@@ -80,7 +77,12 @@ class IdleState(smach.State):
             #     rospy.logwarn("Empty robot name! Staying in IDLE.")
             #     return "stay_idle"
 
-            traj_type_str = input("Enter trajectory type (0..7) or 'q' to quit: ")
+            # print available trajectory types
+            print("Available trajectory types:")
+            for i, traj_cls in enumerate(traj_cls_list):
+                print(f"{i}: {traj_cls.__name__}")
+
+            traj_type_str = input(f"Enter trajectory type (0..{len(traj_cls_list)}) or 'q' to quit: ")
             if traj_type_str.lower() == "q":
                 rospy.signal_shutdown("User requested shutdown.")
                 sys.exit(0)
@@ -138,18 +140,15 @@ class InitState(smach.State):
 
         # orientation
         try:
-            (roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
+            (qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
         except AttributeError:
-            roll, pitch, yaw = 0.0, 0.0, 0.0
+            qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
             r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
             r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
 
-        # convert roll pitch yaw to quaternion
-        q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-
         init_pose = Pose(
             position=Vector3(x, y, z),
-            orientation=Quaternion(q[0], q[1], q[2], q[3]),
+            orientation=Quaternion(qx, qy, qz, qw),
         )
 
         # Create the node instance

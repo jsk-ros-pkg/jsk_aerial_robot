@@ -170,14 +170,11 @@ class MPCTrajPtPub(MPCBasePub):
 
             # orientation
             try:
-                roll, pitch, yaw, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc = self.traj.get_3d_orientation(t_cal)
+                qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc = self.traj.get_3d_orientation(t_cal)
             except AttributeError:
-                roll, pitch, yaw = 0.0, 0.0, 0.0
+                qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
-
-            q = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-            qx, qy, qz, qw = q
 
             # Fill the transforms / velocities / accelerations
             traj_pt.transforms.append(Transform(translation=Vector3(x, y, z), rotation=Quaternion(qx, qy, qz, qw)))
