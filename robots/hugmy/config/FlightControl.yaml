@@ -2,7 +2,7 @@ aerial_robot_control_name: aerial_robot_control/under_actuated_tilted_lqi_contro
 
 controller:
   xy:
-    p_gain: 5.0
+    p_gain: 3.5 #5.0
     i_gain: 0.05
     d_gain: 3.0
     limit_sum: 3
@@ -21,7 +21,7 @@ controller:
     limit_d: 20 # m / s^2
     landing_err_z: -0.2
     force_landing_descending_rate: -0.6
-    compensate_gravity: true
+    # compensate_gravity: true
 
   yaw:
     limit_sum: 6.0 # N for clamping thrust force
