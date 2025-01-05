@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
 import rospy
+from std_msgs.msg import Int8
 from std_msgs.msg import UInt8
-from spinal.msg import PwmState
+from std_msgs.msg import UInt16
+from spinal.msg import PwmTest
 from std_msgs.msg import Empty
 from sensor_msgs.msg import Joy
 
 class Perching():
     def __init__(self):
         #Air pressure sensor
-        self.air_pressure_sub = rospy.Subscriber('/sensor1',UInt8,self.air_pressure_sensor_cb)
-        self.air_pressure_sensor_msg = UInt8()
-        self.max_pressure = 50
-        self.ready_pressure = 30
+        self.air_pressure_sub = rospy.Subscriber('/sensor',Int8,self.air_pressure_sensor_cb)
+        self.air_pressure_sensor_msg = Int8()
+        self.max_pressure = 35
+        self.ready_pressure = 12
 
         #flight state
         self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state',UInt8,self.flight_state_cb)
@@ -25,14 +27,19 @@ class Perching():
         self.perching_flag = False
 
         #PWM
-        self.PWM_pub = rospy.Publisher('/quadrotor/pwm_indiv_test',PwmState,queue_size=1)
-        self.PWM_msg = PwmState()
+        self.PWM_pub = rospy.Publisher('/quadrotor/pwm_test',PwmTest,queue_size=1)
+        self.PWM_msg = PwmTest()
         self.PWM = 0.6
         self.init_PWM = 0.6
 
+        #eye_module
+        self.eye_expression_data = UInt16()
+        self.eye_express_pub = rospy.Publisher('/eye_status',UInt16,queue_size = 1)
+
+
         # MODE and LARGE and STBY
-        self.PWM_msg.index = [5]
-        self.PWM_msg.percentage = [1.0]
+        self.PWM_msg.motor_index = [6]
+        self.PWM_msg.pwms = [1.0]
         self.arming_on_pub = rospy.Publisher('/quadrotor/teleop_command/start',Empty,queue_size=1)
         self.halt_pub = rospy.Publisher('/quadrotor/teleop_command/halt',Empty, queue_size=1)
         self.takeoff_pub = rospy.Publisher('/quadrotor/teleop_command/takeoff',Empty, queue_size=1)
@@ -69,30 +76,30 @@ class Perching():
     def joy_cb(self,msg):
         self.joy = msg
         if self.joy.buttons[4] == 1: #leftup
-            self.perching_flag = 1
+            self.perching_flag = 3
         if self.joy.buttons[7] == 1: #rightdown
             self.perching_flag = 2
         if self.joy.buttons[5] == 1: #rightup
-            self.perching_flag = 3
-        if self.joy.buttons[6] == 1: #leftdown
             self.perching_flag = 4
+        if self.joy.buttons[6] == 1: #leftdown
+            self.perching_flag = 1
         if self.joy.buttons[3] == 1: #triangle
             self.perching_flag = 0
 
     def start_pump(self):
         # PWM of pump
         self.wait()
-        self.PWM_msg.index = [4]
-        self.PWM_msg.percentage = [0.8]
+        self.PWM_msg.motor_index = [4,6]
+        self.PWM_msg.pwms = [0.8,0.8]
 
-        print(self.PWM_msg.percentage)
+        print(self.PWM_msg.pwms)
         self.PWM_pub.publish(self.PWM_msg)
 
     def max_work_pump(self):
         self.wait()
         # PWM of pump
-        self.PWM_msg.index = [4]
-        self.PWM_msg.percentage = [1.0]
+        self.PWM_msg.motor_index = [4,6]
+        self.PWM_msg.pwms = [1.0,1.0]
 
         # print(self.PWM_msg.percentage)
         self.PWM_pub.publish(self.PWM_msg)
@@ -101,28 +108,28 @@ class Perching():
     def stop_pump(self):
         # PWM of pump
         self.wait()
-        self.PWM_msg.index = [4]
-        self.PWM_msg.percentage = [0.0]
+        self.PWM_msg.motor_index = [4,6]
+        self.PWM_msg.pwms = [0.0,0.0]
 
-        print(self.PWM_msg.percentage)
+        print(self.PWM_msg.pwms)
         self.PWM_pub.publish(self.PWM_msg)
 
     def start_solenoid_valve(self):
         # PWM of solenoid valve
         self.wait()
-        self.PWM_msg.index = [5]
-        self.PWM_msg.percentage = [1.0]
+        self.PWM_msg.motor_index = [5]
+        self.PWM_msg.pwms = [1.0]
 
-        print(self.PWM_msg.percentage)
+        print(self.PWM_msg.pwms)
         self.PWM_pub.publish(self.PWM_msg)
 
     def stop_solenoid_valve(self):
         # PWM of solenoid valve
         self.wait()
-        self.PWM_msg.index = [5]
-        self.PWM_msg.percentage = [0.0]
+        self.PWM_msg.motor_index = [5]
+        self.PWM_msg.pwms  = [0.0]
 
-        print(self.PWM_msg.percentage)
+        print(self.PWM_msg.pwms)
         self.PWM_pub.publish(self.PWM_msg)
 
     def wait(self):
@@ -131,6 +138,8 @@ class Perching():
 
     def initialize(self):
         print("stop perching")
+        # self.PWM_msg.motor_index = [6]
+        # self.PWM_msg.pwms = [1.0]
         self.stop_solenoid_valve()
         self.stop_pump()
         #add bottom actuator
@@ -139,15 +148,21 @@ class Perching():
         print("ready perching")
         # rospy.sleep(2.0) #2.0 #air pressure
         if self.air_pressure_sensor_msg.data < self.ready_pressure:
+            # self.eye_expression_data = 6 
+            # self.eye_express_pub.publish(self.eye_expression_data)
             self.start_solenoid_valve()
             self.start_pump() #it is better to use [if] to force stop
         else:
             self.stop_pump()
             self.perching_flag = 2
+            self.eye_expression_data = 2 
+            self.eye_express_pub.publish(self.eye_expression_data)
+            print("stop!!!!!!!!!!!!!!!")
 
     def start_perching(self):
         if self.flight_state_flag:
             print("start perching")
+            rospy.sleep(1.0)
             self.halt_pub.publish(Empty())
             self.flight_state_flag = False
         else:
@@ -187,17 +202,21 @@ class Perching():
             #print(self.perching_state_msg)
             #else:
                # if self.ready_perching_flag:
-            if self.perching_flag == 1:
-                self.ready_perching()
-            elif self.perching_flag == 2:
-                self.start_perching()
-            elif self.perching_flag == 3:
-                self.keep_perching()
-            elif self.perching_flag == 4:
-                self.deperching()
-                self.perching_flag = 0
+            if self.air_pressure_sensor_msg.data < 50:
+                if self.perching_flag == 1:
+                    self.ready_perching()
+                elif self.perching_flag == 2:
+                    self.start_perching()
+                elif self.perching_flag == 3:
+                    self.keep_perching()
+                elif self.perching_flag == 4:
+                    self.deperching()
+                    self.perching_flag = 0
+                else:
+                    self.initialize()
             else:
                 self.initialize()
+            
 
 if __name__ == '__main__':
     rospy.init_node("Perching")
