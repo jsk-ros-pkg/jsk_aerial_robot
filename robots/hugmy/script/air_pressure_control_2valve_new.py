@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rospy
 from std_msgs.msg import UInt8, Int8, Empty
 from spinal.msg import PwmTest
@@ -6,13 +7,14 @@ from sensor_msgs.msg import Joy
 class Perching:
     def __init__(self):
         # Air pressure sensors
-        self.air_pressure_sub = rospy.Subscriber('/sensor1', UInt8, self.air_pressure_sensor_cb)
+        self.air_pressure_sub = rospy.Subscriber('/sensor', Int8, self.air_pressure_sensor_cb)
         self.air_pressure1_sub = rospy.Subscriber('/sensor_1', Int8, self.air_pressure_sensor1_cb)
-        self.air_pressure_sensor_msg = UInt8()
+        self.air_pressure_sensor_msg = Int8()
         self.air_pressure_sensor1_msg = Int8()
         self.max_pressure = 50
         self.ready_pressure = 40
         self.perching_pressure = 30
+        self.bottom_usual_pressure = 20
 
         # Flight state
         self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state', UInt8, self.flight_state_cb)
@@ -39,7 +41,7 @@ class Perching:
         self.joy = Joy()
 
         # Flags
-        self.prepare_bottom_flag = False
+        # self.prepare_bottom_flag = False
         self.mode = True #"True" is demo mode and "False" is test mode
 
     def flight_state_cb(self, msg):
@@ -68,7 +70,7 @@ class Perching:
         elif buttons[6] == 1:  # left down
             self.perching_flag = 4
         elif buttons[3] == 1:  # triangle
-            self.perching_flag = 0
+            self.perching_flag = 5
 
     def publish_pwm(self, motor_indices, pwm_values):
         self.PWM_msg.motor_index = motor_indices
@@ -104,7 +106,10 @@ class Perching:
 
     def cal_pressure(self, target_pressure, sensor_index):
         sensor_data = self.air_pressure_sensor_msg.data if sensor_index == 0 else self.air_pressure_sensor1_msg.data
-        self.output = max((target_pressure - sensor_data) * 0.01 + 0.12, 0.0)
+        if (target_pressure - sensor_data) <= 20:
+            self.output = max((target_pressure - sensor_data) * 0.02 + 0.18, 0.0)
+        else:
+            self.output = max((target_pressure - sensor_data) * 0.01 + 0.18, 0.0)
 
     def initialize(self):
         self.stop_pump()
@@ -115,22 +120,20 @@ class Perching:
         self.start_solenoid_valve()
         self.start_solenoid_valve1()
         print("bottom prepare")
-        if self.air_pressure_sensor1_msg.data < 20:
-            self.cal_pressure(20, 1)
+        if self.air_pressure_sensor1_msg.data < self.bottom_usual_pressure:
+            self.cal_pressure(self.bottom_usual_pressure, 1)
             self.adjust_pump()
-            self.prepare_bottom_flag = False
-        elif self.air_pressure_sensor1_msg.data == 20:
-            self.prepare_bottom_flag = True
-        else:
+            # self.prepare_bottom_flag = False
+        if self.air_pressure_sensor1_msg.data >= self.bottom_usual_pressure:
             self.stop_pump()
-            self.prepare_bottom_flag = True
+            # self.prepare_bottom_flag = True
 
     def ready_perching(self):
         if self.air_pressure_sensor1_msg.data <= self.ready_pressure:
             self.cal_pressure(self.ready_pressure, 1)
             self.adjust_pump()
         else:
-            rospy.logerror("==============ready perching==================")
+            rospy.logwarn("==============ready perching==================")
             self.stop_pump()
             self.stop_solenoid_valve()
             self.max_work_pump()
@@ -138,9 +141,11 @@ class Perching:
 
     def start_perching(self):
         if self.flight_state_flag:
-            rospy.logerror("==============perching==================")
+            rospy.logwarn("==============perching==================")
             self.halt_pub.publish(Empty())
             self.flight_state_flag = False
+        else:
+            rospy.logwarn("==============not flight==================")
 
         if self.air_pressure_sensor_msg.data < self.max_pressure:
             self.stop_solenoid_valve1()
@@ -167,7 +172,7 @@ class Perching:
             self.perching_flag == 4
 
     def deperching(self):
-        rospy.logerror("==============deperching==================")
+        rospy.logwarn("==============deperching==================")
         self.arming_on_pub.publish(Empty())
         rospy.sleep(2.0)
         self.stop_pump()
@@ -181,34 +186,38 @@ class Perching:
     def main(self):
         rate = rospy.Rate(10)  # 10 Hz
         while not rospy.is_shutdown():
-            rospy.loginfo(f"Perch flag: {self.perching_flag}, Air pressure: {self.air_pressure_sensor_msg.data}, Bottom pressure: {self.air_pressure_sensor1_msg.data}")
-            if self.mode:
-                if self.prepare_bottom_flag:
-                    if self.perching_flag == 1:
-                        self.ready_perching()
-                    elif self.perching_flag == 2:
-                        self.start_perching()
-                    elif self.perching_flag == 3:
-                        self.keep_perching()
-                    elif self.perching_flag == 4:
-                        self.deperching()
-                        self.perching_flag = 0
-                    else:
-                        self.initialize()
-                else:
+            rospy.loginfo(f"Perch flag: {self.perching_flag}, Air pressure: {self.air_pressure_sensor_msg.data}, Bottom pressure: {self.air_pressure_sensor1_msg.data}, Output: {self.output}")
+            # if self.mode:
+            if self.perching_flag == 1:
+                if self.air_pressure_sensor1_msg.data < self.bottom_usual_pressure:
                     self.bottom_pressure_prepare()
-            else:
-                if self.perching_flag == 1:
-                        self.ready_perching()
-                elif self.perching_flag == 2:
-                    self.start_perching()
-                elif self.perching_flag == 3:
-                    self.keep_perching()
-                elif self.perching_flag == 4:
-                    self.deperching()
-                    self.perching_flag = 0
                 else:
-                    self.initialize()
+                    #40kPa bottom -> max pump 
+                    self.ready_perching()
+            elif self.perching_flag == 2:
+                # halt and perching
+                self.start_perching()
+            elif self.perching_flag == 3:
+                self.keep_perching()
+            elif self.perching_flag == 4:
+                self.deperching()
+                self.perching_flag = 0
+            elif self.perching_flag == 5:
+                self.initialize()
+            else:
+                self.bottom_pressure_prepare()
+            # else:
+            #     if self.perching_flag == 1:
+            #             self.ready_perching()
+            #     elif self.perching_flag == 2:
+            #         self.start_perching()
+            #     elif self.perching_flag == 3:
+            #         self.keep_perching()
+            #     elif self.perching_flag == 4:
+            #         self.deperching()
+            #         self.perching_flag = 0
+            #     else:
+            #         self.initialize()
 
             rate.sleep()
 
