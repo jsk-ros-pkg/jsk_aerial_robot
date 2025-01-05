@@ -81,6 +81,7 @@ class Approaching_human():
         self.perching_cnt = 0
         self.perching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
         self.perching_data = UInt8()
+        self.perching_data = 0
 
         self.move_pub = rospy.Publisher('/quadrotor/uav/nav',FlightNav,queue_size = 10)
         self.move_msg = FlightNav()
@@ -129,7 +130,6 @@ class Approaching_human():
         #     self.flight_state_flag = False
         ####test
         self.flight_state_flag = True
-            
         if self.rotate_cnt >= 20:
             self.rotate_flag = True
             self.rotate_cnt = 0
@@ -269,9 +269,12 @@ class Approaching_human():
 
     def timerCallback(self,event):
         self.flight_rotate_state()
-        self.perching_data = 0
-        self.perching_pub.publish(self.perching_data)
+        if self.perching_data == 0:
+            self.perching_pub.publish(self.perching_data)
+        else:
+            return
         if self.flight_state_flag:
+            if self.
             if self.n >= 1:
                 self.finding_max_rect()
                 if self.rotate_flag:
@@ -281,7 +284,7 @@ class Approaching_human():
                 self.pos_cal()
                 print(self.land_cnt)
                 self.target_pos_pub.publish(self.target_pos)
-                self.eye_control()
+                # self.eye_control()
                 self.PD_control()
                 self.move_msg.target_vel_x = self.output
                 #######self.move_pub.publish(self.move_msg)
