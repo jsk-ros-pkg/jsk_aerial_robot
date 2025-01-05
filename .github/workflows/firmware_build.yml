@@ -112,14 +112,30 @@ jobs:
           echo "All 5 attempts for Spinal F7 have failed."
           exit 1
 
-      - name: Upload H7 artifacts # Upload required H7 files for flash.
+      - name: Build Neuron F4 as STM32CubeIDE project # Build Neuron F4 firmware with STM32CubeIDE
+        run: |
+          /opt/st/stm32cubeide_1.8.0/stm32cubeide -nosplash \
+            -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+            -data ~/STM32CubeIDE/workspace_1.8.0/ \
+            -import aerial_robot_nerve/neuron/neuron_f4//STM32CubeIDE/ \
+            -cleanBuild neuron/Debug \
+            -vmargs -Dorg.eclipse.cdt.core.build.parallel=true \
+            -Dorg.eclipse.cdt.core.build.parallel.threads=12
+
+      - name: Upload Spinal H7 artifacts # Upload required Spinal H7 files for flash.
         uses: actions/upload-artifact@v4
         with:
           name: SpinalH7.artifacts
           path: aerial_robot_nerve/spinal/mcu_project/boards/stm32H7/STM32CubeIDE/Debug/spinal.*
 
-      - name: Upload F7 artifacts # Upload required F7 files for flash.
+      - name: Upload Spinal F7 artifacts # Upload required Spinal F7 files for flash.
         uses: actions/upload-artifact@v4
         with:
           name: SpinalF7.artifacts
           path: aerial_robot_nerve/spinal/mcu_project/boards/stm32F7/STM32CubeIDE/Debug/spinal.*
+
+      - name: Upload Neuron F4 artifacts # Upload required Neuron F4 files for flash.
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuronF4.artifacts
+          path: aerial_robot_nerve/neuron/neuron_f4/STM32CubeIDE/Debug/neuron.*
