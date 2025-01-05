@@ -26,6 +26,7 @@ from trajs import (
     RollRotationTraj,
     PitchSetPtTraj,
     PitchRotationTrajOpposite,
+    VerticalYawRotationTraj,
 )
 
 import tf_conversions as tf
@@ -40,6 +41,7 @@ traj_cls_list = [
     RollRotationTraj,
     PitchSetPtTraj,
     PitchRotationTrajOpposite,
+    VerticalYawRotationTraj,
 ]
 
 
@@ -88,7 +90,7 @@ class IdleState(smach.State):
                 sys.exit(0)
 
             traj_type = int(traj_type_str)
-            if not (0 <= traj_type <= 7):
+            if not (0 <= traj_type <= len(traj_cls_list)):
                 rospy.logwarn("Invalid trajectory type!")
                 return "stay_idle"
 
