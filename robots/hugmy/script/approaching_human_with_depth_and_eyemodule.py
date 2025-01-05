@@ -121,7 +121,7 @@ class Approaching_human():
         self.euler = Vector3(x=euler[0],y=euler[1],z=euler[2])
 
     def flight_rotate_state(self):
-        demo
+        #demo
         if self.flight_state_msg.data == 5:#5
             self.flight_state_flag = True
         else:
@@ -183,15 +183,17 @@ class Approaching_human():
         depth_sum = depth_center
 
         for _ in range (10):
-            pixel_x = self.max_rect_pixel_pos.x + np.random.randint(-30,30)
-            pixel_y = self.max_rect_pixel_pos.y + np.random.randint(-30,30)
+            pixel_x = self.max_rect_pixel_pos.x + np.random.randint(-10,10)
+            pixel_y = self.max_rect_pixel_pos.y + np.random.randint(-10,10)
             depth_tmp = self.cv_image.item(pixel_y,pixel_x)
             if (depth_center + 200) <= depth_tmp <= (depth_center - 200):
                 depth_sum += depth_tmp
                 pixel_cnt += 1
 
         raw_depth = depth_sum / pixel_cnt
+        # raw_depth = depth_center
         rospy.loginfo("Raw depth: %s", raw_depth)
+        rospy.loginfo("Depth Center: %s", depth_center)
         self.target_pos.y = raw_depth
 
         if raw_depth > 0.0:
@@ -201,8 +203,8 @@ class Approaching_human():
             if self.depth_thresh_min < raw_depth <= self.depth_thresh_max:
                 self.depth = raw_depth/1000.0 - 0.5 ###########
                 self.prev_depth = self.depth
-                self.depth_thresh_max = raw_depth + 300.0
-                self.depth_thresh_min = max(raw_depth - 300.0, 0.0)
+                self.depth_thresh_max = raw_depth + 500.0
+                self.depth_thresh_min = max(raw_depth - 500.0, -100.0)
                 #close to human
                 if self.min_depth >= self.depth:
                     if abs(self.prev_depth - self.depth) < 0.15:
@@ -229,6 +231,7 @@ class Approaching_human():
         self.perching_data = 0
         self.perching_pub.publish(self.perching_data)
         if self.flight_state_flag:
+            print("start")
             if self.n >= 1:
                 self.finding_max_rect()
                 if self.rotate_flag:
@@ -251,7 +254,7 @@ class Approaching_human():
                     self.move_pub.publish(self.move_msg) #####
                     rospy.loginfo("stop!")
                     self.land_cnt += 1
-                if self.land_cnt >= 10:
+                if self.land_cnt >= 5:
                     for _ in range (10):
                         self.perching_data = 1
                         self.perching_pub.publish(self.perching_data)
@@ -260,7 +263,7 @@ class Approaching_human():
                         self.eye_expression_data = 6
                         self.eye_express_pub.publish(self.eye_expression_data)
                         rospy.loginfo("land!")
-                        self.land_pub.publish()  #########
+                        #self.land_pub.publish()  #########
                         rospy.sleep(5.0)
                         self.land_cnt = 0
                 self.rotate_cnt += 1
