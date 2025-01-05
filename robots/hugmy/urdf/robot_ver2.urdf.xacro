@@ -1,0 +1,310 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hugmy" >
+
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <!-- kinematics [m] -->
+  <xacro:property name="rotor_x" value="0.08479" />
+  <xacro:property name="rotor_y" value="0.08479" />
+  <!-- <xacro:property name="rotor_z" value="0.330" /> -->
+  <!-- <xacro:property name="rotor_z" value="0.055" /> -->
+  <xacro:property name="rotor_z" value="0.0024" />
+
+  <!-- dynamics -->
+  <m_f_rate value="-0.0068" /> <!-- drag torque rate -->
+  <xacro:property name="max_force" value="8.0" /> <!-- [N] -->
+  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
+
+  <!-- friction -->
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="main_body">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- common name -->
+  <xacro:property name="link_length_n" value="0.023" />
+  <xacro:property name="link_length_r" value="0.040" />
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="propeller_module" params="id x y z direction">
+    <joint name="rotor${id}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <parent link="link_rotor_${id}"/>
+      <child link="thrust${id}"/>
+      <origin rpy="0 0 0" xyz="0.020 0.0175 0.0369"/>
+      <!-- <origin rpy="0 0 0" xyz="${x} ${y} ${z}"/> -->
+      <axis xyz="0 0 ${direction}"/>
+    </joint>
+
+    <link name="thrust${id}">
+      <!-- visual & collisiont -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0091"/>
+        <inertia
+            ixx="0.00000807" ixy="0.0" ixz="0.0"
+            iyy="0.00000807" iyz="0.0"
+            izz="0.00001612"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://hugmy/urdf/mesh/prop_5inch.dae" />
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link ="thrust${id}"/>
+
+    <transmission name="rotor_tran${id}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${id}">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+  </xacro:macro>
+
+  <!-- dummy root link for KDL -->
+  <link name="root">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.00001"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="main_body"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- main_body -->
+  <link name="main_body">
+    <inertial>
+      <mass value = "0.698" />
+      <origin xyz="0.00110883 0.00011825 0.00012320" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00145773" ixy="-0.00000588" ixz="0.00002143"
+          iyy="0.00150029" iyz="-0.00004262"
+          izz="0.00061796"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/Inflatable_asm.STL" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.28 0.28 0.072" />
+      </geometry>
+    </collision>
+  </link>
+
+  <xacro:macro name="arm_module" params="id base_offset">
+    <!--link-->
+    <link name="link_1_${id}">
+      <inertial>
+        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00752930"/>
+        <inertia
+            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
+            iyy="0.00000214" iyz="0.00000080"
+            izz="0.00000483"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link_2_${id}">
+      <inertial>
+        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00752930"/>
+        <inertia
+            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
+            iyy="0.00000214" iyz="0.00000080"
+            izz="0.00000483"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link_rotor_${id}">
+      <inertial>
+        <origin xyz="0.02005067 0.01755833 0.04034797" rpy="0 0 0"/>
+        <mass value="0.11565729"/>
+        <inertia
+            ixx="0.00042229" ixy="0.00004075" ixz="0.00009327"
+            iyy="0.00043336" iyz="0.00008185"
+            izz="0.00034957"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://hugmy/urdf/mesh/long_cabble_carrier_and_moter_mount.STL" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link_4_${id}">
+      <inertial>
+        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00752930"/>
+        <inertia
+            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
+            iyy="0.00000214" iyz="0.00000080"
+            izz="0.00000483"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="link_end_${id}">
+      <inertial>
+        <origin xyz="0.00910088 0.01750002 0.00845133" rpy="0 0 0"/>
+        <mass value="0.00505969"/>
+        <inertia
+            ixx="0.00000287" ixy="0.00000081" ixz="0.00000044"
+            iyy="0.00000126" iyz="0.00000075"
+          izz="0.00000283"/>
+      </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_end.dae" />
+      </geometry>
+    </visual>
+    </link>
+
+    <!-- joint -->
+    <joint name="joint_1_${id}" type="revolute">
+      <parent link="main_body"/>
+      <child link="link_1_${id}"/>
+      <origin rpy="0 0 ${pi/2 * (id+3)}" xyz="${base_offset}"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="0.8727" effort="10" velocity="1.0"/>
+    </joint>
+
+    <joint name="joint_2_${id}" type="revolute">
+      <parent link="link_1_${id}"/>
+      <child link="link_2_${id}"/>
+      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+    </joint>
+
+    <joint name="joint_3_${id}" type="revolute">
+      <parent link="link_2_${id}"/>
+      <child link="link_rotor_${id}"/>
+      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+    </joint>
+
+    <joint name="joint_4_${id}" type="revolute">
+      <parent link="link_rotor_${id}"/>
+      <child link="link_4_${id}"/>
+    <origin rpy="0 0 0" xyz="${link_length_r} 0.00 0.00"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+    </joint>
+
+    <joint name="joint_5_${id}" type="revolute">
+      <parent link="link_4_${id}"/>
+      <child link="link_end_${id}"/>
+      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Main body links and repeated arms -->
+  <xacro:arm_module id="1" base_offset="0.05391 -0.0175 -0.039"/>
+  <xacro:arm_module id="2" base_offset="0.0175 0.05391 -0.039"/>
+  <xacro:arm_module id="3" base_offset="-0.05391 0.0175 -0.039"/>
+  <xacro:arm_module id="4" base_offset="-0.0175 -0.05391 -0.039"/>
+
+
+  <!-- spinal -->
+  <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "00" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- battery -->
+  <xacro:extra_module name = "battery" parent = "main_body" visible = "1" model_url = "package://hugmy/urdf/mesh/turnigy_3S_2200mAh.dae" >
+    <origin xyz="0.0105 0 -0.012" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.188" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0002" iyz="0.0" izz="0.0002"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- propellers -->
+  <xacro:propeller_module id = "1" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "2" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" />
+  <xacro:propeller_module id = "3" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "-1" />
+  <xacro:propeller_module id = "4" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "1" />
+
+  <!-- propellers -->
+  <!-- <xacro:propeller_module id = "1" x = "${-rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "1" /> -->
+  <!-- <xacro:propeller_module id = "2" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" /> -->
+  <!-- <xacro:propeller_module id = "3" x = "${rotor_x}" y = "${rotor_y}" z = "${rotor_z}" direction = "1" /> -->
+  <!-- <xacro:propeller_module id = "4" x = "${-rotor_x}" y = "${rotor_y}" z = "${rotor_z}"  direction = "-1" /> -->
+
+
+</robot>
