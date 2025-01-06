@@ -11,7 +11,7 @@
   <xacro:property name="rotor_y" value="0.08479" />
   <!-- <xacro:property name="rotor_z" value="0.330" /> -->
   <!-- <xacro:property name="rotor_z" value="0.055" /> -->
-  <xacro:property name="rotor_z" value="0.0024" />
+  <xacro:property name="rotor_z" value="0.044" />
 
   <!-- dynamics -->
   <m_f_rate value="-0.0068" /> <!-- drag torque rate -->
@@ -111,7 +111,7 @@
       <mass value = "1.286" />
       <!-- with eye module -->
       <!-- <origin xyz="0.0001458 -0.00117927 0.00925351" rpy="0 0 0"/> -->
-      <origin xyz="0.00005399, 0.00050398, 0.06350617" rpy="0 0 0"/>
+      <origin xyz="0.00005399 0.00050398 0.06350617" rpy="0 0 0"/>
       <!-- with eye module -->
       <!-- <inertia -->
       <!--     ixx="0.00915711" ixy="0.00000019" ixz="-0.00001262" -->
@@ -125,7 +125,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://hugmy/urdf/mesh/hugmy.dae" />
+        <mesh filename="package://hugmy/urdf/mesh/Inflatable_asm_with_all_module.STL" />
       </geometry>
     </visual>
     <collision>
