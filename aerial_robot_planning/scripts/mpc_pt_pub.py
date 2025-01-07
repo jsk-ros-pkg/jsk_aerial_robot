@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
+from aerial_robot_msgs.msg import PredXU
 
 
 ##########################################
@@ -127,13 +128,25 @@ class MPCPubJointTraj(MPCPubBase, ABC):
     def __init__(self, robot_name: str, node_name: str):
         super().__init__(robot_name=robot_name, node_name=node_name)
         # Publisher for reference trajectory
-        self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=2)
+        self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=3)
 
     def pub_trajectory_points(self, traj_msg: MultiDOFJointTrajectory):
         """Publish the MultiDOFJointTrajectory message."""
         traj_msg.header.stamp = rospy.Time.now()
         traj_msg.header.frame_id = "map"
         self.pub_ref_traj.publish(traj_msg)
+
+class MPCPubPredXU(MPCPubBase, ABC):
+    def __init__(self, robot_name: str, node_name: str):
+        super().__init__(robot_name=robot_name, node_name=node_name)
+        # Publisher for PredXU
+        self.pub_ref_xu = rospy.Publisher(f"/{robot_name}/set_ref_x_u", PredXU, queue_size=3)
+
+    def pub_trajectory_points(self, pred_xu_msg: PredXU):
+        """Publish the PredXU message."""
+        pred_xu_msg.header.stamp = rospy.Time.now()
+        pred_xu_msg.header.frame_id = "map"
+        self.pub_ref_xu.publish(pred_xu_msg)
 
 
 ##########################################
