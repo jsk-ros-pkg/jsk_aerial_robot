@@ -27,7 +27,7 @@ from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectory
 ##########################################
 # Base Class
 ##########################################
-class MPCBasePub(ABC):
+class MPCPubBase(ABC):
     """
     A base class that handles:
       - Robot name / node namespace
@@ -58,13 +58,6 @@ class MPCBasePub(ABC):
         # Store latest odometry here
         self.uav_odom = Odometry()
         self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self.sub_odom_callback)
-
-        # Publisher for reference trajectory
-        self.pub_ref_traj = rospy.Publisher(
-            f"/{robot_name}/set_ref_traj",
-            MultiDOFJointTrajectory,
-            queue_size=5
-        )
 
         # Start time
         self.start_time = rospy.Time.now().to_sec()
@@ -97,9 +90,7 @@ class MPCBasePub(ABC):
         traj_msg = self.fill_trajectory_points(t_has_started)
 
         # 3) Publish
-        traj_msg.header.stamp = rospy.Time.now()
-        traj_msg.header.frame_id = "map"
-        self.pub_ref_traj.publish(traj_msg)
+        self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
         if self.check_finished(t_has_started):
@@ -108,9 +99,17 @@ class MPCBasePub(ABC):
             self.finished = True
 
     @abstractmethod
-    def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
+    def fill_trajectory_points(self, t_elapsed: float):
         """
-        Construct and return a MultiDOFJointTrajectory for the current time.
+        Construct and return a MultiDOFJointTrajectory or PredXU for the current time.
+        Must be implemented by the child class.
+        """
+        pass
+
+    @abstractmethod
+    def pub_trajectory_points(self, traj_msg):
+        """
+        Publish the MultiDOFJointTrajectory or PredXU message.
         Must be implemented by the child class.
         """
         pass
@@ -124,10 +123,23 @@ class MPCBasePub(ABC):
         pass
 
 
+class MPCPubJointTraj(MPCPubBase, ABC):
+    def __init__(self, robot_name: str, node_name: str):
+        super().__init__(robot_name=robot_name, node_name=node_name)
+        # Publisher for reference trajectory
+        self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=2)
+
+    def pub_trajectory_points(self, traj_msg: MultiDOFJointTrajectory):
+        """Publish the MultiDOFJointTrajectory message."""
+        traj_msg.header.stamp = rospy.Time.now()
+        traj_msg.header.frame_id = "map"
+        self.pub_ref_traj.publish(traj_msg)
+
+
 ##########################################
 # Derived Class #1: MPCTrajPtPub
 ##########################################
-class MPCTrajPtPub(MPCBasePub):
+class MPCTrajPtPub(MPCPubJointTraj):
     """
     Publishes an entire trajectory (multiple changing waypoints)
     to the NMPC controller, based on a 'traj' object (e.g. CircleTraj, etc.).
@@ -196,7 +208,7 @@ class MPCTrajPtPub(MPCBasePub):
 ##########################################
 # Derived Class #2: MPCSinglePtPub
 ##########################################
-class MPCSinglePtPub(MPCBasePub):
+class MPCSinglePtPub(MPCPubJointTraj):
     """
     Publishes a single constant point for the entire horizon (N_nmpc+1),
     and checks if the robot has reached it within a certain error threshold.
