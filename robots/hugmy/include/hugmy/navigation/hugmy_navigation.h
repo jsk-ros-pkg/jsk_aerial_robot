@@ -1,7 +1,7 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
-
+#include <std_msgs/UInt8.h>
 namespace aerial_robot_navigation
 {
   class HugmyNavigator : public BaseNavigator
@@ -14,13 +14,14 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     double loop_du) override;
-    void update() override;
+    // void update() override;
+    void motorArming() override;
 
   private:
     ros::Subscriber perching_flag_sub_;
 
     void perchingFlagCallback(const std_msgs::UInt8 & msg);
 
-    bool perching_flag_;
+    bool perching_flag_ = false;
   };
 };
