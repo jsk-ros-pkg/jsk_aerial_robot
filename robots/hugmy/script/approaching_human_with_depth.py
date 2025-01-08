@@ -55,7 +55,7 @@ class Approaching_human():
         self.pose = Odometry()
         self.euler = Vector3()
 
-        self.Kp = 0.1
+        self.Kp = 0.3
         # self.Ki = 0.0001
         self.Kd = 0.01
         #self.offset = 0.09/(0.08*abs(self.degree[2]-self.initial_position[2])+0.3) + 1
@@ -121,12 +121,12 @@ class Approaching_human():
 
     def flight_rotate_state(self):
         #demo
-        if self.flight_state_msg.data == 5: #5
-            self.flight_state_flag = True
-        else:
-            self.flight_state_flag = False
+        # if self.flight_state_msg.data == 5: #5
+        #     self.flight_state_flag = True
+        # else:
+        #     self.flight_state_flag = False
         ####test
-        # self.flight_state_flag = True
+        self.flight_state_flag = True
         if self.rotate_cnt >= 20:
             self.rotate_flag = True
             self.rotate_cnt = 0
@@ -269,6 +269,8 @@ class Approaching_human():
         if self.perching_data == 0:
             self.perching_pub.publish(self.perching_data)
         else:
+            rospy.loginfo("shutdown")
+            self.timer.shutdown()
             return
         if self.flight_state_flag:
             if self.n >= 1:
@@ -303,9 +305,9 @@ class Approaching_human():
                         self.perching_data = 1
                         self.perching_pub.publish(self.perching_data)
                         rospy.logwarn("Perching: %s", self.perching_data)
-                        rospy.loginfo("land!")
-                        self.land_pub.publish() ###########
-                        rospy.sleep(5.0)
+                        ####rospy.loginfo("land!")
+                        ####self.land_pub.publish() ###########
+                        #rospy.sleep(3.0)
                         self.land_cnt = 0
                 self.rotate_cnt += 1
             else:
