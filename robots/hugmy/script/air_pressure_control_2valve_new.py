@@ -26,6 +26,9 @@ class Perching:
         self.perching_state_msg = UInt8()
         self.perching_flag = 0
         self.perching_sub_flag = False
+        self.deperching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
+        self.deperching_msg = UInt8()
+        self.deperching_msg.data = 2
 
         # PWM
         self.PWM_pub = rospy.Publisher('/quadrotor/pwm_test', PwmTest, queue_size=1)
@@ -73,6 +76,7 @@ class Perching:
         elif buttons[5] == 1:  # right up
             self.perching_flag = 3
         elif buttons[6] == 1:  # left down
+
             self.perching_flag = 4
         elif buttons[3] == 1:  # triangle
             self.perching_flag = 5
@@ -193,6 +197,8 @@ class Perching:
 
     def deperching(self):
         rospy.logwarn("==============deperching==================")
+        self.deperching_pub.publish(self.deperching_msg)
+        rospy.sleep(2.0)
         self.arming_on_pub.publish(Empty())
         rospy.sleep(2.0)
         self.stop_pump()

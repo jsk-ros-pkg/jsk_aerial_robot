@@ -372,7 +372,7 @@ namespace aerial_robot_navigation
         }
     }
 
-    void motorArming()
+    virtual void motorArming()
     {
       /* z(altitude) */
       /* check whether there is the fusion for the altitude */
@@ -401,6 +401,7 @@ namespace aerial_robot_navigation
       setNaviState(START_STATE);
       trajectory_mode_ = false;
       setTargetXyFromCurrentState();
+      ROS_ERROR("Publish is %f", takeoff_height_);
       setTargetPosZ(takeoff_height_);
       setTargetVelZ(0);
       setTargetAccZ(0);
