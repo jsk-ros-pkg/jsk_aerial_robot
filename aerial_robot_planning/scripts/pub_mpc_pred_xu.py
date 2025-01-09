@@ -62,6 +62,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
             raise ValueError("This class is designed for 23 states and 8 control inputs! Check the NMPC type!")
 
         # Load trajectory from a CSV
+        # TODO: change the order of csv file. one row for one point is better.
         self.scvx_traj = np.loadtxt(file_path, delimiter=',')
         self.x_traj = self.scvx_traj[0:19, :]
         self.u_traj = self.scvx_traj[19:28, :]

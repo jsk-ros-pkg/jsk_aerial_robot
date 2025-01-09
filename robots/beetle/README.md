@@ -116,5 +116,6 @@ Then input 'r' to arm the robot and input 't' to takeoff the robot.
 ### 3. Send the trajectory
 **After the main window printed 'Hovering'**, please run the following command to send a trajectory:
 ```bash
-rosrun aerial_robot_planning mpc_pt_pub_node.py beetle1 3 -num 1
+rosrun aerial_robot_planning mpc_pt_pub_node.py beetle1
 ```
+Then choose the trajectory you want to send.
