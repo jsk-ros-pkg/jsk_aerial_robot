@@ -10,6 +10,7 @@ import rospy
 import smach
 import smach_ros
 import numpy as np
+import inspect
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -17,31 +18,18 @@ if current_path not in sys.path:
     sys.path.insert(0, current_path)
 from mpc_pt_pub import MPCTrajPtPub, MPCSinglePtPub
 
-from trajs import (
-    SetPointTraj,
-    CircleTraj,
-    LemniscateTraj,
-    LemniscateTrajOmni,
-    PitchRotationTraj,
-    RollRotationTraj,
-    PitchSetPtTraj,
-    PitchRotationTrajOpposite,
-    VerticalYawRotationTraj,
-)
-
-import tf_conversions as tf
 from geometry_msgs.msg import Pose, Quaternion, Vector3
 
+import trajs
+
+# Collect all classes inside trajs whose name ends with 'Traj'
 traj_cls_list = [
-    SetPointTraj,
-    CircleTraj,
-    LemniscateTraj,
-    LemniscateTrajOmni,
-    PitchRotationTraj,
-    RollRotationTraj,
-    PitchSetPtTraj,
-    PitchRotationTrajOpposite,
-    VerticalYawRotationTraj,
+    cls
+    for name, cls in inspect.getmembers(trajs, inspect.isclass)
+    # optionally ensure the class is defined in trajs and not an imported library
+    if cls.__module__ == 'trajs'
+       # (Optional) filter by name if you only want classes that end with "Traj"
+       and name != "BaseTraj"
 ]
 
 
@@ -74,11 +62,6 @@ class IdleState(smach.State):
         rospy.loginfo("State: IDLE -- Waiting for user input...")
 
         try:
-            # robot_name = input("Enter robot name (e.g., 'beetle1'): ")
-            # if not robot_name:
-            #     rospy.logwarn("Empty robot name! Staying in IDLE.")
-            #     return "stay_idle"
-
             # print available trajectory types
             print("Available trajectory types:")
             for i, traj_cls in enumerate(traj_cls_list):
