@@ -46,10 +46,11 @@ class MPCPubBase(ABC):
             self.T_pred = rospy.get_param(f"{robot_name}/controller/nmpc/T_pred")
             self.T_integ = rospy.get_param(f"{robot_name}/controller/nmpc/T_integ")
             self.T_samp = rospy.get_param(f"{robot_name}/controller/nmpc/T_samp")
+            self.N_nmpc = rospy.get_param(f"{robot_name}/controller/nmpc/NN")
+            self.nx = rospy.get_param(f"{robot_name}/controller/nmpc/NX")
+            self.nu = rospy.get_param(f"{robot_name}/controller/nmpc/NU")
         except KeyError:
             raise KeyError("Parameters for NMPC not found! Ensure the NMPC controller is running!")
-
-        self.N_nmpc = int(self.T_pred / self.T_integ)
 
         # Store latest odometry here
         self.uav_odom = Odometry()

@@ -58,8 +58,8 @@ class MPCPubCSVPredXU(MPCPubPredXU):
             self.ref_xu_msg.u.layout.dim = [MultiArrayDimension(), MultiArrayDimension()]
 
         # Robot/trajectory dimensionalities
-        self.nx = 23
-        self.nu = 8
+        if self.nx != 23 or self.nu != 8:
+            raise ValueError("This class is designed for 23 states and 8 control inputs! Check the NMPC type!")
 
         # Load trajectory from a CSV
         self.scvx_traj = np.loadtxt(file_path, delimiter=',')
