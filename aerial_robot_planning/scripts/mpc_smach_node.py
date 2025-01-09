@@ -4,7 +4,6 @@
 
 import os
 import sys
-import time
 import argparse
 import rospy
 import smach
@@ -16,7 +15,7 @@ import inspect
 current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
-from mpc_pt_pub import MPCTrajPtPub, MPCSinglePtPub
+from pub_mpc_joint_traj import MPCTrajPtPub, MPCSinglePtPub
 
 from geometry_msgs.msg import Pose, Quaternion, Vector3
 
