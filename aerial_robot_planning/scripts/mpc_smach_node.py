@@ -16,6 +16,7 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
 from pub_mpc_joint_traj import MPCTrajPtPub, MPCSinglePtPub
+from pub_mpc_pred_xu import MPCPubCSVPredXU
 
 from geometry_msgs.msg import Pose, Quaternion, Vector3
 
@@ -30,6 +31,12 @@ traj_cls_list = [
        # (Optional) filter by name if you only want classes that end with "Traj"
        and name != "BaseTraj"
 ]
+print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
+
+# read all CSV files in the folder ./tilt_qd_csv_trajs
+csv_folder_path = os.path.join(current_path, 'tilt_qd_csv_trajs')
+csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith('.csv')]
+print(f"Found {len(csv_files)} CSV files in ./tilt_qd_csv_trajs folder.")
 
 
 def traj_factory(traj_type, loop_num):
@@ -66,13 +73,19 @@ class IdleState(smach.State):
             for i, traj_cls in enumerate(traj_cls_list):
                 print(f"{i}: {traj_cls.__name__}")
 
-            traj_type_str = input(f"Enter trajectory type (0..{len(traj_cls_list)}) or 'q' to quit: ")
+            # print available CSV files
+            for i, csv_file in enumerate(csv_files):
+                print(f"{i + len(traj_cls_list)}: {csv_file}")
+
+            max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
+
+            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit: ")
             if traj_type_str.lower() == "q":
                 rospy.signal_shutdown("User requested shutdown.")
                 sys.exit(0)
 
             traj_type = int(traj_type_str)
-            if not (0 <= traj_type <= len(traj_cls_list)):
+            if not (0 <= traj_type <= max_traj_idx):
                 rospy.logwarn("Invalid trajectory type!")
                 return "stay_idle"
 
@@ -116,19 +129,24 @@ class InitState(smach.State):
     def execute(self, userdata):
         rospy.loginfo("State: INIT -- Start to reach the first point of the trajectory.")
 
-        # traj
-        traj = traj_factory(userdata.traj_type, userdata.loop_num)
+        if userdata.traj_type < len(traj_cls_list):
+            rospy.loginfo(f"Using trajs.{traj_cls_list[userdata.traj_type].__name__} trajectory.")
+            traj = traj_factory(userdata.traj_type, userdata.loop_num)
 
-        # position
-        x, y, z, vx, vy, vz, ax, ay, az = traj.get_3d_pt(0.0)
+            x, y, z, vx, vy, vz, ax, ay, az = traj.get_3d_pt(0.0)
 
-        # orientation
-        try:
-            (qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
-        except AttributeError:
-            qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
-            r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
-            r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
+            try:
+                (qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
+            except AttributeError:
+                qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
+
+        else:
+            csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
+            rospy.loginfo(f"Using CSV file: {csv_file}")
+            # csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
+            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',')
+            x, y, z = csv_traj[0:3, 0]
+            qw, qx, qy, qz = csv_traj[6:10, 0]
 
         init_pose = Pose(
             position=Vector3(x, y, z),
@@ -168,18 +186,18 @@ class TrackState(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo(
-            f"State: TRACK -- Starting MPCPtPubNode for robot={userdata.robot_name}, "
+            f"State: TRACK -- Starting for robot={userdata.robot_name}, "
             f"traj_type={userdata.traj_type}, loop_num={userdata.loop_num}"
         )
 
-        # traj
-        traj = traj_factory(userdata.traj_type, userdata.loop_num)
-
-        # Create the node instance
-        mpc_node = MPCTrajPtPub(
-            robot_name=userdata.robot_name,
-            traj=traj,
-        )
+        if userdata.traj_type < len(traj_cls_list):
+            traj = traj_factory(userdata.traj_type, userdata.loop_num)
+            rospy.loginfo(f"Using {traj} trajectory.")
+            mpc_node = MPCTrajPtPub(robot_name=userdata.robot_name, traj=traj)
+        else:
+            csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
+            rospy.loginfo(f"Using CSV file: {csv_file}")
+            mpc_node = MPCPubCSVPredXU(userdata.robot_name, os.path.join(csv_folder_path, csv_file))
 
         # Wait here until the node signals it is finished or ROS shuts down
         while not rospy.is_shutdown():

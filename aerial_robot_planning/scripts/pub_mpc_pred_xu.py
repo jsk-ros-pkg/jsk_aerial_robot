@@ -50,10 +50,6 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         # Initialize parent classes
         super().__init__(robot_name=robot_name, node_name="mpc_xu_pub_node")
 
-        # Initialize the node (if not done globally)
-        rospy.init_node(self.node_name, anonymous=False)
-        self.namespace = rospy.get_namespace().rstrip("/")
-
         # Prepare the PredXU message (dimensions, etc.)
         self.ref_xu_msg = PredXU()
         if len(self.ref_xu_msg.x.layout.dim) < 2:
