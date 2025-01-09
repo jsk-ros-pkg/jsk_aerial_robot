@@ -24,53 +24,6 @@ class BaseTraj:
         return x, y, z, vx, vy, vz, ax, ay, az
 
 
-class SetPointTraj(BaseTraj):
-    def __init__(self, loop_num) -> None:
-        super().__init__(loop_num)
-        self.pos = np.array([0.0, 0.0, 0.7])
-        self.vel = np.array([0.0, 0.0, 0.0])
-        self.acc = np.array([0.0, 0.0, 0.0])
-
-        self.att = np.array([0.0, 0.0, 0.0])
-        self.att_rate = np.array([0.0, 0.0, 0.0])
-        self.att_acc = np.array([0.0, 0.0, 0.0])
-
-        self.t_converge = 8.0
-        self.T = 4 * self.t_converge
-
-    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z = self.pos
-        vx, vy, vz = self.vel
-        ax, ay, az = self.acc
-
-        if 3 * self.t_converge > t > self.t_converge:
-            x = 0.3
-            y = 0.2
-            z = 1.2
-
-        if 3 * self.t_converge > t > 2 * self.t_converge:
-            x = -0.3
-            y = 0.0
-            z = 1.0
-
-        return x, y, z, vx, vy, vz, ax, ay, az
-
-    def get_3d_orientation(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        roll, pitch, yaw = self.att
-        roll_rate, pitch_rate, yaw_rate = self.att_rate
-        roll_acc, pitch_acc, yaw_acc = self.att_acc
-
-        if 3 * self.t_converge > t > self.t_converge:
-            roll = 0.5
-            yaw = 0.3
-
-        if 3 * self.t_converge > t > 2 * self.t_converge:
-            pitch = 0.5
-            yaw = -0.3
-
-        return roll, pitch, yaw, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
-
-
 class CircleTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
@@ -161,6 +114,56 @@ class LemniscateTrajOmni(LemniscateTraj):
         roll_acc = -2 * -4 * self.a_orientation * self.omega ** 2 * np.sin(2 * self.omega * t) / 2
         pitch_acc = -self.a_orientation * self.omega ** 2 * np.cos(self.omega * t)
         yaw_acc = -np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
+
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class SetPointTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.pos = np.array([0.0, 0.0, 0.7])
+        self.vel = np.array([0.0, 0.0, 0.0])
+        self.acc = np.array([0.0, 0.0, 0.0])
+
+        self.att = np.array([0.0, 0.0, 0.0])
+        self.att_rate = np.array([0.0, 0.0, 0.0])
+        self.att_acc = np.array([0.0, 0.0, 0.0])
+
+        self.t_converge = 8.0
+        self.T = 4 * self.t_converge
+
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        x, y, z = self.pos
+        vx, vy, vz = self.vel
+        ax, ay, az = self.acc
+
+        if 3 * self.t_converge > t > self.t_converge:
+            x = 0.3
+            y = 0.2
+            z = 1.2
+
+        if 3 * self.t_converge > t > 2 * self.t_converge:
+            x = -0.3
+            y = 0.0
+            z = 1.0
+
+        return x, y, z, vx, vy, vz, ax, ay, az
+
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        roll, pitch, yaw = self.att
+        roll_rate, pitch_rate, yaw_rate = self.att_rate
+        roll_acc, pitch_acc, yaw_acc = self.att_acc
+
+        if 3 * self.t_converge > t > self.t_converge:
+            roll = 0.5
+            yaw = 0.3
+
+        if 3 * self.t_converge > t > 2 * self.t_converge:
+            pitch = 0.5
+            yaw = -0.3
+
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
 
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
@@ -287,7 +290,8 @@ class PitchSetPtTraj(BaseTraj):
 
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
-class VerticalYawRotationTraj(BaseTraj):
+
+class YawRotationVerticalTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
