@@ -29,6 +29,11 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
   nmpc_reconf_servers_.back()->setCallback(boost::bind(&TiltMtServoNMPC::cfgNMPCCallback, this, _1, _2));
 
+  /* set some ROS parameters */
+  nmpc_nh.setParam("NN", mpc_solver_ptr_->NN_);
+  nmpc_nh.setParam("NX", mpc_solver_ptr_->NX_);
+  nmpc_nh.setParam("NU", mpc_solver_ptr_->NU_);
+
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltMtServoNMPC::callbackViz, this);
 
