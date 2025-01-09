@@ -15,13 +15,16 @@ class BaseTraj:
     def check_finished(self, t: float) -> bool:
         return t > self.T * self.loop_num
 
-    def get_2d_pt(self, t: float) -> Tuple[float, float, float, float, float, float]:
-        x, y, vx, vy, ax, ay = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        return x, y, vx, vy, ax, ay
-
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
+
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
+        roll_rate, pitch_rate, yaw_rate = 0.0, 0.0, 0.0
+        roll_acc, pitch_acc, yaw_acc = 0.0, 0.0, 0.0
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
 class CircleTraj(BaseTraj):
