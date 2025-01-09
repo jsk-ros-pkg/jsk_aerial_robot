@@ -59,7 +59,7 @@ class IdleState(smach.State):
     def __init__(self):
         smach.State.__init__(
             self,
-            outcomes=["go_init", "stay_idle"],
+            outcomes=["go_init", "stay_idle", "shutdown"],
             input_keys=[],
             output_keys=["robot_name", "traj_type", "loop_num"],
         )
@@ -81,8 +81,7 @@ class IdleState(smach.State):
 
             traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit: ")
             if traj_type_str.lower() == "q":
-                rospy.signal_shutdown("User requested shutdown.")
-                sys.exit(0)
+                return "shutdown"
 
             traj_type = int(traj_type_str)
             if not (0 <= traj_type <= max_traj_idx):
@@ -241,6 +240,7 @@ def main():
             transitions={
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
+                "shutdown": "DONE",
             },
         )
 
@@ -269,7 +269,6 @@ def main():
     # Execute the state machine
     outcome = sm.execute()
 
-    rospy.spin()
     sis.stop()
 
 
