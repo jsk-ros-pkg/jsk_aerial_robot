@@ -23,13 +23,13 @@ void HugmyNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
 void HugmyNavigator::motorArming()
 {
-  BaseNavigator::motorArming();
   if(perching_flag_){
     takeoff_height_ = init_height_ + 0.8;
     setTargetPosZ(takeoff_height_);
     perching_flag_ = false;
     ROS_ERROR("second takeoff_height is %f", takeoff_height_);
   }
+  BaseNavigator::motorArming();
 }
 
 void HugmyNavigator::perchingFlagCallback(const std_msgs::UInt8& msg)
