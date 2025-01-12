@@ -23,6 +23,7 @@
   <run_depend>joy</run_depend>
   <run_depend>mocap_optitrack</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>ros_numpy</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>rostest</run_depend>
   <run_depend>ublox_gps</run_depend>
