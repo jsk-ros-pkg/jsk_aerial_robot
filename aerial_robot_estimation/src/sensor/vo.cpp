@@ -263,7 +263,8 @@ namespace sensor_plugin
         tf::Transform vo_bdash_f = raw_sensor_tf * sensor_tf_.inverse(); // ^{vo}H_{b}
         double r,p,y;
         vo_bdash_f.getBasis().getRPY(r,p,y);
-        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y)); // ^{vo}H_{b'}
+	/** set same yaw direction as 326 world**/
+        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y+2.4)); // ^{vo}H_{b'}
 
         /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
         world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
