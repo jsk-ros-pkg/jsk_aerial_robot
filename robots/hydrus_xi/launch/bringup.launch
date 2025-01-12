@@ -24,6 +24,7 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus_xi$(arg robot_id)" />
   <arg name="mujoco" default="False" />
+  <arg name="demo" default="True" />
 
 
   ###########  Parameters  ###########
@@ -111,5 +112,8 @@
     <arg name="headless" value="$(arg headless)"/>
     <arg name="mujoco_model" value="$(find hydrus_xi)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
+
+  ########## Simple Demo #########
+  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>
