@@ -3,6 +3,6 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 setup_args = generate_distutils_setup(
     packages=['aerial_robot_base'],
-    package_dir={'': 'test'})
+    package_dir={'': 'src'})
 
 setup(**setup_args)
