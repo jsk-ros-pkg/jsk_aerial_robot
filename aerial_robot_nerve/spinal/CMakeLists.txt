@@ -44,6 +44,8 @@ add_message_files(
   FlightConfigCmd.msg
   Vector3Int16.msg
   TorqueAllocationMatrixInv.msg
+  XiaomiCybergearCmd.msg
+  XiaomiCybergearState.msg
   )
 
 add_service_files(

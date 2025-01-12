@@ -42,6 +42,8 @@
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
 
+#include "actuators/xiaomi_cybergear/servo.h"
+
 #include "battery_status/battery_status.h"
 
 #include "state_estimate/state_estimate.h"
@@ -110,6 +112,8 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* actuators */
+Xiaomi_Cybergear::Servo xiaomi_servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -239,6 +243,7 @@ int main(void)
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
+  xiaomi_servo_.init(&hfdcan1, &canMsgMailHandle, &nh_, LED1_GPIO_Port, LED1_Pin);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
@@ -375,6 +380,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 1;
   RCC_OscInitStruct.PLL.PLLN = 100;
   RCC_OscInitStruct.PLL.PLLP = 2;
+
   RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
@@ -520,8 +526,8 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.DataTimeSeg1 = 7;
   hfdcan1.Init.DataTimeSeg2 = 2;
   hfdcan1.Init.MessageRAMOffset = 0;
-  hfdcan1.Init.StdFiltersNbr = 1;
-  hfdcan1.Init.ExtFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 1;
   hfdcan1.Init.RxFifo0ElmtsNbr = 1;
   hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_64;
   hfdcan1.Init.RxFifo1ElmtsNbr = 0;
@@ -1072,6 +1078,8 @@ void coreTaskFunc(void const * argument)
       gps_.update();
       estimator_.update();
       controller_.update();
+
+      xiaomi_servo_.update();
 
 #if NERVE_COMM      
       Spine::update();

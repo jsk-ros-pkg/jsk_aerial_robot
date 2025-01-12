@@ -25,6 +25,8 @@ namespace CANDeviceManager
     GPIO_TypeDef* m_GPIOx;
     uint16_t m_GPIO_Pin;
     osMailQId* canMsgMailHandle = NULL;
+
+    CANDirectDevice* can_direct_device = NULL;
   }
 
   void init(CAN_GeranlHandleTypeDef* hcan, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -47,6 +49,11 @@ namespace CANDeviceManager
   void addDevice(CANDevice& device)
   {
     can_device_list.insert(std::pair<int, CANDevice& >(makeCommunicationId(device.getDeviceId(), device.getSlaveId()), device));
+  }
+
+  void addDirectDevice(CANDirectDevice* device)
+  {
+    can_direct_device = device;
   }
 
   void tick(int cycle /* ms */)
@@ -77,10 +84,17 @@ namespace CANDeviceManager
 
   void receiveMessage(can_msg msg)
   {
+    uint32_t identifier = CAN::getIdentifier(msg.rx_header);
+    uint32_t dlc = CAN::getDlc(msg.rx_header);
+
+    if (can_direct_device != NULL) {
+      can_direct_device->receiveDataCallback(identifier, dlc, msg.rx_data);
+      return;
+    }
+
     uint8_t slave_id = CAN::getSlaveId(msg.rx_header);
     uint8_t device_id = CAN::getDeviceId(msg.rx_header);
     uint8_t message_id = CAN::getMessageId(msg.rx_header);
-    uint32_t dlc = CAN::getDlc(msg.rx_header);
 
     int communication_id = CANDeviceManager::makeCommunicationId(device_id, slave_id);
     if (device_id == CAN::DEVICEID_INITIALIZER) { //special

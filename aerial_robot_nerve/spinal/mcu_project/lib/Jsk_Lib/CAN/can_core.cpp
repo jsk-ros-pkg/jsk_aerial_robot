@@ -78,14 +78,26 @@ namespace CAN {
   {
     hfdcan_ = hfdcan;
 
-    FDCAN_FilterTypeDef sFilterConfig;
-    sFilterConfig.IdType = FDCAN_STANDARD_ID;
-    sFilterConfig.FilterIndex = 0;
-    sFilterConfig.FilterType = FDCAN_FILTER_MASK;
-    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    sFilterConfig.FilterID1 = 0x000;
-    sFilterConfig.FilterID2 = 0x000;
-    HAL_FDCAN_ConfigFilter(hfdcan_, &sFilterConfig);
+    // /* message filter for message with standard id */
+    // FDCAN_FilterTypeDef sFilterConfig;
+    // sFilterConfig.IdType = FDCAN_STANDARD_ID;
+    // sFilterConfig.FilterIndex = 0;
+    // sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+    // sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    // sFilterConfig.FilterID1 = 0x000;
+    // sFilterConfig.FilterID2 = 0x000;
+    // HAL_FDCAN_ConfigFilter(hfdcan_, &sFilterConfig);
+
+    /* message filter for message with extended id */
+    FDCAN_FilterTypeDef eFilterConfig;
+    eFilterConfig.IdType = FDCAN_EXTENDED_ID;
+    eFilterConfig.FilterIndex = 0;
+    eFilterConfig.FilterType = FDCAN_FILTER_MASK;
+    eFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    eFilterConfig.FilterID1 = 0x000;
+    eFilterConfig.FilterID2 = 0x000;
+    HAL_FDCAN_ConfigFilter(hfdcan_, &eFilterConfig);
+
     /*
        Configure global filter:
        - Reject all remote frames with STD and EXT ID
@@ -118,7 +130,19 @@ namespace CAN {
 
   void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
   {
-    tx_header_.Identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+    uint32_t identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+
+    sendMessage(identifier, dlc, data, timeout);
+  }
+
+  void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout, bool is_extended_id)
+  {
+    tx_header_.Identifier = identifier;
+
+    if(is_extended_id) // id length
+      tx_header_.IdType = FDCAN_EXTENDED_ID;
+    else
+      tx_header_.IdType = FDCAN_STANDARD_ID;
 
     if (dlc <= 8) { // calssic  model
       tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
