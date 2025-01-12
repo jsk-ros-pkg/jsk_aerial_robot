@@ -1038,7 +1038,7 @@ void DragonFullVectoringController::controlCore()
         }
 
       // exclusive case3
-      if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag() || boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getLandingFlag())
+      if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag())
         {
           ROS_WARN("clear extra vectoring force since not hovering state");
           extra_vectoring_forces_.resize(0);
@@ -1960,7 +1960,7 @@ void DragonFullVectoringController::clearExternalWrenchCallback(const std_msgs::
 /* extra vectoring force  */
 void DragonFullVectoringController::extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg)
 {
-  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag() || boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getLandingFlag()) return;
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag()) return;
 
   if(msg->forces.size() == 0)
     {

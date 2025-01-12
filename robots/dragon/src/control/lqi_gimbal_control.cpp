@@ -225,8 +225,8 @@ void DragonLQIGimbalController::gimbalControl()
       std::cout << "gimbal force for horizontal control:"  << std::endl << f_xy << std::endl;
     }
 
-  /* external wrench compensation */
-  if(boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getLandingFlag())
+  /* clear external wrench compensation */
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
     {
       dragon_robot_model_->resetExternalStaticWrench(); // clear the external wrench
       extra_vectoring_forces_.assign(motor_num_, Eigen::Vector3d::Zero()); // clear the extra vectoring force
@@ -325,7 +325,7 @@ void DragonLQIGimbalController::clearExternalWrenchCallback(const std_msgs::Stri
 /* extra vectoring force  */
 void DragonLQIGimbalController::extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg)
 {
-  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag() || boost::dynamic_pointer_cast<aerial_robot_navigation::DragonNavigator>(navigator_)->getLandingFlag()) return;
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag()) return;
 
   if(msg->forces.size() == 0)
     {
