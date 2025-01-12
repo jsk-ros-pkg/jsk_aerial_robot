@@ -145,6 +145,8 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
 
 void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 {
+  if(getNaviState() != HOVER_STATE) return;
+
   if (traj_generator_ptr_.get() == nullptr)
     {
       ROS_DEBUG("traj_generator_ptr_ is null");
@@ -155,6 +157,8 @@ void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 
 void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 {
+  if(getNaviState() != HOVER_STATE) return;
+
   if (traj_generator_ptr_.get() == nullptr)
     {
       ROS_DEBUG("traj_generator_ptr_ is null");
@@ -167,7 +171,7 @@ void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedC
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
-  if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
+  if(getNaviState() != HOVER_STATE) return;
 
   gps_waypoint_ = false;
 
@@ -819,36 +823,29 @@ void BaseNavigator::update()
       }
     case LAND_STATE:
       {
-        if (getNaviState() > START_STATE)
-          {
-            updateLandCommand();
+        updateLandCommand();
 
-            if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
+        if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
+          {
+            double delta = curr_pos.z() - land_height_;
+            double vel = curr_vel.z();
+
+            ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
+
+            if (fabs(delta) < land_pos_convergent_thresh_ &&
+                vel > -land_vel_convergent_thresh_)
               {
-                double delta = curr_pos.z() - land_height_;
-                double vel = curr_vel.z();
-
-                ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
-
-                if (fabs(delta) < land_pos_convergent_thresh_ &&
-                    vel > -land_vel_convergent_thresh_)
-                  {
-                    ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
-                    ROS_INFO("Start disarming motors");
-                    setNaviState(STOP_STATE);
-                  }
-                else
-                  {
-                    // not staedy, update the land height
-                    land_height_ = curr_pos.z();
-                  }
-
-                land_check_start_time_ = ros::Time::now().toSec();
+                ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
+                ROS_INFO("Start disarming motors");
+                setNaviState(STOP_STATE);
               }
-          }
-        else
-          {
-            setNaviState(ARM_OFF_STATE);
+            else
+              {
+                // not staedy, update the land height
+                land_height_ = curr_pos.z();
+              }
+
+            land_check_start_time_ = ros::Time::now().toSec();
           }
         break;
       }
@@ -960,6 +957,11 @@ void BaseNavigator::updateLandCommand()
 
   addTargetPosZ(land_descend_vel_ * loop_du_);
   setTargetVelZ(land_descend_vel_);
+
+  // update vel for other axes
+  setTargetVelX(0);
+  setTargetVelY(0);
+  setTargetOmega(0, 0, 0);
 }
 
 
