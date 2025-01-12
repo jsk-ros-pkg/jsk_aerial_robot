@@ -116,18 +116,32 @@ void nmpc::TiltMtServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i,
 
 std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX()
 {
+  /* disturbance rejection */
+  geometry_msgs::Vector3 external_force_w;     // default: 0, 0, 0
+  geometry_msgs::Vector3 external_torque_cog;  // default: 0, 0, 0
+
+  auto nav_state = navigator_->getNaviState();
+  if (if_use_est_wrench_4_control_ && nav_state == aerial_robot_navigation::HOVER_STATE)
+  {
+    if (!wrench_est_ptr_->getOffsetFlag())
+      wrench_est_ptr_->toggleOffsetFlag();
+
+    // the external wrench is only added when the robot is in the hover state
+    external_force_w = wrench_est_ptr_->getDistForceW();
+    external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+  }
+
   auto bx0 = TiltMtServoNMPC::meas2VecX();
 
   for (int i = 0; i < motor_num_; i++)
     bx0[13 + joint_num_ + i] = thrust_meas_[i];
 
-  /* disturbance rejection */
-  bx0[13 + joint_num_ + motor_num_ + 0] = dist_force_w_.x;
-  bx0[13 + joint_num_ + motor_num_ + 1] = dist_force_w_.y;
-  bx0[13 + joint_num_ + motor_num_ + 2] = dist_force_w_.z;
-  bx0[13 + joint_num_ + motor_num_ + 3] = dist_torque_cog_.x;
-  bx0[13 + joint_num_ + motor_num_ + 4] = dist_torque_cog_.y;
-  bx0[13 + joint_num_ + motor_num_ + 5] = dist_torque_cog_.z;
+  bx0[13 + joint_num_ + motor_num_ + 0] = external_force_w.x;
+  bx0[13 + joint_num_ + motor_num_ + 1] = external_force_w.y;
+  bx0[13 + joint_num_ + motor_num_ + 2] = external_force_w.z;
+  bx0[13 + joint_num_ + motor_num_ + 3] = external_torque_cog.x;
+  bx0[13 + joint_num_ + motor_num_ + 4] = external_torque_cog.y;
+  bx0[13 + joint_num_ + motor_num_ + 5] = external_torque_cog.z;
   return bx0;
 }
 

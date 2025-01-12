@@ -84,7 +84,12 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
+        qr = ca.vertcat(qwr, qxr, qyr, qzr)
+
+        f_d_i_para = ca.SX.sym("fd_para", 3)  # world frame
+        tau_d_b_para = ca.SX.sym("tau_d_para", 3)  # body frame
+
+        parameters = ca.vertcat(qr, f_d_i_para, tau_d_b_para)
 
         # control inputs
         ft1c = ca.SX.sym("ft1c")
@@ -174,12 +179,12 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         # dynamic model
         ds = ca.vertcat(
             v,
-            (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i,
+            (ca.mtimes(rot_ib, f_u_b) + f_d_i + f_d_i_para) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b)),
+            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b + tau_d_b_para)),
             (ac - a) / t_servo,
             (ftc - ft) / t_rotor,
             ca.vertcat(0.0, 0.0, 0.0),
@@ -187,7 +192,7 @@ class NMPCTiltQdServoThrustDist(NMPCBase):
         )
 
         # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
+        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr

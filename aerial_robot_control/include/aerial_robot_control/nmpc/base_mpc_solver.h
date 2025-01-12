@@ -141,6 +141,26 @@ public:
     ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
   }
 
+  void setParamSparseOneStage(int stage, std::vector<int>& idx, std::vector<double>& p, bool has_check = true)
+  {
+    if (has_check)
+    {
+      if (idx.size() != p.size())
+        throw std::length_error("idx size is not equal to p size");
+    }
+
+    acadosUpdateParamsSparse(stage, idx, p, p.size());
+  }
+
+  void setParamSparseAllStages(std::vector<int>& idx, std::vector<double>& p)
+  {
+    if (idx.size() != p.size())
+      throw std::length_error("idx size is not equal to p size");
+
+    for (int i = 0; i < NN_ + 1; i++)
+      setParamSparseOneStage(i, idx, p, false);
+  }
+
   void setParameters(std::vector<double>& p, bool is_quat_in_p = true)
   {
     if (is_quat_in_p)
@@ -160,8 +180,7 @@ public:
       for (int j = 0; j < NP_ - 4; j++)
         index[j] = j + 4;
 
-      for (int i = 0; i < NN_ + 1; i++)
-        acadosUpdateParamsSparse(i, index, p, NP_ - 4);
+      setParamSparseAllStages(index, p);
     }
   }
 

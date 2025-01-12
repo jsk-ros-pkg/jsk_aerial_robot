@@ -99,6 +99,8 @@ public:
         torque_acc_alpha_matrix_ * external_torque_cog;
 
     setDistTorqueCOG(est_ext_torque_cog_filtered_(0), est_ext_torque_cog_filtered_(1), est_ext_torque_cog_filtered_(2));
+
+    WrenchEstActuatorMeasBase::update();
   }
 
 private:

@@ -18,9 +18,8 @@ class WrenchEstBase
 public:
   virtual ~WrenchEstBase() = default;
 
-  virtual inline void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
-                                 boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator,
-                                 double ctrl_loop_du)
+  virtual void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
+                          boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator, double ctrl_loop_du)
   {
     nh_ = nh;
 
@@ -39,11 +38,11 @@ public:
 
   virtual void reset()
   {
-    dist_force_w_ = geometry_msgs::Vector3();
-    dist_torque_cog_ = geometry_msgs::Vector3();
+    dist_force_w_ = Eigen::Vector3d::Zero();
+    dist_torque_cog_ = Eigen::Vector3d::Zero();
   }
 
-  void inline init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
+  void init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
   {
     alloc_mat_ = alloc_mat;
     alloc_mat_pinv_ = alloc_mat_pinv;
@@ -55,44 +54,50 @@ public:
     geometry_msgs::WrenchStamped dist_wrench_;
     dist_wrench_.header.stamp = ros::Time::now();
 
-    dist_wrench_.wrench.force = dist_force_w_;
-    dist_wrench_.wrench.torque = dist_torque_cog_;
+    dist_wrench_.wrench.force = getDistForceW();
+    dist_wrench_.wrench.torque = getDistTorqueCOG();
 
     pub_disturb_wrench_.publish(dist_wrench_);
   }
 
   /* getter */
-  inline geometry_msgs::Vector3 getDistForceW()
+  virtual geometry_msgs::Vector3 getDistForceW() const
   {
-    return dist_force_w_;
+    geometry_msgs::Vector3 dist_force_w_ros;
+    dist_force_w_ros.x = dist_force_w_(0);
+    dist_force_w_ros.y = dist_force_w_(1);
+    dist_force_w_ros.z = dist_force_w_(2);
+
+    return dist_force_w_ros;
   }
-  inline geometry_msgs::Vector3 getDistTorqueCOG()
+  virtual geometry_msgs::Vector3 getDistTorqueCOG() const
   {
-    return dist_torque_cog_;
+    geometry_msgs::Vector3 dist_torque_cog_ros;
+    dist_torque_cog_ros.x = dist_torque_cog_(0);
+    dist_torque_cog_ros.y = dist_torque_cog_(1);
+    dist_torque_cog_ros.z = dist_torque_cog_(2);
+
+    return dist_torque_cog_ros;
   }
-  inline double getCtrlLoopDu() const
+  double getCtrlLoopDu() const
   {
     return ctrl_loop_du_;
   }
 
   /* setter */
-  inline void setDistForceW(double x, double y, double z)
+  void setDistForceW(double x, double y, double z)
   {
-    dist_force_w_.x = x;
-    dist_force_w_.y = y;
-    dist_force_w_.z = z;
+    dist_force_w_ << x, y, z;
   }
-  inline void setDistTorqueCOG(double x, double y, double z)
+  void setDistTorqueCOG(double x, double y, double z)
   {
-    dist_torque_cog_.x = x;
-    dist_torque_cog_.y = y;
-    dist_torque_cog_.z = z;
+    dist_torque_cog_ << x, y, z;
   }
-  inline void setParamVerbose(bool param_verbose)
+  void setParamVerbose(bool param_verbose)
   {
     param_verbose_ = param_verbose;
   }
-  inline void setCtrlLoopDu(double ctrl_loop_du)
+  void setCtrlLoopDu(double ctrl_loop_du)
   {
     ctrl_loop_du_ = ctrl_loop_du;
   }
@@ -109,6 +114,9 @@ protected:
   ros::Timer tmr_pub_dist_wrench_;
   ros::Publisher pub_disturb_wrench_;
 
+  Eigen::Vector3d dist_force_w_;     // disturbance force in world frame
+  Eigen::Vector3d dist_torque_cog_;  // disturbance torque in cog frame
+
   WrenchEstBase() = default;
 
   template <class T>
@@ -123,9 +131,6 @@ protected:
 private:
   double ctrl_loop_du_;
   bool param_verbose_ = false;
-
-  geometry_msgs::Vector3 dist_force_w_;     // disturbance force in world frame
-  geometry_msgs::Vector3 dist_torque_cog_;  // disturbance torque in cog frame
 };
 };  // namespace aerial_robot_control
 
