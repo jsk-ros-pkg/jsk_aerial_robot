@@ -3,9 +3,13 @@ motor_info:
         max_pwm: 0.9 # 1800 ~ dshot 1600
         min_thrust: 0.0 # [N]
         force_landing_thrust: 6.0 # [N]
-        krpm_rate: 7.7991 # 5 / (0.1299 + 0.1283 + 0.1285 + 0.1276 + 0.1268) (kRPM)^2/N
+
+        # these two parameters are from u=25.2v_down_prop_w_mount_part_motor_test_1727860665.txt
+        krpm_square_to_thrust_ratio: 0.1283  # N/(kRPM)^2
+        krpm_square_to_thrust_bias: -0.3572  # N
         rotor_damping_rate: 0.1062 # = dt/t_thrust = 0.01 (guess) / 0.0942
         m_f_rate: -0.0165 # (-0.0166 + -0.0165 + -0.0166 +  -0.0164 + -0.0162) / 5 = -0.0165
+
         pwm_conversion_mode: 1 # POLYNOMIAL Mode
         # Note that for SQRT mode, only poly2 is 10x, others are 1x, and the relationship is fz = f(pwm).
         # But for POLYNOMIAL mode, the coefficients are 10x one by one, and the relationship is pwm = f(fz).
