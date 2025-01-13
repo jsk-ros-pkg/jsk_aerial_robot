@@ -126,8 +126,25 @@ void Servo::calcPosPid(void)
   goal_curr_ = p_term + p_i_term_ + d_term;
 }
 
+void Servo::setPidGain(uint8_t mode, float p_gain, float i_gain, float d_gain)
+{
+  if (mode == POS_MODE)
+    {
+      p_k_p_ = p_gain;
+      p_k_i_ = i_gain;
+      p_k_d_ = d_gain;
+    }
+
+  if (mode == VEL_MODE)
+    {
+      v_k_p_ = p_gain;
+      v_k_i_ = i_gain;
+    }
+}
+
 Interface::Interface(): servo_state_pub_("servo/extended_states", &servo_states_msg_),
-                        servo_cmd_sub_("servo/extended_cmds", &Interface::servoControlCallback, this)
+                        servo_cmd_sub_("servo/extended_cmds", &Interface::servoControlCallback, this),
+                        servo_pid_gain_sub_("servo/set_pid_gain", &Interface::servoPIDGainCallback, this)
 {
   /* variables */
   init_cnt_ = 100; // for catch the CAN messages from servo, 100 messages.
@@ -150,6 +167,7 @@ void Interface::init(CAN_GeranlHandleTypeDef* hcan, osMailQId* handle, ros::Node
   nh_ = nh;
   nh_->advertise(servo_state_pub_);
   nh_->subscribe(servo_cmd_sub_);
+  nh_->subscribe(servo_pid_gain_sub_);
 
   CANDeviceManager::CAN_START();
 }
@@ -276,4 +294,14 @@ void Interface::servoControlCallback(const spinal::ServoExtendedCmds& msg)
           it->second.setGoalValue(cmd);
         }
     }
+}
+
+void Interface::servoPIDGainCallback(const spinal::ServoPIDGain& msg)
+{
+  std::map<int,Servo>::iterator it = servo_list_.find(msg.index);
+  if (it != servo_list_.end())
+    {
+      it->second.setPidGain(msg.mode, msg.p_gain, msg.i_gain, msg.d_gain);
+    }
+
 }

@@ -13,6 +13,7 @@
 #include <CAN/can_device_manager.h>
 #include <spinal/ServoExtendedStates.h>
 #include <spinal/ServoExtendedCmds.h>
+#include <spinal/ServoPIDGain.h>
 
 #include "math/AP_Math.h"
 
@@ -49,6 +50,7 @@ namespace DJI_M2006
 
     void setControlMode(int mode) { control_mode_ = mode; }
     void setGoalValue(float cmd) { goal_value_ = cmd; }
+    void setPidGain(uint8_t mode, float p_gian, float i_gain, float d_gain);
 
     void update(uint16_t counts, int16_t rpm, int16_t m_curr);
     void control(void);
@@ -115,6 +117,7 @@ namespace DJI_M2006
     void init(CAN_GeranlHandleTypeDef* hcan, osMailQId* handle, ros::NodeHandle* nh, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 
     void servoControlCallback(const spinal::ServoExtendedCmds& msg);
+    void servoPIDGainCallback(const spinal::ServoPIDGain& msg);
 
     void update();
 
@@ -128,6 +131,7 @@ namespace DJI_M2006
     ros::NodeHandle* nh_;
     ros::Publisher servo_state_pub_;
     ros::Subscriber<spinal::ServoExtendedCmds, Interface> servo_cmd_sub_;
+    ros::Subscriber<spinal::ServoPIDGain, Interface> servo_pid_gain_sub_;
     spinal::ServoExtendedStates servo_states_msg_;
 
 

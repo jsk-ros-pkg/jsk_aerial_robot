@@ -28,6 +28,7 @@ add_message_files(
   ServoExtendedCmd.msg
   ServoExtendedCmds.msg
   ServoControlCmd.msg
+  ServoPIDGain.msg
   ServoTorqueCmd.msg
   ServoTorqueStates.msg
   Gyro.msg
