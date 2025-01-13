@@ -41,7 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
-
+#include "actuators/DJI_M2006/servo.h"
 #include "battery_status/battery_status.h"
 
 #include "state_estimate/state_estimate.h"
@@ -110,6 +110,10 @@ Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
+/* actuators */
+#if DJI_CAN_SERVO
+DJI_M2006::Interface dji_servo_;
+#endif
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -239,6 +243,10 @@ int main(void)
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
   battery_status_.init(&hadc1, &nh_);
+#if DJI_CAN_SERVO
+  dji_servo_.init(&hfdcan1, &canMsgMailHandle, &nh_, LED1_GPIO_Port, LED1_Pin);
+#endif
+
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
 
@@ -1072,6 +1080,9 @@ void coreTaskFunc(void const * argument)
       gps_.update();
       estimator_.update();
       controller_.update();
+#if DJI_CAN_SERVO
+      dji_servo_.update();
+#endif
 
 #if NERVE_COMM      
       Spine::update();

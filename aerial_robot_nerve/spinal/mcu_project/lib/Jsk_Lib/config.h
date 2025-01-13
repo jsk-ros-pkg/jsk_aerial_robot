@@ -28,7 +28,7 @@
 #define GPIO_L(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET)
 
 //0. Comm Type
-#define NERVE_COMM 1
+#define NERVE_COMM 0
 
 //2. Enable Flags
 //* Please set/reset follwing flags according to your utility.
@@ -85,6 +85,8 @@
 #endif
 ///////////////////////////////////
 
+//2.4 CAN based Actuator
+#define DJI_CAN_SERVO 1
 
 
 #endif //__CONFIG_H

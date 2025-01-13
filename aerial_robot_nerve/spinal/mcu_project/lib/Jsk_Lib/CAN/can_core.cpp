@@ -118,7 +118,14 @@ namespace CAN {
 
   void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
   {
-    tx_header_.Identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+    uint32_t identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+
+    sendMessage(identifier, dlc, data, timeout);
+  }
+
+  void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  {
+    tx_header_.Identifier = identifier;
 
     if (dlc <= 8) { // calssic  model
       tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
