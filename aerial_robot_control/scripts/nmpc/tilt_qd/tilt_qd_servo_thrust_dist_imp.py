@@ -217,9 +217,11 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
         func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
-        qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr
-        qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr
-        qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr
+        # qe = qr^* multiply q
+        qe_w = qw * qwr + qx * qxr + qy * qyr + qz * qzr
+        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         p_mtx_imp_inv = ca.SX.zeros(3, 3)
         p_mtx_imp_inv[0, 0] = 1 / (mpx + epsilon)
