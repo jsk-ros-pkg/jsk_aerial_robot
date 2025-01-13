@@ -20,6 +20,8 @@
   <exec_depend>aerial_robot_control</exec_depend>
   <exec_depend>aerial_robot_estimation</exec_depend>
   <exec_depend>aerial_robot_model</exec_depend>
+  <exec_depend condition="$ROS_PYTHON_VERSION == 2">ipython</exec_depend>
+  <exec_depend condition="$ROS_PYTHON_VERSION == 3">ipython3</exec_depend>
   <exec_depend>joy</exec_depend>
   <exec_depend>mocap_optitrack</exec_depend>
   <exec_depend>roscpp</exec_depend>
