@@ -755,7 +755,11 @@ if __name__ == '__main__':
                 'Land': 'Land'
             },
                                )
+
     signal.signal(signal.SIGINT, handle_shutdown_signal)
+
+    sis = smach_ros.IntrospectionServer('hand_server', sm, '/SM_ROOT')
+    sis.start()
 
     try:
         outcome = sm.execute()
@@ -765,3 +769,4 @@ if __name__ == '__main__':
     except Exception as e:
         rospy.logerr(f"State machine execution failed due to: {e}")
         safety_shutdown(land_pub)
+    sis.stop()
