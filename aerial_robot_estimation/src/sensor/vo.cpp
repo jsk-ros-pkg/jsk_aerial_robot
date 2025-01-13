@@ -242,7 +242,7 @@ namespace sensor_plugin
           }
 
         /** step1: ^{w}H_{b'}, b': level frame of b **/
-        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0]));
+        tf::Transform w_bdash_f(tf::createQuaternionFromYaw(0.0));
 
         tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
         if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
@@ -263,8 +263,7 @@ namespace sensor_plugin
         tf::Transform vo_bdash_f = raw_sensor_tf * sensor_tf_.inverse(); // ^{vo}H_{b}
         double r,p,y;
         vo_bdash_f.getBasis().getRPY(r,p,y);
-	/** set same yaw direction as 326 world**/
-        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y+estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0])); // ^{vo}H_{b'}
+        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y)); // ^{vo}H_{b'}
 
         /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
         world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
