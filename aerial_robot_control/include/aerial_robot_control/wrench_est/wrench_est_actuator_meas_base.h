@@ -31,7 +31,8 @@ public:
 
     // TODO: combine this part with the controller. especially the subscriber part.
     ros::NodeHandle motor_nh(nh_, "motor_info");
-    getParam<double>(motor_nh, "krpm_rate", krpm2_d_thrust_, 0.0);
+    getParam<double>(motor_nh, "krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio_, 0.0);
+    getParam<double>(motor_nh, "krpm_square_to_thrust_bias", krpm_square_to_thrust_bias_, 0.0);
 
     joint_angles_.resize(robot_model_->getJointNum(), 0.0);
     sub_joint_states_ = nh_.subscribe("joint_states", 1, &WrenchEstActuatorMeasBase::callbackJointStates, this);
@@ -111,8 +112,10 @@ public:
     if (is_offset_)
     {
       ROS_INFO("The offset for external wrench -> true, the average offset samples: %d", offset_count_);
-      ROS_INFO("The offset force in world frame (N): %f, %f, %f", offset_force_w_(0), offset_force_w_(1), offset_force_w_(2));
-      ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", offset_torque_cog_(0), offset_torque_cog_(1), offset_torque_cog_(2));
+      ROS_INFO("The offset force in world frame (N): %f, %f, %f", offset_force_w_(0), offset_force_w_(1),
+               offset_force_w_(2));
+      ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", offset_torque_cog_(0), offset_torque_cog_(1),
+               offset_torque_cog_(2));
     }
     else
       ROS_INFO("The offset for external wrench -> false");
@@ -139,21 +142,23 @@ private:
   std::vector<double> thrust_meas_;
 
   ros::Subscriber sub_esc_telem_;
-  double krpm2_d_thrust_;
+  double krpm_square_to_thrust_ratio_;
+  double krpm_square_to_thrust_bias_;
+
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
   {
     double krpm;
     krpm = (double)msg->esc_telemetry_1.rpm * 0.001;
-    thrust_meas_[0] = krpm * krpm / krpm2_d_thrust_;
+    thrust_meas_[0] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
     krpm = (double)msg->esc_telemetry_2.rpm * 0.001;
-    thrust_meas_[1] = krpm * krpm / krpm2_d_thrust_;
+    thrust_meas_[1] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
     krpm = (double)msg->esc_telemetry_3.rpm * 0.001;
-    thrust_meas_[2] = krpm * krpm / krpm2_d_thrust_;
+    thrust_meas_[2] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
     krpm = (double)msg->esc_telemetry_4.rpm * 0.001;
-    thrust_meas_[3] = krpm * krpm / krpm2_d_thrust_;
+    thrust_meas_[3] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
   }
 };
 

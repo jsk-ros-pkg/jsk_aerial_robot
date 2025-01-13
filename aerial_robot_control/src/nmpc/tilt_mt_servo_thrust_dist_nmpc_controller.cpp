@@ -22,7 +22,8 @@ void nmpc::TiltMtServoThrustDistNMPC::initParams()
   TiltMtServoDistNMPC::initParams();
 
   ros::NodeHandle motor_nh(nh_, "motor_info");
-  getParam<double>(motor_nh, "krpm_rate", krpm2_d_thrust_, 0.0);
+  getParam<double>(motor_nh, "krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio_, 0.0);
+  getParam<double>(motor_nh, "krpm_square_to_thrust_bias", krpm_square_to_thrust_bias_, 0.0);
 }
 
 void nmpc::TiltMtServoThrustDistNMPC::initCostW()
@@ -74,16 +75,16 @@ void nmpc::TiltMtServoThrustDistNMPC::initCostW()
 void nmpc::TiltMtServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
 {  // TODO: support different motor number
   double krpm = (double)msg->esc_telemetry_1.rpm * 0.001;
-  thrust_meas_[0] = krpm * krpm / krpm2_d_thrust_;
+  thrust_meas_[0] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
   krpm = (double)msg->esc_telemetry_2.rpm * 0.001;
-  thrust_meas_[1] = krpm * krpm / krpm2_d_thrust_;
+  thrust_meas_[1] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
   krpm = (double)msg->esc_telemetry_3.rpm * 0.001;
-  thrust_meas_[2] = krpm * krpm / krpm2_d_thrust_;
+  thrust_meas_[2] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 
   krpm = (double)msg->esc_telemetry_4.rpm * 0.001;
-  thrust_meas_[3] = krpm * krpm / krpm2_d_thrust_;
+  thrust_meas_[3] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
 }
 
 void nmpc::TiltMtServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
