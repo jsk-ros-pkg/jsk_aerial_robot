@@ -78,7 +78,10 @@ namespace hardware_interface
       motor_nh.param("rotor_force_noise", rotor_force_noise_, 0.0); // N
       motor_nh.param("dual_rotor_moment_noise", dual_rotor_moment_noise_, 0.0);
       motor_nh.param("speed_rate", speed_rate_, 1.0); // rad/s/N , this is a virtual linear rate of speed-f
-      motor_nh.param("krpm_rate", krpm_rate_, 0.1); // (kRPM)^2/N , this is a virtual linear rate of speed-f
+
+      double krpm_square_to_thrust_ratio;
+      motor_nh.param("krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio, 0.1);
+      krpm_rate_ = 1.0 / krpm_square_to_thrust_ratio; // (kRPM)^2/N , this is a virtual linear rate of speed-f
     }
 
     inline std::string getName() const {return name_;}
