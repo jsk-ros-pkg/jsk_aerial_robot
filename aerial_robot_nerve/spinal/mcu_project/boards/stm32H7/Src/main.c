@@ -111,7 +111,7 @@ GPS gps_;
 BatteryStatus battery_status_;
 
 /* actuators */
-DJI_M2006::Servo dji_servo_;
+DJI_M2006::Interface dji_servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
