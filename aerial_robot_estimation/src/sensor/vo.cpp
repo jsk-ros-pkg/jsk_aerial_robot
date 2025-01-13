@@ -264,7 +264,7 @@ namespace sensor_plugin
         double r,p,y;
         vo_bdash_f.getBasis().getRPY(r,p,y);
 	/** set same yaw direction as 326 world**/
-        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y+2.489)); // ^{vo}H_{b'}
+        vo_bdash_f.setRotation(tf::createQuaternionFromYaw(y+estimator_->getState(State::YAW_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0])); // ^{vo}H_{b'}
 
         /** step3: ^{w}H_{vo} = ^{w}H_{b'} * ^{b'}H_{vo} **/
         world_offset_tf_ = w_bdash_f * vo_bdash_f.inverse();
