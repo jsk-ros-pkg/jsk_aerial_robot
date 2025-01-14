@@ -4,7 +4,7 @@ import rospy
 import message_filters
 from jsk_recognition_msgs.msg import ClassificationResult
 from jsk_recognition_msgs.msg import RectArray
-rospy.init_node('miyamichi')
+rospy.init_node('merge_rects_and_class')
 pub = rospy.Publisher('human', RectArray, queue_size = 4)
 
 def callback(rects,classes):
