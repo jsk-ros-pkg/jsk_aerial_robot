@@ -72,10 +72,8 @@ class Approaching_human():
         self.depth_thresh_max = 10000
         self.depth_thresh_min = 0
         self.min_depth = 10.0
-
-        #eye_module
-        self.eye_pub = rospy.Publisher('/look_at',Float32,queue_size = 1)
-        self.eye_move_msg = Float32()
+        self.raw_depth = 0.0
+        self.fail_safe_stop_cnt = 0
 
         #perching
         self.perching_cnt = 0
@@ -175,11 +173,6 @@ class Approaching_human():
         self.move_pub.publish(self.move_msg)
         self.rotate_flag = False
 
-    def eye_control(self):
-        self.eye_move_msg = - self.max_rect_pixel_pos.x * 7 /640 + (400/640*7)
-        # self.eye_move_msg.y = 1.0
-        self.eye_pub.publish(self.eye_move_msg)
-
     def relative_pos(self):
         #calculate depth of the center of the rect
         self.max_rect_pixel_pos.x = int(self.max_rect.x + (self.max_rect.width/2))
@@ -228,25 +221,32 @@ class Approaching_human():
                 depth_sum += depth_tmp
                 pixel_cnt += 1
 
-        raw_depth = depth_sum / pixel_cnt
-        rospy.loginfo("Raw depth: %s", raw_depth)
-        self.target_pos.y = raw_depth
+        self.raw_depth = depth_sum / pixel_cnt
+        rospy.loginfo("Raw depth: %s", self.raw_depth)
+        self.target_pos.y = self.raw_depth
 
-        if raw_depth > 0.0:
+        if self.raw_depth > 0.0:
+            self.fail_safe_stop_cnt = 0
             self.depth_check_start_flag = True
+        elif self.raw_depth == 0.0:
+            self.fail_safe_stop_cnt += 1
+            if self.fail_safe_stop_cnt > 10:
+                rospy.loginfo("fail safe land!")
+                self.land_pub.publish() 
+                
 
         if self.depth_check_start_flag:
-            if self.depth_thresh_min < raw_depth <= self.depth_thresh_max:
-                self.depth = raw_depth/1000.0 - 0.5 ###########
+            if self.depth_thresh_min < self.raw_depth <= self.depth_thresh_max:
+                self.depth = self.raw_depth/1000.0 - 0.5 ###########
                 self.prev_depth = self.depth
-                self.depth_thresh_max = raw_depth + 500.0
-                self.depth_thresh_min = max(raw_depth - 500.0, -100.0)
+                self.depth_thresh_max = self.raw_depth + 500.0
+                self.depth_thresh_min = max(self.raw_depth - 500.0, -100.0)
                 #close to human
                 if self.min_depth >= self.depth:
                     if abs(self.prev_depth - self.depth) < 0.15:
                         self.min_depth = self.depth
             else:
-                rospy.logwarn("Invalid depth value: %s. Using previous depth: %s", raw_depth, self.prev_depth)
+                rospy.logwarn("Invalid depth value: %s. Using previous depth: %s", self.raw_depth, self.prev_depth)
                 self.depth = self.prev_depth
 
         rospy.loginfo("depth: %s",self.depth)
@@ -295,7 +295,14 @@ class Approaching_human():
                     rospy.loginfo("go!")
                     #rospy.loginfo("cmd_vel: %s",self.output)
                     self.land_cnt = 0
+                    self.fail_safe_stop_cnt = 0
                 else:
+                    if self.raw_depth == 0.0:
+                        self.fail_safe_stop_cnt += 1
+                        if self.fail_safe_stop_cnt > 10:
+                            rospy.loginfo("fail safe land!")
+                            self.land_pub.publish() 
+        
                     self.move_msg.target_vel_x = 0
                     self.move_pub.publish(self.move_msg) #########
                     rospy.loginfo("stop!")
@@ -308,7 +315,7 @@ class Approaching_human():
                         ####rospy.loginfo("land!")
                         ####self.land_pub.publish() ###########
                         #rospy.sleep(3.0)
-                        self.land_cnt = 0
+                    self.land_cnt = 0
                 self.rotate_cnt += 1
             else:
                 rospy.loginfo("don't see people")
