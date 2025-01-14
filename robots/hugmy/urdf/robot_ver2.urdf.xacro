@@ -283,16 +283,72 @@
   </xacro:extra_module>
 
   <!-- battery -->
-  <xacro:extra_module name = "battery" parent = "main_body" visible = "1" model_url = "package://hugmy/urdf/mesh/turnigy_3S_2200mAh.dae" >
-    <origin xyz="0.0105 0 -0.012" rpy="0 0 0"/>
+  <link name = "battery_0">
     <inertial>
-      <mass value = "0.188" />
+      <mass value = "0.108" />
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <inertia
-          ixx="0.0" ixy="0.0" ixz="0.0"
-          iyy="0.0002" iyz="0.0" izz="0.0002"/>
+          ixx="0.00001517" ixy="0.0" ixz="0.0"
+          iyy="0.00005450" iyz="0.0" izz="0.00004886"/>
     </inertial>
-  </xacro:extra_module>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/4S_1000mAh_battery.STL"/>
+        <box size="0.29 0.34 0.070" />
+      </geometry>
+    </visual>
+  </link>
+    <link name = "battery_1">
+    <inertial>
+      <mass value = "0.108" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001517" ixy="0.0" ixz="0.0"
+          iyy="0.00005450" iyz="0.0" izz="0.00004886"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hugmy/urdf/mesh/4S_1000mAh_battery.STL"/>
+        <box size="0.070 0.023 0.034" />
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- <link name = "battery_1"> -->
+  <!--   <inertial> -->
+  <!--     <mass value = "0.108" /> -->
+  <!--     <origin xyz="0 0 0" rpy="0 0 0"/> -->
+  <!--     <inertia -->
+  <!--         ixx="0.0" ixy="0.0" ixz="0.0" -->
+  <!--         iyy="0.0002" iyz="0.0" izz="0.0002"/> -->
+  <!--   </inertial> -->
+  <!--   <visual> -->
+  <!--     <origin rpy="0 0 0" xyz="0 0 0"/> -->
+  <!--     <geometry> -->
+  <!--       <mesh filename="package://hugmy/urdf/mesh/4S_1300mAh_battery.STL"/> -->
+  <!--       <box size="0.29 0.34 0.070" /> -->
+  <!--     </geometry> -->
+  <!--   </visual> -->
+  <!-- </link> -->
+
+  <joint name="battery_0_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_0"/>
+      <origin rpy="0 0 ${-pi/4}" xyz="0.01202 0.01202 -0.0365"/>
+  </joint>
+  <joint name="battery_1_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_1"/>
+      <origin rpy="0 0 ${-pi/4}" xyz="-0.01202 -0.01202 -0.0365"/>
+  </joint>
+
+  <!-- <joint name="battery_1_joint" type="fixed"> -->
+  <!--     <parent link="main_body"/> -->
+  <!--     <child link="battery_1"/> -->
+  <!--     <origin rpy="0 0 ${-pi/4}" xyz="-0.01025 -0.01025 -0.045"/> -->
+  <!-- </joint> -->
 
   <!-- propellers -->
   <xacro:propeller_module id = "1" x = "${rotor_x}" y = "${-rotor_y}" z = "${rotor_z}" direction = "-1" />
