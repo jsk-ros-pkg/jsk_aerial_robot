@@ -393,7 +393,7 @@ def main():
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
                 "shutdown": "DONE",
-                "go_one_to_one_map_init":"InitObjectState"
+                "go_hand_control_init":"HAND_CONTROL_INIT"
             },
         )
 
@@ -417,7 +417,7 @@ def main():
 
         # InitObjectState
         smach.StateMachine.add(
-            "InitObjectState",
+            "HAND_CONTROL_INIT",
             InitObjectState(),
             transitions={
                 "go_lock":"LOCK"
@@ -439,17 +439,17 @@ def main():
             "UNLOCK",
             UnlockState(),
             transitions={
-                "go_one_to_one_map":"One_To_One_MapState"
+                "go_one_to_one_map":"One_To_One_Map"
             }
         )
 
         # One_To_One_MapState
         smach.StateMachine.add(
-            "One_To_One_MapState",
+            "One_To_One_Map",
             One_To_One_MapState(),
             transitions={
                 "done_track":"IDLE",
-                "stay_one_to_one_map":"One_To_One_MapState"
+                "stay_one_to_one_map":"One_To_One_Map"
             }
         )
 
