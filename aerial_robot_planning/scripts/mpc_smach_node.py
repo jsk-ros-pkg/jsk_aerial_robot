@@ -65,7 +65,7 @@ class IdleState(smach.State):
     def __init__(self,robot_name):
         smach.State.__init__(
             self,
-            outcomes=["go_init", "stay_idle", "shutdown","go_one_to_one_map_init"],
+            outcomes=["go_init", "stay_idle", "shutdown","go_hand_control_init"],
             input_keys=[],
             output_keys=["robot_name", "traj_type", "loop_num"],
         )
@@ -108,7 +108,7 @@ class IdleState(smach.State):
             if traj_type == 10 :
                 userdata.robot_name = self.robot_name
                 userdata.traj_type = traj_type
-                return "go_one_to_one_map_init"
+                return "go_hand_control_init"
 
             # Set user data
             # userdata.robot_name = robot_name
@@ -224,18 +224,19 @@ class TrackState(smach.State):
         return "done_track"
 
 class InitObjectState(smach.State):
-    def __init__(self):
+    def __init__(self,robot_name):
         smach.State.__init__(
             self,
             outcomes=["go_lock"],
             input_keys=["robot_name"],
-            output_keys=["hand","arm","drone","control_mode"]
+            output_keys=[]
         )
+        self.robot_name = robot_name
     def execute(self, userdata):
 
         shared_data["hand"] = HandPosition()
         shared_data["arm"] = ArmPosition()
-        shared_data["drone"] = DronePosition(userdata.robot_name)
+        shared_data["drone"] = DronePosition(self.robot_name)
         shared_data["control_mode"] = ControlMode()
 
         rospy.loginfo("hand, arm, drone position initialized.")
@@ -246,8 +247,8 @@ class LockState(smach.State):
         smach.State.__init__(
             self,
             outcomes=['go_unlock', 'stay_lock'],
-            input_keys=["hand","arm","drone"],
-            output_keys=["timer_Freq"]
+            input_keys=[],
+            output_keys=[]
         )
 
         self.last_threshold_time = None
@@ -315,15 +316,15 @@ class UnlockState(smach.State):
         return 'go_one_to_one_map'
 
 class One_To_One_MapState(smach.State):
-    def __init__(self) -> None:
+    def __init__(self,robot_name) -> None:
 
         smach.State.__init__(
             self,
             outcomes=[ 'done_track', 'stay_one_to_one_map'],
-            input_keys=["robot_name","hand","arm","drone","control_mode"],
-            output_keys=[""]
+            input_keys=[],
+            output_keys=[]
         )
-
+        self.robot_name = robot_name
         self.initial_hand_position = None
         self.initial_drone_position = None
 
@@ -334,15 +335,15 @@ class One_To_One_MapState(smach.State):
         self.timer = None
         self.pub_object = None
 
-    def _init_OnetoOnePubJointTraj(self,userdata):
+    def _init_OnetoOnePubJointTraj(self):
 
-        return OnetoOnePubJointTraj(userdata.robot_name,hand = shared_data["hand"],arm = shared_data["arm"], control_mode = shared_data["control_mode"])
+        return OnetoOnePubJointTraj(self.robot_name,hand = shared_data["hand"],arm = shared_data["arm"], control_mode = shared_data["control_mode"])
 
     def execute(self, userdata):
 
         if self.if_init_pub_object:
 
-            self.pub_object = self._init_OnetoOnePubJointTraj(userdata)
+            self.pub_object = self._init_OnetoOnePubJointTraj()
 
             self.if_init_pub_object =False
 
@@ -355,6 +356,54 @@ class One_To_One_MapState(smach.State):
             return 'done_track'
 
         return 'stay_one_to_one_map'
+
+
+def create_hand_control_state_machine(robot_name):
+    """ HandControlStateMachine"""
+    sm_sub = smach.StateMachine(outcomes=["DONE"])
+
+    with sm_sub:
+        # InitObjectState
+        smach.StateMachine.add(
+            "HAND_CONTROL_INIT",
+            InitObjectState(robot_name),
+            transitions={
+                "go_lock": "LOCK"
+            }
+
+        )
+
+        # LockState
+        smach.StateMachine.add(
+            "LOCK",
+            LockState(),
+            transitions={
+                "go_unlock": "UNLOCK",
+                "stay_lock": "LOCK",
+            }
+        )
+
+        # UnlockState
+        smach.StateMachine.add(
+            "UNLOCK",
+            UnlockState(),
+            transitions={
+                "go_one_to_one_map": "ONE_TO_ONE_MAP"
+            }
+        )
+
+        # One_To_One_MapState
+        smach.StateMachine.add(
+            "ONE_TO_ONE_MAP",
+            One_To_One_MapState(robot_name),
+            transitions={
+                "done_track": "DONE",
+                "stay_one_to_one_map": "ONE_TO_ONE_MAP"
+            },
+        )
+
+    return sm_sub
+
 
 ###############################################
 # Main SMACH Entry Point
@@ -393,7 +442,7 @@ def main():
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
                 "shutdown": "DONE",
-                "go_hand_control_init":"HAND_CONTROL_INIT"
+                "go_hand_control_init":"HAND_CONTROL"
             },
         )
 
@@ -413,44 +462,16 @@ def main():
             transitions={
                 "done_track": "IDLE",
             },
+            remapping={"robot_name": "robot_name"}
         )
 
-        # InitObjectState
         smach.StateMachine.add(
-            "HAND_CONTROL_INIT",
-            InitObjectState(),
+            "HAND_CONTROL",
+            create_hand_control_state_machine(args.robot_name),
             transitions={
-                "go_lock":"LOCK"
+                "DONE": "IDLE",
             }
-        )
 
-        # LockState
-        smach.StateMachine.add(
-            "LOCK",
-            LockState(),
-            transitions={
-                "go_unlock": "UNLOCK",
-                "stay_lock": "LOCK",
-            }
-        )
-
-        # UnlockState
-        smach.StateMachine.add(
-            "UNLOCK",
-            UnlockState(),
-            transitions={
-                "go_one_to_one_map":"One_To_One_Map"
-            }
-        )
-
-        # One_To_One_MapState
-        smach.StateMachine.add(
-            "One_To_One_Map",
-            One_To_One_MapState(),
-            transitions={
-                "done_track":"IDLE",
-                "stay_one_to_one_map":"One_To_One_Map"
-            }
         )
 
     # (Optional) Start an introspection server to visualize SMACH in smach_viewer
