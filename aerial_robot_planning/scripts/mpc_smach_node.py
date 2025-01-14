@@ -26,7 +26,7 @@ from geometry_msgs.msg import Pose, Quaternion, Vector3
 
 import trajs
 
-from ..dataglove.Instance_objects import HandPosition,ArmPosition,DronePosition,ControlMode,OnetoOnePubJointTraj
+from Instance_objects import HandPosition,ArmPosition,DronePosition,ControlMode,OnetoOnePubJointTraj
 
 # Collect all classes inside trajs whose name ends with 'Traj'
 traj_cls_list = [
@@ -231,12 +231,13 @@ class InitObjectState(smach.State):
             input_keys=["robot_name"],
             output_keys=["hand","arm","drone","control_mode"]
         )
-
     def execute(self, userdata):
-        userdata.hand = HandPosition()
-        userdata.arm = ArmPosition()
-        userdata.drone = DronePosition(userdata.robot_name)
-        userdata.control_mode = ControlMode()
+
+        shared_data["hand"] = HandPosition()
+        shared_data["arm"] = ArmPosition()
+        shared_data["drone"] = DronePosition(userdata.robot_name)
+        shared_data["control_mode"] = ControlMode()
+
         rospy.loginfo("hand, arm, drone position initialized.")
         return "go_lock"
 
@@ -255,22 +256,25 @@ class LockState(smach.State):
         self.first = 1
 
     def execute(self, userdata):
+        global shared_data
         if self.first == 1:
             print("Current state: Lock / 当前状态: 锁定状态")
             print("正在进行解锁判断，请将手掌姿态对准无人机手姿态")
             self.first = 2
 
+        #############  # Debug stop
         drone_orientation = [
-            userdata.uav_odom.drone_position.pose.pose.orientation.x,
-            userdata.uav_odom.drone_position.pose.pose.orientation.y,
-            userdata.uav_odom.drone_position.pose.pose.orientation.z,
-            userdata.uav_odom.drone_position.pose.pose.orientation.w
+            shared_data["drone"].drone_position.pose.pose.orientation.x,
+            shared_data["drone"].drone_position.pose.pose.orientation.y,
+            shared_data["drone"].drone_position.pose.pose.orientation.z,
+            shared_data["drone"].drone_position.pose.pose.orientation.w
         ]
+
         hand_orientation = [
-            userdata.hand.hand_position.pose.orientation.x,
-            userdata.hand.hand_position.pose.orientation.y,
-            userdata.hand.hand_position.pose.orientation.z,
-            userdata.hand.hand_position.pose.orientation.w
+            shared_data["hand"].hand_position.pose.orientation.x,
+            shared_data["hand"].hand_position.pose.orientation.y,
+            shared_data["hand"].hand_position.pose.orientation.z,
+            shared_data["hand"].hand_position.pose.orientation.w
         ]
 
         q_drone_inv = tft.quaternion_inverse(drone_orientation)
@@ -332,7 +336,7 @@ class One_To_One_MapState(smach.State):
 
     def _init_OnetoOnePubJointTraj(self,userdata):
 
-        return OnetoOnePubJointTraj(userdata.robot_name,userdata.hand,userdata.arm,userdata.drone)
+        return OnetoOnePubJointTraj(userdata.robot_name,hand = shared_data["hand"],arm = shared_data["arm"], control_mode = shared_data["control_mode"])
 
     def execute(self, userdata):
 
@@ -340,17 +344,14 @@ class One_To_One_MapState(smach.State):
 
             self.pub_object = self._init_OnetoOnePubJointTraj(userdata)
 
-            self.timer = rospy.Timer(rospy.Duration(self.pub_object.ts_pt_pub), self.pub_object._call_back_traj_pub)
-
             self.if_init_pub_object =False
 
             return 'stay_one_to_one_map'
 
-        elif userdata.control_mode.control_mode == 2:
+        elif self.pub_object.check_finished is True:
             if self.timer is not None:
                 self.timer.shutdown()
                 self.timer = None
-
             return 'done_track'
 
         return 'stay_one_to_one_map'
@@ -374,12 +375,20 @@ def main():
     sm.userdata.traj_type = None
     sm.userdata.loop_num = np.inf
 
+    global shared_data
+    shared_data = {
+        "hand": None,
+        "arm": None,
+        "drone": None,
+        "control_mode": None,
+    }
+
     # Open the container
     with sm:
         # IDLE
         smach.StateMachine.add(
             "IDLE",
-            IdleState(),
+            IdleState(args.robot_name),
             transitions={
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
@@ -411,13 +420,13 @@ def main():
             "InitObjectState",
             InitObjectState(),
             transitions={
-                "go_lock":"Lock"
+                "go_lock":"LOCK"
             }
         )
 
         # LockState
         smach.StateMachine.add(
-            "Lock",
+            "LOCK",
             LockState(),
             transitions={
                 "go_unlock": "UNLOCK",
