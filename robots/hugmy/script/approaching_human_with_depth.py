@@ -231,7 +231,7 @@ class Approaching_human():
         elif self.raw_depth == 0.0:
             self.fail_safe_stop_cnt += 1
             if self.fail_safe_stop_cnt > 10:
-                rospy.loginfo("fail safe land!")
+                rospy.logerr("fail safe land!")
                 self.land_pub.publish() 
                 
 
@@ -280,7 +280,7 @@ class Approaching_human():
                     rospy.loginfo("rotate!")
                 self.relative_pos()
                 self.pos_cal()
-                print(self.land_cnt)
+                rospy.loginfo(self.land_cnt)
                 self.target_pos_pub.publish(self.target_pos)
                 # self.eye_control()
                 self.PD_control()
@@ -311,7 +311,7 @@ class Approaching_human():
                     for _ in range (10):
                         self.perching_data = 1
                         self.perching_pub.publish(self.perching_data)
-                        rospy.logwarn("Perching: %s", self.perching_data)
+                        rospy.logerr("Perching: %s", self.perching_data)
                         ####rospy.loginfo("land!")
                         ####self.land_pub.publish() ###########
                         #rospy.sleep(3.0)
@@ -323,7 +323,7 @@ class Approaching_human():
                 #self.eye_confuse_control()
                 self.move_msg.target_vel_x = 0.0
                 self.move_pub.publish(self.move_msg) ##########
-                rospy.loginfo("stop! because not see people")
+                rospy.loginfo("stop! because the robot can't see people")
                 if self.min_depth > 2.0:
                     self.move_msg.target_yaw = self.euler.z + 0.01
                     self.move_pub.publish(self.move_msg) ###############

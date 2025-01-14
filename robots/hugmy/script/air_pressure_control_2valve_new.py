@@ -132,7 +132,7 @@ class Perching:
 
     def bottom_pressure_prepare(self):
         self.start_solenoid_valve_all()
-        print("bottom prepare")
+        rospy.loginfo("bottom prepare")
         if self.air_pressure_sensor1_msg.data < self.bottom_usual_pressure:
             self.cal_pressure(self.bottom_usual_pressure, 1)
             self.adjust_pump()
@@ -167,7 +167,7 @@ class Perching:
                 #self.max_work_pump()
                 self.flight_state_flag = False
             else:
-                print("joint!!!")
+                rospy.loginfo("joint!!!")
                 self.stop_solenoid_valve_all()
                 self.max_work_pump()
             if self.air_pressure_sensor_msg.data == self.max_pressure:
@@ -179,11 +179,11 @@ class Perching:
         #     rospy.logwarn("==============not flight==================")
 
     def keep_perching(self):
-        print(self.cnt)
+        rospy.loginfo(self.cnt)
         self.cnt +=1
         if self.cnt >= 50:
             rospy.sleep(1.0)
-            print("deperch ready")
+            rospy.loginfo("deperch ready")
             self.perching_flag = 4
         else:
             if self.air_pressure_sensor1_msg.data <= 5:
