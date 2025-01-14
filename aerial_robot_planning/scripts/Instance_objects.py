@@ -6,13 +6,14 @@
 # @Software: PyCharm
 
 import sys
+import time
 import rospy
 from std_msgs.msg import UInt8
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from ..scripts.pub_mpc_joint_traj import MPCPubJointTraj
+from pub_mpc_joint_traj import MPCPubJointTraj
 
 
 ##########################################
@@ -77,16 +78,11 @@ class ControlMode:
 # Derived Class : OnetoOnePubJointTraj
 ##########################################
 class OnetoOnePubJointTraj(MPCPubJointTraj):
-    def __init__(self, robot_name: str, hand: HandPosition,arm: ArmPosition,drone: DronePosition):
+    def __init__(self, robot_name: str, hand: HandPosition,arm: ArmPosition,control_mode: ControlMode):
         super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
-
         self.hand = hand
-
         self.arm = arm
-
-        self.drone = drone
-
-        # self.control_mode = ControlMode()
+        self.control_mode = control_mode
 
         self.initial_hand_position = None
         self.initial_drone_position = None
@@ -100,13 +96,7 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
         self.vel_twist = Twist(linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate))
         self.acc_twist = Twist(linear=Vector3(ax, ay, az), angular=Vector3(r_acc, p_acc, y_acc))
 
-        self.start_time = rospy.Time.now().to_sec()
-
-        # Frequency
-        self.ts_pt_pub = 0.02  # [s]  callback
-
-
-    def _call_back_traj_pub(self,event):
+    def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
 
         if self.initial_hand_position is None:
             self.initial_hand_position = [
@@ -115,58 +105,60 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
                 self.hand.hand_position.pose.position.z
             ]
             self.initial_drone_position = [
-                self.drone.drone_position.pose.pose.position.x,
-                self.drone.drone_position.pose.pose.position.y,
-                self.drone.drone_position.pose.pose.position.z
+                self.uav_odom.pose.pose.position.x,
+                self.uav_odom.pose.pose.position.y,
+                self.uav_odom.pose.pose.position.z
             ]
-        else :
-            current_position = [
-                self.hand.hand_position.pose.position.x,
-                self.hand.hand_position.pose.position.y,
-                self.hand.hand_position.pose.position.z
-            ]
+            time.sleep(0.5)
 
-            self.position_change = [
-                current_position[i] - self.initial_hand_position[i] for i in range(3)
-            ]
+        current_position = [
+            self.hand.hand_position.pose.position.x,
+            self.hand.hand_position.pose.position.y,
+            self.hand.hand_position.pose.position.z
+        ]
 
-            direction = [
+        self.position_change = [
+            current_position[i] - self.initial_hand_position[i] for i in range(3)
+        ]
 
-                self.initial_drone_position[0] + self.position_change[0],
-                self.initial_drone_position[1] + self.position_change[1],
-                self.initial_drone_position[2] + self.position_change[2]
-            ]
+        direction = [
 
-            hand_orientation = [self.hand.hand_position.pose.orientation.x,
-                                self.hand.hand_position.pose.orientation.y,
-                                self.hand.hand_position.pose.orientation.z,
-                                self.hand.hand_position.pose.orientation.w]
+            self.initial_drone_position[0] + self.position_change[0],
+            self.initial_drone_position[1] + self.position_change[1],
+            self.initial_drone_position[2] + self.position_change[2]
+        ]
 
-            sys.stdout.write(
-                f"\r目标地点 {direction[0]:6.1f}, {direction[1]:6.1f}, {direction[2]:6.1f} "
-                f"目标姿势 {hand_orientation[0]:6.1f}, {hand_orientation[1]:6.1f}, {hand_orientation[2]:6.1f}, {hand_orientation[3]:6.1f} "
+        hand_orientation = [self.hand.hand_position.pose.orientation.x,
+                            self.hand.hand_position.pose.orientation.y,
+                            self.hand.hand_position.pose.orientation.z,
+                            self.hand.hand_position.pose.orientation.w]
 
-            )
-            sys.stdout.flush()
+        multi_dof_joint_traj = MultiDOFJointTrajectory()
+        t_has_started = rospy.Time.now().to_sec() - self.start_time
 
-            # 2.Path Calculation
-            multi_dof_joint_traj = MultiDOFJointTrajectory()
-            t_has_started = rospy.Time.now().to_sec() - self.start_time
+        for i in range(self.N_nmpc + 1):
+            traj_pt = MultiDOFJointTrajectoryPoint()
+            traj_pt.transforms.append(
+                Transform(translation=Vector3(*direction), rotation=Quaternion(*hand_orientation)))
+            traj_pt.velocities.append(self.vel_twist)
+            traj_pt.accelerations.append(self.acc_twist)
 
-            for i in range(self.N_nmpc + 1):
-                traj_pt = MultiDOFJointTrajectoryPoint()
-                traj_pt.transforms.append(
-                    Transform(translation=Vector3(*direction), rotation=Quaternion(*hand_orientation)))
-                traj_pt.velocities.append(self.vel_twist)
-                traj_pt.accelerations.append(self.acc_twist)
+            t_pred = i * 0.1
+            t_cal = t_pred + t_has_started
+            traj_pt.time_from_start = rospy.Duration.from_sec(t_cal)
 
-                t_pred = i * 0.1
-                t_cal = t_pred + t_has_started
-                traj_pt.time_from_start = rospy.Duration.from_sec(t_cal)
+            multi_dof_joint_traj.points.append(traj_pt)
 
-                multi_dof_joint_traj.points.append(traj_pt)
+        return multi_dof_joint_traj
 
-            multi_dof_joint_traj.header.stamp = rospy.Time.now()
-            multi_dof_joint_traj.header.frame_id = "map"
+    def pub_trajectory_points(self, traj_msg: MultiDOFJointTrajectory):
+        """Publish the MultiDOFJointTrajectory message."""
+        traj_msg.header.stamp = rospy.Time.now()
+        traj_msg.header.frame_id = "map"
+        self.pub_ref_traj.publish(traj_msg)
 
-            self.pub_ref_traj.publish(multi_dof_joint_traj)
+    def check_finished(self,t_elapsed = None):
+        if self.control_mode.control_mode == 2:
+            return True
+        else:
+            return False
