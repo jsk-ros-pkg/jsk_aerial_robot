@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="hugmy" type="approaching_human_with_depth.py" name="Approaching_human" output="screen">
+  </node>
+
+  <node pkg="hugmy" type="air_pressure_control_2valve_new.py" name="Perching" output="screen">
+  </node>
+</launch>
