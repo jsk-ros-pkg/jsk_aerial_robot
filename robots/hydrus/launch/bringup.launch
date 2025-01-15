@@ -19,6 +19,8 @@
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
+  <arg name="demo" default="True" />
+
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -96,5 +98,7 @@
     <arg name="spawn_z" value="$(arg spawn_z)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
+
+  <node pkg="hydrus" type="loop_demo.py" name="loop_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>

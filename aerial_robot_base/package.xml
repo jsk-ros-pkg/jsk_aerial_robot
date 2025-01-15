@@ -24,6 +24,8 @@
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">ipython3</exec_depend>
   <exec_depend>joy</exec_depend>
   <exec_depend>mocap_optitrack</exec_depend>
+  <exec_depend>smach_ros</exec_depend>
+  <exec_depend>smach_viewer</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>ros_numpy</exec_depend>
   <exec_depend>rospy</exec_depend>

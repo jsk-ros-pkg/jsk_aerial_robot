@@ -23,6 +23,7 @@
   <arg name="spawn_yaw" default="0.0"/>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="hydrus_xi$(arg robot_id)" />
+  <arg name="demo" default="True" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -100,5 +101,8 @@
 
   ######### init gimbal angles #########
   <node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" if="$(arg init_gimbal_angle)"/>
+
+  ########## Simple Demo #########
+  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>
