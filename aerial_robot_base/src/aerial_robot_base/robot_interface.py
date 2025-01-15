@@ -514,3 +514,8 @@ class RobotInterface(object):
             self.set_joint_torque_client(req)
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
+
+if __name__ == "__main__":
+      from IPython import embed
+      ri = RobotInterface(init_node=True)
+      embed()
