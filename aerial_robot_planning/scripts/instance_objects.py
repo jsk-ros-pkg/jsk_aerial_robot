@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 # @Time : 2024/01/14 12:21
 # @Author : JIAXUAN LI
-# @File : Instance_objects.py
+# @File : instance_objects.py
 # @Software: PyCharm
 
-import sys
 import time
 import rospy
+from functools import wraps
 from std_msgs.msg import UInt8
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Twist, Vector3, Quaternion, Transform
@@ -21,6 +21,27 @@ from pub_mpc_joint_traj import MPCPubJointTraj
 ##########################################
 
 
+def check_topic_exists(topic_name=None):
+    def decorator(cls):
+        original_init = cls.__init__
+
+        @wraps(cls.__init__)
+        def wrapper(self, *args, **kwargs):
+            available_topics = [topic for topic, _ in rospy.get_published_topics()]
+            if topic_name not in available_topics:
+                rospy.logerr(
+                    f"Topic {topic_name} does not exist. Initialization failed."
+                )
+                raise RuntimeError(f"Topic {topic_name} does not exist.")
+            original_init(self, *args, **kwargs)
+
+        cls.__init__ = wrapper
+        return cls
+
+    return decorator
+
+
+@check_topic_exists("/hand/mocap/pose")
 class HandPosition:
     def __init__(self, topic_name="/hand/mocap/pose"):
         self.hand_position = PoseStamped()
@@ -36,6 +57,8 @@ class HandPosition:
     def get_position(self):
         return self.hand_position
 
+
+@check_topic_exists("/arm/mocap/pose")
 class ArmPosition:
     def __init__(self):
         self.arm_position = PoseStamped()
@@ -50,14 +73,27 @@ class ArmPosition:
     def get_position(self):
         return self.arm_position
 
+
 class DronePosition:
     def __init__(self, robot_name: str) -> None:
         self.robot_name = robot_name
         self.drone_position = Odometry()
+
+        topic_name = f"/{robot_name}/uav/cog/odom"
+
+        # 检查话题是否存在
+        available_topics = [topic for topic, _ in rospy.get_published_topics()]
+        if topic_name not in available_topics:
+            rospy.logerr(f"Topic {topic_name} does not exist. Initialization failed.")
+            raise RuntimeError(f"Topic {topic_name} does not exist.")
+
         self.drone_pose_sub = rospy.Subscriber(
-            f"/{robot_name}/uav/cog/odom", Odometry, self.sub_odom_callback, queue_size=1
+            topic_name,
+            Odometry,
+            self.sub_odom_callback,
+            queue_size=1,
         )
-        rospy.loginfo(f"Subscribed to {robot_name}/uav/cog/odom")
+        rospy.loginfo(f"Subscribed to {topic_name}")
 
     def sub_odom_callback(self, msg: Odometry):
         self.drone_position = msg
@@ -65,20 +101,31 @@ class DronePosition:
     def get_position(self):
         return self.drone_position
 
+
+@check_topic_exists("/hand/control_mode")
 class ControlMode:
     def __init__(self):
         self.control_mode = UInt8()
 
-        self.control_mode_sub = rospy.Subscriber('hand/control_mode', UInt8, self.callback_control_mode)
+        self.control_mode_sub = rospy.Subscriber(
+            "/hand/control_mode", UInt8, self.callback_control_mode
+        )
 
     def callback_control_mode(self, data):
         self.control_mode = data.data
 
+
 ##########################################
 # Derived Class : OnetoOnePubJointTraj
 ##########################################
-class OnetoOnePubJointTraj(MPCPubJointTraj):
-    def __init__(self, robot_name: str, hand: HandPosition,arm: ArmPosition,control_mode: ControlMode):
+class OneToOnePubJointTraj(MPCPubJointTraj):
+    def __init__(
+        self,
+        robot_name: str,
+        hand: HandPosition,
+        arm: ArmPosition,
+        control_mode: ControlMode,
+    ):
         super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
         self.hand = hand
         self.arm = arm
@@ -93,8 +140,12 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
         r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
         vx, vy, vz = 0.0, 0.0, 0.0
         ax, ay, az = 0.0, 0.0, 0.0
-        self.vel_twist = Twist(linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate))
-        self.acc_twist = Twist(linear=Vector3(ax, ay, az), angular=Vector3(r_acc, p_acc, y_acc))
+        self.vel_twist = Twist(
+            linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate)
+        )
+        self.acc_twist = Twist(
+            linear=Vector3(ax, ay, az), angular=Vector3(r_acc, p_acc, y_acc)
+        )
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
 
@@ -102,19 +153,19 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
             self.initial_hand_position = [
                 self.hand.hand_position.pose.position.x,
                 self.hand.hand_position.pose.position.y,
-                self.hand.hand_position.pose.position.z
+                self.hand.hand_position.pose.position.z,
             ]
             self.initial_drone_position = [
                 self.uav_odom.pose.pose.position.x,
                 self.uav_odom.pose.pose.position.y,
-                self.uav_odom.pose.pose.position.z
+                self.uav_odom.pose.pose.position.z,
             ]
             time.sleep(0.5)
 
         current_position = [
             self.hand.hand_position.pose.position.x,
             self.hand.hand_position.pose.position.y,
-            self.hand.hand_position.pose.position.z
+            self.hand.hand_position.pose.position.z,
         ]
 
         self.position_change = [
@@ -122,16 +173,17 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
         ]
 
         direction = [
-
             self.initial_drone_position[0] + self.position_change[0],
             self.initial_drone_position[1] + self.position_change[1],
-            self.initial_drone_position[2] + self.position_change[2]
+            self.initial_drone_position[2] + self.position_change[2],
         ]
 
-        hand_orientation = [self.hand.hand_position.pose.orientation.x,
-                            self.hand.hand_position.pose.orientation.y,
-                            self.hand.hand_position.pose.orientation.z,
-                            self.hand.hand_position.pose.orientation.w]
+        hand_orientation = [
+            self.hand.hand_position.pose.orientation.x,
+            self.hand.hand_position.pose.orientation.y,
+            self.hand.hand_position.pose.orientation.z,
+            self.hand.hand_position.pose.orientation.w,
+        ]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -139,7 +191,11 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
         for i in range(self.N_nmpc + 1):
             traj_pt = MultiDOFJointTrajectoryPoint()
             traj_pt.transforms.append(
-                Transform(translation=Vector3(*direction), rotation=Quaternion(*hand_orientation)))
+                Transform(
+                    translation=Vector3(*direction),
+                    rotation=Quaternion(*hand_orientation),
+                )
+            )
             traj_pt.velocities.append(self.vel_twist)
             traj_pt.accelerations.append(self.acc_twist)
 
@@ -157,7 +213,7 @@ class OnetoOnePubJointTraj(MPCPubJointTraj):
         traj_msg.header.frame_id = "map"
         self.pub_ref_traj.publish(traj_msg)
 
-    def check_finished(self,t_elapsed = None):
+    def check_finished(self, t_elapsed=None):
         if self.control_mode.control_mode == 2:
             return True
         else:
