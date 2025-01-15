@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.6 (2025-01-15)
+------------------
 * [Navigation] refactor the process for landing phase. Only accept new pose in hover state and also reset the target velocity in landing phase (`#653 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/653>`_)
 
 1.3.5 (2024-12-28)

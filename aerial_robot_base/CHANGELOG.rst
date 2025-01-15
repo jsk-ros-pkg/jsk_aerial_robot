@@ -2,8 +2,8 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.3.6 (2025-01-15)
+------------------
 * Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
 * Interpretive Robot Interface (`#655 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/655>`_)
 
