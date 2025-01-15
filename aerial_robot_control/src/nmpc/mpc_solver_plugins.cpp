@@ -12,6 +12,7 @@
 // tilt quadrotor
 #include "aerial_robot_control/nmpc/tilt_qd_servo_mdl/nmpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_dist_mdl/nmpc_solver.h"
+#include "aerial_robot_control/nmpc/tilt_qd_servo_dist_imp_mdl/nmpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/nmpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_imp_mdl/nmpc_solver.h"
 
@@ -28,6 +29,8 @@ PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::FixQdMdlMPCSolver,
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdServoMdlMPCSolver,
                        aerial_robot_control::mpc_solver::BaseMPCSolver)
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdServoDistMdlMPCSolver,
+                       aerial_robot_control::mpc_solver::BaseMPCSolver)
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdServoDistImpMdlMPCSolver,
                        aerial_robot_control::mpc_solver::BaseMPCSolver)
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdServoThrustDistMdlMPCSolver,
                        aerial_robot_control::mpc_solver::BaseMPCSolver)
