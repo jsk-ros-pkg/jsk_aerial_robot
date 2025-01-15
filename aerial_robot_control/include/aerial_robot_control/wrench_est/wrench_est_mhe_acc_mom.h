@@ -66,7 +66,16 @@ public:
 
     // update MHE
     mhe_solver_.setMeasurement(input, meas_torque_cog_vec);
-    mhe_solver_.solve();
+
+    try
+    {
+      mhe_solver_.solve();
+    }
+    catch (mhe_solver::AcadosSolveException& e)
+    {
+      ROS_ERROR("MHE solver failed. Details: %s", e.what());
+    }
+
     auto x_est = mhe_solver_.getEstimatedState(mhe_solver_.NN_);
 
     setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
