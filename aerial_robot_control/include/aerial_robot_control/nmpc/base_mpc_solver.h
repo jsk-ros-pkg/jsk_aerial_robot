@@ -31,7 +31,9 @@ private:
   static std::string createErrorMessage(int status)
   {
     std::ostringstream oss;
-    oss << "acados returned status " << status << ". Exiting.";
+    oss << "acados returned status " << status << ". Exiting." << std::endl;
+    oss << "If you are using impedance NMPC controller, please check if the M parameter is set. "
+           "Otherwise the dividend is zero.";
     return oss.str();
   }
 };

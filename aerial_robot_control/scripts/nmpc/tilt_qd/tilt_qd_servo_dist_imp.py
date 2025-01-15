@@ -29,8 +29,6 @@ with open(nmpc_param_path, "r") as f:
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
 nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
 
-epsilon = nmpc_params["epsilon"]
-
 pM_imp = np.diag([nmpc_params["pMxy"], nmpc_params["pMxy"], nmpc_params["pMz"]])
 pD_imp = np.diag([nmpc_params["Qv_xy"], nmpc_params["Qv_xy"], nmpc_params["Qv_z"]])
 pK_imp = np.diag([nmpc_params["Qp_xy"], nmpc_params["Qp_xy"], nmpc_params["Qp_z"]])
@@ -215,14 +213,14 @@ class NMPCTiltQdServoImpedance(NMPCBase):
         qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         p_mtx_imp_inv = ca.SX.zeros(3, 3)
-        p_mtx_imp_inv[0, 0] = 1 / (mpx + epsilon)
-        p_mtx_imp_inv[1, 1] = 1 / (mpy + epsilon)
-        p_mtx_imp_inv[2, 2] = 1 / (mpz + epsilon)
+        p_mtx_imp_inv[0, 0] = 1 / mpx
+        p_mtx_imp_inv[1, 1] = 1 / mpy
+        p_mtx_imp_inv[2, 2] = 1 / mpz
 
         o_mtx_imp_inv = ca.SX.zeros(3, 3)
-        o_mtx_imp_inv[0, 0] = 1 / (mqx + epsilon)
-        o_mtx_imp_inv[1, 1] = 1 / (mqy + epsilon)
-        o_mtx_imp_inv[2, 2] = 1 / (mqz + epsilon)
+        o_mtx_imp_inv[0, 0] = 1 / mqx
+        o_mtx_imp_inv[1, 1] = 1 / mqy
+        o_mtx_imp_inv[2, 2] = 1 / mqz
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a,
                              lin_a_i - ca.mtimes(p_mtx_imp_inv, f_d_i), ang_a_b - ca.mtimes(o_mtx_imp_inv, tau_d_b))

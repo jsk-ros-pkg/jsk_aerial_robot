@@ -40,8 +40,7 @@ void nmpc::TiltMtServoImpNMPC::initCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 
   // impedance matrix
-  auto imp_mpc_solver_ptr =
-      boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
+  auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
   if (imp_mpc_solver_ptr)
   {
     imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
@@ -75,8 +74,7 @@ void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t leve
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
   {
-    auto imp_mpc_solver_ptr =
-        boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
+    auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
     if (!imp_mpc_solver_ptr)
     {
       ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");

@@ -228,7 +228,7 @@ void nmpc::TiltMtServoNMPC::controlCore()
   }
   catch (mpc_solver::AcadosSolveException& e)
   {
-    ROS_WARN("NMPC solver failed, no action: %s", e.what());
+    ROS_FATAL("NMPC solver failed. Details: %s", e.what());
   }
   // The result is stored in mpc_solver_ptr_->uo_
 
