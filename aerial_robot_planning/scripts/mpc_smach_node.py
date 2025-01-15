@@ -256,7 +256,7 @@ class InitObjectState(smach.State):
 
         try:
             shared_data["hand"] = HandPosition()
-            shared_data["arm"] = ArmPosition()
+            # shared_data["arm"] = ArmPosition()
             shared_data["drone"] = DronePosition(self.robot_name)
             shared_data["control_mode"] = ControlMode()
 
@@ -339,7 +339,7 @@ class UnlockState(smach.State):
         return "go_one_to_one_map"
 
 
-class One_To_One_MapState(smach.State):
+class OneToOneMapState(smach.State):
     def __init__(self, robot_name) -> None:
 
         smach.State.__init__(
@@ -363,7 +363,7 @@ class One_To_One_MapState(smach.State):
 
         self.pub_object = None
 
-    def _init_OnetoOnePubJointTraj(self):
+    def _init_onetoonepubjointtraj(self):
 
         return OneToOnePubJointTraj(
             self.robot_name,
@@ -421,7 +421,7 @@ def create_hand_control_state_machine(robot_name):
         # One_To_One_MapState
         smach.StateMachine.add(
             "ONE_TO_ONE_MAP",
-            One_To_One_MapState(robot_name),
+            OneToOneMapState(robot_name),
             transitions={"done_track": "DONE", "stay_one_to_one_map": "ONE_TO_ONE_MAP"},
         )
 
