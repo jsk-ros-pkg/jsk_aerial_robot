@@ -226,6 +226,8 @@ class NMPCTiltQdServoImpedance(NMPCBase):
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a,
                              lin_a_i - ca.mtimes(p_mtx_imp_inv, f_d_i), ang_a_b - ca.mtimes(o_mtx_imp_inv, tau_d_b))
+        state_y_e = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a,
+                               ca.vertcat(0, 0, 0), ca.vertcat(0, 0, 0))  # acc = 0 for infinite horizon
         control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
 
         # acados model
@@ -241,7 +243,7 @@ class NMPCTiltQdServoImpedance(NMPCBase):
         model.u = controls
         model.p = parameters
         model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
-        model.cost_y_expr_e = state_y
+        model.cost_y_expr_e = state_y_e
 
         return model
 
