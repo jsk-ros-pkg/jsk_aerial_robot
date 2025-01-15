@@ -81,7 +81,6 @@ class DronePosition:
 
         topic_name = f"/{robot_name}/uav/cog/odom"
 
-        # 检查话题是否存在
         available_topics = [topic for topic, _ in rospy.get_published_topics()]
         if topic_name not in available_topics:
             rospy.logerr(f"Topic {topic_name} does not exist. Initialization failed.")
