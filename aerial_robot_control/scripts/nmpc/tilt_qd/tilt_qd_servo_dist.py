@@ -357,17 +357,13 @@ class NMPCTiltQdServoDist(NMPCBase):
 
         # # bu
         # ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c
-        ocp.constraints.idxbu = np.array([0, 1, 2, 3, 4, 5, 6, 7])
+        ocp.constraints.idxbu = np.array([0, 1, 2, 3])
         ocp.constraints.lbu = np.array(
             [
                 nmpc_params["thrust_min"],
                 nmpc_params["thrust_min"],
                 nmpc_params["thrust_min"],
                 nmpc_params["thrust_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
             ]
         )
         ocp.constraints.ubu = np.array(
@@ -376,10 +372,6 @@ class NMPCTiltQdServoDist(NMPCBase):
                 nmpc_params["thrust_max"],
                 nmpc_params["thrust_max"],
                 nmpc_params["thrust_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
             ]
         )
         print("lbu: ", ocp.constraints.lbu)
