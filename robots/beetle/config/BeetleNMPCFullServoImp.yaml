@@ -1,5 +1,5 @@
-mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver
-aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_mt/servo_thrust_imp_nmpc
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdServoDistImpMdlMPCSolver
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_mt/servo_imp_nmpc
 
 controller:
   nmpc:
@@ -40,9 +40,8 @@ controller:
 
     # actuators
     Qa: 2
-    Qt: 2  # t is for thrust
 
-    Rtc_d: 1  # difference of ftc
+    Rt: 2
     Rac_d: 250  # difference of ac
 
     is_attitude_ctrl: false
