@@ -2,6 +2,11 @@
 Changelog for package aerial_robot_base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+* Interpretive Robot Interface (`#655 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/655>`_)
+
 1.3.5 (2024-12-28)
 ------------------
 * [Mocap][Multicast][IGMP] create a script to force send IGMP report to router periodically (`#641 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/641>`_)

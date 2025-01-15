@@ -2,6 +2,9 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.3.5 (2024-12-28)
 ------------------
 * [Spinal][Neuron] refactor the initialization/reinitialization process (`#640 <https://github.com/jsk-ros-pkg/aerial_robot/issues/640>`_)

@@ -2,6 +2,10 @@
 Changelog for package aerial_robot_estimation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Estimation] stop sending TF with same timestamp (`#650 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/650>`_)
+
 1.3.5 (2024-12-28)
 ------------------
 

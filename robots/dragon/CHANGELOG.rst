@@ -2,6 +2,12 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+* [Dragon][Naviagation] refactor the landing process by introducing a new state: pre_land_state (`#652 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/652>`_)
+* [Dragon] remove unnecessary scripts (`#651 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/651>`_)
+
 1.3.5 (2024-12-28)
 ------------------
 

@@ -2,6 +2,10 @@
 Changelog for package hydrus_xi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+
 1.3.5 (2024-12-28)
 ------------------
 

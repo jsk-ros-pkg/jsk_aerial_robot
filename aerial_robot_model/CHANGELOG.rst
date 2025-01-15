@@ -2,6 +2,9 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.3.5 (2024-12-28)
 ------------------
 
