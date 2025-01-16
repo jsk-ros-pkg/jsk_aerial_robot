@@ -41,6 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
+#include "sensors/i2c_multiplexer/switcher.h"
 
 #include "battery_status/battery_status.h"
 
@@ -101,6 +102,9 @@ osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
 osMailQId canMsgMailHandle;
 
+osThreadId multiEncoderHandle;
+std::map<int, MagEncoder> encoders_;
+
 ros::NodeHandle nh_;
 
 /* sensor instances */
@@ -146,7 +150,7 @@ void servoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void encoderTaskCallback(void const * argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -261,7 +265,15 @@ int main(void)
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
-  
+
+  I2C_MultiPlexer::init(&hi2c3);
+  // two encoders
+  const char* topic1 = "encoder_angle1";
+  encoders_[0] = MagEncoder(topic1);
+  const char* topic2 = "encoder_angle2";
+  encoders_[1] = MagEncoder(topic2);
+  encoders_.at(0).init(&hi2c3, &nh_);
+  encoders_.at(1).init(&hi2c3, &nh_);
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -340,6 +352,11 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+  /* definition and creation of task to read from multiple encoders  */
+  osThreadDef(multiEncoder, encoderTaskCallback, osPriorityLow, 0, 256);
+  multiEncoderHandle = osThreadCreate(osThread(multiEncoder), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -1036,6 +1053,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void encoderTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  for(;;)
+    {
+      for(std::map<int, MagEncoder>::iterator it = encoders_.begin(); it != encoders_.end(); it++) {
+        uint8_t ch = it->first;
+        int i2c_status = I2C_MultiPlexer::changeChannel(ch);
+
+        if(i2c_status == HAL_OK) it->second.update();
+      }
+
+      osDelay(1); // timer is controlled inside each `update` function
+
+  }
+  /* USER CODE END rosPublishTask */
+}
 
 /* USER CODE END 4 */
 
