@@ -349,7 +349,7 @@ class OneToOneMapState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["done_track", "stay_one_to_one_map"],
+            outcomes=["done_track"],
             input_keys=["robot_name"],
             output_keys=[],
         )

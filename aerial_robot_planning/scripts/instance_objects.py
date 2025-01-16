@@ -138,7 +138,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         self._check_last_time = None
         self._check_last_position = None
         self._check_check_orientation =None
-        self._check_time_threshold = 10.0
+        self._check_time_threshold = 8
         self._check_position_tolerance = 0.1
         self._check_orientation_tolerance = 3
     def _check_finish_auto(self):
@@ -179,6 +179,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
                 all(change < self._check_orientation_tolerance for change in orientation_change)
         ):
             if current_time - self.last_check_time > self._check_time_threshold:
+                print("Exit mapping mode")
                 self.is_finished = True
         else:
             self.last_check_time = current_time
