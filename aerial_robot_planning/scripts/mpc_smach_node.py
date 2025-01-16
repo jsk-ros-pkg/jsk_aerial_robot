@@ -65,15 +65,16 @@ class IdleState(smach.State):
     """
     IDLE State:
     - Prompt user for robot_name, traj_type, loop_num.
+    - Also need to prompt user fo mapping_config, if use mapping control.
     - On valid input, go INIT; otherwise, stay in IDLE.
     """
 
     def __init__(self, robot_name):
         smach.State.__init__(
             self,
-            outcomes=["go_init", "stay_idle", "shutdown", "go_hand_control_init"],
-            input_keys=[],
-            output_keys=["robot_name", "traj_type", "loop_num"],
+            outcomes=["go_init", "stay_idle", "shutdown", "go_mapping_init"],
+            input_keys=["mapping_config"],
+            output_keys=["robot_name", "traj_type", "loop_num", "mapping_config"],
         )
         self.robot_name = robot_name
 
@@ -91,20 +92,36 @@ class IdleState(smach.State):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
             # print an available hand control state
-            print("h : One-to-one mapping")
+            print("h : One-to-one mapping control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(
-                f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: "
-            )
+            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
 
             if traj_type_str.lower() == "h":
                 userdata.robot_name = self.robot_name
                 userdata.traj_type = "h"
-                return "go_hand_control_init"
+                userdata.mapping_config = {"is_hand_active": False, "is_arm_active": False, "is_glove_active": False}
+
+                devices = {"is_hand_active": "Hand mocap", "is_arm_active": "Arm mocap", "is_glove_active": "Glove"}
+                print("Whether activate the following devices. ([Y]/Yes or [N]/No, case-insensitive)")
+                for mapping_config_key, device in devices.items():
+                    while True:
+                        user_input = input(f"Whether activate {device} ([Y]/[N]): ").strip().lower()
+                        if user_input == "y":
+                            userdata.mapping_config[mapping_config_key] = True
+                            rospy.loginfo(f"Decide to activate {device}.")
+                            break
+                        elif user_input == "n":
+                            userdata.mapping_config[mapping_config_key] = False
+                            rospy.loginfo(f"Decided not to activate {device}.")
+                            break
+                        else:
+                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")  # 输出警告信息
+
+                return "go_mapping_init"
 
             traj_type = int(traj_type_str)
             if not (0 <= traj_type <= max_traj_idx):
@@ -151,22 +168,16 @@ class InitState(smach.State):
         self.rate = rospy.Rate(20)  # 20 Hz loop checking if finished
 
     def execute(self, userdata):
-        rospy.loginfo(
-            "State: INIT -- Start to reach the first point of the trajectory."
-        )
+        rospy.loginfo("State: INIT -- Start to reach the first point of the trajectory.")
 
         if userdata.traj_type < len(traj_cls_list):
-            rospy.loginfo(
-                f"Using trajs.{traj_cls_list[userdata.traj_type].__name__} trajectory."
-            )
+            rospy.loginfo(f"Using trajs.{traj_cls_list[userdata.traj_type].__name__} trajectory.")
             traj = traj_factory(userdata.traj_type, userdata.loop_num)
 
             x, y, z, vx, vy, vz, ax, ay, az = traj.get_3d_pt(0.0)
 
             try:
-                (qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = (
-                    traj.get_3d_orientation(0.0)
-                )
+                (qw, qx, qy, qz, r_rate, p_rate, y_rate, r_acc, p_acc, y_acc) = traj.get_3d_orientation(0.0)
             except AttributeError:
                 qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
 
@@ -175,9 +186,7 @@ class InitState(smach.State):
             rospy.loginfo(f"Using CSV file: {csv_file}")
             # csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
             # TODO: change the order of csv file. one row for one point is better.
-            csv_traj = np.loadtxt(
-                os.path.join(csv_folder_path, csv_file), delimiter=","
-            )
+            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=",")
             x, y, z = csv_traj[0:3, 0]
             qw, qx, qy, qz = csv_traj[6:10, 0]
 
@@ -230,9 +239,7 @@ class TrackState(smach.State):
         else:
             csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
             rospy.loginfo(f"Using CSV file: {csv_file}")
-            mpc_node = MPCPubCSVPredXU(
-                userdata.robot_name, os.path.join(csv_folder_path, csv_file)
-            )
+            mpc_node = MPCPubCSVPredXU(userdata.robot_name, os.path.join(csv_folder_path, csv_file))
 
         # Wait here until the node signals it is finished or ROS shuts down
         while not rospy.is_shutdown():
@@ -247,9 +254,7 @@ class TrackState(smach.State):
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(
-            self, outcomes=["go_lock"], input_keys=["robot_name"], output_keys=[]
-        )
+        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name"], output_keys=[])
 
     def execute(self, userdata):
 
@@ -265,11 +270,10 @@ class InitObjectState(smach.State):
             rospy.logerr(f"Initialization failed: {e}")
             return "error"
 
+
 class LockState(smach.State):
     def __init__(self):
-        smach.State.__init__(
-            self, outcomes=["go_unlock", "stay_lock"], input_keys=[], output_keys=[]
-        )
+        smach.State.__init__(self, outcomes=["go_unlock", "stay_lock"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
         self.threshold = 8
@@ -280,9 +284,7 @@ class LockState(smach.State):
         global shared_data
         if self.first == 1:
             print("Current state: Lock")
-            print(
-                "please align the direction of your hand with the drone's hand direction."
-            )
+            print("please align the direction of your hand with the drone's hand direction.")
             self.first = 2
 
         drone_orientation = [
@@ -344,7 +346,7 @@ class OneToOneMapState(smach.State):
         smach.State.__init__(
             self,
             outcomes=["done_track", "stay_one_to_one_map"],
-            input_keys=['robot_name'],
+            input_keys=["robot_name"],
             output_keys=[],
         )
 
@@ -361,7 +363,7 @@ class OneToOneMapState(smach.State):
 
         self.pub_object = None
 
-    def _init_onetoonepubjointtraj(self,robot_name):
+    def _init_onetoonepubjointtraj(self, robot_name):
 
         return OneToOnePubJointTraj(
             robot_name,
@@ -391,7 +393,7 @@ class OneToOneMapState(smach.State):
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
-    sm_sub = smach.StateMachine(outcomes=["DONE"],input_keys=["robot_name"])
+    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name"])
 
     with sm_sub:
         # InitObjectState
@@ -412,9 +414,7 @@ def create_hand_control_state_machine():
         )
 
         # UnlockState
-        smach.StateMachine.add(
-            "UNLOCK", UnlockState(), transitions={"go_one_to_one_map": "ONE_TO_ONE_MAP"}
-        )
+        smach.StateMachine.add("UNLOCK", UnlockState(), transitions={"go_one_to_one_map": "ONE_TO_ONE_MAP"})
 
         # One_To_One_MapState
         smach.StateMachine.add(
@@ -431,9 +431,7 @@ def create_hand_control_state_machine():
 ###############################################
 def main():
     parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
-    parser.add_argument(
-        "robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors"
-    )
+    parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
     args = parser.parse_args()
 
     # Initialize a single ROS node for the entire SMACH-based system
@@ -465,7 +463,7 @@ def main():
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
                 "shutdown": "DONE",
-                "go_hand_control_init": "HAND_CONTROL",
+                "go_mapping_init": "HAND_CONTROL",
             },
         )
 
@@ -484,13 +482,15 @@ def main():
             TrackState(),
             transitions={
                 "done_track": "IDLE",
-            }
+            },
         )
 
         smach.StateMachine.add(
             "HAND_CONTROL",
             create_hand_control_state_machine(),
-            transitions={"DONE": "IDLE",},
+            transitions={
+                "DONE": "IDLE",
+            },
             remapping={"robot_name": "robot_name"},
         )
 
