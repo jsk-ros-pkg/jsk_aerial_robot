@@ -199,6 +199,7 @@ class NMPCTiltQdServoImpedance(NMPCBase):
             ca.vertcat(0.0, 0.0, 0.0),
         )
 
+        # Note that this part should be f_d_i and no f_d_i_para, since the impedance should not respond to the I Term force.
         lin_a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i
         ang_a_b = ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b))
 
