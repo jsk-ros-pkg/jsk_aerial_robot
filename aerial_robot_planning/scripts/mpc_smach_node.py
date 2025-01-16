@@ -254,17 +254,23 @@ class TrackState(smach.State):
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name"], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name",'mapping_config'], output_keys=[])
 
     def execute(self, userdata):
 
+        # userdata.mapping_config = {"is_hand_active": True, "is_arm_active": True, "is_glove_active": True}
         try:
-            shared_data["hand"] = HandPosition()
-            # shared_data["arm"] = ArmPosition()
+            if userdata.mapping_config.get('is_hand_active', False):
+                shared_data['hand'] = HandPosition()
+                rospy.loginfo(f"The hand mocap has been successfully activated.")
+            if userdata.mapping_config.get('is_arm_active', False):
+                shared_data["arm"] = ArmPosition()
+                rospy.loginfo(f"The arm mocap has been successfully activated.")
+            if userdata.mapping_config.get('is_glove_active', False):
+                shared_data["control_mode"] = ControlMode()
+                rospy.loginfo(f"The data glove has been successfully activated.")
             shared_data["drone"] = DronePosition(userdata.robot_name)
-            shared_data["control_mode"] = ControlMode()
-
-            rospy.loginfo("hand, arm, drone position initialized.")
+            rospy.loginfo(f"The drone's position has been successfully activated.")
             return "go_lock"
         except Exception as e:
             rospy.logerr(f"Initialization failed: {e}")
@@ -393,7 +399,7 @@ class OneToOneMapState(smach.State):
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
-    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name"])
+    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name","mapping_config"])
 
     with sm_sub:
         # InitObjectState
@@ -491,7 +497,7 @@ def main():
             transitions={
                 "DONE": "IDLE",
             },
-            remapping={"robot_name": "robot_name"},
+            remapping={"robot_name": "robot_name","mapping_config":"mapping_config"},
         )
 
     # (Optional) Start an introspection server to visualize SMACH in smach_viewer
