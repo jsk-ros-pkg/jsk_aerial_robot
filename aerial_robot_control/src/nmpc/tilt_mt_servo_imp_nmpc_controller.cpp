@@ -34,25 +34,27 @@ void nmpc::TiltMtServoImpNMPC::initCostW()
   auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
   if (imp_mpc_solver_ptr)
   {
-    imp_mpc_solver_ptr->setImpedanceWeight("pMx", enlarge_factor * pMxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pMy", enlarge_factor * pMxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pMz", enlarge_factor * pMz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDx", enlarge_factor * Qv_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDy", enlarge_factor * Qv_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pDz", enlarge_factor * Qv_z, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKx", enlarge_factor * Qp_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKy", enlarge_factor * Qp_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("pKz", enlarge_factor * Qp_z, false);
+    imp_mpc_solver_ptr->setEnlargedFactor(enlarge_factor);
 
-    imp_mpc_solver_ptr->setImpedanceWeight("oMx", enlarge_factor * oMxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oMy", enlarge_factor * oMxy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oMz", enlarge_factor * oMz, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDx", enlarge_factor * Qw_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDy", enlarge_factor * Qw_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oDz", enlarge_factor * Qw_z, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKx", enlarge_factor * Qq_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKy", enlarge_factor * Qq_xy, false);
-    imp_mpc_solver_ptr->setImpedanceWeight("oKz", enlarge_factor * Qq_z, true);  // update W and WN
+    imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pMy", pMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pMz", pMz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDx", Qv_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDy", Qv_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pDz", Qv_z, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKx", Qp_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKy", Qp_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("pKz", Qp_z, false);
+
+    imp_mpc_solver_ptr->setImpedanceWeight("oMx", oMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oMy", oMxy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oMz", oMz, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDx", Qw_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDy", Qw_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oDz", Qw_z, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKx", Qq_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKy", Qq_xy, false);
+    imp_mpc_solver_ptr->setImpedanceWeight("oKz", Qq_z, true);  // update W and WN
   }
   else
   {
@@ -88,6 +90,11 @@ void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t leve
     {
       switch (level)
       {
+        case Levels::RECONFIGURE_NMPC_ENLARGE_FACTOR: {
+          imp_mpc_solver_ptr->setEnlargedFactor(config.enlarge_factor);
+          ROS_INFO_STREAM("change enlarge_factor for NMPC '" << config.enlarge_factor << "'");
+          break;
+        }
         case Levels::RECONFIGURE_NMPC_Q_P_XY: {
           imp_mpc_solver_ptr->setImpedanceWeight("pKx", config.Qp_xy, false);
           imp_mpc_solver_ptr->setImpedanceWeight("pKy", config.Qp_xy, true);
