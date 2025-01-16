@@ -103,9 +103,9 @@ class IdleState(smach.State):
             if traj_type_str.lower() == "h":
                 userdata.robot_name = self.robot_name
                 userdata.traj_type = "h"
-                userdata.mapping_config = {"is_hand_active": False, "is_arm_active": False, "is_glove_active": False}
+                userdata.mapping_config = {"is_arm_active": False, "is_glove_active": False}
 
-                devices = {"is_hand_active": "Hand mocap", "is_arm_active": "Arm mocap", "is_glove_active": "Glove"}
+                devices = {"is_arm_active": "Arm mocap", "is_glove_active": "Glove"}
                 print("Whether activate the following devices. ([Y]/Yes or [N]/No, case-insensitive)")
                 for mapping_config_key, device in devices.items():
                     while True:
@@ -254,21 +254,21 @@ class TrackState(smach.State):
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name",'mapping_config'], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name", "mapping_config"], output_keys=[])
 
     def execute(self, userdata):
 
-        # userdata.mapping_config = {"is_hand_active": True, "is_arm_active": True, "is_glove_active": True}
+        # userdata.mapping_config = {"is_arm_active": True, "is_glove_active": True}
         try:
-            if userdata.mapping_config.get('is_hand_active', False):
-                shared_data['hand'] = HandPosition()
-                rospy.loginfo(f"The hand mocap has been successfully activated.")
-            if userdata.mapping_config.get('is_arm_active', False):
+            if userdata.mapping_config.get("is_arm_active", False):
                 shared_data["arm"] = ArmPosition()
                 rospy.loginfo(f"The arm mocap has been successfully activated.")
-            if userdata.mapping_config.get('is_glove_active', False):
+            if userdata.mapping_config.get("is_glove_active", False):
                 shared_data["control_mode"] = ControlMode()
                 rospy.loginfo(f"The data glove has been successfully activated.")
+
+            shared_data["hand"] = HandPosition()
+            rospy.loginfo(f"The hand mocap has been successfully activated.")
             shared_data["drone"] = DronePosition(userdata.robot_name)
             rospy.loginfo(f"The drone's position has been successfully activated.")
             return "go_lock"
@@ -279,62 +279,57 @@ class InitObjectState(smach.State):
 
 class LockState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_unlock", "stay_lock"], input_keys=[], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_unlock"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
         self.threshold = 8
         self.direction_hold_time = 1
         self.first = 1
-
+        self.rate = rospy.Rate(20)
+        self.is_finished = False
     def execute(self, userdata):
+
         global shared_data
-        if self.first == 1:
-            print("Current state: Lock")
-            print("please align the direction of your hand with the drone's hand direction.")
-            self.first = 2
 
-        drone_orientation = [
-            shared_data["drone"].drone_position.pose.pose.orientation.x,
-            shared_data["drone"].drone_position.pose.pose.orientation.y,
-            shared_data["drone"].drone_position.pose.pose.orientation.z,
-            shared_data["drone"].drone_position.pose.pose.orientation.w,
-        ]
+        rospy.loginfo("Current state: Lock")
+        rospy.loginfo("Please align the direction of your hand with the drone's hand direction.")
 
-        hand_orientation = [
-            shared_data["hand"].hand_position.pose.orientation.x,
-            shared_data["hand"].hand_position.pose.orientation.y,
-            shared_data["hand"].hand_position.pose.orientation.z,
-            shared_data["hand"].hand_position.pose.orientation.w,
-        ]
+        while not rospy.is_shutdown():
+            drone_orientation = [
+                shared_data["drone"].drone_position.pose.pose.orientation.x,
+                shared_data["drone"].drone_position.pose.pose.orientation.y,
+                shared_data["drone"].drone_position.pose.pose.orientation.z,
+                shared_data["drone"].drone_position.pose.pose.orientation.w,
+            ]
+            hand_orientation = [
+                shared_data["hand"].hand_position.pose.orientation.x,
+                shared_data["hand"].hand_position.pose.orientation.y,
+                shared_data["hand"].hand_position.pose.orientation.z,
+                shared_data["hand"].hand_position.pose.orientation.w,
+            ]
+            q_drone_inv = tft.quaternion_inverse(drone_orientation)
+            q_relative = tft.quaternion_multiply(hand_orientation, q_drone_inv)
+            euler_angles = np.degrees(tft.euler_from_quaternion(q_relative))
+            sys.stdout.write(
+                f"Deviation:Roll: {euler_angles[0]:6.1f}, Pitch: {euler_angles[1]:6.1f}, Yaw: {euler_angles[2]:6.1f}\r"
+            )
+            sys.stdout.flush()
 
-        q_drone_inv = tft.quaternion_inverse(drone_orientation)
-        q_relative = tft.quaternion_multiply(hand_orientation, q_drone_inv)
-        euler_angles = np.degrees(tft.euler_from_quaternion(q_relative))
+            x_angle_below_threshold = abs(euler_angles[0]) < self.threshold
+            y_angle_below_threshold = abs(euler_angles[1]) < self.threshold
+            z_angle_below_threshold = abs(euler_angles[2]) < self.threshold
 
-        sys.stdout.write(
-            f"Deviation:Roll: {euler_angles[0]:6.1f}, Pitch: {euler_angles[1]:6.1f}, Yaw: {euler_angles[2]:6.1f}"
-        )
-        sys.stdout.flush()
-
-        if (
-            abs(euler_angles[0]) < self.threshold
-            and abs(euler_angles[1]) < self.threshold
-            and abs(euler_angles[2]) < self.threshold
-        ):
-            if self.last_threshold_time is None:
-                self.last_threshold_time = rospy.get_time()
-                return "stay_lock"
-            elif rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
-                print("")
-                print("Current state: Unlock")
-                time.sleep(0.3)
-                return "go_unlock"
+            if x_angle_below_threshold and y_angle_below_threshold and z_angle_below_threshold:
+                if self.last_threshold_time is None:
+                    self.last_threshold_time = rospy.get_time()
+                elif rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
+                    self.is_finished = True
             else:
-                return "stay_lock"
-        else:
-            self.last_threshold_time = None
-            return "stay_lock"
-
+                self.last_threshold_time = None
+            if self.is_finished:
+                rospy.loginfo("")
+                rospy.loginfo("Current state: Unlock")
+                return "go_unlock"
 
 class UnlockState(smach.State):
     def __init__(self):
@@ -399,7 +394,7 @@ class OneToOneMapState(smach.State):
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
-    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name","mapping_config"])
+    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name", "mapping_config"])
 
     with sm_sub:
         # InitObjectState
@@ -414,8 +409,7 @@ def create_hand_control_state_machine():
             "LOCK",
             LockState(),
             transitions={
-                "go_unlock": "UNLOCK",
-                "stay_lock": "LOCK",
+                "go_unlock": "UNLOCK"
             },
         )
 
@@ -497,7 +491,7 @@ def main():
             transitions={
                 "DONE": "IDLE",
             },
-            remapping={"robot_name": "robot_name","mapping_config":"mapping_config"},
+            remapping={"robot_name": "robot_name", "mapping_config": "mapping_config"},
         )
 
     # (Optional) Start an introspection server to visualize SMACH in smach_viewer
