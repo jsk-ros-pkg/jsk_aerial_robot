@@ -21,6 +21,8 @@ controller:
     a_min: -3.1416
 
     # params for the cost function
+    enlarge_factor: 50
+
     # position
     pMxy: 1.5
     pMz: 1.5
@@ -39,7 +41,6 @@ controller:
 
     # actuators
     Qa: 2
-
     Rt: 2
     Rac_d: 250  # difference of ac
 
