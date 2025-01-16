@@ -26,7 +26,7 @@ from geometry_msgs.msg import Pose, Quaternion, Vector3
 
 import trajs
 
-from instance_objects import (
+from aerial_robot_planning.scripts.mapping_file.instance_objects import (
     HandPosition,
     ArmPosition,
     DronePosition,

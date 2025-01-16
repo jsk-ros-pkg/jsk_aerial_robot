@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from pub_mpc_joint_traj import MPCPubJointTraj
+from aerial_robot_planning.scripts.pub_mpc_joint_traj import MPCPubJointTraj
 
 
 ##########################################
