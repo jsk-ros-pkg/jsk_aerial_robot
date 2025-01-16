@@ -29,9 +29,7 @@ def check_topic_exists(topic_name=None):
         def wrapper(self, *args, **kwargs):
             available_topics = [topic for topic, _ in rospy.get_published_topics()]
             if topic_name not in available_topics:
-                rospy.logerr(
-                    f"Topic {topic_name} does not exist. Initialization failed."
-                )
+                rospy.logerr(f"Topic {topic_name} does not exist. Initialization failed.")
                 raise RuntimeError(f"Topic {topic_name} does not exist.")
             original_init(self, *args, **kwargs)
 
@@ -46,9 +44,7 @@ class HandPosition:
     def __init__(self, topic_name="/hand/mocap/pose"):
         self.hand_position = PoseStamped()
         self.topic_name = topic_name
-        self.subscriber = rospy.Subscriber(
-            self.topic_name, PoseStamped, self.hand_position_callback
-        )
+        self.subscriber = rospy.Subscriber(self.topic_name, PoseStamped, self.hand_position_callback)
         rospy.loginfo(f"Subscribed to {self.topic_name}")
 
     def hand_position_callback(self, msg: PoseStamped):
@@ -62,9 +58,7 @@ class HandPosition:
 class ArmPosition:
     def __init__(self):
         self.arm_position = PoseStamped()
-        self.arm_pose_sub = rospy.Subscriber(
-            "/arm/mocap/pose", PoseStamped, self.arm_position_callback
-        )
+        self.arm_pose_sub = rospy.Subscriber("/arm/mocap/pose", PoseStamped, self.arm_position_callback)
         rospy.loginfo("Subscribed to /arm/mocap/pose")
 
     def arm_position_callback(self, msg: PoseStamped):
@@ -106,9 +100,7 @@ class ControlMode:
     def __init__(self):
         self.control_mode = UInt8()
 
-        self.control_mode_sub = rospy.Subscriber(
-            "/hand/control_mode", UInt8, self.callback_control_mode
-        )
+        self.control_mode_sub = rospy.Subscriber("/hand/control_mode", UInt8, self.callback_control_mode)
 
     def callback_control_mode(self, data):
         self.control_mode = data.data
@@ -134,17 +126,64 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         self.initial_drone_position = None
         self.position_change = None
 
+        self.is_finished = False
         # initialize vel_twist and acc_twist
         r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
         r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
         vx, vy, vz = 0.0, 0.0, 0.0
         ax, ay, az = 0.0, 0.0, 0.0
-        self.vel_twist = Twist(
-            linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate)
-        )
-        self.acc_twist = Twist(
-            linear=Vector3(ax, ay, az), angular=Vector3(r_acc, p_acc, y_acc)
-        )
+        self.vel_twist = Twist(linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate))
+        self.acc_twist = Twist(linear=Vector3(ax, ay, az), angular=Vector3(r_acc, p_acc, y_acc))
+
+        self._check_last_time = None
+        self._check_last_position = None
+        self._check_check_orientation =None
+        self._check_time_threshold = 10.0
+        self._check_position_tolerance = 0.1
+        self._check_orientation_tolerance = 3
+    def _check_finish_auto(self):
+        current_time = rospy.Time.now().to_sec()
+        if not hasattr(self, "last_check_time"):
+            self.last_check_time = current_time
+            self._check_last_position = [
+                self.hand.hand_position.pose.position.x,
+                self.hand.hand_position.pose.position.y,
+                self.hand.hand_position.pose.position.z,
+            ]
+            self._check_check_orientation = [
+                self.hand.hand_position.pose.orientation.x,
+                self.hand.hand_position.pose.orientation.y,
+                self.hand.hand_position.pose.orientation.z,
+                self.hand.hand_position.pose.orientation.w,
+            ]
+            return
+
+        current_check_position = [
+            self.hand.hand_position.pose.position.x,
+            self.hand.hand_position.pose.position.y,
+            self.hand.hand_position.pose.position.z,
+        ]
+        current_check_orientation = [
+            self.hand.hand_position.pose.orientation.x,
+            self.hand.hand_position.pose.orientation.y,
+            self.hand.hand_position.pose.orientation.z,
+            self.hand.hand_position.pose.orientation.w,
+        ]
+
+        position_change = [abs(current_check_position[i] - self._check_last_position[i]) for i in range(3)]
+        orientation_change = [abs(current_check_orientation[i] - self._check_check_orientation[i]) for i in range(4)]
+
+        if (
+                all(change < self._check_position_tolerance for change in position_change)
+                and
+                all(change < self._check_orientation_tolerance for change in orientation_change)
+        ):
+            if current_time - self.last_check_time > self._check_time_threshold:
+                self.is_finished = True
+        else:
+            self.last_check_time = current_time
+            self.last_hand_position = current_check_position
+            self.last_hand_orientation = current_check_orientation
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
 
@@ -167,9 +206,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
             self.hand.hand_position.pose.position.z,
         ]
 
-        self.position_change = [
-            current_position[i] - self.initial_hand_position[i] for i in range(3)
-        ]
+        self.position_change = [current_position[i] - self.initial_hand_position[i] for i in range(3)]
 
         direction = [
             self.initial_drone_position[0] + self.position_change[0],
@@ -213,7 +250,11 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         self.pub_ref_traj.publish(traj_msg)
 
     def check_finished(self, t_elapsed=None):
-        if self.control_mode.control_mode == 2:
-            return True
-        else:
-            return False
+        if self.control_mode:
+            if self.control_mode.control_mode == 2:
+                self.is_finished = True
+        else :
+            self._check_finish_auto()
+
+        return self.is_finished
+

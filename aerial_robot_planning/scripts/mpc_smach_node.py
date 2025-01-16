@@ -65,7 +65,7 @@ class IdleState(smach.State):
     """
     IDLE State:
     - Prompt user for robot_name, traj_type, loop_num.
-    - Also need to prompt user fo mapping_config, if use mapping control.
+    - Also need to prompt user for mapping_config, if user use mapping control.
     - On valid input, go INIT; otherwise, stay in IDLE.
     """
 
@@ -287,6 +287,7 @@ class LockState(smach.State):
         self.first = 1
         self.rate = rospy.Rate(20)
         self.is_finished = False
+
     def execute(self, userdata):
 
         global shared_data
@@ -330,6 +331,8 @@ class LockState(smach.State):
                 rospy.loginfo("")
                 rospy.loginfo("Current state: Unlock")
                 return "go_unlock"
+            self.rate.sleep()
+
 
 class UnlockState(smach.State):
     def __init__(self):
@@ -351,9 +354,6 @@ class OneToOneMapState(smach.State):
             output_keys=[],
         )
 
-        self.initial_hand_position = None
-        self.initial_drone_position = None
-
         self.position_change = None
 
         self.start_time = rospy.Time.now().to_sec()
@@ -364,33 +364,28 @@ class OneToOneMapState(smach.State):
 
         self.pub_object = None
 
-    def _init_onetoonepubjointtraj(self, robot_name):
-
-        return OneToOnePubJointTraj(
-            robot_name,
-            hand=shared_data["hand"],
-            arm=shared_data["arm"],
-            control_mode=shared_data["control_mode"],
-        )
+        self.rate = rospy.Rate(20)
 
     def execute(self, userdata):
 
         if self.if_init_pub_object:
 
-            self.pub_object = self._init_onetoonepubjointtraj(userdata.robot_name)
-
+            self.pub_object = OneToOnePubJointTraj(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
             self.if_init_pub_object = False
 
-            return "stay_one_to_one_map"
 
-        elif self.pub_object.check_finished is True:
-            if self.timer is not None:
-                self.timer.shutdown()
-                self.timer = None
-            return "done_track"
-
-        return "stay_one_to_one_map"
-
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                if self.timer is not None:
+                    self.timer.shutdown()
+                    self.timer = None
+                return "done_track"
+            self.rate.sleep()
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
@@ -408,9 +403,7 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "LOCK",
             LockState(),
-            transitions={
-                "go_unlock": "UNLOCK"
-            },
+            transitions={"go_unlock": "UNLOCK"},
         )
 
         # UnlockState
@@ -420,7 +413,7 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "ONE_TO_ONE_MAP",
             OneToOneMapState(),
-            transitions={"done_track": "DONE", "stay_one_to_one_map": "ONE_TO_ONE_MAP"},
+            transitions={"done_track": "DONE"},
         )
 
     return sm_sub
@@ -499,7 +492,7 @@ def main():
     sis.start()
 
     # Execute the state machine
-    outcome = sm.execute()
+    sm.execute()
 
     sis.stop()
 
