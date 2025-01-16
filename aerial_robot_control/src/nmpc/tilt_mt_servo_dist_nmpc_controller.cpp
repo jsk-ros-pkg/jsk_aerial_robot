@@ -22,13 +22,15 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
 bool nmpc::TiltMtServoDistNMPC::update()
 {
+  calcDisturbWrench();
+
+  // Note that the meas2VecX() function is called in the update() function. And since it always get the latest info
+  // from the estimator, the NMPC result should not be influenced by the disturbance wrench.
   if (!TiltMtServoNMPC::update())
     return false;
 
-  // pub the est. wrench used by the controller, not the latest one. so this line is put before calcDisturbWrench()
+  // pub the est. wrench used by the controller. put here to shorten the delay caused by calcDisturbWrench();
   pubDisturbWrench();
-
-  calcDisturbWrench();
 
   return true;
 }
