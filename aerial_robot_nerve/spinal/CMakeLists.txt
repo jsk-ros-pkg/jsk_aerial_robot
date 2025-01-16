@@ -44,6 +44,10 @@ add_message_files(
   FlightConfigCmd.msg
   Vector3Int16.msg
   TorqueAllocationMatrixInv.msg
+  ESCTelemetry.msg
+  ESCTelemetryArray.msg
+  JointProfile.msg
+  JointProfiles.msg
   )
 
 add_service_files(
@@ -53,6 +57,7 @@ add_service_files(
   SetAttitudeGains.srv
   ImuCalib.srv
   MagDeclination.srv
+  SetDirectServoConfig.srv
 )
 
 generate_messages(
@@ -96,6 +101,10 @@ add_dependencies(${PROJECT_NAME}_generate_stm32f7_ros_lib ${catkin_EXPORTED_TARG
 # generate ros_lib for STM32H7
 add_custom_target(${PROJECT_NAME}_generate_stm32h7_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32H7 --support_rtos --support_ethernet)
 add_dependencies(${PROJECT_NAME}_generate_stm32h7_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+
+# generate ros_lib for STM32H7_v2
+add_custom_target(${PROJECT_NAME}_generate_stm32h7_v2_ros_lib ALL COMMAND ${CATKIN_DEVEL_PREFIX}/env.sh ${PYTHON_EXECUTABLE}  ${PROJECT_SOURCE_DIR}/scripts/make_libraries.py --save_path ${PROJECT_SOURCE_DIR}/mcu_project/boards/stm32H7_v2 --support_rtos --support_ethernet)
+add_dependencies(${PROJECT_NAME}_generate_stm32h7_v2_ros_lib ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 
 
 install(DIRECTORY ${SPINAL_DIRS}
