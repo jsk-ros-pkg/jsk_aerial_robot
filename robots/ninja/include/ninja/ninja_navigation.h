@@ -137,7 +137,7 @@ namespace aerial_robot_navigation
     KDL::Frame test_frame_;
 
     int module_joint_num_;
-    double morphing_vel_;
+    double default_morphing_vel_;
     double joint_pos_chnage_thresh_;
     int joint_process_func_;
 

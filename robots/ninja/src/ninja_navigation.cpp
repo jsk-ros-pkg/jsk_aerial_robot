@@ -660,7 +660,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
     {
       for(int i = 0; i < msg->name.size(); i++)
         {
-          if(msg->position.size() !=  msg->name.size())
+          if(msg->position.size() !=  msg->name.size()) 
             {
               ROS_ERROR("The joint position num and name num are different in ros msgs [%d vs %d]",
                         (int)msg->position.size(), (int)msg->name.size());
@@ -700,7 +700,13 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           //add to joint control msg
           std::string target_joint_name = joint_map[joint_name];
           double target_joint_angle = msg->position.at(i);
-          
+
+          //setup morphing velocity
+          double morphing_vel;
+          if(msg->velocity.empty())
+            morphing_vel = default_morphing_vel_;
+          else
+            morphing_vel = msg->velocity.at(0);
           //update joint info for FK
           ModuleData& data = assembled_modules_data_[id];
           int axis;
@@ -709,7 +715,8 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           data.goal_joint_pos_(axis) = target_joint_angle;
           data.start_joint_pos_(axis) = data.des_joint_pos_(axis);
           data.first_joint_processed_time_[axis] = ros::Time::now().toSec();
-          double conv_time = abs(data.goal_joint_pos_(axis) - data.des_joint_pos_(axis)) / morphing_vel_;
+          double conv_time = abs(data.goal_joint_pos_(axis) - data.des_joint_pos_(axis)) / morphing_vel;
+          
           switch(joint_process_func_)
             {
             case CONSTANT:
@@ -1120,7 +1127,7 @@ void NinjaNavigator::morphingProcess()
 void NinjaNavigator::rosParamInit()
 {
   ros::NodeHandle nh(nh_, "navigation");
-  getParam<double>(nh, "morphing_vel", morphing_vel_, M_PI/4.0);
+  getParam<double>(nh, "default_morphing_vel", default_morphing_vel_, M_PI/4.0);
   getParam<double>(nh, "joint_pos_change_thresh", joint_pos_chnage_thresh_, 0.01);
   getParam<int>(nh, "joint_process_func", joint_process_func_, CONSTANT);
   getParam<bool>(nh, "free_joint_flag", free_joint_flag_, false);
