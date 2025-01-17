@@ -271,6 +271,7 @@ namespace aerial_robot_navigation
     bool lock_teleop_;
     ros::Time force_landing_start_time_;
 
+    double takeoff_xy_pos_tolerance_;
     double hover_convergent_start_time_;
     double hover_convergent_duration_;
     double land_check_start_time_;
@@ -366,6 +367,12 @@ namespace aerial_robot_navigation
     {
       if(getNaviState() == TAKEOFF_STATE) return;
 
+      if(fabs(estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x()) > takeoff_xy_pos_tolerance_ || fabs(estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y()) > takeoff_xy_pos_tolerance_)
+        {
+          ROS_ERROR_STREAM("initial xy pos error: [" << estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x() << ", " << estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y() << "] is larger than threshold " << takeoff_xy_pos_tolerance_ << ". switch back to ARM_OFF_STATE");
+          setNaviState(STOP_STATE);
+        }
+
       if(getNaviState() == ARM_ON_STATE)
         {
           setNaviState(TAKEOFF_STATE);
@@ -408,7 +415,8 @@ namespace aerial_robot_navigation
       setInitHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetYawFromCurrentState();
 
-      ROS_INFO_STREAM("init height for takeoff: " << init_height_);
+      ROS_INFO_STREAM("init height for takeoff: " << init_height_ << ", target height: " << getTargetPos().z());
+      ROS_INFO_STREAM("target xy pos: " << "[" << getTargetPos().x() << ", " << getTargetPos().y() << "]");
 
       ROS_INFO("Start state");
     }
