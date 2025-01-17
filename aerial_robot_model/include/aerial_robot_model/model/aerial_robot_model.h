@@ -129,7 +129,7 @@ namespace aerial_robot_model {
 
     bool addExtraModule(std::string module_name, std::string parent_link_name, KDL::Frame transform, KDL::RigidBodyInertia inertia);
     bool removeExtraModule(std::string module_name);
-    std::map<std::string, KDL::Segment> getExtraModuleMap() const {return extra_module_map_;}
+    const std::map<std::string, KDL::Segment>& getExtraModuleMap() const {return extra_module_map_;}
     void setExtraModuleMap(const std::map<std::string, KDL::Segment>& map) {extra_module_map_ = map;}
 
     // statics (static thrust, joint torque)
