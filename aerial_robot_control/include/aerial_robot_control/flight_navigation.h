@@ -407,7 +407,8 @@ namespace aerial_robot_navigation
       setInitHeight(estimator_->getPos(Frame::COG, estimate_mode_).z());
       setTargetYawFromCurrentState();
 
-      ROS_INFO_STREAM("init height for takeoff: " << init_height_);
+      ROS_INFO_STREAM("init height for takeoff: " << init_height_ << ", target height: " << getTargetPos().z());
+      ROS_INFO_STREAM("target xy pos: " << "[" << getTargetPos().x() << ", " << getTargetPos().y() << "]");
 
       ROS_INFO("Start state");
     }
