@@ -61,7 +61,7 @@ class ObstacleWorld:
                 name = 'obj' + str(i+1)
                 self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]) \
                                   + np.array(df.loc[i, 3:5].tolist())*(-1*policy_start_delay),
-                                  'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[0,8]}
+                                  'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[i,8]}
                 self.obs[name]['p'][2] = self.h / 2
                 self.obs[name]['v'][2] = 0.0
                 self.spawnObstacle(name, self.m, self.obs[name]['p'], self.obs[name]['r'], self.h)
