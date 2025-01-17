@@ -46,6 +46,13 @@ void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
 void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 {
+  auto copied_joy_msg = boost::make_shared<sensor_msgs::Joy>(*joy_msg);  
+
+  if(joy_duplicated_flag_)
+    {
+      BaseNavigator::joyStickControl(copied_joy_msg);
+      return;
+    }
   sensor_msgs::Joy joy_cmd;
   if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
     {
@@ -139,7 +146,9 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       joy_pitch_positive_flag_ = false;
       joy_pitch_negative_flag_ = false;
     }
-  BaseNavigator::joyStickControl(joy_msg);
+
+  
+  BaseNavigator::joyStickControl(copied_joy_msg);
 }
 
 void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)

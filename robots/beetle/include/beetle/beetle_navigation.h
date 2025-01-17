@@ -117,11 +117,11 @@ namespace aerial_robot_navigation
     void rosParamInit() override;
     virtual void convertTargetPosFromCoG2CoM();
     virtual void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    virtual void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
 
   private:
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void setAssemblyFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
-    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override; 
     void rotateContactPointFrame();
     boost::shared_ptr<BeetleRobotModel> beetle_robot_model_;
     map<string, ros::Subscriber> assembly_flag_subs_;

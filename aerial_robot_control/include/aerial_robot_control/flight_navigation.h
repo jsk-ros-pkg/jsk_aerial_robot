@@ -259,6 +259,7 @@ namespace aerial_robot_navigation
     bool param_verbose_;
 
     bool joy_rotation_flag_;
+    bool joy_duplicated_flag_;
 
     uint8_t navi_state_;
 

@@ -61,8 +61,16 @@ namespace aerial_robot_navigation
     void setTargetCoMPoseFromCurrState();
     void setTargetJointPosFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
-    inline void setTargetVelCandX( float value){  target_vel_candidate_.setX(value);}
-    inline void setTargetVelCandY( float value){  target_vel_candidate_.setY(value);}
+    inline void setTargetVelCandX( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_vel_);
+      target_vel_candidate_.setX(value);
+    }
+    inline void setTargetVelCandY( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_vel_);
+      target_vel_candidate_.setY(value);
+    }
     inline void setTargetVelCandZ( float value){  target_vel_candidate_.setZ(value);}
     inline void setTargetVelCand( tf::Vector3 value){  target_vel_candidate_ = value ;}
     inline void setFinalTargetPosCandX( float value){  target_final_pos_candidate_.setX(value);}
@@ -88,6 +96,7 @@ namespace aerial_robot_navigation
     void updateAssemblyTree();
 
     void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
+    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override;
 
   private:
     void convertTargetPosFromCoG2CoM() override;
@@ -143,6 +152,8 @@ namespace aerial_robot_navigation
     double com_yaw_change_thresh_;
 
     bool disassembly_flag_;
+
+    std::mutex mutex_cand_vel_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

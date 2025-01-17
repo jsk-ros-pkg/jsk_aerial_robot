@@ -460,6 +460,8 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
 
+  if(joy_duplicated_flag_) return;
+
   double raw_x_cmd = 0;
   double raw_y_cmd = 0;
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];

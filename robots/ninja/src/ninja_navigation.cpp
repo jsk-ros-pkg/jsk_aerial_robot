@@ -468,7 +468,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   if( getNaviState() == HOVER_STATE ||
       getNaviState() == TAKEOFF_STATE){
     setTargetPos(target_pos);
-    setTargetVel(target_vel);
+    // setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
     forceSetTargetBaselinkRot(target_rot);  
   }
@@ -700,7 +700,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           //add to joint control msg
           std::string target_joint_name = joint_map[joint_name];
           double target_joint_angle = msg->position.at(i);
-
+          
           //update joint info for FK
           ModuleData& data = assembled_modules_data_[id];
           int axis;
@@ -709,7 +709,7 @@ void NinjaNavigator::assemblyJointPosCallback(const sensor_msgs::JointStateConst
           data.goal_joint_pos_(axis) = target_joint_angle;
           data.start_joint_pos_(axis) = data.des_joint_pos_(axis);
           data.first_joint_processed_time_[axis] = ros::Time::now().toSec();
-          double conv_time = abs(data.goal_joint_pos_(axis) - data.des_joint_pos_(axis)) / morphing_vel_;          
+          double conv_time = abs(data.goal_joint_pos_(axis) - data.des_joint_pos_(axis)) / morphing_vel_;
           switch(joint_process_func_)
             {
             case CONSTANT:
@@ -928,6 +928,72 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
 
       setTargetVelCandZ(0);
     }
+}
+
+void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
+{
+  if(getCurrentAssembled())
+    joy_duplicated_flag_ = true;
+  else
+    joy_duplicated_flag_ = false;
+
+  auto copied_joy_msg = boost::make_shared<sensor_msgs::Joy>(*joy_msg);  
+
+  sensor_msgs::Joy joy_cmd;
+  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
+    {
+      joy_cmd = (*joy_msg);
+    }
+  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS)
+    {
+      joy_cmd = ps4joyToPs3joyConvert(*joy_msg);
+    }
+  else
+    {
+      ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
+      return;
+    }
+
+  /* Translational Contol*/
+
+  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
+  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
+  double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+
+  if(fabs(raw_x_cmd) >= joy_stick_deadzone_ || fabs(raw_y_cmd) >= joy_stick_deadzone_)
+    {
+      asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+      switch (asm_xy_control_mode_)
+        {
+        case POS_CONTROL_MODE:
+          {
+            if(fabs(raw_x_cmd) < joy_stick_deadzone_) raw_x_cmd = 0;
+            if(fabs(raw_y_cmd) < joy_stick_deadzone_) raw_y_cmd = 0;
+
+            /* vel command */
+            setTargetVelCandX(raw_x_cmd * max_teleop_xy_vel_);
+            setTargetVelCandY(raw_y_cmd * max_teleop_xy_vel_);
+            asm_xy_control_mode_ = VEL_CONTROL_MODE;
+            break;
+          }
+        case VEL_CONTROL_MODE:
+          {
+            if(fabs(raw_x_cmd) < joy_stick_deadzone_) raw_x_cmd = 0;
+            if(fabs(raw_y_cmd) < joy_stick_deadzone_) raw_y_cmd = 0;
+
+            /* vel command */
+            setTargetVelCandX(raw_x_cmd * max_teleop_xy_vel_);
+            setTargetVelCandY(raw_y_cmd * max_teleop_xy_vel_);
+            break;
+          }
+        default:
+          {
+            break;
+          }
+        }
+    }
+  BeetleNavigator::joyStickControl(copied_joy_msg);
 }
 
 
