@@ -1,0 +1,18 @@
+<launch>
+  <!-- beetle hand_arm_mocap.launch -->
+  <include file="$(find beetle)/launch/hand_arm_mocap.launch">
+    <arg name="enable_arm" value="false"/>
+    <arg name="robot_id_hand" value="5"/>
+    <arg name="robot_id_arm" value="6"/>
+  </include>
+
+  <!-- glove_control_pub.py -->
+  <arg name="enable_glove_control" default="false"/>
+  <arg name="glove_port" default="9400"/>
+
+  <group if="$(arg enable_glove_control)">
+    <node pkg="data_glove" type="glove_control_pub.py" name="glove_data_pub_node" output="screen">
+      <param name="port" value="$(arg glove_port)"/>
+    </node>
+  </group>
+</launch>
