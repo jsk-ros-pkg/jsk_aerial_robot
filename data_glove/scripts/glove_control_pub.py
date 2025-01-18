@@ -11,13 +11,13 @@ import time
 import sys
 
 import rospy
+import socket
 import argparse
 from typing import List
+from typing import Optional
 from std_msgs.msg import UInt8
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
-
-from ip_acquire import get_local_ip
 
 
 class FingerDataPublisher:
@@ -91,6 +91,29 @@ def shut_publisher():
     print("\nShutting down the OSC server and ROS node...")
     rospy.signal_shutdown("Ctrl+C pressed")
     sys.exit(0)
+
+
+def get_local_ip() -> Optional[str]:
+    """
+    Retrieve the local IP address of the machine.
+
+    Returns:
+        Optional[str]: The local IP address if successfully retrieved;
+                       None if an error occurs.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            local_ip = sock.getsockname()[0]
+
+        if not local_ip:
+            raise ValueError("Local IP address could not be retrieved.")
+
+        return local_ip
+
+    except Exception as error:
+        print(f"Error retrieving local IP address: {error}")
+        raise SystemExit("Exiting program due to error.")
 
 
 if __name__ == "__main__":
