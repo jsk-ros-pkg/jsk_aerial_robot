@@ -117,7 +117,7 @@ class IdleState(smach.State):
                             rospy.loginfo(f"Decided not to activate {device}.")
                             break
                         else:
-                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")  # 输出警告信息
+                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")  
 
                 return "go_mapping_init"
 
