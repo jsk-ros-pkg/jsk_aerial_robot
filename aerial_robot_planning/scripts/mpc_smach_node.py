@@ -69,14 +69,13 @@ class IdleState(smach.State):
     - On valid input, go INIT; otherwise, stay in IDLE.
     """
 
-    def __init__(self, robot_name):
+    def __init__(self):
         smach.State.__init__(
             self,
             outcomes=["go_init", "stay_idle", "shutdown", "go_mapping_init"],
             input_keys=["mapping_config"],
             output_keys=["robot_name", "traj_type", "loop_num", "mapping_config"],
         )
-        self.robot_name = robot_name
 
     def execute(self, userdata):
         rospy.loginfo("State: IDLE -- Waiting for user input...")
@@ -101,7 +100,6 @@ class IdleState(smach.State):
                 return "shutdown"
 
             if traj_type_str.lower() == "h":
-                userdata.robot_name = self.robot_name
                 userdata.traj_type = "h"
                 userdata.mapping_config = {"is_arm_active": False, "is_glove_active": False}
 
@@ -451,7 +449,7 @@ def main():
         # IDLE
         smach.StateMachine.add(
             "IDLE",
-            IdleState(args.robot_name),
+            IdleState(),
             transitions={
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
