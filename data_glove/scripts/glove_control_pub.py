@@ -26,7 +26,7 @@ class FingerDataPublisher:
         Initializes the FingerDataPublisher class, setting up the ROS node
         and the publisher for control mode.
         """
-        rospy.init_node("palm_openness_pub", anonymous=True)
+        rospy.init_node("glove_data_pub_node", anonymous=True)
         self.control_mode_pub = rospy.Publisher(
             "hand/control_mode", UInt8, queue_size=10
         )
