@@ -1,12 +1,13 @@
 <launch>
-  <!-- beetle hand_arm_mocap.launch -->
+  <!-- Launch hand_arm_mocap.launch -->
+  <arg name="enable_arm" default="false"/>
   <include file="$(find beetle)/launch/hand_arm_mocap.launch">
-    <arg name="enable_arm" value="false"/>
+    <arg name="enable_arm" value="$(arg enable_arm)"/>
     <arg name="robot_id_hand" value="5"/>
     <arg name="robot_id_arm" value="6"/>
   </include>
 
-  <!-- glove_control_pub.py -->
+  <!-- Launch glove_control_pub.py -->
   <arg name="enable_glove_control" default="false"/>
   <arg name="glove_port" default="9400"/>
 
