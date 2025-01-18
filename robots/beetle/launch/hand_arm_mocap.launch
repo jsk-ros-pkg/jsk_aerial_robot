@@ -28,9 +28,8 @@
     </node>
   </group>
 
-  <!-- activate the node only have hand -->
   <group if="$(not arg enable_arm)">
-    <!-- 启动仅包含 hand 的节点 -->
+    <!-- activate the node only have hand -->
     <node pkg="mocap_optitrack"
           type="mocap_node"
           name="mocap_node_hand"
