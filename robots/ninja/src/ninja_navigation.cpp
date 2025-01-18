@@ -503,7 +503,14 @@ void NinjaNavigator::comRotationProcess()
       else
         target_pitch = goal_pitch;
     }
+
   //yaw
+  if(ros::Time::now().toSec() <= asm_teleop_reset_time_)
+    {
+      target_yaw +=  getTargetOmegaCand().z() * loop_du_;
+      goal_yaw = target_yaw;
+      setGoalComYaw(goal_yaw);
+    }
   if(target_yaw != goal_yaw)
     {
       if(abs(goal_yaw- target_yaw) > com_yaw_change_thresh_)
@@ -999,6 +1006,15 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
             break;
           }
         }
+    }
+  if(fabs(raw_yaw_cmd) > joy_stick_deadzone_)
+    {
+      asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+      setTargetOmegaCandZ(raw_yaw_cmd * max_teleop_yaw_vel_);
+    }
+  else
+    {
+      setTargetOmegaCandZ(0);
     }
   BeetleNavigator::joyStickControl(copied_joy_msg);
 }

@@ -58,9 +58,22 @@ namespace aerial_robot_navigation
     void update() override;
     void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
     void setGoalComRot(KDL::Rotation goal_com_rot){ goal_com_rot_ = goal_com_rot;}
+    inline void setGoalComRoll( float value)
+    {
+      setGoalComRot(KDL::Rotation::RPY(value,0,0));
+    }
+    inline void setGoalComPitch( float value)
+    {
+      setGoalComRot(KDL::Rotation::RPY(0,value,0));
+    }
+    inline void setGoalComYaw( float value)
+    {
+      setGoalComRot(KDL::Rotation::RPY(0,0,value));
+    }
     void setTargetCoMPoseFromCurrState();
     void setTargetJointPosFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
+    /*accessor for target vel*/
     inline void setTargetVelCandX( float value)
     {
       std::lock_guard<std::mutex> lock(mutex_cand_vel_);
@@ -71,8 +84,37 @@ namespace aerial_robot_navigation
       std::lock_guard<std::mutex> lock(mutex_cand_vel_);
       target_vel_candidate_.setY(value);
     }
-    inline void setTargetVelCandZ( float value){  target_vel_candidate_.setZ(value);}
-    inline void setTargetVelCand( tf::Vector3 value){  target_vel_candidate_ = value ;}
+    inline void setTargetVelCandZ( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_vel_);
+      target_vel_candidate_.setZ(value);
+    }
+    inline void setTargetVelCand( tf::Vector3 value)
+    {
+      target_vel_candidate_ = value;
+    }
+
+    /*accessor for target omega*/
+    inline void setTargetOmegaCandX( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_omega_);
+      target_omega_candidate_.setX(value);
+    }
+    inline void setTargetOmegaCandY( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_omega_);
+      target_omega_candidate_.setY(value);
+    }
+    inline void setTargetOmegaCandZ( float value)
+    {
+      std::lock_guard<std::mutex> lock(mutex_cand_omega_);
+      target_omega_candidate_.setZ(value);
+    }
+    inline void setTargetOmegaCand( tf::Vector3 value)
+    {
+      target_omega_candidate_ = value;
+    }
+        
     inline void setFinalTargetPosCandX( float value){  target_final_pos_candidate_.setX(value);}
     inline void setFinalTargetPosCandY( float value){  target_final_pos_candidate_.setY(value);}
     inline void setFinalTargetPosCandZ( float value){  target_final_pos_candidate_.setZ(value);}
@@ -85,6 +127,7 @@ namespace aerial_robot_navigation
     template<class T> T getCom2Base();
     inline tf::Vector3 getTargetFinalPosCand() {return target_final_pos_candidate_;}
     inline tf::Vector3 getTargetVelCand() {return target_vel_candidate_;}
+    inline tf::Vector3 getTargetOmegaCand() {return target_omega_candidate_;}
 
   protected:
     std::mutex mutex_com2base_;
@@ -119,6 +162,7 @@ namespace aerial_robot_navigation
 
     tf::Vector3 target_final_pos_candidate_;
     tf::Vector3 target_vel_candidate_;
+    tf::Vector3 target_omega_candidate_;
 
     double asm_vel_nav_threshold_;
     double asm_nav_vel_limit_;
@@ -154,6 +198,7 @@ namespace aerial_robot_navigation
     bool disassembly_flag_;
 
     std::mutex mutex_cand_vel_;
+    std::mutex mutex_cand_omega_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
