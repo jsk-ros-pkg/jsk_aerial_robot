@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(dragon)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   aerial_robot_control
   aerial_robot_model
   aerial_robot_msgs
   hydrus
+  mujoco_ros_control
   pluginlib
   roscpp
 )
@@ -48,7 +49,7 @@ target_link_libraries(dragon_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_library(dragon_aerial_robot_controllib src/control/lqi_gimbal_control.cpp src/control/full_vectoring_control.cpp)
 target_link_libraries (dragon_aerial_robot_controllib dragon_robot_model dragon_navigation dragon_sensor_pluginlib ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp hydrus_gencfg)
+add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messages_cpp)
 
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
@@ -82,6 +83,9 @@ install(DIRECTORY bin
   USE_SOURCE_PERMISSIONS
 )
 
+mujoco_model_convert(
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

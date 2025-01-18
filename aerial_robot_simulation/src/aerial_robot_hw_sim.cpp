@@ -376,6 +376,7 @@ namespace gazebo_ros_control
             auto  torque = rotor.getTorque();
             parent_link->AddRelativeTorque(gazebo::math::Vector3(torque.x(), torque.y(), torque.z()));
 #endif
+            sim_rotors_.at(j)->SetVelocity(0, rotor.getSpeed());
           }
       }
   }

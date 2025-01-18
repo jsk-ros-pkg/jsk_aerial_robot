@@ -3,6 +3,7 @@
   <arg name="robot_id" default=""/>
   <arg name="robot_ns" value="dragon$(arg robot_id)"/>
   <arg name="full_vectoring_mode"  default= "false" />
+  <arg name="mujoco"  default= "false" />
 
   <include file="$(find dragon)/launch/bringup.launch">
     <arg name="real_machine" value="False" />
@@ -10,81 +11,59 @@
     <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="full_vectoring_mode"  value= "$(arg full_vectoring_mode)" />
     <arg name="headless" value="$(arg headless)" />
+    <arg name="mujoco" value="$(arg mujoco)" />
+    <arg name="demo" value="False" />
   </include>
 
   <!-- test codes -->
-  <!-- 1. topics  -->
-  <test name="publishtest" test-name="publishtest" pkg="rostest" type="publishtest" ns="$(arg robot_ns)" retry="1">
+  <test test-name="control_test" pkg="dragon" type="flight_check.py"  name="flight_test" ns="$(arg robot_ns)" time-limit="180" retry="3" unless ="$(arg full_vectoring_mode)" >
     <rosparam>
-      topics:
-        - name: uav/cog/odom
-          timeout: 5.0
+      init_form:
+         joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
+         joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
+         angle_thresh: 0.08
+         timeout: 20.0
+      takeoff:
+         timeout: 30.0
+         hold_time: 2.0
+      motion:
+         joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
+         joint_trajectory: [[-0.6, -1.57, -0.6, 0, 0, 1.57], [0, 1.57, 0, 1.57, 0, 1.57], [-0.8, 1.2, -0.8, 1.2, -0.8, 1.2], [0, 1.57, 0, 1.57, 0, 1.57], [0.0, 1.57, -1.5, 0.0, 0.0, 1.57]]
+         rot_trajectory: [[0.0, -0.3], [0, 0], [-0.4, 0.4], [0, 0], [0, 0.75]]
+         joint_thresh: 0.04
+         pos_thresh: [0.05, 0.05, 0.05]
+         rot_thresh: [0.05, 0.05, 0.05]
+         timeout: 20.0
+         hold_time: 2.0
+      stable_check:
+         pose_thresh: [0.1, 0.15, 0.1]
     </rosparam>
   </test>
 
-  <!-- 2. control -->
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)" time-limit="180" retry="3" unless ="$(arg full_vectoring_mode)" >
+  <test test-name="control_test" pkg="dragon" type="flight_check.py"  name="flight_test" ns="$(arg robot_ns)" time-limit="180" retry="3" if ="$(arg full_vectoring_mode)" >
     <rosparam>
-      hovering_duration: 30.0
-      convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
-      init_joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
-      init_joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
-      tasks:
-        - command: "rosrun dragon transformation_demo.py _mode:=0 _reset:=0"
-          threshold: [0.1, 0.08, 0.08]
-          angle_threshold: 0.02
-          timeout: 20
-          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
-          reset_duration: 20
-        - command: "rosrun dragon transformation_demo.py _mode:=1 _reset:=0"
-          threshold: [0.08, 0.08, 0.05]
-          angle_threshold: 0.02
-          timeout: 10
-          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
-          reset_duration: 10
-        - command: "rosrun dragon transformation_demo.py _mode:=2 _reset:=0"
-          threshold: [0.15, 0.08, 0.12]
-          angle_threshold: 0.02
-          timeout: 15
-          reset: "rosrun dragon transformation_demo.py _mode:=0 _reset:=1"
-          reset_duration: 10
+      init_form:
+         joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
+         joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
+         angle_thresh: 0.08
+         timeout: 20.0
+      takeoff:
+         timeout: 30.0
+         hold_time: 2.0
+      motion:
+         joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
+         joint_trajectory: [[0, 1.57, 0, 1.57, 0, 1.57], [0, 1.57, 0, 1.57, 0, -1.57], [0, 1.57, 0, 0, 0, -1.57]]
+         rot_trajectory: [[-1.5708, 0], [-1.5708, 0], [-1.5708, 0]]
+         joint_thresh: 0.04
+         pos_thresh: [0.05, 0.05, 0.05]
+         rot_thresh: [0.05, 0.05, 0.05]
+         timeout: 20.0
+         hold_time: 2.0
+      stable_check:
+         pose_thresh: [0.1, 0.1, 0.1]
     </rosparam>
-    <param name="init_form_duration" value="30.0" />
-    <param name="init_angle_threshold" value="0.04" />
   </test>
 
-  <test test-name="control_test" pkg="hydrus" type="control_check.py"  name="control_test" ns="$(arg robot_ns)" time-limit="180" retry="3" if ="$(arg full_vectoring_mode)" >
-    <rosparam>
-      hovering_duration: 30.0
-      convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
-      init_joint_names: ['joint1_pitch', 'joint1_yaw', 'joint2_pitch', 'joint2_yaw', 'joint3_pitch', 'joint3_yaw']
-      init_joint_angles: [0, 1.57, 0, 1.57, 0, 1.57]
-      tasks:
-        - command: "rostopic pub -1 /dragon/final_target_baselink_rot spinal/DesireCoord -- -1.5708 0.0 0.0 0"
-          threshold: [0.06, 0.06, 0.06]
-          angle_threshold: 0.02
-          timeout: 15
-          reset_duration: 0
-        - command: "rosrun dragon transformation_demo_vertical.py _mode:=0"
-          threshold: [0.08, 0.08, 0.06]
-          angle_threshold: 0.02
-          timeout: 20
-          reset_duration: 0
-        - command: "rosrun dragon transformation_demo_vertical.py _mode:=1"
-          threshold: [0.08, 0.08, 0.06]
-          angle_threshold: 0.02
-          timeout: 20
-          reset_duration: 0
-          <!-- TDOO: mode2 of transformation_demo_vertical.py is unstable in gazebo
-              - command: "rosrun dragon transformation_demo_vertical.py _mode:=1"
-             threshold: [0.05, 0.05, 0.05]
-             angle_threshold: 0.02
-             timeout: 20
-             reset_duration: 0
-          -->
-    </rosparam>
-    <param name="init_form_duration" value="30.0" />
-    <param name="init_angle_threshold" value="0.04" />
-  </test>
+  <node name="task_task_trigger" pkg="rostopic" type="rostopic" args="pub -1 /task_start std_msgs/Empty" launch-prefix="bash -c 'sleep 5.0; $0 $@' "/>
 
 </launch>

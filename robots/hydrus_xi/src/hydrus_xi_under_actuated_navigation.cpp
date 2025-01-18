@@ -159,9 +159,10 @@ HydrusXiUnderActuatedNavigator::~HydrusXiUnderActuatedNavigator()
 
 void HydrusXiUnderActuatedNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                                 boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                                boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator)
+                                                boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                                double loop_du)
 {
-  BaseNavigator::initialize(nh, nhp, robot_model, estimator);
+  BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
   robot_model_for_plan_ = boost::make_shared<HydrusTiltedRobotModel>(); // for planning, not the real robot model
 

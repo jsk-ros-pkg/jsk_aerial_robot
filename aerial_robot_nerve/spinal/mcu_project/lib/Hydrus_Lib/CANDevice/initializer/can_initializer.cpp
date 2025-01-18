@@ -9,7 +9,16 @@
 
 void CANInitializer::sendData()
 {
-	return;
+  // reconnection with reboot neuron
+  if (reboot_id_ > 0) {
+
+    // wait for the neuron completely reboot, 5000ms
+    if (HAL_GetTick() - reboot_time_ > 5000) {
+      requestConfig(reboot_id_);
+      reboot_time_ = 0;
+      reboot_id_ = 0;
+    }
+  }
 }
 
 void CANInitializer::initDevices()
@@ -18,9 +27,15 @@ void CANInitializer::initDevices()
 	HAL_Delay(200);
 	std::sort(neuron_.begin(), neuron_.end());
 	for (unsigned int i = 0; i < neuron_.size(); i++) {
-		sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, neuron_.at(i).getSlaveId(), 0, nullptr, 1);
+		uint8_t slave_id = neuron_.at(i).getSlaveId();
+		requestConfig(slave_id);
 		HAL_Delay(200);
 	}
+}
+
+void CANInitializer::requestConfig(uint8_t slave_id)
+{
+	sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, slave_id, 0, nullptr, 1);
 }
 
 void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
@@ -144,6 +159,8 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			uint8_t send_data[1];
 			send_data[0] = CAN::BOARD_CONFIG_REBOOT;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 1, send_data, 1);
+			reboot_id_ = slave_id;
+			reboot_time_ = HAL_GetTick();
 			break;
 		}
 		case spinal::SetBoardConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
@@ -153,6 +170,20 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[0] = CAN::BOARD_CONFIG_SET_DYNAMIXEL_TTL_RS485_MIXED;
 			send_data[1] = dynamixel_ttl_rs485_mixed;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 2, send_data, 1);
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_SERVO_ROUND_OFFSET:
+		{
+			uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
+			int32_t ref_value = req.data[2];
+			uint8_t send_data[6];
+			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_ROUND_OFFSET;
+			send_data[1] = servo_index;
+			send_data[2] = ref_value & 0xFF;
+			send_data[3] = (ref_value >> 8) & 0xFF;
+			send_data[4] = (ref_value >> 16) & 0xFF;
+			send_data[5] = (ref_value >> 24) & 0xFF;
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data, 1);
 			break;
 		}
 		default:

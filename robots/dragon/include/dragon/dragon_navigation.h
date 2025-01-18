@@ -49,11 +49,10 @@ namespace aerial_robot_navigation
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator) override;
+                    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                    double loop_du) override;
 
     void update() override;
-
-    inline const bool getLandingFlag() const { return landing_flag_; }
 
   private:
     ros::Publisher curr_target_baselink_rot_pub_;
@@ -80,7 +79,6 @@ namespace aerial_robot_navigation
 
     /* landing process */
     bool level_flag_;
-    bool landing_flag_;
     bool servo_torque_;
 
     /* rosparam */
@@ -88,5 +86,8 @@ namespace aerial_robot_navigation
     string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
+
+    // addtional state 
+    static constexpr uint8_t PRE_LAND_STATE = 0x20;
   };
 };

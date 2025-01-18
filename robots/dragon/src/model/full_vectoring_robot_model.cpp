@@ -82,7 +82,7 @@ FullVectoringRobotModel::FullVectoringRobotModel(bool init_with_rosparam, bool v
   gimbal_roll_origin_from_cog_.resize(rotor_num);
   setGimbalNominalAngles(std::vector<double>(0)); // for online initialize
 
-  robot_model_for_plan_ = boost::make_shared<aerial_robot_model::RobotModel>();
+  robot_model_for_plan_ = boost::make_shared<aerial_robot_model::transformable::RobotModel>();
 
   if(debug_verbose_)
     {
@@ -650,6 +650,12 @@ there is a diffiretial chain about the roll angle. But we here approximate it to
   return locked_angles;
 #endif
 }
+
+bool FullVectoringRobotModel::stabilityCheck(bool verbose)
+{
+  return aerial_robot_model::RobotModel::stabilityCheck(verbose);
+}
+
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

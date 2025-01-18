@@ -2,6 +2,40 @@
 Changelog for package spinal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+
+1.3.5 (2024-12-28)
+------------------
+* [Spinal][Neuron] refactor the initialization/reinitialization process (`#640 <https://github.com/jsk-ros-pkg/aerial_robot/issues/640>`_)
+* [Spinal][Neuron][Servo] refactor the torque off rule (`#636 <https://github.com/jsk-ros-pkg/aerial_robot/issues/636>`_)
+* Change to C++17 to support ubuntu22.04 (`#626 <https://github.com/jsk-ros-pkg/aerial_robot/issues/626>`_)
+
+1.3.4 (2024-11-02)
+------------------
+* [Spinal] Fix bug that sends zero pwm value to motors on reset (`#625 <https://github.com/jsk-ros-pkg/aerial_robot/issues/625>`_)
+* [Spinal][PwmTest] workaround to send pwm value to each servo independently (`#613 <https://github.com/jsk-ros-pkg/aerial_robot/issues/613>`_)
+* Resolve dependency to other package Merge pull request (`#610 <https://github.com/jsk-ros-pkg/aerial_robot/issues/610>`_)
+* [Spinal][IMU] developing a interface for ICM20948 Merge pull request (`#599 <https://github.com/jsk-ros-pkg/aerial_robot/issues/599>`_)
+* [Spinal][STM32H7] correct the initialization order of spinal-IMU Merge pull request (`#586 <https://github.com/jsk-ros-pkg/aerial_robot/issues/586>`_)
+
+1.3.3 (2023-10-26)
+------------------
+
+1.3.2 (2023-02-01)
+------------------
+* [Spinal][CAN] fix bug about the motor pwm in spinal-neuron system (`#538 <https://github.com/jsk-ros-pkg/aerial_robot/issues/538>`_)
+* [rqt][spinal] fix the compatibility in Python3 (`#535 <https://github.com/jsk-ros-pkg/aerial_robot/issues/535>`_)
+* [Spinal][Neuron][Servo] solve the joint pulley round offset problem (`#534 <https://github.com/jsk-ros-pkg/aerial_robot/issues/534>`_)
+* [Spinal][motor][PWM] set the desired PWM output to timer handllers regardless of the CAN connection (`#531 <https://github.com/jsk-ros-pkg/aerial_robot/issues/531>`_)
+* [Spinal] refactor the process when no nueron connected (`#533 <https://github.com/jsk-ros-pkg/aerial_robot/issues/533>`_)
+* [Spinal][rosserial] use UART for STM32H7 as default (`#530 <https://github.com/jsk-ros-pkg/aerial_robot/issues/530>`_)
+* [Spinal] remove unnecessary files (`#532 <https://github.com/jsk-ros-pkg/aerial_robot/issues/532>`_)
+* [Spinal][rosserial] increase the size of OUTPUT_SIZE for publisher (`#522 <https://github.com/jsk-ros-pkg/aerial_robot/issues/522>`_)
+* [Spinal] refactor the callback process according to the value of motor_number (`#519 <https://github.com/jsk-ros-pkg/aerial_robot/issues/519>`_)
+* [rqt_gui][rosparam] improve the parse process about the servo information based on rosparam (`#518 <https://github.com/jsk-ros-pkg/aerial_robot/issues/518>`_)
+
+
 1.3.1 (2022-07-02)
 ------------------
 * [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)

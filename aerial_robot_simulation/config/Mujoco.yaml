@@ -1,0 +1,17 @@
+# control
+attitude_controller:
+  type: flight_controllers/MujocoAttitudeController
+
+
+# sensor -> aerial_robot_hw_sim
+## mocap
+simulation:
+  robot_hw_sim_plugin_name: mujoco_ros_control/AerialRobotHWSim
+
+  mocap_pub_rate: 0.01
+  mocap_pos_noise: 0.001
+  mocap_rot_noise: 0.001
+
+  # ground truth -> aerial_robot_hw_sim
+  ground_truth_pub_rate: 0.01
+  

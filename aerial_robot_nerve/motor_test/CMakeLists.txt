@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(motor_test)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -9,12 +9,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   geometry_msgs
   takasako_sps
+  spinal
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs std_srvs geometry_msgs takasako_sps
+  CATKIN_DEPENDS roscpp std_msgs std_srvs geometry_msgs takasako_sps spinal
 )
 
 include_directories(

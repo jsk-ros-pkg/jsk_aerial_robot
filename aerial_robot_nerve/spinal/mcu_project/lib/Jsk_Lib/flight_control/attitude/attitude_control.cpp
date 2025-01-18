@@ -46,24 +46,55 @@ AttitudeController::AttitudeController():
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this)
+  torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  esc_telem_pub_("esc_telem", &esc_telem_msg_)
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
+                              DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
   pwm_htim2_ = htim2;
   nh_ = nh;
   estimator_ = estimator;
+  dshot_ = dshot;
   bat_ = bat;
   mutex_ = mutex;
 
-  HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_4);
+  if(!dshot_)
+    {
+      HAL_TIM_PWM_Stop(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_Base_Stop(pwm_htim1_);
+      HAL_TIM_Base_DeInit(pwm_htim1_);
+
+      pwm_htim1_->Init.Prescaler = 3;
+      pwm_htim1_->Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+      pwm_htim1_->Init.Period = 50000;
+
+      TIM_OC_InitTypeDef sConfigOC = {0};
+      sConfigOC.OCMode = TIM_OCMODE_PWM1;
+      sConfigOC.Pulse = 1000;
+      sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+      sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+
+      while(HAL_TIM_Base_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_ConfigChannel(pwm_htim1_, &sConfigOC, TIM_CHANNEL_1) != HAL_OK);
+
+      if (pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] != NULL) {
+        HAL_DMA_DeInit(pwm_htim1_->hdma[TIM_DMA_ID_UPDATE]);
+        pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] = NULL;
+      }
+
+      HAL_TIM_Base_Start(pwm_htim1_);
+
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
+    }
 
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
@@ -73,6 +104,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
+  nh_->advertise(esc_telem_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
   nh_->subscribe(pwm_info_sub_);
@@ -89,7 +121,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
 void AttitudeController::baseInit()
 {
-  // base param for uav model
+ // base param for uav model
   motor_number_ = 0;
   uav_model_ = -1;
   rotor_devider_ = 1;
@@ -182,14 +214,53 @@ void AttitudeController::pwmsControl(void)
     Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
 #endif
   }
-  return;
 #endif
 
-  /* direct pwm type */
-  pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
-  pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+  if(dshot_)
+    {
+      /* direct pwm type */
+      uint16_t motor_value[4] = { 0, 0, 0, 0 };
+      for (int i = 0; i < 4; i++)
+        {
+          // target_pwm_: 0.5 ~ 1.0
+          uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
+
+          if (motor_v > DSHOT_MAX_THROTTLE)
+            motor_v = DSHOT_MAX_THROTTLE;
+          else if (motor_v < DSHOT_MIN_THROTTLE)
+            motor_v = DSHOT_MIN_THROTTLE;
+    
+          motor_value[i] = motor_v;
+        }
+
+      dshot_->write(motor_value, dshot_->is_telemetry_);
+
+      if (dshot_->is_telemetry_)
+        {
+          if (dshot_->esc_reader_.is_update_all_msg_)
+            {
+              esc_telem_msg_.stamp = nh_->now();
+              esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+              esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
+              esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
+              esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
+              esc_telem_pub_.publish(&esc_telem_msg_);
+
+              float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
+                                          dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
+              bat_->update(voltage_ave);
+
+              dshot_->esc_reader_.is_update_all_msg_ = false;
+            }
+        }
+    }
+  else
+    {
+      pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+    }
 
   pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
@@ -381,6 +452,7 @@ void AttitudeController::reset(void)
     {
       target_thrust_[i] = 0;
       target_pwm_[i] = IDLE_DUTY;
+      pwm_test_value_[i] = IDLE_DUTY;
 
       base_thrust_term_[i] = 0;
       roll_pitch_term_[i] = 0;
@@ -654,10 +726,60 @@ void AttitudeController::maxYawGainIndex()
     }
 }
 
-void AttitudeController::pwmTestCallback(const std_msgs::Float32& pwm_msg)
+void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 {
-  pwm_test_flag_ = true;
-  pwm_test_value_ = pwm_msg.data; //2000ms
+#ifndef SIMULATION  
+  if(pwm_msg.pwms_length && !pwm_test_flag_)
+    {
+      pwm_test_flag_ = true;
+      nh_->logwarn("Enter pwm test mode");
+    }
+  else if(!pwm_msg.pwms_length && pwm_test_flag_)
+    {
+      pwm_test_flag_ = false;
+      nh_->logwarn("Escape from pwm test mode");
+      return;
+    }
+
+  if(pwm_msg.motor_index_length)
+    {
+      /*Individual test mode*/
+      if(pwm_msg.motor_index_length != pwm_msg.pwms_length)
+        {
+          nh_->logerror("The number of index does not match the number of pwms.");
+          return;
+        }
+      for(int i = 0; i < pwm_msg.motor_index_length; i++){
+        int motor_index = pwm_msg.motor_index[i];
+                /*fail safe*/
+        if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] <= MAX_PWM)
+          {
+            pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+          }
+        else
+          {
+            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motor");
+            pwm_test_value_[motor_index] = IDLE_DUTY;
+          }
+      }
+    }
+  else
+    {
+      /*Simultaneous test mode*/
+      for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
+        /*fail safe*/
+        if (pwm_msg.pwms[0] >= IDLE_DUTY && pwm_msg.pwms[0] <= MAX_PWM)
+          {
+            pwm_test_value_[i] = pwm_msg.pwms[0];
+          }
+        else
+          {
+            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motors");
+            pwm_test_value_[i] = IDLE_DUTY;
+          }
+      }
+    }
+#endif
 }
 
 void AttitudeController::setStartControlFlag(bool start_control_flag)
@@ -802,7 +924,7 @@ void AttitudeController::pwmConversion()
     {
       for(int i = 0; i < MAX_MOTOR_NUMBER; i++)
         {
-          target_pwm_[i] = pwm_test_value_;
+          target_pwm_[i] = pwm_test_value_[i];
         }
       return;
     }
@@ -856,7 +978,7 @@ void AttitudeController::pwmConversion()
     }
 
   /* pwm saturation avoidance */
-  /* get the decreasing rate for the thrust to avoid the devergence because of the pwm saturation */
+  /* get the decreasing rate for the thrust to avoid the divergence because of the pwm saturation */
   float base_thrust_decreasing_rate = 0;
   float yaw_decreasing_rate = 0;
   float thrust_limit = motor_info_[motor_ref_index_].max_thrust / v_factor_;

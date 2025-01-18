@@ -1,0 +1,7 @@
+package:
+  ["hydrus_xi"]
+
+hydrus_xi:
+  input:  ["robots/hex_branch/xavier201811.urdf.xacro", "robots/hex_branch/xavier_hokuyo.urdf.xacro"]
+  filename: ["hex_branch/xavier201811", "hex_branch/xavier_hokuyo"]
+  meshdir: "urdf/mesh"

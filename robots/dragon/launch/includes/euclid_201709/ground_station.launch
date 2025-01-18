@@ -5,4 +5,8 @@
   <group ns="$(arg robot_ns)">
     <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
   </group>
+
+  <include file="$(find aerial_robot_base)/launch/external_module/joy_stick.launch" >
+    <arg name="robo_name" value="$(arg robot_ns)" />
+  </include>
 </launch>
