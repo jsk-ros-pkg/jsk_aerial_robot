@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle-art-omni" >
-  <xacro:include filename="$(find beetle)/urdf/common.xacro" />
-  <xacro:include filename="$(find beetle)/urdf/beetle-art-omni.urdf.xacro" />
-</robot>
