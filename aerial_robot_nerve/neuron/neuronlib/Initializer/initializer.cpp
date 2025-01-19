@@ -39,15 +39,16 @@ void Initializer::sendBoardConfig()
 		data[5] = s.current_limit_ & 0xFF;
 		data[6] = (s.current_limit_ >> 8) & 0xFF;
 		data[7] = (s.send_data_flag_ ? 1 : 0);
+		data[7] += ((s.external_encoder_flag_ ? 1 : 0) << 1);
 		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data, 1);
-                data[0] = i;
-                data[1] = s.hardware_error_status_;
-                data[2] = (s.external_encoder_flag_ ? 1 : 0);
-		data[3] = s.joint_resolution_ & 0xFF;
-		data[4] = (s.joint_resolution_ >> 8) & 0xFF;
-		data[5] = s.servo_resolution_ & 0xFF;
-		data[6] = (s.servo_resolution_ >> 8) & 0xFF;
-                data[7] = 0;
+		data[0] = i;
+		data[1] = s.hardware_error_status_;
+		data[2] = s.goal_current_ & 0xFF;
+		data[3] = (s.goal_current_ >> 8) & 0xFF;
+		data[4] = s.joint_resolution_ & 0xFF;
+		data[5] = (s.joint_resolution_ >> 8) & 0xFF;
+		data[6] = s.servo_resolution_ & 0xFF;
+		data[7] = (s.servo_resolution_ >> 8) & 0xFF;
 		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_3, m_slave_id, 8, data, 1);
 	}
 }

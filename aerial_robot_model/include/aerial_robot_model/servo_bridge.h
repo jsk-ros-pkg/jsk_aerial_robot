@@ -125,8 +125,14 @@ public:
 
   inline void setCurrTorqueVal(const double& val)
   {
-      curr_torque_val_ = torque_scale_ * angle_sgn_ * val;
+    curr_torque_val_ = torque_scale_ * angle_sgn_ * val;
   }
+
+  inline void setTargetTorqueVal(const double& val)
+  {
+    target_torque_val_ = val;
+  }
+
 
   inline void setName(const string& name){ name_ = name; }
   inline void setId(const int& id){ id_ = id; }
@@ -164,6 +170,19 @@ public:
     return curr_torque_val_;
   }
 
+  inline const double getTargetTorqueVal(int value_type) const
+  {
+    if(value_type == ValueType::BIT)
+      {
+        return target_torque_val_ * angle_sgn_ / torque_scale_;
+      }
+    else // Nm
+      {
+        return target_torque_val_;
+      }
+  }
+
+
   inline const string& getName(){return name_; }
   inline const int& getId() const {return id_; }
   inline const int& getAngleSgn() const {return angle_sgn_; }
@@ -177,6 +196,7 @@ private:
   double curr_angle_val_; // radian
   double target_angle_val_; // radian
   double curr_torque_val_; // Nm
+  double target_torque_val_; // Nm
   int angle_sgn_;
   int zero_point_offset_;
   double angle_scale_;
@@ -206,11 +226,14 @@ protected:
   ros::Subscriber uav_info_sub_;
   map<string, ros::Subscriber> servo_states_subs_;
   map<string, ros::Subscriber> servo_ctrl_subs_;
+  map<string, ros::Subscriber> servo_torque_ctrl_subs_;
+  map<string, ros::Subscriber> servo_torque_subs_;
   map<string, bool> no_real_state_flags_;
-  map<string, ros::Publisher> servo_ctrl_pubs_;
-  map<string, ros::ServiceServer> servo_torque_ctrl_srvs_;
-  map<string, ros::Publisher> servo_torque_ctrl_pubs_;
-  map<string, vector<ros::Publisher> > servo_ctrl_sim_pubs_; // TODO: should be actionlib, trajectory controller
+  map<string, ros::Publisher> servo_target_pos_pubs_;
+  map<string, ros::Publisher> servo_target_torque_pubs_;
+  map<string, ros::ServiceServer> servo_enable_srvs_;
+  map<string, ros::Publisher> servo_enable_pubs_;
+  map<string, vector<ros::Publisher> > servo_target_pos_sim_pubs_; // TODO: should be actionlib, trajectory controller
 
   map<string, ServoGroupHandler> servos_handler_;
   double moving_check_rate_;
@@ -222,7 +245,8 @@ protected:
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
-  bool servoTorqueCtrlCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
+  void servoTorqueCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
+  bool servoEnableCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
   void uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg);
 
 public:
