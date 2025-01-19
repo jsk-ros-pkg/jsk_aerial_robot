@@ -24,17 +24,24 @@ public:
 	void sendData() override;
 	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 
+	bool getConnect() {return connect_;}
+	void setConnect(bool connect) {connect_ = connect;}
+
 private:
 	struct CANServoData{
 		int16_t angle;
 		uint8_t temperature;
-		uint8_t moving;
+		uint8_t status;
 		int16_t current;
 		uint8_t error;
-		CANServoData(uint16_t angle, uint8_t temperature, uint8_t moving, int16_t current, uint8_t error)
-		:angle(angle), temperature(temperature), moving(moving), current(current), error(error){}
+		CANServoData(uint16_t angle, uint8_t temperature, uint8_t moving, bool force_servo_disable, int16_t current, uint8_t error)
+		:angle(angle), temperature(temperature), current(current), error(error)
+          {
+            status = (force_servo_disable? 1 : 0) | moving << 1;
+          }
 	};
 
+	bool connect_;
 	DynamixelSerial servo_handler_;
 	friend class Initializer;
 };

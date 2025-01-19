@@ -1,6 +1,6 @@
 #include <hydrus/numerical_jacobians.h>
 
-HydrusNumericalJacobian::HydrusNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
+HydrusNumericalJacobian::HydrusNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model):
   aerial_robot_model::NumericalJacobian(nh, nhp, std::move(robot_model))
 {
   nhp_.param("check_feasible_control_roll_pitch", check_feasible_control_roll_pitch_, true);

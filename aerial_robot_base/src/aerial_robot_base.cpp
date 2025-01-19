@@ -38,7 +38,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       ROS_DEBUG("use default class for flight navigation: aerial_robot_navigation::BaseNavigator");
       navigator_ = boost::make_shared<aerial_robot_navigation::BaseNavigator>();
     }
-  navigator_->initialize(nh_, nhp_, robot_model, estimator_);
+  navigator_->initialize(nh_, nhp_, robot_model, estimator_, 1 / main_rate);
 
   //  controller
   try
@@ -46,7 +46,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
       std::string aerial_robot_control_name;
       nh_.param ("aerial_robot_control_name", aerial_robot_control_name, std::string("aerial_robot_control/flatness_pid"));
       controller_ = controller_loader_.createInstance(aerial_robot_control_name);
-      controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_rate);
+      controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, 1 / main_rate);
     }
   catch(pluginlib::PluginlibException& ex)
     {

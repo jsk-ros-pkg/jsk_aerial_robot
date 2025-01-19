@@ -35,16 +35,17 @@
 
 #pragma once
 
-#include <hydrus/hydrus_lqi_controller.h>
-#include <spinal/DesireCoord.h>
+#include <aerial_robot_control/control/under_actuated_tilted_lqi_controller.h>
+#include <spinal/PMatrixPseudoInverseWithInertia.h>
+#include <thread>
 
 namespace aerial_robot_control
 {
-  class HydrusTiltedLQIController: public HydrusLQIController
+  class HydrusTiltedLQIController: public UnderActuatedTiltedLQIController
   {
   public:
-    HydrusTiltedLQIController() {}
-    virtual ~HydrusTiltedLQIController() = default;
+    HydrusTiltedLQIController();
+    ~HydrusTiltedLQIController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -53,18 +54,6 @@ namespace aerial_robot_control
                     double ctrl_loop_rate);
 
   protected:
-
-    ros::Publisher desired_baselink_rot_pub_;
-
-    double trans_constraint_weight_;
-    double att_control_weight_;
-
-    double z_limit_;
-
-    void controlCore() override;
-    bool optimalGain() override;
-    void publishGain() override;
-    void rosParamInit() override;
-
+    bool checkRobotModel() override;
   };
 };

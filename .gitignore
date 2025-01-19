@@ -6,7 +6,8 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -102,3 +103,11 @@ tags
 
 # python
 *.pyc
+
+# Jetbrains
+.idea/
+*cmake-build-debug/
+
+# mujoco
+MUJOCO_LOG.txt
+robots/**/mujoco

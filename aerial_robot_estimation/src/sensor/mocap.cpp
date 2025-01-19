@@ -80,7 +80,7 @@ namespace sensor_plugin
 
       mocap_sub_ = nh_.subscribe(topic_name, 1, &Mocap::poseCallback, this, hint); // buffer size 1: only need the latest value.
       nhp_.param("ground_truth_sub_name", topic_name, std::string("ground_truth"));
-      ground_truth_sub_ = nh_.subscribe(topic_name, 1, &Mocap::groundTruthCallback, this);
+      ground_truth_sub_ = nh_.subscribe(topic_name, 1, &Mocap::groundTruthCallback, this, ros::TransportHints().tcpNoDelay());
     }
 
     ~Mocap() {}

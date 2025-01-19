@@ -37,11 +37,14 @@
 
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
 #include <spinal/ServoControlCmd.h>
 #include <std_msgs/Empty.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+
 
 namespace sensor_plugin
 {
@@ -75,6 +78,7 @@ namespace sensor_plugin
     ros::Timer  servo_control_timer_;
 
     /* ros param */
+    double throttle_rate_;
     double level_pos_noise_sigma_;
     double z_pos_noise_sigma_;
     double vel_noise_sigma_;
@@ -84,10 +88,12 @@ namespace sensor_plugin
     int fusion_mode_;
     bool vio_mode_; // visual + inertial mode
     bool z_vel_mode_;
+    bool local_vel_mode_;
     bool outdoor_no_vel_time_sync_; // very special flag for stereo cam such as zed mini, which has tricky behavier in outdoor mode
     /* heuristic sepecial flag for fusion */
     bool outdoor_;
     bool z_no_delay_;
+
 
     /* servo */
     std::string joint_name_;
@@ -107,6 +113,8 @@ namespace sensor_plugin
 
     double reference_timestamp_;
     aerial_robot_msgs::States vo_state_;
+
+    tf2_ros::StaticTransformBroadcaster static_broadcaster_; // publish the transfrom between the work and vo frame
 
     void rosParamInit();
     void servoControl(const ros::TimerEvent & e);

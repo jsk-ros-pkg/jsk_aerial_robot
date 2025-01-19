@@ -69,7 +69,7 @@ class GazeboControlBridge:
             init_values[group_name] = subgroup_init_values
             self.actuator_command_pubs[group_name] = actuator_command_pubs
 
-            # setup the control subcriber
+            # setup the control subscriber
             group_ctrl_topic_name = rospy.get_param("actuator_controller/" + group_name + "/ctrl_topic_name", group_name + "_ctrl")
             self.joint_ctrl_sub_ = rospy.Subscriber(group_ctrl_topic_name, JointState, self.actuatorSubGroupCtrlCallback, group_name)
 
