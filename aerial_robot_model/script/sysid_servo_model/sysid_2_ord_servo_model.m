@@ -25,29 +25,25 @@ mydata = iddata(output(:, 2), input(:, 2), 0.01);
 tf1 = tfest(mydata, 2, 0, 'InputDelay', 0.0, Options);
 fit_percent_1 = tf1.Report.Fit.FitPercent
 kps1 = tf1.Numerator * Isxx
-kds1 = tf1.Denominator(2) * Isxx
-mus1 = kps1 - tf1.Denominator(3) * Isxx
+kds1 = tf1.Denominator(2) * Isxx  % Note that the kds here has contained the damping ratio miu
 
 mydata = iddata(output(:, 3), input(:, 3), 0.01);
 tf2 = tfest(mydata, 2, 0, 'InputDelay', 0.0, Options);
 fit_percent_2 = tf2.Report.Fit.FitPercent
 kps2 = tf2.Numerator * Isxx
 kds2 = tf2.Denominator(2) * Isxx
-mus2 = kps2 - tf2.Denominator(3) * Isxx
 
 mydata = iddata(output(:, 4), input(:, 4), 0.01);
 tf3 = tfest(mydata, 2, 0, 'InputDelay', 0.0, Options);
 fit_percent_3 = tf3.Report.Fit.FitPercent
 kps3 = tf3.Numerator * Isxx
 kds3 = tf3.Denominator(2) * Isxx
-mus3 = kps3 - tf3.Denominator(3) * Isxx
 
 mydata = iddata(output(:, 5), input(:, 5), 0.01);
 tf4 = tfest(mydata, 2, 0, 'InputDelay', 0.0, Options);
 fit_percent_4 = tf4.Report.Fit.FitPercent
 kps4 = tf4.Numerator * Isxx
 kds4 = tf4.Denominator(2) * Isxx
-mus4 = kps4 - tf4.Denominator(3) * Isxx
 
 % for dead_time = 0:0.001:0.02
 %     % 20240215: find that ssest is better than n4sid
