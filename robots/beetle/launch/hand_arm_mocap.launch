@@ -1,10 +1,11 @@
 <launch>
+  <!-- Define arguments -->
   <arg name="enable_arm" default="false"/>
   <arg name="robot_id_hand" default="5"/>
   <arg name="robot_id_arm" default="6"/>
 
-  <group if="$(arg enable_arm)">
-    <!-- activate the node with arm and hand -->
+  <!-- Activate node with arm and hand if enable_arm is True -->
+  <group if="$(eval arg('enable_arm') == true)">
     <node pkg="mocap_optitrack"
           type="mocap_node"
           name="mocap_node_arm"
@@ -13,23 +14,23 @@
           required="true">
       <rosparam subst_value="true">
         rigid_bodies:
-           '$(arg robot_id_arm)':
-             pose: arm/mocap/pose
-           '$(arg robot_id_hand)':
-             pose: hand/mocap/pose
+          '$(arg robot_id_arm)':
+            pose: arm/mocap/pose
+          '$(arg robot_id_hand)':
+            pose: hand/mocap/pose
         optitrack_config:
-           enable_optitrack: true
-           multicast_address: 239.255.42.99
-           command_port: 1510
-           data_port: 1511
+          enable_optitrack: true
+          multicast_address: 239.255.42.99
+          command_port: 1510
+          data_port: 1511
       </rosparam>
       <remap from="~hand/mocap/pose" to="/hand/mocap/pose" />
       <remap from="~arm/mocap/pose" to="/arm/mocap/pose" />
     </node>
   </group>
 
-  <group if="$(not arg enable_arm)">
-    <!-- activate the node only have hand -->
+  <!-- Activate node for hand only if enable_arm is false -->
+  <group if="$(eval arg('enable_arm') == false)">
     <node pkg="mocap_optitrack"
           type="mocap_node"
           name="mocap_node_hand"
@@ -38,16 +39,15 @@
           required="true">
       <rosparam subst_value="true">
         rigid_bodies:
-           '$(arg robot_id_hand)':
-             pose: hand/mocap/pose
+          '$(arg robot_id_hand)':
+            pose: hand/mocap/pose
         optitrack_config:
-           enable_optitrack: true
-           multicast_address: 239.255.42.99
-           command_port: 1510
-           data_port: 1511
+          enable_optitrack: true
+          multicast_address: 239.255.42.99
+          command_port: 1510
+          data_port: 1511
       </rosparam>
       <remap from="~hand/mocap/pose" to="/hand/mocap/pose" />
     </node>
   </group>
-
 </launch>
