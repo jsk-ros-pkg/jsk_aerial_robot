@@ -11,6 +11,7 @@ import time
 import sys
 
 import rospy
+import signal
 import socket
 import argparse
 from typing import List
@@ -27,9 +28,7 @@ class FingerDataPublisher:
         and the publisher for control mode.
         """
         rospy.init_node("glove_data_pub_node", anonymous=True)
-        self.control_mode_pub = rospy.Publisher(
-            "hand/control_mode", UInt8, queue_size=10
-        )
+        self.control_mode_pub = rospy.Publisher("hand/control_mode", UInt8, queue_size=10)
         self.last_time_little_finger = None
         self.last_time_openness = None
         self.control_mode = 0
@@ -48,6 +47,7 @@ class FingerDataPublisher:
                                        finger_info[0] is the little finger information
                                        finger_info[1] is the openness value.
         """
+        print(finger_info)
         if finger_info[1] > self.hand_open_threshold:
             self.last_time_little_finger = None
             if self.last_time_openness is None:
@@ -84,7 +84,7 @@ def handle_rotation(address: str, *args: float) -> None:
     finger_publisher.publish_control_mode(finger_info)
 
 
-def shut_publisher():
+def shut_publisher(sig, frame) -> None:
     """
     Handles the shutdown process for the OSC server and ROS node.
     """
@@ -120,10 +120,11 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run OSC server for Data Glove")
     parser.add_argument("--port", type=int, default=9400, help="Port number to bind the OSC server")
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     local_ip = get_local_ip()
 
-    rospy.on_shutdown(shut_publisher)
+    # Setup signal handler for graceful shutdown
+    signal.signal(signal.SIGINT, shut_publisher)
 
     finger_publisher = FingerDataPublisher()
 
@@ -137,4 +138,4 @@ if __name__ == "__main__":
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        shut_publisher()
+        shut_publisher(None, None)
