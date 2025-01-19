@@ -13,19 +13,15 @@ import yaml
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBiRotorNMPCFull.yaml")
+param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "PhysParamBirotor.yaml")
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 
-nmpc_params = param_dict["controller"]["nmpc"]
-nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
-
-physical_params = param_dict["controller"]["physical"]
+physical_params = param_dict["physical"]
 
 # servo parameters
 kps = physical_params["kps"]
 kds = physical_params["kds"]
-mus = physical_params["mus"]
 
 i_sxx = physical_params["servo_inertia_x"]
 
@@ -47,8 +43,7 @@ def export_servo_model() -> AcadosModel:
     xdot = ca.SX.sym('xdot', x.size()[0])
 
     # dynamics
-    f_expl = ca.vertcat(b,
-                        (kps * (ac - a) + kds * (0 - b) + mus * b) / i_sxx)
+    f_expl = ca.vertcat(b, (kps * (ac - a) + kds * (0 - b)) / i_sxx)
 
     f_impl = xdot - f_expl
 

@@ -30,7 +30,6 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 
 ## 2-ord
 kps = physical_params["kps"]
-kds = physical_params["kds"]
-mus = physical_params["mus"]
+kds = physical_params["kds"]   # kds has included the damping ratio
 
 i_sxx = physical_params["servo_inertia_x"]

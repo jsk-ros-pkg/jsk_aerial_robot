@@ -32,7 +32,6 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         super(NMPCTiltBi2OrdServo, self).__init__()
         self.kps = kps
         self.kds = kds
-        self.mus = mus
 
     def _set_name(self) -> str:
         model_name = "tilt_bi_2_ord_servo_mdl"
@@ -142,7 +141,7 @@ class NMPCTiltBi2OrdServo(NMPCBase):
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b - tau_s_b)),
             b,
-            (kps * (ac - a) + kds * (0 - b) + mus * b) / i_sxx,
+            (kps * (ac - a) + kds * (0 - b)) / i_sxx,
         )
 
         # function

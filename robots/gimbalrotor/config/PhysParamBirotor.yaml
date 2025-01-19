@@ -18,6 +18,5 @@ physical:
   # new 2nd-order servo model
   kps: 72.7570 # sim: 72.7570;
   kds: 11.5368 # sim: 11.5368;
-  mus: 0.0156 # sim: 0.0156
 
   servo_inertia_x: 0.0036697 # 0.0036697 calculated from UDRF
