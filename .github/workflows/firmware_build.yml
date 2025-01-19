@@ -17,6 +17,7 @@ jobs:
       - name: Install ROS packages with rosdep # Setup Github ws as a catkin ws
         shell: bash
         run: |
+          sudo apt-get update
           source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
           sudo rosdep init
