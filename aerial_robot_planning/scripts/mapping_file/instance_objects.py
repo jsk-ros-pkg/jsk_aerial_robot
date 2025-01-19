@@ -5,6 +5,9 @@
 # @File : instance_objects.py
 # @Software: PyCharm
 
+import os
+import sys
+
 import time
 import rospy
 from functools import wraps
@@ -13,7 +16,11 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from aerial_robot_planning.scripts.pub_mpc_joint_traj import MPCPubJointTraj
+current_path = os.path.abspath(os.path.dirname(__file__))
+if current_path not in sys.path:
+    sys.path.insert(0, current_path)
+
+from pub_mpc_joint_traj import MPCPubJointTraj
 
 
 ##########################################
@@ -137,10 +144,11 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
 
         self._check_last_time = None
         self._check_last_position = None
-        self._check_check_orientation =None
+        self._check_check_orientation = None
         self._check_time_threshold = 8
         self._check_position_tolerance = 0.1
         self._check_orientation_tolerance = 3
+
     def _check_finish_auto(self):
         current_time = rospy.Time.now().to_sec()
         if not hasattr(self, "last_check_time"):
@@ -173,10 +181,8 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         position_change = [abs(current_check_position[i] - self._check_last_position[i]) for i in range(3)]
         orientation_change = [abs(current_check_orientation[i] - self._check_check_orientation[i]) for i in range(4)]
 
-        if (
-                all(change < self._check_position_tolerance for change in position_change)
-                and
-                all(change < self._check_orientation_tolerance for change in orientation_change)
+        if all(change < self._check_position_tolerance for change in position_change) and all(
+            change < self._check_orientation_tolerance for change in orientation_change
         ):
             if current_time - self.last_check_time > self._check_time_threshold:
                 print("Exit mapping mode")
@@ -254,8 +260,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         if self.control_mode:
             if self.control_mode.control_mode == 2:
                 self.is_finished = True
-        else :
+        else:
             self._check_finish_auto()
 
         return self.is_finished
-

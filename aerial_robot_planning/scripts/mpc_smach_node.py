@@ -26,7 +26,7 @@ from geometry_msgs.msg import Pose, Quaternion, Vector3
 
 import trajs
 
-from aerial_robot_planning.scripts.mapping_file.instance_objects import (
+from mapping_file.instance_objects import (
     HandPosition,
     ArmPosition,
     DronePosition,
@@ -117,7 +117,7 @@ class IdleState(smach.State):
                             rospy.loginfo(f"Decided not to activate {device}.")
                             break
                         else:
-                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")  
+                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")
 
                 return "go_mapping_init"
 
@@ -376,7 +376,6 @@ class OneToOneMapState(smach.State):
             )
             self.if_init_pub_object = False
 
-
         while not rospy.is_shutdown():
             if self.pub_object.check_finished():
                 if self.timer is not None:
@@ -384,6 +383,7 @@ class OneToOneMapState(smach.State):
                     self.timer = None
                 return "done_track"
             self.rate.sleep()
+
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
