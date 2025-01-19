@@ -366,8 +366,8 @@ namespace aerial_robot_navigation
     {
       if(getNaviState() == TAKEOFF_STATE) return;
 
-      double pos_x_error = estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x();
-      double pos_y_error = estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y();
+      double pos_x_error = getTargetPos().x() - estimator_->getPos(Frame::COG, estimate_mode_).x();
+      double pos_y_error = getTargetPos().y() - estimator_->getPos(Frame::COG, estimate_mode_).y();
       double pos_xy_error_dist = std::sqrt(pos_x_error * pos_x_error + pos_y_error * pos_y_error);
       if(pos_xy_error_dist > takeoff_xy_pos_tolerance_)
         {
