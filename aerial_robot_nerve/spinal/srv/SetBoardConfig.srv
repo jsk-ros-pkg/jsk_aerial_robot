@@ -24,6 +24,9 @@ uint8 SET_SERVO_EXTERNAL_ENCODER_FLAG = 9
 uint8 SET_SERVO_RESOLUTION_RATIO = 10
 # [slave_id, servo_index, joint_resolution, servo_resolution]
 
+uint8 SET_SERVO_PULLEY_SKIP_THRESH = 12
+# [slave_id, thresh]
+
 
 uint8 command
 int32[] data

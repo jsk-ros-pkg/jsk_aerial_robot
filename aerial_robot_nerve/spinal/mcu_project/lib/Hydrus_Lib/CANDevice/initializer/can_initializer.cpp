@@ -142,8 +142,8 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
                 case spinal::SetBoardConfig::Request::SET_SERVO_RESOLUTION_RATIO:
                 {
                   uint8_t servo_index = static_cast<uint8_t>(req.data[1]);
-                  uint16_t joint_resolution = static_cast<uint16_t>(req.data[2]);
-                  uint16_t servo_resolution = static_cast<uint16_t>(req.data[3]);
+                  int16_t joint_resolution = static_cast<int16_t>(req.data[2]);
+                  int16_t servo_resolution = static_cast<int16_t>(req.data[3]);
                   uint8_t send_data[6];
                   send_data[0] = CAN::BOARD_CONFIG_SET_RESOLUTION_RATIO;
                   send_data[1] = servo_index;
@@ -184,6 +184,16 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 			send_data[4] = (ref_value >> 16) & 0xFF;
 			send_data[5] = (ref_value >> 24) & 0xFF;
 			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 6, send_data, 1);
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_SERVO_PULLEY_SKIP_THRESH:
+		{
+			uint16_t thresh  = static_cast<uint16_t>(req.data[1]);
+			uint8_t send_data[3];
+			send_data[0] = CAN::BOARD_CONFIG_SET_SERVO_PULLEY_SKIP_THRESH;
+			send_data[1] = thresh & 0xFF;
+			send_data[2] = (thresh >> 8) & 0xFF;
+			sendMessage(CAN::MESSAGEID_RECEIVE_BOARD_CONFIG_REQUEST, slave_id, 3, send_data, 1);
 			break;
 		}
 		default:
@@ -232,10 +242,12 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
         if (neuron_[index].getInitialized()) {
           neuron_[index].can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
           neuron_[index].can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
+          uint16_t thresh = (data[4] << 8) | data[3];
+          neuron_[index].can_servo_.setPulleySkipThresh(thresh);
           return;
         }
         neuron_[index].can_motor_ = CANMotor(slave_id);
-        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false);
+        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false, (data[4] << 8) | data[3]);
         neuron_[index].can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
         neuron_[index].setInitialized();
         break;

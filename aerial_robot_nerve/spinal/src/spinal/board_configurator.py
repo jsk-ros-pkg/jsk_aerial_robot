@@ -131,6 +131,7 @@ class BoardConfigurator(Plugin):
                 board.appendRow([QStandardItem('board_id'), QStandardItem(str(b.slave_id))])
                 board.appendRow([QStandardItem('imu_send_data_flag'), QStandardItem(str(bool(b.imu_send_data_flag)))])
                 board.appendRow([QStandardItem('dynamixel_ttl_rs485_mixed'), QStandardItem(str(bool(b.dynamixel_ttl_rs485_mixed)))])
+                board.appendRow([QStandardItem('servo_pulley_skip_thresh'), QStandardItem(str(b.servo_pulley_skip_thresh))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
                     servo = QStandardItem(str(j))
@@ -163,7 +164,7 @@ class BoardConfigurator(Plugin):
         row = self._widget.boardInfoTreeView.currentIndex().row()
         param = self._widget.boardInfoTreeView.currentIndex().sibling(row, 0).data()
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
-        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed']
+        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed', 'servo_pulley_skip_thresh']
         servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag', 'external_encoder_flag', 'resolution[joint:servo]']
         if value and (param in servo_param_list):
             raw_servo_id = self._widget.boardInfoTreeView.currentIndex().sibling(0,1).data()
@@ -266,6 +267,13 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_DYNAMIXEL_TTL_RS485_MIXED
+        elif self._command == 'servo_pulley_skip_thresh':
+            try:
+                req.data.append(int(self._widget.lineEdit.text()))
+            except ValueError as e:
+                print(e)
+                return
+            req.command = req.SET_SERVO_PULLEY_SKIP_THRESH
         elif self._command == 'external_encoder_flag':
             try:
                 req.data.append(int(self._servo_index))
