@@ -14,7 +14,7 @@ from phys_param_beetle_omni import *
 # read parameters from yaml
 rospack = rospkg.RosPack()
 
-mhe_param_path = os.path.join(rospack.get_path("beetle"), "config", "StateEstimationMHE.yaml")
+mhe_param_path = os.path.join(rospack.get_path("beetle_omni"), "config", "StateEstimationMHE.yaml")
 with open(mhe_param_path, "r") as f:
     mhe_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 mhe_params = mhe_param_dict["estimation"]["mhe"]
