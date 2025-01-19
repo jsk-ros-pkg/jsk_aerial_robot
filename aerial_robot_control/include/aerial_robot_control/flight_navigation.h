@@ -366,9 +366,12 @@ namespace aerial_robot_navigation
     {
       if(getNaviState() == TAKEOFF_STATE) return;
 
-      if(fabs(estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x()) > takeoff_xy_pos_tolerance_ || fabs(estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y()) > takeoff_xy_pos_tolerance_)
+      double pos_x_error = estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x();
+      double pos_y_error = estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y();
+      double pos_xy_error_dist = std::sqrt(pos_x_error * pos_x_error + pos_y_error * pos_y_error);
+      if(pos_xy_error_dist > takeoff_xy_pos_tolerance_)
         {
-          ROS_ERROR_STREAM("initial xy pos error: [" << estimator_->getPos(Frame::COG, estimate_mode_).x() - getTargetPos().x() << ", " << estimator_->getPos(Frame::COG, estimate_mode_).y() - getTargetPos().y() << "] is larger than threshold " << takeoff_xy_pos_tolerance_ << ". switch back to ARM_OFF_STATE");
+          ROS_ERROR_STREAM("initial xy error distance: " << pos_xy_error_dist << " is larger than threshold " << takeoff_xy_pos_tolerance_ << ". switch back to ARM_OFF_STATE");
           setNaviState(STOP_STATE);
         }
 
