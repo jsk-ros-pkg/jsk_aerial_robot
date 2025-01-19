@@ -104,7 +104,7 @@ catkin build
 ### 1. Start the simulation
 Run the simulation with the following command:
 ```bash
-roslaunch beetle-omni bringup_nmpc_omni.launch real_machine:=false simulation:=True headless:=False nmpc_mode:=0
+roslaunch beetle_omni bringup_nmpc_omni.launch real_machine:=false simulation:=True headless:=False nmpc_mode:=0
 ```
 ### 2. Start the keyboard script
 Run the keyboard with the following command:
