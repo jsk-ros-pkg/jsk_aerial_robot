@@ -70,10 +70,9 @@ void nmpc::TiltMtServoDistNMPC::initPlugins()
   }
 }
 
-void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
+void nmpc::TiltMtServoDistNMPC::updateITerm()
 {
   /* HANDLING MODEL ERROR */
-  // TODO: wrap this part as a function
   /* get the current state */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Quaternion q = estimator_->getQuat(Frame::COG, estimate_mode_);
@@ -108,6 +107,11 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
     wrench_est_i_term_.update(target_pos, target_q, pos, q);
   }
 
+}
+
+void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
+{
+  updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
 

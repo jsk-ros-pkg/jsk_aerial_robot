@@ -51,6 +51,9 @@ protected:
   /* external wrench estimation */
   virtual void calcDisturbWrench();
   void pubDisturbWrench() const;
+
+  /* I Term */
+  void updateITerm();
 };
 
 }  // namespace nmpc
