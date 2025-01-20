@@ -40,8 +40,8 @@ traj_cls_list = [
     for name, cls in inspect.getmembers(trajs, inspect.isclass)
     # optionally ensure the class is defined in trajs and not an imported library
     if cls.__module__ == "trajs"
-    # (Optional) filter by name if you only want classes that end with "Traj"
-    and name != "BaseTraj"
+       # (Optional) filter by name if you only want classes that end with "Traj"
+       and name != "BaseTraj"
 ]
 print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
@@ -356,23 +356,19 @@ class OneToOneMapState(smach.State):
 
         self.start_time = rospy.Time.now().to_sec()
 
-        self.if_init_pub_object = True
-
         self.pub_object = None
 
         self.rate = rospy.Rate(20)
 
     def execute(self, userdata):
 
-        if self.if_init_pub_object:
-
+        if self.pub_object is None:
             self.pub_object = OneToOnePubJointTraj(
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
                 control_mode=shared_data["control_mode"],
             )
-            self.if_init_pub_object = False
 
         while not rospy.is_shutdown():
             if self.pub_object.check_finished():
@@ -380,7 +376,7 @@ class OneToOneMapState(smach.State):
             self.rate.sleep()
 
         del self.pub_object
-        self.if_init_pub_object = True
+        self.pub_object = None
 
         return "done_track"
 
