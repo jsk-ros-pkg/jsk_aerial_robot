@@ -7,7 +7,7 @@
   <arg name="port" default="9400"/>
 
   <!-- Include the original hand_arm_mocap.launch file and pass the arguments -->
-  <include file="$(find beetle)/launch/hand_arm_mocap.launch">
+  <include file="$(find beetle_omni)/launch/hand_arm_mocap.launch">
     <arg name="enable_arm" value="$(arg enable_arm)" />
     <arg name="robot_id_arm" value="$(arg robot_id_arm)" />
     <arg name="robot_id_hand" value="$(arg robot_id_hand)" />
