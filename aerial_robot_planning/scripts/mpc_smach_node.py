@@ -358,8 +358,6 @@ class OneToOneMapState(smach.State):
 
         self.if_init_pub_object = True
 
-        self.timer = None
-
         self.pub_object = None
 
         self.rate = rospy.Rate(20)
@@ -378,11 +376,13 @@ class OneToOneMapState(smach.State):
 
         while not rospy.is_shutdown():
             if self.pub_object.check_finished():
-                if self.timer is not None:
-                    self.timer.shutdown()
-                    self.timer = None
-                return "done_track"
+                break
             self.rate.sleep()
+
+        del self.pub_object
+        self.if_init_pub_object = True
+
+        return "done_track"
 
 
 def create_hand_control_state_machine():
