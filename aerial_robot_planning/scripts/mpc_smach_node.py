@@ -1,6 +1,6 @@
-'''
+"""
  Created by li-jinjie on 25-1-4.
-'''
+"""
 
 import os
 import sys
@@ -10,32 +10,44 @@ import smach
 import smach_ros
 import numpy as np
 import inspect
+import time
+import tf.transformations as tft
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
+
 from pub_mpc_joint_traj import MPCTrajPtPub, MPCSinglePtPub
+
 from pub_mpc_pred_xu import MPCPubCSVPredXU
 
 from geometry_msgs.msg import Pose, Quaternion, Vector3
 
 import trajs
 
+from mapping_file.instance_objects import (
+    HandPosition,
+    ArmPosition,
+    DronePosition,
+    ControlMode,
+    OneToOnePubJointTraj,
+)
+
 # Collect all classes inside trajs whose name ends with 'Traj'
 traj_cls_list = [
     cls
     for name, cls in inspect.getmembers(trajs, inspect.isclass)
     # optionally ensure the class is defined in trajs and not an imported library
-    if cls.__module__ == 'trajs'
+    if cls.__module__ == "trajs"
        # (Optional) filter by name if you only want classes that end with "Traj"
        and name != "BaseTraj"
 ]
 print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
 # read all CSV files in the folder ./tilt_qd_csv_trajs
-csv_folder_path = os.path.join(current_path, 'tilt_qd_csv_trajs')
-csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith('.csv')]
+csv_folder_path = os.path.join(current_path, "tilt_qd_csv_trajs")
+csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith(".csv")]
 print(f"Found {len(csv_files)} CSV files in ./tilt_qd_csv_trajs folder.")
 
 
@@ -53,15 +65,16 @@ class IdleState(smach.State):
     """
     IDLE State:
     - Prompt user for robot_name, traj_type, loop_num.
+    - Also need to prompt user for mapping_config, if user use mapping control.
     - On valid input, go INIT; otherwise, stay in IDLE.
     """
 
     def __init__(self):
         smach.State.__init__(
             self,
-            outcomes=["go_init", "stay_idle", "shutdown"],
-            input_keys=[],
-            output_keys=["robot_name", "traj_type", "loop_num"],
+            outcomes=["go_init", "stay_idle", "shutdown", "go_mapping_init"],
+            input_keys=["mapping_config"],
+            output_keys=["robot_name", "traj_type", "loop_num", "mapping_config"],
         )
 
     def execute(self, userdata):
@@ -77,11 +90,36 @@ class IdleState(smach.State):
             for i, csv_file in enumerate(csv_files):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
+            # print an available hand control state
+            print("h : One-to-one mapping control")
+
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit: ")
+            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
+
+            if traj_type_str.lower() == "h":
+                userdata.traj_type = "h"
+                userdata.mapping_config = {"is_arm_active": False, "is_glove_active": False}
+
+                devices = {"is_arm_active": "Arm mocap", "is_glove_active": "Glove"}
+                print("Whether activate the following devices. ([Y]/Yes or [N]/No, case-insensitive)")
+                for mapping_config_key, device in devices.items():
+                    while True:
+                        user_input = input(f"Whether activate {device} ([Y]/[N]): ").strip().lower()
+                        if user_input == "y":
+                            userdata.mapping_config[mapping_config_key] = True
+                            rospy.loginfo(f"Decide to activate {device}.")
+                            break
+                        elif user_input == "n":
+                            userdata.mapping_config[mapping_config_key] = False
+                            rospy.loginfo(f"Decided not to activate {device}.")
+                            break
+                        else:
+                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")
+
+                return "go_mapping_init"
 
             traj_type = int(traj_type_str)
             if not (0 <= traj_type <= max_traj_idx):
@@ -146,7 +184,7 @@ class InitState(smach.State):
             rospy.loginfo(f"Using CSV file: {csv_file}")
             # csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
             # TODO: change the order of csv file. one row for one point is better.
-            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',')
+            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=",")
             x, y, z = csv_traj[0:3, 0]
             qw, qx, qy, qz = csv_traj[6:10, 0]
 
@@ -212,6 +250,169 @@ class TrackState(smach.State):
         return "done_track"
 
 
+class InitObjectState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name", "mapping_config"], output_keys=[])
+
+    def execute(self, userdata):
+
+        # userdata.mapping_config = {"is_arm_active": True, "is_glove_active": True}
+        try:
+            if userdata.mapping_config.get("is_arm_active", False):
+                shared_data["arm"] = ArmPosition()
+                rospy.loginfo(f"The arm mocap has been successfully activated.")
+            if userdata.mapping_config.get("is_glove_active", False):
+                shared_data["control_mode"] = ControlMode()
+                rospy.loginfo(f"The data glove has been successfully activated.")
+
+            shared_data["hand"] = HandPosition()
+            rospy.loginfo(f"The hand mocap has been successfully activated.")
+            shared_data["drone"] = DronePosition(userdata.robot_name)
+            rospy.loginfo(f"The drone's position has been successfully activated.")
+            return "go_lock"
+        except Exception as e:
+            rospy.logerr(f"Initialization failed: {e}")
+            return "error"
+
+
+class LockState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=["go_unlock"], input_keys=[], output_keys=[])
+
+        self.last_threshold_time = None
+        self.threshold = 8
+        self.direction_hold_time = 1
+        self.first = 1
+        self.rate = rospy.Rate(20)
+        self.is_finished = False
+
+    def execute(self, userdata):
+
+        global shared_data
+
+        rospy.loginfo("Current state: Lock")
+        rospy.loginfo("Please align the direction of your hand with the drone's hand direction.")
+
+        while not rospy.is_shutdown():
+            drone_orientation = [
+                shared_data["drone"].drone_position.pose.pose.orientation.x,
+                shared_data["drone"].drone_position.pose.pose.orientation.y,
+                shared_data["drone"].drone_position.pose.pose.orientation.z,
+                shared_data["drone"].drone_position.pose.pose.orientation.w,
+            ]
+            hand_orientation = [
+                shared_data["hand"].hand_position.pose.orientation.x,
+                shared_data["hand"].hand_position.pose.orientation.y,
+                shared_data["hand"].hand_position.pose.orientation.z,
+                shared_data["hand"].hand_position.pose.orientation.w,
+            ]
+            q_drone_inv = tft.quaternion_inverse(drone_orientation)
+            q_relative = tft.quaternion_multiply(hand_orientation, q_drone_inv)
+            euler_angles = np.degrees(tft.euler_from_quaternion(q_relative))
+            sys.stdout.write(
+                f"Deviation:Roll: {euler_angles[0]:6.1f}, Pitch: {euler_angles[1]:6.1f}, Yaw: {euler_angles[2]:6.1f}\r"
+            )
+            sys.stdout.flush()
+
+            x_angle_below_threshold = abs(euler_angles[0]) < self.threshold
+            y_angle_below_threshold = abs(euler_angles[1]) < self.threshold
+            z_angle_below_threshold = abs(euler_angles[2]) < self.threshold
+
+            if x_angle_below_threshold and y_angle_below_threshold and z_angle_below_threshold:
+                if self.last_threshold_time is None:
+                    self.last_threshold_time = rospy.get_time()
+                elif rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
+                    self.is_finished = True
+            else:
+                self.last_threshold_time = None
+            if self.is_finished:
+                rospy.loginfo("")
+                rospy.loginfo("Current state: Unlock")
+                return "go_unlock"
+            self.rate.sleep()
+
+
+class UnlockState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=["go_one_to_one_map"])
+
+    def execute(self, userdata):
+        print("Current state: one_to_one_map")
+        time.sleep(0.5)
+        return "go_one_to_one_map"
+
+
+class OneToOneMapState(smach.State):
+    def __init__(self) -> None:
+
+        smach.State.__init__(
+            self,
+            outcomes=["done_track"],
+            input_keys=["robot_name"],
+            output_keys=[],
+        )
+
+        self.position_change = None
+
+        self.start_time = rospy.Time.now().to_sec()
+
+        self.pub_object = None
+
+        self.rate = rospy.Rate(20)
+
+    def execute(self, userdata):
+
+        if self.pub_object is None:
+            self.pub_object = OneToOnePubJointTraj(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
+
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                break
+            self.rate.sleep()
+
+        del self.pub_object
+        self.pub_object = None
+
+        return "done_track"
+
+
+def create_hand_control_state_machine():
+    """HandControlStateMachine"""
+    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name", "mapping_config"])
+
+    with sm_sub:
+        # InitObjectState
+        smach.StateMachine.add(
+            "HAND_CONTROL_INIT",
+            InitObjectState(),
+            transitions={"go_lock": "LOCK"},
+        )
+
+        # LockState
+        smach.StateMachine.add(
+            "LOCK",
+            LockState(),
+            transitions={"go_unlock": "UNLOCK"},
+        )
+
+        # UnlockState
+        smach.StateMachine.add("UNLOCK", UnlockState(), transitions={"go_one_to_one_map": "ONE_TO_ONE_MAP"})
+
+        # One_To_One_MapState
+        smach.StateMachine.add(
+            "ONE_TO_ONE_MAP",
+            OneToOneMapState(),
+            transitions={"done_track": "DONE"},
+        )
+
+    return sm_sub
+
+
 ###############################################
 # Main SMACH Entry Point
 ###############################################
@@ -231,6 +432,14 @@ def main():
     sm.userdata.traj_type = None
     sm.userdata.loop_num = np.inf
 
+    global shared_data
+    shared_data = {
+        "hand": None,
+        "arm": None,
+        "drone": None,
+        "control_mode": None,
+    }
+
     # Open the container
     with sm:
         # IDLE
@@ -241,6 +450,7 @@ def main():
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
                 "shutdown": "DONE",
+                "go_mapping_init": "HAND_CONTROL",
             },
         )
 
@@ -262,12 +472,21 @@ def main():
             },
         )
 
+        smach.StateMachine.add(
+            "HAND_CONTROL",
+            create_hand_control_state_machine(),
+            transitions={
+                "DONE": "IDLE",
+            },
+            remapping={"robot_name": "robot_name", "mapping_config": "mapping_config"},
+        )
+
     # (Optional) Start an introspection server to visualize SMACH in smach_viewer
     sis = smach_ros.IntrospectionServer("mpc_smach_introspection", sm, "/MPC_SMACH")
     sis.start()
 
     # Execute the state machine
-    outcome = sm.execute()
+    sm.execute()
 
     sis.stop()
 
