@@ -325,7 +325,9 @@ class LockState(smach.State):
             is_z_angular_alignment = abs(euler_angles[2]) < self.z_angle_threshold
             is_z_height_alignment = abs(z_difference) < self.height_threshold
 
-            is_in_thresh = (is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment)
+            is_in_thresh = (
+                is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment
+            )
 
             if not is_in_thresh:
                 self.last_threshold_time = None
@@ -441,12 +443,7 @@ def main():
     sm.userdata.loop_num = np.inf
 
     global shared_data
-    shared_data = {
-        "hand": None,
-        "arm": None,
-        "drone": None,
-        "control_mode": None,
-    }
+    shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
 
     # Open the container
     with sm:
@@ -463,29 +460,15 @@ def main():
         )
 
         # INIT
-        smach.StateMachine.add(
-            "INIT",
-            InitState(),
-            transitions={
-                "go_track": "TRACK",
-            },
-        )
+        smach.StateMachine.add("INIT", InitState(), transitions={"go_track": "TRACK"})
 
         # TRACK
-        smach.StateMachine.add(
-            "TRACK",
-            TrackState(),
-            transitions={
-                "done_track": "IDLE",
-            },
-        )
+        smach.StateMachine.add("TRACK", TrackState(), transitions={"done_track": "IDLE"})
 
         smach.StateMachine.add(
             "HAND_CONTROL",
             create_hand_control_state_machine(),
-            transitions={
-                "DONE": "IDLE",
-            },
+            transitions={"DONE": "IDLE"},
             remapping={"robot_name": "robot_name", "mapping_config": "mapping_config"},
         )
 
