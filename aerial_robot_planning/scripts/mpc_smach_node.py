@@ -284,7 +284,6 @@ class LockState(smach.State):
         self.z_angle_threshold = 45
         self.height_threshold = 0.05
         self.direction_hold_time = 1
-        self.first = 1
         self.rate = rospy.Rate(20)
         self.is_finished = False
 
@@ -360,10 +359,6 @@ class OneToOneMapState(smach.State):
             input_keys=["robot_name"],
             output_keys=[],
         )
-
-        self.position_change = None
-
-        self.start_time = rospy.Time.now().to_sec()
 
         self.pub_object = None
 

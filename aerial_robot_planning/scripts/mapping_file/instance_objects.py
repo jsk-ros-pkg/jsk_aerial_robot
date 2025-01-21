@@ -149,6 +149,8 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         self._check_position_tolerance = 0.1
         self._check_orientation_tolerance = 6
 
+        self.last_state = None
+
     def _check_finish_auto(self):
         current_time = rospy.Time.now().to_sec()
         if not hasattr(self, "last_check_time"):
@@ -181,18 +183,25 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         position_change = [abs(current_check_position[i] - self._check_last_position[i]) for i in range(3)]
 
         orientation_change = [abs(current_check_orientation[i] - self._check_check_orientation[i]) for i in range(4)]
+
         # self._check_last_position[:] = current_check_position
         # self._check_check_orientation[:] = current_check_orientation
 
-        if all(change < self._check_position_tolerance for change in position_change) and all(
+        goal_reached = all(change < self._check_position_tolerance for change in position_change) and all(
             change < self._check_orientation_tolerance for change in orientation_change
-        ):
-            print("reach the goal")
+        )
+
+        new_state = "goal_reached" if goal_reached else "goal_not_reached"
+        if new_state != self.last_state:
+            rospy.loginfo("reach the goal" if goal_reached else "not reach the goal")
+            self.last_state = new_state
+
+        if goal_reached:
             if current_time - self.last_check_time > self._check_time_threshold:
-                print("Exit mapping mode")
+                rospy.loginfo("Exit mapping mode")
                 self.is_finished = True
+
         else:
-            print("not reach the goal")
             self.last_check_time = current_time
             self.last_hand_position = current_check_position
             self.last_hand_orientation = current_check_orientation
