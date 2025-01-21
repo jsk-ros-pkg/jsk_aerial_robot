@@ -246,6 +246,8 @@ class ServoMonitor(Plugin):
             error_list.append('Motor Encoder Error')
         if error & 0b100:
             error_list.append('Overheating Error')
+        if error & 0b10:
+            error_list.append('Pulley Skip Error')
         if error & 0b1:
             error_list.append('Input Voltage Error')
 
