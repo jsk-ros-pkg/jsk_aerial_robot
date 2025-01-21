@@ -22,13 +22,15 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
 bool nmpc::TiltMtServoDistNMPC::update()
 {
+  calcDisturbWrench();
+
+  // Note that the meas2VecX() function is called in the update() function. And since it always get the latest info
+  // from the estimator, the NMPC result should not be influenced by the disturbance wrench.
   if (!TiltMtServoNMPC::update())
     return false;
 
-  // pub the est. wrench used by the controller, not the latest one. so this line is put before calcDisturbWrench()
+  // pub the est. wrench used by the controller. put here to shorten the delay caused by calcDisturbWrench();
   pubDisturbWrench();
-
-  calcDisturbWrench();
 
   return true;
 }
@@ -68,10 +70,9 @@ void nmpc::TiltMtServoDistNMPC::initPlugins()
   }
 }
 
-void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
+void nmpc::TiltMtServoDistNMPC::updateITerm()
 {
   /* HANDLING MODEL ERROR */
-  // TODO: wrap this part as a function
   /* get the current state */
   tf::Vector3 pos = estimator_->getPos(Frame::COG, estimate_mode_);
   tf::Quaternion q = estimator_->getQuat(Frame::COG, estimate_mode_);
@@ -106,6 +107,11 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
     wrench_est_i_term_.update(target_pos, target_q, pos, q);
   }
 
+}
+
+void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
+{
+  updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
 

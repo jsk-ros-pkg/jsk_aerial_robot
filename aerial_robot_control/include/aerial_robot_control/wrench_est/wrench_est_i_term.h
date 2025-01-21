@@ -77,10 +77,11 @@ public:
     double qyr = q_ref.y();
     double qzr = q_ref.z();
 
+    // qe = qr^* multiply q
     double qe_w = qw * qwr + qx * qxr + qy * qyr + qz * qzr;
-    double qe_x = qwr * qx - qw * qxr + qyr * qz - qy * qzr;
-    double qe_y = qwr * qy - qw * qyr - qxr * qz + qx * qzr;
-    double qe_z = qxr * qy - qx * qyr + qwr * qz - qw * qzr;
+    double qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr;
+    double qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr;
+    double qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr;
 
     double sign_qe_w = qe_w > 0 ? 1 : -1;
 

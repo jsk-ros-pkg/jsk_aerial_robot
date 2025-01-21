@@ -1,0 +1,40 @@
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdServoDistMdlMPCSolver
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_mt/servo_dist_nmpc
+
+controller:
+  nmpc:
+    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+    T_pred: 2.0  # seconds
+    T_integ: 0.1  # seconds
+
+    # constraint
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
+
+    v_max: 10
+    v_min: -10
+
+    thrust_max: 30 # N
+    thrust_min: 0 # N
+
+    a_max: 3.1416  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
+    a_min: -3.1416
+
+    # params for the cost function
+    Qp_xy: 300
+    Qp_z: 400
+    Qv_xy: 10
+    Qv_z: 10
+    Qq_xy: 300
+    Qq_z: 600
+    Qw_xy: 5
+    Qw_z: 5
+    Qa: 2
+    Rt: 2
+    Rac_d: 250  # difference of ac
+
+    is_attitude_ctrl: false
+    is_body_rate_ctrl: false
+
+    is_print_phys_params: false
+    is_debug: false

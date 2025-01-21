@@ -17,7 +17,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://beetle/urdf/mesh/main_body_beetle_art_omni_w_guard.dae"/>
+          <mesh filename="package://beetle_omni/urdf/mesh/main_body_beetle_art_omni_w_guard.dae"/>
         </geometry>
       </visual>
       <collision>
@@ -100,7 +100,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://beetle/urdf/mesh/omni_rotor_module.dae"/>
+          <mesh filename="package://beetle_omni/urdf/mesh/omni_rotor_module.dae"/>
         </geometry>
       </visual>
     </link>

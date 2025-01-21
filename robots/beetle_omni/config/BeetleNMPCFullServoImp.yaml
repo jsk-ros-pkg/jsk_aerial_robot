@@ -1,5 +1,5 @@
-mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdServoDistMdlMPCSolver
-aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_mt/servo_dist_nmpc
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdServoDistImpMdlMPCSolver
+aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_mt/servo_imp_nmpc
 
 controller:
   nmpc:
@@ -21,14 +21,25 @@ controller:
     a_min: -3.1416
 
     # params for the cost function
-    Qp_xy: 300
-    Qp_z: 400
-    Qv_xy: 10
-    Qv_z: 10
-    Qq_xy: 300
-    Qq_z: 600
-    Qw_xy: 5
-    Qw_z: 5
+    enlarge_factor: 50
+
+    # position
+    pMxy: 1.5
+    pMz: 1.5
+    Qv_xy: 10  # pDxy
+    Qv_z: 10  # pDz
+    Qp_xy: 6  # pKxy
+    Qp_z: 6  # pKz
+
+    # orientation
+    oMxy: 0.9
+    oMz: 0.9
+    Qw_xy: 10  # oDxy
+    Qw_z: 10  # oDz
+    Qq_xy: 6  # oKxy
+    Qq_z: 6  # oKz
+
+    # actuators
     Qa: 2
     Rt: 2
     Rac_d: 250  # difference of ac

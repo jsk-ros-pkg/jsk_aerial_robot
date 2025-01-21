@@ -11,6 +11,9 @@
     <class type="aerial_robot_control::mpc_solver::TiltQdServoDistMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Nonlinear Model Predictive Control with Tilt Qd Servo Disturbance Model.</description>
     </class>
+    <class type="aerial_robot_control::mpc_solver::TiltQdServoDistImpMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
+        <description>Nonlinear Model Predictive Control with Tilt Qd Servo Disturbance Impedance Model.</description>
+    </class>
     <class type="aerial_robot_control::mpc_solver::TiltQdServoThrustDistMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Nonlinear Model Predictive Control with Tilt Qd Servo Thrust Disturbance Model.</description>
     </class>

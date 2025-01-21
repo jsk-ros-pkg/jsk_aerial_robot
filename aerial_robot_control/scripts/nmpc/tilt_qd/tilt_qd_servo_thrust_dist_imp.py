@@ -23,7 +23,7 @@ from phys_param_beetle_omni import *
 # read parameters from yaml
 rospack = rospkg.RosPack()
 
-nmpc_param_path = os.path.join(rospack.get_path("beetle"), "config", "BeetleNMPCFullServoThrustImp.yaml")
+nmpc_param_path = os.path.join(rospack.get_path("beetle_omni"), "config", "BeetleNMPCFullServoThrustImp.yaml")
 with open(nmpc_param_path, "r") as f:
     nmpc_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 nmpc_params = nmpc_param_dict["controller"]["nmpc"]
@@ -210,8 +210,9 @@ class NMPCTiltQdServoThrustImpedance(NMPCBase):
             ca.vertcat(0.0, 0.0, 0.0),
         )
 
-        lin_a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i) / mass + g_i
-        ang_a_b = ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b))
+        # Note that this part should be f_d_i and no f_d_i_para, since the impedance should not respond to the I Term force.
+        lin_a_i = (ca.mtimes(rot_ib, f_u_b) + f_d_i + f_d_i_para) / mass + g_i
+        ang_a_b = ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b + tau_d_b + tau_d_b_para))
 
         # function
         func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})

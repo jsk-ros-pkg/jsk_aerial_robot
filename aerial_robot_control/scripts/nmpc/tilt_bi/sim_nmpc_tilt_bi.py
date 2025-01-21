@@ -9,7 +9,7 @@ from acados_template import AcadosModel, AcadosSim, AcadosSimSolver
 
 from nmpc_viz import Visualizer
 
-from tilt_bi_full import NMPCTiltBiFull
+from tilt_bi_servo import NMPCTiltBiServo
 from tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
 
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # ========== init ==========
     # ---------- Controller ----------
     if args.model == 0:
-        nmpc = NMPCTiltBiFull()
+        nmpc = NMPCTiltBiServo()
     elif args.model == 1:
         nmpc = NMPCTiltBi2OrdServo()
     else:
