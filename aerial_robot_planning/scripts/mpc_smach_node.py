@@ -285,7 +285,6 @@ class LockState(smach.State):
         self.height_threshold = 0.05
         self.direction_hold_time = 1
         self.rate = rospy.Rate(20)
-        self.is_finished = False
 
     def execute(self, userdata):
 
@@ -326,18 +325,23 @@ class LockState(smach.State):
             is_z_angular_alignment = abs(euler_angles[2]) < self.z_angle_threshold
             is_z_height_alignment = abs(z_difference) < self.height_threshold
 
-            if is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment:
+            is_in_thresh = (is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment)
+
+            if not is_in_thresh:
+                self.last_threshold_time = None
+
+            if is_in_thresh:
                 if self.last_threshold_time is None:
                     self.last_threshold_time = rospy.get_time()
-                elif rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
-                    self.is_finished = True
-            else:
-                self.last_threshold_time = None
-            if self.is_finished:
-                rospy.loginfo("")
-                rospy.loginfo("Current state: Unlock")
-                return "go_unlock"
+
+                if rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
+                    break
+
             self.rate.sleep()
+
+        rospy.loginfo("")
+        rospy.loginfo("Current state: Unlock")
+        return "go_unlock"
 
 
 class UnlockState(smach.State):
