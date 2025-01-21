@@ -40,8 +40,8 @@ traj_cls_list = [
     for name, cls in inspect.getmembers(trajs, inspect.isclass)
     # optionally ensure the class is defined in trajs and not an imported library
     if cls.__module__ == "trajs"
-       # (Optional) filter by name if you only want classes that end with "Traj"
-       and name != "BaseTraj"
+    # (Optional) filter by name if you only want classes that end with "Traj"
+    and name != "BaseTraj"
 ]
 print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
@@ -280,7 +280,9 @@ class LockState(smach.State):
         smach.State.__init__(self, outcomes=["go_unlock"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
-        self.threshold = 8
+        self.xy_angle_threshold = 8
+        self.z_angle_threshold = 45
+        self.height_threshold = 0.05
         self.direction_hold_time = 1
         self.first = 1
         self.rate = rospy.Rate(20)
@@ -306,19 +308,26 @@ class LockState(smach.State):
                 shared_data["hand"].hand_position.pose.orientation.z,
                 shared_data["hand"].hand_position.pose.orientation.w,
             ]
+            z_difference = (
+                shared_data["drone"].drone_position.pose.pose.position.z
+                - shared_data["hand"].hand_position.pose.position.z
+            )
+
             q_drone_inv = tft.quaternion_inverse(drone_orientation)
             q_relative = tft.quaternion_multiply(hand_orientation, q_drone_inv)
             euler_angles = np.degrees(tft.euler_from_quaternion(q_relative))
             sys.stdout.write(
                 f"Deviation:Roll: {euler_angles[0]:6.1f}, Pitch: {euler_angles[1]:6.1f}, Yaw: {euler_angles[2]:6.1f}\r"
+                f",Z_difference: {z_difference:6.1f}"
             )
             sys.stdout.flush()
 
-            x_angle_below_threshold = abs(euler_angles[0]) < self.threshold
-            y_angle_below_threshold = abs(euler_angles[1]) < self.threshold
-            z_angle_below_threshold = abs(euler_angles[2]) < self.threshold
+            is_x_angular_alignment = abs(euler_angles[0]) < self.xy_angle_threshold
+            is_y_angular_alignment = abs(euler_angles[1]) < self.xy_angle_threshold
+            is_z_angular_alignment = abs(euler_angles[2]) < self.z_angle_threshold
+            is_z_height_alignment = abs(z_difference) < self.height_threshold
 
-            if x_angle_below_threshold and y_angle_below_threshold and z_angle_below_threshold:
+            if is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment:
                 if self.last_threshold_time is None:
                     self.last_threshold_time = rospy.get_time()
                 elif rospy.get_time() - self.last_threshold_time > self.direction_hold_time:
