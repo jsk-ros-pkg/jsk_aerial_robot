@@ -27,10 +27,10 @@ from geometry_msgs.msg import Pose, Quaternion, Vector3
 import trajs
 
 from mapping_file.instance_objects import (
-    HandPosition,
-    ArmPosition,
-    DronePosition,
-    ControlMode,
+    Hand,
+    Arm,
+    Drone,
+    Glove,
     OneToOnePubJointTraj,
 )
 
@@ -259,15 +259,15 @@ class InitObjectState(smach.State):
         # userdata.mapping_config = {"is_arm_active": True, "is_glove_active": True}
         try:
             if userdata.mapping_config.get("is_arm_active", False):
-                shared_data["arm"] = ArmPosition()
+                shared_data["arm"] = Arm()
                 rospy.loginfo(f"The arm mocap has been successfully activated.")
             if userdata.mapping_config.get("is_glove_active", False):
-                shared_data["control_mode"] = ControlMode()
+                shared_data["control_mode"] = Glove()
                 rospy.loginfo(f"The data glove has been successfully activated.")
 
-            shared_data["hand"] = HandPosition()
+            shared_data["hand"] = Hand()
             rospy.loginfo(f"The hand mocap has been successfully activated.")
-            shared_data["drone"] = DronePosition(userdata.robot_name)
+            shared_data["drone"] = Drone(userdata.robot_name)
             rospy.loginfo(f"The drone's position has been successfully activated.")
             return "go_lock"
         except Exception as e:
@@ -295,20 +295,19 @@ class LockState(smach.State):
 
         while not rospy.is_shutdown():
             drone_orientation = [
-                shared_data["drone"].drone_position.pose.pose.orientation.x,
-                shared_data["drone"].drone_position.pose.pose.orientation.y,
-                shared_data["drone"].drone_position.pose.pose.orientation.z,
-                shared_data["drone"].drone_position.pose.pose.orientation.w,
+                shared_data["drone"].position.pose.pose.orientation.x,
+                shared_data["drone"].position.pose.pose.orientation.y,
+                shared_data["drone"].position.pose.pose.orientation.z,
+                shared_data["drone"].position.pose.pose.orientation.w,
             ]
             hand_orientation = [
-                shared_data["hand"].hand_position.pose.orientation.x,
-                shared_data["hand"].hand_position.pose.orientation.y,
-                shared_data["hand"].hand_position.pose.orientation.z,
-                shared_data["hand"].hand_position.pose.orientation.w,
+                shared_data["hand"].position.pose.orientation.x,
+                shared_data["hand"].position.pose.orientation.y,
+                shared_data["hand"].position.pose.orientation.z,
+                shared_data["hand"].position.pose.orientation.w,
             ]
             z_difference = (
-                shared_data["drone"].drone_position.pose.pose.position.z
-                - shared_data["hand"].hand_position.pose.position.z
+                shared_data["drone"].position.pose.pose.position.z - shared_data["hand"].position.pose.position.z
             )
 
             q_drone_inv = tft.quaternion_inverse(drone_orientation)

@@ -13,6 +13,7 @@ import rospy
 from functools import wraps
 from std_msgs.msg import UInt8
 from nav_msgs.msg import Odometry
+from abc import ABC, abstractmethod
 from geometry_msgs.msg import PoseStamped, Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
@@ -22,116 +23,135 @@ if current_path not in sys.path:
 
 from pub_mpc_joint_traj import MPCPubJointTraj
 
-
 ##########################################
 # one-to-one mapping of all instantiation classes required.
 ##########################################
 
 
-def check_topic_exists(topic_name=None):
-    def decorator(cls):
-        original_init = cls.__init__
+def check_topic_subscription(func):
+    @wraps(func)
+    def wrapper(self, topic_name, msg_type, *args, **kwargs):
+        try:
+            subscriber = func(self, topic_name, msg_type, *args, **kwargs)
+            if not subscriber:
+                raise ValueError(f"Failed to subscribe to topic: {topic_name}")
+            return subscriber
+        except Exception as e:
+            rospy.logerr(f"Error: {str(e)}")
+            rospy.signal_shutdown(f"Error: {str(e)}")
+            raise e
 
-        @wraps(cls.__init__)
-        def wrapper(self, *args, **kwargs):
-            available_topics = [topic for topic, _ in rospy.get_published_topics()]
-            if topic_name not in available_topics:
-                rospy.logerr(f"Topic {topic_name} does not exist. Initialization failed.")
-                raise RuntimeError(f"Topic {topic_name} does not exist.")
-            original_init(self, *args, **kwargs)
-
-        cls.__init__ = wrapper
-        return cls
-
-    return decorator
+    return wrapper
 
 
-# TODO: extract a base class for all these classes
-@check_topic_exists("/hand/mocap/pose")
-class HandPosition:
-    def __init__(self, topic_name="/hand/mocap/pose"):
-        self.hand_position = None
-        self.topic_name = topic_name
-        self.subscriber = rospy.Subscriber(self.topic_name, PoseStamped, self.hand_position_callback)
-        rospy.loginfo(f"Subscribed to {self.topic_name}")
+class PositionObjectBase(ABC):
+    def __init__(self, object_name: str, topic_name: str, msg_type):
+        """
+        Base class for subscribing to position information.
+        :param topic_name: The name of the topic to subscribe to.
+        :param msg_type: The message type for position data.
+        """
+        self.object_name = object_name
+        self.position = None
 
-        while self.hand_position is None:
-            rospy.loginfo("Waiting for hand position...")
-            rospy.sleep(0.2)
-        rospy.loginfo("Hand position received for the first time")
+        self.subscriber = self._sub_topic(topic_name, msg_type)
 
-    def hand_position_callback(self, msg: PoseStamped):
-        self.hand_position = msg
+        self._check_position_initialized()
 
-    def get_position(self):
-        return self.hand_position
-
-
-@check_topic_exists("/arm/mocap/pose")
-class ArmPosition:
-    def __init__(self):
-        self.arm_position = None
-        self.arm_pose_sub = rospy.Subscriber("/arm/mocap/pose", PoseStamped, self.arm_position_callback)
-        rospy.loginfo("Subscribed to /arm/mocap/pose")
-
-        while self.arm_position is None:
-            rospy.loginfo("Waiting for arm position...")
-            rospy.sleep(0.2)
-        rospy.loginfo("Arm position received for the first time")
-
-    def arm_position_callback(self, msg: PoseStamped):
-        self.arm_position = msg
-
-    def get_position(self):
-        return self.arm_position
-
-
-class DronePosition:
-    def __init__(self, robot_name: str) -> None:
-        self.robot_name = robot_name
-        self.drone_position = None
-
-        topic_name = f"/{robot_name}/uav/cog/odom"
-
-        available_topics = [topic for topic, _ in rospy.get_published_topics()]
-        if topic_name not in available_topics:
-            rospy.logerr(f"Topic {topic_name} does not exist. Initialization failed.")
-            raise RuntimeError(f"Topic {topic_name} does not exist.")
-
-        self.drone_pose_sub = rospy.Subscriber(
-            topic_name,
-            Odometry,
-            self.sub_odom_callback,
-            queue_size=1,
-        )
+    @check_topic_subscription
+    def _sub_topic(self, topic_name, msg_type):
         rospy.loginfo(f"Subscribed to {topic_name}")
+        return rospy.Subscriber(topic_name, msg_type, self._position_callback, queue_size=3)
 
-        while self.drone_position is None:
-            rospy.loginfo("Waiting for drone position...")
+    def _check_position_initialized(self):
+        """
+        Waits until the position is initialized. Logs a message repeatedly
+        until a valid position is received.
+        """
+        while not rospy.is_shutdown() and self.position is None:
+            rospy.loginfo(f"Waiting for {self.object_name} position...")
             rospy.sleep(0.2)
-        rospy.loginfo("Drone position received for the first time")
+        if self.position is not None:
+            rospy.loginfo(f"{self.object_name} Position received for the first time")
 
-    def sub_odom_callback(self, msg: Odometry):
-        self.drone_position = msg
+    def _position_callback(self, msg):
+        """
+        Callback function to process incoming position messages.
+        Should be implemented by subclasses.
+        :param msg: The message containing position data.
+        """
+        self.position = msg
 
     def get_position(self):
-        return self.drone_position
+        """
+        Return position information from the message.
+        :return: Extracted position data.
+        """
+        return self.position
 
 
-@check_topic_exists("/hand/control_mode")
-class ControlMode:
+class Hand(PositionObjectBase):
     def __init__(self):
+        super().__init__(object_name="Hand", topic_name="/hand/mocap/pose", msg_type=PoseStamped)
+
+    def _position_callback(self, msg: PoseStamped):
+        self.position = msg
+
+
+class Arm(PositionObjectBase):
+    def __init__(self):
+        super().__init__(object_name="Arm", topic_name="/arm/mocap/pose", msg_type=PoseStamped)
+
+    def _position_callback(self, msg: PoseStamped):
+        self.position = msg
+
+
+class Drone(PositionObjectBase):
+    def __init__(self, robot_name):
+        super().__init__(object_name="drone", topic_name=f"/{robot_name}/uav/cog/odom", msg_type=Odometry)
+
+    def _position_callback(self, msg: Odometry):
+        self.position = msg
+
+
+class Glove:
+    def __init__(self):
+        self.object_name = "Glove"
         self.control_mode = None
+        self.control_mode_sub = self._sub_topic("/hand/control_mode", UInt8, self._glove_data_callback)
 
-        self.control_mode_sub = rospy.Subscriber("/hand/control_mode", UInt8, self.callback_control_mode)
+        self._check_data_initialized()
 
-        while self.control_mode is None:
-            rospy.loginfo("Waiting for control mode...")
+    @check_topic_subscription
+    def _sub_topic(self, topic_name, msg_type, callback_func):
+        rospy.loginfo(f"Subscribed to {topic_name}")
+        return rospy.Subscriber(topic_name, msg_type, callback_func, queue_size=3)
+
+    def _check_data_initialized(self):
+        """
+        Waits until the position is initialized. Logs a message repeatedly
+        until a valid position is received.
+        """
+        while not rospy.is_shutdown() and self.control_mode is None:
+            rospy.loginfo(f"Waiting for {self.object_name}'s data...")
             rospy.sleep(0.2)
-        rospy.loginfo("Control mode received for the first time")
+        if self.control_mode is not None:
+            rospy.loginfo(f"{self.object_name}'s data received for the first time")
 
-    def callback_control_mode(self, data):
-        self.control_mode = data.data
+    def _glove_data_callback(self, msg: UInt8):
+        """
+        Callback function to process incoming messages.
+        Should be implemented by subclasses.
+        :param msg: The message containing glove data.
+        """
+        self.control_mode = msg.data
+
+    def get_control_mode(self):
+        """
+        Return position information from the message.
+        :return: Extracted glove data.
+        """
+        return self.control_mode
 
 
 ##########################################
@@ -141,9 +161,9 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
     def __init__(
         self,
         robot_name: str,
-        hand: HandPosition,
-        arm: ArmPosition,
-        control_mode: ControlMode,
+        hand: Hand,
+        arm: Arm,
+        control_mode: Glove,
     ):
         super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
         self.hand = hand
@@ -177,28 +197,28 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         if not hasattr(self, "last_check_time"):
             self.last_check_time = current_time
             self._check_last_position = [
-                self.hand.hand_position.pose.position.x,
-                self.hand.hand_position.pose.position.y,
-                self.hand.hand_position.pose.position.z,
+                self.hand.position.pose.position.x,
+                self.hand.position.pose.position.y,
+                self.hand.position.pose.position.z,
             ]
             self._check_check_orientation = [
-                self.hand.hand_position.pose.orientation.x,
-                self.hand.hand_position.pose.orientation.y,
-                self.hand.hand_position.pose.orientation.z,
-                self.hand.hand_position.pose.orientation.w,
+                self.hand.position.pose.orientation.x,
+                self.hand.position.pose.orientation.y,
+                self.hand.position.pose.orientation.z,
+                self.hand.position.pose.orientation.w,
             ]
             return
 
         current_check_position = [
-            self.hand.hand_position.pose.position.x,
-            self.hand.hand_position.pose.position.y,
-            self.hand.hand_position.pose.position.z,
+            self.hand.position.pose.position.x,
+            self.hand.position.pose.position.y,
+            self.hand.position.pose.position.z,
         ]
         current_check_orientation = [
-            self.hand.hand_position.pose.orientation.x,
-            self.hand.hand_position.pose.orientation.y,
-            self.hand.hand_position.pose.orientation.z,
-            self.hand.hand_position.pose.orientation.w,
+            self.hand.position.pose.orientation.x,
+            self.hand.position.pose.orientation.y,
+            self.hand.position.pose.orientation.z,
+            self.hand.position.pose.orientation.w,
         ]
 
         position_change = [abs(current_check_position[i] - self._check_last_position[i]) for i in range(3)]
@@ -231,9 +251,9 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
 
         if self.initial_hand_position is None:
             self.initial_hand_position = [
-                self.hand.hand_position.pose.position.x,
-                self.hand.hand_position.pose.position.y,
-                self.hand.hand_position.pose.position.z,
+                self.hand.position.pose.position.x,
+                self.hand.position.pose.position.y,
+                self.hand.position.pose.position.z,
             ]
             self.initial_drone_position = [
                 self.uav_odom.pose.pose.position.x,
@@ -244,9 +264,9 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
             rospy.loginfo(f"initial hand position is {self.initial_hand_position}")
 
         current_position = [
-            self.hand.hand_position.pose.position.x,
-            self.hand.hand_position.pose.position.y,
-            self.hand.hand_position.pose.position.z,
+            self.hand.position.pose.position.x,
+            self.hand.position.pose.position.y,
+            self.hand.position.pose.position.z,
         ]
 
         self.position_change = [current_position[i] - self.initial_hand_position[i] for i in range(3)]
@@ -258,10 +278,10 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
         ]
 
         hand_orientation = [
-            self.hand.hand_position.pose.orientation.x,
-            self.hand.hand_position.pose.orientation.y,
-            self.hand.hand_position.pose.orientation.z,
-            self.hand.hand_position.pose.orientation.w,
+            self.hand.position.pose.orientation.x,
+            self.hand.position.pose.orientation.y,
+            self.hand.position.pose.orientation.z,
+            self.hand.position.pose.orientation.w,
         ]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
