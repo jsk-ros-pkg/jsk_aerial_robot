@@ -282,8 +282,7 @@ class LockState(smach.State):
         self.last_threshold_time = None
         self.xy_angle_threshold = 8
         self.z_angle_threshold = 45
-        self.height_threshold = 0.05
-        self.direction_hold_time = 1
+        self.direction_hold_time = 3
         self.rate = rospy.Rate(20)
 
     def execute(self, userdata):
@@ -306,27 +305,20 @@ class LockState(smach.State):
                 shared_data["hand"].position.pose.orientation.z,
                 shared_data["hand"].position.pose.orientation.w,
             ]
-            z_difference = (
-                shared_data["drone"].position.pose.pose.position.z - shared_data["hand"].position.pose.position.z
-            )
 
             q_drone_inv = tft.quaternion_inverse(drone_orientation)
             q_relative = tft.quaternion_multiply(hand_orientation, q_drone_inv)
             euler_angles = np.degrees(tft.euler_from_quaternion(q_relative))
             sys.stdout.write(
                 f"Deviation:Roll: {euler_angles[0]:6.1f}, Pitch: {euler_angles[1]:6.1f}, Yaw: {euler_angles[2]:6.1f}\r"
-                f",Z_difference: {z_difference:6.1f}"
             )
             sys.stdout.flush()
 
             is_x_angular_alignment = abs(euler_angles[0]) < self.xy_angle_threshold
             is_y_angular_alignment = abs(euler_angles[1]) < self.xy_angle_threshold
             is_z_angular_alignment = abs(euler_angles[2]) < self.z_angle_threshold
-            is_z_height_alignment = abs(z_difference) < self.height_threshold
 
-            is_in_thresh = (
-                is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment and is_z_height_alignment
-            )
+            is_in_thresh = is_x_angular_alignment and is_y_angular_alignment and is_z_angular_alignment
 
             if not is_in_thresh:
                 self.last_threshold_time = None

@@ -258,7 +258,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
             self.initial_drone_position = [
                 self.uav_odom.pose.pose.position.x,
                 self.uav_odom.pose.pose.position.y,
-                self.uav_odom.pose.pose.position.z,
+                self.hand.position.pose.position.z,
             ]
             rospy.loginfo(f"initial drone position is {self.initial_drone_position}")
             rospy.loginfo(f"initial hand position is {self.initial_hand_position}")
