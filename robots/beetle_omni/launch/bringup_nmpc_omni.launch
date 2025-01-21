@@ -87,8 +87,8 @@
     <arg name="headless" value="$(arg headless)" />
     <arg name="robot_model" value="$(find beetle_omni)/robots/beetle_art_omni.$(arg description_mode).xacro"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/nmpc.rviz" />
-    <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz/nmpc.rviz" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/rviz/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include >
 
