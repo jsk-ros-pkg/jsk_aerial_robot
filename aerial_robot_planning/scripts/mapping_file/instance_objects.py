@@ -193,7 +193,7 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
 
         new_state = "goal_reached" if goal_reached else "goal_not_reached"
         if new_state != self.last_state:
-            rospy.loginfo("reach the goal" if goal_reached else "not reach the goal")
+            rospy.loginfo("Now state: reach the goal" if goal_reached else "Now state:not reach the goal")
             self.last_state = new_state
 
         if goal_reached:
