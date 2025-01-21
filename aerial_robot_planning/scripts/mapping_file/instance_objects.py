@@ -46,13 +46,19 @@ def check_topic_exists(topic_name=None):
     return decorator
 
 
+# TODO: extract a base class for all these classes
 @check_topic_exists("/hand/mocap/pose")
 class HandPosition:
     def __init__(self, topic_name="/hand/mocap/pose"):
-        self.hand_position = PoseStamped()
+        self.hand_position = None
         self.topic_name = topic_name
         self.subscriber = rospy.Subscriber(self.topic_name, PoseStamped, self.hand_position_callback)
         rospy.loginfo(f"Subscribed to {self.topic_name}")
+
+        while self.hand_position is None:
+            rospy.loginfo("Waiting for hand position...")
+            rospy.sleep(0.2)
+        rospy.loginfo("Hand position received for the first time")
 
     def hand_position_callback(self, msg: PoseStamped):
         self.hand_position = msg
@@ -64,9 +70,14 @@ class HandPosition:
 @check_topic_exists("/arm/mocap/pose")
 class ArmPosition:
     def __init__(self):
-        self.arm_position = PoseStamped()
+        self.arm_position = None
         self.arm_pose_sub = rospy.Subscriber("/arm/mocap/pose", PoseStamped, self.arm_position_callback)
         rospy.loginfo("Subscribed to /arm/mocap/pose")
+
+        while self.arm_position is None:
+            rospy.loginfo("Waiting for arm position...")
+            rospy.sleep(0.2)
+        rospy.loginfo("Arm position received for the first time")
 
     def arm_position_callback(self, msg: PoseStamped):
         self.arm_position = msg
@@ -78,7 +89,7 @@ class ArmPosition:
 class DronePosition:
     def __init__(self, robot_name: str) -> None:
         self.robot_name = robot_name
-        self.drone_position = Odometry()
+        self.drone_position = None
 
         topic_name = f"/{robot_name}/uav/cog/odom"
 
@@ -95,6 +106,11 @@ class DronePosition:
         )
         rospy.loginfo(f"Subscribed to {topic_name}")
 
+        while self.drone_position is None:
+            rospy.loginfo("Waiting for drone position...")
+            rospy.sleep(0.2)
+        rospy.loginfo("Drone position received for the first time")
+
     def sub_odom_callback(self, msg: Odometry):
         self.drone_position = msg
 
@@ -105,9 +121,14 @@ class DronePosition:
 @check_topic_exists("/hand/control_mode")
 class ControlMode:
     def __init__(self):
-        self.control_mode = UInt8()
+        self.control_mode = None
 
         self.control_mode_sub = rospy.Subscriber("/hand/control_mode", UInt8, self.callback_control_mode)
+
+        while self.control_mode is None:
+            rospy.loginfo("Waiting for control mode...")
+            rospy.sleep(0.2)
+        rospy.loginfo("Control mode received for the first time")
 
     def callback_control_mode(self, data):
         self.control_mode = data.data
