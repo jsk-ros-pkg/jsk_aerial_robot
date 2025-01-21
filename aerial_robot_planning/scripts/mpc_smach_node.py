@@ -26,7 +26,7 @@ from geometry_msgs.msg import Pose, Quaternion, Vector3
 
 import trajs
 
-from mapping_file.instance_objects import (
+from mapping_control.object_position_mapping import (
     Hand,
     Arm,
     Drone,
@@ -280,9 +280,9 @@ class LockState(smach.State):
         smach.State.__init__(self, outcomes=["go_unlock"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
-        self.xy_angle_threshold = 8
+        self.xy_angle_threshold = 10
         self.z_angle_threshold = 45
-        self.direction_hold_time = 3
+        self.direction_hold_time = 2
         self.rate = rospy.Rate(20)
 
     def execute(self, userdata):

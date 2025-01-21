@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time : 2024/01/14 12:21
 # @Author : JIAXUAN LI
-# @File : instance_objects.py
+# @File : object_position_mapping.py
 # @Software: PyCharm
 
 import os
