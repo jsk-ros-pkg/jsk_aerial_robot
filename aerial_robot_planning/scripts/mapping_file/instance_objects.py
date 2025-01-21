@@ -210,7 +210,6 @@ class OneToOnePubJointTraj(MPCPubJointTraj):
                 self.uav_odom.pose.pose.position.y,
                 self.uav_odom.pose.pose.position.z,
             ]
-            time.sleep(0.5)
 
         current_position = [
             self.hand.hand_position.pose.position.x,
