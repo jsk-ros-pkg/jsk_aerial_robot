@@ -215,7 +215,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
     """
 
     def __init__(self, robot_name: str, target_pose: Pose,
-                 pos_tol=0.1, ang_tol=0.1, vel_tol=0.1, rate_tol=0.1):
+                 pos_tol=0.2, ang_tol=0.3, vel_tol=0.1, rate_tol=0.1):
         super().__init__(robot_name=robot_name, node_name="mpc_single_pt_pub")
         self.target_pose = target_pose
 
