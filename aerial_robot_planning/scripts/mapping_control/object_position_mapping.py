@@ -21,32 +21,14 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
 
+from util import check_position_initialized, check_topic_subscription
 from pub_mpc_joint_traj import MPCPubJointTraj
 
 ##########################################
 # one-to-one mapping of all instantiation classes required.
 ##########################################
 
-from functools import wraps
 import rospy
-
-
-def check_topic_subscription(func):
-    @wraps(func)
-    def wrapper(self, topic_name, msg_type, *args, **kwargs):
-        try:
-            topics = rospy.get_published_topics()
-            topic_names = [t[0] for t in topics]
-            if topic_name not in topic_names:
-                raise ValueError(f"Topic '{topic_name}' is not currently available.")
-            subscriber = func(self, topic_name, msg_type, *args, **kwargs)
-            return subscriber
-        except Exception as e:
-            rospy.logerr(f"Error: {str(e)}")
-            rospy.signal_shutdown(f"Error: {str(e)}")
-            raise e
-
-    return wrapper
 
 
 class PositionObjectBase(ABC):
@@ -61,23 +43,12 @@ class PositionObjectBase(ABC):
 
         self.subscriber = self._sub_topic(topic_name, msg_type)
 
-        self._check_position_initialized()
+        check_position_initialized(self, "position", self.object_name)
 
     @check_topic_subscription
     def _sub_topic(self, topic_name, msg_type):
         rospy.loginfo(f"Subscribed to {topic_name}")
         return rospy.Subscriber(topic_name, msg_type, self._position_callback, queue_size=3)
-
-    def _check_position_initialized(self):
-        """
-        Waits until the position is initialized. Logs a message repeatedly
-        until a valid position is received.
-        """
-        while not rospy.is_shutdown() and self.position is None:
-            rospy.loginfo(f"Waiting for {self.object_name} position...")
-            rospy.sleep(0.2)
-        if self.position is not None:
-            rospy.loginfo(f"{self.object_name} Position received for the first time")
 
     def _position_callback(self, msg):
         """
@@ -155,11 +126,11 @@ class Glove:
 ##########################################
 class OneToOnePubJointTraj(MPCPubJointTraj):
     def __init__(
-        self,
-        robot_name: str,
-        hand: Hand,
-        arm: Arm,
-        control_mode: Glove,
+            self,
+            robot_name: str,
+            hand: Hand,
+            arm: Arm,
+            control_mode: Glove,
     ):
         super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
         self.hand = hand
