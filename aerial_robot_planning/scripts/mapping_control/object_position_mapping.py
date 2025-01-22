@@ -27,14 +27,19 @@ from pub_mpc_joint_traj import MPCPubJointTraj
 # one-to-one mapping of all instantiation classes required.
 ##########################################
 
+from functools import wraps
+import rospy
+
 
 def check_topic_subscription(func):
     @wraps(func)
     def wrapper(self, topic_name, msg_type, *args, **kwargs):
         try:
+            topics = rospy.get_published_topics()
+            topic_names = [t[0] for t in topics]
+            if topic_name not in topic_names:
+                raise ValueError(f"Topic '{topic_name}' is not currently available.")
             subscriber = func(self, topic_name, msg_type, *args, **kwargs)
-            if not subscriber:
-                raise ValueError(f"Failed to subscribe to topic: {topic_name}")
             return subscriber
         except Exception as e:
             rospy.logerr(f"Error: {str(e)}")
@@ -94,24 +99,15 @@ class Hand(PositionObjectBase):
     def __init__(self):
         super().__init__(object_name="Hand", topic_name="/hand/mocap/pose", msg_type=PoseStamped)
 
-    def _position_callback(self, msg: PoseStamped):
-        self.position = msg
-
 
 class Arm(PositionObjectBase):
     def __init__(self):
         super().__init__(object_name="Arm", topic_name="/arm/mocap/pose", msg_type=PoseStamped)
 
-    def _position_callback(self, msg: PoseStamped):
-        self.position = msg
-
 
 class Drone(PositionObjectBase):
     def __init__(self, robot_name):
-        super().__init__(object_name="drone", topic_name=f"/{robot_name}/uav/cog/odom", msg_type=Odometry)
-
-    def _position_callback(self, msg: Odometry):
-        self.position = msg
+        super().__init__(object_name="Drone", topic_name=f"/{robot_name}/uav/cog/odom", msg_type=Odometry)
 
 
 class Glove:
