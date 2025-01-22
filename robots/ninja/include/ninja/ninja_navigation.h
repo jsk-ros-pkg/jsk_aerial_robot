@@ -7,6 +7,7 @@
 #include <geometry_msgs/Pose.h>
 #include <regex>
 #include <aerial_robot_control/control/utils/pid.h>
+#include <std_msgs/Bool.h>
 
 namespace aerial_robot_navigation
 {
@@ -129,6 +130,8 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetVelCand() {return target_vel_candidate_;}
     inline tf::Vector3 getTargetOmegaCand() {return target_omega_candidate_;}
 
+    bool pseudo_assembly_mode_;
+
   protected:
     std::mutex mutex_com2base_;
     
@@ -199,6 +202,8 @@ namespace aerial_robot_navigation
 
     std::mutex mutex_cand_vel_;
     std::mutex mutex_cand_omega_;
+
+    double pseudo_cog_com_dist_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

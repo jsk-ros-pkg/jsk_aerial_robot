@@ -31,6 +31,7 @@ namespace aerial_robot_control
                     double ctrl_loop_rate
                     ) override;
   private:
+    void pseudoAsmCallback(const std_msgs::BoolConstPtr & msg);
     boost::shared_ptr<aerial_robot_navigation::NinjaNavigator> ninja_navigator_;
     boost::shared_ptr<NinjaRobotModel> ninja_robot_model_;
 
@@ -41,6 +42,8 @@ namespace aerial_robot_control
     double joint_control_timestamp_;
 
     KDL::Tree module_tree_for_control_;
+
+    ros::Subscriber pseudo_assembly_flag_sub_;
 
   protected:
     void calcInteractionWrench() override;

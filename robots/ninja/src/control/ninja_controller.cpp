@@ -21,6 +21,8 @@ namespace aerial_robot_control
     pid_controllers_.push_back(PID("joint_pitch", joint_p_gain_, joint_i_gain_, joint_d_gain_));
     pid_controllers_.push_back(PID("joint_yaw", joint_p_gain_, joint_i_gain_, joint_d_gain_));
     // ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_tree_for_control_);
+
+    pseudo_assembly_flag_sub_ = nh_.subscribe("/pseudo_assembly_flag",1,&NinjaController::pseudoAsmCallback, this);
   }
   bool NinjaController::update()
   {
@@ -245,6 +247,14 @@ namespace aerial_robot_control
         wrench_comp_cog.head(3) = com2cog * wrench_comp_com.head(3);
         wrench_comp_list_[ninja_navigator_->getMyID()] = wrench_comp_cog;
       }
+  }
+
+  void NinjaController::pseudoAsmCallback(const std_msgs::BoolConstPtr & msg)
+  {
+    ninja_navigator_->pseudo_assembly_mode_ = msg->data;
+    wrench_comp_p_gain_ = 0;
+    wrench_comp_d_gain_ = 0;
+    wrench_comp_i_gain_ = 0;
   }
   
 
