@@ -14,6 +14,8 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
+from util import check_position_initialized
+
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
@@ -53,8 +55,10 @@ class MPCPubBase(ABC):
             raise KeyError("Parameters for NMPC not found! Ensure the NMPC controller is running!")
 
         # Store latest odometry here
-        self.uav_odom = Odometry()
-        self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self.sub_odom_callback)
+        self.uav_odom = None
+        self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
+
+        check_position_initialized(self, "uav_odom", robot_name)
 
         # Start time
         self.start_time = rospy.Time.now().to_sec()
@@ -68,7 +72,7 @@ class MPCPubBase(ABC):
         )
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Timer started!")
 
-    def sub_odom_callback(self, msg: Odometry):
+    def _sub_odom_callback(self, msg: Odometry):
         """Store the latest odometry data."""
         self.uav_odom = msg
 
