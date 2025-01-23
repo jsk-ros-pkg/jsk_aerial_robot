@@ -29,12 +29,12 @@ class ThreeModJoyMorph():
 
         self.morph_flag_positive = False
         self.morph_flag_negative = False
-        self.morph_delta = 0.05
-        self.current_angle = 0.0
+        self.morph_delta = 0.01
+        self.current_angle = 1.5
 
         self.desire_joint = JointState()
         self.desire_joint.name = ['mod1/yaw','mod2/yaw']
-        self.desire_joint.velocity = [1.0]
+        self.desire_joint.velocity = [0.08]
         
         time.sleep(0.5)
 
