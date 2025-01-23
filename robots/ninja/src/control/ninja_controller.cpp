@@ -136,6 +136,7 @@ namespace aerial_robot_control
     Eigen::VectorXd est_external_wrench_com = est_external_wrench_cog;
     Eigen::Matrix3d cog2com = (ninja_navigator_->getCom2Base<Eigen::Affine3d>() * ninja_robot_model_->getCog2Baselink<Eigen::Affine3d>().inverse()).rotation();
     est_external_wrench_com.head(3) = cog2com * est_external_wrench_cog.head(3);
+    est_external_wrench_com.tail(3) = cog2com * est_external_wrench_cog.tail(3);
 
     geometry_msgs::WrenchStamped wrench_msg_com;
     wrench_msg_com.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
