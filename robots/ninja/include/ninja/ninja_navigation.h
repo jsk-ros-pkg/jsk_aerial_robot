@@ -205,6 +205,7 @@ namespace aerial_robot_navigation
     std::mutex mutex_cand_omega_;
 
     double pseudo_cog_com_dist_;
+    double pseudo_radius_change_rate_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

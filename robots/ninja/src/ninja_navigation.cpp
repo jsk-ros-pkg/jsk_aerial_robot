@@ -265,7 +265,7 @@ void NinjaNavigator::calcCenterOfMoving()
   if(control_flag_){
     if(pseudo_assembly_mode_)
       {
-        double com_cog_arg = 2*M_PI/module_num_ * my_index_;
+        double com_cog_arg = -2*M_PI/module_num_ * my_index_;
         KDL::Frame com_frame;
         com_frame.p = KDL::Rotation::RPY(0,0,com_cog_arg) * KDL::Vector(pseudo_cog_com_dist_,0,0);
         com_frame.M = KDL::Rotation::RPY(0,0,com_cog_arg);
@@ -1081,7 +1081,6 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* Translational Contol*/
-
   double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
   double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
@@ -1128,6 +1127,15 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     {
       setTargetOmegaCandZ(0);
     }
+
+  if(pseudo_assembly_mode_ && control_flag_)
+    {
+      /*pseudo assembly formation control*/
+      int raw_right_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT];
+      int raw_left_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT];
+      pseudo_cog_com_dist_ += (raw_right_cmd - raw_left_cmd) * pseudo_radius_change_rate_;
+    }
+  
   BeetleNavigator::joyStickControl(copied_joy_msg);
 }
 
@@ -1269,6 +1277,7 @@ void NinjaNavigator::rosParamInit()
   getParam<double>(nh, "asm_teleop_reset_duration", asm_teleop_reset_duration_, 0.5);
 
   getParam<double>(nh, "pseudo_cog_com_dist", pseudo_cog_com_dist_, 1.0);
+  getParam<double>(nh, "pseudo_radius_change_rate_", pseudo_radius_change_rate_, 0.005);
 
   BeetleNavigator::rosParamInit();
 }
