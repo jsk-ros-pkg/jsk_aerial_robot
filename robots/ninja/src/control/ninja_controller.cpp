@@ -255,6 +255,10 @@ namespace aerial_robot_control
     wrench_comp_p_gain_ = 0;
     wrench_comp_d_gain_ = 0;
     wrench_comp_i_gain_ = 0;
+    if(msg->data)
+      ROS_WARN_STREAM("Pseudo assembly mode ON!");
+    else
+      ROS_WARN_STREAM("Pseudo assembly mode OFF!");
   }
   
 
