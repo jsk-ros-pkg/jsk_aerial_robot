@@ -31,7 +31,7 @@ class DisassemblyDemo():
                                            transitions={'done':'SeparateState'+motion_prefix})
 
                     smach.StateMachine.add('SeparateState'+motion_prefix,
-                                           SeparateState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, neighboring = 'ninja'+str(target_leader_id),separate_vel = direction * 0.2),
+                                           SeparateState(robot_name = 'ninja'+str(target_follower_id), robot_id = target_follower_id, neighboring = 'ninja'+str(target_leader_id),separate_dir = direction,separate_vel = 0.2),
                                            transitions={'done':'succeeded_'+motion_prefix,'in_process':'SeparateState'+motion_prefix})
                 if(i == len(self.module_ids)-2):
                     smach.StateMachine.add('SUB'+str(i),

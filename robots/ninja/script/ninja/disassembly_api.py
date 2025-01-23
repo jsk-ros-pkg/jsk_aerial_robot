@@ -89,15 +89,17 @@ class SeparateState(smach.State):
     def __init__(self,
                  robot_name = 'ninja1',
                  robot_id = 1,
-                 separate_vel = -0.2,
+                 separate_dir = -1,
+                 separate_vel = 0.2,
                  neighboring = 'ninja2',
-                 target_dist_from_neighboring = 1.25):
+                 target_dist_from_neighboring = 0.5):
 
         smach.State.__init__(self, outcomes=['done','in_process'])
 
         self.robot_name = robot_name
         self.robot_id = robot_id
-        self.separate_vel = separate_vel
+        self.separate_dir = separate_dir
+        self.separate_vel = separate_vel * self.separate_dir
         self.neighboring = neighboring
         self.target_dist_from_neighboring = target_dist_from_neighboring
 
@@ -115,8 +117,12 @@ class SeparateState(smach.State):
     def execute(self, userdata):
         x_dist = 0
         try:
-            tf_from_neighboring = self.listener.lookupTransform('/' + self.neighboring+'/root', '/' + self.robot_name+'/root', rospy.Time(0))
-            x_dist = math.fabs(tf_from_neighboring[0][0])
+            if self.separate_dir < 0:
+                tf_from_neighboring = self.listener.lookupTransform('/' + self.neighboring+'/pitch_connect_point', '/' + self.robot_name+'/yaw_connect_point', rospy.Time(0))
+                x_dist = math.fabs(tf_from_neighboring[0][0])
+            else:
+                tf_from_neighboring = self.listener.lookupTransform('/' + self.neighboring+'/yaw_connect_point', '/' + self.robot_name+'/pitch_connect_point', rospy.Time(0))
+                x_dist = math.fabs(tf_from_neighboring[0][0])    
             rospy.loginfo("tf is fine")
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             x_dist = 0
@@ -124,7 +130,10 @@ class SeparateState(smach.State):
             return 'in_process'
         if x_dist <= self.target_dist_from_neighboring:
             self.nav_msg.target = 1
-            self.nav_msg.control_frame = 1 #local frame
+            if self.separate_dir < 0:
+                self.nav_msg.control_frame = 3 #RIGHT_DOCK frame
+            else:
+                self.nav_msg.control_frame = 2 #LEFT_DOCK frame
             self.nav_msg.pos_xy_nav_mode= 1
             self.nav_msg.target_vel_x = self.separate_vel
             self.nav_pub.publish(self.nav_msg)
