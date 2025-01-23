@@ -839,6 +839,77 @@ void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr&
     }
 }
 
+void NinjaNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
+{
+  if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE || getModuleState() != SEPARATED) return;
+
+  gps_waypoint_ = false;
+
+  if(force_att_control_flag_) return;
+
+  /* xy control */
+  if(msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      /* do not switch to pure vel mode */
+      xy_control_mode_ = POS_CONTROL_MODE;
+
+      teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
+
+      switch(msg->control_frame)
+        {
+        case LEFT_DOCK:
+          {
+            double current_com_roll, current_com_pitch, current_com_yaw;
+            try
+              {
+                KDL::Frame current_left_dock;
+                geometry_msgs::TransformStamped transformStamped;
+                transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/pitch_connect_point") , ros::Time(0));
+                tf::transformMsgToKDL(transformStamped.transform, current_left_dock);
+
+                current_left_dock.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
+              }
+            catch (tf2::TransformException& ex)
+              {
+                ROS_ERROR_STREAM("CoM is not defined (assemblyNavCallback)");
+                return;
+              }
+            tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
+            break;
+          }
+        case RIGHT_DOCK:
+          {
+            double current_com_roll, current_com_pitch, current_com_yaw;
+            try
+              {
+                KDL::Frame current_right_dock;
+                geometry_msgs::TransformStamped transformStamped;
+                transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/yaw_connect_point") , ros::Time(0));
+                tf::transformMsgToKDL(transformStamped.transform, current_right_dock);
+
+                current_right_dock.M.GetEulerZYX(current_com_yaw, current_com_pitch, current_com_roll);
+              }
+            catch (tf2::TransformException& ex)
+              {
+                ROS_ERROR_STREAM("CoM is not defined (assemblyNavCallback)");
+                return;
+              }
+            tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), current_com_yaw);
+            setTargetVelX(target_vel.x());
+            setTargetVelY(target_vel.y());
+            break;
+          }
+        default:
+          {
+            break;
+          }
+        }
+    }
+  BeetleNavigator::naviCallback(msg);
+}
+
 void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
   if(getNaviState() == TAKEOFF_STATE || BaseNavigator::getNaviState() == LAND_STATE || getModuleState() == SEPARATED) return;

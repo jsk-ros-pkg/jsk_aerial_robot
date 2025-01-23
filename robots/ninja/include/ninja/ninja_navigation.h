@@ -143,6 +143,7 @@ namespace aerial_robot_navigation
 
     void assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg) override;
+    void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
 
   private:
     void convertTargetPosFromCoG2CoM() override;
