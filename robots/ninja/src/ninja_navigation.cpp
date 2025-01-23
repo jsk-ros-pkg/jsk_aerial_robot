@@ -583,6 +583,7 @@ void NinjaNavigator::comMovingProcess()
     }
   
   tf::Vector3 delta = getTargetFinalPosCand() - current_com_pos;
+  delta.setZ(0);
 
   /* process for vel_vased_waypoint mode */
   if(asm_vel_based_waypoint_)
@@ -590,33 +591,40 @@ void NinjaNavigator::comMovingProcess()
       if(delta.length() > asm_vel_nav_threshold_)
         {
           tf::Vector3 nav_vel = delta * asm_nav_vel_limit_/delta.length();
-          setTargetVelCand(nav_vel);
+          setTargetVelCandX(nav_vel.x());
+          setTargetVelCandY(nav_vel.y());
           asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
         }
       else
         {
           asm_vel_based_waypoint_ = false;
           ROS_WARN("back to assembly pos nav control for way point");
-          setTargetVelCand(tf::Vector3(0,0,0));
+          setTargetVelCandX(0);
+          setTargetVelCandY(0);
           asm_xy_control_mode_ = POS_CONTROL_MODE;
         }
     }
 
+  //xy control
   switch(asm_xy_control_mode_)
     {
     case POS_CONTROL_MODE:
       {
-        setTargetPosCand(target_final_pos_candidate_);
-        setTargetVelCand(tf::Vector3(0,0,0));
+        setTargetPosCandX(target_final_pos_candidate_.x());
+        setTargetPosCandY(target_final_pos_candidate_.y());
+        setTargetVelCandX(0);
+        setTargetVelCandY(0);
         break;
       }
     case VEL_CONTROL_MODE:
       {
         if(ros::Time::now().toSec() > asm_teleop_reset_time_)
           {
-            setTargetVelCand(tf::Vector3(0,0,0));
+            setTargetVelCandX(0);
+            setTargetVelCandY(0);
+            setFinalTargetPosCandX(getTargetPosCand().x());
+            setFinalTargetPosCandY(getTargetPosCand().y());
             asm_xy_control_mode_ = POS_CONTROL_MODE;
-            setFinalTargetPosCand(getTargetPosCand());
           }
         else
           {
@@ -626,6 +634,17 @@ void NinjaNavigator::comMovingProcess()
         break;  
       }
     }
+  //z control
+  if(ros::Time::now().toSec() > asm_teleop_reset_time_)
+    {
+      setTargetVelCandZ(0);
+      setFinalTargetPosCandZ(getTargetPosCand().z());
+    }
+  else
+    {
+      double new_target_com_z = getTargetPosCand().z() + getTargetVelCand().z()*loop_du_;
+      setTargetPosCandZ(new_target_com_z);
+    }  
 }
 
 void NinjaNavigator::setTargetCoMPoseFromCurrState()
@@ -1051,7 +1070,7 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
     {
       tf::Vector3 target_cog_pos(0, 0, msg->target_pos_z);
       setTargetPosCandZ(target_cog_pos.z());
-
+      setFinalTargetPosCandZ(target_cog_pos.z());
       setTargetVelCandZ(0);
     }
 }
@@ -1086,6 +1105,7 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
   double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
 
+  //xy control
   if(fabs(raw_x_cmd) >= joy_stick_deadzone_ || fabs(raw_y_cmd) >= joy_stick_deadzone_)
     {
       asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
@@ -1118,6 +1138,13 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           }
         }
     }
+  //z control
+  if(fabs(raw_z_cmd) >= joy_stick_deadzone_)
+      {
+        asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+        setTargetVelCandZ(raw_z_cmd * max_teleop_z_vel_);
+      }
+  //yaw control
   if(fabs(raw_yaw_cmd) > joy_stick_deadzone_)
     {
       asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
