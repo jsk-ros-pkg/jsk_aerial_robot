@@ -46,6 +46,7 @@ navigation:
   joint_process_func: 2 # 0 -> CONSTANT, 1 -> FRAC, 2 -> EXP
   free_joint_flag: false
   max_teleop_xy_vel: 0.2
+  max_teleop_z_vel: 0.2
 
   # trajectory
   trajectory_min_du: 2.0
