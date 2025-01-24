@@ -196,7 +196,7 @@ void NinjaNavigator::calcCenterOfMoving()
     }
   else
     {    
-      int leader_index =  std::round((assembled_modules_ids_.size())/2.0) -1;  
+      int leader_index =  std::round((assembled_modules_ids_.size())/2.0) -1;
       if(!leader_fix_flag_) leader_id_ = assembled_modules_ids_[leader_index];
     }
   if(my_id_ == leader_id_ && control_flag_){
@@ -227,9 +227,10 @@ void NinjaNavigator::calcCenterOfMoving()
           tf2::fromMsg(transformStamped.transform, tf_me_leader);
 
           tf2::Transform tf_leader_leader2;
-          tf_leader_leader2.setOrigin(tf2::Vector3(-pseudo_cog_com_dist_, 0.0, 0.0));
+          tf_leader_leader2.setOrigin(tf2::Vector3(pseudo_cog_com_dist_, 0.0, 0.0));
 
-          tf2::Quaternion q_ident(0.0, 0.0, 0.0, 1.0);
+          tf2::Quaternion q_ident;
+          q_ident.setRPY(0.0, 0.0, M_PI);
           tf_leader_leader2.setRotation(q_ident);
 
           tf2::Transform tf_me_leader2 = tf_me_leader * tf_leader_leader2;
@@ -264,10 +265,10 @@ void NinjaNavigator::calcCenterOfMoving()
   if(control_flag_){
     if(pseudo_assembly_mode_)
       {
-        double com_cog_arg = -2*M_PI/module_num_ * my_index_;
+        double com_cog_arg = 2*M_PI/module_num_ * my_index_;
         KDL::Frame com_frame;
         com_frame.p = KDL::Rotation::RPY(0,0,com_cog_arg) * KDL::Vector(pseudo_cog_com_dist_,0,0);
-        com_frame.M = KDL::Rotation::RPY(0,0,com_cog_arg);
+        com_frame.M = KDL::Rotation::RPY(0,0,M_PI + com_cog_arg);
         KDL::Frame raw_cog2base; // co2base conversion without desire coord process
         raw_cog2base.p = ninja_robot_model_->getCogDesireOrientation<KDL::Rotation>().Inverse() * ninja_robot_model_->getCog2Baselink<KDL::Frame>().p;
         setCoM2Base(raw_cog2base * com_frame);
