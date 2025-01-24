@@ -72,7 +72,7 @@ namespace aerial_robot_navigation
 
     virtual void calcCenterOfMoving();  
 
-
+    bool pseudo_assembly_mode_;
   protected:
     ros::Publisher cog_com_dist_pub_;
     std::mutex mutex_cog2com_;

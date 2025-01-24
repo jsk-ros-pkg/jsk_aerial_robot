@@ -19,7 +19,8 @@ BeetleNavigator::BeetleNavigator():
   joy_roll_positive_flag_(false),
   joy_roll_negative_flag_(false),
   joy_pitch_positive_flag_(false),
-  joy_pitch_negative_flag_(false)
+  joy_pitch_negative_flag_(false),
+  pseudo_assembly_mode_(false)
 {}
 
 void BeetleNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,

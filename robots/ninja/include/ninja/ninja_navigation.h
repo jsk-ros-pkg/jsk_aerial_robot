@@ -130,8 +130,6 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetVelCand() {return target_vel_candidate_;}
     inline tf::Vector3 getTargetOmegaCand() {return target_omega_candidate_;}
 
-    bool pseudo_assembly_mode_;
-
   protected:
     std::mutex mutex_com2base_;
     

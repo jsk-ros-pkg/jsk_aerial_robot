@@ -109,7 +109,8 @@ namespace aerial_robot_control
 
     if(module_state == FOLLOWER &&
        pd_wrench_comp_mode_ &&
-       beetle_navigator_->getControlFlag()){
+       beetle_navigator_->getControlFlag()&&
+       !beetle_navigator_->pseudo_assembly_mode_){
 
       /* set proper gains for wrench comp */
       int module_num = 0;

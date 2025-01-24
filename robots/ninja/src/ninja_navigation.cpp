@@ -10,8 +10,7 @@ NinjaNavigator::NinjaNavigator():
   module_joint_num_(2),
   morphing_flag_(false),
   asm_teleop_reset_time_(0),
-  asm_vel_based_waypoint_(false),
-  pseudo_assembly_mode_(false)
+  asm_vel_based_waypoint_(false)
 {
 }
 
