@@ -1161,6 +1161,11 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       int raw_right_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT];
       int raw_left_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT];
       pseudo_cog_com_dist_ += (raw_right_cmd - raw_left_cmd) * pseudo_radius_change_rate_;
+
+      if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1)
+        {
+          setTargetCoMPoseFromCurrState();
+        }
     }
   
   BeetleNavigator::joyStickControl(copied_joy_msg);
