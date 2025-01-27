@@ -104,7 +104,7 @@ class DragonDemo():
                                                 'preempted':'preempted'},
                                    remapping={'flags':'flags', 'extra':'extra'})
 
-            smach.StateMachine.add('Circle', CircleTrajectory(self.robot, period = 6.0, radius = 0),
+            smach.StateMachine.add('Circle', CircleTrajectory(self.robot, period = 10.0, radius = 0),
                                    transitions={'succeeded':'Land',
                                                 'preempted':'preempted'},
                                    remapping={'flags':'flags', 'extra':'extra'})
