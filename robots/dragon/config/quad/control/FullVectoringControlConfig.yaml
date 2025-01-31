@@ -10,6 +10,7 @@ controller:
   allocation_refine_max_iteration: 5
   allocation_refine_threshold: 0.0001
 
+  wrench_estimate_flag: true
   wrench_estimate_update_rate: 100
   momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
   momentum_observer_torque_weight: 2.5

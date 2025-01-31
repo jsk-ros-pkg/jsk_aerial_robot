@@ -51,43 +51,6 @@ namespace sensor_plugin
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     string sensor_name, int index) override;
-
-    void setFilteredOmegaCog(const tf::Vector3 filtered_omega_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      filtered_omega_cog_ = filtered_omega_cog;
-    }
-
-    void setFilteredVelCog(const tf::Vector3 filtered_vel_cog)
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      filtered_vel_cog_ = filtered_vel_cog;
-    }
-
-    const tf::Vector3 getFilteredOmegaCog()
-    {
-      boost::lock_guard<boost::mutex> lock(omega_mutex_);
-      return filtered_omega_cog_;
-    }
-
-    const tf::Vector3 getFilteredVelCog()
-    {
-      boost::lock_guard<boost::mutex> lock(vel_mutex_);
-      return filtered_vel_cog_;
-    }
-
-  protected:
-
-    void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
-
-    // work around to obtain filter states
-    boost::mutex omega_mutex_;
-    boost::mutex vel_mutex_;
-    tf::Vector3 filtered_vel_cog_;
-    tf::Vector3 filtered_omega_cog_;
-    IirFilter lpf_omega_; // for gyro
-
-    ros::Publisher omega_filter_pub_; // debug
   };
 };
 
