@@ -276,6 +276,9 @@ class CircleTrajectory(BaseState):
         loop = 0
         cnt = 0
 
+        pos = None
+        rot = None
+
         while loop < self.loop:
 
             if self.robot.flight_state != self.robot.HOVER_STATE:
@@ -308,7 +311,10 @@ class CircleTrajectory(BaseState):
             rospy.sleep(self.nav_rate)
 
         # stop
-        self.robot.navigate(lin_vel = [0,0,0], ang_vel = [0,0,0])
+        if self.yaw:
+            self.robot.navigate(pos = pos, rot = rot, lin_vel = [0,0,0], ang_vel = [0,0,0])
+        else:
+            self.robot.navigate(pos = pos, lin_vel = [0,0,0])
         self.hold(self.hold_time, userdata.flags)
 
         return 'succeeded'
