@@ -53,3 +53,6 @@ navigation:
   trajectory_mean_yaw_rate: 0.6
   enable_latch_yaw_trajectory: false
   trajectory_mean_vel: 0.5
+
+  #pseudo
+  pseudo_cog_com_dist: 0.7
