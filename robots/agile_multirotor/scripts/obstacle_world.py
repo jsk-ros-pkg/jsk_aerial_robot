@@ -59,7 +59,11 @@ class ObstacleWorld:
             self.obs = dict()
             for i in range(len(df)):
                 name = 'obj' + str(i+1)
-                self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]) \
+                if np.any(np.isnan(np.array(df.loc[i, 3:4].tolist()))):
+                    self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]),
+                                  'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[0,8]}
+                else:
+                    self.obs[name] = {'p': np.array(df.loc[i, 1:3].tolist())+np.array([shift_x,shift_y,0]) \
                                   + np.array(df.loc[i, 3:5].tolist())*(-1*policy_start_delay),
                                   'v': np.array(df.loc[i, 3:5].tolist()), 'r': df.at[i,8]}
                 self.obs[name]['p'][2] = self.h / 2
