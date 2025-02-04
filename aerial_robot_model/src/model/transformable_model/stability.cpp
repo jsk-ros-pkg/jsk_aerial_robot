@@ -28,10 +28,20 @@ void RobotModel::calcFeasibleControlJacobian()
   int index = 0;
   for (int i = 0; i < rotor_num; ++i) {
     for (int j = 0; j < rotor_num; ++j) {
+
+      if (i == j) continue;
+
+      approx_fc_f_dists_(index) = 0;
+      fc_f_dists_jacobian_.row(index) = Eigen::MatrixXd::Zero(1, ndof);
+      approx_fc_t_dists_(index) = 0;
+      fc_t_dists_jacobian_.row(index) = Eigen::MatrixXd::Zero(1, ndof);
+
+
       double approx_f_dist = 0.0;
       double approx_t_dist = 0.0;
       Eigen::MatrixXd d_f_min = Eigen::MatrixXd::Zero(1, ndof);
       Eigen::MatrixXd d_t_min = Eigen::MatrixXd::Zero(1, ndof);
+
       const Eigen::Vector3d& u_i = u.at(i);
       const Eigen::Vector3d& u_j = u.at(j);
       const Eigen::Vector3d uixuj = u_i.cross(u_j);
@@ -47,47 +57,42 @@ void RobotModel::calcFeasibleControlJacobian()
       const Eigen::MatrixXd d_vixvj = -skew(v_j) * d_v_i  + skew(v_i) * d_v_j;
 
       for (int k = 0; k < rotor_num; ++k) {
-        if (i == j || j == k || k == i) {
-        } else {
 
-          // u
-          const Eigen::Vector3d& u_k = u.at(k);
-          const double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
-          const Eigen::MatrixXd& d_u_k = u_jacobians_.at(k);
-          Eigen::MatrixXd d_u_triple_product = (uixuj / uixuj.norm()).transpose() * d_u_k + u_k.transpose() * (d_uixuj / uixuj.norm() - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.transpose() * d_uixuj);
-          d_f_min += sigmoid(u_triple_product * thrust_max, epsilon) * d_u_triple_product * thrust_max;
-          approx_f_dist += reluApprox(u_triple_product * thrust_max, epsilon);
+        if (i == k || j == k) continue;
 
-          // v
-          const Eigen::Vector3d& v_k = v.at(k);
-          const double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
-          const Eigen::MatrixXd& d_v_k = v_jacobians.at(k);
-          Eigen::MatrixXd d_v_triple_product = (vixvj / vixvj.norm()).transpose() * d_v_k + v_k.transpose() * (d_vixvj / vixvj.norm() - vixvj / (vixvj.norm() * vixvj.squaredNorm()) * vixvj.transpose() * d_vixvj);
-          d_t_min += sigmoid(v_triple_product * thrust_max, epsilon) * d_v_triple_product * thrust_max;
-          approx_t_dist += reluApprox(v_triple_product * thrust_max, epsilon);
-        } //if
-      } //k
+        // u
+        const Eigen::Vector3d& u_k = u.at(k);
+        const double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
+        const Eigen::MatrixXd& d_u_k = u_jacobians_.at(k);
+        Eigen::MatrixXd d_u_triple_product = (uixuj / uixuj.norm()).transpose() * d_u_k + u_k.transpose() * (d_uixuj / uixuj.norm() - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.transpose() * d_uixuj);
+        d_f_min += sigmoid(u_triple_product * thrust_max, epsilon) * d_u_triple_product * thrust_max;
+        approx_f_dist += reluApprox(u_triple_product * thrust_max, epsilon);
 
-      if (i != j) {
+        // v
+        const Eigen::Vector3d& v_k = v.at(k);
+        const double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
+        const Eigen::MatrixXd& d_v_k = v_jacobians.at(k);
+        Eigen::MatrixXd d_v_triple_product = (vixvj / vixvj.norm()).transpose() * d_v_k + v_k.transpose() * (d_vixvj / vixvj.norm() - vixvj / (vixvj.norm() * vixvj.squaredNorm()) * vixvj.transpose() * d_vixvj);
+        d_t_min += sigmoid(v_triple_product * thrust_max, epsilon) * d_v_triple_product * thrust_max;
+        approx_t_dist += reluApprox(v_triple_product * thrust_max, epsilon);
+      }
+
+      if (uixuj.norm() > 10e-5) {
         double uixuj_fg = uixuj.dot(fg)/uixuj.norm();
         Eigen::MatrixXd d_uixuj_fg = Eigen::MatrixXd::Zero(1, ndof);
         d_uixuj_fg = fg.transpose() * (d_uixuj / uixuj.norm() - uixuj / (uixuj.norm() * uixuj.squaredNorm()) * uixuj.transpose() * d_uixuj);
 
         approx_fc_f_dists_(index) = absApprox(approx_f_dist - uixuj_fg, epsilon);
         fc_f_dists_jacobian_.row(index) = tanh(approx_f_dist - uixuj_fg, epsilon) * (d_f_min - d_uixuj_fg);
+      }
 
+      if (vixvj.norm() > 10e-5) {
         approx_fc_t_dists_(index) = approx_t_dist;
         fc_t_dists_jacobian_.row(index) = d_t_min;
-
-        for(int l = 0; l < ndof; l++)
-          {
-            if(std::isnan(fc_f_dists_jacobian_.row(index)(0, l)))
-              fc_f_dists_jacobian_.row(index)(0, l) = 0;
-            if(std::isnan(fc_t_dists_jacobian_.row(index)(0, l)))
-              fc_t_dists_jacobian_.row(index)(0, l) = 0;
-          }
-        index++;
       }
+
+      index++;
+
     } //j
   } //i
 }
