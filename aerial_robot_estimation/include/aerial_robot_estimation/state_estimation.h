@@ -262,6 +262,9 @@ namespace aerial_robot_estimation
         base_rots_.at(estimate_mode) = rot;
     }
 
+    void setOrientationWxB(int frame, int estimate_mode, tf::Vector3 v);
+    void setOrientationWzB(int frame, int estimate_mode, tf::Vector3 v);
+
     tf::Vector3 getEuler(int frame, int estimate_mode)
     {
       tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
@@ -415,6 +418,8 @@ namespace aerial_robot_estimation
     inline const geographic_msgs::GeoPoint& getCurrGpsPoint() const {return curr_wgs84_poiont_;}
     inline const bool hasGroundTruthOdom() const {return has_groundtruth_odom_; }
     inline void receiveGroundTruthOdom(bool flag) {has_groundtruth_odom_ = flag; }
+    inline const bool hasRefinedYawEstimate(int i) const {return has_refined_yaw_estimate_.at(i); }
+    inline void SetRefinedYawEstimate(int i, bool flag) {has_refined_yaw_estimate_.at(i) = flag; }
 
 
     const SensorFuser& getFuser(int mode)
@@ -484,6 +489,8 @@ namespace aerial_robot_estimation
     array<int, 3> base_rot_status_, cog_rot_status_;
 
     bool has_groundtruth_odom_; // whether receive entire groundthtruth odometry (e.g., for simulation mode)
+
+    std::map<int, bool> has_refined_yaw_estimate_; // whether receive refined yaw estimation data (e.g., vio) for each estimate mode
 
     /* for calculate the sensor to baselink with the consideration of time delay */
     int qu_size_;

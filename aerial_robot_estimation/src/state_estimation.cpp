@@ -51,6 +51,9 @@ StateEstimator::StateEstimator()
   fuser_[0].resize(0);
   fuser_[1].resize(0);
 
+  has_refined_yaw_estimate_[EGOMOTION_ESTIMATE] = false;
+  has_refined_yaw_estimate_[EXPERIMENT_ESTIMATE] = false;
+
   for(int i = 0; i < 6; i ++)
     {
       for(int j = 0; j < 3; j++)
@@ -91,6 +94,35 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   double rate;
   nhp_.param("state_pub_rate", rate, 100.0);
   state_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / rate), &StateEstimator::statePublish, this);
+}
+
+
+void StateEstimator::setOrientationWxB(int frame, int estimate_mode, tf::Vector3 v)
+{
+  tf::Vector3 wx_b = v.normalize();
+
+  tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+  tf::Vector3 wz_b = rot.getRow(2);
+  tf::Vector3 wy_b = wz_b.cross(wx_b);
+  wy_b.normalize();
+
+  rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
+
+  setOrientation(frame, estimate_mode, rot);
+}
+
+void StateEstimator::setOrientationWzB(int frame, int estimate_mode, tf::Vector3 v)
+{
+  tf::Vector3 wz_b = v.normalize();
+
+  tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+  tf::Vector3 wx_b = rot.getRow(0);
+  tf::Vector3 wy_b = wz_b.cross(wx_b);
+  wy_b.normalize();
+
+  rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
+
+  setOrientation(frame, estimate_mode, rot);
 }
 
 void StateEstimator::statePublish(const ros::TimerEvent & e)

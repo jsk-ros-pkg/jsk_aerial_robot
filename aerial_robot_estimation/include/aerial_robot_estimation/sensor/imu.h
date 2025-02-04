@@ -88,9 +88,6 @@ namespace sensor_plugin
     tf::Vector3 acc_bias_b_; /* the acceleration bias in baselink frame, only use z axis  */
     std::array<tf::Vector3, 2> acc_bias_w_; /* the acceleration bias in world frame for estimate_mode and expriment_mode*/
 
-    /* orientation */
-    std::array<tf::Matrix3x3, 2> cog_rot_, base_rot_;
-
     aerial_robot_msgs::States state_; /* for debug */
 
     double calib_time_;

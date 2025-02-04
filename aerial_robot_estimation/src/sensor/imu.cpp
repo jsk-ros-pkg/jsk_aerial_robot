@@ -42,6 +42,8 @@ namespace
   ros::Time prev_time;
 }
 
+using namespace aerial_robot_estimation;
+
 namespace sensor_plugin
 {
   Imu::Imu ():
@@ -137,79 +139,55 @@ namespace sensor_plugin
     tf::Vector3 wy_b = raw_rot_.getRow(1);
     tf::Vector3 wz_b = raw_rot_.getRow(2);
 
-    // 1. egomotion estimate mode
-    //  check whether have valid rotation from VO sensor
-    for(const auto& handler: estimator_->getVoHandlers())
-      {
-        if(handler->getStatus() == Status::ACTIVE)
-          {
-            auto vo_handler = boost::dynamic_pointer_cast<sensor_plugin::VisualOdometry>(handler);
+    tf::Vector3 wz_c = cog2baselink_tf.getBasis() * wz_b;
+    tf::Vector3 omega_c = cog2baselink_tf.getBasis() * omega_;
 
-            if (vo_handler->rotValid())
-              {
-                tf::Matrix3x3 vo_rot = vo_handler->getRawBaselinkTF().getBasis();
-                // we replace the wx_b with the value from VO.
-                wx_b = vo_rot.transpose() * tf::Vector3(1,0,0);
-                wy_b = wz_b.cross(wx_b);
-                wy_b.normalize();
-                break;
-              }
-          }
-      }
-
-    tf::Matrix3x3 rot;
-    rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
-
-    base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) = rot;
-    estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, rot);
-
-    tf::Matrix3x3 rot_c = rot * cog2baselink_tf.getBasis().transpose();
-    cog_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE) = rot_c;
-    estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, rot_c);
-
-    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EGOMOTION_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
-    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE, omega_);
-
-    // 2. experiment estimate mode
-    if(estimator_->getStateStatus(State::CoG::Rot, aerial_robot_estimation::GROUND_TRUTH))
-      {
-        tf::Matrix3x3 gt_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH);
-        // we replace the wx_b with the value from ground truth.
-        wx_b = gt_rot.transpose() * tf::Vector3(1,0,0);
-        wy_b = wz_b.cross(wx_b);
-        wy_b.normalize();
-      }
-
-    rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
-
-    base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) = rot;
-    estimator_->setOrientation(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, rot);
-
-    rot_c = rot * cog2baselink_tf.getBasis().transpose();
-    cog_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE) = rot_c;
-    estimator_->setOrientation(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, rot_c);
-
-    estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::EXPERIMENT_ESTIMATE, cog2baselink_tf.getBasis() * omega_);
-    estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE, omega_);
-
-    // 3.  ground truth mode
-    if (!estimator_->hasGroundTruthOdom())
-      {
-        /* set baselink angular velocity for all axes using imu omega */
-        estimator_->setAngularVel(Frame::BASELINK, aerial_robot_estimation::GROUND_TRUTH, omega_);
-        /* set cog angular velocity for all axes using imu omega */
-        estimator_->setAngularVel(Frame::COG, aerial_robot_estimation::GROUND_TRUTH, cog2baselink_tf.getBasis() * omega_);
-      }
-
-    // 4. set the rotation and angular velocity for the temporal queue for other sensor with time delay
-    estimator_->updateQueue(imu_stamp_.toSec(), base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE),
-                            base_rot_.at(aerial_robot_estimation::EXPERIMENT_ESTIMATE), omega_);
-
+    // 1. mode for EGOMOTION_ESTIMATE and EXPERIMENT_ESTIMATE
+    std::map<int, tf::Matrix3x3> rots;
     for (int i = 0; i < 2; i++)
       {
-        acc_w_.at(i) = base_rot_.at(i) * acc_b_ - tf::Vector3(0, 0, aerial_robot_estimation::G);
+        // check if there is a refined (better) yaw estimation handler (e.g. VO, RTK-GPS)
+        if (estimator_->hasRefinedYawEstimate(i))
+          {
+            // only update the wz_b vector (the vector only related to gravity)
+            estimator_->setOrientationWzB(Frame::BASELINK, i, wz_b);
+            estimator_->setOrientationWzB(Frame::COG, i, wz_c);
+          }
+        else
+          {
+            estimator_->setOrientation(Frame::BASELINK, i, raw_rot_);
+            tf::Matrix3x3 rot_c = raw_rot_ * cog2baselink_tf.getBasis().transpose();
+            estimator_->setOrientation(Frame::COG, i, rot_c);
+          }
+
+        // angular velocity
+        estimator_->setAngularVel(Frame::BASELINK, i, omega_);
+        estimator_->setAngularVel(Frame::COG, i, omega_c);
+
+        // re-obtain the rotation and store to a map for later usage
+        rots[i] = estimator_->getOrientation(Frame::BASELINK, i);
+
+        acc_w_.at(i) = rots.at(i) * acc_b_ - tf::Vector3(0, 0, aerial_robot_estimation::G);
         acc_non_bias_w_.at(i) = acc_w_.at(i) - acc_bias_w_.at(i);
       }
+
+    // 2. mode for GROUND_TRUTH
+    if (!estimator_->hasGroundTruthOdom())
+      {
+        // the orientation is set from ground truth plugin (mocap)
+
+        /* set baselink angular velocity for all axes using imu omega */
+        estimator_->setAngularVel(Frame::BASELINK, GROUND_TRUTH, omega_);
+        /* set cog angular velocity for all axes using imu omega */
+        estimator_->setAngularVel(Frame::COG, GROUND_TRUTH, omega_c);
+      }
+
+    // 3. set the rotation and angular velocity for the temporal queue for other sensor with time delay
+    estimator_->updateQueue(imu_stamp_.toSec(),
+                            rots.at(EGOMOTION_ESTIMATE),
+                            rots.at(EXPERIMENT_ESTIMATE),
+                            omega_);
+
 
     /* bais calibration */
     if(bias_calib < calib_count_)
@@ -233,7 +211,8 @@ namespace sensor_plugin
             for (int i = 0; i < 2; i++)
               acc_bias_w_.at(i) /= calib_count_;
 
-            tf::Vector3 acc_bias_b = base_rot_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE).inverse() * acc_bias_w_.at(aerial_robot_estimation::EGOMOTION_ESTIMATE);
+            tf::Matrix3x3 rot_inv = rots.at(EGOMOTION_ESTIMATE).inverse();
+            tf::Vector3 acc_bias_b = rot_inv * acc_bias_w_.at(EGOMOTION_ESTIMATE);
             ROS_INFO("acc bias w.r.t body frame: [%f, %f, %f], dt: %f[sec]", acc_bias_b.x(), acc_bias_b.y(), acc_bias_b.z(), sensor_dt_);
 
             estimator_->setQueueSize(1/sensor_dt_);
@@ -352,10 +331,10 @@ namespace sensor_plugin
 
                     if(plugin_name == "aerial_robot_base/kf_xy_roll_pitch_bias")
                       {
-                        tf::Vector3 acc_bias_b = base_rot_.at(mode).inverse() * acc_bias_w_.at(mode);
+                        tf::Matrix3x3 rot = rots.at(mode);
+                        tf::Vector3 acc_bias_b = rot.inverse() * acc_bias_w_.at(mode);
 
-                        double r, p, y;
-                        base_rot_.at(mode).getRPY(r, p, y);
+                        double r, p, y; rot.getRPY(r, p, y);
                         if(id & (1 << State::X_BASE) && (id & (1 << State::Y_BASE)))
                           {
                             params.push_back(r);
@@ -444,8 +423,7 @@ namespace sensor_plugin
     sensor_msgs::Imu imu_data;
     imu_data.header.stamp = imu_stamp_;
     tf::Quaternion q;
-    base_rot_.at(0).getRotation(q);
-    q.normalize();
+    raw_rot_.getRotation(q);
     tf::quaternionTFToMsg(q, imu_data.orientation);
     tf::vector3TFToMsg(omega_, imu_data.angular_velocity);
     tf::vector3TFToMsg(acc_b_, imu_data.linear_acceleration);

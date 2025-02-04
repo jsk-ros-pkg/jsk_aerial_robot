@@ -36,6 +36,8 @@
 /* base class */
 #include <aerial_robot_estimation/sensor/vo.h>
 
+using namespace aerial_robot_estimation;
+
 namespace
 {
   double init_servo_st = 0;
@@ -80,8 +82,6 @@ namespace sensor_plugin
     if(time_sync_) queuse_size = 10;
     vo_sub_ = nh_.subscribe(topic_name, queuse_size, &VisualOdometry::voCallback, this);
 
-    rot_valid_ = false;
-
     /* servo control timer */
     if(variable_sensor_tf_flag_)
       {
@@ -101,7 +101,7 @@ namespace sensor_plugin
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
   {
     /* only do egmotion estimate mode */
-    if(!getFuserActivate(aerial_robot_estimation::EGOMOTION_ESTIMATE))
+    if(!getFuserActivate(EGOMOTION_ESTIMATE))
       {
         ROS_WARN_THROTTLE(1,"Visual Odometry: no egmotion estimate mode");
         return;
@@ -183,7 +183,7 @@ namespace sensor_plugin
             return;
           }
 
-        auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
+        auto sensor_view_rot = estimator_->getOrientation(Frame::BASELINK, EGOMOTION_ESTIMATE) * sensor_tf_.getBasis();
         if(vio_mode_)
           {
             /* get the true rotation (i.e. attitude) from the sensor in vio mode */
@@ -195,7 +195,7 @@ namespace sensor_plugin
         /* can not start fusion from this sensor if the sensor is downward and the height is too low */
         double downward_rate = (sensor_view_rot * tf::Vector3(1,0,0)).z();
         if(downward_rate < -0.8 &&
-           estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0] < downwards_vo_min_height_)
+           estimator_->getState(State::Z_BASE, EGOMOTION_ESTIMATE)[0] < downwards_vo_min_height_)
           {
             return;
           }
@@ -239,15 +239,15 @@ namespace sensor_plugin
 
         /** step1: ^{w}H_{b} **/
         tf::Transform w_b_f;
-        tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+        tf::Matrix3x3 base_rot = estimator_->getOrientation(Frame::BASELINK, EGOMOTION_ESTIMATE);
         w_b_f.setBasis(base_rot);
 
-        tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-        if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+        tf::Vector3 baselink_pos = estimator_->getPos(Frame::BASELINK, EGOMOTION_ESTIMATE);
+        if(estimator_->getStateStatus(State::X_BASE, EGOMOTION_ESTIMATE))
           w_b_f.getOrigin().setX(baselink_pos.x());
-        if(estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+        if(estimator_->getStateStatus(State::Y_BASE, EGOMOTION_ESTIMATE))
           w_b_f.getOrigin().setY(baselink_pos.y());
-        if(estimator_->getStateStatus(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+        if(estimator_->getStateStatus(State::Z_BASE, EGOMOTION_ESTIMATE))
           w_b_f.getOrigin().setZ(baselink_pos.z());
 
         /* set the offset if we know the ground truth */
@@ -274,8 +274,7 @@ namespace sensor_plugin
 
         tf::Vector3 init_pos = w_b_f.getOrigin();
 
-
-        for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
+        for(auto& fuser : estimator_->getFuser(EGOMOTION_ESTIMATE))
           {
             string plugin_name = fuser.first;
             boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -286,7 +285,7 @@ namespace sensor_plugin
                 if(id < (1 << State::TOTAL_NUM))
                   {
                     /* not need to initialize */
-                    if(estimator_->getStateStatus(State::X_BASE + (id >> (State::X_BASE + 1)), aerial_robot_estimation::EGOMOTION_ESTIMATE))
+                    if(estimator_->getStateStatus(State::X_BASE + (id >> (State::X_BASE + 1)), EGOMOTION_ESTIMATE))
                       continue;
 
                     if(fusion_mode_ != ONLY_VEL_MODE) //debug
@@ -316,7 +315,7 @@ namespace sensor_plugin
               {
                 if((id & (1 << State::X_BASE)) && (id & (1 << State::Y_BASE)))
                   {
-                    if(estimator_->getStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE) && estimator_->getStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE))
+                    if(estimator_->getStateStatus(State::X_BASE, EGOMOTION_ESTIMATE) && estimator_->getStateStatus(State::Y_BASE, EGOMOTION_ESTIMATE))
                       continue;
 
                     if(fusion_mode_ != ONLY_VEL_MODE)
@@ -335,9 +334,9 @@ namespace sensor_plugin
           }
         std::cout << std::endl;
 
-        estimator_->setStateStatus(State::X_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
-        estimator_->setStateStatus(State::Y_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
-        estimator_->setStateStatus(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::X_BASE, EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Y_BASE, EGOMOTION_ESTIMATE, true);
+        estimator_->setStateStatus(State::Z_BASE, EGOMOTION_ESTIMATE, true);
 
         prev_sensor_tf = raw_sensor_tf;
         prev_timestamp_ = curr_timestamp_;
@@ -365,13 +364,13 @@ namespace sensor_plugin
     tf::Vector3 raw_vel;
     tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_vel);
     /* get the latest orientation and omega */
-    baselink_r = estimator_->getOrientation(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-    baselink_omega = estimator_->getAngularVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
+    baselink_r = estimator_->getOrientation(Frame::BASELINK, EGOMOTION_ESTIMATE);
+    baselink_omega = estimator_->getAngularVel(Frame::BASELINK, EGOMOTION_ESTIMATE);
 
     if (time_sync_)
       {
         // TODO: what is the following previous tricky code?
-        int mode = aerial_robot_estimation::EGOMOTION_ESTIMATE;
+        int mode = EGOMOTION_ESTIMATE;
 
         if (raw_vel == tf::Vector3(0.0,0.0,0.0))
           {
@@ -454,22 +453,41 @@ namespace sensor_plugin
 
     if((sensor_view_rot * tf::Vector3(1,0,0)).z() < -0.8)
       {
-        double height = estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0];
-        rot_valid_ = false;
+        double height = estimator_->getState(State::Z_BASE, EGOMOTION_ESTIMATE)[0];
+
         if(height < downwards_vo_min_height_ || height > downwards_vo_max_height_)
           {
+            if (estimator_->hasRefinedYawEstimate(EGOMOTION_ESTIMATE))
+              {
+                ROS_WARN_STREAM(indexed_nhp_.getNamespace() <<": refined yaw estimate becomes false");
+                estimator_->SetRefinedYawEstimate(EGOMOTION_ESTIMATE, false);
+              }
 
-            //ROS_WARN_THROTTLE(1, "%s, the height %f is not valid for vo to do downards vo", indexed_nhp_.getNamespace().c_str(), height);
             return;
           }
       }
     else
       {
-        rot_valid_ = true;
+        // YAW (wx_b) update
+        if (!estimator_->hasRefinedYawEstimate(EGOMOTION_ESTIMATE))
+          {
+            ROS_INFO_STREAM(indexed_nhp_.getNamespace() <<": refined yaw estimate becomes true");
+            estimator_->SetRefinedYawEstimate(EGOMOTION_ESTIMATE, true);
+          }
+
+
+        // EGOMOTION_ESTIMATE mode
+        // only update the wx_b vector (the vector only related to yaw)
+        tf::Vector3 wx_b = baselink_tf_.getBasis().getRow(0);
+        tf::Transform c2b_tf;
+        tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), c2b_tf);
+        tf::Vector3 wx_c = c2b_tf.getBasis() * wx_b;
+        estimator_->setOrientationWxB(Frame::BASELINK, EGOMOTION_ESTIMATE, wx_b);
+        estimator_->setOrientationWxB(Frame::COG, EGOMOTION_ESTIMATE, wx_c);
       }
 
     /* XYZ */
-    for(auto& fuser : estimator_->getFuser(aerial_robot_estimation::EGOMOTION_ESTIMATE))
+    for(auto& fuser : estimator_->getFuser(EGOMOTION_ESTIMATE))
       {
         string plugin_name = fuser.first;
         boost::shared_ptr<kf_plugin::KalmanFilter> kf = fuser.second;
@@ -641,7 +659,7 @@ namespace sensor_plugin
     bool send_pub_ = false;
 
     /* after takeoff */
-    if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
+    if(servo_auto_change_flag_ && estimator_->getState(State::Z_BASE, EGOMOTION_ESTIMATE)[0] > servo_height_thresh_ && servo_angle_ != servo_downwards_angle_)
       {
         if(fabs(servo_angle_ - servo_downwards_angle_) > servo_vel_ * servo_control_rate_)
           {
@@ -654,7 +672,7 @@ namespace sensor_plugin
       }
 
     /* before landing */
-    if(estimator_->getState(State::Z_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
+    if(estimator_->getState(State::Z_BASE, EGOMOTION_ESTIMATE)[0] < servo_height_thresh_ - 0.1 &&  servo_angle_ != servo_init_angle_)
       {
         if(fabs(servo_angle_ - servo_init_angle_) > servo_vel_ * servo_control_rate_)
           {

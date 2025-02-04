@@ -70,7 +70,6 @@ namespace sensor_plugin
 
     bool reset();
 
-    const bool rotValid() const { return rot_valid_; }
     const tf::Transform& getRawBaselinkTF() const { return baselink_tf_; }
 
   private:
@@ -96,8 +95,6 @@ namespace sensor_plugin
     /* heuristic sepecial flag for fusion */
     bool outdoor_;
     bool z_no_delay_;
-    bool rot_valid_; // the estimated orientatin by VO is whether valid or not.
-
 
     /* servo */
     std::string joint_name_;
