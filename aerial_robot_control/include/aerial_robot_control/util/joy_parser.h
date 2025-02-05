@@ -40,7 +40,7 @@
 
 /* general joystick bottons/axes layout */
 const int JOY_BUTTON_SIZE              = 17;
-const int JOY_BUTTON_SELECT            = 0;
+const int JOY_BUTTON_STOP            = 0;
 const int JOY_BUTTON_STICK_LEFT        = 1;
 const int JOY_BUTTON_STICK_RIGHT       = 2;
 const int JOY_BUTTON_START             = 3;
@@ -114,6 +114,54 @@ const int PS4_AXIS_BUTTON_CROSS_UP_DOWN    = 10; // up = +1, down= -1
 const int PS4_AXIS_GYRO_ROLL               = 11;
 const int PS4_AXIS_GYRO_YAW                = 12;
 const int PS4_AXIS_GYRO_PITCH              = 13;
+
+/* ps4-like bluetooth joystick */
+const int BLT_BUTTON_SIZE              = 13;
+const int BLT_BUTTON_ACTION_CROSS      = 0;
+const int BLT_BUTTON_ACTION_CIRCLE     = 1;
+const int BLT_BUTTON_ACTION_TRIANGLE   = 2;
+const int BLT_BUTTON_ACTION_SQUARE     = 3;
+const int BLT_BUTTON_REAR_LEFT_1       = 4;
+const int BLT_BUTTON_REAR_RIGHT_1      = 5;
+const int BLT_BUTTON_REAR_LEFT_2       = 6;
+const int BLT_BUTTON_REAR_RIGHT_2      = 7;
+const int BLT_BUTTON_SHARE             = 8;
+const int BLT_BUTTON_OPTIONS           = 9;
+const int BLT_BUTTON_PAIRING           = 10;
+const int BLT_BUTTON_STICK_LEFT        = 11;
+const int BLT_BUTTON_STICK_RIGHT       = 12;
+const int BLT_AXIS_SIZE                    = 8;
+const int BLT_AXIS_STICK_LEFT_LEFTWARDS    = 0;
+const int BLT_AXIS_STICK_LEFT_UPWARDS      = 1;
+const int BLT_AXIS_BUTTON_REAR_LEFT_2      = 2; // neutral=+1, full accel=-1
+const int BLT_AXIS_STICK_RIGHT_LEFTWARDS   = 3;
+const int BLT_AXIS_STICK_RIGHT_UPWARDS     = 4;
+const int BLT_AXIS_BUTTON_REAR_RIGHT_2     = 5; // neutral=+1, full accel=-1
+const int BLT_AXIS_BUTTON_CROSS_LEFT_RIGHT = 6; // left = +1, right= -1
+const int BLT_AXIS_BUTTON_CROSS_UP_DOWN    = 7; // up = +1, down= -1
+
+/* ROG1 embeded joystick */
+const int ROG1_BUTTON_SIZE              = 11;
+const int ROG1_BUTTON_ACTION_A          = 0;
+const int ROG1_BUTTON_ACTION_B          = 1;
+const int ROG1_BUTTON_ACTION_X          = 2;
+const int ROG1_BUTTON_ACTION_Y          = 3;
+const int ROG1_BUTTON_REAR_LEFT_1       = 4;
+const int ROG1_BUTTON_REAR_RIGHT_1      = 5;
+const int ROG1_BUTTON_DUO_RECT          = 6;
+const int ROG1_BUTTON_TRI_LINE          = 7;
+const int ROG1_BUTTON_STICK_LEFT        = 9;
+const int ROG1_BUTTON_STICK_RIGHT       = 10;
+const int ROG1_AXIS_SIZE                    = 8;
+const int ROG1_AXIS_STICK_LEFT_LEFTWARDS    = 0;
+const int ROG1_AXIS_STICK_LEFT_UPWARDS      = 1;
+const int ROG1_AXIS_BUTTON_REAR_LEFT_2      = 2; // neutral=+1, full accel=-1
+const int ROG1_AXIS_STICK_RIGHT_LEFTWARDS   = 3;
+const int ROG1_AXIS_STICK_RIGHT_UPWARDS     = 4;
+const int ROG1_AXIS_BUTTON_REAR_RIGHT_2     = 5; // neutral=+1, full accel=-1
+const int ROG1_AXIS_BUTTON_CROSS_LEFT_RIGHT = 6; // left = +1, right= -1
+const int ROG1_AXIS_BUTTON_CROSS_UP_DOWN    = 7; // up = +1, down= -1
+
 
 const sensor_msgs::Joy joyParse(const sensor_msgs::Joy& ps4_joy_msg);
 
