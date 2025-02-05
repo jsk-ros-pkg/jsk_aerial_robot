@@ -331,35 +331,26 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
 void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 {
-  sensor_msgs::Joy joy_cmd;
-  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
-    {
-      joy_cmd = (*joy_msg);
-    }
-  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS)
-    {
-      joy_cmd = joyParse(*joy_msg);
-    }
-  else
+  sensor_msgs::Joy joy_cmd = joyParse(*joy_msg);
+  if (joy_cmd.axes.size() == 0 || joy_cmd.buttons.size() == 0)
     {
       ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
       return;
     }
 
-  /* ps3 joy bottons assignment: http://wiki.ros.org/ps3joy */
   if(!joy_stick_heart_beat_) joy_stick_heart_beat_ = true;
   joy_stick_prev_time_ = ros::Time::now().toSec();
 
   /* common command */
   /* start */
-  if(joy_cmd.buttons[PS3_BUTTON_START] == 1 && getNaviState() == ARM_OFF_STATE)
+  if(joy_cmd.buttons[JOY_BUTTON_START] == 1 && getNaviState() == ARM_OFF_STATE)
     {
       motorArming();
       return;
     }
 
   /* force landing && halt */
-  if(joy_cmd.buttons[PS3_BUTTON_SELECT] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_STOP] == 1)
     {
       /* Force Landing in inflight mode: TAKEOFF_STATE/LAND_STATE/HOVER_STATE */
       if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
@@ -396,14 +387,14 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* takeoff */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_CIRCLE] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_CROSS_LEFT] == 1 && joy_cmd.buttons[JOY_BUTTON_ACTION_CIRCLE] == 1)
     {
       startTakeoff();
       return;
     }
 
   /* landing */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && joy_cmd.buttons[PS3_BUTTON_ACTION_SQUARE] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_CROSS_RIGHT] == 1 && joy_cmd.buttons[JOY_BUTTON_ACTION_SQUARE] == 1)
     {
       if(force_att_control_flag_) return;
 
@@ -419,10 +410,10 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   teleop_reset_time_ = teleop_reset_duration_ + ros::Time::now().toSec();
 
-  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
-  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
-  double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
-  double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+  double raw_x_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_UPWARDS];
+  double raw_y_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_z_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_UPWARDS];
+  double raw_yaw_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_LEFTWARDS];
 
   /* Motion: Z (Height) */
   if(getNaviState() == HOVER_STATE)
@@ -455,7 +446,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   /* mode selection */
   /* switch to acc model */
-  if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_CROSS_DOWN] == 1)
     {
       if (xy_control_mode_ != ACC_CONTROL_MODE)
         {
@@ -467,7 +458,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* switch to pure vel mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_ACTION_TRIANGLE] == 1)
     {
       if (xy_control_mode_ != VEL_CONTROL_MODE)
         {
@@ -480,7 +471,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
 
   /* siwthc to pos mode */
-  if(joy_cmd.buttons[PS3_BUTTON_ACTION_CROSS] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_ACTION_CROSS] == 1)
     {
       if (xy_control_mode_ != POS_CONTROL_MODE)
         {
@@ -497,7 +488,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   /* mode oriented state */
   control_frame_ = WORLD_FRAME;
   tf::Matrix3x3 local_frame_rot;
-  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_2])
+  if(joy_cmd.buttons[JOY_BUTTON_REAR_LEFT_2])
     {
       control_frame_ = LOCAL_FRAME;
 
