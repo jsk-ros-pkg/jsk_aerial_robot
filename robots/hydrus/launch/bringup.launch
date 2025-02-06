@@ -20,6 +20,7 @@
   <arg name="robot_ns" value="hydrus$(arg robot_id)" />
   <arg name="config_dir" default="$(find hydrus)/config/$(arg type)" />
   <arg name="mujoco" default="False" />
+  <arg name="demo" default="True" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -106,5 +107,8 @@
     <arg name="headless" value="$(arg headless)"/>
     <arg name="mujoco_model" value="$(find hydrus)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
+
+  ########## Simple Demo #########
+  <node pkg="hydrus" type="loop_demo.py" name="loop_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>

@@ -2,6 +2,24 @@
 Changelog for package dragon
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+* [Dragon][Naviagation] refactor the landing process by introducing a new state: pre_land_state (`#652 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/652>`_)
+* [Dragon] remove unnecessary scripts (`#651 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/651>`_)
+
+1.3.5 (2024-12-28)
+------------------
+
+1.3.4 (2024-11-02)
+------------------
+* Resolve dependency to other package (`#610 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/610>`_)
+* [Navigation] trajectory generation based on optimization methods (e.g. minimum snap trajectory) (`#556 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/556>`_)
+* [CMake] use C++17 compiler for all packages that contain C++ files  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [MuJoCo] enable to use mujoco simulator (`#557 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/557>`_)
+* [Navigation] improve the landing motion for all robots (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
+
 1.3.3 (2023-10-26)
 ------------------
 * [Aerial Robot Model][Underactuated][Plugin] fix the wrong args assignment for model constructor (`#561 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/561>`_)

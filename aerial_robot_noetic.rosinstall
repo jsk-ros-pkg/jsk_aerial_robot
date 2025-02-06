@@ -2,19 +2,19 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: b10f5bf
+    version: 4085d3a
 
 # kalman filter
 - git:
     local-name: kalman_filter
     uri: https://github.com/JSKAerialRobot/kalman_filter.git
-    version: 012b925
+    version: 5c7a410
 
 # the sensor interface
 - git:
     local-name: sensor_interface
     uri: https://github.com/JSKAerialRobot/sensor_interface.git
-    version: c4570c0 
+    version: e8286e7
 
 # RTK-GPS
 # support RTK based GPS module.
@@ -50,3 +50,9 @@
 #    local-name: realsense-ros
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
+
+# mocap optitrack
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/sugikazu75/mocap_optitrack.git
+    version: 50fb60d

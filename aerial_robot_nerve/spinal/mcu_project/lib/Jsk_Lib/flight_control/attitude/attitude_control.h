@@ -31,7 +31,10 @@
 #include "battery_status/battery_status.h"
 /* RTOS */
 #include "cmsis_os.h"
+/* dshot esc */
+#include "dshot_esc/dshot.h"
 #endif
+
 #include "state_estimate/state_estimate.h"
 
 #include <std_msgs/UInt8.h>
@@ -55,6 +58,7 @@
 /* fail safe */
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
 #define MAX_TILT_ANGLE 1.0f // rad
+#define MAX_PWM 1.0f // duty
 
 #define CONTROL_TERM_PUB_INTERVAL 100
 #define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
@@ -77,7 +81,8 @@ public:
 #ifdef SIMULATION
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
+            DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -141,10 +146,17 @@ private:
   ros::Subscriber<spinal::DesireCoord, AttitudeController> offset_rot_sub_;
   ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, AttitudeController> att_control_srv_;
 
-  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; }
+  ros::Publisher esc_telem_pub_;
+  spinal::ESCTelemetryArray esc_telem_msg_;
+
+  void setAttitudeControlCallback(const std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+  {
+    att_control_flag_ = req.data;
+  }
 
   BatteryStatus* bat_;
   osMutexId* mutex_;
+  DShot* dshot_;
 #endif
 
   StateEstimate* estimator_;

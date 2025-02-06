@@ -145,6 +145,8 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
 
 void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 {
+  if(getNaviState() != HOVER_STATE) return;
+
   if (traj_generator_ptr_.get() == nullptr)
     {
       ROS_DEBUG("traj_generator_ptr_ is null");
@@ -155,6 +157,8 @@ void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 
 void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 {
+  if(getNaviState() != HOVER_STATE) return;
+
   if (traj_generator_ptr_.get() == nullptr)
     {
       ROS_DEBUG("traj_generator_ptr_ is null");
@@ -167,7 +171,7 @@ void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedC
 
 void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
-  if(getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) return;
+  if(getNaviState() != HOVER_STATE) return;
 
   gps_waypoint_ = false;
 
@@ -686,57 +690,60 @@ void BaseNavigator::update()
   /* update the target pos and velocity */
   if (trajectory_mode_)
     {
-      if (traj_generator_ptr_.get() == nullptr)
+      if(getNaviState() == HOVER_STATE)
         {
-          if (ros::Time::now().toSec() > trajectory_reset_time_)
+          if (traj_generator_ptr_.get() == nullptr)
             {
-              setTargetZeroVel();
-              setTargetZeroAcc();
+              if (ros::Time::now().toSec() > trajectory_reset_time_)
+                {
+                  setTargetZeroVel();
+                  setTargetZeroAcc();
 
-              setTargetZeroOmega();
-              setTargetZeroAngAcc();
+                  setTargetZeroOmega();
+                  setTargetZeroAngAcc();
 
-              trajectory_mode_ = false;
+                  trajectory_mode_ = false;
 
-              ROS_INFO("[Flight nav] stop trajectory mode in POS-VEL mode");
-            }
-        }
-      else
-        {
-          // trajectory following mode
-          double t = ros::Time::now().toSec();
-          double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
-          if (t > end_t)
-            {
-              ROS_INFO("[Nav] reach the end of trajectory");
-
-              setTargetZeroVel();
-              setTargetZeroAcc();
-
-              setTargetZeroOmega();
-              setTargetZeroAngAcc();
-
-              trajectory_mode_ = false;
-
-              traj_generator_ptr_.reset();
+                  ROS_INFO("[Flight nav] stop trajectory mode in POS-VEL mode");
+                }
             }
           else
             {
-              agi::QuadState target_state = traj_generator_ptr_->getState(t);
-              setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
-              setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
-              setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
+              // trajectory following mode
+              double t = ros::Time::now().toSec();
+              double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
+              if (t > end_t)
+                {
+                  ROS_INFO("[Nav] reach the end of trajectory");
 
-              double target_yaw = target_state.getYaw();
-              double target_omega_z = target_state.w(2);
-              double target_ang_acc_z = target_state.tau(2);
-              setTargetYaw(target_yaw);
-              setTargetOmegaZ(target_omega_z);
-              setTargetAngAccZ(target_ang_acc_z);
+                  setTargetZeroVel();
+                  setTargetZeroAcc();
 
-              tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-              double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
-              ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+                  setTargetZeroOmega();
+                  setTargetZeroAngAcc();
+
+                   trajectory_mode_ = false;
+
+                  traj_generator_ptr_.reset();
+                }
+              else
+                {
+                  agi::QuadState target_state = traj_generator_ptr_->getState(t);
+                  setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
+                  setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
+                  setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
+
+                  double target_yaw = target_state.getYaw();
+                  double target_omega_z = target_state.w(2);
+                  double target_ang_acc_z = target_state.tau(2);
+                  setTargetYaw(target_yaw);
+                  setTargetOmegaZ(target_omega_z);
+                  setTargetAngAccZ(target_ang_acc_z);
+
+                  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+                  double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+                  ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+                }
             }
         }
     }
@@ -816,36 +823,29 @@ void BaseNavigator::update()
       }
     case LAND_STATE:
       {
-        if (getNaviState() > START_STATE)
-          {
-            updateLandCommand();
+        updateLandCommand();
 
-            if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
+        if (ros::Time::now().toSec() - land_check_start_time_ > land_check_duration_)
+          {
+            double delta = curr_pos.z() - land_height_;
+            double vel = curr_vel.z();
+
+            ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
+
+            if (fabs(delta) < land_pos_convergent_thresh_ &&
+                vel > -land_vel_convergent_thresh_)
               {
-                double delta = curr_pos.z() - land_height_;
-                double vel = curr_vel.z();
-
-                ROS_INFO("expected land height: %f (current height: %f), velocity: %f ", land_height_, curr_pos.z(), vel);
-
-                if (fabs(delta) < land_pos_convergent_thresh_ &&
-                    vel > -land_vel_convergent_thresh_)
-                  {
-                    ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
-                    ROS_INFO("Start disarming motors");
-                    setNaviState(STOP_STATE);
-                  }
-                else
-                  {
-                    // not staedy, update the land height
-                    land_height_ = curr_pos.z();
-                  }
-
-                land_check_start_time_ = ros::Time::now().toSec();
+                ROS_INFO("\n \n ======================  \n Land !!! \n ====================== \n");
+                ROS_INFO("Start disarming motors");
+                setNaviState(STOP_STATE);
               }
-          }
-        else
-          {
-            setNaviState(ARM_OFF_STATE);
+            else
+              {
+                // not staedy, update the land height
+                land_height_ = curr_pos.z();
+              }
+
+            land_check_start_time_ = ros::Time::now().toSec();
           }
         break;
       }
@@ -957,6 +957,11 @@ void BaseNavigator::updateLandCommand()
 
   addTargetPosZ(land_descend_vel_ * loop_du_);
   setTargetVelZ(land_descend_vel_);
+
+  // update vel for other axes
+  setTargetVelX(0);
+  setTargetVelY(0);
+  setTargetOmega(0, 0, 0);
 }
 
 
@@ -1002,7 +1007,10 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
     }
 
   double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
-  double du_rot = fabs(end_state.getYaw() - start_state.getYaw()) / trajectory_mean_yaw_rate_;
+  double delta_yaw = end_state.getYaw() - start_state.getYaw();
+  if (delta_yaw > M_PI) delta_yaw -= 2 * M_PI;
+  if (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
+  double du_rot = fabs(delta_yaw) / trajectory_mean_yaw_rate_;
   double du = std::max(du_tran, trajectory_min_du_);
   if (!enable_latch_yaw_trajectory_)
     {
@@ -1057,6 +1065,8 @@ void BaseNavigator::rosParamInit()
     land_descend_vel_ == -0.3;
   }
 
+  getParam<double>(nh, "takeoff_xy_pos_tolerance", takeoff_xy_pos_tolerance_, 0.3);
+  getParam<double>(nh, "takeoff_z_pos_tolerance", takeoff_z_pos_tolerance_, 0.3);
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
   getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
   if (land_check_duration_ < 0.5) {

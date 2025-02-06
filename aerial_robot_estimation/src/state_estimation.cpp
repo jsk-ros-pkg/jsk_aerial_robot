@@ -127,6 +127,8 @@ void StateEstimator::setOrientationWzB(int frame, int estimate_mode, tf::Vector3
 
 void StateEstimator::statePublish(const ros::TimerEvent & e)
 {
+  static ros::Time prev_pub_stamp = ros::Time(0);
+
   ros::Time imu_stamp = boost::dynamic_pointer_cast<sensor_plugin::Imu>(imu_handlers_.at(0))->getStamp();
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = imu_stamp;
@@ -185,21 +187,25 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   baselink_odom_pub_.publish(odom_state);
 
   /* TF broadcast from world frame */
-  tf::Transform root2baselink_tf;
-  const auto segments_tf = robot_model_->getSegmentsTf();
-  if(segments_tf.size() > 0) // kinemtiacs is initialized
-    tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()), root2baselink_tf);
-  else
-    root2baselink_tf.setIdentity(); // not initialized
+  /* avoid the redundant timestamp which induces annoying loggings from TF server */
+  if (imu_stamp != prev_pub_stamp)
+    {
+      tf::Transform root2baselink_tf;
+      const auto segments_tf = robot_model_->getSegmentsTf();
+      if(segments_tf.size() > 0) // kinemtiacs is initialized
+        tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()), root2baselink_tf);
+      else
+        root2baselink_tf.setIdentity(); // not initialized
 
-  tf::Transform world2baselink_tf;
-  tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
-  geometry_msgs::TransformStamped transformStamped;
-  tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
-                                                   imu_stamp, "world",
-                                                   tf::resolve(tf_prefix_, std::string("root"))),
-                              transformStamped);
-  br_.sendTransform(transformStamped);
+      tf::Transform world2baselink_tf;
+      tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
+      geometry_msgs::TransformStamped transformStamped;
+      tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
+                                                       imu_stamp, "world",
+                                                       tf::resolve(tf_prefix_, std::string("root"))),
+                                  transformStamped);
+      br_.sendTransform(transformStamped);
+    }
 
   /* COG */
   /* Rotation */
@@ -213,6 +219,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
   cog_odom_pub_.publish(odom_state);
 
+  prev_pub_stamp = imu_stamp;
 }
 
 

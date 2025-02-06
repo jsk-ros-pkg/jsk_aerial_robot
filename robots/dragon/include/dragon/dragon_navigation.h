@@ -58,7 +58,6 @@ namespace aerial_robot_navigation
 
     void update() override;
 
-    inline const bool getLandingFlag() const { return landing_flag_; }
     inline const bool getEqCoGWorldFlag() const { return eq_cog_world_; }
 
   private:
@@ -88,7 +87,6 @@ namespace aerial_robot_navigation
 
     /* landing process */
     bool level_flag_;
-    bool landing_flag_;
     bool servo_torque_;
 
     /* rosparam */
@@ -96,5 +94,8 @@ namespace aerial_robot_navigation
     string joints_torque_control_srv_name_, gimbals_torque_control_srv_name_;
     double baselink_rot_change_thresh_;
     double baselink_rot_pub_interval_;
+
+    // addtional state 
+    static constexpr uint8_t PRE_LAND_STATE = 0x20;
   };
 };

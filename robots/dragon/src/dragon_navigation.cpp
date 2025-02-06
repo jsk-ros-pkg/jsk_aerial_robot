@@ -7,8 +7,9 @@ DragonNavigator::DragonNavigator():
   BaseNavigator(),
   servo_torque_(false),
   level_flag_(false),
-  landing_flag_(false),
-  eq_cog_world_(false)
+  eq_cog_world_(false),
+  curr_target_baselink_rot_(0, 0, 0),
+  final_target_baselink_rot_(0, 0, 0)
 {
   curr_target_baselink_rot_.setRPY(0, 0, 0);
   final_target_baselink_rot_.setRPY(0, 0, 0);
@@ -208,6 +209,7 @@ void DragonNavigator::landingProcess()
                   curr_target_baselink_rot_ = base_rot;
                 }
 
+
               tf::Vector3 cross_v =  tf::Vector3(0,0,1).cross(tf::Matrix3x3(curr_target_baselink_rot_.inverse()) * tf::Vector3(0,0,1));
               if(cross_v.length() < 0.001) // sine of delta_angle to world z frame
                 {
@@ -226,23 +228,23 @@ void DragonNavigator::landingProcess()
                             final_target_baselink_rot_.z(), final_target_baselink_rot_.w());
                 }
             }
-        }
 
-      level_flag_ = true;
+          if(getNaviState() == LAND_STATE)
+            {
+              setNaviState(PRE_LAND_STATE);
+              setTeleopFlag(false);
+              setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
+              setTargetVelZ(0);
+              land_height_ = 0; // reset the land height, since it is updated in the first land_state which is forced to change to hover state to level the orientation. Thus, it is possible to have the same land height just after switching back to land state and thus stop in midair
+              ROS_INFO("[Navigation] shift to pre_land state to make the robot level");
+            }
 
-      if(getNaviState() == LAND_STATE && !landing_flag_)
-        {
-          landing_flag_ = true;
-          setTeleopFlag(false);
-          setTargetPosZ(estimator_->getState(State::Z_COG, estimate_mode_)[0]);
-          setTargetVelZ(0);
-          land_height_ = 0; // reset the land height, since it is updated in the first land_state which is forced to change to hover state to level the orientation. Thus, it is possible to have the same land height just after switching back to land state and thus stop in midair
-          setNaviState(HOVER_STATE);
+          level_flag_ = true;
         }
     }
 
   /* back to landing process */
-  if(landing_flag_)
+  if(getNaviState() == PRE_LAND_STATE)
     {
       const auto joint_state = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
       bool already_level = true;
@@ -259,9 +261,9 @@ void DragonNavigator::landingProcess()
       tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r,p,y);
       if(fabs(r) > 0.01 || fabs(p) > 0.01) already_level = false;
 
-      if(already_level && getNaviState() == HOVER_STATE)
+      if(already_level)
         {
-          ROS_WARN("gimbal control: back to land state");
+          ROS_INFO("[Navigation] back to land state");
           setNaviState(LAND_STATE);
           setTeleopFlag(true);
         }
@@ -318,7 +320,6 @@ void DragonNavigator::reset()
   BaseNavigator::reset();
 
   level_flag_ = false;
-  landing_flag_ = false;
 
   // reset SO3
   eq_cog_world_ = false;
