@@ -56,14 +56,3 @@
      local-name: ros_controllers
      uri: https://github.com/sugikazu75/ros_controllers.git
      version: develop/abs_position_control
-
-# catkinized casadi
-- git:
-     local-name: casadi_catkin
-     uri: https://github.com/sugikazu75/casadi_catkin.git
-     version: master
-
-- git:
-     local-name: casadi_eigen
-     uri: https://github.com/sugikazu75/casadi_eigen.git
-     version: master
