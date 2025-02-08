@@ -711,38 +711,46 @@ void BaseNavigator::update()
             {
               // trajectory following mode
               double t = ros::Time::now().toSec();
-              double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
-              if (t > end_t)
+
+              if (traj_generator_ptr_.get() != nullptr)
                 {
-                  ROS_INFO("[Nav] reach the end of trajectory");
+                  double end_t = traj_generator_ptr_->getEndSetpoint().state.t;
 
-                  setTargetZeroVel();
-                  setTargetZeroAcc();
+                  if (t > end_t)
+                    {
+                      ROS_INFO("[Nav] reach the end of trajectory");
 
-                  setTargetZeroOmega();
-                  setTargetZeroAngAcc();
+                      setTargetZeroVel();
+                      setTargetZeroAcc();
 
-                   trajectory_mode_ = false;
+                      setTargetZeroOmega();
+                      setTargetZeroAngAcc();
 
-                  traj_generator_ptr_.reset();
-                }
-              else
-                {
-                  agi::QuadState target_state = traj_generator_ptr_->getState(t);
-                  setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
-                  setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
-                  setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
+                      trajectory_mode_ = false;
 
-                  double target_yaw = target_state.getYaw();
-                  double target_omega_z = target_state.w(2);
-                  double target_ang_acc_z = target_state.tau(2);
-                  setTargetYaw(target_yaw);
-                  setTargetOmegaZ(target_omega_z);
-                  setTargetAngAccZ(target_ang_acc_z);
+                      traj_generator_ptr_.reset();
+                    }
+                  else
+                    {
+                      if (traj_generator_ptr_.get() != nullptr)
+                        {
+                          agi::QuadState target_state = traj_generator_ptr_->getState(t);
+                          setTargetPos(tf::Vector3(target_state.p(0), target_state.p(1), target_state.p(2)));
+                          setTargetVel(tf::Vector3(target_state.v(0), target_state.v(1), target_state.v(2)));
+                          setTargetAcc(tf::Vector3(target_state.a(0), target_state.a(1), target_state.a(2)));
 
-                  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-                  double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
-                  ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+                          double target_yaw = target_state.getYaw();
+                          double target_omega_z = target_state.w(2);
+                          double target_ang_acc_z = target_state.tau(2);
+                          setTargetYaw(target_yaw);
+                          setTargetOmegaZ(target_omega_z);
+                          setTargetAngAccZ(target_ang_acc_z);
+
+                          tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+                          double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+                          ROS_INFO_THROTTLE(0.5, "[Nav] trajectory mode, target pos&yaw: [%f, %f, %f, %f], curr pos&yaw: [%f, %f, %f, %f]", target_state.p(0), target_state.p(1), target_state.p(2), target_yaw, curr_pos.x(), curr_pos.y(), curr_pos.z(), yaw_angle);
+                        }
+                    }
                 }
             }
         }
