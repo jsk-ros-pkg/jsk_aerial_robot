@@ -7,21 +7,29 @@ import math
 import numpy as np
 import tf.transformations as tft
 from aerial_robot_msgs.msg import FlightNav
+from sensor_msgs.msg import JointState
 
 def main():
     rospy.init_node("example_ninja_transform")
 
     nav_pub_2 = rospy.Publisher("/ninja2/uav/nav", FlightNav, queue_size=1)
     nav_pub_3 = rospy.Publisher("/ninja3/uav/nav", FlightNav, queue_size=1)
+    joint_control_pub_1 = rospy.Publisher("/ninja1/joints_ctrl", JointState, queue_size=10)
+    joint_control_pub_2 = rospy.Publisher("/ninja2/joints_ctrl", JointState, queue_size=10)
+
     flight_nav = FlightNav()
     flight_nav.target = FlightNav.COG
     flight_nav.pos_xy_nav_mode = FlightNav.POS_VEL_MODE
     flight_nav.yaw_nav_mode = FlightNav.POS_VEL_MODE
 
+    desire_joint = JointState()
+    desire_joint.name = ['yaw_dock_joint']
+    desire_joint.position = [0.0]
+
     listener = tf.TransformListener()
     br = tf.TransformBroadcaster()
 
-    d = 1.0          # 点Cまでの距離
+    d = 0.7          # 点Cまでの距離
     a_2 = -2*math.pi /3 # 回転角(例: π/2)
     a_3 = 2*math.pi /3 # 回転角(例: π/2)
 
@@ -124,6 +132,8 @@ def main():
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn("TF lookup failed.")
+        joint_control_pub_1.publish(desire_joint)
+        joint_control_pub_2.publish(desire_joint)
 
         rate.sleep()
 
