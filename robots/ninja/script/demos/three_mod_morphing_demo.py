@@ -27,13 +27,22 @@ if reset:
     desire_att.pitch = 0
     desire_att.roll = 0
     desire_att.yaw = 0
+    # desire_joint.velocity = [0.8]
 elif demo_mode == 0: # ko shape
     rospy.loginfo('mode 0')
-    desire_joint.position = [0.0,-1.4,0.0,-1.2,0.0,0.0]
+    desire_joint.position = [-math.pi/2,1.3,0.0,1.3,0.0,math.pi/2]
     desire_att.pitch = 0
     desire_att.roll = 0
-    desire_att.yaw = 0
-elif demo_mode == 1: # z shape
+    # desire_att.yaw = 1.57
+    # desire_joint.velocity = [0.8]
+elif demo_mode == 1: # inverse ko shape
+    rospy.loginfo('mode 1')
+    desire_joint.position = [0,math.pi/2,0.0,math.pi/2,0.0,0]
+    desire_att.pitch = 0
+    desire_att.roll = 0
+    # desire_att.yaw = 1.57
+    # desire_joint.velocity = [0.8]
+elif demo_mode == 2: # z shape
     rospy.loginfo('mode 1')
     desire_joint.position = [0.0,-1.4,0.0,-1.2,1.1,0.0]
     desire_att.pitch = 0
@@ -49,5 +58,5 @@ else:
 time.sleep(0.6)
 
 joint_control_pub.publish(desire_joint)
-att_control_pub.publish(desire_att)
+# att_control_pub.publish(desire_att)
 
