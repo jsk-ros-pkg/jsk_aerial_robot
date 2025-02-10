@@ -169,6 +169,7 @@ private:
 
 
   float target_angle_[3];
+  float target_vel_[3];
   float error_angle_i_[3];
   float error_angle_i_limit_[3];
 
