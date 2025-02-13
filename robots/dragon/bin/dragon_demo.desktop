@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=DRAGON Demo
-Terminal=false
-Exec=gnome-terminal -- bash -c "source ~/ros/jsk_aerial_robot_ws/devel/setup.bash && `rospack find dragon`/bin/remote_bringup.sh; exec bash"
-Icon=/home/leus/logo_small.png
-Categories==Application
-

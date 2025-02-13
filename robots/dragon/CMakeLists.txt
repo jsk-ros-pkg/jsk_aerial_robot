@@ -54,6 +54,9 @@ add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messa
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
 
+# generate symbolic link for desktop files
+add_custom_target(${PROJECT_NAME}_install_desktop ALL COMMAND ${PROJECT_SOURCE_DIR}/bin/desktop/desktop_install.sh)
+
 
 # test
 # pre-build test code

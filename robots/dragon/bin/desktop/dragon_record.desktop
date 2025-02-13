@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DRAGON:Record
+Terminal=false
+Exec=gnome-terminal -- bash -c "source ~/ros/jsk_aerial_robot_ws/devel/setup.bash && `rospack find dragon`/bin/remote/remote_record.sh"
+Icon=record
+Categories==Application
+
