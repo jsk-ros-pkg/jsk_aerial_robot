@@ -13,10 +13,11 @@
 #include <nlopt.hpp>
 #include <numeric>
 #include <OsqpEigen/OsqpEigen.h>
+#include <spinal/DesireCoord.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
+#include <spinal/ServoTorqueCmd.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
-#include <spinal/DesireCoord.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int16.h>
@@ -91,6 +92,7 @@ namespace aerial_robot_control
     ros::Publisher rpy_gain_pub_;                     // for spinal
     ros::Publisher flight_cmd_pub_;                   // for spinal
     ros::Publisher gimbal_control_pub_;               // for servo bridge
+    ros::Publisher servo_torque_command_pub_;         // for spinal
     ros::Publisher torque_allocation_matrix_inv_pub_; // for spinal
     ros::Publisher target_vectoring_force_pub_;       // for debug
     ros::Publisher target_acc_cog_pub_;               // for debug

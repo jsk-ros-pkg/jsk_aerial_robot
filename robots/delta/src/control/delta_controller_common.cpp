@@ -41,6 +41,7 @@ void RollingController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
+  servo_torque_command_pub_ = nh_.advertise<spinal::ServoTorqueCmd>("servo/torque_enable", 1);
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
 
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &RollingController::jointStateCallback, this);
@@ -86,6 +87,14 @@ void RollingController::reset()
 void RollingController::activate()
 {
   ControlBase::activate();
+
+  spinal::ServoTorqueCmd servo_torque_command;
+  for(int i = 0; i < robot_model_->getJointNum(); i++)
+    {
+      servo_torque_command.index.push_back(i);
+      servo_torque_command.torque_enable.push_back(1);
+    }
+  servo_torque_command_pub_.publish(servo_torque_command);
 
   for(int i = 0; i < motor_num_; i++)
     {
