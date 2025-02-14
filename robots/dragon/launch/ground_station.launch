@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- joy -->
+  <include file="$(find aerial_robot_base)/launch/external_module/joy_stick.launch" >
+    <arg name="robot_name" value="dragon" />
+  </include>
+
+  <!-- rviz -->
+  <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" />
+
+  <!-- rqt  -->
+  <node name="rqt" pkg="rqt_gui" type="rqt_gui" />
+
+</launch>
