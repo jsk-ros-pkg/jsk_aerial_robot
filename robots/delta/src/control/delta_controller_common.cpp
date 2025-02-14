@@ -99,7 +99,14 @@ void RollingController::activate()
   for(int i = 0; i < motor_num_; i++)
     {
       if(ground_navigation_mode_ == aerial_robot_navigation::FLYING_STATE || ground_navigation_mode_ == aerial_robot_navigation::STANDING_STATE)
-        target_gimbal_angles_.at(i) = 0.0;
+        {
+          tf::Matrix3x3 baselink_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_);
+          Eigen::Matrix3d baselink_rot_eigen; matrixTFToEigen(baselink_rot, baselink_rot_eigen);
+          if(baselink_rot_eigen(2, 2) > 0)
+            target_gimbal_angles_.at(i) = 0.0;
+          else
+            target_gimbal_angles_.at(i) = M_PI;
+        }
       else if(ground_navigation_mode_ == aerial_robot_navigation::ROLLING_STATE)
         target_gimbal_angles_.at(i) = M_PI / 2.0;
     }

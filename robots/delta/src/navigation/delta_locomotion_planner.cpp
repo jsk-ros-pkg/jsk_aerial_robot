@@ -16,7 +16,6 @@ void RollingNavigator::rollingPlanner()
   }
 
   Eigen::Matrix3d curr_target_baselink_rot;
-  Eigen::Vector3d b1 = Eigen::Vector3d(1.0, 0.0, 0.0), b2 = Eigen::Vector3d(0.0, 1.0, 0.0);
   matrixTFToEigen(tf::Matrix3x3(curr_target_baselink_quat_), curr_target_baselink_rot);
 
   switch(current_ground_navigation_mode_)
@@ -45,13 +44,13 @@ void RollingNavigator::rollingPlanner()
         Eigen::Matrix3d rot_mat;
         if(ground_trajectory_mode_)
           {
-            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), Eigen::Vector3d::UnitX());
             setTargetOmegaX(baselink_roll_trajectory(1));
             setTargetAngAccX(baselink_roll_trajectory(2));
           }
         else
           {
-            rot_mat = Eigen::AngleAxisd(M_PI / 2.0, b1);
+            rot_mat = Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitX());
             setTargetOmegaX(0.0);
             setTargetAngAccX(0.0);
           }
@@ -101,15 +100,14 @@ void RollingNavigator::rollingPlanner()
             double target_pitch_ang_vel = getTargetPitchAngVel();
             setTargetOmegaY(target_pitch_ang_vel);
 
+            /* this if-else is not necessary when controlling, however, necessarry for IK debug */
             if((getNaviState() != aerial_robot_navigation::TAKEOFF_STATE) && (getNaviState() != aerial_robot_navigation::HOVER_STATE))
-              {
-                additional_rot_mat = Eigen::AngleAxisd(loop_du_ * target_pitch_ang_vel, b2);
-              }
+              additional_rot_mat = Eigen::AngleAxisd(loop_du_ * target_pitch_ang_vel, Eigen::Vector3d::UnitY());
             else
               {
                 if(fabs(cog_euler.y()) < rolling_pitch_update_thresh_)
                   {
-                    additional_rot_mat = Eigen::AngleAxisd(loop_du_ * target_pitch_ang_vel, b2);
+                    additional_rot_mat = Eigen::AngleAxisd(loop_du_ * target_pitch_ang_vel, Eigen::Vector3d::UnitY());
                   }
                 else
                   {
@@ -127,7 +125,7 @@ void RollingNavigator::rollingPlanner()
             /* set pid term for roll from trajectory */
             setTargetOmegaX(baselink_roll_trajectory(1));
             setTargetAngAccX(baselink_roll_trajectory(2));
-            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), b1);
+            rot_mat = Eigen::AngleAxisd(baselink_roll_trajectory(0), Eigen::Vector3d::UnitX());
           }
         else
           {
@@ -158,7 +156,7 @@ void RollingNavigator::rollingPlanner()
         matrixTFToEigen(down_start_baselink_rot, rot_mat);
 
         double down_angle = std::clamp(down_mode_roll_anglvel_ * (ros::Time::now().toSec() - down_start_time_), 0.0, M_PI / 2.0);
-        rot_mat = Eigen::AngleAxisd(-down_angle, b1) * rot_mat;
+        rot_mat = Eigen::AngleAxisd(-down_angle, Eigen::Vector3d::UnitX()) * rot_mat;
 
         KDL::Rotation rot_mat_kdl = eigenToKdl(rot_mat);
         double qx, qy, qz, qw;
@@ -176,48 +174,55 @@ void RollingNavigator::rollingPlanner()
 void RollingNavigator::setGroundNavigationMode(int state)
 {
   if(state != current_ground_navigation_mode_)
-    {
-      ROS_WARN_STREAM("[navigation] switch to " << indexToGroundNavigationModeString(state));
-    }
+    ROS_WARN_STREAM("[navigation] switch to " << indexToGroundNavigationModeString(state));
   else
+    return;
+
+  switch(state)
     {
-      return;
-    }
+    case aerial_robot_navigation::FLYING_STATE:
+      {
+        setTargetXyFromCurrentState();
 
-  if(state == aerial_robot_navigation::FLYING_STATE)
-    {
-      setTargetXyFromCurrentState();
+        ros::NodeHandle navi_nh(nh_, "navigation");
+        double target_z;
+        getParam<double>(navi_nh, "takeoff_height", target_z, 1.0);
+        setTargetPosZ(target_z);
 
-      ros::NodeHandle navi_nh(nh_, "navigation");
-      double target_z;
-      getParam<double>(navi_nh, "takeoff_height", target_z, 1.0);
-      setTargetPosZ(target_z);
+        setTargetYawFromCurrentState();
 
-      setTargetYawFromCurrentState();
-
-      controllers_reset_flag_ = true;
-    }
-
-  if(state == aerial_robot_navigation::STANDING_STATE)
-    {
-      ground_trajectory_start_time_ = ros::Time::now().toSec();
-      poly_.reset();
-      poly_.scale(ground_trajectory_start_time_, ground_trajectory_duration_);
-      poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
-      poly_.addConstraint(ground_trajectory_start_time_ + ground_trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
-      poly_.solve();
-      ground_trajectory_mode_ = true;
-    }
-
-  if(state == aerial_robot_navigation::ROLLING_STATE)
-    {
-    }
-
-  if(state == aerial_robot_navigation::DOWN_STATE)
-    {
-      down_start_time_ = ros::Time::now().toSec();
-      down_start_baselink_quat_ = getCurrentTargetBaselinkQuat();
-      ROS_INFO_STREAM("[navigation] down start at: " << down_start_time_);
+        controllers_reset_flag_ = true;
+        break;
+      }
+    case aerial_robot_navigation::STANDING_STATE:
+      {
+        ground_trajectory_start_time_ = ros::Time::now().toSec();
+        poly_.reset();
+        poly_.scale(ground_trajectory_start_time_, ground_trajectory_duration_);
+        tf::Matrix3x3 baselink_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_);
+        Eigen::Matrix3d baselink_rot_eigen; matrixTFToEigen(baselink_rot, baselink_rot_eigen);
+        if(baselink_rot_eigen(2, 2) > 0)
+          poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
+        else
+          poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(M_PI, 0.0, 0.0));
+        poly_.addConstraint(ground_trajectory_start_time_ + ground_trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
+        poly_.solve();
+        ground_trajectory_mode_ = true;
+        break;
+      }
+    case aerial_robot_navigation::ROLLING_STATE:
+      {
+        break;
+      }
+    case aerial_robot_navigation::DOWN_STATE:
+      {
+        down_start_time_ = ros::Time::now().toSec();
+        down_start_baselink_quat_ = getCurrentTargetBaselinkQuat();
+        ROS_INFO_STREAM("[navigation] down start at: " << down_start_time_);
+        break;
+      }
+    default:
+      break;
     }
 
   current_ground_navigation_mode_ = state;

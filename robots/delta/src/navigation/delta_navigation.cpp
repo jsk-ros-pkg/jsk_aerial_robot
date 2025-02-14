@@ -114,14 +114,33 @@ void RollingNavigator::startTakeoff()
 
   setRotationControlLink(robot_model_->getBaselinkName());
 
+  tf::Matrix3x3 baselink_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_);
+  Eigen::Matrix3d baselink_rot_eigen; matrixTFToEigen(baselink_rot, baselink_rot_eigen);
   switch(current_ground_navigation_mode_)
     {
+    case aerial_robot_navigation::FLYING_STATE:
+      {
+        if(baselink_rot_eigen(2, 2) > 0)
+          {
+            curr_target_baselink_quat_.setRPY(0.0, 0.0, 0.0);
+            final_target_baselink_quat_.setRPY(0.0, 0.0, 0.0);
+          }
+        else
+          {
+            curr_target_baselink_quat_.setRPY(M_PI, 0.0, 0.0);
+            final_target_baselink_quat_.setRPY(M_PI, 0.0, 0.0);
+          }
+        break;
+      }
     case aerial_robot_navigation::STANDING_STATE:
       { /* if standing mode, generate new trajectory when starting */
         ground_trajectory_start_time_ = ros::Time::now().toSec();
         poly_.reset();
         poly_.scale(ground_trajectory_start_time_, ground_trajectory_duration_);
-        poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
+        if(baselink_rot_eigen(2, 2) > 0)
+          poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(0.0, 0.0, 0.0));
+        else
+          poly_.addConstraint(ground_trajectory_start_time_, agi::Vector<3>(M_PI, 0.0, 0.0));
         poly_.addConstraint(ground_trajectory_start_time_ + ground_trajectory_duration_, agi::Vector<3>(M_PI / 2.0, 0.0, 0.0));
         poly_.solve();
         ground_trajectory_mode_ = true;

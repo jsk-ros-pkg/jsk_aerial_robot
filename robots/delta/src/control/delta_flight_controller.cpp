@@ -343,8 +343,9 @@ void RollingController::nonlinearWrenchAllocation()
     {
       lb.at(i) = 0;
       ub.at(i) = robot_model_->getThrustUpperLimit();
-      lb.at(i + motor_num_) = -M_PI;
-      ub.at(i + motor_num_) =  M_PI;
+      double gimbal_angle_margin = 0.2;
+      lb.at(i + motor_num_) = -M_PI - gimbal_angle_margin;
+      ub.at(i + motor_num_) =  M_PI + gimbal_angle_margin;
     }
   for(int i = 2 * motor_num_; i < n_variables; i++)
     {
