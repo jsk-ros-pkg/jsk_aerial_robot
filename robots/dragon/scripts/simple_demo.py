@@ -64,7 +64,7 @@ class DragonDemo():
             joint_traj = [[-0.6, -1.56, -0.6, 0, 0, 1.56], [0, 1.57, 0, 1.57, 0, 1.57], [0.0, 1.57, -1.5, 0.0, 0.0, 1.57]]
             rot_traj = [[0.0, -0.3], [0, 0], [0, 0.75]]
 
-        joint_thresh = 0.1
+        joint_thresh = 0.17 # 10deg
         pos_thresh = 0.1
         rot_thresh = 0.1
 
