@@ -66,7 +66,7 @@ target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation
-add_library (flight_navigation src/flight_navigation.cpp)
+add_library (flight_navigation src/flight_navigation.cpp src/util/joy_parser.cpp)
 target_link_libraries (flight_navigation ${catkin_LIBRARIES})
 
 ### trajectory generate based on dodgelib
