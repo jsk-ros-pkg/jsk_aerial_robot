@@ -15,6 +15,6 @@ execute_process(COMMAND uname -m
 )
 
 # Skip add_rostest if the system is running Ubuntu Xenial or on an arm64 architecture
-if(NOT ${CODENAME} MATCHES "xenial" AND NOT ${SYSTEM_ARCH} MATCHES "arm64")
+if(NOT ${CODENAME} MATCHES "xenial" AND NOT ${SYSTEM_ARCH} MATCHES "aarch64")
   add_rostest(flight_control.test ARGS headless:=true mujoco:=true)
 endif()
