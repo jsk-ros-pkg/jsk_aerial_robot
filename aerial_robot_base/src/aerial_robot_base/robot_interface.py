@@ -40,10 +40,9 @@ from tf.transformations import *
 import rosgraph
 
 from aerial_robot_msgs.msg import FlightNav, PoseControlPid
-from geometry_msgs.msg import PoseStamped, Wrench, Vector3, WrenchStamped, Quaternion, QuaternionStamped
+from geometry_msgs.msg import PoseStamped, Wrench, Vector3, Vector3Stamped, WrenchStamped, Quaternion, QuaternionStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Joy, JointState
-from spinal.msg import DesireCoord
 from std_msgs.msg import Empty, Int8, UInt8, String
 from std_srvs.srv import SetBool, SetBoolRequest
 
@@ -103,7 +102,7 @@ class RobotInterface(object):
         self.flight_state_sub = rospy.Subscriber(self.robot_ns + '/flight_state', UInt8, self.flightStateCallback)
         self.traj_nav_pub = rospy.Publisher(self.robot_ns + '/target_pose', PoseStamped, queue_size = 1)
         self.direct_nav_pub = rospy.Publisher(self.robot_ns + '/uav/nav', FlightNav, queue_size = 1)
-        self.final_rot_pub = rospy.Publisher(self.robot_ns + '/final_target_baselink_rot', DesireCoord, queue_size = 1)
+        self.final_rot_pub = rospy.Publisher(self.robot_ns + '/final_target_baselink_rpy', Vector3Stamped, queue_size = 1)
 
         # Joint
         self.joint_state_sub = rospy.Subscriber(self.robot_ns + '/joint_states', JointState, self.jointStateCallback)
@@ -422,9 +421,10 @@ class RobotInterface(object):
     # speical rorataion function for DRAGON like robot
     def rotateCog(self, roll, pitch):
         # send the target roll and pitch angles
-        msg = DesireCoord()
-        msg.roll = roll
-        msg.pitch = pitch
+        msg = Vector3Stamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.vector.x = roll
+        msg.vector.y = pitch
         self.final_rot_pub.publish(msg)
 
 
