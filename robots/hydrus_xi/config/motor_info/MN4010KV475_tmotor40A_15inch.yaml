@@ -1,0 +1,32 @@
+motor_info:
+  min_pwm: 0.58 # 1160 [ms]
+  max_pwm: 0.92 # 1860 [ms]
+  min_thrust: 1.0 #  [N]
+  force_landing_thrust: 7.0 #[N]
+  m_f_rate: -0.0182
+  pwm_conversion_mode: 0 # SQRT Mode
+  vel_ref_num: 4
+  ref1:
+    voltage: 25.2
+    max_thrust: 33 # N
+    polynominal2: 0.097579461  # x10
+    polynominal1: -5.342181077 # x10
+    polynominal0: 0.0018133854 # x1
+  ref2:
+    voltage: 24.2
+    max_thrust: 32 # N
+    polynominal2: 0.080934950  # x10
+    polynominal1: -3.337085592 # x10
+    polynominal0: -6.3855951635  # x1
+  ref3:
+    voltage: 23.2
+    max_thrust: 30 # N
+    polynominal2: 0.089564541  # x10
+    polynominal1: -5.014847344 # x10
+    polynominal0: 0.3611748697  # x1
+  ref4:
+    voltage: 22.2
+    max_thrust: 29 # N
+    polynominal2: 0.088138314  # x10
+    polynominal1: -5.343739409 # x10
+    polynominal0: 2.6589065489  # x1
