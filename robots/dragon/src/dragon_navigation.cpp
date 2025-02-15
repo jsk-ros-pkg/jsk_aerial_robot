@@ -7,9 +7,7 @@ DragonNavigator::DragonNavigator():
   BaseNavigator(),
   servo_torque_(false),
   level_flag_(false),
-  eq_cog_world_(false),
-  curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0)
+  eq_cog_world_(false)
 {
   curr_target_baselink_rot_.setRPY(0, 0, 0);
   final_target_baselink_rot_.setRPY(0, 0, 0);
