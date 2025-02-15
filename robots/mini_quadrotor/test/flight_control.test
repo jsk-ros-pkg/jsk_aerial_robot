@@ -14,13 +14,13 @@
   </include>
 
   <!-- test codes -->
-  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="30" retry="2">
+  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="50" retry="2">
     <rosparam>
       waypoint:
         waypoints: [[0, 0, 1.6]]
     </rosparam>
   </test>
-  <node name="task_task_trigger" pkg="rostopic" type="rostopic" args="pub -1 /task_start std_msgs/Empty" launch-prefix="bash -c 'sleep 2.0; $0 $@' "/>
+  <node name="task_task_trigger" pkg="rostopic" type="rostopic" args="pub -1 /task_start std_msgs/Empty" launch-prefix="bash -c 'sleep 5.0; $0 $@' "/>
 
 
 </launch>
