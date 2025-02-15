@@ -434,6 +434,8 @@ namespace aerial_robot_navigation
 
     virtual void updateLandCommand();
 
+    void updatePoseFromTrajectory();
+
     tf::Vector3 frameConversion(tf::Vector3 origin_val,  tf::Matrix3x3 r)
     {
       return r * origin_val;
