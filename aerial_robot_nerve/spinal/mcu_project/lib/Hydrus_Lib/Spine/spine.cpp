@@ -210,12 +210,9 @@ namespace Spine
     imu_weight_[0] = 1.0;
     for (uint i = 1; i < imu_weight_.size(); i++) imu_weight_[i] = 0.0;
 
-    estimator_->getAttEstimator()->setImuWeight(0, imu_weight_[0]);
     for (int i = 0; i < slave_num_; i++) {
       HAL_Delay(100);
       neuron_.at(i).can_imu_.init();
-      if(i != baselink_) neuron_.at(i).can_imu_.setVirtualFrame(true);
-      estimator_->getAttEstimator()->addImu(&(neuron_.at(i).can_imu_), imu_weight_[i + 1]);
 
       IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
     }

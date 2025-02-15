@@ -12,7 +12,9 @@
 #include "flight_control/attitude/attitude_control.h"
 
 #ifdef SIMULATION
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0)
+{
+}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -31,6 +33,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+  offset_rot_sub_ = nh_->subscribe("desire_coordinate", 1, &AttitudeController::offsetRotCallback, this);
   baseInit();
 }
 
@@ -43,10 +46,11 @@ AttitudeController::AttitudeController():
   four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
   pwm_info_sub_("motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
-  p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
-  att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
+  p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
+  offset_rot_sub_("desire_coordinate", &AttitudeController::offsetRotCallback, this ),
+  att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
   esc_telem_pub_("esc_telem", &esc_telem_msg_)
 {
 }
@@ -112,6 +116,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe(pwm_test_sub_);
   nh_->subscribe(p_matrix_pseudo_inverse_inertia_sub_);
   nh_->subscribe(torque_allocation_matrix_inv_sub_);
+  nh_->subscribe(offset_rot_sub_);
 
   nh_->advertiseService(att_control_srv_);
 
@@ -147,6 +152,9 @@ void AttitudeController::baseInit()
 
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
+
+  // frame
+  offset_rot_.identity();
 
   reset();
 }
@@ -262,10 +270,10 @@ void AttitudeController::pwmsControl(void)
       pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
     }
 
-  pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR4 =  (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR4 = (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
 
 #endif
 }
@@ -296,29 +304,19 @@ void AttitudeController::update(void)
           setForceLandingFlag(true);
         }
 
-      ap::Vector3f angles;
-      ap::Vector3f vel;
 #ifdef SIMULATION
-      if(use_ground_truth_)
-        {
-          angles = true_angles_;
-          vel = true_vel_;
-        }
-      else
-        {
-          angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-          vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
-        }
-
-      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_vel_.x, vel.x, true_vel_.y, vel.y, true_vel_.z, vel.z);
 
       if(prev_time_ < 0) DELTA_T = 0;
       else DELTA_T = ros::Time::now().toSec() - prev_time_;
       prev_time_ = ros::Time::now().toSec();
-#else
-      angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-      vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
 #endif
+
+      ap::Matrix3f base_rot = estimator_->getAttEstimator()->getRotation();
+      ap::Vector3f base_vel = estimator_->getAttEstimator()->getAngular();
+      ap::Matrix3f rot = base_rot * offset_rot_.transposed();
+      ap::Vector3f vel = offset_rot_ * base_vel;
+      ap::Vector3f angles; // euler angles
+      rot.to_euler(&angles.x, &angles.y, &angles.z);
 
       /* failsafe 3: too large tile angle */
       if(!force_landing_flag_  && (fabs(angles[X]) > MAX_TILT_ANGLE || fabs(angles[Y]) > MAX_TILT_ANGLE))
@@ -875,6 +873,11 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
   /* mutex to protect the completion of following update  */
   if(mutex_ != NULL) osMutexRelease(*mutex_);
 #endif
+}
+
+void AttitudeController::offsetRotCallback(const spinal::DesireCoord& msg)
+{
+  offset_rot_.from_euler(msg.roll, msg.pitch, msg.yaw);
 }
 
 bool AttitudeController::activated()
