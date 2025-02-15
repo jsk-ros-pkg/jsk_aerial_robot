@@ -3,7 +3,7 @@
 
 # Software License Agreement (BSD License)
 
-# Copyright (c) 2019, JSK Robotics Laboratory, The University of Tokyo
+# Copyright (c) 2025, DRAGON Laboratory, The University of Tokyo
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,87 +30,77 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
-
 import sys
-import time
-import math
 import unittest
 
 import rospy
 import rostest
+from aerial_robot_base.state_machine import *
 from std_msgs.msg import Empty
-from aerial_robot_msgs.msg import PoseControlPid
+
 
 PKG = 'rostest'
 
-class HoveringCheck():
-    def __init__(self, name="hovering_check"):
-        self.hovering_duration = rospy.get_param('~hovering_duration', 0.0)
-        self.convergence_thresholds = rospy.get_param('~convergence_thresholds', [0.01, 0.01, 0.01]) # [xy,z, theta]
-        self.controller_sub = rospy.Subscriber('debug/pose/pid', PoseControlPid, self._controlCallback)
-        self.control_msg = None
+# Template for simple demo
+class HoverMotion():
+    def __init__(self):
+        self.robot = RobotInterface()
 
-    def hoveringCheck(self):
+        self.sm_top = smach.StateMachine(outcomes=['succeeded', 'preempted'])
+        self.sm_top.userdata.flags = {}
+        self.sm_top.userdata.extra = {}
 
-        # start motor arming
-        start_pub = rospy.Publisher('teleop_command/start', Empty, queue_size=1)
-        takeoff_pub = rospy.Publisher('teleop_command/takeoff', Empty, queue_size=1)
+        with self.sm_top:
+            smach.StateMachine.add('Start', Start(self.robot),
+                                   transitions={'succeeded':'Arm',
+                                                'preempted':'preempted'},
+                                   remapping={'flags':'flags', 'extra':'extra'})
 
-        time.sleep(0.5) # wait for publisher initialization
-        start_pub.publish(Empty())
 
-        time.sleep(1.0) # second
+            smach.StateMachine.add('Arm', Arm(self.robot),
+                                   transitions={'succeeded':'Takeoff',
+                                                'preempted':'preempted'},
+                                   remapping={'flags':'flags', 'extra':'extra'})
 
-        # start takeoff
-        takeoff_pub.publish(Empty())
+            smach.StateMachine.add('Takeoff', Takeoff(self.robot),
+                                   transitions={'succeeded':'WayPoint',
+                                                'preempted':'preempted'},
+                                   remapping={'flags':'flags', 'extra':'extra'})
 
-        deadline = rospy.Time.now() + rospy.Duration(self.hovering_duration)
-        while not rospy.Time.now() > deadline:
-            if self.control_msg is not None:
-                err_x = self.control_msg.x.err_p;
-                err_y = self.control_msg.y.err_p;
-                err_z = self.control_msg.z.err_p;
-                err_yaw = self.control_msg.yaw.err_p;
-                err_xy = math.sqrt(err_x * err_x + err_y * err_y);
-                rospy.loginfo_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
-            rospy.sleep(1.0)
 
-        err_x = self.control_msg.x.err_p;
-        err_y = self.control_msg.y.err_p;
-        err_z = self.control_msg.z.err_p;
-        err_yaw = self.control_msg.yaw.err_p;
-        err_xy = math.sqrt(err_x * err_x + err_y * err_y);
+            smach.StateMachine.add('WayPoint', WayPoint(self.robot),
+                                   transitions={'succeeded':'Land',
+                                                'preempted':'preempted'},
+                                   remapping={'flags':'flags', 'extra':'extra'})
 
-        # check convergence
-        if err_xy < self.convergence_thresholds[0] and math.fabs(err_z) < self.convergence_thresholds[1] and math.fabs(err_yaw) < self.convergence_thresholds[2]:
+            smach.StateMachine.add('Land', Land(self.robot),
+                                   transitions={'succeeded':'succeeded',
+                                                'preempted':'preempted'},
+                                   remapping={'flags':'flags', 'extra':'extra'})
+
+            self.sis = smach_ros.IntrospectionServer('task_smach_server', self.sm_top, '/SM_ROOT')
+
+
+    def startMotion(self):
+        self.sis.start()
+        outcome = self.sm_top.execute()
+
+        self.sis.stop()
+
+        if outcome == 'succeeded':
             return True
+        else:
+            return False
 
-        # cannot be convergent
-        rospy.logerr('errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
-
-        return False
-
-    def _controlCallback(self, msg):
-        self.control_msg = msg
-
-        err_x = self.control_msg.x.err_p;
-        err_y = self.control_msg.y.err_p;
-        err_z = self.control_msg.z.err_p;
-        err_yaw = self.control_msg.yaw.err_p;
-        err_xy = math.sqrt(err_x * err_x + err_y * err_y);
-        rospy.logdebug_throttle(1, 'errors in [xy, z, yaw]: [%f (%f, %f), %f, %f]' %  (err_xy, err_x, err_y, err_z, err_yaw))
 
 class HoveringTest(unittest.TestCase):
     def __init__(self, *args):
         super(self.__class__, self).__init__(*args)
         rospy.init_node("hovering_test")
-        self.hovering_delay = rospy.get_param('~hovering_delay', 1.0)
 
     def test_hovering(self):
-        rospy.sleep(self.hovering_delay)
-        checker = HoveringCheck()
-        self.assertTrue(checker.hoveringCheck(), msg='Cannot reach convergence')
+        checker = HoverMotion()
+        self.assertTrue(checker.startMotion())
 
 if __name__ == '__main__':
     print("start check hovering")
