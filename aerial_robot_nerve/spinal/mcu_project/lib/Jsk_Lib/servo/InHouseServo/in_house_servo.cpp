@@ -44,16 +44,16 @@ void Servo::receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data
   // Decode current position
   current_pos_i_ = (static_cast<int16_t>(data[0]) << 8)  |
     static_cast<int16_t>(data[1]);
-  current_pos_f_ = (current_pos_i_ / 4096.0f) * (2.0f * static_cast<float>(M_PI));
+  current_pos_f_ = (static_cast<float>(current_pos_i_) / 4096.0f) * (2.0f * static_cast<float>(M_PI));
 
   // Decode current rpm
   current_rpm_i_ = (static_cast<int16_t>(data[2]) << 8)  |
     static_cast<int16_t>(data[3]);
     
-  // Decode current power
-  current_power_i_ = (static_cast<int16_t>(data[4]) << 8) |
+  // Decode current current
+  current_current_i_ = (static_cast<int16_t>(data[4]) << 8) |
     static_cast<int16_t>(data[5]);
-  current_power_f_ = current_power_i_ / 10.0f;
+  current_current_f_ = static_cast<float>(current_current_i_) / 100.0f;
     
   // Decode current motor state
   current_state_ = data[6];
@@ -63,7 +63,7 @@ void Servo::receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data
   servo_state_msg_.index = identifier;
   servo_state_msg_.angle = current_pos_i_;
   servo_state_msg_.rpm = current_rpm_i_;
-  servo_state_msg_.power = current_power_i_;
+  servo_state_msg_.current = current_current_i_;
   servo_state_msg_.state = current_state_;
 }
 

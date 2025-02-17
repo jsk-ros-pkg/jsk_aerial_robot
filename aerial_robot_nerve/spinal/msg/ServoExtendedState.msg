@@ -1,7 +1,7 @@
 uint32 index #from 0
 int16 angle # 15bit[-32768, 32767]
 int16 rpm # 15bit[-32768, 32767]
-int16 power # power
+int16 current # power
 uint8 state # state
 
 uint8 IDLE = 0

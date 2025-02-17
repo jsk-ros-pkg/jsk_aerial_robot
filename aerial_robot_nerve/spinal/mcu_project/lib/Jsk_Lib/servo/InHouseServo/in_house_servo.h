@@ -58,8 +58,8 @@ namespace InHouse_Servo
     int16_t current_pos_i_;
     float current_pos_f_;
     int16_t current_rpm_i_;
-    int16_t current_power_i_;
-    float current_power_f_;
+    int16_t current_current_i_;
+    float current_current_f_;
     uint8_t current_state_;
 
     uint8_t inst_data_[8];
