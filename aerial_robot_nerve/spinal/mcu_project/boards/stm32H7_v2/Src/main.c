@@ -45,6 +45,7 @@
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
+#include "servo/InHouseServo/in_house_servo.h"
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
@@ -127,7 +128,7 @@ BatteryStatus battery_status_;
 /* servo instance */
 DirectServo servo_;
 DShot dshot_;
-
+InHouse_Servo::Servo in_house_servo_;
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -268,6 +269,7 @@ int main(void)
   dshot_.initTelemetry(&huart6);
   controller_.init(&htim1, &htim4, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 #else
+  in_house_servo_.init(&hfdcan1, &canMsgMailHandle, &nh_, LED1_GPIO_Port, LED1_Pin);
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
@@ -1223,6 +1225,8 @@ void coreTaskFunc(void const * argument)
       gps_.update();
       estimator_.update();
       controller_.update();
+
+      in_house_servo_.update();
 
 #if !SERVO_FLAG && NERVE_COMM      
       Spine::update();

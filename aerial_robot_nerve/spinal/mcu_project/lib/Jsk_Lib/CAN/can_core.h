@@ -31,6 +31,10 @@ namespace CAN {
     HAL_CAN_ActivateNotification(getHcanInstance(), CAN_IT_RX_FIFO1_MSG_PENDING);
   }
 
+  inline uint32_t getIdentifier(CAN_RxHeaderTypeDef rx_header) {
+    return rx_header.StdId;
+  }
+
   inline uint8_t getDeviceId(CAN_RxHeaderTypeDef rx_header) {
     return static_cast<uint8_t>(((rx_header.StdId) >> (MESSAGE_ID_LEN + SLAVE_ID_LEN)) & ((1 << DEVICE_ID_LEN) - 1));
   }
@@ -59,12 +63,17 @@ namespace CAN {
 namespace CAN {
   void init(FDCAN_HandleTypeDef* hfdcan);
   FDCAN_HandleTypeDef* getHcanInstance();
+  void sendMessage(uint32_t identifier, uint32_t DLC, uint8_t* data, uint32_t timeout);
   void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
 
   inline void CAN_START()
   {
     HAL_FDCAN_Start(getHcanInstance());
     HAL_FDCAN_ActivateNotification(getHcanInstance(), FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+  }
+
+  inline uint32_t getIdentifier(FDCAN_RxHeaderTypeDef rx_header) {
+    return rx_header.Identifier;
   }
 
   inline uint8_t getDeviceId(FDCAN_RxHeaderTypeDef rx_header) {
