@@ -29,7 +29,7 @@
 #define GPIO_L(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET)
 
 //0. Comm Type
-#define NERVE_COMM 1
+#define NERVE_COMM 0
 
 //1. Specials board options
 #define STM32H7_V2 1
@@ -83,7 +83,7 @@
 
 //2.3 Flight Control
 #define FLIGHT_CONTROL_FLAG 1
-#define DSHOT 1
+#define DSHOT 0
 //* Do not change following code!!!
 ///////////////////////////////////
 #if !ATTITUDE_ESTIMATE_FLAG
