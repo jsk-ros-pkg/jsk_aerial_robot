@@ -7,14 +7,12 @@
 @Software: PyCharm
 """
 
-import time
 import sys
 
 import rospy
 import signal
 import socket
 import argparse
-from typing import List
 from typing import Optional
 from std_msgs.msg import UInt8
 from pythonosc.dispatcher import Dispatcher
@@ -29,48 +27,44 @@ class FingerDataPublisher:
         """
         rospy.init_node("glove_data_pub_node", anonymous=True)
         self.control_mode_pub = rospy.Publisher("hand/control_mode", UInt8, queue_size=10)
-        self.last_time_little_finger = None
-        self.last_time_openness = None
-        self.control_mode = 0
-        self.little_finger_bend_threshold = 1.3
-        self.little_finger_time_threshold = 2.0
-        self.hand_open_threshold = 0.90
-        self.hand_open_time_threshold = 5.0
+        self.last_check_time = None
+        self.last_state = None
+        self.control_mode = 1
 
-    def publish_control_mode(self, finger_info: List[float]) -> None:
+    def publish_control_mode(self, state: int) -> None:
         """
-        Publishes the control mode based on the finger information. This method checks the
-        openness and little finger values and sets the control mode accordingly.
+        Publishes the control mode if the state remains unchanged for 3 seconds,
+        and always publishes the current control mode.
 
         Args:
-            finger_info (List[float]): A list containing finger data where:
-                                       finger_info[0] is the little finger information
-                                       finger_info[1] is the openness value.
+            state (int): The new state to check and potentially publish.
         """
-        print(finger_info)
-        if finger_info[1] > self.hand_open_threshold:
-            self.last_time_little_finger = None
-            if self.last_time_openness is None:
-                self.last_time_openness = rospy.Time.now()
-            elif (rospy.Time.now() - self.last_time_openness).to_sec() > self.hand_open_time_threshold:
-                self.control_mode = 2
-                self.last_time_openness = None
-                while True:
-                    self.control_mode_pub.publish(self.control_mode)
-        else:
-            self.last_time_openness = None
-            if finger_info[0] > self.little_finger_bend_threshold:
-                if self.last_time_little_finger is None:
-                    self.last_time_little_finger = rospy.Time.now()
-                elif (rospy.Time.now() - self.last_time_little_finger).to_sec() > self.little_finger_time_threshold:
-                    self.control_mode = 1 - self.control_mode
-                    self.last_time_little_finger = None
-            else:
-                self.last_time_little_finger = None
+        current_time = rospy.Time.now()
+
+        if state == -1:
+            if self.last_state is not None:
+                self.last_state = None
+                self.last_check_time = None
+                print("Invalid state (-1) detected. Resetting timers and state.")
+
+            self.control_mode_pub.publish(self.control_mode)
+            return
+
+        if state != self.last_state:
+            self.last_state = state
+            self.last_check_time = current_time
+            print(f"State changed to {state}, resetting timer.")
+
+        if self.last_check_time and (current_time - self.last_check_time).to_sec() > 3.0:
+            print(f"State {state} has been stable for 3 seconds. Publishing...")
+            self.control_mode = state
+            self.control_mode_pub.publish(self.control_mode)
+            self.last_check_time = current_time
+            print(f"reset control mode to {self.control_mode}")
         self.control_mode_pub.publish(self.control_mode)
 
 
-def handle_rotation(address: str, *args: float) -> None:
+def handle_rotation(address: str, *args: float):
     """
     Add the bending data of the two joints of the little finger,
     and then package and send it together with the hand's opening and closing data.
@@ -79,9 +73,37 @@ def handle_rotation(address: str, *args: float) -> None:
         address (str): The OSC address for the rotation event (not used in this function).
         *args (float): A variable number of arguments, expected to include finger data.
     """
+    thumb_info = args[5] + args[6] + args[8]
+    index_finger_info = args[9] + args[10]
+    middle_finger_info = args[12] + args[13]
+    ring_finger_info = args[15] + args[16]
     little_finger_info = args[18] + args[19]
-    finger_info = [little_finger_info, args[21]]
-    finger_publisher.publish_control_mode(finger_info)
+
+    bending_high_threshold = 1.2
+    bending_low_threshold = 0.5
+    state = -1
+
+    if index_finger_info < bending_low_threshold:
+        if not (thumb_info > bending_high_threshold):
+            pass
+        elif not (middle_finger_info < bending_low_threshold):
+            state = 1
+        elif not (ring_finger_info < bending_low_threshold):
+            state = 2
+        elif not (little_finger_info < bending_low_threshold):
+            state = 3
+        else:
+            state = 4
+
+    elif index_finger_info > bending_high_threshold:
+        if (
+            thumb_info > bending_high_threshold
+            and middle_finger_info > bending_high_threshold
+            and ring_finger_info > bending_high_threshold
+            and little_finger_info > bending_high_threshold
+        ):
+            state = 5
+    finger_publisher.publish_control_mode(state)
 
 
 def shut_publisher(sig, frame) -> None:
