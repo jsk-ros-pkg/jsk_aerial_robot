@@ -385,6 +385,8 @@ class MappingModeState(smach.State):
         self.pub_object = None
         if control_mode_state == 2:
             return "go_spherical_mode"
+        if control_mode_state == 3:
+            return "go_cartesian_mode"
         if control_mode_state == 5:
             return "done_track"
 
@@ -424,6 +426,49 @@ class SphericalModeState(smach.State):
         self.pub_object = None
         if control_mode_state == 1:
             return "go_mapping_mode"
+        if control_mode_state == 3:
+            return "go_cartesian_mode"
+        if control_mode_state == 5:
+            return "done_track"
+
+
+class CartesianModeState(smach.State):
+    def __init__(self) -> None:
+
+        smach.State.__init__(
+            self,
+            outcomes=["go_mapping_mode", "go_spherical_mode", "go_free_mode", "done_track"],
+            input_keys=["robot_name"],
+            output_keys=[],
+        )
+
+        self.pub_object = None
+
+        self.rate = rospy.Rate(20)
+
+    def execute(self, userdata):
+
+        if self.pub_object is None:
+            self.pub_object = CartesianMode(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
+
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                break
+            self.rate.sleep()
+
+        control_mode_state = self.pub_object.get_control_mode()
+
+        del self.pub_object
+        self.pub_object = None
+        if control_mode_state == 1:
+            return "go_mapping_mode"
+        if control_mode_state == 2:
+            return "go_spherical_mode"
         if control_mode_state == 5:
             return "done_track"
 
@@ -453,12 +498,29 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "MAPPING_MODE",
             MappingModeState(),
-            transitions={"go_spherical_mode": "SPHERICAL_MODE", "done_track": "DONE"},
+            transitions={
+                "go_cartesian_mode": "CARTESIAN_MODE",
+                "go_spherical_mode": "SPHERICAL_MODE",
+                "done_track": "DONE",
+            },
         )
         smach.StateMachine.add(
             "SPHERICAL_MODE",
             SphericalModeState(),
-            transitions={"go_mapping_mode": "MAPPING_MODE", "done_track": "DONE"},
+            transitions={
+                "go_cartesian_mode": "CARTESIAN_MODE",
+                "go_mapping_mode": "MAPPING_MODE",
+                "done_track": "DONE",
+            },
+        )
+        smach.StateMachine.add(
+            "CARTESIAN_MODE",
+            CartesianModeState(),
+            transitions={
+                "go_mapping_mode": "MAPPING_MODE",
+                "go_spherical_mode": "SPHERICAL_MODE",
+                "done_track": "DONE",
+            },
         )
 
     return sm_sub
