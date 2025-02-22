@@ -384,9 +384,9 @@ class MappingModeState(smach.State):
         del self.pub_object
         self.pub_object = None
         if control_mode_state == 2:
-            return "go_spherical_mode"
-        if control_mode_state == 3:
             return "go_cartesian_mode"
+        if control_mode_state == 3:
+            return "go_spherical_mode"
         if control_mode_state == 4:
             return "go_free_mode"
         if control_mode_state == 5:
@@ -428,7 +428,7 @@ class SphericalModeState(smach.State):
         self.pub_object = None
         if control_mode_state == 1:
             return "go_mapping_mode"
-        if control_mode_state == 3:
+        if control_mode_state == 2:
             return "go_cartesian_mode"
         if control_mode_state == 4:
             return "go_free_mode"
@@ -471,7 +471,7 @@ class CartesianModeState(smach.State):
         self.pub_object = None
         if control_mode_state == 1:
             return "go_mapping_mode"
-        if control_mode_state == 2:
+        if control_mode_state == 3:
             return "go_spherical_mode"
         if control_mode_state == 4:
             return "go_free_mode"
@@ -515,9 +515,9 @@ class FreeModeState(smach.State):
         if control_mode_state == 1:
             return "go_mapping_mode"
         if control_mode_state == 2:
-            return "go_spherical_mode"
-        if control_mode_state == 3:
             return "go_cartesian_mode"
+        if control_mode_state == 3:
+            return "go_spherical_mode"
         if control_mode_state == 5:
             return "done_track"
 

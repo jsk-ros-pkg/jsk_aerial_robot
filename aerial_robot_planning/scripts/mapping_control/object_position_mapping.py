@@ -445,7 +445,7 @@ class SphericalMode(MPCPubJointTraj):
 
     def check_finished(self, t_elapsed=None):
         if self.control_mode:
-            if self.control_mode.control_mode != 2:
+            if self.control_mode.control_mode != 3:
                 self.to_return_control_mode = self.control_mode.control_mode
                 self.is_finished = True
         else:
@@ -582,7 +582,7 @@ class CartesianMode(MPCPubJointTraj):
 
         o_h_unit_vector = [o_h_direction[0] / o_h_distance, o_h_direction[1] / o_h_distance]
 
-        if o_h_distance < 0.35:
+        if o_h_distance < 0.2:
             self.expected_d_target_distance = 0.0
         else:
             self.expected_d_target_distance = 0.2
@@ -627,7 +627,7 @@ class CartesianMode(MPCPubJointTraj):
 
     def check_finished(self, t_elapsed=None):
         if self.control_mode:
-            if self.control_mode.control_mode != 3:
+            if self.control_mode.control_mode != 2:
                 self.to_return_control_mode = self.control_mode.control_mode
                 self.is_finished = True
         else:
