@@ -322,7 +322,7 @@ class SphericalMode(MPCPubJointTraj):
 
         self.to_return_control_mode = None
 
-        self.expected_a_d_distance = 1.5
+        self.expected_a_d_distance = 2.2
 
         self.last_state = None
 
