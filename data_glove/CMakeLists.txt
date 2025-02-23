@@ -157,6 +157,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
  catkin_install_python(PROGRAMS
    scripts/glove_control_pub.py
+   scripts/visual_feedback.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
