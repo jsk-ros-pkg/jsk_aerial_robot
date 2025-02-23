@@ -7,13 +7,21 @@
 The version of acados should be aligned with the version of 3rdparty/acados/CMakeLists.txt -> GIT_TAG.
 
 Specifically, first:
+
 ```bash
 git clone https://github.com/acados/acados.git --branch v0.3.3
 ```
+
 Then, follow the instructions below:
-- Install acados itself: Please follow the instructions on the acados website https://docs.acados.org/installation/index.html
-- Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html, but don't create virtual env in step 2. The virtual env has compatibility problem with ROS env.
-- Pay attention that you must execute the step 5 in https://docs.acados.org/python_interface/index.html to test the installation. This step should automatically install t_renderer. If something wrong, please follow step 6 to manually install t_renderer.
+
+- Install acados itself: Please follow the instructions on the acados
+  website https://docs.acados.org/installation/index.html
+- Install Python interface: Please follow the instructions on the acados
+  website https://docs.acados.org/python_interface/index.html, but don't create virtual env in step 2. The virtual env
+  has compatibility problem with ROS env.
+- Pay attention that you must execute the step 5 in https://docs.acados.org/python_interface/index.html to test the
+  installation. This step should automatically install t_renderer. If something wrong, please follow step 6 to manually
+  install t_renderer.
 
 ### 2. install the ros related packages
 
@@ -24,7 +32,8 @@ source /opt/ros/noetic/setup.bash
 mkdir -p ~/path_to_ws/src
 cd ~/path_to_ws/src
 ```
-We use rosdep to manage the dependencies. So, 
+
+We use rosdep to manage the dependencies. So,
 if you have never done this in your computer before, do the following:
 
 ```bash
@@ -76,6 +85,7 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 ```
 
 ### 3. For the first run, uncomment these code in aerial_robot_control/CMakeLists.txt
+
 ```bash
 set(ACADOS_PYTHON_SCRIPTS
         ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_angvel_out.py
@@ -102,20 +112,68 @@ catkin build
 ## Run the simulation
 
 ### 1. Start the simulation
+
 Run the simulation with the following command:
+
 ```bash
 roslaunch beetle_omni bringup_nmpc_omni.launch real_machine:=false simulation:=True headless:=False nmpc_mode:=0
 ```
+
 ### 2. Start the keyboard script
+
 Run the keyboard with the following command:
+
 ```bash
 rosrun aerial_robot_base keyboard_command.py
 ```
+
 Then input 'r' to arm the robot and input 't' to takeoff the robot.
 
 ### 3. Send the trajectory
+
 **After the main window printed 'Hovering'**, please run the following command to send a trajectory:
+
 ```bash
 rosrun aerial_robot_planning mpc_pt_pub_node.py beetle1
 ```
+
 Then choose the trajectory you want to send.
+
+# Flying Hand
+
+We need two notebooks, one as ground station and the other for visual feedback.
+
+**Onboard Computer**
+
+Four terminals are needed.
+
+Before takeoff:
+
+1. `roslaunch beetle_omni bringup_nmpc_omni.launch nmpc_mode:=0 wrench_est_mode:=none`. This is the main launch file for
+   the robot.
+2. `roslaunch beetle_omni hand_arm_glove_launch.launch`
+3. `rosbag record -a`
+
+After the robot is hovering,
+
+4. run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`
+
+**MoCap Computer**
+
+1. Run the software for the data glove and calibrate it.
+2. Check the MoCap is set correctly.
+
+**Ground Station**
+
+Three terminals are needed.
+
+Before takeoff:
+
+1. run `sudo ds4drv` to connect the joystick.
+2. `roslaunch aerial_robot_base joy_stick.launch robot_name:=beetle1`
+3. `rviz -d ~/ros1/jsk_ws/src/jsk_aerial_robot_dev/robots/beetle/config/nmpc.rviz`
+
+**Visual Computer**
+
+1. `rosrun data_glove visual_feedback.py`
+2. adjust the window to fullfill the screen.

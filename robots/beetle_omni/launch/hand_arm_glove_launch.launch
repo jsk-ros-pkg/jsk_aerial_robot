@@ -3,7 +3,6 @@
   <arg name="robot_id_hand" default="5"/>
   <arg name="robot_id_arm" default="6"/>
   <arg name="port" default="9400"/>
-  <arg name="show_window" default="false"/>
 
   <!-- Activate node with arm and hand -->
   <group>
@@ -34,7 +33,6 @@
   <group>
     <node pkg="data_glove" type="glove_control_pub.py" name="glove_data_pub_node" output="screen">
       <param name="port" value="$(arg port)"/>
-      <param name="show_window" value="$(arg show_window)"/>
     </node>
   </group>
 </launch>

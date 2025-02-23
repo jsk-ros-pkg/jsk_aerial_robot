@@ -18,49 +18,14 @@ import rospy
 from std_msgs.msg import UInt8
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
-import tkinter as tk
 
 
 class FingerDataPublisher:
-    def __init__(self, show_window: bool) -> None:
+    def __init__(self) -> None:
         self.control_mode_pub = rospy.Publisher("hand/control_mode", UInt8, queue_size=10)
         self.last_check_time = None
         self.last_state = None
         self.control_mode = 1
-        self.show_window = show_window
-
-        if self.show_window:
-            self.window = tk.Tk()
-            self.window.title("Control Mode Window")
-            self.window.geometry("800x800")
-            self.window.configure(bg="red")
-            self.state_label = tk.Label(
-                self.window, text="State: Mapping Mode", font=("Helvetica", 80), fg="white", bg="red"
-            )
-            self.state_label.pack(expand=True)
-
-    def update_window(self, control_mode: int) -> None:
-        if not self.show_window:
-            return
-
-        color_map = {
-            1: "red",
-            2: "blue",
-            3: "green",
-            4: "purple",
-            5: "black",
-        }
-        text_map = {
-            1: "State: Mapping Mode",
-            2: "State: Cartesian Mode",
-            3: "State: Spherical Mode",
-            4: "State: Free Mode",
-            5: "State: Exit",
-        }
-        color = color_map.get(control_mode, "white")
-        text = text_map.get(control_mode, "State: Unknown")
-        self.window.configure(bg=color)
-        self.state_label.config(bg=color, text=text)
 
     def publish_control_mode(self, state: int) -> None:
         current_time = rospy.Time.now()
@@ -85,7 +50,6 @@ class FingerDataPublisher:
             print(f"Reset control mode to {self.control_mode}")
 
         self.control_mode_pub.publish(self.control_mode)
-        self.update_window(self.control_mode)
 
     def handle_rotation(self, address: str, *args: float) -> None:
         thumb_info = args[5] + args[6] + args[8]
@@ -111,21 +75,14 @@ class FingerDataPublisher:
                 state = 4
         elif index_finger_info > bending_high_threshold:
             if (
-                thumb_info > bending_high_threshold
-                and middle_finger_info > bending_high_threshold
-                and ring_finger_info > bending_high_threshold
-                and little_finger_info > bending_high_threshold
+                    thumb_info > bending_high_threshold
+                    and middle_finger_info > bending_high_threshold
+                    and ring_finger_info > bending_high_threshold
+                    and little_finger_info > bending_high_threshold
             ):
                 state = 5
 
         self.publish_control_mode(state)
-
-    def start_window(self) -> None:
-        if not self.show_window:
-            rospy.loginfo("Window display is disabled.")
-            return
-        rospy.loginfo("Starting Tkinter window loop")
-        self.window.mainloop()
 
 
 def shut_publisher(sig, frame) -> None:
@@ -150,13 +107,12 @@ def get_local_ip() -> Optional[str]:
 if __name__ == "__main__":
     rospy.init_node("glove_data_pub_node", anonymous=True)
     port = int(rospy.get_param("~port", 9400))
-    is_show_window = rospy.get_param("~show_window", True)
 
     local_ip = get_local_ip()
 
     signal.signal(signal.SIGINT, shut_publisher)
 
-    finger_publisher = FingerDataPublisher(show_window=is_show_window)
+    finger_publisher = FingerDataPublisher()
 
     dispatcher = Dispatcher()
     dispatcher.map("/v1/animation/slider/all", finger_publisher.handle_rotation)
@@ -168,7 +124,5 @@ if __name__ == "__main__":
     osc_thread = threading.Thread(target=server.serve_forever)
     osc_thread.daemon = True
     osc_thread.start()
-
-    finger_publisher.start_window()
 
     rospy.spin()
