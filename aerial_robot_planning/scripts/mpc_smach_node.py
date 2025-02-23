@@ -31,7 +31,10 @@ from mapping_control.object_position_mapping import (
     Arm,
     Drone,
     Glove,
-    OneToOnePubJointTraj,
+    MappingMode,
+    CartesianMode,
+    FreeMode,
+    SphericalMode,
 )
 
 # Collect all classes inside trajs whose name ends with 'Traj'
@@ -91,7 +94,7 @@ class IdleState(smach.State):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
             # print an available hand control state
-            print("h : One-to-one mapping control")
+            print("h :hand-based control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
@@ -339,20 +342,20 @@ class LockState(smach.State):
 
 class UnlockState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_one_to_one_map"])
+        smach.State.__init__(self, outcomes=["go_mapping_mode"])
 
     def execute(self, userdata):
-        print("Current state: one_to_one_map")
+        print("Current state: mapping_mode")
         time.sleep(0.5)
-        return "go_one_to_one_map"
+        return "go_mapping_mode"
 
 
-class OneToOneMapState(smach.State):
+class MappingModeState(smach.State):
     def __init__(self) -> None:
 
         smach.State.__init__(
             self,
-            outcomes=["done_track"],
+            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_free_mode", "done_track"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -364,7 +367,7 @@ class OneToOneMapState(smach.State):
     def execute(self, userdata):
 
         if self.pub_object is None:
-            self.pub_object = OneToOnePubJointTraj(
+            self.pub_object = MappingMode(
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
@@ -376,10 +379,147 @@ class OneToOneMapState(smach.State):
                 break
             self.rate.sleep()
 
+        control_mode_state = self.pub_object.get_control_mode()
+
         del self.pub_object
         self.pub_object = None
+        if control_mode_state == 2:
+            return "go_cartesian_mode"
+        if control_mode_state == 3:
+            return "go_spherical_mode"
+        if control_mode_state == 4:
+            return "go_free_mode"
+        if control_mode_state == 5:
+            return "done_track"
 
-        return "done_track"
+
+class SphericalModeState(smach.State):
+    def __init__(self) -> None:
+
+        smach.State.__init__(
+            self,
+            outcomes=["go_mapping_mode", "go_cartesian_mode", "go_free_mode", "done_track"],
+            input_keys=["robot_name"],
+            output_keys=[],
+        )
+
+        self.pub_object = None
+
+        self.rate = rospy.Rate(20)
+
+    def execute(self, userdata):
+
+        if self.pub_object is None:
+            self.pub_object = SphericalMode(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
+
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                break
+            self.rate.sleep()
+
+        control_mode_state = self.pub_object.get_control_mode()
+
+        del self.pub_object
+        self.pub_object = None
+        if control_mode_state == 1:
+            return "go_mapping_mode"
+        if control_mode_state == 2:
+            return "go_cartesian_mode"
+        if control_mode_state == 4:
+            return "go_free_mode"
+        if control_mode_state == 5:
+            return "done_track"
+
+
+class CartesianModeState(smach.State):
+    def __init__(self) -> None:
+
+        smach.State.__init__(
+            self,
+            outcomes=["go_mapping_mode", "go_spherical_mode", "go_free_mode", "done_track"],
+            input_keys=["robot_name"],
+            output_keys=[],
+        )
+
+        self.pub_object = None
+
+        self.rate = rospy.Rate(20)
+
+    def execute(self, userdata):
+
+        if self.pub_object is None:
+            self.pub_object = CartesianMode(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
+
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                break
+            self.rate.sleep()
+
+        control_mode_state = self.pub_object.get_control_mode()
+
+        del self.pub_object
+        self.pub_object = None
+        if control_mode_state == 1:
+            return "go_mapping_mode"
+        if control_mode_state == 3:
+            return "go_spherical_mode"
+        if control_mode_state == 4:
+            return "go_free_mode"
+        if control_mode_state == 5:
+            return "done_track"
+
+
+class FreeModeState(smach.State):
+    def __init__(self) -> None:
+
+        smach.State.__init__(
+            self,
+            outcomes=["go_mapping_mode", "go_spherical_mode", "go_cartesian_mode", "done_track"],
+            input_keys=["robot_name"],
+            output_keys=[],
+        )
+
+        self.pub_object = None
+
+        self.rate = rospy.Rate(20)
+
+    def execute(self, userdata):
+
+        if self.pub_object is None:
+            self.pub_object = FreeMode(
+                userdata.robot_name,
+                hand=shared_data["hand"],
+                arm=shared_data["arm"],
+                control_mode=shared_data["control_mode"],
+            )
+
+        while not rospy.is_shutdown():
+            if self.pub_object.check_finished():
+                break
+            self.rate.sleep()
+
+        control_mode_state = self.pub_object.get_control_mode()
+
+        del self.pub_object
+        self.pub_object = None
+        if control_mode_state == 1:
+            return "go_mapping_mode"
+        if control_mode_state == 2:
+            return "go_cartesian_mode"
+        if control_mode_state == 3:
+            return "go_spherical_mode"
+        if control_mode_state == 5:
+            return "done_track"
 
 
 def create_hand_control_state_machine():
@@ -402,13 +542,47 @@ def create_hand_control_state_machine():
         )
 
         # UnlockState
-        smach.StateMachine.add("UNLOCK", UnlockState(), transitions={"go_one_to_one_map": "ONE_TO_ONE_MAP"})
+        smach.StateMachine.add("UNLOCK", UnlockState(), transitions={"go_mapping_mode": "MAPPING_MODE"})
 
-        # One_To_One_MapState
         smach.StateMachine.add(
-            "ONE_TO_ONE_MAP",
-            OneToOneMapState(),
-            transitions={"done_track": "DONE"},
+            "MAPPING_MODE",
+            MappingModeState(),
+            transitions={
+                "go_cartesian_mode": "CARTESIAN_MODE",
+                "go_spherical_mode": "SPHERICAL_MODE",
+                "go_free_mode": "FREE_MODE",
+                "done_track": "DONE",
+            },
+        )
+        smach.StateMachine.add(
+            "SPHERICAL_MODE",
+            SphericalModeState(),
+            transitions={
+                "go_cartesian_mode": "CARTESIAN_MODE",
+                "go_mapping_mode": "MAPPING_MODE",
+                "go_free_mode": "FREE_MODE",
+                "done_track": "DONE",
+            },
+        )
+        smach.StateMachine.add(
+            "CARTESIAN_MODE",
+            CartesianModeState(),
+            transitions={
+                "go_mapping_mode": "MAPPING_MODE",
+                "go_spherical_mode": "SPHERICAL_MODE",
+                "go_free_mode": "FREE_MODE",
+                "done_track": "DONE",
+            },
+        )
+        smach.StateMachine.add(
+            "FREE_MODE",
+            FreeModeState(),
+            transitions={
+                "go_mapping_mode": "MAPPING_MODE",
+                "go_spherical_mode": "SPHERICAL_MODE",
+                "go_cartesian_mode": "CARTESIAN_MODE",
+                "done_track": "DONE",
+            },
         )
 
     return sm_sub

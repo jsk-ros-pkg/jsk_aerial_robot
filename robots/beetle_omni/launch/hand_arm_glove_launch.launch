@@ -1,13 +1,11 @@
 <launch>
   <!-- Define arguments -->
-  <arg name="enable_arm" default="false"/>
-  <arg name="enable_glove" default="false"/>
   <arg name="robot_id_hand" default="5"/>
   <arg name="robot_id_arm" default="6"/>
   <arg name="port" default="9400"/>
 
-  <!-- Conditional group: Activate node with arm and hand if enable_arm is true -->
-  <group if="$(eval arg('enable_arm') == true)">
+  <!-- Activate node with arm and hand -->
+  <group>
     <node pkg="mocap_optitrack"
           type="mocap_node"
           name="mocap_node_arm"
@@ -31,32 +29,10 @@
     </node>
   </group>
 
-  <!-- Conditional group: Activate node for hand only if enable_arm is false -->
-  <group if="$(eval arg('enable_arm') == false)">
-    <node pkg="mocap_optitrack"
-          type="mocap_node"
-          name="mocap_node_hand"
-          respawn="false"
-          launch-prefix=""
-          required="true">
-      <rosparam subst_value="true">
-        rigid_bodies:
-          '$(arg robot_id_hand)':
-            pose: hand/mocap/pose
-        optitrack_config:
-          enable_optitrack: true
-          multicast_address: 239.255.42.99
-          command_port: 1510
-          data_port: 1511
-      </rosparam>
-      <remap from="~hand/mocap/pose" to="/hand/mocap/pose" />
-    </node>
-  </group>
-
-  <!-- Conditional group: Run glove_control_pub.py script if enable_glove is true -->
-  <group if="$(eval arg('enable_glove') == true)">
+  <!-- Run glove_control_pub.py script -->
+  <group>
     <node pkg="data_glove" type="glove_control_pub.py" name="glove_data_pub_node" output="screen">
-      <param name="port" value="$(arg port)" />
+      <param name="port" value="$(arg port)"/>
     </node>
   </group>
 </launch>
