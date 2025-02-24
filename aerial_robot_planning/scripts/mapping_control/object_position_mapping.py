@@ -133,7 +133,7 @@ class MappingMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="mapping_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -299,7 +299,7 @@ class SphericalMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="zoom_map_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="spherical_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -461,14 +461,8 @@ class SphericalMode(MPCPubJointTraj):
 # Derived Class : CartesianMode
 ##########################################
 class CartesianMode(MPCPubJointTraj):
-    def __init__(
-        self,
-        robot_name: str,
-        hand: Hand,
-        arm: Arm,
-        control_mode: Glove,
-    ):
-        super().__init__(robot_name=robot_name, node_name="ccs_ctrl_traj_pub")
+    def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
+        super().__init__(robot_name=robot_name, node_name="cartesian_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -496,7 +490,7 @@ class CartesianMode(MPCPubJointTraj):
 
         self.last_state = None
 
-        self._init_origin_position = None
+        self.origin_position = None
 
     def _check_finish_auto(self):
         current_time = rospy.Time.now().to_sec()
@@ -552,13 +546,11 @@ class CartesianMode(MPCPubJointTraj):
             self.last_check_time = current_time
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
-        if self._init_origin_position is None:
-            self._init_origin_position = [
-                self.hand.position.pose.position.x,
-                self.hand.position.pose.position.y,
-                self.hand.position.pose.position.z,
-            ]
-            time.sleep(0.1)
+
+        self.origin_position = [
+            self.arm.position.pose.position.x + 0.3,
+            self.arm.position.pose.position.y,
+        ]
 
         current_hand_position = [
             self.hand.position.pose.position.x,
@@ -574,15 +566,15 @@ class CartesianMode(MPCPubJointTraj):
 
         # arm to hand
         o_h_direction = [
-            current_hand_position[0] - self._init_origin_position[0],
-            current_hand_position[1] - self._init_origin_position[1],
+            current_hand_position[0] - self.origin_position[0],
+            current_hand_position[1] - self.origin_position[1],
         ]
 
         o_h_distance = math.hypot(o_h_direction[0], o_h_direction[1])
 
         o_h_unit_vector = [o_h_direction[0] / o_h_distance, o_h_direction[1] / o_h_distance]
 
-        if o_h_distance < 0.2:
+        if o_h_distance < 0.15:
             self.expected_d_target_distance = 0.0
         else:
             self.expected_d_target_distance = 0.2
@@ -596,7 +588,7 @@ class CartesianMode(MPCPubJointTraj):
             target_position[0] - current_hand_position[0], target_position[1] - current_hand_position[1]
         )
 
-        if target_hand_distance < 1.0:
+        if target_hand_distance < 1.5:
             target_position = [
                 self.uav_odom.pose.pose.position.x,
                 self.uav_odom.pose.pose.position.y,
@@ -640,9 +632,9 @@ class CartesianMode(MPCPubJointTraj):
 
 
 ##########################################
-# Derived Class : FreeMode
+# Derived Class : LockMode
 ##########################################
-class FreeMode(MPCPubJointTraj):
+class LockMode(MPCPubJointTraj):
     def __init__(
         self,
         robot_name: str,
@@ -650,7 +642,7 @@ class FreeMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="ccs_ctrl_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="lock_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode

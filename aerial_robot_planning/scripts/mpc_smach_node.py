@@ -33,7 +33,7 @@ from mapping_control.object_position_mapping import (
     Glove,
     MappingMode,
     CartesianMode,
-    FreeMode,
+    LockMode,
     SphericalMode,
 )
 
@@ -255,7 +255,7 @@ class TrackState(smach.State):
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_lock"], input_keys=["robot_name", "mapping_config"], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_wait"], input_keys=["robot_name", "mapping_config"], output_keys=[])
 
     def execute(self, userdata):
 
@@ -272,15 +272,15 @@ class InitObjectState(smach.State):
             rospy.loginfo(f"The hand mocap has been successfully activated.")
             shared_data["drone"] = Drone(userdata.robot_name)
             rospy.loginfo(f"The drone's position has been successfully activated.")
-            return "go_lock"
+            return "go_wait"
         except Exception as e:
             rospy.logerr(f"Initialization failed: {e}")
             return "error"
 
 
-class LockState(smach.State):
+class WaitState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_unlock"], input_keys=[], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_start"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
         self.xy_angle_threshold = 10
@@ -292,7 +292,7 @@ class LockState(smach.State):
 
         global shared_data
 
-        rospy.loginfo("Current state: Lock")
+        rospy.loginfo("Current state: Wait")
         rospy.loginfo("Please align the direction of your hand with the drone's hand direction.")
 
         while not rospy.is_shutdown():
@@ -336,11 +336,11 @@ class LockState(smach.State):
             self.rate.sleep()
 
         rospy.loginfo("")
-        rospy.loginfo("Current state: Unlock")
-        return "go_unlock"
+        rospy.loginfo("Current state: Start")
+        return "go_start"
 
 
-class UnlockState(smach.State):
+class StartState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["go_mapping_mode"])
 
@@ -355,7 +355,7 @@ class MappingModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_free_mode", "done_track"],
+            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_lock_mode", "done_track"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -388,7 +388,7 @@ class MappingModeState(smach.State):
         if control_mode_state == 3:
             return "go_spherical_mode"
         if control_mode_state == 4:
-            return "go_free_mode"
+            return "go_lock_mode"
         if control_mode_state == 5:
             return "done_track"
 
@@ -398,7 +398,7 @@ class SphericalModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_mapping_mode", "go_cartesian_mode", "go_free_mode", "done_track"],
+            outcomes=["go_mapping_mode", "go_cartesian_mode", "go_lock_mode", "done_track"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -431,7 +431,7 @@ class SphericalModeState(smach.State):
         if control_mode_state == 2:
             return "go_cartesian_mode"
         if control_mode_state == 4:
-            return "go_free_mode"
+            return "go_lock_mode"
         if control_mode_state == 5:
             return "done_track"
 
@@ -441,7 +441,7 @@ class CartesianModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_mapping_mode", "go_spherical_mode", "go_free_mode", "done_track"],
+            outcomes=["go_mapping_mode", "go_spherical_mode", "go_lock_mode", "done_track"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -474,12 +474,12 @@ class CartesianModeState(smach.State):
         if control_mode_state == 3:
             return "go_spherical_mode"
         if control_mode_state == 4:
-            return "go_free_mode"
+            return "go_lock_mode"
         if control_mode_state == 5:
             return "done_track"
 
 
-class FreeModeState(smach.State):
+class LockModeState(smach.State):
     def __init__(self) -> None:
 
         smach.State.__init__(
@@ -496,7 +496,7 @@ class FreeModeState(smach.State):
     def execute(self, userdata):
 
         if self.pub_object is None:
-            self.pub_object = FreeMode(
+            self.pub_object = LockMode(
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
@@ -531,18 +531,18 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "HAND_CONTROL_INIT",
             InitObjectState(),
-            transitions={"go_lock": "LOCK"},
+            transitions={"go_wait": "WAIT"},
         )
 
-        # LockState
+        # WaitState
         smach.StateMachine.add(
-            "LOCK",
-            LockState(),
-            transitions={"go_unlock": "UNLOCK"},
+            "WAIT",
+            WaitState(),
+            transitions={"go_start": "START"},
         )
 
-        # UnlockState
-        smach.StateMachine.add("UNLOCK", UnlockState(), transitions={"go_mapping_mode": "MAPPING_MODE"})
+        # StartState
+        smach.StateMachine.add("START", StartState(), transitions={"go_mapping_mode": "MAPPING_MODE"})
 
         smach.StateMachine.add(
             "MAPPING_MODE",
@@ -550,7 +550,7 @@ def create_hand_control_state_machine():
             transitions={
                 "go_cartesian_mode": "CARTESIAN_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
-                "go_free_mode": "FREE_MODE",
+                "go_lock_mode": "LOCK_MODE",
                 "done_track": "DONE",
             },
         )
@@ -560,7 +560,7 @@ def create_hand_control_state_machine():
             transitions={
                 "go_cartesian_mode": "CARTESIAN_MODE",
                 "go_mapping_mode": "MAPPING_MODE",
-                "go_free_mode": "FREE_MODE",
+                "go_lock_mode": "LOCK_MODE",
                 "done_track": "DONE",
             },
         )
@@ -570,13 +570,13 @@ def create_hand_control_state_machine():
             transitions={
                 "go_mapping_mode": "MAPPING_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
-                "go_free_mode": "FREE_MODE",
+                "go_lock_mode": "LOCK_MODE",
                 "done_track": "DONE",
             },
         )
         smach.StateMachine.add(
-            "FREE_MODE",
-            FreeModeState(),
+            "LOCK_MODE",
+            LockModeState(),
             transitions={
                 "go_mapping_mode": "MAPPING_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",

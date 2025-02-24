@@ -57,13 +57,12 @@ class FingerDataPublisher:
         middle_finger_info = args[12] + args[13]
         ring_finger_info = args[15] + args[16]
         little_finger_info = args[18] + args[19]
-
         bending_high_threshold = 1.2
-        bending_low_threshold = 0.5
+        bending_low_threshold = 0.4
         state = -1
 
         if index_finger_info < bending_low_threshold:
-            if not (thumb_info > bending_high_threshold):
+            if not (thumb_info > (bending_high_threshold + 0.3)):
                 pass
             elif not (middle_finger_info < bending_low_threshold):
                 state = 1
@@ -75,10 +74,10 @@ class FingerDataPublisher:
                 state = 4
         elif index_finger_info > bending_high_threshold:
             if (
-                    thumb_info > bending_high_threshold
-                    and middle_finger_info > bending_high_threshold
-                    and ring_finger_info > bending_high_threshold
-                    and little_finger_info > bending_high_threshold
+                thumb_info > bending_high_threshold
+                and middle_finger_info > bending_high_threshold
+                and ring_finger_info > bending_high_threshold
+                and little_finger_info > bending_high_threshold
             ):
                 state = 5
 
