@@ -133,7 +133,7 @@ class MappingMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="1to1map_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="mapping_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -299,7 +299,7 @@ class SphericalMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="zoom_map_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="spherical_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -461,14 +461,8 @@ class SphericalMode(MPCPubJointTraj):
 # Derived Class : CartesianMode
 ##########################################
 class CartesianMode(MPCPubJointTraj):
-    def __init__(
-        self,
-        robot_name: str,
-        hand: Hand,
-        arm: Arm,
-        control_mode: Glove,
-    ):
-        super().__init__(robot_name=robot_name, node_name="ccs_ctrl_traj_pub")
+    def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
+        super().__init__(robot_name=robot_name, node_name="cartesian_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
@@ -594,7 +588,7 @@ class CartesianMode(MPCPubJointTraj):
             target_position[0] - current_hand_position[0], target_position[1] - current_hand_position[1]
         )
 
-        if target_hand_distance < 2.0:
+        if target_hand_distance < 1.5:
             target_position = [
                 self.uav_odom.pose.pose.position.x,
                 self.uav_odom.pose.pose.position.y,
@@ -638,9 +632,9 @@ class CartesianMode(MPCPubJointTraj):
 
 
 ##########################################
-# Derived Class : FreeMode
+# Derived Class : LockMode
 ##########################################
-class FreeMode(MPCPubJointTraj):
+class LockMode(MPCPubJointTraj):
     def __init__(
         self,
         robot_name: str,
@@ -648,7 +642,7 @@ class FreeMode(MPCPubJointTraj):
         arm: Arm,
         control_mode: Glove,
     ):
-        super().__init__(robot_name=robot_name, node_name="ccs_ctrl_traj_pub")
+        super().__init__(robot_name=robot_name, node_name="lock_mode_traj_pub")
         self.hand = hand
         self.arm = arm
         self.control_mode = control_mode
