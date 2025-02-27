@@ -68,21 +68,20 @@ def main(file_path):
         data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'], data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
         data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'], data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
 
-
-    # ======= plotting =========
+    # ======= Plotting =========
     plt.style.use(["science", "grid"])
-
     plt.rcParams.update({'font.size': 11})  # default is 10
     label_size = 14
+    legend_alpha = 0.5  # Set transparency for the legend if needed
 
-    fig = plt.figure(figsize=(7, 7))
-
+    # Using 7 subplots: first 3 for position, last 4 for quaternion
+    fig = plt.figure(figsize=(7, 10))
     t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
-    color_ref = '#0072BD' # '#0C5DA5'
-    color_real = '#D95319' # '#FF2C00'
+    color_ref = '#0072BD'
+    color_real = '#D95319'
 
-    # --------------------------------
-    plt.subplot(6, 1, 1)
+    # --- Subplot 1: X position ---
+    plt.subplot(7, 1, 1)
     t_ref = np.array(data_xyz_ref['__time']) - t_bias
     x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
     plt.plot(t_ref, x_ref, label='hand', linestyle="--", color=color_ref)
@@ -90,109 +89,98 @@ def main(file_path):
     t = np.array(data_xyz['__time']) - t_bias
     x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
     plt.plot(t, x, label='robot', color=color_real)
-
     plt.legend(framealpha=legend_alpha)
     plt.ylabel('X (m)', fontsize=label_size)
-
-    # calculate RMSE
     rmse_x = calculate_rmse(t, x, t_ref, x_ref)
     print(f'RMSE X (m): {rmse_x}')
 
-    # --------------------------------
-    plt.subplot(6, 1, 4)
-    t_ref = np.array(data_euler_ref['__time']) - t_bias
-    roll_ref = np.array(data_euler_ref['roll'])
-    plt.plot(t_ref, roll_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
-
-    t = np.array(data_euler['__time']) - t_bias
-    roll = np.array(data_euler['roll'])
-    plt.plot(t, roll * 180 / np.pi, label='real', color=color_real)
-
-    plt.ylabel('Roll ($^\\circ$)', fontsize=label_size)
-
-    # calculate RMSE
-    rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
-    print(f'RMSE Roll (rad): {rmse_roll}')
-    print(f'RMSE Roll (deg): {rmse_roll * 180 / np.pi}')
-
-    # --------------------------------
-    plt.subplot(6, 1, 2)
+    # --- Subplot 2: Y position ---
+    plt.subplot(7, 1, 2)
     t_ref = np.array(data_xyz_ref['__time']) - t_bias
     y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
-    plt.plot(t_ref, y_ref, label='ref', linestyle="--", color=color_ref)
+    plt.plot(t_ref, y_ref, label='hand', linestyle="--", color=color_ref)
 
     t = np.array(data_xyz['__time']) - t_bias
     y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
-    plt.plot(t, y, label='Y', color=color_real)
+    plt.plot(t, y, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
     plt.ylabel('Y (m)', fontsize=label_size)
-
-    # calculate RMSE
     rmse_y = calculate_rmse(t, y, t_ref, y_ref)
     print(f'RMSE Y (m): {rmse_y}')
 
-    # --------------------------------
-    plt.subplot(6, 1, 5)
-    t_ref = np.array(data_euler_ref['__time']) - t_bias
-    pitch_ref = np.array(data_euler_ref['pitch'])
-    plt.plot(t_ref, pitch_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
-
-    t = np.array(data_euler['__time']) - t_bias
-    pitch = np.array(data_euler['pitch'])
-    plt.plot(t, pitch * 180 / np.pi, label='real', color=color_real)
-    plt.ylabel('Pitch ($^\\circ$)', fontsize=label_size)
-
-    # calculate RMSE
-    rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
-    print(f'RMSE Pitch (rad): {rmse_pitch}')
-    print(f'RMSE Pitch (deg): {rmse_pitch * 180 / np.pi}')
-
-    # --------------------------------
-    plt.subplot(6, 1, 3)
+    # --- Subplot 3: Z position ---
+    plt.subplot(7, 1, 3)
     t_ref = np.array(data_xyz_ref['__time']) - t_bias
     z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
-    plt.plot(t_ref, z_ref, label='ref', linestyle="--", color=color_ref)
+    plt.plot(t_ref, z_ref, label='hand', linestyle="--", color=color_ref)
 
     t = np.array(data_xyz['__time']) - t_bias
     z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
-
-    plt.plot(t, z, label='Z', color=color_real)
+    plt.plot(t, z, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
     plt.ylabel('Z (m)', fontsize=label_size)
-
-    # calculate RMSE
     rmse_z = calculate_rmse(t, z, t_ref, z_ref)
     print(f'RMSE Z (m): {rmse_z}')
 
-    # --------------------------------
-    plt.subplot(6, 1, 6)
-    t_ref = np.array(data_euler_ref['__time']) - t_bias
-    yaw_ref = np.array(data_euler_ref['yaw'])
-    # # if yaw_ref has a jump, we need to fix it
-    # for i in range(1, len(yaw_ref)):
-    #     if yaw_ref[i] - yaw_ref[i - 1] > np.pi:
-    #         yaw_ref[i:] -= 2 * np.pi
-    #     elif yaw_ref[i] - yaw_ref[i - 1] < -np.pi:
-    #         yaw_ref[i:] += 2 * np.pi
-    plt.plot(t_ref, yaw_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
+    # --- Subplot 4: Quaternion w ---
+    plt.subplot(7, 1, 4)
+    t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
+    qw_ref = np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'])
+    plt.plot(t_ref, qw_ref, label='hand', linestyle="--", color=color_ref)
 
-    t = np.array(data_euler['__time']) - t_bias
-    yaw = np.array(data_euler['yaw'])
-    # # if yaw has a jump, we need to fix it
-    # for i in range(1, len(yaw)):
-    #     if yaw[i] - yaw[i - 1] > np.pi:
-    #         yaw[i:] -= 2 * np.pi
-    #     elif yaw[i] - yaw[i - 1] < -np.pi:
-    #         yaw[i:] += 2 * np.pi
-    plt.plot(t, yaw * 180 / np.pi, label='real', color=color_real)
-    plt.ylabel('Yaw ($^\\circ$)', fontsize=label_size)
+    t = np.array(data_qwxyz['__time']) - t_bias
+    qw = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'])
+    plt.plot(t, qw, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
+    plt.ylabel('qw', fontsize=label_size)
+    rmse_qw = calculate_rmse(t, qw, t_ref, qw_ref)
+    print(f'RMSE qw: {rmse_qw}')
 
-    # calculate RMSE
-    rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
-    print(f'RMSE Yaw (rad): {rmse_yaw}')
-    print(f'RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}')
+    # --- Subplot 5: Quaternion x ---
+    plt.subplot(7, 1, 5)
+    t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
+    qx_ref = np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'])
+    plt.plot(t_ref, qx_ref, label='hand', linestyle="--", color=color_ref)
 
-    # --------------------------------
+    t = np.array(data_qwxyz['__time']) - t_bias
+    qx = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'])
+    plt.plot(t, qx, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
+    plt.ylabel('qx', fontsize=label_size)
+    rmse_qx = calculate_rmse(t, qx, t_ref, qx_ref)
+    print(f'RMSE qx: {rmse_qx}')
+
+    # --- Subplot 6: Quaternion y ---
+    plt.subplot(7, 1, 6)
+    t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
+    qy_ref = np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'])
+    plt.plot(t_ref, qy_ref, label='hand', linestyle="--", color=color_ref)
+
+    t = np.array(data_qwxyz['__time']) - t_bias
+    qy = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'])
+    plt.plot(t, qy, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
+    plt.ylabel('qy', fontsize=label_size)
+    rmse_qy = calculate_rmse(t, qy, t_ref, qy_ref)
+    print(f'RMSE qy: {rmse_qy}')
+
+    # --- Subplot 7: Quaternion z ---
+    plt.subplot(7, 1, 7)
+    t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
+    qz_ref = np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
+    plt.plot(t_ref, qz_ref, label='hand', linestyle="--", color=color_ref)
+
+    t = np.array(data_qwxyz['__time']) - t_bias
+    qz = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
+    plt.plot(t, qz, label='robot', color=color_real)
+    plt.legend(framealpha=legend_alpha)
+    plt.ylabel('qz', fontsize=label_size)
+    rmse_qz = calculate_rmse(t, qz, t_ref, qz_ref)
+    print(f'RMSE qz: {rmse_qz}')
+
+    plt.xlabel('Time (s)', fontsize=label_size)
+
     plt.tight_layout()
-    # make the subplots very compact
     fig.subplots_adjust(hspace=0.2)
     plt.show()
 
