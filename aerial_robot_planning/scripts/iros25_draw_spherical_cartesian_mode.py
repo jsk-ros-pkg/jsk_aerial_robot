@@ -39,8 +39,13 @@ def main(file_path):
         ['__time', '/hand/mocap/pose/pose/position/x', '/hand/mocap/pose/pose/position/y',
          '/hand/mocap/pose/pose/position/z']]
 
+    data_xyz_arm = data[
+        ['__time', '/arm/mocap/pose/pose/position/x', '/arm/mocap/pose/pose/position/y',
+            '/arm/mocap/pose/pose/position/z']]
+
     data_xyz = data_xyz.dropna()
     data_xyz_ref = data_xyz_ref.dropna()
+    data_xyz_arm = data_xyz_arm.dropna()
 
     # ======= rpy =========
     data_qwxyz = data[
@@ -84,13 +89,42 @@ def main(file_path):
 
     # ----------
     # Plot the x and y position
-    x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
-    y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
+
+    # 假设 '__time' 列已经转换为 datetime 类型，并设置为索引
+    # 如果还未转换，请先转换：
+    data_xyz_ref['__time'] = pd.to_datetime(data_xyz_ref['__time'])
+    data_xyz_arm['__time'] = pd.to_datetime(data_xyz_arm['__time'])
+    data_xyz_ref = data_xyz_ref.set_index('__time')
+    data_xyz_arm = data_xyz_arm.set_index('__time')
+
+    # 移除重复的时间标签，只保留第一次出现的记录
+    data_xyz_ref = data_xyz_ref[~data_xyz_ref.index.duplicated(keep='first')]
+    data_xyz_arm = data_xyz_arm[~data_xyz_arm.index.duplicated(keep='first')]
+
+    # 构造公共的时间索引
+    common_time = data_xyz_ref.index.union(data_xyz_arm.index).sort_values()
+
+    # 重新索引并使用时间插值对齐数据
+    data_xyz_ref_aligned = data_xyz_ref.reindex(common_time).interpolate(method='time')
+    data_xyz_arm_aligned = data_xyz_arm.reindex(common_time).interpolate(method='time')
+
+    # 如果需要，可以重置索引
+    data_xyz_ref_aligned = data_xyz_ref_aligned.reset_index()
+    data_xyz_arm_aligned = data_xyz_arm_aligned.reset_index()
+
+    x = np.array(data_xyz_ref_aligned['/hand/mocap/pose/pose/position/x'] - data_xyz_arm_aligned['/arm/mocap/pose/pose/position/x'])
+    y = np.array(data_xyz_ref_aligned['/hand/mocap/pose/pose/position/y'] - data_xyz_arm_aligned['/arm/mocap/pose/pose/position/y'])
+
+    # x = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
+    # y = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
 
     plt.plot(x, y, label='robot', color=color_real)
 
     plt.xlabel('X (m)', fontsize=label_size)
     plt.ylabel('Y (m)', fontsize=label_size)
+
+    plt.xlim(0.0, 0.38)
+    plt.ylim(0.0, 0.35)
 
     # set 1:1
     plt.gca().set_aspect('equal', adjustable='box')
