@@ -119,13 +119,13 @@ def main(file_path):
     # x = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
     # y = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
 
-    plt.plot(x, y, label='robot', color=color_real)
+    plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
     plt.xlabel('X (m)', fontsize=label_size)
     plt.ylabel('Y (m)', fontsize=label_size)
 
-    plt.xlim(0.0, 0.5)
-    plt.ylim(-0.3, 0.3)
+    plt.xlim(0.0, 0.40)
+    plt.ylim(0.0, 0.35)
 
     # set 1:1
     plt.gca().set_aspect('equal', adjustable='box')
@@ -137,11 +137,14 @@ def main(file_path):
     plt.plot(0.0, 0.0, 'rP', markersize=10)
 
     # plot a green circle for stop zone
-    circle = patches.Circle((0.3, 0.0), 0.15, edgecolor='none', facecolor='green', alpha=0.2, linewidth=2)
+    circle = patches.Circle((0.0, 0.0), 0.2, edgecolor='green', facecolor='none', alpha=0.2, linewidth=2)
     plt.gca().add_patch(circle)
 
-    # plot the position of the origin of J coordinate
-    plt.plot(0.3, 0.0, 'ro', markersize=5)
+    circle = patches.Circle((0.0, 0.0), 0.4, edgecolor='green', facecolor='none', alpha=0.2, linewidth=2)
+    plt.gca().add_patch(circle)
+
+    # # plot the position of the origin of J coordinate
+    # plt.plot(0.3, 0.0, 'ro', markersize=5)
 
     # --- Common settings ---
     plt.tight_layout()
