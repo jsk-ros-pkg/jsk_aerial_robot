@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scienceplots
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import argparse
 
 legend_alpha = 0.5
@@ -123,14 +124,24 @@ def main(file_path):
     plt.xlabel('X (m)', fontsize=label_size)
     plt.ylabel('Y (m)', fontsize=label_size)
 
-    plt.xlim(0.0, 0.38)
-    plt.ylim(0.0, 0.35)
+    plt.xlim(0.0, 0.5)
+    plt.ylim(-0.3, 0.3)
 
     # set 1:1
     plt.gca().set_aspect('equal', adjustable='box')
 
     # plot the first point as a star
     plt.plot(x[0], y[0], 'r*', markersize=10)
+
+    # plot the position of shoulder
+    plt.plot(0.0, 0.0, 'rP', markersize=10)
+
+    # plot a green circle for stop zone
+    circle = patches.Circle((0.3, 0.0), 0.15, edgecolor='none', facecolor='green', alpha=0.2, linewidth=2)
+    plt.gca().add_patch(circle)
+
+    # plot the position of the origin of J coordinate
+    plt.plot(0.3, 0.0, 'ro', markersize=5)
 
     # --- Common settings ---
     plt.tight_layout()
