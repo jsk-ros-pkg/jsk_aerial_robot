@@ -83,6 +83,7 @@ AerialRobotBase::~AerialRobotBase()
   // what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
   main_timer_.stop();
   main_loop_spinner_.stop();
+  callback_spinner_.stop();
 }
 
 void AerialRobotBase::mainFunc(const ros::TimerEvent & e)
