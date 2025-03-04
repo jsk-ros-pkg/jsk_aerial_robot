@@ -541,7 +541,8 @@ namespace sensor_plugin
                       return true;
                     }
                 }
-              break;
+              //break;
+              return false;
             case MAX_EXCEED:
               /* the sensor value is below the max value ath the MAX_EXCEED state */
               /*we first turn back to ABNORMAL mode to verify the validity of the value */
