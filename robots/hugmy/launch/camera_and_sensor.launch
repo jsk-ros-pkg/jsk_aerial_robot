@@ -1,22 +1,13 @@
 <?xml version="1.0"?>
+
 <launch>
-  <arg name="source1" default="~/ros/jsk_aerial_robot_ws/devel/setup.bash" />
-  <arg name="source2" default="~/coral_ws/devel/setup.bash" />
-  <arg name="INPUT_IMAGE_RAW" default="/camera/color/image_raw" />
+  <!-- Realsense -->
+  <node pkg="hugmy" type="switch_coral_and_camera.sh" name="realsense_launcher" output="screen"
+        args="realsense"/>
 
-  <group ns="object_detector">
-    <!-- Ensure environment setup for source2 -->
-    <env name="ROS_PACKAGE_PATH" value="$(env ROS_PACKAGE_PATH):$(arg source2)" />
-    <include file="$(find coral_usb)/launch/edgetpu_object_detector.launch">
-      <arg name="INPUT_IMAGE" value="$(arg INPUT_IMAGE_RAW)" />
-    </include>
-  </group>
-
-  <group ns="camera">
-    <!-- Ensure environment setup for source1 -->
-    <env name="ROS_PACKAGE_PATH" value="$(env ROS_PACKAGE_PATH):$(arg source1)" />
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
-  </group>
+  <!-- Coral -->
+  <node pkg="hugmy" type="switch_coral_and_camera.sh" name="coral_launcher" output="screen"
+        args="coral INPUT_IMAGE:=/camera/color/image_raw"/>
 
   <!-- Additional nodes -->
   <node pkg="hugmy" type="merge.py" name="merge_rects_and_class" output="screen">
@@ -26,4 +17,23 @@
     <param name="port" value="/dev/ttyUSB1" />
     <param name="baud" value="57600" />
   </node>
+
+  <!-- <arg name="source1" default="~/ros/jsk_aerial_robot_ws/devel/setup.bash" /> -->
+  <!-- <arg name="source2" default="~/coral_ws/devel/setup.bash" /> -->
+  <!-- <arg name="INPUT_IMAGE_RAW" default="/camera/color/image_raw" /> -->
+
+  <!-- <group ns="object_detector"> -->
+  <!--   <!-\- Ensure environment setup for source2 -\-> -->
+  <!--   <env name="ROS_PACKAGE_PATH" value="$(env ROS_PACKAGE_PATH):$(arg source2)" /> -->
+  <!--   <include file="$(find coral_usb)/launch/edgetpu_object_detector.launch"> -->
+  <!--     <arg name="INPUT_IMAGE" value="$(arg INPUT_IMAGE_RAW)" /> -->
+  <!--   </include> -->
+  <!-- </group> -->
+
+  <!-- <group ns="camera"> -->
+  <!--   <!-\- Ensure environment setup for source1 -\-> -->
+  <!--   <env name="ROS_PACKAGE_PATH" value="$(env ROS_PACKAGE_PATH):$(arg source1)" /> -->
+  <!--   <include file="$(find realsense2_camera)/launch/rs_camera.launch"/> -->
+  <!-- </group> -->
+
 </launch>
