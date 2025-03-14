@@ -23,6 +23,8 @@
   <arg name="wrench_est_mode" default="none" />
     <!-- none; mom for momentum; ma for hybrid mode ; acc for acceleration; mhe_ma for mhe with acc and momentum est. -->
 
+  <arg name="end_effector" default="ball"/>  <!-- "ball" and "fork"   -->
+
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
     # EGOMOTION_ESTIMATE = 0
@@ -86,6 +88,7 @@
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
     <arg name="robot_model" value="$(find beetle_omni)/robots/beetle_art_omni.$(arg description_mode).xacro"/>
+    <arg name="model_options" value="end_effector:=$(arg end_effector)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz/nmpc.rviz" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/rviz/RvizInit.yaml" />
