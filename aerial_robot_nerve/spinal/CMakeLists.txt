@@ -22,6 +22,7 @@ add_message_files(
   ServoInfo.msg
   BoardInfo.msg
   ServoState.msg
+  ServoExtendedState.msg
   ServoStates.msg
   ServoControlCmd.msg
   ServoTorqueCmd.msg
