@@ -299,7 +299,7 @@ class YawRotationVerticalTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
-        self.use_constant_ref = True
+        self.use_constant_ref = False
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -314,7 +314,7 @@ class YawRotationVerticalTraj(BaseTraj):
 
         roll_rate = 0.0
         pitch_rate = 0.0
-        yaw_rate = 0.0
+        yaw_rate = self.omega
 
         roll_acc = 0.0
         pitch_acc = 0.0
