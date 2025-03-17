@@ -176,7 +176,6 @@ class PitchRotationTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
-        self.use_constant_ref = True
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -195,8 +194,12 @@ class PitchRotationTraj(BaseTraj):
 
         (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
 
+        if t <= self.T / 2:
+            pitch_rate = max_pitch * 2 / self.T
+        else:
+            pitch_rate = -max_pitch * 2 / self.T
+
         roll_rate = 0.0
-        pitch_rate = 0.0
         yaw_rate = 0.0
 
         roll_acc = 0.0
@@ -218,7 +221,6 @@ class RollRotationTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
-        self.use_constant_ref = True
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -237,7 +239,11 @@ class RollRotationTraj(BaseTraj):
 
         (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
 
-        roll_rate = 0.0
+        if t <= self.T / 2:
+            roll_rate = max_roll * 2 / self.T
+        else:
+            roll_rate = -max_roll * 2 / self.T
+
         pitch_rate = 0.0
         yaw_rate = 0.0
 
@@ -299,7 +305,6 @@ class YawRotationVerticalTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
-        self.use_constant_ref = False
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
