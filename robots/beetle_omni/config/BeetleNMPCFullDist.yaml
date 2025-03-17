@@ -11,8 +11,8 @@ controller:
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
-    v_max: 10
-    v_min: -10
+    v_max: 1
+    v_min: -1
 
     thrust_max: 30 # N
     thrust_min: 0 # N
