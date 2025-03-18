@@ -63,7 +63,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
 
         # Load trajectory from a CSV
         # TODO: change the order of csv file. one row for one point is better.
-        self.scvx_traj = np.loadtxt(file_path, delimiter=',')
+        self.scvx_traj = np.loadtxt(file_path, delimiter=',').T
         self.x_traj = self.scvx_traj[0:19, :]
         self.u_traj = self.scvx_traj[19:28, :]
 
