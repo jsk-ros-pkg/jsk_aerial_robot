@@ -50,7 +50,7 @@ print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
 # read all CSV files in the folder ./tilt_qd_csv_trajs
 csv_folder_path = os.path.join(current_path, "tilt_qd_csv_trajs")
-csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith(".csv")]
+csv_files = sorted([f for f in os.listdir(csv_folder_path) if f.endswith(".csv")])
 print(f"Found {len(csv_files)} CSV files in ./tilt_qd_csv_trajs folder.")
 
 
