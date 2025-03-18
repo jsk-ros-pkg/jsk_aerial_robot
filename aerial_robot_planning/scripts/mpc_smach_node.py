@@ -50,7 +50,7 @@ print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
 # read all CSV files in the folder ./tilt_qd_csv_trajs
 csv_folder_path = os.path.join(current_path, "tilt_qd_csv_trajs")
-csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith(".csv")]
+csv_files = sorted([f for f in os.listdir(csv_folder_path) if f.endswith(".csv")])
 print(f"Found {len(csv_files)} CSV files in ./tilt_qd_csv_trajs folder.")
 
 
@@ -86,19 +86,23 @@ class IdleState(smach.State):
         try:
             # print available trajectory types
             print("Available trajectory types:")
+
+            print("\n===== Analytical Trajectories =====")
             for i, traj_cls in enumerate(traj_cls_list):
                 print(f"{i}: {traj_cls.__name__}")
 
+            print("\n===== CSV Trajectories =====")
             # print available CSV files
             for i, csv_file in enumerate(csv_files):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
             # print an available hand control state
+            print("\n===== Other Choices =====")
             print("h :hand-based control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
+            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
 
