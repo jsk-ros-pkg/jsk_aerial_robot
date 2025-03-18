@@ -141,6 +141,10 @@ void nmpc::TiltMtServoNMPC::initParams()
   physical_nh.getParam("inertia_diag", inertia_);
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
+
+  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
+  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
+
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(nmpc_nh, "T_integ", t_nmpc_integ_, 0.1);
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
@@ -718,10 +722,19 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
   for (int i = 0; i < x_lambda.size() / 2; i++)
   {
-    double a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-    x.at(13 + i) = a_ref;
     double ft_ref = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
     u.at(i) = ft_ref;
+
+    double a_ref;
+    if (ft_ref < thrust_ctrl_min_)
+    {
+      a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
+    }
+    else
+    {
+      a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+    }
+    x.at(13 + i) = a_ref;
   }
 }
 
