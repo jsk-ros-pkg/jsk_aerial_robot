@@ -262,9 +262,6 @@ def main():
     sm.userdata.traj_type = None
     sm.userdata.loop_num = np.inf
 
-    global shared_data
-    shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
-
     # Open the container
     with sm:
         # IDLE

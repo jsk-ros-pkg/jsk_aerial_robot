@@ -26,6 +26,8 @@ from hand_control.hand_ctrl_modes import (
     SphericalMode
 )
 
+# global variables
+shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
 
 class InitObjectState(smach.State):
     def __init__(self):
@@ -63,7 +65,6 @@ class WaitState(smach.State):
         self.rate = rospy.Rate(20)
 
     def execute(self, userdata):
-
         global shared_data
 
         rospy.loginfo("Current state: Wait")

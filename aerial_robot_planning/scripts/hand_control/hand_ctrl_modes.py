@@ -7,6 +7,7 @@
 
 import math
 import rospy
+from abc import ABC
 
 from geometry_msgs.msg import Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
@@ -18,7 +19,7 @@ from sub_pos_objects import Hand, Arm, Glove
 ##########################################
 # Derived Class : HandControlBaseMode
 ##########################################
-class HandControlBaseMode(MPCPubJointTraj):
+class HandControlBaseMode(MPCPubJointTraj, ABC):
     def __init__(self,
              robot_name: str,
              hand: Hand,
