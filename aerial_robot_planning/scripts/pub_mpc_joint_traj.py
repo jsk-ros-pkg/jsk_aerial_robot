@@ -70,9 +70,10 @@ class MPCPubBase(ABC):
         Note: the timer should be manually after everything is set up.
         :return:
         """
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
+
         # Start time
         self.start_time = rospy.Time.now().to_sec()
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
         # Timer for publishing
         self.ts_pt_pub = 0.02  # ~50Hz
@@ -104,10 +105,12 @@ class MPCPubBase(ABC):
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
-        if self.check_finished(t_has_started) or self.is_finished:  # is_finished can be also set by other function to quit
-            rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished or target reached!")
+        # is_finished can be also set by other function to quit, so we need to check it first
+        if self.is_finished:
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: is_finished is set to True!")
             self.tmr_pt_pub.shutdown()
-            self.is_finished = True
+
+        self.is_finished = self.check_finished(t_has_started)
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):

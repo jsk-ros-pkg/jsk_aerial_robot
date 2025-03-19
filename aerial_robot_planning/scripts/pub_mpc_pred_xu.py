@@ -83,8 +83,6 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         # Adjust your control inputs if needed
         self.u_traj[:, 4:8] = self.x_traj[:, 13:17]
 
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
-
         self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> PredXU:
