@@ -74,7 +74,7 @@ class IdleState(smach.State):
 
         try:
             # print available trajectory types
-            print("Available trajectory types:")
+            print("\nAvailable trajectory types:\n")
             for i, traj_cls in enumerate(traj_cls_list):
                 print(f"{i}: {traj_cls.__name__}")
 
@@ -87,7 +87,7 @@ class IdleState(smach.State):
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(f"Enter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
+            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
 
