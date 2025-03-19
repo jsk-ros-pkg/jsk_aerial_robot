@@ -98,11 +98,11 @@ class IdleState(smach.State):
 
             # print an available hand control state
             print("\n===== Other Choices =====")
-            print("h :hand-based control")
+            print("h: hand-based control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
+            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'h' for hand control or 'q' to quit: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
 

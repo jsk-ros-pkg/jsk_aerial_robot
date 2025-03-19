@@ -71,6 +71,8 @@ class MPCPubCSVPredXU(MPCPubPredXU):
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
+        self.start_timer()
+
     def fill_trajectory_points(self, t_elapsed: float) -> PredXU:
         """
         Construct and return a PredXU message for the current time `t_elapsed`.

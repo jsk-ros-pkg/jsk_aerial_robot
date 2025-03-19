@@ -60,6 +60,16 @@ class MPCPubBase(ABC):
 
         check_position_initialized(self, "uav_odom", robot_name)
 
+        # data type for timer
+        self.start_time = float()
+        self.ts_pt_pub = float()
+        self.tmr_pt_pub = None
+
+    def start_timer(self):
+        """
+        Note: the timer should be manually after everything is set up.
+        :return:
+        """
         # Start time
         self.start_time = rospy.Time.now().to_sec()
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
@@ -154,6 +164,8 @@ class MPCTrajPtPub(MPCPubJointTraj):
         self.traj = traj
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Using trajectory {str(self.traj)}")
 
+        self.start_timer()
+
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """
         Build a MultiDOFJointTrajectory of length N_nmpc+1 from the 'traj' object,
@@ -228,6 +240,8 @@ class MPCSinglePtPub(MPCPubJointTraj):
         self.ang_tol = ang_tol  # e.g. 0.1 rad
         self.vel_tol = vel_tol  # e.g. 0.1 m/s
         self.rate_tol = rate_tol  # e.g. 0.1 rad/s
+
+        self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """
