@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from util import check_position_initialized
+from util import check_first_data_received
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -58,7 +58,7 @@ class MPCPubBase(ABC):
         self.uav_odom = None
         self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
 
-        check_position_initialized(self, "uav_odom", robot_name)
+        check_first_data_received(self, "uav_odom", robot_name)
 
         # Start time
         self.start_time = rospy.Time.now().to_sec()

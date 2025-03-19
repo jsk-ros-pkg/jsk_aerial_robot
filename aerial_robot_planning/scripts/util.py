@@ -6,20 +6,20 @@ from functools import wraps
 import rospy
 
 
-def check_position_initialized(obj: object, position_attr: str, object_name: str):
+def check_first_data_received(obj: object, attr: str, object_name: str):
     """
     Waits until the position is initialized. Logs a message repeatedly
     :param obj:  The object to check the position of
-    :param position_attr:  The attribute of the object to check
+    :param attr:  The attribute of the object to check
     :param object_name:  The name of the object being tracked
     :return:
     """
-    while not rospy.is_shutdown() and getattr(obj, position_attr) is None:
-        rospy.loginfo(f"Waiting for {object_name} position...")
+    while not rospy.is_shutdown() and getattr(obj, attr) is None:
+        rospy.loginfo(f"Waiting for {object_name} '{attr}' msg...")
         rospy.sleep(0.2)
 
-    if getattr(obj, position_attr) is not None:
-        rospy.loginfo(f"{object_name} Position received for the first time")
+    if getattr(obj, attr) is not None:
+        rospy.loginfo(f"{object_name} '{attr}' msg is received for the first time")
 
 
 def check_topic_subscription(func):

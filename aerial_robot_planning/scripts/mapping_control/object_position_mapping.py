@@ -22,7 +22,7 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
 
-from util import check_position_initialized, check_topic_subscription
+from util import check_first_data_received, check_topic_subscription
 from pub_mpc_joint_traj import MPCPubJointTraj
 
 ##########################################
