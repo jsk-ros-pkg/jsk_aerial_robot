@@ -12,6 +12,8 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
 
+from util import TopicNotAvailableError
+
 from hand_control.sub_pos_objects import (
     Hand,
     Arm,
@@ -61,7 +63,7 @@ class InitObjectState(smach.State):
 
             return "go_wait"
 
-        except Exception as e:
+        except TopicNotAvailableError as e:
             rospy.logerr(f"Initialization failed: {e}")
             return "done_hand_ctrl"
 
