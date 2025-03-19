@@ -65,7 +65,7 @@ class IdleState(smach.State):
     def __init__(self):
         smach.State.__init__(
             self,
-            outcomes=["go_init", "stay_idle", "shutdown", "go_mapping_init"],
+            outcomes=["go_init", "stay_idle", "shutdown", "go_hand_control_init"],
             input_keys=["mapping_config"],
             output_keys=["robot_name", "traj_type", "loop_num", "mapping_config"],
         )
@@ -112,7 +112,7 @@ class IdleState(smach.State):
                         else:
                             rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")
 
-                return "go_mapping_init"
+                return "go_hand_control_init"
 
             traj_type = int(traj_type_str)
             if not (0 <= traj_type <= max_traj_idx):
@@ -275,7 +275,7 @@ def main():
                 "go_init": "INIT",
                 "stay_idle": "IDLE",
                 "shutdown": "DONE",
-                "go_mapping_init": "HAND_CONTROL",
+                "go_hand_control_init": "HAND_CONTROL",
             },
         )
 
