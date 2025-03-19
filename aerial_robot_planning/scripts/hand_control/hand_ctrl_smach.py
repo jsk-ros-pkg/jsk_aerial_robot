@@ -51,13 +51,13 @@ class InitObjectState(smach.State):
             shared_data["drone"] = Drone(userdata.robot_name)
             rospy.loginfo("Drone activated.")
 
-            if self.get_user_decision("Arm mocap"):
-                shared_data["arm"] = Arm()
-                rospy.loginfo("Arm mocap activated.")
+            # if self.get_user_decision("Arm mocap"):
+            shared_data["arm"] = Arm()
+            rospy.loginfo("Arm mocap activated.")
 
-            if self.get_user_decision("Glove"):
-                shared_data["control_mode"] = Glove()
-                rospy.loginfo("Glove activated.")
+            # if self.get_user_decision("Glove"):
+            shared_data["control_mode"] = Glove()
+            rospy.loginfo("Glove activated.")
 
             return "go_wait"
 
