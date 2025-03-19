@@ -16,8 +16,12 @@
         rigid_bodies:
           '$(arg robot_id_arm)':
             pose: arm/mocap/pose
+            child_frame_id: arm
+            parent_frame_id: world
           '$(arg robot_id_hand)':
             pose: hand/mocap/pose
+            child_frame_id: hand
+            parent_frame_id: world
         optitrack_config:
           enable_optitrack: true
           multicast_address: 239.255.42.99
