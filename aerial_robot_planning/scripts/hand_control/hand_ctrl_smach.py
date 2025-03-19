@@ -12,14 +12,14 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 if current_path not in sys.path:
     sys.path.insert(0, current_path)
 
-from mapping_control.sub_pos_objects import (
+from hand_control.sub_pos_objects import (
     Hand,
     Arm,
     Drone,
     Glove
 )
 
-from mapping_control.hand_ctrl_modes import (
+from hand_control.hand_ctrl_modes import (
     MappingMode,
     CartesianMode,
     LockMode,
