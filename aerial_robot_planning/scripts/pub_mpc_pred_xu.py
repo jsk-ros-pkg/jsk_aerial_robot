@@ -18,6 +18,7 @@ if current_path not in sys.path:
     sys.path.insert(0, current_path)
 
 from pub_mpc_joint_traj import MPCPubBase
+from util import check_traj_info
 
 
 ##########################################
@@ -65,6 +66,16 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         self.scvx_traj = np.loadtxt(file_path, delimiter=',')  # one row for one time step
         self.x_traj = self.scvx_traj[:, 0:19]
         self.u_traj = self.scvx_traj[:, 19:28]
+
+        # Check trajectory information
+        check_traj_info(self.x_traj)
+
+        input_str = input("Please check the traj info. Press 'Enter' to continue...")
+        while True:
+            if input_str.lower() == '':
+                break
+            else:
+                input_str = input("Invalid input. Please press 'Enter' to continue...")
 
         # Adjust your control inputs if needed
         self.u_traj[:, 4:8] = self.x_traj[:, 13:17]
