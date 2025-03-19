@@ -32,7 +32,7 @@ shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_wait", "done_track"], input_keys=["robot_name"], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_wait", "done_hand_ctrl"], input_keys=["robot_name"], output_keys=[])
 
     @staticmethod
     def get_user_decision(device_name):
@@ -63,7 +63,7 @@ class InitObjectState(smach.State):
 
         except Exception as e:
             rospy.logerr(f"Initialization failed: {e}")
-            return "done_track"
+            return "done_hand_ctrl"
 
 
 class WaitState(smach.State):
@@ -142,7 +142,7 @@ class OperationModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_locking_mode", "done_track"],
+            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -177,7 +177,7 @@ class OperationModeState(smach.State):
         if control_mode_state == 4:
             return "go_locking_mode"
         if control_mode_state == 5:
-            return "done_track"
+            return "done_hand_ctrl"
 
 
 class SphericalModeState(smach.State):
@@ -185,7 +185,7 @@ class SphericalModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_operation_mode", "go_cartesian_mode", "go_locking_mode", "done_track"],
+            outcomes=["go_operation_mode", "go_cartesian_mode", "go_locking_mode", "done_hand_ctrl"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -220,7 +220,7 @@ class SphericalModeState(smach.State):
         if control_mode_state == 4:
             return "go_locking_mode"
         if control_mode_state == 5:
-            return "done_track"
+            return "done_hand_ctrl"
 
 
 class CartesianModeState(smach.State):
@@ -228,7 +228,7 @@ class CartesianModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_operation_mode", "go_spherical_mode", "go_locking_mode", "done_track"],
+            outcomes=["go_operation_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -263,7 +263,7 @@ class CartesianModeState(smach.State):
         if control_mode_state == 4:
             return "go_locking_mode"
         if control_mode_state == 5:
-            return "done_track"
+            return "done_hand_ctrl"
 
 
 class LockingModeState(smach.State):
@@ -271,7 +271,7 @@ class LockingModeState(smach.State):
 
         smach.State.__init__(
             self,
-            outcomes=["go_operation_mode", "go_spherical_mode", "go_cartesian_mode", "done_track"],
+            outcomes=["go_operation_mode", "go_spherical_mode", "go_cartesian_mode", "done_hand_ctrl"],
             input_keys=["robot_name"],
             output_keys=[],
         )
@@ -306,7 +306,7 @@ class LockingModeState(smach.State):
         if control_mode_state == 3:
             return "go_spherical_mode"
         if control_mode_state == 5:
-            return "done_track"
+            return "done_hand_ctrl"
 
 
 def create_hand_control_state_machine():
@@ -319,7 +319,7 @@ def create_hand_control_state_machine():
             "HAND_CONTROL_INIT",
             InitObjectState(),
             transitions={"go_wait": "WAIT",
-                         "done_track": "DONE"},
+                         "done_hand_ctrl": "DONE"},
         )
 
         # WaitState
@@ -339,7 +339,7 @@ def create_hand_control_state_machine():
                 "go_cartesian_mode": "CARTESIAN_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
                 "go_locking_mode": "LOCKING_MODE",
-                "done_track": "DONE",
+                "done_hand_ctrl": "DONE",
             },
         )
         smach.StateMachine.add(
@@ -349,7 +349,7 @@ def create_hand_control_state_machine():
                 "go_cartesian_mode": "CARTESIAN_MODE",
                 "go_operation_mode": "OPERATION_MODE",
                 "go_locking_mode": "LOCKING_MODE",
-                "done_track": "DONE",
+                "done_hand_ctrl": "DONE",
             },
         )
         smach.StateMachine.add(
@@ -359,7 +359,7 @@ def create_hand_control_state_machine():
                 "go_operation_mode": "OPERATION_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
                 "go_locking_mode": "LOCKING_MODE",
-                "done_track": "DONE",
+                "done_hand_ctrl": "DONE",
             },
         )
         smach.StateMachine.add(
@@ -369,7 +369,7 @@ def create_hand_control_state_machine():
                 "go_operation_mode": "OPERATION_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
                 "go_cartesian_mode": "CARTESIAN_MODE",
-                "done_track": "DONE",
+                "done_hand_ctrl": "DONE",
             },
         )
 
