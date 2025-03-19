@@ -203,7 +203,7 @@ class InitState(smach.State):
 
         # Wait here until the node signals it is finished or ROS shuts down
         while not rospy.is_shutdown():
-            if mpc_node.finished:
+            if mpc_node.is_finished:
                 rospy.loginfo("INIT: MPCSinglePtPub says the init pose is reached.")
                 break
             self.rate.sleep()
@@ -246,7 +246,7 @@ class TrackState(smach.State):
 
         # Wait here until the node signals it is finished or ROS shuts down
         while not rospy.is_shutdown():
-            if mpc_node.finished:
+            if mpc_node.is_finished:
                 rospy.loginfo("TRACK: MPCPtPubNode says the trajectory is finished.")
                 break
             self.rate.sleep()

@@ -70,12 +70,15 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         # Check trajectory information
         check_traj_info(self.x_traj)
 
-        input_str = input("Please check the traj info. Press 'Enter' to continue...")
+        input_str = input("Please check the traj info. Press 'Enter' to continue or 'q' to quit...")
         while True:
-            if input_str.lower() == '':
+            if input_str.lower() == 'q':
+                self.is_finished = True
+                return
+            elif input_str.lower() == '':
                 break
             else:
-                input_str = input("Invalid input. Please press 'Enter' to continue...")
+                input_str = input("Invalid input. Please press 'Enter' to continue or 'q' to quit...")
 
         # Adjust your control inputs if needed
         self.u_traj[:, 4:8] = self.x_traj[:, 13:17]

@@ -41,7 +41,7 @@ class MPCPubBase(ABC):
         self.robot_name = robot_name
         self.node_name = node_name
         self.namespace = rospy.get_namespace().rstrip("/")
-        self.finished = False  # Flag to indicate trajectory is complete
+        self.is_finished = False  # Flag to indicate trajectory is complete
 
         # Load NMPC parameters
         try:
@@ -104,10 +104,10 @@ class MPCPubBase(ABC):
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
-        if self.check_finished(t_has_started):
+        if self.check_finished(t_has_started) or self.is_finished:  # is_finished can be also set by other function to quit
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished or target reached!")
             self.tmr_pt_pub.shutdown()
-            self.finished = True
+            self.is_finished = True
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):
