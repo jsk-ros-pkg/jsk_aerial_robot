@@ -62,13 +62,12 @@ class MPCPubCSVPredXU(MPCPubPredXU):
             raise ValueError("This class is designed for 23 states and 8 control inputs! Check the NMPC type!")
 
         # Load trajectory from a CSV
-        # TODO: change the order of csv file. one row for one point is better.
-        self.scvx_traj = np.loadtxt(file_path, delimiter=',').T
-        self.x_traj = self.scvx_traj[0:19, :]
-        self.u_traj = self.scvx_traj[19:28, :]
+        self.scvx_traj = np.loadtxt(file_path, delimiter=',')  # one row for one time step
+        self.x_traj = self.scvx_traj[:, 0:19]
+        self.u_traj = self.scvx_traj[:, 19:28]
 
         # Adjust your control inputs if needed
-        self.u_traj[4:8, :] = self.x_traj[13:17, :]
+        self.u_traj[:, 4:8] = self.x_traj[:, 13:17]
 
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
@@ -78,7 +77,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         This method is called automatically by the base class timer (~50 Hz).
         """
         # If we are still within our trajectory time window:
-        if t_elapsed <= self.x_traj[-2, -1]:
+        if t_elapsed <= self.x_traj[-1, -2]:
             # Create time nodes for interpolation
             t_nodes = np.linspace(0, self.T_pred, self.N_nmpc + 1)
             t_nodes += t_elapsed
@@ -89,11 +88,11 @@ class MPCPubCSVPredXU(MPCPubPredXU):
 
             # Interpolate each state dimension
             for i in range(self.nx - 6):
-                x_traj[:, i] = np.interp(t_nodes, self.x_traj[-2, :], self.x_traj[i, :])
+                x_traj[:, i] = np.interp(t_nodes, self.x_traj[:, -2], self.x_traj[:, i])
 
             # Interpolate each control dimension
             for i in range(self.nu):
-                u_traj[:, i] = np.interp(t_nodes[:-1], self.x_traj[-2, :], self.u_traj[i, :])
+                u_traj[:, i] = np.interp(t_nodes[:-1], self.x_traj[:, -2], self.u_traj[:, i])
 
             # Populate the PredXU message
             self.ref_xu_msg.x.layout.dim[1].stride = self.nx
@@ -112,7 +111,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         Return True if we have exceeded the final trajectory time.
         This will cause the base class timer to shut down automatically.
         """
-        if t_elapsed > self.x_traj[-2, -1]:
+        if t_elapsed > self.x_traj[-1, -2]:
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory time finished!")
             return True
         return False

@@ -190,8 +190,6 @@ class InitState(smach.State):
             csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
             rospy.loginfo(f"Using CSV file: {csv_file}")
             csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
-            # TODO: change the order of csv file. one row for one point is better.
-            # csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=",")
             x, y, z = csv_traj[0:3]
             qw, qx, qy, qz = csv_traj[6:10]
 
