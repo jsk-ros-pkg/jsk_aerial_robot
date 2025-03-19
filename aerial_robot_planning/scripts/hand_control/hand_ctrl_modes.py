@@ -113,9 +113,9 @@ class HandControlBaseMode(MPCPubJointTraj):
 
 
 ##########################################
-# Derived Class : MappingMode
+# Derived Class : OperationMode
 ##########################################
-class MappingMode(HandControlBaseMode):
+class OperationMode(HandControlBaseMode):
     def __init__(
             self,
             robot_name: str,
@@ -123,7 +123,7 @@ class MappingMode(HandControlBaseMode):
             arm: Arm,
             control_mode: Glove,
     ):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="mapping_mode_traj_pub")
+        super().__init__(robot_name, hand, arm, control_mode, node_name="operation_mode_traj_pub")
 
         self.initial_hand_position = None
         self.initial_drone_position = None
@@ -335,11 +335,11 @@ class CartesianMode(HandControlBaseMode):
 
 
 ##########################################
-# Derived Class : LockMode
+# Derived Class : LockingMode
 ##########################################
-class LockMode(HandControlBaseMode):
+class LockingMode(HandControlBaseMode):
     def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="lock_mode_traj_pub")
+        super().__init__(robot_name, hand, arm, control_mode, node_name="locking_mode_traj_pub")
         self._init_origin_drone_position = None
         self._init_origin_hand_orientation = None
 

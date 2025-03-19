@@ -20,9 +20,9 @@ from hand_control.sub_pos_objects import (
 )
 
 from hand_control.hand_ctrl_modes import (
-    MappingMode,
+    OperationMode,
     CartesianMode,
-    LockMode,
+    LockingMode,
     SphericalMode
 )
 
@@ -124,7 +124,7 @@ class StartState(smach.State):
         return "go_mapping_mode"
 
 
-class MappingModeState(smach.State):
+class OperationModeState(smach.State):
     def __init__(self) -> None:
 
         smach.State.__init__(
@@ -141,7 +141,7 @@ class MappingModeState(smach.State):
     def execute(self, userdata):
 
         if self.pub_object is None:
-            self.pub_object = MappingMode(
+            self.pub_object = OperationMode(
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
@@ -253,7 +253,7 @@ class CartesianModeState(smach.State):
             return "done_track"
 
 
-class LockModeState(smach.State):
+class LockingModeState(smach.State):
     def __init__(self) -> None:
 
         smach.State.__init__(
@@ -270,7 +270,7 @@ class LockModeState(smach.State):
     def execute(self, userdata):
 
         if self.pub_object is None:
-            self.pub_object = LockMode(
+            self.pub_object = LockingMode(
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
@@ -320,7 +320,7 @@ def create_hand_control_state_machine():
 
         smach.StateMachine.add(
             "MAPPING_MODE",
-            MappingModeState(),
+            OperationModeState(),
             transitions={
                 "go_cartesian_mode": "CARTESIAN_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
@@ -350,7 +350,7 @@ def create_hand_control_state_machine():
         )
         smach.StateMachine.add(
             "LOCK_MODE",
-            LockModeState(),
+            LockingModeState(),
             transitions={
                 "go_mapping_mode": "MAPPING_MODE",
                 "go_spherical_mode": "SPHERICAL_MODE",
