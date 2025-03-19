@@ -29,26 +29,41 @@ from hand_control.hand_ctrl_modes import (
 # global variables
 shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
 
+
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_wait"], input_keys=["robot_name", "mapping_config"], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_wait"], input_keys=["robot_name"], output_keys=[])
+
+    @staticmethod
+    def get_user_decision(device_name):
+        prompt = f"Activate {device_name}? ([Y]/[N]): "
+        while True:
+            user_input = input(prompt).strip().lower()
+            if user_input in ("y", "n"):
+                return user_input == "y"
+            rospy.logwarn("Invalid input. Please enter Y or N.")
 
     def execute(self, userdata):
+        # Ask for activation decisions
+        is_arm_active = self.get_user_decision("Arm mocap")
+        is_glove_active = self.get_user_decision("Glove")
 
-        # userdata.mapping_config = {"is_arm_active": True, "is_glove_active": True}
         try:
-            if userdata.mapping_config.get("is_arm_active", False):
+            if is_arm_active:
                 shared_data["arm"] = Arm()
-                rospy.loginfo(f"The arm mocap has been successfully activated.")
-            if userdata.mapping_config.get("is_glove_active", False):
+                rospy.loginfo("Arm mocap activated.")
+            if is_glove_active:
                 shared_data["control_mode"] = Glove()
-                rospy.loginfo(f"The data glove has been successfully activated.")
+                rospy.loginfo("Glove activated.")
 
             shared_data["hand"] = Hand()
-            rospy.loginfo(f"The hand mocap has been successfully activated.")
+            rospy.loginfo("Hand mocap activated.")
+
             shared_data["drone"] = Drone(userdata.robot_name)
-            rospy.loginfo(f"The drone's position has been successfully activated.")
+            rospy.loginfo("Drone activated.")
+
             return "go_wait"
+
         except Exception as e:
             rospy.logerr(f"Initialization failed: {e}")
             return "error"
@@ -299,7 +314,7 @@ class LockingModeState(smach.State):
 
 def create_hand_control_state_machine():
     """HandControlStateMachine"""
-    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name", "mapping_config"])
+    sm_sub = smach.StateMachine(outcomes=["DONE"], input_keys=["robot_name"])
 
     with sm_sub:
         # InitObjectState

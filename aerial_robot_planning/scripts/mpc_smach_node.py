@@ -58,7 +58,6 @@ class IdleState(smach.State):
     """
     IDLE State:
     - Prompt user for robot_name, traj_type, loop_num.
-    - Also need to prompt user for mapping_config, if user use mapping control.
     - On valid input, go INIT; otherwise, stay in IDLE.
     """
 
@@ -66,8 +65,8 @@ class IdleState(smach.State):
         smach.State.__init__(
             self,
             outcomes=["go_init", "stay_idle", "shutdown", "go_hand_control_init"],
-            input_keys=["mapping_config"],
-            output_keys=["robot_name", "traj_type", "loop_num", "mapping_config"],
+            input_keys=["robot_name"],
+            output_keys=["robot_name", "traj_type", "loop_num"],
         )
 
     def execute(self, userdata):
@@ -84,7 +83,7 @@ class IdleState(smach.State):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
             # print an available hand control state
-            print("h :hand-based control")
+            print("h: hand-based control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
@@ -93,25 +92,6 @@ class IdleState(smach.State):
                 return "shutdown"
 
             if traj_type_str.lower() == "h":
-                userdata.traj_type = "h"
-                userdata.mapping_config = {"is_arm_active": False, "is_glove_active": False}
-
-                devices = {"is_arm_active": "Arm mocap", "is_glove_active": "Glove"}
-                print("Whether activate the following devices. ([Y]/Yes or [N]/No, case-insensitive)")
-                for mapping_config_key, device in devices.items():
-                    while True:
-                        user_input = input(f"Whether activate {device} ([Y]/[N]): ").strip().lower()
-                        if user_input == "y":
-                            userdata.mapping_config[mapping_config_key] = True
-                            rospy.loginfo(f"Decide to activate {device}.")
-                            break
-                        elif user_input == "n":
-                            userdata.mapping_config[mapping_config_key] = False
-                            rospy.loginfo(f"Decided not to activate {device}.")
-                            break
-                        else:
-                            rospy.logwarn("Invalid input. Please enter Y or N (case-insensitive).")
-
                 return "go_hand_control_init"
 
             traj_type = int(traj_type_str)
@@ -128,7 +108,6 @@ class IdleState(smach.State):
                     loop_num = float(loop_str)
 
             # Set user data
-            # userdata.robot_name = robot_name
             userdata.traj_type = traj_type
             userdata.loop_num = loop_num
 
@@ -286,7 +265,7 @@ def main():
             "HAND_CONTROL",
             create_hand_control_state_machine(),
             transitions={"DONE": "IDLE"},
-            remapping={"robot_name": "robot_name", "mapping_config": "mapping_config"},
+            remapping={"robot_name": "robot_name"},
         )
 
     # (Optional) Start an introspection server to visualize SMACH in smach_viewer
