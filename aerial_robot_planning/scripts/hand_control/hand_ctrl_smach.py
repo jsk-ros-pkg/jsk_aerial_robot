@@ -32,7 +32,7 @@ shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
 
 class InitObjectState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_wait"], input_keys=["robot_name"], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_wait", "done_track"], input_keys=["robot_name"], output_keys=[])
 
     @staticmethod
     def get_user_decision(device_name):
@@ -44,29 +44,26 @@ class InitObjectState(smach.State):
             rospy.logwarn("Invalid input. Please enter Y or N.")
 
     def execute(self, userdata):
-        # Ask for activation decisions
-        is_arm_active = self.get_user_decision("Arm mocap")
-        is_glove_active = self.get_user_decision("Glove")
-
         try:
-            if is_arm_active:
-                shared_data["arm"] = Arm()
-                rospy.loginfo("Arm mocap activated.")
-            if is_glove_active:
-                shared_data["control_mode"] = Glove()
-                rospy.loginfo("Glove activated.")
-
             shared_data["hand"] = Hand()
             rospy.loginfo("Hand mocap activated.")
 
             shared_data["drone"] = Drone(userdata.robot_name)
             rospy.loginfo("Drone activated.")
 
+            if self.get_user_decision("Arm mocap"):
+                shared_data["arm"] = Arm()
+                rospy.loginfo("Arm mocap activated.")
+
+            if self.get_user_decision("Glove"):
+                shared_data["control_mode"] = Glove()
+                rospy.loginfo("Glove activated.")
+
             return "go_wait"
 
         except Exception as e:
             rospy.logerr(f"Initialization failed: {e}")
-            return "error"
+            return "done_track"
 
 
 class WaitState(smach.State):
@@ -321,7 +318,8 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "HAND_CONTROL_INIT",
             InitObjectState(),
-            transitions={"go_wait": "WAIT"},
+            transitions={"go_wait": "WAIT",
+                         "done_track": "DONE"},
         )
 
         # WaitState
