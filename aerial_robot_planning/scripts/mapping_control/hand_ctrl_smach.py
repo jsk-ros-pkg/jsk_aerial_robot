@@ -1,5 +1,5 @@
 '''
- Created by li-jinjie on 25-3-19.
+ Refactored by li-jinjie on 25-3-19.
 '''
 import os
 import sys
@@ -8,15 +8,22 @@ import smach
 import numpy as np
 import tf.transformations as tft
 
-from object_position_mapping import (
+current_path = os.path.abspath(os.path.dirname(__file__))
+if current_path not in sys.path:
+    sys.path.insert(0, current_path)
+
+from mapping_control.sub_pos_objects import (
     Hand,
     Arm,
     Drone,
-    Glove,
+    Glove
+)
+
+from mapping_control.hand_ctrl_modes import (
     MappingMode,
     CartesianMode,
     LockMode,
-    SphericalMode,
+    SphericalMode
 )
 
 
