@@ -29,7 +29,7 @@ from hand_control.hand_ctrl_modes import (
 )
 
 # global variables
-shared_data = {"hand_pose": None, "arm_pose": None, "drone": None, "glove": None}
+shared_data = {"hand_pose": None, "arm_pose": None, "drone_pose": None, "glove": None}
 
 
 class InitObjectState(smach.State):
@@ -50,7 +50,7 @@ class InitObjectState(smach.State):
             shared_data["hand_pose"] = HandPose()
             rospy.loginfo("Hand mocap activated.")
 
-            shared_data["drone"] = DronePose(userdata.robot_name)
+            shared_data["drone_pose"] = DronePose(userdata.robot_name)
             rospy.loginfo("Drone activated.")
 
             # if self.get_user_decision("Arm mocap"):
@@ -86,10 +86,10 @@ class WaitState(smach.State):
 
         while not rospy.is_shutdown():
             drone_orientation = [
-                shared_data["drone"].pose_msg.pose.orientation.x,
-                shared_data["drone"].pose_msg.pose.orientation.y,
-                shared_data["drone"].pose_msg.pose.orientation.z,
-                shared_data["drone"].pose_msg.pose.orientation.w,
+                shared_data["drone_pose"].pose_msg.pose.orientation.x,
+                shared_data["drone_pose"].pose_msg.pose.orientation.y,
+                shared_data["drone_pose"].pose_msg.pose.orientation.z,
+                shared_data["drone_pose"].pose_msg.pose.orientation.w,
             ]
             hand_orientation = [
                 shared_data["hand_pose"].pose_msg.pose.orientation.x,
