@@ -6,19 +6,22 @@
 # @Software: PyCharm
 
 import math
-import rospy
 from abc import ABC, abstractmethod
 
+import rospy
 from geometry_msgs.msg import Twist, Vector3, Quaternion, Transform
+from pub_mpc_joint_traj import MPCPubJointTraj
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from pub_mpc_joint_traj import MPCPubJointTraj
 from sub_pos_objects import HandPose, ArmPose, Glove
 
 
 ##########################################
 # Derived Class : HandControlBaseMode
 ##########################################
+"""
+For example: From arm to hand, denoted as a2h; from hand to drone, denoted as h2d.
+"""
 class HandControlBaseMode(MPCPubJointTraj, ABC):
     def __init__(self,
                  robot_name: str,
@@ -59,6 +62,9 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
         return int()
 
     def _check_finish_auto(self):
+        """
+        When the hand maintains its pose for a certain time, it exits the control.
+        """
         current_time = rospy.Time.now().to_sec()
         if not hasattr(self, "last_check_time"):
             self._last_check_time = current_time
@@ -107,6 +113,10 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             self._last_check_time = current_time
 
     def check_finished(self, t_elapsed=None):
+        """
+        Checks if the task is finished. If the glove is not enabled, uses _check_finish_auto
+        to check if the task is completed.
+        """
         if self.glove is None:
             self._check_finish_auto()
             return self.is_finished
@@ -143,7 +153,11 @@ class OperationMode(HandControlBaseMode):
         return 1
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
-
+        """
+        When entering this state, record the first pose of the drone and hand.
+        Check the changes in the hand's pose compared to the first recorded pose.
+        Add the change in the hand's pose to the initial pose recorded by the drone to determine the target pose for the drone at the next moment.
+        """
         if self.initial_hand_position is None:
             self.initial_hand_position = [
                 self.hand_pose.pose_msg.pose.position.x,
@@ -208,19 +222,24 @@ class OperationMode(HandControlBaseMode):
 class SphericalMode(HandControlBaseMode):
     def __init__(self, robot_name: str, hand_pose: HandPose, arm_pose: ArmPose, glove: Glove):
         super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="spherical_mode_traj_pub")
-        self.expected_a_d_distance = 2.2
+        self.expected_a2d_distance = 2.2
 
     @staticmethod
     def _init_mode_num():
         return 3
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
-        a_h_direction = [
+        """
+        The shoulder as the origin of the polar coordinate system.
+        Calculate the directional vector from the shoulder to the hand as the direction of the polar axis.
+        Calculate the distance from the shoulder to the hand to adjust the radial distance of the target point.
+        """
+        a2h_direction = [
             self.hand_pose.pose_msg.pose.position.x - self.arm_pose.pose_msg.pose.position.x,
             self.hand_pose.pose_msg.pose.position.y - self.arm_pose.pose_msg.pose.position.y,
         ]
-        a_h_distance = math.hypot(a_h_direction[0], a_h_direction[1])
-        a_h_unit_vector = [a_h_direction[0] / a_h_distance, a_h_direction[1] / a_h_distance]
+        a2h_distance = math.hypot(a2h_direction[0], a2h_direction[1])
+        a2h_unit_vector = [a2h_direction[0] / a2h_distance, a2h_direction[1] / a2h_distance]
 
         hand_orientation = [
             self.hand_pose.pose_msg.pose.orientation.x,
@@ -229,20 +248,18 @@ class SphericalMode(HandControlBaseMode):
             self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
-        if a_h_distance > 0.4:
-            self.expected_a_d_distance = self.expected_a_d_distance + 0.01
-        elif 0.4 > a_h_distance > 0.2:
+        if a2h_distance > 0.4:
+            self.expected_a2d_distance = self.expected_a2d_distance + 0.01
+        elif 0.4 > a2h_distance > 0.2:
             pass
         else:
-            self.expected_a_d_distance = self.expected_a_d_distance - 0.01
+            self.expected_a2d_distance = self.expected_a2d_distance - 0.01
 
-        self.expected_a_d_distance = max(1, min(20, self.expected_a_d_distance))
+        self.expected_a2d_distance = max(1, min(20, self.expected_a2d_distance))
 
-        target_position = [
-                              a_h_unit_vector[i] * self.expected_a_d_distance + getattr(
-                                  self.hand_pose.pose_msg.pose.position, axis)
-                              for i, axis in enumerate(["x", "y"])
-                          ] + [self.hand_pose.pose_msg.pose.position.z]
+        target_position = [a2h_unit_vector[i] * self.expected_a2d_distance + getattr(
+            self.hand_pose.pose_msg.pose.position, axis)
+                           for i, axis in enumerate(["x", "y"])] + [self.hand_pose.pose_msg.pose.position.z]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -273,7 +290,7 @@ class SphericalMode(HandControlBaseMode):
 class CartesianMode(HandControlBaseMode):
     def __init__(self, robot_name: str, hand_pose: HandPose, arm_pose: ArmPose, glove: Glove):
         super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="cartesian_mode_traj_pub")
-        self.expected_d_target_distance = 0.0
+        self.expected_d2target_distance = 0.0
         self.last_target_position = None
         self.origin_position = None
 
@@ -282,6 +299,11 @@ class CartesianMode(HandControlBaseMode):
         return 2
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
+        """
+        The point 0.3 meters in front of the shoulder as the origin of the Cartesian coordinate system.
+        The vector from the origin to the hand is the direction of movement for the drone.
+        When the vector from the origin to the hand reaches a certain length, the drone moves.
+        """
         self.origin_position = [
             self.arm_pose.pose_msg.pose.position.x + 0.3,
             self.arm_pose.pose_msg.pose.position.y,
@@ -299,20 +321,21 @@ class CartesianMode(HandControlBaseMode):
             self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
-        o_h_direction = [
+        o2h_direction = [
             current_hand_position[0] - self.origin_position[0],
             current_hand_position[1] - self.origin_position[1],
         ]
-        o_h_distance = math.hypot(o_h_direction[0], o_h_direction[1])
-        o_h_unit_vector = [o_h_direction[0] / o_h_distance, o_h_direction[1] / o_h_distance]
+        o2h_distance = math.hypot(o2h_direction[0], o2h_direction[1])
+        o2h_unit_vector = [o2h_direction[0] / o2h_distance, o2h_direction[1] / o2h_distance]
 
-        if o_h_distance < 0.15:
-            self.expected_d_target_distance = 0.0
+        """ The movement distance, maintained at a constant value. """
+        if o2h_distance < 0.15:
+            self.expected_d2target_distance = 0.0
         else:
-            self.expected_d_target_distance = 0.2
+            self.expected_d2target_distance = 0.2
 
         target_position = [
-                              o_h_unit_vector[i] * self.expected_d_target_distance + getattr(
+                              o2h_unit_vector[i] * self.expected_d2target_distance + getattr(
                                   self.uav_odom.pose.pose.position, axis)
                               for i, axis in enumerate(["x", "y"])
                           ] + [self.hand_pose.pose_msg.pose.position.z]
@@ -365,6 +388,8 @@ class LockingMode(HandControlBaseMode):
         return 4
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
+        """The first pose recorded when the drone enters this state."""
+
         if self._init_origin_drone_position is None:
             self._init_origin_drone_position = [
                 self.uav_odom.pose.pose.position.x,

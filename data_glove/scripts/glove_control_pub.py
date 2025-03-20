@@ -27,61 +27,86 @@ class FingerDataPublisher:
         self.last_state = None
         self.control_mode = 1
 
+        # Thresholds for finger bending: high bending (>1.2) and low bending (<0.4)
+        self.bending_high_threshold = 1.2
+        self.bending_low_threshold = 0.4
+
+        # Mapping of gestures to corresponding states
+        # gesture state 1: Only index finger extended
+        # gesture state 2: Index and middle fingers extended
+        # gesture state 3: Index, middle, and ring fingers extended
+        # gesture state 4: Index, middle, ring, and little fingers extended
+        # gesture state 5: All fingers extended
+        self.gesture_to_state_mapping = {
+            (-1, 1, -1, -1, -1): ("gesture_state_1", 1),
+            (-1, 1, 1, -1, -1): ("gesture_state_2", 2),
+            (-1, 1, 1, 1, -1): ("gesture_state_3", 3),
+            (-1, 1, 1, 1, 1): ("gesture_state_4", 4),
+            (1, 1, 1, 1, 1): ("gesture_state_5", 5),
+        }
+    def get_finger_status(self, finger_info:float,threshold_plus:float = 0):
+        # Returns the status of the finger based on its bending information
+        # If the bending is greater than the high threshold, the finger is considered bent (-1)
+        # If the bending is below the low threshold, the finger is considered straight (1)
+        # If the bending is in between, the finger is considered moderately bent (0)
+        if finger_info > self.bending_high_threshold + threshold_plus:
+            return -1  # Finger is bent, status is -1
+        elif finger_info < self.bending_low_threshold:
+            return 1  # Finger is straight, status is 1
+        else:
+            return 0  # Finger is moderately bent, status is 0
+
+    def handle_rotation(self, address: str, *args: float) -> None:
+
+        # Get the bending and straight status for all five fingers.
+        # Bent is -1, straight is 1, moderately bent is 0
+
+        thumb_info = self.get_finger_status(args[5] + args[6] + args[8],0.3)
+        index_finger_info = self.get_finger_status(args[9] + args[10])
+        middle_finger_info = self.get_finger_status(args[12] + args[13])
+        ring_finger_info = self.get_finger_status(args[15] + args[16])
+        little_finger_info = self.get_finger_status(args[18] + args[19])
+
+        gesture_state_tuple = (
+            thumb_info,
+            index_finger_info,
+            middle_finger_info,
+            ring_finger_info,
+            little_finger_info,
+        )
+
+        # If the gesture is not valid, get the gesture state number is -1.
+        state, state_number = self.gesture_to_state_mapping.get(gesture_state_tuple, ("State_no_change", -1))
+        self.publish_control_mode(state_number)
+
     def publish_control_mode(self, state: int) -> None:
+
         current_time = rospy.Time.now()
         if state == -1:
             if self.last_state is not None:
+                # When switching from a valid gesture to an invalid gesture, remind the operator:
+                # "Gesture detected as invalid. To change the state, please maintain a valid gesture."
                 self.last_state = None
                 self.last_check_time = None
-                print("Invalid state (-1) detected. Resetting timers and state.")
+                print("Gesture detected as invalid. To change the gesture state, please maintain a valid gesture.")
             self.control_mode_pub.publish(self.control_mode)
             return
 
+        # If the state has changed, set the timer.
         if state != self.last_state:
             self.last_state = state
             self.last_check_time = current_time
-            print(f"State changed to {state}, resetting timer.")
+            print(f"Gesture state changed to {state}, resetting timer.")
 
+        # If the valid state (not -1) has been stable for 3 seconds, update the self.control_mode.
         if self.last_check_time and (current_time - self.last_check_time).to_sec() > 3.0:
-            print(f"State {state} has been stable for 3 seconds. Publishing...")
+            print(f"Gesture state_{state} has been stable for 3 seconds. Publishing...")
             self.control_mode = state
-            self.control_mode_pub.publish(self.control_mode)
             self.last_check_time = current_time
             print(f"Reset control mode to {self.control_mode}")
 
+        # Always publish the current control mode.
         self.control_mode_pub.publish(self.control_mode)
-
-    def handle_rotation(self, address: str, *args: float) -> None:
-        thumb_info = args[5] + args[6] + args[8]
-        index_finger_info = args[9] + args[10]
-        middle_finger_info = args[12] + args[13]
-        ring_finger_info = args[15] + args[16]
-        little_finger_info = args[18] + args[19]
-        bending_high_threshold = 1.2
-        bending_low_threshold = 0.4
-        state = -1
-
-        if index_finger_info < bending_low_threshold:
-            if not (thumb_info > (bending_high_threshold + 0.3)):
-                pass
-            elif not (middle_finger_info < bending_low_threshold):
-                state = 1
-            elif not (ring_finger_info < bending_low_threshold):
-                state = 2
-            elif not (little_finger_info < bending_low_threshold):
-                state = 3
-            else:
-                state = 4
-        elif index_finger_info > bending_high_threshold:
-            if (
-                thumb_info > bending_high_threshold
-                and middle_finger_info > bending_high_threshold
-                and ring_finger_info > bending_high_threshold
-                and little_finger_info > bending_high_threshold
-            ):
-                state = 5
-
-        self.publish_control_mode(state)
 
 
 def shut_publisher(sig, frame) -> None:
