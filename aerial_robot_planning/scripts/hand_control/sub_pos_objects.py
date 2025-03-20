@@ -14,54 +14,57 @@ from util import check_first_data_received, check_topic_subscription
 # one-to-one mapping of all instantiation classes required.
 ##########################################
 
-class PositionObjectBase(ABC):
+class PoseBase(ABC):
     def __init__(self, object_name: str, topic_name: str, msg_type):
         """
-        Base class for subscribing to position information.
+        Base class for subscribing to pose_msg information.
         :param topic_name: The name of the topic to subscribe to.
-        :param msg_type: The message type for position data.
+        :param msg_type: The message type for pose_msg data.
         """
         self.object_name = object_name
-        self.position = None
+        self.pose_msg = None
 
         self.subscriber = self._sub_topic(topic_name, msg_type)
 
-        check_first_data_received(self, "position", self.object_name)
+        check_first_data_received(self, "pose_msg", self.object_name)
 
     @check_topic_subscription
     def _sub_topic(self, topic_name, msg_type):
         rospy.loginfo(f"Subscribed to {topic_name}")
-        return rospy.Subscriber(topic_name, msg_type, self._position_callback, queue_size=3)
+        return rospy.Subscriber(topic_name, msg_type, self._pose_msg_callback, queue_size=3)
 
-    def _position_callback(self, msg):
+    def _pose_msg_callback(self, msg):
         """
-        Callback function to process incoming position messages.
+        Callback function to process incoming pose_msg messages.
         Should be implemented by subclasses.
-        :param msg: The message containing position data.
+        :param msg: The message containing pose_msg data.
         """
-        self.position = msg
+        self.pose_msg = msg
 
-    def get_position(self):
+    def get_pose_msg(self):
         """
-        Return position information from the message.
-        :return: Extracted position data.
+        Return pose_msg information from the message.
+        :return: Extracted pose_msg data.
         """
-        return self.position
+        return self.pose_msg
 
 
-class Hand(PositionObjectBase):
+class HandPose(PoseBase):
     def __init__(self):
         super().__init__(object_name="Hand", topic_name="/hand/mocap/pose", msg_type=PoseStamped)
 
 
-class Arm(PositionObjectBase):
+class ArmPose(PoseBase):
     def __init__(self):
         super().__init__(object_name="Arm", topic_name="/arm/mocap/pose", msg_type=PoseStamped)
 
 
-class Drone(PositionObjectBase):
-    def __init__(self, robot_name):
+class DronePose(PoseBase):
+    def __init__(self, robot_name):  # Note the data type is odometry
         super().__init__(object_name="Drone", topic_name=f"/{robot_name}/uav/cog/odom", msg_type=Odometry)
+
+    def _pose_msg_callback(self, msg):
+        self.pose_msg = msg.pose
 
 
 class Glove:
@@ -79,8 +82,8 @@ class Glove:
 
     def _check_data_initialized(self):
         """
-        Waits until the position is initialized. Logs a message repeatedly
-        until a valid position is received.
+        Waits until the pose_msg is initialized. Logs a message repeatedly
+        until a valid pose_msg is received.
         """
         while not rospy.is_shutdown() and self.control_mode is None:
             rospy.loginfo(f"Waiting for {self.object_name}'s data...")
@@ -98,7 +101,7 @@ class Glove:
 
     def get_control_mode(self):
         """
-        Return position information from the message.
+        Return pose_msg information from the message.
         :return: Extracted glove data.
         """
         return self.control_mode

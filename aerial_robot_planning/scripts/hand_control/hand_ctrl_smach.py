@@ -15,9 +15,9 @@ if current_path not in sys.path:
 from util import TopicNotAvailableError
 
 from hand_control.sub_pos_objects import (
-    Hand,
-    Arm,
-    Drone,
+    HandPose,
+    ArmPose,
+    DronePose,
     Glove
 )
 
@@ -47,14 +47,14 @@ class InitObjectState(smach.State):
 
     def execute(self, userdata):
         try:
-            shared_data["hand"] = Hand()
+            shared_data["hand"] = HandPose()
             rospy.loginfo("Hand mocap activated.")
 
-            shared_data["drone"] = Drone(userdata.robot_name)
+            shared_data["drone"] = DronePose(userdata.robot_name)
             rospy.loginfo("Drone activated.")
 
             # if self.get_user_decision("Arm mocap"):
-            shared_data["arm"] = Arm()
+            shared_data["arm"] = ArmPose()
             rospy.loginfo("Arm mocap activated.")
 
             # if self.get_user_decision("Glove"):
@@ -86,16 +86,16 @@ class WaitState(smach.State):
 
         while not rospy.is_shutdown():
             drone_orientation = [
-                shared_data["drone"].position.pose.pose.orientation.x,
-                shared_data["drone"].position.pose.pose.orientation.y,
-                shared_data["drone"].position.pose.pose.orientation.z,
-                shared_data["drone"].position.pose.pose.orientation.w,
+                shared_data["drone"].pose_msg.pose.orientation.x,
+                shared_data["drone"].pose_msg.pose.orientation.y,
+                shared_data["drone"].pose_msg.pose.orientation.z,
+                shared_data["drone"].pose_msg.pose.orientation.w,
             ]
             hand_orientation = [
-                shared_data["hand"].position.pose.orientation.x,
-                shared_data["hand"].position.pose.orientation.y,
-                shared_data["hand"].position.pose.orientation.z,
-                shared_data["hand"].position.pose.orientation.w,
+                shared_data["hand"].pose_msg.pose.orientation.x,
+                shared_data["hand"].pose_msg.pose.orientation.y,
+                shared_data["hand"].pose_msg.pose.orientation.z,
+                shared_data["hand"].pose_msg.pose.orientation.w,
             ]
 
             q_drone_inv = tft.quaternion_inverse(drone_orientation)
