@@ -29,7 +29,7 @@ from hand_control.hand_ctrl_modes import (
 )
 
 # global variables
-shared_data = {"hand": None, "arm": None, "drone": None, "control_mode": None}
+shared_data = {"hand_pose": None, "arm_pose": None, "drone": None, "glove": None}
 
 
 class InitObjectState(smach.State):
@@ -47,18 +47,18 @@ class InitObjectState(smach.State):
 
     def execute(self, userdata):
         try:
-            shared_data["hand"] = HandPose()
+            shared_data["hand_pose"] = HandPose()
             rospy.loginfo("Hand mocap activated.")
 
             shared_data["drone"] = DronePose(userdata.robot_name)
             rospy.loginfo("Drone activated.")
 
             # if self.get_user_decision("Arm mocap"):
-            shared_data["arm"] = ArmPose()
+            shared_data["arm_pose"] = ArmPose()
             rospy.loginfo("Arm mocap activated.")
 
             # if self.get_user_decision("Glove"):
-            shared_data["control_mode"] = Glove()
+            shared_data["glove"] = Glove()
             rospy.loginfo("Glove activated.")
 
             return "go_wait"
@@ -92,10 +92,10 @@ class WaitState(smach.State):
                 shared_data["drone"].pose_msg.pose.orientation.w,
             ]
             hand_orientation = [
-                shared_data["hand"].pose_msg.pose.orientation.x,
-                shared_data["hand"].pose_msg.pose.orientation.y,
-                shared_data["hand"].pose_msg.pose.orientation.z,
-                shared_data["hand"].pose_msg.pose.orientation.w,
+                shared_data["hand_pose"].pose_msg.pose.orientation.x,
+                shared_data["hand_pose"].pose_msg.pose.orientation.y,
+                shared_data["hand_pose"].pose_msg.pose.orientation.z,
+                shared_data["hand_pose"].pose_msg.pose.orientation.w,
             ]
 
             q_drone_inv = tft.quaternion_inverse(drone_orientation)
@@ -146,9 +146,9 @@ class OperationModeState(smach.State):
         if self.pub_object is None:
             self.pub_object = OperationMode(
                 userdata.robot_name,
-                hand=shared_data["hand"],
-                arm=shared_data["arm"],
-                glove=shared_data["control_mode"],
+                hand_pose=shared_data["hand_pose"],
+                arm_pose=shared_data["arm_pose"],
+                glove=shared_data["glove"],
             )
 
         while not rospy.is_shutdown():
@@ -189,9 +189,9 @@ class SphericalModeState(smach.State):
         if self.pub_object is None:
             self.pub_object = SphericalMode(
                 userdata.robot_name,
-                hand=shared_data["hand"],
-                arm=shared_data["arm"],
-                glove=shared_data["control_mode"],
+                hand_pose=shared_data["hand_pose"],
+                arm_pose=shared_data["arm_pose"],
+                glove=shared_data["glove"],
             )
 
         while not rospy.is_shutdown():
@@ -232,9 +232,9 @@ class CartesianModeState(smach.State):
         if self.pub_object is None:
             self.pub_object = CartesianMode(
                 userdata.robot_name,
-                hand=shared_data["hand"],
-                arm=shared_data["arm"],
-                glove=shared_data["control_mode"],
+                hand_pose=shared_data["hand_pose"],
+                arm_pose=shared_data["arm_pose"],
+                glove=shared_data["glove"],
             )
 
         while not rospy.is_shutdown():
@@ -275,9 +275,9 @@ class LockingModeState(smach.State):
         if self.pub_object is None:
             self.pub_object = LockingMode(
                 userdata.robot_name,
-                hand=shared_data["hand"],
-                arm=shared_data["arm"],
-                glove=shared_data["control_mode"],
+                hand_pose=shared_data["hand_pose"],
+                arm_pose=shared_data["arm_pose"],
+                glove=shared_data["glove"],
             )
 
         while not rospy.is_shutdown():

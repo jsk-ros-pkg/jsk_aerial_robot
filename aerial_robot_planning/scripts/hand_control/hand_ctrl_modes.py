@@ -22,14 +22,14 @@ from sub_pos_objects import HandPose, ArmPose, Glove
 class HandControlBaseMode(MPCPubJointTraj, ABC):
     def __init__(self,
                  robot_name: str,
-                 hand: HandPose,
-                 arm: ArmPose,
+                 hand_pose: HandPose,
+                 arm_pose: ArmPose,
                  glove: Glove,
                  node_name: str,
                  ):
         super().__init__(robot_name=robot_name, node_name=node_name)
-        self.hand = hand
-        self.arm = arm
+        self.hand_pose = hand_pose
+        self.arm_pose = arm_pose
         self.glove = glove
 
         self.is_finished = False
@@ -63,28 +63,28 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
         if not hasattr(self, "last_check_time"):
             self._last_check_time = current_time
             self._check_last_position = [
-                self.hand.pose_msg.pose.position.x,
-                self.hand.pose_msg.pose.position.y,
-                self.hand.pose_msg.pose.position.z,
+                self.hand_pose.pose_msg.pose.position.x,
+                self.hand_pose.pose_msg.pose.position.y,
+                self.hand_pose.pose_msg.pose.position.z,
             ]
             self._check_last_orientation = [
-                self.hand.pose_msg.pose.orientation.x,
-                self.hand.pose_msg.pose.orientation.y,
-                self.hand.pose_msg.pose.orientation.z,
-                self.hand.pose_msg.pose.orientation.w,
+                self.hand_pose.pose_msg.pose.orientation.x,
+                self.hand_pose.pose_msg.pose.orientation.y,
+                self.hand_pose.pose_msg.pose.orientation.z,
+                self.hand_pose.pose_msg.pose.orientation.w,
             ]
             return
 
         current_check_position = [
-            self.hand.pose_msg.pose.position.x,
-            self.hand.pose_msg.pose.position.y,
-            self.hand.pose_msg.pose.position.z,
+            self.hand_pose.pose_msg.pose.position.x,
+            self.hand_pose.pose_msg.pose.position.y,
+            self.hand_pose.pose_msg.pose.position.z,
         ]
         current_check_orientation = [
-            self.hand.pose_msg.pose.orientation.x,
-            self.hand.pose_msg.pose.orientation.y,
-            self.hand.pose_msg.pose.orientation.z,
-            self.hand.pose_msg.pose.orientation.w,
+            self.hand_pose.pose_msg.pose.orientation.x,
+            self.hand_pose.pose_msg.pose.orientation.y,
+            self.hand_pose.pose_msg.pose.orientation.z,
+            self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
         position_change = [abs(current_check_position[i] - self._check_last_position[i]) for i in range(3)]
@@ -112,8 +112,8 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             return self.is_finished
 
         if self.glove.control_mode != self.mode_num:  # if the control mode is changed by the glove
-                self.to_return_control_mode = self.glove.control_mode
-                self.is_finished = True
+            self.to_return_control_mode = self.glove.control_mode
+            self.is_finished = True
 
         return self.is_finished
 
@@ -128,11 +128,11 @@ class OperationMode(HandControlBaseMode):
     def __init__(
             self,
             robot_name: str,
-            hand: HandPose,
-            arm: ArmPose,
+            hand_pose: HandPose,
+            arm_pose: ArmPose,
             glove: Glove,
     ):
-        super().__init__(robot_name, hand, arm, glove, node_name="operation_mode_traj_pub")
+        super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="operation_mode_traj_pub")
 
         self.initial_hand_position = None
         self.initial_drone_position = None
@@ -146,22 +146,22 @@ class OperationMode(HandControlBaseMode):
 
         if self.initial_hand_position is None:
             self.initial_hand_position = [
-                self.hand.pose_msg.pose.position.x,
-                self.hand.pose_msg.pose.position.y,
-                self.hand.pose_msg.pose.position.z,
+                self.hand_pose.pose_msg.pose.position.x,
+                self.hand_pose.pose_msg.pose.position.y,
+                self.hand_pose.pose_msg.pose.position.z,
             ]
             self.initial_drone_position = [
                 self.uav_odom.pose.pose.position.x,
                 self.uav_odom.pose.pose.position.y,
-                self.hand.pose_msg.pose.position.z,
+                self.hand_pose.pose_msg.pose.position.z,
             ]
             rospy.loginfo(f"initial drone position is {self.initial_drone_position}")
             rospy.loginfo(f"initial hand position is {self.initial_hand_position}")
 
         current_hand_position = [
-            self.hand.pose_msg.pose.position.x,
-            self.hand.pose_msg.pose.position.y,
-            self.hand.pose_msg.pose.position.z,
+            self.hand_pose.pose_msg.pose.position.x,
+            self.hand_pose.pose_msg.pose.position.y,
+            self.hand_pose.pose_msg.pose.position.z,
         ]
 
         self.position_hand_change = [current_hand_position[i] - self.initial_hand_position[i] for i in range(3)]
@@ -173,10 +173,10 @@ class OperationMode(HandControlBaseMode):
         ]
 
         hand_orientation = [
-            self.hand.pose_msg.pose.orientation.x,
-            self.hand.pose_msg.pose.orientation.y,
-            self.hand.pose_msg.pose.orientation.z,
-            self.hand.pose_msg.pose.orientation.w,
+            self.hand_pose.pose_msg.pose.orientation.x,
+            self.hand_pose.pose_msg.pose.orientation.y,
+            self.hand_pose.pose_msg.pose.orientation.z,
+            self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
@@ -206,8 +206,8 @@ class OperationMode(HandControlBaseMode):
 # Derived Class : SphericalMode
 ##########################################
 class SphericalMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: HandPose, arm: ArmPose, glove: Glove):
-        super().__init__(robot_name, hand, arm, glove, node_name="spherical_mode_traj_pub")
+    def __init__(self, robot_name: str, hand_pose: HandPose, arm_pose: ArmPose, glove: Glove):
+        super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="spherical_mode_traj_pub")
         self.expected_a_d_distance = 2.2
 
     @staticmethod
@@ -216,17 +216,17 @@ class SphericalMode(HandControlBaseMode):
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         a_h_direction = [
-            self.hand.pose_msg.pose.position.x - self.arm.pose_msg.pose.position.x,
-            self.hand.pose_msg.pose.position.y - self.arm.pose_msg.pose.position.y,
+            self.hand_pose.pose_msg.pose.position.x - self.arm_pose.pose_msg.pose.position.x,
+            self.hand_pose.pose_msg.pose.position.y - self.arm_pose.pose_msg.pose.position.y,
         ]
         a_h_distance = math.hypot(a_h_direction[0], a_h_direction[1])
         a_h_unit_vector = [a_h_direction[0] / a_h_distance, a_h_direction[1] / a_h_distance]
 
         hand_orientation = [
-            self.hand.pose_msg.pose.orientation.x,
-            self.hand.pose_msg.pose.orientation.y,
-            self.hand.pose_msg.pose.orientation.z,
-            self.hand.pose_msg.pose.orientation.w,
+            self.hand_pose.pose_msg.pose.orientation.x,
+            self.hand_pose.pose_msg.pose.orientation.y,
+            self.hand_pose.pose_msg.pose.orientation.z,
+            self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
         if a_h_distance > 0.4:
@@ -240,9 +240,9 @@ class SphericalMode(HandControlBaseMode):
 
         target_position = [
                               a_h_unit_vector[i] * self.expected_a_d_distance + getattr(
-                                  self.hand.pose_msg.pose.position, axis)
+                                  self.hand_pose.pose_msg.pose.position, axis)
                               for i, axis in enumerate(["x", "y"])
-                          ] + [self.hand.pose_msg.pose.position.z]
+                          ] + [self.hand_pose.pose_msg.pose.position.z]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -271,8 +271,8 @@ class SphericalMode(HandControlBaseMode):
 # Derived Class : CartesianMode
 ##########################################
 class CartesianMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: HandPose, arm: ArmPose, glove: Glove):
-        super().__init__(robot_name, hand, arm, glove, node_name="cartesian_mode_traj_pub")
+    def __init__(self, robot_name: str, hand_pose: HandPose, arm_pose: ArmPose, glove: Glove):
+        super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="cartesian_mode_traj_pub")
         self.expected_d_target_distance = 0.0
         self.last_target_position = None
         self.origin_position = None
@@ -283,20 +283,20 @@ class CartesianMode(HandControlBaseMode):
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         self.origin_position = [
-            self.arm.pose_msg.pose.position.x + 0.3,
-            self.arm.pose_msg.pose.position.y,
+            self.arm_pose.pose_msg.pose.position.x + 0.3,
+            self.arm_pose.pose_msg.pose.position.y,
         ]
 
         current_hand_position = [
-            self.hand.pose_msg.pose.position.x,
-            self.hand.pose_msg.pose.position.y,
-            self.hand.pose_msg.pose.position.z,
+            self.hand_pose.pose_msg.pose.position.x,
+            self.hand_pose.pose_msg.pose.position.y,
+            self.hand_pose.pose_msg.pose.position.z,
         ]
         hand_orientation = [
-            self.hand.pose_msg.pose.orientation.x,
-            self.hand.pose_msg.pose.orientation.y,
-            self.hand.pose_msg.pose.orientation.z,
-            self.hand.pose_msg.pose.orientation.w,
+            self.hand_pose.pose_msg.pose.orientation.x,
+            self.hand_pose.pose_msg.pose.orientation.y,
+            self.hand_pose.pose_msg.pose.orientation.z,
+            self.hand_pose.pose_msg.pose.orientation.w,
         ]
 
         o_h_direction = [
@@ -315,7 +315,7 @@ class CartesianMode(HandControlBaseMode):
                               o_h_unit_vector[i] * self.expected_d_target_distance + getattr(
                                   self.uav_odom.pose.pose.position, axis)
                               for i, axis in enumerate(["x", "y"])
-                          ] + [self.hand.pose_msg.pose.position.z]
+                          ] + [self.hand_pose.pose_msg.pose.position.z]
 
         target_hand_distance = math.hypot(
             target_position[0] - current_hand_position[0], target_position[1] - current_hand_position[1]
@@ -355,8 +355,8 @@ class CartesianMode(HandControlBaseMode):
 # Derived Class : LockingMode
 ##########################################
 class LockingMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: HandPose, arm: ArmPose, glove: Glove):
-        super().__init__(robot_name, hand, arm, glove, node_name="locking_mode_traj_pub")
+    def __init__(self, robot_name: str, hand_pose: HandPose, arm_pose: ArmPose, glove: Glove):
+        super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="locking_mode_traj_pub")
         self._init_origin_drone_position = None
         self._init_origin_hand_orientation = None
 
@@ -372,10 +372,10 @@ class LockingMode(HandControlBaseMode):
                 self.uav_odom.pose.pose.position.z,
             ]
             self._init_origin_hand_orientation = [
-                self.hand.pose_msg.pose.orientation.x,
-                self.hand.pose_msg.pose.orientation.y,
-                self.hand.pose_msg.pose.orientation.z,
-                self.hand.pose_msg.pose.orientation.w,
+                self.hand_pose.pose_msg.pose.orientation.x,
+                self.hand_pose.pose_msg.pose.orientation.y,
+                self.hand_pose.pose_msg.pose.orientation.z,
+                self.hand_pose.pose_msg.pose.orientation.w,
             ]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
