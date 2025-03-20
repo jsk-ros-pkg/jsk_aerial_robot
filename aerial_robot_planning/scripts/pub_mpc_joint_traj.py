@@ -13,6 +13,7 @@ import tf_conversions as tf
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
+from aerial_robot_msgs.msg import PredXU
 
 from util import check_position_initialized
 
@@ -60,6 +61,9 @@ class MPCPubBase(ABC):
 
         check_position_initialized(self, "uav_odom", robot_name)
 
+        self.all_pos_err = []
+        self.all_ang_err = []
+
         # data type for timer
         self.start_time = float()
         self.ts_pt_pub = float()
@@ -101,16 +105,70 @@ class MPCPubBase(ABC):
         t_has_started = rospy.Time.now().to_sec() - self.start_time
         traj_msg = self.fill_trajectory_points(t_has_started)
 
+        # 2.1) Calculate tracking error
+        pos_err, ang_err = self.cal_tracking_error(self.uav_odom, traj_msg)
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Tracking error: "
+                      f"pos_err = {pos_err:.3f} m, ang_err = {ang_err:.3f} deg")
+        self.all_pos_err.append(pos_err)
+        self.all_ang_err.append(ang_err)
+
         # 3) Publish
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
         # is_finished can be also set by other function to quit, so we need to check it first
         if self.is_finished:
+            rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: "
+                          f"pos_err = {math.sqrt(sum([x**2 for x in self.all_pos_err])/len(self.all_pos_err)):.3f} m, "
+                          f"ang_err = {math.sqrt(sum([x**2 for x in self.all_ang_err])/len(self.all_ang_err)):.3f} deg\033[0m") # cyan highlight
+            self.all_pos_err = []
+            self.all_ang_err = []
+
             rospy.loginfo(f"{self.namespace}/{self.node_name}: is_finished is set to True!")
             self.tmr_pt_pub.shutdown()
 
         self.is_finished = self.check_finished(t_has_started)
+
+    def cal_tracking_error(self, uav_odom: Odometry, ref_traj):
+        """
+        Calculate position and orientation error between current odom and ref_traj,
+        which can be a MultiDOFJointTrajectory or PredXU.
+        """
+        # Current pose
+        cur_pos = uav_odom.pose.pose.position
+        q_cur = [uav_odom.pose.pose.orientation.x,
+                 uav_odom.pose.pose.orientation.y,
+                 uav_odom.pose.pose.orientation.z,
+                 uav_odom.pose.pose.orientation.w]
+
+        # Extract reference pose
+        if isinstance(ref_traj, MultiDOFJointTrajectory):
+            ref_point = ref_traj.points[0]
+            ref_pos = ref_point.transforms[0].translation
+            q_ref = [ref_point.transforms[0].rotation.x,
+                     ref_point.transforms[0].rotation.y,
+                     ref_point.transforms[0].rotation.z,
+                     ref_point.transforms[0].rotation.w]
+        elif isinstance(ref_traj, PredXU): # PredXU  
+            ref_pos = ref_traj.x.data[0:3]
+            q_ref = ref_traj.x.data[6:10]
+            q_ref = [q_ref[1], q_ref[2], q_ref[3], q_ref[0]] # (x, y, z, w)
+
+        # Position error
+        dx = cur_pos.x - (ref_pos.x if hasattr(ref_pos, "x") else ref_pos[0])
+        dy = cur_pos.y - (ref_pos.y if hasattr(ref_pos, "y") else ref_pos[1])
+        dz = cur_pos.z - (ref_pos.z if hasattr(ref_pos, "z") else ref_pos[2])
+        pos_err = math.sqrt(dx*dx + dy*dy + dz*dz)
+
+        # Orientation error
+        m_cur = tf.transformations.quaternion_matrix(q_cur)
+        m_ref = tf.transformations.quaternion_matrix(q_ref)
+        m_err = m_cur.dot(m_ref.T)
+        euler_err = tf.transformations.euler_from_matrix(m_err)
+        ang_err = math.degrees(math.sqrt(euler_err[0]**2 + euler_err[1]**2 + euler_err[2]**2)) # rad to deg
+        # print(f"q_cur: {q_cur}, q_ref: {q_ref}")
+
+        return pos_err, ang_err
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):
