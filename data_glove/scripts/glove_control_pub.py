@@ -44,12 +44,12 @@ class FingerDataPublisher:
             (-1, 1, 1, 1, 1): ("gesture_state_4", 4),
             (1, 1, 1, 1, 1): ("gesture_state_5", 5),
         }
-    def get_finger_status(self, finger_info):
+    def get_finger_status(self, finger_info:float,threshold_plus:float = 0):
         # Returns the status of the finger based on its bending information
         # If the bending is greater than the high threshold, the finger is considered bent (-1)
         # If the bending is below the low threshold, the finger is considered straight (1)
         # If the bending is in between, the finger is considered moderately bent (0)
-        if finger_info > self.bending_high_threshold:
+        if finger_info > self.bending_high_threshold + threshold_plus:
             return -1  # Finger is bent, status is -1
         elif finger_info < self.bending_low_threshold:
             return 1  # Finger is straight, status is 1
@@ -61,7 +61,7 @@ class FingerDataPublisher:
         # Get the bending and straight status for all five fingers.
         # Bent is -1, straight is 1, moderately bent is 0
 
-        thumb_info = self.get_finger_status(args[5] + args[6] + args[8])
+        thumb_info = self.get_finger_status(args[5] + args[6] + args[8],0.3)
         index_finger_info = self.get_finger_status(args[9] + args[10])
         middle_finger_info = self.get_finger_status(args[12] + args[13])
         ring_finger_info = self.get_finger_status(args[15] + args[16])
