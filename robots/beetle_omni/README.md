@@ -143,6 +143,13 @@ Then choose the trajectory you want to send.
 
 We need two notebooks, one as ground station and the other for visual feedback.
 
+**MoCap Computer**
+
+1. Run the software for the data glove and calibrate it. Note that the ip should be set to the ros master computer.
+2. Check the MoCap is set correctly.
+
+If there is something wrong with glove connection, please refer to https://stretchsense.my.site.com/defaulthelpcenter26Sep/s/article/Studio-Glove-and-Dongle-Setup?language=en_US
+
 **Onboard Computer**
 
 Four terminals are needed.
@@ -156,12 +163,8 @@ Before takeoff:
 
 After the robot is hovering,
 
-4. run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`
-
-**MoCap Computer**
-
-1. Run the software for the data glove and calibrate it.
-2. Check the MoCap is set correctly.
+4. run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`, and press 'h' to enter the hand control mode. Note that
+we need to wear the hand part, the shoulder part, and gloves to control the robot.
 
 **Ground Station**
 
