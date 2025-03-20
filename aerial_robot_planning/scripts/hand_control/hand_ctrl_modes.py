@@ -7,7 +7,7 @@
 
 import math
 import rospy
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from geometry_msgs.msg import Twist, Vector3, Quaternion, Transform
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
@@ -21,16 +21,16 @@ from sub_pos_objects import Hand, Arm, Glove
 ##########################################
 class HandControlBaseMode(MPCPubJointTraj, ABC):
     def __init__(self,
-             robot_name: str,
-             hand: Hand,
-             arm: Arm,
-             control_mode: Glove,
-             node_name: str,
-             ):
+                 robot_name: str,
+                 hand: Hand,
+                 arm: Arm,
+                 glove: Glove,
+                 node_name: str,
+                 ):
         super().__init__(robot_name=robot_name, node_name=node_name)
         self.hand = hand
         self.arm = arm
-        self.control_mode = control_mode
+        self.glove = glove
 
         self.is_finished = False
         # initialize vel_twist and acc_twist
@@ -100,9 +100,9 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             self._last_check_time = current_time
 
     def check_finished(self, t_elapsed=None):
-        if self.control_mode:
-            if self.control_mode.control_mode != self.mode_num:
-                self.to_return_control_mode = self.control_mode.control_mode
+        if self.glove is not None:
+            if self.glove.control_mode != self.mode_num:
+                self.to_return_control_mode = self.glove.control_mode
                 self.is_finished = True
         else:
             self._check_finish_auto()
@@ -122,9 +122,9 @@ class OperationMode(HandControlBaseMode):
             robot_name: str,
             hand: Hand,
             arm: Arm,
-            control_mode: Glove,
+            glove: Glove,
     ):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="operation_mode_traj_pub")
+        super().__init__(robot_name, hand, arm, glove, node_name="operation_mode_traj_pub")
 
         self.initial_hand_position = None
         self.initial_drone_position = None
@@ -194,8 +194,8 @@ class OperationMode(HandControlBaseMode):
 # Derived Class : SphericalMode
 ##########################################
 class SphericalMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="spherical_mode_traj_pub")
+    def __init__(self, robot_name: str, hand: Hand, arm: Arm, glove: Glove):
+        super().__init__(robot_name, hand, arm, glove, node_name="spherical_mode_traj_pub")
         self.expected_a_d_distance = 2.2
 
         self.mode_num = 3
@@ -257,8 +257,8 @@ class SphericalMode(HandControlBaseMode):
 # Derived Class : CartesianMode
 ##########################################
 class CartesianMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="cartesian_mode_traj_pub")
+    def __init__(self, robot_name: str, hand: Hand, arm: Arm, glove: Glove):
+        super().__init__(robot_name, hand, arm, glove, node_name="cartesian_mode_traj_pub")
         self.expected_d_target_distance = 0.0
         self.last_target_position = None
         self.origin_position = None
@@ -339,8 +339,8 @@ class CartesianMode(HandControlBaseMode):
 # Derived Class : LockingMode
 ##########################################
 class LockingMode(HandControlBaseMode):
-    def __init__(self, robot_name: str, hand: Hand, arm: Arm, control_mode: Glove):
-        super().__init__(robot_name, hand, arm, control_mode, node_name="locking_mode_traj_pub")
+    def __init__(self, robot_name: str, hand: Hand, arm: Arm, glove: Glove):
+        super().__init__(robot_name, hand, arm, glove, node_name="locking_mode_traj_pub")
         self._init_origin_drone_position = None
         self._init_origin_hand_orientation = None
 

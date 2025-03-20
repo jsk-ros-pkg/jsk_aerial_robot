@@ -148,7 +148,7 @@ class OperationModeState(smach.State):
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
-                control_mode=shared_data["control_mode"],
+                glove=shared_data["control_mode"],
             )
 
         while not rospy.is_shutdown():
@@ -191,7 +191,7 @@ class SphericalModeState(smach.State):
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
-                control_mode=shared_data["control_mode"],
+                glove=shared_data["control_mode"],
             )
 
         while not rospy.is_shutdown():
@@ -234,7 +234,7 @@ class CartesianModeState(smach.State):
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
-                control_mode=shared_data["control_mode"],
+                glove=shared_data["control_mode"],
             )
 
         while not rospy.is_shutdown():
@@ -277,7 +277,7 @@ class LockingModeState(smach.State):
                 userdata.robot_name,
                 hand=shared_data["hand"],
                 arm=shared_data["arm"],
-                control_mode=shared_data["control_mode"],
+                glove=shared_data["control_mode"],
             )
 
         while not rospy.is_shutdown():
