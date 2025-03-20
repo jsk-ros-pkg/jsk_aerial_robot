@@ -56,10 +56,10 @@ class FingerDataSubscriber:
         }
 
         text_map = {
-            1: "State: Mapping Mode",
+            1: "State: Operation Mode",
             2: "State: Cartesian Mode",
             3: "State: Spherical Mode",
-            4: "State: Free Mode",
+            4: "State: Locking Mode",
             5: "State: Exit",
         }
 
