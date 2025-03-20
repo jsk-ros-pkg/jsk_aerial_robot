@@ -127,176 +127,84 @@ class WaitState(smach.State):
         return "go_operation_mode"
 
 
-class OperationModeState(smach.State):
-    def __init__(self) -> None:
-
-        smach.State.__init__(
-            self,
-            outcomes=["go_cartesian_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"],
+class BaseModeState(smach.State):
+    def __init__(self, mode_class, outcomes, outcome_map):
+        super(BaseModeState, self).__init__(
+            outcomes=outcomes,
             input_keys=["robot_name"],
-            output_keys=[],
+            output_keys=[]
         )
-
+        self.mode_class = mode_class
+        self.outcome_map = outcome_map
         self.pub_object = None
-
         self.rate = rospy.Rate(20)
 
     def execute(self, userdata):
-
         if self.pub_object is None:
-            self.pub_object = OperationMode(
+            self.pub_object = self.mode_class(
                 userdata.robot_name,
                 hand_pose=shared_data["hand_pose"],
                 arm_pose=shared_data["arm_pose"],
                 glove=shared_data["glove"],
             )
-
         while not rospy.is_shutdown():
             if self.pub_object.check_finished():
                 break
             self.rate.sleep()
-
         control_mode_state = self.pub_object.get_control_mode()
-
+        # Clean up the publisher object.
         del self.pub_object
         self.pub_object = None
-        if control_mode_state == 2:
-            return "go_cartesian_mode"
-        if control_mode_state == 3:
-            return "go_spherical_mode"
-        if control_mode_state == 4:
-            return "go_locking_mode"
-        if control_mode_state == 5:
-            return "done_hand_ctrl"
+        # Return the mapped outcome.
+        return self.outcome_map.get(control_mode_state)
 
 
-class SphericalModeState(smach.State):
-    def __init__(self) -> None:
-
-        smach.State.__init__(
-            self,
-            outcomes=["go_operation_mode", "go_cartesian_mode", "go_locking_mode", "done_hand_ctrl"],
-            input_keys=["robot_name"],
-            output_keys=[],
-        )
-
-        self.pub_object = None
-
-        self.rate = rospy.Rate(20)
-
-    def execute(self, userdata):
-
-        if self.pub_object is None:
-            self.pub_object = SphericalMode(
-                userdata.robot_name,
-                hand_pose=shared_data["hand_pose"],
-                arm_pose=shared_data["arm_pose"],
-                glove=shared_data["glove"],
-            )
-
-        while not rospy.is_shutdown():
-            if self.pub_object.check_finished():
-                break
-            self.rate.sleep()
-
-        control_mode_state = self.pub_object.get_control_mode()
-
-        del self.pub_object
-        self.pub_object = None
-        if control_mode_state == 1:
-            return "go_operation_mode"
-        if control_mode_state == 2:
-            return "go_cartesian_mode"
-        if control_mode_state == 4:
-            return "go_locking_mode"
-        if control_mode_state == 5:
-            return "done_hand_ctrl"
+class OperationModeState(BaseModeState):
+    def __init__(self):
+        outcome_map = {
+            2: "go_cartesian_mode",
+            3: "go_spherical_mode",
+            4: "go_locking_mode",
+            5: "done_hand_ctrl",
+        }
+        outcomes = ["go_cartesian_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"]
+        super(OperationModeState, self).__init__(OperationMode, outcomes, outcome_map)
 
 
-class CartesianModeState(smach.State):
-    def __init__(self) -> None:
-
-        smach.State.__init__(
-            self,
-            outcomes=["go_operation_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"],
-            input_keys=["robot_name"],
-            output_keys=[],
-        )
-
-        self.pub_object = None
-
-        self.rate = rospy.Rate(20)
-
-    def execute(self, userdata):
-
-        if self.pub_object is None:
-            self.pub_object = CartesianMode(
-                userdata.robot_name,
-                hand_pose=shared_data["hand_pose"],
-                arm_pose=shared_data["arm_pose"],
-                glove=shared_data["glove"],
-            )
-
-        while not rospy.is_shutdown():
-            if self.pub_object.check_finished():
-                break
-            self.rate.sleep()
-
-        control_mode_state = self.pub_object.get_control_mode()
-
-        del self.pub_object
-        self.pub_object = None
-        if control_mode_state == 1:
-            return "go_operation_mode"
-        if control_mode_state == 3:
-            return "go_spherical_mode"
-        if control_mode_state == 4:
-            return "go_locking_mode"
-        if control_mode_state == 5:
-            return "done_hand_ctrl"
+class SphericalModeState(BaseModeState):
+    def __init__(self):
+        outcome_map = {
+            1: "go_operation_mode",
+            2: "go_cartesian_mode",
+            4: "go_locking_mode",
+            5: "done_hand_ctrl",
+        }
+        outcomes = ["go_operation_mode", "go_cartesian_mode", "go_locking_mode", "done_hand_ctrl"]
+        super(SphericalModeState, self).__init__(SphericalMode, outcomes, outcome_map)
 
 
-class LockingModeState(smach.State):
-    def __init__(self) -> None:
+class CartesianModeState(BaseModeState):
+    def __init__(self):
+        outcome_map = {
+            1: "go_operation_mode",
+            3: "go_spherical_mode",
+            4: "go_locking_mode",
+            5: "done_hand_ctrl",
+        }
+        outcomes = ["go_operation_mode", "go_spherical_mode", "go_locking_mode", "done_hand_ctrl"]
+        super(CartesianModeState, self).__init__(CartesianMode, outcomes, outcome_map)
 
-        smach.State.__init__(
-            self,
-            outcomes=["go_operation_mode", "go_spherical_mode", "go_cartesian_mode", "done_hand_ctrl"],
-            input_keys=["robot_name"],
-            output_keys=[],
-        )
 
-        self.pub_object = None
-
-        self.rate = rospy.Rate(20)
-
-    def execute(self, userdata):
-
-        if self.pub_object is None:
-            self.pub_object = LockingMode(
-                userdata.robot_name,
-                hand_pose=shared_data["hand_pose"],
-                arm_pose=shared_data["arm_pose"],
-                glove=shared_data["glove"],
-            )
-
-        while not rospy.is_shutdown():
-            if self.pub_object.check_finished():
-                break
-            self.rate.sleep()
-
-        control_mode_state = self.pub_object.get_control_mode()
-
-        del self.pub_object
-        self.pub_object = None
-        if control_mode_state == 1:
-            return "go_operation_mode"
-        if control_mode_state == 2:
-            return "go_cartesian_mode"
-        if control_mode_state == 3:
-            return "go_spherical_mode"
-        if control_mode_state == 5:
-            return "done_hand_ctrl"
+class LockingModeState(BaseModeState):
+    def __init__(self):
+        outcome_map = {
+            1: "go_operation_mode",
+            2: "go_cartesian_mode",
+            3: "go_spherical_mode",
+            5: "done_hand_ctrl",
+        }
+        outcomes = ["go_operation_mode", "go_spherical_mode", "go_cartesian_mode", "done_hand_ctrl"]
+        super(LockingModeState, self).__init__(LockingMode, outcomes, outcome_map)
 
 
 def create_hand_control_state_machine():
