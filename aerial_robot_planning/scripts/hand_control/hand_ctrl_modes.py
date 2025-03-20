@@ -51,6 +51,13 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
         self.to_return_control_mode = None
         self.last_state = None
 
+        self.mode_num = self._init_mode_num()
+
+    @staticmethod
+    @abstractmethod
+    def _init_mode_num():
+        return int()
+
     def _check_finish_auto(self):
         current_time = rospy.Time.now().to_sec()
         if not hasattr(self, "last_check_time"):
@@ -130,6 +137,10 @@ class OperationMode(HandControlBaseMode):
         self.initial_drone_position = None
         self.position_hand_change = None
 
+    @staticmethod
+    def _init_mode_num():
+        return 1
+
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
 
         if self.initial_hand_position is None:
@@ -198,7 +209,9 @@ class SphericalMode(HandControlBaseMode):
         super().__init__(robot_name, hand, arm, glove, node_name="spherical_mode_traj_pub")
         self.expected_a_d_distance = 2.2
 
-        self.mode_num = 3
+    @staticmethod
+    def _init_mode_num():
+        return 3
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         a_h_direction = [
@@ -263,7 +276,9 @@ class CartesianMode(HandControlBaseMode):
         self.last_target_position = None
         self.origin_position = None
 
-        self.mode_num = 2
+    @staticmethod
+    def _init_mode_num():
+        return 2
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         self.origin_position = [
@@ -344,7 +359,9 @@ class LockingMode(HandControlBaseMode):
         self._init_origin_drone_position = None
         self._init_origin_hand_orientation = None
 
-        self.mode_num = 4
+    @staticmethod
+    def _init_mode_num():
+        return 4
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         if self._init_origin_drone_position is None:
