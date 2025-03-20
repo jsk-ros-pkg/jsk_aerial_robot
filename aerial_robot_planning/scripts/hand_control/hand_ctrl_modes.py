@@ -107,12 +107,13 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             self._last_check_time = current_time
 
     def check_finished(self, t_elapsed=None):
-        if self.glove is not None:
-            if self.glove.control_mode != self.mode_num:
+        if self.glove is None:
+            self._check_finish_auto()
+            return self.is_finished
+
+        if self.glove.control_mode != self.mode_num:  # if the control mode is changed by the glove
                 self.to_return_control_mode = self.glove.control_mode
                 self.is_finished = True
-        else:
-            self._check_finish_auto()
 
         return self.is_finished
 
