@@ -41,7 +41,7 @@ class MPCPubBase(ABC):
         self.robot_name = robot_name
         self.node_name = node_name
         self.namespace = rospy.get_namespace().rstrip("/")
-        self.finished = False  # Flag to indicate trajectory is complete
+        self.is_finished = False  # Flag to indicate trajectory is complete
 
         # Load NMPC parameters
         try:
@@ -60,9 +60,20 @@ class MPCPubBase(ABC):
 
         check_position_initialized(self, "uav_odom", robot_name)
 
+        # data type for timer
+        self.start_time = float()
+        self.ts_pt_pub = float()
+        self.tmr_pt_pub = None
+
+    def start_timer(self):
+        """
+        Note: the timer should be manually after everything is set up.
+        :return:
+        """
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
+
         # Start time
         self.start_time = rospy.Time.now().to_sec()
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
         # Timer for publishing
         self.ts_pt_pub = 0.02  # ~50Hz
@@ -94,10 +105,12 @@ class MPCPubBase(ABC):
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
-        if self.check_finished(t_has_started):
-            rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished or target reached!")
+        # is_finished can be also set by other function to quit, so we need to check it first
+        if self.is_finished:
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: is_finished is set to True!")
             self.tmr_pt_pub.shutdown()
-            self.finished = True
+
+        self.is_finished = self.check_finished(t_has_started)
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):
@@ -153,6 +166,8 @@ class MPCTrajPtPub(MPCPubJointTraj):
         super().__init__(robot_name=robot_name, node_name="mpc_traj_pt_pub")
         self.traj = traj
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Using trajectory {str(self.traj)}")
+
+        self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """
@@ -228,6 +243,8 @@ class MPCSinglePtPub(MPCPubJointTraj):
         self.ang_tol = ang_tol  # e.g. 0.1 rad
         self.vel_tol = vel_tol  # e.g. 0.1 m/s
         self.rate_tol = rate_tol  # e.g. 0.1 rad/s
+
+        self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """
