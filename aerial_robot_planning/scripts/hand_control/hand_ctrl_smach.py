@@ -70,7 +70,7 @@ class InitObjectState(smach.State):
 
 class WaitState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["go_start"], input_keys=[], output_keys=[])
+        smach.State.__init__(self, outcomes=["go_operation_mode"], input_keys=[], output_keys=[])
 
         self.last_threshold_time = None
         self.xy_angle_threshold = 10
@@ -124,18 +124,6 @@ class WaitState(smach.State):
 
             self.rate.sleep()
 
-        rospy.loginfo("")
-        rospy.loginfo("Current state: Start")
-        return "go_start"
-
-
-class StartState(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=["go_operation_mode"])
-
-    def execute(self, userdata):
-        print("Current state: operation_mode")
-        rospy.sleep(0.5)
         return "go_operation_mode"
 
 
@@ -328,11 +316,8 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "WAIT",
             WaitState(),
-            transitions={"go_start": "START"},
+            transitions={"go_operation_mode": "OPERATION_MODE"},
         )
-
-        # StartState
-        smach.StateMachine.add("START", StartState(), transitions={"go_operation_mode": "OPERATION_MODE"})
 
         smach.StateMachine.add(
             "OPERATION_MODE",
