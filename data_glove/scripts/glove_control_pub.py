@@ -20,12 +20,11 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 
 
-class FingerDataPublisher:
+class FingerDataManager:
     def __init__(self) -> None:
-        self.control_mode_pub = rospy.Publisher("hand/control_mode", UInt8, queue_size=10)
+        rospy.set_param("/hand/control_mode", 1)
         self.last_check_time = None
         self.last_state = None
-        self.control_mode = 1
 
         # Thresholds for finger bending: high bending (>1.2) and low bending (<0.4)
         self.bending_high_threshold = 1.2
@@ -44,7 +43,7 @@ class FingerDataPublisher:
             (-1, 1, 1, 1, 1): ("gesture_state_4", 4),
             (1, 1, 1, 1, 1): ("gesture_state_5", 5),
         }
-    def get_finger_status(self, finger_info:float,threshold_plus:float = 0):
+    def get_finger_status(self, finger_info: float, threshold_plus: float = 0) -> int:
         # Returns the status of the finger based on its bending information
         # If the bending is greater than the high threshold, the finger is considered bent (-1)
         # If the bending is below the low threshold, the finger is considered straight (1)
@@ -77,11 +76,10 @@ class FingerDataPublisher:
 
         # If the gesture is not valid, get the gesture state number is -1.
         state, state_number = self.gesture_to_state_mapping.get(gesture_state_tuple, ("State_no_change", -1))
-        self.publish_control_mode(state_number)
+        self.update_control_mode(state_number)
 
-    def publish_control_mode(self, state: int) -> None:
-
-        current_time = rospy.Time.now()
+    def update_control_mode(self, state: int) -> None:
+        """ Updates the control mode using ROS parameters. """
         if state == -1:
             if self.last_state is not None:
                 # When switching from a valid gesture to an invalid gesture, remind the operator:
@@ -89,31 +87,29 @@ class FingerDataPublisher:
                 self.last_state = None
                 self.last_check_time = None
                 print("Gesture detected as invalid. To change the gesture state, please maintain a valid gesture.")
-            self.control_mode_pub.publish(self.control_mode)
             return
 
-        # If the state has changed, set the timer.
+        current_time = rospy.Time.now()
+
+        # If the state has changed, reset the timer
         if state != self.last_state:
             self.last_state = state
             self.last_check_time = current_time
             print(f"Gesture state changed to {state}, resetting timer.")
 
         # If the valid state (not -1) has been stable for 3 seconds, update the self.control_mode.
-        if self.last_check_time and (current_time - self.last_check_time).to_sec() > 3.0:
-            print(f"Gesture state_{state} has been stable for 3 seconds. Publishing...")
-            self.control_mode = state
-            self.last_check_time = current_time
-            print(f"Reset control mode to {self.control_mode}")
-
-        # Always publish the current control mode.
-        self.control_mode_pub.publish(self.control_mode)
-
+        elif (current_time - self.last_check_time).to_sec() > 3.0:
+            print(f"Gesture state_{state} has been stable for 3 seconds.")
+            current_mode = rospy.get_param("/hand/control_mode")
+            self.last_check_time = None
+            print(f"Updated control mode from state_{current_mode} to state_{state}")
+            rospy.set_param("/hand/control_mode", state)
 
 def shut_publisher(sig, frame) -> None:
+    """ Shuts down the ROS node and OSC server. """
     print("\nShutting down the OSC server and ROS node...")
     rospy.signal_shutdown("Ctrl+C pressed")
     sys.exit(0)
-
 
 def get_local_ip() -> Optional[str]:
     try:
@@ -129,21 +125,20 @@ def get_local_ip() -> Optional[str]:
 
 
 if __name__ == "__main__":
-    rospy.init_node("glove_data_pub_node", anonymous=True)
+    rospy.init_node("glove_data_param_node", anonymous=True)
     port = int(rospy.get_param("~port", 9400))
 
     local_ip = get_local_ip()
-
     signal.signal(signal.SIGINT, shut_publisher)
 
-    finger_publisher = FingerDataPublisher()
+    finger_manager = FingerDataManager()
 
     dispatcher = Dispatcher()
-    dispatcher.map("/v1/animation/slider/all", finger_publisher.handle_rotation)
+    dispatcher.map("/v1/animation/slider/all", finger_manager.handle_rotation)
 
     server = BlockingOSCUDPServer((local_ip, port), dispatcher)
 
-    print(f"Listening for Data Glove OSC messages on {local_ip}:{port} and publishing to ROS topics...")
+    print(f"Listening for Data Glove OSC messages on {local_ip}:{port} and updating ROS parameters...")
 
     osc_thread = threading.Thread(target=server.serve_forever)
     osc_thread.daemon = True

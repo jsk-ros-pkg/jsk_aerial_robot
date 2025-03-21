@@ -148,7 +148,8 @@ We need two notebooks, one as ground station and the other for visual feedback.
 1. Run the software for the data glove and calibrate it. Note that the ip should be set to the ros master computer.
 2. Check the MoCap is set correctly.
 
-If there is something wrong with glove connection, please refer to https://stretchsense.my.site.com/defaulthelpcenter26Sep/s/article/Studio-Glove-and-Dongle-Setup?language=en_US
+If there is something wrong with glove connection, please refer
+to https://stretchsense.my.site.com/defaulthelpcenter26Sep/s/article/Studio-Glove-and-Dongle-Setup?language=en_US
 
 **Onboard Computer**
 
@@ -164,10 +165,18 @@ Before takeoff:
 After the robot is hovering,
 
 4. run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`, and press 'h' to enter the hand control mode. Note that
-we need to wear the hand part, the shoulder part, and gloves to control the robot.
+   we need to wear the hand part, the shoulder part, and gloves to control the robot.
+5. To modify the `/hand/control_mode` parameter using `rosparam` in the terminal, run the following command:
+    `rosparam set /hand/control_mode <mode_value>`
+    Where `<mode_value>` can be set as one of the following:
+    - **1**: Operation Mode
+    - **2**: Spherical Coordinate Mode
+    - **3**: Cartesian Coordinate Mode
+    - **4**: Lock Mode
+    - **5**: Exit Mode
 
+    To check the current mode, you can run:`rosparam get /operation_mode`
 **Ground Station**
-
 Three terminals are needed.
 
 Before takeoff:
