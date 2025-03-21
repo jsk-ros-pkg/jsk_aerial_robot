@@ -108,9 +108,9 @@ class FingerDataManager:
         current_time = rospy.Time.now()
         if (current_time - self.last_check_time).to_sec() > 3.0:
             rospy.loginfo(f"Gesture state_{gesture_state_num} has been stable for 3 seconds.")
-            self.last_check_time = current_time
-            self.set_current_mode(gesture_state_num)
             rospy.loginfo(f"Updated control mode: state_{self.get_current_mode()} -> state_{gesture_state_num}")
+            self.set_current_mode(gesture_state_num)
+            self.last_check_time = current_time
 
 
 def shut_publisher(sig, frame) -> None:

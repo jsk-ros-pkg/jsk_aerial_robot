@@ -6,11 +6,12 @@
 @Date    : 2024-12-04 12:32
 @Software: PyCharm
 """
-
+import rosparam
 import rospy
 import tkinter as tk
 from std_msgs.msg import UInt8
 import signal
+
 
 class FingerDataSubscriber:
     def __init__(self) -> None:
@@ -19,7 +20,6 @@ class FingerDataSubscriber:
         and subscribing to the control mode topic.
         """
         rospy.init_node("glove_data_sub_node", anonymous=True)
-        rospy.Subscriber("hand/control_mode", UInt8, self.control_mode_callback)
 
         self.window = tk.Tk()
         self.window.title("Control Mode Window")
@@ -33,6 +33,9 @@ class FingerDataSubscriber:
         # Set up a custom signal handler for SIGINT (Ctrl+C)
         signal.signal(signal.SIGINT, self.signal_handler)
 
+        # create a timer to check the current control state
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.control_mode_callback)
+
     def signal_handler(self, sig, frame):
         rospy.loginfo("Ctrl+C pressed, shutting down...")
         self.on_close()
@@ -44,14 +47,14 @@ class FingerDataSubscriber:
         rospy.signal_shutdown("Shutdown initiated")
         self.window.destroy()
 
-    def control_mode_callback(self, msg) -> None:
+    def control_mode_callback(self, event):
         """
         Callback function to handle incoming control mode data from the topic.
 
         Args:
             msg (UInt8): The message containing the control mode state.
         """
-        control_mode = msg.data
+        control_mode = rosparam.get_param("/hand/control_mode")
         self.update_window(control_mode)
 
     def update_window(self, control_mode: int) -> None:
@@ -87,7 +90,6 @@ class FingerDataSubscriber:
         """
         Starts the Tkinter mainloop and periodically checks for ROS shutdown.
         """
-        rospy.loginfo("Waiting for messages on /hand/control_mode")
         # Schedule periodic check to see if ROS has been shut down.
         self.periodic_check()
         self.window.mainloop()
@@ -101,6 +103,7 @@ class FingerDataSubscriber:
         else:
             # Check again after 100ms.
             self.window.after(100, self.periodic_check)
+
 
 if __name__ == "__main__":
     subscriber = FingerDataSubscriber()
