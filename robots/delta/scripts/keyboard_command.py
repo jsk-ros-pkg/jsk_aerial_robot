@@ -172,8 +172,7 @@ class keyboardCommand():
 
     def printMsg(self, msg, msg_len = 50):
         n = 2
-        print(f"\033[{n}F" + (" " * 50 + "\n") * n + f"\033[{n}F" + msg.ljust(msg_len), end="")
-
+        sys.stdout.write("\033[{}F".format(n) + (" " * 50 + "\n") * n + "\033[{}F".format(n) + msg.ljust(msg_len)); sys.stdout.flush()
 
     def groundNavigationAckCallback(self, msg):
         self.ground_navigation_mode = msg.data

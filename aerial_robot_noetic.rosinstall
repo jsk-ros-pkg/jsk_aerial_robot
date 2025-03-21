@@ -2,7 +2,7 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: master
+    version: b10f5bf
 
 # kalman filter
 - git:
@@ -50,9 +50,3 @@
 #    local-name: realsense-ros
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
-
-# ros controller
-- git:
-     local-name: ros_controllers
-     uri: https://github.com/sugikazu75/ros_controllers.git
-     version: develop/abs_position_control

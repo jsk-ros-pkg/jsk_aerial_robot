@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   mujoco_ros_control
   pluginlib
   roscpp
-  )
+)
 
 find_package(Eigen3 REQUIRED)
 if(NOT CMAKE_BUILD_TYPE)

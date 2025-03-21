@@ -111,8 +111,6 @@ namespace aerial_robot_model {
     template<class T> T getInertia();
     template<class T> std::vector<T> getRotorsNormalFromCog();
     template<class T> std::vector<T> getRotorsOriginFromCog();
-    template<class T> std::vector<T> getRotorsNormalFromRoot();
-    template<class T> std::vector<T> getRotorsOriginFromRoot();
     static TiXmlDocument getRobotModelXml(const std::string param, ros::NodeHandle nh = ros::NodeHandle());
 
     KDL::JntArray jointMsgToKdl(const sensor_msgs::JointState& state) const;
@@ -197,8 +195,6 @@ namespace aerial_robot_model {
     int rotor_num_;
     std::vector<KDL::Vector> rotors_origin_from_cog_;
     std::vector<KDL::Vector> rotors_normal_from_cog_;
-    std::vector<KDL::Vector> rotors_origin_from_root_;
-    std::vector<KDL::Vector> rotors_normal_from_root_;
     KDL::Tree tree_;
     std::string thrust_link_;
     bool verbose_;
@@ -276,16 +272,6 @@ namespace aerial_robot_model {
     {
       std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
       rotors_origin_from_cog_ = rotors_origin_from_cog;
-    }
-    void setRotorsNormalFromRoot(const std::vector<KDL::Vector> rotors_normal_from_root)
-    {
-      std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
-      rotors_normal_from_root_ = rotors_normal_from_root;
-    }
-    void setRotorsOriginFromRoot(const std::vector<KDL::Vector> rotors_origin_from_root)
-    {
-      std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
-      rotors_origin_from_root_ = rotors_origin_from_root;
     }
     void setSegmentsTf(const std::map<std::string, KDL::Frame> seg_tf_map)
     {
@@ -444,47 +430,4 @@ namespace aerial_robot_model {
   {
     return aerial_robot_model::kdlToTf2(RobotModel::getRotorsOriginFromCog<KDL::Vector>());
   }
-
-  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsNormalFromRoot()
-  {
-    std::lock_guard<std::mutex> lock(mutex_rotor_normal_);
-    return rotors_normal_from_root_;
-  }
-
-  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsNormalFromRoot()
-  {
-    return aerial_robot_model::kdlToEigen(RobotModel::getRotorsNormalFromRoot<KDL::Vector>());
-  }
-
-  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsNormalFromRoot()
-  {
-    return aerial_robot_model::kdlToMsg(RobotModel::getRotorsNormalFromRoot<KDL::Vector>());
-  }
-
-  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsNormalFromRoot()
-  {
-    return aerial_robot_model::kdlToTf2(RobotModel::getRotorsNormalFromRoot<KDL::Vector>());
-  }
-
-  template<> inline std::vector<KDL::Vector> RobotModel::getRotorsOriginFromRoot()
-  {
-    std::lock_guard<std::mutex> lock(mutex_rotor_origin_);
-    return rotors_origin_from_root_;
-  }
-
-  template<> inline std::vector<Eigen::Vector3d> RobotModel::getRotorsOriginFromRoot()
-  {
-    return aerial_robot_model::kdlToEigen(RobotModel::getRotorsOriginFromRoot<KDL::Vector>());
-  }
-
-  template<> inline std::vector<geometry_msgs::PointStamped> RobotModel::getRotorsOriginFromRoot()
-  {
-    return aerial_robot_model::kdlToMsg(RobotModel::getRotorsOriginFromRoot<KDL::Vector>());
-  }
-
-  template<> inline std::vector<tf2::Vector3> RobotModel::getRotorsOriginFromRoot()
-  {
-    return aerial_robot_model::kdlToTf2(RobotModel::getRotorsOriginFromRoot<KDL::Vector>());
-  }
-
 } // namespace aerial_robot_model
