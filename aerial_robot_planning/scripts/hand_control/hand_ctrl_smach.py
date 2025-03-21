@@ -22,6 +22,7 @@ from hand_control.sub_pos_objects import (
 )
 
 from hand_control.hand_ctrl_modes import (
+    HandControlBaseMode,
     OperationMode,
     CartesianMode,
     LockingMode,
@@ -124,11 +125,12 @@ class WaitState(smach.State):
 
             self.rate.sleep()
 
+        rospy.set_param("/hand/control_mode", 1)
         return "go_operation_mode"
 
 
 class BaseModeState(smach.State):
-    def __init__(self, mode_class, outcomes, outcome_map):
+    def __init__(self, mode_class: HandControlBaseMode, outcomes, outcome_map):
         super(BaseModeState, self).__init__(
             outcomes=outcomes,
             input_keys=["robot_name"],
@@ -147,10 +149,12 @@ class BaseModeState(smach.State):
                 arm_pose=shared_data["arm_pose"],
                 glove=shared_data["glove"],
             )
+
         while not rospy.is_shutdown():
             if self.pub_object.check_finished():
                 break
             self.rate.sleep()
+
         control_mode_state = self.pub_object.get_control_mode()
         # Clean up the publisher object.
         del self.pub_object
