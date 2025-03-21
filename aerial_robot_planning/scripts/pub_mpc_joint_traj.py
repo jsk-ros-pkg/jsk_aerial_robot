@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from util import check_first_data_received
+from util import check_position_initialized, TrackingErrorCalculator
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -57,12 +57,25 @@ class MPCPubBase(ABC):
         # Store latest odometry here
         self.uav_odom = None
         self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
-
         check_first_data_received(self, "uav_odom", robot_name)
+
+        # Calculate tracking error
+        self.track_err_calc = TrackingErrorCalculator()
+
+        # data type for timer
+        self.start_time = float()
+        self.ts_pt_pub = float()
+        self.tmr_pt_pub = None
+
+    def start_timer(self):
+        """
+        Note: the timer should be manually after everything is set up.
+        :return:
+        """
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
         # Start time
         self.start_time = rospy.Time.now().to_sec()
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Initialized!")
 
         # Timer for publishing
         self.ts_pt_pub = 0.02  # ~50Hz
@@ -90,14 +103,36 @@ class MPCPubBase(ABC):
         t_has_started = rospy.Time.now().to_sec() - self.start_time
         traj_msg = self.fill_trajectory_points(t_has_started)
 
+        # 2.1) Calculate tracking error
+        err_px, err_py, err_pz, err_roll, err_pitch, err_yaw = self.track_err_calc.update(self.uav_odom, traj_msg)
+
+        rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
+                                  f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
+                                  f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
+
         # 3) Publish
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
-        if self.check_finished(t_has_started) or self.is_finished:  # is_finished can be also set by other function to quit
-            rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished or target reached!")
+        # is_finished can be also set by other function to quit, so we need to check it first
+        if self.is_finished:
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: is_finished is set to True!")
+
+            # Calculate RMSE of tracking error
+            pos_rmse_norm, pos_rmse, ang_rmse_norm, ang_rmse = self.track_err_calc.get_rmse_error()
+
+            rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: \n"
+                          f"pos_err_norm = {pos_rmse_norm:.3f} m, \n"
+                          f"pos_err = {pos_rmse[0]:.3f} m, {pos_rmse[1]:.3f} m, {pos_rmse[2]:.3f} m, \n"
+                          f"ang_err_norm = {ang_rmse_norm:.3f} deg, \n"
+                          f"ang_err = {ang_rmse[0]:.3f} deg, {ang_rmse[1]:.3f} deg, {ang_rmse[2]:.3f} deg\033[0m")  # cyan highlight
+
+            self.track_err_calc.reset()
+
+            # Shutdown the timer
             self.tmr_pt_pub.shutdown()
-            self.is_finished = True
+
+        self.is_finished = self.check_finished(t_has_started)
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):
@@ -153,6 +188,8 @@ class MPCTrajPtPub(MPCPubJointTraj):
         super().__init__(robot_name=robot_name, node_name="mpc_traj_pt_pub")
         self.traj = traj
         rospy.loginfo(f"{self.namespace}/{self.node_name}: Using trajectory {str(self.traj)}")
+
+        self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """
@@ -228,6 +265,8 @@ class MPCSinglePtPub(MPCPubJointTraj):
         self.ang_tol = ang_tol  # e.g. 0.1 rad
         self.vel_tol = vel_tol  # e.g. 0.1 m/s
         self.rate_tol = rate_tol  # e.g. 0.1 rad/s
+
+        self.start_timer()
 
     def fill_trajectory_points(self, t_elapsed: float) -> MultiDOFJointTrajectory:
         """

@@ -37,7 +37,7 @@ print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 # === CSV trajectory ===
 # read all CSV files in the folder ./tilt_qd_csv_trajs
 csv_folder_path = os.path.join(current_path, "tilt_qd_csv_trajs")
-csv_files = [f for f in os.listdir(csv_folder_path) if f.endswith(".csv")]
+csv_files = sorted([f for f in os.listdir(csv_folder_path) if f.endswith(".csv")])
 print(f"Found {len(csv_files)} CSV files in ./tilt_qd_csv_trajs folder.")
 
 # === hand control ===
@@ -74,20 +74,24 @@ class IdleState(smach.State):
 
         try:
             # print available trajectory types
-            print("\nAvailable trajectory types:\n")
+            print("Available trajectory types:")
+
+            print("\n===== Analytical Trajectories =====")
             for i, traj_cls in enumerate(traj_cls_list):
                 print(f"{i}: {traj_cls.__name__}")
 
+            print("\n===== CSV Trajectories =====")
             # print available CSV files
             for i, csv_file in enumerate(csv_files):
                 print(f"{i + len(traj_cls_list)}: {csv_file}")
 
             # print an available hand control state
+            print("\n===== Other Choices =====")
             print("h: hand-based control")
 
             max_traj_idx = len(traj_cls_list) + len(csv_files) - 1
 
-            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'q' to quit or 'h' to hand control: ")
+            traj_type_str = input(f"\nEnter trajectory type (0..{max_traj_idx}) or 'h' for hand control or 'q' to quit: ")
             if traj_type_str.lower() == "q":
                 return "shutdown"
 
@@ -154,11 +158,9 @@ class InitState(smach.State):
         else:
             csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
             rospy.loginfo(f"Using CSV file: {csv_file}")
-            # csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
-            # TODO: change the order of csv file. one row for one point is better.
-            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=",")
-            x, y, z = csv_traj[0:3, 0]
-            qw, qx, qy, qz = csv_traj[6:10, 0]
+            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
+            x, y, z = csv_traj[0:3]
+            qw, qx, qy, qz = csv_traj[6:10]
 
         init_pose = Pose(
             position=Vector3(x, y, z),
