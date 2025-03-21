@@ -15,7 +15,7 @@ controller:
     v_min: -1
 
     thrust_max: 30 # N
-    thrust_min: 0 # N
+    thrust_min: 0.5 # N
 
     a_max: 3.1416  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -3.1416

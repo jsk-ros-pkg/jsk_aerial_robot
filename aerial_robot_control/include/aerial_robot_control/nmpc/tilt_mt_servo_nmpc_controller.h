@@ -78,6 +78,9 @@ protected:
   double mass_;
   double gravity_const_;
   std::vector<double> inertia_;
+  double thrust_ctrl_max_;
+  double thrust_ctrl_min_;
+
   int motor_num_;
   int joint_num_;
   double t_nmpc_samp_;

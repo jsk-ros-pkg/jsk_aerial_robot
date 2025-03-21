@@ -57,7 +57,7 @@ class MPCPubBase(ABC):
         # Store latest odometry here
         self.uav_odom = None
         self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
-        check_position_initialized(self, "uav_odom", robot_name)
+        check_first_data_received(self, "uav_odom", robot_name)
 
         # Calculate tracking error
         self.track_err_calc = TrackingErrorCalculator()
