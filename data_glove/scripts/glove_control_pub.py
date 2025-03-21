@@ -104,6 +104,10 @@ class FingerDataManager:
             rospy.loginfo(f"Gesture state changed to {gesture_state_num}, resetting timer.")
             return
 
+        # TODO: simplify the logic
+        if self.last_check_time is None:  # if the user choose the same mode again, the last_check_time is None.
+            self.last_check_time = rospy.Time.now()
+
         # If the valid state (not -1) has been stable for 3 seconds, update the self.control_mode.
         current_time = rospy.Time.now()
         if (current_time - self.last_check_time).to_sec() > 3.0:
