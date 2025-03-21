@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from util import check_position_initialized
+from util import check_first_data_received
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -41,7 +41,7 @@ class MPCPubBase(ABC):
         self.robot_name = robot_name
         self.node_name = node_name
         self.namespace = rospy.get_namespace().rstrip("/")
-        self.finished = False  # Flag to indicate trajectory is complete
+        self.is_finished = False  # Flag to indicate trajectory is complete
 
         # Load NMPC parameters
         try:
@@ -58,7 +58,7 @@ class MPCPubBase(ABC):
         self.uav_odom = None
         self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
 
-        check_position_initialized(self, "uav_odom", robot_name)
+        check_first_data_received(self, "uav_odom", robot_name)
 
         # Start time
         self.start_time = rospy.Time.now().to_sec()
@@ -94,10 +94,10 @@ class MPCPubBase(ABC):
         self.pub_trajectory_points(traj_msg)
 
         # 4) Check if done from a child-class method
-        if self.check_finished(t_has_started):
+        if self.check_finished(t_has_started) or self.is_finished:  # is_finished can be also set by other function to quit
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory finished or target reached!")
             self.tmr_pt_pub.shutdown()
-            self.finished = True
+            self.is_finished = True
 
     @abstractmethod
     def fill_trajectory_points(self, t_elapsed: float):
