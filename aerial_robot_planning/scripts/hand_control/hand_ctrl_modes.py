@@ -121,8 +121,9 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             self._check_finish_auto()
             return self.is_finished
 
-        if self.glove.control_mode != self.mode_num:  # if the control mode is changed by the glove
-            self.to_return_control_mode = self.glove.control_mode
+        current_ctrl_mode = self.glove.get_control_mode()
+        if  self.mode_num != current_ctrl_mode:  # if the control mode is changed by the glove
+            self.to_return_control_mode = current_ctrl_mode
             self.is_finished = True
 
         return self.is_finished

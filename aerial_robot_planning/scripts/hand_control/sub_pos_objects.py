@@ -82,7 +82,7 @@ class Glove:
             rospy.set_param(self.param_name, default_value)
             rospy.loginfo(f"Initialized {self.param_name} with default value: {default_value}")
 
-        self.control_mode = self.get_control_mode()
+        self._control_mode = self.get_control_mode()
 
     def get_control_mode(self):
         """
