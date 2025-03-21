@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
-from util import check_position_initialized, TrackingErrorCalculator
+from util import check_first_data_received, TrackingErrorCalculator
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))

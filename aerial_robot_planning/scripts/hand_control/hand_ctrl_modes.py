@@ -56,6 +56,8 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
 
         self.mode_num = self._init_mode_num()
 
+        self.start_timer()
+
     @staticmethod
     @abstractmethod
     def _init_mode_num():
