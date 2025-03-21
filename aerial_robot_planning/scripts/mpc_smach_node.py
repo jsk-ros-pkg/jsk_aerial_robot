@@ -220,6 +220,8 @@ class TrackState(smach.State):
                 break
             self.rate.sleep()
 
+        rospy.sleep(0.5)  # wait for the tracking error to be calculated and printed
+
         rospy.loginfo("TRACK: Done tracking. Going back to IDLE.")
         return "done_track"
 
