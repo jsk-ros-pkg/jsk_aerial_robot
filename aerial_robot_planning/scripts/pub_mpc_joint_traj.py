@@ -36,7 +36,7 @@ class MPCPubBase(ABC):
       - Abstract methods for building the MultiDOFJointTrajectory and checking finish conditions
     """
 
-    def __init__(self, robot_name: str, node_name: str):
+    def __init__(self, robot_name: str, node_name: str, is_calc_rmse=True):
         # Basic config
         self.robot_name = robot_name
         self.node_name = node_name
@@ -60,7 +60,8 @@ class MPCPubBase(ABC):
         check_first_data_received(self, "uav_odom", robot_name)
 
         # Calculate tracking error
-        self.track_err_calc = TrackingErrorCalculator()
+        if is_calc_rmse:
+            self.track_err_calc = TrackingErrorCalculator()
 
         # data type for timer
         self.start_time = float()
@@ -104,11 +105,12 @@ class MPCPubBase(ABC):
         traj_msg = self.fill_trajectory_points(t_has_started)
 
         # 2.1) Calculate tracking error
-        err_px, err_py, err_pz, err_roll, err_pitch, err_yaw = self.track_err_calc.update(self.uav_odom, traj_msg)
+        if hasattr(self, "track_err_calc"):
+            err_px, err_py, err_pz, err_roll, err_pitch, err_yaw = self.track_err_calc.update(self.uav_odom, traj_msg)
 
-        rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
-                                  f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
-                                  f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
+            rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
+                                      f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
+                                      f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
 
         # 3) Publish
         self.pub_trajectory_points(traj_msg)
@@ -118,16 +120,17 @@ class MPCPubBase(ABC):
         if self.is_finished:
             rospy.loginfo(f"{self.namespace}/{self.node_name}: is_finished is set to True!")
 
-            # Calculate RMSE of tracking error
-            pos_rmse_norm, pos_rmse, ang_rmse_norm, ang_rmse = self.track_err_calc.get_rmse_error()
+            if hasattr(self, "track_err_calc"):
+                # Calculate RMSE of tracking error
+                pos_rmse_norm, pos_rmse, ang_rmse_norm, ang_rmse = self.track_err_calc.get_rmse_error()
 
-            rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: \n"
-                          f"pos_err_norm = {pos_rmse_norm:.3f} m, \n"
-                          f"pos_err = {pos_rmse[0]:.3f} m, {pos_rmse[1]:.3f} m, {pos_rmse[2]:.3f} m, \n"
-                          f"ang_err_norm = {ang_rmse_norm:.3f} deg, \n"
-                          f"ang_err = {ang_rmse[0]:.3f} deg, {ang_rmse[1]:.3f} deg, {ang_rmse[2]:.3f} deg\033[0m")  # cyan highlight
+                rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: \n"
+                              f"pos_err_norm = {pos_rmse_norm:.3f} m, \n"
+                              f"pos_err = {pos_rmse[0]:.3f} m, {pos_rmse[1]:.3f} m, {pos_rmse[2]:.3f} m, \n"
+                              f"ang_err_norm = {ang_rmse_norm:.3f} deg, \n"
+                              f"ang_err = {ang_rmse[0]:.3f} deg, {ang_rmse[1]:.3f} deg, {ang_rmse[2]:.3f} deg\033[0m")  # cyan highlight
 
-            self.track_err_calc.reset()
+                self.track_err_calc.reset()
 
             # Shutdown the timer
             self.tmr_pt_pub.shutdown()
@@ -163,8 +166,8 @@ class MPCPubBase(ABC):
 # Derived Class: MPCPubJointTraj
 ##########################################
 class MPCPubJointTraj(MPCPubBase, ABC):
-    def __init__(self, robot_name: str, node_name: str):
-        super().__init__(robot_name=robot_name, node_name=node_name)
+    def __init__(self, robot_name: str, node_name: str, is_calc_rmse=True):
+        super().__init__(robot_name=robot_name, node_name=node_name, is_calc_rmse=is_calc_rmse)
         # Publisher for reference trajectory
         self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=3)
 
@@ -257,7 +260,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
 
     def __init__(self, robot_name: str, target_pose: Pose,
                  pos_tol=0.2, ang_tol=0.3, vel_tol=0.1, rate_tol=0.1):
-        super().__init__(robot_name=robot_name, node_name="mpc_single_pt_pub")
+        super().__init__(robot_name=robot_name, node_name="mpc_single_pt_pub", is_calc_rmse=False)
         self.target_pose = target_pose
 
         # Tolerances for considering the target "reached"

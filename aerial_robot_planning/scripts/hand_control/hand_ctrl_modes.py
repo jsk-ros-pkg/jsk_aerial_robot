@@ -30,7 +30,7 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
                  glove: Glove,
                  node_name: str,
                  ):
-        super().__init__(robot_name=robot_name, node_name=node_name)
+        super().__init__(robot_name=robot_name, node_name=node_name, is_calc_rmse=False)
         self.hand_pose = hand_pose
         self.arm_pose = arm_pose
         self.glove = glove
