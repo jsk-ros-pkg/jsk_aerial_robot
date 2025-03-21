@@ -115,7 +115,7 @@ class MPCPubBase(ABC):
         self.all_ang_err[1].append(err_pitch)
         self.all_ang_err[2].append(err_yaw)
 
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: Tracking error: "
+        rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
                       f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
                       f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
 
