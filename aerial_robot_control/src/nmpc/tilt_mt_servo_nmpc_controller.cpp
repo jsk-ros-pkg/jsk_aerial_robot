@@ -260,9 +260,9 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
   if (is_traj_tracking_)
   {
-    if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
+    if (ros::Time::now() - receive_time_ > ros::Duration(0.5))
     {
-      ROS_INFO("Trajectory tracking mode is off!");
+      ROS_INFO("No msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
       is_traj_tracking_ = false;
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
@@ -275,6 +275,25 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetVelZ(0.0);
       navigator_->setTargetRoll(0.0);
       navigator_->setTargetPitch(0.0);
+      navigator_->setTargetYaw((float)current_rpy.z());
+      navigator_->setTargetOmegaX(0.0);
+      navigator_->setTargetOmegaY(0.0);
+      navigator_->setTargetOmegaZ(0.0);
+    }
+    else if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
+    {
+      ROS_INFO_THROTTLE(1, "No msg for 0.1s. Try to track current pose.");
+      tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+      tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
+
+      navigator_->setTargetPosX((float)current_pos.x());
+      navigator_->setTargetPosY((float)current_pos.y());
+      navigator_->setTargetPosZ((float)current_pos.z());
+      navigator_->setTargetVelX(0.0);
+      navigator_->setTargetVelY(0.0);
+      navigator_->setTargetVelZ(0.0);
+      navigator_->setTargetRoll((float)current_rpy.x());
+      navigator_->setTargetPitch((float)current_rpy.y());
       navigator_->setTargetYaw((float)current_rpy.z());
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
