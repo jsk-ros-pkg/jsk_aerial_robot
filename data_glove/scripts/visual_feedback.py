@@ -8,6 +8,7 @@
 """
 import rosparam
 import rospy
+import rosgraph.masterapi
 import tkinter as tk
 from std_msgs.msg import UInt8
 import signal
@@ -54,7 +55,12 @@ class FingerDataSubscriber:
         Args:
             msg (UInt8): The message containing the control mode state.
         """
-        control_mode = rosparam.get_param("/hand/control_mode")
+        try:
+            control_mode = rosparam.get_param("/hand/control_mode")
+        except rosgraph.masterapi.MasterError:
+            rospy.logwarn_throttle(1, "Failed to get control mode parameter.")
+            return
+
         self.update_window(control_mode)
 
     def update_window(self, control_mode: int) -> None:
