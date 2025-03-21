@@ -68,40 +68,43 @@ class DronePose(PoseBase):
 
 
 class Glove:
-    def __init__(self):
-        self.object_name = "Glove"
-        self.control_mode = None
-        self.control_mode_sub = self._sub_topic("/hand/control_mode", UInt8, self._glove_data_callback)
-
-        self._check_data_initialized()
-
-    @check_topic_subscription
-    def _sub_topic(self, topic_name, msg_type, callback_func):
-        rospy.loginfo(f"Subscribed to {topic_name}")
-        return rospy.Subscriber(topic_name, msg_type, callback_func, queue_size=3)
-
-    def _check_data_initialized(self):
+    def __init__(self, param_name="/hand/control_mode", default_value=1):
         """
-        Waits until the pose_msg is initialized. Logs a message repeatedly
-        until a valid pose_msg is received.
-        """
-        while not rospy.is_shutdown() and self.control_mode is None:
-            rospy.loginfo(f"Waiting for {self.object_name}'s data...")
-            rospy.sleep(0.2)
-        if self.control_mode is not None:
-            rospy.loginfo(f"{self.object_name}'s data received for the first time")
+        Initializes the ControlModeManager.
 
-    def _glove_data_callback(self, msg: UInt8):
+        :param param_name: The name of the ROS parameter to manage.
+        :param default_value: The default value if the parameter does not exist.
         """
-        Callback function to process incoming messages.
-        Should be implemented by subclasses.
-        :param msg: The message containing glove data.
-        """
-        self.control_mode = msg.data
+        self.param_name = param_name
+
+        # Ensure the parameter is set in ROS if not already present
+        if not rospy.has_param(self.param_name):
+            rospy.set_param(self.param_name, default_value)
+            rospy.loginfo(f"Initialized {self.param_name} with default value: {default_value}")
+
+        self.control_mode = self.get_control_mode()
 
     def get_control_mode(self):
         """
-        Return pose_msg information from the message.
-        :return: Extracted glove data.
+        Retrieves the current value of the control mode parameter.
+
+        :return: The current control mode value.
         """
-        return self.control_mode
+        return rospy.get_param(self.param_name)
+
+    @staticmethod
+    def set_control_mode(new_mode:int):
+        """
+        Updates the control mode parameter.
+
+        :param new_mode: The new control mode value to set.
+        """
+        rospy.set_param("/hand/control_mode", new_mode)
+
+
+    def print_current_mode(self):
+        """
+        Prints the current control mode.
+        """
+        mode = self.get_control_mode()
+        print(f"Current control mode: {mode}")
