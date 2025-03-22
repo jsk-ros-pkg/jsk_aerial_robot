@@ -19,6 +19,7 @@
 
   <run_depend>aerial_robot_control</run_depend>
   <run_depend>aerial_robot_model</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>aerial_robot_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>gazebo_ros</run_depend>
