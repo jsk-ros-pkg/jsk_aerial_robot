@@ -8,6 +8,6 @@ navigation:
   shift_x: 0.0
   shift_y: 0.0
 tree:
-  real_area: false
+  real_area: true
 
   
