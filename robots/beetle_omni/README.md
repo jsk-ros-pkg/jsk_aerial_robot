@@ -159,7 +159,7 @@ Before takeoff:
 
 1. `roslaunch beetle_omni bringup_nmpc_omni.launch nmpc_mode:=0 wrench_est_mode:=none`. This is the main launch file for
    the robot.
-2. `roslaunch beetle_omni hand_arm_glove_launch.launch`
+2. `roslaunch aerial_robot_planning hand_arm_glove.launch`
 3. `rosbag record -a`
 
 After the robot is hovering,
@@ -187,5 +187,5 @@ Before takeoff:
 
 **Visual Computer**
 
-1. `rosrun data_glove visual_feedback.py`
+1. `rosrun aerial_robot_planning visual_feedback.py`
 2. adjust the window to fullfill the screen.

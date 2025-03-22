@@ -35,7 +35,7 @@
 
   <!-- Run glove_control_pub.py script -->
   <group>
-    <node pkg="data_glove" type="glove_control_pub.py" name="glove_data_pub_node" output="screen">
+    <node pkg="aerial_robot_planning" type="glove_control_pub.py" name="glove_data_pub_node" output="screen">
       <param name="port" value="$(arg port)"/>
     </node>
   </group>
