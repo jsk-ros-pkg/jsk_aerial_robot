@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_controller # under-acuated
+aerial_robot_control_name: aerial_robot_control/under_actuated_tilted_lqi_controller # under-acuated
 
 controller:
   xy:
