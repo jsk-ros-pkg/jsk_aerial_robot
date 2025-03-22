@@ -73,16 +73,23 @@ class ObstacleWorld:
         except pd.errors.EmptyDataError as e:
             print("tree data is empty")
             # print("self.obs: ",self.obs)
+
+        # non-cylinder shaped object
         # self.spawnWall("wall_body", 0.5, np.array([3.2,0.2,1]) + np.array([shift_x,shift_y,0]), 0.01, 0.6, 2)
         # self.spawnWall("wall_pole", 0.5, np.array([3.2,-0.90,1]) + np.array([shift_x,shift_y,0]), 0.01, 0.05, 2)
-        self.spawnWall("front_desk", 0.5, np.array([1.0,0.0,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 0.6, 1.0)
-        self.spawnWall("front_polls", 0.5, np.array([1.0,-0.8,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 1.0, 1.0)
-        self.spawnWall("back_desk", 0.5, np.array([1.0+(4.85+0.60),0.0,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 0.6, 1.0)
-        self.spawnWall("back_polls", 0.5, np.array([1.0+(4.85+0.60),-0.8,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 1.0, 1.0)
         # self.spawnWall("chair", 0.5, np.array([1.5,0.0,0.55]) + np.array([shift_x,shift_y,0]), 0.20, 0.45, 1.10)
+
         # self.spawnWall("right_wall", 0.5, np.array([40,wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
         # self.spawnWall("left_wall", 0.5, np.array([40,-wall_y_position,2]) + np.array([shift_x,shift_y,0]), 90, 0.01, 4)
+
+        # wall for 326 experiment
         # self.spawnWall("back_wall", 0.5, np.array([-0.7,-0.4,2]) + np.array([shift_x,shift_y,0]), 0.01, 1.5, 4)
+
+        # 2nd building's obstacle avoidance
+        # self.spawnWall("front_desk", 0.5, np.array([1.0,0.0,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 0.6, 1.0)
+        # self.spawnWall("front_polls", 0.5, np.array([1.0,-0.8,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 1.0, 1.0)
+        # self.spawnWall("back_desk", 0.5, np.array([1.0+(4.85+0.60),0.0,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 0.6, 1.0)
+        # self.spawnWall("back_polls", 0.5, np.array([1.0+(4.85+0.60),-0.8,0.50]) + np.array([shift_x,shift_y,0]), 0.6, 1.0, 1.0)
     def start_obstacle_callback(self, data):
         rospy.loginfo("Start moving obstacles!")
         self.callback_counter:int = 0
