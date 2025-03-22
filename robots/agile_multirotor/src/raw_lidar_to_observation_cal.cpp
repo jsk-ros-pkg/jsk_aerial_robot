@@ -7,14 +7,14 @@ ObstacleCalculator::ObstacleCalculator(ros::NodeHandle nh, ros::NodeHandle pnh)
   std::string file, quad_name;
   pnh_.getParam("cfg_path", file);
   pnh_.getParam("hokuyo", from_hokuyo_);
-  pnh_.getParam("shift_x", shift_x_);
-  pnh_.getParam("shift_y", shift_y_);
   pnh_.getParam("robot_ns", quad_name);
   pnh_.getParam("print_yaw", print_yaw_);
   pnh_.getParam("vel_calc_boundary", vel_calc_boundary_);
-  pnh_.getParam("body_r", body_r_);
   pnh_.getParam("policy_start_delay", policy_start_delay_);
   pnh_.getParam("headless", headless_);
+  nh_.getParam("navigation/body_r", body_r_);
+  nh_.getParam("navigation/shift_x", shift_x_);
+  nh_.getParam("navigation/shift_y", shift_y_);
 
   //   file = file + ".csv";
   if (!from_hokuyo_){

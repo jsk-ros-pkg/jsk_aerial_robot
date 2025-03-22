@@ -1,0 +1,13 @@
+# Obstacle Avoidance Param
+
+navigation:
+  body_r: 0.300
+  max_gain: 5.0
+  time_constant: 0.769
+  delay: true
+  shift_x: 1.0
+  shift_y: 2.0
+tree:
+  real_area: false
+
+  

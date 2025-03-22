@@ -36,8 +36,8 @@ class ObstacleWorld:
 
         rate = rospy.get_param('~rate', 40.0) # Hz
         self.rate = rate
-        shift_x = rospy.get_param('~shift_x', 0) #init x
-        shift_y = rospy.get_param('~shift_y', 0) #init y
+        shift_x = rospy.get_param('navigation/shift_x', 0) #init x
+        shift_y = rospy.get_param('navigation/shift_y', 0) #init y
         policy_start_delay = rospy.get_param('~policy_start_delay', 0) #init obstacle position
         print("shift_x: ",shift_x, "shift_y: ",shift_y)
 
