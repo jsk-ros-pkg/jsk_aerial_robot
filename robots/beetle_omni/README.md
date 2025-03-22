@@ -187,5 +187,5 @@ Before takeoff:
 
 **Visual Computer**
 
-1. `rosrun aerial_robot_planning visual_feedback.py`
+1. `rosrun aerial_robot_planning visual_fb_mode.py`
 2. adjust the window to fullfill the screen.
