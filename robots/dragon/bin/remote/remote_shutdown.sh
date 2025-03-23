@@ -7,8 +7,8 @@ session_name="demo"
 main_w="remote"
 
 if ping -c $PING_COUNT $TARGET > /dev/null 2>&1; then
-    tmux send-keys -t ${session_name}:${main_w}.1 'sudo poweroff' C-m
-    sleep 5
+    tmux send-keys -t ${session_name}:${main_w}.0 'sudo poweroff' C-m
+    sleep 30
 fi
 
 tmux kill-session -t ${session_name}
