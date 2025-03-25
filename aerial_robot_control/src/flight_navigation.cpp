@@ -903,15 +903,20 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
 
     }
 
-  double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
-  double delta_yaw = end_state.getYaw() - start_state.getYaw();
-  if (delta_yaw > M_PI) delta_yaw -= 2 * M_PI;
-  if (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
-  double du_rot = fabs(delta_yaw) / trajectory_mean_yaw_rate_;
-  double du = std::max(du_tran, trajectory_min_du_);
-  if (!enable_latch_yaw_trajectory_)
+  double du = pose.header.stamp.toSec() - ros::Time::now().toSec();
+  if (du < 0.01) // if the target time is older or closer to the current time, reset the du by using an average velocity
     {
-      du = std::max(du_rot, du);
+      ROS_INFO("recalcualte the du");
+      double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
+      double delta_yaw = end_state.getYaw() - start_state.getYaw();
+      if (delta_yaw > M_PI) delta_yaw -= 2 * M_PI;
+      if (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
+      double du_rot = fabs(delta_yaw) / trajectory_mean_yaw_rate_;
+      du = std::max(du_tran, trajectory_min_du_);
+      if (!enable_latch_yaw_trajectory_)
+        {
+          du = std::max(du_rot, du);
+        }
     }
 
   end_state.t = start_state.t + du;
@@ -922,7 +927,8 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
                   << " (yaw: " << start_state.getYaw() << ")"
                   << " and target vel: " << start_state.v.transpose()
                   << " (omega z: " << start_state.w(2) << ")"
-                  << " and target acc: " << start_state.a.transpose());
+                  << " and target acc: " << start_state.a.transpose()
+                  << " and flight duration: " << du);
 
   traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(start_state, end_state);
 
