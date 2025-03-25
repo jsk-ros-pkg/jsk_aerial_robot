@@ -30,34 +30,34 @@ from arxiv_tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 from tilt_qd_thrust import NMPCTiltQdThrust
 
 
-def simulate(model, sim_model, plot_type, no_viz, save_data, file_path):
+def simulate(nmpc_model_id, sim_model_id=0, plot_type=1, no_viz=True, save_data=False, file_path=None):
     # ========== init ==========
     # ---------- Controller ----------
-    if model == 0:
+    if nmpc_model_id == 0:
         nmpc = NMPCTiltQdNoServo()
-    elif model == 1:
+    elif nmpc_model_id == 1:
         nmpc = NMPCTiltQdServo()
-    elif model == 2:
+    elif nmpc_model_id == 2:
         nmpc = NMPCTiltQdThrust()
-    elif model == 3:
+    elif nmpc_model_id == 3:
         nmpc = NMPCTiltQdServoThrust()
-    elif model == 21:
+    elif nmpc_model_id == 21:
         nmpc = NMPCTiltQdServoDist()
-    elif model == 22:
+    elif nmpc_model_id == 22:
         nmpc = NMPCTiltQdServoThrustDist()
 
     # archiving methods
-    elif model == 91:
+    elif nmpc_model_id == 91:
         nmpc = NMPCTiltQdNoServoNewCost()
-    elif model == 92:
+    elif nmpc_model_id == 92:
         nmpc = NMPCTiltQdServoOldCost()
-    elif model == 93:
+    elif nmpc_model_id == 93:
         nmpc = NMPCTiltQdServoVelInput()
         alpha_integ = np.zeros(4)
-    elif model == 94:
+    elif nmpc_model_id == 94:
         nmpc = NMPCTiltQdServoDragDist()
     else:
-        raise ValueError(f"Invalid control model {model}.")
+        raise ValueError(f"Invalid control model {nmpc_model_id}.")
 
     if hasattr(nmpc, "t_servo"):
         t_servo_ctrl = nmpc.t_servo
@@ -80,12 +80,12 @@ def simulate(model, sim_model, plot_type, no_viz, save_data, file_path):
         ocp_solver.set(stage, "u", u_init)
 
     # ---------- Simulator ----------
-    if sim_model == 0:
+    if sim_model_id == 0:
         sim_nmpc = NMPCTiltQdServoThrust()  # consider the dynamics of all actuators, including servo and thrust
-    elif sim_model == 1:
+    elif sim_model_id == 1:
         sim_nmpc = NMPCTiltQdServoThrustDrag()
     else:
-        raise ValueError(f"Invalid sim model {sim_model}.")
+        raise ValueError(f"Invalid sim model {sim_model_id}.")
 
     if hasattr(sim_nmpc, "t_servo"):
         t_servo_sim = sim_nmpc.t_servo
@@ -103,7 +103,6 @@ def simulate(model, sim_model, plot_type, no_viz, save_data, file_path):
     N_sim = int(t_total_sim / ts_sim)
 
     # sim solver
-    sim_nmpc.get_ocp_model()
     sim_solver = sim_nmpc.create_acados_sim_solver(sim_nmpc.get_ocp_model(), ts_sim, True)
     nx_sim = sim_solver.acados_sim.dims.nx
 
@@ -275,6 +274,8 @@ def simulate(model, sim_model, plot_type, no_viz, save_data, file_path):
         data_file = os.path.join(file_path, f"nmpc_{type(nmpc).__name__}_model_{type(sim_nmpc).__name__}.npz")
         np.savez(data_file, x=np.array(x_history), u=np.array(u_history))
         print(f"Simulation data saved to {data_file}")
+
+    return np.array(x_history), np.array(u_history)
 
 
 if __name__ == "__main__":
