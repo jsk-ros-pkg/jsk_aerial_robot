@@ -43,7 +43,6 @@
 #include <ros/ros.h>
 #include <ros/common.h>
 #include <state_estimate/state_estimate.h>
-#include <tf/LinearMath/Transform.h>
 #include <urdf_model/joint.h>
 #include <urdf/urdfdom_compatibility.h>
 
@@ -58,15 +57,12 @@ namespace hardware_interface
 
     inline uint8_t getJointNum() {return joint_num_; }
 
-    void setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z);
+    void useGroundTruth(bool flag);
+    void setImuValue(double acc_x, double acc_y, double acc_z,
+                     double gyro_x, double gyro_y, double gyro_z);
     void setMagValue(double mag_x, double mag_y, double mag_z);
-    void setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w);
-    void setTrueBaselinkAngular(double w_x, double w_y, double w_z);
-
-    tf::Vector3 getTrueBaselinkRPY();
-    inline tf::Vector3 getTrueBaselinkAngular() { return baselink_angular_;}
-    tf::Vector3 getTrueCogRPY();
-    tf::Vector3 getTrueCogAngular();
+    void setGroundTruthStates(double q_x, double q_y, double q_z, double q_w,
+                              double w_x, double w_y, double w_z);
 
     void stateEstimate();
     inline void onGround(bool flag) { on_ground_ = flag; }
@@ -74,9 +70,6 @@ namespace hardware_interface
     StateEstimate* getEstimatorPtr() {return &spinal_state_estimator_;}
   private:
     uint8_t joint_num_;
-
-    tf::Matrix3x3 baselink_rot_;
-    tf::Vector3 baselink_angular_;
 
     /* attitude estimator */
     bool on_ground_;

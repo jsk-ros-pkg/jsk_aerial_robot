@@ -26,10 +26,19 @@
 class ComplementaryAHRS: public EstimatorAlgorithm
 {
 public:
-  ComplementaryAHRS():EstimatorAlgorithm(), est_g_(),  est_m_(){}
+  ComplementaryAHRS():EstimatorAlgorithm(), prev_mag_()
+  {}
+
+  ap::Quaternion getQuaternion()
+  {
+    ap::Quaternion q;
+    q.from_rotation_matrix(rot_);
+    return q;
+  }
 
 private:
-  std::array<ap::Vector3f, 2> est_g_,  est_m_;
+
+  ap::Vector3f prev_mag_; /* for lpf filter method for mag */
 
   /* core esitmation process, using body frame */
   void estimation() 
@@ -39,14 +48,14 @@ private:
     int  valid_acc = 0;
     static int cnt = 0;
 
-    float acc_magnitude = acc_[Frame::BODY] * acc_[Frame::BODY]; //norm?
-    ap::Vector3f est_g_b_tmp = est_g_[Frame::BODY];
-    ap::Vector3f est_m_b_tmp = est_m_[Frame::BODY];
+    float acc_magnitude = acc_ * acc_; //norm?
+    ap::Vector3f est_g_b_tmp = est_g_;
+    ap::Vector3f est_m_b_tmp = est_m_;
 
-    ap::Vector3f gyro_rotate = gyro_[Frame::BODY]  * DELTA_T;
+    ap::Vector3f gyro_rotate = gyro_  * DELTA_T;
 
-    est_m_[Frame::BODY] += (est_m_b_tmp % gyro_rotate  ); //rotation by gyro
-    est_g_[Frame::BODY] += (est_g_b_tmp % gyro_rotate ); //rotation by gyro
+    est_m_ += (est_m_b_tmp % gyro_rotate  ); //rotation by gyro
+    est_g_ += (est_g_b_tmp % gyro_rotate ); //rotation by gyro
 
     if( G_MIN < acc_magnitude && acc_magnitude < G_MAX) valid_acc = 1;
     else valid_acc = 0;
@@ -58,44 +67,33 @@ private:
     //** To do that, we just skip filter, as EstV already rotated by Gyro 
     //*********************************************************************
 
-    est_g_b_tmp = est_g_[Frame::BODY];
-    est_m_b_tmp = est_m_[Frame::BODY];
+    est_g_b_tmp = est_g_;
+    est_m_b_tmp = est_m_;
 
     /* acc correction */
     if ( valid_acc == 1 && cnt == 0)
-      est_g_[Frame::BODY] = (est_g_b_tmp * GYR_CMPF_FACTOR + acc_[Frame::BODY]) * INV_GYR_CMPF_FACTOR;
+      est_g_ = (est_g_b_tmp * GYR_CMPF_FACTOR + acc_) * INV_GYR_CMPF_FACTOR;
 
     /* mag correction */
-    if ( prev_mag_ != mag_[Frame::BODY] )
+    if ( prev_mag_ != mag_ )
       {
-        prev_mag_ = mag_[Frame::BODY];
-        est_m_[Frame::BODY] = (est_m_b_tmp * GYR_CMPFM_FACTOR  + mag_[Frame::BODY]) * INV_GYR_CMPFM_FACTOR;
+        prev_mag_ = mag_;
+        est_m_ = (est_m_b_tmp * GYR_CMPFM_FACTOR  + mag_) * INV_GYR_CMPFM_FACTOR;
       }
 
-    // Attitude of the estimated vector
-    float sq_g_x_sq_g_z = est_g_[Frame::BODY].x * est_g_[Frame::BODY].x + est_g_[Frame::BODY].z * est_g_[Frame::BODY].z;
-    float sq_g_y_sq_g_z = est_g_[Frame::BODY].y * est_g_[Frame::BODY].y + est_g_[Frame::BODY].z * est_g_[Frame::BODY].z;
-    float invG = ap::inv_sqrt(sq_g_x_sq_g_z + est_g_[Frame::BODY].y * est_g_[Frame::BODY].y);
-    rpy_[Frame::BODY].x = atan2f(est_g_[Frame::BODY].y , est_g_[Frame::BODY].z);
-    rpy_[Frame::BODY].y = atan2f(-est_g_[Frame::BODY].x , ap::inv_sqrt(sq_g_y_sq_g_z)* sq_g_y_sq_g_z);
-    rpy_[Frame::BODY].z = atan2f( est_m_[Frame::BODY].z * est_g_[Frame::BODY].y - est_m_[Frame::BODY].y * est_g_[Frame::BODY].z,
-                     est_m_[Frame::BODY].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::BODY].y * est_g_[Frame::BODY].y + est_m_[Frame::BODY].z * est_g_[Frame::BODY].z) * invG * est_g_[Frame::BODY].x ) + mag_declination_;
+    ap::Vector3f wz_b = est_g_.normalized();
+    ap::Vector3f wy_b = wz_b % est_m_;
+    wy_b.normalize();
+    ap::Vector3f wx_b = wy_b % wz_b;
+    wx_b.normalize();
 
+    ap::Matrix3f rot = ap::Matrix3f(wx_b, wy_b, wz_b); // rotation of body frame w.r.t. the world frame. Transpose from row to col
 
-    /* virtual(CoG) frame */
-    est_g_[Frame::VIRTUAL] = r_ * est_g_[Frame::BODY];
-    est_m_[Frame::VIRTUAL] = r_ * est_m_[Frame::BODY];
-    sq_g_x_sq_g_z = est_g_[Frame::VIRTUAL].x * est_g_[Frame::VIRTUAL].x + est_g_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].z;
-    sq_g_y_sq_g_z = est_g_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].y + est_g_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].z;
-    invG = ap::inv_sqrt(sq_g_x_sq_g_z + est_g_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].y);
-    rpy_[Frame::VIRTUAL].x = atan2f(est_g_[Frame::VIRTUAL].y , est_g_[Frame::VIRTUAL].z);
-    rpy_[Frame::VIRTUAL].y = atan2f(-est_g_[Frame::VIRTUAL].x , ap::inv_sqrt(sq_g_y_sq_g_z)* sq_g_y_sq_g_z);
-    rpy_[Frame::VIRTUAL].z = atan2f( est_m_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].y - est_m_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].z,
-                     est_m_[Frame::VIRTUAL].x * invG * sq_g_y_sq_g_z  - (est_m_[Frame::VIRTUAL].y * est_g_[Frame::VIRTUAL].y + est_m_[Frame::VIRTUAL].z * est_g_[Frame::VIRTUAL].z) * invG * est_g_[Frame::VIRTUAL].x ) + mag_declination_;
-    //********************************************************************************:
-    //** refrence1: https://sites.google.com/site/myimuestimationexperience/sensors/magnetometer
-    //** refrence2: http://uav.xenocross.net/hdg.html
-    //********************************************************************************
+    /* consider mag declination */
+    rot_ = mag_dec_rot_ * rot;
+
+    /* avoid illness */
+    if(rot_.is_nan()) rot_.identity();
 
     /* update */
     if(valid_acc) cnt++;

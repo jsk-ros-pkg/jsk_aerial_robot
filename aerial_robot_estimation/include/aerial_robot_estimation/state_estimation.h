@@ -83,14 +83,25 @@ namespace State
       X_BASE, //x axis of Baselink
       Y_BASE, //y axis of Baselink
       Z_BASE, //y axis of Baselink
-      ROLL_COG, //roll of CoG in world coord
-      PITCH_COG, //pitch of CoG in world coord
-      YAW_COG, //yaw of CoG in world coord
-      ROLL_BASE, //roll of baselink in world coord
-      PITCH_BASE, //pitch of baselink in world coord
-      YAW_BASE, //yaw of baselink in world coord
       TOTAL_NUM,
     };
+
+  namespace CoG
+  {
+    enum
+      {
+       Rot = 10,
+      };
+  };
+
+  namespace Base
+  {
+    enum
+      {
+       Rot = 11,
+      };
+  };
+
 };
 
 namespace Sensor
@@ -135,29 +146,42 @@ namespace aerial_robot_estimation
     int getStateStatus(uint8_t axis, uint8_t estimate_mode)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      assert(axis < State::TOTAL_NUM);
-      return state_[axis][estimate_mode].first;
+      if(axis < State::TOTAL_NUM)
+        return state_[axis][estimate_mode].first;
+      else if(axis == State::Base::Rot)
+        return base_rot_status_.at(estimate_mode);
+      else if(axis == State::CoG::Rot)
+        return cog_rot_status_.at(estimate_mode);
+      else
+        return 0;
     }
 
-    void setStateStatus( uint8_t axis, uint8_t estimate_mode, bool status)
+    void setStateStatus(uint8_t axis, uint8_t estimate_mode, bool status)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      assert(axis < State::TOTAL_NUM);
-      if(status) state_[axis][estimate_mode].first ++;
+
+      int* incre_status;
+      if(axis < State::TOTAL_NUM)
+        incre_status = &(state_[axis][estimate_mode].first);
+      else if(axis == State::Base::Rot)
+        incre_status = &(base_rot_status_.at(estimate_mode));
+      else if(axis == State::CoG::Rot)
+        incre_status = &(cog_rot_status_.at(estimate_mode));
+      else
+        return;
+
+      if(status) (*incre_status) ++;
       else
         {
-          if(state_[axis][estimate_mode].first > 0)
-            state_[axis][estimate_mode].first --;
+          if(*incre_status > 0) (*incre_status) --;
           else
-            ROS_ERROR("wrong status update for axis: %d, estimate mode: %d", axis, estimate_mode);
+            ROS_WARN("wrong status update for axis: %d, estimate mode: %d", axis, estimate_mode);
         }
     }
 
-    /* axis: state axis (11) */
     AxisState getState( uint8_t axis)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      assert(axis < State::TOTAL_NUM);
       return state_[axis];
     }
 
@@ -219,71 +243,75 @@ namespace aerial_robot_estimation
     tf::Matrix3x3 getOrientation(int frame, int estimate_mode)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      tf::Matrix3x3 r;
-      r.setRPY((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0],
-               (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
-               (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
-      return r;
+
+      if(frame == Frame::COG)
+        return cog_rots_.at(estimate_mode);
+      else if(frame == Frame::BASELINK)
+        return base_rots_.at(estimate_mode);
+
+      return tf::Matrix3x3::getIdentity();
     }
+
+    void setOrientation(int frame, int estimate_mode, tf::Matrix3x3 rot)
+    {
+      boost::lock_guard<boost::mutex> lock(state_mutex_);
+
+      if(frame == Frame::COG)
+        cog_rots_.at(estimate_mode) = rot;
+      else if(frame == Frame::BASELINK)
+        base_rots_.at(estimate_mode) = rot;
+    }
+
+    void setOrientationWxB(int frame, int estimate_mode, tf::Vector3 v);
+    void setOrientationWzB(int frame, int estimate_mode, tf::Vector3 v);
 
     tf::Vector3 getEuler(int frame, int estimate_mode)
     {
-      boost::lock_guard<boost::mutex> lock(state_mutex_);
+      tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+      tfScalar r = 0, p = 0, y = 0;
+      rot.getRPY(r, p, y);
 
-      return tf::Vector3((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0],
-                         (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0],
-                         (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0]);
-    }
-
-    void setEuler(int frame, int estimate_mode, tf::Vector3 euler)
-    {
-      boost::lock_guard<boost::mutex> lock(state_mutex_);
-      (state_[State::ROLL_COG + frame * 3][estimate_mode].second)[0] = euler[0];
-      (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[0] = euler[1];
-      (state_[State::YAW_COG + frame * 3][estimate_mode].second)[0] = euler[2];
+      return tf::Vector3(r, p, y);
     }
 
     tf::Vector3 getAngularVel(int frame, int estimate_mode)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      return tf::Vector3((state_[State::ROLL_COG + frame * 3][estimate_mode].second)[1],
-                         (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[1],
-                         (state_[State::YAW_COG + frame * 3][estimate_mode].second)[1]);
+
+      if(frame == Frame::COG)
+        return cog_omegas_.at(estimate_mode);
+      else if(frame == Frame::BASELINK)
+        return base_omegas_.at(estimate_mode);
+
+      return tf::Vector3(0,0,0);
     }
 
     void setAngularVel(int frame, int estimate_mode, tf::Vector3 omega)
     {
       boost::lock_guard<boost::mutex> lock(state_mutex_);
-      (state_[State::ROLL_COG + frame * 3][estimate_mode].second)[1] = omega[0];
-      (state_[State::PITCH_COG + frame * 3][estimate_mode].second)[1] = omega[1];
-      (state_[State::YAW_COG + frame * 3][estimate_mode].second)[1] = omega[2];
+
+      if(frame == Frame::COG)
+        cog_omegas_.at(estimate_mode) = omega;
+      else if(frame == Frame::BASELINK)
+        base_omegas_.at(estimate_mode) = omega;
     }
 
     inline void setQueueSize(const int& qu_size) {qu_size_ = qu_size;}
-    void updateQueue(const double timestamp, const double roll, const double pitch, const tf::Vector3 omega)
+    void updateQueue(const double timestamp, const tf::Matrix3x3 r_ee, const tf::Matrix3x3 r_ex, const tf::Vector3 omega)
     {
-      tf::Matrix3x3 r_ee, r_ex, r_gt;
-      r_ee.setRPY(roll, pitch, (getState(State::YAW_BASE, EGOMOTION_ESTIMATE))[0]);
-      r_ex.setRPY(roll, pitch, (getState(State::YAW_BASE, EXPERIMENT_ESTIMATE))[0]);
-      r_gt.setRPY(roll, pitch, (getState(State::YAW_BASE, GROUND_TRUTH))[0]);
+      boost::lock_guard<boost::mutex> lock(queue_mutex_);
+      timestamp_qu_.push_back(timestamp);
+      rot_ee_qu_.push_back(r_ee);
+      rot_ex_qu_.push_back(r_ex);
+      omega_qu_.push_back(omega);
 
-      {
-        boost::lock_guard<boost::mutex> lock(queue_mutex_);
-        timestamp_qu_.push_back(timestamp);
-        rot_ee_qu_.push_back(r_ee);
-        rot_ex_qu_.push_back(r_ex);
-        rot_gt_qu_.push_back(r_gt);
-        omega_qu_.push_back(omega);
-
-        if(timestamp_qu_.size() > qu_size_)
-          {
-            timestamp_qu_.pop_front();
-            rot_ee_qu_.pop_front();
-            rot_ex_qu_.pop_front();
-            rot_gt_qu_.pop_front();
-            omega_qu_.pop_front();
-          }
-      }
+      if(timestamp_qu_.size() > qu_size_)
+        {
+          timestamp_qu_.pop_front();
+          rot_ee_qu_.pop_front();
+          rot_ex_qu_.pop_front();
+          omega_qu_.pop_front();
+        }
     }
 
     bool findRotOmega(const double timestamp, const int mode, tf::Matrix3x3& r, tf::Vector3& omega, bool verbose = true)
@@ -358,9 +386,6 @@ namespace aerial_robot_estimation
         case EXPERIMENT_ESTIMATE:
           r = rot_ex_qu_.at(candidate_index);
           break;
-        case GROUND_TRUTH:
-          r = rot_gt_qu_.at(candidate_index);
-          break;
         default:
           ROS_ERROR("estimation search state with timestamp: wrong mode %d", mode);
           return false;
@@ -391,6 +416,10 @@ namespace aerial_robot_estimation
     /* latitude & longitude value for GPS based navigation */
     inline void setCurrGpsPoint(const geographic_msgs::GeoPoint point) {curr_wgs84_poiont_ = point;}
     inline const geographic_msgs::GeoPoint& getCurrGpsPoint() const {return curr_wgs84_poiont_;}
+    inline const bool hasGroundTruthOdom() const {return has_groundtruth_odom_; }
+    inline void receiveGroundTruthOdom(bool flag) {has_groundtruth_odom_ = flag; }
+    inline const bool hasRefinedYawEstimate(int i) const {return has_refined_yaw_estimate_.at(i); }
+    inline void SetRefinedYawEstimate(int i, bool flag) {has_refined_yaw_estimate_.at(i) = flag; }
 
 
     const SensorFuser& getFuser(int mode)
@@ -452,13 +481,21 @@ namespace aerial_robot_estimation
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     std::string tf_prefix_;
 
-    /* 9: x_w, y_w, z_w, roll_w, pitch_w, yaw_cog_w, x_b, y_b, yaw_board_w */
-    array<AxisState, State::TOTAL_NUM> state_;
+    /* 6: x_w, y_w, z_w, x_b, y_b */
+    /* TODO: check to vector3 */
+    array<AxisState, 6> state_;
+    array<tf::Matrix3x3, 3> base_rots_, cog_rots_; // TODO: should abolish the different between orientation of baselink and that of CoG
+    array<tf::Vector3, 3> base_omegas_, cog_omegas_; // TODO: should abolish the different between orientation of baselink and that of CoG
+    array<int, 3> base_rot_status_, cog_rot_status_;
+
+    bool has_groundtruth_odom_; // whether receive entire groundthtruth odometry (e.g., for simulation mode)
+
+    std::map<int, bool> has_refined_yaw_estimate_; // whether receive refined yaw estimation data (e.g., vio) for each estimate mode
 
     /* for calculate the sensor to baselink with the consideration of time delay */
     int qu_size_;
     deque<double> timestamp_qu_;
-    deque<tf::Matrix3x3> rot_ee_qu_, rot_ex_qu_, rot_gt_qu_;
+    deque<tf::Matrix3x3> rot_ee_qu_, rot_ex_qu_;
     deque<tf::Vector3> omega_qu_;
 
     /* sensor fusion */
