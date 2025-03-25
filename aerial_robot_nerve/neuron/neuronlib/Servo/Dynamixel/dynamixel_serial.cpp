@@ -62,6 +62,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
                 Flashmemory::addValue(&(servo_[i].joint_offset_), 4);
 	}
 	Flashmemory::addValue(&(ttl_rs485_mixed_), 2);
+        Flashmemory::addValue(&(pulley_skip_thresh_), 2);
 
 	Flashmemory::read();
 
@@ -115,10 +116,21 @@ void DynamixelSerial::ping()
 void DynamixelSerial::reboot(uint8_t servo_index)
 {
 	cmdReboot(servo_[servo_index].id_);
+	servo_[servo_index].first_get_pos_flag_ = true;
 }
 
-void DynamixelSerial::setTorque(uint8_t servo_index)
+void DynamixelSerial::setTorque(uint8_t servo_index, bool torque_enable)
 {
+  if(servo_[servo_index].force_servo_off_) return;
+
+  if (servo_[servo_index].torque_enable_ == torque_enable) return;
+  if (torque_enable) {
+    // send the lastest goal position to Spinal
+    servo_[servo_index].send_goal_position_ = true;
+  }
+
+  servo_[servo_index].torque_enable_ = torque_enable;
+
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
@@ -136,7 +148,13 @@ void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
   if(servo_[servo_index].external_encoder_flag_){
-	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 int32_t joint_offset = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
+	 if(joint_offset >= 0){
+		 servo_[servo_index].joint_offset_ = joint_offset % 4096;
+	 }
+	 else {
+		 servo_[servo_index].joint_offset_ = joint_offset % -4096;
+	 }
 	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
 	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
 	servo_[servo_index].first_get_pos_flag_ = true;
@@ -282,18 +300,27 @@ void DynamixelSerial::update()
       instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, 0));
     }
 
-    // check the latest error status
+    // check the latest error status with original rule
     for (unsigned int i = 0; i < servo_num_; i++) {
-      if (servo_[i].hardware_error_status_ != 0) {
-        servo_[i].force_servo_off_ = true;
 
-        if (servo_[i].torque_enable_) {
-          servo_[i].torque_enable_= false;
-          setTorque(i); // servo off
+      servo_[i].force_servo_off_ = false;
+
+      uint8_t error_status = servo_[i].hardware_error_status_;
+      error_status &= ~(1 << PULLEY_SKIP_ERROR);  // ignore pulley skip error
+
+      if (error_status != 0) {
+
+        // ingnore overload error for current based position control (only with this error bit)
+        if (error_status == (1 << OVERLOAD_ERROR)) {
+          if (servo_[i].operating_mode_ == CURRENT_BASE_POSITION_CONTROL_MODE) {
+            if (servo_[i].goal_current_ < servo_[i].current_limit_) {
+              continue;
+            }
+          }
         }
-      }
-      else {
-        servo_[i].force_servo_off_ = false;
+
+        setTorque(i, false); // servo off
+        servo_[i].force_servo_off_ = true;
       }
     }
   }
@@ -651,12 +678,35 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                     if(encoder_handler_.connected()) {
                       s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
 
+                      int32_t internal_offset = s->resolution_ratio_ * s->present_position_ - present_position;
                       if (s->first_get_pos_flag_) {
-                        s->internal_offset_ = s->resolution_ratio_ * s->present_position_ - present_position;
+                        s->internal_offset_ = internal_offset;
                         s->first_get_pos_flag_ = false;
                       }
+                      else {
+                        // check pulley skip
+                        int32_t diff = internal_offset - s->internal_offset_; // this should be proportional to joint load.
+                        // TODO: use diff to estimate the joint torque
 
-                      // TODO: check tooth jump
+
+                        if (abs(diff) > pulley_skip_thresh_) {
+                          if (!(s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR))) {
+                            s->pulley_skip_time_ = HAL_GetTick();
+                          }
+
+                          s->hardware_error_status_ |= 1 << PULLEY_SKIP_ERROR;
+                        }
+
+                        if (s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR)) {
+                          if (HAL_GetTick() - s->pulley_skip_time_ > s->pulley_skip_reset_du_) {
+                            // reset the internal_offset, goal_position, and error flag
+                            s->internal_offset_ = internal_offset;
+                            s->goal_position_ = s->present_position_;
+                            s->send_goal_position_ = true; // send this goal position to spinal
+                            s->hardware_error_status_ &= ~(1 << PULLEY_SKIP_ERROR);
+                          }
+                        }
+                      }
                     }
                     else {
                       s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
@@ -667,7 +717,12 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                       s->internal_offset_ = std::floor(present_position / 4096.0) * -4096; // to convert [0, 4096]
                       s->first_get_pos_flag_ = false;
                     }
-                    s->setPresentPosition(present_position);
+                    s->present_position_ = present_position + s->internal_offset_;
+                  }
+
+                  // update goal position with internal servo encoder when the servo is off
+                  if (!s->torque_enable_) {
+                    s->goal_position_ = (present_position + s->internal_offset_) / s->resolution_ratio_;
                   }
 		}
                 return 0;
@@ -704,7 +759,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000000;
+                  s->hardware_error_status_ &=  ((1 << PULLEY_SKIP_ERROR) + (1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000010;
                   s->hardware_error_status_ |= parameters[0];
 		}
 		return 0;
@@ -975,7 +1030,7 @@ void DynamixelSerial::cmdSyncWriteGoalPosition()
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		int32_t goal_position = servo_[i].getGoalPosition();
+		int32_t goal_position = servo_[i].getInternalGoalPosition();
 		parameters[i * 4 + 0] = (uint8_t)((int32_t)(goal_position) & 0xFF);
 		parameters[i * 4 + 1] = (uint8_t)(((int32_t)(goal_position) >> 8) & 0xFF);
 		parameters[i * 4 + 2] = (uint8_t)(((int32_t)(goal_position) >> 16) & 0xFF);

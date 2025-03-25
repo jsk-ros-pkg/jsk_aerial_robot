@@ -200,8 +200,10 @@
 #define ELECTRICAL_SHOCK_ERROR			4
 #define OVERLOAD_ERROR				5
 //addintional error status for external encoder
+#define PULLEY_SKIP_ERROR			1
 #define RESOLUTION_RATIO_ERROR			6
 #define ENCODER_CONNECT_ERROR			7
+
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
@@ -312,10 +314,15 @@ public:
 	ServoData(){}
 	ServoData(uint8_t id):
           id_(id),
+          goal_current_(0),
           internal_offset_(0),
+          pulley_skip_time_(0),
+          pulley_skip_reset_du_(1000),
+          operating_mode_(0),
           hardware_error_status_(0),
           torque_enable_(false),
           force_servo_off_(false),
+          send_goal_position_(false),
           first_get_pos_flag_(true)
   {}
 
@@ -326,7 +333,9 @@ public:
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
-        uint8_t present_temp_;
+	uint32_t pulley_skip_time_;
+	uint32_t pulley_skip_reset_du_;
+	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
   	uint16_t model_number_;
@@ -339,18 +348,19 @@ public:
 	uint16_t send_data_flag_;
         uint16_t external_encoder_flag_;
         int32_t joint_offset_;
-        uint16_t joint_resolution_;
-        uint16_t servo_resolution_;
+        int16_t joint_resolution_;
+        int16_t servo_resolution_;
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
   	bool force_servo_off_;
+	bool send_goal_position_;
 	bool first_get_pos_flag_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
-	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
+	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position;}
+  	int32_t getInternalGoalPosition() const {return resolution_ratio_ * goal_position_ - internal_offset_;}
 	int32_t getGoalPosition() const {return goal_position_;}
 	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
 	int16_t getGoalCurrent() const { return goal_current_;}
@@ -366,7 +376,7 @@ public:
   void ping();
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
   void reboot(uint8_t servo_index);
-  void setTorque(uint8_t servo_index);
+  void setTorque(uint8_t servo_index, bool torque_enable);
   void setHomingOffset(uint8_t servo_index);
   void setRoundOffset(uint8_t servo_index, int32_t ref_value);
   void setPositionGains(uint8_t servo_index);
@@ -376,6 +386,8 @@ public:
   unsigned int getServoNum() const {return servo_num_;}
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
+  uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
+  void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -387,6 +399,7 @@ private:
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
+  uint16_t pulley_skip_thresh_;
   uint32_t set_command_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
