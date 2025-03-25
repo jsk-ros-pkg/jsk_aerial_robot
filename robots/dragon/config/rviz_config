@@ -9,8 +9,9 @@ Panels:
         - /TF1
         - /RobotModel1
         - /Path1
+        - /Bat Volt1
       Splitter Ratio: 0.5
-    Tree Height: 728
+    Tree Height: 617
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -26,10 +27,12 @@ Panels:
     Name: Views
     Splitter Ratio: 0.5
   - Class: rviz/Time
-    Experimental: false
     Name: Time
     SyncMode: 0
     SyncSource: ""
+  - Class: jsk_rviz_plugin/PublishTopic
+    Name: PublishTopic
+    Topic: /task_start
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -57,9 +60,15 @@ Visualization Manager:
       Value: true
     - Class: rviz/TF
       Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        body:
+          Value: true
+        camera_init:
+          Value: true
         dragon/cog:
           Value: true
         dragon/edf1_left:
@@ -102,6 +111,8 @@ Visualization Manager:
           Value: true
         dragon/inter_joint3:
           Value: true
+        dragon/lidar_imu:
+          Value: true
         dragon/link1:
           Value: true
         dragon/link2:
@@ -109,6 +120,8 @@ Visualization Manager:
         dragon/link3:
           Value: true
         dragon/link4:
+          Value: true
+        dragon/livox_mid360:
           Value: true
         dragon/root:
           Value: true
@@ -122,6 +135,7 @@ Visualization Manager:
           Value: true
         world:
           Value: true
+      Marker Alpha: 1
       Marker Scale: 0.30000001192092896
       Name: TF
       Show Arrows: true
@@ -129,6 +143,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
+          camera_init:
+            body:
+              {}
           dragon/root:
             dragon/cog:
               {}
@@ -173,6 +190,9 @@ Visualization Manager:
                                 {}
                               dragon/thrust4:
                                 {}
+                      dragon/livox_mid360:
+                        dragon/lidar_imu:
+                          {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -276,6 +296,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        lidar_imu:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
@@ -292,6 +316,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         link4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_mid360:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -339,12 +368,36 @@ Visualization Manager:
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
+      Queue Size: 10
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
       Topic: /dragon/trajectory
       Unreliable: false
       Value: true
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: Bat Volt
+      Topic: /dragon/battery_voltage_status
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: false
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 25; 255; 240
+      left: 128
+      max color: 255; 0; 0
+      max color change threthold: 0
+      max value: 26.100000381469727
+      med color: 255; 0; 0
+      med color change threthold: 0
+      min value: 0
+      show caption: true
+      size: 128
+      text size: 14
+      top: 128
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -372,29 +425,36 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0.004999999888241291
-      Class: rviz/TopDownOrtho
+      Class: rviz/Orbit
+      Distance: 7.360358238220215
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.511168897151947
+        Y: 0.8557569980621338
+        Z: 0.3467447757720947
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 209.4122772216797
+      Pitch: 0.3847961127758026
       Target Frame: <Fixed Frame>
-      Value: TopDownOrtho (rviz)
-      X: 0.8380727767944336
-      Y: -0.17005863785743713
+      Yaw: 4.245002269744873
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1025
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000363fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000363000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000363fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000363000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000039f0000003efc0100000002fb0000000800540069006d006501000000000000039f000002eb00fffffffb0000000800540069006d006501000000000000045000000000000000000000022f0000036300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  PublishTopic:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000035afc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000002f4000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000018005000750062006c0069007300680054006f0070006900630100000337000000600000006000ffffff000000010000010f0000035efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b0000035e000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004280000003efc0100000002fb0000000800540069006d0065010000000000000428000003cc00fffffffb0000000800540069006d00650100000000000004500000000000000000000002b80000035a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -403,6 +463,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 927
-  X: 67
+  Width: 1064
+  X: 856
   Y: 27
