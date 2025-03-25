@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8.3)
 project(acados)
 include(ExternalProject)
 
-#message(WARNING "${CMAKE_INSTALL_PREFIX}")
-
 ExternalProject_Add(
   acados
   GIT_REPOSITORY https://github.com/acados/acados.git
