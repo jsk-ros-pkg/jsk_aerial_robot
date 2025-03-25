@@ -21,6 +21,7 @@
   <arg name="robot_ns" value="dragon$(arg robot_id)" />
   <arg name="config_dir" default="$(find dragon)/config/$(arg type)" />
   <arg name="mujoco" default="False" />
+  <arg name="demo" default="True" />
 
   ###########  UAV Config  ###########
   <group ns="$(arg robot_ns)">
@@ -111,6 +112,9 @@
     <arg name="headless" value="$(arg headless)"/>
     <arg name="mujoco_model" value="$(find dragon)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
   </include>
+
+  ########## Simple Demo #########
+  <node pkg="dragon" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>
 

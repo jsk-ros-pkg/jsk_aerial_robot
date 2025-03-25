@@ -56,7 +56,6 @@ public:
 	bool getForceServoOffFlag() const {return force_servo_off_;}
 	void setIndex(uint8_t index) {index_ = index;}
 	void setGoalPosition(int16_t goal_position) {goal_position_ = goal_position;}
-	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
 	void setTorqueEnable(bool torque_enable);
 };
 
