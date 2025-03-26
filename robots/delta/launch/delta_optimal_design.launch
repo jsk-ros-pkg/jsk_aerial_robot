@@ -1,16 +1,27 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="type" default="20240207_new_armor"/>
+  <arg name="type" default="20240722"/>
+  <arg name="robot_ns" value="delta" />
 
-  <include file="$(find delta)/launch/bringup.launch">
-    <arg name="real_machine" value="false"/>
-    <arg name="simulation" value="false"/>
-    <arg name="headless" value="true"/>
-    <arg name="type" value="$(arg type)"/>
-  </include>
+  ###########  Robot Model  ###########
+  <arg name="robot_model" value="$(find delta)/robots/$(arg type)/rolling.urdf.xacro"/>
 
-  <node pkg="delta" type="delta_optimal_design" name="delta_optimal_design" output="screen">
+  <group ns="$(arg robot_ns)">
+    <param name="robot_description" command="$(find xacro)/xacro '$(arg robot_model)'" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+    <node name="rotor_tf_publisher" pkg="aerial_robot_model" type="rotor_tf_publisher">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+  </group>
+
+  <node pkg="delta" type="delta_optimal_design" name="delta_optimal_design" output="screen" ns="$(arg robot_ns)">
     <rosparam file="$(find delta)/config/$(arg type)/optimal_design.yaml" command="load"/>
+  </node>
+
+  <node pkg="delta" type="feasible_control_convex_plot.py" name="feasible_control_convex_plot" output="screen" ns="$(arg robot_ns)">
+    <param name="only_torque" value="True"/>
   </node>
 
 </launch>

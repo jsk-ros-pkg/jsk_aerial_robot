@@ -76,7 +76,7 @@ add_executable(traj_test src/navigation/traj_test.cpp)
 target_link_libraries(traj_test ${catkin_LIBRARIES})
 
 add_executable(delta_optimal_design src/design/delta_optimal_design.cpp)
-target_link_libraries(delta_optimal_design ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
+target_link_libraries(delta_optimal_design delta_robot_model ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 
 add_executable(delta_joint_load_calc src/design/delta_joint_load_calc.cpp)
 target_link_libraries(delta_joint_load_calc

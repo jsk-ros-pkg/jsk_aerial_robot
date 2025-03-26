@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-# for hydrus: $rosrun hydrus feasible_control_convex_plot.py __ns:=hydrus
-# for dragon: $rosrun hydrus feasible_control_convex_plot.py __ns:=dragon _only_torque:=false
-
+import os
 import sys
 import time
 import rospy
@@ -103,7 +101,7 @@ def get_distance(v1, v2):
 
 
 class FeasibleControlConvexPlot():
-    def __init__(self, name="feasible_control_convex_plot"):
+    def __init__(self):
         rospy.Subscriber("feasible_control_force_convex", PoseArray, self.fc_force_convex_cb)
         rospy.Subscriber("feasible_control_torque_convex", PoseArray, self.fc_torque_convex_cb)
         rospy.Subscriber("feasible_control_force_radius", Float32, self.fc_force_radius_cb)
@@ -125,10 +123,12 @@ class FeasibleControlConvexPlot():
 
         self.lock = threading.Lock()
 
-        r = rospy.Rate(10) # 10hz
+        r = rospy.Rate(1) # 1hz
         while not rospy.is_shutdown():
+            r.sleep()
             if self.fc_torque_convex and self.fc_torque_radius and self.fc_force_convex and self.fc_force_radius:
                 print("start process")
+                # force
                 if not self.only_torque:
                     self.lock.acquire()
                     force_vertices = deepcopy(self.force_vertices)
@@ -142,12 +142,16 @@ class FeasibleControlConvexPlot():
                     for simplex in hull.simplices:
                         plt.plot(force_vertices[simplex, 0], force_vertices[simplex, 1], 'k-')
 
-                ax = a3.Axes3D(plt.figure("feasible_control_torque"))
+                # torque
+                ax = a3.Axes3D(plt.figure("feasible_control_torque", figsize=[6,6]))
+                plt.rcParams['font.family'] = 'Times New Roman' # https://kenbo.hatenablog.com/entry/2018/11/28/111639
+                plt.rcParams['figure.subplot.bottom'] = 0.2    # https://qiita.com/78910jqk/items/e8bce993081c384afdba
+                plt.rcParams['text.usetex'] = True
                 self.lock.acquire()
                 torque_vertices = deepcopy(self.torque_vertices)
                 torque_radius = deepcopy(self.torque_radius)
                 self.lock.release()
-                # print(torque_vertices)
+
                 x_min = np.amin(torque_vertices, axis = 0)[0] - 1
                 y_min = np.amin(torque_vertices, axis = 0)[1] - 1
                 z_min = np.amin(torque_vertices, axis = 0)[2] - 1
@@ -161,7 +165,6 @@ class FeasibleControlConvexPlot():
                 ax.yaxis.set_tick_params(labelsize=20)
                 ax.zaxis.set_tick_params(labelsize=20)
 
-
                 if self.xyz_equal_scale:
                     xyz_min = np.amin(np.amin(torque_vertices, axis = 0), axis = 0) - 0.5
                     xyz_max = np.amax(np.amax(torque_vertices, axis = 0), axis = 0) + 0.5
@@ -174,7 +177,6 @@ class FeasibleControlConvexPlot():
                 triangles = []
 
                 for s in hull.simplices:
-
                     sq = [
                         (torque_vertices[s[0], 0], torque_vertices[s[0], 1], torque_vertices[s[0], 2]),
                         (torque_vertices[s[1], 0], torque_vertices[s[1], 1], torque_vertices[s[1], 2]),
@@ -203,10 +205,12 @@ class FeasibleControlConvexPlot():
                 z=np.cos(v) * torque_radius
                 #ax.plot_wireframe(x, y, z, color='maroon', linewidth=1.0)
                 ax.plot_wireframe(x, y, z, color='darkblue', linewidth=1.0)
-                ax.tick_params(labelsize=7)
-                ax.set_xlabel("tau_x", fontsize=20)
-                ax.set_ylabel("tau_y", fontsize=20)
-                ax.set_zlabel("tau_z", fontsize=20)
+                ax.tick_params(labelsize=10)
+                ax.set_xlabel(r'$\tau_x$ [Nm]', fontsize=10)
+                ax.set_ylabel(r'$\tau_y$ [Nm]', fontsize=10)
+                ax.set_zlabel(r'$\tau_z$ [Nm]', fontsize=10)
+
+                plt.savefig(os.path.join(os.environ['HOME'], "feasible_control_torque_convex.pdf"), bbox_inches="tight")
 
                 if self.one_shot:
                     plt.show()
@@ -223,68 +227,48 @@ class FeasibleControlConvexPlot():
                 self.fc_torque_radius = False
 
     def fc_force_radius_cb(self, data):
-
         self.lock.acquire()
         self.force_radius = data.data
         self.lock.release()
-
         self.fc_force_radius = True
 
     def fc_force_convex_cb(self, data):
         cnt = 0
-
         self.lock.acquire()
         self.force_vertices = np.empty((0,2), float)
-
         while cnt < 2 ** len(data.poses):
             vertice = np.array([0.0, 0.0])
             for i in range(len(data.poses)):
                 if 2 ** i & cnt:
                     vertice += [data.poses[i].position.x, data.poses[i].position.y] # positive
-                # else:
-                #     vertice -= [data.poses[i].position.x, data.poses[i].position.y] # negative
-
             self.force_vertices = np.append(self.force_vertices, np.array([vertice]), axis=0)
             cnt += 1
         self.lock.release()
-
         self.fc_force_convex = True
 
     def fc_torque_radius_cb(self, data):
-
+        rospy.loginfo_once("torque radius callback")
         self.lock.acquire()
         self.torque_radius = data.data
         self.lock.release()
-
         self.fc_torque_radius = True
 
     def fc_torque_convex_cb(self, data):
+        rospy.loginfo_once("torque convex callback")
         cnt = 0
-        # unidirection = (data.header.frame_id == "unidirection")
-        # if unidirection:
-        #     cnt = 1
-
-        # cnt = 1
-
         self.lock.acquire()
         self.torque_vertices = np.empty((0,3), float)
-        while cnt < 2 ** len(data.poses):
-            if cnt % 1000 == 0:
-                self.torque_vertices = np.unique(self.torque_vertices, axis=0)
-                print(cnt)
+        while cnt < (2 ** len(data.poses)):
             vertice = np.array([0.0, 0.0, 0.0])
             for i in range(len(data.poses)):
                 if 2 ** i & cnt:
                     vertice += [data.poses[i].position.x, data.poses[i].position.y, data.poses[i].position.z] # positive
-                # else:
-                #     if not unidirection: # bidirection
-                #         vertice -= [data.poses[i].position.x, data.poses[i].position.y, data.poses[i].position.z] # negative
 
             self.torque_vertices = np.append(self.torque_vertices, np.array([vertice]), axis=0)
             cnt += 1
         self.torque_vertices = np.unique(self.torque_vertices, axis=0)
         self.lock.release()
-
+        rospy.loginfo_once("torque vertice size: ", self.torque_vertices.shape)
         self.fc_torque_convex = True
 
 
