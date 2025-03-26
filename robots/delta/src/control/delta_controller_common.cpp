@@ -270,6 +270,7 @@ void RollingController::controlCore()
         /* update robot model for control */
         KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
         robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+        robot_model_for_control_->setExtraModuleMap(robot_model_->getExtraModuleMap());
         KDL::JntArray joint_positions = robot_model_->getJointPositions();
         robot_model_for_control_->updateRobotModel(joint_positions);
         jointTorquePreComputation();
@@ -295,6 +296,7 @@ void RollingController::controlCore()
         /* update robot model */
         KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
         robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
+        robot_model_for_control_->setExtraModuleMap(robot_model_->getExtraModuleMap());
         KDL::JntArray joint_positions = robot_model_->getJointPositions();
         robot_model_for_control_->updateRobotModel(joint_positions);
         jointTorquePreComputation();
