@@ -102,6 +102,16 @@ class TestTiltQd(unittest.TestCase):
             no_viz=True
         )
 
+    def test_tilt_qd_servo_thrust_drag_sim_model(self):
+        run_simulation_test(
+            npz_filename='nmpc_NMPCTiltQdServo_model_NMPCTiltQdServoThrustDrag.npz',
+            nmpc_model_id=1,
+            sim_model_id=1,
+            atol=1e-3,
+            plot_type=1,
+            no_viz=True
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
