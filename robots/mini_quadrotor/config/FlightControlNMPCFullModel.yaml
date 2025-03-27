@@ -22,8 +22,8 @@ physical: # mini quadrotor with Livox lidar. printed by KDL, and then fill in th
 controller:
   nmpc:
     T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
-    T_pred: 2.0  # seconds
-    T_integ: 0.1  # seconds
+    T_horizon: 2.0  # seconds
+    T_step: 0.1  # seconds
 
     n_states: 13
     n_controls: 4
