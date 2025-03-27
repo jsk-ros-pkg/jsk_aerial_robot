@@ -12,6 +12,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
 from nmpc_viz import Visualizer
 
 # Quadrotor
+import tilt_qd.phys_param_beetle_omni as phys_omni
+import archive.phys_param_beetle_art as phys_art
+
 # - Naive models
 from archive.tilt_qd_no_servo_old_cost import NMPCTiltQdNoServoOldCost
 from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
@@ -48,18 +51,18 @@ def main(args):
     if args.arch == 'qd':
 
         if args.model == 0:
-            nmpc = NMPCTiltQdNoServo()
+            nmpc = NMPCTiltQdNoServo(phys=phys_art)
         elif args.model == 1:
-            nmpc = NMPCTiltQdServo()
+            nmpc = NMPCTiltQdServo(phys=phys_art)
         elif args.model == 2:
-            nmpc = NMPCTiltQdThrust()
+            nmpc = NMPCTiltQdThrust(phys=phys_art)
         elif args.model == 3:
-            nmpc = NMPCTiltQdServoThrust()
+            nmpc = NMPCTiltQdServoThrust(phys=phys_art)
 
         elif args.model == 21:
-            nmpc = NMPCTiltQdServoDist()
+            nmpc = NMPCTiltQdServoDist(phys=phys_omni)
         elif args.model == 22:
-            nmpc = NMPCTiltQdServoThrustDist()
+            nmpc = NMPCTiltQdServoThrustDist(phys=phys_omni)
 
         # Archived methods
         elif args.model == 91:
@@ -124,10 +127,11 @@ def main(args):
     # ---------- Simulator ----------
     if args.arch == 'qd':
 
+        sim_phy = phys_omni if 20 < args.model < 30 else phys_art
         if args.sim_model == 0:
-            sim_nmpc = NMPCTiltQdServoThrust()      # Consider both the servo delay and the thrust delay
+            sim_nmpc = NMPCTiltQdServoThrust(phys=sim_phy)      # Consider both the servo delay and the thrust delay
         elif args.sim_model == 1:
-            sim_nmpc = NMPCTiltQdServoThrustDrag()  # Also consider drag in wrench formulation
+            sim_nmpc = NMPCTiltQdServoThrustDrag(phys=sim_phy)  # Also consider drag in wrench formulation
         else:
             raise ValueError(f"Invalid sim model {args.sim_model}.")
 
