@@ -95,25 +95,25 @@ class TestTiltQd(unittest.TestCase):
             no_viz=True
         )
 
-    # def test_tilt_qd_servo_dist(self):
-    #     run_simulation_test(
-    #         npz_filename='nmpc_NMPCTiltQdServoDist_model_NMPCTiltQdServoThrust.npz',
-    #         nmpc_model_id=21,
-    #         sim_model_id=0,
-    #         atol=1e-3,
-    #         plot_type=1,
-    #         no_viz=True
-    #     )
+    def test_tilt_qd_servo_dist(self):
+        run_simulation_test(
+            npz_filename='nmpc_NMPCTiltQdServoDist_model_NMPCTiltQdServoThrust.npz',
+            nmpc_model_id=21,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            no_viz=True
+        )
 
-    # def test_tilt_qd_servo_thrust_dist(self):
-    #     run_simulation_test(
-    #         npz_filename='nmpc_NMPCTiltQdServoThrustDist_model_NMPCTiltQdServoThrust.npz',
-    #         nmpc_model_id=22,
-    #         sim_model_id=0,
-    #         atol=1e-3,
-    #         plot_type=1,
-    #         no_viz=True
-    #     )
+    def test_tilt_qd_servo_thrust_dist(self):
+        run_simulation_test(
+            npz_filename='nmpc_NMPCTiltQdServoThrustDist_model_NMPCTiltQdServoThrust.npz',
+            nmpc_model_id=22,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            no_viz=True
+        )
 
     def test_tilt_qd_servo_thrust_drag_sim_model(self):
         run_simulation_test(
