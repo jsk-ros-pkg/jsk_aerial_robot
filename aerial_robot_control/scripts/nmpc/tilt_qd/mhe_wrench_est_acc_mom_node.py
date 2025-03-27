@@ -25,7 +25,7 @@ mhe_param_path = os.path.join(rospack.get_path("beetle_omni"), "config", "Wrench
 with open(mhe_param_path, "r") as f:
     mhe_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 mhe_params = mhe_param_dict["controller"]["mhe"]
-mhe_params["N_node"] = int(mhe_params["T_pred"] / mhe_params["T_integ"])
+mhe_params["N_steps"] = int(mhe_params["T_horizon"] / mhe_params["T_step"])
 
 
 class MHEWrenchEstAccMomNode:
@@ -35,6 +35,7 @@ class MHEWrenchEstAccMomNode:
 
         :param robot_name: Name of the robot (e.g., "beetle1").
         """
+        
         self.robot_name = robot_name
 
         rospy.init_node(f'{self.robot_name}_mhe_node', anonymous=True)
@@ -65,7 +66,7 @@ class MHEWrenchEstAccMomNode:
                                                         queue_size=10)
 
         # Others
-        self.alloc_mat = XrUrConverter()._get_alloc_mat()
+        self.alloc_mat = XrUrConverter().get_alloc_mat()
         self.disturb_estimate_acc = np.zeros(6)
         self.rot_ib = np.eye(3)
 

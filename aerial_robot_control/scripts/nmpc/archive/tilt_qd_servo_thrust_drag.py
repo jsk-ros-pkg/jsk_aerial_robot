@@ -5,17 +5,31 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from bi_reference_generator import BINMPCReferenceGenerator
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
 from rh_base import RecedingHorizonBase
+from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
-import phys_param_birotor as phys
+from phys_param_beetle_art import *
+import phys_param_beetle_art as phys
 
 
-class NMPCTiltBiServo(RecedingHorizonBase):
+class NMPCTiltQdServoThrustDrag(RecedingHorizonBase):
+    """
+    Controller Name: Tiltable Quadrotor NMPC including Servo and Thrust Model as well as Drag on each rotor 
+    This model considers drag as additive terms for each rotor force in the internal wrench formulation.
+    It seems with this inclusion the solver has difficulties to converge.
+    The output of the controller is the thrust and the servo angle for each rotor.
+    
+    For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
+    is has drag - i.e. a disturbance - on each rotor, meaning there are additive terms for 
+    each force in the internal wrench formulation. This idea was discarded for future use and therefore 
+    not included in base definition.
+
+    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    """
     def __init__(self, overwrite: bool = False):
-        # Model name
-        self.model_name = "tilt_bi_servo_mdl"
+        # Store model name
+        self.model_name = "tilt_qd_servo_thrust_drag_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -27,11 +41,11 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
         # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
         # - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
-        
+
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = False
+        self.include_thrust_model = True   # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
@@ -40,9 +54,9 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         self.phys = phys
 
         # Read parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "gimbalrotor", "TiltBiRotorNMPC.yaml")
+        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFullITermDrag.yaml")
 
-        # Create acados model & solver and generate c code
+        # Call RecedingHorizon constructor coming as NMPC method
         super().__init__("nmpc", overwrite)
 
         # Create Reference Generator object
@@ -64,27 +78,39 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1 = ca.SX.sym("a1")    # Servo angle alpha between E frame and R frame
+        a1 = ca.SX.sym("a1")
         a2 = ca.SX.sym("a2")
-        a = ca.vertcat(a1, a2)
+        a3 = ca.SX.sym("a3")
+        a4 = ca.SX.sym("a4")
+        a = ca.vertcat(a1, a2, a3, a4)
 
-        states = ca.vertcat(p, v, q, w, a)
+        ft1 = ca.SX.sym("ft1")
+        ft2 = ca.SX.sym("ft2")
+        ft3 = ca.SX.sym("ft3")
+        ft4 = ca.SX.sym("ft4")
+        ft = ca.vertcat(ft1, ft2, ft3, ft4)
+
+        states = ca.vertcat(p, v, q, w, a, ft)
 
         # Model parameters
         qwr = ca.SX.sym("qwr")  # Reference for quaternions
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
-        quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
+        parameters = ca.vertcat(qwr, qxr, qyr, qzr)
 
         # Control inputs
-        ft1c = ca.SX.sym("ft1c")
-        ft2c = ca.SX.sym("ft2c")
-        ft_c = ca.vertcat(ft1c, ft2c)
+        ftc1 = ca.SX.sym("ftc1")
+        ftc2 = ca.SX.sym("ftc2")
+        ftc3 = ca.SX.sym("ftc3")
+        ftc4 = ca.SX.sym("ftc4")
+        ftc = ca.vertcat(ftc1, ftc2, ftc3, ftc4)
         a1c = ca.SX.sym("a1c")
         a2c = ca.SX.sym("a2c")
-        a_c = ca.vertcat(a1c, a2c)
-        controls = ca.vertcat(ft_c, a_c)
+        a3c = ca.SX.sym("a3c")
+        a4c = ca.SX.sym("a4c")
+        ac = ca.vertcat(a1c, a2c, a3c, a4c)
+        controls = ca.vertcat(ftc, ac)
 
         # Transformation matrix
         row_1 = ca.horzcat(
@@ -98,11 +124,17 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
-        den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+
+        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+
+        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        rot_be4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -110,44 +142,68 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         rot_e2r2 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
         )
+        rot_e3r3 = ca.vertcat(
+            ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a3), -ca.sin(a3)), ca.horzcat(0, ca.sin(a3), ca.cos(a3))
+        )
+        rot_e4r4 = ca.vertcat(
+            ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
+        )
 
         # Wrench in Rotor frame
-        ft_r1 = ca.vertcat(0, 0, ft1c)
-        ft_r2 = ca.vertcat(0, 0, ft2c)
+        dr_a1 = dr1 * a1
+        dr_a2 = dr2 * a2
+        dr_a3 = dr3 * a3
+        dr_a4 = dr4 * a4
+        fd1 = (c4 * dr_a1**4 + c3 * dr_a1**3 + c2 * dr_a1**2 + c1 * dr_a1 + c0) * ft1
+        fd2 = (c4 * dr_a2**4 + c3 * dr_a2**3 + c2 * dr_a2**2 + c1 * dr_a2 + c0) * ft2
+        fd3 = (c4 * dr_a3**4 + c3 * dr_a3**3 + c2 * dr_a3**2 + c1 * dr_a3 + c0) * ft3
+        fd4 = (c4 * dr_a4**4 + c3 * dr_a4**3 + c2 * dr_a4**2 + c1 * dr_a4 + c0) * ft4
 
-        tau_r1 = ca.vertcat(0, 0, -self.phys.dr1 * ft1c * self.phys.kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -self.phys.dr2 * ft2c * self.phys.kq_d_kt)
+        ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
+        ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
+        ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
+        ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
+
+        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd2) * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd3) * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd4) * kq_d_kt)
 
         # Wrench in Body frame
         f_u_b = (
-              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Inertia
-        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
-        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
-        g_i = np.array([0, 0, -self.phys.gravity])
+        I = ca.diag([Ixx, Iyy, Izz])
+        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        g_i = np.array([0, 0, -gravity])
 
-        # Explicit dynamics (Time-derivative of states)
+        # Explicit dynamics
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / self.phys.mass + g_i,
+            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b)),
-            (a_c - a) / self.phys.t_servo,
+            (ac - a) / t_servo,
+            (ftc - ft) / t_rotor,
         )
-
-        # Assemble acados function
         f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
         # Implicit dynamics
@@ -158,25 +214,23 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error
         # qe = qr^* multiply q
-        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
-        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_x =  qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y =  qwr * qy - qw * qyr + qxr * qz - qx * qzr
         qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
-        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a)
-        state_y_e = state_y
-        control_y = ca.vertcat(ft_c, (a_c - a))  # ac_ref must be zero!
+        state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, ft)
+        control_y = ca.vertcat((ftc - ft), (ac - a))  # ftc_ref and ac_ref must be zero!
 
-        # Assemble acados model
         model = AcadosModel()
         model.name = self.model_name
         model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = controls
-        model.p = quaternion
+        model.p = parameters
         model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
-        model.cost_y_expr_e = state_y_e
+        model.cost_y_expr_e = state_y
 
         return model
 
@@ -205,14 +259,24 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                 self.params["Qw_z"],
                 self.params["Qa"],
                 self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                self.params["Rt"],
-                self.params["Rt"],
+                1,
+                1,
+                1,
+                1,
+                self.params["Rac_d"],
+                self.params["Rac_d"],
                 self.params["Rac_d"],
                 self.params["Rac_d"],
             ]
@@ -223,12 +287,12 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         ocp.cost.cost_type = "NONLINEAR_LS"
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W = np.block([[Q, np.zeros((nx, nu))], [np.zeros((nu, nx)), R]])
-        ocp.cost.W_e = Q  # Weight matrix at terminal shooting node (N).
+        ocp.cost.W_e = Q  # weight matrix at terminal shooting node (N).
 
         # Set constraints
         # - State box constraints bx
-        # vx, vy, vz, wx, wy, wz, a1, a2
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14])
+        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
         ocp.constraints.lbx = np.array(
             [
                 self.params["v_min"],
@@ -237,6 +301,8 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                 self.params["w_min"],
                 self.params["w_min"],
                 self.params["w_min"],
+                self.params["a_min"],
+                self.params["a_min"],
                 self.params["a_min"],
                 self.params["a_min"],
             ]
@@ -251,14 +317,16 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                 self.params["w_max"],
                 self.params["a_max"],
                 self.params["a_max"],
+                self.params["a_max"],
+                self.params["a_max"],
             ]
         )
         print("lbx: ", ocp.constraints.lbx)
         print("ubx: ", ocp.constraints.ubx)
 
         # - Terminal state box constraints bx_e
-        # vx, vy, vz, wx, wy, wz, a1, a2
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14])
+        # vx, vy, vz, wx, wy, wz, a1, a2, a3, a4
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14, 15, 16])
         ocp.constraints.lbx_e = np.array(
             [
                 self.params["v_min"],
@@ -267,6 +335,8 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                 self.params["w_min"],
                 self.params["w_min"],
                 self.params["w_min"],
+                self.params["a_min"],
+                self.params["a_min"],
                 self.params["a_min"],
                 self.params["a_min"],
             ]
@@ -281,18 +351,24 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                 self.params["w_max"],
                 self.params["a_max"],
                 self.params["a_max"],
+                self.params["a_max"],
+                self.params["a_max"],
             ]
         )
         print("lbx_e: ", ocp.constraints.lbx_e)
         print("ubx_e: ", ocp.constraints.ubx_e)
 
         # - Input box constraints bu
-        # ft1, ft2, a1c, a2c
-        ocp.constraints.idxbu = np.array([0, 1, 2, 3])
+        # ft1, ft2, ft3, ft4, a1c, a2c, a3c, a4c
+        ocp.constraints.idxbu = np.array([0, 1, 2, 3, 4, 5, 6, 7])
         ocp.constraints.lbu = np.array(
             [
                 self.params["thrust_min"],
                 self.params["thrust_min"],
+                self.params["thrust_min"],
+                self.params["thrust_min"],
+                self.params["a_min"],
+                self.params["a_min"],
                 self.params["a_min"],
                 self.params["a_min"],
             ]
@@ -301,6 +377,10 @@ class NMPCTiltBiServo(RecedingHorizonBase):
             [
                 self.params["thrust_max"],
                 self.params["thrust_max"],
+                self.params["thrust_max"],
+                self.params["thrust_max"],
+                self.params["a_max"],
+                self.params["a_max"],
                 self.params["a_max"],
                 self.params["a_max"],
             ]
@@ -312,7 +392,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
-        u_ref[0:2] = self.phys.mass * self.phys.gravity / 2  # ft1, ft2
+        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
@@ -330,13 +410,12 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         ocp.solver_options.qp_solver_cond_N = self.params["N_steps"]
         ocp.solver_options.tf = self.params["T_horizon"]
 
-        # Compile acados OCP
+        # compile acados OCP
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
         solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
-        print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver
-
+    
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -368,26 +447,30 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
+        xr[:, 15] = a_ref[2]
+        xr[:, 16] = a_ref[3]
+        xr[:, 17] = ft_ref[0]
+        xr[:, 18] = ft_ref[1]
+        xr[:, 19] = ft_ref[2]
+        xr[:, 20] = ft_ref[3]
 
         # Assemble input reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
-        ur[:, 0] = ft_ref[0]
-        ur[:, 1] = ft_ref[1]
-
+        
         return xr, ur
-
-    def get_reference_generator(self) -> BINMPCReferenceGenerator:
+    
+    def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
-
-    def _create_reference_generator(self) -> BINMPCReferenceGenerator:
+    
+    def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
-        return BINMPCReferenceGenerator(self,
-                                        self.phys.p1_b,    self.phys.p2_b,
-                                        self.phys.dr1,     self.phys.dr2,
+        return QDNMPCReferenceGenerator(self,
+                                        self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
+                                        self.phys.dr1,     self.phys.dr2,  self.phys.dr3,  self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
     
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, ocp_model: AcadosModel, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
         
         acados_sim = AcadosSim()
@@ -403,10 +486,10 @@ class NMPCTiltBiServo(RecedingHorizonBase):
 
 if __name__ == "__main__":
     overwrite = True
-    nmpc = NMPCTiltBiServo(overwrite)
+    nmpc = NMPCTiltQdServoThrustDrag(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
-    print("Successfully initialized acados OCP: ", acados_ocp_solver.acados_ocp)
+    print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
     print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
     print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
     print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)

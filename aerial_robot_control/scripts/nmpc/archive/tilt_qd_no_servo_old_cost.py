@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
+import os, sys
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
+from tilt_qd.qd_nmpc_base import QDNMPCBase
 
 
-class NMPCTiltQdServoThrust(QDNMPCBase):
+class NMPCTiltQdNoServoOldCost(QDNMPCBase):
     """
-    Controller Name: Tiltable Quadrotor NMPC including Servo and Thrust Model
+    Controller Name: Tiltable Quadrotor NMPC without Servo Model
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
@@ -16,7 +19,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
     """
     def __init__(self, overwrite: bool = False):
         # Model name
-        model_name = "tilt_qd_servo_thrust_mdl"
+        model_name = "tilt_qd_no_servo_old_cost_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -30,20 +33,20 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         # - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
 
         self.tilt = True
-        self.include_servo_model = True
+        self.include_servo_model = False
         self.include_servo_derivative = False
-        self.include_thrust_model = True   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-
+        
         # Read parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
-
+        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServoOldCost.yaml")
+        
         # Create acados model & solver and generate c code
         super().__init__(model_name, overwrite)
 
-    def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+    def get_cost_function(self, wlin_acc_w=None, ang_acc_b=None):
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -59,16 +62,14 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
             qe_x + self.qxr,
             qe_y + self.qyr,
             qe_z + self.qzr,
-            self.w,
-            self.a_s,
-            self.ft_s
+            self.w
         )
 
         state_y_e = state_y
 
         control_y = ca.vertcat(
-            self.ft_c - self.ft_s,  # ft_c_ref must be zero!
-            self.a_c - self.a_s     # a_c_ref must be zero!
+            self.ft_c,
+            self.a_c
         )
 
         return state_y, state_y_e, control_y
@@ -90,28 +91,20 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
                 self.params["Qw_xy"],
                 self.params["Qw_xy"],
                 self.params["Qw_z"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                1,
-                1,
-                1,
-                1,
-                self.params["Rac_d"],
-                self.params["Rac_d"],
-                self.params["Rac_d"],
-                self.params["Rac_d"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rac"],
+                self.params["Rac"],
+                self.params["Rac"],
+                self.params["Rac"],
             ]
         )
         print("R: \n", R)
@@ -128,7 +121,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         :param target_xyz: Target position
         :param target_qwxy: Target quarternions
         :param ft_ref: Target thrust
-        :param a_ref: Target servo angles
+        :param a_ref: Target servo angles (not needed here)
         :return xr: Reference for the state x
         :return ur: Reference for the input u
         """
@@ -147,28 +140,28 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         xr[:, 8] = target_qwxyz[2]     # qy
         xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
-        xr[:, 13] = a_ref[0]
-        xr[:, 14] = a_ref[1]
-        xr[:, 15] = a_ref[2]
-        xr[:, 16] = a_ref[3]
-        xr[:, 17] = ft_ref[0]
-        xr[:, 18] = ft_ref[1]
-        xr[:, 19] = ft_ref[2]
-        xr[:, 20] = ft_ref[3]
 
         # Assemble input reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
+        ur[:, 0] = ft_ref[0]
+        ur[:, 1] = ft_ref[1]
+        ur[:, 2] = ft_ref[2]
+        ur[:, 3] = ft_ref[3]
+        ur[:, 4] = a_ref[0]
+        ur[:, 5] = a_ref[1]
+        ur[:, 6] = a_ref[2]
+        ur[:, 7] = a_ref[3]
         
         return xr, ur
 
 
 if __name__ == "__main__":
     overwrite = True
-    nmpc = NMPCTiltQdServoThrust(overwrite)
+    nmpc = NMPCTiltQdNoServoOldCost(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
-    print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
+    print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
     print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
     print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
     print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)

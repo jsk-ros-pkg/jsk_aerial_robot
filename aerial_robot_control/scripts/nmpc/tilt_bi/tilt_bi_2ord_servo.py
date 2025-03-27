@@ -1,47 +1,55 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-"""
-Author: LI Jinjie
-File: nmpc_over_act_full.py
-Date: 2023/11/27 9:43 PM
-Description: the output of the NMPC controller is the thrust for each rotor and the servo angle for each servo
-"""
-from __future__ import print_function  # be compatible with python2
-import os
-import sys
+import os, sys
 import numpy as np
-import yaml
-import rospkg
-from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-from nmpc_base import NMPCBase, XrUrConverterBase
-from phys_param_birotor import *
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+from bi_reference_generator import BINMPCReferenceGenerator
+from rh_base import RecedingHorizonBase
 
-# read parameters from yaml
-rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "TiltBi2OrdRotorNMPC.yaml")
-with open(param_path, "r") as f:
-    param_dict = yaml.load(f, Loader=yaml.FullLoader)
-nmpc_params = param_dict["controller"]["nmpc"]
-nmpc_params["N_node"] = int(nmpc_params["T_pred"] / nmpc_params["T_integ"])
+import phys_param_birotor as phys
 
 
-class NMPCTiltBi2OrdServo(NMPCBase):
-    def __init__(self):
-        super(NMPCTiltBi2OrdServo, self).__init__()
-        self.kps = kps
-        self.kds = kds
+class NMPCTiltBi2OrdServo(RecedingHorizonBase):
+    def __init__(self, overwrite: bool = False):
+        # Model name
+        self.model_name = "tilt_bi_2_ord_servo_mdl"
 
-    def _set_name(self) -> str:
-        model_name = "tilt_bi_2_ord_servo_mdl"
-        return model_name
+        # ====== Define controller setup through flags ======
+        #
+        # - tilt: Flag to include tiltable rotors and their effect on the rotation matrix.
+        # - include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
+        # - include_servo_derivative: Flag to include the continuous time-derivative of the servo angle as control input(!) instead of numeric differentation.
+        # - include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
+        # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
+        # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
+        # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
+        # - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
+        
+        self.tilt = True
+        self.include_servo_model = True
+        self.include_servo_derivative = False
+        self.include_thrust_model = False
+        self.include_cog_dist_model = False
+        self.include_cog_dist_parameter = False
+        self.include_impedance = False
 
-    def _set_ts_ctrl(self) -> float:
-        return nmpc_params["T_samp"]
+        # Load robot specific parameters
+        self.phys = phys
 
-    def _create_acados_model(self, model_name: str) -> AcadosModel:
-        # model states
+        # Read parameters from configuration file in the robot's package
+        self.read_params("controller", "nmpc", "gimbalrotor", "TiltBi2OrdRotorNMPC.yaml")
+
+        # Create acados model & solver and generate c code
+        super().__init__("nmpc", overwrite)
+
+        # Create Reference Generator object
+        self._reference_generator = self._create_reference_generator()
+
+    def create_acados_model(self) -> AcadosModel:
+        # Model states
         p = ca.SX.sym("p", 3)
         v = ca.SX.sym("v", 3)
 
@@ -56,33 +64,33 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1 = ca.SX.sym("a1")
+        a1 = ca.SX.sym("a1")    # Servo angle alpha between E frame and R frame
         a2 = ca.SX.sym("a2")
         a = ca.vertcat(a1, a2)
 
-        b1 = ca.SX.sym("b1")
+        b1 = ca.SX.sym("b1")    # Servo angular velocity beta (continuous time-derivative of alpha)
         b2 = ca.SX.sym("b2")
         b = ca.vertcat(b1, b2)
 
         states = ca.vertcat(p, v, q, w, a, b)
 
-        # parameters
-        qwr = ca.SX.sym("qwr")  # reference for quaternions
+        # Model parameters
+        qwr = ca.SX.sym("qwr")  # Reference for quaternions
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
         quaternion = ca.vertcat(qwr, qxr, qyr, qzr)
 
-        # control inputs
-        ft1 = ca.SX.sym("ft1")
-        ft2 = ca.SX.sym("ft2")
-        ft = ca.vertcat(ft1, ft2)
+        # Control inputs
+        ft1c = ca.SX.sym("ft1c")
+        ft2c = ca.SX.sym("ft2c")
+        ft_c = ca.vertcat(ft1c, ft2c)
         a1c = ca.SX.sym("a1c")
         a2c = ca.SX.sym("a2c")
-        ac = ca.vertcat(a1c, a2c)
-        controls = ca.vertcat(ft, ac)
+        a_c = ca.vertcat(a1c, a2c)
+        controls = ca.vertcat(ft_c, a_c)
 
-        # transformation matrix
+        # Transformation matrix
         row_1 = ca.horzcat(
             ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
@@ -94,11 +102,11 @@ class NMPCTiltBi2OrdServo(NMPCBase):
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
-        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-        rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-        rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -107,237 +115,225 @@ class NMPCTiltBi2OrdServo(NMPCBase):
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
         )
 
-        # inertial
-        iv = ca.diag([Ixx, Iyy, Izz])
-        inv_iv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        g_i = np.array([0, 0, -gravity])
+        # Wrench in Rotor frame
+        ft_r1 = ca.vertcat(0, 0, ft1c)
+        ft_r2 = ca.vertcat(0, 0, ft2c)
 
-        # wrench
-        ft_r1 = ca.vertcat(0, 0, ft1)
-        ft_r2 = ca.vertcat(0, 0, ft2)
+        tau_r1 = ca.vertcat(0, 0, -self.phys.dr1 * ft1c * self.phys.kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -self.phys.dr2 * ft2c * self.phys.kq_d_kt)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
-
-        f_u_b = ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)) + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+        # Wrench in Body frame
+        f_u_b = (
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+        )
         tau_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
         )
 
-        tau_s_e1 = ca.vertcat(kps * (a1c - a1) + kds * (0 - b1), 0, 0)
-        tau_s_e2 = ca.vertcat(kps * (a2c - a2) + kds * (0 - b2), 0, 0)
+        tau_s_e1 = ca.vertcat(self.phys.kps * (a1c - a1) + self.phys.kds * (0 - b1), 0, 0)
+        tau_s_e2 = ca.vertcat(self.phys.kps * (a2c - a2) + self.phys.kds * (0 - b2), 0, 0)
         tau_s_b = ca.mtimes(rot_be1, tau_s_e1) + ca.mtimes(rot_be2, tau_s_e2)
 
-        # dynamic model # TODO: check if the damping term mus*b should be included in reactive torque
+        # Inertia
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        g_i = np.array([0, 0, -self.phys.gravity])
+
+        # Explicit dynamics (Time-derivative of states)
+        # TODO: check if the damping term mus*b should be included in reactive torque
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i,
+            ca.mtimes(rot_ib, f_u_b) / self.phys.mass + g_i,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
-            ca.mtimes(inv_iv, (-ca.cross(w, ca.mtimes(iv, w)) + tau_u_b - tau_s_b)),
+            ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b - tau_s_b)),
             b,
-            (kps * (ac - a) + kds * (0 - b)) / i_sxx,
+            (self.phys.kps * (a_c - a) + self.phys.kds * (0 - b)) / self.phys.i_sxx,
         )
 
-        # function
-        func = ca.Function("func", [states, controls], [ds], ["state", "control_input"], ["ds"])
+        # Assemble acados function
+        f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"])
 
-        # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
+        # Implicit dynamics
+        x_dot = ca.SX.sym("x_dot", states.size())
+        f_impl = x_dot - f(states, controls)
+
+        # Cost function
+        # error = y - y_ref
+        # NONLINEAR_LS = error^T @ Q @ error
         # qe = qr^* multiply q
         qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
         qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
         qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         state_y = ca.vertcat(p, v, qwr, qe_x + qxr, qe_y + qyr, qe_z + qzr, w, a, b)
-        control_y = ca.vertcat(ft, (ac - a))  # ac_ref must be zero!
+        state_y_e = state_y
+        control_y = ca.vertcat(ft_c, (a_c - a))  # ac_ref must be zero!
 
-        # acados model
-        x_dot = ca.SX.sym("x_dot", 17)
-        f_impl = x_dot - func(states, controls)
-
+        # Assemble acados model
         model = AcadosModel()
-        model.name = model_name
-        model.f_expl_expr = func(states, controls)  # CasADi expression for the explicit dynamics
+        model.name = self.model_name
+        model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
         model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = controls
         model.p = quaternion
         model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
-        model.cost_y_expr_e = state_y
+        model.cost_y_expr_e = state_y_e
 
         return model
 
-    def _create_acados_ocp_solver(self, ocp_model: AcadosModel, is_build: bool) -> AcadosOcpSolver:
-        nx = ocp_model.x.size()[0]
-        nu = ocp_model.u.size()[0]
-        n_params = ocp_model.p.size()[0]
+    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+        # Get OCP object
+        ocp = super().get_ocp()
 
-        # get file path for acados
-        rospack = rospkg.RosPack()
-        folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "nmpc", ocp_model.name
-        )
-        self._mkdir(folder_path)
-        os.chdir(folder_path)
-        # acados_models_dir = "acados_models"
-        # safe_mkdir_recursive(os.path.join(os.getcwd(), acados_models_dir))
+        # Model dimensions
+        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
 
-        acados_source_path = os.environ["ACADOS_SOURCE_DIR"]
-        sys.path.insert(0, acados_source_path)
-
-        # create OCP
-        ocp = AcadosOcp()
-        ocp.acados_include_path = acados_source_path + "/include"
-        ocp.acados_lib_path = acados_source_path + "/lib"
-        ocp.model = ocp_model
-        ocp.dims.N = nmpc_params["N_node"]
-
-        # initialize parameters
-        ocp.dims.np = n_params
-        ocp.parameter_values = np.zeros(n_params)
-
-        # cost function
-        # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
+        # Define weights
         Q = np.diag(
             [
-                nmpc_params["Qp_xy"],
-                nmpc_params["Qp_xy"],
-                nmpc_params["Qp_z"],
-                nmpc_params["Qv_xy"],
-                nmpc_params["Qv_xy"],
-                nmpc_params["Qv_z"],
+                self.params["Qp_xy"],
+                self.params["Qp_xy"],
+                self.params["Qp_z"],
+                self.params["Qv_xy"],
+                self.params["Qv_xy"],
+                self.params["Qv_z"],
                 0,
-                nmpc_params["Qq_xy"],
-                nmpc_params["Qq_xy"],
-                nmpc_params["Qq_z"],
-                nmpc_params["Qw_xy"],
-                nmpc_params["Qw_xy"],
-                nmpc_params["Qw_z"],
-                nmpc_params["Qa"],
-                nmpc_params["Qa"],
-                nmpc_params["Qb"],
-                nmpc_params["Qb"],
+                self.params["Qq_xy"],
+                self.params["Qq_xy"],
+                self.params["Qq_z"],
+                self.params["Qw_xy"],
+                self.params["Qw_xy"],
+                self.params["Qw_z"],
+                self.params["Qa"],
+                self.params["Qa"],
+                self.params["Qb"],
+                self.params["Qb"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                nmpc_params["Rt"],
-                nmpc_params["Rt"],
-                nmpc_params["Rac_d"],
-                nmpc_params["Rac_d"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rac_d"],
+                self.params["Rac_d"],
             ]
         )
         print("R: \n", R)
 
+        # Cost function options
         ocp.cost.cost_type = "NONLINEAR_LS"
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W = np.block([[Q, np.zeros((nx, nu))], [np.zeros((nu, nx)), R]])
         ocp.cost.W_e = Q  # weight matrix at terminal shooting node (N).
 
-        # set constraints
-        # # bx
+        # Set constraints
+        # - State box constraints bx
         # vx, vy, vz, wx, wy, wz, a1, a2
         ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12, 13, 14])
         ocp.constraints.lbx = np.array(
             [
-                nmpc_params["v_min"],
-                nmpc_params["v_min"],
-                nmpc_params["v_min"],
-                nmpc_params["w_min"],
-                nmpc_params["w_min"],
-                nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
+                self.params["v_min"],
+                self.params["v_min"],
+                self.params["v_min"],
+                self.params["w_min"],
+                self.params["w_min"],
+                self.params["w_min"],
+                self.params["a_min"],
+                self.params["a_min"],
             ]
         )
         ocp.constraints.ubx = np.array(
             [
-                nmpc_params["v_max"],
-                nmpc_params["v_max"],
-                nmpc_params["v_max"],
-                nmpc_params["w_max"],
-                nmpc_params["w_max"],
-                nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
+                self.params["v_max"],
+                self.params["v_max"],
+                self.params["v_max"],
+                self.params["w_max"],
+                self.params["w_max"],
+                self.params["w_max"],
+                self.params["a_max"],
+                self.params["a_max"],
             ]
         )
         print("lbx: ", ocp.constraints.lbx)
         print("ubx: ", ocp.constraints.ubx)
 
-        # # bx_e
+        # - Terminal state box constraints bx_e
         # vx, vy, vz, wx, wy, wz, a1, a2
         ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12, 13, 14])
         ocp.constraints.lbx_e = np.array(
             [
-                nmpc_params["v_min"],
-                nmpc_params["v_min"],
-                nmpc_params["v_min"],
-                nmpc_params["w_min"],
-                nmpc_params["w_min"],
-                nmpc_params["w_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
+                self.params["v_min"],
+                self.params["v_min"],
+                self.params["v_min"],
+                self.params["w_min"],
+                self.params["w_min"],
+                self.params["w_min"],
+                self.params["a_min"],
+                self.params["a_min"],
             ]
         )
         ocp.constraints.ubx_e = np.array(
             [
-                nmpc_params["v_max"],
-                nmpc_params["v_max"],
-                nmpc_params["v_max"],
-                nmpc_params["w_max"],
-                nmpc_params["w_max"],
-                nmpc_params["w_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
+                self.params["v_max"],
+                self.params["v_max"],
+                self.params["v_max"],
+                self.params["w_max"],
+                self.params["w_max"],
+                self.params["w_max"],
+                self.params["a_max"],
+                self.params["a_max"],
             ]
         )
         print("lbx_e: ", ocp.constraints.lbx_e)
         print("ubx_e: ", ocp.constraints.ubx_e)
 
-        # # bu
+        # - Input box constraints bu
         # ft1, ft2, a1c, a2c
         ocp.constraints.idxbu = np.array([0, 1, 2, 3])
         ocp.constraints.lbu = np.array(
             [
-                nmpc_params["thrust_min"],
-                nmpc_params["thrust_min"],
-                nmpc_params["a_min"],
-                nmpc_params["a_min"],
+                self.params["thrust_min"],
+                self.params["thrust_min"],
+                self.params["a_min"],
+                self.params["a_min"],
             ]
         )
         ocp.constraints.ubu = np.array(
             [
-                nmpc_params["thrust_max"],
-                nmpc_params["thrust_max"],
-                nmpc_params["a_max"],
-                nmpc_params["a_max"],
+                self.params["thrust_max"],
+                self.params["thrust_max"],
+                self.params["a_max"],
+                self.params["a_max"],
             ]
         )
         print("lbu: ", ocp.constraints.lbu)
         print("ubu: ", ocp.constraints.ubu)
 
-        # initial state
+        # Initial state and reference
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
-        u_ref[0:2] = mass * gravity / 2  # ft1, ft2
+        u_ref[0:2] = self.phys.mass * self.phys.gravity / 2  # ft1, ft2
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
 
-        # solver options
+        # Solver options
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
         ocp.solver_options.hpipm_mode = "BALANCE"  # "BALANCE", "SPEED_ABS", "SPEED", "ROBUST". Default: "BALANCE".
-        # # 0: no warm start; 1: warm start; 2: hot start. Default: 0   Seems only works for FULL_CONDENSING_QPOASES
+        # Start up flags:       [Seems only works for FULL_CONDENSING_QPOASES]
+        # 0: no warm start; 1: warm start; 2: hot start. Default: 0
         # ocp.solver_options.qp_solver_warm_start = 1
         ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         ocp.solver_options.integrator_type = "IRK"  # IRK: implicit Runge-Kutta integrator
@@ -347,50 +343,110 @@ class NMPCTiltBi2OrdServo(NMPCBase):
 
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
-        ocp.solver_options.qp_solver_cond_N = nmpc_params["N_node"]
-        ocp.solver_options.tf = nmpc_params["T_pred"]
+        ocp.solver_options.qp_solver_cond_N = self.params["N_steps"]
+        ocp.solver_options.tf = self.params["T_horizon"]
 
-        # compile acados ocp
-        json_file_path = os.path.join("./" + ocp_model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=is_build)
+        # Compile acados OCP
+        json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver
 
-    def _create_xr_ur_converter(self) -> XrUrConverterBase:
-        return XrUrConverter()
+    def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
+        """
+        Assemble reference trajectory from target pose and reference control values.
+        Gets called from reference generator class.
+        Note: The definition of the reference is closely linked to the definition of the cost function.
+        Therefore, this is explicitly stated in each controller file to increase comprehensiveness.
 
+        :param target_xyz: Target position
+        :param target_qwxy: Target quarternions
+        :param ft_ref: Target thrust
+        :param a_ref: Target servo angles
+        :return xr: Reference for the state x
+        :return ur: Reference for the input u
+        """
+        # Get dimensions
+        ocp = self.get_ocp(); nn = ocp.dims.N
+        nx = ocp.dims.nx; nu = ocp.dims.nu
 
-class XrUrConverter(XrUrConverterBase):
-    def __init__(self):
-        super(XrUrConverter, self).__init__()
+        # Assemble state reference
+        xr = np.zeros([nn + 1, nx])
+        xr[:, 0] = target_xyz[0]       # x
+        xr[:, 1] = target_xyz[1]       # y
+        xr[:, 2] = target_xyz[2]       # z
+        # No reference for vx, vy, vz (idx: 3, 4, 5)
+        xr[:, 6] = target_qwxyz[0]     # qx
+        xr[:, 7] = target_qwxyz[1]     # qx
+        xr[:, 8] = target_qwxyz[2]     # qy
+        xr[:, 9] = target_qwxyz[3]     # qz
+        # No reference for wx, wy, wz (idx: 10, 11, 12)
+        xr[:, 13] = a_ref[0]
+        xr[:, 14] = a_ref[1]
 
-    def _set_nx_nu(self):
-        self.nx = 17
-        self.nu = 4
+        # Assemble input reference
+        # Note: Reference has to be zero if variable is included as state in cost function!
+        ur = np.zeros([nn, nu])
+        ur[:, 0] = ft_ref[0]
+        ur[:, 1] = ft_ref[1]
 
-    def _set_physical_params(self):
-        self.p1_b = p1_b
-        self.p2_b = p2_b
-        self.dr1 = dr1
-        self.dr2 = dr2
-        self.kq_d_kt = kq_d_kt
+        return xr, ur
 
-        self.mass = mass
-        self.gravity = gravity
+    def get_reference_generator(self) -> BINMPCReferenceGenerator:
+        return self._reference_generator
 
-        self.alloc_mat_pinv = self._get_alloc_mat_pinv()
-        self.ocp_N = nmpc_params["N_node"]
+    def _create_reference_generator(self) -> BINMPCReferenceGenerator:
+        # Pass the model's and robot's properties to the reference generator
+        return BINMPCReferenceGenerator(self,
+                                        self.phys.p1_b,    self.phys.p2_b,
+                                        self.phys.dr1,     self.phys.dr2,
+                                        self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+    
+    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+        ocp_model = super().get_acados_model()
+        
+        acados_sim = AcadosSim()
+        acados_sim.model = ocp_model
 
+        n_params = ocp_model.p.size()[0]
+        acados_sim.dims.np = n_params
+        acados_sim.parameter_values = np.zeros(n_params)
+
+        acados_sim.solver_options.T = ts_sim
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+
+    
+    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+        ocp_model = super().get_acados_model()
+
+        acados_sim = AcadosSim()
+        acados_sim.model = ocp_model
+
+        n_params = ocp_model.p.size()[0]
+        acados_sim.dims.np = n_params  # TODO: seems that the np doesn't need to be set manually in the latest version of acados
+        acados_sim.parameter_values = np.zeros(n_params)
+
+        acados_sim.solver_options.T = ts_sim
+        # Important to sim 2-ord servo model
+        acados_sim.solver_options.integrator_type = 'IRK'
+        acados_sim.solver_options.num_stages = 3
+        acados_sim.solver_options.num_steps = 3
+        acados_sim.solver_options.newton_iter = 3  # for implicit integrator
+        acados_sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
+
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltBi2OrdServo()
+    overwrite = True
+    nmpc = NMPCTiltBi2OrdServo(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
-    print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
+    print("Successfully initialized acados OCP: ", acados_ocp_solver.acados_ocp)
     print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
     print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
     print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
-    print("T_samp: ", nmpc_params["T_samp"])
-    print("T_pred: ", nmpc_params["T_pred"])
-    print("T_integ: ", nmpc_params["T_integ"])
-    print("N_node: ", nmpc_params["N_node"])
+    print("T_samp: ", nmpc.params["T_samp"])
+    print("T_horizon: ", nmpc.params["T_horizon"])
+    print("T_step: ", nmpc.params["T_step"])
+    print("N_steps: ", nmpc.params["N_steps"])

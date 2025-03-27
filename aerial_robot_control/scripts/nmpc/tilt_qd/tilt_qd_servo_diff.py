@@ -5,9 +5,9 @@ import casadi as ca
 from qd_nmpc_base import QDNMPCBase
 
 
-class NMPCTiltQdServoThrust(QDNMPCBase):
+class NMPCTiltQdServoDiff(QDNMPCBase):
     """
-    Controller Name: Tiltable Quadrotor NMPC including Servo and Thrust Model
+    Controller Name: Tiltable Quadrotor NMPC including Servo Model with time-continuous differential a_dot as control input
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
@@ -16,7 +16,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
     """
     def __init__(self, overwrite: bool = False):
         # Model name
-        model_name = "tilt_qd_servo_thrust_mdl"
+        model_name = "tilt_qd_servo_diff_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -31,14 +31,14 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
 
         self.tilt = True
         self.include_servo_model = True
-        self.include_servo_derivative = False
-        self.include_thrust_model = True   # TODO extend to include_thrust_derivative
+        self.include_servo_derivative = True
+        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
 
         # Read parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
+        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCDiff.yaml")
 
         # Create acados model & solver and generate c code
         super().__init__(model_name, overwrite)
@@ -60,15 +60,14 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
             qe_y + self.qyr,
             qe_z + self.qzr,
             self.w,
-            self.a_s,
-            self.ft_s
+            self.a_s
         )
 
         state_y_e = state_y
 
         control_y = ca.vertcat(
-            self.ft_c - self.ft_s,  # ft_c_ref must be zero!
-            self.a_c - self.a_s     # a_c_ref must be zero!
+            self.ft_c,
+            self.ad_c
         )
 
         return state_y, state_y_e, control_y
@@ -94,20 +93,16 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
                 self.params["Qa"],
                 self.params["Qa"],
                 self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
-                self.params["Qa"],
             ]
         )
         print("Q: \n", Q)
 
         R = np.diag(
             [
-                1,
-                1,
-                1,
-                1,
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
                 self.params["Rac_d"],
                 self.params["Rac_d"],
                 self.params["Rac_d"],
@@ -117,7 +112,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         print("R: \n", R)
 
         return Q, R
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -151,21 +146,20 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         xr[:, 14] = a_ref[1]
         xr[:, 15] = a_ref[2]
         xr[:, 16] = a_ref[3]
-        xr[:, 17] = ft_ref[0]
-        xr[:, 18] = ft_ref[1]
-        xr[:, 19] = ft_ref[2]
-        xr[:, 20] = ft_ref[3]
 
         # Assemble input reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
+        ur[:, 0] = ft_ref[0]
+        ur[:, 1] = ft_ref[1]
+        ur[:, 2] = ft_ref[2]
+        ur[:, 3] = ft_ref[3]
         
         return xr, ur
-
+    
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoThrust(overwrite)
+    nmpc = NMPCTiltQdServoDiff()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

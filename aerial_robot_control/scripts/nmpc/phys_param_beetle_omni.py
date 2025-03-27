@@ -5,7 +5,6 @@
 import yaml
 import os
 import rospkg
-import numpy as np
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -21,16 +20,14 @@ Ixx = physical_params["inertia_diag"][0]
 Iyy = physical_params["inertia_diag"][1]
 Izz = physical_params["inertia_diag"][2]
 dr1 = physical_params["dr1"]
-p1_b = physical_params["p1"]
 dr2 = physical_params["dr2"]
-p2_b = physical_params["p2"]
 dr3 = physical_params["dr3"]
-p3_b = physical_params["p3"]
 dr4 = physical_params["dr4"]
+p1_b = physical_params["p1"]
+p2_b = physical_params["p2"]
+p3_b = physical_params["p3"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 t_rotor = physical_params["t_rotor"]  # time constant of rotor
-
-iv = np.diag([Ixx, Iyy, Izz])
