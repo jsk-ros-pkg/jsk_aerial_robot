@@ -3,6 +3,7 @@
 import numpy as np
 import casadi as ca
 from qd_nmpc_base import QDNMPCBase
+from archive import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdThrust(QDNMPCBase):
@@ -14,9 +15,10 @@ class NMPCTiltQdThrust(QDNMPCBase):
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_art):
         # Model name
-        model_name = "tilt_qd_thrust_mdl"
+        self.model_name = "tilt_qd_thrust_mdl"
+        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -41,7 +43,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
+        super().__init__(overwrite)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function

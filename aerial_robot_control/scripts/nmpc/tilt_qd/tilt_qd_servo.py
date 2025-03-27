@@ -3,6 +3,7 @@
 import numpy as np
 import casadi as ca
 from qd_nmpc_base import QDNMPCBase
+import archive.phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServo(QDNMPCBase):
@@ -14,9 +15,10 @@ class NMPCTiltQdServo(QDNMPCBase):
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_art):
         # Model name
-        model_name = "tilt_qd_servo_mdl"
+        self.model_name = "tilt_qd_servo_mdl"
+        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -34,14 +36,14 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.include_servo_derivative = False
         self.include_thrust_model = False   # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
-        self.include_cog_dist_parameter = False  # TODO seperation between model and parameter necessary?
+        self.include_cog_dist_parameter = False  # TODO separation between model and parameter necessary?
         self.include_impedance = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
-        
+
         # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
+        super().__init__(overwrite)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -62,7 +64,7 @@ class NMPCTiltQdServo(QDNMPCBase):
             self.w,
             self.a_s,
         )
-        
+
         state_y_e = state_y
 
         control_y = ca.vertcat(
@@ -154,7 +156,7 @@ class NMPCTiltQdServo(QDNMPCBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        
+
         return xr, ur
 
 

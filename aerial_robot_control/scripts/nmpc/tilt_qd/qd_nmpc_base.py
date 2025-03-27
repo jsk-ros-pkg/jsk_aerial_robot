@@ -8,8 +8,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    
 from rh_base import RecedingHorizonBase
 from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
-import phys_param_beetle_omni as phys
-
 
 class QDNMPCBase(RecedingHorizonBase):
     """
@@ -27,13 +25,7 @@ class QDNMPCBase(RecedingHorizonBase):
     :param str model_name: Name of the model defined in controller file.
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, model_name: str, overwrite: bool = False):
-        # Store model name
-        self.model_name = model_name
-
-        # Load robot specific parameters
-        self.phys = phys
-
+    def __init__(self, overwrite: bool = False):
         # Call RecedingHorizon constructor coming as NMPC method
         super().__init__("nmpc", overwrite)
 
@@ -42,7 +34,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
-    
+
     def create_acados_model(self) -> AcadosModel:
         """
         Define generic state-space, acados model parameters, control inputs for kinematics of a quadrotor.
@@ -67,7 +59,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.wy = ca.SX.sym("wy")
         self.wz = ca.SX.sym("wz"); self.w = ca.vertcat(self.wx, self.wy, self.wz)
         states = ca.vertcat(self.p, self.v, self.q, self.w)
-        
+
         # - Extend state-space by dynamics of servo angles (actual)
         # Differentiate between actual angles and control angles
         # Note: If servo angle is not used as control input the model for omnidirectional Quadrotor
@@ -89,7 +81,7 @@ class QDNMPCBase(RecedingHorizonBase):
             self.ft4s = ca.SX.sym("ft4s")
             self.ft_s = ca.vertcat(self.ft1s, self.ft2s, self.ft3s, self.ft4s)
             states = ca.vertcat(states, self.ft_s)
-        
+
         # - Extend state-space by disturbance on CoG (actual)
         # Differentiate between actual disturbance set as state and set as parameter
         if self.include_cog_dist_model:
@@ -131,7 +123,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.qyr = ca.SX.sym("qyr")
         self.qzr = ca.SX.sym("qzr")
         parameters = ca.vertcat(self.qwr, self.qxr, self.qyr, self.qzr)
-        
+
         # - Extend model parameters by CoG disturbance
         if self.include_cog_dist_parameter:
             # Force disturbance applied to CoG in World frame
@@ -170,7 +162,7 @@ class QDNMPCBase(RecedingHorizonBase):
         row_3 = ca.horzcat(
             ca.SX(2 * self.qx * self.qz - 2 * self.qw * self.qy), ca.SX(2 * self.qy * self.qz + 2 * self.qw * self.qx), ca.SX(1 - 2 * self.qx**2 - 2 * self.qy**2)
         )
-        rot_wb = ca.vertcat(row_1, row_2, row_3)    
+        rot_wb = ca.vertcat(row_1, row_2, row_3)
         # - Body to End-of-arm
         denominator = np.sqrt(phys.p1_b[0] ** 2 + phys.p1_b[1] ** 2)
         rot_be1 = np.array([[phys.p1_b[0] / denominator, -phys.p1_b[1] / denominator, 0], [phys.p1_b[1] / denominator, phys.p1_b[0] / denominator, 0], [0, 0, 1]])
@@ -189,7 +181,7 @@ class QDNMPCBase(RecedingHorizonBase):
         if self.tilt:
             # If servo dynamics are modeled, use angle state.
             # Else use angle control which is then assumed to be equal to the angle state at all times.
-            if self.include_servo_model: 
+            if self.include_servo_model:
                 a1 = self.a1s; a2 = self.a2s; a3 = self.a3s; a4 = self.a4s
             else:
                 a1 = self.a1c; a2 = self.a2c; a3 = self.a3c; a4 = self.a4c
@@ -216,7 +208,7 @@ class QDNMPCBase(RecedingHorizonBase):
             ft1 = self.ft1s; ft2 = self.ft2s; ft3 = self.ft3s; ft4 = self.ft4s
         else:
             ft1 = self.ft1c; ft2 = self.ft2c; ft3 = self.ft3c; ft4 = self.ft4c
-        
+
         ft_r1 = ca.vertcat(0, 0, ft1)
         ft_r2 = ca.vertcat(0, 0, ft2)
         ft_r3 = ca.vertcat(0, 0, ft3)
@@ -273,27 +265,27 @@ class QDNMPCBase(RecedingHorizonBase):
             ds = ca.vertcat(ds,
                 (self.a_c - self.a_s) / phys.t_servo    # Time constant of servo motor
             )
-            
+
         # - Extend model by thrust first-order dynamics
         # Assumption if not included: f_tc = f_ts
         if self.include_thrust_model:
             ds = ca.vertcat(ds,
                 (self.ft_c - self.ft_s) / phys.t_rotor  # Time constant of rotor
             )
-        
+
         # - Extend model by disturbances simply to match state dimensions
         if self.include_cog_dist_model:
             ds = ca.vertcat(ds,
                 ca.vertcat(0.0, 0.0, 0.0),
                 ca.vertcat(0.0, 0.0, 0.0),
             )
-            
+
         # Assemble acados function
         f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # Implicit dynamics
         # Note: Used only mainly because of acados template
-        x_dot = ca.SX.sym("x_dot", states.size())      # Combined state vector 
+        x_dot = ca.SX.sym("x_dot", states.size())      # Combined state vector
         f_impl = x_dot - f(states, controls)
 
         # Get terms of cost function
@@ -303,7 +295,7 @@ class QDNMPCBase(RecedingHorizonBase):
             # Note that this part should be f_d_i and no f_d_i_para, since the impedance should not respond to the I Term force.
             lin_acc_w = (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / phys.mass + g_w
             ang_acc_b = ca.mtimes(I_inv, (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b))
-            
+
             state_y, state_y_e, control_y = self.get_cost_function(lin_acc_w=lin_acc_w, ang_acc_b=ang_acc_b)
         else:
             state_y, state_y_e, control_y = self.get_cost_function()
@@ -321,7 +313,7 @@ class QDNMPCBase(RecedingHorizonBase):
         model.cost_y_expr_e = state_y_e
 
         return model
-    
+
     @abstractmethod
     def get_weights(self):
         pass
@@ -337,7 +329,7 @@ class QDNMPCBase(RecedingHorizonBase):
         """
         # Get OCP object
         ocp = super().get_ocp()
-        
+
         # Model dimensions
         nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
 
@@ -360,7 +352,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
             ocp.constraints.idxbx = np.append(ocp.constraints.idxbx, [13, 14, 15, 16])
-            
+
             # -- Index for ft1s, ft2s, ft3s, ft4s (When included servo AND thrust, add further indices)
             if self.include_thrust_model:
                 ocp.constraints.idxbx = np.append(ocp.constraints.idxbx, [17, 18, 19, 20])
@@ -377,7 +369,7 @@ class QDNMPCBase(RecedingHorizonBase):
                 self.params["w_min"],
                 self.params["w_min"],
                 self.params["w_min"]     ])
-        
+
         if self.tilt and self.include_servo_model:
             ocp.constraints.lbx = np.append(ocp.constraints.lbx,
             [   self.params["a_min"],
@@ -400,7 +392,7 @@ class QDNMPCBase(RecedingHorizonBase):
                 self.params["w_max"],
                 self.params["w_max"],
                 self.params["w_max"]     ])
-        
+
         if self.tilt and self.include_servo_model:
             ocp.constraints.ubx = np.append(ocp.constraints.ubx,
             [   self.params["a_max"],
@@ -419,11 +411,11 @@ class QDNMPCBase(RecedingHorizonBase):
         # - Terminal state box constraints bx_e
         # -- Index for vx, vy, vz, wx, wy, wz
         ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
-        
+
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
             ocp.constraints.idxbx_e = np.append(ocp.constraints.idxbx_e, [13, 14, 15, 16])
-            
+
             # -- Index for ft1s, ft2s, ft3s, ft4s (When included servo AND thrust, add further indices)
             if self.include_thrust_model:
                 ocp.constraints.idxbx_e = np.append(ocp.constraints.idxbx_e, [17, 18, 19, 20])
@@ -431,7 +423,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # -- Index for ft1s, ft2s, ft3s, ft4s (When only included thrust, use the same indices)
         elif self.include_thrust_model:
             ocp.constraints.idxbx_e = np.append(ocp.constraints.idxbx_e, [13, 14, 15, 16])
-        
+
         # -- Lower Terminal State Bound
         ocp.constraints.lbx_e = np.array(
             [   self.params["v_min"],
@@ -440,14 +432,14 @@ class QDNMPCBase(RecedingHorizonBase):
                 self.params["w_min"],
                 self.params["w_min"],
                 self.params["w_min"]     ])
-        
+
         if self.tilt and self.include_servo_model:
             ocp.constraints.lbx_e = np.append(ocp.constraints.lbx_e,
             [   self.params["a_min"],
                 self.params["a_min"],
                 self.params["a_min"],
                 self.params["a_min"]     ])
-            
+
         if self.include_thrust_model:
             ocp.constraints.lbx_e = np.append(ocp.constraints.lbx_e,
             [   self.params["thrust_min"],
@@ -463,14 +455,14 @@ class QDNMPCBase(RecedingHorizonBase):
                 self.params["w_max"],
                 self.params["w_max"],
                 self.params["w_max"]     ])
-        
+
         if self.tilt and self.include_servo_model:
             ocp.constraints.ubx_e = np.append(ocp.constraints.ubx_e,
             [   self.params["a_max"],
                 self.params["a_max"],
                 self.params["a_max"],
                 self.params["a_max"]     ])
-            
+
         if self.include_thrust_model:
             ocp.constraints.ubx_e = np.append(ocp.constraints.ubx_e,
             [   self.params["thrust_max"],
@@ -486,14 +478,14 @@ class QDNMPCBase(RecedingHorizonBase):
         # -- Index for a1c, a2c, a3c, a4c
         if self.tilt:
             ocp.constraints.idxbu = np.append(ocp.constraints.idxbu, [4, 5, 6, 7])
-        
+
         # -- Lower Input Bound
         ocp.constraints.lbu = np.array(
             [   self.params["thrust_min"],
                 self.params["thrust_min"],
                 self.params["thrust_min"],
                 self.params["thrust_min"]])
-        
+
         if self.tilt:
             ocp.constraints.lbu = np.append(ocp.constraints.lbu,
             [   self.params["a_min"],
@@ -531,7 +523,7 @@ class QDNMPCBase(RecedingHorizonBase):
         u_ref = np.zeros(nu)
         # Obeserved to be worse than zero!
         u_ref[0:4] = self.phys.mass * self.phys.gravity / 4             # ft1c, ft2c, ft3c, ft4c
-        
+
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
@@ -553,13 +545,13 @@ class QDNMPCBase(RecedingHorizonBase):
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
         solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
         print("Generated C code for acados solver successfully to " + os.getcwd())
-        
+
         return solver
-    
+
     @abstractmethod
     def get_reference(self):
         pass
-    
+
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
