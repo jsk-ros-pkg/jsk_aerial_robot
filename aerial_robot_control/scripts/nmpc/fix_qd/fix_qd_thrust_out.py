@@ -67,13 +67,10 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(
-            self.ft_c,
-            self.a_c
-        )
+        control_y = self.ft_c
 
         return state_y, state_y_e, control_y
-        
+
     def get_weights(self):
         # Define weights
         Q = np.diag(
@@ -142,9 +139,9 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        
+
         return xr, ur
-    
+
 
 if __name__ == "__main__":
     # Call controller class to generate c code
