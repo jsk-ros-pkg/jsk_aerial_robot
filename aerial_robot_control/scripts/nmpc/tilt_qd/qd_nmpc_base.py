@@ -6,7 +6,7 @@ import casadi as ca
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
 from rh_base import RecedingHorizonBase
-from qd_reference_generator import QDNMPCReferenceGenerator
+from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
 import phys_param_beetle_omni as phys
 

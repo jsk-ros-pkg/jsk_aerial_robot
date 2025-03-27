@@ -145,7 +145,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
 if __name__ == "__main__":
     # Call controller class to generate c code
-    overwrite = True
+    overwrite = False
     nmpc = NMPCFixQdThrustOut(overwrite)
 
     print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())

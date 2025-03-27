@@ -402,7 +402,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    overwrite = True
+    overwrite = False
     nmpc = NMPCTiltBiServo(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
