@@ -41,6 +41,7 @@ def simulate(nmpc_model_id, sim_model_id=0, plot_type=1, no_viz=True, save_data=
         nmpc = NMPCTiltQdThrust()
     elif nmpc_model_id == 3:
         nmpc = NMPCTiltQdServoThrust()
+
     elif nmpc_model_id == 21:
         nmpc = NMPCTiltQdServoDist()
     elif nmpc_model_id == 22:
