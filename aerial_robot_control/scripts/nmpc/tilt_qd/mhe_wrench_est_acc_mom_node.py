@@ -6,13 +6,13 @@
 import numpy as np
 from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
 import rospy
-from spinal.msg import Imu, ESCTelemetry, ESCTelemetryArray, FourAxisCommand
+from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 
 from tilt_qd_servo_thrust_dist import XrUrConverter
 
-import phys_param_beetle_omni as phys_omni
+from tilt_qd import phys_param_beetle_omni as phys_omni
 
 import rospkg
 import yaml

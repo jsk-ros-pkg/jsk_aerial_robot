@@ -19,7 +19,6 @@ from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
 # - Consider the servo delay with its model
 from tilt_qd.tilt_qd_servo import NMPCTiltQdServo
 from tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
-from tilt_qd.tilt_qd_servo_dist_imp import NMPCTiltQdServoImpedance
 from archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
 from archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
 
@@ -32,7 +31,6 @@ from tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
 # - Consider the servo & thrust delay with its models
 from tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
-from tilt_qd.tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
 from archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
 # Birotor

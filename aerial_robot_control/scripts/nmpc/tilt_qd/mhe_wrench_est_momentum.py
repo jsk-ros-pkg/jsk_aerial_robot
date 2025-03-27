@@ -5,7 +5,7 @@ from acados_template import AcadosModel
 import casadi as ca
 from qd_mhe_base import QDMHEBase
 
-from phys_param_beetle_omni import *
+from tilt_qd.phys_param_beetle_omni import *
 
 
 class MHEWrenchEstMomentum(QDMHEBase):

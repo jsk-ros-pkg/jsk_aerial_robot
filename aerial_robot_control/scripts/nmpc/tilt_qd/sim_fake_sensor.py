@@ -1,6 +1,6 @@
 import numpy as np
 
-from phys_param_beetle_omni import *
+from tilt_qd.phys_param_beetle_omni import *
 
 
 class FakeSensor:

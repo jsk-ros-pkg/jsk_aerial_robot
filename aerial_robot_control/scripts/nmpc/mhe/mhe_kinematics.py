@@ -5,7 +5,7 @@ import casadi as ca
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
 from rh_base import RecedingHorizonBase
 
-from phys_param_beetle_omni import *        # Define physical parameters
+from tilt_qd.phys_param_beetle_omni import *        # Define physical parameters
 
 
 class MHEKinematics(RecedingHorizonBase):
