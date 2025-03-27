@@ -75,7 +75,6 @@ namespace sensor_plugin
     int calib_count_;
     double acc_scale_, gyro_scale_, mag_scale_; /* the scale of sensor value */
     double level_acc_noise_sigma_, z_acc_noise_sigma_, level_acc_bias_noise_sigma_, z_acc_bias_noise_sigma_, angle_bias_noise_sigma_; /* sigma for kf */
-    double landing_shock_force_thre_;     /* force */
 
     /* sensor internal */
     double sensor_dt_;

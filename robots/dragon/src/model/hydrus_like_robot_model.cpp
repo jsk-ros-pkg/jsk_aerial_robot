@@ -149,13 +149,13 @@ void HydrusLikeRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posit
 
 Eigen::MatrixXd HydrusLikeRobotModel::getJacobian(const KDL::JntArray& joint_positions, std::string segment_name, KDL::Vector offset)
 {
-  Eigen::MatrixXd jacobian = aerial_robot_model::RobotModel::getJacobian(joint_positions, segment_name, offset);
+  Eigen::MatrixXd jacobian = aerial_robot_model::transformable::RobotModel::getJacobian(joint_positions, segment_name, offset);
   return jacobian * gimbal_jacobian_;
 }
 
 void HydrusLikeRobotModel::calcBasicKinematicsJacobian()
 {
-  aerial_robot_model::RobotModel::calcBasicKinematicsJacobian();
+  aerial_robot_model::transformable::RobotModel::calcBasicKinematicsJacobian();
 
   const auto& joint_names = getJointNames();
   const auto& link_joint_names = getLinkJointNames();
@@ -203,7 +203,7 @@ void HydrusLikeRobotModel::calcCoGMomentumJacobian()
   setCOGJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
   setLMomentumJacobian(Eigen::MatrixXd::Zero(3, 6 + getJointNum()));
 
-  aerial_robot_model::RobotModel::calcCoGMomentumJacobian();
+  aerial_robot_model::transformable::RobotModel::calcCoGMomentumJacobian();
 }
 
 void HydrusLikeRobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool update_model)

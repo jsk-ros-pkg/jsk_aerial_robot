@@ -42,7 +42,8 @@
 /* Sensors */
 #if IMU_FLAG
 #include "sensors/imu/imu_ros_cmd.h"
-#include "sensors/imu/imu_mpu9250.h"
+#include "sensors/imu/drivers/mpu9250/imu_mpu9250.h"
+#include "sensors/imu/drivers/icm20948/icm_20948.h"
 #endif
 
 #if BARO_FLAG
@@ -99,8 +100,10 @@ bool start_processing_flag_ = false; //to prevent systick_callback starting  bef
 
 ros::NodeHandle nh_;
 
-#if IMU_FLAG
+#if IMU_MPU
 IMUOnboard imu_;
+#elif IMU_ICM
+ICM20948 imu_;
 #endif
 
 #if BARO_FLAG

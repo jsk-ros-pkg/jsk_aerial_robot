@@ -1,6 +1,6 @@
 #include <dragon/numerical_jacobians.h>
 
-DragonNumericalJacobian::DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
+DragonNumericalJacobian::DragonNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model):
   HydrusNumericalJacobian(nh, nhp, std::move(robot_model))
 {
   nhp_.param("check_rotor_overlap", check_rotor_overlap_, true);

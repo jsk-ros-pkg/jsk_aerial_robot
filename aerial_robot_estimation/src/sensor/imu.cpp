@@ -130,14 +130,6 @@ namespace sensor_plugin
     acc_l_ = orientation * tf::Vector3(0, 0, acc_b_.z()) - tf::Vector3(0, 0, aerial_robot_estimation::G);
 #endif
 
-    if(estimator_->getLandingMode() &&
-       !estimator_->getLandedFlag() &&
-       acc_l_.z() > landing_shock_force_thre_)
-      {
-        ROS_WARN("imu: touch to ground");
-        estimator_->setLandedFlag(true);
-      }
-
     /* base link */
     /* roll & pitch */
     estimator_->setState(State::ROLL_BASE, aerial_robot_estimation::EGOMOTION_ESTIMATE, 0, euler_[0]);
@@ -397,29 +389,20 @@ namespace sensor_plugin
 
         /* publish state date */
         state_.header.stamp = imu_stamp_;
-        tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-        tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EGOMOTION_ESTIMATE);
-        state_.states[0].state[0].x = pos.x();
-        state_.states[1].state[0].x = pos.y();
-        state_.states[2].state[0].x = pos.z();
-        state_.states[0].state[0].y = vel.x();
-        state_.states[1].state[0].y = vel.y();
-        state_.states[2].state[0].y = vel.z();
-        state_.states[0].state[0].z = acc_w_.x();
-        state_.states[1].state[0].z = acc_w_.y();
-        state_.states[2].state[0].z = acc_w_.z();
-        pos = estimator_->getPos(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
-        vel = estimator_->getVel(Frame::BASELINK, aerial_robot_estimation::EXPERIMENT_ESTIMATE);
-        state_.states[0].state[1].x = pos.x();
-        state_.states[1].state[1].x = pos.y();
-        state_.states[2].state[1].x = pos.z();
-        state_.states[0].state[1].y = vel.x();
-        state_.states[1].state[1].y = vel.y();
-        state_.states[2].state[1].y = vel.z();
-        state_.states[0].state[1].z = acc_w_.x();
-        state_.states[1].state[1].z = acc_w_.y();
-        state_.states[2].state[1].z = acc_w_.z();
-
+        for (int i = 0; i < 2; i++)
+          {
+            tf::Vector3 pos = estimator_->getPos(Frame::BASELINK, i);
+            tf::Vector3 vel = estimator_->getVel(Frame::BASELINK, i);
+            state_.states[0].state[i].x = pos.x();
+            state_.states[1].state[i].x = pos.y();
+            state_.states[2].state[i].x = pos.z();
+            state_.states[0].state[i].y = vel.x();
+            state_.states[1].state[i].y = vel.y();
+            state_.states[2].state[i].y = vel.z();
+            state_.states[0].state[i].z = acc_w_.x();
+            state_.states[1].state[i].z = acc_w_.y();
+            state_.states[2].state[i].z = acc_w_.z();
+          }
         state_pub_.publish(state_);
       }
     prev_time = imu_stamp_;
@@ -457,7 +440,6 @@ namespace sensor_plugin
     getParam<double>("z_acc_bias_noise_sigma", z_acc_bias_noise_sigma_, 0.0);
     getParam<double>("angle_bias_noise_sigma", angle_bias_noise_sigma_, 0.001 );
     getParam<double>("calib_time", calib_time_, 2.0 );
-    getParam<double>("landing_shock_force_thre", landing_shock_force_thre_, 5.0 );
 
     /* important scale, record here
        {

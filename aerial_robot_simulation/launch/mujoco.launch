@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="robot_ns" default="" />
+  <arg name="headless" default="false" />
+  <arg name="mujoco_model" default="" />
+
+  <!-- mujoco ros control -->
+  <include file="$(find mujoco_ros_control)/launch/mujoco.launch" >
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="mujoco_model" value="$(arg mujoco_model)"/>
+  </include>
+
+  <!-- basic parameter -->
+  <rosparam file="$(find aerial_robot_simulation)/config/Mujoco.yaml" command="load" ns="$(arg robot_ns)" />
+
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+        output="screen" ns="$(arg robot_ns)" args="attitude_controller" />
+
+</launch>

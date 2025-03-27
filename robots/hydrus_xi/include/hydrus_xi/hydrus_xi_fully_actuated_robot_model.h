@@ -35,14 +35,14 @@
 
 #pragma once
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
 #include <algorithm>
 #include <cmath>
 #include <time.h>
 
-using namespace aerial_robot_model;
+using namespace aerial_robot_model::transformable;
 
-class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::RobotModel {
+class HydrusXiFullyActuatedRobotModel : public aerial_robot_model::transformable::RobotModel {
 public:
   HydrusXiFullyActuatedRobotModel(bool init_with_rosparam = true,
                                   bool verbose = false,

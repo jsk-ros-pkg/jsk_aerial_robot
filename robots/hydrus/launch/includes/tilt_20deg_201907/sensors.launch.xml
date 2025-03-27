@@ -31,7 +31,7 @@
     <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-    <rosparam file="$(find aerial_robot_base)/config/sensors/altmeter/leddar_one.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/altimeter/leddar_one.yaml" command="load" />
 
   </group>
 

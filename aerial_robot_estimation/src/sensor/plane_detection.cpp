@@ -97,7 +97,7 @@ namespace sensor_plugin
     /* initialization */
     if (getStatus() == Status::INACTIVE) {
 
-      // 1. check altmeter is initialized, and check the height
+      // 1. check altimeter is initialized, and check the height
       bool alt_initialized = false;
       for (const auto& handler: estimator_->getAltHandlers()) {
         if (handler->getStatus() == Status::ACTIVE) {
