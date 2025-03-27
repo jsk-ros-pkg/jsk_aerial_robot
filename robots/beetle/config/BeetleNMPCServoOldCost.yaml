@@ -3,8 +3,8 @@ aerial_robot_control_name: aerial_robot_control/over_act_full/nmpc_controller
 controller:
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
-    T_pred: 2.0  # seconds
-    T_integ: 0.1  # seconds
+    T_horizon: 2.0  # seconds
+    T_step: 0.1  # seconds
 
     # constraint
     w_max: 6  # 1 rad/s ~ 57 deg/s
@@ -30,7 +30,7 @@ controller:
     Qw_z: 5
     Qa: 1
     Rt: 1
-    Rac_d: 5
+    Rac: 5
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false

@@ -2,14 +2,14 @@ physical:
   mass: 2.773  # no battery: 2.773-0.821=1.952 ; with battery: 2.773; in sim: 2.99194 # kg
   gravity: 9.798  #9.80665 # m/s^2   Tokyo 9.798; in sim: 9.80665
   inertia_diag: [0.04170, 0.03945, 0.07068] #[ 0.0621273, 0.0927884, 0.130061 ] # kg m^2
-  dr1: 1  # direction of motor 1
-  p1: [ 0.137712, 0.137882, 0.0297217 ] # position of motor 1
-  dr2: -1  # direction of motor 2
-  p2: [ -0.137745, 0.137882, 0.0297217 ] # position of motor 2
-  dr3: 1  # direction of motor 3
+  dr1: 1    # direction of motor 1
+  p1: [ 0.137712, 0.137882, 0.0297217 ]   # position of motor 1
+  dr2: -1   # direction of motor 2
+  p2: [ -0.137745, 0.137882, 0.0297217 ]  # position of motor 2
+  dr3: 1    # direction of motor 3
   p3: [ -0.137745, -0.138284, 0.0297217 ] # position of motor 3
-  dr4: -1  # direction of motor 4
-  p4: [ 0.137712, -0.138284, 0.0297217 ] # position of motor 4
+  dr4: -1   # direction of motor 4
+  p4: [ 0.137712, -0.138284, 0.0297217 ]  # position of motor 4
   kq_d_kt: 0.0153  #0.0171998
 
   num_rotors: 4
