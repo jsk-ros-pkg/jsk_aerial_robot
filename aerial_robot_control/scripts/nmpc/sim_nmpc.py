@@ -16,7 +16,7 @@ import tilt_qd.phys_param_beetle_omni as phys_omni
 import archive.phys_param_beetle_art as phys_art
 
 # - Naive models
-from archive.tilt_qd_no_servo_old_cost import NMPCTiltQdNoServoOldCost
+from archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
 from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
 
 # - Consider the servo delay with its model
@@ -66,7 +66,7 @@ def main(args):
 
         # Archived methods
         elif args.model == 91:
-            nmpc = NMPCTiltQdNoServoOldCost()
+            nmpc = NMPCTiltQdNoServoAcCost()
         elif args.model == 92:
             nmpc = NMPCTiltQdServoOldCost()
         elif args.model == 93:
@@ -319,7 +319,7 @@ def main(args):
 
         if args.arch == 'qd':
             # Use previous servo angle as reference
-            if type(nmpc) is NMPCTiltQdNoServo:
+            if type(nmpc) is NMPCTiltQdNoServoAcCost:
                 nmpc.update_a_prev(u_cmd.item(4), u_cmd.item(5), u_cmd.item(6), u_cmd.item(7))
 
             # Use servo angle derivative as state and therefore integrate servo angle command

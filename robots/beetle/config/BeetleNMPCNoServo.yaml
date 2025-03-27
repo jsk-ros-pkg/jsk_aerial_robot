@@ -29,7 +29,7 @@ controller:
     Qw_xy: 5
     Qw_z: 5
     Rt: 1
-    Rac_d: 250
+    Rac: 5
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false

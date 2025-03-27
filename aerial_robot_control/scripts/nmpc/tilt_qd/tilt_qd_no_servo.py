@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
+import os, sys
 import numpy as np
 import casadi as ca
 from qd_nmpc_base import QDNMPCBase
@@ -8,7 +9,7 @@ import archive.phys_param_beetle_art as phys_art
 
 class NMPCTiltQdNoServo(QDNMPCBase):
     """
-    Controller Name: Tiltable Quadrotor NMPC without Servo Model but modified cost function
+    Controller Name: Tiltable Quadrotor NMPC without Servo Model
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
@@ -38,11 +39,7 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-
-        # Specific to this implementation:
-        # Use previous servo angle command as reference
-        self.a1c_prev, self.a2c_prev, self.a3c_prev, self.a4c_prev = 0, 0, 0, 0
-
+        
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServo.yaml")
 
@@ -76,7 +73,7 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         )
 
         return state_y, state_y_e, control_y
-        
+
     def get_weights(self):
         # Define Weights
         Q = np.diag(
@@ -104,16 +101,16 @@ class NMPCTiltQdNoServo(QDNMPCBase):
                 self.params["Rt"],
                 self.params["Rt"],
                 self.params["Rt"],
-                self.params["Rac_d"],
-                self.params["Rac_d"],
-                self.params["Rac_d"],
-                self.params["Rac_d"],
+                self.params["Rac"],
+                self.params["Rac"],
+                self.params["Rac"],
+                self.params["Rac"],
             ]
         )
         print("R: \n", R)
 
         return Q, R
-
+    
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -151,24 +148,12 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        # Use previous angle command as reference
-        ur[:, 4] = self.a1c_prev
-        ur[:, 5] = self.a2c_prev
-        ur[:, 6] = self.a3c_prev
-        ur[:, 7] = self.a4c_prev
-
+        ur[:, 4] = a_ref[0]
+        ur[:, 5] = a_ref[1]
+        ur[:, 6] = a_ref[2]
+        ur[:, 7] = a_ref[3]
+        
         return xr, ur
-
-    def update_a_prev(self, a1c, a2c, a3c, a4c):
-        """
-        Update storage variable to set reference in next iteration.
-
-        :param aic: Servo angle command
-        """
-        self.a1c_prev = a1c
-        self.a2c_prev = a2c
-        self.a3c_prev = a3c
-        self.a4c_prev = a4c
 
 
 if __name__ == "__main__":

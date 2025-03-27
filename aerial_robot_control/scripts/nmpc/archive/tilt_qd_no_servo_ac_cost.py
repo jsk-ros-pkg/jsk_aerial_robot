@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
 import numpy as np
 import casadi as ca
+from qd_nmpc_base import QDNMPCBase
+import archive.phys_param_beetle_art as phys_art
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
-from tilt_qd.qd_nmpc_base import QDNMPCBase
 
-
-class NMPCTiltQdNoServoOldCost(QDNMPCBase):
+class NMPCTiltQdNoServoAcCost(QDNMPCBase):
     """
-    Controller Name: Tiltable Quadrotor NMPC without Servo Model
+    Controller Name: Tiltable Quadrotor NMPC without Servo Model but modified cost function
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_art):
         # Model name
-        model_name = "tilt_qd_no_servo_old_cost_mdl"
+        self.model_name = "tilt_qd_no_servo_ac_cost_mdl"
+        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -39,14 +38,18 @@ class NMPCTiltQdNoServoOldCost(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-        
-        # Read parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServoOldCost.yaml")
-        
-        # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
 
-    def get_cost_function(self, wlin_acc_w=None, ang_acc_b=None):
+        # Specific to this implementation:
+        # Use previous servo angle command as reference
+        self.a1c_prev, self.a2c_prev, self.a3c_prev, self.a4c_prev = 0, 0, 0, 0
+
+        # Read parameters from configuration file in the robot's package
+        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServoAcCost.yaml")
+
+        # Create acados model & solver and generate c code
+        super().__init__(overwrite)
+
+    def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -73,7 +76,7 @@ class NMPCTiltQdNoServoOldCost(QDNMPCBase):
         )
 
         return state_y, state_y_e, control_y
-
+        
     def get_weights(self):
         # Define Weights
         Q = np.diag(
@@ -101,16 +104,16 @@ class NMPCTiltQdNoServoOldCost(QDNMPCBase):
                 self.params["Rt"],
                 self.params["Rt"],
                 self.params["Rt"],
-                self.params["Rac"],
-                self.params["Rac"],
-                self.params["Rac"],
-                self.params["Rac"],
+                self.params["Rac_d"],
+                self.params["Rac_d"],
+                self.params["Rac_d"],
+                self.params["Rac_d"],
             ]
         )
         print("R: \n", R)
 
         return Q, R
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -141,24 +144,36 @@ class NMPCTiltQdNoServoOldCost(QDNMPCBase):
         xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
 
-        # Assemble input reference
+        # Assemble control reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
         ur[:, 0] = ft_ref[0]
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        ur[:, 4] = a_ref[0]
-        ur[:, 5] = a_ref[1]
-        ur[:, 6] = a_ref[2]
-        ur[:, 7] = a_ref[3]
-        
+        # Use previous angle command as reference
+        ur[:, 4] = self.a1c_prev
+        ur[:, 5] = self.a2c_prev
+        ur[:, 6] = self.a3c_prev
+        ur[:, 7] = self.a4c_prev
+
         return xr, ur
+
+    def update_a_prev(self, a1c, a2c, a3c, a4c):
+        """
+        Update storage variable to set reference in next iteration.
+
+        :param aic: Servo angle command
+        """
+        self.a1c_prev = a1c
+        self.a2c_prev = a2c
+        self.a3c_prev = a3c
+        self.a4c_prev = a4c
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdNoServoOldCost(overwrite)
+    overwrite = False
+    nmpc = NMPCTiltQdNoServoAcCost(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
