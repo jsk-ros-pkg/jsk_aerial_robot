@@ -93,7 +93,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         # If we are still within our trajectory time window:
         if t_elapsed <= self.x_traj[-1, -2]:
             # Create time nodes for interpolation
-            t_nodes = np.linspace(0, self.T_pred, self.N_nmpc + 1)
+            t_nodes = np.linspace(0, self.T_horizon, self.N_nmpc + 1)
             t_nodes += t_elapsed
 
             # Allocate storage for interpolation results

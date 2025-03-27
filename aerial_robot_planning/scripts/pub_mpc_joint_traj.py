@@ -74,7 +74,7 @@ class MPCTrajPtPub(MPCPubJointTraj):
 
             # Time used for trajectory generation
             if is_ref_different:
-                t_pred = i * self.T_integ
+                t_pred = i * self.T_step
             else:
                 t_pred = 0.0
 
@@ -156,7 +156,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
             traj_pt.velocities.append(Twist())
             traj_pt.accelerations.append(Twist())
 
-            t_pred = i * self.T_integ
+            t_pred = i * self.T_step
             traj_pt.time_from_start = rospy.Duration.from_sec(t_elapsed + t_pred)
 
             traj_msg.points.append(traj_pt)
