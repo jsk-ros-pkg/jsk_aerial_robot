@@ -79,7 +79,7 @@ def main(args):
             nmpc = NMPCTiltQdServoWCogEndDist()
         else:
             raise ValueError(f"Invalid control model {args.model}.")
-    
+
     elif args.arch == 'bi':
 
         if args.model == 0:
@@ -88,7 +88,7 @@ def main(args):
             nmpc = NMPCTiltBi2OrdServo()
         else:
             raise ValueError(f"Invalid model {args.model}.")
-    
+
     elif args.arch == 'tri':
 
         if args.model == 0:
@@ -97,10 +97,10 @@ def main(args):
             nmpc = NMPCTiltTriServoDist()
         else:
             raise ValueError(f"Invalid model {args.model}.")
-    
+
     else:
         raise ValueError(f"Invalid robot architecture {args.arch}.")
-    
+
     # Get time constants
     if nmpc.include_servo_model:
         t_servo_ctrl = nmpc.phys.t_servo
@@ -125,16 +125,16 @@ def main(args):
 
     # ---------- Simulator ----------
     if args.arch == 'qd':
-        
+
         if args.sim_model == 0:
             sim_nmpc = NMPCTiltQdServoThrust()      # Consider both the servo delay and the thrust delay
         elif args.sim_model == 1:
             sim_nmpc = NMPCTiltQdServoThrustDrag()  # Also consider drag in wrench formulation
         else:
             raise ValueError(f"Invalid sim model {args.sim_model}.")
-        
+
     elif args.arch == 'bi':
-        
+
         if args.sim_model == 0:
             sim_nmpc = NMPCTiltBi2OrdServo()
         elif args.sim_model == 1:
@@ -192,6 +192,10 @@ def main(args):
         include_thrust_model = sim_nmpc.include_thrust_model,
         include_cog_dist_model = sim_nmpc.include_cog_dist_model
     )
+
+    # Prepare containers to record simulation data (x and u) for future comparison
+    x_history = []
+    u_history = []
 
     is_sqp_change = False
     t_sqp_start = 2.5
@@ -319,7 +323,7 @@ def main(args):
             # Use servo angle derivative as state and therefore integrate servo angle command
             if nmpc.include_servo_derivative:
                 alpha_integ += u_cmd[4:] * ts_ctrl
-                u_cmd[4:] = alpha_integ
+                u_cmd[4:] = alpha_integ  # convert from delta input to real input
 
         # --------- Update simulation ----------
         sim_solver.set("x", x_now_sim)
@@ -331,32 +335,47 @@ def main(args):
 
         x_now_sim = sim_solver.get("x")
 
+        # Save current simulation data for later comparison
+        x_history.append(x_now_sim.copy())
+        u_history.append(u_cmd.copy())
+
         # --------- Update visualizer ----------
         viz.update(i, x_now_sim, u_cmd)  # Note: The recording frequency of u_cmd is the same as ts_sim
 
     # ========== Visualize ==========
-    if args.plot_type == 0:
-        viz.visualize(
-            ocp_solver.acados_ocp.model.name,
-            sim_solver.model_name,
-            ts_ctrl,
-            ts_sim,
-            t_total_sim,
-            t_servo_ctrl=t_servo_ctrl,
-            t_servo_sim=t_servo_sim
-        )
-    elif args.plot_type == 1:
-        viz.visualize_less(
-            ts_sim,
-            t_total_sim
-        )
-    elif args.plot_type == 2:
-        viz.visualize_rpy(
-            ocp_solver.acados_ocp.model.name,
-            ts_sim,
-            t_total_sim
+    if not args.no_viz:
+        if args.plot_type == 0:
+            viz.visualize(
+                ocp_solver.acados_ocp.model.name,
+                sim_solver.model_name,
+                ts_ctrl,
+                ts_sim,
+                t_total_sim,
+                t_servo_ctrl=t_servo_ctrl,
+                t_servo_sim=t_servo_sim
+            )
+        elif args.plot_type == 1:
+            viz.visualize_less(
+                ts_sim,
+                t_total_sim
+            )
+        elif args.plot_type == 2:
+            viz.visualize_rpy(
+                ocp_solver.acados_ocp.model.name,
+                ts_sim,
+                t_total_sim
+            )
+
+    if args.save_data:
+        file_path = args.file_path
+
+        np.savez(
+            file_path + f"nmpc_{type(nmpc).__name__}_model_{type(sim_nmpc).__name__}.npz",
+            x=np.array(x_history),
+            u=np.array(u_history)
         )
 
+    return np.array(x_history), np.array(u_history)
 
 if __name__ == "__main__":
     # Read command line arguments
@@ -398,6 +417,27 @@ if __name__ == "__main__":
         type=str,
         default='qd',
         help="The robot's architecture. Options: bi, tri, qd (default)."
+    )
+
+    parser.add_argument(
+        "--no_viz",
+        action="store_true",
+        help="Disable visualization after simulation. Note that this is different from the plot_type option, "
+             "because plot_type also decides the simulation parameters."
+    )
+
+    parser.add_argument(
+        "-s",
+        "--save_data",
+        action="store_true",
+        help="Save simulation x and u data to file"
+    )
+
+    parser.add_argument(
+        "--file_path",
+        type=str,
+        default="../../../../test/tilt_qd/",
+        help="Path to save the data file"
     )
 
     args = parser.parse_args()
