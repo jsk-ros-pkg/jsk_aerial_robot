@@ -15,7 +15,7 @@ class QDMHEBase(RecedingHorizonBase):
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
     def __init__(self, overwrite: bool = False):
-        super().__init__("mhe", overwrite)
+        super().__init__("wrench_est", overwrite)
 
     def compute_dynamical_model(self):
         pass
