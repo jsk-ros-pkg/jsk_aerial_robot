@@ -26,9 +26,8 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCBodyRate.yaml")
         self.phys = phys
 
-        model_name = "fix_qd_angvel_out_mdl"
         # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
+        super().__init__("nmpc", overwrite)
     
     def create_acados_model(self) -> AcadosModel:
         # Model name
