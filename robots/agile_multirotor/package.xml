@@ -25,6 +25,7 @@
   <run_depend>urg_node</run_depend>
   <run_depend>hokuyo_estimation</run_depend>
   <run_depend>hector_sensors_description</run_depend>
+  <run_depend>ros_numpy</run_depend>
 
   <export>
     <gazebo_ros gazebo_model_path="${prefix}/gazebo_model/models"/>
