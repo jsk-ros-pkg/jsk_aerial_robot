@@ -16,3 +16,6 @@ python -m unittest tilt_qd/test_nmpc.py
 
 5. roslaunch the gimbalrotor with trirotor
  - tracking normal traj.
+
+6. roslaunch the miniquadrotor
+ - tracking normal traj.
