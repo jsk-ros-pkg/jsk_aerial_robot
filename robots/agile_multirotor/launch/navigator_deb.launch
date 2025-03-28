@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="multirotor$(arg robot_id)" />
+  <node pkg="agile_multirotor" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="xterm -fn 10x20 -e python -m pdb">
+    <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
+  </node>
+</launch>

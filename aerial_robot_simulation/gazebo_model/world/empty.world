@@ -26,6 +26,9 @@
           <speed>12</speed>
         </clouds>
       </sky>
+      <!-- https://answers.gazebosim.org//question/848/lighting-and-shadow-effect-problems/#:~:text=You%20should%20be%20able%20to,dark%20side%20to%20your%20model. -->
+      <!-- https://classic.gazebosim.org/tutorials?tut=color_model -->
+    <shadows>false</shadows>
    </scene>
 
    <include>

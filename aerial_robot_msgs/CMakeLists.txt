@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Declare ROS messages and services
 add_message_files(FILES
   DynamicReconfigureLevels.msg
+  RollPitchNav.msg
   FourAxisGain.msg
   AerialRobotStatus.msg
   FlightNav.msg
@@ -20,6 +21,9 @@ add_message_files(FILES
   States.msg
   Acc.msg
   WrenchAllocationMatrix.msg
+  FeasibleControlConvexInfo.msg
+  Obstacle.msg
+  ObstacleArray.msg
 )
 
 ## Generate added messages and services

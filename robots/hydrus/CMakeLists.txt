@@ -87,6 +87,8 @@ install(DIRECTORY bin
   USE_SOURCE_PERMISSIONS
 )
 
+add_executable(observation_conversion_node src/observation_cal.cpp)
+target_link_libraries(observation_conversion_node ${catkin_LIBRARIES} ${NLOPT_LIBRARIES})
 mujoco_model_convert(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)

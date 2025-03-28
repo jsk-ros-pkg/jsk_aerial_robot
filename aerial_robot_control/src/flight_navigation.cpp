@@ -10,6 +10,7 @@ BaseNavigator::BaseNavigator():
   target_acc_(0, 0, 0),
   target_rpy_(0, 0, 0),
   target_omega_(0, 0, 0),
+  i_term_fix_(false),
   target_ang_acc_(0, 0, 0),
   init_height_(0), land_height_(0),
   force_att_control_flag_(false),
@@ -48,6 +49,9 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   pose_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::poseCallback, this, ros::TransportHints().tcpNoDelay());
   simple_move_base_goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &BaseNavigator::simpleMoveBaseGoalCallback, this, ros::TransportHints().tcpNoDelay());
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
+  hokuyo_time_sub_ = nh_.subscribe("debug/hokuyo_time", 1, &BaseNavigator::hokuyoTimeCallback, this, ros::TransportHints().tcpNoDelay());
+
+  roll_pitch_sub_ = nh_.subscribe("uav/roll_pitch_nav", 1, &BaseNavigator::rollPitchCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe("battery_voltage_status", 1, &BaseNavigator::batteryCheckCallback, this);
   flight_status_ack_sub_ = nh_.subscribe("flight_config_ack", 1, &BaseNavigator::flightStatusAckCallback, this, ros::TransportHints().tcpNoDelay());
@@ -73,6 +77,8 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   flight_config_pub_ = nh_.advertise<spinal::FlightConfigCmd>("flight_config_cmd", 10);
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
+  policy_pos_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/pos/time", 10);
+  policy_scan_time_pub_ = nh_.advertise<std_msgs::Duration>("debug/policy/scan/time", 10);
   path_pub_ = nh_.advertise<nav_msgs::Path>("trajectory", 1);
 
   estimate_mode_ = estimator_->getEstimateMode();
@@ -178,6 +184,7 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
   if(force_att_control_flag_) return;
 
+  if (nav_exec_){
   /* yaw */
   if(msg->yaw_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
     {
@@ -325,8 +332,144 @@ void BaseNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & ms
 
         break;
       }
+    case aerial_robot_msgs::FlightNav::POS_VEL_ACC_MODE:
+      {
+
+        /* should be in COG frame */
+        xy_control_mode_ = POS_CONTROL_MODE;
+        prev_xy_control_mode_ = POS_CONTROL_MODE;
+
+
+        tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            /* check the transformation */
+            tf::Transform cog2baselink_tf;
+            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
+              * cog2baselink_tf.getOrigin();
+          }
+
+        tf::Vector3 target_delta = getTargetPos() - target_cog_pos;
+        target_delta.setZ(0);
+
+        if(target_delta.length() > vel_nav_threshold_)
+          {
+            ROS_WARN("start vel nav control for waypoint");
+            vel_based_waypoint_ = true;
+            xy_control_mode_ = VEL_CONTROL_MODE;
+          }
+
+        if(!vel_based_waypoint_)
+          xy_control_mode_ = POS_CONTROL_MODE;
+
+        setTargetPosX(target_cog_pos.x());
+        setTargetPosY(target_cog_pos.y());
+        setTargetVelX(msg->target_vel_x);
+        setTargetVelY(msg->target_vel_y);
+
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              target_acc_.setValue(msg->target_acc_x, msg->target_acc_y, 0);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+	      double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
+    case aerial_robot_msgs::FlightNav::X_ACC_Y_POS_MODE:
+      {
+
+        /* no transition command by joystick  */
+        xy_control_mode_ = X_ACC_Y_POS_MODE;
+        prev_xy_control_mode_ = X_ACC_Y_POS_MODE;
+
+
+        tf::Vector3 target_cog_pos(msg->target_pos_x, msg->target_pos_y, 0);
+        if(msg->target == aerial_robot_msgs::FlightNav::BASELINK)
+          {
+            /* check the transformation */
+            tf::Transform cog2baselink_tf;
+            tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+            target_cog_pos -= tf::Matrix3x3(tf::createQuaternionFromYaw(getTargetRPY().z()))
+              * cog2baselink_tf.getOrigin();
+          }
+
+        setTargetPosY(target_cog_pos.y());
+
+        switch(msg->control_frame)
+          {
+          case WORLD_FRAME:
+            {
+              target_acc_.setValue(msg->target_acc_x, 0, 0);
+              break;
+            }
+          case LOCAL_FRAME:
+            {
+              double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, 0, 0), yaw_angle);
+              setTargetAccX(target_acc.x());
+              setTargetAccY(target_acc.y());
+              break;
+            }
+          default:
+            {
+              break;
+            }
+          }
+        break;
+      }
     }
-  if(msg->pos_xy_nav_mode != aerial_robot_msgs::FlightNav::ACC_MODE) setTargetZeroAcc();
+  if(!(msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::ACC_MODE || msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_ACC_MODE || msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::X_ACC_Y_POS_MODE )) target_acc_.setValue(0,0,0);
+
+  /* z */
+  if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
+    {
+      /* special */
+      addTargetPosZ(msg->target_pos_diff_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(0);
+    }
+  else if(msg->pos_z_nav_mode == aerial_robot_msgs::FlightNav::POS_VEL_MODE)
+    {
+      setTargetPosZ(msg->target_pos_z);
+      setTargetVelZ(msg->target_vel_z);
+    }
+  }
+
+  std_msgs::Duration duration_msg;
+  ros::Duration exec_time_diff = ros::Time::now() - msg->header.stamp;
+  duration_msg.data = exec_time_diff;
+  policy_pos_time_pub_.publish(duration_msg);
+}
+
+void BaseNavigator::hokuyoTimeCallback(const std_msgs::TimeConstPtr & msg){
+  std_msgs::Duration duration_msg;
+  ros::Duration exec_time_diff = ros::Time::now() - msg->data;
+  duration_msg.data = exec_time_diff;
+  policy_scan_time_pub_.publish(duration_msg);
+}
+
+void BaseNavigator::rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg){
+  setTargetRoll(msg->target_roll);
+  setTargetPitch(msg->target_pitch);
 }
 
 void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
@@ -544,21 +687,21 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
         break;
       }
-    case ACC_CONTROL_MODE:
-      {
-        /* acc command */
-        double acc_scale = max_teleop_rp_angle_ * aerial_robot_estimation::G;
-        setTargetAccX(raw_x_cmd * acc_scale);
-        setTargetAccY(raw_y_cmd * acc_scale);
+    // case ACC_CONTROL_MODE:
+    //   {
+    //     /* acc command */
+    //     double acc_scale = max_teleop_rp_angle_ * aerial_robot_estimation::G;
+    //     setTargetAccX(raw_x_cmd * acc_scale);
+    //     setTargetAccY(raw_y_cmd * acc_scale);
 
-        if(control_frame_ == LOCAL_FRAME)
-          {
-            tf::Vector3 target_acc = frameConversion(getTargetAcc(), local_frame_rot);
-            setTargetAccX(target_acc.x());
-            setTargetAccY(target_acc.y());
-          }
-        break;
-      }
+    //     if(control_frame_ == LOCAL_FRAME)
+    //       {
+    //         tf::Vector3 target_acc = frameConversion(getTargetAcc(), local_frame_rot);
+    //         setTargetAccX(target_acc.x());
+    //         setTargetAccY(target_acc.y());
+    //       }
+    //     break;
+    //   }
     default:
       {
         break;
@@ -714,6 +857,7 @@ void BaseNavigator::update()
           {
             hover_convergent_start_time_ = ros::Time::now().toSec();
             setNaviState(HOVER_STATE);
+            i_term_fix_ = true;
             ROS_INFO("\n \n ======================  \n Hover!!! \n ====================== \n");
           }
         break;
@@ -1033,6 +1177,7 @@ void BaseNavigator::updatePoseFromTrajectory()
 void BaseNavigator::rosParamInit()
 {
   getParam<bool>(nhp_, "param_verbose", param_verbose_, false);
+  getParam<bool>(nhp_, "nav_exec", nav_exec_, true);
 
   ros::NodeHandle nh(nh_, "navigation");
   getParam<int>(nh, "xy_control_mode", xy_control_mode_, 0);

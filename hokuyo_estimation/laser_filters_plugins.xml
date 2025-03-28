@@ -1,0 +1,30 @@
+<class_libraries>
+
+  <library path="lib/liblaser_clustering_filter">
+    <class name="laser_filters/LaserClusteringFilter" type="laser_filters::LaserClusteringFilter"
+	    base_class_type="filters::FilterBase<sensor_msgs::LaserScan>">
+      <description>
+	This is a filter which do clustering from a laser.
+      </description>
+    </class>
+   </library>
+
+   <library path="lib/liblaser_range_diff_filter">
+    <class name="laser_filters/LaserRangeDiffFilter" type="laser_filters::LaserRangeDiffFilter"
+	    base_class_type="filters::FilterBase<sensor_msgs::LaserScan>">
+    <description>
+	This is a filter which do filter by difference of range.
+    </description>
+  </class>
+</library>
+
+   <library path="lib/liblaser_range_inf_filter">
+    <class name="laser_filters/LaserRangeInfFilter" type="laser_filters::LaserRangeInfFilter"
+	    base_class_type="filters::FilterBase<sensor_msgs::LaserScan>">
+    <description>
+	This is a filter which do filter inf of range.
+    </description>
+  </class>
+  </library>
+
+</class_libraries>

@@ -112,6 +112,10 @@ namespace sensor_plugin
         return;
       }
 
+    if (fabs(acc_b_[0]) > 20 || fabs(acc_b_[1]) > 20 || fabs(acc_b_[2] - 10.0) > 20) {
+      estimator_->setUnhealthLevel(Sensor::UNHEALTH_LEVEL3);
+      ROS_ERROR_ONCE("IMU is insane, do force landing");
+    }
     tf::Quaternion raw_q(imu_msg->quaternion[0], imu_msg->quaternion[1],
                          imu_msg->quaternion[2], imu_msg->quaternion[3]);
     raw_rot_ = tf::Matrix3x3(raw_q);

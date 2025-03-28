@@ -104,6 +104,13 @@ tags
 # python
 *.pyc
 
+# vscode
+.vscode
+
+# virtual env
+/agileflight
+
+/robots/hydrus/config/obstacle_world/
 # Jetbrains
 .idea/
 *cmake-build-debug/

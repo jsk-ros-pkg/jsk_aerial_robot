@@ -1,0 +1,5 @@
+scan_filter_chain:
+- name: range_inf_filter
+  type: laser_filters/LaserRangeInfFilter
+  params:
+    inf_distance_threshold: 10.0

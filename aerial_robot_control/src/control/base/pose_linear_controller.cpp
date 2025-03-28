@@ -223,6 +223,7 @@ namespace aerial_robot_control
 
     omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
     target_rpy_ = navigator_->getTargetRPY();
+    bool i_term_fix = navigator_->getITermFix();
     tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
     tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
     target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
@@ -235,16 +236,20 @@ namespace aerial_robot_control
     switch(navigator_->getXyControlMode())
       {
       case aerial_robot_navigation::POS_CONTROL_MODE:
-        pid_controllers_.at(X).update(target_pos_.x() - pos_.x(), du, target_vel_.x() - vel_.x(), target_acc_.x());
-        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), du, target_vel_.y() - vel_.y(), target_acc_.y());
+        pid_controllers_.at(X).update(target_pos_.x() - pos_.x(), du, target_vel_.x() - vel_.x(), target_acc_.x(), i_term_fix);
+        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), du, target_vel_.y() - vel_.y(), target_acc_.y(), i_term_fix);
         break;
       case aerial_robot_navigation::VEL_CONTROL_MODE:
-        pid_controllers_.at(X).update(0, du, target_vel_.x() - vel_.x(), target_acc_.x());
-        pid_controllers_.at(Y).update(0, du, target_vel_.y() - vel_.y(), target_acc_.y());
+        pid_controllers_.at(X).update(0, du, target_vel_.x() - vel_.x(), target_acc_.x(), i_term_fix);
+        pid_controllers_.at(Y).update(0, du, target_vel_.y() - vel_.y(), target_acc_.y(), i_term_fix);
         break;
       case aerial_robot_navigation::ACC_CONTROL_MODE:
-        pid_controllers_.at(X).update(0, du, 0, target_acc_.x());
-        pid_controllers_.at(Y).update(0, du, 0, target_acc_.y());
+        pid_controllers_.at(X).update(0, du, 0, target_acc_.x(), i_term_fix);
+        pid_controllers_.at(Y).update(0, du, 0, target_acc_.y(), i_term_fix);
+        break;
+      case aerial_robot_navigation::X_ACC_Y_POS_MODE:
+        pid_controllers_.at(X).update(0, du, 0, target_acc_.x(), i_term_fix);
+        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), du, target_vel_.y() - vel_.y(), target_acc_.y(), i_term_fix);
         break;
       default:
         break;

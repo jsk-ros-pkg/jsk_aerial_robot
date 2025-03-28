@@ -4,6 +4,7 @@
 #include <aerial_robot_estimation/sensor/gps.h>
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_msgs/FlightNav.h>
+#include <aerial_robot_msgs/RollPitchNav.h>
 #include <angles/angles.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -14,6 +15,8 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
+#include <std_msgs/Duration.h>
+#include <std_msgs/Time.h>
 #include <nav_msgs/Path.h>
 #include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
 
@@ -24,7 +27,8 @@ namespace aerial_robot_navigation
     {
       POS_CONTROL_MODE,
       VEL_CONTROL_MODE,
-      ACC_CONTROL_MODE
+      ACC_CONTROL_MODE,
+      X_ACC_Y_POS_MODE
     };
   /* control frame */
   enum control_frame
@@ -78,6 +82,7 @@ namespace aerial_robot_navigation
     inline tf::Vector3 getTargetAcc() {return target_acc_;}
     inline tf::Vector3 getTargetRPY() {return target_rpy_;}
     inline tf::Vector3 getTargetOmega() {return target_omega_;}
+    inline bool getITermFix() {return i_term_fix_;}
     inline tf::Vector3 getTargetAngAcc() {return target_ang_acc_;}
 
     inline void setTargetPos(tf::Vector3 pos) { target_pos_ = pos; }
@@ -150,8 +155,8 @@ namespace aerial_robot_navigation
     static constexpr float VOLTAGE_40P =  3.812;
     static constexpr float VOLTAGE_30P =  3.791;
     static constexpr float VOLTAGE_20P =  3.747;
-    static constexpr float VOLTAGE_10P =  3.683;
-    static constexpr float VOLTAGE_0P =  3.209;
+    static constexpr float VOLTAGE_10P =  3.1;
+    static constexpr float VOLTAGE_0P =  3.0;
 
 
     /* playstation dualschock 3 joystick */
@@ -238,6 +243,7 @@ namespace aerial_robot_navigation
     ros::Publisher  flight_state_pub_;
     ros::Publisher  path_pub_;
     ros::Subscriber navi_sub_;
+    ros::Subscriber hokuyo_time_sub_;
     ros::Subscriber pose_sub_;
     ros::Subscriber simple_move_base_goal_sub_;
     ros::Subscriber battery_sub_;
@@ -251,11 +257,15 @@ namespace aerial_robot_navigation
     ros::Subscriber joy_stick_sub_;
     ros::Subscriber flight_nav_sub_;
     ros::Subscriber stop_teleop_sub_;
+    ros::Subscriber roll_pitch_sub_;
+    ros::Publisher  policy_pos_time_pub_;
+    ros::Publisher  policy_scan_time_pub_;
 
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator_;
 
     bool param_verbose_;
+    bool nav_exec_;
 
     uint8_t navi_state_;
 
@@ -289,6 +299,7 @@ namespace aerial_robot_navigation
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
     tf::Vector3 target_rpy_, target_omega_, target_ang_acc_;
+    bool i_term_fix_;
 
     double takeoff_height_;
     double init_height_;
@@ -350,6 +361,8 @@ namespace aerial_robot_navigation
     void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
+    void hokuyoTimeCallback(const std_msgs::TimeConstPtr & msg);
+    void rollPitchCallback(const aerial_robot_msgs::RollPitchNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 

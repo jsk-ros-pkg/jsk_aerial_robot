@@ -78,12 +78,12 @@
     <link name="${name}">
       <xacro:insert_block name="inertial" />
       <xacro:if value="${visible == 1}">
-        <visual>
+        <!-- <visual>
           <origin rpy="0 0 0" xyz="0 0 0"/>
           <geometry>
             <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
           </geometry>
-        </visual>
+        </visual> -->
       </xacro:if>
     </link>
   </xacro:macro>
