@@ -129,7 +129,7 @@ def main(args):
 
         sim_phy = phys_omni if 20 < args.model < 30 else phys_art
         if args.sim_model == 0:
-            sim_nmpc = NMPCTiltQdServoThrust(phys=sim_phy)      # Consider both the servo delay and the thrust delay
+            sim_nmpc = NMPCTiltQdServoThrust(phys=sim_phy)  # Consider both the servo delay and the thrust delay
         elif args.sim_model == 1:
             sim_nmpc = NMPCTiltQdServoThrustDrag(phys=sim_phy)  # Also consider drag in wrench formulation
         else:
@@ -189,10 +189,10 @@ def main(args):
         nx_sim,
         nu,
         x_init_sim,
-        tilt = nmpc.tilt,
-        include_servo_model = sim_nmpc.include_servo_model,
-        include_thrust_model = sim_nmpc.include_thrust_model,
-        include_cog_dist_model = sim_nmpc.include_cog_dist_model
+        tilt=nmpc.tilt,
+        include_servo_model=sim_nmpc.include_servo_model,
+        include_thrust_model=sim_nmpc.include_thrust_model,
+        include_cog_dist_model=sim_nmpc.include_cog_dist_model
     )
 
     # Prepare containers to record simulation data (x and u) for future comparison
@@ -221,7 +221,8 @@ def main(args):
             x_now = deepcopy(x_now_sim[:nx])  # The dimension of x_now may be smaller than x_now_sim
 
         # Access from less indices
-        if (nmpc.include_thrust_model and not nmpc.include_servo_model) and (sim_nmpc.include_servo_model and sim_nmpc.include_thrust_model):
+        if (nmpc.include_thrust_model and not nmpc.include_servo_model) and (
+                sim_nmpc.include_servo_model and sim_nmpc.include_thrust_model):
             if args.arch == 'bi':
                 x_now[13:15] = deepcopy(x_now_sim[15:17])
             elif args.arch == 'tri':
@@ -379,6 +380,7 @@ def main(args):
 
     return np.array(x_history), np.array(u_history)
 
+
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different NMPC models.")
@@ -410,7 +412,7 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="The type of plot. "
-        "Options: 0 (default: full), 1 (less), 2 (only rpy)."
+             "Options: 0 (default: full), 1 (less), 2 (only rpy)."
     )
 
     parser.add_argument(
