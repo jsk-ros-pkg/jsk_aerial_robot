@@ -30,7 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import math
+import socket
 import numpy as np
 import rospy
 
@@ -38,12 +38,13 @@ import ros_numpy as ros_np
 import tf2_ros
 from tf.transformations import *
 import rosgraph
+from rostopic import ROSTopicIOException
 
 from aerial_robot_msgs.msg import FlightNav, PoseControlPid
-from geometry_msgs.msg import PoseStamped, Wrench, Vector3, Vector3Stamped, WrenchStamped, Quaternion, QuaternionStamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Joy, JointState
-from std_msgs.msg import Empty, Int8, UInt8, String
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Empty, UInt8
 from std_srvs.srv import SetBool, SetBoolRequest
 
 class RobotInterface(object):
@@ -93,12 +94,12 @@ class RobotInterface(object):
         self.force_landing_pub = rospy.Publisher(self.robot_ns + '/teleop_command/force_landing', Empty, queue_size = 1)
         self.halt_pub = rospy.Publisher(self.robot_ns + '/teleop_command/halt', Empty, queue_size = 1)
 
-        # Odometry&Control
+        # Odometry & Control
         self.cog_odom_sub = rospy.Subscriber(self.robot_ns + '/uav/cog/odom', Odometry, self.cogOdomCallback)
         self.base_odom_sub = rospy.Subscriber(self.robot_ns + '/uav/baselink/odom', Odometry, self.baseOdomCallback)
         self.control_pid_sub = rospy.Subscriber(self.robot_ns + '/debug/pose/pid', PoseControlPid, self.controlPidCallback)
 
-        # Navigatoin
+        # Navigation
         self.flight_state_sub = rospy.Subscriber(self.robot_ns + '/flight_state', UInt8, self.flightStateCallback)
         self.traj_nav_pub = rospy.Publisher(self.robot_ns + '/target_pose', PoseStamped, queue_size = 1)
         self.direct_nav_pub = rospy.Publisher(self.robot_ns + '/uav/nav', FlightNav, queue_size = 1)
@@ -127,11 +128,11 @@ class RobotInterface(object):
 
     def convergenceCheck(self, timeout, func, *args, **kwargs):
 
-        # if timeout is -1, it means no time constraint
+        # If timeout is -1, it means no time constraint
         if timeout < 0:
             return True
 
-        # check convergence
+        # Check convergence
         start_time = rospy.get_time()
 
         while not rospy.is_shutdown():
@@ -347,11 +348,11 @@ class RobotInterface(object):
 
         if rot is not None:
 
-            # change rpy to quaternion
+            # Change rpy to quaternion
             if len(rot) == 3:
                 rot = quaternion_from_euler(*rot)
 
-        # check whether the pose is final one
+        # Check whether the pose is final one
         if lin_vel is None and ang_vel is None:
             self.trajectoryNavigate(pos, rot)
         else:
@@ -384,25 +385,25 @@ class RobotInterface(object):
         if isinstance(vel_thresh, float):
             vel_thresh = [vel_thresh] * 3
 
-        # target pose
+        # Target pose
         if target_pos is None:
             target_pos = self.getCogPos()
             pos_thresh = np.array([1e6] * 3)
             vel_thresh = np.array([1e6] * 3)
 
         if target_rot is None:
-            target_rot = self.getBaseRot() # assume the coordinate axes of baselink are identical to those of CoG
+            target_rot = self.getBaseRot()  # Assume the coordinate axes of baselink are identical to those of CoG
             rot_thresh = np.array([1e6] * 3)
         if len(target_rot) == 3:
             target_rot = quaternion_from_euler(*target_rot)
 
 
-        # current pose
+        # Current pose
         current_pos = self.getCogPos()
         current_vel = self.getCogLinVel()
-        current_rot = self.getBaseRot() # assume the coordinate axes of baselink are identical to those of CoG
+        current_rot = self.getBaseRot()     # Assume the coordinate axes of baselink are identical to those of CoG
 
-        # delta_pos
+        # Delta_pos
         delta_pos = target_pos - current_pos
         delta_vel = current_vel
         delta_rot = quaternion_multiply(quaternion_inverse(current_rot), \
@@ -418,9 +419,9 @@ class RobotInterface(object):
         else:
             return False
 
-    # speical rorataion function for DRAGON like robot
+    # Special rotation function for DRAGON-like robot
     def rotateCog(self, roll, pitch):
-        # send the target roll and pitch angles
+        # Send the target roll and pitch angles
         msg = Vector3Stamped()
         msg.header.stamp = rospy.Time.now()
         msg.vector.x = roll
@@ -436,7 +437,7 @@ class RobotInterface(object):
     def jointStateCallback(self, msg):
         joint_state = JointState()
 
-        # only extract joint, exclude other component like gimbal
+        # Only extract joint state, exclude other components like gimbal
         for n, j in zip(msg.name, msg.position):
             if 'joint' not in n:
                 continue
@@ -459,13 +460,13 @@ class RobotInterface(object):
             rospy.logerr("[Send Joint] the size of joint names {} and angles {} are not same".format(len(target_joint_names), len(target_joint_angles)))
             return False
 
-        # check whether the joint exists
+        # Check whether the joint exists
         for name in target_joint_names:
             if name not in self.joint_state.name:
                 rospy.logerr("set jont angle: cannot find {}".format(name))
                 return False
 
-        # send joint angles
+        # Send joint angles
         target_joint_state = JointState()
         target_joint_state.name = target_joint_names
         target_joint_state.position = target_joint_angles

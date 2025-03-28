@@ -1,11 +1,11 @@
+<!-- Launch nodes for GPS systems -->
 <launch>
 
   <!-- Ublox RTK GPS (NEO-M8P or ZED-F9P) -->
-
   <arg name = "ntrip_ip" default="192.168.1.1" />
   <arg name = "module_name" default="holybro_m8p" />
 
-  <!-- device interface with ublox gps -->
+  <!-- Device interface with ublox GPS -->
   <include file="$(find ublox_gps)/launch/ublox_device.launch" >
     <arg name="param_file_name" value="$(arg module_name)" />
     <arg name="node_name" value="rtk_gps" />

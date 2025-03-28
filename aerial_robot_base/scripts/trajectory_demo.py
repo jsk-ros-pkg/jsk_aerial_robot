@@ -35,8 +35,12 @@ import rospy
 from aerial_robot_base.robot_interface import RobotInterface
 from aerial_robot_base.state_machine import *
 
-# Template for simple demo
-class SimpleDemo():
+
+class TrajectoryDemo():
+    """
+    Template for simple demo including arming, take-off, 
+    hovering at single waypoint, tracking trajectory and landing.
+    """
     def __init__(self):
         self.robot = RobotInterface()
 
@@ -86,9 +90,9 @@ class SimpleDemo():
 
 if __name__ == '__main__':
 
-    rospy.init_node('simple_demo')
+    rospy.init_node('trajectory_demo')
 
-    demo = SimpleDemo()
+    demo = TrajectoryDemo()
 
 
 

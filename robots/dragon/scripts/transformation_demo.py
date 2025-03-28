@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-
-import sys
 import time
 import rospy
-import math
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Vector3Stamped, Vector3
 

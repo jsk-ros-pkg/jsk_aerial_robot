@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  ###########  launch config  ###########
+  <!-- ###########  launch config  ########### -->
   <arg name="rm" default="True" />
   <arg name="sim" default="False" />
   <arg name="real_machine" default="$(arg rm)" />
@@ -22,44 +22,44 @@
   <arg name="mujoco" default="False" />
   <arg name="demo" default="True" />
 
-  ###########  Parameters  ###########
+  <!-- ###########  Parameters  ########### -->
   <group ns="$(arg robot_ns)">
 
-    ###########  Basic Param  ###########
-    # EGOMOTION_ESTIMATE = 0
-    # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode
-    # GROUND_TRUTH = 2
+    <!-- ###########  Basic Param  ########### -->
+    <!-- # EGOMOTION_ESTIMATE = 0 -->
+    <!-- # EXPERIMENT_ESTIMATE = 1. for unstable mocap, use this mode -->
+    <!-- # GROUND_TRUTH = 2 -->
     <param name="estimation/mode" value= "$(arg sim_estimate_mode)" if="$(arg simulation)" />
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     <param name="uav_model" value= "0" />
     <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
 
-    ###########  Motor Config  ###########
+    <!-- ###########  Motor Config  ########### -->
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
-    ###########  Battery Config  ###########
+    <!-- ###########  Battery Config  ########### -->
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
-    ###########  Control  ###########
+    <!-- ###########  Control  ########### -->
     <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
 
-    ###########  Sensor Fusion  ###########
+    <!-- ###########  Sensor Fusion  ########### -->
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
-    ###########  Navigation  ###########
+    <!-- ###########  Navigation  ########### -->
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
 
-  ###########  Base Platform  ###########
+  <!-- ###########  Base Platform  ########### -->
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
     <param name="main_rate" value="40"/>
   </node>
 
-  ###########  Robot Model  ###########
+  <!-- ###########  Robot Model  ########### -->
   <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
@@ -72,14 +72,14 @@
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
 
-  ###########  Sensors ###########
+  <!-- ###########  Sensors ########### -->
   <include file="$(find mini_quadrotor)/launch/includes/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
   </include >
 
-  ########## Simulation in Gazebo #########
+  <!-- ########## Simulation in Gazebo ######### -->
   <include file="$(find aerial_robot_simulation)/launch/gazebo.launch" if = "$(eval arg('simulation') and not arg('real_machine') and not arg('mujoco'))" >
     <arg name="robot_ns" default="$(arg robot_ns)" />
     <arg name="gui" default="false" if="$(arg headless)" />
@@ -92,15 +92,15 @@
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
-  ########## Simulation in Mujoco #########
+  <!-- ########## Simulation in Mujoco ######### -->
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)"/>
     <arg name="mujoco_model" value="$(find mini_quadrotor)/mujoco/robot.xml"/>
   </include>
 
-  ########## Simple Demo #########
-  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
+  <!-- ########## Simple Demo ######### -->
+  <node pkg="aerial_robot_base" type="trajectory_demo.py" name="trajectory_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 
 </launch>

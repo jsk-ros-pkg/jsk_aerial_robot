@@ -35,14 +35,18 @@ import unittest
 
 import rospy
 import rostest
+from aerial_robot_base.robot_interface import RobotInterface
 from aerial_robot_base.state_machine import *
 from std_msgs.msg import Empty
 
 
 PKG = 'rostest'
 
-# Template for simple demo
 class HoverMotion():
+    """
+    Template for simple demo including arming, take-off, 
+    hovering at single waypoint and landing.
+    """
     def __init__(self):
         self.robot = RobotInterface()
 
@@ -103,7 +107,7 @@ class HoveringTest(unittest.TestCase):
         self.assertTrue(checker.startMotion())
 
 if __name__ == '__main__':
-    print("start check hovering")
+    print("Start hovering check...")
     try:
         rostest.run(PKG, 'hovering_check', HoveringTest, sys.argv)
     except KeyboardInterrupt:

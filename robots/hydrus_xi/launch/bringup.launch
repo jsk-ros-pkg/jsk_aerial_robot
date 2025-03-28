@@ -114,6 +114,6 @@
   </include>
 
   ########## Simple Demo #########
-  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
+  <node pkg="aerial_robot_base" type="trajectory_demo.py" name="trajectory_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>

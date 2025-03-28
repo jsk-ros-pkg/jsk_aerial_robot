@@ -35,8 +35,8 @@
 
 #pragma once
 
-#include <aerial_robot_control/control/under_actuated_lqi_controller.h>
-#include <spinal/DesireCoord.h>
+#include "aerial_robot_control/control/under_actuated_lqi_controller.h"
+#include "spinal/DesireCoord.h"
 
 namespace aerial_robot_control
 {
@@ -50,10 +50,9 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                    double ctrl_loop_rate);
+                    double main_loop_dt);
 
   protected:
-
     ros::Publisher desired_baselink_rot_pub_;
 
     double trans_constraint_weight_;
@@ -65,6 +64,5 @@ namespace aerial_robot_control
     bool optimalGain() override;
     void publishGain() override;
     void rosParamInit() override;
-
   };
 };

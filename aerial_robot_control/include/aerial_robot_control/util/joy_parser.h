@@ -38,7 +38,7 @@
 
 #include <sensor_msgs/Joy.h>
 
-/* general joystick bottons/axes layout */
+/* General joystick bottons/axes layout */
 const int JOY_BUTTON_SIZE              = 17;
 const int JOY_BUTTON_STOP            = 0;
 const int JOY_BUTTON_STICK_LEFT        = 1;
@@ -79,11 +79,11 @@ const int JOY_AXIS_ACCELEROMETER_FORWARD   = 17;
 const int JOY_AXIS_ACCELEROMETER_UP        = 18;
 const int JOY_AXIS_GYRO_YAW                = 19;
 
-/* playstation dualschock 3 joystick: same with general layout */
+/* PlayStation Dualschock 3 joystick: same as general layout */
 const int PS3_BUTTON_SIZE                  = 17;
 const int PS3_AXIS_SIZE                    = 29;
 
-/* playstation dualschock 4 joystick */
+/* PlayStation Dualschock 4 joystick */
 const int PS4_BUTTON_SIZE              = 14;
 const int PS4_BUTTON_ACTION_SQUARE     = 0;
 const int PS4_BUTTON_ACTION_CROSS      = 1;
@@ -115,7 +115,7 @@ const int PS4_AXIS_GYRO_ROLL               = 11;
 const int PS4_AXIS_GYRO_YAW                = 12;
 const int PS4_AXIS_GYRO_PITCH              = 13;
 
-/* ps4-like bluetooth joystick */
+/* PS4-like bluetooth joystick */
 const int BLT_BUTTON_SIZE              = 13;
 const int BLT_BUTTON_ACTION_CROSS      = 0;
 const int BLT_BUTTON_ACTION_CIRCLE     = 1;
@@ -140,7 +140,7 @@ const int BLT_AXIS_BUTTON_REAR_RIGHT_2     = 5; // neutral=+1, full accel=-1
 const int BLT_AXIS_BUTTON_CROSS_LEFT_RIGHT = 6; // left = +1, right= -1
 const int BLT_AXIS_BUTTON_CROSS_UP_DOWN    = 7; // up = +1, down= -1
 
-/* ROG1 embeded joystick */
+/* ROG1 embedded joystick */
 const int ROG1_BUTTON_SIZE              = 11;
 const int ROG1_BUTTON_ACTION_A          = 0;
 const int ROG1_BUTTON_ACTION_B          = 1;
@@ -164,4 +164,3 @@ const int ROG1_AXIS_BUTTON_CROSS_UP_DOWN    = 7; // up = +1, down= -1
 
 
 const sensor_msgs::Joy joyParse(const sensor_msgs::Joy& ps4_joy_msg);
-

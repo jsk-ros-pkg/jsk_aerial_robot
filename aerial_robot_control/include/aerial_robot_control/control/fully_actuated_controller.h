@@ -34,11 +34,11 @@
  *********************************************************************/
 #pragma once
 
-#include <aerial_robot_msgs/WrenchAllocationMatrix.h>
-#include <aerial_robot_control/control/base/pose_linear_controller.h>
-#include <spinal/FourAxisCommand.h>
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/TorqueAllocationMatrixInv.h>
+#include "aerial_robot_msgs/WrenchAllocationMatrix.h"
+#include "aerial_robot_control/control/base/pose_linear_controller.h"
+#include "spinal/FourAxisCommand.h"
+#include "spinal/RollPitchYawTerms.h"
+#include "spinal/TorqueAllocationMatrixInv.h"
 
 using boost::algorithm::clamp;
 
@@ -54,7 +54,7 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                    double ctrl_loop_rate) override;
+                    double main_loop_dt) override;
 
     virtual void reset() override;
 
@@ -62,12 +62,12 @@ namespace aerial_robot_control
     virtual void sendCmd() override;
 
   private:
-    ros::Publisher flight_cmd_pub_; //for spinal
-    ros::Publisher rpy_gain_pub_; //for spinal
-    ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
+    ros::Publisher flight_cmd_pub_;                     // For spinal
+    ros::Publisher rpy_gain_pub_;                       // For spinal
+    ros::Publisher torque_allocation_matrix_inv_pub_;   // For spinal
     double torque_allocation_matrix_inv_pub_stamp_;
-    ros::Publisher wrench_allocation_matrix_pub_; //for debug
-    ros::Publisher wrench_allocation_matrix_inv_pub_; //for debug
+    ros::Publisher wrench_allocation_matrix_pub_;       // For debug
+    ros::Publisher wrench_allocation_matrix_inv_pub_;   // For debug
     double wrench_allocation_matrix_pub_stamp_;
 
     Eigen::MatrixXd q_mat_;
@@ -84,7 +84,5 @@ namespace aerial_robot_control
 
     void sendFourAxisCommand();
     void sendTorqueAllocationMatrixInv();
-
-
   };
-} //namespace aerial_robot_control
+};

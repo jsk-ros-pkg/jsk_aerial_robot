@@ -58,14 +58,13 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                    double ctrl_loop_rate);
+                    double main_loop_dt);
 
     void activate() override;
 
   protected:
-
-    ros::Publisher flight_cmd_pub_; // for spinal
-    ros::Publisher rpy_gain_pub_; // for spinal
+    ros::Publisher flight_cmd_pub_;                     // For spinal
+    ros::Publisher rpy_gain_pub_;                       // For spinal
     ros::Publisher four_axis_gain_pub_;
     ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
 
@@ -82,7 +81,7 @@ namespace aerial_robot_control
     Eigen::MatrixXd K_;
 
     Eigen::Vector3d lqi_roll_pitch_weight_, lqi_yaw_weight_, lqi_z_weight_;
-    std::vector<double> r_; // matrix R
+    std::vector<double> r_;     // Matrix R
 
     std::vector<Eigen::Vector3d> pitch_gains_, roll_gains_, yaw_gains_, z_gains_;
 
@@ -91,7 +90,7 @@ namespace aerial_robot_control
     bool realtime_update_;
     std::thread gain_generator_thread_;
 
-    //private functions
+    // Private functions
     virtual bool checkRobotModel();
     void resetGain() { K_ = Eigen::MatrixXd(); }
 
@@ -107,7 +106,7 @@ namespace aerial_robot_control
 
     Eigen::MatrixXd getQInv();
     virtual void allocateYawTerm();
-    void cfgLQICallback(aerial_robot_control::LQIConfig &config, uint32_t level); //dynamic reconfigure
+    void cfgLQICallback(aerial_robot_control::LQIConfig &config, uint32_t level);   // Dynamic reconfigure
 
     void sendRotationalInertiaComp();
 

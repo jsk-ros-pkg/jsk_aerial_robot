@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-
-import sys
 import time
-import rospy
-import math
+import ros, rospy
 from geometry_msgs.msg import Vector3Stamped, Vector3
-from sensor_msgs.msg import JointState
 
 rospy.init_node("baselink_rot_test")
 
