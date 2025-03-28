@@ -10,7 +10,7 @@ from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 
-from tilt_qd_servo_thrust_dist import XrUrConverter
+from qd_reference_generator import QDNMPCReferenceGenerator
 
 from tilt_qd import phys_param_beetle_omni as phys_omni
 
@@ -66,7 +66,11 @@ class MHEWrenchEstAccMomNode:
                                                         queue_size=10)
 
         # Others
-        self.alloc_mat = XrUrConverter().get_alloc_mat()
+        ref_gen = QDNMPCReferenceGenerator(object(), phys_omni.p1_b, phys_omni.p2_b, phys_omni.p3_b, phys_omni.p4_b,
+                                 phys_omni.dr1, phys_omni.dr2, phys_omni.dr3, phys_omni.dr4,
+                                 phys_omni.kq_d_kt, phys_omni.mass, phys_omni.gravity)
+
+        self.alloc_mat = ref_gen.get_alloc_mat()
         self.disturb_estimate_acc = np.zeros(6)
         self.rot_ib = np.eye(3)
 
