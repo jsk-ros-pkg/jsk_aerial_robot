@@ -229,13 +229,14 @@ class TrackState(smach.State):
 ###############################################
 # Main SMACH Entry Point
 ###############################################
-def main():
-    parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
-    parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
-    args = parser.parse_args()
-
+def main(args):
     # Initialize a single ROS node for the entire SMACH-based system
     rospy.init_node("mpc_smach_node")
+
+    # check if the robot_name exists in ROS
+    if not rospy.has_param(args.robot_name):
+        rospy.logerr(f"Robot name '{args.robot_name}' not found in ROS parameters! Make sure the robot is running.")
+        return
 
     # Create a top-level SMACH state machine
     sm = smach.StateMachine(outcomes=["DONE"])
@@ -283,4 +284,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
+    parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
+    args = parser.parse_args()
+    main(args)
