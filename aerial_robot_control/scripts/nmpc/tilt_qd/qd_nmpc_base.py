@@ -13,19 +13,46 @@ class QDNMPCBase(RecedingHorizonBase):
     """
     Base class for all NMPC controllers for quadrotors.
     Inherits from RecedingHorizonBase which also lays foundations for MHE classes.
-    The child classes only have specifications which define the controller specifications and need to set the following flags:
-     - include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
-     - include_servo_derivative: Flag to include the continuous time-derivative of the servo angle as control input(!) instead of numeric differentation.
-     - include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
-     - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
-     - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
-     - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
-     - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
 
     :param str model_name: Name of the model defined in controller file.
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
     def __init__(self, overwrite: bool = False):
+        #     The child classes only have specifications which define the controller specifications and need to set the following flags:
+        # check if the model name is set
+        # - model_name: Name of the model defined in controller file.
+        if not hasattr(self, "model_name"):
+            raise AttributeError("Model name not set. Please set the model_name attribute in the child class.")
+        # - phys: Physical parameters of the robot.
+        if not hasattr(self, "phys"):
+            raise AttributeError("Physical parameters not set. Please set the phys attribute in the child class.")
+        # - tilt: Flag to include tiltable rotors. If not included, the quadrotor is assumed to be a fixed quadrotor.
+        if not hasattr(self, "tilt"):
+            raise AttributeError("Tilt flag not set. Please set the tilt attribute in the child class.")
+        # - include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
+        if not hasattr(self, "include_servo_model"):
+            raise AttributeError("Servo model flag not set. Please set the include_servo_model attribute in the child class.")
+        # - include_servo_derivative: Flag to include the continuous time-derivative of the servo angle as control input(!) instead of numeric differentation.
+        if not hasattr(self, "include_servo_derivative"):
+            self.include_servo_derivative = False
+        # - include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
+        if not hasattr(self, "include_thrust_model"):
+            raise AttributeError("Thrust model flag not set. Please set the include_thrust_model attribute in the child class.")
+
+        # Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
+        # include_cog_dist_parameter are for I term, which accounts for model error. include_cog_dist_model are for disturbances.
+        # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters.
+        if not hasattr(self, "include_cog_dist_parameter"):
+            raise AttributeError("CoG disturbance parameter flag not set. Please set the include_cog_dist_parameter attribute in the child class.")
+
+        # These two variables are only for impedance control
+        # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states.
+        if not hasattr(self, "include_cog_dist_model"):
+            self.include_cog_dist_model = False
+        # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
+        if not hasattr(self, "include_impedance"):
+            self.include_impedance = False
+
         # Call RecedingHorizon constructor coming as NMPC method
         super().__init__("nmpc", overwrite)
 
