@@ -74,7 +74,7 @@ AttitudeController::AttitudeController():
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
   p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
-  att_pid_pub_("debug/att/pid", &pid_att_msg_)
+  att_pid_pub_("debug/att/pid", &pid_att_msg_),
   offset_rot_sub_("desire_coordinate", &AttitudeController::offsetRotCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
   esc_telem_pub_("esc_telem", &esc_telem_msg_)
