@@ -1,12 +1,8 @@
-"""
- Created by li-jinjie on 24-10-5.
-"""
-
-import yaml
 import os
+import yaml
 import rospkg
 
-# read parameters from yaml
+# Read parameters from configuration file in the robot's package
 rospack = rospkg.RosPack()
 
 physical_param_path = os.path.join(rospack.get_path("beetle"), "config", "PhysParamBeetleArt.yaml")
@@ -29,9 +25,8 @@ dr4 = physical_params["dr4"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
 
-t_servo = physical_params["t_servo"]  # time constant of servo
-
-t_rotor = physical_params["t_rotor"]  # time constant of rotor
+t_servo = physical_params["t_servo"]  # Time constant of servo
+t_rotor = physical_params["t_rotor"]  # Time constant of rotor
 
 c0 = physical_params["c0"]
 c1 = physical_params["c1"]

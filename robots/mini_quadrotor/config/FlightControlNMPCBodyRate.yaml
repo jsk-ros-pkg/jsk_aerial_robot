@@ -2,29 +2,33 @@ aerial_robot_control_name: aerial_robot_control/under_act_body_rate/nmpc_control
 
 controller:
   nmpc:
-    T_samp: 0.025  # 40 Hz  TODO: should be adjusted by main_rate
-    T_pred: 2.0  # seconds
-    T_integ: 0.1  # seconds
+    # Controller settings
+    # For direct multiple shooting, we divide the time horizon into 
+    # a number of discrete intervals. These are the "shooting intervals", called N.
+    # N is calculated by int(T_horizon / T_step)
+    T_samp: 0.025     # 40 Hz  TODO: should be adjusted by main_rate
+    T_horizon: 2.0    # Prediction horizon in seconds
+    T_step: 0.1       # Discretization time step in seconds, i.e., how long a singulare integration step is
 
     n_states: 10
     n_controls: 4
 
-    # constraint
-    w_max: 6  # 1 rad/s ~ 57 deg/s
+    # Constraints in radians/second (Conversion: 1 rad/s ~ 57 deg/s)
     w_min: -6
-    c_max: 43.1  # 7 * 4 / 0.65  This value will be adjusted by physical constraints
+    w_max: 6
     c_min: 0
-    v_max: 1
+    c_max: 43.1       # 7 * 4 / 0.65  This value will be adjusted by physical constraints
     v_min: -1
+    v_max: 1
 
     # params for the cost function
-    Qp_xy: 300  # 0
-    Qp_z: 400  # 500
-    Qv_xy: 10  # 0
-    Qv_z: 10  # 100
-    Qq_xy: 10  # 400
+    Qp_xy: 300        # 0
+    Qp_z: 400         # 500
+    Qv_xy: 10         # 0
+    Qv_z: 10          # 100
+    Qq_xy: 10         # 400
     Qq_z: 100
-    Rw: 10  # 10
+    Rw: 10            # 10
     Rc: 5
 
     yaw_p_gain: 40.0  # temp

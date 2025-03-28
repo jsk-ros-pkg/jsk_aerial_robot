@@ -4,16 +4,23 @@ import sys
 import os
 
 sys.path.append('../../scripts/nmpc/tilt_qd/')
-from sim_nmpc_tilt_qd import simulate
+from sim_nmpc import main
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
+class SimArgs:
+    def __init__(self):
+        self.model = 0
+        self.sim_model = 0
+        self.plot_type = 1
+        self.arch = 'tilt_qd'
+        self.no_viz = True
+        self.save_data = False
 
 def print_error(x, x_true, u, u_true):
     print(f"max error: {np.max(np.abs(x - x_true))}, {np.max(np.abs(u - u_true))}")
     print(f"mean error: {np.mean(np.abs(x - x_true))}, {np.mean(np.abs(u - u_true))}")
     print(f"accumulated error: {np.sum(np.abs(x - x_true))}, {np.sum(np.abs(u - u_true))}")
-
 
 def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_type=1, no_viz=True):
     """
@@ -33,10 +40,16 @@ def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_ty
     os.chdir(current_path)
     npzfile = np.load(npz_filename)
     x_true, u_true = npzfile['x'], npzfile['u']
-    x, u = simulate(nmpc_model_id=nmpc_model_id,
-                    sim_model_id=sim_model_id,
-                    plot_type=plot_type,
-                    no_viz=no_viz)
+
+
+    sim_args = SimArgs()
+    sim_args.model = nmpc_model_id
+    sim_args.sim_model = sim_model_id
+    sim_args.plot_type = plot_type
+    sim_args.arch = 'qd'
+    sim_args.no_viz = no_viz
+
+    x, u = main(sim_args)
     print_error(x, x_true, u, u_true)
     assert np.allclose(x, x_true, atol=atol) and np.allclose(u, u_true, atol=atol), "Test failed!"
 
@@ -82,25 +95,25 @@ class TestTiltQd(unittest.TestCase):
             no_viz=True
         )
 
-    # def test_tilt_qd_servo_dist(self):
-    #     run_simulation_test(
-    #         npz_filename='nmpc_NMPCTiltQdServoDist_model_NMPCTiltQdServoThrust.npz',
-    #         nmpc_model_id=21,
-    #         sim_model_id=0,
-    #         atol=1e-3,
-    #         plot_type=1,
-    #         no_viz=True
-    #     )
+    def test_tilt_qd_servo_dist(self):
+        run_simulation_test(
+            npz_filename='nmpc_NMPCTiltQdServoDist_model_NMPCTiltQdServoThrust.npz',
+            nmpc_model_id=21,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            no_viz=True
+        )
 
-    # def test_tilt_qd_servo_thrust_dist(self):
-    #     run_simulation_test(
-    #         npz_filename='nmpc_NMPCTiltQdServoThrustDist_model_NMPCTiltQdServoThrust.npz',
-    #         nmpc_model_id=22,
-    #         sim_model_id=0,
-    #         atol=1e-3,
-    #         plot_type=1,
-    #         no_viz=True
-    #     )
+    def test_tilt_qd_servo_thrust_dist(self):
+        run_simulation_test(
+            npz_filename='nmpc_NMPCTiltQdServoThrustDist_model_NMPCTiltQdServoThrust.npz',
+            nmpc_model_id=22,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            no_viz=True
+        )
 
     def test_tilt_qd_servo_thrust_drag_sim_model(self):
         run_simulation_test(

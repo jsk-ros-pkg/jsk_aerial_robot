@@ -18,12 +18,11 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     rmse_x = np.sqrt(np.mean(error ** 2))
     return rmse_x
 
-
 def main(file_path, type):
     # Load the data from csv file
     data = pd.read_csv(file_path)
 
-    # ======= disturbance wrench estimated by acceleration-based method =========
+    # ======= Disturbance wrench estimated by acceleration-based method =========
     data_dist_acc_force = data[
         ['__time', '/beetle1/disturbance_wrench/wrench/force/x', '/beetle1/disturbance_wrench/wrench/force/y',
          '/beetle1/disturbance_wrench/wrench/force/z']]
@@ -35,7 +34,7 @@ def main(file_path, type):
     data_dist_acc_force = data_dist_acc_force.dropna()
     data_dist_acc_torque = data_dist_acc_torque.dropna()
 
-    # ======= sensor-info =========
+    # ======= Sensor-info =========
     data_imu_acc = data[
         ['__time', '/beetle1/imu/acc_data[0]', '/beetle1/imu/acc_data[1]', '/beetle1/imu/acc_data[2]']]
     data_imu_gyro = data[
@@ -55,7 +54,7 @@ def main(file_path, type):
 
     data_thrust_meas = (data_rpm_meas * 0.001) ** 2 / 7.7991
 
-    # ======= command ========
+    # ======= Control commands ========
     data_servo_cmd = data[
         ['__time', '/beetle1/gimbals_ctrl/gimbal1/position', '/beetle1/gimbals_ctrl/gimbal2/position',
          '/beetle1/gimbals_ctrl/gimbal3/position', '/beetle1/gimbals_ctrl/gimbal4/position']]
@@ -65,71 +64,64 @@ def main(file_path, type):
     data_servo_cmd = data_servo_cmd.dropna()
     data_thrust_cmd = data_thrust_cmd.dropna()
 
-    # ======= plotting =========
+    # ======= Plotting =========
     if type == 0:
         plt.style.use(["science", "grid"])
 
-        plt.rcParams.update({'font.size': 11})  # default is 10
+        plt.rcParams.update({'font.size': 11})      # Default is 10
         label_size = 14
 
+        # Set up plot
         fig = plt.figure(figsize=(21, 7))
-
-        t_bias = max(data_dist_acc_force['__time'].iloc[0], data_dist_acc_force['__time'].iloc[0])
         color_ref = '#0C5DA5'
         color_real = '#FF2C00'
 
-        # --------------------------------
-        plt.subplot(3, 2, 1)
-        t_ref = np.array(data_dist_acc_force['__time']) - t_bias
-        fx = np.array(data_dist_acc_force['/beetle1/disturbance_wrench/wrench/force/x'])
-        plt.plot(t_ref, fx, label='acc', linestyle="-", color=color_ref)
+        # Time adjustment
+        t_bias = max(data_dist_acc_force['__time'].iloc[0], data_dist_acc_force['__time'].iloc[0])
+        tf_ref = np.array(data_dist_acc_force['__time']) - t_bias
+        tt_ref = np.array(data_dist_acc_torque['__time']) - t_bias
 
+        # Plot Forces
+        plt.subplot(3, 2, 1)
+        fx = np.array(data_dist_acc_force['/beetle1/disturbance_wrench/wrench/force/x'])
+        plt.plot(tf_ref, fx, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$f_{dx}$ (N)', fontsize=label_size)
 
         plt.subplot(3, 2, 3)
         fy = np.array(data_dist_acc_force['/beetle1/disturbance_wrench/wrench/force/y'])
-        plt.plot(t_ref, fy, label='acc', linestyle="-", color=color_ref)
-
+        plt.plot(tf_ref, fy, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$f_{dy}$ (N)', fontsize=label_size)
 
         plt.subplot(3, 2, 5)
         fz = np.array(data_dist_acc_force['/beetle1/disturbance_wrench/wrench/force/z'])
-        plt.plot(t_ref, fz, label='acc', linestyle="-", color=color_ref)
-
+        plt.plot(tf_ref, fz, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$f_{dz}$ (N)', fontsize=label_size)
 
-        # --------------------------------
+        # Plot Torques
         plt.subplot(3, 2, 2)
-        t_ref = np.array(data_dist_acc_torque['__time']) - t_bias
         tq_x = np.array(data_dist_acc_torque['/beetle1/disturbance_wrench/wrench/torque/x'])
-        plt.plot(t_ref, tq_x, label='acc', linestyle="-", color=color_ref)
-
+        plt.plot(tt_ref, tq_x, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$\\tau_{dx}$ (N.m)', fontsize=label_size)
 
         plt.subplot(3, 2, 4)
         tq_y = np.array(data_dist_acc_torque['/beetle1/disturbance_wrench/wrench/torque/y'])
-        plt.plot(t_ref, tq_y, label='acc', linestyle="-", color=color_ref)
-
+        plt.plot(tt_ref, tq_y, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$\\tau_{dy}$ (N.m)', fontsize=label_size)
 
         plt.subplot(3, 2, 6)
         tq_z = np.array(data_dist_acc_torque['/beetle1/disturbance_wrench/wrench/torque/z'])
-        plt.plot(t_ref, tq_z, label='acc', linestyle="-", color=color_ref)
-
+        plt.plot(tt_ref, tq_z, label='acc', linestyle="-", color=color_ref)
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('$\\tau_{dz}$ (N.m)', fontsize=label_size)
 
-        # --------------------------------
         plt.tight_layout()
-        # make the subplots very compact
         fig.subplots_adjust(hspace=0.2)
         plt.show()
-
 
     else:
         print('Invalid type')

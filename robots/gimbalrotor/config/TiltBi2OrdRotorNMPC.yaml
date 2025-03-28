@@ -4,8 +4,8 @@ aerial_robot_control_name: aerial_robot_control/nmpc_controller/tilt_bi/2_ord_se
 controller:
   nmpc:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
-    T_pred: 2.0  # seconds
-    T_integ: 0.1  # seconds
+    T_horizon: 2.0  # seconds
+    T_step: 0.1  # seconds
 
     # constraint
     w_max: 6  # 1 rad/s ~ 57 deg/s

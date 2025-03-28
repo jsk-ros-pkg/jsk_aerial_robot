@@ -78,9 +78,6 @@ protected:
   double mass_;
   double gravity_const_;
   std::vector<double> inertia_;
-  double thrust_ctrl_max_;
-  double thrust_ctrl_min_;
-
   int motor_num_;
   int joint_num_;
   double t_nmpc_samp_;
@@ -132,7 +129,7 @@ protected:
 
   /* utils */
   // get functions
-  double getCommand(int idx_u, double t_pred = 0.0);
+  double getCommand(int idx_u, double T_horizon = 0.0);
 
   // conversion functions
   std::vector<double> meas2VecX() override;

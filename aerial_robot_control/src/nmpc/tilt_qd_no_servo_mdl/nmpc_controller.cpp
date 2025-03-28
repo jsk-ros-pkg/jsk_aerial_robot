@@ -32,7 +32,7 @@ void nmpc_over_act_no_servo_delay::NMPCController::initialize(
   mpc_solver_.initialize(constraints);
 
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
-  getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
+  getParam<double>(control_nh, "nmpc/T_step", t_nmpc_integ_, 0.1);
 
   //  mass_ = robot_model_->getMass();
   //  gravity_const_ = robot_model_->getGravity()[2];

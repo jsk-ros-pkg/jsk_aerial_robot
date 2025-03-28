@@ -141,12 +141,8 @@ void nmpc::TiltMtServoNMPC::initParams()
   physical_nh.getParam("inertia_diag", inertia_);
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
-
-  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
-  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
-
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
-  getParam<double>(nmpc_nh, "T_integ", t_nmpc_integ_, 0.1);
+  getParam<double>(nmpc_nh, "T_step", t_nmpc_integ_, 0.1);
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
   getParam<bool>(nmpc_nh, "is_print_phys_params", is_print_phys_params_, false);
@@ -260,9 +256,9 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
   if (is_traj_tracking_)
   {
-    if (ros::Time::now() - receive_time_ > ros::Duration(0.5))
+    if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
     {
-      ROS_INFO("No msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
+      ROS_INFO("Trajectory tracking mode is off!");
       is_traj_tracking_ = false;
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
@@ -275,25 +271,6 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetVelZ(0.0);
       navigator_->setTargetRoll(0.0);
       navigator_->setTargetPitch(0.0);
-      navigator_->setTargetYaw((float)current_rpy.z());
-      navigator_->setTargetOmegaX(0.0);
-      navigator_->setTargetOmegaY(0.0);
-      navigator_->setTargetOmegaZ(0.0);
-    }
-    else if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
-    {
-      ROS_INFO_THROTTLE(1, "No msg for 0.1s. Try to track current pose.");
-      tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-      tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
-
-      navigator_->setTargetPosX((float)current_pos.x());
-      navigator_->setTargetPosY((float)current_pos.y());
-      navigator_->setTargetPosZ((float)current_pos.z());
-      navigator_->setTargetVelX(0.0);
-      navigator_->setTargetVelY(0.0);
-      navigator_->setTargetVelZ(0.0);
-      navigator_->setTargetRoll((float)current_rpy.x());
-      navigator_->setTargetPitch((float)current_rpy.y());
       navigator_->setTargetYaw((float)current_rpy.z());
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
@@ -536,13 +513,13 @@ void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
   }
 }
 
-double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double t_pred)
+double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon)
 {
-  if (t_pred == 0)
+  if (T_horizon == 0)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
 
   return mpc_solver_ptr_->uo_.at(0).at(idx_u) +
-         t_pred / t_nmpc_integ_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
+         T_horizon / t_nmpc_integ_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
 std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
@@ -741,19 +718,10 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
   for (int i = 0; i < x_lambda.size() / 2; i++)
   {
+    double a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+    x.at(13 + i) = a_ref;
     double ft_ref = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
     u.at(i) = ft_ref;
-
-    double a_ref;
-    if (ft_ref < thrust_ctrl_min_)
-    {
-      a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
-    }
-    else
-    {
-      a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-    }
-    x.at(13 + i) = a_ref;
   }
 }
 

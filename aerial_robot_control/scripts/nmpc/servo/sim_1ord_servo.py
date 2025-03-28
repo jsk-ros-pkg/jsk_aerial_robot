@@ -1,59 +1,63 @@
-'''
- Created by jinjie on 24/06/07.
- From acados python example -> pendulum_model
-'''
-
 from acados_template import AcadosSim, AcadosSimSolver, AcadosModel, latexify_plot
 import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def export_servo_model() -> AcadosModel:
+# Created from the acados python example "pendulum_model".
+
+def create_acados_model() -> AcadosModel:
+    """
+    Create acados model object.
+    """
+    # Model name
     model_name = 'servo_ode'
 
-    # set up states & controls
+    # Servo time constant
     t_servo = 0.08
 
-    a = ca.SX.sym('a')
-    x = ca.vertcat(a)
+    # State
+    a_s = ca.SX.sym('a_s')      # Servo angle alpha between Body frame and Rotor frame as state
+    states = ca.vertcat(a_s)
 
-    ac = ca.SX.sym('ac')
-    u = ca.vertcat(ac)
+    # Input
+    a_c = ca.SX.sym('a_c')      # Servo angle alpha between Body frame and Rotor frame as control input
+    u = ca.vertcat(a_c)
 
-    # xdot
-    a_dot = ca.SX.sym('a_dot')
+    # Explicit dynamics
+    f = ca.vertcat(
+        (a_c - a_s) / t_servo
+    )
 
-    xdot = ca.vertcat(a_dot)
+    # Implicit dynamics
+    x_dot = ca.SX.sym('x_dot', states.size())
+    f_impl = x_dot - f
 
-    # dynamics
-    f_expl = ca.vertcat((ac - a) / t_servo)
-
-    f_impl = xdot - f_expl
-
+    # Assemble acados model
     model = AcadosModel()
-
-    model.f_impl_expr = f_impl
-    model.f_expl_expr = f_expl
-    model.x = x
-    model.xdot = xdot
-    model.u = u
     model.name = model_name
+    model.f_expl_expr = f
+    model.f_impl_expr = f_impl
+    model.x = states
+    model.xdot = x_dot
+    model.u = u
 
     return model
 
 
-def plot_servo(shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, latexify=False, plt_show=True,
-               X_true_label=None):
+def plot_servo(shooting_nodes, u_max, U, X_true, 
+               X_est=None, Y_measured=None, latexify=False, 
+               plt_show=True, X_true_label=None):
     """
-    Params:
-        shooting_nodes: time values of the discretization
-        u_max: maximum absolute value of u
-        U: arrray with shape (N_sim-1, nu) or (N_sim, nu)
-        X_true: arrray with shape (N_sim, nx)
-        X_est: arrray with shape (N_sim-N_mhe, nx)
-        Y_measured: array with shape (N_sim, ny)
-        latexify: latex style plots
+    Plot the simulation of the servo controller.
+
+    :param shooting_nodes: Time values of the discretization
+    :param u_max: Maximum absolute value of input u
+    :param U: Arrray with shape (N_sim-1, nu) or (N_sim, nu)
+    :param X_true: Arrray with shape (N_sim, nx)
+    :param X_est: Arrray with shape (N_sim-N_mhe, nx)
+    :param Y_measured: Array with shape (N_sim, ny)
+    :param latexify: Latex style plots
     """
 
     if latexify:
@@ -111,60 +115,55 @@ def plot_servo(shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, la
         plt.show()
 
 
-def main():
-    sim = AcadosSim()
+if __name__ == "__main__":
+    # Create acados model
+    model = create_acados_model()
 
-    # export model
-    model = export_servo_model()
-
-    # set model_name
-    sim.model = model
+    # Create acados simulation environment
+    acados_sim = AcadosSim()
+    acados_sim.model = model
 
     Tf = 0.001
-    nx = model.x.size()[0]
-    nu = model.u.size()[0]
-    N = 1000
+    nx = model.x.size()[0]; nu = model.u.size()[0]; nn = 1000
 
-    # set simulation time
-    sim.solver_options.T = Tf
-    # set options
-    sim.solver_options.integrator_type = 'IRK'
-    sim.solver_options.num_stages = 3
-    sim.solver_options.num_steps = 3
-    sim.solver_options.newton_iter = 3  # for implicit integrator
-    sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
+    # Set simulation solver options
+    acados_sim.solver_options.T = Tf           # Simulation time
+    acados_sim.solver_options.integrator_type = 'IRK'
+    acados_sim.solver_options.num_stages = 3
+    acados_sim.solver_options.num_steps = 3
+    acados_sim.solver_options.newton_iter = 3  # For implicit integrator
+    acados_sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
 
-    # create
-    acados_integrator = AcadosSimSolver(sim)
+    # Create acados simulation solver
+    sim_solver = AcadosSimSolver(acados_sim)
 
-    simX = np.zeros((N + 1, nx))
+    # Initialization
+    x_now = np.zeros((nn + 1, nx))
+
     x0 = np.array([0.0])
     u0 = np.array([1.0])
-    acados_integrator.set("u", u0)
 
-    simX[0, :] = x0
+    sim_solver.set("u", u0)
+    x_now[0, :] = x0
 
-    for i in range(N):
-        # set initial state
-        acados_integrator.set("x", simX[i, :])
-        # initialize IRK
-        if sim.solver_options.integrator_type == 'IRK':
-            acados_integrator.set("xdot", np.zeros((nx,)))
+    for i in range(nn):
+        # Set initial solver state
+        sim_solver.set("x", x_now[i, :])
 
-        # solve
-        status = acados_integrator.solve()
-        # get solution
-        simX[i + 1, :] = acados_integrator.get("x")
+        # Initialize IRK
+        if acados_sim.solver_options.integrator_type == 'IRK':
+            sim_solver.set("xdot", np.zeros((nx,)))
+
+        # Solve optimization problem
+        status = sim_solver.solve()
+        x_now[i + 1, :] = sim_solver.get("x")
 
         if status != 0:
-            raise Exception(f'acados returned status {status}.')
+            raise Exception(f'acados returned status {status} in closed loop instance {i}.')
 
-    S_forw = acados_integrator.get("S_forw")
-    print("S_forw, sensitivities of simulation result wrt x,u:\n", S_forw)
+    # Retrieve sensitivities
+    S_forw = sim_solver.get("S_forw")
+    print("S_forw, sensitivities of simulation result w.r.t. x, u:\n", S_forw)
 
-    # plot results
-    plot_servo(np.linspace(0, N * Tf, N + 1), 10, np.repeat(u0, N), simX, latexify=False)
-
-
-if __name__ == "__main__":
-    main()
+    # Plot simulation
+    plot_servo(np.linspace(0, nn * Tf, nn + 1), 10, np.repeat(u0, nn), x_now, latexify=False)

@@ -35,7 +35,7 @@ void nmpc_under_act_body_rate::NMPCController::initialize(
   getParam<double>(control_nh, "nmpc/w_max", physical_params.w_max, 3.0);
   getParam<double>(control_nh, "nmpc/w_min", physical_params.w_min, -3.0);
   getParam<double>(control_nh, "nmpc/T_samp", t_nmpc_samp_, 0.025);
-  getParam<double>(control_nh, "nmpc/T_integ", t_nmpc_integ_, 0.1);
+  getParam<double>(control_nh, "nmpc/T_step", t_nmpc_integ_, 0.1);
   mpc_solver_.initialize(physical_params);
 
   getParam<double>(control_nh, "nmpc/yaw_p_gain", yaw_p_gain, 40.0);

@@ -31,8 +31,8 @@ class MPCPubBase(ABC):
 
         # Load NMPC parameters
         try:
-            self.T_pred = rospy.get_param(f"{robot_name}/controller/nmpc/T_pred")
-            self.T_integ = rospy.get_param(f"{robot_name}/controller/nmpc/T_integ")
+            self.T_horizon = rospy.get_param(f"{robot_name}/controller/nmpc/T_horizon")
+            self.T_step = rospy.get_param(f"{robot_name}/controller/nmpc/T_step")
             self.T_samp = rospy.get_param(f"{robot_name}/controller/nmpc/T_samp")
             self.N_nmpc = rospy.get_param(f"{robot_name}/controller/nmpc/NN")
             self.nx = rospy.get_param(f"{robot_name}/controller/nmpc/NX")

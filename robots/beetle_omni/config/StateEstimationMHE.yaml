@@ -2,8 +2,8 @@
 estimation:
         mhe:
                 T_samp: 0.005  # 200 Hz  TODO: should be the same with IMU rate
-                T_pred: 0.1  # seconds
-                T_integ: 0.005  # seconds
+                T_horizon: 0.1  # seconds
+                T_step: 0.005  # seconds
 
                 # arrival cost
                 P_p: 0.1
