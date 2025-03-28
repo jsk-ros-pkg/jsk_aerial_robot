@@ -4,6 +4,7 @@ import numpy as np
 import casadi as ca
 from qd_nmpc_base import QDNMPCBase
 from sim_fake_sensor import FakeSensor
+from tilt_qd import phys_param_beetle_omni as phys_omni
 
 
 class NMPCTiltQdServoImpedance(QDNMPCBase):
@@ -15,9 +16,10 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_omni):
         # Model name
-        model_name = "tilt_qd_servo_dist_imp_mdl"
+        self.model_name = "tilt_qd_servo_dist_imp_mdl"
+        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -42,7 +44,7 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoImp.yaml")
         
         # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
+        super().__init__(overwrite)
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model,
