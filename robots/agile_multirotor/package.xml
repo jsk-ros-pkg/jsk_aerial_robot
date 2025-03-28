@@ -26,6 +26,8 @@
   <run_depend>hokuyo_estimation</run_depend>
   <run_depend>hector_sensors_description</run_depend>
   <run_depend>ros_numpy</run_depend>
+  <run_depend>livox_ros_driver2</run_depend>
+  <run_depend>fast_lio</run_depend>
 
   <export>
     <gazebo_ros gazebo_model_path="${prefix}/gazebo_model/models"/>
