@@ -415,14 +415,25 @@ class Visualizer:
         # Plot Sensor Angle as Control Input (in degree)
         if self.tilt:
             ax2_right = ax2.twinx()
-            ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c1}$",
-                        linestyle="--")
-            ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c2}$",
-                        linestyle="--")
-            if self.is_tri or self.is_qd:
+            if self.is_bi:
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2] * 180 / np.pi, label="$\\alpha_{c1}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c2}$",
+                               linestyle="--")
+            if self.is_tri:
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c1}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c2}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c3}$",
+                               linestyle="--")
+            if self.is_qd:
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c1}$",
+                            linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c2}$",
+                            linestyle="--")
                 ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6] * 180 / np.pi, label="$\\alpha_{c3}$",
                         linestyle="--")
-            if self.is_qd:
                 ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7] * 180 / np.pi, label="$\\alpha_{c4}$",
                         linestyle="--")
             ax2_right.set_ylabel("Servo Angle Cmd. ($^\\circ$)", fontsize=label_size)
