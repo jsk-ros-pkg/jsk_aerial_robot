@@ -45,6 +45,7 @@
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
+#include "kondo_servo/kondo_servo.h"
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
@@ -126,6 +127,7 @@ BatteryStatus battery_status_;
 
 /* servo instance */
 DirectServo servo_;
+KondoServo kondo_servo_;
 DShot dshot_;
 
 
@@ -275,7 +277,11 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 #if SERVO_FLAG
+#if KONDO_FLAG
+  kondo_servo_.init(&huart2, &nh_);
+#else
   servo_.init(&huart2, &nh_, NULL);
+#endif
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -947,17 +953,17 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 1000000;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_9B;
   huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Parity = UART_PARITY_EVEN;
   huart2.Init.Mode = UART_MODE_TX_RX;
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
   huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  if (HAL_HalfDuplex_Init(&huart2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1361,7 +1367,11 @@ __weak void ServoTaskCallback(void const * argument)
   for(;;)
   {
 #if SERVO_FLAG
+#if KONDO_FLAG
+    kondo_servo_.update();
+#else
     servo_.update();
+#endif
 #endif
     osDelay(1);
   }

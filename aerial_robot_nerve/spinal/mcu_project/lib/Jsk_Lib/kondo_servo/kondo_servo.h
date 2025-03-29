@@ -18,7 +18,7 @@
 #include <spinal/ServoState.h>
 #include <map>
 
-#define MAX_SERVO_NUM 32
+#define MAX_SERVO_NUM 4
 #define KONDO_SERVO_UPDATE_INTERVAL 10
 #define KONDO_SERVO_TIMEOUT 1
 #define KONDO_SERVO_POSITION_MIN 3500
@@ -29,10 +29,14 @@
 #define KONDO_BUFFER_SIZE 512
 #define KONDO_POSITION_RX_SIZE 3
 
+#ifdef STM32H7_V2
+  uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
+#else
 #ifdef STM32H7
   uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
 #else
   uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE];
+#endif
 #endif
   uint32_t rd_ptr_ = 0;
 
@@ -51,6 +55,7 @@ private:
   uint32_t servo_state_pub_last_time_;
   uint32_t dma_write_ptr_ ;
   uint32_t pos_rx_ptr_ ;
+  uint32_t servo_state_read_last_time_;
 public:
   ~KondoServo(){}
   KondoServo():
@@ -78,13 +83,13 @@ public:
     servo_state_msg_.servos_length = 5;
     servo_state_msg_.servos = new spinal::ServoState[5];
     servo_state_pub_last_time_ = 0;
+    servo_state_read_last_time_ = HAL_GetTick();
 
     pos_rx_ptr_ = 0;
   }
 
   void update()
   {
-
     for(int i = 0; i < MAX_SERVO_NUM; i++)
       {
         if(activated_[i])
@@ -101,7 +106,6 @@ public:
         servo_state_pub_last_time_ = HAL_GetTick();
         sendServoState();
       }
-
   }
 
   void writePosCmd(int id, uint16_t target_position)
@@ -117,24 +121,28 @@ public:
     HAL_HalfDuplex_EnableTransmitter(huart_);
     ret = HAL_UART_Transmit(huart_, tx_buff, tx_size, 1);
 
-    /* receive */
-    if(ret == HAL_OK)
+    if(HAL_GetTick() - servo_state_read_last_time_ > KONDO_SERVO_UPDATE_INTERVAL)
       {
-        HAL_HalfDuplex_EnableReceiver(huart_);
-      }
+        servo_state_read_last_time_ = HAL_GetTick();
+        /* receive */
+        if(ret == HAL_OK)
+          {
+            HAL_HalfDuplex_EnableReceiver(huart_);
+          }
 
-    /* getting data from Ring Buffer */
-    while(true){
-      int data = read();
-      if(data < 0) break;
-      pos_rx_buf_[pos_rx_ptr_] = (uint8_t)data;
+        /* getting data from Ring Buffer */
+        while(true){
+          int data = read();
+          if(data < 0) break;
+          pos_rx_buf_[pos_rx_ptr_] = (uint8_t)data;
 
-      if(pos_rx_ptr_ == 2) registerPos();
+          if(pos_rx_ptr_ == 2) registerPos();
 
-      pos_rx_ptr_ ++;
-      pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;
+          pos_rx_ptr_ ++;
+          pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;
       
-    }
+        }
+      }
   }
 
   int read()
@@ -148,9 +156,6 @@ public:
       }
     dma_write_ptr_ =  (KONDO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (KONDO_BUFFER_SIZE);
 
-    const char* a = std::to_string(__HAL_DMA_GET_COUNTER(huart_->hdmarx)).c_str();
-    nh_->logerror(a);
-
     int c = -1;
     uint32_t tick_start = HAL_GetTick();
     while(true){
@@ -161,7 +166,7 @@ public:
           return c;
         }
 
-      if ((HAL_GetTick() - tick_start) > KONDO_SERVO_TIMEOUT)
+      if ((HAL_GetTick() - tick_start) > KONDO_SERVO_TIMEOUT || KONDO_SERVO_TIMEOUT == 0)
         {
           return c;
         }
