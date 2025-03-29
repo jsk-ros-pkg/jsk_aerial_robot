@@ -65,22 +65,25 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   ROS_INFO("MPC Controller initialized!");
 }
 
+void nmpc::TiltMtServoNMPC::activate()
+{
+  ControlBase::activate();
+  initAllocMat();
+
+  if (is_print_phys_params_)
+    printPhysicalParams();
+
+  /* also for some commands that should be sent after takeoff */
+  // enable imu sending, only works in simulation. TODO: check its compatibility with real robot
+  spinal::FlightConfigCmd flight_config_cmd;
+  flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+  pub_flight_config_cmd_spinal_.publish(flight_config_cmd);
+}
+
 bool nmpc::TiltMtServoNMPC::update()
 {
   if (!ControlBase::update())
     return false;
-
-  /* TODO: these code should be initialized in init(). put here because of beetle's slow parameter init */
-  if (alloc_mat_.size() == 0)
-  {
-    initAllocMat();
-
-    /* also for some commands that should be sent after takeoff */
-    // enable imu sending, only works in simulation. TODO: check its compatibility with real robot
-    spinal::FlightConfigCmd flight_config_cmd;
-    flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-    pub_flight_config_cmd_spinal_.publish(flight_config_cmd);
-  }
 
   this->controlCore();
   this->sendCmd();
@@ -91,13 +94,6 @@ bool nmpc::TiltMtServoNMPC::update()
 void nmpc::TiltMtServoNMPC::reset()
 {
   ControlBase::reset();
-
-  if (is_print_phys_params_)
-    printPhysicalParams();
-
-  /* free alloc_mat_ */
-  alloc_mat_.resize(0, 0);
-  alloc_mat_pinv_.resize(0, 0);
 
   /* reset controller using odom */
   std::vector<double> x_vec = meas2VecX();
@@ -586,6 +582,10 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
 
 void nmpc::TiltMtServoNMPC::initAllocMat()
 {
+  /* free alloc_mat_ */
+  alloc_mat_.resize(0, 0);
+  alloc_mat_pinv_.resize(0, 0);
+
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
