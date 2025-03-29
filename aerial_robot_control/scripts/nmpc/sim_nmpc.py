@@ -138,15 +138,15 @@ def main(args):
     elif args.arch == 'bi':
 
         if args.sim_model == 0:
-            sim_nmpc = NMPCTiltBi2OrdServo()
-        elif args.sim_model == 1:
             sim_nmpc = NMPCTiltBiServo()
+        # elif args.sim_model == 1:
+        #     sim_nmpc = NMPCTiltBi2OrdServo()   # This model is wrong
         else:
             raise ValueError(f"Invalid sim model {args.sim_model}.")
 
     elif args.arch == 'tri':
 
-        sim_nmpc = NMPCTiltTriServoDist()
+        sim_nmpc = NMPCTiltTriServo()
 
     else:
         raise ValueError(f"Invalid robot architecture {args.arch}.")

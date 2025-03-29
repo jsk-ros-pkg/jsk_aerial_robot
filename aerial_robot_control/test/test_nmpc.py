@@ -8,6 +8,7 @@ from sim_nmpc import main
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
+
 class SimArgs:
     def __init__(self):
         self.model = 0
@@ -17,12 +18,14 @@ class SimArgs:
         self.no_viz = True
         self.save_data = False
 
+
 def print_error(x, x_true, u, u_true):
     print(f"max error: {np.max(np.abs(x - x_true))}, {np.max(np.abs(u - u_true))}")
     print(f"mean error: {np.mean(np.abs(x - x_true))}, {np.mean(np.abs(u - u_true))}")
     print(f"accumulated error: {np.sum(np.abs(x - x_true))}, {np.sum(np.abs(u - u_true))}")
 
-def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_type=1, no_viz=True):
+
+def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_type=1, arch='qd', no_viz=True):
     """
     Run simulation and compare against reference data.
 
@@ -32,6 +35,7 @@ def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_ty
       sim_model_id (int): Model id for the simulator.
       atol (float): Absolute tolerance for np.allclose.
       plot_type (int): Plot type to use in simulation.
+      arch (str): Architecture to use in simulation, 'qd' or 'tri' or 'bi.
       no_viz (bool): Disable visualization if True.
 
     Raises:
@@ -41,12 +45,11 @@ def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_ty
     npzfile = np.load(npz_filename)
     x_true, u_true = npzfile['x'], npzfile['u']
 
-
     sim_args = SimArgs()
     sim_args.model = nmpc_model_id
     sim_args.sim_model = sim_model_id
     sim_args.plot_type = plot_type
-    sim_args.arch = 'qd'
+    sim_args.arch = arch
     sim_args.no_viz = no_viz
 
     x, u = main(sim_args)
@@ -122,6 +125,31 @@ class TestTiltQd(unittest.TestCase):
             sim_model_id=1,
             atol=1e-3,
             plot_type=1,
+            no_viz=True
+        )
+
+
+class TestTiltTri(unittest.TestCase):
+    def test_tilt_tri_servo(self):
+        run_simulation_test(
+            npz_filename='data/nmpc_NMPCTiltTriServo_model_NMPCTiltTriServo.npz',
+            nmpc_model_id=0,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            arch='tri',
+            no_viz=True
+        )
+
+class TestTiltBi(unittest.TestCase):
+    def test_tilt_bi_servo(self):
+        run_simulation_test(
+            npz_filename='data/nmpc_NMPCTiltBiServo_model_NMPCTiltBiServo.npz',
+            nmpc_model_id=0,
+            sim_model_id=0,
+            atol=1e-3,
+            plot_type=1,
+            arch='bi',
             no_viz=True
         )
 
