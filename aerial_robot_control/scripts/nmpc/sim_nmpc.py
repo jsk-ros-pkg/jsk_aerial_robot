@@ -438,7 +438,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--file_path",
         type=str,
-        default="../../../../test/tilt_qd/",
+        default=f"../../../../test/data/",
         help="Path to save the data file"
     )
 
