@@ -4,8 +4,8 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to path to allow relative imports
+# Add parent directory to path to allow relative imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from rh_base import RecedingHorizonBase
 from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
@@ -58,6 +58,8 @@ class QDNMPCBase(RecedingHorizonBase):
         if not hasattr(self, "include_impedance"):
             self.include_impedance = False
 
+        self.acados_init_p = None  # initial value for parameters in acados. Mainly for physical parameters.
+
         # Call RecedingHorizon constructor coming as NMPC method
         super().__init__("nmpc", overwrite)
 
@@ -75,7 +77,6 @@ class QDNMPCBase(RecedingHorizonBase):
         """
         if self.include_servo_derivative and not self.include_servo_model: raise ValueError(
             "Servo derivative can only work with servo angle defined as state through the 'include_servo_model' flag.")
-        phys = self.phys
 
         # Standard state-space (Note: store in self to access for cost function in child controller class)
         self.x = ca.SX.sym("x")  # Position
@@ -129,7 +130,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
             states = ca.vertcat(states, self.fds_w, self.tau_ds_b)
         else:
-            self.fds_w = ca.vertcat(0.0, 0.0, 0.0);
+            self.fds_w = ca.vertcat(0.0, 0.0, 0.0)
             self.tau_ds_b = ca.vertcat(0.0, 0.0, 0.0)
 
         # Control inputs
@@ -162,6 +163,33 @@ class QDNMPCBase(RecedingHorizonBase):
         self.qzr = ca.SX.sym("qzr")
         parameters = ca.vertcat(self.qwr, self.qxr, self.qyr, self.qzr)
 
+        # added on 2025-3-28: make physical parameters available in the model
+        mass = ca.SX.sym("mass")
+        gravity = ca.SX.sym("gravity")
+
+        Ixx = ca.SX.sym("Ixx")
+        Iyy = ca.SX.sym("Iyy")
+        Izz = ca.SX.sym("Izz")
+
+        kq_d_kt = ca.SX.sym("kq_d_kt")
+
+        dr1 = ca.SX.sym("dr1")
+        dr2 = ca.SX.sym("dr2")
+        dr3 = ca.SX.sym("dr3")
+        dr4 = ca.SX.sym("dr4")
+        dr = ca.vertcat(dr1, dr2, dr3, dr4)
+
+        p1_b = ca.SX.sym("p1_b", 3)
+        p2_b = ca.SX.sym("p2_b", 3)
+        p3_b = ca.SX.sym("p3_b", 3)
+        p4_b = ca.SX.sym("p4_b", 3)
+
+        t_rotor = ca.SX.sym("t_rotor")
+        t_servo = ca.SX.sym("t_servo")
+
+        phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        parameters = ca.vertcat(parameters, phy_params)
+
         # - Extend model parameters by CoG disturbance
         if self.include_cog_dist_parameter:
             # Force disturbance applied to CoG in World frame
@@ -171,7 +199,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
             parameters = ca.vertcat(parameters, self.fdp_w, self.tau_dp_b)
         else:
-            self.fdp_w = ca.vertcat(0.0, 0.0, 0.0);
+            self.fdp_w = ca.vertcat(0.0, 0.0, 0.0)
             self.tau_dp_b = ca.vertcat(0.0, 0.0, 0.0)
 
         # - Extend model parameters by virtual mass and inertia for impedance cost function
@@ -207,21 +235,25 @@ class QDNMPCBase(RecedingHorizonBase):
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
         # - Body to End-of-arm
-        denominator = np.sqrt(phys.p1_b[0] ** 2 + phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[phys.p1_b[0] / denominator, -phys.p1_b[1] / denominator, 0],
-                            [phys.p1_b[1] / denominator, phys.p1_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        rot_be1 = np.array(
+            [[p1_b[0] / denominator, -p1_b[1] / denominator, 0], [p1_b[1] / denominator, p1_b[0] / denominator, 0],
+             [0, 0, 1]])
 
-        denominator = np.sqrt(phys.p2_b[0] ** 2 + phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[phys.p2_b[0] / denominator, -phys.p2_b[1] / denominator, 0],
-                            [phys.p2_b[1] / denominator, phys.p2_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        rot_be2 = np.array(
+            [[p2_b[0] / denominator, -p2_b[1] / denominator, 0], [p2_b[1] / denominator, p2_b[0] / denominator, 0],
+             [0, 0, 1]])
 
-        denominator = np.sqrt(phys.p3_b[0] ** 2 + phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[phys.p3_b[0] / denominator, -phys.p3_b[1] / denominator, 0],
-                            [phys.p3_b[1] / denominator, phys.p3_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        rot_be3 = np.array(
+            [[p3_b[0] / denominator, -p3_b[1] / denominator, 0], [p3_b[1] / denominator, p3_b[0] / denominator, 0],
+             [0, 0, 1]])
 
-        denominator = np.sqrt(phys.p4_b[0] ** 2 + phys.p4_b[1] ** 2)
-        rot_be4 = np.array([[phys.p4_b[0] / denominator, -phys.p4_b[1] / denominator, 0],
-                            [phys.p4_b[1] / denominator, phys.p4_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        rot_be4 = np.array(
+            [[p4_b[0] / denominator, -p4_b[1] / denominator, 0], [p4_b[1] / denominator, p4_b[0] / denominator, 0],
+             [0, 0, 1]])
 
         # - End-of-arm to Rotor
         # Take tilt rotation with angle alpha (a) of R frame to E frame into account
@@ -276,10 +308,10 @@ class QDNMPCBase(RecedingHorizonBase):
         ft_r3 = ca.vertcat(0, 0, ft3)
         ft_r4 = ca.vertcat(0, 0, ft4)
 
-        tau_r1 = ca.vertcat(0, 0, -phys.dr1 * ft1 * phys.kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -phys.dr2 * ft2 * phys.kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -phys.dr3 * ft3 * phys.kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -phys.dr4 * ft4 * phys.kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
 
         # Wrench in Body frame
         fu_b = (
@@ -293,21 +325,21 @@ class QDNMPCBase(RecedingHorizonBase):
                 + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
                 + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
                 + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-                + ca.cross(np.array(phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-                + ca.cross(np.array(phys.p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+                + ca.cross(p1_b, ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+                + ca.cross(p2_b, ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+                + ca.cross(p3_b, ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+                + ca.cross(p4_b, ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Compute Inertia
-        I = ca.diag([phys.Ixx, phys.Iyy, phys.Izz])
-        I_inv = ca.diag([1 / phys.Ixx, 1 / phys.Iyy, 1 / phys.Izz])
-        g_w = np.array([0, 0, -phys.gravity])  # World frame
+        I = ca.diag(ca.vertcat(Ixx, Iyy, Izz))
+        I_inv = ca.diag(ca.vertcat(1 / Ixx, 1 / Iyy, 1 / Izz))
+        g_w = np.array([0, 0, -gravity])  # World frame
 
         # Dynamic model (Time-derivative of states)
         ds = ca.vertcat(
             self.v,
-            (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / phys.mass + g_w,
+            (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w,
             (-self.wx * self.qx - self.wy * self.qy - self.wz * self.qz) / 2,
             (self.wx * self.qw + self.wz * self.qy - self.wy * self.qz) / 2,
             (self.wy * self.qw - self.wz * self.qx + self.wx * self.qz) / 2,
@@ -325,14 +357,14 @@ class QDNMPCBase(RecedingHorizonBase):
         # Or use numerical differentation
         if self.include_servo_model and not self.include_servo_derivative:
             ds = ca.vertcat(ds,
-                            (self.a_c - self.a_s) / phys.t_servo  # Time constant of servo motor
+                            (self.a_c - self.a_s) / t_servo  # Time constant of servo motor
                             )
 
         # - Extend model by thrust first-order dynamics
         # Assumption if not included: f_tc = f_ts
         if self.include_thrust_model:
             ds = ca.vertcat(ds,
-                            (self.ft_c - self.ft_s) / phys.t_rotor  # Time constant of rotor
+                            (self.ft_c - self.ft_s) / t_rotor  # Time constant of rotor
                             )
 
         # - Extend model by disturbances simply to match state dimensions
@@ -355,7 +387,7 @@ class QDNMPCBase(RecedingHorizonBase):
             # Compute linear acceleration (in World frame) and angular acceleration (in Body frame) for impedance cost
             # TODO clarify note and fix if necessary        
             # Note that this part should be f_d_i and no f_d_i_para, since the impedance should not respond to the I Term force.
-            lin_acc_w = (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / phys.mass + g_w
+            lin_acc_w = (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w
             ang_acc_b = ca.mtimes(I_inv,
                                   (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b))
 
@@ -394,8 +426,9 @@ class QDNMPCBase(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0];
+        nx = ocp.model.x.size()[0]
         nu = ocp.model.u.size()[0]
+        n_param = ocp.model.p.size()[0]
 
         # Get weights from parametrization child file
         Q, R = self.get_weights()
@@ -572,8 +605,9 @@ class QDNMPCBase(RecedingHorizonBase):
         # Initial state and reference: Set all values such that robot is hovering
         # TODO debatable which initial states/inputs make sense -> not necessarily better than just all-zero!
         x_ref = np.zeros(nx)
+        x_ref[6] = 1.0  # Quaternion qw
+
         if self.tilt:
-            x_ref[6] = 1.0  # Quaternion qw
             # When included servo AND thrust, use further indices 
             if self.include_servo_model and self.include_thrust_model:
                 x_ref[17:21] = self.phys.mass * self.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
@@ -582,13 +616,22 @@ class QDNMPCBase(RecedingHorizonBase):
                 x_ref[13:17] = self.phys.mass * self.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
         else:
             x_ref[13:17] = self.phys.mass * self.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
+
         u_ref = np.zeros(nu)
         # Obeserved to be worse than zero!
         u_ref[0:4] = self.phys.mass * self.phys.gravity / 4  # ft1c, ft2c, ft3c, ft4c
 
+        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        self.acados_init_p = np.zeros(n_param)
+        self.acados_init_p[0] = x_ref[6]  # qw
+        if len(self.phys.physical_param_list) != 24:
+            raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
+        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
+        ocp.parameter_values = self.acados_init_p
 
         # Solver options
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
@@ -627,9 +670,12 @@ class QDNMPCBase(RecedingHorizonBase):
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
-        n_params = ocp_model.p.size()[0]
-        acados_sim.dims.np = n_params
-        acados_sim.parameter_values = np.zeros(n_params)
+        n_param = ocp_model.p.size()[0]
+        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        self.acados_init_p = np.zeros(n_param)
+        self.acados_init_p[0] = 1.0  # qw
+        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+        acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
