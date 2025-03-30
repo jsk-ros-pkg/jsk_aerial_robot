@@ -177,7 +177,6 @@ class QDNMPCBase(RecedingHorizonBase):
         dr2 = ca.SX.sym("dr2")
         dr3 = ca.SX.sym("dr3")
         dr4 = ca.SX.sym("dr4")
-        dr = ca.vertcat(dr1, dr2, dr3, dr4)
 
         p1_b = ca.SX.sym("p1_b", 3)
         p2_b = ca.SX.sym("p2_b", 3)
@@ -187,7 +186,8 @@ class QDNMPCBase(RecedingHorizonBase):
         t_rotor = ca.SX.sym("t_rotor")
         t_servo = ca.SX.sym("t_servo")
 
-        phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
+                                dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo)
         parameters = ca.vertcat(parameters, phy_params)
 
         # - Extend model parameters by CoG disturbance

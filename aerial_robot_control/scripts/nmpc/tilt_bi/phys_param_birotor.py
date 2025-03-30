@@ -37,6 +37,7 @@ i_sxx = physical_params["servo_inertia_x"]
 # concatenate the parameters to make a new list
 physical_param_list = [
     mass, gravity, Ixx, Iyy, Izz,
-    kq_d_kt, dr1, dr2, p1_b[0], p1_b[1], p1_b[2], p2_b[0], p2_b[1], p2_b[2],
+    dr1, p1_b[0], p1_b[1], p1_b[2],
+    dr2, p2_b[0], p2_b[1], p2_b[2],
     0.0, t_servo,
 ]
