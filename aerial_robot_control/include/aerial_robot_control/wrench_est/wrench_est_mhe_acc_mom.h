@@ -74,6 +74,7 @@ public:
     catch (mhe_solver::AcadosSolveException& e)
     {
       ROS_ERROR("MHE solver failed. Details: %s", e.what());
+      return;
     }
 
     auto x_est = mhe_solver_.getEstimatedState(mhe_solver_.NN_);
