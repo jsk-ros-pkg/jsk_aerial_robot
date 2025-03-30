@@ -68,7 +68,9 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 void nmpc::TiltMtServoNMPC::activate()
 {
   ControlBase::activate();
+
   initAllocMat();
+  initNMPCParams();
 
   if (is_print_phys_params_)
     printPhysicalParams();
@@ -131,12 +133,11 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(nh_, "physical");
 
-  getParam<double>(physical_nh, "mass", mass_, 0.5);
-  getParam<double>(physical_nh, "gravity_const", gravity_const_, 9.81);
-  inertia_.resize(3);
-  physical_nh.getParam("inertia_diag", inertia_);
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
+  getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
+  getParam<double>(physical_nh, "t_rotor", t_rotor_, 0.01);
+
   getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
@@ -604,14 +605,15 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
 
 void nmpc::TiltMtServoNMPC::initAllocMat()
 {
-  /* free alloc_mat_ */
-  alloc_mat_.resize(0, 0);
-  alloc_mat_pinv_.resize(0, 0);
-
+  /* get physical param */
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
   double kq_d_kt = abs(robot_model_->getThrustWrenchUnits()[0][5]);  // PAY ATTENTION: should be positive value
+
+  /* alloc mat */
+  alloc_mat_.resize(0, 0);
+  alloc_mat_pinv_.resize(0, 0);
 
   // construct alloc_mat_
   alloc_mat_ = Eigen::MatrixXd::Zero(6, 2 * rotor_num);
@@ -639,6 +641,58 @@ void nmpc::TiltMtServoNMPC::initAllocMat()
   }
 
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
+}
+
+void nmpc::TiltMtServoNMPC::initNMPCParams()
+{
+  /* get physical param */
+  mass_ = robot_model_->getMass();
+  gravity_const_ = robot_model_->getGravity()[2];
+  Eigen::Matrix3d inertia_mtx = robot_model_->getInertia<Eigen::Matrix3d>();
+  inertia_.resize(3);
+  inertia_[0] = inertia_mtx(0, 0);
+  inertia_[1] = inertia_mtx(1, 1);
+  inertia_[2] = inertia_mtx(2, 2);
+
+  int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
+  const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  const map<int, int> rotor_dr = robot_model_->getRotorDirection();
+  double kq_d_kt = abs(robot_model_->getThrustWrenchUnits()[0][5]);  // PAY ATTENTION: should be positive value
+
+  /* construct acados parameters */
+  std::vector<double> acados_p(mpc_solver_ptr_->NP_, 0);
+
+  acados_p[0] = 1.0; // qw
+  idx_p_quat_end_ = 3;
+
+  // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
+  acados_p[idx_p_quat_end_ + 1] = mass_;
+  acados_p[idx_p_quat_end_ + 2] = gravity_const_;
+  acados_p[idx_p_quat_end_ + 3] = inertia_[0];
+  acados_p[idx_p_quat_end_ + 4] = inertia_[1];
+  acados_p[idx_p_quat_end_ + 5] = inertia_[2];
+  acados_p[idx_p_quat_end_ + 6] = kq_d_kt;
+  int idx = idx_p_quat_end_ + 7;
+  for (int i = 0; i < rotor_num; i++)
+  {
+    acados_p[idx] = rotor_dr.find(i + 1)->second;
+    idx++;
+    acados_p[idx] = rotor_p[i].x();
+    idx++;
+    acados_p[idx] = rotor_p[i].y();
+    idx++;
+    acados_p[idx] = rotor_p[i].z();
+    idx++;
+  }
+  acados_p[idx] = t_rotor_;
+  idx++;
+  acados_p[idx] = t_servo_;
+
+  // set idx_p_phys_end_ for setting other parameters later
+  idx_p_phys_end_ = idx;
+
+  /* set acados parameters */
+  mpc_solver_ptr_->setParameters(acados_p);
 }
 
 /**

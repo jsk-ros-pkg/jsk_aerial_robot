@@ -40,6 +40,8 @@ protected:
   bool if_use_est_wrench_4_control_;
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
 
+  int idx_p_dist_end_ = 0;
+
   void initPlugins() override;
 
   void prepareNMPCParams() override;

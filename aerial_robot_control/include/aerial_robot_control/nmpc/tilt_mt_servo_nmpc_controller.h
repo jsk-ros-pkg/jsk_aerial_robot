@@ -79,12 +79,17 @@ protected:
   double mass_;
   double gravity_const_;
   std::vector<double> inertia_;
+  int motor_num_;
+  double t_rotor_;
   double thrust_ctrl_max_;
   double thrust_ctrl_min_;
-  int motor_num_;
   int joint_num_;
+  double t_servo_;
   double t_nmpc_samp_;
   double t_nmpc_step_;
+
+  int idx_p_quat_end_ = 0;
+  int idx_p_phys_end_ = 0;
 
   std::vector<double> joint_angles_;
 
@@ -141,6 +146,7 @@ protected:
   void printPhysicalParams();
 
   virtual void initAllocMat();
+  virtual void initNMPCParams();
 
 private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.
