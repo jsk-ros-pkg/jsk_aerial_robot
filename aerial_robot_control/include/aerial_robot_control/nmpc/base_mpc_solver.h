@@ -143,9 +143,9 @@ public:
     ocp_nlp_solver_opts_set(nlp_config_, nlp_opts_, "rti_phase", &rti_phase);
   }
 
-  void setParamSparseOneStage(int stage, std::vector<int>& idx, std::vector<double>& p, bool has_check = true)
+  void setParamSparseOneStage(int stage, std::vector<int>& idx, std::vector<double>& p, bool if_check_len = true)
   {
-    if (has_check)
+    if (if_check_len)
     {
       if (idx.size() != p.size())
         throw std::length_error("idx size is not equal to p size");

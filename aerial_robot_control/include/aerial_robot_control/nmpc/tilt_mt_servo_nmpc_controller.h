@@ -84,7 +84,7 @@ protected:
   int motor_num_;
   int joint_num_;
   double t_nmpc_samp_;
-  double t_nmpc_integ_;
+  double t_nmpc_step_;
 
   std::vector<double> joint_angles_;
 
@@ -100,7 +100,7 @@ protected:
 
   /* initialize() */
   virtual void initPlugins() {};
-  virtual void initParams();
+  virtual void initGeneralParams();
   virtual void initCostW();
   void setControlMode();
   virtual inline void initActuatorStates()

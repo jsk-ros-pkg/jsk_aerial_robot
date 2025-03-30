@@ -17,9 +17,9 @@ void nmpc::TiltMtServoThrustDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHa
   sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &TiltMtServoThrustDistNMPC::callbackESCTelem, this);
 }
 
-void nmpc::TiltMtServoThrustDistNMPC::initParams()
+void nmpc::TiltMtServoThrustDistNMPC::initGeneralParams()
 {
-  TiltMtServoDistNMPC::initParams();
+  TiltMtServoDistNMPC::initGeneralParams();
 
   ros::NodeHandle motor_nh(nh_, "motor_info");
   getParam<double>(motor_nh, "krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio_, 0.0);

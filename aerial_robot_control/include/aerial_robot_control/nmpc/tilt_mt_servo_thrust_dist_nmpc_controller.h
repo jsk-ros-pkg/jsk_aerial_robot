@@ -35,7 +35,7 @@ protected:
     thrust_meas_.resize(motor_num_, 0.0);
   }
 
-  void initParams() override;
+  void initGeneralParams() override;
 
   void initCostW() override;
 

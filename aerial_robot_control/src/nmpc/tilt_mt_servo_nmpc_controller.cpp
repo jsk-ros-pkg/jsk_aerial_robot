@@ -18,7 +18,7 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   initPlugins();
 
   /* init general parameters */
-  initParams();
+  initGeneralParams();
 
   /* init cost weight parameters */
   initCostW();
@@ -125,7 +125,7 @@ void nmpc::TiltMtServoNMPC::reset()
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
-void nmpc::TiltMtServoNMPC::initParams()
+void nmpc::TiltMtServoNMPC::initGeneralParams()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -140,7 +140,7 @@ void nmpc::TiltMtServoNMPC::initParams()
   getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
-  getParam<double>(nmpc_nh, "T_step", t_nmpc_integ_, 0.1);
+  getParam<double>(nmpc_nh, "T_step", t_nmpc_step_, 0.1);
 
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
@@ -537,7 +537,7 @@ double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
 
   return mpc_solver_ptr_->uo_.at(0).at(idx_u) +
-         T_horizon / t_nmpc_integ_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
+         T_horizon / t_nmpc_step_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
 std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
