@@ -75,6 +75,33 @@ void nmpc::TiltMtServoThrustImpNMPC::initCostW()
   }
 }
 
+void nmpc::TiltMtServoThrustImpNMPC::setImpParams()
+{
+  vector<int> idx = { idx_p_dist_end_ + 1, idx_p_dist_end_ + 2, idx_p_dist_end_ + 3,
+                    idx_p_dist_end_ + 4, idx_p_dist_end_ + 5, idx_p_dist_end_ + 6 };
+
+  auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver>(mpc_solver_ptr_);
+  if (!imp_mpc_solver_ptr)
+  {
+    ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");
+    return;
+  }
+
+  const double* pM = imp_mpc_solver_ptr->getpM();
+  const double* oM = imp_mpc_solver_ptr->getoM();
+  vector<double> p = { pM[0], pM[1], pM[2], oM[0], oM[1], oM[2] };
+  mpc_solver_ptr_->setParamSparseAllStages(idx, p);
+
+  idx_p_imp_end_ = idx_p_dist_end_ + 6;
+}
+
+void nmpc::TiltMtServoThrustImpNMPC::initNMPCParams()
+{
+  TiltMtServoThrustDistNMPC::initNMPCParams();
+  setImpParams();
+}
+
+
 void nmpc::TiltMtServoThrustImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;

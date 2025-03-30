@@ -108,6 +108,12 @@ void nmpc::TiltMtServoDistNMPC::updateITerm()
   }
 }
 
+void nmpc::TiltMtServoDistNMPC::initNMPCParams()
+{
+  TiltMtServoNMPC::initNMPCParams();
+  idx_p_dist_end_ = idx_p_phys_end_ + 6;
+}
+
 void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 {
   updateITerm();
@@ -119,8 +125,6 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
   vector<double> p = { mdl_error_force_w.x,    mdl_error_force_w.y,    mdl_error_force_w.z,
                        mdl_error_torque_cog.x, mdl_error_torque_cog.y, mdl_error_torque_cog.z };
   mpc_solver_ptr_->setParamSparseAllStages(idx, p);
-
-  idx_p_dist_end_ = idx_p_phys_end_ + 6;
 }
 
 std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()

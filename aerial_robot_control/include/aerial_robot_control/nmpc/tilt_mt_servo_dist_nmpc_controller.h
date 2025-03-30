@@ -44,6 +44,8 @@ protected:
 
   void initPlugins() override;
 
+  void initNMPCParams() override;
+
   void prepareNMPCParams() override;
 
   std::vector<double> meas2VecX() override;
