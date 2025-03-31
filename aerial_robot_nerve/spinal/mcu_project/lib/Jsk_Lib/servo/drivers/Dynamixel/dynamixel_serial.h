@@ -294,7 +294,7 @@ public:
   void setPositionGains(uint8_t servo_index) override;
   void setProfileVelocity(uint8_t servo_index) override;
   void setCurrentLimit(uint8_t servo_index) override;
-  void update();
+  void update() override;
   
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
@@ -304,9 +304,6 @@ public:
 private:
   RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   uint16_t ttl_rs485_mixed_;
-
-  // uart rx
-  uint8_t rx_buf_[RX_BUFFER_SIZE];
 
   // a new and quicker method to read servo data
   bool read_status_packet_flag_ = false;
