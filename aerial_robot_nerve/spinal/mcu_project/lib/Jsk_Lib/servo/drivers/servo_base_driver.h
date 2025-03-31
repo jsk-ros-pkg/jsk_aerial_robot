@@ -5,6 +5,7 @@
 * Author             : J.Sugihara 2025/3/31
 ******************************************************************************
 */
+
 #ifndef Base_Servo_driver_h
 #define Base_Servo_driver_h
 
@@ -69,12 +70,8 @@ public:
   virtual void setCurrentLimit(uint8_t servo_index) = 0;
   virtual void update() = 0;
   unsigned int getServoNum() const {return servo_num_;}
-  // uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
-  // void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
-  // ServoData& getOneServo(uint8_t id);
-  // uint8_t getServoIndex(uint8_t id);
 
   void setROSCommFlag(bool flag) {flag_send_ros_ = flag;}
   bool getROSCommFlag() const {return flag_send_ros_;}
@@ -83,10 +80,8 @@ protected:
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex
   MagEncoder encoder_handler_;
-  // RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
-  // uint16_t ttl_rs485_mixed_;
   uint32_t set_pos_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
@@ -95,64 +90,16 @@ protected:
   uint32_t get_error_tick_;
 
   /* uart rx */
-  // uint8_t rx_buf_[RX_BUFFER_SIZE];
   uint32_t rd_ptr_;
 
   /* ros comm */
   bool flag_send_ros_ = false;
-
-  /* a new and quicker method to read servo data */
-  // bool read_status_packet_flag_ = false;
-  // std::pair<uint8_t, uint8_t> instruction_last_ = std::make_pair(255, 255);
-
-
-  // void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
-  // int8_t readStatusPacket(uint8_t status_packet_instruction);
-
-  // void cmdPing(uint8_t id);
-  // void cmdReboot(uint8_t id);
-  // void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
-  // void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
-  // void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
-  // void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
-
-  // inline void cmdReadCurrentLimit(uint8_t servo_index);
-  // inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
-  // inline void cmdReadHomingOffset(uint8_t servo_index);
-  // inline void cmdReadMoving(uint8_t servo_index);
-  // inline void cmdReadPositionGains(uint8_t servo_index);
-  // inline void cmdReadPresentCurrent(uint8_t servo_index);
-  // inline void cmdReadPresentPosition(uint8_t servo_index);
-  // inline void cmdReadPresentTemperature(uint8_t servo_index);
-  // inline void cmdReadProfileVelocity(uint8_t servo_index);
-  // inline void cmdWriteCurrentLimit(uint8_t servo_index);
-  // inline void cmdWriteHomingOffset(uint8_t servo_index);
-  // inline void cmdWritePositionGains(uint8_t servo_index);
-  // inline void cmdWriteProfileVelocity(uint8_t servo_index);
-  // inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
-  // inline void cmdWriteTorqueEnable(uint8_t servo_index);
-  // inline void cmdSyncReadCurrentLimit(bool send_all = true);
-  // inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
-  // inline void cmdSyncReadHomingOffset(bool send_all = true);
-  // inline void cmdSyncReadMoving(bool send_all = true);
-  // inline void cmdSyncReadPositionGains(bool send_all = true);
-  // inline void cmdSyncReadPresentCurrent(bool send_all = true);
-  // inline void cmdSyncReadPresentPosition(bool send_all = true);
-  // inline void cmdSyncReadPresentTemperature(bool send_all = true);
-  // inline void cmdSyncReadProfileVelocity(bool send_all = true);
-  // inline void cmdSyncWriteGoalPosition();
-  // inline void cmdSyncWriteLed();
-  // inline void cmdSyncWritePositionGains();
-  // inline void cmdSyncWriteProfileVelocity();
-  // inline void cmdSyncWriteTorqueEnable();
 
   virtual inline void setStatusReturnLevel() = 0;
   virtual inline void getHomingOffset() = 0;
   virtual inline void getCurrentLimit() = 0;
   virtual inline void getPositionGains() = 0;
   virtual inline void getProfileVelocity() = 0;
-
-  // uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };
 
 #endif
