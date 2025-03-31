@@ -9,7 +9,7 @@ includes ------------------------------------------------------------------*/
 #ifndef APPLICATION_SERVO_TEMP_SERVO_H_
 #define APPLICATION_SERVO_TEMP_SERVO_H_
 
-#include "Dynamixel/dynamixel_serial.h"
+#include "drivers/Dynamixel/dynamixel_serial.h"
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
