@@ -116,6 +116,8 @@ void nmpc::TiltMtServoDistNMPC::initNMPCParams()
 
 void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 {
+  TiltMtServoNMPC::prepareNMPCParams();
+
   updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();

@@ -113,6 +113,10 @@ protected:
     joint_angles_.resize(joint_num_, 0.0);
   }
 
+  /* activate() */
+  virtual void initAllocMat();
+  virtual void initNMPCParams();
+
   /* update() */
   void controlCore() override;
   void sendCmd() override;
@@ -144,9 +148,6 @@ protected:
 
   // debug functions
   void printPhysicalParams();
-
-  virtual void initAllocMat();
-  virtual void initNMPCParams();
 
 private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.
