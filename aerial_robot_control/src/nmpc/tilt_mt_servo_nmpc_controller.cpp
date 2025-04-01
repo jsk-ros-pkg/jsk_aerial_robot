@@ -665,28 +665,37 @@ void nmpc::TiltMtServoNMPC::initNMPCParams()
   acados_p[0] = 1.0; // qw
   idx_p_quat_end_ = 3;
 
-  // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
-  acados_p[idx_p_quat_end_ + 1] = mass_;
-  acados_p[idx_p_quat_end_ + 2] = gravity_const_;
-  acados_p[idx_p_quat_end_ + 3] = inertia_[0];
-  acados_p[idx_p_quat_end_ + 4] = inertia_[1];
-  acados_p[idx_p_quat_end_ + 5] = inertia_[2];
-  acados_p[idx_p_quat_end_ + 6] = kq_d_kt;
-  int idx = idx_p_quat_end_ + 7;
-  for (int i = 0; i < rotor_num; i++)
+  int idx;
+  if (mpc_solver_ptr_->NP_ > 4 + 6)  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
   {
-    acados_p[idx] = rotor_dr.find(i + 1)->second;
+    ROS_INFO("Set physical parameters for NMPC solver");
+    // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
+    acados_p[idx_p_quat_end_ + 1] = mass_;
+    acados_p[idx_p_quat_end_ + 2] = gravity_const_;
+    acados_p[idx_p_quat_end_ + 3] = inertia_[0];
+    acados_p[idx_p_quat_end_ + 4] = inertia_[1];
+    acados_p[idx_p_quat_end_ + 5] = inertia_[2];
+    acados_p[idx_p_quat_end_ + 6] = kq_d_kt;
+    idx = idx_p_quat_end_ + 7;
+    for (int i = 0; i < rotor_num; i++)
+    {
+      acados_p[idx] = rotor_dr.find(i + 1)->second;
+      idx++;
+      acados_p[idx] = rotor_p[i].x();
+      idx++;
+      acados_p[idx] = rotor_p[i].y();
+      idx++;
+      acados_p[idx] = rotor_p[i].z();
+      idx++;
+    }
+    acados_p[idx] = t_rotor_;
     idx++;
-    acados_p[idx] = rotor_p[i].x();
-    idx++;
-    acados_p[idx] = rotor_p[i].y();
-    idx++;
-    acados_p[idx] = rotor_p[i].z();
-    idx++;
+    acados_p[idx] = t_servo_;
   }
-  acados_p[idx] = t_rotor_;
-  idx++;
-  acados_p[idx] = t_servo_;
+  else
+  {
+    idx = idx_p_quat_end_;
+  }
 
   // set idx_p_phys_end_ for setting other parameters later
   idx_p_phys_end_ = idx;
