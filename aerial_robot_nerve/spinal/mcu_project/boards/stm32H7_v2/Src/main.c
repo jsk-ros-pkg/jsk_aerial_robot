@@ -45,7 +45,6 @@
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
-#include "kondo_servo/kondo_servo.h"
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
@@ -127,7 +126,6 @@ BatteryStatus battery_status_;
 
 /* servo instance */
 DirectServo servo_;
-KondoServo kondo_servo_;
 DShot dshot_;
 
 
@@ -277,11 +275,7 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 #if SERVO_FLAG
-#if KONDO_FLAG
-  kondo_servo_.init(&huart2, &nh_);
-#else
   servo_.init(&huart2, &nh_, NULL);
-#endif
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -1367,11 +1361,7 @@ __weak void ServoTaskCallback(void const * argument)
   for(;;)
   {
 #if SERVO_FLAG
-#if KONDO_FLAG
-    kondo_servo_.update();
-#else
     servo_.update();
-#endif
 #endif
     osDelay(1);
   }

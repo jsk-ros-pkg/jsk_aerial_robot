@@ -15,7 +15,6 @@
 #include <utility>
 #include <cmath>
 // #include "flashmemory.h"
-#include "flashmemory/flashmemory.h"
 // #include "sensors/encoder/mag_encoder.h"
 #include "sensors/encoder/mag_encoder.h"
 #include "cmsis_os.h"
@@ -303,7 +302,6 @@ public:
 
 private:
   RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
-  uint16_t ttl_rs485_mixed_;
 
   // a new and quicker method to read servo data
   bool read_status_packet_flag_ = false;

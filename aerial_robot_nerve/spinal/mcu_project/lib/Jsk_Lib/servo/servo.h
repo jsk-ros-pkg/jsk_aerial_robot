@@ -10,6 +10,7 @@ includes ------------------------------------------------------------------*/
 #define APPLICATION_SERVO_TEMP_SERVO_H_
 
 #include "drivers/Dynamixel/dynamixel_serial.h"
+#include "drivers/kondo_servo/kondo_servo.h"
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
@@ -51,7 +52,8 @@ public:
   void sendData(bool flag_send_asap);
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
-  DynamixelSerial& getServoHnadler() {return servo_handler_;}
+  // DynamixelSerial& getServoHnadler() {return servo_handler_;}
+  KondoServo& getServoHnadler() {return servo_handler_;}
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
     return static_cast<uint32_t>(angle /scale + zero_point_pos);
@@ -105,7 +107,8 @@ private:
 
     
 
-  DynamixelSerial servo_handler_;
+  // DynamixelSerial servo_handler_;
+  KondoServo servo_handler_;
   friend class Initializer;
 };
 

@@ -6,6 +6,9 @@
 ******************************************************************************
 */
 
+#include "sensors/encoder/mag_encoder.h"
+#include "flashmemory/flashmemory.h"
+
 #ifndef Base_Servo_driver_h
 #define Base_Servo_driver_h
 
@@ -88,6 +91,7 @@ protected:
   uint32_t get_temp_tick_;
   uint32_t get_move_tick_;
   uint32_t get_error_tick_;
+  uint16_t ttl_rs485_mixed_;
 
   /* uart rx */
   uint32_t rd_ptr_;
