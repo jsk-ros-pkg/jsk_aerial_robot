@@ -359,11 +359,9 @@ void nmpc_over_act_no_servo_delay::NMPCController::printPhysicalParams()
   }
   cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
   cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
-  robot_model_->getThrustWrenchUnits();
-  for (const auto& vec : robot_model_->getThrustWrenchUnits())
-  {
-    std::cout << "thrust wrench units: " << vec << std::endl;
-  }
+
+  cout << "kq_kt_rate" << robot_model_->getMFRate() << endl;
+  cout << "abs(kq_kt_rate)" << abs(robot_model_->getMFRate()) << endl;
 }
 
 /* plugin registration */

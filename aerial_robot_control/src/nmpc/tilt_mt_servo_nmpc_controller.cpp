@@ -199,7 +199,7 @@ void nmpc::TiltMtServoNMPC::initAllocMat()
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
-  double kq_d_kt = abs(robot_model_->getThrustWrenchUnits()[0][5]);  // PAY ATTENTION: should be positive value
+  double kq_d_kt = abs(robot_model_->getMFRate());  // PAY ATTENTION: should be positive value
 
   /* alloc mat */
   alloc_mat_.resize(0, 0);
@@ -276,7 +276,7 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams()
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
-  double kq_d_kt = abs(robot_model_->getThrustWrenchUnits()[0][5]);  // PAY ATTENTION: should be positive value
+  double kq_d_kt = abs(robot_model_->getMFRate());  // PAY ATTENTION: should be positive value
 
   std::vector<double> phys_p(2 + 3 + 1 + 4 * rotor_num + 2, 0);
   // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
@@ -710,10 +710,8 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
   cout << "thrust lower limit: " << robot_model_->getThrustLowerLimit() << endl;
   cout << "thrust upper limit: " << robot_model_->getThrustUpperLimit() << endl;
 
-  for (const auto& vec : robot_model_->getThrustWrenchUnits())
-  {
-    std::cout << "thrust wrench units: " << vec << std::endl;
-  }
+  cout << "kq_kt_rate" << robot_model_->getMFRate() << endl;
+  cout << "abs(kq_kt_rate)" << abs(robot_model_->getMFRate()) << endl;
 }
 
 /**

@@ -21,7 +21,7 @@ void nmpc::FixQdNMPC::initAllocMat()
   int dr3 = rotor_dr.find(3)->second;
   int dr4 = rotor_dr.find(4)->second;
 
-  double kq_d_kt = robot_model_->getThrustWrenchUnits()[0][5];
+  double kq_d_kt = abs(robot_model_->getMFRate()); // PAY ATTENTION: should be positive value
 
   // - force
   alloc_mat_(2, 0) = 1;
