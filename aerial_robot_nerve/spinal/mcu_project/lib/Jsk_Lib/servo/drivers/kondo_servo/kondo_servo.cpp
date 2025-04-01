@@ -73,7 +73,7 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
 
 void KondoServo::update()
 {
-  for(int i = 0; i < MAX_SERVO_NUM; i++)
+  for(int i = 0; i < servo_num_; i++)
     {
       if(servo_[i].torque_enable_)
         {
@@ -111,7 +111,7 @@ void KondoServo::writePosCmd(int id, uint16_t target_position)
       /* getting data from Ring Buffer */
       while(true){
         uint8_t rx_data;
-        if(read(&rx_data, KONDO_SERVO_TIMEOUT) == HAL_TIMEOUT) break;
+        if(read(&rx_data, 0) == HAL_TIMEOUT) break;
         pos_rx_buf_[pos_rx_ptr_] = (uint8_t)rx_data;
 
         if(pos_rx_ptr_ == 2) registerPos();
