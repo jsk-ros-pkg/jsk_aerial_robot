@@ -116,6 +116,7 @@ protected:
   /* activate() */
   virtual void initAllocMat();
   virtual void initNMPCParams();
+  std::vector<double> PhysToNMPCParams();
 
   /* update() */
   void controlCore() override;
