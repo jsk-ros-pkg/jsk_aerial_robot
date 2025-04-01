@@ -39,9 +39,13 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
   pos_rx_ptr_ = 0;
   rd_ptr_ = 0;
 
+  servo_num_ = 0;
+  read_servo_index_ = 0;
+
+  ping();
   // temporary
-  servo_num_ = 1;
-  servo_[0].id_ = 1;
+  // servo_num_ = 1;
+  // servo_[0].id_ = 1;
 
   for (int i = 0; i < MAX_SERVO_NUM; i++) {
     FlashMemory::addValue(&(servo_[i].p_gain_), 2);
@@ -72,16 +76,68 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
 
 void KondoServo::update()
 {
-  for(int i = 0; i < servo_num_; i++)
+  // for(int i = 0; i < servo_num_; i++)
+  //   {
+  //     if(servo_[i].torque_enable_)
+  //       {
+  //         writePosCmd(servo_[i].id_, servo_[i].goal_position_);
+  //       }
+  //     else
+  //       {
+  //         writePosCmd(servo_[i].id_, 0);  //freed
+  //       }
+  //   }
+
+  if(servo_[read_servo_index_].torque_enable_)
     {
-      if(servo_[i].torque_enable_)
+      writePosCmd(servo_[read_servo_index_].id_, servo_[read_servo_index_].goal_position_);
+    }
+  else
+    {
+      writePosCmd(servo_[read_servo_index_].id_, 0);  //freed
+    }
+  read_servo_index_ ++;
+  read_servo_index_ %= servo_num_;
+}
+
+void KondoServo::ping()
+{
+  for(int i = 0; i < MAX_SERVO_NUM; i++)
+    {
+      int tx_size = 3;
+      uint8_t tx_buff[tx_size];
+      uint8_t ret;
+
+      /* transmit empty protocol */
+      tx_buff[0] = 0x80 + i;
+      tx_buff[1] = (uint8_t)((0x0000 & 0x3f80) >> 7); // higher 7 bits of 14 bits
+      tx_buff[2] = (uint8_t)(0x0000 & 0x007f);        // lower  7 bits of 14 bits
+      
+      HAL_HalfDuplex_EnableTransmitter(huart_);
+      ret = HAL_UART_Transmit(huart_, tx_buff, tx_size, 1);
+
+      /* receive */
+      if(ret == HAL_OK)
         {
-          writePosCmd(servo_[i].id_, servo_[i].goal_position_);
+          HAL_HalfDuplex_EnableReceiver(huart_);
         }
-      else
-        {
-          writePosCmd(servo_[i].id_, 0);  //freed
-        }
+
+      HAL_Delay(10);
+
+      /* getting data from Ring Buffer */
+      while(true){
+        uint8_t rx_data;
+        if(read(&rx_data, 10) == HAL_TIMEOUT) break;
+        pos_rx_buf_[pos_rx_ptr_] = (uint8_t)rx_data;
+        if(pos_rx_ptr_ == 2)
+          {
+            int id = (int)(pos_rx_buf_[0] & 0x1f);
+            servo_[servo_num_++].id_ = i;
+            memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
+          }
+        pos_rx_ptr_ ++;
+        pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;
+      }
     }
 }
 
@@ -90,6 +146,18 @@ void KondoServo::writePosCmd(int id, uint16_t target_position)
   int tx_size = 3;
   uint8_t tx_buff[tx_size];
   uint8_t ret;
+
+  /* getting data from Ring Buffer */
+  while(true){
+    uint8_t rx_data;
+    if(read(&rx_data, 10) == HAL_TIMEOUT) break;
+    pos_rx_buf_[pos_rx_ptr_] = (uint8_t)rx_data;
+
+    if(pos_rx_ptr_ == 2) registerPos();
+
+    pos_rx_ptr_ ++;
+    pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;      
+  }  
 
   /* transmit */
   tx_buff[0] = 0x80 + id;
@@ -106,19 +174,6 @@ void KondoServo::writePosCmd(int id, uint16_t target_position)
         {
           HAL_HalfDuplex_EnableReceiver(huart_);
         }
-
-      /* getting data from Ring Buffer */
-      while(true){
-        uint8_t rx_data;
-        if(read(&rx_data, 0) == HAL_TIMEOUT) break;
-        pos_rx_buf_[pos_rx_ptr_] = (uint8_t)rx_data;
-
-        if(pos_rx_ptr_ == 2) registerPos();
-
-        pos_rx_ptr_ ++;
-        pos_rx_ptr_ %= KONDO_POSITION_RX_SIZE;
-      
-      }
     }
 }
 
@@ -178,7 +233,6 @@ float KondoServo::kondoPos2RadConv(int pos)
 }
 
 //TODO: implement following functions
-void KondoServo::ping(){}
 void KondoServo::reboot(uint8_t servo_index){}
 void KondoServo::setHomingOffset(uint8_t servo_index){}
 void KondoServo::setRoundOffset(uint8_t servo_index, int32_t ref_value){}

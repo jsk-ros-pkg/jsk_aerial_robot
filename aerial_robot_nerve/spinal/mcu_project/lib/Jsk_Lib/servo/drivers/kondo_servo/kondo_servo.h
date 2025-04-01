@@ -40,6 +40,7 @@ private:
   uint32_t dma_write_ptr_ ;
   uint32_t pos_rx_ptr_ ;
   uint32_t servo_state_read_last_time_;
+  uint32_t read_servo_index_;
 
   inline void setStatusReturnLevel() override;
   inline void getHomingOffset() override;
