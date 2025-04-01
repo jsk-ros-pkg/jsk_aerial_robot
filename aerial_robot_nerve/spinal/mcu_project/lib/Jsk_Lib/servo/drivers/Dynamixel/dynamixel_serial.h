@@ -288,6 +288,7 @@ public:
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout) override;
   void reboot(uint8_t servo_index) override;
   void setTorque(uint8_t servo_index) override;
+  void setTorqueFromPresetnPos(uint8_t servo_index) override;
   void setHomingOffset(uint8_t servo_index) override;
   void setRoundOffset(uint8_t servo_index, int32_t ref_value) override;
   void setPositionGains(uint8_t servo_index) override;

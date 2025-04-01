@@ -149,6 +149,11 @@ HAL_StatusTypeDef KondoServo::read(uint8_t* data,  uint32_t timeout)
   }
 }
 
+void KondoServo::setTorqueFromPresetnPos(uint8_t servo_index)
+{
+  if(servo_[servo_index].torque_enable_) servo_[servo_index].goal_position_ = servo_[servo_index].present_position_;
+}
+
 void KondoServo::registerPos()
 {
   int id = (int)(pos_rx_buf_[0] & 0x1f);
@@ -157,46 +162,6 @@ void KondoServo::registerPos()
     if(servo_[i].id_ == id) servo_[i].present_position_ = present_position;
   }
   memset(pos_rx_buf_, 0, KONDO_POSITION_RX_SIZE);
-}
-
-  
-
-bool KondoServo::available()
-{
-  dma_write_ptr_ =  (KONDO_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (KONDO_BUFFER_SIZE);
-  return (rd_ptr_ != dma_write_ptr_);
-}
-
-void KondoServo::setTargetPos(const std::map<uint16_t, float>& servo_map)
-{
-  for(auto servo : servo_map) {
-    uint16_t index = servo.first;
-    float angle = servo.second;
-    uint16_t target_pos = rad2KondoPosConv(angle);
-
-    // temporary command to free servo is angle = 100.0
-    if(angle == 100.0)
-      {
-        servo_[index].torque_enable_ = false;
-        servo_[index].goal_position_ = 7500;
-        // char buf[100];
-        // sprintf(buf, "servo id: %d is freed!", id);
-        // nh_->l
-      }
-    else if(KONDO_SERVO_POSITION_MIN <= target_pos && target_pos <= KONDO_SERVO_POSITION_MAX)
-      {
-        servo_[index].torque_enable_ = true;
-        servo_[index].goal_position_ = target_pos;
-      }
-  }
-}
-
-void KondoServo::setTorque(uint8_t servo_index)
-{
-  if(servo_[servo_index].torque_enable_)
-    {
-      servo_[servo_index].goal_position_ = servo_[servo_index].present_position_;
-    }
 }
   
 uint16_t KondoServo::rad2KondoPosConv(float angle)
@@ -212,16 +177,6 @@ float KondoServo::kondoPos2RadConv(int pos)
   return angle;
 }
 
-void KondoServo::inactivate(int id)
-{
-  activated_[id] = false;
-}
-
-void KondoServo::activate(int id)
-{
-  activated_[id] = true;
-}
-
 //TODO: implement following functions
 void KondoServo::ping(){}
 void KondoServo::reboot(uint8_t servo_index){}
@@ -230,7 +185,8 @@ void KondoServo::setRoundOffset(uint8_t servo_index, int32_t ref_value){}
 void KondoServo::setPositionGains(uint8_t servo_index){}
 void KondoServo::setProfileVelocity(uint8_t servo_index){}
 void KondoServo::setCurrentLimit(uint8_t servo_index){}
-
+void KondoServo::setTorque(uint8_t servo_index){}
+  
 void KondoServo::setStatusReturnLevel(){}
 void KondoServo::getHomingOffset(){}
 void KondoServo::getCurrentLimit(){}

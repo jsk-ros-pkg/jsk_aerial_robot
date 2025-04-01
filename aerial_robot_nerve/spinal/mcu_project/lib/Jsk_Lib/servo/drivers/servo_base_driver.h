@@ -66,6 +66,7 @@ public:
   virtual HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout) = 0;
   virtual void reboot(uint8_t servo_index) = 0;
   virtual void setTorque(uint8_t servo_index) = 0;
+  virtual void setTorqueFromPresetnPos(uint8_t servo_index) = 0;
   virtual void setHomingOffset(uint8_t servo_index) = 0;
   virtual void setRoundOffset(uint8_t servo_index, int32_t ref_value) = 0;
   virtual void setPositionGains(uint8_t servo_index) = 0;

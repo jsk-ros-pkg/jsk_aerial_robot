@@ -198,7 +198,7 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
       }
     ServoData& s = servo_handler_.getServo()[index];
     s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
-    servo_handler_.setTorque(index);
+    servo_handler_.setTorqueFromPresetnPos(index);
 
   }
 }

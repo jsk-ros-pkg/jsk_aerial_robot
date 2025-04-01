@@ -129,6 +129,13 @@ void DynamixelSerial::setTorque(uint8_t servo_index)
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
+void DynamixelSerial::setTorqueFromPresetnPos(uint8_t servo_index)
+{
+  ServoData& s = servo_[servo_index];
+  if(s.torque_enable_) s.goal_position_ = s.present_position_;
+  instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+}
+
 void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
 {
   ServoData& s = servo_[servo_index];
