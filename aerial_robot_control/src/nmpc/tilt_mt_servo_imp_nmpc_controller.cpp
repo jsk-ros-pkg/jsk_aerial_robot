@@ -34,7 +34,7 @@ void nmpc::TiltMtServoImpNMPC::initCostW()
   auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
   if (imp_mpc_solver_ptr)
   {
-    imp_mpc_solver_ptr->setEnlargedFactor(enlarge_factor);
+    imp_mpc_solver_ptr->setEnlargeFactor(enlarge_factor);
 
     imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("pMy", pMxy, false);
@@ -88,7 +88,9 @@ void nmpc::TiltMtServoImpNMPC::setImpParams()
 
   const double* pM = imp_mpc_solver_ptr->getpM();
   const double* oM = imp_mpc_solver_ptr->getoM();
-  vector<double> p = { pM[0], pM[1], pM[2], oM[0], oM[1], oM[2] };
+  double enlarge_factor = imp_mpc_solver_ptr->getEnlargeFactor();
+  vector<double> p = { pM[0] * enlarge_factor, pM[1] * enlarge_factor, pM[2] * enlarge_factor,
+                       oM[0] * enlarge_factor, oM[1] * enlarge_factor, oM[2] * enlarge_factor };
   mpc_solver_ptr_->setParamSparseAllStages(idx, p);
 
   idx_p_imp_end_ = idx_p_dist_end_ + 6;
@@ -117,7 +119,7 @@ void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t leve
       switch (level)
       {
         case Levels::RECONFIGURE_NMPC_ENLARGE_FACTOR: {
-          imp_mpc_solver_ptr->setEnlargedFactor(config.enlarge_factor);
+          imp_mpc_solver_ptr->setEnlargeFactor(config.enlarge_factor);
           ROS_INFO_STREAM("change enlarge_factor for NMPC '" << config.enlarge_factor << "'");
           break;
         }

@@ -86,10 +86,15 @@ public:
                 << std::endl;
   };
 
-  void setEnlargedFactor(const double factor)
+  void setEnlargeFactor(const double factor)
   {
     enlarge_factor_ = factor;
     setCostWeightByImpMDK();
+  }
+
+  double getEnlargeFactor() const
+  {
+    return enlarge_factor_;
   }
 
   void setImpedanceWeight(const std::string& type, const double value, const bool is_update_W_WN = true)
@@ -176,7 +181,7 @@ protected:
     p_weight.block<3, 3>(3, 0) = pD_imp;
     p_weight.block<3, 3>(6, 0) = pM_imp;
 
-    Eigen::MatrixXd p_weight_mtx = p_weight * p_weight.transpose() * enlarge_factor_;
+    Eigen::MatrixXd p_weight_mtx = p_weight * enlarge_factor_ * p_weight.transpose() * enlarge_factor_;
 
     // orientation
     Eigen::MatrixXd oK_imp = Eigen::DiagonalMatrix<double, 3>(oK_[0], oK_[1], oK_[2]);
@@ -188,7 +193,7 @@ protected:
     o_weight.block<3, 3>(3, 0) = oD_imp;
     o_weight.block<3, 3>(6, 0) = oM_imp;
 
-    Eigen::MatrixXd o_weight_mtx = o_weight * o_weight.transpose() * enlarge_factor_;
+    Eigen::MatrixXd o_weight_mtx = o_weight * enlarge_factor_ * o_weight.transpose() * enlarge_factor_;
 
     // convert W_ from std::vector to Eigen::matrix
     Eigen::MatrixXd W_mtx = Eigen::Map<Eigen::MatrixXd>(W_.data(), NY_, NY_);

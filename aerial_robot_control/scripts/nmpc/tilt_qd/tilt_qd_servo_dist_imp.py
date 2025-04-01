@@ -131,8 +131,10 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         oD_imp = np.diag([self.params["Qw_xy"], self.params["Qw_xy"], self.params["Qw_z"]])
         oK_imp = np.diag([self.params["Qq_xy"], self.params["Qq_xy"], self.params["Qq_z"]])
 
+        enlarge_factor = self.params["enlarge_factor"]
+
         p_weight = np.concatenate([pK_imp, pD_imp, pM_imp])
-        p_weight_mtx = np.dot(p_weight, p_weight.T)
+        p_weight_mtx = np.dot(p_weight * enlarge_factor, p_weight.T * enlarge_factor)
         Q[0:6, 0:6] = p_weight_mtx[0:6, 0:6]
         Q[17:20, 17:20] = p_weight_mtx[6:9, 6:9]
         Q[0:6, 17:20] = p_weight_mtx[0:6, 6:9]
