@@ -21,7 +21,7 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   initGeneralParams();
 
   /* init cost weight parameters */
-  initCostW();
+  initNMPCCostW();
 
   /* init dynamic reconfigure */
   ros::NodeHandle control_nh(nh_, "controller");
@@ -152,7 +152,7 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 }
 
-void nmpc::TiltMtServoNMPC::initCostW()
+void nmpc::TiltMtServoNMPC::initNMPCCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");

@@ -37,7 +37,7 @@ protected:
 
   void initGeneralParams() override;
 
-  void initCostW() override;
+  void initNMPCCostW() override;
 
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
 

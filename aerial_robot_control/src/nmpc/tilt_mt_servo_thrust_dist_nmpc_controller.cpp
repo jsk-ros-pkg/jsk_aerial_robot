@@ -26,7 +26,7 @@ void nmpc::TiltMtServoThrustDistNMPC::initGeneralParams()
   getParam<double>(motor_nh, "krpm_square_to_thrust_bias", krpm_square_to_thrust_bias_, 0.0);
 }
 
-void nmpc::TiltMtServoThrustDistNMPC::initCostW()
+void nmpc::TiltMtServoThrustDistNMPC::initNMPCCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");

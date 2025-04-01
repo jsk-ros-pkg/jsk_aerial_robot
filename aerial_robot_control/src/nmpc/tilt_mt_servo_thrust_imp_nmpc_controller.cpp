@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltMtServoThrustImpNMPC::initCostW()
+void nmpc::TiltMtServoThrustImpNMPC::initNMPCCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");

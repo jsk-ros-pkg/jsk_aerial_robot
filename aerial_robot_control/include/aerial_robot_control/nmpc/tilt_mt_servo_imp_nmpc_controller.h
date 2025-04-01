@@ -19,7 +19,7 @@ class TiltMtServoImpNMPC : public TiltMtServoDistNMPC
 protected:
   int idx_p_imp_end_ = 0;
 
-  void initCostW() override;
+  void initNMPCCostW() override;
 
   void setImpParams();
 

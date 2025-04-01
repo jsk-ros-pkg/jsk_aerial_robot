@@ -18,7 +18,7 @@ class TiltBi2OrdServoNMPC : public nmpc::TiltMtServoNMPC
 protected:
   std::vector<double> joint_vel_;
 
-  void initCostW() override;
+  void initNMPCCostW() override;
 
   inline void initActuatorStates() override
   {

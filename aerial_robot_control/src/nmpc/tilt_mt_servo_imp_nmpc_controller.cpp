@@ -6,7 +6,7 @@
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltMtServoImpNMPC::initCostW()
+void nmpc::TiltMtServoImpNMPC::initNMPCCostW()
 {
   /* control parameters with dynamic reconfigure */
   ros::NodeHandle control_nh(nh_, "controller");

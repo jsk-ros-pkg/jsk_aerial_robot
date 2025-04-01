@@ -107,7 +107,7 @@ protected:
   /* initialize() */
   virtual void initPlugins() {};
   virtual void initGeneralParams();
-  virtual void initCostW();
+  virtual void initNMPCCostW();
   void setControlMode();
   virtual inline void initActuatorStates()
   {
