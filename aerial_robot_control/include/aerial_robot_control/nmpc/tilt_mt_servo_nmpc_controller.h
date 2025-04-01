@@ -9,6 +9,7 @@
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>
+#include <numeric>
 
 /* dynamic reconfigure */
 #include "aerial_robot_msgs/DynamicReconfigureLevels.h"
@@ -79,12 +80,17 @@ protected:
   double mass_;
   double gravity_const_;
   std::vector<double> inertia_;
+  int motor_num_;
+  double t_rotor_;
   double thrust_ctrl_max_;
   double thrust_ctrl_min_;
-  int motor_num_;
   int joint_num_;
+  double t_servo_;
   double t_nmpc_samp_;
   double t_nmpc_step_;
+
+  int idx_p_quat_end_ = 0;
+  int idx_p_phys_end_ = 0;
 
   std::vector<double> joint_angles_;
 
@@ -107,6 +113,11 @@ protected:
   {
     joint_angles_.resize(joint_num_, 0.0);
   }
+
+  /* activate() */
+  virtual void initAllocMat();
+  virtual void initNMPCParams();
+  std::vector<double> PhysToNMPCParams();
 
   /* update() */
   void controlCore() override;
@@ -139,8 +150,6 @@ protected:
 
   // debug functions
   void printPhysicalParams();
-
-  virtual void initAllocMat();
 
 private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.

@@ -21,7 +21,7 @@ controller:
     a_min: -3.1416
 
     # params for the cost function
-    enlarge_factor: 50
+    enlarge_factor: 8
 
     # position
     pMxy: 1.5

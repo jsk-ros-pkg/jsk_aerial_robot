@@ -131,6 +131,16 @@ public:
       setCostWeightByImpMDK();
   }
 
+  double* getpM()
+  {
+    return pM_;
+  }
+
+  double* getoM()
+  {
+    return oM_;
+  }
+
 protected:
   tilt_qd_servo_thrust_dist_imp_mdl_solver_capsule* acados_ocp_capsule_ = nullptr;
 
@@ -199,10 +209,7 @@ protected:
     setCostWeightMid(W_);
 
     /* -------- step 2: update parameters -------- */
-    std::vector<int> M_idx = { 10, 11, 12, 13, 14, 15 };
-    std::vector<double> M = { pM_[0], pM_[1], pM_[2], oM_[0], oM_[1], oM_[2] };
-    for (int i = 0; i < NN_; i++)
-      acadosUpdateParamsSparse(i, M_idx, M, 6);
+    // This step is finished in controller.
 
     /* -------- step 3: update WN related values -------- */
     if (is_set_WN)
@@ -210,8 +217,6 @@ protected:
       Eigen::MatrixXd WN_mtx = W_mtx.block(0, 0, NX_, NX_);
       WN_ = std::vector<double>(WN_mtx.data(), WN_mtx.data() + WN_mtx.size());
       setCostWeightEnd(WN_);
-
-      acadosUpdateParamsSparse(NN_, M_idx, M, 6);
     }
 
     // std::cout << "W matrix:\n" << W_mtx << std::endl;

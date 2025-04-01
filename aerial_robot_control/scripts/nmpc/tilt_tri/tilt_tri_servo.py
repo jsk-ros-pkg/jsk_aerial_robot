@@ -28,7 +28,9 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltTriRotorNMPC.yaml")
-        
+
+        self.acados_init_p = None
+
         # Create acados model & solver and generate c code
         super().__init__("nmpc", overwrite)
 
@@ -186,7 +188,9 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nu = ocp.model.u.size()[0]
+        n_param = ocp.model.p.size()[0]
 
         # Define weights
         Q = np.diag(
@@ -325,9 +329,13 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
         u_ref[0:3] = self.phys.mass * self.phys.gravity / 3  # ft1, ft2, ft3
+        self.acados_init_p = np.zeros(n_param)
+        self.acados_init_p[0] = 1.0  # qw
+
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
+        ocp.parameter_values = self.acados_init_p
 
         # Solver options
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
@@ -407,9 +415,10 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
-        n_params = ocp_model.p.size()[0]
-        acados_sim.dims.np = n_params
-        acados_sim.parameter_values = np.zeros(n_params)
+        n_param = ocp_model.p.size()[0]
+        self.acados_init_p = np.zeros(n_param)
+        self.acados_init_p[0] = 1.0  # qw
+        acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)

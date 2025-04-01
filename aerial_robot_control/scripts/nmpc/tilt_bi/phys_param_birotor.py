@@ -33,3 +33,11 @@ kps = physical_params["kps"]
 kds = physical_params["kds"]   # kds has included the damping ratio
 
 i_sxx = physical_params["servo_inertia_x"]
+
+# concatenate the parameters to make a new list
+physical_param_list = [
+    mass, gravity, Ixx, Iyy, Izz,
+    dr1, p1_b[0], p1_b[1], p1_b[2],
+    dr2, p2_b[0], p2_b[1], p2_b[2],
+    0.0, t_servo,
+]

@@ -27,3 +27,13 @@ p3_b = physical_params["p3"]
 kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
+
+# concatenate the parameters to make a new list
+physical_param_list = [
+    mass, gravity, Ixx, Iyy, Izz,
+    kq_d_kt,
+    dr1, p1_b[0], p1_b[1], p1_b[2],
+    dr2, p2_b[0], p2_b[1], p2_b[2],
+    dr3, p3_b[0], p3_b[1], p3_b[2],
+    0.0, t_servo,
+]

@@ -53,6 +53,7 @@ public:
   std::vector<std::vector<double>> xo_;
   std::vector<std::vector<double>> uo_;
 
+  // weights
   std::vector<double> W_;
   std::vector<double> WN_;
 
@@ -72,14 +73,6 @@ public:
     WN_ = std::vector<double>(NX_ * NX_, 0);  // WN has the same size as NX
 
     setRTIPhase();
-
-    if (NP_ == 0)
-      return;
-
-    std::vector<double> p(NP_, 0);
-    if (have_quat)
-      p[0] = 1.0;  // quaternion
-    setParameters(p);
   };
 
   void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
@@ -163,6 +156,8 @@ public:
       setParamSparseOneStage(i, idx, p, false);
   }
 
+  /* after 2025-3-30, the p includes physical params so should be set values during activate().
+   * Too early cannot get the correct values. */
   void setParameters(std::vector<double>& p, bool is_quat_in_p = true)
   {
     if (is_quat_in_p)

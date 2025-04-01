@@ -86,10 +86,15 @@ public:
                 << std::endl;
   };
 
-  void setEnlargedFactor(const double factor)
+  void setEnlargeFactor(const double factor)
   {
     enlarge_factor_ = factor;
     setCostWeightByImpMDK();
+  }
+
+  double getEnlargeFactor() const
+  {
+    return enlarge_factor_;
   }
 
   void setImpedanceWeight(const std::string& type, const double value, const bool is_update_W_WN = true)
@@ -137,6 +142,16 @@ public:
       setCostWeightByImpMDK();
   }
 
+  double* getpM()
+  {
+    return pM_;
+  }
+
+  double* getoM()
+  {
+    return oM_;
+  }
+
 protected:
   tilt_qd_servo_dist_imp_mdl_solver_capsule* acados_ocp_capsule_ = nullptr;
 
@@ -166,7 +181,7 @@ protected:
     p_weight.block<3, 3>(3, 0) = pD_imp;
     p_weight.block<3, 3>(6, 0) = pM_imp;
 
-    Eigen::MatrixXd p_weight_mtx = p_weight * p_weight.transpose() * enlarge_factor_;
+    Eigen::MatrixXd p_weight_mtx = p_weight * enlarge_factor_ * p_weight.transpose() * enlarge_factor_;
 
     // orientation
     Eigen::MatrixXd oK_imp = Eigen::DiagonalMatrix<double, 3>(oK_[0], oK_[1], oK_[2]);
@@ -178,7 +193,7 @@ protected:
     o_weight.block<3, 3>(3, 0) = oD_imp;
     o_weight.block<3, 3>(6, 0) = oM_imp;
 
-    Eigen::MatrixXd o_weight_mtx = o_weight * o_weight.transpose() * enlarge_factor_;
+    Eigen::MatrixXd o_weight_mtx = o_weight * enlarge_factor_ * o_weight.transpose() * enlarge_factor_;
 
     // convert W_ from std::vector to Eigen::matrix
     Eigen::MatrixXd W_mtx = Eigen::Map<Eigen::MatrixXd>(W_.data(), NY_, NY_);
@@ -207,10 +222,7 @@ protected:
     setCostWeightMid(W_);
 
     /* -------- step 2: update parameters -------- */
-    std::vector<int> M_idx = { 10, 11, 12, 13, 14, 15 };
-    std::vector<double> M = { pM_[0], pM_[1], pM_[2], oM_[0], oM_[1], oM_[2] };
-    for (int i = 0; i < NN_; i++)
-      acadosUpdateParamsSparse(i, M_idx, M, 6);
+    // This step is finished in controller.
 
     /* -------- step 3: update WN related values -------- */
     if (is_set_WN)
@@ -218,8 +230,6 @@ protected:
       Eigen::MatrixXd WN_mtx = W_mtx.block(0, 0, NX_, NX_);
       WN_ = std::vector<double>(WN_mtx.data(), WN_mtx.data() + WN_mtx.size());
       setCostWeightEnd(WN_);
-
-      acadosUpdateParamsSparse(NN_, M_idx, M, 6);
     }
 
     // std::cout << "W matrix:\n" << W_mtx << std::endl;

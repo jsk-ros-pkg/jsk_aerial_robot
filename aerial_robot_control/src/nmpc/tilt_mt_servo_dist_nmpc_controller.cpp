@@ -106,16 +106,24 @@ void nmpc::TiltMtServoDistNMPC::updateITerm()
   {
     wrench_est_i_term_.update(target_pos, target_q, pos, q);
   }
+}
 
+void nmpc::TiltMtServoDistNMPC::initNMPCParams()
+{
+  TiltMtServoNMPC::initNMPCParams();
+  idx_p_dist_end_ = idx_p_phys_end_ + 6;
 }
 
 void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 {
+  TiltMtServoNMPC::prepareNMPCParams();
+
   updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
 
-  vector<int> idx = { 4, 5, 6, 7, 8, 9 };
+  vector<int> idx = { idx_p_phys_end_ + 1, idx_p_phys_end_ + 2, idx_p_phys_end_ + 3,
+                      idx_p_phys_end_ + 4, idx_p_phys_end_ + 5, idx_p_phys_end_ + 6 };
   vector<double> p = { mdl_error_force_w.x,    mdl_error_force_w.y,    mdl_error_force_w.z,
                        mdl_error_torque_cog.x, mdl_error_torque_cog.y, mdl_error_torque_cog.z };
   mpc_solver_ptr_->setParamSparseAllStages(idx, p);

@@ -17,7 +17,13 @@ namespace nmpc
 class TiltMtServoImpNMPC : public TiltMtServoDistNMPC
 {
 protected:
+  int idx_p_imp_end_ = 0;
+
   void initCostW() override;
+
+  void setImpParams();
+
+  void initNMPCParams() override;
 
   void cfgNMPCCallback(NMPCConfig& config, uint32_t level) override;
 };

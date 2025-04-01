@@ -91,7 +91,7 @@ def main(args):
 
     # ---------- Visualization ----------
     viz = Visualizer(
-        args.arch,
+        "qd",
         N_sim,
         nx_sim,
         nu,
@@ -182,17 +182,15 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                params = np.zeros(n_param)
-                params[0:4] = quaternion_r
-                ocp_solver.set(j, "p", params)  # For nonlinear quaternion error
+                nmpc.acados_init_p[0:4] = quaternion_r
+                ocp_solver.set(j, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            params = np.zeros(n_param)
-            params[0:4] = quaternion_r
-            ocp_solver.set(ocp_solver.N, "p", params)  # For nonlinear quaternion error
+            nmpc.acados_init_p[0:4] = quaternion_r
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
 
             # Compute control feedback and take the first action
             try:
@@ -414,14 +412,6 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Flag to use ground truth angular acceleration. Default: 1 (True)"
-    )
-
-    parser.add_argument(
-        "-a",
-        "--arch",
-        type=str,
-        default='qd',
-        help="The robot's architecture. Options: bi, tri, qd (default)."
     )
 
     args = parser.parse_args()

@@ -34,7 +34,7 @@ void nmpc::TiltMtServoImpNMPC::initCostW()
   auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
   if (imp_mpc_solver_ptr)
   {
-    imp_mpc_solver_ptr->setEnlargedFactor(enlarge_factor);
+    imp_mpc_solver_ptr->setEnlargeFactor(enlarge_factor);
 
     imp_mpc_solver_ptr->setImpedanceWeight("pMx", pMxy, false);
     imp_mpc_solver_ptr->setImpedanceWeight("pMy", pMxy, false);
@@ -74,6 +74,34 @@ void nmpc::TiltMtServoImpNMPC::initCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 }
 
+void nmpc::TiltMtServoImpNMPC::setImpParams()
+{
+  vector<int> idx = { idx_p_dist_end_ + 1, idx_p_dist_end_ + 2, idx_p_dist_end_ + 3,
+                      idx_p_dist_end_ + 4, idx_p_dist_end_ + 5, idx_p_dist_end_ + 6 };
+
+  auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoDistImpMdlMPCSolver>(mpc_solver_ptr_);
+  if (!imp_mpc_solver_ptr)
+  {
+    ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");
+    return;
+  }
+
+  const double* pM = imp_mpc_solver_ptr->getpM();
+  const double* oM = imp_mpc_solver_ptr->getoM();
+  double enlarge_factor = imp_mpc_solver_ptr->getEnlargeFactor();
+  vector<double> p = { pM[0] * enlarge_factor, pM[1] * enlarge_factor, pM[2] * enlarge_factor,
+                       oM[0] * enlarge_factor, oM[1] * enlarge_factor, oM[2] * enlarge_factor };
+  mpc_solver_ptr_->setParamSparseAllStages(idx, p);
+
+  idx_p_imp_end_ = idx_p_dist_end_ + 6;
+}
+
+void nmpc::TiltMtServoImpNMPC::initNMPCParams()
+{
+  TiltMtServoDistNMPC::initNMPCParams();
+  setImpParams();
+}
+
 void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
@@ -91,7 +119,7 @@ void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t leve
       switch (level)
       {
         case Levels::RECONFIGURE_NMPC_ENLARGE_FACTOR: {
-          imp_mpc_solver_ptr->setEnlargedFactor(config.enlarge_factor);
+          imp_mpc_solver_ptr->setEnlargeFactor(config.enlarge_factor);
           ROS_INFO_STREAM("change enlarge_factor for NMPC '" << config.enlarge_factor << "'");
           break;
         }
@@ -184,6 +212,7 @@ void nmpc::TiltMtServoImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t leve
           break;
         }
       }
+      setImpParams();  // update all the parameters in the weight matrix in case of changing enlarge_factor
     }
     catch (std::invalid_argument& e)
     {

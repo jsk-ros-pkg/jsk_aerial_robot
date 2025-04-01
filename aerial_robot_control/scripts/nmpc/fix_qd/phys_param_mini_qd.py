@@ -28,3 +28,14 @@ p2_b = physical_params["p2"]
 p3_b = physical_params["p3"]
 p4_b = physical_params["p4"]
 kq_d_kt = physical_params["kq_d_kt"]
+
+# concatenate the parameters to make a new list
+physical_param_list = [
+    mass, gravity, Ixx, Iyy, Izz,
+    kq_d_kt,
+    dr1, p1_b[0], p1_b[1], p1_b[2],
+    dr2, p2_b[0], p2_b[1], p2_b[2],
+    dr3, p3_b[0], p3_b[1], p3_b[2],
+    dr4, p4_b[0], p4_b[1], p4_b[2],
+    0.0, 0.0,
+]

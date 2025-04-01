@@ -213,31 +213,30 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                params = np.zeros(n_param)
-                params[0:4] = quaternion_r
+                nmpc.acados_init_p[0:4] = quaternion_r
 
                 if nmpc.include_impedance:
                     W = nmpc.get_ocp_solver().acados_ocp.cost.W     # For impedance control
-                    # pMxy, pMxy, pMz, oMxy, oMxy, oMz
-                    params[10:16] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                    # pMxy, pMxy, pMz, oMxy, oMxy, oMz  TODO: make the index more general
+                    nmpc.acados_init_p[34:40] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                    # Note that we use the sqrt of the diagonal elements of W here, which is the pM and oM
 
-                ocp_solver.set(j, "p", params)  # For nonlinear quaternion error
+                ocp_solver.set(j, "p", nmpc.acados_init_p)
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            params = np.zeros(n_param)
-            params[0:4] = quaternion_r
+            nmpc.acados_init_p[0:4] = quaternion_r
 
             if nmpc.include_impedance:
                 # for impedance control
                 W_e = nmpc.get_ocp_solver().acados_ocp.cost.W_e
-                # pMxy, pMxy, pMz, oMxy, oMxy, oMz
-                params[10:16] = np.sqrt(
-                    np.array([W_e[21, 21], W_e[22, 22], W_e[23, 23], W_e[24, 24], W_e[25, 25], W_e[26, 26]]))
+                # pMxy, pMxy, pMz, oMxy, oMxy, oMz   TODO: make the index more general
+                nmpc.acados_init_p[34:40] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                # Note that we use the sqrt of the diagonal elements of W here, which is the pM and oM
 
-            ocp_solver.set(ocp_solver.N, "p", params)  # For nonlinear quaternion error
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
 
             # Compute control feedback and take the first action
             try:
@@ -543,7 +542,7 @@ if __name__ == "__main__":
         "-e",
         "--est_dist_type",
         type=int,
-        default=1,
+        default=3,
         help="The type of disturbance estimation. "
              "Options: 0 (None), 1 (default: only use sensors), "
              "2-5 (different MHE implementations)."
