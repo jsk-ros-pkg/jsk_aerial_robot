@@ -427,6 +427,15 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
 
 void nmpc::TiltMtServoNMPC::prepareNMPCParams()
 {
+  if (mpc_solver_ptr_->NP_ > 4 + 6)  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
+  {
+    std::vector<double> phys_p = PhysToNMPCParams();
+
+    std::vector<int> idx(phys_p.size());
+    std::iota(idx.begin(), idx.end(), idx_p_quat_end_ + 1);
+
+    mpc_solver_ptr_->setParamSparseAllStages(idx, phys_p);
+  }
 }
 
 void nmpc::TiltMtServoNMPC::sendCmd()

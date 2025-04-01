@@ -9,6 +9,7 @@
 
 #include <angles/angles.h>
 #include <tf_conversions/tf_eigen.h>
+#include <numeric>
 
 /* dynamic reconfigure */
 #include "aerial_robot_msgs/DynamicReconfigureLevels.h"
