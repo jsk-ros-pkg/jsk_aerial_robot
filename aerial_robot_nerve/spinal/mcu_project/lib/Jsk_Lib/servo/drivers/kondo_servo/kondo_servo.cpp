@@ -23,7 +23,6 @@ uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE];
 #endif
 
 void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
-
 {
   huart_ = huart;
 
@@ -191,6 +190,14 @@ void KondoServo::setTargetPos(const std::map<uint16_t, float>& servo_map)
       }
   }
 }
+
+void KondoServo::setTorque(uint8_t servo_index)
+{
+  if(servo_[servo_index].torque_enable_)
+    {
+      servo_[servo_index].goal_position_ = servo_[servo_index].present_position_;
+    }
+}
   
 uint16_t KondoServo::rad2KondoPosConv(float angle)
 {
@@ -218,7 +225,6 @@ void KondoServo::activate(int id)
 //TODO: implement following functions
 void KondoServo::ping(){}
 void KondoServo::reboot(uint8_t servo_index){}
-void KondoServo::setTorque(uint8_t servo_index){}
 void KondoServo::setHomingOffset(uint8_t servo_index){}
 void KondoServo::setRoundOffset(uint8_t servo_index, int32_t ref_value){}
 void KondoServo::setPositionGains(uint8_t servo_index){}
