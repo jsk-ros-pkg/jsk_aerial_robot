@@ -334,7 +334,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # Compute Inertia
         I = ca.diag(ca.vertcat(Ixx, Iyy, Izz))
         I_inv = ca.diag(ca.vertcat(1 / Ixx, 1 / Iyy, 1 / Izz))
-        g_w = np.array([0, 0, -gravity])  # World frame
+        g_w = ca.vertcat(0, 0, -gravity)  # World frame
 
         # Dynamic model (Time-derivative of states)
         ds = ca.vertcat(

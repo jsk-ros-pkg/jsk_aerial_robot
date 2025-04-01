@@ -219,6 +219,7 @@ def main(args):
                     W = nmpc.get_ocp_solver().acados_ocp.cost.W     # For impedance control
                     # pMxy, pMxy, pMz, oMxy, oMxy, oMz  TODO: make the index more general
                     nmpc.acados_init_p[34:40] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                    # Note that we use the sqrt of the diagonal elements of W here, which is the pM and oM
 
                 ocp_solver.set(j, "p", nmpc.acados_init_p)
 
@@ -231,8 +232,9 @@ def main(args):
             if nmpc.include_impedance:
                 # for impedance control
                 W_e = nmpc.get_ocp_solver().acados_ocp.cost.W_e
-                # pMxy, pMxy, pMz, oMxy, oMxy, oMz
+                # pMxy, pMxy, pMz, oMxy, oMxy, oMz   TODO: make the index more general
                 nmpc.acados_init_p[34:40] = np.sqrt(np.array([W[21, 21], W[22, 22], W[23, 23], W[24, 24], W[25, 25], W[26, 26]]))
+                # Note that we use the sqrt of the diagonal elements of W here, which is the pM and oM
 
             ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
 
