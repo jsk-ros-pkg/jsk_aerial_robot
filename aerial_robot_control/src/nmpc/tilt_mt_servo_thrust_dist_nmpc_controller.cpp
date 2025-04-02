@@ -72,6 +72,87 @@ void nmpc::TiltMtServoThrustDistNMPC::initNMPCCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 }
 
+void nmpc::TiltMtServoThrustDistNMPC::initNMPCConstraints()
+{
+  ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+
+  double body_rate_max, body_rate_min, vel_max, vel_min;
+  double servo_angle_max, servo_angle_min;
+  getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
+  getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
+  getParam<double>(nmpc_nh, "v_max", vel_max, 1.0);
+  getParam<double>(nmpc_nh, "v_min", vel_min, -1.0);
+  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
+  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
+  getParam<double>(nmpc_nh, "a_max", servo_angle_max, 3.1416);
+  getParam<double>(nmpc_nh, "a_min", servo_angle_min, -3.1416);
+
+  std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
+  std::vector<int> idxbx_desired = { 3, 4, 5, 10, 11, 12 };
+  idxbx_desired.resize(6 + joint_num_ + motor_num_);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    idxbx_desired[6 + i] = 13 + i;
+  }
+  for (int i = 0; i < motor_num_; i++)
+  {
+    idxbx_desired[6 + joint_num_ + i] = 13 + joint_num_ + i;
+  }
+
+  if (idxbx.size() != idxbx_desired.size() || !std::equal(idxbx.begin(), idxbx.end(), idxbx_desired.begin()))
+  {
+    ROS_ERROR("idxbx is not equal to idxbx_desired, we cannot set constraints lbx and ubx!");
+  }
+
+  std::vector<double> lbx = { vel_min, vel_min, vel_min, body_rate_min, body_rate_min, body_rate_min };
+  std::vector<double> ubx = { vel_max, vel_max, vel_max, body_rate_max, body_rate_max, body_rate_max };
+  lbx.resize(6 + joint_num_ + motor_num_);
+  ubx.resize(6 + joint_num_ + motor_num_);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    lbx[6 + i] = servo_angle_min;
+    ubx[6 + i] = servo_angle_max;
+  }
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lbx[6 + joint_num_ + i] = thrust_ctrl_min_;
+    ubx[6 + joint_num_ + i] = thrust_ctrl_max_;
+  }
+  mpc_solver_ptr_->setConstraintsLbx(lbx);
+  mpc_solver_ptr_->setConstraintsUbx(ubx);
+
+  std::vector<int> idxbu = mpc_solver_ptr_->getConstraintsIdxbu();
+  std::vector<int> idxbu_desired(motor_num_ + joint_num_);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    idxbu_desired[i] = i;
+  }
+  for (int i = 0; i < joint_num_; i++)
+  {
+    idxbu_desired[motor_num_ + i] = motor_num_ + i;
+  }
+  if (idxbu.size() != idxbu_desired.size() || !std::equal(idxbu.begin(), idxbu.end(), idxbu_desired.begin()))
+  {
+    ROS_ERROR("idxbu is not equal to idxbu_desired, we cannot set constraints lbu and ubu!");
+  }
+
+  std::vector<double> lbu(motor_num_ + joint_num_, 0.0);
+  std::vector<double> ubu(motor_num_ + joint_num_, 0.0);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lbu[i] = thrust_ctrl_min_;
+    ubu[i] = thrust_ctrl_max_;
+  }
+  for (int i = 0; i < joint_num_; i++)
+  {
+    lbu[motor_num_ + i] = servo_angle_min;
+    ubu[motor_num_ + i] = servo_angle_max;
+  }
+  mpc_solver_ptr_->setConstraintsLbu(lbu);
+  mpc_solver_ptr_->setConstraintsUbu(ubu);
+}
+
 void nmpc::TiltMtServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
 {  // TODO: support different motor number
   double krpm = (double)msg->esc_telemetry_1.rpm * 0.001;

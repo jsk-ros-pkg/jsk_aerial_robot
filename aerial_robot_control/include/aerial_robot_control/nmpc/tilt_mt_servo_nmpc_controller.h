@@ -108,6 +108,7 @@ protected:
   virtual void initPlugins() {};
   virtual void initGeneralParams();
   virtual void initNMPCCostW();
+  virtual void initNMPCConstraints();
   void setControlMode();
   virtual inline void initActuatorStates()
   {
