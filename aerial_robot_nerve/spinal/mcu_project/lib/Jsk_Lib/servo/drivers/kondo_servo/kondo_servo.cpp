@@ -26,6 +26,8 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
 {
   huart_ = huart;
 
+  pinReconfig();
+  
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
   HAL_HalfDuplex_EnableReceiver(huart_);
@@ -71,6 +73,26 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
       servo_[i].resolution_ratio_ = (float)servo_[i].servo_resolution_ / (float)servo_[i].joint_resolution_;
     }
   }
+
+}
+
+void KondoServo::pinReconfig()
+{
+  if (HAL_UART_DeInit(huart_) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+  /*Change baud rate*/
+  huart_->Init.BaudRate = 1250000;
+  huart_->Init.WordLength = UART_WORDLENGTH_9B;
+  huart_->Init.Parity = UART_PARITY_EVEN;
+
+  /*Initialize as halfduplex mode*/
+  if (HAL_HalfDuplex_Init(huart_) != HAL_OK)
+    {
+      Error_Handler();
+    }  
 
 }
 

@@ -335,7 +335,9 @@ void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, sp
   //TODO: Bad implementation. This features should not be located in servo interface.
   spinal::BoardInfo& board = board_info_res_.boards[0];
   board.imu_send_data_flag = 1;
-  // board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+#if DYNAMIXEL
+  board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+#endif
   board.slave_id = 0;
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];

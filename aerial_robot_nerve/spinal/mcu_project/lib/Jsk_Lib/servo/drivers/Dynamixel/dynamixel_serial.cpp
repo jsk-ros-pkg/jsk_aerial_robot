@@ -26,6 +26,8 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	get_move_tick_ = 0;
 	get_error_tick_ = 0;
 
+        pinReconfig();
+
         /* rx */
         __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
         __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
@@ -111,6 +113,25 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
         }
 }
 
+void DynamixelSerial::pinReconfig()
+{
+  if (HAL_UART_DeInit(huart_) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+  /*Change baud rate*/
+  huart_->Init.BaudRate = 1000000;
+  huart_->Init.WordLength = UART_WORDLENGTH_8B;
+  huart_->Init.Parity = UART_PARITY_NONE;
+  huart_->Init.Mode = UART_MODE_TX_RX;
+  /*Initialize as async mode*/
+  if (HAL_UART_Init(huart_) != HAL_OK)
+    {
+      Error_Handler();
+    }
+}
+
 void DynamixelSerial::ping()
 {
 	cmdPing(DX_BROADCAST_ID);
@@ -118,6 +139,7 @@ void DynamixelSerial::ping()
 		readStatusPacket(INST_PING);
 	}
 }
+
 
 void DynamixelSerial::reboot(uint8_t servo_index)
 {

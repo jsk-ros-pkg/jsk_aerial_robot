@@ -62,6 +62,7 @@ public:
   ServoBase(){}
 
   virtual void init(UART_HandleTypeDef* huart,  osMutexId* mutex = NULL) = 0;
+  virtual void pinReconfig() = 0;
   virtual void ping() = 0;
   virtual HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout) = 0;
   virtual void reboot(uint8_t servo_index) = 0;
