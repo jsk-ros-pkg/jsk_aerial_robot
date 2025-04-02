@@ -98,10 +98,10 @@
   </include>
 
   ########## realsense d435  ########
-  <group if="$(arg rs_d435)">
-    <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" args="manager 2>/dev/null" output="log" ns="$(arg robot_ns)/rs_d435"/>
-    <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
-          args="3 realsense2_camera rs_rgbd.launch camera:=rs_d435 tf_prefix:=$(arg robot_ns)/rs_d435 publish_tf:=false external_manager:=true manager:=realsense2_camera_manager color_fps:=15 infra_fps:=15 depth_fps:=15 color_width:=640 color_height:=480 depth_width:=640 depth_height:=480" name="timed_roslaunch" output="log" ns="$(arg robot_ns)"  if="$(arg real_machine)"/>
-  </group>
+  <!-- <group if="$(arg rs_d435)"> -->
+  <!--   <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" args="manager 2>/dev/null" output="log" ns="$(arg robot_ns)/rs_d435"/> -->
+  <!--   <node pkg="timed_roslaunch" type="timed_roslaunch.sh" -->
+  <!--         args="3 realsense2_camera rs_rgbd.launch camera:=rs_d435 tf_prefix:=$(arg robot_ns)/rs_d435 publish_tf:=false external_manager:=true manager:=realsense2_camera_manager color_fps:=15 infra_fps:=15 depth_fps:=15 color_width:=640 color_height:=480 depth_width:=640 depth_height:=480" name="timed_roslaunch" output="log" ns="$(arg robot_ns)"  if="$(arg real_machine)"/> -->
+  <!-- </group> -->
 
 </launch>
