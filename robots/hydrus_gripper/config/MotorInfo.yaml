@@ -1,0 +1,33 @@
+#MN3510_360KV : t-motor Air40A : t-motor 15inch
+motor_info:
+        min_pwm: 0.59 # 1180 [ms]
+        max_pwm: 0.9375 # 1875 [ms]
+        min_thrust: 1.0 #  [N]
+        force_landing_thrust: 6.5 #[N]
+        m_f_rate: -0.01887
+        pwm_conversion_mode: 0 # SQRT Mode
+        vel_ref_num: 4
+        ref1:
+                voltage: 25.2
+                max_thrust: 23.2 # N
+                polynominal2: 0.0429432 # x10
+                polynominal1: -0.0611145 # x10
+                polynominal0: -13.68986202 # x1
+        ref2:
+                voltage: 24.2
+                max_thrust: 22.2 # N
+                polynominal2: 0.0498843 # x10
+                polynominal1: -1.4674586 # x10
+                polynominal0: -7.77089642 # x1
+        ref3:
+                voltage: 23.2
+                max_thrust: 21.1 # N
+                polynominal2: 0.0497042 # x10
+                polynominal1: -1.7093689 # x10
+                polynominal0: -6.39695168 # x1
+        ref4:
+                voltage: 22.2
+                max_thrust: 20.0 # N
+                polynominal2: 0.0541573 # x10
+                polynominal1: -2.7024655 # x10
+                polynominal0: -2.11998678 # x1
