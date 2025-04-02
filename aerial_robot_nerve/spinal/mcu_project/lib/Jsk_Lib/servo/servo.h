@@ -52,10 +52,10 @@ public:
   void sendData(bool flag_send_asap);
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
-#if DYNAMIXEL  
-  DynamixelSerial& getServoHnadler() {return servo_handler_;}
-#elif KONDO
+#if KONDO
   KondoServo& getServoHnadler() {return servo_handler_;}
+#else DYNAMIXEL
+  DynamixelSerial& getServoHnadler() {return servo_handler_;}  
 #endif
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
@@ -108,11 +108,10 @@ private:
 
   JointProf joint_profiles_[MAX_SERVO_NUM];
 
-    
-#if DYNAMIXEL
-  DynamixelSerial servo_handler_;
-#elif KONDO
+#if KONDO
   KondoServo servo_handler_;
+#else DYNAMIXEL
+  DynamixelSerial servo_handler_;
 #endif
   friend class Initializer;
 };
