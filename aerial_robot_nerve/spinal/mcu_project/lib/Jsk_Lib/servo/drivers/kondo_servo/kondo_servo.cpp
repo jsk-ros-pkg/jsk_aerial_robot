@@ -78,10 +78,7 @@ void KondoServo::init(UART_HandleTypeDef* huart,  osMutexId* mutex)
 
 void KondoServo::pinReconfig()
 {
-  if (HAL_UART_DeInit(huart_) != HAL_OK)
-    {
-      Error_Handler();
-    }
+  while(HAL_UART_DeInit(huart_) != HAL_OK);
 
   /*Change baud rate*/
   huart_->Init.BaudRate = 1250000;
@@ -89,10 +86,7 @@ void KondoServo::pinReconfig()
   huart_->Init.Parity = UART_PARITY_EVEN;
 
   /*Initialize as halfduplex mode*/
-  if (HAL_HalfDuplex_Init(huart_) != HAL_OK)
-    {
-      Error_Handler();
-    }  
+  while(HAL_HalfDuplex_Init(huart_) != HAL_OK);  
 
 }
 

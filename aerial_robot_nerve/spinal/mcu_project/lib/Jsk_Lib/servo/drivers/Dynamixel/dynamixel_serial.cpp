@@ -115,10 +115,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 
 void DynamixelSerial::pinReconfig()
 {
-  if (HAL_UART_DeInit(huart_) != HAL_OK)
-    {
-      Error_Handler();
-    }
+  while(HAL_UART_DeInit(huart_) != HAL_OK);
 
   /*Change baud rate*/
   huart_->Init.BaudRate = 1000000;
@@ -126,10 +123,7 @@ void DynamixelSerial::pinReconfig()
   huart_->Init.Parity = UART_PARITY_NONE;
   huart_->Init.Mode = UART_MODE_TX_RX;
   /*Initialize as async mode*/
-  if (HAL_UART_Init(huart_) != HAL_OK)
-    {
-      Error_Handler();
-    }
+  while(HAL_UART_Init(huart_) != HAL_OK);
 }
 
 void DynamixelSerial::ping()
