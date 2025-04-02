@@ -106,6 +106,8 @@ protected:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
+  int alloc_type_ = 0;  // For singularity points
+
   /* initialize() */
   virtual void initPlugins() {};
   virtual void initGeneralParams();

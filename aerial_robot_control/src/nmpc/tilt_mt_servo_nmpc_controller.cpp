@@ -137,6 +137,8 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(nh_, "physical");
 
+  getParam<int>(control_nh, "alloc_type", alloc_type_, 0);
+
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
@@ -905,15 +907,27 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
     u.at(i) = ft_ref;
 
     double a_ref;
-    if (ft_ref < thrust_ctrl_min_)
+    switch (alloc_type_)
     {
-      a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
+      case 0:
+        a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+        x.at(13 + i) = a_ref;
+        break;
+      case 1:
+        if (ft_ref < thrust_ctrl_min_)
+        {
+          a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
+        }
+        else
+        {
+          a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+        }
+        x.at(13 + i) = a_ref;
+        break;
+      default:
+        ROS_WARN("Invalid alloc type!");
+        break;
     }
-    else
-    {
-      a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-    }
-    x.at(13 + i) = a_ref;
   }
 }
 
