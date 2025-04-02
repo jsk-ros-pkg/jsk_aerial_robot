@@ -70,6 +70,7 @@ void nmpc::TiltMtServoNMPC::activate()
   ControlBase::activate();
 
   initAllocMat();
+  updateInertialParams();
   initNMPCParams();
 
   if (is_print_phys_params_)
@@ -238,11 +239,12 @@ void nmpc::TiltMtServoNMPC::initNMPCParams()
   /* construct acados parameters */
   std::vector<double> acados_p(mpc_solver_ptr_->NP_, 0.0);
 
-  acados_p[0] = 1.0; // qw
+  acados_p[0] = 1.0;  // qw
   idx_p_quat_end_ = 3;
 
   int idx;
-  if (mpc_solver_ptr_->NP_ > 4 + 6)  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
+  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
+  if (mpc_solver_ptr_->NP_ > 4 + 6)
   {
     ROS_INFO("Set physical parameters for NMPC solver");
 
@@ -262,9 +264,8 @@ void nmpc::TiltMtServoNMPC::initNMPCParams()
   mpc_solver_ptr_->setParameters(acados_p);
 }
 
-std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams()
+void nmpc::TiltMtServoNMPC::updateInertialParams()
 {
-  /* get physical param */
   mass_ = robot_model_->getMass();
   gravity_const_ = robot_model_->getGravity()[2];
   Eigen::Matrix3d inertia_mtx = robot_model_->getInertia<Eigen::Matrix3d>();
@@ -272,7 +273,10 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams()
   inertia_[0] = inertia_mtx(0, 0);
   inertia_[1] = inertia_mtx(1, 1);
   inertia_[2] = inertia_mtx(2, 2);
+}
 
+std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
+{
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
@@ -304,7 +308,6 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams()
 
   return phys_p;
 }
-
 
 void nmpc::TiltMtServoNMPC::setControlMode()
 {
@@ -427,7 +430,10 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
 
 void nmpc::TiltMtServoNMPC::prepareNMPCParams()
 {
-  if (mpc_solver_ptr_->NP_ > 4 + 6)  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
+  updateInertialParams();
+
+  // TODO: this condition is temporary for drones that don't pass in phys param (bi, tri, fix-qd)
+  if (mpc_solver_ptr_->NP_ > 4 + 6)
   {
     std::vector<double> phys_p = PhysToNMPCParams();
 
