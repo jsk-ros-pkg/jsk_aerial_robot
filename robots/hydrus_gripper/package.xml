@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package format="2">
+<package>
   <name>hydrus_gripper</name>
   <version>1.3.2</version>
   <description>The basic packages for hydrus_gripper</description>
@@ -8,12 +8,15 @@
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>hydrus</depend>
 
-  <exec_depend>urg_node</exec_depend>
-  <exec_depend>hokuyo_estimation</exec_depend>
+  <build_depend>hydrus</build_depend>
 
-  <export>
+  <run_depend>aerial_robot_base</run_depend>
+  <run_depend>aerial_robot_model</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
+  <run_depend>hydrus</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>spinal</run_depend>
+  <run_depend>timed_roslaunch</run_depend>
 
-  </export>
 </package>
