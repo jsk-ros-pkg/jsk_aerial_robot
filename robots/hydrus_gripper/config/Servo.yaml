@@ -1,8 +1,5 @@
 servo_controller:
   joints:
-    state_sub_topic: servo/states
-    ctrl_pub_topic: servo/target_states
-    torque_pub_topic: servo/torque_enable
     angle_sgn: 1
     angle_scale: 0.00076699
     zero_point_offset: 2047
@@ -25,20 +22,20 @@ servo_controller:
       id: 1
       name: joint3
 
-  extra_servos:
-    ctrl_pub_topic: extra_servo_cmd
-    #servo: SG92R
-    angle_sgn: 1
-    angle_scale: 0.00169999602 # pi/2 / (1463 - 539)
-    zero_point_offset: 1463 # sample: [min_pwm: 550; max_pwm: 2450]
+  # extra_servos:
+  #   ctrl_pub_topic: extra_servo_cmd
+  #   #servo: SG92R
+  #   angle_sgn: 1
+  #   angle_scale: 0.00169999602 # pi/2 / (1463 - 539)
+  #   zero_point_offset: 1463 # sample: [min_pwm: 550; max_pwm: 2450]
 
-    # for simulation
-    simulation:
-      pid: {p: 10.0, i: 0.01, d: 0.0}
-      init_value: 1.570796
-      type: effort_controllers/JointPositionController
+  #   # for simulation
+  #   simulation:
+  #     pid: {p: 10.0, i: 0.01, d: 0.0}
+  #     init_value: 1.570796
+  #     type: effort_controllers/JointPositionController
 
-    controller1:
-      name: rs_d435_servo_joint
-      angle_sgn: -1
-      id: 2 # yellow, 0,1 are for joints
+  #   controller1:
+  #     name: rs_d435_servo_joint
+  #     angle_sgn: -1
+  #     id: 2 # yellow, 0,1 are for joints

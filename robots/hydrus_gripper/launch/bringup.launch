@@ -50,8 +50,8 @@
     <rosparam file="$(arg config_path)/StateEstimation.yaml" command="load" />
     <rosparam file="$(find hydrus_gripper)/config/Simulation.yaml" command="load" if="$(arg simulation)"/>
 
-    ###########  Teleop  ###########
-    <rosparam file="$(arg config_path)/TeleopNavigationConfig.yaml" command="load" />
+    ###########  Navigation  ###########
+    <rosparam file="$(arg config_path)/NavigationConfig.yaml" command="load" />
   </group>
 
   ###########  Base Platform  ###########

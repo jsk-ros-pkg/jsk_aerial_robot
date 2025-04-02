@@ -4,11 +4,6 @@ estimation:
   sensor_list:
   - sensor_plugin/imu
   - sensor_plugin/mocap
-  - sensor_plugin/alt
-  # - sensor_plugin/vo
-  - sensor_plugin/gps
-  - sensor_plugin/plane_detection
-  - sensor_plugin/gps # RTK-GPS. Please consider to remove vo for sensor fusion if you use RTK-GPS in an open outdoor enviroment
 
   # egomotion estimation
   egomotion_list:
@@ -51,23 +46,4 @@ sensor_plugin:
     level_acc_bias_noise_sigma: 0.0001
   mocap:
    estimate_mode: 6 # 1<<1 + 1<<2
-  alt:
-    estimate_mode: 1 # 1<<0
-  gps:
-    estimate_mode: 1 # 1<<0
-  vo:
-    estimate_mode: 1 # 1<<0
-    sensor_frame: realsense1_pose_frame
-    downwards_vo_min_height: 0.4
-    reset_srv_name: realsense1/reset
-  vo1: #downward
-    vo_sub_topic_name: realsense1/odom/throttle
-  plane_detection:
-    estimate_mode: 1 # 1<<0
-    time_sync: true
-    sensor_frame: rs_d435_color_optical_frame
-    eps_angle: 0.2
-    distance_diff_thresh: 0.8
-    variable_sensor_tf_flag: true
-    plane_detection_sub_topic_name: multi_plane_sac_segmentation/output_coefficients
 
