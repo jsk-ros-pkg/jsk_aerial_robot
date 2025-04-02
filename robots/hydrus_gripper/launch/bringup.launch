@@ -17,18 +17,9 @@
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
-  <arg name="hokuyo" default="False" />
 
   <arg name="battery_type" default="True"/>
   <arg name="rs_d435" default="False"/>
-
-  <arg name="tree" default="real_RP_254_v0.1.1" />
-  <arg name="tree_movement" default="static" />
-  <arg name="policy_start_delay" default="1.0" />
-
-  <arg name="shift_x" default="0.0"/>
-  <arg name="shift_y" default="0.0"/>
-  <arg name="body_r" default="0.55" />
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
@@ -106,42 +97,11 @@
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
-  ########## servo for realsense d435  ########
+  ########## realsense d435  ########
   <group if="$(arg rs_d435)">
     <node pkg="nodelet" type="nodelet" name="realsense2_camera_manager" args="manager 2>/dev/null" output="log" ns="$(arg robot_ns)/rs_d435"/>
     <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
           args="3 realsense2_camera rs_rgbd.launch camera:=rs_d435 tf_prefix:=$(arg robot_ns)/rs_d435 publish_tf:=false external_manager:=true manager:=realsense2_camera_manager color_fps:=15 infra_fps:=15 depth_fps:=15 color_width:=640 color_height:=480 depth_width:=640 depth_height:=480" name="timed_roslaunch" output="log" ns="$(arg robot_ns)"  if="$(arg real_machine)"/>
   </group>
-
-  ####### Simulation collision world ############
-  <group if= "$(eval arg('simulation') and not arg('real_machine'))">
-    <node pkg="agile_multirotor" type="obstacle_world.py" name="obstacle_world" output="screen" ns="$(arg robot_ns)">
-      <param name="rate" value="20.0" />
-      <param name="obstacle_world_file" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
-      <param name="shift_x" value="$(arg shift_x)" />
-      <param name="shift_y" value="$(arg shift_y)" />
-      <param name="policy_start_delay" value="$(arg policy_start_delay)" />
-    </node>
-  </group>
-
-  ####### Polar Pixel calculation  ############
-  <node pkg="agile_multirotor" type="common_observation_conversion_node" name="common_observation_conversion" output="screen" ns="$(arg robot_ns)">
-    <param name="cfg_path" value="$(find agile_multirotor)/config/obstacle_world/$(arg tree_movement)/hydrus/$(arg tree).csv" />
-    <param name="hokuyo" type="bool" value="$(arg hokuyo)"/>
-    <param name="shift_x" type="double" value="$(arg shift_x)" />
-    <param name="shift_y" type="double" value="$(arg shift_y)" />
-    <param name="robot_ns" value="$(arg robot_ns)"/>
-    <param name="body_r" type="double" value="$(arg body_r)" />
-    <param name="vel_calc_boundary" type="double" value="0.30" />
-    <param name="print_yaw" type="bool" value="false" />
-  </node>
-
-  ####### HOKUYO sensor launch  ############
-  <!-- real exec to use hokuyo sensor  -->
-  <include file="$(find hokuyo_estimation)/launch/bringup.launch" if= "$(arg hokuyo)">
-    <arg name="real_machine" value="$(arg real_machine)" />
-    <arg name="simulation" value="$(arg simulation)" />
-    <arg name="robot_ns" value="$(arg robot_ns)" />
-  </include>
 
 </launch>
