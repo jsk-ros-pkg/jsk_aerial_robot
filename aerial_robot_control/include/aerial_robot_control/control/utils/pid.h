@@ -42,40 +42,46 @@ using boost::algorithm::clamp;
 
 namespace aerial_robot_control
 {
-  class PID
+  class PID // TODO If no other class inherits from this, don't use virtual functions and move to cpp implementation file
   {
   public:
-
     PID(const std::string name = std::string(""),
         const double p_gain = 0, const double i_gain = 0, const double d_gain = 0,
         const double limit_sum = 1e6, const double limit_p = 1e6, const double limit_i = 1e6, const double limit_d = 1e6,
         const double limit_err_p = 1e6, const double limit_err_i = 1e6, const double limit_err_d = 1e6):
-      name_(name), result_(0), err_p_(0), err_i_(0), err_i_prev_(0), err_d_(0),
-      target_p_(0), target_d_(0), val_p_(0), val_d_(0),
-      p_term_(0), i_term_(0), d_term_(0)
+        name_(name), result_(0), err_p_(0), err_i_(0), err_i_prev_(0), err_d_(0),
+        target_p_(0), target_d_(0), val_p_(0), val_d_(0),
+        p_term_(0), i_term_(0), d_term_(0)
     {
       setGains(p_gain, i_gain, d_gain);
       setLimits(limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d);
     }
-
     virtual ~PID() = default;
 
-    virtual void update(const double err_p, const double du, const double err_d, const double feedforward_term = 0)
+    // Main controller logic
+    virtual void update(const double err_p, const double dt, const double err_d, const double feedforward_term = 0)
     {
+      // Proportional term
       err_p_ = clamp(err_p, -limit_err_p_, limit_err_p_);
-      err_i_prev_ = err_i_;
-      err_i_ = clamp(err_i_ + err_p_ * du, -limit_err_i_, limit_err_i_);
-      err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
-
       p_term_ = clamp(err_p_ * p_gain_, -limit_p_, limit_p_);
+
+      // Integral term
+      err_i_prev_ = err_i_;     // Store for more complex controllers that use this value (e.g., LQI)
+      err_i_ = clamp(err_i_ + err_p_ * dt, -limit_err_i_, limit_err_i_);
       i_term_ = clamp(err_i_ * i_gain_, -limit_i_, limit_i_);
+
+      // Derivative term (normally )
+      err_d_ = clamp(err_d, -limit_err_d_, limit_err_d_);
       d_term_ = clamp(err_d_ * d_gain_, -limit_d_, limit_d_);
 
+      // Sum of terms (incl. feedforward)
       result_ = clamp(p_term_ + i_term_ + d_term_ + feedforward_term, -limit_sum_, limit_sum_);
     }
 
+    // Return result from update
     const double result() const { return result_; }
 
+    // Reset important controller states
     void reset()
     {
       err_i_ = 0;
@@ -83,26 +89,23 @@ namespace aerial_robot_control
       result_ = 0;
     }
 
-    const double& getPGain() const { return p_gain_; }
-    const double& getIGain() const { return i_gain_; }
-    const double& getDGain() const { return d_gain_; }
+    // Setters and Getters
+    const std::string getName() const { return name_; }
 
     void setPGain(const double p_gain) { p_gain_ = p_gain; }
     void setIGain(const double i_gain) { i_gain_ = i_gain; }
     void setDGain(const double d_gain) { d_gain_ = d_gain; }
-
     void setGains(const double p_gain, const double i_gain, const double d_gain)
     {
       setPGain(p_gain);
       setIGain(i_gain);
       setDGain(d_gain);
     }
-
-
-    const double& getLimitSum() const { return limit_sum_; }
-    const double& getLimitP() const { return limit_p_; }
-    const double& getLimitI() const { return limit_i_; }
-    const double& getLimitD() const { return limit_d_; }
+    
+    const double& getPGain() const { return p_gain_; }
+    const double& getIGain() const { return i_gain_; }
+    const double& getDGain() const { return d_gain_; }
+    
     void setLimitSum(const double limit_sum) {limit_sum_ = limit_sum; }
     void setLimitP(const double limit_p) {limit_p_ = limit_p; }
     void setLimitI(const double limit_i) {limit_i_ = limit_i; }
@@ -120,21 +123,23 @@ namespace aerial_robot_control
       setLimitErrI(limit_err_i);
       setLimitErrD(limit_err_d);
     }
+    const double& getLimitSum() const { return limit_sum_; }
+    const double& getLimitP() const { return limit_p_; }
+    const double& getLimitI() const { return limit_i_; }
+    const double& getLimitD() const { return limit_d_; }
 
-    const std::string getName() const { return name_;}
+    void setErrP(const double err_p) { err_p_ = err_p; }
+    void setErrI(const double err_i) { err_i_ = err_i; }
     const double& getErrP() const { return err_p_; }
     const double& getErrI() const { return err_i_; }
     const double& getPrevErrI() const { return err_i_prev_; }
     const double& getErrD() const { return err_d_; }
-    void setErrP(const double err_p) { err_p_ = err_p; }
-    void setErrI(const double err_i) { err_i_ = err_i; }
 
     const double& getPTerm() const { return p_term_; }
     const double& getITerm() const { return i_term_; }
     const double& getDTerm() const { return d_term_; }
 
   protected:
-
     std::string name_;
     double result_;
     double p_gain_, i_gain_, d_gain_;
@@ -144,6 +149,5 @@ namespace aerial_robot_control
     double limit_err_p_, limit_err_i_, limit_err_d_;
     double target_p_, target_d_;
     double val_p_, val_d_;
-  };
-
+   };
 };
