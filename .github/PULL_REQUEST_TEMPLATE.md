@@ -1,10 +1,10 @@
-### What is this
+### What it is
 
 Please briefly explain the purpose and the result of this PR.
 
 ### Details
 
-Please explain the contribution of this PR in detail.
+Please explain the contribution of this PR in detail based on all commits it is made out of:
 
 - commit1:
 - commit2:
@@ -12,7 +12,7 @@ Please explain the contribution of this PR in detail.
 
 ### TODO
 
-If there is still some work to do. Plase list up as follows:
+If there is still some work to do, please list all open TODOs as follows:
 
 - [ ] todo1
 - [ ] todo2
@@ -21,4 +21,4 @@ If there is still some work to do. Plase list up as follows:
 
 ### Video
 
-Please attach video for better understanding if possible
+For better understanding please attach a video if possible.
