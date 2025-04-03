@@ -32,13 +32,12 @@
 
 import rospy
 import smach
-import smach_ros
-import functools
 import numpy as np
-from aerial_robot_base.robot_interface import RobotInterface
 from std_msgs.msg import Empty
 from sensor_msgs.msg import Joy
 
+
+# Template class to encapsulate all following states
 class BaseState(smach.State):
     def __init__(self, robot, outcomes=[], input_keys=[], output_keys=[], io_keys=['flags', 'extra']):
         smach.State.__init__(self, outcomes, input_keys, output_keys, io_keys)
@@ -60,14 +59,12 @@ class BaseState(smach.State):
                 while not rospy.is_shutdown():
 
                     if flags['interfering']:
-                        flags['interfering'] = False # reset for subsequent state
+                        flags['interfering'] = False # Reset for subsequent state
                         break
 
                     rospy.sleep(0.1)
 
-
-
-# trigger to start state machine
+# Trigger the start of the state-machine
 class Start(BaseState):
     def __init__(self, robot):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -83,16 +80,16 @@ class Start(BaseState):
 
     def joyCallback(self, msg):
 
-        # Check interfering from joy
+        # Check interfering from controller
         interfere_flag = False
 
-        # This is PS4 Joy Controller
+        # PS4 Joy Controller
         if len(msg.axes) == 14 and len(msg.buttons) == 14:
             if msg.buttons[4] == 1 and msg.buttons[5] == 1:
 
                 interfere_flag = True
 
-        # This is RoG1 Controller
+        # RoG1 Controller
         if len(msg.axes) == 8 and len(msg.buttons) == 11:
             if msg.buttons[4] == 1 and msg.buttons[5] == 1:
 
@@ -134,7 +131,7 @@ class Start(BaseState):
         rospy.loginfo("start task")
         return 'succeeded'
 
-# the template state for arm, takeoff, land
+# Template class to encapsulate the states for arming, takeoff and landing
 class SingleCommandState(BaseState):
     def __init__(self, robot, prefix, func, start_flight_state, target_flight_state, timeout, hold_time):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -207,7 +204,6 @@ class Land(SingleCommandState):
         SingleCommandState.__init__(self, robot, 'land', robot.land, robot.HOVER_STATE, robot.ARM_OFF_STATE, 20.0, 0)
 
 
-# waypoint
 class WayPoint(BaseState):
     def __init__(self, robot, prefix = 'waypoint', waypoints = [], timeout = 30.0, hold_time = 1.0):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -234,10 +230,10 @@ class WayPoint(BaseState):
         for i, waypoint in enumerate(self.waypoints):
 
             if len(waypoint) == 3:
-                # only position
+                # Only Position
                 ret = self.robot.goPos(pos = waypoint, pos_thresh = self.pos_thresh, vel_thresh = self.vel_thresh, timeout = self.timeout)
             elif len(waypoint) == 4:
-                # position + yaw
+                # Position + Yaw
                 ret = self.robot.goPosYaw(pos = waypoint[:3], yaw = waypoint[-1], pos_thresh = self.pos_thresh, vel_thresh = self.vel_thresh, yaw_thresh = self.yaw_thresh, timeout = self.timeout)
             else:
                 rospy.logwarn(self.__class__.__name__ + ': the format of waypoint {} is not supported, the size should be either 3 and 4. preempted!'.format(waypoint))
@@ -268,7 +264,7 @@ class CircleTrajectory(BaseState):
         self.omega = 2 * np.pi / self.period
         self.velocity = self.omega * self.radius
 
-        self.nav_rate = rospy.get_param("~nav_rate", 20.0) # hz
+        self.nav_rate = rospy.get_param("~nav_rate", 20.0) # In Hz
         self.nav_rate = 1 / self.nav_rate
 
     def execute(self, userdata):
@@ -316,14 +312,14 @@ class CircleTrajectory(BaseState):
 
             rospy.sleep(self.nav_rate)
 
-        # stop
+        # Stop
         self.robot.navigate(lin_vel = [0,0,0], ang_vel = [0,0,0])
         self.hold(self.hold_time, userdata.flags)
 
         return 'succeeded'
 
 
-# Joint
+# Check joint angles
 class FormCheck(BaseState):
     def __init__(self, robot, prefix = 'form_check', joint_names = [], joint_angles = [], thresh = 0.02, timeout = 10.0):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -335,7 +331,7 @@ class FormCheck(BaseState):
 
     def execute(self, userdata):
 
-        # check convergence
+        # Check convergence
         ret = self.robot.jointConvergenceCheck(self.timeout, self.target_joint_names, self.target_joint_angles, self.thresh)
 
         if ret:
@@ -346,6 +342,7 @@ class FormCheck(BaseState):
             return 'preempted'
 
 
+# Transform only based on joint angles
 class Transform(BaseState):
     def __init__(self, robot, prefix = 'transform', joint_names = [], joint_trajectory = [], thresh = 0.05, timeout = 10.0, hold_time = 2.0):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -379,10 +376,9 @@ class Transform(BaseState):
                 rospy.logwarn(self.__class__.__name__ + ': timeout ({}sec), fail to reach the {} th target joints. preempted!'.format(i+1, self.timeout))
                 return 'preempted'
 
-
         return 'succeeded'
 
-# Joint + Pose
+# Transform based on joint angles & pose
 class TransformWithPose(BaseState):
     def __init__(self, robot, prefix = 'motion', joint_names = [], joint_trajectory = [], pos_trajectory = [], rot_trajectory = [], joint_thresh = 0.05, pos_thresh = 0.1, rot_thresh = 0.1, timeout = 10.0, hold_time = 2.0, rotate_cog = False):
         BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
@@ -396,7 +392,7 @@ class TransformWithPose(BaseState):
         self.joint_thresh = rospy.get_param('~' + prefix + '/joint_thresh', joint_thresh)
         self.pos_thresh = rospy.get_param('~' + prefix + '/pos_thresh', pos_thresh)
         self.rot_thresh = rospy.get_param('~' + prefix + '/rot_thresh', rot_thresh)
-        self.rotate_cog = rospy.get_param('~' + prefix + '/rotate_cog', rotate_cog) # speical rotation for CoG
+        self.rotate_cog = rospy.get_param('~' + prefix + '/rotate_cog', rotate_cog) # Special rotation for CoG
 
     def execute(self, userdata):
 
@@ -412,7 +408,7 @@ class TransformWithPose(BaseState):
 
         for i, target_angles in enumerate(self.target_joint_trajectory):
 
-            # send target position
+            # Send target position
             target_pos = None
             if len(self.target_pos_trajectory) > 0:
 
@@ -423,7 +419,7 @@ class TransformWithPose(BaseState):
                 target_pos = self.target_pos_trajectory[i]
                 self.robot.goPos(target_pos, timeout = 0)
 
-            # send target rotation
+            # Send target rotation
             target_rot = None
             if len(self.target_rot_trajectory) > 0:
                 if len(self.target_rot_trajectory) != len(self.target_joint_trajectory):
@@ -443,7 +439,7 @@ class TransformWithPose(BaseState):
                     if len(target_rot) == 3:
                         self.robot.rotateyaw(target_rot[2], timeout = 0)
                     else:
-                        # fill the yaw element for subsequent pose convergence check
+                        # Fill the yaw element for subsequent pose convergence check
                         curr_yaw = self.robot.getCogRPY()[2]
                         target_rot.append(curr_yaw)
 
@@ -452,7 +448,7 @@ class TransformWithPose(BaseState):
 
             start_time = rospy.get_time()
 
-            # send joint angles
+            # Send joint angles
             rospy.loginfo(self.__class__.__name__ + ': start to change the joint motion {} with pose of [{}, {}]'.format(target_angles, target_pos, target_rot))
             ret = self.robot.setJointAngle(self.target_joint_names, target_angles, self.joint_thresh, self.timeout)
 
@@ -463,11 +459,11 @@ class TransformWithPose(BaseState):
                 return 'preempted'
 
 
-            # reset
+            # Reset
             timeout = start_time + self.timeout - rospy.get_time()
             start_time = rospy.get_time()
 
-            # check the pose convergence
+            # Check pose convergence
             ret = self.robot.poseConvergenceCheck(timeout, target_pos, target_rot, self.pos_thresh, rot_thresh = self.rot_thresh)
 
             if not ret:
