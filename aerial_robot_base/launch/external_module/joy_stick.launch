@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
-<launch>
 
+<!-- Launch node to control the robot by joystick controller -->
+
+<launch>
   <arg name="robot_name" default="/" />
 
   <node pkg="joy" type="joy_node" name="joy_node" ns="$(arg robot_name)" output="screen" >
-
     <param name="dev" value="/dev/input/js0"/>
     <param name="coalesce_interval" value="0.025"/>
   </node>
+  
 </launch>
