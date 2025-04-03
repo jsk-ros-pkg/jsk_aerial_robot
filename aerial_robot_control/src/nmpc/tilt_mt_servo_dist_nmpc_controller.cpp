@@ -22,7 +22,7 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
 bool nmpc::TiltMtServoDistNMPC::update()
 {
-  calcDisturbWrench();
+  updateDisturbWrench();
 
   // Note that the meas2VecX() function is called in the update() function. And since it always get the latest info
   // from the estimator, the NMPC result should not be influenced by the disturbance wrench.
@@ -147,7 +147,7 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
   return bx0;
 }
 
-void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
+void nmpc::TiltMtServoDistNMPC::updateDisturbWrench() const
 {
   /* update the external wrench estimator based on the Nav State */
   auto nav_state = navigator_->getNaviState();

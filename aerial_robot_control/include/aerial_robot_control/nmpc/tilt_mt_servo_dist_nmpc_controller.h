@@ -53,7 +53,7 @@ protected:
   void initAllocMat() override;
 
   /* external wrench estimation */
-  virtual void calcDisturbWrench();
+  void updateDisturbWrench() const;
   void pubDisturbWrench() const;
 
   /* I Term */
