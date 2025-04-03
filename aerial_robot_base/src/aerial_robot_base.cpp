@@ -16,7 +16,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
 
     nhp_.param ("param_verbose", param_verbose_, true);
     nhp_.param ("main_rate", main_rate_, 0.0);
-    double main_loop_dt = 1 / main_rate_;
+    main_loop_dt_ = 1 / main_rate_;
 
     // Create Robot model
     robot_model_ros_ = boost::make_shared<aerial_robot_model::RobotModelRos>(nh_, nhp_);
@@ -50,7 +50,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
         ROS_ERROR("Failed to create navigator plugin.");
     }
     
-    navigator_->initialize(nh_, nhp_, robot_model, estimator_, main_loop_dt);
+    navigator_->initialize(nh_, nhp_, robot_model, estimator_, main_loop_dt_);
 
     // Initialize Controller
     std::string aerial_robot_control_name;
@@ -74,7 +74,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
     if(!controller_) {
         ROS_ERROR("Failed to create controller plugin.");
     }
-    controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_loop_dt);
+    controller_->initialize(nh_, nhp_, robot_model, estimator_, navigator_, main_loop_dt_);
 
     // Additional information
     if(param_verbose_) cout << nhp_.getNamespace() << ": main loop rate is " << main_rate_ << endl;
@@ -82,7 +82,7 @@ AerialRobotBase::AerialRobotBase(ros::NodeHandle nh, ros::NodeHandle nh_private)
     
     // Threading
     /* Note 1: Separate the thread for main control (including navigation) loop to guarantee a relatively stable loop rate */
-    ros::TimerOptions ops(ros::Duration(main_loop_dt),
+    ros::TimerOptions ops(ros::Duration(main_loop_dt_),
                           boost::bind(&AerialRobotBase::mainFunc, this, _1),
                           &main_loop_queue_);
     main_timer_ = nhp_.createTimer(ops);

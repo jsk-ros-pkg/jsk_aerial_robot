@@ -23,6 +23,10 @@ class AerialRobotBase
   ros::NodeHandle nhp_;
   ros::Timer main_timer_;
 
+  bool param_verbose_;
+  double main_rate_;
+  double main_loop_dt_;
+
   boost::shared_ptr<aerial_robot_model::RobotModelRos> robot_model_ros_;
   boost::shared_ptr<aerial_robot_estimation::StateEstimator>  estimator_;
 
