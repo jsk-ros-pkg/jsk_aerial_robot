@@ -5,10 +5,10 @@ controller:
 
   disturb:
     # use sigmoid function for threshold
-    thresh_force_: 0.5  # N
-    thresh_torque_: 0.05  # Nm
-    steepness_force_: 10.0
-    steepness_torque_: 10.0
+    thresh_force: 0.5  # N
+    thresh_torque: 0.2  # Nm
+    steepness_force: 10.0
+    steepness_torque: 10.0
 
   mhe:
     T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate

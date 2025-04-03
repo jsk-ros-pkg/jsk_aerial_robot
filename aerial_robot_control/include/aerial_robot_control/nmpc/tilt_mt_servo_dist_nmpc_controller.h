@@ -10,6 +10,7 @@
 #include "aerial_robot_control/wrench_est/wrench_est_i_term.h"
 
 #include "geometry_msgs/WrenchStamped.h"
+#include "geometry_msgs/Vector3Stamped.h"
 
 using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::NMPCConfig>;
 
@@ -49,6 +50,7 @@ protected:
   double impact_coeff_torque_ = 0.0;
 
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
+  ros::Publisher pub_disturb_wrench_coefficient_;
 
   int idx_p_dist_end_ = 0;
 
