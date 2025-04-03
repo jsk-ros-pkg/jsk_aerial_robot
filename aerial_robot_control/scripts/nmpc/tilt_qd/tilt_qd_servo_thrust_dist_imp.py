@@ -16,6 +16,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
+
     def __init__(self, overwrite: bool = False, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_thrust_dist_imp_mdl"
@@ -24,7 +25,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = True   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = True  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True  # TODO seperation between model and parameter necessary?
         self.include_impedance = True
@@ -52,16 +53,6 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
 
         epsilon = self.params["epsilon"]
 
-        p_mtx_imp_inv = ca.SX.zeros(3, 3)
-        p_mtx_imp_inv[0, 0] = 1 / (self.mpx + epsilon)
-        p_mtx_imp_inv[1, 1] = 1 / (self.mpy + epsilon)
-        p_mtx_imp_inv[2, 2] = 1 / (self.mpz + epsilon)
-
-        o_mtx_imp_inv = ca.SX.zeros(3, 3)
-        o_mtx_imp_inv[0, 0] = 1 / (self.mqx + epsilon)
-        o_mtx_imp_inv[1, 1] = 1 / (self.mqy + epsilon)
-        o_mtx_imp_inv[2, 2] = 1 / (self.mqz + epsilon)
-
         state_y = ca.vertcat(
             self.p,
             self.v,
@@ -72,8 +63,8 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.w,
             self.a_s,
             self.ft_s,
-            lin_acc_w - ca.mtimes(p_mtx_imp_inv, self.fds_w),
-            ang_acc_b - ca.mtimes(o_mtx_imp_inv, self.tau_ds_b)
+            ca.times(lin_acc_w, self.mp) - self.fds_w,
+            ca.times(ang_acc_b, self.mq) - self.tau_ds_b
         )
 
         state_y_e = ca.vertcat(
@@ -86,13 +77,13 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.w,
             self.a_s,
             self.ft_s,
-            ca.vertcat(0, 0, 0),    # lin acc = 0 for infinite horizon
-            ca.vertcat(0, 0, 0)     # ang acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0),  # lin acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0)  # ang acc = 0 for infinite horizon
         )
 
         control_y = ca.vertcat(
             self.ft_c - self.ft_s,  # ft_c_ref must be zero!
-            self.a_c - self.a_s     # a_c_ref must be zero!
+            self.a_c - self.a_s  # a_c_ref must be zero!
         )
 
         return state_y, state_y_e, control_y
@@ -131,11 +122,11 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             ]
         )
 
-        pM_imp = np.diag([self.params["pMxy"], self.params["pMxy"], self.params["pMz"]])
+        pM_imp = np.eye(3)
         pD_imp = np.diag([self.params["Qv_xy"], self.params["Qv_xy"], self.params["Qv_z"]])
         pK_imp = np.diag([self.params["Qp_xy"], self.params["Qp_xy"], self.params["Qp_z"]])
 
-        oM_imp = np.diag([self.params["oMxy"], self.params["oMxy"], self.params["oMz"]])
+        oM_imp = np.eye(3)
         oD_imp = np.diag([self.params["Qw_xy"], self.params["Qw_xy"], self.params["Qw_z"]])
         oK_imp = np.diag([self.params["Qq_xy"], self.params["Qq_xy"], self.params["Qq_z"]])
 
@@ -186,19 +177,21 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -212,7 +205,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         # Assemble input reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
-        
+
         return xr, ur
 
 
