@@ -21,9 +21,9 @@ generate_dynamic_reconfigure_options(
   cfg/LQI.cfg
   )
 
-### Temporary soulition because of https://github.com/ros/ros_comm/issues/1404
+### Temporary solution because of https://github.com/ros/ros_comm/issues/1404
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(armhf)" AND $ENV{ROS_DISTRO} MATCHES "melodic")
-  message(WARNING "please check https://github.com/ros/ros_comm/issues/1404")
+  message(WARNING "Please check https://github.com/ros/ros_comm/issues/1404")
   add_definitions (-DARM_MELODIC)
 endif()
 
@@ -48,13 +48,13 @@ include_directories(
  ${EIGEN3_INCLUDE_DIRS}
 )
 
-### control utils
+### Control utils
 add_library(control_utils
   src/control/utils/care.cpp
   )
 target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
-### flight control plugin
+### Flight control plugin
 add_library(flight_control_pluginlib
   src/control/base/pose_linear_controller.cpp
   src/control/fully_actuated_controller.cpp
@@ -65,11 +65,11 @@ add_library(flight_control_pluginlib
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
-### flight navigation
+### Flight navigation
 add_library (flight_navigation src/flight_navigation.cpp src/util/joy_parser.cpp)
 target_link_libraries (flight_navigation ${catkin_LIBRARIES})
 
-### trajectory generate based on dodgelib
+### Trajectory generate based on dodgelib
 add_library (trajectory_generation
   src/trajectory/reference_base.cpp
   src/trajectory/trajectory_reference/polynomial.cpp
