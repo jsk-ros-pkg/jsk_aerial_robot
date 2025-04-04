@@ -94,12 +94,7 @@ void nmpc::TiltMtServoDistNMPC::updateITerm()
   tf::Quaternion target_q = quat_x0.slerp(quat_x1, t_nmpc_samp_ / t_nmpc_step_);
 
   /* update I term */
-  tf::Vector3 vel = estimator_->getVel(Frame::COG, estimate_mode_);  // TODO: reconsider if need this.
-  // if the norm of vel is less than 0.2 m/s, than the I term is updated.
-  if (vel.length() < 0.1)
-  {
-    wrench_est_i_term_.update(target_pos, target_q, pos, q);
-  }
+  wrench_est_i_term_.update(target_pos, target_q, pos, q);
 }
 
 void nmpc::TiltMtServoDistNMPC::initNMPCParams()
