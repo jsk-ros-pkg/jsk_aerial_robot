@@ -67,30 +67,16 @@ public:
 
   void update(const tf::Vector3& pos_ref, const tf::Quaternion& q_ref, const tf::Vector3& pos, const tf::Quaternion& q)
   {
-    double qw = q.w();
-    double qx = q.x();
-    double qy = q.y();
-    double qz = q.z();
-
-    double qwr = q_ref.w();
-    double qxr = q_ref.x();
-    double qyr = q_ref.y();
-    double qzr = q_ref.z();
-
-    // qe = qr^* multiply q
-    double qe_w = qw * qwr + qx * qxr + qy * qyr + qz * qzr;
-    double qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr;
-    double qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr;
-    double qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr;
-
-    double sign_qe_w = qe_w > 0 ? 1 : -1;
+    // qe = q_ref^* multiply q
+    tf::Quaternion qe = q_ref.inverse() * q;
+    int sign_qe_w = qe.getW() > 0 ? 1 : -1;
 
     double fx_w_i_term = pos_i_term_[0].update(pos.x() - pos_ref.x());
     double fy_w_i_term = pos_i_term_[1].update(pos.y() - pos_ref.y());
     double fz_w_i_term = pos_i_term_[2].update(pos.z() - pos_ref.z());
-    double mx_cog_i_term = pos_i_term_[3].update(sign_qe_w * qe_x);
-    double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe_y);
-    double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe_z);
+    double mx_cog_i_term = pos_i_term_[3].update(sign_qe_w * qe.getX());
+    double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe.getY());
+    double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe.getZ());
 
     setDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
     setDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
