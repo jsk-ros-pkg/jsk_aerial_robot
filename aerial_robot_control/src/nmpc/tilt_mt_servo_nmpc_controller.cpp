@@ -143,6 +143,7 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(nmpc_nh, "T_step", t_nmpc_step_, 0.1);
+  getParam<double>(nmpc_nh, "T_horizon", t_nmpc_horizon_, 2.0);
 
   getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
   getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);

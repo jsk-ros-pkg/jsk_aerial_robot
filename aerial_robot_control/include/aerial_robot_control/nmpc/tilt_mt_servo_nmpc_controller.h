@@ -86,8 +86,10 @@ protected:
   double thrust_ctrl_min_;
   int joint_num_;
   double t_servo_;
+
   double t_nmpc_samp_;
   double t_nmpc_step_;
+  double t_nmpc_horizon_;
 
   int idx_p_quat_end_ = 0;
   int idx_p_phys_end_ = 0;
