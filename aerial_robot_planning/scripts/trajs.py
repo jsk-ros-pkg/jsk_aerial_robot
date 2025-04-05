@@ -182,7 +182,7 @@ class PitchRotationTraj(BaseTraj):
         # Calculate the pitch angle based on time
         t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
 
-        max_pitch = 2.5
+        max_pitch = 3.2
 
         if t <= self.T / 2:
             pitch = max_pitch * (2 * t / self.T)  # from 0 to max_pitch rad
@@ -227,7 +227,7 @@ class RollRotationTraj(BaseTraj):
         # Calculate the pitch angle based on time
         t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
 
-        max_roll = 2.5
+        max_roll = 3.2
 
         if t <= self.T / 2:
             roll = max_roll * (2 * t / self.T)  # from 0 to max_roll rad
