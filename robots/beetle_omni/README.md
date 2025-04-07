@@ -22,7 +22,7 @@ Setup the folder architecture and clone the repo **with the specific branch**:
 ```bash
 mkdir -p ~/[path_to_ws]/src
 cd ~/[path_to_ws]/src
-git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/MPC_tilt_mt    # pay attention to the branch flag
+git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt    # pay attention to the branch flag
 ```
 
 ### 2.1 ... for Ubuntu 20.04 and ROS Noetic
@@ -118,7 +118,7 @@ A frequent problem is the handling of the jobservers in the build process. When 
 ### 1. Start the simulation
 Run the simulation with the following command:
 ```bash
-roslaunch beetle_omni bringup_nmpc_omni.launch real_machine:=false simulation:=True gui:=True nmpc_mode:=0
+roslaunch beetle_omni bringup_nmpc_omni.launch real_machine:=false simulation:=True headless:=False nmpc_mode:=0
 ```
 ### 2. Start the keyboard script
 Run the keyboard with the following command:
@@ -150,16 +150,15 @@ to https://stretchsense.my.site.com/defaulthelpcenter26Sep/s/article/Studio-Glov
 
 Four terminals are needed.
 
-Before takeoff:
+Before takeoff, launch necessary files
 
-1. `roslaunch beetle_omni bringup_nmpc_omni.launch nmpc_mode:=0 wrench_est_mode:=none`. This is the main launch file for
-   the robot.
+1. `roslaunch beetle_omni bringup_nmpc_omni.launch nmpc_mode:=0 wrench_est_mode:=none  # This is the main launch file for the robot.`
 2. `roslaunch aerial_robot_planning hand_arm_glove.launch`
 3. `rosbag record -a`
 
-After the robot is hovering,
+After the robot reach the status of hovering - see terminal output of main launch file -,
 
-4. run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`, and press 'h' to enter the hand control mode. Note that
+4. Run `rosrun aerial_robot_planning mpc_smach_node.py beetle1`, and press 'h' to enter the hand control mode. Note that
    we need to wear the hand part, the shoulder part, and gloves to control the robot.
 5. To modify the `/hand/control_mode` parameter using `rosparam` in the terminal, run the following command:
     `rosparam set /hand/control_mode <mode_value>`
@@ -171,6 +170,7 @@ After the robot is hovering,
     - **5**: Exit Mode
 
     To check the current mode, you can run:`rosparam get /operation_mode`
+    
 **Ground Station**
 Three terminals are needed.
 
@@ -183,4 +183,4 @@ Before takeoff:
 **Visual Computer**
 
 1. `rosrun aerial_robot_planning visual_fb_mode.py`
-2. adjust the window to fullfill the screen.
+2. Adjust the window to fullfill the screen.
