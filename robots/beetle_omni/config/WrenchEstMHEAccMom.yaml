@@ -5,8 +5,8 @@ controller:
 
   disturb:
     # use sigmoid function for threshold
-    thresh_force: 0.5  # N
-    thresh_torque: 0.2  # Nm
+    thresh_force: 0.8  # N
+    thresh_torque: 0.5  # Nm
     steepness_force: 10.0
     steepness_torque: 10.0
 
