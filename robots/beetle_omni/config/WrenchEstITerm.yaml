@@ -12,6 +12,6 @@ controller:
     i_gain_x: 100
     i_gain_y: 100
     i_gain_z: 500
-    i_gain_roll: 50
-    i_gain_pitch: 50
+    i_gain_roll: 10
+    i_gain_pitch: 10
     i_gain_yaw: 50
