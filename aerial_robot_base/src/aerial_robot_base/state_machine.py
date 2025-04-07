@@ -33,6 +33,8 @@
 import rospy
 import smach
 import numpy as np
+import smach_ros    # Do NOT delete since it needed by unit test
+import functools    # Do NOT delete since it needed by unit test
 from aerial_robot_base.robot_interface import RobotInterface    # Do NOT delete since it needed by unit test
 from std_msgs.msg import Empty
 from sensor_msgs.msg import Joy
