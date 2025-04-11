@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>aerial_robot_dynamics</name>
+  <version>0.0.0</version>
+  <description>The aerial_robot_dynamics package</description>
+
+  <maintainer email="sugihara@todo.todo">sugihara</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>pinocchio</build_depend>
+  <build_export_depend>pinocchio</build_export_depend>
+  <exec_depend>pinocchio</exec_depend>
+
+</package>
