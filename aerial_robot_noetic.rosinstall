@@ -56,3 +56,9 @@
     local-name: mocap_optitrack
     uri: https://github.com/sugikazu75/mocap_optitrack.git
     version: 50fb60d
+
+# pinocchio
+- git:
+    local-name: pinocchio
+    uri: https://github.com/stack-of-tasks/pinocchio.git
+    version: 7338916
