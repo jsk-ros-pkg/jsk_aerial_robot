@@ -39,6 +39,8 @@ protected:
 
   void initNMPCCostW() override;
 
+  void initNMPCConstraints() override;
+
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg);
 
   std::vector<double> meas2VecX() override;
