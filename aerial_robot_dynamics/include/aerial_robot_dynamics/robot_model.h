@@ -13,6 +13,8 @@
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/spatial/force.hpp>
 
+#include <OsqpEigen/OsqpEigen.h>
+
 #include <ros/ros.h>
 #include <tinyxml.h>
 #include <iostream>
@@ -30,12 +32,16 @@ namespace aerial_robot_dynamics
     std::shared_ptr<pinocchio::Data> getData() const {return data_;}
 
     Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
+    Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
     bool forwardDynamicsTest(bool verbose = false);
+    bool inverseDynamicsTest(bool verbose = false);
     const int& getRotorNum() const {return rotor_num_;}
 
   private:
     std::shared_ptr<pinocchio::Model> model_;
     std::shared_ptr<pinocchio::Data> data_;
+
+    OsqpEigen::Solver id_solver_;
 
     int rotor_num_;
     double m_f_rate_;

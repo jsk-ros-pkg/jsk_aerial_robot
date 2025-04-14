@@ -102,3 +102,42 @@ bool PinocchioRobotModel::forwardDynamicsTest(bool verbose)
 
   return (M * a + Cv + g).isApprox(tau + rotor_general_force, 1e-6);
 }
+
+bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
+{
+  Eigen::VectorXd q = this->getResetConfiguration();
+  Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+  Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
+
+  Eigen::VectorXd tau = pinocchio::rnea(*model_, *data_, q, v, a);
+  Eigen::VectorXd tau_thrust = this->inverseDynamics(q, v, a);
+
+  if(verbose)
+  {
+      // std::cout << "q: " << std::endl;
+      // std::cout << q.transpose() << std::endl;
+      // std::cout << "v: " << std::endl;
+      // std::cout << v.transpose() << std::endl;
+      // std::cout << "a: " << std::endl;
+      // std::cout << a.transpose() << std::endl;
+      std::cout << "tau: " << std::endl;
+      std::cout << tau.transpose() << std::endl;
+      std::cout << "tau_thrust: " << std::endl;
+      std::cout << tau_thrust.transpose() << std::endl;
+  }
+
+  // check with result of fd
+  Eigen::VectorXd thrust = tau_thrust.tail(rotor_num_);
+
+  Eigen::VectorXd a_fd = this->forwardDynamics(q, v, tau_thrust.head(model_->nv), thrust);
+
+  if(verbose)
+  {
+      std::cout << "a" << std::endl;
+      std::cout << a.transpose() << std::endl;
+      std::cout << "a_fd: " << std::endl;
+      std::cout << a_fd.transpose() << std::endl;
+  }
+
+  return ((a - a_fd).array().abs() < 1e-6).all();
+}

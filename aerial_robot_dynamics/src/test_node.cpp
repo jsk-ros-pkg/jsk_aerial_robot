@@ -25,8 +25,17 @@ int main (int argc, char** argv)
 
   // Test the robot model
   // FD with thrust and its test
-  bool fd_test = robot_model.forwardDynamicsTest();
-  std::cout << "\nforwardDynamicsTest: " << fd_test << std::endl;
+  for(int i = 0; i < 3; i++)
+  {
+      bool fd_test = robot_model.forwardDynamicsTest();
+      std::cout << "\nforwardDynamicsTest: " << fd_test << std::endl;
+  }
+
+  for(int i = 0; i < 3; i++)
+  {
+      bool id_test = robot_model.inverseDynamicsTest();
+      std::cout << "\ninverseDynamicsTest: " << id_test << std::endl;
+  }
 
   return 0;
 }

@@ -118,6 +118,91 @@ Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, c
   return a;
 }
 
+Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, const Eigen::VectorXd& v, const Eigen::VectorXd& a)
+{
+  // Compute normal inverse dynamics
+  Eigen::VectorXd rnea_solution = pinocchio::rnea(*model_, *data_, q, v, a);
+
+  int n_variables = model_->nv + rotor_num_;
+  int n_constraints = (model_->nv + rotor_num_) + model_->nv; // box constraint + rnea constraint
+
+  // make hessian matrix
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(n_variables, n_variables);
+  H.setIdentity();
+  H.bottomRightCorner(rotor_num_, rotor_num_) *= 0.1;
+
+  // make gradient vector
+  Eigen::VectorXd g = Eigen::VectorXd::Zero(n_variables);
+
+  // make constraint matrix
+  Eigen::MatrixXd A(n_constraints, n_variables);
+  A.setIdentity(); // box constraint
+  A.bottomRows(model_->nv).setIdentity(); // rnea constraint
+
+  // get thrust coordinate jacobians
+  Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
+  for(int i = 0; i < rotor_num_; i++)
+  {
+      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
+
+      pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL, rotor_i_jacobian); // LOCAL
+
+      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+      thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
+      thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
+
+      A.block(n_variables, model_->nv + i, model_->nv, 1) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
+  }
+
+  // make bounds
+  Eigen::VectorXd lb(n_constraints);
+  Eigen::VectorXd ub(n_constraints);
+
+  lb.head(model_->nv) = -1.0 * Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_); // joint torque inequality constraint
+  lb.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, min_thrust_); // thrust inequality constraint
+  lb.tail(model_->nv) = rnea_solution; // rnea equality constraint
+
+  ub.head(model_->nv) =  1.0 * Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_); // joint torque inequality constraint
+  ub.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, max_thrust_); // thrust inequality constraint
+  ub.tail(model_->nv) = rnea_solution; // rnea equality constraint
+
+  // qp solver
+  Eigen::SparseMatrix<double> H_s = H.sparseView();
+  Eigen::SparseMatrix<double> A_s = A.sparseView();
+  if(!id_solver_.isInitialized())
+  {
+      id_solver_.settings()->setVerbosity(false);
+      id_solver_.settings()->setWarmStart(true);
+      id_solver_.settings()->setPolish(false);
+      id_solver_.settings()->setMaxIteraction(1000);
+      id_solver_.settings()->setAbsoluteTolerance(1e-4);
+      id_solver_.settings()->setRelativeTolerance(1e-4);
+
+      id_solver_.data()->setNumberOfVariables(n_variables);
+      id_solver_.data()->setNumberOfConstraints(n_constraints);
+      id_solver_.data()->setHessianMatrix(H_s);
+      id_solver_.data()->setGradient(g);
+      id_solver_.data()->setLinearConstraintsMatrix(A_s);
+      id_solver_.data()->setLowerBound(lb);
+      id_solver_.data()->setUpperBound(ub);
+      id_solver_.initSolver();
+  }
+  else
+  {
+      id_solver_.updateHessianMatrix(H_s);
+      id_solver_.updateGradient(g);
+      id_solver_.updateLinearConstraintsMatrix(A_s);
+      id_solver_.updateBounds(lb, ub);
+  }
+
+  id_solver_.solve();
+  Eigen::VectorXd solution = id_solver_.getSolution();
+
+  return solution;
+}
+
 std::string PinocchioRobotModel::getRobotModelXml(const std::string& param_name, ros::NodeHandle nh)
 {
   // This function should retrieve the robot model XML string from the parameter server
