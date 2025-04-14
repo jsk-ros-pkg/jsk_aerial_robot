@@ -1,4 +1,5 @@
 #include <aerial_robot_dynamics/robot_model.h>
+#include <chrono>
 
 using namespace aerial_robot_dynamics;
 
@@ -21,7 +22,10 @@ bool PinocchioRobotModel::forwardDynamicsTest(bool verbose)
   Eigen::VectorXd tau = Eigen::VectorXd::Ones(model_->nv);
   Eigen::VectorXd thrust = Eigen::VectorXd::Ones(rotor_num_);
 
+  auto start = std::chrono::high_resolution_clock::now();
   Eigen::VectorXd a = this->forwardDynamics(q, v, tau, thrust); // calculate FD with thrust
+  auto end = std::chrono::high_resolution_clock::now();
+  std::cout << "FD time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms" << std::endl;
 
   if(verbose)
     {
@@ -109,11 +113,18 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
   Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
 
+  auto start = std::chrono::high_resolution_clock::now();
   Eigen::VectorXd tau = pinocchio::rnea(*model_, *data_, q, v, a);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::cout << "RNEA time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms" << std::endl;
+
+  start = std::chrono::high_resolution_clock::now();
   Eigen::VectorXd tau_thrust = this->inverseDynamics(q, v, a);
+  end = std::chrono::high_resolution_clock::now();
+  std::cout << "ID time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms" << std::endl;
 
   if(verbose)
-  {
+    {
       // std::cout << "q: " << std::endl;
       // std::cout << q.transpose() << std::endl;
       // std::cout << "v: " << std::endl;
@@ -124,7 +135,7 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
       std::cout << tau.transpose() << std::endl;
       std::cout << "tau_thrust: " << std::endl;
       std::cout << tau_thrust.transpose() << std::endl;
-  }
+    }
 
   // check with result of fd
   Eigen::VectorXd thrust = tau_thrust.tail(rotor_num_);
@@ -132,12 +143,12 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
   Eigen::VectorXd a_fd = this->forwardDynamics(q, v, tau_thrust.head(model_->nv), thrust);
 
   if(verbose)
-  {
+    {
       std::cout << "a" << std::endl;
       std::cout << a.transpose() << std::endl;
       std::cout << "a_fd: " << std::endl;
       std::cout << a_fd.transpose() << std::endl;
-  }
+    }
 
   return ((a - a_fd).array().abs() < 1e-6).all();
 }

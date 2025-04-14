@@ -142,7 +142,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   // get thrust coordinate jacobians
   Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
   for(int i = 0; i < rotor_num_; i++)
-  {
+    {
       std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
       pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
       pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
@@ -154,7 +154,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
       thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
 
       A.block(n_variables, model_->nv + i, model_->nv, 1) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
-  }
+    }
 
   // make bounds
   Eigen::VectorXd lb(n_constraints);
@@ -172,7 +172,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   Eigen::SparseMatrix<double> H_s = H.sparseView();
   Eigen::SparseMatrix<double> A_s = A.sparseView();
   if(!id_solver_.isInitialized())
-  {
+    {
       id_solver_.settings()->setVerbosity(false);
       id_solver_.settings()->setWarmStart(true);
       id_solver_.settings()->setPolish(false);
@@ -188,14 +188,14 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
       id_solver_.data()->setLowerBound(lb);
       id_solver_.data()->setUpperBound(ub);
       id_solver_.initSolver();
-  }
+    }
   else
-  {
+    {
       id_solver_.updateHessianMatrix(H_s);
       id_solver_.updateGradient(g);
       id_solver_.updateLinearConstraintsMatrix(A_s);
       id_solver_.updateBounds(lb, ub);
-  }
+    }
 
   id_solver_.solve();
   Eigen::VectorXd solution = id_solver_.getSolution();
