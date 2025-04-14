@@ -39,6 +39,9 @@ namespace aerial_robot_dynamics
 
     int rotor_num_;
     double m_f_rate_;
+    double max_thrust_;
+    double min_thrust_;
+    double joint_torque_limit_;
 
     std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
     Eigen::VectorXd getResetConfiguration();

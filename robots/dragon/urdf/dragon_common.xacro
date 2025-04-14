@@ -20,6 +20,9 @@
 
   <!-- dynamics -->
   <m_f_rate value="0" /> <!-- drug torque rate -->
+  <max_force value="30"/>
+  <min_force value="2"/>
+  <joint_torque_limit value="8"/>
   <xacro:property name="max_force" value="30" /> <!-- [N] -->
   <xacro:property name="min_force" value="2" /> <!-- [N] -->
 

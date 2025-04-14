@@ -43,6 +43,26 @@ PinocchioRobotModel::PinocchioRobotModel()
   else
     m_f_rate_attr->Attribute("value", &m_f_rate_);
   std::cout << "m_f_rate: " << m_f_rate_ << std::endl;
+  TiXmlElement* max_thrust_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("max_force");
+  if(!max_thrust_attr)
+    ROS_ERROR("Can not get max_force attribute from urdf model");
+  else
+    max_thrust_attr->Attribute("value", &max_thrust_);
+  std::cout << "max thrust: " << max_thrust_ << std::endl;
+  TiXmlElement* min_thrust_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("min_force");
+  if(!min_thrust_attr)
+    ROS_ERROR("Can not get min_force attribute from urdf model");
+  else
+    min_thrust_attr->Attribute("value", &min_thrust_);
+  std::cout << "min thrust: " << min_thrust_ << std::endl;
+
+  // get joint torque limit
+  TiXmlElement* joint_torque_limit_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("joint_torque_limit");
+  if(!joint_torque_limit_attr)
+    ROS_ERROR("Can not get joint_torque_limit attribute from urdf model");
+  else
+    joint_torque_limit_attr->Attribute("value", &joint_torque_limit_);
+  std::cout << "joint torque limit: " << joint_torque_limit_ << std::endl;
 
   // get rotor number
   rotor_num_ = 0;
