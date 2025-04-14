@@ -36,15 +36,19 @@ int main (int argc, char** argv)
   // FD with thrust and its test
   for(int i = 0; i < 3; i++)
     {
+      std::cout << "-------------------------" << std::endl;
       bool fd_test = robot_model.forwardDynamicsTest(verbose);
       std::cout << "forwardDynamicsTest: " << fd_test << std::endl;
+      std::cout << "-------------------------" << std::endl;
       std::cout << std::endl;
     }
 
   for(int i = 0; i < 3; i++)
     {
+      std::cout << "-------------------------" << std::endl;
       bool id_test = robot_model.inverseDynamicsTest(verbose);
       std::cout << "inverseDynamicsTest: " << id_test << std::endl;
+      std::cout << "-------------------------" << std::endl;
       std::cout << std::endl;
     }
 

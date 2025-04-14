@@ -177,7 +177,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
       id_solver_.settings()->setWarmStart(true);
       id_solver_.settings()->setPolish(false);
       id_solver_.settings()->setMaxIteraction(1000);
-      id_solver_.settings()->setAbsoluteTolerance(1e-4);
+      id_solver_.settings()->setAbsoluteTolerance(1e-6);
       id_solver_.settings()->setRelativeTolerance(1e-4);
 
       id_solver_.data()->setNumberOfVariables(n_variables);

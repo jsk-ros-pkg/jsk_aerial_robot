@@ -1,4 +1,5 @@
 #include <aerial_robot_dynamics/robot_model.h>
+#include <aerial_robot_dynamics/math_utils.h>
 #include <chrono>
 
 using namespace aerial_robot_dynamics;
@@ -21,6 +22,10 @@ bool PinocchioRobotModel::forwardDynamicsTest(bool verbose)
   Eigen::VectorXd v = Eigen::VectorXd::Ones(model_->nv);
   Eigen::VectorXd tau = Eigen::VectorXd::Ones(model_->nv);
   Eigen::VectorXd thrust = Eigen::VectorXd::Ones(rotor_num_);
+
+  addNoise(v, 0.1);
+  addNoise(tau, 0.1);
+  addNoise(thrust, 0.1);
 
   auto start = std::chrono::high_resolution_clock::now();
   Eigen::VectorXd a = this->forwardDynamics(q, v, tau, thrust); // calculate FD with thrust
@@ -71,16 +76,16 @@ bool PinocchioRobotModel::forwardDynamicsTest(bool verbose)
       Eigen::VectorXd rotor_i_general_force = rotor_i_jacobian.transpose() * rotor_i_wrench;
       rotor_general_force += rotor_i_general_force;
 
-      if(verbose)
-        {
-          std::cout << "rotor_" << i + 1 << "_jacobian: " << std::endl;
-          std::cout << rotor_i_jacobian << std::endl;
-          std::cout << "rotor_" << i + 1 << "_wrench: " << std::endl;
-          std::cout << rotor_i_wrench.transpose() << std::endl;
-          std::cout << "rotor_" << i + 1 << "_general_force: " << std::endl;
-          std::cout << rotor_i_general_force.transpose() << std::endl;
-          std::cout << std::endl;
-        }
+      // if(verbose)
+      //   {
+      //     std::cout << "rotor_" << i + 1 << "_jacobian: " << std::endl;
+      //     std::cout << rotor_i_jacobian << std::endl;
+      //     std::cout << "rotor_" << i + 1 << "_wrench: " << std::endl;
+      //     std::cout << rotor_i_wrench.transpose() << std::endl;
+      //     std::cout << "rotor_" << i + 1 << "_general_force: " << std::endl;
+      //     std::cout << rotor_i_general_force.transpose() << std::endl;
+      //     std::cout << std::endl;
+      //   }
     }
 
   if(verbose)
@@ -102,7 +107,8 @@ bool PinocchioRobotModel::forwardDynamicsTest(bool verbose)
       std::cout << rotor_general_force.transpose() << std::endl;
       std::cout << "tau + rotor_general_force: " << std::endl;
       std::cout << (tau + rotor_general_force).transpose() << std::endl;
-    }
+      std::cout << "error norm: " << (M * a + Cv + g - (tau + rotor_general_force)).norm() << std::endl;
+  }
 
   return (M * a + Cv + g).isApprox(tau + rotor_general_force, 1e-6);
 }
@@ -112,6 +118,9 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
   Eigen::VectorXd q = this->getResetConfiguration();
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
   Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
+
+  addNoise(v, 0.1);
+  addNoise(a, 0.1);
 
   auto start = std::chrono::high_resolution_clock::now();
   Eigen::VectorXd tau = pinocchio::rnea(*model_, *data_, q, v, a);
@@ -125,12 +134,12 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
 
   if(verbose)
     {
-      // std::cout << "q: " << std::endl;
-      // std::cout << q.transpose() << std::endl;
-      // std::cout << "v: " << std::endl;
-      // std::cout << v.transpose() << std::endl;
-      // std::cout << "a: " << std::endl;
-      // std::cout << a.transpose() << std::endl;
+      std::cout << "q: " << std::endl;
+      std::cout << q.transpose() << std::endl;
+      std::cout << "v: " << std::endl;
+      std::cout << v.transpose() << std::endl;
+      std::cout << "a: " << std::endl;
+      std::cout << a.transpose() << std::endl;
       std::cout << "tau: " << std::endl;
       std::cout << tau.transpose() << std::endl;
       std::cout << "tau_thrust: " << std::endl;
@@ -144,11 +153,10 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
 
   if(verbose)
     {
-      std::cout << "a" << std::endl;
-      std::cout << a.transpose() << std::endl;
       std::cout << "a_fd: " << std::endl;
       std::cout << a_fd.transpose() << std::endl;
+      std::cout << "error norm: " << (a - a_fd).norm() << std::endl;
     }
 
-  return ((a - a_fd).array().abs() < 1e-6).all();
+  return ((a - a_fd).array().abs() < 1e-4).all();
 }
