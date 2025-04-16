@@ -2,6 +2,7 @@
 
 #include <pinocchio/fwd.hpp>  // should be included before any other pinocchio headers
 #include <pinocchio/algorithm/aba.hpp>
+#include <pinocchio/algorithm/aba-derivatives.hpp>
 #include <pinocchio/algorithm/compute-all-terms.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/frames.hpp>
@@ -32,8 +33,10 @@ namespace aerial_robot_dynamics
     std::shared_ptr<pinocchio::Data> getData() const {return data_;}
 
     Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
+    Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& aba_partial_dthrust);
     Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
     bool forwardDynamicsTest(bool verbose = false);
+    bool forwardDynamicsDerivativesTest(bool verbose = false);
     bool inverseDynamicsTest(bool verbose = false);
     const int& getRotorNum() const {return rotor_num_;}
 

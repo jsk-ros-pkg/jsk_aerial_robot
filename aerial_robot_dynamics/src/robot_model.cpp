@@ -118,6 +118,42 @@ Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, c
   return a;
 }
 
+Eigen::MatrixXd PinocchioRobotModel::forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust)
+{
+  // make external wrench vector and tau unit
+  pinocchio::container::aligned_vector<pinocchio::Force> fext(model_->njoints, pinocchio::Force::Zero());
+  Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
+  Eigen::MatrixXd thrust_tau_units = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
+
+      // get thrust coordinate jacobian
+      pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL, rotor_i_jacobian); // LOCAL
+
+      // thrust wrench unit. LOCAL frame
+      Eigen::VectorXd thrust_wrench_unit =  Eigen::VectorXd::Zero(6);
+      thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
+      thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
+
+      // i-th col of thrust_tau_units
+      thrust_tau_units.col(i) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
+
+      // make external wrench vector. LOCAL frame
+      pinocchio::Force rotor_wrench;
+      rotor_wrench.linear() = thrust_wrench_unit.head<3>() * thrust(i);
+      rotor_wrench.angular() = thrust_wrench_unit.tail<3>() * thrust(i);
+      fext.at(rotor_parent_joint_index) = rotor_wrench;
+    }
+
+  // Compute the forward dynamics with external forces
+  pinocchio::computeABADerivatives(*model_, *data_, q, v, tau, fext);
+
+  return data_->Minv * thrust_tau_units;
+}
+
 Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, const Eigen::VectorXd& v, const Eigen::VectorXd& a)
 {
   // Compute normal inverse dynamics

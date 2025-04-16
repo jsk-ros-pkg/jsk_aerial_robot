@@ -43,6 +43,16 @@ int main (int argc, char** argv)
       std::cout << std::endl;
     }
 
+  // FD derivative with thrust and its test
+  for(int i = 0; i < 3; i++)
+    {
+      std::cout << "-------------------------" << std::endl;
+      bool fd_derivarives_test = robot_model.forwardDynamicsDerivativesTest(verbose);
+      std::cout << "forwardDynamicsDerivativesTest: " << fd_derivarives_test << std::endl;
+      std::cout << "-------------------------" << std::endl;
+      std::cout << std::endl;
+    }
+
   for(int i = 0; i < 3; i++)
     {
       std::cout << "-------------------------" << std::endl;
