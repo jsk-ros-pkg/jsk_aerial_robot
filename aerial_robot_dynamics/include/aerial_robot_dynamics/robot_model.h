@@ -52,6 +52,9 @@ namespace aerial_robot_dynamics
     double min_thrust_;
     double joint_torque_limit_;
 
+    Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
+    pinocchio::container::aligned_vector<pinocchio::Force> computeFExtByThrust(const Eigen::VectorXd& thrust); // external force is expressed in the LOCAL frame
+
     std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
     Eigen::VectorXd getResetConfiguration();
   };

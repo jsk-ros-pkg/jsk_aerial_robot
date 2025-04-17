@@ -97,20 +97,7 @@ PinocchioRobotModel::PinocchioRobotModel()
 
 Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust)
 {
-  // make thrust vector as external wrench
-  pinocchio::container::aligned_vector<pinocchio::Force> fext(model_->njoints, pinocchio::Force::Zero());
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
-      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
-      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
-      pinocchio::Force rotor_wrench;
-
-      // LOCAL
-      rotor_wrench.linear() = Eigen::Vector3d(0, 0, thrust(i));
-      rotor_wrench.angular() = Eigen::Vector3d(0, 0, m_f_rate_ * thrust(i));
-      fext.at(rotor_parent_joint_index) = rotor_wrench;
-    }
+  pinocchio::container::aligned_vector<pinocchio::Force> fext = computeFExtByThrust(thrust);
 
   // Compute the forward dynamics with external forces
   Eigen::VectorXd a = pinocchio::aba(*model_, *data_, q, v, tau, fext, pinocchio::Convention::LOCAL);
@@ -120,38 +107,14 @@ Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, c
 
 Eigen::MatrixXd PinocchioRobotModel::forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust)
 {
-  // make external wrench vector and tau unit
-  pinocchio::container::aligned_vector<pinocchio::Force> fext(model_->njoints, pinocchio::Force::Zero());
-  Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
-  Eigen::MatrixXd thrust_tau_units = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
-      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
-      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
-
-      // get thrust coordinate jacobian
-      pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL, rotor_i_jacobian); // LOCAL
-
-      // thrust wrench unit. LOCAL frame
-      Eigen::VectorXd thrust_wrench_unit =  Eigen::VectorXd::Zero(6);
-      thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
-      thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
-
-      // i-th col of thrust_tau_units
-      thrust_tau_units.col(i) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
-
-      // make external wrench vector. LOCAL frame
-      pinocchio::Force rotor_wrench;
-      rotor_wrench.linear() = thrust_wrench_unit.head<3>() * thrust(i);
-      rotor_wrench.angular() = thrust_wrench_unit.tail<3>() * thrust(i);
-      fext.at(rotor_parent_joint_index) = rotor_wrench;
-    }
+  pinocchio::container::aligned_vector<pinocchio::Force> fext = computeFExtByThrust(thrust);
 
   // Compute the forward dynamics with external forces
   pinocchio::computeABADerivatives(*model_, *data_, q, v, tau, fext);
 
-  return data_->Minv * thrust_tau_units;
+  Eigen::MatrixXd tauext_partial_thrust = computeTauExtByThrustDerivative(q);
+
+  return data_->Minv * tauext_partial_thrust;
 }
 
 Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, const Eigen::VectorXd& v, const Eigen::VectorXd& a)
@@ -174,23 +137,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   Eigen::MatrixXd A(n_constraints, n_variables);
   A.setIdentity(); // box constraint
   A.bottomRows(model_->nv).setIdentity(); // rnea constraint
-
-  // get thrust coordinate jacobians
-  Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
-  for(int i = 0; i < rotor_num_; i++)
-    {
-      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
-      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
-      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
-
-      pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL, rotor_i_jacobian); // LOCAL
-
-      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
-      thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
-      thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
-
-      A.block(n_variables, model_->nv + i, model_->nv, 1) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
-    }
+  A.block(n_variables, model_->nv, model_->nv, rotor_num_) = this->computeTauExtByThrustDerivative(q); // thrust constraint
 
   // make bounds
   Eigen::VectorXd lb(n_constraints);
@@ -237,6 +184,48 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   Eigen::VectorXd solution = id_solver_.getSolution();
 
   return solution;
+}
+
+Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen::VectorXd& q)
+{
+  Eigen::MatrixXd tauext_partial_thrust = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
+
+  Eigen::MatrixXd rotor_i_jacobian = Eigen::MatrixXd::Zero(6, model_->nv); // must be initialized by zeros. see frames.hpp
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+
+      pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL, rotor_i_jacobian); // LOCAL
+
+      // thrust wrench unit
+      Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+      thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
+      thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
+      tauext_partial_thrust.col(i) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
+    }
+
+  return tauext_partial_thrust;
+}
+
+pinocchio::container::aligned_vector<pinocchio::Force> PinocchioRobotModel::computeFExtByThrust(const Eigen::VectorXd& thrust)
+{
+  // Compute external wrench by thrust
+  pinocchio::container::aligned_vector<pinocchio::Force> fext(model_->njoints, pinocchio::Force::Zero());
+  for(int i = 0; i < rotor_num_; i++)
+    {
+      std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
+
+      // LOCAL
+      pinocchio::Force rotor_wrench;
+      rotor_wrench.linear() = Eigen::Vector3d(0, 0, thrust(i));
+      rotor_wrench.angular() = Eigen::Vector3d(0, 0, m_f_rate_ * thrust(i));
+      fext.at(rotor_parent_joint_index) = rotor_wrench;
+    }
+
+  return fext;
 }
 
 std::string PinocchioRobotModel::getRobotModelXml(const std::string& param_name, ros::NodeHandle nh)
