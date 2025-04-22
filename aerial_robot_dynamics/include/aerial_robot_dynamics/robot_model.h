@@ -44,6 +44,7 @@ namespace aerial_robot_dynamics
     bool forwardDynamicsTest(bool verbose = false);
     bool forwardDynamicsDerivativesTest(bool verbose = false);
     bool inverseDynamicsTest(bool verbose = false);
+    bool inverseDynamicsDerivativesTest(bool verbose = false);
     std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
     std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
     bool computeTauExtByThrustDerivativeQDerivativesTest(bool verbose = false);
