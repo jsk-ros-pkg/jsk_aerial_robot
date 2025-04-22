@@ -16,6 +16,8 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+option(BUILD_TEST "Build Test Code" ON)
+
 catkin_package(
   )
 
@@ -34,25 +36,27 @@ target_link_libraries(robot_model
   ${pinocchio_LIBRARIES}
   )
 
-add_library(robot_model_test
-  src/test/fd_test.cpp
-  src/test/fd_derivative_test.cpp
-  src/test/id_test.cpp
-  src/test/id_derivative_test.cpp
-  src/test/tauext_by_thrust_derivative_test.cpp
-  )
-target_link_libraries(robot_model_test
-  robot_model
-  ${catkin_LIBRARIES}
-  ${OsqpEigen_LIBRARIES}
-  ${pinocchio_LIBRARIES}
-  )
+if(BUILD_TEST)
+  add_library(robot_model_test
+    src/test/fd_test.cpp
+    src/test/fd_derivative_test.cpp
+    src/test/id_test.cpp
+    src/test/id_derivative_test.cpp
+    src/test/tauext_by_thrust_derivative_test.cpp
+    )
+  target_link_libraries(robot_model_test
+    robot_model
+    ${catkin_LIBRARIES}
+    ${OsqpEigen_LIBRARIES}
+    ${pinocchio_LIBRARIES}
+    )
 
-add_executable(test_node src/test/test_node.cpp)
-target_link_libraries(test_node
-  robot_model
-  robot_model_test
-  ${catkin_LIBRARIES}
-  ${OsqpEigen_LIBRARIES}
-  ${pinocchio_LIBRARIES}
-  )
+  add_executable(test_node src/test/test_node.cpp)
+  target_link_libraries(test_node
+    robot_model
+    robot_model_test
+    ${catkin_LIBRARIES}
+    ${OsqpEigen_LIBRARIES}
+    ${pinocchio_LIBRARIES}
+    )
+endif()
