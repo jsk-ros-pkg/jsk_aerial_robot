@@ -282,6 +282,44 @@ void PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, c
   id_partial_da = K_ldlt.solve(kkt_sensitivity).topRows(n_variables);
 }
 
+std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q)
+{
+  std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q(model_->nv, Eigen::MatrixXd::Zero(model_->nv, rotor_num_));
+
+  // thrust wrench unit
+  Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
+  thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
+  thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
+
+  for(int i = 0; i < model_->nv; i++)
+    {
+        // calculate tauext_partial_thrust partial q_i
+        Eigen::MatrixXd tauext_partial_thrust_partial_q_i = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
+        Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+        v(i) = 1.0;
+        Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
+
+        pinocchio::computeForwardKinematicsDerivatives(*model_, *data_, q, v, a);
+
+        Eigen::MatrixXd v_partial_dq = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
+        Eigen::MatrixXd v_partial_dv = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
+
+        for(int j = 0; j < rotor_num_; j++)
+        {
+            // calculate j-th col of tauext_partial_thrust partial q_i
+            std::string rotor_frame_name = "rotor" + std::to_string(j + 1);
+            pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+
+            pinocchio::getFrameVelocityDerivatives(*model_, *data_, rotor_frame_index, pinocchio::LOCAL, v_partial_dq, v_partial_dv);
+
+            tauext_partial_thrust_partial_q_i.col(j) = v_partial_dq.transpose() * thrust_wrench_unit;
+        }
+
+        tauext_partial_thrust_partial_q.at(i) = tauext_partial_thrust_partial_q_i;
+    }
+
+  return tauext_partial_thrust_partial_q;
+}
 
 std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q)
 {

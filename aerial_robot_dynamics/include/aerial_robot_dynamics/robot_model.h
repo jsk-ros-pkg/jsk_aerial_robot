@@ -3,9 +3,9 @@
 #include <pinocchio/fwd.hpp>  // should be included before any other pinocchio headers
 #include <pinocchio/algorithm/aba.hpp>
 #include <pinocchio/algorithm/aba-derivatives.hpp>
-#include <pinocchio/algorithm/compute-all-terms.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/frames-derivatives.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/rnea-derivatives.hpp>
@@ -44,7 +44,9 @@ namespace aerial_robot_dynamics
     bool forwardDynamicsTest(bool verbose = false);
     bool forwardDynamicsDerivativesTest(bool verbose = false);
     bool inverseDynamicsTest(bool verbose = false);
+    std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
     std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
+    bool computeTauExtByThrustDerivativeQDerivativesTest(bool verbose = false);
     const int& getRotorNum() const {return rotor_num_;}
 
   private:

@@ -239,3 +239,34 @@ bool PinocchioRobotModel::inverseDynamicsTest(bool verbose)
 
   return ((a - a_fd).array().abs() < 1e-4).all();
 }
+
+bool PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesTest(bool verbose)
+{
+  Eigen::VectorXd q = this->getResetConfiguration();
+
+  std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q_ana = this->computeTauExtByThrustDerivativeQDerivatives(q); // compute analytical derivatives
+  std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q_num = this->computeTauExtByThrustDerivativeQDerivativesNum(q); // compute numerical derivatives
+
+  if(verbose)
+  {
+      for(int i = 0; i < tauext_partial_thrust_partial_q_ana.size(); i++)
+      {
+          std::cout << "tauext_partial_thrust_partial_q_ana[" << i << "]" << std::endl;
+          std::cout << tauext_partial_thrust_partial_q_ana.at(i) << std::endl;
+          std::cout << "tauext_partial_thrust_partial_q_num[" << i << "]" << std::endl;
+          std::cout << tauext_partial_thrust_partial_q_num.at(i) << std::endl;
+      }
+  }
+
+  bool ok = true;
+  for(int i = 0; i < model_->nv; i++)
+    {
+
+      if((tauext_partial_thrust_partial_q_ana.at(i) - tauext_partial_thrust_partial_q_num.at(i)).cwiseAbs().maxCoeff() > 1e-4)
+        {
+          std::cout << "tauext_partial_thrust_partial_q_ana[" << i << "] is not equal to tauext_partial_thrust_partial_q_num[" << i << "]" << std::endl;
+          ok = false;
+        }
+    }
+    return ok;
+}
