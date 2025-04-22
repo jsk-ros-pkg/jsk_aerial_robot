@@ -45,13 +45,21 @@ namespace aerial_robot_dynamics
     std::shared_ptr<pinocchio::Model> model_;
     std::shared_ptr<pinocchio::Data> data_;
 
+    // QP solver for Inverse Dynamics
     OsqpEigen::Solver id_solver_;
+    Eigen::VectorXd gradient_;
+    Eigen::VectorXd lower_bound_;
+    Eigen::VectorXd upper_bound_;
 
+    // model parameters
     int rotor_num_;
     double m_f_rate_;
     double max_thrust_;
     double min_thrust_;
     double joint_torque_limit_;
+
+    // ID solver parameters
+    double thrust_hessian_weight_ = 0.1;
 
     Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
     pinocchio::container::aligned_vector<pinocchio::Force> computeFExtByThrust(const Eigen::VectorXd& thrust); // external force is expressed in the LOCAL frame

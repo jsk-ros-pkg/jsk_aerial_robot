@@ -128,28 +128,28 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   // make hessian matrix
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(n_variables, n_variables);
   H.setIdentity();
-  H.bottomRightCorner(rotor_num_, rotor_num_) *= 0.1;
+  H.bottomRightCorner(rotor_num_, rotor_num_) *= thrust_hessian_weight_;
 
   // make gradient vector
-  Eigen::VectorXd g = Eigen::VectorXd::Zero(n_variables);
+  gradient_ = Eigen::VectorXd::Zero(n_variables);
 
   // make constraint matrix
-  Eigen::MatrixXd A(n_constraints, n_variables);
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, n_variables);
   A.setIdentity(); // box constraint
   A.bottomRows(model_->nv).setIdentity(); // rnea constraint
   A.block(n_variables, model_->nv, model_->nv, rotor_num_) = this->computeTauExtByThrustDerivative(q); // thrust constraint
 
   // make bounds
-  Eigen::VectorXd lb(n_constraints);
-  Eigen::VectorXd ub(n_constraints);
+  lower_bound_ = Eigen::VectorXd::Zero(n_constraints);
+  upper_bound_ = Eigen::VectorXd::Zero(n_constraints);
 
-  lb.head(model_->nv) = -1.0 * Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_); // joint torque inequality constraint
-  lb.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, min_thrust_); // thrust inequality constraint
-  lb.tail(model_->nv) = rnea_solution; // rnea equality constraint
+  lower_bound_.head(model_->nv) = Eigen::VectorXd::Constant(model_->nv, -joint_torque_limit_); // joint torque inequality constraint
+  lower_bound_.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, min_thrust_); // thrust inequality constraint
+  lower_bound_.tail(model_->nv) = rnea_solution; // rnea equality constraint
 
-  ub.head(model_->nv) =  1.0 * Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_); // joint torque inequality constraint
-  ub.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, max_thrust_); // thrust inequality constraint
-  ub.tail(model_->nv) = rnea_solution; // rnea equality constraint
+  upper_bound_.head(model_->nv) = Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_); // joint torque inequality constraint
+  upper_bound_.segment(model_->nv, rotor_num_) = Eigen::VectorXd::Constant(rotor_num_, max_thrust_); // thrust inequality constraint
+  upper_bound_.tail(model_->nv) = rnea_solution; // rnea equality constraint
 
   // qp solver
   Eigen::SparseMatrix<double> H_s = H.sparseView();
@@ -160,24 +160,24 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
       id_solver_.settings()->setWarmStart(true);
       id_solver_.settings()->setPolish(false);
       id_solver_.settings()->setMaxIteraction(1000);
-      id_solver_.settings()->setAbsoluteTolerance(1e-6);
-      id_solver_.settings()->setRelativeTolerance(1e-4);
+      id_solver_.settings()->setAbsoluteTolerance(1e-8);
+      id_solver_.settings()->setRelativeTolerance(1e-8);
 
       id_solver_.data()->setNumberOfVariables(n_variables);
       id_solver_.data()->setNumberOfConstraints(n_constraints);
       id_solver_.data()->setHessianMatrix(H_s);
-      id_solver_.data()->setGradient(g);
+      id_solver_.data()->setGradient(gradient_);
       id_solver_.data()->setLinearConstraintsMatrix(A_s);
-      id_solver_.data()->setLowerBound(lb);
-      id_solver_.data()->setUpperBound(ub);
+      id_solver_.data()->setLowerBound(lower_bound_);
+      id_solver_.data()->setUpperBound(upper_bound_);
       id_solver_.initSolver();
     }
   else
     {
       id_solver_.updateHessianMatrix(H_s);
-      id_solver_.updateGradient(g);
+      id_solver_.updateGradient(gradient_);
+      id_solver_.updateBounds(lower_bound_, upper_bound_);
       id_solver_.updateLinearConstraintsMatrix(A_s);
-      id_solver_.updateBounds(lb, ub);
     }
 
   id_solver_.solve();
