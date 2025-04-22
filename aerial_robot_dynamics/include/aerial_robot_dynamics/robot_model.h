@@ -38,6 +38,7 @@ namespace aerial_robot_dynamics
     bool forwardDynamicsTest(bool verbose = false);
     bool forwardDynamicsDerivativesTest(bool verbose = false);
     bool inverseDynamicsTest(bool verbose = false);
+    std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
     const int& getRotorNum() const {return rotor_num_;}
 
   private:
