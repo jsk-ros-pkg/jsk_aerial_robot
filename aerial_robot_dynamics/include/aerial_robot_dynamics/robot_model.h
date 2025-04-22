@@ -41,14 +41,12 @@ namespace aerial_robot_dynamics
     void inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
                                     Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv, Eigen::MatrixXd& id_partial_da);
 
-    bool forwardDynamicsTest(bool verbose = false);
-    bool forwardDynamicsDerivativesTest(bool verbose = false);
-    bool inverseDynamicsTest(bool verbose = false);
-    bool inverseDynamicsDerivativesTest(bool verbose = false);
     std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
     std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
-    bool computeTauExtByThrustDerivativeQDerivativesTest(bool verbose = false);
+
     const int& getRotorNum() const {return rotor_num_;}
+    const double& getMFRate() const {return m_f_rate_;}
+    Eigen::VectorXd getResetConfiguration();
 
   private:
     std::shared_ptr<pinocchio::Model> model_;
@@ -74,6 +72,5 @@ namespace aerial_robot_dynamics
     pinocchio::container::aligned_vector<pinocchio::Force> computeFExtByThrust(const Eigen::VectorXd& thrust); // external force is expressed in the LOCAL frame
 
     std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
-    Eigen::VectorXd getResetConfiguration();
   };
 } // namespace aerial_robot_dynamics

@@ -27,16 +27,31 @@ include_directories(
   ${pinocchio_INCLUDE_DIRS}
   )
 
-add_library(robot_model src/robot_model.cpp src/robot_model_test)
+add_library(robot_model src/robot_model.cpp)
 target_link_libraries(robot_model
   ${catkin_LIBRARIES}
   ${OsqpEigen_LIBRARIES}
   ${pinocchio_LIBRARIES}
   )
 
-add_executable(test_node src/test_node.cpp)
+add_library(robot_model_test
+  src/test/fd_test.cpp
+  src/test/fd_derivative_test.cpp
+  src/test/id_test.cpp
+  src/test/id_derivative_test.cpp
+  src/test/tauext_by_thrust_derivative_test.cpp
+  )
+target_link_libraries(robot_model_test
+  robot_model
+  ${catkin_LIBRARIES}
+  ${OsqpEigen_LIBRARIES}
+  ${pinocchio_LIBRARIES}
+  )
+
+add_executable(test_node src/test/test_node.cpp)
 target_link_libraries(test_node
   robot_model
+  robot_model_test
   ${catkin_LIBRARIES}
   ${OsqpEigen_LIBRARIES}
   ${pinocchio_LIBRARIES}

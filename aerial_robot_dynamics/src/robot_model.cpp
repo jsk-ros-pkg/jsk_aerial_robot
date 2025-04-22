@@ -293,29 +293,29 @@ std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativ
 
   for(int i = 0; i < model_->nv; i++)
     {
-        // calculate tauext_partial_thrust partial q_i
-        Eigen::MatrixXd tauext_partial_thrust_partial_q_i = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
-        Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
-        v(i) = 1.0;
-        Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
+      // calculate tauext_partial_thrust partial q_i
+      Eigen::MatrixXd tauext_partial_thrust_partial_q_i = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
+      Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+      v(i) = 1.0;
+      Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
 
-        pinocchio::computeForwardKinematicsDerivatives(*model_, *data_, q, v, a);
+      pinocchio::computeForwardKinematicsDerivatives(*model_, *data_, q, v, a);
 
-        Eigen::MatrixXd v_partial_dq = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
-        Eigen::MatrixXd v_partial_dv = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
+      Eigen::MatrixXd v_partial_dq = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
+      Eigen::MatrixXd v_partial_dv = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
 
-        for(int j = 0; j < rotor_num_; j++)
+      for(int j = 0; j < rotor_num_; j++)
         {
-            // calculate j-th col of tauext_partial_thrust partial q_i
-            std::string rotor_frame_name = "rotor" + std::to_string(j + 1);
-            pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+          // calculate j-th col of tauext_partial_thrust partial q_i
+          std::string rotor_frame_name = "rotor" + std::to_string(j + 1);
+          pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
 
-            pinocchio::getFrameVelocityDerivatives(*model_, *data_, rotor_frame_index, pinocchio::LOCAL, v_partial_dq, v_partial_dv);
+          pinocchio::getFrameVelocityDerivatives(*model_, *data_, rotor_frame_index, pinocchio::LOCAL, v_partial_dq, v_partial_dv);
 
-            tauext_partial_thrust_partial_q_i.col(j) = v_partial_dq.transpose() * thrust_wrench_unit;
+          tauext_partial_thrust_partial_q_i.col(j) = v_partial_dq.transpose() * thrust_wrench_unit;
         }
 
-        tauext_partial_thrust_partial_q.at(i) = tauext_partial_thrust_partial_q_i;
+      tauext_partial_thrust_partial_q.at(i) = tauext_partial_thrust_partial_q_i;
     }
 
   return tauext_partial_thrust_partial_q;
@@ -323,55 +323,55 @@ std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativ
 
 std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q)
 {
-    std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q(model_->nv, Eigen::MatrixXd::Zero(model_->nv, rotor_num_));
+  std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q(model_->nv, Eigen::MatrixXd::Zero(model_->nv, rotor_num_));
 
-    double epsilon = 1e-6;
-    Eigen::VectorXd original_q = q;
-    Eigen::MatrixXd original_tauext_partial_thrust = this->computeTauExtByThrustDerivative(original_q);
-    Eigen::VectorXd tmp_q = original_q;
+  double epsilon = 1e-6;
+  Eigen::VectorXd original_q = q;
+  Eigen::MatrixXd original_tauext_partial_thrust = this->computeTauExtByThrustDerivative(original_q);
+  Eigen::VectorXd tmp_q = original_q;
 
-    // root link position
-    for(int i = 0; i < 3; i++)
+  // root link position
+  for(int i = 0; i < 3; i++)
     {
-        tmp_q = original_q;
-        tmp_q(i) += epsilon;
-        Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
-        tauext_partial_thrust_partial_q.at(i) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
+      tmp_q = original_q;
+      tmp_q(i) += epsilon;
+      Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
+      tauext_partial_thrust_partial_q.at(i) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
     }
 
-    // root link quaternion
-    for(int i = 0; i < 3; i++)
+  // root link quaternion
+  for(int i = 0; i < 3; i++)
     {
-        tmp_q = original_q;
-        double d_roll = i == 0 ? epsilon : 0; Eigen::AngleAxisd roll(Eigen::AngleAxisd(d_roll, Eigen::Vector3d::UnitX()));
-        double d_pitch = i == 1 ? epsilon : 0; Eigen::AngleAxisd pitch(Eigen::AngleAxisd(d_pitch, Eigen::Vector3d::UnitY()));
-        double d_yaw = i == 2 ? epsilon : 0; Eigen::AngleAxisd yaw(Eigen::AngleAxisd(d_yaw, Eigen::Vector3d::UnitZ()));
+      tmp_q = original_q;
+      double d_roll = i == 0 ? epsilon : 0; Eigen::AngleAxisd roll(Eigen::AngleAxisd(d_roll, Eigen::Vector3d::UnitX()));
+      double d_pitch = i == 1 ? epsilon : 0; Eigen::AngleAxisd pitch(Eigen::AngleAxisd(d_pitch, Eigen::Vector3d::UnitY()));
+      double d_yaw = i == 2 ? epsilon : 0; Eigen::AngleAxisd yaw(Eigen::AngleAxisd(d_yaw, Eigen::Vector3d::UnitZ()));
 
-        Eigen::Matrix3d dR = (yaw * pitch * roll).toRotationMatrix();
-        Eigen::Quaterniond dQuat(dR);
-        Eigen::Quaterniond original_quat = Eigen::Quaterniond(original_q(6), original_q(3), original_q(4), original_q(5));
-        Eigen::Quaterniond new_quat = dQuat * original_quat;
-        new_quat.normalize();
+      Eigen::Matrix3d dR = (yaw * pitch * roll).toRotationMatrix();
+      Eigen::Quaterniond dQuat(dR);
+      Eigen::Quaterniond original_quat = Eigen::Quaterniond(original_q(6), original_q(3), original_q(4), original_q(5));
+      Eigen::Quaterniond new_quat = dQuat * original_quat;
+      new_quat.normalize();
 
-        tmp_q(3) = new_quat.x();
-        tmp_q(4) = new_quat.y();
-        tmp_q(5) = new_quat.z();
-        tmp_q(6) = new_quat.w();
+      tmp_q(3) = new_quat.x();
+      tmp_q(4) = new_quat.y();
+      tmp_q(5) = new_quat.z();
+      tmp_q(6) = new_quat.w();
 
-        Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
-        tauext_partial_thrust_partial_q.at(i + 3) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
+      Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
+      tauext_partial_thrust_partial_q.at(i + 3) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
     }
 
-    // joint position
-    for(int i = 7; i < model_->nq; i++)
+  // joint position
+  for(int i = 7; i < model_->nq; i++)
     {
-        tmp_q = original_q;
-        tmp_q(i) += epsilon;
-        Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
-        tauext_partial_thrust_partial_q.at(i - 1) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
+      tmp_q = original_q;
+      tmp_q(i) += epsilon;
+      Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
+      tauext_partial_thrust_partial_q.at(i - 1) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
     }
 
-    return tauext_partial_thrust_partial_q;
+  return tauext_partial_thrust_partial_q;
 }
 
 Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen::VectorXd& q)
@@ -423,4 +423,15 @@ std::string PinocchioRobotModel::getRobotModelXml(const std::string& param_name,
   if (!nh.getParam(param_name, robot_model_string))
     ROS_ERROR("Failed to get robot model XML from parameter server");
   return robot_model_string;
+}
+
+Eigen::VectorXd PinocchioRobotModel::getResetConfiguration()
+{
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
+  q(6) = 1;
+  q(model_->joints[model_->getJointId("joint1_yaw")].idx_q()) = M_PI / 2.0;
+  q(model_->joints[model_->getJointId("joint2_yaw")].idx_q()) = M_PI / 2.0;
+  q(model_->joints[model_->getJointId("joint3_yaw")].idx_q()) = M_PI / 2.0;
+
+  return q;
 }
