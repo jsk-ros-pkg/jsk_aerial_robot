@@ -8,11 +8,14 @@
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/algorithm/rnea-derivatives.hpp>
 #include <pinocchio/container/aligned-vector.hpp>
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/spatial/force.hpp>
+
+#include <aerial_robot_dynamics/math_utils.h>
 
 #include <OsqpEigen/OsqpEigen.h>
 
@@ -35,6 +38,9 @@ namespace aerial_robot_dynamics
     Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
     Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& aba_partial_dthrust);
     Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
+    void inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                                    Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv, Eigen::MatrixXd& id_partial_da);
+
     bool forwardDynamicsTest(bool verbose = false);
     bool forwardDynamicsDerivativesTest(bool verbose = false);
     bool inverseDynamicsTest(bool verbose = false);

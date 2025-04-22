@@ -186,6 +186,102 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd & q, 
   return solution;
 }
 
+void PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                                                     Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv, Eigen::MatrixXd& id_partial_da)
+{
+  // make solver parameters
+  int n_variables = model_->nv + rotor_num_;
+  int n_ineq_constraints = model_->nv + rotor_num_; // box constraint
+  int n_eq_constraints = model_->nv; // rnea constraint
+  int n_constraints = n_ineq_constraints + n_eq_constraints;
+
+  // Compute the inverse dynamics with external forces
+  Eigen::VectorXd id_solution = this->inverseDynamics(q, v, a);
+  Eigen::VectorXd id_solution_thrust = id_solution.tail(rotor_num_);
+  Eigen::VectorXd id_dual_solution = id_solver_.getDualSolution();
+  Eigen::VectorXd id_ineq_dual_solution = id_dual_solution.head(n_ineq_constraints);
+  Eigen::VectorXd id_eq_dual_solution = id_dual_solution.tail(n_eq_constraints);
+
+  int n_active_ineq_constraints = 0;
+  for(int i = 0; i < n_ineq_constraints; i++)
+    {
+      if(fabs(id_dual_solution(i)) > 1e-6)
+        {
+          n_active_ineq_constraints++;
+        }
+    }
+
+  // hessian
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(n_variables, n_variables);
+  H.setIdentity();
+  H.bottomRightCorner(rotor_num_, rotor_num_) *= thrust_hessian_weight_;
+
+  // equality constraint matrix
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_eq_constraints, n_variables);
+  A.setIdentity(); // box constraint
+  A.block(0, model_->nv, n_eq_constraints, rotor_num_) = this->computeTauExtByThrustDerivative(q); // thrust constraint
+
+  // active inequality constraint matrix and bound
+  Eigen::MatrixXd C = Eigen::MatrixXd::Zero(n_active_ineq_constraints, n_variables);
+  int last_row = 0;
+  for(int i = 0; i < n_ineq_constraints; i++)
+    {
+      if(fabs(id_dual_solution(i)) > 1e-6)
+        {
+          C.row(last_row) = A.row(i);
+          last_row++;
+        }
+    }
+
+  // make KKT condition matrix
+  Eigen::MatrixXd K = Eigen::MatrixXd::Zero(n_variables + n_eq_constraints + n_active_ineq_constraints,
+                                            n_variables + n_eq_constraints + n_active_ineq_constraints);
+  K.block(0, 0, n_variables, n_variables) = H;
+  K.block(n_variables, 0, n_eq_constraints, n_variables) = A;
+  K.block(n_variables + n_eq_constraints, 0, n_active_ineq_constraints, n_variables) = C;
+  K.block(0, n_variables, n_variables, n_eq_constraints) = A.transpose();
+  K.block(0, n_variables + n_eq_constraints, n_variables, n_active_ineq_constraints) = C.transpose();
+
+  Eigen::SparseMatrix<double> K_s = K.sparseView();
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> K_ldlt;
+  K_ldlt.compute(K_s);
+
+  pinocchio::container::aligned_vector<pinocchio::Force> fext = computeFExtByThrust(id_solution_thrust);
+  pinocchio::computeRNEADerivatives(*model_, *data_, q, v, a); // not sure we need set fext
+
+  Eigen::MatrixXd rnea_partial_dq = data_->dtau_dq;
+  Eigen::MatrixXd rnea_partial_dv = data_->dtau_dv;
+  Eigen::MatrixXd rnea_partial_da = data_->M;
+  rnea_partial_da.triangularView<Eigen::StrictlyLower>() = rnea_partial_da.transpose();
+
+  Eigen::MatrixXd kkt_sensitivity = Eigen::MatrixXd::Zero(n_variables + n_eq_constraints + n_active_ineq_constraints,
+                                                          model_->nv); // the number of cols is equal to parameters = model_->nv
+
+  std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q = this->computeTauExtByThrustDerivativeQDerivativesNum(q);
+  std::vector<Eigen::MatrixXd> A_partial_dq(model_->nv, Eigen::MatrixXd::Zero(n_eq_constraints, n_variables));
+  std::vector<Eigen::MatrixXd> A_partial_dq_transpose(model_->nv, Eigen::MatrixXd::Zero(n_variables, n_eq_constraints));
+  for(int i = 0; i < tauext_partial_thrust_partial_q.size(); i++)
+    {
+      A_partial_dq.at(i).block(0, model_->nv, n_eq_constraints, rotor_num_) = tauext_partial_thrust_partial_q.at(i);
+      A_partial_dq_transpose.at(i) = A_partial_dq.at(i).transpose();
+    }
+  Eigen::MatrixXd A_partial_dq_transpose_lambda_contraction = tensorContraction(A_partial_dq_transpose, id_eq_dual_solution);
+  Eigen::MatrixXd A_partial_dq_u_contraction = tensorContraction(A_partial_dq, id_solution);
+
+  kkt_sensitivity.setZero();
+  kkt_sensitivity.topRows(n_variables) = -A_partial_dq_transpose_lambda_contraction;;
+  kkt_sensitivity.block(n_variables, 0, n_eq_constraints, model_->nv) = -A_partial_dq_u_contraction + rnea_partial_dq;
+  id_partial_dq = K_ldlt.solve(kkt_sensitivity).topRows(n_variables);
+
+  kkt_sensitivity.setZero();
+  kkt_sensitivity.block(n_variables, 0, n_eq_constraints, model_->nv) = rnea_partial_dv;
+  id_partial_dv = K_ldlt.solve(kkt_sensitivity).topRows(n_variables);
+
+  kkt_sensitivity.setZero();
+  kkt_sensitivity.block(n_variables, 0, n_eq_constraints, model_->nv) = rnea_partial_da;
+  id_partial_da = K_ldlt.solve(kkt_sensitivity).topRows(n_variables);
+}
+
 
 std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q)
 {
