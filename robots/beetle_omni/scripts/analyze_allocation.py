@@ -1,13 +1,12 @@
 '''
  Created by li-jinjie on 25-4-23.
 '''
-import copy
-
 import yaml
 import os
 import rospkg
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import matplotlib.pyplot as plt
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -53,6 +52,7 @@ def pseudoinverse_svd(mat, tolerance=1e-4):
     # Compute pseudoinverse: V * Sigma⁻¹ * Uᴴ
     return Vh.T @ singular_values_inv @ U.T
 
+
 def calculate_cmd(inv_mat, tgt_wrench):
     # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
     target_force = inv_mat @ tgt_wrench
@@ -73,9 +73,7 @@ def calculate_cmd(inv_mat, tgt_wrench):
     a4_ref = np.arctan2(target_force[6, 0], target_force[7, 0])
     a_ref = [a1_ref, a2_ref, a3_ref, a4_ref]
 
-    print("ft_ref", ft_ref)
-    print("a_ref", a_ref)
-
+    return ft_ref, a_ref
 
 
 if __name__ == "__main__":
@@ -112,7 +110,7 @@ if __name__ == "__main__":
 
     print("shape of alloc_mat", alloc_mat.shape)
     print("alloc_mat", alloc_mat)
-    print("=======================")
+    print("=======================\n")
 
     # ======= Test the pseudoinverse function ======
     # our method in the system to compute the allocation matrix
@@ -124,6 +122,7 @@ if __name__ == "__main__":
     print(alloc_mat_inv_linalg - alloc_mat_inv_svd)
     print("===== alloc_mat_right_inverse - alloc_mat_inv_svd =====")
     print(alloc_mat_inv_right_inverse - alloc_mat_inv_svd)
+    print("=======================\n")
 
     # ===== calculate thrust and servo angle =====
     fg_w = np.array([0, 0, mass * gravity])  # World frame
@@ -135,11 +134,89 @@ if __name__ == "__main__":
     target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
     print("alloc_mat == alloc_mat_inv_svd")
-    calculate_cmd(alloc_mat_inv_svd, target_wrench)
+    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_svd, target_wrench)
+    print("ft_ref", ft_ref)
+    print("a_ref", a_ref)
 
     print("alloc_mat == alloc_mat_inv_linalg")
-    calculate_cmd(alloc_mat_inv_linalg, target_wrench)
+    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_linalg, target_wrench)
+    print("ft_ref", ft_ref)
+    print("a_ref", a_ref)
 
     print("alloc_mat == alloc_mat_inv_right_inverse")
-    calculate_cmd(alloc_mat_inv_right_inverse, target_wrench)
+    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_right_inverse, target_wrench)
+    print("ft_ref", ft_ref)
+    print("a_ref", a_ref)
 
+    # PLOT THE RESULTS
+    # -------------------------------------------------------------------
+    # (1)  PSEUDOINVERSES FOR THE THREE ALLOCATION METHODS
+    # -------------------------------------------------------------------
+    inv_methods = {  # <--  this is what the patch uses
+        "SVD": alloc_mat_inv_svd,
+        "pinv": alloc_mat_inv_linalg,
+        "RightInverse": alloc_mat_inv_right_inverse,
+    }
+
+    # -------------------------------------------------------------------
+    # (2)  YAW-ANGLE SWEEP (deg)
+    # -------------------------------------------------------------------
+    yaw_deg = np.arange(40.0, 50.0 + 0.1, 0.1)  # 40° → 50° inclusive, 0.1° step
+
+    # -------------------------------------------------------------------
+    # (3)  ARRAYS THAT STORE RESULTS FOR EVERY METHOD AND EVERY YAW
+    # -------------------------------------------------------------------
+    ft_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # thrust  (N)
+    ang_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # servo angles (rad)
+
+    fg_w = np.array([0.0, 0.0, mass * gravity])  # gravity in world frame
+
+    for idx, yaw in enumerate(yaw_deg):
+        # body-frame gravity for roll=0, pitch=90°, varying yaw
+        R_bw = R.from_euler('zyx', [yaw, 90.0, 0.0], degrees=True).as_matrix().T
+        fg_b = R_bw @ fg_w
+        tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
+
+        for key, inv in inv_methods.items():
+            ft_ref, a_ref = calculate_cmd(inv, tgt_w)
+            ft_all[key][idx, :] = ft_ref
+            ang_all[key][idx, :] = a_ref
+
+    # ---------------------------------------------------------------
+    # 6)  PLOTTING  (4×2 grid)
+    # ---------------------------------------------------------------
+    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red"}
+    rotor_names = [f"Rotor {i + 1}" for i in range(4)]
+
+    fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
+    fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
+
+    for r in range(4):
+        # ---- thrust subplot (left) ----
+        ax_t = axs[r, 0]
+        for m in inv_methods:
+            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "",
+                      color=method_colors[m])
+        ax_t.set_ylabel("Thrust [N]")
+        ax_t.set_title(f"{rotor_names[r]} thrust")
+        ax_t.grid(True, linestyle=":")
+
+        # ---- servo-angle subplot (right) ----
+        ax_a = axs[r, 1]
+        for m in inv_methods:
+            ax_a.plot(yaw_deg, ang_all[m][:, r], label=m if r == 0 else "",
+                      color=method_colors[m])
+        ax_a.set_ylabel("Servo angle [rad]")
+        ax_a.set_title(f"{rotor_names[r]} servo angle")
+        ax_a.grid(True, linestyle=":")
+
+    # shared x-label (bottom row only)
+    for ax in axs[-1, :]:
+        ax.set_xlabel("Yaw [deg]")
+
+    # one legend outside the grid
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper right", bbox_to_anchor=(0.97, 0.97))
+
+    plt.tight_layout(rect=[0, 0, 0.95, 0.96])
+    plt.show()
