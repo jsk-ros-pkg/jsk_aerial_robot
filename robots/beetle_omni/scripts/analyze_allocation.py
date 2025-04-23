@@ -1,6 +1,8 @@
 '''
  Created by li-jinjie on 25-4-23.
 '''
+import copy
+
 import yaml
 import os
 import rospkg
@@ -41,52 +43,28 @@ if __name__ == "__main__":
     # Define Allocation Matrix
     alloc_mat = np.zeros((6, 8))
 
-    # - Force
-    alloc_mat[0, 0] = p1_b[1] / sqrt_p1b_xy
-    alloc_mat[1, 0] = -p1_b[0] / sqrt_p1b_xy
-    alloc_mat[2, 1] = 1
+    # Rotor parameters in list form for looping
+    p_b_list = [p1_b, p2_b, p3_b, p4_b]
+    dr_list = [dr1, dr2, dr3, dr4]
 
-    alloc_mat[0, 2] = p2_b[1] / sqrt_p2b_xy
-    alloc_mat[1, 2] = -p2_b[0] / sqrt_p2b_xy
-    alloc_mat[2, 3] = 1
+    for i in range(4):
+        p_b = p_b_list[i]
+        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
+        dr = dr_list[i]
 
-    alloc_mat[0, 4] = p3_b[1] / sqrt_p3b_xy
-    alloc_mat[1, 4] = -p3_b[0] / sqrt_p3b_xy
-    alloc_mat[2, 5] = 1
+        # Force entries
+        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_mat[2, 2 * i + 1] = 1
 
-    alloc_mat[0, 6] = p4_b[1] / sqrt_p4b_xy
-    alloc_mat[1, 6] = -p4_b[0] / sqrt_p4b_xy
-    alloc_mat[2, 7] = 1
+        # Torque entries
+        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
 
-    # - Torque
-    alloc_mat[3, 0] = -dr1 * kq_d_kt * p1_b[1] / sqrt_p1b_xy + p1_b[0] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[4, 0] = dr1 * kq_d_kt * p1_b[0] / sqrt_p1b_xy + p1_b[1] * p1_b[2] / sqrt_p1b_xy
-    alloc_mat[5, 0] = -p1_b[0] ** 2 / sqrt_p1b_xy - p1_b[1] ** 2 / sqrt_p1b_xy
+        alloc_mat[3, 2 * i + 1] = p_b[1]
+        alloc_mat[4, 2 * i + 1] = -p_b[0]
+        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
 
-    alloc_mat[3, 1] = p1_b[1]
-    alloc_mat[4, 1] = -p1_b[0]
-    alloc_mat[5, 1] = -dr1 * kq_d_kt
 
-    alloc_mat[3, 2] = -dr2 * kq_d_kt * p2_b[1] / sqrt_p2b_xy + p2_b[0] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[4, 2] = dr2 * kq_d_kt * p2_b[0] / sqrt_p2b_xy + p2_b[1] * p2_b[2] / sqrt_p2b_xy
-    alloc_mat[5, 2] = -p2_b[0] ** 2 / sqrt_p2b_xy - p2_b[1] ** 2 / sqrt_p2b_xy
-
-    alloc_mat[3, 3] = p2_b[1]
-    alloc_mat[4, 3] = -p2_b[0]
-    alloc_mat[5, 3] = -dr2 * kq_d_kt
-
-    alloc_mat[3, 4] = -dr3 * kq_d_kt * p3_b[1] / sqrt_p3b_xy + p3_b[0] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[4, 4] = dr3 * kq_d_kt * p3_b[0] / sqrt_p3b_xy + p3_b[1] * p3_b[2] / sqrt_p3b_xy
-    alloc_mat[5, 4] = -p3_b[0] ** 2 / sqrt_p3b_xy - p3_b[1] ** 2 / sqrt_p3b_xy
-
-    alloc_mat[3, 5] = p3_b[1]
-    alloc_mat[4, 5] = -p3_b[0]
-    alloc_mat[5, 5] = -dr3 * kq_d_kt
-
-    alloc_mat[3, 6] = -dr4 * kq_d_kt * p4_b[1] / sqrt_p4b_xy + p4_b[0] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[4, 6] = dr4 * kq_d_kt * p4_b[0] / sqrt_p4b_xy + p4_b[1] * p4_b[2] / sqrt_p4b_xy
-    alloc_mat[5, 6] = -p4_b[0] ** 2 / sqrt_p4b_xy - p4_b[1] ** 2 / sqrt_p4b_xy
-
-    alloc_mat[3, 7] = p4_b[1]
-    alloc_mat[4, 7] = -p4_b[0]
-    alloc_mat[5, 7] = -dr4 * kq_d_kt
+    print(alloc_mat)
