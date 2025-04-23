@@ -6,6 +6,7 @@ import os
 import rospkg
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import cvxpy as cp
 import matplotlib.pyplot as plt
 
 # read parameters from yaml
@@ -33,6 +34,11 @@ kq_d_kt = physical_params["kq_d_kt"]
 
 t_servo = physical_params["t_servo"]  # time constant of servo
 t_rotor = physical_params["t_rotor"]  # time constant of rotor
+
+thrust_max = 30
+thrust_min = 0
+alpha_max = np.pi
+alpha_min = -np.pi
 
 
 def pseudoinverse_svd(mat, tolerance=1e-4):
@@ -78,8 +84,37 @@ def get_cmd_w_inv_mat(inv_mat, tgt_wrench):
     return full_force_to_cmd(target_force)
 
 
-def get_cmd_w_lstsq(alloc_mat, tgt_wrench):
-    target_force, _, _, _ = np.linalg.lstsq(alloc_mat, tgt_wrench, rcond=None)
+def get_cmd_w_lstsq(alloc_mtx, tgt_wrench):
+    target_force, _, _, _ = np.linalg.lstsq(alloc_mtx, tgt_wrench, rcond=None)
+    return full_force_to_cmd(target_force)
+
+
+def get_cmd_solve_qp(alloc_mtx, tgt_wrench):
+    '''
+    if only the objective is used as Ax-b (or add cp.sum_squares(x)), the result is the same as the lstsq method;
+    '''
+    alpha = 1e-3  # Tikhonov (small control effort penalty)
+
+    # ---------- decision variable ----------
+    x = cp.Variable(8)  # [Fx1,Fy1, Fx2,Fy2, Fx3,Fy3, Fx4,Fy4]
+
+    # ---------- objective ----------
+    objective = cp.Minimize(
+        cp.sum_squares(alloc_mtx @ x - tgt_wrench[:, 0])  # track wrench
+        + alpha * cp.sum_squares(x)  # keep forces small
+    )
+
+    # ---------- constraints ----------
+    constraints = []
+
+    # ---------- solve ----------
+    prob = cp.Problem(objective, constraints)
+    prob.solve(verbose=False)  # choose solver='OSQP' if you like
+
+    if prob.status != cp.OPTIMAL:
+        raise RuntimeError("allocation QP infeasible!")
+
+    target_force = x.value.reshape(8, 1)
     return full_force_to_cmd(target_force)
 
 
@@ -181,6 +216,7 @@ if __name__ == "__main__":
         "LSTSQ": None,
         "Weighted_all": inv_weighted_all,
         "Weighted_single": inv_weighted_single,
+        "QP": None,
     }
 
     # -------------------------------------------------------------------
@@ -204,7 +240,11 @@ if __name__ == "__main__":
 
         for key, inv in inv_methods.items():
             if inv is None:
-                ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
+                if key == "LSTSQ":
+                    ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
+                elif key == "QP":
+                    # QP method
+                    ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w)
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
             ft_all[key][idx, :] = ft_ref
@@ -214,7 +254,7 @@ if __name__ == "__main__":
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
     method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
-                     "Weighted_all": "tab:green", "Weighted_single": "tab:purple"}
+                     "Weighted_all": "tab:green", "Weighted_single": "tab:purple", "QP": "tab:cyan"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
