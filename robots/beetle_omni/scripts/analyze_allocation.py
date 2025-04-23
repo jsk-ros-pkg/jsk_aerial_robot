@@ -148,6 +148,21 @@ if __name__ == "__main__":
     print("ft_ref", ft_ref)
     print("a_ref", a_ref)
 
+    # -------------------------------------------------------------------
+    # Weighted pseudo-inverse
+    # pick a large weight for tilt components (entries 0,2,4,6)
+    ratio = 1.1
+    W = np.diag([ratio, 1.0, ratio, 1.0, ratio, 1.0, ratio, 1.0])
+    A = alloc_mat
+    Aw = A @ np.linalg.inv(W)
+    inv_weighted_all = W @ A.T @ np.linalg.inv(Aw @ A.T)
+
+    ratio = 1.5
+    W = np.diag([1.0, 1.0, ratio, 1.0, 1.0, 1.0, 1.0, 1.0])
+    A = alloc_mat
+    Aw = A @ np.linalg.inv(W)
+    inv_weighted_single = W @ A.T @ np.linalg.inv(Aw @ A.T)
+
     # PLOT THE RESULTS
     # -------------------------------------------------------------------
     # (1)  PSEUDOINVERSES FOR THE THREE ALLOCATION METHODS
@@ -156,6 +171,8 @@ if __name__ == "__main__":
         "SVD": alloc_mat_inv_svd,
         "pinv": alloc_mat_inv_linalg,
         "RightInverse": alloc_mat_inv_right_inverse,
+        "Weighted_all": inv_weighted_all,
+        "Weighted_single": inv_weighted_single,
     }
 
     # -------------------------------------------------------------------
@@ -185,7 +202,8 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red"}
+    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red", "Weighted_all": "tab:green",
+                     "Weighted_single": "tab:purple"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
