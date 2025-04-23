@@ -53,10 +53,7 @@ def pseudoinverse_svd(mat, tolerance=1e-4):
     return Vh.T @ singular_values_inv @ U.T
 
 
-def calculate_cmd(inv_mat, tgt_wrench):
-    # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
-    target_force = inv_mat @ tgt_wrench
-
+def full_force_to_cmd(target_force):
     # Compute reference values for thrust
     # Set either state or control input based on model properties, i.e., based on include flags
     ft1_ref = np.sqrt(target_force[0, 0] ** 2 + target_force[1, 0] ** 2)
@@ -74,6 +71,16 @@ def calculate_cmd(inv_mat, tgt_wrench):
     a_ref = [a1_ref, a2_ref, a3_ref, a4_ref]
 
     return ft_ref, a_ref
+
+
+def get_cmd_w_inv_mat(inv_mat, tgt_wrench):
+    target_force = inv_mat @ tgt_wrench
+    return full_force_to_cmd(target_force)
+
+
+def get_cmd_w_lstsq(alloc_mat, tgt_wrench):
+    target_force, _, _, _ = np.linalg.lstsq(alloc_mat, tgt_wrench, rcond=None)
+    return full_force_to_cmd(target_force)
 
 
 if __name__ == "__main__":
@@ -134,17 +141,17 @@ if __name__ == "__main__":
     target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
     print("alloc_mat == alloc_mat_inv_svd")
-    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_svd, target_wrench)
+    ft_ref, a_ref = get_cmd_w_inv_mat(alloc_mat_inv_svd, target_wrench)
     print("ft_ref", ft_ref)
     print("a_ref", a_ref)
 
     print("alloc_mat == alloc_mat_inv_linalg")
-    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_linalg, target_wrench)
+    ft_ref, a_ref = get_cmd_w_inv_mat(alloc_mat_inv_linalg, target_wrench)
     print("ft_ref", ft_ref)
     print("a_ref", a_ref)
 
     print("alloc_mat == alloc_mat_inv_right_inverse")
-    ft_ref, a_ref = calculate_cmd(alloc_mat_inv_right_inverse, target_wrench)
+    ft_ref, a_ref = get_cmd_w_inv_mat(alloc_mat_inv_right_inverse, target_wrench)
     print("ft_ref", ft_ref)
     print("a_ref", a_ref)
 
@@ -171,6 +178,7 @@ if __name__ == "__main__":
         "SVD": alloc_mat_inv_svd,
         "pinv": alloc_mat_inv_linalg,
         "RightInverse": alloc_mat_inv_right_inverse,
+        "LSTSQ": None,
         "Weighted_all": inv_weighted_all,
         "Weighted_single": inv_weighted_single,
     }
@@ -195,15 +203,18 @@ if __name__ == "__main__":
         tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
 
         for key, inv in inv_methods.items():
-            ft_ref, a_ref = calculate_cmd(inv, tgt_w)
+            if inv is None:
+                ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
+            else:
+                ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
 
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red", "Weighted_all": "tab:green",
-                     "Weighted_single": "tab:purple"}
+    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
+                     "Weighted_all": "tab:green", "Weighted_single": "tab:purple"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
