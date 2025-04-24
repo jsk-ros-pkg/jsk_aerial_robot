@@ -13,7 +13,8 @@ namespace I2C_MultiPlexer
   {
     I2C_HandleTypeDef* hi2c_;
 
-    uint8_t hub_address_ = 0x70; // the default I2C adress of PCA9547D. TODO: reconfigurable
+    // the default I2C adress of PCA9547D
+    uint8_t hub_address_ = 0xE0; // 0x70 << 1 (need to shift one bit left). TODO: reconfigurable
   };
 
   void init(I2C_HandleTypeDef* hi2c)
