@@ -1,6 +1,7 @@
 '''
  Created by li-jinjie on 25-4-23.
 '''
+import time
 import yaml
 import os
 import rospkg
@@ -244,13 +245,17 @@ if __name__ == "__main__":
 
     fg_w = np.array([0.0, 0.0, mass * gravity])  # gravity in world frame
 
-    for idx, yaw in enumerate(yaw_deg):
-        # body-frame gravity for roll=0, pitch=90°, varying yaw
-        R_bw = R.from_euler('zyx', [yaw, 90.0, 0.0], degrees=True).as_matrix().T
-        fg_b = R_bw @ fg_w
-        tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
+    for key, inv in inv_methods.items():
+        time_start = time.time()
 
-        for key, inv in inv_methods.items():
+        rotor_idx_prev = -1
+        alloc_mat_del_rotor_inv = None
+        for idx, yaw in enumerate(yaw_deg):
+            # body-frame gravity for roll=0, pitch=90°, varying yaw
+            R_bw = R.from_euler('zyx', [yaw, 90.0, 0.0], degrees=True).as_matrix().T
+            fg_b = R_bw @ fg_w
+            tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
+
             if inv is None:
                 if key == "LSTSQ":
                     ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
@@ -268,10 +273,13 @@ if __name__ == "__main__":
 
                     if len(rotor_idx) > 1:
                         raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+                    elif len(rotor_idx) == 0:
+                        rotor_idx = -1
+                    elif len(rotor_idx) == 1:
+                        rotor_idx = rotor_idx[0]
 
                     # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
-                    if len(rotor_idx) == 1:
-                        rotor_idx = rotor_idx[0]
+                    if rotor_idx != -1:
                         ft_stop_rotor = ft_ref[rotor_idx]
                         alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
                         ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
@@ -292,8 +300,9 @@ if __name__ == "__main__":
                             tgt_wrench_modified = tgt_w - tgt_wrench_from_rotor
 
                             # 4.3) calculate the allocation matrix without this rotor, which is 6*6
-                            alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
-                            alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
+                            if rotor_idx != rotor_idx_prev:
+                                alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
+                                alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
 
                             # 4.4) reconstruct the z output
                             z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
@@ -305,10 +314,15 @@ if __name__ == "__main__":
                             # 4.6) reconstruct the thrust and servo angle
                             ft_ref, a_ref = full_force_to_cmd(z_final)
 
+                    rotor_idx_prev = rotor_idx
+
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
+
+        time_end = time.time()
+        print(f"Method: {key}, Average time: {(time_end - time_start) / len(yaw_deg) * 1000} ms")
 
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
