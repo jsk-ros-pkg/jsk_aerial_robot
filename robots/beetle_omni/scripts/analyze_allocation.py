@@ -89,9 +89,12 @@ def get_cmd_w_lstsq(alloc_mtx, tgt_wrench):
     return full_force_to_cmd(target_force)
 
 
-def get_cmd_solve_qp(alloc_mtx, tgt_wrench):
+def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_rotor_fx=None, shutdown_rotor_fy=None):
     '''
     if only the objective is used as Ax-b (or add cp.sum_squares(x)), the result is the same as the lstsq method;
+    :param alloc_mtx: allocation matrix
+    :param tgt_wrench: target wrench
+    :param shutdown_rotor_idx: rotor shutdown index, from 0 to 3
     '''
     alpha = 1e-3  # Tikhonov (small control effort penalty)
 
@@ -106,6 +109,13 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench):
 
     # ---------- constraints ----------
     constraints = []
+
+    if shutdown_rotor_idx is None:
+        constraints += [x[3] >= 0]
+    else:
+        # rotor shutdown
+        constraints += [x[2 * shutdown_rotor_idx] == shutdown_rotor_fx,
+                        x[2 * shutdown_rotor_idx + 1] == shutdown_rotor_fy]
 
     # ---------- solve ----------
     prob = cp.Problem(objective, constraints)
@@ -211,12 +221,13 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
     inv_methods = {  # <--  this is what the patch uses
         "SVD": alloc_mat_inv_svd,
-        "pinv": alloc_mat_inv_linalg,
+        "np.pinv": alloc_mat_inv_linalg,
         "RightInverse": alloc_mat_inv_right_inverse,
         "LSTSQ": None,
-        "Weighted_all": inv_weighted_all,
+        # "Weighted_all": inv_weighted_all,
         "Weighted_single": inv_weighted_single,
-        "QP": None,
+        "Constrained_QP": None,
+        "LSTSQ+QP": None,
     }
 
     # -------------------------------------------------------------------
@@ -242,9 +253,33 @@ if __name__ == "__main__":
             if inv is None:
                 if key == "LSTSQ":
                     ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
-                elif key == "QP":
-                    # QP method
+                elif key == "Constrained_QP":
                     ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w)
+                elif key == "LSTSQ+QP":
+                    # 1) do one allocation
+                    target_force, _, _, _ = np.linalg.lstsq(alloc_mat, tgt_w, rcond=None)
+                    ft_ref, a_ref = full_force_to_cmd(target_force)
+                    # 2) check if one rotor's thrust is less than threshold and flip backwards
+                    ft_thresh = 1.0  # N
+                    rotor_idx_ft_cond = np.where(np.array(ft_ref) < ft_thresh)
+                    rotor_idx_alpha_cond = np.where((np.array(a_ref) > np.pi / 2) | (np.array(a_ref) < -np.pi / 2))
+                    rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
+
+                    if len(rotor_idx) > 1:
+                        raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+
+                    # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
+                    if len(rotor_idx) == 1:
+                        rotor_idx = rotor_idx[0]
+                        ft_stop_rotor = ft_ref[rotor_idx]
+                        alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
+                        ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
+                        ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
+
+                        # 4) do a QP with this rotor shutdown
+                        ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
+                                                         ft_stop_rotor_x, ft_stop_rotor_y)
+
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
             ft_all[key][idx, :] = ft_ref
@@ -253,8 +288,10 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange", "pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
-                     "Weighted_all": "tab:green", "Weighted_single": "tab:purple", "QP": "tab:cyan"}
+    method_colors = {"SVD": "tab:orange", "np.pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
+                     # "Weighted_all": "tab:green",
+                     "Weighted_single": "tab:purple", "Constrained_QP": "tab:cyan",
+                     "LSTSQ+QP": "tab:brown"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
