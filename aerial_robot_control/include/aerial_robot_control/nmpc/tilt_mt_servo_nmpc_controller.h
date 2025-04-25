@@ -106,7 +106,10 @@ protected:
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
-  int alloc_type_ = 0;  // For singularity points
+  // For singularity points
+  int alloc_type_ = 0;
+  int rotor_idx_prev_ = -1;
+  Eigen::MatrixXd alloc_mat_del_rotor_inv_;
 
   /* initialize() */
   virtual void initPlugins() {};
@@ -137,7 +140,7 @@ protected:
                   const int& horizon_idx);
   virtual void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                             const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
-                            const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const;
+                            const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u);
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event) override;
