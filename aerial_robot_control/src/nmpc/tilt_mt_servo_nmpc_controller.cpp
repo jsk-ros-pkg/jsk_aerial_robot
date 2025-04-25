@@ -620,6 +620,25 @@ void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
   /* set reference */
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
+
+  cout << "==============" << endl;
+  // for (int i =0; i < mpc_solver_ptr_->xr_.size(); i++)
+  // {
+  int i = 0;
+  cout << "xr i:" << i;
+  for (int j = 0; j < mpc_solver_ptr_ -> xr_[0].size(); j++)
+  {
+    cout << " " << mpc_solver_ptr_ -> xr_[i][j];
+  }
+  cout << endl;
+
+  cout << "ur i:" << i;
+  for (int j = 0; j < mpc_solver_ptr_ -> ur_[0].size(); j++)
+  {
+    cout << " " << mpc_solver_ptr_ -> ur_[i][j];
+  }
+  cout << endl;
+  // }
 }
 
 void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
@@ -885,7 +904,7 @@ void nmpc::TiltMtServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::V
 
 void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                                          const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
-                                         const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const
+                                         const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u)
 {
   x.at(0) = ref_pos_i.x();
   x.at(1) = ref_pos_i.y();
