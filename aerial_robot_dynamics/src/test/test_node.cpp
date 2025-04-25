@@ -57,5 +57,14 @@ int main (int argc, char** argv)
       std::cout << std::endl;
     }
 
+    for(int i = 0; i < 3; i++)
+    {
+      std::cout << "-------------------------" << std::endl;
+      bool tauext_by_thrust_derivative_test = robot_model_test.computeTauExtByThrustDerivativeQDerivativesTest(verbose);
+      std::cout << "computeTauExtPartialThrustPartialQTest: " << tauext_by_thrust_derivative_test << std::endl;
+      std::cout << "-------------------------" << std::endl;
+      std::cout << std::endl;
+    }
+
   return 0;
 }
