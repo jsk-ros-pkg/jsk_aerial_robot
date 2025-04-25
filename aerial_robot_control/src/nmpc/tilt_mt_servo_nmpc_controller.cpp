@@ -620,25 +620,6 @@ void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
   /* set reference */
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
-
-  cout << "==============" << endl;
-  // for (int i =0; i < mpc_solver_ptr_->xr_.size(); i++)
-  // {
-  int i = 0;
-  cout << "xr i:" << i;
-  for (int j = 0; j < mpc_solver_ptr_ -> xr_[0].size(); j++)
-  {
-    cout << " " << mpc_solver_ptr_ -> xr_[i][j];
-  }
-  cout << endl;
-
-  cout << "ur i:" << i;
-  for (int j = 0; j < mpc_solver_ptr_ -> ur_[0].size(); j++)
-  {
-    cout << " " << mpc_solver_ptr_ -> ur_[i][j];
-  }
-  cout << endl;
-  // }
 }
 
 void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
@@ -970,7 +951,7 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
 
   // 4) re-alloc
   // 4.1) construct tgt_wrench from z_from_rotor
-  Eigen::VectorXd z_from_rotor(x_lambda.size());
+  Eigen::VectorXd z_from_rotor = Eigen::VectorXd::Zero(x_lambda.size());
   z_from_rotor(2 * rotor_idx) = ft_stop_rotor_x;
   z_from_rotor(2 * rotor_idx + 1) = ft_stop_rotor_y;
   Eigen::VectorXd tgt_wrench_from_rotor = alloc_mat_ * z_from_rotor;
