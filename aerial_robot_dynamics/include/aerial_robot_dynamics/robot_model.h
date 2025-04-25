@@ -26,51 +26,67 @@
 
 namespace aerial_robot_dynamics
 {
-  class PinocchioRobotModel
+class PinocchioRobotModel
+{
+public:
+  PinocchioRobotModel();
+  ~PinocchioRobotModel() = default;
+
+  std::shared_ptr<pinocchio::Model> getModel() const
   {
-  public:
-    PinocchioRobotModel();
-    ~PinocchioRobotModel() = default;
+    return model_;
+  }
+  std::shared_ptr<pinocchio::Data> getData() const
+  {
+    return data_;
+  }
 
-    std::shared_ptr<pinocchio::Model> getModel() const {return model_;}
-    std::shared_ptr<pinocchio::Data> getData() const {return data_;}
+  Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau,
+                                  Eigen::VectorXd& thrust);
+  Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
+                                             const Eigen::VectorXd& tau, Eigen::VectorXd& aba_partial_dthrust);
+  Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
+  void inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                                  Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv,
+                                  Eigen::MatrixXd& id_partial_da);
 
-    Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
-    Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau, Eigen::VectorXd& aba_partial_dthrust);
-    Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
-    void inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
-                                    Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv, Eigen::MatrixXd& id_partial_da);
+  std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
+  std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
 
-    std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
-    std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
+  const int& getRotorNum() const
+  {
+    return rotor_num_;
+  }
+  const double& getMFRate() const
+  {
+    return m_f_rate_;
+  }
+  Eigen::VectorXd getResetConfiguration();
 
-    const int& getRotorNum() const {return rotor_num_;}
-    const double& getMFRate() const {return m_f_rate_;}
-    Eigen::VectorXd getResetConfiguration();
+private:
+  std::shared_ptr<pinocchio::Model> model_;
+  std::shared_ptr<pinocchio::Data> data_;
 
-  private:
-    std::shared_ptr<pinocchio::Model> model_;
-    std::shared_ptr<pinocchio::Data> data_;
+  // QP solver for Inverse Dynamics
+  OsqpEigen::Solver id_solver_;
+  Eigen::VectorXd gradient_;
+  Eigen::VectorXd lower_bound_;
+  Eigen::VectorXd upper_bound_;
 
-    // QP solver for Inverse Dynamics
-    OsqpEigen::Solver id_solver_;
-    Eigen::VectorXd gradient_;
-    Eigen::VectorXd lower_bound_;
-    Eigen::VectorXd upper_bound_;
+  // model parameters
+  int rotor_num_;
+  double m_f_rate_;
+  double max_thrust_;
+  double min_thrust_;
+  double joint_torque_limit_;
 
-    // model parameters
-    int rotor_num_;
-    double m_f_rate_;
-    double max_thrust_;
-    double min_thrust_;
-    double joint_torque_limit_;
+  // ID solver parameters
+  double thrust_hessian_weight_ = 0.1;
 
-    // ID solver parameters
-    double thrust_hessian_weight_ = 0.1;
+  Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
+  pinocchio::container::aligned_vector<pinocchio::Force>
+  computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in the LOCAL frame
 
-    Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
-    pinocchio::container::aligned_vector<pinocchio::Force> computeFExtByThrust(const Eigen::VectorXd& thrust); // external force is expressed in the LOCAL frame
-
-    std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
-  };
-} // namespace aerial_robot_dynamics
+  std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
+};
+}  // namespace aerial_robot_dynamics

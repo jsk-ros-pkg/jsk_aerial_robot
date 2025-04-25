@@ -4,22 +4,22 @@
 
 namespace aerial_robot_dynamics
 {
-  class PinocchioRobotModelTest
+class PinocchioRobotModelTest
+{
+public:
+  PinocchioRobotModelTest()
   {
-  public:
-    PinocchioRobotModelTest()
-    {
-      robot_model_ = std::make_shared<PinocchioRobotModel>();
-    }
-    ~PinocchioRobotModelTest() = default;
+    robot_model_ = std::make_shared<PinocchioRobotModel>();
+  }
+  ~PinocchioRobotModelTest() = default;
 
-    bool forwardDynamicsTest(bool verbose = false);
-    bool forwardDynamicsDerivativesTest(bool verbose = false);
-    bool inverseDynamicsTest(bool verbose = false);
-    bool inverseDynamicsDerivativesTest(bool verbose = false);
-    bool computeTauExtByThrustDerivativeQDerivativesTest(bool verbose = false);
+  bool forwardDynamicsTest(bool verbose = false);
+  bool forwardDynamicsDerivativesTest(bool verbose = false);
+  bool inverseDynamicsTest(bool verbose = false);
+  bool inverseDynamicsDerivativesTest(bool verbose = false);
+  bool computeTauExtByThrustDerivativeQDerivativesTest(bool verbose = false);
 
-  private:
-    std::shared_ptr<PinocchioRobotModel> robot_model_;
-  };
-}
+private:
+  std::shared_ptr<PinocchioRobotModel> robot_model_;
+};
+}  // namespace aerial_robot_dynamics
