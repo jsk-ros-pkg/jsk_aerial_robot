@@ -919,35 +919,97 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   x.at(10) = ref_omega_b.x();
   x.at(11) = ref_omega_b.y();
   x.at(12) = ref_omega_b.z();
-  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
-  for (int i = 0; i < x_lambda.size() / 2; i++)
-  {
-    double ft_ref = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
-    u.at(i) = ft_ref;
 
-    double a_ref;
-    switch (alloc_type_)
-    {
-      case 0:
-        a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-        x.at(13 + i) = a_ref;
-        break;
-      case 1:
-        if (ft_ref < thrust_ctrl_min_)
-        {
-          a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
-        }
-        else
-        {
-          a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-        }
-        x.at(13 + i) = a_ref;
-        break;
-      default:
-        ROS_WARN("Invalid alloc type!");
-        break;
-    }
+  // 1) do one allocation
+  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
+  std::vector<double> ft_ref_vec(motor_num_);
+  std::vector<double> a_ref_vec(joint_num_);
+  // assert(motor_num_ == joint_num_);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    ft_ref_vec[i] = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
+    a_ref_vec[i] = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+
+    u.at(i) = ft_ref_vec[i];
+    x.at(13 + i) = a_ref_vec[i];
   }
+
+  if (alloc_type_ == 0)
+    return;
+
+  // 2) check if one rotor's thrust is less than threshold and flip backwards
+  double ft_thresh = 1.0;  // N
+  std::vector<int> rotor_idx_vec;
+  for (int i = 0; i < motor_num_; i++)
+  {
+    if (ft_ref_vec[i] > ft_thresh)
+      continue;
+
+    if (a_ref_vec[i] >= -M_PI_2 && a_ref_vec[i] <= M_PI_2)
+      continue;
+
+    rotor_idx_vec.push_back(i);
+  }
+
+  if (rotor_idx_vec.empty())
+    return;
+
+  if (rotor_idx_vec.size() > 1)
+  {
+    ROS_ERROR("More than one rotor is below threshold and flip backwards! Cannot allocate!");
+    return;
+  }
+
+  int rotor_idx = rotor_idx_vec.at(0);
+
+  // 3) if rotor_idx is not empty, maintain the thrust and modify the angle
+  double ft_stop_rotor = ft_ref_vec[rotor_idx];
+  double alpha_stop_rotor = M_PI_2 - acos(x_lambda(2 * rotor_idx) / ft_thresh);
+  double ft_stop_rotor_x = ft_stop_rotor * sin(alpha_stop_rotor);
+  double ft_stop_rotor_y = ft_stop_rotor * cos(alpha_stop_rotor);
+
+  // 4) re-alloc
+  // 4.1) construct tgt_wrench from z_from_rotor
+  Eigen::VectorXd z_from_rotor(x_lambda.size());
+  z_from_rotor(2 * rotor_idx) = ft_stop_rotor_x;
+  z_from_rotor(2 * rotor_idx + 1) = ft_stop_rotor_y;
+  Eigen::VectorXd tgt_wrench_from_rotor = alloc_mat_ * z_from_rotor;
+
+  // 4.2) calculate alloc_mat with this rotor's contribution
+  Eigen::VectorXd tgt_wrench_modified = ref_wrench_b - tgt_wrench_from_rotor;
+
+  // 4.3) calculate the allocation matrix without this rotor, which is 6*6
+  if (rotor_idx != rotor_idx_prev_)
+  {
+    Eigen::MatrixXd alloc_mat_del_rotor(alloc_mat_.rows(), alloc_mat_.cols() - 2);
+    int j = 0;
+    for (int k = 0; k < alloc_mat_.cols(); ++k)
+    {
+      if (k == 2 * rotor_idx || k == 2 * rotor_idx + 1)
+        continue;  // 跳过要删除的列
+      alloc_mat_del_rotor.col(j++) = alloc_mat_.col(k);
+    }
+    alloc_mat_del_rotor_inv_ = alloc_mat_del_rotor.inverse();
+  }
+
+  // 4.4) reconstruct the z output
+  Eigen::VectorXd z_except_rotor = alloc_mat_del_rotor_inv_ * tgt_wrench_modified;
+
+  // 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
+  Eigen::VectorXd z_final(x_lambda.size());
+  z_final.head(2 * rotor_idx) = z_except_rotor.head(2 * rotor_idx);
+  z_final(2 * rotor_idx) = ft_stop_rotor_x;
+  z_final(2 * rotor_idx + 1) = ft_stop_rotor_y;
+  z_final.tail(z_except_rotor.size() - 2 * rotor_idx) = z_except_rotor.tail(z_except_rotor.size() - 2 * rotor_idx);
+
+  // 4.6) reconstruct the thrust and servo angle
+  for (int i = 0; i < motor_num_; i++)
+  {
+    u.at(i) = sqrt(z_final(2 * i) * z_final(2 * i) + z_final(2 * i + 1) * z_final(2 * i + 1));
+    x.at(13 + i) = atan2(z_final(2 * i), z_final(2 * i + 1));
+  }
+
+  rotor_idx_prev_ = rotor_idx;
 }
 
 /* plugin registration */
