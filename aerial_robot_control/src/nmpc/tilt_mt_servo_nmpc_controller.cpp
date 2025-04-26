@@ -136,8 +136,11 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(nh_, "physical");
+  ros::NodeHandle alloc_nh(control_nh, "alloc");
 
-  getParam<int>(control_nh, "alloc_type", alloc_type_, 0);
+  getParam<int>(alloc_nh, "type", alloc_type_, 0);
+  getParam<double>(alloc_nh, "ft_thresh", ft_thresh_, 0.5);
+  assert(ft_thresh_ > 0.0);  // used to calculate angle in singularity pose
 
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
@@ -919,11 +922,10 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
     return;
 
   // 2) check if one rotor's thrust is less than threshold and flip backwards
-  double ft_thresh = 1.0;  // N
   std::vector<int> rotor_idx_vec;
   for (int i = 0; i < motor_num_; i++)
   {
-    if (ft_ref_vec[i] > ft_thresh)
+    if (ft_ref_vec[i] > ft_thresh_)
       continue;
 
     if (a_ref_vec[i] >= -M_PI_2 && a_ref_vec[i] <= M_PI_2)
@@ -945,7 +947,7 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
 
   // 3) if rotor_idx is not empty, maintain the thrust and modify the angle
   double ft_stop_rotor = ft_ref_vec[rotor_idx];
-  double alpha_stop_rotor = M_PI_2 - acos(x_lambda(2 * rotor_idx) / ft_thresh);
+  double alpha_stop_rotor = M_PI_2 - acos(x_lambda(2 * rotor_idx) / ft_thresh_);
   double ft_stop_rotor_x = ft_stop_rotor * sin(alpha_stop_rotor);
   double ft_stop_rotor_y = ft_stop_rotor * cos(alpha_stop_rotor);
 

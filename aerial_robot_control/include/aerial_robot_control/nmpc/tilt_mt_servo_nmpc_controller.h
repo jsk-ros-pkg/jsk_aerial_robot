@@ -108,6 +108,7 @@ protected:
 
   // For singularity points
   int alloc_type_ = 0;
+  double ft_thresh_;
   int rotor_idx_prev_ = -1;
   Eigen::MatrixXd alloc_mat_del_rotor_inv_;
 
