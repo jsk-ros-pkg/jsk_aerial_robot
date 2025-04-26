@@ -948,51 +948,61 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   // 3) if rotor_idx is not empty, maintain the thrust and modify the angle
   double ft_stop_rotor = ft_ref_vec[rotor_idx];
   double alpha_stop_rotor = M_PI_2 - acos(x_lambda(2 * rotor_idx) / ft_thresh_);
-  double ft_stop_rotor_x = ft_stop_rotor * sin(alpha_stop_rotor);
-  double ft_stop_rotor_y = ft_stop_rotor * cos(alpha_stop_rotor);
 
   // 4) re-alloc
-  // 4.1) construct tgt_wrench from z_from_rotor
-  Eigen::VectorXd z_from_rotor = Eigen::VectorXd::Zero(x_lambda.size());
-  z_from_rotor(2 * rotor_idx) = ft_stop_rotor_x;
-  z_from_rotor(2 * rotor_idx + 1) = ft_stop_rotor_y;
+  allocateToXUwOneFixedRotor(rotor_idx, ft_stop_rotor, alpha_stop_rotor, ref_wrench_b, x, u);
+}
+
+void nmpc::TiltMtServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha,
+                                                       const VectorXd& ref_wrench_b, vector<double>& x,
+                                                       vector<double>& u)
+{
+  double fix_ft_x = fix_ft * sin(fix_alpha);
+  double fix_ft_y = fix_ft * cos(fix_alpha);
+
+  // 1) construct tgt_wrench from z_from_rotor
+  Eigen::VectorXd z_from_rotor = Eigen::VectorXd::Zero(motor_num_ * 2);
+  z_from_rotor(2 * fix_rotor_idx) = fix_ft_x;
+  z_from_rotor(2 * fix_rotor_idx + 1) = fix_ft_y;
   Eigen::VectorXd tgt_wrench_from_rotor = alloc_mat_ * z_from_rotor;
 
-  // 4.2) calculate alloc_mat with this rotor's contribution
+  // 2) calculate alloc_mat with this rotor's contribution
   Eigen::VectorXd tgt_wrench_modified = ref_wrench_b - tgt_wrench_from_rotor;
 
-  // 4.3) calculate the allocation matrix without this rotor, which is 6*6
-  if (rotor_idx != rotor_idx_prev_)
+  // 3) calculate the allocation matrix without this rotor, which is 6*6
+  if (fix_rotor_idx != rotor_idx_prev_)
   {
     Eigen::MatrixXd alloc_mat_del_rotor(alloc_mat_.rows(), alloc_mat_.cols() - 2);
     int j = 0;
     for (int k = 0; k < alloc_mat_.cols(); ++k)
     {
-      if (k == 2 * rotor_idx || k == 2 * rotor_idx + 1)
+      if (k == 2 * fix_rotor_idx || k == 2 * fix_rotor_idx + 1)
         continue;  // 跳过要删除的列
       alloc_mat_del_rotor.col(j++) = alloc_mat_.col(k);
     }
     alloc_mat_del_rotor_inv_ = alloc_mat_del_rotor.inverse();
   }
 
-  // 4.4) reconstruct the z output
+  // 4) reconstruct the z output
   Eigen::VectorXd z_except_rotor = alloc_mat_del_rotor_inv_ * tgt_wrench_modified;
 
-  // 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
-  Eigen::VectorXd z_final(x_lambda.size());
-  z_final.head(2 * rotor_idx) = z_except_rotor.head(2 * rotor_idx);
-  z_final(2 * rotor_idx) = ft_stop_rotor_x;
-  z_final(2 * rotor_idx + 1) = ft_stop_rotor_y;
-  z_final.tail(z_except_rotor.size() - 2 * rotor_idx) = z_except_rotor.tail(z_except_rotor.size() - 2 * rotor_idx);
+  // 5) at the place of 2*fix_rotor_idx, insert 2 numbers to z_except_rotor
+  Eigen::VectorXd z_final(motor_num_ * 2);
+  z_final.head(2 * fix_rotor_idx) = z_except_rotor.head(2 * fix_rotor_idx);
+  z_final(2 * fix_rotor_idx) = fix_ft_x;
+  z_final(2 * fix_rotor_idx + 1) = fix_ft_y;
+  z_final.tail(z_except_rotor.size() - 2 * fix_rotor_idx) =
+      z_except_rotor.tail(z_except_rotor.size() - 2 * fix_rotor_idx);
 
-  // 4.6) reconstruct the thrust and servo angle
+  // 6) reconstruct the thrust and servo angle
   for (int i = 0; i < motor_num_; i++)
   {
     u.at(i) = sqrt(z_final(2 * i) * z_final(2 * i) + z_final(2 * i + 1) * z_final(2 * i + 1));
     x.at(13 + i) = atan2(z_final(2 * i), z_final(2 * i + 1));
   }
 
-  rotor_idx_prev_ = rotor_idx;
+  // if the fixed rotor is the same with previous one, no need to recalculate the allocation matrix.
+  rotor_idx_prev_ = fix_rotor_idx;
 }
 
 /* plugin registration */

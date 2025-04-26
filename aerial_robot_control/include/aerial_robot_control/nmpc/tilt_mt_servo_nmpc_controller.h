@@ -142,6 +142,8 @@ protected:
   virtual void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                             const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
                             const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u);
+  void allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha, const VectorXd& ref_wrench_b,
+                                  vector<double>& x, vector<double>& u);
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event) override;
