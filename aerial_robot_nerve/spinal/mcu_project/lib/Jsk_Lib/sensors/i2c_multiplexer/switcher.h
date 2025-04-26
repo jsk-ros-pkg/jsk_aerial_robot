@@ -17,7 +17,7 @@
 namespace I2C_MultiPlexer
 {
   void init(I2C_HandleTypeDef* hi2c);
-  bool changeChannel(uint8_t ch);
+  HAL_StatusTypeDef changeChannel(uint8_t ch);
 };
 
 
