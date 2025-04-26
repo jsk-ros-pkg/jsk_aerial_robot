@@ -655,13 +655,6 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
 
 void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
 {
-  // shutdown this mode is easy
-  if (msg->is_on == false)
-  {
-    is_set_fix_rotor_ = false;
-    return;
-  }
-
   // failsafe
   if (msg->rotor_id < 0 || msg->rotor_id >= motor_num_)
   {
@@ -685,10 +678,8 @@ void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRo
   }
 
   // set values
-  set_fix_rotor_idx_ = msg->rotor_id;
-  set_fix_ft_ = msg->fix_ft;
-  set_fix_alpha_ = msg->fix_alpha;
-  is_set_fix_rotor_ = msg->is_on;
+  is_set_fix_rotor_ = true;
+  fix_rotor_msg_ = *msg;
 }
 
 void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
@@ -943,9 +934,16 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   x.at(12) = ref_omega_b.z();
 
   // ========= 0) if one rotor is fixed, do it and finish. ======
-  if (is_set_fix_rotor_ == true)
+  if (is_set_fix_rotor_)
   {
-    allocateToXUwOneFixedRotor(set_fix_rotor_idx_, set_fix_ft_, set_fix_alpha_, ref_wrench_b, x, u);
+    if (ros::Time::now() - fix_rotor_msg_.header.stamp > ros::Duration(0.1))
+    {
+      ROS_INFO_THROTTLE(1, "No FixRotor msg for 0.1s. Recover to the normal allocation state.");
+      is_set_fix_rotor_ = false;
+    }
+
+    allocateToXUwOneFixedRotor(fix_rotor_msg_.rotor_id, fix_rotor_msg_.fix_ft, fix_rotor_msg_.fix_alpha, ref_wrench_b,
+                               x, u);
     return;
   }
   // =============================================================

@@ -117,9 +117,7 @@ protected:
 
   // For fixing rotor
   bool is_set_fix_rotor_ = false;
-  int set_fix_rotor_idx_ = -1;
-  double set_fix_ft_ = 0;
-  double set_fix_alpha_ = 0;
+  aerial_robot_msgs::FixRotor fix_rotor_msg_;
 
   /* initialize() */
   virtual void initPlugins() {};
