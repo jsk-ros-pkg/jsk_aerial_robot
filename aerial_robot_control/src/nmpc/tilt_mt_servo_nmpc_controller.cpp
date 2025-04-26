@@ -55,6 +55,7 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltMtServoNMPC::callbackSetRPY, this);
   sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltMtServoNMPC::callbackSetRefXU, this);
   sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltMtServoNMPC::callbackSetRefTraj, this);
+  sub_set_fixed_rotor_ = nh_.subscribe("set_fixed_rotor", 5, &TiltMtServoNMPC::callbackSetFixedRotor, this);
 
   /* init some values */
   setControlMode();
@@ -207,15 +208,14 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
   double body_rate_max, body_rate_min, vel_max, vel_min;
-  double servo_angle_max, servo_angle_min;
   getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
   getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
   getParam<double>(nmpc_nh, "v_max", vel_max, 1.0);
   getParam<double>(nmpc_nh, "v_min", vel_min, -1.0);
   getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
-  getParam<double>(nmpc_nh, "a_max", servo_angle_max, 3.1416);
-  getParam<double>(nmpc_nh, "a_min", servo_angle_min, -3.1416);
+  getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
+  getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
 
   std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
   std::vector<int> idxbx_desired = { 3, 4, 5, 10, 11, 12 };
@@ -235,8 +235,8 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   ubx.resize(6 + joint_num_);
   for (int i = 0; i < joint_num_; i++)
   {
-    lbx[6 + i] = servo_angle_min;
-    ubx[6 + i] = servo_angle_max;
+    lbx[6 + i] = servo_angle_min_;
+    ubx[6 + i] = servo_angle_max_;
   }
   mpc_solver_ptr_->setConstraintsLbx(lbx);
   mpc_solver_ptr_->setConstraintsUbx(ubx);
@@ -265,8 +265,8 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   }
   for (int i = 0; i < joint_num_; i++)
   {
-    lbu[motor_num_ + i] = servo_angle_min;
-    ubu[motor_num_ + i] = servo_angle_max;
+    lbu[motor_num_ + i] = servo_angle_min_;
+    ubu[motor_num_ + i] = servo_angle_max_;
   }
   mpc_solver_ptr_->setConstraintsLbu(lbu);
   mpc_solver_ptr_->setConstraintsUbu(ubu);
@@ -653,6 +653,44 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   callbackSetRefXU(boost::make_shared<const aerial_robot_msgs::PredXU>(x_u_ref_));
 }
 
+void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
+{
+  // shutdown this mode is easy
+  if (msg->is_on == false)
+  {
+    is_set_fix_rotor = false;
+    return;
+  }
+
+  // failsafe
+  if (msg->rotor_id < 0 || msg->rotor_id >= motor_num_)
+  {
+    ROS_WARN_STREAM("The rotor_id " << static_cast<int>(msg->rotor_id)
+                                    << " is incorrect. Note that the id starts from 0.");
+    return;
+  }
+
+  if (msg->fix_ft < thrust_ctrl_min_ || msg->fix_ft > thrust_ctrl_max_)
+  {
+    ROS_WARN_STREAM("The fix_ft value " << msg->fix_ft << " is out of range. It should be between " << thrust_ctrl_min_
+                                        << " and " << thrust_ctrl_max_ << ".");
+    return;
+  }
+
+  if (msg->fix_alpha < servo_angle_min_ || msg->fix_alpha > servo_angle_max_)
+  {
+    ROS_WARN_STREAM("The fix_alpha value " << msg->fix_alpha << " is out of range. It should be between "
+                                           << servo_angle_min_ << " and " << servo_angle_max_ << ".");
+    return;
+  }
+
+  // set values
+  set_fix_rotor_idx_ = msg->rotor_id;
+  set_fix_ft = msg->fix_ft;
+  set_fix_alpha = msg->fix_alpha;
+  is_set_fix_rotor = msg->is_on;
+}
+
 void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
@@ -903,6 +941,14 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   x.at(10) = ref_omega_b.x();
   x.at(11) = ref_omega_b.y();
   x.at(12) = ref_omega_b.z();
+
+  // ========= 0) if one rotor is fixed, do it and finish. ======
+  if (is_set_fix_rotor == true)
+  {
+    allocateToXUwOneFixedRotor(set_fix_rotor_idx_, set_fix_ft, set_fix_alpha, ref_wrench_b, x, u);
+    return;
+  }
+  // =============================================================
 
   // 1) do one allocation
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;

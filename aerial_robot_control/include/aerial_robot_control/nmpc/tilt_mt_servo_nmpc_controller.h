@@ -21,6 +21,7 @@
 #include "trajectory_msgs/MultiDOFJointTrajectoryPoint.h"
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
+#include "aerial_robot_msgs/FixRotor.h"
 #include "spinal/FourAxisCommand.h"
 #include "spinal/SetControlMode.h"
 #include "spinal/FlightConfigCmd.h"
@@ -71,6 +72,7 @@ protected:
   ros::Subscriber sub_set_rpy_;
   ros::Subscriber sub_set_ref_x_u_;
   ros::Subscriber sub_set_traj_;
+  ros::Subscriber sub_set_fixed_rotor_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
@@ -86,6 +88,8 @@ protected:
   double thrust_ctrl_min_;
   int joint_num_;
   double t_servo_;
+  double servo_angle_max_;
+  double servo_angle_min_;
 
   double t_nmpc_samp_;
   double t_nmpc_step_;
@@ -111,6 +115,12 @@ protected:
   double ft_thresh_;
   int rotor_idx_prev_ = -1;
   Eigen::MatrixXd alloc_mat_del_rotor_inv_;
+
+  // For fixing rotor
+  bool is_set_fix_rotor = false;
+  int set_fix_rotor_idx_ = -1;
+  double set_fix_ft = 0;
+  double set_fix_alpha = 0;
 
   /* initialize() */
   virtual void initPlugins() {};
@@ -151,6 +161,7 @@ protected:
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
   void callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
+  void callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg);
   virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
