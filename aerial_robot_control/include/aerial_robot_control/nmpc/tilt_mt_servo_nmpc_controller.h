@@ -104,7 +104,6 @@ protected:
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
-  ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
 
   aerial_robot_msgs::PredXU x_u_ref_;  // TODO: maybe we should remove x_u_ref_ and use xr_ & ur_ inside mpc_solver_ptr_
   spinal::FourAxisCommand flight_cmd_;
@@ -117,10 +116,10 @@ protected:
   Eigen::MatrixXd alloc_mat_del_rotor_inv_;
 
   // For fixing rotor
-  bool is_set_fix_rotor = false;
+  bool is_set_fix_rotor_ = false;
   int set_fix_rotor_idx_ = -1;
-  double set_fix_ft = 0;
-  double set_fix_alpha = 0;
+  double set_fix_ft_ = 0;
+  double set_fix_alpha_ = 0;
 
   /* initialize() */
   virtual void initPlugins() {};

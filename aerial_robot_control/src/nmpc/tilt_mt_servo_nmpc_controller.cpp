@@ -450,9 +450,9 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
   if (is_traj_tracking_)
   {
-    if (ros::Time::now() - receive_time_ > ros::Duration(0.5))
+    if (ros::Time::now() - x_u_ref_.header.stamp > ros::Duration(0.5))
     {
-      ROS_INFO("No msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
+      ROS_INFO("No traj msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
       is_traj_tracking_ = false;
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
@@ -470,9 +470,9 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
     }
-    else if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
+    else if (ros::Time::now() - x_u_ref_.header.stamp > ros::Duration(0.1))
     {
-      ROS_INFO_THROTTLE(1, "No msg for 0.1s. Try to track current pose.");
+      ROS_INFO_THROTTLE(1, "No traj msg for 0.1s. Try to track current pose.");
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
 
@@ -618,7 +618,6 @@ void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
 
   /* receive info */
   x_u_ref_ = *msg;
-  receive_time_ = ros::Time::now();
 
   /* set reference */
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
@@ -650,6 +649,7 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
                tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
   }
 
+  x_u_ref_.header.stamp = msg->header.stamp;
   callbackSetRefXU(boost::make_shared<const aerial_robot_msgs::PredXU>(x_u_ref_));
 }
 
@@ -658,7 +658,7 @@ void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRo
   // shutdown this mode is easy
   if (msg->is_on == false)
   {
-    is_set_fix_rotor = false;
+    is_set_fix_rotor_ = false;
     return;
   }
 
@@ -686,9 +686,9 @@ void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRo
 
   // set values
   set_fix_rotor_idx_ = msg->rotor_id;
-  set_fix_ft = msg->fix_ft;
-  set_fix_alpha = msg->fix_alpha;
-  is_set_fix_rotor = msg->is_on;
+  set_fix_ft_ = msg->fix_ft;
+  set_fix_alpha_ = msg->fix_alpha;
+  is_set_fix_rotor_ = msg->is_on;
 }
 
 void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
@@ -943,9 +943,9 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   x.at(12) = ref_omega_b.z();
 
   // ========= 0) if one rotor is fixed, do it and finish. ======
-  if (is_set_fix_rotor == true)
+  if (is_set_fix_rotor_ == true)
   {
-    allocateToXUwOneFixedRotor(set_fix_rotor_idx_, set_fix_ft, set_fix_alpha, ref_wrench_b, x, u);
+    allocateToXUwOneFixedRotor(set_fix_rotor_idx_, set_fix_ft_, set_fix_alpha_, ref_wrench_b, x, u);
     return;
   }
   // =============================================================
