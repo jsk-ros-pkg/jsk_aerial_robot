@@ -12,6 +12,7 @@ import tf_conversions as tf
 
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
+from aerial_robot_msgs.msg import FixRotor
 
 from pub_mpc_base import MPCPubBase
 
@@ -29,6 +30,7 @@ class MPCPubJointTraj(MPCPubBase, ABC):
         super().__init__(robot_name=robot_name, node_name=node_name, is_calc_rmse=is_calc_rmse)
         # Publisher for reference trajectory
         self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=3)
+        self.pub_fixed_rotor = rospy.Publisher(f"/{robot_name}/set_fixed_rotor", FixRotor, queue_size=3)
 
     def pub_trajectory_points(self, traj_msg: MultiDOFJointTrajectory):
         """Publish the MultiDOFJointTrajectory message."""
@@ -90,6 +92,18 @@ class MPCTrajPtPub(MPCPubJointTraj):
                 qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
+
+            # new feature: fix rotor  TODO: think of a better place to put this function. Only JointTraj has this function.
+            try:
+                rotor_id, ft_fixed, alpha_fixed = self.traj.get_fixed_rotor(t_elapsed)
+                fixed_rotor_msg = FixRotor()
+                fixed_rotor_msg.header.stamp = rospy.Time.now()
+                fixed_rotor_msg.rotor_id = rotor_id
+                fixed_rotor_msg.fix_ft = ft_fixed
+                fixed_rotor_msg.fix_alpha = alpha_fixed
+                self.pub_fixed_rotor.publish(fixed_rotor_msg)
+            except AttributeError:
+                pass
 
             # Fill the transforms / velocities / accelerations
             traj_pt.transforms.append(Transform(translation=Vector3(x, y, z), rotation=Quaternion(qx, qy, qz, qw)))

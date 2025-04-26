@@ -475,25 +475,25 @@ class SingularityPointTraj(BaseTraj):
         roll = np.pi / 2.0
         pitch = 0.0
 
-        if 2 * self.t_converge > t > self.t_converge:
+        if 2 * self.t_converge >= t > self.t_converge:
             yaw = np.pi * 3.0 / 4.0
 
-        if 3 * self.t_converge > t > 2 * self.t_converge:
+        if 3 * self.t_converge >= t > 2 * self.t_converge:
             yaw = np.pi * 5.0 / 4.0
 
-        if 4 * self.t_converge > t > 3 * self.t_converge:
+        if 4 * self.t_converge >= t > 3 * self.t_converge:
             yaw = np.pi * 7.0 / 4.0
 
-        if 5 * self.t_converge > t > 4 * self.t_converge:
+        if 5 * self.t_converge >= t > 4 * self.t_converge:
             yaw = np.pi * 1.0 / 4.0
 
-        if 6 * self.t_converge > t > 5 * self.t_converge:
+        if 6 * self.t_converge >= t > 5 * self.t_converge:
             yaw = np.pi * 1.0 / 4.0 + 0.01
 
-        if 7 * self.t_converge > t > 6 * self.t_converge:
+        if 7 * self.t_converge >= t > 6 * self.t_converge:
             yaw = np.pi * 1.0 / 4.0 - 0.01
 
-        if 8 * self.t_converge > t > 7 * self.t_converge:
+        if 8 * self.t_converge >= t > 7 * self.t_converge:
             yaw = np.pi * 1.0 / 4.0 + 0.1
 
         (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw, axes='rxyz')
@@ -502,3 +502,26 @@ class SingularityPointTraj(BaseTraj):
         roll_acc, pitch_acc, yaw_acc = self.att_acc
 
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+
+class TestFixedRotorTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.t_converge = 8.0
+        self.T = 3 * self.t_converge
+
+    def get_fixed_rotor(self, t: float):
+        rotor_id = 0
+        ft_fixed = 7.0
+        alpha_fixed = 0.0
+
+        if self.t_converge >= t > 0.0:
+            ft_fixed = 1.0
+
+        if 2 * self.t_converge >= t > self.t_converge:
+            ft_fixed = 3.0
+
+        if 3 * self.t_converge >= t > 2 * self.t_converge:
+            ft_fixed = 5.0
+
+        return rotor_id, ft_fixed, alpha_fixed
