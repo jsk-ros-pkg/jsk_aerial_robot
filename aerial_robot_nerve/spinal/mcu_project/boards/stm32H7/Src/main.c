@@ -103,7 +103,9 @@ osSemaphoreId uartTxSemHandle;
 osMailQId canMsgMailHandle;
 
 osThreadId multiEncoderHandle;
-std::map<int, MagEncoder> encoders_;
+MagEncoder encoder1_("encoder_angle1");
+MagEncoder encoder2_("encoder_angle2");
+std::array<MagEncoder, 2> encoders_ = {encoder1_, encoder2_};
 
 ros::NodeHandle nh_;
 
@@ -267,13 +269,9 @@ int main(void)
 #endif
 
   I2C_MultiPlexer::init(&hi2c3);
-  // two encoders
-  const char* topic1 = "encoder_angle1";
-  encoders_[0] = MagEncoder(topic1);
-  const char* topic2 = "encoder_angle2";
-  encoders_[1] = MagEncoder(topic2);
-  encoders_.at(0).init(&hi2c3, &nh_);
-  encoders_.at(1).init(&hi2c3, &nh_);
+  for (int i = 0; i < encoders_.size(); i++) {
+    encoders_.at(i).init(&hi2c3, &nh_);
+  }
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -1058,11 +1056,9 @@ void encoderTaskCallback(void const * argument)
   /* USER CODE BEGIN rosPublishTask */
   for(;;)
     {
-      for(std::map<int, MagEncoder>::iterator it = encoders_.begin(); it != encoders_.end(); it++) {
-        uint8_t ch = it->first;
-        int i2c_status = I2C_MultiPlexer::changeChannel(ch);
-
-        if(i2c_status == HAL_OK) it->second.update();
+      for (int i = 0; i < encoders_.size(); i++) {
+        int i2c_status = I2C_MultiPlexer::changeChannel(i);
+        if(i2c_status == HAL_OK) encoders_.at(i).update();
       }
 
       osDelay(1); // timer is controlled inside each `update` function
