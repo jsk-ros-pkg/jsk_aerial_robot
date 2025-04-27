@@ -96,12 +96,14 @@ class MPCTrajPtPub(MPCPubJointTraj):
             # new feature: fix rotor  TODO: think of a better place to put this function. Only JointTraj has this function.
             try:
                 rotor_id, ft_fixed, alpha_fixed = self.traj.get_fixed_rotor(t_elapsed)
-                fixed_rotor_msg = FixRotor()
-                fixed_rotor_msg.header.stamp = rospy.Time.now()
-                fixed_rotor_msg.rotor_id = rotor_id
-                fixed_rotor_msg.fix_ft = ft_fixed
-                fixed_rotor_msg.fix_alpha = alpha_fixed
-                self.pub_fixed_rotor.publish(fixed_rotor_msg)
+
+                if self.traj.use_fix_rotor_flag:
+                    fixed_rotor_msg = FixRotor()
+                    fixed_rotor_msg.header.stamp = rospy.Time.now()
+                    fixed_rotor_msg.rotor_id = rotor_id
+                    fixed_rotor_msg.fix_ft = ft_fixed
+                    fixed_rotor_msg.fix_alpha = alpha_fixed
+                    self.pub_fixed_rotor.publish(fixed_rotor_msg)
             except AttributeError:
                 pass
 

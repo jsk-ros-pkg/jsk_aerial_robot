@@ -27,6 +27,18 @@ class BaseTraj:
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
+class BaseTrajwFixedRotor(BaseTraj):
+    def __init__(self, loop_num: int = np.inf) -> None:
+        super().__init__(loop_num)
+        self.use_fix_rotor_flag = False
+
+    def get_fixed_rotor(self, t: float):
+        rotor_id = 0
+        ft_fixed = 7.0
+        alpha_fixed = 0.0
+        return rotor_id, ft_fixed, alpha_fixed
+
+
 class CircleTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
@@ -504,7 +516,7 @@ class SingularityPointTraj(BaseTraj):
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
-class TestFixedRotorTraj(BaseTraj):
+class TestFixedRotorTraj(BaseTrajwFixedRotor):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
         self.t_converge = 8.0
@@ -515,13 +527,22 @@ class TestFixedRotorTraj(BaseTraj):
         ft_fixed = 7.0
         alpha_fixed = 0.0
 
+        if 0.0 >= t:
+            self.use_fix_rotor_flag = False
+
         if self.t_converge >= t > 0.0:
             ft_fixed = 1.0
+            self.use_fix_rotor_flag = True
 
         if 2 * self.t_converge >= t > self.t_converge:
             ft_fixed = 3.0
+            self.use_fix_rotor_flag = True
 
         if 3 * self.t_converge >= t > 2 * self.t_converge:
             ft_fixed = 5.0
+            self.use_fix_rotor_flag = True
+
+        if t > 3 * self.t_converge:
+            self.use_fix_rotor_flag = False
 
         return rotor_id, ft_fixed, alpha_fixed
