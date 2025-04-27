@@ -1021,7 +1021,7 @@ void nmpc::TiltMtServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double
     for (int k = 0; k < alloc_mat_.cols(); ++k)
     {
       if (k == 2 * fix_rotor_idx || k == 2 * fix_rotor_idx + 1)
-        continue;  // 跳过要删除的列
+        continue;
       alloc_mat_del_rotor.col(j++) = alloc_mat_.col(k);
     }
     alloc_mat_del_rotor_inv_ = alloc_mat_del_rotor.inverse();
