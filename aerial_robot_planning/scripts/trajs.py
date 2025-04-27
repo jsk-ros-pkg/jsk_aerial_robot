@@ -221,6 +221,74 @@ class PitchRotationTraj(BaseTraj):
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
+class PitchContinuousRotationTraj(BaseTrajwFixedRotor):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.T = 20  # total time for one full rotation cycle (0 to -2.5 and back to 0)
+
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        # Calculate the pitch angle based on time
+        t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
+
+        max_pitch = np.pi * 2
+        pitch = max_pitch * (t / self.T)  # from 0 to max_pitch rad
+        roll = 0.0
+        yaw = 0.0
+
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
+        pitch_rate = max_pitch / self.T
+        roll_rate = 0.0
+        yaw_rate = 0.0
+
+        roll_acc = 0.0
+        pitch_acc = 0.0
+        yaw_acc = 0.0
+
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
+    def get_fixed_rotor(self, t: float):
+        rotor_id = 0
+        ft_fixed = 7.0
+        alpha_fixed = 0.0
+
+        t_servo_change = 1.0
+        min_ft = 0.5
+
+        if self.T / 2 - 2 * t_servo_change >= t:
+            self.use_fix_rotor_flag = False
+
+        if self.T / 2 - 1 * t_servo_change >= t > self.T / 2 - 2 * t_servo_change:
+            rotor_id = 1
+            ft_fixed = min_ft
+            alpha_fixed = np.pi
+            self.use_fix_rotor_flag = True
+
+        if self.T / 2 >= t > self.T / 2 - 1 * t_servo_change:
+            rotor_id = 3
+            ft_fixed = min_ft
+            alpha_fixed = -np.pi
+            self.use_fix_rotor_flag = True
+
+        if self.T / 2 + 1 * t_servo_change >= t > self.T / 2:
+            rotor_id = 0
+            ft_fixed = min_ft
+            alpha_fixed = np.pi
+            self.use_fix_rotor_flag = True
+
+        if self.T / 2 + 2 * t_servo_change >= t > self.T / 2 + 1 * t_servo_change:
+            rotor_id = 2
+            ft_fixed = min_ft
+            alpha_fixed = -np.pi
+            self.use_fix_rotor_flag = True
+
+        if t > self.T / 2 + 2 * t_servo_change:
+            self.use_fix_rotor_flag = False
+
+        return rotor_id, ft_fixed, alpha_fixed
+
+
 class PitchRotationTrajOpposite(PitchRotationTraj):
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
