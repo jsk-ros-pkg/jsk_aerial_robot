@@ -3,15 +3,17 @@
 '''
 
 from functools import wraps
+from typing import Optional
+
 import numpy as np
 import rospy
 import math
 from scipy.spatial.transform import Rotation as R
 
 import tf_conversions as tf
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Point, Quaternion
+from geometry_msgs.msg import Point, Quaternion, PoseStamped
 
 
 def check_first_data_received(obj: object, attr: str, object_name: str):
@@ -47,7 +49,7 @@ def check_topic_subscription(func):
     return wrapper
 
 
-def check_traj_info(x: np.ndarray):
+def check_traj_info(x: np.ndarray, if_return_path=False) -> Optional[Path]:
     """
     Check trajectory information and print out:
       - Overall time (number of time steps, assuming dt = 1 per step).
@@ -121,6 +123,33 @@ def check_traj_info(x: np.ndarray):
     w = np.sqrt(wx ** 2 + wy ** 2 + wz ** 2)
     print("Angular speed (w): max = {:.3f}".format(np.max(w)))
     print("===========================================\n")
+
+    if if_return_path:
+        # ---------- Build nav_msgs/Path ----------
+        frame_id = "world"
+        path_msg = Path()
+        path_msg.header.frame_id = frame_id
+        path_msg.header.stamp = rospy.Time.now()
+
+        for k in range(total_time_steps):
+            pose = PoseStamped()
+            pose.header.frame_id = frame_id
+
+            # Position
+            pose.pose.position.x = float(px[k])
+            pose.pose.position.y = float(py[k])
+            pose.pose.position.z = float(pz[k])
+
+            # Orientation (keep original quaternion)
+            qw, qx, qy, qz = quats[k]
+            pose.pose.orientation.w = float(qw)
+            pose.pose.orientation.x = float(qx)
+            pose.pose.orientation.y = float(qy)
+            pose.pose.orientation.z = float(qz)
+
+            path_msg.poses.append(pose)
+
+        return path_msg
 
 
 class TrackingErrorCalculator:
