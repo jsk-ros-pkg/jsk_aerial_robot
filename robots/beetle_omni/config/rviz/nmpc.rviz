@@ -14,6 +14,7 @@ Panels:
         - /Pose1
         - /Pose2
         - /Path1
+        - /MarkerArray2
       Splitter Ratio: 0.47863247990608215
     Tree Height: 741
   - Class: rviz/Selection
@@ -370,6 +371,14 @@ Visualization Manager:
       Topic: /beetle1/traj_path
       Unreliable: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /hand_markers
+      Name: MarkerArray
+      Namespaces:
+        hand_mesh: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -434,5 +443,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1946
-  X: 413
-  Y: 0
+  X: 401
+  Y: 28

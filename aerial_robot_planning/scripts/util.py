@@ -323,3 +323,92 @@ def pub_0066_wall_rviz(cleanup=False):
     pub.publish(create_wall_markers(pts, thickness=0.01, height=2.0, color=[22 / 255, 97 / 255, 171 / 255, 0.2]))
     # color: DIAN QING
     rospy.loginfo("Wall markers published on topic 'walls'. Open RViz and add a 'Marker' display.")
+
+
+def create_hand_markers(poses,
+                        mesh_resource="package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae",
+                        frame_id="world",
+                        ns="hand_mesh",
+                        scale=(1.0, 1.0, 1.0)):
+    """
+    Build a MarkerArray that places one mesh for every pose in *poses*.
+
+    poses         : iterable of (x, y, z, roll_deg, pitch_deg, yaw_deg)
+    mesh_resource : URI to the DAE mesh (package:// or file://)
+    frame_id      : TF frame for RViz
+    ns            : marker namespace
+    scale         : (sx, sy, sz) scale factors for the mesh
+    """
+    markers = MarkerArray()
+
+    for idx, (x, y, z, r_deg, p_deg, y_deg) in enumerate(poses):
+        # Convert Euler angles (degrees) to quaternion (xyzw scalar-last)
+        quat_xyzw = tf.transformations.quaternion_from_euler(
+            math.radians(r_deg),
+            math.radians(p_deg),
+            math.radians(y_deg)
+        )
+
+        m = Marker()
+        m.header.frame_id = frame_id
+        m.header.stamp = rospy.Time.now()
+        m.ns = ns
+        m.id = idx  # unique inside this namespace
+        m.type = Marker.MESH_RESOURCE
+        m.action = Marker.ADD
+
+        # Pose
+        m.pose.position = Point(x, y, z)
+        m.pose.orientation = Quaternion(*quat_xyzw)
+
+        # Scale (keep original units if scale = (1,1,1))
+        m.scale.x, m.scale.y, m.scale.z = scale
+
+        # Use embedded material/texture if present
+        m.mesh_resource = mesh_resource
+        m.mesh_use_embedded_materials = True
+
+        # If the mesh has no embedded colour, uncomment the next line:
+        # m.color.r, m.color.g, m.color.b, m.color.a = 0.9, 0.9, 0.9, 1.0
+
+        markers.markers.append(m)
+
+    return markers
+
+
+def pub_hand_markers_rviz(viz_type):
+    pub = rospy.Publisher("hand_markers", MarkerArray, queue_size=1, latch=True)
+
+    if viz_type == 0:  # Cleanup
+        m = Marker()
+        m.action = Marker.DELETEALL
+
+        markers = MarkerArray()
+        markers.markers.append(m)
+
+        pub.publish(markers)
+        rospy.loginfo("Wall markers deleted on topic 'walls'.")
+        return
+
+    # ---- Hand poses (m, deg) ----
+    hand_poses = []
+    mesh_path = ""
+    if viz_type == 1:
+        hand_poses = [
+            (1.0, 1.0, 1.0, 0.0, 30.0, 0.0),
+            (-1.0, 1.0, 1.5, 0.0, 0.0, 30.0),
+            (0.0, 2.0, 1.0, 30.0, 0.0, 0.0),
+        ]  # meters, degrees
+        mesh_path = "package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae"
+
+    if viz_type == 2:
+        hand_poses = [
+            (1.0, 1.0, 1.0, 0.0, 30.0, 0.0),
+            (-1.0, 1.0, 1.5, 0.0, 0.0, 30.0),
+            (0.0, 2.0, 1.0, 30.0, 0.0, 0.0),
+        ]  # meters, degrees
+        mesh_path = "package://aerial_robot_planning/meshes/plastic_hand_16cm_wide.dae"
+
+    marker_array = create_hand_markers(hand_poses, mesh_resource=mesh_path)
+    pub.publish(marker_array)
+    rospy.loginfo("Hand mesh markers published on /hand_meshes.")
