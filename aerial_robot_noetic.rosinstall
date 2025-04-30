@@ -61,4 +61,4 @@
 - git:
     local-name: pinocchio
     uri: https://github.com/stack-of-tasks/pinocchio.git
-    version: 7338916
+    version: 666d5d4
