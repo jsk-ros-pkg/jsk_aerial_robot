@@ -77,6 +77,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
             "Please check the traj info and Rviz visualization. Press 'Enter' to continue or 'q' to quit...")
         while True:
             if input_str.lower() == 'q':
+                self.cleanup_traj_viz()
                 self.is_finished = True
                 return
             elif input_str.lower() == '':
@@ -130,13 +131,16 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         This will cause the base class timer to shut down automatically.
         """
         if t_elapsed > self.x_traj[-1, -2]:
-            # clean traj viz
-            empty = Path()
-            empty.header.frame_id = "world"
-            self.traj_path_pub.publish(empty)
-
-            # log info
+            self.cleanup_traj_viz()
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory time finished!")
             return True
 
         return False
+
+    def cleanup_traj_viz(self):
+        """
+        Clean up the trajectory visualization in Rviz.
+        """
+        empty = Path()
+        empty.header.frame_id = "world"
+        self.traj_path_pub.publish(empty)
