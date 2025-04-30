@@ -19,6 +19,7 @@ if current_path not in sys.path:
 from pub_mpc_joint_traj import MPCTrajPtPub, MPCSinglePtPub
 from pub_mpc_pred_xu import MPCPubCSVPredXU
 from geometry_msgs.msg import Pose, Quaternion, Vector3
+from util import pub_0066_wall_rviz
 
 # === analytical trajectory ===
 import trajs
@@ -146,6 +147,9 @@ class InitState(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo("State: INIT -- Start to reach the first point of the trajectory.")
+
+        # visualize 0066 flight range
+        pub_0066_wall_rviz()
 
         if userdata.traj_type < len(traj_cls_list):
             rospy.loginfo(f"Using trajs.{traj_cls_list[userdata.traj_type].__name__} trajectory.")

@@ -5,10 +5,14 @@
 from functools import wraps
 import numpy as np
 import rospy
+import math
 from scipy.spatial.transform import Rotation as R
 
 import tf_conversions as tf
 from nav_msgs.msg import Odometry
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point, Quaternion
+
 
 def check_first_data_received(obj: object, attr: str, object_name: str):
     """
@@ -195,3 +199,86 @@ class TrackingErrorCalculator:
         euler_err = tf.transformations.euler_from_matrix(m_err, axes="sxyz")
 
         return dx, dy, dz, euler_err[0], euler_err[1], euler_err[2]
+
+
+def create_wall_markers(points, thickness=0.1, height=2.0,
+                        frame_id="world", ns="walls", color=None):
+    """
+    Build a MarkerArray in which each polygon edge is rendered as a thin box.
+
+    Args
+    ----
+    points     : list of (x, y) tuples.  Edges are formed in order.
+    thickness  : wall thickness in metres
+    height     : wall height in metres
+    frame_id   : target TF frame for RViz
+    ns         : marker namespace
+
+    Returns
+    -------
+    visualization_msgs/MarkerArray
+    """
+    if color is None:
+        color = [0.6, 0.6, 0.6, 1.0]
+    markers = MarkerArray()
+
+    for i in range(len(points) - 1):
+        # End-points of the current edge
+        (x0, y0), (x1, y1) = points[i], points[i + 1]
+
+        # Length and yaw of the edge
+        dx, dy = x1 - x0, y1 - y0
+        length = math.hypot(dx, dy)
+        yaw = math.atan2(dy, dx)
+
+        # Mid-point of the edge (box centre)
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        cz = height / 2.0
+
+        # Quaternion for rotation about Z
+        qx, qy, qz, qw = tf.transformations.quaternion_from_euler(0, 0, yaw)
+
+        m = Marker()
+        m.header.frame_id = frame_id
+        m.header.stamp = rospy.Time.now()
+        m.ns = ns
+        m.id = i  # Unique ID inside the namespace
+        m.type = Marker.CUBE
+        m.action = Marker.ADD
+
+        # Pose
+        m.pose.position = Point(cx, cy, cz)
+        m.pose.orientation = Quaternion(qx, qy, qz, qw)
+
+        # Dimensions: length × thickness × height
+        m.scale.x = length
+        m.scale.y = thickness
+        m.scale.z = height
+
+        # Colour (light grey, fully opaque)
+        if color is not None:
+            if len(color) != 4:
+                raise ValueError("Color must be a list of 4 floats [r, g, b, a]")
+            m.color.r, m.color.g, m.color.b, m.color.a = color
+
+        markers.markers.append(m)
+
+    return markers
+
+
+def pub_0066_wall_rviz():
+    pub = rospy.Publisher("walls", MarkerArray, queue_size=1, latch=True)  # latch is important
+    # ---- Corner points of the walls (m) ----
+    pts = [(-2.2, -2.9),
+           (3.9, -2.9),
+           (3.9, 3.4),
+           (-3.4, 3.4),
+           (-3.4, -0.4),
+           (-2.2, -0.4), ]
+    # Close the polygon by repeating the first point
+    pts.append(pts[0])
+    # ----------------------------------------
+
+    pub.publish(create_wall_markers(pts, thickness=0.01, height=2.0, color=[22 / 255, 97 / 255, 171 / 255, 0.2]))
+    # color: DIAN QING
+    rospy.loginfo("Wall markers published on topic 'walls'. Open RViz and add a 'Marker' display.")
