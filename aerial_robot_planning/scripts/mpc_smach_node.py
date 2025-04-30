@@ -148,9 +148,6 @@ class InitState(smach.State):
     def execute(self, userdata):
         rospy.loginfo("State: INIT -- Start to reach the first point of the trajectory.")
 
-        # visualize 0066 flight range
-        pub_0066_wall_rviz()
-
         if userdata.traj_type < len(traj_cls_list):
             rospy.loginfo(f"Using trajs.{traj_cls_list[userdata.traj_type].__name__} trajectory.")
             traj = traj_factory(userdata.traj_type, userdata.loop_num)
@@ -245,6 +242,9 @@ def main(args):
         rospy.logerr(f"Robot name '{args.robot_name}' not found in ROS parameters! Make sure the robot is running.")
         return
 
+    # visualize 0066 flight range
+    pub_0066_wall_rviz(not args.has_0066_viz)
+
     # Create a top-level SMACH state machine
     sm = smach.StateMachine(outcomes=["DONE"])
 
@@ -293,5 +293,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
     parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
+    parser.add_argument("--has_0066_viz", "-6", action="store_true", default=False,
+                        help="Whether to visualize the 0066 flight range (default: False)")
+
     args = parser.parse_args()
     main(args)

@@ -295,8 +295,20 @@ def create_wall_markers(points, thickness=0.1, height=2.0,
     return markers
 
 
-def pub_0066_wall_rviz():
+def pub_0066_wall_rviz(cleanup=False):
     pub = rospy.Publisher("walls", MarkerArray, queue_size=1, latch=True)  # latch is important
+
+    if cleanup:
+        m = Marker()
+        m.action = Marker.DELETEALL
+
+        markers = MarkerArray()
+        markers.markers.append(m)
+
+        pub.publish(markers)
+        rospy.loginfo("Wall markers deleted on topic 'walls'.")
+        return
+
     # ---- Corner points of the walls (m) ----
     pts = [(-2.2, -2.9),
            (3.9, -2.9),
