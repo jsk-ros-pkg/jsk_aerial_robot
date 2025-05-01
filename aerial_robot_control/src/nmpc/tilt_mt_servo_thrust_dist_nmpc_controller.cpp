@@ -171,7 +171,7 @@ void nmpc::TiltMtServoThrustDistNMPC::callbackESCTelem(const spinal::ESCTelemetr
 void nmpc::TiltMtServoThrustDistNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                                                    const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
                                                    const Eigen::VectorXd& ref_wrench_b, vector<double>& x,
-                                                   vector<double>& u) const
+                                                   vector<double>& u)
 {
   x.at(0) = ref_pos_i.x();
   x.at(1) = ref_pos_i.y();

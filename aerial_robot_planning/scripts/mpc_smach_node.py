@@ -29,9 +29,7 @@ traj_cls_list = [
     cls
     for name, cls in inspect.getmembers(trajs, inspect.isclass)
     # optionally ensure the class is defined in trajs and not an imported library
-    if cls.__module__ == "trajs"
-       # (Optional) filter by name if you only want classes that end with "Traj"
-       and name != "BaseTraj"
+    if cls.__module__ == "trajs" and name not in {"BaseTraj", "BaseTrajwFixedRotor", "PitchContinuousRotationTraj"}
 ]
 print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 

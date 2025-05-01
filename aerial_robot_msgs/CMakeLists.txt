@@ -24,6 +24,7 @@ add_message_files(FILES
   WrenchAllocationMatrix.msg
   TrajCoefficients.msg
   PredXU.msg
+  FixRotor.msg
 )
 
 # Generate actions in the 'action' folder
