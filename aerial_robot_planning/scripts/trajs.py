@@ -530,10 +530,6 @@ class YawRotationRoll135dTraj(BaseTraj):
 class SingularityPointTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
-        self.pos = np.array([0.0, 0.0, 0.7])
-        self.vel = np.array([0.0, 0.0, 0.0])
-        self.acc = np.array([0.0, 0.0, 0.0])
-
         self.att = np.array([0.0, 0.0, 0.0])
         self.att_rate = np.array([0.0, 0.0, 0.0])
         self.att_acc = np.array([0.0, 0.0, 0.0])
@@ -541,12 +537,6 @@ class SingularityPointTraj(BaseTraj):
         self.t_converge = 8.0
         self.T = 8 * self.t_converge
 
-    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z = self.pos
-        vx, vy, vz = self.vel
-        ax, ay, az = self.acc
-
-        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
