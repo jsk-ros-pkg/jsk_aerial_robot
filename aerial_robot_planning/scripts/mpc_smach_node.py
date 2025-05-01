@@ -242,7 +242,7 @@ def main(args):
 
     # visualize in RViz
     pub_0066_wall_rviz(not args.has_0066_viz)
-    pub_hand_markers_rviz(args.hand_viz_type)
+    pub_hand_markers_rviz(args.hand_markers_viz_type)
 
     # Create a top-level SMACH state machine
     sm = smach.StateMachine(outcomes=["DONE"])
