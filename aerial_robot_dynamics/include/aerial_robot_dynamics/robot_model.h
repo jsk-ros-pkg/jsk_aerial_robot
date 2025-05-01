@@ -66,6 +66,7 @@ public:
 private:
   std::shared_ptr<pinocchio::Model> model_;
   std::shared_ptr<pinocchio::Data> data_;
+  std::vector<pinocchio::SE3> joint_M_rotors_;
 
   // QP solver for Inverse Dynamics
   OsqpEigen::Solver id_solver_;

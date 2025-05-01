@@ -23,6 +23,10 @@ PinocchioRobotModel::PinocchioRobotModel()
   std::cout << "model njoints: " << model_->njoints << std::endl;
   std::cout << "model nframes: " << model_->nframes << std::endl;
 
+  // initialize robot model with neutral configuration
+  Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
+  pinocchio::framesForwardKinematics(*model_, *data_, q);
+
   // Parse the URDF string to xml
   TiXmlDocument robot_model_xml;
   robot_model_xml.Parse(robot_model_string.c_str());
@@ -67,11 +71,23 @@ PinocchioRobotModel::PinocchioRobotModel()
 
   // get rotor number
   rotor_num_ = 0;
+  joint_M_rotors_.resize(0);
   for (int i = 0; i < model_->nframes; i++)
   {
     std::string frame_name = model_->frames[i].name;
     if (frame_name.find("rotor") != std::string::npos)
     {
+      std::string rotor_frame_name = "rotor" + std::to_string(rotor_num_ + 1);
+      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
+
+      pinocchio::SE3 w_M_rotor = data_->oMf[rotor_frame_index];
+      pinocchio::SE3 w_M_joint = data_->oMi[rotor_parent_joint_index];
+      pinocchio::SE3 joint_M_rotor = w_M_joint.inverse() * w_M_rotor;
+      joint_M_rotors_.push_back(joint_M_rotor);
+
+      std::cout << "joint_M_rotor" << rotor_num_ + 1 << ": " << joint_M_rotor << std::endl;
+
       rotor_num_++;
     }
   }
@@ -400,10 +416,11 @@ Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen
 {
   Eigen::MatrixXd tauext_partial_thrust = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
 
-  Eigen::MatrixXd rotor_i_jacobian =
-      Eigen::MatrixXd::Zero(6, model_->nv);  // must be initialized by zeros. see frames.hpp
   for (int i = 0; i < rotor_num_; i++)
   {
+    Eigen::MatrixXd rotor_i_jacobian =
+        Eigen::MatrixXd::Zero(6, model_->nv);  // must be initialized by zeros. see frames.hpp
+
     std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
     pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
 
@@ -432,10 +449,15 @@ PinocchioRobotModel::computeFExtByThrust(const Eigen::VectorXd& thrust)
     pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
 
     // LOCAL
-    pinocchio::Force rotor_wrench;
-    rotor_wrench.linear() = Eigen::Vector3d(0, 0, thrust(i));
-    rotor_wrench.angular() = Eigen::Vector3d(0, 0, m_f_rate_ * thrust(i));
-    fext.at(rotor_parent_joint_index) = rotor_wrench;
+    pinocchio::Force rotor_frame_wrench;
+    rotor_frame_wrench.linear() = Eigen::Vector3d(0, 0, thrust(i));
+    rotor_frame_wrench.angular() = Eigen::Vector3d(0, 0, m_f_rate_ * thrust(i));
+
+    // Convert to parent joint frame
+    pinocchio::Force rotor_parent_joint_wrench =
+        joint_M_rotors_.at(i).act(rotor_frame_wrench);  // rotor frame to parent joint frame
+
+    fext.at(rotor_parent_joint_index) = rotor_parent_joint_wrench;  // add to parent joint
   }
 
   return fext;
