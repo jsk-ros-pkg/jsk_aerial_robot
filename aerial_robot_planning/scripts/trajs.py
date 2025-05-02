@@ -192,14 +192,14 @@ class PitchRotationTraj(BaseTraj):
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
-
         max_pitch = 3.2
 
-        if t <= self.T / 2:
+        if 0 < t <= self.T / 2:
             pitch = max_pitch * (2 * t / self.T)  # from 0 to max_pitch rad
-        else:
+        elif self.T / 2 < t <= self.T:
             pitch = max_pitch * (2 - 2 * t / self.T)  # from max_pitch to 0 rad
+        else:
+            pitch = 0.0
 
         roll = 0.0
         yaw = 0.0
@@ -330,14 +330,14 @@ class RollRotationTraj(BaseTraj):
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        t = t - np.floor(t / self.T) * self.T  # make t in the range of [0, T]
-
         max_roll = 3.2
 
-        if t <= self.T / 2:
+        if 0 < t <= self.T / 2:
             roll = max_roll * (2 * t / self.T)  # from 0 to max_roll rad
-        else:
+        elif self.T / 2 < t <= self.T:
             roll = max_roll * (2 - 2 * t / self.T)  # from max_roll to 0 rad
+        else:
+            roll = 0.0
 
         pitch = 0.0
         yaw = 0.0
