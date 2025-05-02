@@ -537,7 +537,6 @@ class SingularityPointTraj(BaseTraj):
         self.t_converge = 8.0
         self.T = 8 * self.t_converge
 
-
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
 
@@ -577,8 +576,8 @@ class SingularityPointTraj(BaseTraj):
 class TestFixedRotorTraj(BaseTrajwFixedRotor):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
-        self.t_converge = 8.0
-        self.T = 3 * self.t_converge
+        self.t_converge = 4.0
+        self.T = 7 * self.t_converge
 
     def get_fixed_rotor(self, t: float):
         rotor_id = 0
@@ -593,14 +592,86 @@ class TestFixedRotorTraj(BaseTrajwFixedRotor):
             self.use_fix_rotor_flag = True
 
         if 2 * self.t_converge >= t > self.t_converge:
-            ft_fixed = 3.0
+            ft_fixed = 2.0
             self.use_fix_rotor_flag = True
 
         if 3 * self.t_converge >= t > 2 * self.t_converge:
+            ft_fixed = 3.0
+            self.use_fix_rotor_flag = True
+
+        if 4 * self.t_converge >= t > 3 * self.t_converge:
+            ft_fixed = 4.0
+            self.use_fix_rotor_flag = True
+
+        if 5 * self.t_converge >= t > 4 * self.t_converge:
             ft_fixed = 5.0
             self.use_fix_rotor_flag = True
 
-        if t > 3 * self.t_converge:
+        if 6 * self.t_converge >= t > 5 * self.t_converge:
+            ft_fixed = 6.0
+            self.use_fix_rotor_flag = True
+
+        if 7 * self.t_converge >= t > 6 * self.t_converge:
+            ft_fixed = 7.0
+            self.use_fix_rotor_flag = True
+
+        if t > 7 * self.t_converge:
             self.use_fix_rotor_flag = False
 
+        return rotor_id, ft_fixed, alpha_fixed
+
+
+class HappyBirthdayFixedRotorTraj(BaseTrajwFixedRotor):
+    def __init__(self, loop_num: int = 1, beat: float = 1.0) -> None:
+        super().__init__(loop_num)
+
+        # beats of Happy Birthday (use strings for dot-notation)
+        # note that the last beat is half note so it is doubled
+        self.notes: list[str] = [
+            "5", "5", "6", "5", ".1", "7", "7",
+            "5", "5", "6", "5", ".2", ".1", ".1",
+            "5", "5", ".5", ".3", ".1", "7", "6", "6",
+            ".4", ".4", ".3", ".1", ".2", ".1", ".1"
+        ]
+
+        self.beat = beat  # for quarter note
+        self.t_total = len(self.notes) * self.beat
+        self.T = self.t_total * self.loop_num
+
+        self.min_thrust = 0.5  # TODO: if 0N is stable, change this place to 0.0
+
+    def _parse_note(self, note: str) -> float:
+        if note == "0":  # rest
+            return self.min_thrust
+
+        # upper octave
+        if note.startswith(".") and note[1:].isdigit():
+            return float(int(note[1:]) + 7)
+
+        # lower octave
+        if note.endswith(".") and note[:-1].isdigit():
+            return max(0.0, float(int(note[:-1]) - 7))
+
+        # middle octave
+        if note.isdigit():
+            return float(int(note))
+
+        raise ValueError(f"Unrecognized note token: {note!r}")
+
+    def get_fixed_rotor(self, t: float):
+        rotor_id = 0
+        alpha_fixed = 0.0
+
+        # Song finished or not yet started → no fixed rotor
+        if t < 0.0 or t >= self.T:
+            self.use_fix_rotor_flag = False
+            return rotor_id, self.min_thrust, alpha_fixed
+
+        # Current beat index
+        beat_idx = int(t / self.beat) % len(self.notes)
+        note = self.notes[beat_idx]
+        ft_fixed = 13 - self._parse_note(note)
+
+        # Rest → disable flag
+        self.use_fix_rotor_flag = ft_fixed != self.min_thrust
         return rotor_id, ft_fixed, alpha_fixed
