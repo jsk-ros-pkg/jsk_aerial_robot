@@ -104,6 +104,7 @@ protected:
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
+  trajectory_msgs::MultiDOFJointTrajectory last_traj_msg_;
 
   aerial_robot_msgs::PredXU x_u_ref_;  // TODO: maybe we should remove x_u_ref_ and use xr_ & ur_ inside mpc_solver_ptr_
   spinal::FourAxisCommand flight_cmd_;
@@ -170,6 +171,16 @@ protected:
 
   // debug functions
   void printPhysicalParams();
+
+  // check functions
+  inline bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
+  {
+    return std::fabs(a - b) < epsilon;
+  }
+
+  bool isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
+                                const trajectory_msgs::MultiDOFJointTrajectoryPoint& b, bool if_compare_time = true,
+                                double epsilon = 1e-6);
 
 private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.

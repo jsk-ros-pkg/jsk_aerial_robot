@@ -848,22 +848,41 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
     return;
   }
 
-  for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
+  /* For set-point regulation, if the traj planner sends the same traj, we can skip the calculation of allocation. */
+  // check if two trajectories are the same
+  int max_same_idx = 0;
+  if (last_traj_msg_.points.size() != 0)  // check if the last trajectory is empty
   {
-    const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
-    geometry_msgs::Vector3 pos = point.transforms[0].translation;
-    geometry_msgs::Vector3 vel = point.velocities[0].linear;
-    geometry_msgs::Vector3 acc = point.accelerations[0].linear;
-    geometry_msgs::Quaternion quat = point.transforms[0].rotation;
-    geometry_msgs::Vector3 omega = point.velocities[0].angular;
-    geometry_msgs::Vector3 ang_acc = point.accelerations[0].angular;
-    setXrUrRef(tf::Vector3(pos.x, pos.y, pos.z), tf::Vector3(vel.x, vel.y, vel.z), tf::Vector3(acc.x, acc.y, acc.z),
-               tf::Quaternion(quat.x, quat.y, quat.z, quat.w), tf::Vector3(omega.x, omega.y, omega.z),
-               tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
+    for (int i = 0; i < msg->points.size(); i++)  // only check the first NN points
+    {
+      if (isMulDOFJointTrajPtEqual(msg->points[i], last_traj_msg_.points[i], false))  // time is not equal
+        max_same_idx = i;
+      else
+        break;
+    }
+  }
+
+  if (max_same_idx != msg->points.size() - 1 || is_set_fix_rotor_ == true)
+  {
+    for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
+    {
+      const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
+      geometry_msgs::Vector3 pos = point.transforms[0].translation;
+      geometry_msgs::Vector3 vel = point.velocities[0].linear;
+      geometry_msgs::Vector3 acc = point.accelerations[0].linear;
+      geometry_msgs::Quaternion quat = point.transforms[0].rotation;
+      geometry_msgs::Vector3 omega = point.velocities[0].angular;
+      geometry_msgs::Vector3 ang_acc = point.accelerations[0].angular;
+      setXrUrRef(tf::Vector3(pos.x, pos.y, pos.z), tf::Vector3(vel.x, vel.y, vel.z), tf::Vector3(acc.x, acc.y, acc.z),
+                 tf::Quaternion(quat.x, quat.y, quat.z, quat.w), tf::Vector3(omega.x, omega.y, omega.z),
+                 tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
+    }
   }
 
   x_u_ref_.header.stamp = msg->header.stamp;
   callbackSetRefXU(boost::make_shared<const aerial_robot_msgs::PredXU>(x_u_ref_));
+
+  last_traj_msg_ = *msg;
 }
 
 void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
@@ -1049,6 +1068,58 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
   cout << "abs(kq_kt_rate)" << abs(robot_model_->getMFRate()) << endl;
 }
 
+bool nmpc::TiltMtServoNMPC::isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
+                                                     const trajectory_msgs::MultiDOFJointTrajectoryPoint& b,
+                                                     bool if_compare_time, double epsilon)
+{
+  if (a.transforms.size() != b.transforms.size() || a.velocities.size() != b.velocities.size() ||
+      a.accelerations.size() != b.accelerations.size())
+    return false;
+
+  for (size_t i = 0; i < a.transforms.size(); ++i)
+  {
+    const auto& ta = a.transforms[i];
+    const auto& tb = b.transforms[i];
+    if (!isAlmostEqual(ta.translation.x, tb.translation.x, epsilon) ||
+        !isAlmostEqual(ta.translation.y, tb.translation.y, epsilon) ||
+        !isAlmostEqual(ta.translation.z, tb.translation.z, epsilon) ||
+        !isAlmostEqual(ta.rotation.x, tb.rotation.x, epsilon) ||
+        !isAlmostEqual(ta.rotation.y, tb.rotation.y, epsilon) ||
+        !isAlmostEqual(ta.rotation.z, tb.rotation.z, epsilon) || !isAlmostEqual(ta.rotation.w, tb.rotation.w, epsilon))
+      return false;
+  }
+
+  for (size_t i = 0; i < a.velocities.size(); ++i)
+  {
+    const auto& va = a.velocities[i];
+    const auto& vb = b.velocities[i];
+    if (!isAlmostEqual(va.linear.x, vb.linear.x, epsilon) || !isAlmostEqual(va.linear.y, vb.linear.y, epsilon) ||
+        !isAlmostEqual(va.linear.z, vb.linear.z, epsilon) || !isAlmostEqual(va.angular.x, vb.angular.x, epsilon) ||
+        !isAlmostEqual(va.angular.y, vb.angular.y, epsilon) || !isAlmostEqual(va.angular.z, vb.angular.z, epsilon))
+      return false;
+  }
+
+  for (size_t i = 0; i < a.accelerations.size(); ++i)
+  {
+    const auto& aa = a.accelerations[i];
+    const auto& ab = b.accelerations[i];
+    if (!isAlmostEqual(aa.linear.x, ab.linear.x, epsilon) || !isAlmostEqual(aa.linear.y, ab.linear.y, epsilon) ||
+        !isAlmostEqual(aa.linear.z, ab.linear.z, epsilon) || !isAlmostEqual(aa.angular.x, ab.angular.x, epsilon) ||
+        !isAlmostEqual(aa.angular.y, ab.angular.y, epsilon) || !isAlmostEqual(aa.angular.z, ab.angular.z, epsilon))
+      return false;
+  }
+
+  // ROS duration comparison
+  if (if_compare_time)
+  {
+    if (!isAlmostEqual(a.time_from_start.toSec(), b.time_from_start.toSec(), epsilon))
+      return false;
+  }
+
+  return true;
+}
+
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
+
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtServoNMPC, aerial_robot_control::ControlBase)
