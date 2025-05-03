@@ -217,6 +217,7 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
   getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
 
+  // lbx and ubx
   std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
   std::vector<int> idxbx_desired = { 3, 4, 5, 10, 11, 12 };
   idxbx_desired.resize(6 + joint_num_);
@@ -241,6 +242,17 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   mpc_solver_ptr_->setConstraintsLbx(lbx);
   mpc_solver_ptr_->setConstraintsUbx(ubx);
 
+  // lbxe and ubxe
+  std::vector<int> idxbxe = mpc_solver_ptr_->getConstraintsIdxbxe();
+  std::vector<int> idxbxe_desired = idxbx_desired;
+  if (idxbxe.size() != idxbxe_desired.size() || !std::equal(idxbxe.begin(), idxbxe.end(), idxbxe_desired.begin()))
+  {
+    ROS_ERROR("idxbx_end is not equal to idxbx_end_desired, we cannot set constraints lbxe and ubxe!");
+  }
+  mpc_solver_ptr_->setConstraintsLbxe(lbx);
+  mpc_solver_ptr_->setConstraintsUbxe(ubx);
+
+  // lbu and ubu
   std::vector<int> idxbu = mpc_solver_ptr_->getConstraintsIdxbu();
   std::vector<int> idxbu_desired(motor_num_ + joint_num_);
   for (int i = 0; i < motor_num_; i++)
