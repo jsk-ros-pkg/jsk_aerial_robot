@@ -509,6 +509,8 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
+
+      last_traj_msg_.points.clear();  // every time end the traj tracking, clear the traj msg
     }
 
     return;
@@ -863,7 +865,7 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   /* For set-point regulation, if the traj planner sends the same traj, we can skip the calculation of allocation. */
   // check if two trajectories are the same
   int max_same_idx = 0;
-  if (last_traj_msg_.points.size() != 0)  // check if the last trajectory is empty
+  if (!last_traj_msg_.points.empty())  // check if the last trajectory is empty
   {
     for (int i = 0; i < msg->points.size(); i++)  // only check the first NN points
     {
