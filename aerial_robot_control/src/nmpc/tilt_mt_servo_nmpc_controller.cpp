@@ -217,6 +217,7 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
   getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
 
+  // lbx and ubx
   std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
   std::vector<int> idxbx_desired = { 3, 4, 5, 10, 11, 12 };
   idxbx_desired.resize(6 + joint_num_);
@@ -241,6 +242,17 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   mpc_solver_ptr_->setConstraintsLbx(lbx);
   mpc_solver_ptr_->setConstraintsUbx(ubx);
 
+  // lbxe and ubxe
+  std::vector<int> idxbxe = mpc_solver_ptr_->getConstraintsIdxbxe();
+  std::vector<int> idxbxe_desired = idxbx_desired;
+  if (idxbxe.size() != idxbxe_desired.size() || !std::equal(idxbxe.begin(), idxbxe.end(), idxbxe_desired.begin()))
+  {
+    ROS_ERROR("idxbx_end is not equal to idxbx_end_desired, we cannot set constraints lbxe and ubxe!");
+  }
+  mpc_solver_ptr_->setConstraintsLbxe(lbx);
+  mpc_solver_ptr_->setConstraintsUbxe(ubx);
+
+  // lbu and ubu
   std::vector<int> idxbu = mpc_solver_ptr_->getConstraintsIdxbu();
   std::vector<int> idxbu_desired(motor_num_ + joint_num_);
   for (int i = 0; i < motor_num_; i++)
@@ -497,6 +509,8 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
+
+      last_traj_msg_.points.clear();  // every time end the traj tracking, clear the traj msg
     }
 
     return;
@@ -851,7 +865,7 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   /* For set-point regulation, if the traj planner sends the same traj, we can skip the calculation of allocation. */
   // check if two trajectories are the same
   int max_same_idx = 0;
-  if (last_traj_msg_.points.size() != 0)  // check if the last trajectory is empty
+  if (!last_traj_msg_.points.empty())  // check if the last trajectory is empty
   {
     for (int i = 0; i < msg->points.size(); i++)  // only check the first NN points
     {
