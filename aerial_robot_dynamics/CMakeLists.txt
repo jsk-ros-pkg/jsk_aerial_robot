@@ -19,6 +19,8 @@ endif()
 option(BUILD_TEST "Build Test Code" ON)
 
 catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES robot_model
   )
 
 include_directories(
