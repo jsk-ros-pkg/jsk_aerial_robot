@@ -222,14 +222,14 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
     inv_methods = {  # <--  this is what the patch uses
         "SVD": alloc_mat_inv_svd,
-        "np.pinv": alloc_mat_inv_linalg,
+        # "np.pinv": alloc_mat_inv_linalg,
         "RightInverse": alloc_mat_inv_right_inverse,
         "LSTSQ": None,
         # "Weighted_all": inv_weighted_all,
         "Weighted_single": inv_weighted_single,
         "Constrained_QP": None,
-        "LSTSQ+QP": None,
-        "LSTSQ+alloc": None
+        # "SVD+QP": None,
+        "SVD+alloc": None
     }
 
     # -------------------------------------------------------------------
@@ -257,67 +257,69 @@ if __name__ == "__main__":
             tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
 
             if inv is None:
-                if key == "LSTSQ":
+                if "LSTSQ" in key:
                     ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
-                elif key == "Constrained_QP":
+                elif "Constrained_QP" in key:
                     ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w)
-                elif key == "LSTSQ+QP" or key == "LSTSQ+alloc":
-                    # 1) do one allocation
-                    target_force, _, _, _ = np.linalg.lstsq(alloc_mat, tgt_w, rcond=None)
-                    ft_ref, a_ref = full_force_to_cmd(target_force)
-                    # 2) check if one rotor's thrust is less than threshold and flip backwards
-                    ft_thresh = 1.0  # N
-                    rotor_idx_ft_cond = np.where(np.array(ft_ref) < ft_thresh)
-                    rotor_idx_alpha_cond = np.where((np.array(a_ref) > np.pi / 2) | (np.array(a_ref) < -np.pi / 2))
-                    rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
-
-                    if len(rotor_idx) > 1:
-                        raise RuntimeError("More than one rotor is below threshold and flip backwards!")
-                    elif len(rotor_idx) == 0:
-                        rotor_idx = -1
-                    elif len(rotor_idx) == 1:
-                        rotor_idx = rotor_idx[0]
-
-                    # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
-                    if rotor_idx != -1:
-                        ft_stop_rotor = ft_ref[rotor_idx]
-                        alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
-                        ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
-                        ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
-
-                        if key == "LSTSQ+QP":
-                            # 4) do a QP with this rotor shutdown
-                            ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
-                                                             ft_stop_rotor_x, ft_stop_rotor_y)
-                        elif key == "LSTSQ+alloc":
-                            # 4.1) construct tgt_wrench from z_from_rotor
-                            z_from_rotor = np.zeros((8, 1))
-                            z_from_rotor[2 * rotor_idx] = ft_stop_rotor_x
-                            z_from_rotor[2 * rotor_idx + 1] = ft_stop_rotor_y
-                            tgt_wrench_from_rotor = alloc_mat @ z_from_rotor
-
-                            # 4.2) calculate alloc_mat with this rotor's contribution
-                            tgt_wrench_modified = tgt_w - tgt_wrench_from_rotor
-
-                            # 4.3) calculate the allocation matrix without this rotor, which is 6*6
-                            if rotor_idx != rotor_idx_prev:
-                                alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
-                                alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
-
-                            # 4.4) reconstruct the z output
-                            z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
-
-                            # 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
-                            z_final = np.insert(z_except_rotor, 2 * rotor_idx,
-                                                [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0)
-
-                            # 4.6) reconstruct the thrust and servo angle
-                            ft_ref, a_ref = full_force_to_cmd(z_final)
-
-                    rotor_idx_prev = rotor_idx
-
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
+
+            if "SVD+" in key:
+            # 1) do one allocation w. SVD
+                target_force = alloc_mat_inv_svd @ tgt_w
+                ft_ref, a_ref = full_force_to_cmd(target_force)
+                # 2) check if one rotor's thrust is less than threshold and flip backwards
+                ft_thresh = 1.0  # N
+                rotor_idx_ft_cond = np.where(np.array(ft_ref) < ft_thresh)
+                rotor_idx_alpha_cond = np.where((np.array(a_ref) > np.pi / 2) | (np.array(a_ref) < -np.pi / 2))
+                rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
+
+                if len(rotor_idx) > 1:
+                    raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+                elif len(rotor_idx) == 0:
+                    rotor_idx = -1
+                elif len(rotor_idx) == 1:
+                    rotor_idx = rotor_idx[0]
+
+                # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
+                if rotor_idx != -1:
+                    ft_stop_rotor = ft_ref[rotor_idx]
+                    alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
+                    ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
+                    ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
+
+                    if "+QP" in key:
+                        # 4) do a QP with this rotor shutdown
+                        ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
+                                                         ft_stop_rotor_x, ft_stop_rotor_y)
+                    elif "+alloc" in key:
+                        # 4.1) construct tgt_wrench from z_from_rotor
+                        z_from_rotor = np.zeros((8, 1))
+                        z_from_rotor[2 * rotor_idx] = ft_stop_rotor_x
+                        z_from_rotor[2 * rotor_idx + 1] = ft_stop_rotor_y
+                        tgt_wrench_from_rotor = alloc_mat @ z_from_rotor
+
+                        # 4.2) calculate alloc_mat with this rotor's contribution
+                        tgt_wrench_modified = tgt_w - tgt_wrench_from_rotor
+
+                        # 4.3) calculate the allocation matrix without this rotor, which is 6*6
+                        if rotor_idx != rotor_idx_prev:
+                            alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
+                            alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
+
+                        # 4.4) reconstruct the z output
+                        z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
+
+                        # 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
+                        z_final = np.insert(z_except_rotor, 2 * rotor_idx,
+                                            [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0)
+
+                        # 4.6) reconstruct the thrust and servo angle
+                        ft_ref, a_ref = full_force_to_cmd(z_final)
+
+                rotor_idx_prev = rotor_idx
+
+
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
 
@@ -327,10 +329,15 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange", "np.pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
-                     # "Weighted_all": "tab:green",
-                     "Weighted_single": "tab:purple", "Constrained_QP": "tab:cyan",
-                     "LSTSQ+QP": "tab:brown", "LSTSQ+alloc": "tab:green"}
+    method_colors = {"SVD": "tab:orange",
+                     "np.pinv": "tab:blue",
+                     "RightInverse": "tab:red",
+                     "LSTSQ": "tab:gray",
+                     "Weighted_all": "tab:green",
+                     "Weighted_single": "tab:purple",
+                     "Constrained_QP": "tab:cyan",
+                     "SVD+QP": "tab:brown",
+                     "SVD+alloc": "tab:green"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
