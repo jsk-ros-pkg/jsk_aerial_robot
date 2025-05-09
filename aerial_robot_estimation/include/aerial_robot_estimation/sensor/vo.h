@@ -70,6 +70,8 @@ namespace sensor_plugin
 
     bool reset();
 
+    const tf::Transform& getRawBaselinkTF() const { return baselink_tf_; }
+
   private:
     /* ros */
     ros::Subscriber vo_sub_;
@@ -93,7 +95,6 @@ namespace sensor_plugin
     /* heuristic sepecial flag for fusion */
     bool outdoor_;
     bool z_no_delay_;
-
 
     /* servo */
     std::string joint_name_;

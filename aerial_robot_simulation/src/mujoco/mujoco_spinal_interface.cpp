@@ -27,7 +27,6 @@ namespace hardware_interface
     spinal_state_estimator_.update();
   }
 
-
   void MujocoSpinalInterface::setImuValue(double acc_x, double acc_y, double acc_z, double gyro_x, double gyro_y, double gyro_z)
   {
     spinal_state_estimator_.getAttEstimator()->setAcc(acc_x, acc_y, acc_z);
@@ -39,34 +38,14 @@ namespace hardware_interface
     spinal_state_estimator_.getAttEstimator()->setMag(mag_x, mag_y, mag_z);
   }
 
-  tf::Vector3 MujocoSpinalInterface::getTrueBaselinkRPY()
+  void MujocoSpinalInterface::setGroundTruthStates(double q_x, double q_y, double q_z, double q_w,
+                                                   double w_x, double w_y, double w_z)
   {
-    double r,p,y;
-    baselink_rot_.getRPY(r, p, y);
-    return tf::Vector3(r,p,y);
-  }
-
-  tf::Vector3 MujocoSpinalInterface::getTrueCogAngular()
-  {
-    return spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf() * baselink_angular_;
-  }
-
-  tf::Vector3 MujocoSpinalInterface::getTrueCogRPY()
-  {
-    tf::Matrix3x3 rot = baselink_rot_ * spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf().transpose() ;
-    double r,p,y;
-    rot.getRPY(r, p, y);
-    return tf::Vector3(r,p,y);
-  }
-
-  void MujocoSpinalInterface::setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w)
-  {
-    baselink_rot_.setRotation(tf::Quaternion(q_x, q_y, q_z, q_w));
-  }
-
-  void MujocoSpinalInterface::setTrueBaselinkAngular(double w_x, double w_y, double w_z)
-  {
-    baselink_angular_.setValue(w_x, w_y, w_z);
+    /* directly overwrite the state in attitude estimation */
+    ap::Quaternion q(q_w, q_x, q_y, q_z);
+    ap::Matrix3f rot; q.rotation_matrix(rot);
+    ap::Vector3f ang_vel(w_x, w_y, w_z);
+    spinal_state_estimator_.getAttEstimator()->setGroundTruthStates(rot, ang_vel);
   }
 
 }

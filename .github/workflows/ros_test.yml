@@ -2,18 +2,25 @@ on: [push, pull_request]
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
-    name: ros_build_test
     strategy:
       fail-fast: false
       matrix:
         include:
-          - ROS_DISTRO : melodic
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : melodic
             DOCKER_IMAGE : ubuntu:bionic
-          - ROS_DISTRO : noetic
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : noetic
             DOCKER_IMAGE : ubuntu:focal
-          - ROS_DISTRO : one
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : one
             DOCKER_IMAGE : ubuntu:jammy
+          - runs-on: ubuntu-22.04-arm
+            ROS_DISTRO : noetic
+            DOCKER_IMAGE : ubuntu:focal
+    runs-on: ${{ matrix.runs-on }}
+    name: ros_build_test-${{ matrix.runs-on }}-${{ matrix.ROS_DISTRO }}
+
     steps:
       - name: Setup OS
         run: |

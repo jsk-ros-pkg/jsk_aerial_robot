@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DRAGON:Shutdown
+Terminal=false
+Exec=gnome-terminal -- bash -c "source ~/ros/jsk_aerial_robot_ws/devel/setup.bash && `rospack find dragon`/bin/remote/remote_shutdown.sh"
+Icon=shutdown
+Categories==Application
+
