@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation as R
 import cvxpy as cp
 import matplotlib.pyplot as plt
 import scienceplots
+from sympy.unify.usympy import construct
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -43,6 +44,79 @@ alpha_max = np.pi
 alpha_min = -np.pi
 
 
+def get_alloc_mtx_tilt_qd():
+    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+
+    # Define Allocation Matrix
+    alloc_mat = np.zeros((6, 8))
+
+    # Rotor parameters in list form for looping
+    p_b_list = [p1_b, p2_b, p3_b, p4_b]
+    dr_list = [dr1, dr2, dr3, dr4]
+
+    for i in range(4):
+        p_b = p_b_list[i]
+        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
+        dr = dr_list[i]
+
+        # Force entries
+        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_mat[2, 2 * i + 1] = 1
+
+        # Torque entries
+        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+
+        alloc_mat[3, 2 * i + 1] = p_b[1]
+        alloc_mat[4, 2 * i + 1] = -p_b[0]
+        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
+
+    print("shape of alloc_mat", alloc_mat.shape)
+    print("alloc_mat", alloc_mat)
+    print("=======================\n")
+    return alloc_mat
+
+def get_alloc_mtx_tilt_tri():
+    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+
+    # Define Allocation Matrix
+    alloc_mat = np.zeros((6, 6))
+
+    # Rotor parameters in list form for looping
+    p_b_list = [p1_b, p2_b, p3_b]
+    dr_list = [dr1, dr2, dr3]
+
+    for i in range(len(p_b_list)):
+        p_b = p_b_list[i]
+        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
+        dr = dr_list[i]
+
+        # Force entries
+        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_mat[2, 2 * i + 1] = 1
+
+        # Torque entries
+        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+
+        alloc_mat[3, 2 * i + 1] = p_b[1]
+        alloc_mat[4, 2 * i + 1] = -p_b[0]
+        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
+
+    print("shape of alloc_mat", alloc_mat.shape)
+    print("alloc_mat", alloc_mat)
+    print("=======================\n")
+    return alloc_mat
+
 def pseudoinverse_svd(mat, tolerance=1e-4):
     # Perform SVD
     U, singular_values, Vh = np.linalg.svd(mat, full_matrices=True)
@@ -62,21 +136,27 @@ def pseudoinverse_svd(mat, tolerance=1e-4):
 
 
 def full_force_to_cmd(target_force):
-    # Compute reference values for thrust
-    # Set either state or control input based on model properties, i.e., based on include flags
-    ft1_ref = np.sqrt(target_force[0, 0] ** 2 + target_force[1, 0] ** 2)
-    ft2_ref = np.sqrt(target_force[2, 0] ** 2 + target_force[3, 0] ** 2)
-    ft3_ref = np.sqrt(target_force[4, 0] ** 2 + target_force[5, 0] ** 2)
-    ft4_ref = np.sqrt(target_force[6, 0] ** 2 + target_force[7, 0] ** 2)
-    ft_ref = [ft1_ref, ft2_ref, ft3_ref, ft4_ref]
+    """
+    Convert full 2D force vectors into thrust magnitudes and servo angles.
 
-    # Compute reference values for servo angles
-    # Set either state or control input based on model properties, i.e., based on include flags
-    a1_ref = np.arctan2(target_force[0, 0], target_force[1, 0])
-    a2_ref = np.arctan2(target_force[2, 0], target_force[3, 0])
-    a3_ref = np.arctan2(target_force[4, 0], target_force[5, 0])
-    a4_ref = np.arctan2(target_force[6, 0], target_force[7, 0])
-    a_ref = [a1_ref, a2_ref, a3_ref, a4_ref]
+    Parameters:
+        target_force (np.ndarray): shape (2*N, 1), where N is number of thrust vectors
+
+    Returns:
+        ft_ref (list): List of thrust magnitudes
+        a_ref (list): List of corresponding servo angles
+    """
+    num_forces = target_force.shape[0] // 2
+    ft_ref = []
+    a_ref = []
+
+    for i in range(num_forces):
+        fx = target_force[2 * i, 0]
+        fy = target_force[2 * i + 1, 0]
+        ft = np.sqrt(fx ** 2 + fy ** 2)
+        angle = np.arctan2(fx, fy)
+        ft_ref.append(ft)
+        a_ref.append(angle)
 
     return ft_ref, a_ref
 
@@ -131,40 +211,7 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
 
 
 if __name__ == "__main__":
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-
-    # Define Allocation Matrix
-    alloc_mat = np.zeros((6, 8))
-
-    # Rotor parameters in list form for looping
-    p_b_list = [p1_b, p2_b, p3_b, p4_b]
-    dr_list = [dr1, dr2, dr3, dr4]
-
-    for i in range(4):
-        p_b = p_b_list[i]
-        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
-        dr = dr_list[i]
-
-        # Force entries
-        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
-        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
-        alloc_mat[2, 2 * i + 1] = 1
-
-        # Torque entries
-        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
-        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
-        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
-
-        alloc_mat[3, 2 * i + 1] = p_b[1]
-        alloc_mat[4, 2 * i + 1] = -p_b[0]
-        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
-
-    print("shape of alloc_mat", alloc_mat.shape)
-    print("alloc_mat", alloc_mat)
-    print("=======================\n")
+    alloc_mat = get_alloc_mtx_tilt_qd()
 
     # ======= Test the pseudoinverse function ======
     # our method in the system to compute the allocation matrix
@@ -217,6 +264,15 @@ if __name__ == "__main__":
     Aw = A @ np.linalg.inv(W)
     inv_weighted_single = W @ A.T @ np.linalg.inv(Aw @ A.T)
 
+    # -------------------------------------------------------------------
+    # tri-rotor
+    alloc_mat_tri = get_alloc_mtx_tilt_tri()
+    alloc_mat_inv_svd_tri = pseudoinverse_svd(alloc_mat_tri)
+    print("alloc_mat_tri == alloc_mat_inv_svd_tri")
+    ft_ref, a_ref = get_cmd_w_inv_mat(alloc_mat_inv_svd_tri, target_wrench)
+    print("ft_ref", ft_ref)
+    print("a_ref", a_ref)
+
     # PLOT THE RESULTS
     # -------------------------------------------------------------------
     # (1)  PSEUDOINVERSES FOR THE THREE ALLOCATION METHODS
@@ -230,7 +286,8 @@ if __name__ == "__main__":
         "WtPInv(Single)": inv_weighted_single,
         "ConstrainedQP": None,
         "PInv(SVD)+QP": None,
-        "PInv(SVD)+Alloc": None
+        "PInv(SVD)+Alloc": None,
+        "PInv(SVD): Tri": alloc_mat_inv_svd_tri,
     }
 
     # -------------------------------------------------------------------
@@ -320,6 +377,10 @@ if __name__ == "__main__":
 
                 rotor_idx_prev = rotor_idx
 
+            if len(ft_ref) == 3:
+                ft_ref = np.insert(ft_ref, 3, 0.0)
+                a_ref = np.insert(a_ref, 3, 0.0)
+
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
 
@@ -329,7 +390,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"PInv(SVD)": "#EDB120",
+    method_colors = {"PInv(SVD)": "#A2142F",
                      "np.pinv": "tab:blue",
                      "PInv(RtIn)": "#4DBEEE",
                      "LSTSQ": "tab:gray",
@@ -337,7 +398,8 @@ if __name__ == "__main__":
                      "WtPInv(Single)": "#7E2F8E",
                      "ConstrainedQP": "#0072BD",
                      "PInv(SVD)+QP": "#77AC30",
-                     "PInv(SVD)+Alloc": "#D95319"}
+                     "PInv(SVD)+Alloc": "#D95319",
+                     "PInv(SVD): Tri": "#EDB120"}
     method_linestyles = {"PInv(SVD)": "-",
                          "PInv(RtIn)": "-.",
                          "LSTSQ": ":",
@@ -345,7 +407,7 @@ if __name__ == "__main__":
                          "ConstrainedQP": "--",
                          "PInv(SVD)+QP": "-.",
                          "PInv(SVD)+Alloc": "-",
-                         }
+                         "PInv(SVD): Tri": "-"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     legend_alpha = 0.5
@@ -384,7 +446,7 @@ if __name__ == "__main__":
     # shared x-label (bottom row only)
     for ax in axs[-1, :]:
         ax.set_xlabel("Yaw [deg]", fontsize=label_size)
-
+        ax.set_xlim([int(yaw_deg[0]), int(yaw_deg[-1])])
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4)
