@@ -81,6 +81,7 @@ def get_alloc_mtx_tilt_qd():
     print("=======================\n")
     return alloc_mat
 
+
 def get_alloc_mtx_tilt_tri():
     sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
     sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
@@ -116,6 +117,7 @@ def get_alloc_mtx_tilt_tri():
     print("alloc_mat", alloc_mat)
     print("=======================\n")
     return alloc_mat
+
 
 def pseudoinverse_svd(mat, tolerance=1e-4):
     # Perform SVD
@@ -415,7 +417,7 @@ if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11})  # default is 10
     label_size = 14
 
-    fig, axs = plt.subplots(4, 2, figsize=(7, 7), sharex=True)
+    fig, axs = plt.subplots(4, 2, figsize=(7, 8), sharex=True)
     # fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
 
     axs[0, 0].set_title("Thrust Cmd.")
@@ -439,17 +441,18 @@ if __name__ == "__main__":
                       linestyle=method_linestyles[m], color=method_colors[m])
 
         title_tmp = "$\\alpha_{c" + str(r + 1) + "}$"
-        ax_a.set_ylabel(title_tmp + " [deg]", fontsize=label_size)
+        ax_a.set_ylabel(title_tmp + " [$^{\circ}$]", fontsize=label_size)
         # ax_a.set_title(f"{rotor_names[r]} servo angle")
         ax_a.grid(True, linestyle=":")
 
     # shared x-label (bottom row only)
     for ax in axs[-1, :]:
-        ax.set_xlabel("Yaw [deg]", fontsize=label_size)
+        ax.set_xlabel("Yaw [$^{\circ}$]", fontsize=label_size)
         ax.set_xlim([int(yaw_deg[0]), int(yaw_deg[-1])])
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4)
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4,
+               frameon=False)
 
     plt.tight_layout(rect=[0, 0, 1.0, 0.93])
     plt.show()
