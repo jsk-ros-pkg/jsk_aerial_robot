@@ -9,6 +9,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import cvxpy as cp
 import matplotlib.pyplot as plt
+import scienceplots
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -221,15 +222,15 @@ if __name__ == "__main__":
     # (1)  PSEUDOINVERSES FOR THE THREE ALLOCATION METHODS
     # -------------------------------------------------------------------
     inv_methods = {  # <--  this is what the patch uses
-        "SVD": alloc_mat_inv_svd,
+        "PInv(SVD)": alloc_mat_inv_svd,
         # "np.pinv": alloc_mat_inv_linalg,
-        "RightInverse": alloc_mat_inv_right_inverse,
+        "PInv(RtIn)": alloc_mat_inv_right_inverse,
         "LSTSQ": None,
         # "Weighted_all": inv_weighted_all,
-        "Weighted_single": inv_weighted_single,
-        "Constrained_QP": None,
-        # "SVD+QP": None,
-        "SVD+alloc": None
+        "WtPInv(Single)": inv_weighted_single,
+        "ConstrainedQP": None,
+        "PInv(SVD)+QP": None,
+        "PInv(SVD)+Alloc": None
     }
 
     # -------------------------------------------------------------------
@@ -259,13 +260,13 @@ if __name__ == "__main__":
             if inv is None:
                 if "LSTSQ" in key:
                     ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
-                elif "Constrained_QP" in key:
+                elif "ConstrainedQP" in key:
                     ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w)
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
 
-            if "SVD+" in key:
-            # 1) do one allocation w. SVD
+            if "(SVD)+" in key:
+                # 1) do one allocation w. SVD
                 target_force = alloc_mat_inv_svd @ tgt_w
                 ft_ref, a_ref = full_force_to_cmd(target_force)
                 # 2) check if one rotor's thrust is less than threshold and flip backwards
@@ -292,7 +293,7 @@ if __name__ == "__main__":
                         # 4) do a QP with this rotor shutdown
                         ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
                                                          ft_stop_rotor_x, ft_stop_rotor_y)
-                    elif "+alloc" in key:
+                    elif "+Alloc" in key:
                         # 4.1) construct tgt_wrench from z_from_rotor
                         z_from_rotor = np.zeros((8, 1))
                         z_from_rotor[2 * rotor_idx] = ft_stop_rotor_x
@@ -319,7 +320,6 @@ if __name__ == "__main__":
 
                 rotor_idx_prev = rotor_idx
 
-
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
 
@@ -329,46 +329,65 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange",
+    method_colors = {"PInv(SVD)": "#EDB120",
                      "np.pinv": "tab:blue",
-                     "RightInverse": "tab:red",
+                     "PInv(RtIn)": "#4DBEEE",
                      "LSTSQ": "tab:gray",
                      "Weighted_all": "tab:green",
-                     "Weighted_single": "tab:purple",
-                     "Constrained_QP": "tab:cyan",
-                     "SVD+QP": "tab:brown",
-                     "SVD+alloc": "tab:green"}
+                     "WtPInv(Single)": "#7E2F8E",
+                     "ConstrainedQP": "#0072BD",
+                     "PInv(SVD)+QP": "#77AC30",
+                     "PInv(SVD)+Alloc": "#D95319"}
+    method_linestyles = {"PInv(SVD)": "-",
+                         "PInv(RtIn)": "-.",
+                         "LSTSQ": ":",
+                         "WtPInv(Single)": "-.",
+                         "ConstrainedQP": "--",
+                         "PInv(SVD)+QP": "-.",
+                         "PInv(SVD)+Alloc": "-",
+                         }
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
-    fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
-    fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
+    legend_alpha = 0.5
+    plt.style.use(["science", "grid"])
+    plt.rcParams.update({'font.size': 11})  # default is 10
+    label_size = 14
 
+    fig, axs = plt.subplots(4, 2, figsize=(7, 7), sharex=True)
+    # fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
+
+    axs[0, 0].set_title("Thrust Cmd.")
+    axs[0, 1].set_title("Servo Cmd.")
     for r in range(4):
         # ---- thrust subplot (left) ----
         ax_t = axs[r, 0]
         for m in inv_methods:
-            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "",
+            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "", linestyle=method_linestyles[m],
                       color=method_colors[m])
-        ax_t.set_ylabel("Thrust [N]")
-        ax_t.set_title(f"{rotor_names[r]} thrust")
+
+        title_tmp = "$f_{c" + str(r + 1) + "}$"
+        ax_t.set_ylabel(title_tmp + " [N]", fontsize=label_size)
+        # ax_t.set_title(f"{rotor_names[r]} thrust")
         ax_t.grid(True, linestyle=":")
 
         # ---- servo-angle subplot (right) ----
         ax_a = axs[r, 1]
         for m in inv_methods:
-            ax_a.plot(yaw_deg, ang_all[m][:, r], label=m if r == 0 else "",
-                      color=method_colors[m])
-        ax_a.set_ylabel("Servo angle [rad]")
-        ax_a.set_title(f"{rotor_names[r]} servo angle")
+            ax_a.plot(yaw_deg, ang_all[m][:, r] * 180 / np.pi, label=m if r == 0 else "",
+                      linestyle=method_linestyles[m], color=method_colors[m])
+
+        title_tmp = "$\\alpha_{c" + str(r + 1) + "}$"
+        ax_a.set_ylabel(title_tmp + " [deg]", fontsize=label_size)
+        # ax_a.set_title(f"{rotor_names[r]} servo angle")
         ax_a.grid(True, linestyle=":")
 
     # shared x-label (bottom row only)
     for ax in axs[-1, :]:
-        ax.set_xlabel("Yaw [deg]")
+        ax.set_xlabel("Yaw [deg]", fontsize=label_size)
 
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper right", bbox_to_anchor=(0.97, 0.97))
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4)
 
-    plt.tight_layout(rect=[0, 0, 0.95, 0.96])
+    plt.tight_layout(rect=[0, 0, 1.0, 0.93])
     plt.show()
