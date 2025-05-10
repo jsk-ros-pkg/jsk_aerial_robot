@@ -85,8 +85,9 @@ if __name__ == "__main__":
     fg_w = np.array([0.0, 0.0, mass * gravity])
 
     # 2) define roll and pitch angle grids
-    roll_list = np.linspace(-180, 180, 15)  # from -180° to 180°
-    pitch_list = np.linspace(-90, 90, 5)  # from -90° to 90°
+    resolution = 10  # degrees
+    roll_list = np.linspace(-180, 180, int(360 / resolution) + 1)  # from -180° to 180°
+    pitch_list = np.linspace(-90, 90, int(180 / resolution) + 1)  # from -90° to 90°
 
     # 3) compute max thrust map
     thrust_map = np.zeros((len(roll_list), len(pitch_list)))
@@ -125,22 +126,22 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # # draw a unit sphere wireframe for reference
-    # u, v = np.mgrid[0:np.pi:40j, 0:2 * np.pi:40j]
-    # x_s = np.sin(u) * np.cos(v)
-    # y_s = np.sin(u) * np.sin(v)
-    # z_s = np.cos(u)
-    # ax.plot_wireframe(x_s, y_s, z_s, color='lightgray', alpha=0.5, linewidth=0.5)
+    # calculate the 3D coordinates of the vector
+    endpoints = origins + np.column_stack((U, V, W))
+    xs, ys, zs = endpoints.T  # shape (N,)
 
     # plot thrust vectors from the origin
-    ax.quiver(
-        origins[:, 0], origins[:, 1], origins[:, 2],
-        U, V, W,
-        length=1.0,
-        normalize=False,
-        linewidth=0.5,
-        pivot='tail'
+    sc = ax.scatter(
+        xs, ys, zs,
+        c=mags,  # color by thrust magnitude
+        cmap='viridis',  # colormap
+        s=20,  # marker size
+        depthshade=True
     )
+
+    # colormap
+    cb = fig.colorbar(sc, ax=ax, pad=0.1)
+    cb.set_label('Thrust (N)')
 
     # change lim
     max_thrust = mags.max()
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.set_title('Maximum Thrust Vectors on Unit Sphere Directions')
+    # ax.set_title('Maximum Thrust Vectors on Unit Sphere Directions')
     ax.set_box_aspect([1, 1, 1])
 
     plt.tight_layout()
