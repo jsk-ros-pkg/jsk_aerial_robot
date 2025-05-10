@@ -51,7 +51,7 @@ def get_alloc_mtx_tilt_qd():
     sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
 
     # Define Allocation Matrix
-    alloc_mat = np.zeros((6, 8))
+    alloc_matrix = np.zeros((6, 8))
 
     # Rotor parameters in list form for looping
     p_b_list = [p1_b, p2_b, p3_b, p4_b]
@@ -63,23 +63,23 @@ def get_alloc_mtx_tilt_qd():
         dr = dr_list[i]
 
         # Force entries
-        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
-        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
-        alloc_mat[2, 2 * i + 1] = 1
+        alloc_matrix[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_matrix[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_matrix[2, 2 * i + 1] = 1
 
         # Torque entries
-        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
-        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
-        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+        alloc_matrix[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_matrix[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_matrix[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
 
-        alloc_mat[3, 2 * i + 1] = p_b[1]
-        alloc_mat[4, 2 * i + 1] = -p_b[0]
-        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
+        alloc_matrix[3, 2 * i + 1] = p_b[1]
+        alloc_matrix[4, 2 * i + 1] = -p_b[0]
+        alloc_matrix[5, 2 * i + 1] = -dr * kq_d_kt
 
-    print("shape of alloc_mat", alloc_mat.shape)
-    print("alloc_mat", alloc_mat)
+    print("shape of alloc_mat", alloc_matrix.shape)
+    print("alloc_mat", alloc_matrix)
     print("=======================\n")
-    return alloc_mat
+    return alloc_matrix
 
 
 def get_alloc_mtx_tilt_tri():
@@ -88,7 +88,7 @@ def get_alloc_mtx_tilt_tri():
     sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
 
     # Define Allocation Matrix
-    alloc_mat = np.zeros((6, 6))
+    alloc_matrix = np.zeros((6, 6))
 
     # Rotor parameters in list form for looping
     p_b_list = [p1_b, p2_b, p3_b]
@@ -100,23 +100,23 @@ def get_alloc_mtx_tilt_tri():
         dr = dr_list[i]
 
         # Force entries
-        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
-        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
-        alloc_mat[2, 2 * i + 1] = 1
+        alloc_matrix[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_matrix[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_matrix[2, 2 * i + 1] = 1
 
         # Torque entries
-        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
-        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
-        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+        alloc_matrix[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_matrix[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_matrix[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
 
-        alloc_mat[3, 2 * i + 1] = p_b[1]
-        alloc_mat[4, 2 * i + 1] = -p_b[0]
-        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
+        alloc_matrix[3, 2 * i + 1] = p_b[1]
+        alloc_matrix[4, 2 * i + 1] = -p_b[0]
+        alloc_matrix[5, 2 * i + 1] = -dr * kq_d_kt
 
-    print("shape of alloc_mat", alloc_mat.shape)
-    print("alloc_mat", alloc_mat)
+    print("shape of alloc_mat", alloc_matrix.shape)
+    print("alloc_mat", alloc_matrix)
     print("=======================\n")
-    return alloc_mat
+    return alloc_matrix
 
 
 def pseudoinverse_svd(mat, tolerance=1e-4):
@@ -137,24 +137,24 @@ def pseudoinverse_svd(mat, tolerance=1e-4):
     return Vh.T @ singular_values_inv @ U.T
 
 
-def full_force_to_cmd(target_force):
+def full_force_to_cmd(tgt_force):
     """
     Convert full 2D force vectors into thrust magnitudes and servo angles.
 
     Parameters:
-        target_force (np.ndarray): shape (2*N, 1), where N is number of thrust vectors
+        tgt_force (np.ndarray): shape (2*N, 1), where N is number of thrust vectors
 
     Returns:
         ft_ref (list): List of thrust magnitudes
         a_ref (list): List of corresponding servo angles
     """
-    num_forces = target_force.shape[0] // 2
+    num_forces = tgt_force.shape[0] // 2
     ft_ref = []
     a_ref = []
 
     for i in range(num_forces):
-        fx = target_force[2 * i, 0]
-        fy = target_force[2 * i + 1, 0]
+        fx = tgt_force[2 * i, 0]
+        fy = tgt_force[2 * i + 1, 0]
         ft = np.sqrt(fx ** 2 + fy ** 2)
         angle = np.arctan2(fx, fy)
         ft_ref.append(ft)
@@ -164,22 +164,24 @@ def full_force_to_cmd(target_force):
 
 
 def get_cmd_w_inv_mat(inv_mat, tgt_wrench):
-    target_force = inv_mat @ tgt_wrench
-    return full_force_to_cmd(target_force)
+    tgt_force = inv_mat @ tgt_wrench
+    return full_force_to_cmd(tgt_force)
 
 
 def get_cmd_w_lstsq(alloc_mtx, tgt_wrench):
-    target_force, _, _, _ = np.linalg.lstsq(alloc_mtx, tgt_wrench, rcond=None)
-    return full_force_to_cmd(target_force)
+    tgt_force, _, _, _ = np.linalg.lstsq(alloc_mtx, tgt_wrench, rcond=None)
+    return full_force_to_cmd(tgt_force)
 
 
 def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_rotor_fx=None, shutdown_rotor_fy=None):
-    '''
+    """
     if only the objective is used as Ax-b (or add cp.sum_squares(x)), the result is the same as the lstsq method;
     :param alloc_mtx: allocation matrix
     :param tgt_wrench: target wrench
     :param shutdown_rotor_idx: rotor shutdown index, from 0 to 3
-    '''
+    :param shutdown_rotor_fx: rotor shutdown force in x direction
+    :param shutdown_rotor_fy: rotor shutdown force in y direction
+    """
     alpha = 1e-3  # Tikhonov (small control effort penalty)
 
     # ---------- decision variable ----------
@@ -208,8 +210,8 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
     if prob.status != cp.OPTIMAL:
         raise RuntimeError("allocation QP infeasible!")
 
-    target_force = x.value.reshape(8, 1)
-    return full_force_to_cmd(target_force)
+    tgt_force = x.value.reshape(8, 1)
+    return full_force_to_cmd(tgt_force)
 
 
 if __name__ == "__main__":
