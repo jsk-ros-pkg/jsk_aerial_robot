@@ -3,6 +3,7 @@
 '''
 import numpy as np
 import cvxpy as cp
+import argparse
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
@@ -49,68 +50,88 @@ def check_wrench_available(alloc_mtx, tgt_wrench, f_th_max=THRUST_MAX, wrench_er
     return (wrench_error <= wrench_error_limit), wrench_error
 
 
-def find_max_thrust_for_orientation(alloc_mtx, fg_w, roll_deg, pitch_deg,
+def find_max_thrust_for_orientation(alloc_mtx, fg_w,
+                                    roll_deg, pitch_deg, yaw_deg,
                                     search_thrust_min, search_thrust_max,
+                                    is_world,
                                     tol=1e-2, max_iters=20):
-    """
-    For a given roll and pitch angle (degrees), perform a binary search
-    to find the maximum achievable additional thrust along the body z-axis.
-    """
-    yaw_deg = 0.0  # fix yaw, since gravity projection is yaw-invariant
     # compute rotation from world to body frame
     R_bw = R.from_euler('zyx', [yaw_deg, pitch_deg, roll_deg], degrees=True).as_matrix().T
-    # gravity in body frame
     fg_b = R_bw @ fg_w
 
     lo, hi = search_thrust_min, search_thrust_max
-    best = search_thrust_min
+    best_thrust = search_thrust_min
+    best_error = np.inf
     for _ in range(max_iters):
         mid = (lo + hi) / 2
+
         # target wrench: include gravity plus additional thrust along body z
-        tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2] + mid, 0.0, 0.0, 0.0]]).T
-        ok, _ = check_wrench_available(alloc_mtx, tgt_w)
+        if is_world:
+            tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2] + mid, 0.0, 0.0, 0.0]]).T  # the z-axis is thrust
+        else:
+            mid_b = R_bw @ np.array([0.0, 0.0, mid])
+            tgt_w = np.array([[fg_b[0] + mid_b[0], fg_b[0] + mid_b[1], fg_b[0] + mid_b[2], 0.0, 0.0, 0.0]]).T
+        ok, err = check_wrench_available(alloc_mtx, tgt_w)
         if ok:
-            best = mid
+            best_thrust, best_error = mid, err
             lo = mid  # can try larger thrust
         else:
             hi = mid  # reduce thrust
         if hi - lo < tol:
             break
-    return best
+    return best_thrust, best_error
 
 
 if __name__ == "__main__":
-    # 1) prepare the allocation matrix and world gravity vector
-    alloc_mat = get_alloc_mtx_tilt_qd()
-    fg_w = np.array([0.0, 0.0, mass * gravity])
+    # add arguments to choose 1. force or torque 2. the type is world or body
+    parser = argparse.ArgumentParser(description="Analyze maximum thrust for a given pitch/yaw orientation.")
+    parser.add_argument("--resolution", "-r", type=float, default=30,
+                        help="Resolution of pitch/yaw angles in degrees.")
+    parser.add_argument(
+        "--world", "-w",
+        action="store_true",
+        help="Use world frame instead of body frame.",
+    )
 
-    # 2) define roll and pitch angle grids
-    resolution = 10  # degrees
-    roll_list = np.linspace(-180, 180, int(360 / resolution) + 1)  # from -180° to 180°
-    pitch_list = np.linspace(-90, 90, int(180 / resolution) + 1)  # from -90° to 90°
+    args = parser.parse_args()
+    if_world = args.world
+
+    # init
+    alloc_mat = get_alloc_mtx_tilt_qd()
+
+    if args.world:
+        fg_w = np.array([0.0, 0.0, mass * gravity])
+    else:
+        fg_w = np.array([0.0, 0.0, 0.0])  # don't consider gravity in body frame
+
+    # 2) define yaw and pitch grids
+    resolution = args.resolution
+    yaw_list = np.linspace(-180, 180, int(360 / resolution) + 1)  # from -180° to 180°
+    pitch_list = np.linspace(0, 180, int(180 / resolution) + 1)  # from -90° to 90°
 
     # 3) compute max thrust map
-    thrust_map = np.zeros((len(roll_list), len(pitch_list)))
-    for i, roll_deg in enumerate(roll_list):
+    thrust_map = np.zeros((len(yaw_list), len(pitch_list)))
+    for i, yaw_deg in enumerate(yaw_list):
         for j, pitch_deg in enumerate(pitch_list):
-            thrust_map[i, j] = find_max_thrust_for_orientation(
-                alloc_mat, fg_w, roll_deg, pitch_deg, 4 * THRUST_MIN, 4 * THRUST_MAX,
-            )
-        print(f"Completed roll = {roll_deg:.1f}°")
+            thrust_map[i, j], _ = find_max_thrust_for_orientation(
+                alloc_mat, fg_w, 0.0, pitch_deg, yaw_deg, 4 * THRUST_MIN, 4 * THRUST_MAX, if_world)
+        print(f"Completed yaw = {yaw_deg:.1f}°")
 
     if True:
         # save thrust map to file
-        np.savez("thrust_map.npz", roll_list=roll_list, pitch_list=pitch_list, thrust_map=thrust_map)
+        np.savez("thrust_map.npz", yaw_list=yaw_list, pitch_list=pitch_list, thrust_map=thrust_map)
         print("Saved thrust map to thrust_map.npz")
 
     # 4) flatten out directions & magnitudes
     dirs = []
     mags = []
-    for i, roll_deg in enumerate(roll_list):
+    for i, yaw_deg in enumerate(yaw_list):
         for j, pitch_deg in enumerate(pitch_list):
             # compute world<-body rotation
-            R_wb = R.from_euler('zyx', [0.0, pitch_deg, roll_deg], degrees=True).as_matrix()
-            dir_z = R_wb[:, 2]  # body z-axis in world frame
+            # TODO: there should be something wrong here, but I don't know why the result is correct
+            R_bw = R.from_euler('zyx', [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
+            dir_z = R_bw[:, 2]  # world z-axis in body frame
+
             dirs.append(dir_z)
             mags.append(thrust_map[i, j])
     dirs = np.array(dirs)  # shape (N,3)
@@ -134,7 +155,7 @@ if __name__ == "__main__":
     sc = ax.scatter(
         xs, ys, zs,
         c=mags,  # color by thrust magnitude
-        cmap='viridis',  # colormap
+        cmap='plasma',  # colormap  "viridis"
         s=20,  # marker size
         depthshade=True
     )
