@@ -56,7 +56,7 @@ def find_max_thrust_for_orientation(alloc_mtx, fg_w,
                                     roll_deg, pitch_deg, yaw_deg,
                                     search_thrust_min, search_thrust_max,
                                     is_world,
-                                    tol=1e-2, max_iters=20):
+                                    tol=1e-2, max_iters=30):
     # compute rotation from world to body frame
     R_bw = R.from_euler('zyx', [yaw_deg, pitch_deg, roll_deg], degrees=True).as_matrix().T
     fg_b = R_bw @ fg_w
@@ -64,7 +64,9 @@ def find_max_thrust_for_orientation(alloc_mtx, fg_w,
     lo, hi = search_thrust_min, search_thrust_max
     best_thrust = search_thrust_min
     best_error = np.inf
-    for _ in range(max_iters):
+
+    iter_idx = 0
+    for iter_idx in range(max_iters):
         mid = (lo + hi) / 2
 
         # target wrench: include gravity plus additional thrust along body z
@@ -81,6 +83,11 @@ def find_max_thrust_for_orientation(alloc_mtx, fg_w,
             hi = mid  # reduce thrust
         if hi - lo < tol:
             break
+
+    if iter_idx == max_iters - 1:
+        print(f"Warning: max iterations reached ({max_iters}) for thrust search.")
+        print(f"Final thrust range: [{lo}, {hi}]")
+
     return best_thrust, best_error
 
 
@@ -116,7 +123,7 @@ if __name__ == "__main__":
     for i, yaw_deg in enumerate(yaw_list):
         for j, pitch_deg in enumerate(pitch_list):
             thrust_map[i, j], _ = find_max_thrust_for_orientation(
-                alloc_mat, fg_w, 0.0, pitch_deg, yaw_deg, 4 * THRUST_MIN, 4 * THRUST_MAX, if_world)
+                alloc_mat, fg_w, 0.0, pitch_deg, yaw_deg, 0.0, 6 * THRUST_MAX, if_world)
         print(f"Completed yaw = {yaw_deg:.1f}°")
 
     if True:
