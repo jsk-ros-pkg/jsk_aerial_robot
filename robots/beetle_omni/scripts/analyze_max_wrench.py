@@ -7,6 +7,7 @@ import argparse
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from analyze_allocation import get_alloc_mtx_tilt_qd
 from analyze_allocation import mass, gravity
@@ -144,7 +145,14 @@ if __name__ == "__main__":
     W = dirs[:, 2] * mags
 
     # 6) plot unit sphere and thrust vectors
-    fig = plt.figure()
+    import scienceplots
+
+    plt.style.use(["science"])
+
+    plt.rcParams.update({'font.size': 11})  # default is 10
+    label_size = 12
+
+    fig = plt.figure(figsize=(3.5, 4))
     ax = fig.add_subplot(111, projection='3d')
 
     # calculate the 3D coordinates of the vector
@@ -155,27 +163,64 @@ if __name__ == "__main__":
     sc = ax.scatter(
         xs, ys, zs,
         c=mags,  # color by thrust magnitude
-        cmap='plasma',  # colormap  "viridis"
-        s=20,  # marker size
+        cmap='viridis',  # colormap  "viridis", "plasma"
+        s=8,  # marker size
         depthshade=True
     )
 
-    # colormap
-    cb = fig.colorbar(sc, ax=ax, pad=0.1)
-    cb.set_label('Thrust (N)')
+    # # colormap
+    # cb = fig.colorbar(sc, ax=ax, pad=0.15, orientation='horizontal')
+    # cb.set_label('Thrust (N)', fontsize=label_size)
 
-    # change lim
-    max_thrust = mags.max()
-    ax.set_xlim(-max_thrust, max_thrust)
-    ax.set_ylim(-max_thrust, max_thrust)
-    ax.set_zlim(-max_thrust, max_thrust)
+    ax.grid(False)
 
     # label axes and set equal aspect ratio
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    coord_text = 'W' if if_world else 'B'
+    ax.set_xlabel(f'$^{coord_text}f_x$ [N]', fontsize=label_size)
+    ax.set_ylabel(f'$^{coord_text}f_y$ [N]', fontsize=label_size)
+    ax.set_zlabel(f'$^{coord_text}f_z$ [N]', fontsize=label_size)
     # ax.set_title('Maximum Thrust Vectors on Unit Sphere Directions')
-    ax.set_box_aspect([1, 1, 1])
+    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+
+    # 7) plot X-Z projection (new 2-D figure)
+    fig2 = plt.figure(figsize=(3.5, 4))
+    ax2 = fig2.add_subplot(111)
+
+    sc2 = ax2.scatter(
+        xs,  # X-coordinates
+        zs,  # Z-coordinates
+        c=mags,
+        cmap='viridis',
+        s=8
+    )
+
+    ax2.set_xlabel(f'$^{coord_text}f_x$ [N]', fontsize=label_size)
+    ax2.set_ylabel(f'$^{coord_text}f_z$ [N]', fontsize=label_size)
+    # ax2.set_title('X–Z Projection of Max-Thrust Directions')
+    ax2.set_aspect('equal', adjustable='box')  # 保持比例尺一致
+    ax2.grid(True)
+
+    cax = inset_axes(
+        ax2,
+        width="100%",
+        height="6%",
+        loc="lower center",
+        bbox_to_anchor=(0, -0.25, 1, 1),
+        bbox_transform=ax2.transAxes,
+        borderpad=0
+    )
+
+    cb = fig2.colorbar(sc2, cax=cax, orientation="horizontal")
+    cb.set_label("Thrust (N)", fontsize=label_size)
+
+    # cb2 = fig2.colorbar(sc2, ax=ax2, pad=0.02)
+    # cb2.set_label('Thrust [N]', fontsize=label_size)
+
+    if if_world:
+        plt.tight_layout(rect=[0, 0.0, 1.0, 1.1])
+    else:
+        plt.tight_layout(rect=[0, 0.15, 1.0, 1.0])
+
     plt.show()
