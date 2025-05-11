@@ -10,7 +10,6 @@ from scipy.spatial.transform import Rotation as R
 import cvxpy as cp
 import matplotlib.pyplot as plt
 import scienceplots
-from sympy.unify.usympy import construct
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -43,13 +42,15 @@ thrust_min = 0
 alpha_max = np.pi
 alpha_min = -np.pi
 
+"""
+In this demo, we use rxyz to rotate the robot (intrinsic rotation). The roll=90, pitch=0, yaw=45 means that the rotor 1
+is tilted upwards. And for the trirotor, the shutdown rotor is rotor 3.
+"""
+
+ROTOR_UP_IDX = 0 # rotor 1
+ROTOR_DOWN_IDX = 2 # rotor 3
 
 def get_alloc_mtx_tilt_qd():
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-
     # Define Allocation Matrix
     alloc_matrix = np.zeros((6, 8))
 
@@ -57,7 +58,7 @@ def get_alloc_mtx_tilt_qd():
     p_b_list = [p1_b, p2_b, p3_b, p4_b]
     dr_list = [dr1, dr2, dr3, dr4]
 
-    for i in range(4):
+    for i in range(len(p_b_list)):
         p_b = p_b_list[i]
         sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
         dr = dr_list[i]
@@ -83,16 +84,12 @@ def get_alloc_mtx_tilt_qd():
 
 
 def get_alloc_mtx_tilt_tri():
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-
     # Define Allocation Matrix
     alloc_matrix = np.zeros((6, 6))
 
     # Rotor parameters in list form for looping
-    p_b_list = [p1_b, p2_b, p3_b]
-    dr_list = [dr1, dr2, dr3]
+    p_b_list = [p1_b, p2_b, p4_b]
+    dr_list = [dr1, dr2, dr4]
 
     for i in range(len(p_b_list)):
         p_b = p_b_list[i]
@@ -145,22 +142,22 @@ def full_force_to_cmd(tgt_force):
         tgt_force (np.ndarray): shape (2*N, 1), where N is number of thrust vectors
 
     Returns:
-        ft_ref (list): List of thrust magnitudes
-        a_ref (list): List of corresponding servo angles
+        ft_ref_local (list): List of thrust magnitudes
+        a_ref_local (list): List of corresponding servo angles
     """
     num_forces = tgt_force.shape[0] // 2
-    ft_ref = []
-    a_ref = []
+    ft_ref_local = []
+    a_ref_local = []
 
     for i in range(num_forces):
         fx = tgt_force[2 * i, 0]
         fy = tgt_force[2 * i + 1, 0]
         ft = np.sqrt(fx ** 2 + fy ** 2)
         angle = np.arctan2(fx, fy)
-        ft_ref.append(ft)
-        a_ref.append(angle)
+        ft_ref_local.append(ft)
+        a_ref_local.append(angle)
 
-    return ft_ref, a_ref
+    return ft_ref_local, a_ref_local
 
 
 def get_cmd_w_inv_mat(inv_mat, tgt_wrench):
@@ -197,7 +194,7 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
     constraints = []
 
     if shutdown_rotor_idx is None:
-        constraints += [x[3] >= 0]
+        constraints += [x[2 * ROTOR_UP_IDX + 1] >= 0]
     else:
         # rotor shutdown
         constraints += [x[2 * shutdown_rotor_idx] == shutdown_rotor_fx,
@@ -230,9 +227,11 @@ if __name__ == "__main__":
     print("=======================\n")
 
     # ===== calculate thrust and servo angle =====
-    fg_w = np.array([0, 0, mass * gravity])  # World frame
-    rot = R.from_euler('zyx', [45, 90, 0], degrees=True).as_matrix()
-    fg_b = rot.T @ fg_w  # Body frame
+    fg_w = np.array([0, 0, mass * gravity])  # the direction of supporting force is Z Up
+    # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
+    # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
+    rot_wb = R.from_euler('XYZ', [90, 0, 45], degrees=True).as_matrix()
+    fg_b = rot_wb.T @ fg_w  # Body frame
     print("fg_b", fg_b)
     print("The rotor 2 (index is 1 if counting from 0) should be pointing up")
 
@@ -263,7 +262,8 @@ if __name__ == "__main__":
     inv_weighted_all = W @ A.T @ np.linalg.inv(Aw @ A.T)
 
     ratio = 1.5
-    W = np.diag([1.0, 1.0, ratio, 1.0, 1.0, 1.0, 1.0, 1.0])
+    W = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    W[2 * ROTOR_UP_IDX, 2 * ROTOR_UP_IDX] = ratio
     A = alloc_mat
     Aw = A @ np.linalg.inv(W)
     inv_weighted_single = W @ A.T @ np.linalg.inv(Aw @ A.T)
@@ -297,7 +297,7 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
     # (2)  YAW-ANGLE SWEEP (deg)
     # -------------------------------------------------------------------
-    yaw_deg = np.arange(40.0, 50.0 + 0.1, 0.1)  # 40° → 50° inclusive, 0.1° step
+    yaw_deg = np.arange(40.0, 50.0 + 0.1, 0.1)
 
     # -------------------------------------------------------------------
     # (3)  ARRAYS THAT STORE RESULTS FOR EVERY METHOD AND EVERY YAW
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     ft_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # thrust  (N)
     ang_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # servo angles (rad)
 
-    fg_w = np.array([0.0, 0.0, mass * gravity])  # gravity in world frame
+    fg_w = np.array([0.0, 0.0, mass * gravity])  # the direction of supporting force is Z Up
 
     for key, inv in inv_methods.items():
         time_start = time.time()
@@ -313,8 +313,10 @@ if __name__ == "__main__":
         rotor_idx_prev = -1
         alloc_mat_del_rotor_inv = None
         for idx, yaw in enumerate(yaw_deg):
-            # body-frame gravity for roll=0, pitch=90°, varying yaw
-            R_bw = R.from_euler('zyx', [yaw, 90.0, 0.0], degrees=True).as_matrix().T
+            # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
+            # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
+            R_wb = R.from_euler('XYZ', [90.0, 0.0, yaw], degrees=True).as_matrix()
+            R_bw = R_wb.T
             fg_b = R_bw @ fg_w
             tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
 
@@ -382,8 +384,8 @@ if __name__ == "__main__":
                 rotor_idx_prev = rotor_idx
 
             if len(ft_ref) == 3:
-                ft_ref = np.insert(ft_ref, 3, 0.0)
-                a_ref = np.insert(a_ref, 3, 0.0)
+                ft_ref = np.insert(ft_ref, 2, 0.0)
+                a_ref = np.insert(a_ref, 2, 0.0)
 
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
