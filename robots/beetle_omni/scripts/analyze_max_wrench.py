@@ -6,6 +6,7 @@ import cvxpy as cp
 import argparse
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -159,20 +160,33 @@ if __name__ == "__main__":
     endpoints = origins + np.column_stack((U, V, W))
     xs, ys, zs = endpoints.T  # shape (N,)
 
-    # plot thrust vectors from the origin
-    sc = ax.scatter(
-        xs, ys, zs,
-        c=mags,  # color by thrust magnitude
-        cmap='viridis',  # colormap  "viridis", "plasma"
-        s=8,  # marker size
-        depthshade=True
+    # 1) Reshape the endpoint coordinates into a 2-D grid using the (yaw, pitch) grid.
+    Nyaw, Npitch = len(yaw_list), len(pitch_list)
+    X = endpoints[:, 0].reshape(Nyaw, Npitch)
+    Y = endpoints[:, 1].reshape(Nyaw, Npitch)
+    Z = endpoints[:, 2].reshape(Nyaw, Npitch)
+
+    # 2) Colormap (by thrust_map)
+    norm = plt.Normalize(thrust_map.min(), thrust_map.max())
+    colors = cm.viridis(norm(thrust_map))
+
+    # 3) draw surface
+    surf = ax.plot_surface(
+        X, Y, Z,
+        facecolors=colors,  # Each small grid has its own color
+        rstride=1, cstride=1,  # Step size = 1 → draw every grid
+        linewidth=0,
+        antialiased=False,
+        shade=False  # When using facecolors, turn off shade
     )
 
-    # # colormap
-    # cb = fig.colorbar(sc, ax=ax, pad=0.15, orientation='horizontal')
+    # # 4) For colorbar
+    # mappable = cm.ScalarMappable(cmap='viridis', norm=norm)
+    # mappable.set_array(thrust_map)
+    # cb = fig.colorbar(mappable, ax=ax, orientation='horizontal', pad=0.15)
     # cb.set_label('Thrust (N)', fontsize=label_size)
 
-    ax.grid(False)
+    # ax.grid(False)
 
     # label axes and set equal aspect ratio
     coord_text = 'W' if if_world else 'B'
