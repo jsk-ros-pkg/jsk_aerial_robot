@@ -52,48 +52,17 @@ bool PinocchioRobotModelTest::inverseDynamicsDerivativesTest(bool verbose)
   Eigen::VectorXd id_original_solution = robot_model_->inverseDynamics(original_q, original_v, original_a);
 
   // check partial_dq
+  robot_model_->inverseDynamics(original_q, original_v, original_a);
   Eigen::MatrixXd id_partial_dq_num =
       Eigen::MatrixXd::Zero(robot_model_->getModel()->nv + robot_model_->getRotorNum(), robot_model_->getModel()->nv);
-  for (int i = 0; i < 3; i++)  // root link position
+  for (int i = 0; i < robot_model_->getModel()->nv; i++)
   {
     q = original_q;
-    q(i) += epsilon;
+    Eigen::VectorXd delta_v = Eigen::VectorXd::Zero(robot_model_->getModel()->nv);
+    delta_v(i) = 1.0;
+    q = pinocchio::integrate(*(robot_model_->getModel()), original_q, delta_v * epsilon);
     Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(q, original_v, original_a);
     id_partial_dq_num.col(i) = (id_solution_plus - id_original_solution) / epsilon;
-  }
-
-  for (int i = 0; i < 3; i++)  // root link quaternion
-  {
-    q = original_q;
-    double d_roll = i == 0 ? epsilon : 0;
-    Eigen::AngleAxisd roll(Eigen::AngleAxisd(d_roll, Eigen::Vector3d::UnitX()));
-    double d_pitch = i == 1 ? epsilon : 0;
-    Eigen::AngleAxisd pitch(Eigen::AngleAxisd(d_pitch, Eigen::Vector3d::UnitY()));
-    double d_yaw = i == 2 ? epsilon : 0;
-    Eigen::AngleAxisd yaw(Eigen::AngleAxisd(d_yaw, Eigen::Vector3d::UnitZ()));
-
-    Eigen::Matrix3d dR = pinocchio::exp3(Eigen::Vector3d(d_roll, d_pitch, d_yaw));
-    Eigen::Quaterniond dQuat(dR);
-    Eigen::Quaterniond original_quat =
-        Eigen::Quaterniond(original_q(6), original_q(3), original_q(4), original_q(5));  // w, x, y, z
-    Eigen::Quaterniond new_quat = dQuat * original_quat;
-    new_quat.normalize();
-
-    q(3) = new_quat.x();
-    q(4) = new_quat.y();
-    q(5) = new_quat.z();
-    q(6) = new_quat.w();
-
-    Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(q, original_v, original_a);
-    id_partial_dq_num.col(i + 3) = (id_solution_plus - id_original_solution) / epsilon;
-  }
-
-  for (int i = 7; i < robot_model_->getModel()->nq; i++)  // joint position
-  {
-    q = original_q;
-    q(i) += epsilon;
-    Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(q, original_v, original_a);
-    id_partial_dq_num.col(i - 1) = (id_solution_plus - id_original_solution) / epsilon;
   }
 
   // check partial_dv

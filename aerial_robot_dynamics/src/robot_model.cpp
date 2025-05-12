@@ -363,48 +363,16 @@ PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesNum(const Eigen:
   Eigen::MatrixXd original_tauext_partial_thrust = this->computeTauExtByThrustDerivative(original_q);
   Eigen::VectorXd tmp_q = original_q;
 
-  // root link position
-  for (int i = 0; i < 3; i++)
+  Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+  for (int i = 0; i < model_->nv; i++)
   {
-    tmp_q = original_q;
-    tmp_q(i) += epsilon;
+    v = Eigen::VectorXd::Zero(model_->nv);
+    v(i) = 1.0;
+
+    tmp_q = pinocchio::integrate(*model_, original_q, v * epsilon);
+
     Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
     tauext_partial_thrust_partial_q.at(i) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
-  }
-
-  // root link quaternion
-  for (int i = 0; i < 3; i++)
-  {
-    tmp_q = original_q;
-    double d_roll = i == 0 ? epsilon : 0;
-    Eigen::AngleAxisd roll(Eigen::AngleAxisd(d_roll, Eigen::Vector3d::UnitX()));
-    double d_pitch = i == 1 ? epsilon : 0;
-    Eigen::AngleAxisd pitch(Eigen::AngleAxisd(d_pitch, Eigen::Vector3d::UnitY()));
-    double d_yaw = i == 2 ? epsilon : 0;
-    Eigen::AngleAxisd yaw(Eigen::AngleAxisd(d_yaw, Eigen::Vector3d::UnitZ()));
-
-    Eigen::Matrix3d dR = (yaw * pitch * roll).toRotationMatrix();
-    Eigen::Quaterniond dQuat(dR);
-    Eigen::Quaterniond original_quat = Eigen::Quaterniond(original_q(6), original_q(3), original_q(4), original_q(5));
-    Eigen::Quaterniond new_quat = dQuat * original_quat;
-    new_quat.normalize();
-
-    tmp_q(3) = new_quat.x();
-    tmp_q(4) = new_quat.y();
-    tmp_q(5) = new_quat.z();
-    tmp_q(6) = new_quat.w();
-
-    Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
-    tauext_partial_thrust_partial_q.at(i + 3) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
-  }
-
-  // joint position
-  for (int i = 7; i < model_->nq; i++)
-  {
-    tmp_q = original_q;
-    tmp_q(i) += epsilon;
-    Eigen::MatrixXd tauext_partial_thrust_plus = this->computeTauExtByThrustDerivative(tmp_q);
-    tauext_partial_thrust_partial_q.at(i - 1) = (tauext_partial_thrust_plus - original_tauext_partial_thrust) / epsilon;
   }
 
   return tauext_partial_thrust_partial_q;
