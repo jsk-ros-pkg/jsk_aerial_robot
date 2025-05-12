@@ -8,7 +8,7 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from analyze_allocation import get_alloc_mtx_tilt_qd
 from analyze_allocation import mass, gravity
@@ -187,14 +187,6 @@ if __name__ == "__main__":
         shade=False  # When using facecolors, turn off shade
     )
 
-    # # 4) For colorbar
-    # mappable = cm.ScalarMappable(cmap='viridis', norm=norm)
-    # mappable.set_array(thrust_map)
-    # cb = fig.colorbar(mappable, ax=ax, orientation='horizontal', pad=0.15)
-    # cb.set_label('Thrust (N)', fontsize=label_size)
-
-    # ax.grid(False)
-
     # label axes and set equal aspect ratio
     coord_text = 'W' if if_world else 'B'
     ax.set_xlabel(f'$^{coord_text}f_x$ [N]', fontsize=label_size)
@@ -203,7 +195,11 @@ if __name__ == "__main__":
     # ax.set_title('Maximum Thrust Vectors on Unit Sphere Directions')
     ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
 
-    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    fig.subplots_adjust(left=0, right=0.95, bottom=0.15, top=1.0)
+
+    # save the figure
+    file_name = "max_force_world_3d.pdf" if if_world else "max_force_body_3d.pdf"
+    fig.savefig(file_name, bbox_inches='tight', pad_inches=0.3)
 
     # 7) plot X-Z projection (new 2-D figure)
     fig2 = plt.figure(figsize=(3.5, 4))
@@ -223,21 +219,10 @@ if __name__ == "__main__":
     ax2.set_aspect('equal', adjustable='box')  # 保持比例尺一致
     ax2.grid(True)
 
-    cax = inset_axes(
-        ax2,
-        width="100%",
-        height="6%",
-        loc="lower center",
-        bbox_to_anchor=(0, -0.25, 1, 1),
-        bbox_transform=ax2.transAxes,
-        borderpad=0
-    )
-
+    divider = make_axes_locatable(ax2)
+    cax = divider.append_axes("bottom", size="6%", pad=0.5)
     cb = fig2.colorbar(sc2, cax=cax, orientation="horizontal")
-    cb.set_label("Thrust (N)", fontsize=label_size)
-
-    # cb2 = fig2.colorbar(sc2, ax=ax2, pad=0.02)
-    # cb2.set_label('Thrust [N]', fontsize=label_size)
+    cb.set_label("Force (N)", fontsize=label_size)
 
     if if_world:
         plt.tight_layout(rect=[0, 0.0, 1.0, 1.1])
