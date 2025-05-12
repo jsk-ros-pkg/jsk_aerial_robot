@@ -7,14 +7,21 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
 
   bool verbose = false;
+  bool is_floating_base = true;
   if (argc > 1)
   {
     std::string arg = argv[1];
     if (arg != "0")
       verbose = true;
   }
+  if (argc > 2)
+  {
+    std::string arg = argv[2];
+    if (arg == "0")
+      is_floating_base = false;
+  }
 
-  aerial_robot_dynamics::PinocchioRobotModelTest robot_model_test;
+  aerial_robot_dynamics::PinocchioRobotModelTest robot_model_test(is_floating_base);
 
   // Test the robot model
   // FD with thrust and its test
