@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
                 if rotor_idx != -1:
                     ft_stop_rotor = ft_ref[rotor_idx]
-                    alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
+                    alpha_stop_rotor = np.pi / 2.0 - np.arccos(target_force[2 * rotor_idx, 0] / ft_thresh)
                     ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
                     ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
 
