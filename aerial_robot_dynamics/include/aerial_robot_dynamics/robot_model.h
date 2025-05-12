@@ -30,7 +30,7 @@ namespace aerial_robot_dynamics
 class PinocchioRobotModel
 {
 public:
-  PinocchioRobotModel();
+  PinocchioRobotModel(bool is_floating_base = true);
   ~PinocchioRobotModel() = default;
 
   std::shared_ptr<pinocchio::Model> getModel() const
@@ -76,6 +76,7 @@ private:
   Eigen::VectorXd upper_bound_;
 
   // model parameters
+  bool is_floating_base_;
   int rotor_num_;
   double m_f_rate_;
   double max_thrust_;

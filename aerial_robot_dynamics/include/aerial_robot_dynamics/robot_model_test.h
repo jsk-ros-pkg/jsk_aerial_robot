@@ -7,9 +7,9 @@ namespace aerial_robot_dynamics
 class PinocchioRobotModelTest
 {
 public:
-  PinocchioRobotModelTest()
+  PinocchioRobotModelTest(bool is_floating_base = true)
   {
-    robot_model_ = std::make_shared<PinocchioRobotModel>();
+    robot_model_ = std::make_shared<PinocchioRobotModel>(is_floating_base);
   }
   ~PinocchioRobotModelTest() = default;
 

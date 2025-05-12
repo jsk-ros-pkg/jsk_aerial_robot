@@ -2,18 +2,27 @@
 
 using namespace aerial_robot_dynamics;
 
-PinocchioRobotModel::PinocchioRobotModel()
+PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
 {
+  is_floating_base_ = is_floating_base;
+
   // Initialize the model and data
   model_ = std::make_shared<pinocchio::Model>();
 
   // Initialize model with URDF file
   std::string robot_model_string = getRobotModelXml("robot_description");
-  pinocchio::urdf::buildModelFromXML(robot_model_string, pinocchio::JointModelFreeFlyer(), *model_);
-  model_->lowerPositionLimit.segment<3>(0).setConstant(-100);  // position
-  model_->upperPositionLimit.segment<3>(0).setConstant(100);   // position
-  model_->lowerPositionLimit.segment<4>(3).setConstant(-1.0);  // quaternion
-  model_->upperPositionLimit.segment<4>(3).setConstant(1.0);   // quaternion
+  if (is_floating_base_)
+    pinocchio::urdf::buildModelFromXML(robot_model_string, pinocchio::JointModelFreeFlyer(), *model_);
+  else
+    pinocchio::urdf::buildModelFromXML(robot_model_string, *model_);
+
+  if (is_floating_base_)
+  {
+    model_->lowerPositionLimit.segment<3>(0).setConstant(-100);  // position
+    model_->upperPositionLimit.segment<3>(0).setConstant(100);   // position
+    model_->lowerPositionLimit.segment<4>(3).setConstant(-1.0);  // quaternion
+    model_->upperPositionLimit.segment<4>(3).setConstant(1.0);   // quaternion
+  }
 
   // Initialize the data structure
   data_ = std::make_shared<pinocchio::Data>(*model_);
