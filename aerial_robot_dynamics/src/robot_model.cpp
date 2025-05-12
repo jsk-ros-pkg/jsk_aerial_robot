@@ -450,7 +450,8 @@ std::string PinocchioRobotModel::getRobotModelXml(const std::string& param_name,
 Eigen::VectorXd PinocchioRobotModel::getResetConfiguration()
 {
   Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
-  q(6) = 1;
+  if (is_floating_base_)
+    q(6) = 1;
   q(model_->joints[model_->getJointId("joint1_yaw")].idx_q()) = M_PI / 2.0;
   q(model_->joints[model_->getJointId("joint2_yaw")].idx_q()) = M_PI / 2.0;
   q(model_->joints[model_->getJointId("joint3_yaw")].idx_q()) = M_PI / 2.0;

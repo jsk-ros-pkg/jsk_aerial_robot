@@ -54,6 +54,10 @@ public:
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
 
+  const bool& getIsFloatingBase() const
+  {
+    return is_floating_base_;
+  }
   const int& getRotorNum() const
   {
     return rotor_num_;
