@@ -216,13 +216,13 @@ if __name__ == "__main__":
     ax2.set_xlabel(f'$^{coord_text}f_x$ [N]', fontsize=label_size)
     ax2.set_ylabel(f'$^{coord_text}f_z$ [N]', fontsize=label_size)
     # ax2.set_title('X–Z Projection of Max-Thrust Directions')
-    ax2.set_aspect('equal', adjustable='box')  # 保持比例尺一致
+    ax2.set_aspect('equal', adjustable='box')  # keep the aspect ratio equal
     ax2.grid(True)
 
     divider = make_axes_locatable(ax2)
     cax = divider.append_axes("bottom", size="6%", pad=0.5)
     cb = fig2.colorbar(sc2, cax=cax, orientation="horizontal")
-    cb.set_label("Force (N)", fontsize=label_size)
+    cb.set_label("Force [N]", fontsize=label_size)
 
     if if_world:
         plt.tight_layout(rect=[0, 0.0, 1.0, 1.1])
