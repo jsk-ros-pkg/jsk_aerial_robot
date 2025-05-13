@@ -635,10 +635,10 @@ class HappyBirthdayFixedRotorTraj(BaseTrajwFixedRotor):
         # beats of Happy Birthday (use strings for dot-notation)
         # note that the last beat is half note so it is doubled
         self.notes: list[str] = [
-            "5", "5", "6", "5", ".1", "7", "7",
-            "5", "5", "6", "5", ".2", ".1", ".1",
-            "5", "5", ".5", ".3", ".1", "7", "6", "6",
-            ".4", ".4", ".3", ".1", ".2", ".1", ".1"
+            "5", "6", "5", ".1", "7", "7",
+            "5", "6", "5", ".2", ".1", ".1",
+            "5", ".5", ".3", ".1", "7", "6", "6",
+            ".4", ".3", ".1", ".2", ".1", ".1"
         ]
 
         self.beat = beat  # for quarter note
