@@ -9,6 +9,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import cvxpy as cp
 import matplotlib.pyplot as plt
+import scienceplots
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -41,6 +42,79 @@ thrust_min = 0
 alpha_max = np.pi
 alpha_min = -np.pi
 
+"""
+In this demo, we use rxyz to rotate the robot (intrinsic rotation). The roll=90, pitch=0, yaw=45 means that the rotor 1
+is tilted upwards. And for the trirotor, the shutdown rotor is rotor 3.
+"""
+
+ROTOR_UP_IDX = 0 # rotor 1
+ROTOR_DOWN_IDX = 2 # rotor 3
+
+def get_alloc_mtx_tilt_qd():
+    # Define Allocation Matrix
+    alloc_matrix = np.zeros((6, 8))
+
+    # Rotor parameters in list form for looping
+    p_b_list = [p1_b, p2_b, p3_b, p4_b]
+    dr_list = [dr1, dr2, dr3, dr4]
+
+    for i in range(len(p_b_list)):
+        p_b = p_b_list[i]
+        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
+        dr = dr_list[i]
+
+        # Force entries
+        alloc_matrix[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_matrix[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_matrix[2, 2 * i + 1] = 1
+
+        # Torque entries
+        alloc_matrix[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_matrix[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_matrix[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+
+        alloc_matrix[3, 2 * i + 1] = p_b[1]
+        alloc_matrix[4, 2 * i + 1] = -p_b[0]
+        alloc_matrix[5, 2 * i + 1] = -dr * kq_d_kt
+
+    print("shape of alloc_mat", alloc_matrix.shape)
+    print("alloc_mat", alloc_matrix)
+    print("=======================\n")
+    return alloc_matrix
+
+
+def get_alloc_mtx_tilt_tri():
+    # Define Allocation Matrix
+    alloc_matrix = np.zeros((6, 6))
+
+    # Rotor parameters in list form for looping
+    p_b_list = [p1_b, p2_b, p4_b]
+    dr_list = [dr1, dr2, dr4]
+
+    for i in range(len(p_b_list)):
+        p_b = p_b_list[i]
+        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
+        dr = dr_list[i]
+
+        # Force entries
+        alloc_matrix[0, 2 * i] = p_b[1] / sqrt_p_xy
+        alloc_matrix[1, 2 * i] = -p_b[0] / sqrt_p_xy
+        alloc_matrix[2, 2 * i + 1] = 1
+
+        # Torque entries
+        alloc_matrix[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
+        alloc_matrix[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
+        alloc_matrix[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
+
+        alloc_matrix[3, 2 * i + 1] = p_b[1]
+        alloc_matrix[4, 2 * i + 1] = -p_b[0]
+        alloc_matrix[5, 2 * i + 1] = -dr * kq_d_kt
+
+    print("shape of alloc_mat", alloc_matrix.shape)
+    print("alloc_mat", alloc_matrix)
+    print("=======================\n")
+    return alloc_matrix
+
 
 def pseudoinverse_svd(mat, tolerance=1e-4):
     # Perform SVD
@@ -60,43 +134,51 @@ def pseudoinverse_svd(mat, tolerance=1e-4):
     return Vh.T @ singular_values_inv @ U.T
 
 
-def full_force_to_cmd(target_force):
-    # Compute reference values for thrust
-    # Set either state or control input based on model properties, i.e., based on include flags
-    ft1_ref = np.sqrt(target_force[0, 0] ** 2 + target_force[1, 0] ** 2)
-    ft2_ref = np.sqrt(target_force[2, 0] ** 2 + target_force[3, 0] ** 2)
-    ft3_ref = np.sqrt(target_force[4, 0] ** 2 + target_force[5, 0] ** 2)
-    ft4_ref = np.sqrt(target_force[6, 0] ** 2 + target_force[7, 0] ** 2)
-    ft_ref = [ft1_ref, ft2_ref, ft3_ref, ft4_ref]
+def full_force_to_cmd(tgt_force):
+    """
+    Convert full 2D force vectors into thrust magnitudes and servo angles.
 
-    # Compute reference values for servo angles
-    # Set either state or control input based on model properties, i.e., based on include flags
-    a1_ref = np.arctan2(target_force[0, 0], target_force[1, 0])
-    a2_ref = np.arctan2(target_force[2, 0], target_force[3, 0])
-    a3_ref = np.arctan2(target_force[4, 0], target_force[5, 0])
-    a4_ref = np.arctan2(target_force[6, 0], target_force[7, 0])
-    a_ref = [a1_ref, a2_ref, a3_ref, a4_ref]
+    Parameters:
+        tgt_force (np.ndarray): shape (2*N, 1), where N is number of thrust vectors
 
-    return ft_ref, a_ref
+    Returns:
+        ft_ref_local (list): List of thrust magnitudes
+        a_ref_local (list): List of corresponding servo angles
+    """
+    num_forces = tgt_force.shape[0] // 2
+    ft_ref_local = []
+    a_ref_local = []
+
+    for i in range(num_forces):
+        fx = tgt_force[2 * i, 0]
+        fy = tgt_force[2 * i + 1, 0]
+        ft = np.sqrt(fx ** 2 + fy ** 2)
+        angle = np.arctan2(fx, fy)
+        ft_ref_local.append(ft)
+        a_ref_local.append(angle)
+
+    return ft_ref_local, a_ref_local
 
 
 def get_cmd_w_inv_mat(inv_mat, tgt_wrench):
-    target_force = inv_mat @ tgt_wrench
-    return full_force_to_cmd(target_force)
+    tgt_force = inv_mat @ tgt_wrench
+    return full_force_to_cmd(tgt_force)
 
 
 def get_cmd_w_lstsq(alloc_mtx, tgt_wrench):
-    target_force, _, _, _ = np.linalg.lstsq(alloc_mtx, tgt_wrench, rcond=None)
-    return full_force_to_cmd(target_force)
+    tgt_force, _, _, _ = np.linalg.lstsq(alloc_mtx, tgt_wrench, rcond=None)
+    return full_force_to_cmd(tgt_force)
 
 
 def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_rotor_fx=None, shutdown_rotor_fy=None):
-    '''
+    """
     if only the objective is used as Ax-b (or add cp.sum_squares(x)), the result is the same as the lstsq method;
     :param alloc_mtx: allocation matrix
     :param tgt_wrench: target wrench
     :param shutdown_rotor_idx: rotor shutdown index, from 0 to 3
-    '''
+    :param shutdown_rotor_fx: rotor shutdown force in x direction
+    :param shutdown_rotor_fy: rotor shutdown force in y direction
+    """
     alpha = 1e-3  # Tikhonov (small control effort penalty)
 
     # ---------- decision variable ----------
@@ -112,7 +194,7 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
     constraints = []
 
     if shutdown_rotor_idx is None:
-        constraints += [x[3] >= 0]
+        constraints += [x[2 * ROTOR_UP_IDX + 1] >= 0]
     else:
         # rotor shutdown
         constraints += [x[2 * shutdown_rotor_idx] == shutdown_rotor_fx,
@@ -125,45 +207,12 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
     if prob.status != cp.OPTIMAL:
         raise RuntimeError("allocation QP infeasible!")
 
-    target_force = x.value.reshape(8, 1)
-    return full_force_to_cmd(target_force)
+    tgt_force = x.value.reshape(8, 1)
+    return full_force_to_cmd(tgt_force)
 
 
 if __name__ == "__main__":
-    sqrt_p1b_xy = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-    sqrt_p2b_xy = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-    sqrt_p3b_xy = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-    sqrt_p4b_xy = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-
-    # Define Allocation Matrix
-    alloc_mat = np.zeros((6, 8))
-
-    # Rotor parameters in list form for looping
-    p_b_list = [p1_b, p2_b, p3_b, p4_b]
-    dr_list = [dr1, dr2, dr3, dr4]
-
-    for i in range(4):
-        p_b = p_b_list[i]
-        sqrt_p_xy = np.sqrt(p_b[0] ** 2 + p_b[1] ** 2)
-        dr = dr_list[i]
-
-        # Force entries
-        alloc_mat[0, 2 * i] = p_b[1] / sqrt_p_xy
-        alloc_mat[1, 2 * i] = -p_b[0] / sqrt_p_xy
-        alloc_mat[2, 2 * i + 1] = 1
-
-        # Torque entries
-        alloc_mat[3, 2 * i] = -dr * kq_d_kt * p_b[1] / sqrt_p_xy + p_b[0] * p_b[2] / sqrt_p_xy
-        alloc_mat[4, 2 * i] = dr * kq_d_kt * p_b[0] / sqrt_p_xy + p_b[1] * p_b[2] / sqrt_p_xy
-        alloc_mat[5, 2 * i] = -p_b[0] ** 2 / sqrt_p_xy - p_b[1] ** 2 / sqrt_p_xy
-
-        alloc_mat[3, 2 * i + 1] = p_b[1]
-        alloc_mat[4, 2 * i + 1] = -p_b[0]
-        alloc_mat[5, 2 * i + 1] = -dr * kq_d_kt
-
-    print("shape of alloc_mat", alloc_mat.shape)
-    print("alloc_mat", alloc_mat)
-    print("=======================\n")
+    alloc_mat = get_alloc_mtx_tilt_qd()
 
     # ======= Test the pseudoinverse function ======
     # our method in the system to compute the allocation matrix
@@ -178,9 +227,11 @@ if __name__ == "__main__":
     print("=======================\n")
 
     # ===== calculate thrust and servo angle =====
-    fg_w = np.array([0, 0, mass * gravity])  # World frame
-    rot = R.from_euler('zyx', [45, 90, 0], degrees=True).as_matrix()
-    fg_b = rot.T @ fg_w  # Body frame
+    fg_w = np.array([0, 0, mass * gravity])  # the direction of supporting force is Z Up
+    # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
+    # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
+    rot_wb = R.from_euler('XYZ', [90, 0, 45], degrees=True).as_matrix()
+    fg_b = rot_wb.T @ fg_w  # Body frame
     print("fg_b", fg_b)
     print("The rotor 2 (index is 1 if counting from 0) should be pointing up")
 
@@ -211,31 +262,42 @@ if __name__ == "__main__":
     inv_weighted_all = W @ A.T @ np.linalg.inv(Aw @ A.T)
 
     ratio = 1.5
-    W = np.diag([1.0, 1.0, ratio, 1.0, 1.0, 1.0, 1.0, 1.0])
+    W = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    W[2 * ROTOR_UP_IDX, 2 * ROTOR_UP_IDX] = ratio
     A = alloc_mat
     Aw = A @ np.linalg.inv(W)
     inv_weighted_single = W @ A.T @ np.linalg.inv(Aw @ A.T)
+
+    # -------------------------------------------------------------------
+    # tri-rotor
+    alloc_mat_tri = get_alloc_mtx_tilt_tri()
+    alloc_mat_inv_svd_tri = pseudoinverse_svd(alloc_mat_tri)
+    print("alloc_mat_tri == alloc_mat_inv_svd_tri")
+    ft_ref, a_ref = get_cmd_w_inv_mat(alloc_mat_inv_svd_tri, target_wrench)
+    print("ft_ref", ft_ref)
+    print("a_ref", a_ref)
 
     # PLOT THE RESULTS
     # -------------------------------------------------------------------
     # (1)  PSEUDOINVERSES FOR THE THREE ALLOCATION METHODS
     # -------------------------------------------------------------------
     inv_methods = {  # <--  this is what the patch uses
-        "SVD": alloc_mat_inv_svd,
-        "np.pinv": alloc_mat_inv_linalg,
-        "RightInverse": alloc_mat_inv_right_inverse,
+        "PInv(SVD)": alloc_mat_inv_svd,
+        # "np.pinv": alloc_mat_inv_linalg,
+        "PInv(RtIn)": alloc_mat_inv_right_inverse,
         "LSTSQ": None,
         # "Weighted_all": inv_weighted_all,
-        "Weighted_single": inv_weighted_single,
-        "Constrained_QP": None,
-        "LSTSQ+QP": None,
-        "LSTSQ+alloc": None
+        "WtPInv(Single)": inv_weighted_single,
+        "ConstrainedQP": None,
+        "PInv(SVD)+QP": None,
+        "PInv(SVD)+Alloc": None,
+        "PInv(SVD): Tri": alloc_mat_inv_svd_tri,
     }
 
     # -------------------------------------------------------------------
     # (2)  YAW-ANGLE SWEEP (deg)
     # -------------------------------------------------------------------
-    yaw_deg = np.arange(40.0, 50.0 + 0.1, 0.1)  # 40° → 50° inclusive, 0.1° step
+    yaw_deg = np.arange(40.0, 50.0 + 0.1, 0.1)
 
     # -------------------------------------------------------------------
     # (3)  ARRAYS THAT STORE RESULTS FOR EVERY METHOD AND EVERY YAW
@@ -243,7 +305,7 @@ if __name__ == "__main__":
     ft_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # thrust  (N)
     ang_all = {key: np.zeros((len(yaw_deg), 4)) for key in inv_methods}  # servo angles (rad)
 
-    fg_w = np.array([0.0, 0.0, mass * gravity])  # gravity in world frame
+    fg_w = np.array([0.0, 0.0, mass * gravity])  # the direction of supporting force is Z Up
 
     for key, inv in inv_methods.items():
         time_start = time.time()
@@ -251,73 +313,80 @@ if __name__ == "__main__":
         rotor_idx_prev = -1
         alloc_mat_del_rotor_inv = None
         for idx, yaw in enumerate(yaw_deg):
-            # body-frame gravity for roll=0, pitch=90°, varying yaw
-            R_bw = R.from_euler('zyx', [yaw, 90.0, 0.0], degrees=True).as_matrix().T
+            # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
+            # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
+            R_wb = R.from_euler('XYZ', [90.0, 0.0, yaw], degrees=True).as_matrix()
+            R_bw = R_wb.T
             fg_b = R_bw @ fg_w
             tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
 
             if inv is None:
-                if key == "LSTSQ":
+                if "LSTSQ" in key:
                     ft_ref, a_ref = get_cmd_w_lstsq(alloc_mat, tgt_w)
-                elif key == "Constrained_QP":
+                elif "ConstrainedQP" in key:
                     ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w)
-                elif key == "LSTSQ+QP" or key == "LSTSQ+alloc":
-                    # 1) do one allocation
-                    target_force, _, _, _ = np.linalg.lstsq(alloc_mat, tgt_w, rcond=None)
-                    ft_ref, a_ref = full_force_to_cmd(target_force)
-                    # 2) check if one rotor's thrust is less than threshold and flip backwards
-                    ft_thresh = 1.0  # N
-                    rotor_idx_ft_cond = np.where(np.array(ft_ref) < ft_thresh)
-                    rotor_idx_alpha_cond = np.where((np.array(a_ref) > np.pi / 2) | (np.array(a_ref) < -np.pi / 2))
-                    rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
-
-                    if len(rotor_idx) > 1:
-                        raise RuntimeError("More than one rotor is below threshold and flip backwards!")
-                    elif len(rotor_idx) == 0:
-                        rotor_idx = -1
-                    elif len(rotor_idx) == 1:
-                        rotor_idx = rotor_idx[0]
-
-                    # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
-                    if rotor_idx != -1:
-                        ft_stop_rotor = ft_ref[rotor_idx]
-                        alpha_stop_rotor = np.pi / 2.0 - np.acos(target_force[2 * rotor_idx, 0] / ft_thresh)
-                        ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
-                        ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
-
-                        if key == "LSTSQ+QP":
-                            # 4) do a QP with this rotor shutdown
-                            ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
-                                                             ft_stop_rotor_x, ft_stop_rotor_y)
-                        elif key == "LSTSQ+alloc":
-                            # 4.1) construct tgt_wrench from z_from_rotor
-                            z_from_rotor = np.zeros((8, 1))
-                            z_from_rotor[2 * rotor_idx] = ft_stop_rotor_x
-                            z_from_rotor[2 * rotor_idx + 1] = ft_stop_rotor_y
-                            tgt_wrench_from_rotor = alloc_mat @ z_from_rotor
-
-                            # 4.2) calculate alloc_mat with this rotor's contribution
-                            tgt_wrench_modified = tgt_w - tgt_wrench_from_rotor
-
-                            # 4.3) calculate the allocation matrix without this rotor, which is 6*6
-                            if rotor_idx != rotor_idx_prev:
-                                alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
-                                alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
-
-                            # 4.4) reconstruct the z output
-                            z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
-
-                            # 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
-                            z_final = np.insert(z_except_rotor, 2 * rotor_idx,
-                                                [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0)
-
-                            # 4.6) reconstruct the thrust and servo angle
-                            ft_ref, a_ref = full_force_to_cmd(z_final)
-
-                    rotor_idx_prev = rotor_idx
-
             else:
                 ft_ref, a_ref = get_cmd_w_inv_mat(inv, tgt_w)
+
+            if "(SVD)+" in key:
+                # 1) do one allocation w. SVD
+                target_force = alloc_mat_inv_svd @ tgt_w
+                ft_ref, a_ref = full_force_to_cmd(target_force)
+                # 2) check if one rotor's thrust is less than threshold and flip backwards
+                ft_thresh = 1.0  # N
+                rotor_idx_ft_cond = np.where(np.array(ft_ref) < ft_thresh)
+                rotor_idx_alpha_cond = np.where((np.array(a_ref) > np.pi / 2) | (np.array(a_ref) < -np.pi / 2))
+                rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
+
+                if len(rotor_idx) > 1:
+                    raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+                elif len(rotor_idx) == 0:
+                    rotor_idx = -1
+                elif len(rotor_idx) == 1:
+                    rotor_idx = rotor_idx[0]
+
+                # 3) if rotor_idx is not empty, maintain the thrust and modify the angle
+                if rotor_idx != -1:
+                    ft_stop_rotor = ft_ref[rotor_idx]
+                    alpha_stop_rotor = np.pi / 2.0 - np.arccos(target_force[2 * rotor_idx, 0] / ft_thresh)
+                    ft_stop_rotor_x = ft_stop_rotor * np.sin(alpha_stop_rotor)
+                    ft_stop_rotor_y = ft_stop_rotor * np.cos(alpha_stop_rotor)
+
+                    if "+QP" in key:
+                        # 4) do a QP with this rotor shutdown
+                        ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
+                                                         ft_stop_rotor_x, ft_stop_rotor_y)
+                    elif "+Alloc" in key:
+                        # 4.1) construct tgt_wrench from z_from_rotor
+                        z_from_rotor = np.zeros((8, 1))
+                        z_from_rotor[2 * rotor_idx] = ft_stop_rotor_x
+                        z_from_rotor[2 * rotor_idx + 1] = ft_stop_rotor_y
+                        tgt_wrench_from_rotor = alloc_mat @ z_from_rotor
+
+                        # 4.2) calculate alloc_mat with this rotor's contribution
+                        tgt_wrench_modified = tgt_w - tgt_wrench_from_rotor
+
+                        # 4.3) calculate the allocation matrix without this rotor, which is 6*6
+                        if rotor_idx != rotor_idx_prev:
+                            alloc_mat_del_rotor = np.delete(alloc_mat, [2 * rotor_idx, 2 * rotor_idx + 1], axis=1)
+                            alloc_mat_del_rotor_inv = np.linalg.inv(alloc_mat_del_rotor)
+
+                        # 4.4) reconstruct the z output
+                        z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
+
+                        # 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
+                        z_final = np.insert(z_except_rotor, 2 * rotor_idx,
+                                            [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0)
+
+                        # 4.6) reconstruct the thrust and servo angle
+                        ft_ref, a_ref = full_force_to_cmd(z_final)
+
+                rotor_idx_prev = rotor_idx
+
+            if len(ft_ref) == 3:
+                ft_ref = np.insert(ft_ref, 2, 0.0)
+                a_ref = np.insert(a_ref, 2, 0.0)
+
             ft_all[key][idx, :] = ft_ref
             ang_all[key][idx, :] = a_ref
 
@@ -327,41 +396,67 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"SVD": "tab:orange", "np.pinv": "tab:blue", "RightInverse": "tab:red", "LSTSQ": "tab:gray",
-                     # "Weighted_all": "tab:green",
-                     "Weighted_single": "tab:purple", "Constrained_QP": "tab:cyan",
-                     "LSTSQ+QP": "tab:brown", "LSTSQ+alloc": "tab:green"}
+    method_colors = {"PInv(SVD)": "#A2142F",
+                     "np.pinv": "tab:blue",
+                     "PInv(RtIn)": "#4DBEEE",
+                     "LSTSQ": "tab:gray",
+                     "Weighted_all": "tab:green",
+                     "WtPInv(Single)": "#7E2F8E",
+                     "ConstrainedQP": "#0072BD",
+                     "PInv(SVD)+QP": "#77AC30",
+                     "PInv(SVD)+Alloc": "#D95319",
+                     "PInv(SVD): Tri": "#EDB120"}
+    method_linestyles = {"PInv(SVD)": "-",
+                         "PInv(RtIn)": "-.",
+                         "LSTSQ": ":",
+                         "WtPInv(Single)": "-.",
+                         "ConstrainedQP": "--",
+                         "PInv(SVD)+QP": "-.",
+                         "PInv(SVD)+Alloc": "-",
+                         "PInv(SVD): Tri": "-"}
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
-    fig, axs = plt.subplots(4, 2, figsize=(12, 14), sharex=True)
-    fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
+    legend_alpha = 0.5
+    plt.style.use(["science", "grid"])
+    plt.rcParams.update({'font.size': 11})  # default is 10
+    label_size = 14
 
+    fig, axs = plt.subplots(4, 2, figsize=(7, 8), sharex=True)
+    # fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
+
+    axs[0, 0].set_title("Thrust Cmd.")
+    axs[0, 1].set_title("Servo Cmd.")
     for r in range(4):
         # ---- thrust subplot (left) ----
         ax_t = axs[r, 0]
         for m in inv_methods:
-            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "",
+            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "", linestyle=method_linestyles[m],
                       color=method_colors[m])
-        ax_t.set_ylabel("Thrust [N]")
-        ax_t.set_title(f"{rotor_names[r]} thrust")
+
+        title_tmp = "$f_{c" + str(r + 1) + "}$"
+        ax_t.set_ylabel(title_tmp + " [N]", fontsize=label_size)
+        # ax_t.set_title(f"{rotor_names[r]} thrust")
         ax_t.grid(True, linestyle=":")
 
         # ---- servo-angle subplot (right) ----
         ax_a = axs[r, 1]
         for m in inv_methods:
-            ax_a.plot(yaw_deg, ang_all[m][:, r], label=m if r == 0 else "",
-                      color=method_colors[m])
-        ax_a.set_ylabel("Servo angle [rad]")
-        ax_a.set_title(f"{rotor_names[r]} servo angle")
+            ax_a.plot(yaw_deg, ang_all[m][:, r] * 180 / np.pi, label=m if r == 0 else "",
+                      linestyle=method_linestyles[m], color=method_colors[m])
+
+        title_tmp = "$\\alpha_{c" + str(r + 1) + "}$"
+        ax_a.set_ylabel(title_tmp + " [$^{\circ}$]", fontsize=label_size)
+        # ax_a.set_title(f"{rotor_names[r]} servo angle")
         ax_a.grid(True, linestyle=":")
 
     # shared x-label (bottom row only)
     for ax in axs[-1, :]:
-        ax.set_xlabel("Yaw [deg]")
-
+        ax.set_xlabel("Yaw [$^{\circ}$]", fontsize=label_size)
+        ax.set_xlim([int(yaw_deg[0]), int(yaw_deg[-1])])
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper right", bbox_to_anchor=(0.97, 0.97))
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4,
+               frameon=False)
 
-    plt.tight_layout(rect=[0, 0, 0.95, 0.96])
+    plt.tight_layout(rect=[0, 0, 1.0, 0.93])
     plt.show()
