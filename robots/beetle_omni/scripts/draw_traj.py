@@ -4,7 +4,20 @@ import scienceplots
 import matplotlib.pyplot as plt
 import argparse
 
+from matplotlib.lines import lineStyles
+
 legend_alpha = 0.5
+
+
+def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
+    angle_seq = angle_seq.copy()  # avoid modifying the input array
+    for i in range(1, len(angle_seq)):
+        delta = angle_seq[i] - angle_seq[i - 1]
+        if delta > np.pi:
+            angle_seq[i:] -= 2 * np.pi
+        elif delta < -np.pi:
+            angle_seq[i:] += 2 * np.pi
+    return angle_seq
 
 
 def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
@@ -18,11 +31,13 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     rmse_x = np.sqrt(np.mean(error ** 2))
     return rmse_x
 
+
 def quat2euler(qw, qx, qy, qz):
     roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx ** 2 + qy ** 2))
     pitch = np.arcsin(2 * (qw * qy - qz * qx))
     yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy ** 2 + qz ** 2))
     return roll, pitch, yaw
+
 
 def main(file_path, type):
     # Load the data from csv file
@@ -35,15 +50,16 @@ def main(file_path, type):
 
     try:
         data_xyz_ref = data[
-            ['__time', '/beetle1/set_ref_traj/x/data[0]', '/beetle1/set_ref_traj/x/data[1]',
-             '/beetle1/set_ref_traj/x/data[2]']]
+            ['__time', '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x',
+             '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y',
+             '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z']]
     except KeyError:
         # assign the reference trajectory to zero
         data_xyz_ref = pd.DataFrame()
         data_xyz_ref['__time'] = data_xyz['__time']
-        data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'] = 0.0
-        data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'] = 0.0
-        data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'] = 1.0
+        data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x'] = 0.0
+        data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y'] = 0.0
+        data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z'] = 1.0
 
     data_xyz = data_xyz.dropna()
     data_xyz_ref = data_xyz_ref.dropna()
@@ -55,17 +71,18 @@ def main(file_path, type):
 
     try:
         data_qwxyz_ref = data[
-            ['__time', '/beetle1/set_ref_traj/x/data[6]', '/beetle1/set_ref_traj/x/data[7]',
-             '/beetle1/set_ref_traj/x/data[8]',
-             '/beetle1/set_ref_traj/x/data[9]']]
+            ['__time', '/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w',
+             '/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x',
+             '/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y',
+             '/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z']]
     except KeyError:
         # assign the reference trajectory to zero
         data_qwxyz_ref = pd.DataFrame()
         data_qwxyz_ref['__time'] = data_qwxyz['__time']
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[6]'] = 0
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[7]'] = 0
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[8]'] = 0
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[9]'] = 0
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w'] = 1.0
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x'] = 0.0
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y'] = 0.0
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z'] = 0.0
 
     data_qwxyz_ref = data_qwxyz_ref.dropna()
     data_qwxyz = data_qwxyz.dropna()
@@ -74,16 +91,20 @@ def main(file_path, type):
     data_euler_ref = pd.DataFrame()
     data_euler_ref['__time'] = data_qwxyz_ref['__time']
     data_euler_ref['roll'], data_euler_ref['pitch'], data_euler_ref['yaw'] = quat2euler(
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[6]'], data_qwxyz_ref['/beetle1/set_ref_traj/x/data[7]'],
-        data_qwxyz_ref['/beetle1/set_ref_traj/x/data[8]'], data_qwxyz_ref['/beetle1/set_ref_traj/x/data[9]'])
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w'],
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x'],
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y'],
+        data_qwxyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z'])
 
     data_euler = pd.DataFrame()
     data_euler['__time'] = data_qwxyz['__time']
     data_euler = pd.DataFrame()
     data_euler['__time'] = data_qwxyz['__time']
     data_euler['roll'], data_euler['pitch'], data_euler['yaw'] = quat2euler(
-        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'], data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
-        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'], data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
+        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'],
+        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
+        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'],
+        data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
 
     # thrust_cmd
     data_thrust_cmd = data[
@@ -119,7 +140,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 1)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'])
+        x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x'])
         plt.plot(t_ref, x_ref, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_xyz['__time']) - t_bias
@@ -129,6 +150,14 @@ def main(file_path, type):
         plt.legend(framealpha=legend_alpha)
         plt.ylabel('X [m]', fontsize=label_size)
 
+        # # right Y-axis: error plot
+        # ax = plt.gca()
+        # ax2 = ax.twinx()
+        # error_x = abs(x - np.interp(t, t_ref, x_ref))
+        # ax2.plot(t, error_x, label='error', alpha=0.5)
+        # ax2.set_ylabel('Err [m]', fontsize=label_size)
+        # # ax2.tick_params(axis='y', labelcolor='tab:red')  # change the color of y axis
+
         # calculate RMSE
         rmse_x = calculate_rmse(t, x, t_ref, x_ref)
         print(f'RMSE X [m]: {rmse_x}')
@@ -137,10 +166,12 @@ def main(file_path, type):
         plt.subplot(4, 2, 2)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         roll_ref = np.array(data_euler_ref['roll'])
+        roll_ref = unwrap_angle_sequence(roll_ref)
         plt.plot(t_ref, roll_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         roll = np.array(data_euler['roll'])
+        roll = unwrap_angle_sequence(roll)
         plt.plot(t, roll * 180 / np.pi, label='real', color=color_real)
 
         plt.ylabel('Roll [$^\\circ$]', fontsize=label_size)
@@ -153,7 +184,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 3)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'])
+        y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y'])
         plt.plot(t_ref, y_ref, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_xyz['__time']) - t_bias
@@ -169,10 +200,12 @@ def main(file_path, type):
         plt.subplot(4, 2, 4)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         pitch_ref = np.array(data_euler_ref['pitch'])
+        pitch_ref = unwrap_angle_sequence(pitch_ref)
         plt.plot(t_ref, pitch_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         pitch = np.array(data_euler['pitch'])
+        pitch = unwrap_angle_sequence(pitch)
         plt.plot(t, pitch * 180 / np.pi, label='real', color=color_real)
         plt.ylabel('Pitch [$^\\circ$]', fontsize=label_size)
 
@@ -184,7 +217,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 5)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'])
+        z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z'])
         plt.plot(t_ref, z_ref, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_xyz['__time']) - t_bias
@@ -201,22 +234,12 @@ def main(file_path, type):
         plt.subplot(4, 2, 6)
         t_ref = np.array(data_euler_ref['__time']) - t_bias
         yaw_ref = np.array(data_euler_ref['yaw'])
-        # if yaw_ref has a jump, we need to fix it
-        for i in range(1, len(yaw_ref)):
-            if yaw_ref[i] - yaw_ref[i - 1] > np.pi:
-                yaw_ref[i:] -= 2 * np.pi
-            elif yaw_ref[i] - yaw_ref[i - 1] < -np.pi:
-                yaw_ref[i:] += 2 * np.pi
+        yaw_ref = unwrap_angle_sequence(yaw_ref)
         plt.plot(t_ref, yaw_ref * 180 / np.pi, label='ref', linestyle="--", color=color_ref)
 
         t = np.array(data_euler['__time']) - t_bias
         yaw = np.array(data_euler['yaw'])
-        # if yaw has a jump, we need to fix it
-        for i in range(1, len(yaw)):
-            if yaw[i] - yaw[i - 1] > np.pi:
-                yaw[i:] -= 2 * np.pi
-            elif yaw[i] - yaw[i - 1] < -np.pi:
-                yaw[i:] += 2 * np.pi
+        yaw = unwrap_angle_sequence(yaw)
         plt.plot(t, yaw * 180 / np.pi, label='real', color=color_real)
         plt.ylabel('Yaw [$^\\circ$]', fontsize=label_size)
 
@@ -229,42 +252,32 @@ def main(file_path, type):
         plt.subplot(4, 2, 7)
         t = np.array(data_thrust_cmd['__time']) - t_bias
         thrust1 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[0]'])
-        plt.plot(t, thrust1, label='$f_{c1}$')
+        plt.plot(t, thrust1, label='$f_{c1}$', linestyle="-")
         thrust2 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[1]'])
-        plt.plot(t, thrust2, label='$f_{c2}$')
+        plt.plot(t, thrust2, label='$f_{c2}$', linestyle="--")
         thrust3 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[2]'])
-        plt.plot(t, thrust3, label='$f_{c3}$')
+        plt.plot(t, thrust3, label='$f_{c3}$', linestyle="-.")
         thrust4 = np.array(data_thrust_cmd['/beetle1/four_axes/command/base_thrust[3]'])
-        plt.plot(t, thrust4, label='$f_{c4}$')
+        plt.plot(t, thrust4, label='$f_{c4}$', linestyle=":")
         plt.ylabel('Thrust Cmd [N]', fontsize=label_size)
         plt.xlabel('Time [s]', fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, loc='upper left')
+        plt.legend(framealpha=legend_alpha, loc='center right')
 
         # --------------------------------
         plt.subplot(4, 2, 8)
         t = np.array(data_servo_angle_cmd['__time']) - t_bias
         servo1 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal1/position']) * 180 / np.pi
-        plt.plot(t, servo1, label='$\\alpha_{c1}$')
+        plt.plot(t, servo1, label='$\\alpha_{c1}$', linestyle="-")
         servo2 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal2/position']) * 180 / np.pi
-        plt.plot(t, servo2, label='$\\alpha_{c2}$')
+        plt.plot(t, servo2, label='$\\alpha_{c2}$', linestyle="--")
         servo3 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal3/position']) * 180 / np.pi
-        plt.plot(t, servo3, label='$\\alpha_{c3}$')
+        plt.plot(t, servo3, label='$\\alpha_{c3}$', linestyle="-.")
         servo4 = np.array(data_servo_angle_cmd['/beetle1/gimbals_ctrl/gimbal4/position']) * 180 / np.pi
-        plt.plot(t, servo4, label='$\\alpha_{c4}$')
-
-        # t = np.array(data_servo_angle['__time']) - t_bias
-        # servo1_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal1/position']) * 180 / np.pi
-        # plt.plot(t, servo1_real, label='$\\alpha_{1}$', linestyle='--')
-        # servo2_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal2/position']) * 180 / np.pi
-        # plt.plot(t, servo2_real, label='$\\alpha_{2}$', linestyle='--')
-        # servo3_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal3/position']) * 180 / np.pi
-        # plt.plot(t, servo3_real, label='$\\alpha_{3}$', linestyle='--')
-        # servo4_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal4/position']) * 180 / np.pi
-        # plt.plot(t, servo4_real, label='$\\alpha_{4}$', linestyle='--')
+        plt.plot(t, servo4, label='$\\alpha_{c4}$', linestyle=":")
 
         plt.ylabel('Servo Cmd [$^\\circ$]', fontsize=label_size)
         plt.xlabel('Time [s]', fontsize=label_size)
-        plt.legend(framealpha=legend_alpha, loc='upper left')
+        plt.legend(framealpha=legend_alpha, loc='center right')
 
         # --------------------------------
         plt.tight_layout()
@@ -361,7 +374,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(2, 2, 1)
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[0]'])
+        x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x'])
         # plt.plot(t_ref, x_ref, label='X$_r$', linestyle="--")
 
         t = np.array(data_xyz['__time']) - t_bias
@@ -374,7 +387,7 @@ def main(file_path, type):
 
         # ------
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[1]'])
+        y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y'])
         # plt.plot(t_ref, y_ref, label='Y$_r$', linestyle="--")
 
         t = np.array(data_xyz['__time']) - t_bias
@@ -387,7 +400,7 @@ def main(file_path, type):
 
         # ------
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/x/data[2]'])
+        z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z'])
         plt.plot(t_ref, z_ref, label='Z$_r$', linestyle="--")
 
         t = np.array(data_xyz['__time']) - t_bias
