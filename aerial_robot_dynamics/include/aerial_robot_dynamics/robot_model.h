@@ -45,9 +45,10 @@ public:
   Eigen::VectorXd forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& tau,
                                   Eigen::VectorXd& thrust);
   Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
-                                             const Eigen::VectorXd& tau, Eigen::VectorXd& aba_partial_dthrust);
-  Eigen::VectorXd inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a);
-  void inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                                             const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
+  bool inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                       Eigen::VectorXd& tau);
+  bool inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
                                   Eigen::MatrixXd& id_partial_dq, Eigen::MatrixXd& id_partial_dv,
                                   Eigen::MatrixXd& id_partial_da);
 

@@ -146,8 +146,8 @@ Eigen::MatrixXd PinocchioRobotModel::forwardDynamicsDerivatives(const Eigen::Vec
   return data_->Minv * tauext_partial_thrust;
 }
 
-Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
-                                                     const Eigen::VectorXd& a)
+bool PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                                          Eigen::VectorXd& tau)
 {
   // Compute normal inverse dynamics
   Eigen::VectorXd rnea_solution = pinocchio::rnea(*model_, *data_, q, v, a);
@@ -187,6 +187,7 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, c
   upper_bound_.tail(model_->nv) = rnea_solution;           // rnea equality constraint
 
   // qp solver
+  bool ok = true;
   Eigen::SparseMatrix<double> H_s = H.sparseView();
   Eigen::SparseMatrix<double> A_s = A.sparseView();
   if (!id_solver_.isInitialized())
@@ -200,28 +201,28 @@ Eigen::VectorXd PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, c
 
     id_solver_.data()->setNumberOfVariables(n_variables);
     id_solver_.data()->setNumberOfConstraints(n_constraints);
-    id_solver_.data()->setHessianMatrix(H_s);
-    id_solver_.data()->setGradient(gradient_);
-    id_solver_.data()->setLinearConstraintsMatrix(A_s);
-    id_solver_.data()->setLowerBound(lower_bound_);
-    id_solver_.data()->setUpperBound(upper_bound_);
-    id_solver_.initSolver();
+    ok &= id_solver_.data()->setHessianMatrix(H_s);
+    ok &= id_solver_.data()->setGradient(gradient_);
+    ok &= id_solver_.data()->setLinearConstraintsMatrix(A_s);
+    ok &= id_solver_.data()->setLowerBound(lower_bound_);
+    ok &= id_solver_.data()->setUpperBound(upper_bound_);
+    ok &= id_solver_.initSolver();
   }
   else
   {
-    id_solver_.updateHessianMatrix(H_s);
-    id_solver_.updateGradient(gradient_);
-    id_solver_.updateBounds(lower_bound_, upper_bound_);
-    id_solver_.updateLinearConstraintsMatrix(A_s);
+    ok &= id_solver_.updateHessianMatrix(H_s);
+    ok &= id_solver_.updateGradient(gradient_);
+    ok &= id_solver_.updateBounds(lower_bound_, upper_bound_);
+    ok &= id_solver_.updateLinearConstraintsMatrix(A_s);
   }
+  ok &= id_solver_.solve();
 
-  id_solver_.solve();
-  Eigen::VectorXd solution = id_solver_.getSolution();
+  tau = id_solver_.getSolution();
 
-  return solution;
+  return ok;
 }
 
-void PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
+bool PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
                                                      const Eigen::VectorXd& a, Eigen::MatrixXd& id_partial_dq,
                                                      Eigen::MatrixXd& id_partial_dv, Eigen::MatrixXd& id_partial_da)
 {
@@ -232,7 +233,8 @@ void PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, c
   int n_constraints = n_ineq_constraints + n_eq_constraints;
 
   // Compute the inverse dynamics with external forces
-  Eigen::VectorXd id_solution = this->inverseDynamics(q, v, a);
+  Eigen::VectorXd id_solution;
+  bool ok = this->inverseDynamics(q, v, a, id_solution);
   Eigen::VectorXd id_solution_thrust = id_solution.tail(rotor_num_);
   Eigen::VectorXd id_dual_solution = id_solver_.getDualSolution();
   Eigen::VectorXd id_ineq_dual_solution = id_dual_solution.head(n_ineq_constraints);
@@ -319,6 +321,8 @@ void PinocchioRobotModel::inverseDynamicsDerivatives(const Eigen::VectorXd& q, c
   kkt_sensitivity.setZero();
   kkt_sensitivity.block(n_variables, 0, n_eq_constraints, model_->nv) = rnea_partial_da;
   id_partial_da = K_ldlt.solve(kkt_sensitivity).topRows(n_variables);
+
+  return ok;
 }
 
 std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q)
