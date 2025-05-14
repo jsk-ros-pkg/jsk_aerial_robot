@@ -20,10 +20,12 @@ bool PinocchioRobotModelTest::inverseDynamicsTest(bool verbose)
             << " ms" << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
-  Eigen::VectorXd tau_thrust = robot_model_->inverseDynamics(q, v, a);
+  Eigen::VectorXd tau_thrust;
+  bool ok = robot_model_->inverseDynamics(q, v, a, tau_thrust);
   end = std::chrono::high_resolution_clock::now();
-  std::cout << "ID time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0
-            << " ms" << std::endl;
+  std::cout << "ID " << (ok ? "solved. " : "not solved. ")
+            << "time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms"
+            << std::endl;
 
   if (verbose)
   {

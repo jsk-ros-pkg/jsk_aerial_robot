@@ -49,10 +49,11 @@ bool PinocchioRobotModelTest::inverseDynamicsDerivativesTest(bool verbose)
   Eigen::VectorXd original_q = q;
   Eigen::VectorXd original_v = v;
   Eigen::VectorXd original_a = a;
-  Eigen::VectorXd id_original_solution = robot_model_->inverseDynamics(original_q, original_v, original_a);
+  Eigen::VectorXd id_original_solution;
+  robot_model_->inverseDynamics(original_q, original_v, original_a, id_original_solution);
 
   // check partial_dq
-  robot_model_->inverseDynamics(original_q, original_v, original_a);
+  robot_model_->inverseDynamics(original_q, original_v, original_a, id_original_solution);
   Eigen::MatrixXd id_partial_dq_num =
       Eigen::MatrixXd::Zero(robot_model_->getModel()->nv + robot_model_->getRotorNum(), robot_model_->getModel()->nv);
   for (int i = 0; i < robot_model_->getModel()->nv; i++)
@@ -61,31 +62,34 @@ bool PinocchioRobotModelTest::inverseDynamicsDerivativesTest(bool verbose)
     Eigen::VectorXd delta_v = Eigen::VectorXd::Zero(robot_model_->getModel()->nv);
     delta_v(i) = 1.0;
     q = pinocchio::integrate(*(robot_model_->getModel()), original_q, delta_v * epsilon);
-    Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(q, original_v, original_a);
+    Eigen::VectorXd id_solution_plus;
+    robot_model_->inverseDynamics(q, original_v, original_a, id_solution_plus);
     id_partial_dq_num.col(i) = (id_solution_plus - id_original_solution) / epsilon;
   }
 
   // check partial_dv
-  robot_model_->inverseDynamics(original_q, original_v, original_a);
+  robot_model_->inverseDynamics(original_q, original_v, original_a, id_original_solution);
   Eigen::MatrixXd id_partial_dv_num =
       Eigen::MatrixXd::Zero(robot_model_->getModel()->nv + robot_model_->getRotorNum(), robot_model_->getModel()->nv);
   for (int i = 0; i < robot_model_->getModel()->nv; i++)
   {
     v = original_v;
     v(i) += epsilon;
-    Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(original_q, v, original_a);
+    Eigen::VectorXd id_solution_plus;
+    robot_model_->inverseDynamics(original_q, v, original_a, id_solution_plus);
     id_partial_dv_num.col(i) = (id_solution_plus - id_original_solution) / epsilon;
   }
 
   // check partial_da
-  robot_model_->inverseDynamics(original_q, original_v, original_a);
+  robot_model_->inverseDynamics(original_q, original_v, original_a, id_original_solution);
   Eigen::MatrixXd id_partial_da_num =
       Eigen::MatrixXd::Zero(robot_model_->getModel()->nv + robot_model_->getRotorNum(), robot_model_->getModel()->nv);
   for (int i = 0; i < robot_model_->getModel()->nv; i++)
   {
     a = original_a;
     a(i) += epsilon;
-    Eigen::VectorXd id_solution_plus = robot_model_->inverseDynamics(original_q, original_v, a);
+    Eigen::VectorXd id_solution_plus;
+    robot_model_->inverseDynamics(original_q, original_v, a, id_solution_plus);
     id_partial_da_num.col(i) = (id_solution_plus - id_original_solution) / epsilon;
   }
 
