@@ -23,24 +23,22 @@
 
     ## link
     <link name="base_link">
-    ## inertial of no attachment
-      <inertial>
+      <!-- <inertial>
         <origin xyz="0.00009021 -0.00005299 0.04639014" rpy="0 0 0"/>
         <mass value="1.16544411"/>
         <inertia
             ixx="0.01251517" iyy="0.01254829" izz="0.01920936"
             ixy="-0.00000046" ixz="-0.00000278" iyz="-0.00001104"/>
-      </inertial>
-    ## inertial with pruning tools
-      <!-- <inertial> -->
-      <!--   <origin xyz="0.05514 0.00149 0.03734" rpy="0 0 0"/> -->
-      <!--   <mass value="1.38734"/> -->
-      <!--   <inertia -->
-      <!--       ixx="0.01325195352" ixy="0.00068117226" ixz="-0.00359026615" -->
-      <!--       iyx="0.00068117226" iyy="0.03735952771" iyz="-0.00013486816" -->
-      <!--       izx="-0.00359026615" izy="-0.00013486186" izz="0.04350508718"/> -->
-      <!-- </inertial> -->
+      </inertial> -->
 
+      <inertial>
+        <origin xyz="0.05984 0.00138 0.03247" rpy="0 0 0"/>
+        <mass value="1.43147"/>
+        <inertia
+            ixx="0.01393149076" ixy="0.00059865083" ixz="-0.00538129912"
+            iyx="-0.00059865083" iyy="0.03783180404" iyz="-0.00018635030"
+            izx="-0.00538129912" izy="-0.00018635030" izz="0.04319444852"/>
+      </inertial>
       <visual>
         <origin xyz="0 0 -0.0" rpy="0 0 0"/>
         <geometry>

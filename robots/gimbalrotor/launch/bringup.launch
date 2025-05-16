@@ -65,6 +65,13 @@
     <param name="main_rate" value="40"/>
   </node>
 
+  ###########  Pruning Servo by Kamada ###########
+  <node pkg="aerial_robot_base" 
+        type="prune_servo_listener.py" 
+        name="dynamixel_controller" 
+        output="screen">
+  </node>
+
   ###########  Robot Model  ###########
   <arg name="description_mode" value="urdf" unless="$(arg simulation)" />
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
@@ -77,13 +84,6 @@
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include >
 
-  ###########  Pruning Servo by Kamada ###########
-  <node pkg="aerial_robot_base" 
-        type="prune_servo_listener.py" 
-        name="dynamixel_controller" 
-        output="screen">
-  </node>
-  
   ##########  Sensors  ##########
   <include file="$(find gimbalrotor)/launch/include/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
