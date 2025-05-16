@@ -68,36 +68,21 @@ namespace hardware_interface
     spinal_state_estimator_.getAttEstimator()->setMag(mag_x, mag_y, mag_z);
   }
 
-  tf::Vector3 SpinalInterface::getTrueBaselinkRPY()
+  void SpinalInterface::setGroundTruthStates(double q_x, double q_y, double q_z, double q_w,
+                                             double w_x, double w_y, double w_z)
   {
-    double r,p,y;
-    baselink_rot_.getRPY(r, p, y);
-    return tf::Vector3(r,p,y);
+    /* directly overwrite the state in attitude estimation */
+    ap::Quaternion q(q_w, q_x, q_y, q_z);
+    ap::Matrix3f rot; q.rotation_matrix(rot);
+    ap::Vector3f ang_vel(w_x, w_y, w_z);
+
+    spinal_state_estimator_.getAttEstimator()->setGroundTruthStates(rot, ang_vel);
   }
 
-  tf::Vector3 SpinalInterface::getTrueCogAngular()
+  void SpinalInterface::useGroundTruth(bool flag)
   {
-    return spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf() * baselink_angular_;
+    spinal_state_estimator_.getAttEstimator()->useGroundTruth(flag);
   }
-
-  tf::Vector3 SpinalInterface::getTrueCogRPY()
-  {
-    tf::Matrix3x3 rot = baselink_rot_ * spinal_state_estimator_.getAttEstimator()->getDesiredCoordTf().transpose() ;
-    double r,p,y;
-    rot.getRPY(r, p, y);
-    return tf::Vector3(r,p,y);
-  }
-
-  void SpinalInterface::setTrueBaselinkOrientation(double q_x, double q_y, double q_z, double q_w)
-  {
-    baselink_rot_.setRotation(tf::Quaternion(q_x, q_y, q_z, q_w));
-  }
-
-  void SpinalInterface::setTrueBaselinkAngular(double w_x, double w_y, double w_z)
-  {
-    baselink_angular_.setValue(w_x, w_y, w_z);
-  }
-
 
 };
 

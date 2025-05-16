@@ -196,6 +196,9 @@ namespace gazebo_ros_control
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
 
+    simulation_nh.param("spinal_init_wait_time", spinal_init_wait_time_, 5.0); // [sec]
+    start_t_ = ros::Time::now().toSec();
+
     return true;
   }
 
@@ -240,7 +243,10 @@ namespace gazebo_ros_control
     else
       ROS_DEBUG_THROTTLE(1.0, "No magnetometer sensor handler to read sensor data");
 
-    spinal_interface_.stateEstimate();
+    if (time.toSec() - start_t_ > spinal_init_wait_time_)
+      spinal_interface_.stateEstimate();
+    else
+      ROS_INFO_THROTTLE(1.0, "wait for robot configuration being stable");
 
     /* publish ground truth value */
     nav_msgs::Odometry odom_msg;
@@ -249,12 +255,11 @@ namespace gazebo_ros_control
     odom_msg.pose.pose.position.y = baselink_pos.Y() + gazebo::gaussianKernel(ground_truth_pos_noise_);
     odom_msg.pose.pose.position.z = baselink_pos.Z() + gazebo::gaussianKernel(ground_truth_pos_noise_);
 
-    ignition::math::Vector3d euler = q.Euler();
-    euler += ignition::math::Vector3d(gazebo::addNoise(ground_truth_rot_curr_drift_.X(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
-                                      gazebo::addNoise(ground_truth_rot_curr_drift_.Y(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
-                                      gazebo::addNoise(ground_truth_rot_curr_drift_.Z(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()));
+    ignition::math::Vector3d delta_euler(gazebo::addNoise(ground_truth_rot_curr_drift_.X(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                                         gazebo::addNoise(ground_truth_rot_curr_drift_.Y(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                                         gazebo::addNoise(ground_truth_rot_curr_drift_.Z(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()));
 
-    ignition::math::Quaterniond q_noise(euler);
+    ignition::math::Quaterniond q_noise = q * ignition::math::Quaterniond(delta_euler);
     odom_msg.pose.pose.orientation.x = q_noise.X();
     odom_msg.pose.pose.orientation.y = q_noise.Y();
     odom_msg.pose.pose.orientation.z = q_noise.Z();
@@ -271,13 +276,11 @@ namespace gazebo_ros_control
     odom_msg.twist.twist.angular.z = w.Z() + gazebo::addNoise(ground_truth_angular_curr_drift_.Z(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
 
     /* set ground truth for controller: use the value with noise */
-    spinal_interface_.setTrueBaselinkOrientation(q_noise.X(),
-                                                 q_noise.Y(),
-                                                 q_noise.Z(),
-                                                 q_noise.W());
-    spinal_interface_.setTrueBaselinkAngular(odom_msg.twist.twist.angular.x,
-                                             odom_msg.twist.twist.angular.y,
-                                             odom_msg.twist.twist.angular.z);
+    spinal_interface_.setGroundTruthStates(q_noise.X(), q_noise.Y(),
+                                           q_noise.Z(), q_noise.W(),
+                                           odom_msg.twist.twist.angular.x,
+                                           odom_msg.twist.twist.angular.y,
+                                           odom_msg.twist.twist.angular.z);
 
 
     if(time.toSec() - last_ground_truth_time_.toSec() > ground_truth_pub_rate_)
@@ -295,12 +298,10 @@ namespace gazebo_ros_control
         pose_msg.pose.position.y = odom_msg.pose.pose.position.y + gazebo::gaussianKernel(mocap_pos_noise_);
         pose_msg.pose.position.z = odom_msg.pose.pose.position.z + gazebo::gaussianKernel(mocap_pos_noise_);
 
-        // pose.pose.orientation = odom_msg.pose.pose.orientation;
-        euler = q.Euler();
-        euler += ignition::math::Vector3d(gazebo::gaussianKernel(mocap_rot_noise_),
-                                          gazebo::gaussianKernel(mocap_rot_noise_),
-                                          gazebo::gaussianKernel(mocap_rot_noise_));
-        q_noise = ignition::math::Quaterniond(euler);
+        delta_euler = ignition::math::Vector3d(gazebo::gaussianKernel(mocap_rot_noise_),
+                                               gazebo::gaussianKernel(mocap_rot_noise_),
+                                               gazebo::gaussianKernel(mocap_rot_noise_));
+        q_noise = q * ignition::math::Quaterniond(delta_euler);
         pose_msg.pose.orientation.x = q_noise.X();
         pose_msg.pose.orientation.y = q_noise.Y();
         pose_msg.pose.orientation.z = q_noise.Z();

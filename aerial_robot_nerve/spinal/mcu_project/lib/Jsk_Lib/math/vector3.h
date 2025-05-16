@@ -155,6 +155,9 @@ public:
     bool is_zero(void) const { return (fabsf(x) < FLT_EPSILON) && (fabsf(y) < FLT_EPSILON) && (fabsf(z) < FLT_EPSILON); }
 
 
+    // check if any elements are NAN
+    bool is_nan(void);
+
     // rotate by a standard rotation
     void rotate(enum Rotation rotation);
     void rotate_inverse(enum Rotation rotation);

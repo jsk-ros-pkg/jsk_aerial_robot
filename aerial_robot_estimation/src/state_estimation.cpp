@@ -45,18 +45,32 @@ StateEstimator::StateEstimator()
     flying_flag_(false),
     un_descend_flag_(false),
     force_att_control_flag_(false),
+    has_groundtruth_odom_(false),
     imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
 
-  for(int i = 0; i < State::TOTAL_NUM; i ++)
+  has_refined_yaw_estimate_[EGOMOTION_ESTIMATE] = false;
+  has_refined_yaw_estimate_[EXPERIMENT_ESTIMATE] = false;
+
+  for(int i = 0; i < 6; i ++)
     {
       for(int j = 0; j < 3; j++)
         {
           state_[i][j].first = 0;
           state_[i][j].second = tf::Vector3(0, 0, 0);
         }
+    }
+
+  for(int i = 0; i < 3; i ++)
+    {
+      base_rots_.at(i).setIdentity();
+      cog_rots_.at(i).setIdentity();
+      base_omegas_.at(i).setZero();
+      cog_omegas_.at(i).setZero();
+      base_rot_status_.at(i) = 0;
+      cog_rot_status_.at(i) = 0;
     }
 
   /* TODO: represented sensors unhealth level */
@@ -82,6 +96,35 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   state_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / rate), &StateEstimator::statePublish, this);
 }
 
+
+void StateEstimator::setOrientationWxB(int frame, int estimate_mode, tf::Vector3 v)
+{
+  tf::Vector3 wx_b = v.normalize();
+
+  tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+  tf::Vector3 wz_b = rot.getRow(2);
+  tf::Vector3 wy_b = wz_b.cross(wx_b);
+  wy_b.normalize();
+
+  rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
+
+  setOrientation(frame, estimate_mode, rot);
+}
+
+void StateEstimator::setOrientationWzB(int frame, int estimate_mode, tf::Vector3 v)
+{
+  tf::Vector3 wz_b = v.normalize();
+
+  tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+  tf::Vector3 wx_b = rot.getRow(0);
+  tf::Vector3 wy_b = wz_b.cross(wx_b);
+  wy_b.normalize();
+
+  rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
+
+  setOrientation(frame, estimate_mode, rot);
+}
+
 void StateEstimator::statePublish(const ros::TimerEvent & e)
 {
   static ros::Time prev_pub_stamp = ros::Time(0);
@@ -90,7 +133,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = imu_stamp;
 
-  for(int axis = 0; axis < State::TOTAL_NUM; axis++)
+  for(int axis = 0; axis < 6; axis++)
     {
       aerial_robot_msgs::State r_state;
       AxisState state = getState(axis);
@@ -115,24 +158,6 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
         case State::Z_BASE:
           r_state.id = "z_b";
           break;
-        case State::ROLL_COG:
-          r_state.id = "roll_cog";
-          break;
-        case State::PITCH_COG:
-          r_state.id = "pitch_cog";
-          break;
-        case State::YAW_COG:
-          r_state.id = "yaw_cog";
-          break;
-        case State::ROLL_BASE:
-          r_state.id = "roll_b";
-          break;
-        case State::PITCH_BASE:
-          r_state.id = "pitch_b";
-          break;
-        case State::YAW_BASE:
-          r_state.id = "yaw_b";
-          break;
         default:
           break;
         }
@@ -151,6 +176,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   /* Baselink */
   /* Rotation */
   tf::Quaternion q; getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  q.normalize();
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.angular);
 
@@ -184,6 +210,7 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   /* COG */
   /* Rotation */
   getOrientation(Frame::COG, estimate_mode_).getRotation(q);
+  q.normalize();
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::COG, estimate_mode_), odom_state.twist.twist.angular);
   /* Translation */

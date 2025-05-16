@@ -27,6 +27,8 @@
   <run_depend>aerial_robot_simulation</run_depend>
   <run_depend>aerial_robot_base</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>rqt_gui</run_depend>
+  <run_depend>rviz</run_depend>
   <run_depend>hydrus</run_depend>
   <run_depend>nlopt</run_depend>
   <run_depend>pluginlib</run_depend>
