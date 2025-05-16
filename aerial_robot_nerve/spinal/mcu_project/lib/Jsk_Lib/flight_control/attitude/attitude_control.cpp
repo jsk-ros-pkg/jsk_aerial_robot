@@ -54,7 +54,7 @@ AttitudeController::AttitudeController():
 }
 
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
-                              DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+                              DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
@@ -62,6 +62,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_ = nh;
   estimator_ = estimator;
   dshot_ = dshot;
+  servo_ = servo;
   bat_ = bat;
   mutex_ = mutex;
 

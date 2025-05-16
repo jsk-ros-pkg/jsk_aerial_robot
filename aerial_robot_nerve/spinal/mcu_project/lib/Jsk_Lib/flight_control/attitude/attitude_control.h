@@ -34,6 +34,8 @@
 #include "cmsis_os.h"
 /* dshot esc */
 #include "dshot_esc/dshot.h"
+/* servo */
+#include "servo/servo.h"
 #endif
 
 #include "state_estimate/state_estimate.h"
@@ -83,7 +85,7 @@ public:
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
-            DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
+            DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
 
   void baseInit(); // common part in both pc and board
@@ -160,6 +162,7 @@ private:
   BatteryStatus* bat_;
   osMutexId* mutex_;
   DShot* dshot_;
+  DirectServo* servo_;
 #endif
 
   StateEstimate* estimator_;
