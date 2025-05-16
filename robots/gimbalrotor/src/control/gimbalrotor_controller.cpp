@@ -34,8 +34,6 @@ namespace aerial_robot_control
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
     gimbal_dof_pub_ = nh_.advertise<std_msgs::UInt8>("gimbal_dof", 1);
-
-    control_dof_ = std::accumulate(controlled_axis_.begin(), controlled_axis_.end(), 0);
   }
 
   void GimbalrotorController::reset()
@@ -50,12 +48,8 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
-    if(!control_nh.getParam("controlled_axis", controlled_axis_)){
-      controlled_axis_ = std::vector<int>(6, 1);
-      controlled_axis_.at(0) = 0;
-      controlled_axis_.at(1) = 0;
-    }
     getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
+    getParam<bool>(control_nh, "underactuate", underactuate_, false);
   }
 
   bool GimbalrotorController::update()
@@ -81,7 +75,7 @@ namespace aerial_robot_control
     tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
     Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
 
-    if(control_dof_ < 6) target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
+    if(underactuate_) target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_dash.x(), target_acc_dash.y(), target_acc_dash.z());
     else target_wrench_acc_cog.head(3) = Eigen::Vector3d(target_acc_cog.x(), target_acc_cog.y(), target_acc_cog.z());
 
     double target_ang_acc_x = pid_controllers_.at(ROLL).result();
@@ -166,46 +160,41 @@ namespace aerial_robot_control
     integrated_map = full_q_mat * integrated_rot;
 
     /* extract controlled axis  */
-    Eigen::MatrixXd controlled_axis_mask = Eigen::MatrixXd::Zero(control_dof_, 6);
-    int last_row = 0;
-    for(int i = 0; i < controlled_axis_.size(); i++){
-      if(controlled_axis_.at(i)){
-        controlled_axis_mask(last_row, i) = 1;
-        last_row++;
+    if(underactuate_)
+      {
+        target_wrench_acc_cog = target_wrench_acc_cog.tail(4);  // z, roll, pitch, yaw
+        integrated_map = integrated_map.bottomRows(4);          // z, roll, pitch, yaw
       }
-    }
-    target_wrench_acc_cog  = controlled_axis_mask * target_wrench_acc_cog;
-    integrated_map = controlled_axis_mask * integrated_map;
 
     /* vectoring force mapping */
     Eigen::MatrixXd integrated_map_inv = aerial_robot_model::pseudoinverse(integrated_map);
-    integrated_map_inv_trans_ = integrated_map_inv.leftCols(control_dof_ - 3);
+    integrated_map_inv_trans_ = integrated_map_inv.leftCols(underactuate_ ? 1 : 3);
     integrated_map_inv_rot_ = integrated_map_inv.rightCols(3);
-    target_vectoring_f_trans_ = integrated_map_inv_trans_ * target_wrench_acc_cog.topRows(control_dof_ - 3);
+    if(underactuate_)
+      target_vectoring_f_trans_ = integrated_map_inv_trans_ * target_wrench_acc_cog(0);
+    else
+      target_vectoring_f_trans_ = integrated_map_inv_trans_ * target_wrench_acc_cog.topRows(3);
     target_vectoring_f_rot_ = integrated_map_inv_rot_ * target_wrench_acc_cog.bottomRows(3); //debug
     last_col = 0;
 
     /* under actuated axis  */
-    if(!controlled_axis_.at(X)){
-      if(hovering_approximate_){
-        target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
-        navigator_->setTargetPitch(target_pitch_);
+    if(underactuate_)
+      {
+        if(hovering_approximate_)
+          {
+            target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+            target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+            navigator_->setTargetRoll(target_roll_);
+            navigator_->setTargetPitch(target_pitch_);
+          }
+        else
+          {
+            target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
+            target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
+            navigator_->setTargetRoll(target_roll_);
+            navigator_->setTargetPitch(target_pitch_);
+          }
       }
-      else{
-        target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
-        navigator_->setTargetPitch(target_pitch_);
-      }
-    }
-    if(!controlled_axis_.at(Y)){
-      if(hovering_approximate_){
-        target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
-        navigator_->setTargetRoll(target_roll_);
-      }
-      else{
-        target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
-        navigator_->setTargetRoll(target_roll_);
-      }
-    }
 
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
@@ -220,7 +209,7 @@ namespace aerial_robot_control
           target_base_thrust_.at(rotor_coef_ * i+1) = f_i[1];
           target_base_thrust_.at(rotor_coef_ * i+2) = f_i[2];
         }
-      if(integrated_map_inv(i, control_dof_ - 1) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, control_dof_ - 1); // control_dof - 1 = index for yaw axis
+      if(integrated_map_inv(i, (underactuate_ ? YAW - 2 : YAW)) > max_yaw_scale) max_yaw_scale = integrated_map_inv(i, (underactuate_ ? YAW - 2 : YAW));  // underactuated: yaw col is shifted
 
       last_col += rotor_coef_;
     }

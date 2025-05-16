@@ -48,8 +48,7 @@ namespace aerial_robot_control
     int gimbal_dof_;
     int rotor_coef_;
     bool gimbal_calc_in_fc_;
-    std::vector<int> controlled_axis_;
-    int control_dof_;
+    bool underactuate_;
     double target_roll_ = 0.0, target_pitch_ = 0.0;
 
     void rosParamInit();
