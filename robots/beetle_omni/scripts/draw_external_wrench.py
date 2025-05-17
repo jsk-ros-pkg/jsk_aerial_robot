@@ -41,23 +41,28 @@ def quat2euler(qw, qx, qy, qz):
 
 def main(fly_file_path, sensor_file_path, plot_type):
     # Load the data from csv file
-    # fly_data = pd.read_csv(fly_file_path)
     sensor_data = pd.read_csv(sensor_file_path)
+    fly_data = pd.read_csv(fly_file_path)
 
     # ======= data selection =========
-    # data_est_wrench = fly_data[
-    #     ['__time', '/beetle1/disturbance_wrench/wrench/force/x', '/beetle1/disturbance_wrench/wrench/force/y',
-    #         '/beetle1/disturbance_wrench/wrench/force/z', '/beetle1/disturbance_wrench/wrench/torque/x',
-    #         '/beetle1/disturbance_wrench/wrench/torque/y', '/beetle1/disturbance_wrench/wrench/torque/z']]
-    # data_est_wrench = data_est_wrench.dropna()
-    # data_est_wrench.columns = ['__time', 'fx', 'fy', 'fz', 'tx', 'ty', 'tz']
-
     data_sen_wrench = sensor_data[
         ['__time', '/cfs/data/wrench/force/x', '/cfs/data/wrench/force/y', '/cfs/data/wrench/force/z',
          '/cfs/data/wrench/torque/x', '/cfs/data/wrench/torque/y', '/cfs/data/wrench/torque/z']]
     data_sen_wrench = data_sen_wrench.dropna()
     data_sen_wrench.columns = ['t', 'fx', 'fy', 'fz', 'tx', 'ty', 'tz']
 
+    data_est_wrench = fly_data[
+        ['__time', '/beetle1/disturbance_wrench/wrench/force/x', '/beetle1/disturbance_wrench/wrench/force/y',
+         '/beetle1/disturbance_wrench/wrench/force/z', '/beetle1/disturbance_wrench/wrench/torque/x',
+         '/beetle1/disturbance_wrench/wrench/torque/y', '/beetle1/disturbance_wrench/wrench/torque/z']]
+    data_est_wrench = data_est_wrench.dropna()
+    data_est_wrench.columns = ['t', 'fx', 'fy', 'fz', 'tx', 'ty', 'tz']
+
+    data_imu = fly_data[
+        ['__time', '/beetle1/imu/acc_data[0]', '/beetle1/imu/acc_data[1]', '/beetle1/imu/acc_data[2]',
+         '/beetle1/imu/gyro_data[0]', '/beetle1/imu/gyro_data[1]', '/beetle1/imu/gyro_data[2]']]
+    data_imu = data_imu.dropna()
+    data_imu.columns = ['t', 'ax', 'ay', 'az', 'wx', 'wy', 'wz']
 
     # # ======= orientation =========
     # data_qwxyz = fly_data[
@@ -67,6 +72,20 @@ def main(fly_file_path, sensor_file_path, plot_type):
     # data_qwxyz = data_qwxyz.dropna()
     # data_qwxyz.columns = ['__time', 'qw', 'qx', 'qy', 'qz']
 
+    # ======= preprocessing =========
+    t_ref = np.array(data_sen_wrench['t']) - data_sen_wrench['t'].iloc[0]
+    time_duration = data_sen_wrench['t'].iloc[-1] - data_sen_wrench['t'].iloc[0]
+
+    t_real_start = 1  # s
+    t_real_end = t_real_start + time_duration
+    data_est_wrench_sel = data_est_wrench[(data_est_wrench['t'] >= t_real_start + data_est_wrench['t'].iloc[0]) & (
+            data_est_wrench['t'] <= data_est_wrench['t'].iloc[0] + t_real_end)]
+    t_real = np.array(data_est_wrench_sel['t']) - data_est_wrench_sel['t'].iloc[0]
+
+    data_imu_sel = data_imu[(data_imu['t'] >= t_real_start + data_imu['t'].iloc[0]) & (
+            data_imu['t'] <= data_imu['t'].iloc[0] + t_real_end)]
+    t_imu = np.array(data_imu_sel['t']) - data_imu_sel['t'].iloc[0]
+
     # ======= plotting =========
     if plot_type == 0:
         plt.style.use(["science", "grid"])
@@ -74,57 +93,52 @@ def main(fly_file_path, sensor_file_path, plot_type):
         plt.rcParams.update({'font.size': 11})  # default is 10
         label_size = 14
 
-        fig, axes = plt.subplots(3, 2, sharex=True, figsize=(7, 7))
-        axes = axes.flatten()   # makes it easy to index 0–5
+        fig, axes = plt.subplots(4, 2, sharex=True, figsize=(7, 7))
+        axes = axes.flatten()  # makes it easy to index 0–5
 
         color_ref = '#0C5DA5'
         color_real = '#FF2C00'
 
-        t_ref = np.array(data_sen_wrench['t']) - data_sen_wrench['t'].iloc[0]
+        # --------------- Wrench -----------------
+        keys = ['fx', 'tx', 'fy', 'ty', 'fz', 'tz']
+        ylabels = [
+            r'${}^Bf_x$ [N]', r'${}^B\tau_x$ [N$\cdot$m]',
+            r'${}^Bf_y$ [N]', r'${}^B\tau_y$ [N$\cdot$m]',
+            r'${}^Bf_z$ [N]', r'${}^B\tau_z$ [N$\cdot$m]',
+        ]
 
-        # --------------------------------
-        ax = axes[0]
-        fx_ref = np.array(data_sen_wrench['fx'])
-        ax.plot(t_ref, fx_ref, label='ref', linestyle="--", color=color_ref)
+        for i, (key, ylabel) in enumerate(zip(keys, ylabels)):
+            ax = axes[i]
+            # plot ref and real
+            ax.plot(t_ref, data_sen_wrench[key], linestyle='--', label='ref', color=color_ref)
+            ax.plot(t_real, data_est_wrench_sel[key], linestyle='-', label='real', color=color_real)
 
-        ax.legend(framealpha=legend_alpha)
-        ax.set_ylabel('${^B}f_x$ [N]', fontsize=label_size)
+            # only the first subplot gets a legend
+            if i == 0:
+                ax.legend(framealpha=legend_alpha)
 
-        # --------------------------------
-        ax = axes[1]
-        tx_ref = np.array(data_sen_wrench['tx'])
-        ax.plot(t_ref, tx_ref, label='ref', linestyle="--", color=color_ref)
+            ax.set_ylabel(ylabel, fontsize=label_size)
 
-        ax.set_ylabel('${^B}\\tau_x$ [N$\\cdot$m]', fontsize=label_size)
+            # bottom‐row plots (i = 4,5) get the shared x‐label
+            if i >= 4:
+                ax.set_xlabel('Time [s]', fontsize=label_size)
+        # ---------------- Imu ----------------
+        gravity_const = 9.798  # m/s^2 Tokyo  # TODO: need to do coordinate transform
 
-        # --------------------------------
-        ax = axes[2]
-        fy_ref = np.array(data_sen_wrench['fy'])
-        ax.plot(t_ref, fy_ref, label='ref', linestyle="--", color=color_ref)
-
-        ax.set_ylabel('${^B}f_y$ [N]', fontsize=label_size)
-
-        # --------------------------------
-        ax = axes[3]
-        ty_ref = np.array(data_sen_wrench['ty'])
-        ax.plot(t_ref, ty_ref, label='ref', linestyle="--", color=color_ref)
-
-        ax.set_ylabel('${^B}\\tau_y$ [N$\\cdot$m]', fontsize=label_size)
-
-        # --------------------------------
-        ax = axes[4]
-        fz_ref = np.array(data_sen_wrench['fz'])
-        ax.plot(t_ref, fz_ref, label='ref', linestyle="--", color=color_ref)
-
-        ax.set_ylabel('${^B}f_z$ [N]', fontsize=label_size)
+        ax = axes[6]
+        ax.plot(t_imu, data_imu_sel['ax'], linestyle='-', label='ax')
+        ax.plot(t_imu, data_imu_sel['ay'], linestyle='-.', label='ay')
+        ax.plot(t_imu, data_imu_sel['az'], linestyle=':', label='az')
+        ax.legend(framealpha=legend_alpha, loc='upper center', ncol=3)
+        ax.set_ylabel('$^Ba$ [m/s$^2$]', fontsize=label_size)
         ax.set_xlabel('Time [s]', fontsize=label_size)
-
-        # --------------------------------
-        ax = axes[5]
-        tz_ref = np.array(data_sen_wrench['tz'])
-        ax.plot(t_ref, tz_ref, label='ref', linestyle="--", color=color_ref)
-
-        ax.set_ylabel('${^B}\\tau_z$ [N$\\cdot$m]', fontsize=label_size)
+        # --------------- Gyro -----------------
+        ax = axes[7]
+        ax.plot(t_imu, data_imu_sel['wx'], linestyle='-', label='$\omega_x$')
+        ax.plot(t_imu, data_imu_sel['wy'], linestyle='-.', label='$\omega_y$')
+        ax.plot(t_imu, data_imu_sel['wz'], linestyle=':', label='$\omega_z$')
+        ax.legend(framealpha=legend_alpha, loc='upper center', ncol=3)
+        ax.set_ylabel('$^B\omega$ [rad/s]', fontsize=label_size)
         ax.set_xlabel('Time [s]', fontsize=label_size)
 
         # --------------------------------
