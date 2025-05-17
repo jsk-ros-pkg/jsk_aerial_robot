@@ -3,9 +3,7 @@ import numpy as np
 import scienceplots
 import matplotlib.pyplot as plt
 import argparse
-
-from matplotlib.lines import lineStyles
-
+from scipy.spatial.transform import Rotation as R
 legend_alpha = 0.5
 
 
@@ -30,13 +28,6 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
 
     rmse_x = np.sqrt(np.mean(error ** 2))
     return rmse_x
-
-
-def quat2euler(qw, qx, qy, qz):
-    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx ** 2 + qy ** 2))
-    pitch = np.arcsin(2 * (qw * qy - qz * qx))
-    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy ** 2 + qz ** 2))
-    return roll, pitch, yaw
 
 
 def main(fly_file_path, sensor_file_path, plot_type):
@@ -73,16 +64,16 @@ def main(fly_file_path, sensor_file_path, plot_type):
     data_imu.columns = ['t', 'ax', 'ay', 'az', 'wx', 'wy', 'wz']
 
     # # ======= orientation =========
-    # data_qwxyz = fly_data[
-    #     ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w', '/beetle1/uav/cog/odom/pose/pose/orientation/x',
-    #      '/beetle1/uav/cog/odom/pose/pose/orientation/y', '/beetle1/uav/cog/odom/pose/pose/orientation/z']]
-    #
-    # data_qwxyz = data_qwxyz.dropna()
-    # data_qwxyz.columns = ['__time', 'qw', 'qx', 'qy', 'qz']
+    data_qwxyz = fly_data[
+        ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w', '/beetle1/uav/cog/odom/pose/pose/orientation/x',
+         '/beetle1/uav/cog/odom/pose/pose/orientation/y', '/beetle1/uav/cog/odom/pose/pose/orientation/z']]
+    data_qwxyz = data_qwxyz.dropna()
+    data_qwxyz.columns = ['__time', 'qw', 'qx', 'qy', 'qz']
 
     # ======= preprocessing =========
     t_ref = np.array(data_sen_wrench['t']) - data_sen_wrench['t'].iloc[0]
     time_duration = data_sen_wrench['t'].iloc[-1] - data_sen_wrench['t'].iloc[0]
+    # print(data_sen_wrench.shape)  # (5260, 7)
 
     t_real_start = 1  # s
     t_real_end = t_real_start + time_duration
@@ -93,6 +84,33 @@ def main(fly_file_path, sensor_file_path, plot_type):
     data_imu_sel = data_imu[(data_imu['t'] >= t_real_start + data_imu['t'].iloc[0]) & (
             data_imu['t'] <= data_imu['t'].iloc[0] + t_real_end)]
     t_imu = np.array(data_imu_sel['t']) - data_imu_sel['t'].iloc[0]
+
+    data_qwxyz_sel = data_qwxyz[(data_qwxyz['__time'] >= t_real_start + data_qwxyz['__time'].iloc[0]) & (
+            data_qwxyz['__time'] <= data_qwxyz['__time'].iloc[0] + t_real_end)]
+    # print(data_qwxyz_sel.shape)  # (5865, 5)
+
+    # for all data in data_sen_wrench, use data_qwxyz_sel to do coordinate transform. create a new data_sen_wrench_body
+    data_sen_wrench_body = data_sen_wrench.copy()
+    qx = data_qwxyz_sel['qx'].to_numpy()
+    qy = data_qwxyz_sel['qy'].to_numpy()
+    qz = data_qwxyz_sel['qz'].to_numpy()
+    qw = data_qwxyz_sel['qw'].to_numpy()
+    for i in range(len(data_sen_wrench)):
+        rot = R.from_quat([qx[i], qy[i], qz[i], qw[i]])
+        # transform wrench from world frame to body frame
+        force_body = rot.inv().apply([data_sen_wrench['fx'].iloc[i], data_sen_wrench['fy'].iloc[i],
+                                      data_sen_wrench['fz'].iloc[i]])
+        torque_body = rot.inv().apply([data_sen_wrench['tx'].iloc[i], data_sen_wrench['ty'].iloc[i],
+                                        data_sen_wrench['tz'].iloc[i]])
+
+        # make the final coordinate transform. This is the conversion from sensor frame to world frame, but
+        # I make it here by my observation. TODO: the torque seems to be correct, but the force is not. I need to check.
+        data_sen_wrench_body['fx'].iloc[i] = force_body[2]
+        data_sen_wrench_body['fy'].iloc[i] = force_body[1]
+        data_sen_wrench_body['fz'].iloc[i] = -force_body[0]
+        data_sen_wrench_body['tx'].iloc[i] = torque_body[2]
+        data_sen_wrench_body['ty'].iloc[i] = torque_body[1]
+        data_sen_wrench_body['tz'].iloc[i] = -torque_body[0]
 
     # ======= plotting =========
     if plot_type == 0:
@@ -118,7 +136,7 @@ def main(fly_file_path, sensor_file_path, plot_type):
         for i, (key, ylabel) in enumerate(zip(keys, ylabels)):
             ax = axes[i]
             # plot ref and real
-            ax.plot(t_ref, data_sen_wrench[key], linestyle='--', label='ref', color=color_ref)
+            ax.plot(t_ref, data_sen_wrench_body[key], linestyle='--', label='ref', color=color_ref)
             ax.plot(t_real, data_est_wrench_sel[key], linestyle='-', label='real', color=color_real)
 
             # only the first subplot gets a legend
