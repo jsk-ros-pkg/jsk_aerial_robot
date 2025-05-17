@@ -4,6 +4,7 @@ import scienceplots
 import matplotlib.pyplot as plt
 import argparse
 from scipy.spatial.transform import Rotation as R
+
 legend_alpha = 0.5
 
 
@@ -101,16 +102,25 @@ def main(fly_file_path, sensor_file_path, plot_type):
         force_body = rot.inv().apply([data_sen_wrench['fx'].iloc[i], data_sen_wrench['fy'].iloc[i],
                                       data_sen_wrench['fz'].iloc[i]])
         torque_body = rot.inv().apply([data_sen_wrench['tx'].iloc[i], data_sen_wrench['ty'].iloc[i],
-                                        data_sen_wrench['tz'].iloc[i]])
+                                       data_sen_wrench['tz'].iloc[i]])
 
         # make the final coordinate transform. This is the conversion from sensor frame to world frame, but
         # I make it here by my observation. TODO: the torque seems to be correct, but the force is not. I need to check.
-        data_sen_wrench_body['fx'].iloc[i] = force_body[2]
-        data_sen_wrench_body['fy'].iloc[i] = force_body[1]
+        data_sen_wrench_body['fx'].iloc[i] = -force_body[2]
+        data_sen_wrench_body['fy'].iloc[i] = -force_body[1]
         data_sen_wrench_body['fz'].iloc[i] = -force_body[0]
         data_sen_wrench_body['tx'].iloc[i] = torque_body[2]
         data_sen_wrench_body['ty'].iloc[i] = torque_body[1]
         data_sen_wrench_body['tz'].iloc[i] = -torque_body[0]
+
+    # filter data_sen_wrench_body to get data_est_wrench_body_filtered
+    data_est_wrench_body_filtered = data_sen_wrench_body.copy()
+    data_est_wrench_body_filtered['fx'] = data_est_wrench_body_filtered['fx'].rolling(window=10).mean()
+    data_est_wrench_body_filtered['fy'] = data_est_wrench_body_filtered['fy'].rolling(window=10).mean()
+    data_est_wrench_body_filtered['fz'] = data_est_wrench_body_filtered['fz'].rolling(window=10).mean()
+    data_est_wrench_body_filtered['tx'] = data_est_wrench_body_filtered['tx'].rolling(window=10).mean()
+    data_est_wrench_body_filtered['ty'] = data_est_wrench_body_filtered['ty'].rolling(window=10).mean()
+    data_est_wrench_body_filtered['tz'] = data_est_wrench_body_filtered['tz'].rolling(window=10).mean()
 
     # ======= plotting =========
     if plot_type == 0:
@@ -136,12 +146,14 @@ def main(fly_file_path, sensor_file_path, plot_type):
         for i, (key, ylabel) in enumerate(zip(keys, ylabels)):
             ax = axes[i]
             # plot ref and real
-            ax.plot(t_ref, data_sen_wrench_body[key], linestyle='--', label='ref', color=color_ref)
-            ax.plot(t_real, data_est_wrench_sel[key], linestyle='-', label='real', color=color_real)
+            ax.plot(t_ref, data_sen_wrench_body[key], linestyle='--', label='gt', color=color_ref, alpha=0.3)
+            ax.plot(t_ref, data_est_wrench_body_filtered[key], linestyle='-', label='gt filtered', color=color_ref)
+
+            ax.plot(t_real, data_est_wrench_sel[key], linestyle='-', label='estimation', color=color_real)
 
             # only the first subplot gets a legend
-            if i == 0:
-                ax.legend(framealpha=legend_alpha)
+            if i == 4:
+                ax.legend(framealpha=legend_alpha, loc='lower right')
 
             ax.set_ylabel(ylabel, fontsize=label_size)
 
@@ -155,7 +167,7 @@ def main(fly_file_path, sensor_file_path, plot_type):
         ax.plot(t_imu, data_imu_sel['ax'], linestyle='-', label='ax')
         ax.plot(t_imu, data_imu_sel['ay'], linestyle='-.', label='ay')
         ax.plot(t_imu, data_imu_sel['az'], linestyle=':', label='az')
-        ax.legend(framealpha=legend_alpha, loc='upper center', ncol=3)
+        ax.legend(framealpha=legend_alpha, loc='center', ncol=3)
         ax.set_ylabel('$^B\hat{a}$ [m/s$^2$]', fontsize=label_size)
         ax.set_xlabel('Time $t$ [s]', fontsize=label_size)
         # --------------- Gyro -----------------
