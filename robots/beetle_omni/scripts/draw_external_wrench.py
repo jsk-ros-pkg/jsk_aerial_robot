@@ -58,6 +58,14 @@ def main(fly_file_path, sensor_file_path, plot_type):
     data_est_wrench = data_est_wrench.dropna()
     data_est_wrench.columns = ['t', 'fx', 'fy', 'fz', 'tx', 'ty', 'tz']
 
+    # offset: according to the hovering data, offset data are fx = 0.2616N, fy = 0.1609N, fz = -2.1902N,
+    # tx = -0.1189Nm, ty = 0.1301Nm, tz = 0.1432Nm
+    fly_file_name = fly_file_path.split('/')[-1]
+    offset = np.zeros(7)
+    if '20250123' in fly_file_name:
+        offset[1:] = np.array([0.2616, 0.1609, -2.1902, -0.1189, 0.1301, 0.1432])
+    data_est_wrench = data_est_wrench - offset
+
     data_imu = fly_data[
         ['__time', '/beetle1/imu/acc_data[0]', '/beetle1/imu/acc_data[1]', '/beetle1/imu/acc_data[2]',
          '/beetle1/imu/gyro_data[0]', '/beetle1/imu/gyro_data[1]', '/beetle1/imu/gyro_data[2]']]
@@ -102,9 +110,9 @@ def main(fly_file_path, sensor_file_path, plot_type):
         # --------------- Wrench -----------------
         keys = ['fx', 'tx', 'fy', 'ty', 'fz', 'tz']
         ylabels = [
-            r'${}^Bf_x$ [N]', r'${}^B\tau_x$ [N$\cdot$m]',
-            r'${}^Bf_y$ [N]', r'${}^B\tau_y$ [N$\cdot$m]',
-            r'${}^Bf_z$ [N]', r'${}^B\tau_z$ [N$\cdot$m]',
+            r'${}^B\hat{f}_x$ [N]', r'${}^B\hat{\tau}_x$ [N$\cdot$m]',
+            r'${}^B\hat{f}_y$ [N]', r'${}^B\hat{\tau}_y$ [N$\cdot$m]',
+            r'${}^B\hat{f}_z$ [N]', r'${}^B\hat{\tau}_z$ [N$\cdot$m]',
         ]
 
         for i, (key, ylabel) in enumerate(zip(keys, ylabels)):
@@ -119,9 +127,9 @@ def main(fly_file_path, sensor_file_path, plot_type):
 
             ax.set_ylabel(ylabel, fontsize=label_size)
 
-            # bottom‐row plots (i = 4,5) get the shared x‐label
-            if i >= 4:
-                ax.set_xlabel('Time [s]', fontsize=label_size)
+            # # bottom‐row plots (i = 4,5) get the shared x‐label
+            # if i >= 4:
+            #     ax.set_xlabel('Time [s]', fontsize=label_size)
         # ---------------- Imu ----------------
         gravity_const = 9.798  # m/s^2 Tokyo  # TODO: need to do coordinate transform
 
@@ -130,16 +138,16 @@ def main(fly_file_path, sensor_file_path, plot_type):
         ax.plot(t_imu, data_imu_sel['ay'], linestyle='-.', label='ay')
         ax.plot(t_imu, data_imu_sel['az'], linestyle=':', label='az')
         ax.legend(framealpha=legend_alpha, loc='upper center', ncol=3)
-        ax.set_ylabel('$^Ba$ [m/s$^2$]', fontsize=label_size)
-        ax.set_xlabel('Time [s]', fontsize=label_size)
+        ax.set_ylabel('$^B\hat{a}$ [m/s$^2$]', fontsize=label_size)
+        ax.set_xlabel('Time $t$ [s]', fontsize=label_size)
         # --------------- Gyro -----------------
         ax = axes[7]
         ax.plot(t_imu, data_imu_sel['wx'], linestyle='-', label='$\omega_x$')
         ax.plot(t_imu, data_imu_sel['wy'], linestyle='-.', label='$\omega_y$')
         ax.plot(t_imu, data_imu_sel['wz'], linestyle=':', label='$\omega_z$')
         ax.legend(framealpha=legend_alpha, loc='upper center', ncol=3)
-        ax.set_ylabel('$^B\omega$ [rad/s]', fontsize=label_size)
-        ax.set_xlabel('Time [s]', fontsize=label_size)
+        ax.set_ylabel('$^B\hat{\omega}$ [rad/s]', fontsize=label_size)
+        ax.set_xlabel('Time $t$ [s]', fontsize=label_size)
 
         # --------------------------------
         plt.tight_layout()
