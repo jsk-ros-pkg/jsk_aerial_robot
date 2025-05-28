@@ -31,7 +31,9 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
         /* rx */
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
-  HAL_HalfDuplex_EnableReceiver(huart_);
+  #if DYNAMIXEL_BOARDLESS_CONTROL
+    HAL_HalfDuplex_EnableReceiver(huart_);
+  #endif
   HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
   rd_ptr_ = 0;
   memset(rx_buf_, 0, sizeof(rx_buf_));
@@ -557,8 +559,8 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
 
   /* send data */
 
-#ifdef DYNAMIXLE_BOARDLESS_CONTROL
-  HAL_HalfDuplex_EnableTransmitter(huart_);
+#if DYNAMIXEL_BOARDLESS_CONTROL
+  HAL_HalfDuplex_EnDYNAMIXEL_BOARDLESS_CONTROLableTransmitter(huart_);
   uint8_t ret;
   ret = HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
   if(ret == HAL_OK)
