@@ -10,7 +10,7 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   model_ = std::make_shared<pinocchio::Model>();
 
   // Initialize model with URDF file
-  std::string robot_model_string = getRobotModelXml("robot_description");
+  std::string robot_model_string = getRobotModelXml("pinocchio_robot_description");
   if (is_floating_base_)
     pinocchio::urdf::buildModelFromXML(robot_model_string, pinocchio::JointModelFreeFlyer(), *model_);
   else
