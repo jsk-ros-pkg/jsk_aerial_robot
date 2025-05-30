@@ -560,7 +560,7 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   /* send data */
 
 #if DYNAMIXEL_BOARDLESS_CONTROL
-  HAL_HalfDuplex_EnDYNAMIXEL_BOARDLESS_CONTROLableTransmitter(huart_);
+  HAL_HalfDuplex_EnableTransmitter(huart_);
   uint8_t ret;
   ret = HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
   if(ret == HAL_OK)
