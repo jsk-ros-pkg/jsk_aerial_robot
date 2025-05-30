@@ -5,7 +5,7 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))    # Add parent directory to path to allow relative imports
 from bi_reference_generator import BINMPCReferenceGenerator
 from rh_base import RecedingHorizonBase
 

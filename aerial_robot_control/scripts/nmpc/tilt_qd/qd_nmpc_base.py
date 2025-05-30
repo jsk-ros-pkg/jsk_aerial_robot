@@ -81,20 +81,20 @@ class QDNMPCBase(RecedingHorizonBase):
         # Standard state-space (Note: store in self to access for cost function in child controller class)
         self.x = ca.SX.sym("x")  # Position
         self.y = ca.SX.sym("y")
-        self.z = ca.SX.sym("z");
+        self.z = ca.SX.sym("z")
         self.p = ca.vertcat(self.x, self.y, self.z)
         self.vx = ca.SX.sym("vx")  # Linear velocity
         self.vy = ca.SX.sym("vy")
-        self.vz = ca.SX.sym("vz");
+        self.vz = ca.SX.sym("vz")
         self.v = ca.vertcat(self.vx, self.vy, self.vz)
         self.qw = ca.SX.sym("qw")  # Quaternions
         self.qx = ca.SX.sym("qx")
         self.qy = ca.SX.sym("qy")
-        self.qz = ca.SX.sym("qz");
+        self.qz = ca.SX.sym("qz")
         self.q = ca.vertcat(self.qw, self.qx, self.qy, self.qz)
         self.wx = ca.SX.sym("wx")  # Angular velocity
         self.wy = ca.SX.sym("wy")
-        self.wz = ca.SX.sym("wz");
+        self.wz = ca.SX.sym("wz")
         self.w = ca.vertcat(self.wx, self.wy, self.wz)
         states = ca.vertcat(self.p, self.v, self.q, self.w)
 
