@@ -7,7 +7,7 @@ import casadi as cs
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, store_recording_data, write_recording_data
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import euclidean_dist
-from utils.plot_utils import draw_drone_simulation, initialize_drone_plotter
+from utils.visualization_utils import draw_drone_simulation, initialize_drone_plotter
 from config.configuration_parameters import SimpleSimConfig
 from neural_controller import NeuralNMPC
 
@@ -71,7 +71,8 @@ def main(model_options, recording_options, sim_options, parameters):
     recording = recording_options["recording"]
     if recording:
         state_dim = state_curr.shape[0]
-        rec_dict, rec_file = get_recording_dict_and_file(recording_options, state_dim, sim_options) # TODO: create empty or get preloaded dict and filepath to store
+        # TODO: create empty or get preloaded dict and filepath to store
+        rec_dict, rec_file = get_recording_dict_and_file(recording_options, state_dim, sim_options)
 
         if parameters["real_time_plot"]:
             parameters["real_time_plot"] = False
@@ -81,7 +82,7 @@ def main(model_options, recording_options, sim_options, parameters):
     # Real time plot params TODO set elsewhere
     plot_sim_traj = False
     quad_trajectory = np.array(state_curr).reshape(1, -1)
-    """
+    
     # Generate necessary art pack for real time plot
     if parameters["real_time_plot"]:
         real_time_art_pack = initialize_drone_plotter(n_props=n_forward_props, quad_rad=my_quad.x_f,
@@ -112,7 +113,23 @@ def main(model_options, recording_options, sim_options, parameters):
         # TODO sim_nmpc.py has a Reference, here are targets. Decide which makes more sense
         # Reference in Input via allocation matrix - makes sense if we don't know model in the first place?
         # Alternative is setting yref in solver, i.e. the targets directly.
-        reference_generator.compute_trajectory(target_xyz=current_target[:3], target_rpy=current_target[3:])
+        # === TODO implement this idea from ml-casadi repo? ===
+        #  Transform velocity to body frame
+        v_b = v_dot_q(ref[7:10], quaternion_inverse(ref[3:7]))
+        # =====================================================
+        xr, ur = reference_generator.compute_trajectory(target_xyz=current_target[:3], target_rpy=current_target[3:])
+
+        # =====================================================
+        # TODO this was set by Jinjie (together with parameters) in most inner loop but by RTNMPC authors in outer loop
+        # In rtnmpc they just set the same ref for all state
+        # Jinjie updates ref in each time step
+        for j in range(rtnmpc.N):
+            yr = np.concatenate((xr[j, :], ur[j, :]))
+            rtnmpc.acados_ocp_solver.set(j, "yref", yr)
+
+        yr = xr[ocp_solver.N, :]
+        rtnmpc.acados_ocp_solver.set(rtnmpc.N, "yref", yr)
+        # =====================================================
 
         # Track targets in solver
         rtnmpc.track(targets) # TODO implement
@@ -355,3 +372,4 @@ if __name__ == '__main__':
     }
 
     main(**run_options)
+    """
