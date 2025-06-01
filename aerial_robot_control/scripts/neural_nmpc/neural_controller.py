@@ -259,7 +259,7 @@ class NeuralNMPC():
         
 
         # CHECK SOLVER OPTIONS
-        self._ocp_solver = extended_solver
+        self.acados_ocp_solver = extended_solver
 
     def track(self, target):
         """

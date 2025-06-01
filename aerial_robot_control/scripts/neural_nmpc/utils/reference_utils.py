@@ -2,9 +2,9 @@ import numpy as np
 
 def sample_random_target(current_pos, world_radius, aggressive=True):
     """
-    Creates a new target point to reach.
+    Generates a target pose for the robot to reach.
 
-    :param current_pos: Current position of the robot. Only used if 'aggressive' is set to True.
+    :param current_pos: Current 3D position of the robot. Only used if 'aggressive' is set to True.
     :param world_radius: Radius in meters of the area in which target points are sampled from.
     :param aggressive: Flag to enable aggressive target points, which are sampled far from the current robot position.
                        If set to False, target points are sampled uniformly in the world.
