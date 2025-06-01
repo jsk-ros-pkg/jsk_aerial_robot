@@ -164,18 +164,20 @@ if __name__ == "__main__":
         result_map = np.zeros((Nyaw, Npitch))
         thrust_limit = 6 * THRUST_MAX
 
-        # The result should be the same around the yaw axis
         for j, pitch_deg in enumerate(pitch_list):
-            max_f, _ = find_max_wrench_for_orientation_world(
-                alloc_mat, fg_w,
-                roll_deg=0.0,
-                pitch_deg=pitch_deg,
-                yaw_deg=0.0,
-                search_min=0.0,
-                search_max=thrust_limit,
-                mode="force"
-            )
-            result_map[:, j] = max_f
+            max_f_list = []
+            for i, yaw_deg in enumerate(yaw_list):
+                max_f, _ = find_max_wrench_for_orientation_world(
+                    alloc_mat, fg_w,
+                    roll_deg=0.0,
+                    pitch_deg=pitch_deg,
+                    yaw_deg=0.0,
+                    search_min=0.0,
+                    search_max=thrust_limit,
+                    mode="force"
+                )
+                max_f_list.append(max_f)
+            result_map[:, j] = min(max_f_list)  # The result should be the same around the yaw axis
             print(f"[World Force] Completed pitch = {pitch_deg:.1f}°")
 
         if save_to_npz:
@@ -249,16 +251,19 @@ if __name__ == "__main__":
         torque_limit = 6 * THRUST_MAX * np.linalg.norm(p1_b[0:2])
 
         for j, pitch_deg in enumerate(pitch_list):
-            max_tau, _ = find_max_wrench_for_orientation_world(
-                alloc_mat, fg_w,
-                roll_deg=0.0,
-                pitch_deg=pitch_deg,
-                yaw_deg=0.0,
-                search_min=0.0,
-                search_max=torque_limit,
-                mode="torque"
-            )
-            result_map[:, j] = max_tau
+            max_tau_list = []
+            for i, yaw_deg in enumerate(yaw_list):
+                max_tau, _ = find_max_wrench_for_orientation_world(
+                    alloc_mat, fg_w,
+                    roll_deg=0.0,
+                    pitch_deg=pitch_deg,
+                    yaw_deg=0.0,
+                    search_min=0.0,
+                    search_max=torque_limit,
+                    mode="torque"
+                )
+                max_tau_list.append(max_tau)
+            result_map[:, j] = min(max_tau_list)  # The result should be the same around the yaw axis
             print(f"[World Torque] Completed pitch = {pitch_deg:.1f}°")
 
         if save_to_npz:
