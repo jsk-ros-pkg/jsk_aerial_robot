@@ -9,11 +9,11 @@ from tilt_qd.phys_param_beetle_omni import *
 
 
 class MHEWrenchEstIMUAct(QDMHEBase):
-    def __init__(self):
+    def __init__(self, overwrite: bool = False):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEImuActuator.yaml")
 
-        super(MHEWrenchEstIMUAct, self).__init__()
+        super().__init__(overwrite)
 
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -242,7 +242,8 @@ class MHEWrenchEstIMUAct(QDMHEBase):
 
 
 if __name__ == "__main__":
-    mhe = MHEWrenchEstIMUAct()
+    overwrite = True
+    mhe = MHEWrenchEstIMUAct(overwrite)
 
     acados_ocp_solver = mhe.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

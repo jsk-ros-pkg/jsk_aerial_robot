@@ -150,7 +150,8 @@ class NMPCTiltQdServoDiff(QDNMPCBase):
     
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltQdServoDiff()
+    overwrite = True
+    nmpc = NMPCTiltQdServoDiff(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

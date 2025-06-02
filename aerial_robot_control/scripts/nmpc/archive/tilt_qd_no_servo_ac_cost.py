@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
+import os, sys
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
+from tilt_qd.qd_nmpc_base import QDNMPCBase
 import archive.phys_param_beetle_art as phys_art
 
 
@@ -172,7 +175,7 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
 
 
 if __name__ == "__main__":
-    overwrite = False
+    overwrite = True
     nmpc = NMPCTiltQdNoServoAcCost(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
