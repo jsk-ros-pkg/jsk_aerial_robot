@@ -23,6 +23,9 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* init cost weight parameters */
   initNMPCCostW();
 
+  /* init constraints */
+  initNMPCConstraints();
+
   /* init dynamic reconfigure */
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -52,6 +55,7 @@ void nmpc::TiltMtServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltMtServoNMPC::callbackSetRPY, this);
   sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltMtServoNMPC::callbackSetRefXU, this);
   sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltMtServoNMPC::callbackSetRefTraj, this);
+  sub_set_fixed_rotor_ = nh_.subscribe("set_fixed_rotor", 5, &TiltMtServoNMPC::callbackSetFixedRotor, this);
 
   /* init some values */
   setControlMode();
@@ -133,14 +137,17 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(nh_, "physical");
+  ros::NodeHandle alloc_nh(control_nh, "alloc");
+
+  getParam<int>(alloc_nh, "type", alloc_type_, 0);
+  getParam<double>(alloc_nh, "ft_thresh", ft_thresh_, 0.5);
+  assert(ft_thresh_ > 0.0);  // used to calculate angle in singularity pose
 
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
   getParam<double>(physical_nh, "t_rotor", t_rotor_, 0.01);
 
-  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
-  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "T_samp", t_nmpc_samp_, 0.025);
   getParam<double>(nmpc_nh, "T_step", t_nmpc_step_, 0.1);
   getParam<double>(nmpc_nh, "T_horizon", t_nmpc_horizon_, 2.0);
@@ -193,6 +200,107 @@ void nmpc::TiltMtServoNMPC::initNMPCCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rt, false);
   for (int i = mpc_solver_ptr_->NX_ + motor_num_; i < mpc_solver_ptr_->NX_ + motor_num_ + joint_num_; ++i)
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
+}
+
+void nmpc::TiltMtServoNMPC::initNMPCConstraints()
+{
+  ros::NodeHandle control_nh(nh_, "controller");
+  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+
+  double body_rate_max, body_rate_min, vel_max, vel_min;
+  getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
+  getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
+  getParam<double>(nmpc_nh, "v_max", vel_max, 1.0);
+  getParam<double>(nmpc_nh, "v_min", vel_min, -1.0);
+  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
+  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
+  getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
+  getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
+
+  // lbx and ubx
+  std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
+  std::vector<int> idxbx_desired = { 3, 4, 5, 10, 11, 12 };
+  idxbx_desired.resize(6 + joint_num_);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    idxbx_desired[6 + i] = 13 + i;
+  }
+  if (idxbx.size() != idxbx_desired.size() || !std::equal(idxbx.begin(), idxbx.end(), idxbx_desired.begin()))
+  {
+    ROS_ERROR("idxbx is not equal to idxbx_desired, we cannot set constraints lbx and ubx!");
+  }
+
+  std::vector<double> lbx = { vel_min, vel_min, vel_min, body_rate_min, body_rate_min, body_rate_min };
+  std::vector<double> ubx = { vel_max, vel_max, vel_max, body_rate_max, body_rate_max, body_rate_max };
+  lbx.resize(6 + joint_num_);
+  ubx.resize(6 + joint_num_);
+  for (int i = 0; i < joint_num_; i++)
+  {
+    lbx[6 + i] = servo_angle_min_;
+    ubx[6 + i] = servo_angle_max_;
+  }
+  mpc_solver_ptr_->setConstraintsLbx(lbx);
+  mpc_solver_ptr_->setConstraintsUbx(ubx);
+
+  // lbxe and ubxe
+  std::vector<int> idxbxe = mpc_solver_ptr_->getConstraintsIdxbxe();
+  std::vector<int> idxbxe_desired = idxbx_desired;
+  if (idxbxe.size() != idxbxe_desired.size() || !std::equal(idxbxe.begin(), idxbxe.end(), idxbxe_desired.begin()))
+  {
+    ROS_ERROR("idxbx_end is not equal to idxbx_end_desired, we cannot set constraints lbxe and ubxe!");
+  }
+  mpc_solver_ptr_->setConstraintsLbxe(lbx);
+  mpc_solver_ptr_->setConstraintsUbxe(ubx);
+
+  // lbu and ubu
+  std::vector<int> idxbu = mpc_solver_ptr_->getConstraintsIdxbu();
+  std::vector<int> idxbu_desired(motor_num_ + joint_num_);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    idxbu_desired[i] = i;
+  }
+  for (int i = 0; i < joint_num_; i++)
+  {
+    idxbu_desired[motor_num_ + i] = motor_num_ + i;
+  }
+  if (idxbu.size() != idxbu_desired.size() || !std::equal(idxbu.begin(), idxbu.end(), idxbu_desired.begin()))
+  {
+    ROS_ERROR("idxbu is not equal to idxbu_desired, we cannot set constraints lbu and ubu!");
+  }
+
+  std::vector<double> lbu(motor_num_ + joint_num_, 0.0);
+  std::vector<double> ubu(motor_num_ + joint_num_, 0.0);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lbu[i] = thrust_ctrl_min_;
+    ubu[i] = thrust_ctrl_max_;
+  }
+  for (int i = 0; i < joint_num_; i++)
+  {
+    lbu[motor_num_ + i] = servo_angle_min_;
+    ubu[motor_num_ + i] = servo_angle_max_;
+  }
+  mpc_solver_ptr_->setConstraintsLbu(lbu);
+  mpc_solver_ptr_->setConstraintsUbu(ubu);
+}
+
+void nmpc::TiltMtServoNMPC::setControlMode()
+{
+  bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
+  if (!res)
+  {
+    ROS_ERROR("cannot find service named set_control_mode");
+  }
+  ros::Duration(2.0).sleep();
+  spinal::SetControlMode set_control_mode_srv;
+  set_control_mode_srv.request.is_attitude = is_attitude_ctrl_;
+  set_control_mode_srv.request.is_body_rate = is_body_rate_ctrl_;
+  while (!srv_set_control_mode_.call(set_control_mode_srv))
+    ROS_WARN_THROTTLE(1,
+                      "Waiting for set_control_mode service.... If you always see this message, the robot cannot fly.");
+
+  ROS_INFO("Set control mode: attitude = %d and body rate = %d", set_control_mode_srv.request.is_attitude,
+           set_control_mode_srv.request.is_body_rate);
 }
 
 void nmpc::TiltMtServoNMPC::initAllocMat()
@@ -310,25 +418,6 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   return phys_p;
 }
 
-void nmpc::TiltMtServoNMPC::setControlMode()
-{
-  bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
-  if (!res)
-  {
-    ROS_ERROR("cannot find service named set_control_mode");
-  }
-  ros::Duration(2.0).sleep();
-  spinal::SetControlMode set_control_mode_srv;
-  set_control_mode_srv.request.is_attitude = is_attitude_ctrl_;
-  set_control_mode_srv.request.is_body_rate = is_body_rate_ctrl_;
-  while (!srv_set_control_mode_.call(set_control_mode_srv))
-    ROS_WARN_THROTTLE(1,
-                      "Waiting for set_control_mode service.... If you always see this message, the robot cannot fly.");
-
-  ROS_INFO("Set control mode: attitude = %d and body rate = %d", set_control_mode_srv.request.is_attitude,
-           set_control_mode_srv.request.is_body_rate);
-}
-
 void nmpc::TiltMtServoNMPC::controlCore()
 {
   prepareNMPCRef();
@@ -367,15 +456,24 @@ void nmpc::TiltMtServoNMPC::controlCore()
   }
 }
 
+void nmpc::TiltMtServoNMPC::sendCmd()
+{
+  /* publish */
+  if (motor_num_ > 0)
+    pub_flight_cmd_.publish(flight_cmd_);
+  if (joint_num_ > 0)
+    pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
+}
+
 void nmpc::TiltMtServoNMPC::prepareNMPCRef()
 {
   /* if in trajectory tracking mode, the ref is set by callbackSetRefXU.
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
   if (is_traj_tracking_)
   {
-    if (ros::Time::now() - receive_time_ > ros::Duration(0.5))
+    if (ros::Time::now() - x_u_ref_.header.stamp > ros::Duration(0.5))
     {
-      ROS_INFO("No msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
+      ROS_INFO("No traj msg for 0.5s. Trajectory tracking mode is off! Return to the hovering!");
       is_traj_tracking_ = false;
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
@@ -393,9 +491,9 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
     }
-    else if (ros::Time::now() - receive_time_ > ros::Duration(0.1))
+    else if (ros::Time::now() - x_u_ref_.header.stamp > ros::Duration(0.1))
     {
-      ROS_INFO_THROTTLE(1, "No msg for 0.1s. Try to track current pose.");
+      ROS_INFO_THROTTLE(1, "No traj msg for 0.1s. Try to track current pose.");
       tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
       tf::Vector3 current_rpy = estimator_->getEuler(Frame::COG, estimate_mode_);
 
@@ -411,6 +509,8 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
       navigator_->setTargetOmegaX(0.0);
       navigator_->setTargetOmegaY(0.0);
       navigator_->setTargetOmegaZ(0.0);
+
+      last_traj_msg_.points.clear();  // every time end the traj tracking, clear the traj msg
     }
 
     return;
@@ -445,13 +545,217 @@ void nmpc::TiltMtServoNMPC::prepareNMPCParams()
   }
 }
 
-void nmpc::TiltMtServoNMPC::sendCmd()
+/**
+ * @brief calXrUrRef: calculate the reference state and control input
+ * @param ref_pos_i
+ * @param ref_vel_i
+ * @param ref_acc_i - the acceleration is in the inertial frame, no including the gravity
+ * @param ref_quat_ib
+ * @param ref_omega_b
+ * @param ref_ang_acc_b
+ * @param horizon_idx - set -1 for adding the target point to the end of the reference trajectory, 0 ~ NN for adding
+ * the target point to the horizon_idx interval
+ */
+void nmpc::TiltMtServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                       const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
+                                       const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
+                                       const int& horizon_idx)
 {
-  /* publish */
-  if (motor_num_ > 0)
-    pub_flight_cmd_.publish(flight_cmd_);
-  if (joint_num_ > 0)
-    pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
+  int& NX = mpc_solver_ptr_->NX_;
+  int& NU = mpc_solver_ptr_->NU_;
+  int& NN = mpc_solver_ptr_->NN_;
+
+  /* calculate the reference wrench in the body frame */
+  Eigen::VectorXd acc_with_g_i(3);
+  acc_with_g_i(0) = ref_acc_i.x();
+  acc_with_g_i(1) = ref_acc_i.y();
+  acc_with_g_i(2) = ref_acc_i.z() + gravity_const_;  // add gravity
+
+  // coordinate transformation
+  tf::Quaternion q_bi = ref_quat_ib.inverse();
+  Eigen::Matrix3d rot_bi;
+  tf::matrixTFToEigen(tf::Transform(q_bi).getBasis(), rot_bi);
+  Eigen::VectorXd ref_acc_b = rot_bi * acc_with_g_i;
+
+  Eigen::VectorXd ref_wrench_b(6);
+  ref_wrench_b(0) = ref_acc_b(0) * mass_;
+  ref_wrench_b(1) = ref_acc_b(1) * mass_;
+  ref_wrench_b(2) = ref_acc_b(2) * mass_;
+  ref_wrench_b(3) = ref_ang_acc_b.x() * inertia_.at(0);
+  ref_wrench_b(4) = ref_ang_acc_b.y() * inertia_.at(1);
+  ref_wrench_b(5) = ref_ang_acc_b.z() * inertia_.at(2);
+
+  /* calculate X U from ref, aka. control allocation */
+  std::vector<double> x(NX);
+  std::vector<double> u(NU);
+  allocateToXU(ref_pos_i, ref_vel_i, ref_quat_ib, ref_omega_b, ref_wrench_b, x, u);
+
+  /* set values */
+  if (horizon_idx == -1)
+  {
+    // Aim: gently add the target point to the end of the reference trajectory
+    // - x: NN + 1, u: NN
+    // - for 0 ~ NN-2 x and u, shift
+    // - copy x to x: NN-1 and NN, copy u to u: NN-1
+    for (int i = 0; i < NN - 1; i++)
+    {
+      // shift one step
+      std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
+                x_u_ref_.x.data.begin() + NX * i);
+      std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
+                x_u_ref_.u.data.begin() + NU * i);
+    }
+    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
+    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
+
+    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
+
+    return;
+  }
+
+  if (horizon_idx < 0 || horizon_idx > NN)
+  {
+    ROS_WARN("horizon_idx is out of range! CalXrUrRef failed!");
+    return;
+  }
+
+  std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * horizon_idx);
+  if (horizon_idx < NN)
+    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * horizon_idx);
+}
+
+void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                         const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
+                                         const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u)
+{
+  x.at(0) = ref_pos_i.x();
+  x.at(1) = ref_pos_i.y();
+  x.at(2) = ref_pos_i.z();
+  x.at(3) = ref_vel_i.x();
+  x.at(4) = ref_vel_i.y();
+  x.at(5) = ref_vel_i.z();
+  x.at(6) = ref_quat_ib.w();
+  x.at(7) = ref_quat_ib.x();
+  x.at(8) = ref_quat_ib.y();
+  x.at(9) = ref_quat_ib.z();
+  x.at(10) = ref_omega_b.x();
+  x.at(11) = ref_omega_b.y();
+  x.at(12) = ref_omega_b.z();
+
+  // ========= 0) if one rotor is fixed, do it and finish. ======
+  if (is_set_fix_rotor_)
+  {
+    if (ros::Time::now() - fix_rotor_msg_.header.stamp > ros::Duration(0.1))
+    {
+      ROS_INFO_THROTTLE(1, "No FixRotor msg for 0.1s. Recover to the normal allocation state.");
+      is_set_fix_rotor_ = false;
+    }
+
+    allocateToXUwOneFixedRotor(fix_rotor_msg_.rotor_id, fix_rotor_msg_.fix_ft, fix_rotor_msg_.fix_alpha, ref_wrench_b,
+                               x, u);
+    return;
+  }
+  // =============================================================
+
+  // 1) do one allocation
+  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
+  std::vector<double> ft_ref_vec(motor_num_);
+  std::vector<double> a_ref_vec(joint_num_);
+  // assert(motor_num_ == joint_num_);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    ft_ref_vec[i] = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
+    a_ref_vec[i] = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
+
+    u.at(i) = ft_ref_vec[i];
+    x.at(13 + i) = a_ref_vec[i];
+  }
+
+  if (alloc_type_ == 0)
+    return;
+
+  // 2) check if one rotor's thrust is less than threshold and flip backwards
+  std::vector<int> rotor_idx_vec;
+  for (int i = 0; i < motor_num_; i++)
+  {
+    if (ft_ref_vec[i] > ft_thresh_)
+      continue;
+
+    if (a_ref_vec[i] >= -M_PI_2 && a_ref_vec[i] <= M_PI_2)
+      continue;
+
+    rotor_idx_vec.push_back(i);
+  }
+
+  if (rotor_idx_vec.empty())
+    return;
+
+  if (rotor_idx_vec.size() > 1)
+  {
+    ROS_ERROR("More than one rotor is below threshold and flip backwards! Cannot allocate!");
+    return;
+  }
+
+  int rotor_idx = rotor_idx_vec.at(0);
+
+  // 3) if rotor_idx is not empty, maintain the thrust and modify the angle
+  double ft_stop_rotor = ft_ref_vec[rotor_idx];
+  double alpha_stop_rotor = M_PI_2 - acos(x_lambda(2 * rotor_idx) / ft_thresh_);
+
+  // 4) re-alloc
+  allocateToXUwOneFixedRotor(rotor_idx, ft_stop_rotor, alpha_stop_rotor, ref_wrench_b, x, u);
+}
+
+void nmpc::TiltMtServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha,
+                                                       const VectorXd& ref_wrench_b, vector<double>& x,
+                                                       vector<double>& u)
+{
+  double fix_ft_x = fix_ft * sin(fix_alpha);
+  double fix_ft_y = fix_ft * cos(fix_alpha);
+
+  // 1) construct tgt_wrench from z_from_rotor
+  Eigen::VectorXd z_from_rotor = Eigen::VectorXd::Zero(motor_num_ * 2);
+  z_from_rotor(2 * fix_rotor_idx) = fix_ft_x;
+  z_from_rotor(2 * fix_rotor_idx + 1) = fix_ft_y;
+  Eigen::VectorXd tgt_wrench_from_rotor = alloc_mat_ * z_from_rotor;
+
+  // 2) calculate alloc_mat with this rotor's contribution
+  Eigen::VectorXd tgt_wrench_modified = ref_wrench_b - tgt_wrench_from_rotor;
+
+  // 3) calculate the allocation matrix without this rotor, which is 6*6
+  if (fix_rotor_idx != rotor_idx_prev_)
+  {
+    Eigen::MatrixXd alloc_mat_del_rotor(alloc_mat_.rows(), alloc_mat_.cols() - 2);
+    int j = 0;
+    for (int k = 0; k < alloc_mat_.cols(); ++k)
+    {
+      if (k == 2 * fix_rotor_idx || k == 2 * fix_rotor_idx + 1)
+        continue;
+      alloc_mat_del_rotor.col(j++) = alloc_mat_.col(k);
+    }
+    alloc_mat_del_rotor_inv_ = alloc_mat_del_rotor.inverse();
+  }
+
+  // 4) reconstruct the z output
+  Eigen::VectorXd z_except_rotor = alloc_mat_del_rotor_inv_ * tgt_wrench_modified;
+
+  // 5) at the place of 2*fix_rotor_idx, insert 2 numbers to z_except_rotor
+  Eigen::VectorXd z_final(motor_num_ * 2);
+  z_final.head(2 * fix_rotor_idx) = z_except_rotor.head(2 * fix_rotor_idx);
+  z_final(2 * fix_rotor_idx) = fix_ft_x;
+  z_final(2 * fix_rotor_idx + 1) = fix_ft_y;
+  z_final.tail(z_except_rotor.size() - 2 * fix_rotor_idx) =
+      z_except_rotor.tail(z_except_rotor.size() - 2 * fix_rotor_idx);
+
+  // 6) reconstruct the thrust and servo angle
+  for (int i = 0; i < motor_num_; i++)
+  {
+    u.at(i) = sqrt(z_final(2 * i) * z_final(2 * i) + z_final(2 * i + 1) * z_final(2 * i + 1));
+    x.at(13 + i) = atan2(z_final(2 * i), z_final(2 * i + 1));
+  }
+
+  // if the fixed rotor is the same with previous one, no need to recalculate the allocation matrix.
+  rotor_idx_prev_ = fix_rotor_idx;
 }
 
 /**
@@ -541,7 +845,6 @@ void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUCons
 
   /* receive info */
   x_u_ref_ = *msg;
-  receive_time_ = ros::Time::now();
 
   /* set reference */
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
@@ -559,21 +862,70 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
     return;
   }
 
-  for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
+  /* For set-point regulation, if the traj planner sends the same traj, we can skip the calculation of allocation. */
+  // check if two trajectories are the same
+  int max_same_idx = 0;
+  if (!last_traj_msg_.points.empty())  // check if the last trajectory is empty
   {
-    const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
-    geometry_msgs::Vector3 pos = point.transforms[0].translation;
-    geometry_msgs::Vector3 vel = point.velocities[0].linear;
-    geometry_msgs::Vector3 acc = point.accelerations[0].linear;
-    geometry_msgs::Quaternion quat = point.transforms[0].rotation;
-    geometry_msgs::Vector3 omega = point.velocities[0].angular;
-    geometry_msgs::Vector3 ang_acc = point.accelerations[0].angular;
-    setXrUrRef(tf::Vector3(pos.x, pos.y, pos.z), tf::Vector3(vel.x, vel.y, vel.z), tf::Vector3(acc.x, acc.y, acc.z),
-               tf::Quaternion(quat.x, quat.y, quat.z, quat.w), tf::Vector3(omega.x, omega.y, omega.z),
-               tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
+    for (int i = 0; i < msg->points.size(); i++)  // only check the first NN points
+    {
+      if (isMulDOFJointTrajPtEqual(msg->points[i], last_traj_msg_.points[i], false))  // time is not equal
+        max_same_idx = i;
+      else
+        break;
+    }
   }
 
+  if (max_same_idx != msg->points.size() - 1 || is_set_fix_rotor_ == true)
+  {
+    for (int i = 0; i < mpc_solver_ptr_->NN_ + 1; i++)
+    {
+      const trajectory_msgs::MultiDOFJointTrajectoryPoint& point = msg->points[i];
+      geometry_msgs::Vector3 pos = point.transforms[0].translation;
+      geometry_msgs::Vector3 vel = point.velocities[0].linear;
+      geometry_msgs::Vector3 acc = point.accelerations[0].linear;
+      geometry_msgs::Quaternion quat = point.transforms[0].rotation;
+      geometry_msgs::Vector3 omega = point.velocities[0].angular;
+      geometry_msgs::Vector3 ang_acc = point.accelerations[0].angular;
+      setXrUrRef(tf::Vector3(pos.x, pos.y, pos.z), tf::Vector3(vel.x, vel.y, vel.z), tf::Vector3(acc.x, acc.y, acc.z),
+                 tf::Quaternion(quat.x, quat.y, quat.z, quat.w), tf::Vector3(omega.x, omega.y, omega.z),
+                 tf::Vector3(ang_acc.x, ang_acc.y, ang_acc.z), i);
+    }
+  }
+
+  x_u_ref_.header.stamp = msg->header.stamp;
   callbackSetRefXU(boost::make_shared<const aerial_robot_msgs::PredXU>(x_u_ref_));
+
+  last_traj_msg_ = *msg;
+}
+
+void nmpc::TiltMtServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
+{
+  // failsafe
+  if (msg->rotor_id < 0 || msg->rotor_id >= motor_num_)
+  {
+    ROS_WARN_STREAM("The rotor_id " << static_cast<int>(msg->rotor_id)
+                                    << " is incorrect. Note that the id starts from 0.");
+    return;
+  }
+
+  if (msg->fix_ft < thrust_ctrl_min_ || msg->fix_ft > thrust_ctrl_max_)
+  {
+    ROS_WARN_STREAM("The fix_ft value " << msg->fix_ft << " is out of range. It should be between " << thrust_ctrl_min_
+                                        << " and " << thrust_ctrl_max_ << ".");
+    return;
+  }
+
+  if (msg->fix_alpha < servo_angle_min_ || msg->fix_alpha > servo_angle_max_)
+  {
+    ROS_WARN_STREAM("The fix_alpha value " << msg->fix_alpha << " is out of range. It should be between "
+                                           << servo_angle_min_ << " and " << servo_angle_max_ << ".");
+    return;
+  }
+
+  // set values
+  is_set_fix_rotor_ = true;
+  fix_rotor_msg_ = *msg;
 }
 
 void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
@@ -730,121 +1082,58 @@ void nmpc::TiltMtServoNMPC::printPhysicalParams()
   cout << "abs(kq_kt_rate)" << abs(robot_model_->getMFRate()) << endl;
 }
 
-/**
- * @brief calXrUrRef: calculate the reference state and control input
- * @param ref_pos_i
- * @param ref_vel_i
- * @param ref_acc_i - the acceleration is in the inertial frame, no including the gravity
- * @param ref_quat_ib
- * @param ref_omega_b
- * @param ref_ang_acc_b
- * @param horizon_idx - set -1 for adding the target point to the end of the reference trajectory, 0 ~ NN for adding
- * the target point to the horizon_idx interval
- */
-void nmpc::TiltMtServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
-                                       const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
-                                       const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
-                                       const int& horizon_idx)
+bool nmpc::TiltMtServoNMPC::isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
+                                                     const trajectory_msgs::MultiDOFJointTrajectoryPoint& b,
+                                                     bool if_compare_time, double epsilon)
 {
-  int& NX = mpc_solver_ptr_->NX_;
-  int& NU = mpc_solver_ptr_->NU_;
-  int& NN = mpc_solver_ptr_->NN_;
+  if (a.transforms.size() != b.transforms.size() || a.velocities.size() != b.velocities.size() ||
+      a.accelerations.size() != b.accelerations.size())
+    return false;
 
-  /* calculate the reference wrench in the body frame */
-  Eigen::VectorXd acc_with_g_i(3);
-  acc_with_g_i(0) = ref_acc_i.x();
-  acc_with_g_i(1) = ref_acc_i.y();
-  acc_with_g_i(2) = ref_acc_i.z() + gravity_const_;  // add gravity
-
-  // coordinate transformation
-  tf::Quaternion q_bi = ref_quat_ib.inverse();
-  Eigen::Matrix3d rot_bi;
-  tf::matrixTFToEigen(tf::Transform(q_bi).getBasis(), rot_bi);
-  Eigen::VectorXd ref_acc_b = rot_bi * acc_with_g_i;
-
-  Eigen::VectorXd ref_wrench_b(6);
-  ref_wrench_b(0) = ref_acc_b(0) * mass_;
-  ref_wrench_b(1) = ref_acc_b(1) * mass_;
-  ref_wrench_b(2) = ref_acc_b(2) * mass_;
-  ref_wrench_b(3) = ref_ang_acc_b.x() * inertia_.at(0);
-  ref_wrench_b(4) = ref_ang_acc_b.y() * inertia_.at(1);
-  ref_wrench_b(5) = ref_ang_acc_b.z() * inertia_.at(2);
-
-  /* calculate X U from ref, aka. control allocation */
-  std::vector<double> x(NX);
-  std::vector<double> u(NU);
-  allocateToXU(ref_pos_i, ref_vel_i, ref_quat_ib, ref_omega_b, ref_wrench_b, x, u);
-
-  /* set values */
-  if (horizon_idx == -1)
+  for (size_t i = 0; i < a.transforms.size(); ++i)
   {
-    // Aim: gently add the target point to the end of the reference trajectory
-    // - x: NN + 1, u: NN
-    // - for 0 ~ NN-2 x and u, shift
-    // - copy x to x: NN-1 and NN, copy u to u: NN-1
-    for (int i = 0; i < NN - 1; i++)
-    {
-      // shift one step
-      std::copy(x_u_ref_.x.data.begin() + NX * (i + 1), x_u_ref_.x.data.begin() + NX * (i + 2),
-                x_u_ref_.x.data.begin() + NX * i);
-      std::copy(x_u_ref_.u.data.begin() + NU * (i + 1), x_u_ref_.u.data.begin() + NU * (i + 2),
-                x_u_ref_.u.data.begin() + NU * i);
-    }
-    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * (NN - 1));
-    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * (NN - 1));
-
-    std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
-
-    return;
+    const auto& ta = a.transforms[i];
+    const auto& tb = b.transforms[i];
+    if (!isAlmostEqual(ta.translation.x, tb.translation.x, epsilon) ||
+        !isAlmostEqual(ta.translation.y, tb.translation.y, epsilon) ||
+        !isAlmostEqual(ta.translation.z, tb.translation.z, epsilon) ||
+        !isAlmostEqual(ta.rotation.x, tb.rotation.x, epsilon) ||
+        !isAlmostEqual(ta.rotation.y, tb.rotation.y, epsilon) ||
+        !isAlmostEqual(ta.rotation.z, tb.rotation.z, epsilon) || !isAlmostEqual(ta.rotation.w, tb.rotation.w, epsilon))
+      return false;
   }
 
-  if (horizon_idx < 0 || horizon_idx > NN)
+  for (size_t i = 0; i < a.velocities.size(); ++i)
   {
-    ROS_WARN("horizon_idx is out of range! CalXrUrRef failed!");
-    return;
+    const auto& va = a.velocities[i];
+    const auto& vb = b.velocities[i];
+    if (!isAlmostEqual(va.linear.x, vb.linear.x, epsilon) || !isAlmostEqual(va.linear.y, vb.linear.y, epsilon) ||
+        !isAlmostEqual(va.linear.z, vb.linear.z, epsilon) || !isAlmostEqual(va.angular.x, vb.angular.x, epsilon) ||
+        !isAlmostEqual(va.angular.y, vb.angular.y, epsilon) || !isAlmostEqual(va.angular.z, vb.angular.z, epsilon))
+      return false;
   }
 
-  std::copy(x.begin(), x.begin() + NX, x_u_ref_.x.data.begin() + NX * horizon_idx);
-  if (horizon_idx < NN)
-    std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * horizon_idx);
-}
-
-void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
-                                         const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
-                                         const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const
-{
-  x.at(0) = ref_pos_i.x();
-  x.at(1) = ref_pos_i.y();
-  x.at(2) = ref_pos_i.z();
-  x.at(3) = ref_vel_i.x();
-  x.at(4) = ref_vel_i.y();
-  x.at(5) = ref_vel_i.z();
-  x.at(6) = ref_quat_ib.w();
-  x.at(7) = ref_quat_ib.x();
-  x.at(8) = ref_quat_ib.y();
-  x.at(9) = ref_quat_ib.z();
-  x.at(10) = ref_omega_b.x();
-  x.at(11) = ref_omega_b.y();
-  x.at(12) = ref_omega_b.z();
-  Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
-  for (int i = 0; i < x_lambda.size() / 2; i++)
+  for (size_t i = 0; i < a.accelerations.size(); ++i)
   {
-    double ft_ref = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
-    u.at(i) = ft_ref;
-
-    double a_ref;
-    if (ft_ref < thrust_ctrl_min_)
-    {
-      a_ref = M_PI / 2.0 - acos(x_lambda(2 * i) / thrust_ctrl_min_);
-    }
-    else
-    {
-      a_ref = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
-    }
-    x.at(13 + i) = a_ref;
+    const auto& aa = a.accelerations[i];
+    const auto& ab = b.accelerations[i];
+    if (!isAlmostEqual(aa.linear.x, ab.linear.x, epsilon) || !isAlmostEqual(aa.linear.y, ab.linear.y, epsilon) ||
+        !isAlmostEqual(aa.linear.z, ab.linear.z, epsilon) || !isAlmostEqual(aa.angular.x, ab.angular.x, epsilon) ||
+        !isAlmostEqual(aa.angular.y, ab.angular.y, epsilon) || !isAlmostEqual(aa.angular.z, ab.angular.z, epsilon))
+      return false;
   }
+
+  // ROS duration comparison
+  if (if_compare_time)
+  {
+    if (!isAlmostEqual(a.time_from_start.toSec(), b.time_from_start.toSec(), epsilon))
+      return false;
+  }
+
+  return true;
 }
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
+
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtServoNMPC, aerial_robot_control::ControlBase)

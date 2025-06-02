@@ -19,6 +19,7 @@ if current_path not in sys.path:
 from pub_mpc_joint_traj import MPCTrajPtPub, MPCSinglePtPub
 from pub_mpc_pred_xu import MPCPubCSVPredXU
 from geometry_msgs.msg import Pose, Quaternion, Vector3
+from util import pub_0066_wall_rviz, pub_hand_markers_rviz
 
 # === analytical trajectory ===
 import trajs
@@ -28,9 +29,7 @@ traj_cls_list = [
     cls
     for name, cls in inspect.getmembers(trajs, inspect.isclass)
     # optionally ensure the class is defined in trajs and not an imported library
-    if cls.__module__ == "trajs"
-       # (Optional) filter by name if you only want classes that end with "Traj"
-       and name != "BaseTraj"
+    if cls.__module__ == "trajs" and name not in {"BaseTraj", "BaseTrajwFixedRotor", "PitchContinuousRotationTraj"}
 ]
 print(f"Found {len(traj_cls_list)} trajectory classes in trajs module.")
 
@@ -241,6 +240,10 @@ def main(args):
         rospy.logerr(f"Robot name '{args.robot_name}' not found in ROS parameters! Make sure the robot is running.")
         return
 
+    # visualize in RViz
+    pub_0066_wall_rviz(not args.has_0066_viz)
+    pub_hand_markers_rviz(args.hand_markers_viz_type)
+
     # Create a top-level SMACH state machine
     sm = smach.StateMachine(outcomes=["DONE"])
 
@@ -289,5 +292,10 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
     parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
+    parser.add_argument("--has_0066_viz", "-6", action="store_true", default=False,
+                        help="Whether to visualize the 0066 flight range (default: False)")
+    parser.add_argument("--hand_markers_viz_type", "-v", type=int, default=0,
+                        help="0: no viz; 1: viz type 1 (default: 0)")
+
     args = parser.parse_args()
     main(args)
