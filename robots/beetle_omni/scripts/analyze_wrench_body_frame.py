@@ -167,12 +167,12 @@ if __name__ == "__main__":
 
     # Allocate map arrays
     if mode == "force":
-        result_map = np.zeros((Nyaw, Npitch))
+        result_map = np.zeros((Npitch, Nyaw))
         # Search bounds: [0, 6*THRUST_MAX] — six rotors each at max thrust?
         thrust_limit = 6 * THRUST_MAX
 
-        for i, yaw_deg in enumerate(yaw_list):
-            for j, pitch_deg in enumerate(pitch_list):
+        for i, pitch_deg in enumerate(pitch_list):
+            for j, yaw_deg in enumerate(yaw_list):
                 max_f, _ = find_max_wrench_for_orientation_body(
                     alloc_mat,
                     roll_deg=0.0,
@@ -183,7 +183,7 @@ if __name__ == "__main__":
                     mode="force"
                 )
                 result_map[i, j] = max_f
-            print(f"[Body Force] Completed yaw = {yaw_deg:.1f}°")
+            print(f"[Body Force] Completed pitch = {pitch_deg:.1f}°")
 
         # Save to file
         if save_to_npz:
@@ -194,8 +194,8 @@ if __name__ == "__main__":
         # Flatten directions (body z-axis vectors in world) & magnitudes
         dirs = []
         mags = []
-        for i, yaw_deg in enumerate(yaw_list):
-            for j, pitch_deg in enumerate(pitch_list):
+        for i, pitch_deg in enumerate(pitch_list):
+            for j, yaw_deg in enumerate(yaw_list):
                 R_bn_zero_roll = R.from_euler('zyx', [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
                 dir_z = R_bn_zero_roll[:, 2]  # world ← body: body z-axis expressed in world
                 dirs.append(dir_z)
@@ -208,11 +208,11 @@ if __name__ == "__main__":
         V = dirs[:, 1] * mags
         W = dirs[:, 2] * mags
 
-        # Reshape to (Nyaw, Npitch) grids for surface plotting
+        # Reshape to (Npitch, Nyaw) grids for surface plotting
         endpoints = origins + np.column_stack((U, V, W))
-        X = endpoints[:, 0].reshape(Nyaw, Npitch)
-        Y = endpoints[:, 1].reshape(Nyaw, Npitch)
-        Z = endpoints[:, 2].reshape(Nyaw, Npitch)
+        X = endpoints[:, 0].reshape(Npitch, Nyaw)
+        Y = endpoints[:, 1].reshape(Npitch, Nyaw)
+        Z = endpoints[:, 2].reshape(Npitch, Nyaw)
 
         # Colormap by force magnitude
         norm = plt.Normalize(result_map.min(), result_map.max())
@@ -255,12 +255,12 @@ if __name__ == "__main__":
         plt.show()
 
     elif mode == "torque":
-        result_map = np.zeros((Nyaw, Npitch))
+        result_map = np.zeros((Npitch, Nyaw))
         # Search bound for torque: 6 * THRUST_MAX * sqrt(p1_b_x^2 + p1_b_y^2)
         torque_limit = 6 * THRUST_MAX * np.linalg.norm(p1_b[0:2])
 
-        for i, yaw_deg in enumerate(yaw_list):
-            for j, pitch_deg in enumerate(pitch_list):
+        for i, pitch_deg in enumerate(pitch_list):
+            for j, yaw_deg in enumerate(yaw_list):
                 max_tau, _ = find_max_wrench_for_orientation_body(
                     alloc_mat,
                     roll_deg=0.0,
@@ -271,7 +271,7 @@ if __name__ == "__main__":
                     mode="torque"
                 )
                 result_map[i, j] = max_tau
-            print(f"[Body Torque] Completed yaw = {yaw_deg:.1f}°")
+            print(f"[Body Torque] Completed pitch = {pitch_deg:.1f}°")
 
         # Save to file
         if save_to_npz:
@@ -281,8 +281,8 @@ if __name__ == "__main__":
         # ---------- Plotting 3D surface in body frame (torque) ----------
         dirs = []
         mags = []
-        for i, yaw_deg in enumerate(yaw_list):
-            for j, pitch_deg in enumerate(pitch_list):
+        for i, pitch_deg in enumerate(pitch_list):
+            for j, yaw_deg in enumerate(yaw_list):
                 R_bn_zero_roll = R.from_euler('zyx', [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
                 dir_z = R_bn_zero_roll[:, 2]
                 dirs.append(dir_z)
@@ -296,9 +296,9 @@ if __name__ == "__main__":
         W = dirs[:, 2] * mags
 
         endpoints = origins + np.column_stack((U, V, W))
-        X = endpoints[:, 0].reshape(Nyaw, Npitch)
-        Y = endpoints[:, 1].reshape(Nyaw, Npitch)
-        Z = endpoints[:, 2].reshape(Nyaw, Npitch)
+        X = endpoints[:, 0].reshape(Npitch, Nyaw)
+        Y = endpoints[:, 1].reshape(Npitch, Nyaw)
+        Z = endpoints[:, 2].reshape(Npitch, Nyaw)
 
         norm = plt.Normalize(result_map.min(), result_map.max())
         colors = cm.plasma(norm(result_map))
