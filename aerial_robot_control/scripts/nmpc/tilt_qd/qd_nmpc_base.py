@@ -261,14 +261,14 @@ class QDNMPCBase(RecedingHorizonBase):
             # If servo dynamics are modeled, use angle state.
             # Else use angle control which is then assumed to be equal to the angle state at all times.
             if self.include_servo_model:
-                a1 = self.a1s;
-                a2 = self.a2s;
-                a3 = self.a3s;
+                a1 = self.a1s
+                a2 = self.a2s
+                a3 = self.a3s
                 a4 = self.a4s
             else:
-                a1 = self.a1c;
-                a2 = self.a2c;
-                a3 = self.a3c;
+                a1 = self.a1c
+                a2 = self.a2c
+                a3 = self.a3c
                 a4 = self.a4c
 
             rot_e1r1 = ca.vertcat(
@@ -284,23 +284,23 @@ class QDNMPCBase(RecedingHorizonBase):
                 ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
             )
         else:
-            rot_e1r1 = ca.SX.eye(3);
-            rot_e2r2 = ca.SX.eye(3);
-            rot_e3r3 = ca.SX.eye(3);
+            rot_e1r1 = ca.SX.eye(3)
+            rot_e2r2 = ca.SX.eye(3)
+            rot_e3r3 = ca.SX.eye(3)
             rot_e4r4 = ca.SX.eye(3)
 
         # Wrench in Rotor frame
         # If rotor dynamics are modeled, explicitly use thrust state as force.
         # Else use thrust control which is then assumed to be equal to the thrust state at all times.
         if self.include_thrust_model:
-            ft1 = self.ft1s;
-            ft2 = self.ft2s;
-            ft3 = self.ft3s;
+            ft1 = self.ft1s
+            ft2 = self.ft2s
+            ft3 = self.ft3s
             ft4 = self.ft4s
         else:
-            ft1 = self.ft1c;
-            ft2 = self.ft2c;
-            ft3 = self.ft3c;
+            ft1 = self.ft1c
+            ft2 = self.ft2c
+            ft3 = self.ft3c
             ft4 = self.ft4c
 
         ft_r1 = ca.vertcat(0, 0, ft1)
