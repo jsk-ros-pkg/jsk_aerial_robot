@@ -1,2 +1,3 @@
 scienceplots==2.1.1
 pandas==2.2.3
+tikzplotlib==0.10.1

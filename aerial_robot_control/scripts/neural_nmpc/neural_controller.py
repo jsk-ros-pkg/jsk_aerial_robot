@@ -14,13 +14,12 @@ from nmpc.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
 
 
 class NeuralNMPC():
-    def __init__(self, model_options):
+    def __init__(self, model_options):        
         # TODO: Simple MLP addon
         # TODO: Adjust solver
         # TODO: Introduce approximated MLP
         # TODO: Add GP regressor
         # TODO: Load / save trained model -> overwrite model
-
 
         # Setup Neural NMPC
         self.setup(...)
@@ -41,91 +40,62 @@ class NeuralNMPC():
         self.extend_acados_model()
     
 
-    def setup(self, my_quad, t_horizon=1.0, n_nodes=5, q_cost=None, r_cost=None,
-                 optimization_dt=5e-2, simulation_dt=5e-4, pre_trained_models=None, model_name="my_quad", q_mask=None,
-                 solver_options=None, rdrv_d_mat=None, model_conf=None):
+    def setup(self, model_name="aerial_robot", 
+              t_horizon=1.0, N=5, optimization_dt=5e-2, simulation_dt=5e-4,
+              pre_trained_model=None, solver_options=None,
+              rdrv_d_mat=None, model_conf=None):
         """
-        :param my_quad: Quadrotor3D simulator object
-        :type my_quad: Quadrotor3D
-        :param t_horizon: time horizon for optimization loop MPC controller
-        :param n_nodes: number of MPC nodes
-        :param optimization_dt: time step between two successive optimizations intended to be used.
-        :param simulation_dt: discretized time-step for the quadrotor simulation
-        :param pre_trained_models: additional pre-trained GP regressors to be combined with nominal model in the MPC
-        :param q_cost: diagonal of Q matrix for LQR cost of MPC cost function. Must be a numpy array of length 13.
-        :param r_cost: diagonal of R matrix for LQR cost of MPC cost function. Must be a numpy array of length 4.
-        :param q_mask: Optional boolean mask that determines which variables from the states compute towards the
-        cost function. In case no argument is passed, all variables are weighted.
-        :param solver_options: Optional set of extra options dictionary for acados solver.
-        :param rdrv_d_mat: 3x3 matrix that corrects the drag with a linear model according to Faessler et al. 2018. None
-        if not used
+        :param t_horizon: Time horizon for optimization loop in MPC controller
+        :param N: Number of MPC nodes
+        :param optimization_dt: Time step between two successive optimizations
+        :param simulation_dt: Discretized time-step for the aerial robot simulation
+        :param pre_trained_model: Pre-trained MLP to be combined with nominal model in MPC framework
+        :param solver_options: Set of additional options dictionary for acados solver
+        :param rdrv_d_mat: 3x3 matrix that corrects the drag with a linear model
+                           according to Faessler et al. 2018
         """
 
-        self.states = np.zeros(ModelConfig.STATE_DIM)
+        self.state = np.zeros(ModelConfig.STATE_DIM)
 
-        if rdrv_d_mat is not None:
-            # rdrv is currently not compatible with covariance mode or with GP-MPC.
-            print("RDRv mode")
-            self.rdrv = rdrv_d_mat
-            assert pre_trained_models is None
-        else:
-            self.rdrv = None
 
-        self.quad = my_quad
+        self.t_horizon = t_horizon
+        self.N = N
         self.simulation_dt = simulation_dt
         self.optimization_dt = optimization_dt
 
-        # motor commands from last step
-        self.motor_u = np.array([0., 0., 0., 0.])
-
-        self.n_nodes = n_nodes
-        self.t_horizon = t_horizon
-
-        self.mlp = None
-        self.mlp_approx = None
-
-        # Load augmented dynamics model with GP regressor
-        if isinstance(pre_trained_models, torch.nn.Module):
-            self.gp_ensemble = None
+        # Load pre-trained models that can be used for the dynamics model in the controller
+        # Note: If no pre-trained model is given, the controller will only use the nominal model
+        if isinstance(pre_trained_model, torch.nn.Module):
+            self.mlp = pre_trained_model
+            self.mlp_approx = None
             self.B_x = {}
-            x_dims = len(my_quad.get_state(quaternion=True, stacked=True))
             pred_dims = [7, 8, 9] + ([10, 11, 12] if model_conf['torque_output'] else [])
             for y_dim in pred_dims:
-                self.B_x[y_dim] = make_bx_matrix(x_dims, [y_dim])
-                self.mlp = pre_trained_models
-
-        elif pre_trained_models is not None:
-            self.gp_ensemble = restore_gp_regressors(pre_trained_models)
-            x_dims = len(my_quad.get_state(quaternion=True, stacked=True))
-            self.B_x = {}
-            for y_dim in self.gp_ensemble.gp.keys():
-                self.B_x[y_dim] = make_bx_matrix(x_dims, [y_dim])
-
+                self.B_x[y_dim] = make_bx_matrix(ModelConfig.STATE_DIM, [y_dim])
         else:
-            self.gp_ensemble = None
-            self.B_x = {}  # Selection matrix of the GP regressor-modified system states
+            self.mlp = None
+            self.mlp_approx = None
+            self.B_x = {}  # Selection matrix of the GP regressor-modified system state
 
+        # TODO implement drag correction with RDRv
         # For MPC optimization use
-        self.quad_opt = Quad3DOptimizer(my_quad, t_horizon=t_horizon, n_nodes=n_nodes,
-                                        q_cost=q_cost, r_cost=r_cost,
-                                        B_x=self.B_x, gp_regressors=self.gp_ensemble,
-                                        mlp_regressor=self.mlp, mlp_conf=model_conf,
-                                        model_name=model_name, q_mask=q_mask,
+        self.quad_opt = Quad3DOptimizer(mlp_regressor=self.mlp, mlp_conf=model_conf,
                                         solver_options=solver_options, rdrv_d_mat=rdrv_d_mat)
 
     def map_properties(self):
         # TODO map all (important) properties of NMPC object
-        self.x = self.nmpc.x
+        self.state = self.nmpc.state
+        self.controls = self.nmpc.controls
+        self.parameters = self.nmpc.parameters
+        self.model_name = self.nmpc.model_name
+        self._ocp_solver = self.nmpc.get_ocp_solver()
 
-    def set_state(self, states):
-        # Set all states TODO
-        self.states = states
-        # If given states is not full states
-        if states.length != self.states.length:
-            raise ValueError(f"Dimensions don't match! {states.length} != {self.states.length}")
-
-    def get_state(self):
-        return self.model
+    def set_state(self, state):
+        # Set all state TODO
+        self.state = state
+        # If given state is not full state
+        if state.length != self.state.length:
+            raise ValueError(f"Dimensions don't match! {state.length} != {self.state.length}")
     
     def get_ocp_solver(self):
         return self._ocp_solver
@@ -137,8 +107,8 @@ class NeuralNMPC():
         # Get the acados model from nominal OCPm
         nominal_model = self.nmpc.get_acados_model()
         
-        # Model states
-        self.states = nominal_model.x
+        # Model state
+        self.state = nominal_model.x
 
         # Control inputs
         self.controls = nominal_model.u
@@ -158,16 +128,16 @@ class NeuralNMPC():
 
         # -----------------------------------------------------
         # TODO Understand and implement correctly
-        states = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
+        state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
         #  Transform velocity to body frame
-        v_b = v_dot_q(states[7:10], quaternion_inverse(states[3:7]))
-        states = ca.vertcat(states[:7], v_b, states[10:])
+        v_b = v_dot_q(state[7:10], quaternion_inverse(state[3:7]))
+        state = ca.vertcat(state[:7], v_b, state[10:])
         mlp_in = v_b
         # -----------------------------------------------------
 
         # Adjust input vector
         if self.mlp_conf['torque_output']:
-            mlp_in = ca.vertcat(mlp_in, states[10:])
+            mlp_in = ca.vertcat(mlp_in, state[10:])
 
         if self.mlp_conf['u_inp']:
             mlp_in = ca.vertcat(mlp_in, self.controls)
@@ -187,8 +157,8 @@ class NeuralNMPC():
 
             idx = ca.DM(np.arange(0, 3, 1))
 
-            x, y, z = states[0], states[1], states[2]
-            orientation = states[3:7]
+            x, y, z = state[0], state[1], state[2]
+            orientation = state[3:7]
 
             x_idxs = ca.floor((x - self._org_to_map_org[0]) / map_conf.resolution) + idx - 1
             y_idxs = ca.floor((y - self._org_to_map_org[1]) / map_conf.resolution) + idx - 1
@@ -212,9 +182,9 @@ class NeuralNMPC():
             # Append torque if needed 
             mlp_out_force = mlp_out[:3]
             mlp_out_torque = mlp_out[3:]
-            mlp_out_means = ca.vertcat(v_dot_q(mlp_out_force, states[3:7]), mlp_out_torque)
+            mlp_out_means = ca.vertcat(v_dot_q(mlp_out_force, state[3:7]), mlp_out_torque)
         else:
-            mlp_out_means = v_dot_q(mlp_out, states[3:7])
+            mlp_out_means = v_dot_q(mlp_out, state[3:7])
 
         # Explicit dynamics
         # Here f is already symbolically evaluated to f(x,u)
@@ -222,7 +192,7 @@ class NeuralNMPC():
         f_eval = nominal_dynamics + ca.mtimes(self.B_x, mlp_out_means)
         
         # Implicit dynamics
-        x_dot = ca.MX.sym('x_dot', states.size())
+        x_dot = ca.MX.sym('x_dot', state.size())
         f_impl = x_dot - f_eval
 
         # Cost function
@@ -233,7 +203,7 @@ class NeuralNMPC():
         acados_model.name = self.model_name
         acados_model.f_expl_expr = f_eval  # CasADi expression for the explicit dynamics
         acados_model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
-        acados_model.x = states
+        acados_model.x = state
         acados_model.xdot = x_dot
         acados_model.u = nominal_model.u
         acados_model.p = self.parameters
@@ -261,14 +231,133 @@ class NeuralNMPC():
         # CHECK SOLVER OPTIONS
         self.acados_ocp_solver = extended_solver
 
-    def track(self, target):
+
+    def run_optimization(self, initial_state=None, use_model=0, return_x=False, gp_regression_state=None):
         """
-        Set target state as 'yref' in OCP solver in preparation of solving step.
-        :param target: np array containing the current target state
+        Optimizes a trajectory to reach the pre-set target state, starting from the input initial state, that minimizes
+        the quadratic cost function and respects the constraints of the system
+
+        :param initial_state: 13-element list of the initial state. If None, 0 state will be used
+        :param use_model: integer, select which model to use from the available options.
+        :param return_x: bool, whether to also return the optimized sequence of states alongside with the controls.
+        :param gp_regression_state: 13-element list of state for GP prediction. If None, initial_state will be used.
+        :return: optimized control input sequence (flattened)
         """
-        self._ocp_solver.set()
 
 
+        # =================================================
+        # BASICALLY saying to set rest of solver params (which for clarity should
+        # be set together with ref in dedicated function (utils?))
+        # AND then solving the OCP and getting the optimized control input and next state
+        # which is also just put in simulation sequence by Jinjie
+        # =================================================
+
+        if initial_state is None:
+            initial_state = [0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0] + [0, 0, 0]
+
+        # Set initial state. Add gp state if needed
+        x_init = initial_state
+        x_init = np.stack(x_init)
+
+        # Set initial condition, equality constraint
+        self.acados_ocp_solver[use_model].set(0, 'lbx', x_init)
+        self.acados_ocp_solver[use_model].set(0, 'ubx', x_init)
+
+        # Set parameters
+        if self.with_gp:
+            gp_state = gp_regression_state if gp_regression_state is not None else initial_state
+            self.acados_ocp_solver[use_model].set(0, 'p', np.array(gp_state + [1]))
+            for j in range(1, self.N):
+                self.acados_ocp_solver[use_model].set(j, 'p', np.array([0.0] * (len(gp_state) + 1)))
+
+        if self.with_mlp:
+            if self.x_opt_acados is None:
+                if isinstance(self.target[0], list):
+                    self.x_opt_acados = np.expand_dims(
+                        np.concatenate([self.target[i] for i in range(len(self.target))]), 0)
+                    self.x_opt_acados = self.x_opt_acados.repeat(self.N, 0)
+                else:
+                    self.x_opt_acados = np.hstack(self.target)
+            if self.w_opt_acados is None:
+                if len(self.u_target.shape) == 1:
+                    self.w_opt_acados = self.u_target[np.newaxis]
+                    self.w_opt_acados = self.w_opt_acados.repeat(self.N, 0)
+                else:
+                    self.w_opt_acados = np.hstack(self.u_target)
+
+            gp_state = gp_regression_state if gp_regression_state is not None else initial_state
+            if not self.mlp_conf['approximated']:
+                self.acados_ocp_solver[use_model].set(0, 'p', np.hstack([np.array(gp_state + [1])]))
+                for j in range(1, self.N):
+                    self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1))]))
+            else:
+                state = np.vstack([np.array([initial_state]), self.x_opt_acados[1:]])
+                a_list = []
+                for i in range(state.shape[0]):
+                    a_list.append(v_dot_q(np.array(state[i, 7:10]), quaternion_inverse(np.array(state[i, 3:7]))))
+                a = np.array(a_list)[:self.N]
+
+                if self.mlp_conf['torque_output']:
+                    a = np.concatenate([a, state[:self.N, 10:]], axis=-1)
+
+                if self.mlp_conf['u_inp']:
+                    a = np.concatenate([a, self.w_opt_acados], axis=-1)
+
+                if self.mlp_conf['ground_map_input']:
+                    ground_maps = []
+                    for i in range(state.shape[0]):
+                        pos = state[i][:3]
+                        x_idxs = np.floor((pos[0] - self._org_to_map_org[0]) / self._map_res).astype(int) - 1
+                        y_idxs = np.floor((pos[1] - self._org_to_map_org[1]) / self._map_res).astype(int) - 1
+                        ground_patch = self._static_ground_map[x_idxs:x_idxs + 3, y_idxs:y_idxs + 3]
+
+                        relative_ground_patch = 4 * (np.clip(pos[2] - ground_patch, 0, 0.5) - 0.25)
+
+                        flatten_relative_ground_patch = relative_ground_patch.flatten(order='F')
+
+                        ground_effect_in = np.hstack([flatten_relative_ground_patch,
+                                                      flatten_relative_ground_patch[..., :4] * 0])
+
+                        ground_maps.append(ground_effect_in)
+
+                    a = np.concatenate([a, np.array(ground_maps)[:self.N]], axis=-1)
+
+                mlp_params = self.mlp_regressor.approx_params(a, order=self.mlp_conf['approx_order'], flat=True)
+                mlp_params = np.vstack([mlp_params, mlp_params[[-1]]])
+                self.acados_ocp_solver[use_model].set(0, 'p',
+                                                      np.hstack([np.array(gp_state + [1]), mlp_params[0]]))
+                for j in range(1, self.N):
+                    self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1)),
+                                                                             mlp_params[j]]))
+
+        # Solve OCP
+        self.acados_ocp_solver[use_model].solve()
+
+        # Get u
+        w_opt_acados = np.ndarray((self.N, 4))
+        x_opt_acados = np.ndarray((self.N + 1, len(x_init)))
+        x_opt_acados[0, :] = self.acados_ocp_solver[use_model].get(0, "x")
+        for i in range(self.N):
+            w_opt_acados[i, :] = self.acados_ocp_solver[use_model].get(i, "u")
+            x_opt_acados[i + 1, :] = self.acados_ocp_solver[use_model].get(i + 1, "x")
+
+        self.x_opt_acados = x_opt_acados.copy()
+        self.w_opt_acados = w_opt_acados.copy()
+
+        w_opt_acados = np.reshape(w_opt_acados, (-1))
+        return w_opt_acados if not return_x else (w_opt_acados, x_opt_acados)
+
+    # =========================================================
+    def simulate(self):
+        # TODO Emulate quad class 
+        ...
+
+    def simulate_plant(self, w_opt, t_horizon=None, dt_vec=None, progress_bar=False):
+        # TODO why also plant??
+    
+    def forward_prop(self):
+        # TODO what here???
+    # =========================================================
 
     def load_controller(self):
         """

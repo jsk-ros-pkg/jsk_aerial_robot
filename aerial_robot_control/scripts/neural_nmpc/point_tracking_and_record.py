@@ -123,6 +123,7 @@ def main(model_options, recording_options, sim_options, parameters):
         # TODO this was set by Jinjie (together with parameters) in most inner loop but by RTNMPC authors in outer loop
         # In rtnmpc they just set the same ref for all state
         # Jinjie updates ref in each time step
+        # Potentially in dedicated function that updates/sets the solver? 
         for j in range(rtnmpc.N):
             yr = np.concatenate((xr[j, :], ur[j, :]))
             rtnmpc.acados_ocp_solver.set(j, "yref", yr)
