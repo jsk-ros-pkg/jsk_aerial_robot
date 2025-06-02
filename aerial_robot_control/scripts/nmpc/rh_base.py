@@ -94,10 +94,10 @@ def safe_mkdir_recursive(directory, overwrite: bool = False):
         if os.path.exists(directory):
             try:
                 # Only remove auto-generated files, not the directory itself
-                for _, dirs, files in os.walk(directory, topdown=False):
+                for _, dirs, files in os.walk(directory):
                     for file in files:
                         file_path = os.path.join(directory, file)
-                        if os.path.isfile(file_path) and not file_path.endswith("solver.h") and not file_path.endswith("controller.h"):
+                        if os.path.isfile(file_path) and not (file_path.endswith("solver.h") or file_path.endswith("controller.h")):
                             os.remove(file_path)
                     for dir in dirs:
                         dir_path = os.path.join(directory, dir)
@@ -117,14 +117,26 @@ def safe_mkdir_recursive(directory, overwrite: bool = False):
                 # Check if directory unexpectedly already exists (may happen if multiple
                 # processes try to read/create it at the same time)
                 if e.errno == errno.EEXIST and os.path.isdir(directory):
-                    # Directory already exists
-                    print(f"Directory {directory} already exists. Set 'overwrite' to True to overwrite it.")
-                    # Skip further processing and exit program
-                    sys.exit()
+                    pass
                 else:
                     raise e
         else:
-            # Directory already exists
-            print(f"Directory {directory} already exists. Set 'overwrite' to True to overwrite it.")
-            # Skip further processing and exit program
-            sys.exit()
+            # Check if directory only contains non-auto-generated files
+            empty = True
+            for _, dirs, files in os.walk(directory):
+                for file in files:
+                    file_path = os.path.join(directory, file)
+                    if os.path.isfile(file_path) and not (file_path.endswith("solver.h") or file_path.endswith("controller.h")):
+                        empty = False
+                for dir in dirs:
+                    dir_path = os.path.join(directory, dir)
+                    if os.path.isdir(dir_path):
+                        empty = False
+            if not empty:
+                # Directory already exists and contains controller files
+                print(f"Directory {directory} already exists. Set 'overwrite' to True to overwrite it.")
+                # Skip further processing and exit program
+                sys.exit()
+            else:
+                # Directory exists but not auto-generated files
+                pass
