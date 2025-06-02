@@ -348,9 +348,19 @@ class NeuralNMPC():
         return w_opt_acados if not return_x else (w_opt_acados, x_opt_acados)
 
     # =========================================================
-    def simulate(self):
-        # TODO Emulate quad class 
-        ...
+    def simulate(self, u_cmd):
+        """
+        Simulate the plant with the optimized control input sequence.
+        :param u_cmd: Control input command sequence to be applied to the plant.
+        """
+        self.sim_solver.set("x", x_now_sim)
+        self.sim_solver.set("u", u_cmd)
+
+        status = self.sim_solver.solve()
+        if status != 0:
+            raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
+
+        x_now_sim = self.sim_solver.get("x")
 
     def simulate_plant(self, w_opt, t_horizon=None, dt_vec=None, progress_bar=False):
         # TODO why also plant??
@@ -417,3 +427,17 @@ class NeuralNMPC():
         )
 
         return nmpc
+    
+    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+        acados_sim = AcadosSim()
+        acados_sim.model = self.ocp_model
+
+        n_param = self.ocp_model.p.size()[0]
+        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        self.acados_init_p = np.zeros(n_param)
+        self.acados_init_p[0] = 1.0  # qw
+        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+        acados_sim.parameter_values = self.acados_init_p
+
+        acados_sim.solver_options.T = ts_sim
+        return AcadosSimSolver(acados_sim, json_file=self.ocp_model.name + "_acados_sim.json", build=is_build)
