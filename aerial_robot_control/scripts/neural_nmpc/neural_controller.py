@@ -244,6 +244,28 @@ class NeuralNMPC():
         :return: optimized control input sequence (flattened)
         """
 
+        # 0 ~ N-1
+        for j in range(ocp_solver.N):
+            yr = np.concatenate((xr[j, :], ur[j, :]))
+            ocp_solver.set(j, "yref", yr)
+            quaternion_r = xr[j, 6:10]
+            nmpc.acados_init_p[0:4] = quaternion_r
+            ocp_solver.set(j, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+
+        # N
+        yr = xr[ocp_solver.N, :]
+        ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
+        quaternion_r = xr[ocp_solver.N, 6:10]
+        nmpc.acados_init_p[0:4] = quaternion_r
+        ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+
+
+        try:
+            u_cmd = ocp_solver.solve_for_x0(state_curr)
+            return u_cmd
+        except Exception as e:
+            print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
+            raise e
 
         # =================================================
         # BASICALLY saying to set rest of solver params (which for clarity should
@@ -252,23 +274,6 @@ class NeuralNMPC():
         # which is also just put in simulation sequence by Jinjie
         # =================================================
 
-        if initial_state is None:
-            initial_state = [0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0] + [0, 0, 0]
-
-        # Set initial state. Add gp state if needed
-        x_init = initial_state
-        x_init = np.stack(x_init)
-
-        # Set initial condition, equality constraint
-        self.acados_ocp_solver[use_model].set(0, 'lbx', x_init)
-        self.acados_ocp_solver[use_model].set(0, 'ubx', x_init)
-
-        # Set parameters
-        if self.with_gp:
-            gp_state = gp_regression_state if gp_regression_state is not None else initial_state
-            self.acados_ocp_solver[use_model].set(0, 'p', np.array(gp_state + [1]))
-            for j in range(1, self.N):
-                self.acados_ocp_solver[use_model].set(j, 'p', np.array([0.0] * (len(gp_state) + 1)))
 
         if self.with_mlp:
             if self.x_opt_acados is None:
@@ -348,26 +353,19 @@ class NeuralNMPC():
         return w_opt_acados if not return_x else (w_opt_acados, x_opt_acados)
 
     # =========================================================
-    def simulate(self, u_cmd):
+    def simulate(self, state_curr_sim, u_cmd):
         """
         Simulate the plant with the optimized control input sequence.
         :param u_cmd: Control input command sequence to be applied to the plant.
         """
-        self.sim_solver.set("x", x_now_sim)
+        self.sim_solver.set("x", state_curr_sim)
         self.sim_solver.set("u", u_cmd)
 
         status = self.sim_solver.solve()
         if status != 0:
             raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
 
-        x_now_sim = self.sim_solver.get("x")
-
-    def simulate_plant(self, w_opt, t_horizon=None, dt_vec=None, progress_bar=False):
-        # TODO why also plant??
-    
-    def forward_prop(self):
-        # TODO what here???
-    # =========================================================
+        return self.sim_solver.get("x")
 
     def load_controller(self):
         """
@@ -428,7 +426,7 @@ class NeuralNMPC():
 
         return nmpc
     
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self) -> AcadosSimSolver:
         acados_sim = AcadosSim()
         acados_sim.model = self.ocp_model
 
@@ -440,4 +438,4 @@ class NeuralNMPC():
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=self.ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=self.ocp_model.name + "_acados_sim.json", build=True)

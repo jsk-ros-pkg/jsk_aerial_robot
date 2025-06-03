@@ -38,6 +38,7 @@ def main(model_options, recording_options, sim_options, parameters):
 
     # Solver
     ocp_solver = rtnmpc.get_ocp_solver()
+    sim_solver = rtnmpc.create_acados_sim_solver()
 
     # Reference generator
     reference_generator = rtnmpc.get_reference_generator()
@@ -58,6 +59,7 @@ def main(model_options, recording_options, sim_options, parameters):
     else:
         state_curr = parameters["initial_state"]
     rtnmpc.set_state(state_curr)
+    state_curr_sim = state_curr.copy()
 
     # --- Set target states ---
     if parameters["preset_targets"] is not None:
@@ -164,13 +166,7 @@ def main(model_options, recording_options, sim_options, parameters):
 
             # --- Optimize control input ---
             # Compute control feedback and take the first action
-            try:
-                u_cmd = ocp_solver.solve_for_x0(state_curr)
-                
-            except Exception as e:
-                print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
-                break
-            # u_cmd, state_pred = rtnmpc.optimize(use_model=MODEL_ID, return_x=True)
+            u_cmd = rtnmpc.run_optimization(state_curr)
             # Select first input (one for each motor) - MPC applies only first optimized input to the plant
             ref_u = np.squeeze(np.array(u_cmd[:4]))
 
@@ -193,12 +189,7 @@ def main(model_options, recording_options, sim_options, parameters):
 
             # --- Plot realtime ---
             if parameters["real_time_plot"]:
-                prop_params = {"x_0": np.squeeze(state_curr), "u_cmd": u_cmd, "use_model": MODEL_ID, "t_horizon": t_horizon}
-                x_int, _ = rtnmpc.forward_prop(**prop_params, use_gp=False)
-                if plot_sim_traj:
-                    x_sim = rtnmpc.simulate_plant(rtnmpc.reshape_input_sequence(u_cmd))
-                else:
-                    x_sim = None
+                state_traj_sim = rtnmpc.simulate(state_curr, u_cmd, t_horizon=t_horizon)
                 draw_drone_simulation(real_time_art_pack, quad_trajectory, my_quad, targets,
                                       targets_reached, x_sim, x_int, state_pred_horizon, follow_quad=False)
 
@@ -209,11 +200,10 @@ def main(model_options, recording_options, sim_options, parameters):
                 simulation_time += simulation_dt
 
                 # Simulate
-                rtnmpc.simulate(ref_u)
-                state_curr = rtnmpc.get_state()
+                state_curr_sim = rtnmpc.simulate(state_curr_sim, u_cmd)
 
                 # Target check
-                if euclidean_dist(current_target[0:3], state_curr[0:3, 0], thresh=0.05):
+                if euclidean_dist(current_target[:3], state_curr[:3], thresh=0.05):
                     print("*", end='')
                     sys.stdout.flush()
 
