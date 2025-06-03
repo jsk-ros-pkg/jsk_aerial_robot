@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
 import numpy as np
 import casadi as ca
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from tilt_qd.qd_nmpc_base import QDNMPCBase
-from fix_qd import phys_param_mini_qd as phys_mini_qd
+
+try:
+    # For relative import in module
+    from ..tilt_qd.qd_nmpc_base import QDNMPCBase
+    from . import phys_param_mini_qd as phys_mini_qd
+except ImportError:
+    # For relative import in script
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
+    from tilt_qd.qd_nmpc_base import QDNMPCBase
+    import phys_param_mini_qd as phys_mini_qd
 
 
 class NMPCFixQdThrustOut(QDNMPCBase):

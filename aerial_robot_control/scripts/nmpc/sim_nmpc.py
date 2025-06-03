@@ -4,45 +4,90 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_bi")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_tri")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
+try:
+    # For relative import in module
+    from .nmpc_viz import Visualizer
+    
+    # Quadrotor
+    from .tilt_qd import phys_param_beetle_omni as phys_omni
+    from .archive import phys_param_beetle_art as phys_art
 
-from nmpc_viz import Visualizer
+    # - Naive models
+    from .tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
+    from .archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
 
-# Quadrotor
-import tilt_qd.phys_param_beetle_omni as phys_omni
-import archive.phys_param_beetle_art as phys_art
+    # - Consider the servo delay with its model
+    from .tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+    from .tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
+    from .archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
+    from .archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
 
-# - Naive models
-from archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
-from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
+    # - Conside servo angle derivative as state
+    from .tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
 
-# - Consider the servo delay with its model
-from tilt_qd.tilt_qd_servo import NMPCTiltQdServo
-from tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
-from archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
-from archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
+    # - Consider the absolute servo angle command in cost
+    from .archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
 
-from archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
-from tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
+    # - Consider the thrust delay with its model
+    from .tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
 
-# - Consider the thrust delay with its model
-from tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
+    # - Consider the servo & thrust delay with its models
+    from .tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+    from .tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+    from .archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
-# - Consider the servo & thrust delay with its models
-from tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
-from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
-from archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+    # Birotor
+    from .tilt_bi.tilt_bi_servo import NMPCTiltBiServo
+    from .tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
 
-# Birotor
-from tilt_bi.tilt_bi_servo import NMPCTiltBiServo
-from tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
+    # Trirotor
+    from .tilt_tri.tilt_tri_servo import NMPCTiltTriServo
+    from .tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
+    
+except ImportError:
+    # For relative import in script
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_bi")
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_tri")
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
 
-# Trirotor
-from tilt_tri.tilt_tri_servo import NMPCTiltTriServo
-from tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
+    from nmpc_viz import Visualizer
+
+    # Quadrotor
+    import tilt_qd.phys_param_beetle_omni as phys_omni
+    import archive.phys_param_beetle_art as phys_art
+
+    # - Naive models
+    from archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
+    from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
+
+    # - Consider the servo delay with its model
+    from tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+    from tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
+    from archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
+    from archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
+
+    # - Conside servo angle derivative as state
+    from tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
+    
+    # - Consider the absolute servo angle command in cost
+    from archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+
+    # - Consider the thrust delay with its model
+    from tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
+
+    # - Consider the servo & thrust delay with its models
+    from tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+    from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+    from archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+
+    # Birotor
+    from tilt_bi.tilt_bi_servo import NMPCTiltBiServo
+    from tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
+
+    # Trirotor
+    from tilt_tri.tilt_tri_servo import NMPCTiltTriServo
+    from tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
 
 
 def main(args):

@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
-import archive.phys_param_beetle_art as phys_art
+
+try:
+    # For relative import in module
+    from .qd_nmpc_base import QDNMPCBase
+    from ..archive import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    from qd_nmpc_base import QDNMPCBase
+    import archive.phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdNoServo(QDNMPCBase):
@@ -143,6 +149,7 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         ur[:, 7] = a_ref[3]
         
         return xr, ur
+
 
 
 if __name__ == "__main__":

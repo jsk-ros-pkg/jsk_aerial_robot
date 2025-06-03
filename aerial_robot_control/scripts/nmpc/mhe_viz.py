@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import scienceplots
+import scienceplots     # DON'T DELETE, it is used indirectly in matplotlib for fonts
 import matplotlib.pyplot as plt
 import argparse
 

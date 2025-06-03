@@ -1,10 +1,16 @@
-import os, sys
+import os
 from abc import abstractmethod
 import numpy as np
 from acados_template import AcadosOcpSolver
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from rh_base import RecedingHorizonBase
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from rh_base import RecedingHorizonBase
 
 
 class QDMHEBase(RecedingHorizonBase):

@@ -1,21 +1,37 @@
-import sys, os
+import os
 import copy
 import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from nmpc_viz import Visualizer
+try:
+    # For relative import in module
+    from ..nmpc_viz import Visualizer
 
-from sim_fir_differentiator import FIRDifferentiator
+    from .sim_fir_differentiator import FIRDifferentiator
 
-from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
-from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+    from .tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
+    from .tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
-from mhe_wrench_est_momentum import MHEWrenchEstMomentum
-from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-from mhe_wrench_est_new_meas import MHEVelDynIMU
-from mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
+    from .mhe_wrench_est_momentum import MHEWrenchEstMomentum
+    from .mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+    from .mhe_wrench_est_new_meas import MHEVelDynIMU
+    from .mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from nmpc_viz import Visualizer
+
+    from sim_fir_differentiator import FIRDifferentiator
+
+    from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
+    from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+
+    from mhe_wrench_est_momentum import MHEWrenchEstMomentum
+    from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+    from mhe_wrench_est_new_meas import MHEVelDynIMU
+    from mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
 
 np.random.seed(42)
 
