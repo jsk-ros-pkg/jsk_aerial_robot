@@ -889,17 +889,15 @@ void BaseNavigator::generateNewTrajectory(std::vector<geometry_msgs::PoseStamped
 
   agi::QuadState start_state;
   start_state.setZero();
-  tf::Vector3 last_target_pos = getTargetPos();
-  start_state.p = agi::Vector<3>(last_target_pos.x(), last_target_pos.y(), last_target_pos.z());
-  tf::Vector3 last_target_vel = getTargetVel();
-  start_state.v = agi::Vector<3>(last_target_vel.x(), last_target_vel.y(), last_target_vel.z());
-  tf::Vector3 last_target_acc = getTargetAcc();
-  start_state.a = agi::Vector<3>(last_target_acc.x(), last_target_acc.y(), last_target_acc.z());
+  tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  start_state.p = agi::Vector<3>(current_pos.x(), current_pos.y(), current_pos.z());
+  tf::Vector3 current_vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  start_state.v = agi::Vector<3>(current_vel.x(), current_vel.y(), current_vel.z());
 
-  double last_target_yaw_angle = getTargetRPY().z();
-  start_state.setYaw(last_target_yaw_angle);
+  double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+  start_state.setYaw(yaw_angle);
   double last_target_omega_z = getTargetOmega().z();
-  start_state.w(2) = last_target_omega_z;
+  start_state.w(2) = last_target_omega_z; // use target omega z instead of the real omega to avoid the noise
   start_state.t = ros::Time::now().toSec();
   states.push_back(start_state);
 
