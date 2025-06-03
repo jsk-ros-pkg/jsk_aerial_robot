@@ -1,6 +1,11 @@
 import numpy as np
 
-from tilt_qd.phys_param_beetle_omni import *
+try:
+    # For relative import in module
+    from . import phys_param_beetle_omni as phys_omni
+except ImportError:
+    # For relative import in script
+    import phys_param_beetle_omni as phys_omni
 
 
 class FakeSensor:
@@ -20,32 +25,33 @@ class FakeSensor:
         self.include_cog_dist_model = include_cog_dist_model
 
         # Store physical properties
-        self.mass = mass
-        self.gravity = gravity
+        self.phys = phys_omni
+        self.mass = self.phys.mass
+        self.gravity = self.phys.gravity
 
-        self.I = np.diag([Ixx, Iyy, Izz])
-        self.I_inv = np.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        self.g_i = np.array([0, 0, -gravity])
+        self.I = np.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        self.I_inv = np.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        self.g_i = np.array([0, 0, -self.phys.gravity])
 
-        self.dr1 = dr1
-        self.dr2 = dr2
-        self.dr3 = dr3
-        self.dr4 = dr4
-        self.p1_b = p1_b
-        self.p2_b = p2_b
-        self.p3_b = p3_b
-        self.p4_b = p4_b
-        self.kq_d_kt = kq_d_kt
+        self.dr1 = self.phys.dr1
+        self.dr2 = self.phys.dr2
+        self.dr3 = self.phys.dr3
+        self.dr4 = self.phys.dr4
+        self.p1_b = self.phys.p1_b
+        self.p2_b = self.phys.p2_b
+        self.p3_b = self.phys.p3_b
+        self.p4_b = self.phys.p4_b
+        self.kq_d_kt = self.phys.kq_d_kt
 
         # Precompute rotation matrices
-        denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-        self.rot_be1 = np.array([[p1_b[0] / denominator, -p1_b[1] / denominator, 0], [p1_b[1] / denominator, p1_b[0] / denominator, 0], [0, 0, 1]])
-        denominator = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-        self.rot_be2 = np.array([[p2_b[0] / denominator, -p2_b[1] / denominator, 0], [p2_b[1] / denominator, p2_b[0] / denominator, 0], [0, 0, 1]])
-        denominator = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-        self.rot_be3 = np.array([[p3_b[0] / denominator, -p3_b[1] / denominator, 0], [p3_b[1] / denominator, p3_b[0] / denominator, 0], [0, 0, 1]])
-        denominator = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-        self.rot_be4 = np.array([[p4_b[0] / denominator, -p4_b[1] / denominator, 0], [p4_b[1] / denominator, p4_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
+        self.rot_be1 = np.array([[self.phys.p1_b[0] / denominator, -self.phys.p1_b[1] / denominator, 0], [self.phys.p1_b[1] / denominator, self.phys.p1_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
+        self.rot_be2 = np.array([[self.phys.p2_b[0] / denominator, -self.phys.p2_b[1] / denominator, 0], [self.phys.p2_b[1] / denominator, self.phys.p2_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
+        self.rot_be3 = np.array([[self.phys.p3_b[0] / denominator, -self.phys.p3_b[1] / denominator, 0], [self.phys.p3_b[1] / denominator, self.phys.p3_b[0] / denominator, 0], [0, 0, 1]])
+        denominator = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
+        self.rot_be4 = np.array([[self.phys.p4_b[0] / denominator, -self.phys.p4_b[1] / denominator, 0], [self.phys.p4_b[1] / denominator, self.phys.p4_b[0] / denominator, 0], [0, 0, 1]])
 
     def update_acc(self, x):
         # Deconstruct state variable

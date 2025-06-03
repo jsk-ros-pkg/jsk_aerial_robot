@@ -1,16 +1,22 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
-from rh_base import RecedingHorizonBase
-from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
-
-from phys_param_beetle_art import *
-import phys_param_beetle_art as phys
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+    from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    from . import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
+    from rh_base import RecedingHorizonBase
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoDragDist(RecedingHorizonBase):
@@ -27,7 +33,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
 
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_servo_drag_dist_mdl"
 
@@ -124,17 +130,17 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
-        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-        rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-        rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-        rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
+        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-        rot_be4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
+        rot_be4 = np.array([[self.phys.p4_b[0] / den, -self.phys.p4_b[1] / den, 0], [self.phys.p4_b[1] / den, self.phys.p4_b[0] / den, 0], [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -150,24 +156,24 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
         )
 
         # Wrench in Rotor frame
-        dr_a1 = dr1 * a1
-        dr_a2 = dr2 * a2
-        dr_a3 = dr3 * a3
-        dr_a4 = dr4 * a4
-        fd1 = (c4 * dr_a1**4 + c3 * dr_a1**3 + c2 * dr_a1**2 + c1 * dr_a1 + c0) * ft1
-        fd2 = (c4 * dr_a2**4 + c3 * dr_a2**3 + c2 * dr_a2**2 + c1 * dr_a2 + c0) * ft2
-        fd3 = (c4 * dr_a3**4 + c3 * dr_a3**3 + c2 * dr_a3**2 + c1 * dr_a3 + c0) * ft3
-        fd4 = (c4 * dr_a4**4 + c3 * dr_a4**3 + c2 * dr_a4**2 + c1 * dr_a4 + c0) * ft4
+        dr_a1 = self.phys.dr1 * a1
+        dr_a2 = self.phys.dr2 * a2
+        dr_a3 = self.phys.dr3 * a3
+        dr_a4 = self.phys.dr4 * a4
+        fd1 = (self.phys.c4 * dr_a1**4 + self.phys.c3 * dr_a1**3 + self.phys.c2 * dr_a1**2 + self.phys.c1 * dr_a1 + self.phys.c0) * ft1
+        fd2 = (self.phys.c4 * dr_a2**4 + self.phys.c3 * dr_a2**3 + self.phys.c2 * dr_a2**2 + self.phys.c1 * dr_a2 + self.phys.c0) * ft2
+        fd3 = (self.phys.c4 * dr_a3**4 + self.phys.c3 * dr_a3**3 + self.phys.c2 * dr_a3**2 + self.phys.c1 * dr_a3 + self.phys.c0) * ft3
+        fd4 = (self.phys.c4 * dr_a4**4 + self.phys.c3 * dr_a4**3 + self.phys.c2 * dr_a4**2 + self.phys.c1 * dr_a4 + self.phys.c0) * ft4
 
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd2) * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd3) * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd4) * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -self.phys.dr1 * (ft1 - fd1) * self.phys.kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -self.phys.dr2 * (ft2 - fd2) * self.phys.kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -self.phys.dr3 * (ft3 - fd3) * self.phys.kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -self.phys.dr4 * (ft4 - fd4) * self.phys.kq_d_kt)
 
         # Wrench in Body frame
         f_u_b = (
@@ -181,28 +187,28 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
             + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
             + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(self.phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(self.phys.p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        g_i = np.array([0, 0, -gravity])
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        g_i = np.array([0, 0, -self.phys.gravity])
 
 
         # Explicit dynamics
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_disturb_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / self.phys.mass + g_i + f_disturb_i / self.phys.mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b + tau_disturb_b)),
-            (ac - a) / t_servo,
+            (ac - a) / self.phys.t_servo,
         )
         f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
@@ -389,7 +395,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
-        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
+        u_ref[0:4] = self.phys.mass * self.phys.gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref

@@ -1,13 +1,21 @@
-import sys, os
+import os
 import copy
 import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from nmpc_viz import Visualizer
-from sim_fir_differentiator import FIRDifferentiator
-from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+try:
+    # For relative import in module
+    from ..nmpc_viz import Visualizer
+    from .sim_fir_differentiator import FIRDifferentiator
+    from .tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from nmpc_viz import Visualizer
+    from sim_fir_differentiator import FIRDifferentiator
+    from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
 np.random.seed(42)
 

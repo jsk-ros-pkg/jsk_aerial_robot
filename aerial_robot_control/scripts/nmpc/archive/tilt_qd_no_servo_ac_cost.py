@@ -2,8 +2,17 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
-import archive.phys_param_beetle_art as phys_art
+
+try:
+    # For relative import in module
+    from ..tilt_qd.qd_nmpc_base import QDNMPCBase
+    from . import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tilt_qd.qd_nmpc_base import QDNMPCBase
+    import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdNoServoAcCost(QDNMPCBase):
@@ -18,7 +27,6 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
     def __init__(self, overwrite: bool = False, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_no_servo_ac_cost_mdl"
-        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -42,6 +50,9 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
         # Specific to this implementation:
         # Use previous servo angle command as reference
         self.a1c_prev, self.a2c_prev, self.a3c_prev, self.a4c_prev = 0, 0, 0, 0
+
+        # Load robot specific parameters
+        self.phys = phys
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServoAcCost.yaml")

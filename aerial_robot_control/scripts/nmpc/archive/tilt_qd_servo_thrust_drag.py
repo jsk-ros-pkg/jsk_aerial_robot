@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
-from rh_base import RecedingHorizonBase
-from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
-
-import phys_param_beetle_art as phys_art
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+    from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    from . import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
+    from rh_base import RecedingHorizonBase
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoThrustDrag(RecedingHorizonBase):
@@ -29,7 +36,6 @@ class NMPCTiltQdServoThrustDrag(RecedingHorizonBase):
     def __init__(self, overwrite: bool = False, phys=phys_art):
         # Store model name
         self.model_name = "tilt_qd_servo_thrust_drag_mdl"
-        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #

@@ -1,14 +1,22 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from rh_base import RecedingHorizonBase
-from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-import archive.phys_param_beetle_art as phys     # Define physical parameters
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+    from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    from ..archive import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from rh_base import RecedingHorizonBase
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    from archive import phys_param_beetle_art as phys_art
 
 
 class NMPCFixQdAngvelOut(RecedingHorizonBase):
@@ -21,10 +29,10 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     is the only one to not have the angular velocity as state and instead has it defined as control input.
     Therefore, it differs fundamentally in the model and solver. 
     """
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, phys=phys_art):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCBodyRate.yaml")
-        self.phys = phys
+        self.phys = phys_art
 
         # Create acados model & solver and generate c code
         super().__init__("nmpc", overwrite)
@@ -68,7 +76,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
             vz,
             2 * (qx * qz + qw * qy) * f_u_b,
             2 * (qy * qz - qw * qx) * f_u_b,
-            (1 - 2 * qx**2 - 2 * qy**2) * f_u_b - phys.gravity,
+            (1 - 2 * qx**2 - 2 * qy**2) * f_u_b - self.phys.gravity,
             (-wx * qx - wy * qy - wz * qz) * 0.5,
             (wx * qw + wz * qy - wy * qz) * 0.5,
             (wy * qw - wz * qx + wx * qz) * 0.5,

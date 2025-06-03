@@ -3,13 +3,20 @@
 import numpy as np
 from acados_template import AcadosModel
 import casadi as ca
-from qd_mhe_base import QDMHEBase
 
-from tilt_qd.phys_param_beetle_omni import *
+try:
+    # For relative import in module
+    from .qd_mhe_base import QDMHEBase
+    from . import phys_param_beetle_omni as phys_omni
+except ImportError:
+    # For relative import in script
+    from qd_mhe_base import QDMHEBase
+    import phys_param_beetle_omni as phys_omni
 
 
 class MHEVelDynIMU(QDMHEBase):
     def __init__(self):
+        self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom2.yaml")
 
@@ -60,14 +67,14 @@ class MHEVelDynIMU(QDMHEBase):
 
         # Sensor function
         measurements = ca.vertcat(
-            (f_u_b + ca.mtimes(rot_bw, fds_w)) / mass,
+            (f_u_b + ca.mtimes(rot_bw, fds_w)) / self.phys.mass,
             omega_b
             )
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        
         # dynamic model
         ds = ca.vertcat(
             ca.mtimes(I_inv, (-ca.cross(omega_b, ca.mtimes(I, omega_b)) + tau_u_b + tau_ds_b)),

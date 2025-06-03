@@ -1,13 +1,19 @@
-import os, sys
+import os
 from abc import abstractmethod
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-# Add parent directory to path to allow relative imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from rh_base import RecedingHorizonBase
-from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+    from .qd_reference_generator import QDNMPCReferenceGenerator
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from rh_base import RecedingHorizonBase
+    from qd_reference_generator import QDNMPCReferenceGenerator
 
 
 class QDNMPCBase(RecedingHorizonBase):
@@ -81,20 +87,20 @@ class QDNMPCBase(RecedingHorizonBase):
         # Standard state-space (Note: store in self to access for cost function in child controller class)
         self.x = ca.SX.sym("x")  # Position
         self.y = ca.SX.sym("y")
-        self.z = ca.SX.sym("z");
+        self.z = ca.SX.sym("z")
         self.p = ca.vertcat(self.x, self.y, self.z)
         self.vx = ca.SX.sym("vx")  # Linear velocity
         self.vy = ca.SX.sym("vy")
-        self.vz = ca.SX.sym("vz");
+        self.vz = ca.SX.sym("vz")
         self.v = ca.vertcat(self.vx, self.vy, self.vz)
         self.qw = ca.SX.sym("qw")  # Quaternions
         self.qx = ca.SX.sym("qx")
         self.qy = ca.SX.sym("qy")
-        self.qz = ca.SX.sym("qz");
+        self.qz = ca.SX.sym("qz")
         self.q = ca.vertcat(self.qw, self.qx, self.qy, self.qz)
         self.wx = ca.SX.sym("wx")  # Angular velocity
         self.wy = ca.SX.sym("wy")
-        self.wz = ca.SX.sym("wz");
+        self.wz = ca.SX.sym("wz")
         self.w = ca.vertcat(self.wx, self.wy, self.wz)
         states = ca.vertcat(self.p, self.v, self.q, self.w)
 
@@ -261,14 +267,14 @@ class QDNMPCBase(RecedingHorizonBase):
             # If servo dynamics are modeled, use angle state.
             # Else use angle control which is then assumed to be equal to the angle state at all times.
             if self.include_servo_model:
-                a1 = self.a1s;
-                a2 = self.a2s;
-                a3 = self.a3s;
+                a1 = self.a1s
+                a2 = self.a2s
+                a3 = self.a3s
                 a4 = self.a4s
             else:
-                a1 = self.a1c;
-                a2 = self.a2c;
-                a3 = self.a3c;
+                a1 = self.a1c
+                a2 = self.a2c
+                a3 = self.a3c
                 a4 = self.a4c
 
             rot_e1r1 = ca.vertcat(
@@ -284,23 +290,23 @@ class QDNMPCBase(RecedingHorizonBase):
                 ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
             )
         else:
-            rot_e1r1 = ca.SX.eye(3);
-            rot_e2r2 = ca.SX.eye(3);
-            rot_e3r3 = ca.SX.eye(3);
+            rot_e1r1 = ca.SX.eye(3)
+            rot_e2r2 = ca.SX.eye(3)
+            rot_e3r3 = ca.SX.eye(3)
             rot_e4r4 = ca.SX.eye(3)
 
         # Wrench in Rotor frame
         # If rotor dynamics are modeled, explicitly use thrust state as force.
         # Else use thrust control which is then assumed to be equal to the thrust state at all times.
         if self.include_thrust_model:
-            ft1 = self.ft1s;
-            ft2 = self.ft2s;
-            ft3 = self.ft3s;
+            ft1 = self.ft1s
+            ft2 = self.ft2s
+            ft3 = self.ft3s
             ft4 = self.ft4s
         else:
-            ft1 = self.ft1c;
-            ft2 = self.ft2c;
-            ft3 = self.ft3c;
+            ft1 = self.ft1c
+            ft2 = self.ft2c
+            ft3 = self.ft3c
             ft4 = self.ft4c
 
         ft_r1 = ca.vertcat(0, 0, ft1)
