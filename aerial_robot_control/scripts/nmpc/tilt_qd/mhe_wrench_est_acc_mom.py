@@ -15,12 +15,12 @@ except ImportError:
 
 
 class MHEWrenchEstAccMom(QDMHEBase):
-    def __init__(self):
+    def __init__(self, overwrite: bool = False):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom.yaml")
 
-        super(MHEWrenchEstAccMom, self).__init__()
+        super().__init__(overwrite)
 
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -126,7 +126,8 @@ class MHEWrenchEstAccMom(QDMHEBase):
         
 
 if __name__ == "__main__":
-    mhe = MHEWrenchEstAccMom()
+    overwrite = True
+    mhe = MHEWrenchEstAccMom(overwrite)
 
     acados_ocp_solver = mhe.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

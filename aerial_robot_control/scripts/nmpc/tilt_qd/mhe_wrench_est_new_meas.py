@@ -15,12 +15,12 @@ except ImportError:
 
 
 class MHEVelDynIMU(QDMHEBase):
-    def __init__(self):
+    def __init__(self, overwrite: bool = False):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom2.yaml")
 
-        super(MHEVelDynIMU, self).__init__()
+        super().__init__(overwrite)
 
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -151,7 +151,8 @@ class MHEVelDynIMU(QDMHEBase):
 
 
 if __name__ == "__main__":
-    mhe = MHEVelDynIMU()
+    overwrite = True
+    mhe = MHEVelDynIMU(overwrite)
 
     acados_ocp_solver = mhe.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

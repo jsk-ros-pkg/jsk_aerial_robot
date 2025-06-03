@@ -78,30 +78,65 @@ class RecedingHorizonBase(ABC):
         # Make a directory for generating cpp files of the acados model and solver
         # 'method' is either "nmpc" or "wrench_est"
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method,
-                                   model_name)
+        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", 
+                                   method, model_name)
         safe_mkdir_recursive(folder_path, overwrite)
         os.chdir(folder_path)   # Change working directory to the model folder (also affects inheritted classes)
 
-def safe_mkdir_recursive(directory, overwrite=False):
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directory):
-                pass
-            else:
-                raise
-    else:
-        if overwrite:
+def safe_mkdir_recursive(directory, overwrite: bool = False):
+    """
+    Safely create a directory recursively, optionally overwriting it if it already exists.
+    :param directory: Absoulte path of the directory to create.
+    :param overwrite: If True, overwrite the directory if it already exists. Default: False
+    """
+    if overwrite:
+        # Delete existing directory
+        if os.path.exists(directory):
             try:
-                shutil.rmtree(directory)
-                try:
-                    os.makedirs(directory)
-                except OSError as exc:
-                    if exc.errno == errno.EEXIST and os.path.isdir(directory):
-                        pass
-                    else:
-                        raise
-            except:
-                print("Error while removing directory {}".format(directory))
+                # Only remove auto-generated files, not the directory itself
+                for _, dirs, files in os.walk(directory):
+                    for file in files:
+                        file_path = os.path.join(directory, file)
+                        if os.path.isfile(file_path) and not (file_path.endswith("solver.h") or file_path.endswith("controller.h")):
+                            os.remove(file_path)
+                    for dir in dirs:
+                        dir_path = os.path.join(directory, dir)
+                        if os.path.isdir(dir_path):
+                            shutil.rmtree(dir_path)
+            except Exception as e:
+                print(f"Error while removing directory {directory}:")
+                raise e
+        # Create new directory
+        os.makedirs(directory, exist_ok=True)
+    else:
+        if not os.path.exists(directory):
+            try:
+                # Create new directory
+                os.makedirs(directory)
+            except OSError as e:
+                # Check if directory unexpectedly already exists (may happen if multiple
+                # processes try to read/create it at the same time)
+                if e.errno == errno.EEXIST and os.path.isdir(directory):
+                    pass
+                else:
+                    raise e
+        else:
+            # Check if directory only contains non-auto-generated files
+            empty = True
+            for _, dirs, files in os.walk(directory):
+                for file in files:
+                    file_path = os.path.join(directory, file)
+                    if os.path.isfile(file_path) and not (file_path.endswith("solver.h") or file_path.endswith("controller.h")):
+                        empty = False
+                for dir in dirs:
+                    dir_path = os.path.join(directory, dir)
+                    if os.path.isdir(dir_path):
+                        empty = False
+            if not empty:
+                # Directory already exists and contains controller files
+                print(f"Directory {directory} already exists. Set 'overwrite' to True to overwrite it.")
+                # Skip further processing and exit program
+                sys.exit()
+            else:
+                # Directory exists but not auto-generated files
+                pass

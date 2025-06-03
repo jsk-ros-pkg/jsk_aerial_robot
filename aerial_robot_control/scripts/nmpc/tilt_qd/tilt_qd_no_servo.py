@@ -151,8 +151,9 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         return xr, ur
 
 
-if __name__ == "__main__" or __package__ == '':
-    overwrite = False
+
+if __name__ == "__main__":
+    overwrite = True
     nmpc = NMPCTiltQdNoServo(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
