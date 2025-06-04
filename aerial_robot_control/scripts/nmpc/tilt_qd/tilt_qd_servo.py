@@ -159,7 +159,7 @@ class NMPCTiltQdServo(QDNMPCBase):
 
 
 if __name__ == "__main__":
-    overwrite = False
+    overwrite = True
     nmpc = NMPCTiltQdServo(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()

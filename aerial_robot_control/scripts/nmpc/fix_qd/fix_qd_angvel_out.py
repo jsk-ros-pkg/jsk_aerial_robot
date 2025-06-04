@@ -224,7 +224,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
 if __name__ == "__main__":
     # Call controller class to generate c code
-    overwrite = False
+    overwrite = True
     nmpc = NMPCFixQdAngvelOut(overwrite)
 
     print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())

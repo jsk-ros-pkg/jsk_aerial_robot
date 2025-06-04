@@ -214,7 +214,7 @@ class MHEKinematics(RecedingHorizonBase):
 
 if __name__ == "__main__":
     # Call MHE class to generate c code
-    overwrite = False
+    overwrite = True
     mhe = MHEKinematics(overwrite)
 
     acados_ocp_solver = mhe.get_ocp_solver()

@@ -445,7 +445,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
 
 if __name__ == "__main__":
-    overwrite = False
+    overwrite = True
     nmpc = NMPCTiltBi2OrdServo(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()
