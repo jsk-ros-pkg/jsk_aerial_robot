@@ -2,8 +2,17 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
-from archive import phys_param_beetle_art as phys_art
+
+try:
+    # For relative import in module
+    from .qd_nmpc_base import QDNMPCBase
+    from ..archive import phys_param_beetle_art as phys_art
+except ImportError:
+    # For relative import in script
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tilt_qd.qd_nmpc_base import QDNMPCBase
+    import archive.phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdThrust(QDNMPCBase):
@@ -160,7 +169,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
 
 
 if __name__ == "__main__":
-    overwrite = True
+    overwrite = False
     nmpc = NMPCTiltQdThrust(overwrite)
 
     acados_ocp_solver = nmpc.get_ocp_solver()

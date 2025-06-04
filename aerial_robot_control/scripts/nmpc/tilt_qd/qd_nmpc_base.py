@@ -1,13 +1,19 @@
-import os, sys
+import os
 from abc import abstractmethod
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-# Add parent directory to path to allow relative imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from rh_base import RecedingHorizonBase
-from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+try:
+    # For relative import in module
+    from ..rh_base import RecedingHorizonBase
+    from .qd_reference_generator import QDNMPCReferenceGenerator
+except ImportError:
+    # For relative import in script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from rh_base import RecedingHorizonBase
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
 
 class QDNMPCBase(RecedingHorizonBase):

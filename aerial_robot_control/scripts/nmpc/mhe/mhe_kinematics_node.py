@@ -3,7 +3,15 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped, TwistStamped, AccelStamped
 from spinal.msg import Imu
-from mhe_kinematics import MHEKinematics
+
+try:
+    # For relative import in module
+    from .mhe_kinematics import MHEKinematics
+except ImportError:
+    # For relative import in script
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from mhe.mhe_kinematics import MHEKinematics
 
 # TODO why run ros node in python? -> convert this file to cpp and move out of 'scripts/' folder. 
 
