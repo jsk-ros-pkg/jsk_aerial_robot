@@ -51,7 +51,8 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
     sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
 
-    from nmpc_viz import Visualizer
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from nmpc.nmpc_viz import Visualizer
 
     # Quadrotor
     import tilt_qd.phys_param_beetle_omni as phys_omni
