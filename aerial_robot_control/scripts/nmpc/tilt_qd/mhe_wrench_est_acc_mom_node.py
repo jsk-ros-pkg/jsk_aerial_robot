@@ -3,26 +3,20 @@
  Created by li-jinjie on 24-12-15.
 '''
 
-import os
-import yaml
-import rospy
-import rospkg
 import numpy as np
+from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+import rospy
 from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 
-try:
-    # For relative import in module
-    from .mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-    from .qd_reference_generator import QDNMPCReferenceGenerator
-    from . import phys_param_beetle_omni as phys_omni
-except ImportError:
-    # For relative import in script
-    from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-    from qd_reference_generator import QDNMPCReferenceGenerator
-    import phys_param_beetle_omni as phys_omni
+from qd_reference_generator import QDNMPCReferenceGenerator
 
+from tilt_qd import phys_param_beetle_omni as phys_omni
+
+import rospkg
+import yaml
+import os
 
 # read parameters from yaml
 rospack = rospkg.RosPack()

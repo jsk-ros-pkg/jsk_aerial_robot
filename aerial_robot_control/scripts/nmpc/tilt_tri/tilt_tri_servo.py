@@ -1,29 +1,22 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os
+import os, sys
 import numpy as np
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-try:
-    # For relative import in package
-    from ..rh_base import RecedingHorizonBase
-    from .tri_reference_generator import TriNMPCReferenceGenerator
-    from . import phys_param_trirotor as phys_tri
-except ImportError:
-    # For relative import in script
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from rh_base import RecedingHorizonBase
-    from tri_reference_generator import TriNMPCReferenceGenerator
-    import phys_param_trirotor as phys_tri
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+from tri_reference_generator import TriNMPCReferenceGenerator
+from rh_base import RecedingHorizonBase
+
+import phys_param_trirotor as phys
 
 
 class NMPCTiltTriServo(RecedingHorizonBase):
     def __init__(self, overwrite: bool = False):
         # Model name
         self.model_name = "tilt_tri_servo_mdl"
-        self.phys = phys_tri
+        self.phys = phys
 
         self.tilt = True
         self.include_servo_model = True
