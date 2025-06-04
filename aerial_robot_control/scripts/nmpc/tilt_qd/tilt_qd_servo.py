@@ -2,15 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
-try:
-    # For relative import in module
-    from .qd_nmpc_base import QDNMPCBase
-    from ..archive import phys_param_beetle_art as phys_art
-except ImportError:
-    # For relative import in script
-    from qd_nmpc_base import QDNMPCBase
-    import archive.phys_param_beetle_art as phys_art
+from qd_nmpc_base import QDNMPCBase
+import archive.phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServo(QDNMPCBase):

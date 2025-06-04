@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os
+import os, sys
 import numpy as np
-import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+import casadi as ca
 
-try:
-    # For relative import in module
-    from ..rh_base import RecedingHorizonBase
-    from .bi_reference_generator import BINMPCReferenceGenerator
-    from . import phys_param_birotor as phys_bi
-except ImportError:
-    # For relative import in script
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from rh_base import RecedingHorizonBase
-    from bi_reference_generator import BINMPCReferenceGenerator
-    import phys_param_birotor as phys_bi
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+from bi_reference_generator import BINMPCReferenceGenerator
+from rh_base import RecedingHorizonBase
+
+import phys_param_birotor as phys
 
 
 class NMPCTiltBi2OrdServo(RecedingHorizonBase):
@@ -44,7 +37,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         self.include_impedance = False
 
         # Load robot specific parameters
-        self.phys = phys_bi
+        self.phys = phys
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltBi2OrdRotorNMPC.yaml")

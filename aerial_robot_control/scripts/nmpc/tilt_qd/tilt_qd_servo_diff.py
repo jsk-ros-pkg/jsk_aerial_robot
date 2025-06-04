@@ -2,15 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
-try:
-    # For relative import in module
-    from .qd_nmpc_base import QDNMPCBase
-    from . import phys_param_beetle_omni as phys_omni
-except ImportError:
-    # For relative import in script
-    from qd_nmpc_base import QDNMPCBase
-    import phys_param_beetle_omni as phys_omni
+from qd_nmpc_base import QDNMPCBase
+from tilt_qd import phys_param_beetle_omni as phys_omni
 
 
 class NMPCTiltQdServoDiff(QDNMPCBase):

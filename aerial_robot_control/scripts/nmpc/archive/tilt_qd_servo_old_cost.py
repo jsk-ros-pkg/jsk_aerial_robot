@@ -1,18 +1,12 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
+import os, sys
 import numpy as np
 import casadi as ca
 
-try:
-    # For relative import in module
-    from ..tilt_qd.qd_nmpc_base import QDNMPCBase
-    from . import phys_param_beetle_art as phys_art
-except ImportError:
-    # For relative import in script
-    import os, sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from tilt_qd.qd_nmpc_base import QDNMPCBase
-    import phys_param_beetle_art as phys_art
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
+from tilt_qd.qd_nmpc_base import QDNMPCBase
+
 
 class NMPCTiltQdServoOldCost(QDNMPCBase):
     """
@@ -23,9 +17,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False, phys = phys_art):
+    def __init__(self, overwrite: bool = False):
         # Model name
-        self.model_name = "tilt_qd_servo_old_cost_mdl"
+        model_name = "tilt_qd_servo_old_cost_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -45,15 +39,12 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-
-        # Load robot specific parameters
-        self.phys = phys
-
+        
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCServoOldCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__(model_name, overwrite)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function

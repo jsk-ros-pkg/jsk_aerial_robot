@@ -1,18 +1,11 @@
-import os
+import os, sys
 import numpy as np
-import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver
+import casadi as ca
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+from rh_base import RecedingHorizonBase
 
-try:
-    # For relative import in module
-    from ..rh_base import RecedingHorizonBase
-    from ..tilt_qd import phys_param_beetle_omni as pyhs_omni
-except ImportError:
-    # For relative import in script
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
-    from rh_base import RecedingHorizonBase
-    import tilt_qd.phys_param_beetle_omni as pyhs_omni
+from tilt_qd.phys_param_beetle_omni import *        # Define physical parameters
 
 
 class MHEKinematics(RecedingHorizonBase):
@@ -31,7 +24,6 @@ class MHEKinematics(RecedingHorizonBase):
     def create_acados_model(self) -> AcadosModel:
         # Model name
         model_name = "mhe_kinematics_mdl"
-        self.pyhs = pyhs_omni
         
         # Model states
         p = ca.SX.sym("p", 3)           # World frame
@@ -73,7 +65,7 @@ class MHEKinematics(RecedingHorizonBase):
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         # Gravity
-        g_w = np.array([0, 0, -self.pyhs.gravity])
+        g_w = np.array([0, 0, -gravity])
 
         # Explicit dynamics
         ds = ca.vertcat(
