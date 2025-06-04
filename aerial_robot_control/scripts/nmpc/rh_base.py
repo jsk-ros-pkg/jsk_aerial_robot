@@ -19,7 +19,7 @@ class RecedingHorizonBase(ABC):
         self._acados_model = self.create_acados_model()
         self._create_acados_ocp()
         self._mkdir(method, self._acados_model.name, overwrite)
-        self._ocp_solver = self.create_acados_ocp_solver()  # Goes into child class's implementation
+        self._ocp_solver = self.create_acados_ocp_solver()
 
     def read_params(self, mode, method, robot_package, file_name):
         # Read parameters from configuration file in the robot's package

@@ -25,7 +25,7 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
         # TODO: currently world radius is used as sample area ontop of current position so could sample outside of the "world area"
         
         # Add offset to current position
-        target_pos = current_pos + np.array([x, y, z]).reshape((1, 3))
+        target_pos = current_pos + np.array([x, y, z]).reshape((3))
         target_vel = np.array([0, 0, 0])    # Fixed linear velocity
 
         # Set fixed quaternions

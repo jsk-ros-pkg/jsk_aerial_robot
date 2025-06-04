@@ -1,6 +1,8 @@
 
 class MLP():
     def __init__(self):
+        """
+        """
         mlp_conf = {'approximated': False, 'v_inp': True, 'u_inp': False, 'T_out': False, 'ground_map_input': False,
                     'torque_output': False, 'two_step_rti': False}
         directory, file_name = get_model_dir_and_file(load_ops)

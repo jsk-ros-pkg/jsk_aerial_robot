@@ -20,7 +20,7 @@ import matplotlib.animation as animation
 from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 from matplotlib.colorbar import ColorbarBase
 from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
 
 from config.configuration_parameters import DirectoryConfig as PathConfig
 from src.utils.utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q, safe_mknode_recursive, \
@@ -326,11 +326,12 @@ def initialize_drone_plotter(world_rad, quad_rad, n_props, full_traj=None):
     fig.canvas.draw()
     plt.draw()
 
-    # cache the background
+    # Cache the background
     background = fig.canvas.copy_from_bbox(ax.bbox)
 
     artists = {
-        "trajectory": ax.plot([], [])[0], "drone": ax.plot([], [], 'o-')[0],
+        "trajectory": ax.plot([], [])[0], 
+        "drone": ax.plot([], [], 'o-')[0],
         "drone_x": ax.plot([], [], 'o-', color='r')[0],
         "missing_targets": ax.plot([], [], [], color='r', marker='o', linestyle='None', markersize=12)[0],
         "reached_targets": ax.plot([], [], [], color='g', marker='o', linestyle='None', markersize=12)[0],
@@ -374,48 +375,38 @@ def draw_drone_simulation(art_pack, x_trajectory, quad, targets, targets_reached
     def draw_fading_traj(traj, traj_artists):
         traj = np.squeeze(np.array(traj))
         for j in range(min(traj.shape[0] - 1, len(traj_artists))):
-            traj_artists[j].set_data([traj[j, 0], traj[j + 1, 0]], [traj[j, 1], traj[j + 1, 1]])
-            traj_artists[j].set_3d_properties([traj[j, 2], traj[j + 1, 2]])
+            traj_artists[j].set_data_3d([traj[j, 0], traj[j + 1, 0]], [traj[j, 1], traj[j + 1, 1]], [traj[j, 2], traj[j + 1, 2]])
 
     # Draw missing and reached targets
     if targets is not None and targets_reached is not None:
         reached = targets[targets_reached, :]
         reached = reached[-2:, :]
         missing = targets[targets_reached == False, :]
-        reached_targets_artist.set_data(reached[:, 0], reached[:, 1])
-        reached_targets_artist.set_3d_properties(reached[:, 2])
-        targets_artist.set_data(missing[:, 0], missing[:, 1])
-        targets_artist.set_3d_properties(missing[:, 2])
+        reached_targets_artist.set_data_3d(reached[:, 0], reached[:, 1], reached[:, 2])
+        targets_artist.set_data_3d(missing[:, 0], missing[:, 1], missing[:, 2])
         ax.draw_artist(targets_artist)
         ax.draw_artist(reached_targets_artist)
 
         # Draw projected target
         if missing.any():
-            projected_tar_artists[0].set_data([missing[0, 0]], [ax.get_ylim()[1]])
-            projected_tar_artists[0].set_3d_properties([missing[0, 2]])
-            projected_tar_artists[1].set_data([ax.get_xlim()[0]], [missing[0, 1]])
-            projected_tar_artists[1].set_3d_properties([missing[0, 2]])
+            projected_tar_artists[0].set_data_3d([missing[0, 0]], [ax.get_ylim()[1]], [missing[0, 2]])
+            projected_tar_artists[1].set_data_3d([ax.get_xlim()[0]], [missing[0, 1]], [missing[0, 2]])
             [ax.draw_artist(projected_tar_artist) for projected_tar_artist in projected_tar_artists]
 
     # Draw quadrotor trajectory
     trajectory_start_pt = max(len(x_trajectory) - 100, 0)
-    trajectories_artist.set_data(x_trajectory[trajectory_start_pt:, 0], x_trajectory[trajectory_start_pt:, 1])
-    trajectories_artist.set_3d_properties(x_trajectory[trajectory_start_pt:, 2])
+    trajectories_artist.set_data_3d(x_trajectory[trajectory_start_pt:, 0], x_trajectory[trajectory_start_pt:, 1], x_trajectory[trajectory_start_pt:, 2])
     ax.draw_artist(trajectories_artist)
 
     # Draw projected trajectory
-    projected_traj_artists[0].set_data(x_trajectory[trajectory_start_pt:, 0], ax.get_ylim()[1])
-    projected_traj_artists[0].set_3d_properties(x_trajectory[trajectory_start_pt:, 2])
-    projected_traj_artists[1].set_data(ax.get_xlim()[0], x_trajectory[trajectory_start_pt:, 1])
-    projected_traj_artists[1].set_3d_properties(x_trajectory[trajectory_start_pt:, 2])
+    projected_traj_artists[0].set_data_3d(x_trajectory[trajectory_start_pt:, 0], ax.get_ylim()[1], x_trajectory[trajectory_start_pt:, 2])
+    projected_traj_artists[1].set_data_3d(ax.get_xlim()[0], x_trajectory[trajectory_start_pt:, 1], x_trajectory[trajectory_start_pt:, 2])
     [ax.draw_artist(projected_traj_artist) for projected_traj_artist in projected_traj_artists]
 
     # Draw drone art
     drone_art = draw_drone(x_trajectory[-1, 0:3], x_trajectory[-1, 3:7], quad.x_f, quad.y_f)
-    drone_sketch_artist_x_motor.set_data(drone_art[0][0], drone_art[1][0])
-    drone_sketch_artist_x_motor.set_3d_properties(drone_art[2][0])
-    drone_sketch_artist.set_data(drone_art[0], drone_art[1])
-    drone_sketch_artist.set_3d_properties(drone_art[2])
+    drone_sketch_artist_x_motor.set_data_3d(drone_art[0][0], drone_art[1][0], drone_art[2][0])
+    drone_sketch_artist.set_data_3d(drone_art)
     ax.draw_artist(drone_sketch_artist)
     ax.draw_artist(drone_sketch_artist_x_motor)
 
@@ -443,8 +434,9 @@ def draw_drone_simulation(art_pack, x_trajectory, quad, targets, targets_reached
             center = pred_traj[i+1, 0:3]
             radii = np.diag(np.array([x_std[i], y_std[i], z_std[i]]))
             x, y, z = draw_covariance_ellipsoid(center, radii)
-            cov_artist.set_data(x, y)
-            cov_artist.set_3d_properties(z)
+            cov_artist.set_data_3d(x, y, z)
+            # cov_artist.set_data(x, y)
+            # cov_artist.set_3d_properties(z)
         for cov_artist in cov_artists:
             ax.draw_artist(cov_artist)
 

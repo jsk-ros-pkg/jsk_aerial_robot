@@ -11,16 +11,16 @@ import ml_casadi.torch as mc
 from config.configuration_parameters import DirectoryConfig
 
 
-def make_blank_dict(state_dim):
+def make_blank_dict(target_dim, state_dim, input_dim):
     blank_recording_dict = {
         "timestamp": np.zeros((0, 1)),
         "simulation_time": np.zeros((0, 1)),
-        "target": np.zeros((0, state_dim)),
+        "target": np.zeros((0, target_dim)),
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
-        "state_pred": np.zeros((0, state_dim)),
-        "error": np.zeros((0, state_dim)),
-        "input": np.zeros((0, 4)),
+        # "state_pred": np.zeros((0, state_dim)),
+        # "error": np.zeros((0, state_dim)),
+        "input": np.zeros((0, input_dim)),
     }
     return blank_recording_dict
 
@@ -70,7 +70,7 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite):
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-def store_recording_data(rec_dict, state_curr, x_pred, u_cmd, simulation_time):
+def store_recording_data(rec_dict, simulation_time, state_curr, x_pred, u_cmd):
     """
     Store the data in the recording dictionary in place.
     :param rec_dict: Dictionary to store the data
@@ -80,12 +80,12 @@ def store_recording_data(rec_dict, state_curr, x_pred, u_cmd, simulation_time):
     :param simulation_time: Simulation time
     """
     rec_dict["simulation_time"] = np.append(rec_dict["simulation_time"], simulation_time)
-    rec_dict["input"] = np.append(rec_dict["input"], u_cmd[np.newaxis, :4], axis=0)
-    rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr, 0)
+    rec_dict["input"] = np.append(rec_dict["input"], u_cmd[np.newaxis, :], axis=0)
+    rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
 
     if x_pred is not None:
         error = state_curr - x_pred
-        rec_dict["error"] = np.append(rec_dict["error"], error, axis=0)
+        rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
 
 def write_recording_data(rec_dict, rec_file):
@@ -101,12 +101,11 @@ def write_recording_data(rec_dict, rec_file):
     df = pd.DataFrame(rec_dict)
     df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
 
-def get_recording_dict_and_file(recording_options, state_dim, sim_options, overwrite=True):
+def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_dim, sim_options, overwrite=True):
     dataset_name = recording_options["dataset_name"]
-    training_split = recording_options["training_split"]
 
     # Directory and file name for data recording
-    rec_file_dir, rec_file_name = get_data_dir_and_file(dataset_name, training_split, sim_options)
+    rec_file_dir, rec_file_name = get_data_dir_and_file(dataset_name, recording_options["split"], sim_options)
     rec_file = os.path.join(rec_file_dir, rec_file_name)
 
     # Recursively create the storing directory path
@@ -114,7 +113,7 @@ def get_recording_dict_and_file(recording_options, state_dim, sim_options, overw
 
     # Create empty recording dictionary
     # TODO shouldn't we load the existing data if file exists?
-    rec_dict = make_blank_dict(state_dim)
+    rec_dict = make_blank_dict(target_dim, state_dim, input_dim)
     # Generate new CSV to store data in
     rec_json = dict()
     if is_blank:
@@ -126,11 +125,11 @@ def get_recording_dict_and_file(recording_options, state_dim, sim_options, overw
 
     return rec_dict, rec_file
 
-def get_data_dir_and_file(ds_name, training_split, params, read_only=False):
+def get_data_dir_and_file(ds_name, split, params, read_only=False):
     """
     Returns the directory and file name where to store the next simulation-based dataset.
     :param ds_name: Name of the dataset
-    :param training_split: If True, the dataset is for training. If False, it is for testing.
+    :param split: Either "train" or "test" depending on the dataset usecase.
     :param params: Dictionary with the parameters of the dataset
     :param read_only: If True, the function will not create any directories or files. It will only return the
     directory and file name.
@@ -140,7 +139,9 @@ def get_data_dir_and_file(ds_name, training_split, params, read_only=False):
     # Data folder directory
     data_dir = DirectoryConfig.DATA_DIR
 
-    split = "train" if training_split else "test"
+    # Dataset split sanity check
+    if not (split == "train" or split == "test"):
+        raise ValueError("Split must be either 'train' or 'test'.")
 
     # Check if current dataset folder already exists and store any recorded datasets. Create it otherwise
     dataset_dir = os.path.join(data_dir, ds_name, split)
