@@ -14,8 +14,8 @@ except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from nmpc_viz import Visualizer
-    from sim_fir_differentiator import FIRDifferentiator
-    from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+    from tilt_qd.sim_fir_differentiator import FIRDifferentiator
+    from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
 np.random.seed(42)
 

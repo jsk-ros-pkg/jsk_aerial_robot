@@ -15,8 +15,8 @@ except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from rh_base import RecedingHorizonBase
-    from tri_reference_generator import TriNMPCReferenceGenerator
-    import phys_param_trirotor as phys_tri
+    from tilt_tri.tri_reference_generator import TriNMPCReferenceGenerator
+    import tilt_tri.phys_param_trirotor as phys_tri
 
 
 class NMPCTiltTriServoDist(RecedingHorizonBase):

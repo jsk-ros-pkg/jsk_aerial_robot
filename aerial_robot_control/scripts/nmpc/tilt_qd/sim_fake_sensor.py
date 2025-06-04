@@ -5,7 +5,9 @@ try:
     from . import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
-    import phys_param_beetle_omni as phys_omni
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import tilt_qd.phys_param_beetle_omni as phys_omni
 
 
 class FakeSensor:

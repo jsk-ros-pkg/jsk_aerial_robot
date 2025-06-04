@@ -23,15 +23,15 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from nmpc_viz import Visualizer
 
-    from sim_fir_differentiator import FIRDifferentiator
+    from tilt_qd.sim_fir_differentiator import FIRDifferentiator
 
-    from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
-    from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+    from tilt_qd.tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
+    from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
-    from mhe_wrench_est_momentum import MHEWrenchEstMomentum
-    from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-    from mhe_wrench_est_new_meas import MHEVelDynIMU
-    from mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
+    from tilt_qd.mhe_wrench_est_momentum import MHEWrenchEstMomentum
+    from tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+    from tilt_qd.mhe_wrench_est_new_meas import MHEVelDynIMU
+    from tilt_qd.mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
 
 np.random.seed(42)
 

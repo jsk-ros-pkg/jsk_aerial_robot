@@ -16,7 +16,7 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
     from rh_base import RecedingHorizonBase
     from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
-    import phys_param_beetle_art as phys_art
+    import archive.phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoThrustDrag(RecedingHorizonBase):

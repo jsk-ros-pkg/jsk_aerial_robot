@@ -10,8 +10,10 @@ try:
     from . import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
-    from qd_mhe_base import QDMHEBase
-    import phys_param_beetle_omni as phys_omni
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tilt_qd.qd_mhe_base import QDMHEBase
+    import tilt_qd.phys_param_beetle_omni as phys_omni
 
 
 class MHEWrenchEstIMUAct(QDMHEBase):

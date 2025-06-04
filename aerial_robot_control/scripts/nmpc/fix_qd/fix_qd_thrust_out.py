@@ -12,7 +12,7 @@ except ImportError:
     import os, sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # For import from sibling directory
     from tilt_qd.qd_nmpc_base import QDNMPCBase
-    import phys_param_mini_qd as phys_mini_qd
+    import fix_qd.phys_param_mini_qd as phys_mini_qd
 
 
 class NMPCFixQdThrustOut(QDNMPCBase):

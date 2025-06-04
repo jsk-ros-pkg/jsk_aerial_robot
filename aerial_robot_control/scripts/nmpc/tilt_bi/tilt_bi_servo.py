@@ -15,8 +15,8 @@ except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from rh_base import RecedingHorizonBase
-    from bi_reference_generator import BINMPCReferenceGenerator
-    import phys_param_birotor as phys_bi
+    from tilt_bi.bi_reference_generator import BINMPCReferenceGenerator
+    import tilt_bi.phys_param_birotor as phys_bi
 
 
 class NMPCTiltBiServo(RecedingHorizonBase):

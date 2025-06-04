@@ -19,9 +19,11 @@ try:
     from . import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
-    from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-    from qd_reference_generator import QDNMPCReferenceGenerator
-    import phys_param_beetle_omni as phys_omni
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    import tilt_qd.phys_param_beetle_omni as phys_omni
 
 
 # read parameters from yaml

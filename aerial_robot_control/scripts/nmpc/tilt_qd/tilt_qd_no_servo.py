@@ -9,7 +9,9 @@ try:
     from ..archive import phys_param_beetle_art as phys_art
 except ImportError:
     # For relative import in script
-    from qd_nmpc_base import QDNMPCBase
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tilt_qd.qd_nmpc_base import QDNMPCBase
     import archive.phys_param_beetle_art as phys_art
 
 

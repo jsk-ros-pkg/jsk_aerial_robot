@@ -13,7 +13,7 @@ except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from rh_base import RecedingHorizonBase
-    from qd_reference_generator import QDNMPCReferenceGenerator
+    from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
 
 class QDNMPCBase(RecedingHorizonBase):
