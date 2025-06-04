@@ -38,8 +38,6 @@ def main(model_options, recording_options, sim_options, parameters):
 
     # Solver
     ocp_solver = rtnmpc.get_ocp_solver()
-    sim_solver = rtnmpc.create_acados_sim_solver()
-
     # Reference generator
     reference_generator = rtnmpc.get_reference_generator()
 

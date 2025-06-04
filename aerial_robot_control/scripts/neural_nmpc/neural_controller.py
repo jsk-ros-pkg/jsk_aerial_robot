@@ -38,6 +38,8 @@ class NeuralNMPC():
         self.map_properties()
         # Add neural network model to nominal model
         self.extend_acados_model()
+        # Create sim solver for the extended model
+        self.sim_solver = self.create_acados_sim_solver()
     
 
     def setup(self, model_name="aerial_robot", 
