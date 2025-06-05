@@ -14,13 +14,13 @@ from config.configuration_parameters import DirectoryConfig
 def make_blank_dict(target_dim, state_dim, input_dim):
     blank_recording_dict = {
         "timestamp": np.zeros((0, 1)),
-        "simulation_time": np.zeros((0, 1)),
+        "comp_time": np.zeros((0, 1)),
         "target": np.zeros((0, target_dim)),
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
-        # "state_pred": np.zeros((0, state_dim)),
-        # "error": np.zeros((0, state_dim)),
-        "input": np.zeros((0, input_dim)),
+        "state_pred": np.zeros((0, state_dim)),
+        "error": np.zeros((0, state_dim)),
+        "control": np.zeros((0, input_dim)),
     }
     return blank_recording_dict
 
@@ -70,17 +70,14 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite):
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-def store_recording_data(rec_dict, simulation_time, state_curr, x_pred, u_cmd):
+def store_recording_data(rec_dict, state_curr, x_pred, u_cmd):
     """
     Store the data in the recording dictionary in place.
     :param rec_dict: Dictionary to store the data
     :param state_curr: Current state of the system in NMPC
     :param x_pred: Predicted state of the system in NMPC
-    :param u_cmd: Last commanded input
-    :param simulation_time: Simulation time
+    :param u_cmd: Last commanded control input
     """
-    rec_dict["simulation_time"] = np.append(rec_dict["simulation_time"], simulation_time)
-    rec_dict["input"] = np.append(rec_dict["input"], u_cmd[np.newaxis, :], axis=0)
     rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
 
     if x_pred is not None:
@@ -90,7 +87,7 @@ def store_recording_data(rec_dict, simulation_time, state_curr, x_pred, u_cmd):
 
 def write_recording_data(rec_dict, rec_file):
     # Current target was reached - remove incomplete recordings
-    if len(rec_dict["state_in"]) > len(rec_dict["input"]):
+    if len(rec_dict["state_in"]) > len(rec_dict["control"]):
         rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
         rec_dict["target"] = rec_dict["target"][:-1]
         rec_dict["state_in"] = rec_dict["state_in"][:-1]

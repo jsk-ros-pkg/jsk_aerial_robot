@@ -9,18 +9,18 @@ from neural_nmpc.mlp import MLP
 from neural_nmpc.config.configuration_parameters import ModelConfig
 from nmpc.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
 from nmpc.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
-from nmpc.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+from nmpc.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 
 
 class NeuralNMPC():
-    def __init__(self, model_options, simulation_dt=5e-4,
+    def __init__(self, model_options, T_sim=0.005,
                  pre_trained_model=None, 
                  solver_options=None, rdrv_d_mat=None):
         # TODO: Introduce approximated MLP
         # TODO: Add GP regressor
         # TODO: Load / save trained model -> overwrite model
         """
-        :param simulation_dt: Discretized time-step for the aerial robot simulation
+        :param T_sim: Discretized time-step for the aerial robot simulation
         :param model_options: Dictionary containing model options, such as architecture type
         :param pre_trained_model: Pre-trained MLP to be combined with nominal model in MPC framework
         :param solver_options: Set of additional options dictionary for acados solver
@@ -28,21 +28,25 @@ class NeuralNMPC():
                            according to Faessler et al. 2018
         """
         # Nominal model and solver
-        if model_options["arch_type"] == "tilt_bi":
+        # TODO avoid building solver twice with flag
+        self.arch_type = model_options["arch_type"]
+        if self.arch_type == "tilt_bi":
             self.nmpc = NMPCTiltBiServo()
-        elif model_options["arch_type"] == "tilt_tri":
+        elif self.arch_type == "tilt_tri":
             self.nmpc = NMPCTiltTriServo()
-        elif model_options["arch_type"] == "tilt_qd":
-            self.nmpc = NMPCTiltQdServo()
+        elif self.arch_type == "tilt_qd":
+            self.nmpc = NMPCTiltQdServoThrust()
         else:
             raise ValueError("Invalid architecture type specified.")
 
         # Get OCP object from NMPC
         self.ocp = self.nmpc.get_ocp()
+        self.T_samp = self.nmpc.params["T_samp"]            # Sampling time for the NMPC controller, i.e., time step between two successive optimizations
         self.T_horizon = self.nmpc.params["T_horizon"]      # Time horizon for optimization loop in MPC controller
         self.N = self.nmpc.params["N_steps"]                # Number of MPC nodes
-        self.optimization_dt = self.nmpc.params["T_step"]   # Time step between two successive optimizations
-        self.simulation_dt = simulation_dt                  # TODO set somewhere else! Discretized time-step for the aerial robot simulation
+        self.T_step = self.nmpc.params["T_step"]   # Step size used in optimization loop in MPC controller
+        # TODO set somewhere else and by default set to T_samp/2
+        self.T_sim = T_sim                  # TODO set somewhere else! Discretized time-step for the aerial robot simulation
         
         # Get OCP model from NMPC TODO implement drag correction with RDRv
         self.nominal_model = self.nmpc.get_acados_model()
@@ -315,21 +319,37 @@ class NeuralNMPC():
     #     return w_opt_acados if not return_x else (w_opt_acados, x_opt_acados)
 
     # =========================================================
-    def simulate(self, state_curr_sim, u_cmd, i):
+    
+    def simulate_trajectory(self):
         """
-        Simulate the plant with the optimized control input sequence.
-        :param state_curr_sim: Current state of the plant to be simulated.
-        :param u_cmd: Control input command sequence to be applied to the plant.
-        :param i: Index of the current simulation step.
+        Simulate trajectory using optimal control sequence from the OCP solver.
         """
-        self.sim_solver.set("x", state_curr_sim)
-        self.sim_solver.set("u", u_cmd)
+        # Number of steps in the OCP
+        N = self.ocp_solver.acados_ocp.dims.N
+        
+        # Get all control inputs from OCP solution
+        u_sequence = np.array([self.ocp_solver.get(i, "u") for i in range(N)])
 
-        status = self.sim_solver.solve()
-        if status != 0:
-            raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
-
-        return self.sim_solver.get("x")
+        # Get initial state
+        state_curr = self.sim_solver.get("x")
+        
+        # Simulate forward
+        x_traj = np.zeros((N + 1, state_curr.shape[0]))
+        x_traj[0, :] = state_curr
+        
+        for n in range(N):
+            self.sim_solver.set("x", state_curr)
+            self.sim_solver.set("u", u_sequence[n])
+            
+            status = self.sim_solver.solve()
+            if status != 0:
+                print(f"Round {n}: acados ocp_solver returned status {self.sim_solver.status}. Exiting.")
+                return 
+                
+            state_curr = self.sim_solver.get("x")
+            x_traj[n + 1, :] = state_curr
+        
+        return x_traj
 
     def load_controller(self):
         """
@@ -404,7 +424,36 @@ class NeuralNMPC():
         self.nmpc.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
         acados_sim.parameter_values = self.nmpc.acados_init_p
 
-        acados_sim.solver_options.T = self.simulation_dt
+        # Set the horizon for the simulation
+        acados_sim.solver_options.T = self.T_sim
+        acados_sim.solver_options.num_steps = 1     # Default TODO think about increasing this to increase accuracy
+
+        # Generate solver
         json_file_path = os.path.join("./" + self.acados_model.name + "_acados_sim.json")
         self.sim_solver = AcadosSimSolver(acados_sim, json_file=json_file_path, build=True)
         print("Generated C code for sim solver successfully to " + os.getcwd())
+
+    def check_constraints(self, u_cmd):
+        """
+        Check if the control input command u_cmd respects the constraints of the system.
+        :param u_cmd: Control input command.
+        """
+        if np.any(u_cmd[:4]) < self.nmpc.params["thrust_min"] or np.any(u_cmd[:4]) > self.nmpc.params["thrust_max"]:
+            print(f"=== Control thrust input violates constraints: {u_cmd[:4]} ===")
+            raise ValueError("Control thrust input violates constraints.")
+        if u_cmd.shape[0] > 4:
+            if np.any(u_cmd[4:]) < self.nmpc.params["a_min"] or np.any(u_cmd[4:]) > self.nmpc.params["a_max"]:
+                print(f"=== Control servo angle input violates constraints: {u_cmd[4:]} ===")
+                raise ValueError("Control servo angle input violates constraints.")
+            
+    def get_rotor_positions(self):
+        """
+        Get the positions of the rotors in the body frame.
+        :return: 3x4 matrix containing the positions of the rotors in the body frame.
+        """
+        if self.arch_type == "tilt_bi":
+            return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b])
+        elif self.arch_type == "tilt_tri":
+            return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b, self.nmpc.phys.p3_b])
+        elif self.arch_type == "tilt_qd":
+            return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b, self.nmpc.phys.p3_b, self.nmpc.phys.p4_b])

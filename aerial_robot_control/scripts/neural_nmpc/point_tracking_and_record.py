@@ -2,15 +2,16 @@ import sys
 import time
 import argparse
 import numpy as np
-import casadi as cs
 
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, store_recording_data, write_recording_data
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import euclidean_dist
-from utils.visualization_utils import draw_drone_simulation, initialize_drone_plotter
+from utils.visualization_utils import initialize_animation, animate_robot
 from config.configuration_parameters import SimpleSimConfig
 from neural_controller import NeuralNMPC
 
+
+np.random.seed(123)  # Set seed for reproducibility
 
 def main(model_options, recording_options, sim_options, parameters):
     """
@@ -26,7 +27,7 @@ def main(model_options, recording_options, sim_options, parameters):
     MODEL_ID = 0
     version = None
     name = None
-    simulation_dt = 0.005  # or 0.001
+    T_sim = 0.005  # or 0.001
     # ------------------------
     
     # --- Initialize controller ---
@@ -35,7 +36,7 @@ def main(model_options, recording_options, sim_options, parameters):
         rtnmpc = NeuralNMPC.load_controller(model_options=model_options)
     else:
         # Create blank NMPC object
-        rtnmpc = NeuralNMPC(model_options, simulation_dt=simulation_dt,
+        rtnmpc = NeuralNMPC(model_options, T_sim=T_sim,
                             pre_trained_model=None, solver_options=None)
 
     # Solver
@@ -48,19 +49,22 @@ def main(model_options, recording_options, sim_options, parameters):
     # Recover some necessary variables from the NMPC object
     nx = rtnmpc.acados_model.x.shape[0]
     nu = rtnmpc.acados_model.u.shape[0]
-    n_nodes = rtnmpc.N
+    N = rtnmpc.N
     T_horizon = rtnmpc.T_horizon
-    simulation_dt = rtnmpc.simulation_dt
-    reference_over_sampling = 1     # TODO what is this?
-    control_period = T_horizon / (n_nodes * reference_over_sampling)    # TODO what is this?
+    T_samp = rtnmpc.T_samp  # Time step for the control loop
+    T_sim = rtnmpc.T_sim    # Simulation dt
+    # reference_over_sampling = 1     # TODO what is this?
+    # control_period = T_horizon / (N * reference_over_sampling)    # The time period between two control inputs
 
     # Sanity check: The optimization should be faster or equal than the duration of the optimization time step
-    assert control_period <= T_horizon / n_nodes # TODO implement with real time duration?
+    assert T_samp <= T_horizon / N
+    assert T_samp >= T_sim
 
     # --- Set initial state ---
     if parameters["initial_state"] is None:
+        # state = [p, v, q, w, (a and or t and or ds)]
         state_curr = np.zeros(nx)
-        state_curr[4] = 1    # Real quaternion
+        state_curr[6] = 1.0     # Real quaternion
     else:
         state_curr = parameters["initial_state"]
     state_curr_sim = state_curr.copy()
@@ -76,7 +80,8 @@ def main(model_options, recording_options, sim_options, parameters):
     # --- Prepare recording ---
     recording = recording_options["recording"]
     if recording:
-        # TODO: create empty or get preloaded dict and filepath to store
+        # Create an empty dict or get a pre-recorded dict and filepath to store
+        # TODO actually able to use a pre-recorded dict? And if so make it overwriteable
         rec_dict, rec_file = get_recording_dict_and_file(recording_options, targets[0].size, nx, nu, sim_options)
 
         if sim_options["real_time_plot"]:
@@ -86,29 +91,27 @@ def main(model_options, recording_options, sim_options, parameters):
     # --- Real time plot ---
     # Real time plot params TODO set elsewhere
     plot_sim_traj = False
-    quad_trajectory = np.array(state_curr).reshape(1, -1)
+    
     
     # Generate necessary art pack for real time plot
     if sim_options["real_time_plot"]:
-        real_time_art_pack = initialize_drone_plotter(n_props=None, quad_rad=None,
-                                                      world_rad=sim_options["world_radius"])
+        art_pack = initialize_animation(world_rad=sim_options["world_radius"], n_properties=N)
+        trajectory_history = state_curr[np.newaxis, :]
+        rotor_positions = rtnmpc.get_rotor_positions()
     else:
-        real_time_art_pack = None
+        art_pack = None
 
-    # --- Set up simulation ---    
-    # Initialize variables for first iteration
-    start_time = time.time()
-    simulation_time = 0.0
-    # initial_guess = parameters["initial_guess"]
+    # --- Set up simulation ---
     # state_pred = None
     u_cmd = None
 
     # Cap simulation if emergency recovery is needed
-    i = 0
+    i = 0; j = 0
+    t_now = 0.0             # Total virtual time in seconds
     
     # --------- Targets loop ---------
     print("Targets reached: ", end='')
-    while False in targets_reached:# and (time.time() - start_time) < sim_options["max_sim_time"]:
+    while False in targets_reached:
         # --- Set current target ---
         current_target_idx = np.where(targets_reached == False)[0][0]
         current_target = targets[current_target_idx]
@@ -140,44 +143,54 @@ def main(model_options, recording_options, sim_options, parameters):
         # Track targets in solver
         rtnmpc.track(xr, ur) # TODO implement
 
-        # # --- Set initial guess ---
-        # # Provide a new initial guess when changing target
-        # # TODO fix initial guess? not very sensible rn
-        # if initial_guess is None:
-        #     initial_guess = rtnmpc.optimize()
+        # --- Set initial guess ---
+        # TODO set initial guess to prev iteration?
+        # TODO Provide a new initial guess when changing target
 
         # --------- NMPC loop ---------
-        while not current_target_reached:# and (time.time() - start_time) < sim_options["max_sim_time"]:
+        while not current_target_reached:
 
             # --- Emergency recovery --- (quad controller gone out of control lol)
-            if np.any(state_curr[7:10] > 14) or i > 100: # TODO why check quaternions to be > 14?
+            if np.any(state_curr[7:10] > 14) or i > 500: # TODO why check quaternions to be > 14?
                 print("===== Emergency recovery triggered!!! =====")
                 print("Iteration: ", i, " | Current state: ", state_curr)
                 i = 0
-                ocp_solver.set("x", current_target)
-                sim_solver.set("x", current_target)
+                ocp_solver.set("x", np.pad(current_target, (0,nx - current_target.size)))
+                sim_solver.set("x", np.pad(current_target, (0,nx - current_target.size)))
 
             # --- Get current state ---
             # state_curr = ocp_solver.get(0, "x")
-            state_curr = sim_solver.get("x")
-
-            # --- Record time, target, current state and last optimized input ---
-            if recording:
-                rec_dict["timestamp"] = np.append(rec_dict["timestamp"], time.time() - start_time)
-                rec_dict["target"] = np.append(rec_dict["target"], current_target[np.newaxis, :], axis=0)
-                rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
-                if simulation_time != 0.0:
-                    state_pred = None # TODO fix
-                    store_recording_data(rec_dict, simulation_time, state_curr, state_pred, u_cmd)
+            if u_cmd is not None:
+                # Basically don't overwrite initial state
+                state_curr = sim_solver.get("x")
+            else:
+                # Set initial state in solver
+                sim_solver.set("x", state_curr)
 
             # --- Optimize control input ---
             # Compute control feedback and take the first action
+            comp_time = time.time()
             try:
                 u_cmd = ocp_solver.solve_for_x0(state_curr)
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
                 # TODO try to recover from this
                 raise e
+            comp_time = time.time() - comp_time
+
+            # --- Sanity check constraints ---
+            rtnmpc.check_constraints(u_cmd)
+
+            # --- Record time, target, current state and last optimized input ---
+            if recording:
+                rec_dict["timestamp"] = np.append(rec_dict["timestamp"], t_now)
+                rec_dict["comp_time"] = np.append(rec_dict["comp_time"], comp_time)
+                rec_dict["target"] = np.append(rec_dict["target"], current_target[np.newaxis, :], axis=0)
+                rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
+                rec_dict["control"] = np.append(rec_dict["control"], u_cmd[np.newaxis, :], axis=0)
+                if j != 0:
+                    state_pred = ocp_solver.get(0, "x") # TODO fix
+                    store_recording_data(rec_dict, state_curr, state_pred, u_cmd)
 
             # # Select first input (one for each motor) - MPC applies only first optimized input to the plant
             # ref_u = np.squeeze(np.array(u_cmd[:4]))
@@ -199,21 +212,41 @@ def main(model_options, recording_options, sim_options, parameters):
             #                                       T_horizon=control_period, use_gp=False)
             #     state_pred = state_pred[-1, :]
 
-            # # --- Plot realtime ---
-            # if sim_options["real_time_plot"]:
-            #     state_traj_sim = rtnmpc.simulate(state_curr, u_cmd, T_horizon=T_horizon)
-            #     draw_drone_simulation(real_time_art_pack, quad_trajectory, my_quad, targets,
-            #                           targets_reached, x_sim, x_int, state_pred_horizon, follow_quad=False)
+            # --- Plot realtime ---
+            if sim_options["real_time_plot"]:
+                trajectory_pred = rtnmpc.simulate_trajectory()
+                animate_robot(art_pack, targets, targets_reached, state_curr,
+                              trajectory_pred, trajectory_history,
+                              rotor_positions, follow_robot=False)
 
             # --- Simulate forward ---
             # Simulate with the optimized input until the next time step of the control period is reached
+            # Note: Pretend to run simulation in parallel to the control loop
+            # i.e., the control loop has no effect on the simulation loop execution times
+            # Simply trigger new control optimization after simulating for T_samp seconds
             simulation_time = 0.0
-            while simulation_time < control_period:
+            j = 0
+            state_curr_sim = state_curr.copy()  # TODO kind of redundant
+            while simulation_time <= T_samp:
                 # Simulation runtime (inner loop)
-                simulation_time += simulation_dt
+                simulation_time += T_sim
+                # --- Increment virutal time ---
+                # ASSUMPTION: Simulation time is exactly euqal to real time
+                # i.e., the simulation has a zero runtime
+                # This is somewhat realistic since in the real machine
+                # the simulation (i.e. measurement + estimation) is run
+                # in parallel to the real-time control loop.
+                # Increment global time at every simulation step since the 
+                # control loop runs in parallel and is assumpted to be idle at some times
+                t_now += T_sim
 
                 # Simulate
-                state_curr_sim = rtnmpc.simulate(state_curr_sim, u_cmd, i)
+                try:
+                    state_curr_sim = sim_solver.simulate(x=state_curr_sim, u=u_cmd)
+                except Exception as e:
+                    print(f"Round {i}.{j}: acados ocp_solver returned status {sim_solver.status}. Exiting.")
+                    # TODO try to recover from this
+                    raise e
 
                 # Target check
                 if euclidean_dist(current_target[:3], state_curr[:3], thresh=0.05):
@@ -226,10 +259,10 @@ def main(model_options, recording_options, sim_options, parameters):
                         #                               use_gp=False)
                         # state_pred = state_pred[-1, :]
                         # -> log pred state
-                        store_recording_data(rec_dict, simulation_time, ocp_solver.get("x"), sim_solver.get("x"), u_cmd)
+                        store_recording_data(rec_dict, simulation_time, sim_solver.get("x"), ocp_solver.get(0, "x"), u_cmd)
 
                     # Reset optimization count and time -> Trigger new optimization for next target in next dt
-                    i = 0
+                    i = 0; j = 0
                     simulation_time = 0.0
 
                     # Mark current target as reached
@@ -243,19 +276,24 @@ def main(model_options, recording_options, sim_options, parameters):
                     if parameters["preset_targets"] is None:
                         new_target = sample_random_target(state_curr[:3], sim_options["world_radius"],
                                                           aggressive=recording_options["aggressive"])
-                        targets.extend(new_target)
-                        targets_reached.append(False)
+                        targets = np.append(targets, new_target, axis=0)
+                        targets_reached = np.append(targets_reached, False)
                     break
-
-            # --- Set break condition ---
+                # --- Increment simulation step ---
+                j += 1
+            # --- Increment control step ---
             i += 1
 
-            # # TODO what happens here?
-            # if sim_options["real_time_plot"]:
-            #     quad_trajectory = np.append(quad_trajectory, state_curr.T, axis=0)
-            #     if len(quad_trajectory) > 300:
-            #         quad_trajectory = np.delete(quad_trajectory, 0, 0)
+            # --- Break condition for the inner loop ---
+            if t_now >= sim_options["max_sim_time"]:
+                break
 
+            # --- Log trajectory for real-time plot ---
+            if sim_options["real_time_plot"]:
+                trajectory_history = np.append(trajectory_history, state_curr[np.newaxis, :], axis=0)
+                if len(trajectory_history) > 300:
+                    trajectory_history = np.delete(trajectory_history, obj=0, axis=0) # Delete first logged state
+        
         # --- Save data ---
         # Current target reached!
         if recording:
@@ -263,6 +301,10 @@ def main(model_options, recording_options, sim_options, parameters):
             write_recording_data(rec_dict, rec_file)
             # Reset storage
             rec_dict = make_blank_dict(targets[0].size, nx, nu)
+        
+        # --- Break condition for the outer loop ---
+        if t_now >= sim_options["max_sim_time"]:
+            break
 
 """
 if __name__ == '__main__':
@@ -351,15 +393,15 @@ if __name__ == '__main__':
             "reg_type": "mlp"
         },
         "recording_options": {
-            "recording": True,
+            "recording": False,
             "dataset_name": "test_dataset",
             "split": "train",
             "aggressive": True  # TODO for now always use aggressive targets
         },
         "sim_options": {
             "disturbances": SimpleSimConfig.simulation_disturbances,
-            "real_time_plot": False,
-            "max_sim_time": 300,
+            "real_time_plot": True,
+            "max_sim_time": 30,
             "world_radius": 3
         },
         "parameters": {

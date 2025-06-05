@@ -33,7 +33,7 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
         target_omega = np.array([0, 0, 0])  # Fixed angular velocity
 
         # Append quaternions to target position
-        return [np.concatenate((target_pos, target_vel, target_quat, target_omega))]
+        return np.concatenate((target_pos, target_vel, target_quat, target_omega))[np.newaxis, :]
 
     else:
         # Sample random target position
@@ -45,4 +45,4 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
         target_omega = np.array([0, 0, 0])  # Fixed angular velocity
 
         # Append quaternions to target position
-        return [np.concatenate((target_pos, target_vel, target_quat, target_omega))]
+        return np.concatenate((target_pos, target_vel, target_quat, target_omega))[np.newaxis, :]
