@@ -209,15 +209,15 @@ class NeuralNMPC():
         for j in range(self.ocp_solver.N):
             yr = np.concatenate((xr[j, :], ur[j, :]))
             self.ocp_solver.set(j, "yref", yr)
-            quaternion_r = xr[j, 6:10]
-            self.nmpc.acados_init_p[0:4] = quaternion_r
+            quaternion_ref = xr[j, 6:10]
+            self.nmpc.acados_init_p[0:4] = quaternion_ref
             self.ocp_solver.set(j, "p", self.nmpc.acados_init_p)                # For nonlinear quaternion error
 
         # N
         yr = xr[self.ocp_solver.N, :]
         self.ocp_solver.set(self.ocp_solver.N, "yref", yr)
-        quaternion_r = xr[self.ocp_solver.N, 6:10]
-        self.nmpc.acados_init_p[0:4] = quaternion_r
+        quaternion_ref = xr[self.ocp_solver.N, 6:10]
+        self.nmpc.acados_init_p[0:4] = quaternion_ref
         self.ocp_solver.set(self.ocp_solver.N, "p", self.nmpc.acados_init_p)    # For nonlinear quaternion error
 
     # def run_optimization(self):

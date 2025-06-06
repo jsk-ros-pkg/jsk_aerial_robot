@@ -70,27 +70,29 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite):
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-def store_recording_data(rec_dict, state_curr, x_pred, u_cmd):
-    """
-    Store the data in the recording dictionary in place.
-    :param rec_dict: Dictionary to store the data
-    :param state_curr: Current state of the system in NMPC
-    :param x_pred: Predicted state of the system in NMPC
-    :param u_cmd: Last commanded control input
-    """
-    rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
+# def store_recording_data(rec_dict, state_curr, x_pred):
+#     """
+#     Store the data in the recording dictionary in place.
+#     :param rec_dict: Dictionary to store the data
+#     :param state_curr: Current state of the system in NMPC
+#     :param x_pred: Predicted state of the system in NMPC
+#     :param u_cmd: Last commanded control input
+#     """
+#     rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
 
-    if x_pred is not None:
-        error = state_curr - x_pred
-        rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
-        rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
+#     if x_pred is not None:
+#         error = state_curr - x_pred
+#         rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
+#         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
 
 def write_recording_data(rec_dict, rec_file):
-    # Current target was reached - remove incomplete recordings
-    if len(rec_dict["state_in"]) > len(rec_dict["control"]):
-        rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
-        rec_dict["target"] = rec_dict["target"][:-1]
-        rec_dict["state_in"] = rec_dict["state_in"][:-1]
+    # # Current target was reached - remove incomplete recordings
+    # if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
+    #     rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
+    #     rec_dict["comp_time"] = rec_dict["comp_time"][:-1]
+    #     rec_dict["target"] = rec_dict["target"][:-1]
+    #     rec_dict["state_in"] = rec_dict["state_in"][:-1]
+    #     rec_dict["control"] = rec_dict["control"][:-1]
 
     for key in rec_dict.keys():
         rec_dict[key] = jsonify(rec_dict[key])

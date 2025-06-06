@@ -118,3 +118,6 @@ tags
 *.csv
 *dataset/train/metadata.json
 *dataset/test/metadata.json
+
+# Videos
+*.mp4

@@ -11,38 +11,54 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
     :return: List of a single randomly sampled target point as a 3-dimensional numpy array.
     """
     if aggressive:
-        # TODO 'aggressive' is not correct terminology
+        max_attempts = 100
+        min_distance = 1 * world_radius
+        
+        for _ in range(max_attempts):
+            # Generate random point uniformly in sphere
+            theta = np.random.uniform(0, 2 * np.pi)
+            phi = np.random.uniform(0, np.pi)
+            u = np.random.uniform(0, 1)
+            
+            # Uniform distribution in sphere
+            r = world_radius * (u ** (1/3))  # Cube root for uniform volume distribution
+            
+            x = r * np.sin(phi) * np.cos(theta)
+            y = r * np.sin(phi) * np.sin(theta)  
+            z = r * np.cos(phi)
+            
+            target_pos = np.array([x, y, z])
+            
+            # Check if far enough from current position
+            if np.linalg.norm(target_pos - current_pos) >= min_distance:
+                break
+        
+        # Fallback: If final target_pos is outside sphere, project it back
+        if np.linalg.norm(target_pos) > world_radius:
+            target_pos = target_pos / np.linalg.norm(target_pos) * world_radius * 0.95
+    
+        # # Polar coordinates
+        # theta = np.random.uniform(0, 2 * np.pi, 1)
+        # phi = np.random.uniform(0, 2 * np.pi, 1)
+        # r = 1 * world_radius + np.random.uniform(-0.5, 0.5, 1) * world_radius
 
-        # Polar coordinates
-        theta = np.random.uniform(0, 2 * np.pi, 1)
-        psi = np.random.uniform(0, 2 * np.pi, 1)
-        r = 1 * world_radius + np.random.uniform(-0.5, 0.5, 1) * world_radius
-
-        # Transform to Cartesian
-        x = r * np.sin(theta) * np.cos(psi)
-        y = r * np.sin(theta) * np.sin(psi)
-        z = r * np.cos(theta)
-        # TODO: currently world radius is used as sample area ontop of current position so could sample outside of the "world area"
+        # # Transform to Cartesian
+        # x = r * np.sin(theta) * np.cos(phi)
+        # y = r * np.sin(theta) * np.sin(phi)
+        # z = r * np.cos(theta)
+        # # TODO: currently world radius is used as sample area ontop of current position so could sample outside of the "world area"
         
         # Add offset to current position
-        target_pos = current_pos + np.array([x, y, z]).reshape((3))
-        target_vel = np.array([0, 0, 0])    # Fixed linear velocity
-
-        # Set fixed quaternions
-        target_quat = np.array([1, 0, 0, 0])
-        target_omega = np.array([0, 0, 0])  # Fixed angular velocity
-
-        # Append quaternions to target position
-        return np.concatenate((target_pos, target_vel, target_quat, target_omega))[np.newaxis, :]
+        # target_pos = current_pos + np.array([x, y, z]).reshape((3))
 
     else:
         # Sample random target position
         target_pos = np.random.uniform(-world_radius, world_radius, (1, 3))
-        target_vel = np.array([0, 0, 0])    # Fixed linear velocity
 
-        # Set fixed quaternions
-        target_quat = np.array([[1, 0, 0, 0], [0, 0, 0], [0, 0, 0]])
-        target_omega = np.array([0, 0, 0])  # Fixed angular velocity
+    # Set fixed velocity, rotation and angular vel
+    target_vel = np.array([0, 0, 0])
+    target_rot = np.array([0, 0, 0])
+    target_omega = np.array([0, 0, 0])
 
-        # Append quaternions to target position
-        return np.concatenate((target_pos, target_vel, target_quat, target_omega))[np.newaxis, :]
+    # Append quaternions to target position
+    return np.concatenate((target_pos, target_vel, target_rot, target_omega))[np.newaxis, :]

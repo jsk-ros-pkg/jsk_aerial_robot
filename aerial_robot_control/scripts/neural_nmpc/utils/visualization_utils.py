@@ -22,20 +22,30 @@ import matplotlib.pyplot as plt
 # from matplotlib.colorbar import ColorbarBase
 # from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
+import matplotlib.animation as animation
 
 # from config.configuration_parameters import DirectoryConfig as PathConfig
 from utils.geometry_utils import v_dot_q
 
+frames = []
 
-def initialize_animation(world_rad, n_properties):
+def initialize_plotter(world_rad, n_properties):
     """
     Initializes the real-time 3D plot for the robot simulation.
     :param world_rad: Radius of the world in meters.
     :param n_properties: Number of properties to visualize.
     :param full_traj: Optional full trajectory to plot as a dashed line.
+    
+    Setup figure size based on resolution
+    resolution_settings = {
+        '720p': {'figsize': (12.8, 7.2), 'dpi': 100, 'bitrate': 3000},
+        '1080p': {'figsize': (19.2, 10.8), 'dpi': 100, 'bitrate': 5000},
+        '1440p': {'figsize': (25.6, 14.4), 'dpi': 100, 'bitrate': 8000},
+        '4k': {'figsize': (38.4, 21.6), 'dpi': 100, 'bitrate': 15000}
+    }
     """
     # Set size, aspect ratio and resolution
-    fig = plt.figure(figsize=(10, 10), dpi=96)
+    fig = plt.figure(figsize=(12.8, 7.2), dpi=300)
     fig.show()
 
     mng = plt.get_current_fig_manager()
@@ -74,17 +84,19 @@ def initialize_animation(world_rad, n_properties):
         "prop_covariance": [ax.plot([], [], [], color='r', alpha=0.5 - i * 0.45 / n_properties)[0]
                             for i in range(n_properties)],
         "projection_traj": [ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0],
-                             ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0]],
+                            ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0],
+                            ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0]],
         "projection_target": [ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0],
+                              ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0],
                               ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0]]}
 
     art_pack = fig, ax, artists, background, world_rad
     return art_pack
 
 
-def animate_robot(art_pack, targets, targets_reached,
+def draw_robot(art_pack, targets, targets_reached,
                   state_curr, trajectory_pred, trajectory_history,
-                  rotor_positions, follow_robot=False):
+                  rotor_positions, follow_robot=False, animation=False):
     """
     Animates the robot's state, previous and predicted trajectories, and their projections in a 3D plot.
     :param art_pack: Tuple containing the figure, axis, artists, background, and world radius.
@@ -95,6 +107,7 @@ def animate_robot(art_pack, targets, targets_reached,
     :param trajectory_history: History of the robot's trajectory.
     :param rotor_positions: Positions of the rotors in the robot's body frame.
     :param follow_robot: If True, the view will follow the robot's position.
+    :param animation: If True, record each frame for animation
     """
     # Unpack the art_pack
     fig, ax, artists, background, world_rad = art_pack
@@ -129,8 +142,9 @@ def animate_robot(art_pack, targets, targets_reached,
         # Draw projected target
         if missing.any():
             # Project first/next missing target onto the x-y axes
-            projection_target_artists[0].set_data_3d([missing[0, 0]], [ax.get_ylim()[1]], [missing[0, 2]])
-            projection_target_artists[1].set_data_3d([ax.get_xlim()[0]], [missing[0, 1]], [missing[0, 2]])
+            projection_target_artists[0].set_data_3d([ax.get_xlim()[0]], [missing[0, 1]], [missing[0, 2]])
+            projection_target_artists[1].set_data_3d([missing[0, 0]], [ax.get_ylim()[1]], [missing[0, 2]])
+            projection_target_artists[2].set_data_3d([missing[0, 0]], [missing[0, 1]], [ax.get_zlim()[0]])
             [ax.draw_artist(projected_tar_artist) for projected_tar_artist in projection_target_artists]
 
     # Draw robot art
@@ -148,12 +162,15 @@ def animate_robot(art_pack, targets, targets_reached,
     ax.draw_artist(trajectories_artist)
 
     # Draw previous trajectory projections
-    projected_traj_artists[0].set_data_3d(trajectory_history[trajectory_start_pt:, 0],
-                                          ax.get_ylim()[1],
-                                          trajectory_history[trajectory_start_pt:, 2])
-    projected_traj_artists[1].set_data_3d(ax.get_xlim()[0],
+    projected_traj_artists[0].set_data_3d(ax.get_xlim()[0],
                                           trajectory_history[trajectory_start_pt:, 1],
                                           trajectory_history[trajectory_start_pt:, 2])
+    projected_traj_artists[1].set_data_3d(trajectory_history[trajectory_start_pt:, 0],
+                                          ax.get_ylim()[1],
+                                          trajectory_history[trajectory_start_pt:, 2])
+    projected_traj_artists[2].set_data_3d(trajectory_history[trajectory_start_pt:, 0],
+                                          trajectory_history[trajectory_start_pt:, 1],
+                                          ax.get_zlim()[0])
     [ax.draw_artist(projected_traj_artist) for projected_traj_artist in projected_traj_artists]
 
     # Draw predicted trajectory
@@ -195,6 +212,26 @@ def animate_robot(art_pack, targets, targets_reached,
 
     # Fill in the axes rectangle
     fig.canvas.blit(ax.bbox)
+
+    # Record frame
+    if animation:
+        # Capture the current frame
+        fig.canvas.draw()
+        frame = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        frame = frame.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        frames.append(frame)
+
+def animate_robot(file_name):
+    """
+    Create video from frames
+    """
+    def animate(frame_num):
+        plt.clf()
+        plt.imshow(frames[frame_num])
+        plt.axis('off')
+
+    anim = animation.FuncAnimation(plt.figure(), animate, frames=len(frames))
+    anim.save(file_name, writer="ffmpeg", fps=30, dpi=300, bitrate=3000)
 
 def draw_fading_traj(traj, traj_artists):
     """
