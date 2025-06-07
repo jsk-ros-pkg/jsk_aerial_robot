@@ -123,6 +123,7 @@ StateEstimate estimator_;
 BatteryStatus battery_status_;
 FlightControl controller_;
 ExtraServo extra_servo_;
+
 #endif
 
 // defined in Src/freertos.c

@@ -45,10 +45,11 @@
 //2.1.2 Barometer Sensor
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
-#define GPS_FLAG 1
+#define GPS_FLAG 0
 //2.1.3 Direct Servo Control
 #define SERVO_FLAG 1
-
+#define DYNAMIXEL 1
+#define KONDO 0
 
 //2.2 State Estimate
 //2.2.1 Attitude Estimate
@@ -83,7 +84,7 @@
 
 //2.3 Flight Control
 #define FLIGHT_CONTROL_FLAG 1
-#define DSHOT 1
+#define DSHOT 0
 //* Do not change following code!!!
 ///////////////////////////////////
 #if !ATTITUDE_ESTIMATE_FLAG
