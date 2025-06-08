@@ -2,7 +2,7 @@
 
 set -ex
 
-apt-get update -qq && apt-get install -y -q wget sudo lsb-release gnupg git sed build-essential ca-certificates # for docker
+apt-get update -qq && apt-get install -y -q curl wget sudo lsb-release gnupg git sed build-essential ca-certificates # for docker
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
@@ -12,7 +12,7 @@ if [[ "$ROS_DISTRO" ==  "one" ]]; then
     ${CI_SOURCE_PATH}/configure.sh
 else
     sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
-    wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
     sudo apt-get update -qq
 
     if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
