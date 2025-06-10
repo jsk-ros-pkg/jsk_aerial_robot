@@ -1,5 +1,19 @@
 import numpy as np
 import casadi as cs
+import pyquaternion
+
+def quaternion_to_euler(q):
+    q = pyquaternion.Quaternion(w=q[0], x=q[1], y=q[2], z=q[3])
+    yaw, pitch, roll = q.yaw_pitch_roll
+    return [roll, pitch, yaw]
+
+def quaternion_inverse(q):
+    w, x, y, z = q[0], q[1], q[2], q[3]
+
+    if isinstance(q, np.ndarray):
+        return np.array([w, -x, -y, -z])
+    else:
+        return cs.vertcat(w, -x, -y, -z)
 
 def euclidean_dist(x, y, thresh=None):
     """
@@ -47,3 +61,26 @@ def q_to_rot_mat(q):
             cs.horzcat(2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx ** 2 + qy ** 2)))
 
     return rot_mat
+
+def q_dot_q(q, r):
+    """
+    Applies the rotation of quaternion r to quaternion q. In order words, rotates quaternion q by r. Quaternion format:
+    wxyz.
+
+    :param q: 4-length numpy array or CasADi MX. Initial rotation
+    :param r: 4-length numpy array or CasADi MX. Applied rotation
+    :return: The quaternion q rotated by r, with the same format as in the input.
+    """
+
+    qw, qx, qy, qz = q[0], q[1], q[2], q[3]
+    rw, rx, ry, rz = r[0], r[1], r[2], r[3]
+
+    t0 = rw * qw - rx * qx - ry * qy - rz * qz
+    t1 = rw * qx + rx * qw - ry * qz + rz * qy
+    t2 = rw * qy + rx * qz + ry * qw - rz * qx
+    t3 = rw * qz - rx * qy + ry * qx + rz * qw
+
+    if isinstance(q, np.ndarray):
+        return np.array([t0, t1, t2, t3])
+    else:
+        return cs.vertcat(t0, t1, t2, t3)

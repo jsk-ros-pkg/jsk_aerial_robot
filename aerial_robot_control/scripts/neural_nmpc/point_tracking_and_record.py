@@ -29,7 +29,7 @@ def main(model_options, recording_options, sim_options, parameters):
     name = None
     T_sim = 0.005  # or 0.001
     # ------------------------
-    
+
     # --- Initialize controller ---
     if version is not None and name is not None:
         # Load pre-trained model into NMPC object
@@ -91,7 +91,7 @@ def main(model_options, recording_options, sim_options, parameters):
     # --- Real time plot ---
     # Real time plot params TODO set elsewhere
     plot_sim_traj = False
-    animation = sim_options["animation_plot"]
+    animation = sim_options["save_animation"]
     
     
     # Generate necessary art pack for real time plot
@@ -218,7 +218,7 @@ def main(model_options, recording_options, sim_options, parameters):
                 draw_robot(art_pack, targets, targets_reached, state_curr,
                               trajectory_pred, trajectory_history,
                               rotor_positions, follow_robot=False, 
-                              animation=sim_options["animation_plot"])
+                              animation=animation)
 
             # --- Simulate forward ---
             # Simulate with the optimized input until the next time step of the control period is reached
@@ -322,6 +322,7 @@ def main(model_options, recording_options, sim_options, parameters):
 
     # --- Create video ---
     if animation:
+        print("-------------- Saving Animation as video --------------")
         dir_path = os.path.dirname(os.path.abspath(__file__))
         counter = 1
         while True:
@@ -330,6 +331,7 @@ def main(model_options, recording_options, sim_options, parameters):
             if not os.path.exists(file_path):
                 break
             counter += 1
+        print(f"Directory: {file_path}")
         animate_robot(file_path)
 
 """
@@ -427,7 +429,7 @@ if __name__ == '__main__':
         "sim_options": {
             "disturbances": SimpleSimConfig.simulation_disturbances,
             "real_time_plot": True,
-            "animation_plot": True,
+            "save_animation": False,
             "max_sim_time": 20,
             "world_radius": 3
         },

@@ -31,20 +31,20 @@ class NeuralNMPC():
         # TODO avoid building solver twice with flag
         self.arch_type = model_options["arch_type"]
         if self.arch_type == "tilt_bi":
-            self.nmpc = NMPCTiltBiServo()
+            self.nmpc = NMPCTiltBiServo(build=False)
         elif self.arch_type == "tilt_tri":
-            self.nmpc = NMPCTiltTriServo()
+            self.nmpc = NMPCTiltTriServo(build=False)
         elif self.arch_type == "tilt_qd":
-            self.nmpc = NMPCTiltQdServoThrust()
+            self.nmpc = NMPCTiltQdServoThrust(build=False)
         else:
             raise ValueError("Invalid architecture type specified.")
 
         # Get OCP object from NMPC
         self.ocp = self.nmpc.get_ocp()
-        self.T_samp = self.nmpc.params["T_samp"]            # Sampling time for the NMPC controller, i.e., time step between two successive optimizations
-        self.T_horizon = self.nmpc.params["T_horizon"]      # Time horizon for optimization loop in MPC controller
-        self.N = self.nmpc.params["N_steps"]                # Number of MPC nodes
-        self.T_step = self.nmpc.params["T_step"]   # Step size used in optimization loop in MPC controller
+        self.T_samp = self.nmpc.params["T_samp"]        # Sampling time for the NMPC controller, i.e., time step between two successive optimizations
+        self.T_horizon = self.nmpc.params["T_horizon"]  # Time horizon for optimization loop in MPC controller
+        self.N = self.nmpc.params["N_steps"]            # Number of MPC nodes
+        self.T_step = self.nmpc.params["T_step"]        # Step size used in optimization loop in MPC controller
         # TODO set somewhere else and by default set to T_samp/2
         self.T_sim = T_sim                  # TODO set somewhere else! Discretized time-step for the aerial robot simulation
         

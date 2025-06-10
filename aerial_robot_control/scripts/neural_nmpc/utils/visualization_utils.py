@@ -17,7 +17,6 @@ import tikzplotlib
 import numpy as np
 
 import matplotlib.pyplot as plt
-# import matplotlib.animation as animation
 # from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 # from matplotlib.colorbar import ColorbarBase
 # from matplotlib import cm
@@ -25,7 +24,8 @@ from mpl_toolkits.mplot3d import Axes3D # DON'T REMOVE THIS LINE, IT IS NEEDED F
 import matplotlib.animation as animation
 
 # from config.configuration_parameters import DirectoryConfig as PathConfig
-from utils.geometry_utils import v_dot_q
+from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q
+from utils.data_utils import safe_mkdir_recursive
 
 frames = []
 
@@ -45,7 +45,7 @@ def initialize_plotter(world_rad, n_properties):
     }
     """
     # Set size, aspect ratio and resolution
-    fig = plt.figure(figsize=(12.8, 7.2), dpi=300)
+    fig = plt.figure(figsize=(8, 8), dpi=96)
     fig.show()
 
     mng = plt.get_current_fig_manager()
@@ -231,7 +231,7 @@ def animate_robot(file_name):
         plt.axis('off')
 
     anim = animation.FuncAnimation(plt.figure(), animate, frames=len(frames))
-    anim.save(file_name, writer="ffmpeg", fps=30, dpi=300, bitrate=3000)
+    anim.save(file_name, writer="ffmpeg", fps=30, dpi=600, bitrate=5000)
 
 def draw_fading_traj(traj, traj_artists):
     """
