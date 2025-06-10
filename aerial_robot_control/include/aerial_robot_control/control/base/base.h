@@ -101,7 +101,7 @@ namespace aerial_robot_control
           nh.param("max_thrust", val, 0.0);
           motor_info_[i].max_thrust = val;
 
-          /* hardcode: up to 4 dimension */
+          /* Hardcode: up to 4 dimensions */ // TODO Why implemented this way?! Doesn't need to be arbitrary amount? And what even is polynomial factor? -> Overthink this!
           for(int j = 0; j < 5; j++)
             {
               std::stringstream ss2;
@@ -124,7 +124,7 @@ namespace aerial_robot_control
         {
           if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
             {
-              reset();
+              reset();  // TODO not necessary! -> remove
               control_timestamp_ = ros::Time::now().toSec();
 
             }
