@@ -117,6 +117,8 @@ class QDNMPCReferenceGenerator():
         :return xr: Reference for the state x
         :return ur: Reference for the input u
         """
+        if len(target_xyz) != 3 or len(target_rpy) != 3:
+            raise ValueError("Target state should be given in xyz and rpy.")
         roll = target_rpy[0]
         pitch = target_rpy[1]
         yaw = target_rpy[2]
@@ -131,7 +133,7 @@ class QDNMPCReferenceGenerator():
         fg_b = rot @ fg_w                                       # Body frame
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
-        # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+        # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None) [same behaviour]
         target_force = self.alloc_mat_pinv @ target_wrench
         
         # Compute reference values for thrust

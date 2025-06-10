@@ -23,8 +23,9 @@ class NMPCTiltQdServoDist(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, phys=phys_omni):
+    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_dist_mdl"
         self.phys = phys
@@ -40,7 +41,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullDist.yaml")
         
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__(overwrite, build)
 
         # Necessary for EKF inside simulation environment
         self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], is_build=True)

@@ -20,7 +20,7 @@ except ImportError:
 
 
 class NMPCTiltBi2OrdServo(RecedingHorizonBase):
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, build: bool = True):
         # Model name
         self.model_name = "tilt_bi_2_ord_servo_mdl"
 
@@ -50,7 +50,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltBi2OrdRotorNMPC.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc", overwrite, build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -197,7 +197,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         return model
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
         ocp = super().get_ocp()
 
@@ -355,7 +355,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         # Compile acados OCP
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver

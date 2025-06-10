@@ -32,8 +32,9 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
     future use and therefore not included in base definition.
 
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, phys=phys_art):
+    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_servo_drag_dist_mdl"
 
@@ -63,7 +64,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFullITermDrag.yaml")
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc", overwrite, build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -241,7 +242,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
 
         return model
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
         ocp = super().get_ocp()
 
@@ -415,7 +416,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
 
         # Compile acados OCP
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
 
         return solver
     

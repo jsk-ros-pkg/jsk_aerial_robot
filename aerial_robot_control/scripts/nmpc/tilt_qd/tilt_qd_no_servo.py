@@ -23,8 +23,9 @@ class NMPCTiltQdNoServo(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, phys=phys_art):
+    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_no_servo_mdl"
         self.phys = phys
@@ -41,7 +42,7 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServo.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__(overwrite, build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function

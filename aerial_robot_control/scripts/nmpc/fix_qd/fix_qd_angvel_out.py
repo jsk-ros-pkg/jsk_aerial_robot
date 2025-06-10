@@ -27,15 +27,18 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
     For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
     is the only one to not have the angular velocity as state and instead has it defined as control input.
-    Therefore, it differs fundamentally in the model and solver. 
+    Therefore, it differs fundamentally in the model and solver.
+    
+    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, phys=phys_art):
+    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_art):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCBodyRate.yaml")
         self.phys = phys_art
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc", overwrite, build)
     
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -123,7 +126,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         model.cost_y_expr_e = state_y
         return model
 
-    def create_acados_ocp_solver(self):
+    def create_acados_ocp_solver(self, build: bool = True):
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
         
@@ -196,7 +199,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        return AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        return AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
     
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator

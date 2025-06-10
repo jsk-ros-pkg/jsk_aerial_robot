@@ -23,9 +23,10 @@ class QDNMPCBase(RecedingHorizonBase):
 
     :param str model_name: Name of the model defined in controller file.
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
 
-    def __init__(self, overwrite: bool = False):
+    def __init__(self, overwrite: bool = False, build: bool = True):
         #     The child classes only have specifications which define the controller specifications and need to set the following flags:
         # check if the model name is set
         # - model_name: Name of the model defined in controller file.
@@ -67,7 +68,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.acados_init_p = None  # initial value for parameters in acados. Mainly for physical parameters.
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc", overwrite, build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -228,15 +229,18 @@ class QDNMPCBase(RecedingHorizonBase):
         # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
         # - World to Body
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2), ca.SX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
+            ca.SX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2),
+            ca.SX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
             ca.SX(2 * self.qx * self.qz + 2 * self.qw * self.qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * self.qx * self.qy + 2 * self.qw * self.qz), ca.SX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
+            ca.SX(2 * self.qx * self.qy + 2 * self.qw * self.qz),
+            ca.SX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
             ca.SX(2 * self.qy * self.qz - 2 * self.qw * self.qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * self.qx * self.qz - 2 * self.qw * self.qy), ca.SX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
+            ca.SX(2 * self.qx * self.qz - 2 * self.qw * self.qy),
+            ca.SX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
             ca.SX(1 - 2 * self.qx ** 2 - 2 * self.qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
@@ -423,7 +427,7 @@ class QDNMPCBase(RecedingHorizonBase):
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         pass
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         """
         Create generic acados solver for NMPC framework of a quadrotor.
         Generate c code into source folder in aerial_robot_control to be used in workflow.
@@ -640,6 +644,7 @@ class QDNMPCBase(RecedingHorizonBase):
         ocp.parameter_values = self.acados_init_p
 
         # Solver options
+        ocp.solver_options.tf = self.params["T_horizon"]
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
         ocp.solver_options.hpipm_mode = "BALANCE"  # "BALANCE", "SPEED_ABS", "SPEED", "ROBUST". Default: "BALANCE".
         # Start up flags:       [Seems only works for FULL_CONDENSING_QPOASES]
@@ -650,11 +655,10 @@ class QDNMPCBase(RecedingHorizonBase):
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
         ocp.solver_options.qp_solver_cond_N = self.params["N_steps"]
-        ocp.solver_options.tf = self.params["T_horizon"]
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver
