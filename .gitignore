@@ -115,9 +115,7 @@ tags
 *model.json
 
 # Datasets
-*.csv
-*dataset/train/metadata.json
-*dataset/test/metadata.json
+**/neural_nmpc/data/
 
 # Videos
 *.mp4
