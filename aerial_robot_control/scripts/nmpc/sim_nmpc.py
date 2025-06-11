@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_tri")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
 
-from nmpc_tilt_mt.nmpc_viz import Visualizer
+from nmpc_tilt_mt.utils.nmpc_viz import Visualizer
 
 # Quadrotor
 import nmpc_tilt_mt.tilt_qd.phys_param_beetle_omni as phys_omni

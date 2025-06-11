@@ -9,7 +9,7 @@ from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 
-from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+from nmpc_tilt_mt.mhe.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
 
 from nmpc_tilt_mt.tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
