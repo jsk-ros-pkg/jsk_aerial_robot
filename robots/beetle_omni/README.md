@@ -6,7 +6,7 @@
 
 The version of `acados` should be aligned with the version of `3rdparty/acados/CMakeLists.txt` -> `GIT_TAG`.
 
-Specifically, clone the branch for **v0.3.3** from the `acados` git:
+Specifically, clone the branch for **v0.5.0** from the `acados` git:
 ```bash
 git clone https://github.com/acados/acados.git --branch v0.5.0
 ```
