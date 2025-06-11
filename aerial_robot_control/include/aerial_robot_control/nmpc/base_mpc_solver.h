@@ -89,12 +89,12 @@ public:
     {
       if (x_init[i].size() != NX_ || u_init[i].size() != NU_)
         throw std::length_error("x_init[i] or u_init[i] size is not equal to NX_ or NU_");
-      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", (void*)x_init[i].data());
-      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", (void*)u_init[i].data());
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, i, "x", (void*)x_init[i].data());
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, i, "u", (void*)u_init[i].data());
     }
     if (x_init[NN_].size() != NX_)
       throw std::length_error("x_init[NN_] size is not equal to NX_");
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
+    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, NN_, "x", (void*)x_init[NN_].data());
 
     // update xo_, uo_
     getSolution();
@@ -326,14 +326,14 @@ public:
   std::vector<double> getMatrixA(int stage)
   {
     std::vector<double> mtx_A(NX_ * NX_);
-    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "A", mtx_A.data());
+    ocp_nlp_get_at_stage(nlp_solver_, stage, "A", mtx_A.data());
     return mtx_A;
   }
 
   std::vector<double> getMatrixB(int stage)
   {
     std::vector<double> mtx_B(NX_ * NU_);
-    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "B", mtx_B.data());
+    ocp_nlp_get_at_stage(nlp_solver_, stage, "B", mtx_B.data());
     return mtx_B;
   }
 
@@ -344,7 +344,7 @@ public:
     int sqp_iter;
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
-    ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
+    ocp_nlp_get(nlp_solver_, "sqp_iter", &sqp_iter);
 
     acadosPrintStats();
 
@@ -495,7 +495,7 @@ protected:
     if (status != ACADOS_SUCCESS)
       throw AcadosSolveException(status);
 
-    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
+    ocp_nlp_get(nlp_solver_, "time_tot", &elapsed_time);
     min_time = MIN(elapsed_time, min_time);
 
     return min_time;
@@ -566,7 +566,7 @@ private:
       }
     }
 
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, stage, constraint_type.c_str(), value.data());
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, nlp_out_, stage, constraint_type.c_str(), value.data());
   }
 
   std::vector<int> getConstraintsIdx(const std::string& constraint_type, int stage) const
