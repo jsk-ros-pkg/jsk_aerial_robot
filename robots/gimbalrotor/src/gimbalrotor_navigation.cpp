@@ -7,9 +7,10 @@ using namespace aerial_robot_navigation;
 
 GimbalrotorNavigator::GimbalrotorNavigator():
   BaseNavigator(),
-  curr_target_baselink_rot_(0, 0, 0),
-  final_target_baselink_rot_(0, 0, 0)
+  eq_cog_world_(false)
 {
+  curr_target_baselink_rot_.setRPY(0, 0, 0);
+  final_target_baselink_rot_.setRPY(0, 0, 0);
 }
 
 void GimbalrotorNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -20,8 +21,9 @@ void GimbalrotorNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   /* initialize the flight control */
   BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
-  curr_target_baselink_rot_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1);
-  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &GimbalrotorNavigator::setFinalTargetBaselinkRotCallback, this);
+  target_baselink_rpy_pub_ = nh_.advertise<spinal::DesireCoord>("desire_coordinate", 1); // to spinal
+  final_target_baselink_rot_sub_ = nh_.subscribe("final_target_baselink_rot", 1, &GimbalrotorNavigator::targetBaselinkRotCallback, this);
+  final_target_baselink_rpy_sub_ = nh_.subscribe("final_target_baselink_rpy", 1, &GimbalrotorNavigator::targetBaselinkRPYCallback, this);
   prev_rotation_stamp_ = ros::Time::now().toSec();
 
 }
@@ -32,10 +34,39 @@ void GimbalrotorNavigator::update()
   baselinkRotationProcess();
 }
 
-void GimbalrotorNavigator::setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg)
+void GimbalrotorNavigator::reset()
 {
-  final_target_baselink_rot_.setValue(msg->roll, msg->pitch, msg->yaw);
+  BaseNavigator::reset();
+
+  // reset SO3
+  eq_cog_world_ = false;
+  curr_target_baselink_rot_.setRPY(0, 0, 0);
+  final_target_baselink_rot_.setRPY(0, 0, 0);
+  KDL::Rotation rot;
+  tf::quaternionTFToKDL(curr_target_baselink_rot_, rot);
+  robot_model_->setCogDesireOrientation(rot);
 }
+
+void GimbalrotorNavigator::targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg)
+{
+  tf::quaternionMsgToTF(msg->quaternion, final_target_baselink_rot_);
+  target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
+
+  // special process
+  if(getTargetRPY().z() != 0)
+    {
+      curr_target_baselink_rot_.setRPY(0, 0, getTargetRPY().z());
+      eq_cog_world_ = true;
+    }
+}
+
+void GimbalrotorNavigator::targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg)
+{
+  final_target_baselink_rot_.setRPY(msg->vector.x, msg->vector.y, msg->vector.z);
+  target_omega_.setValue(0,0,0); // for sure to reset the target angular velocity
+}
+
+
 
 void GimbalrotorNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
 {
@@ -50,15 +81,29 @@ void GimbalrotorNavigator::baselinkRotationProcess()
 
   if(ros::Time::now().toSec() - prev_rotation_stamp_ > baselink_rot_pub_interval_)
     {
-      if((final_target_baselink_rot_- curr_target_baselink_rot_).length() > baselink_rot_change_thresh_)
-        curr_target_baselink_rot_ += ((final_target_baselink_rot_ - curr_target_baselink_rot_).normalize() * baselink_rot_change_thresh_);
+      tf::Quaternion delta_q = curr_target_baselink_rot_.inverse() * final_target_baselink_rot_;
+      double angle = delta_q.getAngle();
+      if (angle > M_PI) angle -= 2 * M_PI;
+
+      if(fabs(angle) > baselink_rot_change_thresh_)
+        {
+          curr_target_baselink_rot_ *= tf::Quaternion(delta_q.getAxis(), fabs(angle) / angle * baselink_rot_change_thresh_);
+        }
       else
         curr_target_baselink_rot_ = final_target_baselink_rot_;
 
-      spinal::DesireCoord target_baselink_rot_msg;
-      target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-      target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-      curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);
+      KDL::Rotation rot;
+      tf::quaternionTFToKDL(curr_target_baselink_rot_, rot);
+      robot_model_->setCogDesireOrientation(rot);
+
+      // send to spinal
+      spinal::DesireCoord msg;
+      double r,p,y;
+      tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
+      msg.roll = r;
+      msg.pitch = p;
+      msg.yaw = y;
+      target_baselink_rpy_pub_.publish(msg);
 
       prev_rotation_stamp_ = ros::Time::now().toSec();
     }
