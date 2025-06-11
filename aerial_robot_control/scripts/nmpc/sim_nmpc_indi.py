@@ -5,7 +5,7 @@ import numpy as np
 import argparse
 
 from nmpc_tilt_mt.nmpc_viz import Visualizer
-from nmpc_tilt_mt.tilt_qd.sim_fir_differentiator import FIRDifferentiator
+from nmpc_tilt_mt.tilt_qd.fir_differentiator import FIRDifferentiator
 from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
 np.random.seed(42)
