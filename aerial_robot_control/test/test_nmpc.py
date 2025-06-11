@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 
-sys.path.append('../scripts/nmpc/tilt_qd/')
+sys.path.append('../scripts/nmpc/nmpc_tilt_mt/tilt_qd/')
 from sim_nmpc import main
 
 current_path = os.path.abspath(os.path.dirname(__file__))
