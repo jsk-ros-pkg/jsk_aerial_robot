@@ -415,20 +415,8 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
                                         self.phys.dr1,     self.phys.dr2,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
 
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
-        ocp_model = super().get_acados_model()
-
-        acados_sim = AcadosSim()
-        acados_sim.model = ocp_model
-
-        n_params = ocp_model.p.size()[0]
-        acados_sim.dims.np = n_params
-        acados_sim.parameter_values = np.zeros(n_params)
-
-        acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
-
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    
+    def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -439,6 +427,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         acados_sim.parameter_values = np.zeros(n_params)
 
         acados_sim.solver_options.T = ts_sim
+        
         # Important to sim 2-ord servo model
         acados_sim.solver_options.integrator_type = 'IRK'
         acados_sim.solver_options.num_stages = 3
@@ -446,7 +435,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         acados_sim.solver_options.newton_iter = 3  # for implicit integrator
         acados_sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
 
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
 
 
 if __name__ == "__main__":

@@ -124,7 +124,7 @@ def main(args):
     N_sim = int(t_total_sim / ts_sim)
 
     # Sim solver
-    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, is_build=True)
+    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, build=True)
     nx_sim = sim_solver.acados_sim.dims.nx
 
     # Disturbance Initialization

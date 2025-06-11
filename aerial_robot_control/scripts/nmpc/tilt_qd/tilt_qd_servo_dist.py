@@ -43,7 +43,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         super().__init__(build)
 
         # Necessary for EKF inside simulation environment
-        self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], is_build=True)
+        self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], build=True)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function

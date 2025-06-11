@@ -323,13 +323,13 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Wrench in Body frame
         fu_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
                 + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
                 + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
                 + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
                 + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
                 + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
                 + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
@@ -668,11 +668,11 @@ class QDNMPCBase(RecedingHorizonBase):
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
-                                        self.phys.p1_b, self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
-                                        self.phys.dr1, self.phys.dr2, self.phys.dr3, self.phys.dr4,
+                                        self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
+                                        self.phys.dr1,     self.phys.dr2,  self.phys.dr3,  self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
 
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -686,4 +686,4 @@ class QDNMPCBase(RecedingHorizonBase):
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
