@@ -12,10 +12,9 @@ class NMPCTiltQdServoDist(QDNMPCBase):
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False, phys=phys_omni):
+
+    def __init__(self, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_dist_mdl"
         self.phys = phys
@@ -29,9 +28,9 @@ class NMPCTiltQdServoDist(QDNMPCBase):
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullDist.yaml")
-        
+
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__()
 
         # Necessary for EKF inside simulation environment
         self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], is_build=True)
@@ -41,8 +40,8 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
-        qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
@@ -62,7 +61,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
 
         control_y = ca.vertcat(
             self.ft_c,
-            self.a_c - self.a_s     # a_c_ref must be zero!
+            self.a_c - self.a_s  # a_c_ref must be zero!
         )
 
         return state_y, state_y_e, control_y
@@ -113,7 +112,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         print("R: \n", R)
 
         return Q, R
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -129,19 +128,21 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -155,13 +156,12 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = False
-    nmpc = NMPCTiltQdServoDist(overwrite)
+    nmpc = NMPCTiltQdServoDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

@@ -2,34 +2,35 @@ import os, sys
 import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver
 import casadi as ca
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to path to allow relative imports
 from rh_base import RecedingHorizonBase
 
-from tilt_qd.phys_param_beetle_omni import *        # Define physical parameters
+from tilt_qd.phys_param_beetle_omni import *  # Define physical parameters
 
 
 class MHEKinematics(RecedingHorizonBase):
     """
     General kinematics-based Moving Horizon Estimation (MHE) to implement state estimation for any robot.
-
-    :opt param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+
+    def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("estimation", "mhe", "beetle_omni", "StateEstimationMHE.yaml")
-        
+
         # Create acados model & solver and generate c code
-        super().__init__("wrench_est", overwrite)
+        super().__init__("wrench_est")
 
     def create_acados_model(self) -> AcadosModel:
         # Model name
         model_name = "mhe_kinematics_mdl"
-        
+
         # Model states
-        p = ca.SX.sym("p", 3)           # World frame
-        v = ca.SX.sym("v", 3)           # World frame
-        a_sf = ca.SX.sym("a_sf", 3)     # Body frame
-        qw = ca.SX.sym("qw")            # Quaternions
+        p = ca.SX.sym("p", 3)  # World frame
+        v = ca.SX.sym("v", 3)  # World frame
+        a_sf = ca.SX.sym("a_sf", 3)  # Body frame
+        qw = ca.SX.sym("qw")  # Quaternions
         qx = ca.SX.sym("qx")
         qy = ca.SX.sym("qy")
         qz = ca.SX.sym("qz")
@@ -41,7 +42,7 @@ class MHEKinematics(RecedingHorizonBase):
         states = ca.vertcat(p, v, a_sf, q, w)
 
         # Model parameters
-        qwr = ca.SX.sym("qwr")          # Reference for quaternions
+        qwr = ca.SX.sym("qwr")  # Reference for quaternions
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
@@ -73,9 +74,9 @@ class MHEKinematics(RecedingHorizonBase):
             ca.mtimes(rot_wb, a_sf) + g_w,
             w_a_sf,
             (-wx * qx - wy * qy - wz * qz) / 2,
-            ( wx * qw + wz * qy - wy * qz) / 2,
-            ( wy * qw - wz * qx + wx * qz) / 2,
-            ( wz * qw + wy * qx - wx * qy) / 2,
+            (wx * qw + wz * qy - wy * qz) / 2,
+            (wy * qw - wz * qx + wx * qz) / 2,
+            (wz * qw + wy * qx - wx * qy) / 2,
             w_w
         )
         f = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
@@ -88,8 +89,8 @@ class MHEKinematics(RecedingHorizonBase):
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error
         # qe = qr^* multiply q
-        qe_x =  qwr * qx - qw * qxr - qyr * qz + qy * qzr
-        qe_y =  qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
         qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         # Sensor function
@@ -100,23 +101,24 @@ class MHEKinematics(RecedingHorizonBase):
         model = AcadosModel()
         model.name = model_name
         model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl            # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
         model.p = parameters
         # TODO: the error for quaternion in states should also be considered as quaternion error.
         model.cost_y_expr_0 = ca.vertcat(meas_y, noise, states)  # y, u, x
-        model.cost_y_expr = ca.vertcat(meas_y, noise)            # y, u
-        model.cost_y_expr_e = meas_y_e                           # y
+        model.cost_y_expr = ca.vertcat(meas_y, noise)  # y, u
+        model.cost_y_expr_e = meas_y_e  # y
         return model
 
     def create_acados_ocp_solver(self) -> AcadosOcpSolver:
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
-        
+
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nw = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nw = ocp.model.u.size()[0]
         n_meas = ocp.model.cost_y_expr.size()[0] - nw
 
         # Cost function
@@ -150,7 +152,7 @@ class MHEKinematics(RecedingHorizonBase):
                 1 / (self.params["R_a_sf"] ** 2),
                 1 / (self.params["R_a_sf"] ** 2),
                 1 / (self.params["R_a_sf"] ** 2),
-                1 / (self.params["R_q"] ** 2),      # TODO: This error should also be considered as quaternion error.
+                1 / (self.params["R_q"] ** 2),  # TODO: This error should also be considered as quaternion error.
                 1 / (self.params["R_q"] ** 2),
                 1 / (self.params["R_q"] ** 2),
                 1 / (self.params["R_q"] ** 2),
@@ -179,7 +181,7 @@ class MHEKinematics(RecedingHorizonBase):
         W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
         ocp.cost.W_0 = np.block([[W, np.zeros((n_meas + nw, nx))], [np.zeros((nx, n_meas + nw)), Q_P]])
         ocp.cost.W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
-        ocp.cost.W_e = Q_R      # Weight matrix at terminal shooting node (N).
+        ocp.cost.W_e = Q_R  # Weight matrix at terminal shooting node (N).
 
         # Reference
         ocp.cost.yref_0 = np.zeros(n_meas + nw + nx)
@@ -206,8 +208,7 @@ class MHEKinematics(RecedingHorizonBase):
 
 if __name__ == "__main__":
     # Call MHE class to generate c code
-    overwrite = False
-    mhe = MHEKinematics(overwrite)
+    mhe = MHEKinematics()
 
     acados_ocp_solver = mhe.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
