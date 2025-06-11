@@ -41,7 +41,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         self.acados_init_p = None
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite, build)
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -62,7 +62,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1 = ca.SX.sym("a1")    # Servo angle alpha between E frame and R frame
+        a1 = ca.SX.sym("a1")  # Servo angle alpha between E frame and R frame
         a2 = ca.SX.sym("a2")
         a = ca.vertcat(a1, a2)
 
@@ -86,21 +86,25 @@ class NMPCTiltBiServo(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                            [0, 0, 1]])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                            [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -390,10 +394,10 @@ class NMPCTiltBiServo(RecedingHorizonBase):
                                         self.phys.p1_b,    self.phys.p2_b,
                                         self.phys.dr1,     self.phys.dr2,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
-    
+
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -407,8 +411,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltBiServo(overwrite)
+    nmpc = NMPCTiltBiServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP: ", acados_ocp_solver.acados_ocp)

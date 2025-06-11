@@ -34,7 +34,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
         # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
         # - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
-        
+
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
@@ -50,7 +50,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltBi2OrdRotorNMPC.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite, build)
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -71,11 +71,11 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1 = ca.SX.sym("a1")    # Servo angle alpha between E frame and R frame
+        a1 = ca.SX.sym("a1")  # Servo angle alpha between E frame and R frame
         a2 = ca.SX.sym("a2")
         a = ca.vertcat(a1, a2)
 
-        b1 = ca.SX.sym("b1")    # Servo angular velocity beta (continuous time-derivative of alpha)
+        b1 = ca.SX.sym("b1")  # Servo angular velocity beta (continuous time-derivative of alpha)
         b2 = ca.SX.sym("b2")
         b = ca.vertcat(b1, b2)
 
@@ -99,21 +99,25 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                            [0, 0, 1]])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                            [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -202,7 +206,8 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nu = ocp.model.u.size()[0]
 
         # Define weights
         Q = np.diag(
@@ -409,10 +414,10 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
                                         self.phys.p1_b,    self.phys.p2_b,
                                         self.phys.dr1,     self.phys.dr2,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
-    
+
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -423,7 +428,6 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
 
-    
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
@@ -444,9 +448,9 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
 
+
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltBi2OrdServo(overwrite)
+    nmpc = NMPCTiltBi2OrdServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP: ", acados_ocp_solver.acados_ocp)

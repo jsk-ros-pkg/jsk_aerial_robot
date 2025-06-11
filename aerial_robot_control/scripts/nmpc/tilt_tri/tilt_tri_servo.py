@@ -20,7 +20,7 @@ except ImportError:
 
 
 class NMPCTiltTriServo(RecedingHorizonBase):
-    def __init__(self, overwrite: bool = False, build: bool = True):
+    def __init__(self, build: bool = True):
         # Model name
         self.model_name = "tilt_tri_servo_mdl"
         self.phys = phys_tri
@@ -39,7 +39,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         self.acados_init_p = None
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite, build)
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -432,8 +432,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltTriServo(overwrite)
+    nmpc = NMPCTiltTriServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

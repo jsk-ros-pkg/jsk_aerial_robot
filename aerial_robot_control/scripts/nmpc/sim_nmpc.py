@@ -412,7 +412,7 @@ def main(args):
         file_path = args.file_path
 
         np.savez(
-            file_path + f"nmpc_{type(nmpc).__name__}_model_{type(sim_nmpc).__name__}.npz",
+            file_path + f"nmpc_{type(nmpc).__name__}_sim_{type(sim_nmpc).__name__}.npz",
             x=np.array(x_history),
             u=np.array(u_history)
         )

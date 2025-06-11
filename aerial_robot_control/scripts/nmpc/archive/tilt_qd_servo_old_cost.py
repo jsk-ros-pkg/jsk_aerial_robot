@@ -21,10 +21,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, build: bool = True, phys = phys_art):
+    def __init__(self, build: bool = True, phys = phys_art):
         # Model name
         self.model_name = "tilt_qd_servo_old_cost_mdl"
 
@@ -42,7 +41,7 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
@@ -54,7 +53,7 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCServoOldCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite, build)
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -80,9 +79,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
 
         control_y = ca.vertcat(
             self.ft_c,
-            self.a_c        # <-- Key difference! Use absolute command and not delta to state
+            self.a_c  # <-- Key difference! Use absolute command and not delta to state
         )
-        
+
         return state_y, state_y_e, control_y
 
     def get_weights(self):
@@ -171,13 +170,12 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         ur[:, 5] = a_ref[1]
         ur[:, 6] = a_ref[2]
         ur[:, 7] = a_ref[3]
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoOldCost(overwrite)
+    nmpc = NMPCTiltQdServoOldCost()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

@@ -32,13 +32,13 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_art):
+    def __init__(self, build: bool = True, phys=phys_art):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCBodyRate.yaml")
         self.phys = phys_art
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite, build)
+        super().__init__("nmpc", build)
     
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -52,7 +52,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         vx = ca.SX.sym("vx")
         vy = ca.SX.sym("vy")
         vz = ca.SX.sym("vz")
-        qw = ca.SX.sym("qw")    # Quaternions
+        qw = ca.SX.sym("qw")  # Quaternions
         qx = ca.SX.sym("qx")
         qy = ca.SX.sym("qy")
         qz = ca.SX.sym("qz")
@@ -84,7 +84,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
             (wx * qw + wz * qy - wy * qz) * 0.5,
             (wy * qw - wz * qx + wx * qz) * 0.5,
             (wz * qw + wy * qx - wx * qy) * 0.5,
-        )        
+        )
         f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # Implicit dynamics
@@ -129,9 +129,10 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     def create_acados_ocp_solver(self, build: bool = True):
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
-        
+
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nu = ocp.model.u.size()[0]
 
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp.AcadosOcpCost for details
@@ -151,11 +152,11 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         )
 
         R = np.diag([self.params["Rw"], self.params["Rw"], self.params["Rw"], self.params["Rc"]])
-        
+
         ocp.cost.cost_type = "NONLINEAR_LS"
         ocp.cost.cost_type_e = "NONLINEAR_LS"
         ocp.cost.W = np.block([[Q, np.zeros((nx, nu))], [np.zeros((nu, nx)), R]])
-        ocp.cost.W_e = Q    # Weight matrix at terminal shooting node (N).
+        ocp.cost.W_e = Q  # Weight matrix at terminal shooting node (N).
 
         # Set constraints
         # - State box constraints bx
@@ -203,7 +204,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
-    
+
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
@@ -213,7 +214,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -227,8 +228,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
 if __name__ == "__main__":
     # Call controller class to generate c code
-    overwrite = True
-    nmpc = NMPCFixQdAngvelOut(overwrite)
+    nmpc = NMPCFixQdAngvelOut()
 
     print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())
     print("T_samp: ", nmpc.params["T_samp"])

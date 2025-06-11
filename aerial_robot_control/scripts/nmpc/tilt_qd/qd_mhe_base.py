@@ -17,11 +17,10 @@ class QDMHEBase(RecedingHorizonBase):
     """
     Base class for all quadrotor MHE estimators.
     The child classes only have specifications which define the estimator specifications.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
-        super().__init__("wrench_est", overwrite)
+
+    def __init__(self):
+        super().__init__("wrench_est")
 
     def compute_dynamical_model(self):
         pass
@@ -33,11 +32,12 @@ class QDMHEBase(RecedingHorizonBase):
     def create_acados_ocp_solver(self):
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
-        
+
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nw = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nw = ocp.model.u.size()[0]
         n_meas = ocp.model.cost_y_expr.size()[0] - nw
-        
+
         # Get weights from parametrization child file
         Q_R, R_Q, Q_P = self.get_weights()
 
@@ -49,7 +49,7 @@ class QDMHEBase(RecedingHorizonBase):
         W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
         ocp.cost.W_0 = np.block([[W, np.zeros((n_meas + nw, nx))], [np.zeros((nx, n_meas + nw)), Q_P]])
         ocp.cost.W = W
-        ocp.cost.W_e = Q_R      # Weight matrix at terminal shooting node (N)
+        ocp.cost.W_e = Q_R  # Weight matrix at terminal shooting node (N)
         print("W_0: \n", ocp.cost.W_0)
         print("W: \n", ocp.cost.W)
         print("W_e: \n", ocp.cost.W_e)

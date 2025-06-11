@@ -18,15 +18,14 @@ except ImportError:
 class MHEKinematics(RecedingHorizonBase):
     """
     General kinematics-based Moving Horizon Estimation (MHE) to implement state estimation for any robot.
-
-    :opt param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+
+    def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("estimation", "mhe", "beetle_omni", "StateEstimationMHE.yaml")
-        
+
         # Create acados model & solver and generate c code
-        super().__init__("wrench_est", overwrite)
+        super().__init__("wrench_est")
 
     def create_acados_model(self) -> AcadosModel:
         # Model name
@@ -115,16 +114,17 @@ class MHEKinematics(RecedingHorizonBase):
         model.p = parameters
         # TODO: the error for quaternion in states should also be considered as quaternion error.
         model.cost_y_expr_0 = ca.vertcat(meas_y, noise, states)  # y, u, x
-        model.cost_y_expr = ca.vertcat(meas_y, noise)            # y, u
-        model.cost_y_expr_e = meas_y_e                           # y
+        model.cost_y_expr = ca.vertcat(meas_y, noise)  # y, u
+        model.cost_y_expr_e = meas_y_e  # y
         return model
 
     def create_acados_ocp_solver(self) -> AcadosOcpSolver:
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
-        
+
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nw = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nw = ocp.model.u.size()[0]
         n_meas = ocp.model.cost_y_expr.size()[0] - nw
 
         # Cost function
@@ -158,7 +158,7 @@ class MHEKinematics(RecedingHorizonBase):
                 1 / (self.params["R_a_sf"] ** 2),
                 1 / (self.params["R_a_sf"] ** 2),
                 1 / (self.params["R_a_sf"] ** 2),
-                1 / (self.params["R_q"] ** 2),      # TODO: This error should also be considered as quaternion error.
+                1 / (self.params["R_q"] ** 2),  # TODO: This error should also be considered as quaternion error.
                 1 / (self.params["R_q"] ** 2),
                 1 / (self.params["R_q"] ** 2),
                 1 / (self.params["R_q"] ** 2),
@@ -187,7 +187,7 @@ class MHEKinematics(RecedingHorizonBase):
         W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
         ocp.cost.W_0 = np.block([[W, np.zeros((n_meas + nw, nx))], [np.zeros((nx, n_meas + nw)), Q_P]])
         ocp.cost.W = np.block([[Q_R, np.zeros((n_meas, nw))], [np.zeros((nw, n_meas)), R_Q]])
-        ocp.cost.W_e = Q_R      # Weight matrix at terminal shooting node (N).
+        ocp.cost.W_e = Q_R  # Weight matrix at terminal shooting node (N).
 
         # Reference
         ocp.cost.yref_0 = np.zeros(n_meas + nw + nx)
@@ -214,8 +214,7 @@ class MHEKinematics(RecedingHorizonBase):
 
 if __name__ == "__main__":
     # Call MHE class to generate c code
-    overwrite = True
-    mhe = MHEKinematics(overwrite)
+    mhe = MHEKinematics()
 
     acados_ocp_solver = mhe.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

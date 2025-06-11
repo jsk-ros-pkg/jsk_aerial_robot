@@ -5,7 +5,7 @@ include(ExternalProject)
 ExternalProject_Add(
   acados
   GIT_REPOSITORY https://github.com/acados/acados.git
-  GIT_TAG v0.3.3
+  GIT_TAG v0.5.0
   CMAKE_ARGS -DACADOS_WITH_QPOASES=ON  -DACADOS_INSTALL_DIR=${CMAKE_INSTALL_PREFIX}
   INSTALL_COMMAND echo "install"
   LOG_DOWNLOAD ON

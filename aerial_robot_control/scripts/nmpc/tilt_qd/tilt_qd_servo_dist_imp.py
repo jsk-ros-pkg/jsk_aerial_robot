@@ -24,10 +24,9 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_omni):
+    def __init__(self, build: bool = True, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_dist_imp_mdl"
         self.phys = phys
@@ -35,16 +34,16 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True
         self.include_impedance = True
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoImp.yaml")
-        
+
         # Create acados model & solver and generate c code
-        super().__init__(overwrite, build)
+        super().__init__(build)
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model,
@@ -56,9 +55,9 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
-        qe_w = self.qw * self.qwr + self.qx * self.qxr + self.qy * self.qyr + self.qz * self.qzr
-        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        qe_w =  self.qw * self.qwr + self.qx * self.qxr + self.qy * self.qyr + self.qz * self.qzr
+        qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         p_mtx_imp_inv = ca.SX.zeros(3, 3)
@@ -93,13 +92,13 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
             qe_z + self.qzr,
             self.w,
             self.a_s,
-            ca.vertcat(0, 0, 0),    # lin acc = 0 for infinite horizon
-            ca.vertcat(0, 0, 0)     # ang acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0),  # lin acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0)  # ang acc = 0 for infinite horizon
         )
 
         control_y = ca.vertcat(
             self.ft_c,
-            self.a_c - self.a_s     # a_c_ref must be zero!
+            self.a_c - self.a_s  # a_c_ref must be zero!
         )
 
         return state_y, state_y_e, control_y
@@ -217,13 +216,12 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoImpedance(overwrite)
+    nmpc = NMPCTiltQdServoImpedance()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

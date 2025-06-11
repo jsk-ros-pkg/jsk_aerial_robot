@@ -4,7 +4,7 @@
 
 2. run the test code
 ```bash
-python -m unittest tilt_qd/test_nmpc.py
+python -m unittest test_nmpc.py
 ```
 
 3. roslaunch the beetle-omni, do

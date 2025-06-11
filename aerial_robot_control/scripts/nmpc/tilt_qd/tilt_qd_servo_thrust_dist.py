@@ -24,10 +24,9 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_omni):
+    def __init__(self, build: bool = True, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_thrust_dist_mdl"
         self.phys = phys
@@ -35,7 +34,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = True   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = True  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True  # TODO seperation between model and parameter necessary?
         self.include_impedance = False
@@ -44,7 +43,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoThrustDist.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite, build)
+        super().__init__(build)
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model,
@@ -56,8 +55,8 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
-        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
@@ -80,7 +79,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
             self.ft_c - self.ft_s,  # ft_c_ref must be zero!
             self.a_c - self.a_s     # a_c_ref must be zero!
         )
-        
+
         return state_y, state_y_e, control_y
 
     def get_weights(self):
@@ -133,7 +132,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         print("R: \n", R)
 
         return Q, R
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -175,13 +174,12 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         # Assemble input reference
         # Note: Reference has to be zero if variable is included as state in cost function!
         ur = np.zeros([nn, nu])
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoThrustDist(overwrite)
+    nmpc = NMPCTiltQdServoThrustDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

@@ -21,10 +21,9 @@ class NMPCFixQdThrustOut(QDNMPCBase):
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the thrust for each rotor.
     
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, overwrite: bool = False, build: bool = True, phys=phys_mini_qd):
+    def __init__(self, build: bool = True, phys=phys_mini_qd):
         # Model name
         self.model_name = "fix_qd_thrust_out_mdl"
         self.phys = phys
@@ -32,7 +31,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.tilt = False
         self.include_servo_model = False
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
@@ -42,7 +41,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCFullModel.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite, build)
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -99,7 +98,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
             ]
         )
 
-        return Q,R
+        return Q, R
 
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
@@ -144,8 +143,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
 if __name__ == "__main__":
     # Call controller class to generate c code
-    overwrite = True
-    nmpc = NMPCFixQdThrustOut(overwrite)
+    nmpc = NMPCFixQdThrustOut()
 
     print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())
     print("T_samp: ", nmpc.params["T_samp"])
