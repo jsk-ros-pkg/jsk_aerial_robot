@@ -3,32 +3,36 @@ import numpy as np
 import torch
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from neural_nmpc.mlp import MLP
-from neural_nmpc.config.configuration_parameters import ModelConfig
 from nmpc.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
 from nmpc.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
 from nmpc.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 
+import ml_casadi.torch as mc
+from network_architecture.normalized_mlp import NormalizedMLP
+
+from utils.data_utils import get_model_dir_and_file
+
 
 class NeuralNMPC():
-    def __init__(self, model_options, T_sim=0.005,
-                 pre_trained_model=None, 
-                 solver_options=None, rdrv_d_mat=None):
+    def __init__(self, model_options, solver_options, sim_options,
+                 T_sim=0.005, use_mlp=None, rdrv_d_mat=None):
         # TODO: Introduce approximated MLP
         # TODO: Add GP regressor
         # TODO: Load / save trained model -> overwrite model
+        # TODO implement solver options flexibly
         """
         :param T_sim: Discretized time-step for the aerial robot simulation
         :param model_options: Dictionary containing model options, such as architecture type
-        :param pre_trained_model: Pre-trained MLP to be combined with nominal model in MPC framework
+        :param use_mlp: Flag to toggle use of a pre-trained MLP in the NMPC controller
         :param solver_options: Set of additional options dictionary for acados solver
         :param rdrv_d_mat: 3x3 matrix that corrects the drag with a linear model
                            according to Faessler et al. 2018
         """
         # Nominal model and solver
-        # TODO avoid building solver twice with flag
+        # TODO pass down solver options
         self.arch_type = model_options["arch_type"]
         if self.arch_type == "tilt_bi":
             self.nmpc = NMPCTiltBiServo(build=False)
@@ -62,12 +66,17 @@ class NeuralNMPC():
 
         # Load pre-trained MLP
         # Note: If no pre-trained model is given, the controller will only use the nominal model
-        if isinstance(pre_trained_model, torch.nn.Module):
-            self.mlp = pre_trained_model
+        if use_mlp:
+            self.neural_model, self.mlp_config = self.load_model(model_options, sim_options)
             self.mlp_approx = None
         else:
-            self.mlp = None
+            self.neural_model = None
+            self.mlp_config = None
             self.mlp_approx = None
+
+        # Load pre-trained RDRv model
+        # Not use MLP AND RDRv at the same time!
+        # rdrv_d = load_rdrv(model_options=load_ops)
 
         # Add neural network model to nominal model 
         self.extend_acados_model()
@@ -152,6 +161,7 @@ class NeuralNMPC():
         
 
         # TEMPORARY
+        self.neural_model(mlp_in=torch.zeros((1, self.neural_model.input_size)))
         mlp_out = np.zeros(self.state.size())
 
         # Explicit dynamics
@@ -175,18 +185,58 @@ class NeuralNMPC():
         self.acados_model.xdot = x_dot
         self.acados_model.u = self.controls
         self.acados_model.p = self.parameters
-        self.acados_model.cost_y_expr_0 = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
-        self.acados_model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
+        self.acados_model.cost_y_expr_0 = ca.vertcat(state_y, control_y)    # NONLINEAR_LS
+        self.acados_model.cost_y_expr = ca.vertcat(state_y, control_y)      # NONLINEAR_LS
         self.acados_model.cost_y_expr_e = state_y_e    
 
     def extend_acados_solver(self):
-        ##########
-        # CORRECT?!
-        # Create a new solver with the extended model
+        """
+        Create a new solver with the extended model.
+        """
+        # Get the same OCP object from NMPC for the OCP cost, constraints and settings
         _ocp = self.nmpc.get_ocp()
 
-        # Extend the OCP with the new model
+        # Overwrite the OCP model with the extended model
         _ocp.model = self.acados_model
+
+        # =====================================================================
+        # TODO OVERTHINK PARAMETERS OF OCP!!!!
+        # Adjust parameters
+        # TODO Check if this is correct
+        _ocp.dims.np = self.acados_model.p.size()[0]     # Number of parameters
+        _ocp.parameter_values = np.zeros(_ocp.dims.np)   # Initialize parameters with zeros
+
+        # Initial state and reference: Set all values such that robot is hovering
+        # TODO debatable which initial states/inputs make sense -> not necessarily better than just all-zero!
+        x_ref = np.zeros(_ocp.dims.nx)
+        x_ref[6] = 1.0  # Quaternion qw
+
+        if self.nmpc.tilt:
+            # When included servo AND thrust, use further indices
+            if self.nmpc.include_servo_model and self.nmpc.include_thrust_model:
+                x_ref[17:21] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
+            # When only included thrust, use the same indices
+            elif self.nmpc.include_thrust_model:
+                x_ref[13:17] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
+        else:
+            x_ref[13:17] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
+
+        u_ref = np.zeros(_ocp.dims.nu)
+        # Obeserved to be worse than zero!
+        u_ref[0:4] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1c, ft2c, ft3c, ft4c
+
+        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        self.acados_init_p = np.zeros(_ocp.dims.np)
+        self.acados_init_p[0] = x_ref[6]  # qw
+        if len(self.nmpc.phys.physical_param_list) != 24:
+            raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
+        self.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
+
+        _ocp.constraints.x0 = x_ref
+        _ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        _ocp.cost.yref_e = x_ref
+        _ocp.parameter_values = self.acados_init_p
+        # =====================================================================
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + _ocp.model.name + "_acados_ocp.json")
@@ -196,10 +246,37 @@ class NeuralNMPC():
         # TODO Extend constraints ?
         # TODO Extend cost function ?
         # TODO CHECK SOLVER OPTIONS ?
+    
+    def create_acados_sim_solver(self) -> AcadosSimSolver:
+        # Create a simulation solver based on the acados model
+        acados_sim = AcadosSim()
+        acados_sim.model = self.acados_model
+
+        # =====================================================================
+        # TODO OVERTHINK PARAMETERS OF SOLVER!!!!
+        # Set the initial parameters for the simulation
+        n_param = self.acados_model.p.size()[0]
+        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+        # TODO set this elsewhere since its confusing where this gets modified/accessed
+        self.nmpc.acados_init_p = np.zeros(n_param)
+        self.nmpc.acados_init_p[0] = 1.0  # qw
+        self.nmpc.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
+        acados_sim.parameter_values = self.nmpc.acados_init_p
+        # =====================================================================
+
+        # Set the horizon for the simulation
+        acados_sim.solver_options.T = self.T_sim
+        acados_sim.solver_options.num_steps = 1     # Default TODO think about increasing this to increase accuracy
+
+        # Generate solver
+        json_file_path = os.path.join("./" + self.acados_model.name + "_acados_sim.json")
+        self.sim_solver = AcadosSimSolver(acados_sim, json_file=json_file_path, build=True)
+        print("Generated C code for sim solver successfully to " + os.getcwd())
 
     def track(self, xr, ur):
         """
         Tracks a trajectory defined by xr and ur, where xr is the reference state and ur is the reference control input.
+        
         :param xr: Reference state trajectory (N+1, state_dim)
         :param ur: Reference control input trajectory (N, control_dim)
         """
@@ -220,43 +297,17 @@ class NeuralNMPC():
         self.nmpc.acados_init_p[0:4] = quaternion_ref
         self.ocp_solver.set(self.ocp_solver.N, "p", self.nmpc.acados_init_p)    # For nonlinear quaternion error
 
-    # def run_optimization(self):
-    #     """
-    #     Optimizes a trajectory to reach the pre-set target state, starting from the input initial state, that minimizes
-    #     the quadratic cost function and respects the constraints of the system
-
-    #     # :param initial_state: 13-element list of the initial state. If None, 0 state will be used
-    #     # :param use_model: integer, select which model to use from the available options.
-    #     # :param return_x: bool, whether to also return the optimized sequence of states alongside with the controls.
-    #     # :param gp_regression_state: 13-element list of state for GP prediction. If None, initial_state will be used.
-    #     :return: optimized control input sequence (flattened)
-    #     """
-        
-
-    #     # =================================================
-    #     # BASICALLY saying to set rest of solver params (which for clarity should
-    #     # be set together with ref in dedicated function (utils?))
-    #     # AND then solving the OCP and getting the optimized control input and next state
-    #     # which is also just put in simulation sequence by Jinjie
-    #     # =================================================
-
-
+    # def set_optimization_parameters(self, initial_state=None, use_model=0, return_x=False):
+    #  ========= SET PARAMETERS FOR NOMINAL =========
+    # .....
+    # .....
+    #  ========= SET PARAMETERS FOR NETWORK =========
     #     if self.with_mlp:
     #         if self.x_opt_acados is None:
-    #             if isinstance(self.target[0], list):
-    #                 self.x_opt_acados = np.expand_dims(
-    #                     np.concatenate([self.target[i] for i in range(len(self.target))]), 0)
-    #                 self.x_opt_acados = self.x_opt_acados.repeat(self.N, 0)
-    #             else:
-    #                 self.x_opt_acados = np.hstack(self.target)
+    #             self.x_opt_acados = np.hstack(self.target)
     #         if self.w_opt_acados is None:
-    #             if len(self.u_target.shape) == 1:
-    #                 self.w_opt_acados = self.u_target[np.newaxis]
-    #                 self.w_opt_acados = self.w_opt_acados.repeat(self.N, 0)
-    #             else:
-    #                 self.w_opt_acados = np.hstack(self.u_target)
+    #              self.w_opt_acados = self.u_target
 
-    #         gp_state = gp_regression_state if gp_regression_state is not None else initial_state
     #         if not self.mlp_conf['approximated']:
     #             self.acados_ocp_solver[use_model].set(0, 'p', np.hstack([np.array(gp_state + [1])]))
     #             for j in range(1, self.N):
@@ -301,25 +352,6 @@ class NeuralNMPC():
     #                 self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1)),
     #                                                                          mlp_params[j]]))
 
-    #     # Solve OCP
-    #     self.acados_ocp_solver[use_model].solve()
-
-    #     # Get u
-    #     w_opt_acados = np.ndarray((self.N, 4))
-    #     x_opt_acados = np.ndarray((self.N + 1, len(x_init)))
-    #     x_opt_acados[0, :] = self.acados_ocp_solver[use_model].get(0, "x")
-    #     for i in range(self.N):
-    #         w_opt_acados[i, :] = self.acados_ocp_solver[use_model].get(i, "u")
-    #         x_opt_acados[i + 1, :] = self.acados_ocp_solver[use_model].get(i + 1, "x")
-
-    #     self.x_opt_acados = x_opt_acados.copy()
-    #     self.w_opt_acados = w_opt_acados.copy()
-
-    #     w_opt_acados = np.reshape(w_opt_acados, (-1))
-    #     return w_opt_acados if not return_x else (w_opt_acados, x_opt_acados)
-
-    # =========================================================
-    
     def simulate_trajectory(self):
         """
         Simulate trajectory using optimal control sequence from the OCP solver.
@@ -351,87 +383,48 @@ class NeuralNMPC():
         
         return x_traj
 
-    def load_controller(self):
+    def load_model(self, model_options, sim_options):
         """
-        Load a pretrained model into the NMPC controller.
+        Load a pre-trained neural network for the NMPC controller.
         """
+        # Get options for model loading
+        load_ops = {"git": model_options.get("git", False),
+                    "model_name": model_options.get("name", None),
+                    "disturbances": sim_options.get("disturbances", False)}
 
-        load_ops = {"params": simulation_options}
-        load_ops.update({"git": version, "model_name": name})
-
-        # Configuration for MLP Model
-        mlp_config = None
+        # TODO set config elsewhere
+        mlp_config = {'approximated': False, 'v_inp': True, 'u_inp': False, 'T_out': False, 'ground_map_input': False,
+                      'torque_output': False, 'two_step_rti': False}
         
-        # Load trained GP model
-        if reg_type == "gp":
-            pre_trained_models = load_pickled_models(model_options=load_ops)
-            rdrv_d = None
-
         # Load trained MLP model
-        elif 'mlp' in reg_type:
-            mlp_config = {'approximated': False, 'v_inp': True, 'u_inp': False, 'T_out': False, 'ground_map_input': False,
-                        'torque_output': False, 'two_step_rti': False}
-            directory, file_name = get_model_dir_and_file(load_ops)
-            saved_dict = torch.load(os.path.join(directory, f"{file_name}.pt"))
-            mlp_model = mc.nn.MultiLayerPerceptron(saved_dict['input_size'], saved_dict['hidden_size'],
-                                                saved_dict['output_size'], saved_dict['hidden_layers'], 'Tanh')
-            neural_model = NormalizedMLP(mlp_model, torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
-                                torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
-                                torch.tensor(np.zeros((saved_dict['output_size'],))).float(),
-                                torch.tensor(np.zeros((saved_dict['output_size'],))).float())
-            neural_model.load_state_dict(saved_dict['state_dict'])
-            neural_model.eval()
-            pre_trained_models = neural_model
-            rdrv_d = None
+        directory, file_name = get_model_dir_and_file(load_ops)
+        saved_network = torch.load(os.path.join(directory, f"{file_name}.pt"))
+        # saved_network = {"input_size": 12, "hidden_size": 64, "output_size": 12, "hidden_layers": 3, "state_dict": {}}
+        base_mlp = mc.nn.MultiLayerPerceptron(saved_network['input_size'], saved_network['hidden_size'],
+                                              saved_network['output_size'], saved_network['hidden_layers'],
+                                              'Tanh')
+        neural_model = NormalizedMLP(
+                            base_mlp,
+                            torch.tensor(np.zeros((saved_network['input_size'],))).float(),
+                            torch.tensor(np.zeros((saved_network['input_size'],))).float(),
+                            torch.tensor(np.zeros((saved_network['output_size'],))).float(),
+                            torch.tensor(np.zeros((saved_network['output_size'],))).float())
+        # Load weights and biases from saved model
+        neural_model.load_state_dict(saved_network['state_dict'])
+        neural_model.eval()
 
-            if reg_type.endswith('approx2'):
-                mlp_config['approximated'] = True
-                mlp_config['approx_order'] = 2
-            elif reg_type.endswith('approx') or reg_type.endswith('approx_1'):
-                mlp_config['approximated'] = True
-                mlp_config['approx_order'] = 1
-            if '_u' in reg_type:
-                mlp_config['u_inp'] = True
-            if '_T' in reg_type:
-                mlp_config['T_out'] = True
+        # if reg_type.endswith('approx2'):
+        #     mlp_config['approximated'] = True
+        #     mlp_config['approx_order'] = 2
+        # elif reg_type.endswith('approx') or reg_type.endswith('approx_1'):
+        #     mlp_config['approximated'] = True
+        #     mlp_config['approx_order'] = 1
+        # if '_u' in reg_type:
+        #     mlp_config['u_inp'] = True
+        # if '_T' in reg_type:
+        #     mlp_config['T_out'] = True
 
-        # Load pre-trained RDRv model
-        else:
-            rdrv_d = load_rdrv(model_options=load_ops)
-            pre_trained_models = None
-
-        nmpc = RTNMPC(
-            model_name=model_name,
-            reg_type=reg_type,
-            neural_model=neural_model,
-            rdrv_d=rdrv_d,
-            acados_options=acados_config
-        )
-
-        return nmpc
-    
-    def create_acados_sim_solver(self) -> AcadosSimSolver:
-        # Create a simulation solver based on the acados model
-        acados_sim = AcadosSim()
-        acados_sim.model = self.acados_model
-
-        # Set the initial parameters for the simulation
-        n_param = self.acados_model.p.size()[0]
-        # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-        # TODO set this elsewhere since its confusing where this gets modified/accessed
-        self.nmpc.acados_init_p = np.zeros(n_param)
-        self.nmpc.acados_init_p[0] = 1.0  # qw
-        self.nmpc.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
-        acados_sim.parameter_values = self.nmpc.acados_init_p
-
-        # Set the horizon for the simulation
-        acados_sim.solver_options.T = self.T_sim
-        acados_sim.solver_options.num_steps = 1     # Default TODO think about increasing this to increase accuracy
-
-        # Generate solver
-        json_file_path = os.path.join("./" + self.acados_model.name + "_acados_sim.json")
-        self.sim_solver = AcadosSimSolver(acados_sim, json_file=json_file_path, build=True)
-        print("Generated C code for sim solver successfully to " + os.getcwd())
+        return neural_model, mlp_config
 
     def check_constraints(self, u_cmd):
         """

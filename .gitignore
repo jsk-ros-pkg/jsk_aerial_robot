@@ -119,3 +119,6 @@ tags
 
 # Videos
 *.mp4
+
+# TEMPORARY skip ml_casadi -> TODO use as submodule
+**/ml_casadi/

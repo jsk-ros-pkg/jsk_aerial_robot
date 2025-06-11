@@ -7,13 +7,13 @@ from utils.data_utils import get_recording_dict_and_file, make_blank_dict, write
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import euclidean_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot
-from config.configuration_parameters import SimpleSimConfig
+from config.configurations import SimpleSimConfig
 from neural_controller import NeuralNMPC
 
 
 np.random.seed(345)  # Set seed for reproducibility
 
-def main(model_options, recording_options, sim_options, parameters):
+def main(model_options, solver_options, recording_options, sim_options, parameters):
     """
     Main function to run the NMPC simulation and recording.
     :param model_options: Options for the NMPC model.
@@ -24,20 +24,21 @@ def main(model_options, recording_options, sim_options, parameters):
 
     # ------------------------
     # TODO set these somewhere else
-    MODEL_ID = 0
-    version = None
-    name = None
+    # Model options
+    model_options.update({
+        "MODEL_ID": 0,
+        "version": 1,
+        "name": "test_model"
+    })
     T_sim = 0.005  # or 0.001
     # ------------------------
 
     # --- Initialize controller ---
-    if version is not None and name is not None:
-        # Load pre-trained model into NMPC object
-        rtnmpc = NeuralNMPC.load_controller(model_options=model_options)
-    else:
+    # if version is not None and name is not None:
+    if True:
         # Create blank NMPC object
-        rtnmpc = NeuralNMPC(model_options, T_sim=T_sim,
-                            pre_trained_model=None, solver_options=None)
+        rtnmpc = NeuralNMPC(model_options=model_options, solver_options=solver_options,
+                            sim_options=sim_options, T_sim=T_sim, use_mlp=True)
 
     # Solver
     ocp_solver = rtnmpc.ocp_solver
@@ -408,17 +409,16 @@ if __name__ == '__main__':
     main(**run_options)
     """
 if __name__ == '__main__':
-
-    acados_config = {
-        "solver_type": "SQP",
-        "terminal_cost": True
-    }
     
     run_options = {
         "model_options": {
             "arch_type": "tilt_qd",
             "model_name": "test_model",
-            "reg_type": "mlp"
+            "use_mlp": True
+        },
+        "solver_options": {
+            "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this
+            "terminal_cost": True
         },
         "recording_options": {
             "recording": False,
@@ -427,7 +427,7 @@ if __name__ == '__main__':
             "aggressive": True  # TODO for now always use aggressive targets
         },
         "sim_options": {
-            "disturbances": SimpleSimConfig.simulation_disturbances,
+            "disturbances": SimpleSimConfig.disturbances,   # TODO use all disturbances in environment
             "real_time_plot": True,
             "save_animation": False,
             "max_sim_time": 20,
@@ -436,8 +436,7 @@ if __name__ == '__main__':
         "parameters": {
             "preset_targets": None,
             "initial_state": None,
-            "initial_guess": None,
-            "acados_options": acados_config
+            "initial_guess": None
         }
     }
 

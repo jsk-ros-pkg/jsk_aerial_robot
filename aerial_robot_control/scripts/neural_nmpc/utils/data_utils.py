@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import ml_casadi.torch as mc
-from config.configuration_parameters import DirectoryConfig
+from config.configurations import DirectoryConfig
 
 
 def make_blank_dict(target_dim, state_dim, input_dim):
@@ -235,7 +235,7 @@ def get_model_dir_and_file(model_options):
     directory = os.path.join(DirectoryConfig.SAVE_DIR, str(model_options["git"]), str(model_options["model_name"]))
 
     # Store parameters in file name
-    model_params = model_options["params"]
+    model_params = model_options["disturbances"]
     file_name = ''
     model_vars = list(model_params.keys())
     model_vars.sort()
