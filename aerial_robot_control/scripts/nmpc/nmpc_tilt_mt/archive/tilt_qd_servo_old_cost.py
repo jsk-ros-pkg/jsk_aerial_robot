@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
 import numpy as np
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))))  # Add parent's parent directory to path to allow relative imports
 from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
 
 

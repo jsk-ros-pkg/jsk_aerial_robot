@@ -2,7 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
+
+from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
 import nmpc_tilt_mt.archive.phys_param_beetle_art as phys_art
 
 

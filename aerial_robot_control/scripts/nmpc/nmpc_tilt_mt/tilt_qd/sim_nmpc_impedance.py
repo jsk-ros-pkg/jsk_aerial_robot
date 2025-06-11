@@ -4,18 +4,17 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
 from nmpc_tilt_mt.nmpc_viz import Visualizer
 
-from sim_fir_differentiator import FIRDifferentiator
+from nmpc_tilt_mt.tilt_qd.sim_fir_differentiator import FIRDifferentiator
 
-from tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
-from tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 
-from mhe_wrench_est_momentum import MHEWrenchEstMomentum
-from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-from mhe_wrench_est_new_meas import MHEVelDynIMU
-from mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
+from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_momentum import MHEWrenchEstMomentum
+from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_new_meas import MHEVelDynIMU
+from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_imu_act import MHEWrenchEstIMUAct
 
 np.random.seed(42)
 

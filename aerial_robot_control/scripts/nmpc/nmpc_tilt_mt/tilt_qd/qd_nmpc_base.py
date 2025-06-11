@@ -1,11 +1,9 @@
-import os, sys
+import os
 from abc import abstractmethod
 import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-# Add parent directory to path to allow relative imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nmpc_tilt_mt.rh_base import RecedingHorizonBase
 from nmpc_tilt_mt.tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 

@@ -5,8 +5,6 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))))  # Add parent's parent directory to path to allow relative imports
 from nmpc_tilt_mt.rh_base import RecedingHorizonBase
 from nmpc_tilt_mt.tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
@@ -159,13 +157,13 @@ class NMPCTiltQdServoThrustDrag(RecedingHorizonBase):
         dr_a3 = self.phys.dr3 * a3
         dr_a4 = self.phys.dr4 * a4
         fd1 = (
-                          self.phys.c4 * dr_a1 ** 4 + self.phys.c3 * dr_a1 ** 3 + self.phys.c2 * dr_a1 ** 2 + self.phys.c1 * dr_a1 + self.phys.c0) * ft1
+                      self.phys.c4 * dr_a1 ** 4 + self.phys.c3 * dr_a1 ** 3 + self.phys.c2 * dr_a1 ** 2 + self.phys.c1 * dr_a1 + self.phys.c0) * ft1
         fd2 = (
-                          self.phys.c4 * dr_a2 ** 4 + self.phys.c3 * dr_a2 ** 3 + self.phys.c2 * dr_a2 ** 2 + self.phys.c1 * dr_a2 + self.phys.c0) * ft2
+                      self.phys.c4 * dr_a2 ** 4 + self.phys.c3 * dr_a2 ** 3 + self.phys.c2 * dr_a2 ** 2 + self.phys.c1 * dr_a2 + self.phys.c0) * ft2
         fd3 = (
-                          self.phys.c4 * dr_a3 ** 4 + self.phys.c3 * dr_a3 ** 3 + self.phys.c2 * dr_a3 ** 2 + self.phys.c1 * dr_a3 + self.phys.c0) * ft3
+                      self.phys.c4 * dr_a3 ** 4 + self.phys.c3 * dr_a3 ** 3 + self.phys.c2 * dr_a3 ** 2 + self.phys.c1 * dr_a3 + self.phys.c0) * ft3
         fd4 = (
-                          self.phys.c4 * dr_a4 ** 4 + self.phys.c3 * dr_a4 ** 3 + self.phys.c2 * dr_a4 ** 2 + self.phys.c1 * dr_a4 + self.phys.c0) * ft4
+                      self.phys.c4 * dr_a4 ** 4 + self.phys.c3 * dr_a4 ** 3 + self.phys.c2 * dr_a4 ** 2 + self.phys.c1 * dr_a4 + self.phys.c0) * ft4
 
         ft_r1 = ca.vertcat(0, 0, ft1 - fd1)
         ft_r2 = ca.vertcat(0, 0, ft2 - fd2)

@@ -3,10 +3,7 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to path to allow relative imports
 from nmpc_tilt_mt.rh_base import RecedingHorizonBase
-
 from nmpc_tilt_mt.tilt_qd.phys_param_beetle_omni import *  # Define physical parameters
 
 

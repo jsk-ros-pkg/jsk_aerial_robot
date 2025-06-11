@@ -3,8 +3,8 @@
 import numpy as np
 from acados_template import AcadosModel
 import casadi as ca
-from qd_mhe_base import QDMHEBase
 
+from nmpc_tilt_mt.tilt_qd.qd_mhe_base import QDMHEBase
 from nmpc_tilt_mt.tilt_qd.phys_param_beetle_omni import *
 
 

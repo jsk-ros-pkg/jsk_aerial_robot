@@ -5,10 +5,8 @@ import numpy as np
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
 from nmpc_tilt_mt.tilt_tri.tri_reference_generator import TriNMPCReferenceGenerator
 from nmpc_tilt_mt.rh_base import RecedingHorizonBase
-
 import nmpc_tilt_mt.tilt_tri.phys_param_trirotor as phys
 
 

@@ -4,13 +4,14 @@
 '''
 
 import numpy as np
-from mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
 import rospy
 from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 
-from qd_reference_generator import QDNMPCReferenceGenerator
+from nmpc_tilt_mt.tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+
+from nmpc_tilt_mt.tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
 from nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
 

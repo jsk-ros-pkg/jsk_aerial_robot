@@ -2,8 +2,9 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-from qd_nmpc_base import QDNMPCBase
-from sim_fake_sensor import FakeSensor
+
+from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
+from nmpc_tilt_mt.tilt_qd.sim_fake_sensor import FakeSensor
 from nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
 
 
