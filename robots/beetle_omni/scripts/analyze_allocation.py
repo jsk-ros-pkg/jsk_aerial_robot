@@ -424,8 +424,8 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(4, 2, figsize=(7, 8), sharex=True)
     # fig.suptitle("Thrust & Servo-angle vs yaw (40°→50°)\nThree allocation inverses", fontsize=16)
 
-    axs[0, 0].set_title("Thrust Cmd.")
-    axs[0, 1].set_title("Servo Cmd.")
+    axs[0, 0].set_title("Thrust Command")
+    axs[0, 1].set_title("Servo Command")
     for r in range(4):
         # ---- thrust subplot (left) ----
         ax_t = axs[r, 0]
@@ -433,7 +433,7 @@ if __name__ == "__main__":
             ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "", linestyle=method_linestyles[m],
                       color=method_colors[m])
 
-        title_tmp = "$f_{c" + str(r + 1) + "}$"
+        title_tmp = "$f_{" + str(r + 1) + "r}$"
         ax_t.set_ylabel(title_tmp + " [N]", fontsize=label_size)
         # ax_t.set_title(f"{rotor_names[r]} thrust")
         ax_t.grid(True, linestyle=":")
@@ -444,14 +444,14 @@ if __name__ == "__main__":
             ax_a.plot(yaw_deg, ang_all[m][:, r] * 180 / np.pi, label=m if r == 0 else "",
                       linestyle=method_linestyles[m], color=method_colors[m])
 
-        title_tmp = "$\\alpha_{c" + str(r + 1) + "}$"
+        title_tmp = "$\\alpha_{" + str(r + 1) + "r}$"
         ax_a.set_ylabel(title_tmp + " [$^{\circ}$]", fontsize=label_size)
         # ax_a.set_title(f"{rotor_names[r]} servo angle")
         ax_a.grid(True, linestyle=":")
 
     # shared x-label (bottom row only)
     for ax in axs[-1, :]:
-        ax.set_xlabel("Yaw [$^{\circ}$]", fontsize=label_size)
+        ax.set_xlabel("Yaw $\psi$ [$^{\circ}$]", fontsize=label_size)
         ax.set_xlim([int(yaw_deg[0]), int(yaw_deg[-1])])
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
