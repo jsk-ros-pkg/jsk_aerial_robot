@@ -16,10 +16,9 @@ class QDNMPCBase(RecedingHorizonBase):
     Inherits from RecedingHorizonBase which also lays foundations for MHE classes.
 
     :param str model_name: Name of the model defined in controller file.
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
 
-    def __init__(self, overwrite: bool = False):
+    def __init__(self):
         #     The child classes only have specifications which define the controller specifications and need to set the following flags:
         # check if the model name is set
         # - model_name: Name of the model defined in controller file.
@@ -61,7 +60,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.acados_init_p = None  # initial value for parameters in acados. Mainly for physical parameters.
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc")
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()

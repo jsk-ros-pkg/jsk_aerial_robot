@@ -3,7 +3,9 @@
 import os, sys
 import numpy as np
 import casadi as ca
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to path to allow relative imports
 from tilt_qd.qd_nmpc_base import QDNMPCBase
 from fix_qd import phys_param_mini_qd as phys_mini_qd
 
@@ -13,10 +15,9 @@ class NMPCFixQdThrustOut(QDNMPCBase):
     Controller Name: Fixed Quadrotor NMPC with Thrust Output
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the thrust for each rotor.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False, phys=phys_mini_qd):
+
+    def __init__(self, phys=phys_mini_qd):
         # Model name
         self.model_name = "fix_qd_thrust_out_mdl"
         self.phys = phys
@@ -24,7 +25,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.tilt = False
         self.include_servo_model = False
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
@@ -34,7 +35,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCFullModel.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__()
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -91,7 +92,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
             ]
         )
 
-        return Q,R
+        return Q, R
 
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
@@ -108,19 +109,21 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
 
         # Assemble control reference
@@ -136,8 +139,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
 if __name__ == "__main__":
     # Call controller class to generate c code
-    overwrite = False
-    nmpc = NMPCFixQdThrustOut(overwrite)
+    nmpc = NMPCFixQdThrustOut()
 
     print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())
     print("T_samp: ", nmpc.params["T_samp"])

@@ -5,7 +5,8 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
+sys.path.append(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))  # Add parent's parent directory to path to allow relative imports
 from rh_base import RecedingHorizonBase
 from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
@@ -25,10 +26,9 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
     For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
     is has drag - i.e. a disturbance - on each rotor and not only on CoG. This idea was discarded for 
     future use and therefore not included in base definition.
-
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+
+    def __init__(self):
         # Store model name
         self.model_name = "tilt_qd_servo_thrust_drag_mdl"
 
@@ -46,7 +46,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
@@ -58,7 +58,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFullITermDrag.yaml")
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc")
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -125,13 +125,13 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
@@ -173,20 +173,20 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
         # Wrench in Body frame
         f_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Inertia
@@ -224,7 +224,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         model = AcadosModel()
         model.name = self.model_name
         model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = controls
@@ -239,7 +239,8 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nu = ocp.model.u.size()[0]
 
         # Define weights
         Q = np.diag(
@@ -411,7 +412,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
 
         return solver
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -427,19 +428,21 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -453,22 +456,22 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         ur[:, 1] = ft_ref[1]
         ur[:, 2] = ft_ref[2]
         ur[:, 3] = ft_ref[3]
-        
+
         return xr, ur
-    
+
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
-    
+
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
-                                        self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
-                                        self.phys.dr1,     self.phys.dr2,  self.phys.dr3,  self.phys.dr4,
+                                        self.phys.p1_b, self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
+                                        self.phys.dr1, self.phys.dr2, self.phys.dr3, self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
-    
+
     def create_acados_sim_solver(self, ocp_model: AcadosModel, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -481,8 +484,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoWCogEndDist(overwrite)
+    nmpc = NMPCTiltQdServoWCogEndDist()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
