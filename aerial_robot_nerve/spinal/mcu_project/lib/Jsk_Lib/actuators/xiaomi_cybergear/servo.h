@@ -100,6 +100,7 @@ namespace Xiaomi_Cybergear
 
     static constexpr int32_t SERVO_PUB_INTERVAL = 10; // [ms]
     static constexpr int32_t SERVO_CTRL_INTERVAL = 2; // [ms]
+    int loop_cnt_ = 0;
 
     // cybergear driver
     uint32_t makeIdentifier(uint8_t can_id, uint8_t cmd_id, uint16_t option);

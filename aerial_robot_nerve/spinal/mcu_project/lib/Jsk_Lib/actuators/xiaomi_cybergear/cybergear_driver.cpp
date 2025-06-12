@@ -54,6 +54,8 @@ void Servo::set_mech_position_to_zero()
   send_command(motor_can_id_, CMD_SET_MECH_POSITION_TO_ZERO, master_can_id_, 8, data);
 }
 
+void Servo::get_mech_position(){read_ram_data(ADDR_MECH_POS);};
+
 void Servo::read_ram_data(uint16_t index)
 {
   uint8_t data[8] = {0x00};

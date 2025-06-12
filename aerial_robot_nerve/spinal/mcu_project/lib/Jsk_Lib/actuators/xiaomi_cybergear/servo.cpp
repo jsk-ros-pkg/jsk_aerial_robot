@@ -71,15 +71,21 @@ void Servo::update(void)
   /* control */
   if( now_time - servo_last_ctrl_time_ >= SERVO_CTRL_INTERVAL)
     {
-      sendData();
+      loop_cnt_ = (loop_cnt_ + 1) % 2;
 
+      if(loop_cnt_ == 0)
+        sendData();
+      else if (loop_cnt_ == 1)
+        {
+          get_mech_position();
+        }
       servo_last_ctrl_time_ = now_time;
     }
 
   /* ros publish */
   if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
     {
-      servo_state_msg_.position = motor_status_.position;
+      servo_state_msg_.position = motor_param_.mech_pos;
       servo_state_msg_.velocity = motor_status_.velocity;
       servo_state_msg_.effort = motor_status_.effort;
       servo_state_msg_.temperature = motor_status_.temperature;
