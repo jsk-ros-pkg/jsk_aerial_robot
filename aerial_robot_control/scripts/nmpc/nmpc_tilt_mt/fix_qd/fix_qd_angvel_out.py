@@ -5,10 +5,10 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-from nmpc_tilt_mt.rh_base import RecedingHorizonBase
-from nmpc_tilt_mt.tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+from ..rh_base import RecedingHorizonBase
+from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
 
-import nmpc_tilt_mt.archive.phys_param_beetle_art as phys  # Define physical parameters
+from ..archive import phys_param_beetle_art as phys  # Define physical parameters
 
 
 class NMPCFixQdAngvelOut(RecedingHorizonBase):

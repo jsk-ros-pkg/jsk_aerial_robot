@@ -5,9 +5,9 @@ import numpy as np
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
-from nmpc_tilt_mt.tilt_tri.tri_reference_generator import TriNMPCReferenceGenerator
-from nmpc_tilt_mt.rh_base import RecedingHorizonBase
-import nmpc_tilt_mt.tilt_tri.phys_param_trirotor as phys
+from .tri_reference_generator import TriNMPCReferenceGenerator
+from ..rh_base import RecedingHorizonBase
+from . import phys_param_trirotor as phys
 
 
 class NMPCTiltTriServo(RecedingHorizonBase):

@@ -4,11 +4,6 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_bi")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_tri")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
-
 from nmpc_tilt_mt.utils.nmpc_viz import Visualizer
 
 # Quadrotor

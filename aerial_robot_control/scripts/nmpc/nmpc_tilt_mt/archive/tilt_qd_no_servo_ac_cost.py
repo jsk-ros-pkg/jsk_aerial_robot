@@ -2,8 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
-import nmpc_tilt_mt.archive.phys_param_beetle_art as phys_art
+from ..tilt_qd.qd_nmpc_base import QDNMPCBase
+from . import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdNoServoAcCost(QDNMPCBase):

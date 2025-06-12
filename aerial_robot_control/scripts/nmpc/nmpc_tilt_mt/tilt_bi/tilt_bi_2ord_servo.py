@@ -5,9 +5,9 @@ import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
 
-from nmpc_tilt_mt.tilt_bi.bi_reference_generator import BINMPCReferenceGenerator
-from nmpc_tilt_mt.rh_base import RecedingHorizonBase
-import nmpc_tilt_mt.tilt_bi.phys_param_birotor as phys
+from .bi_reference_generator import BINMPCReferenceGenerator
+from ..rh_base import RecedingHorizonBase
+from . import phys_param_birotor as phys
 
 
 class NMPCTiltBi2OrdServo(RecedingHorizonBase):

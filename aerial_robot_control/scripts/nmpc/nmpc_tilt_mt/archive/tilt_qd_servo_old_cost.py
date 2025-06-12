@@ -3,7 +3,7 @@
 import numpy as np
 import casadi as ca
 
-from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
+from ..tilt_qd.qd_nmpc_base import QDNMPCBase
 
 
 class NMPCTiltQdServoOldCost(QDNMPCBase):

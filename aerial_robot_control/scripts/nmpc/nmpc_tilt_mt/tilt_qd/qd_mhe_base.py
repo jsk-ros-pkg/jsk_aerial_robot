@@ -3,7 +3,7 @@ from abc import abstractmethod
 import numpy as np
 from acados_template import AcadosOcpSolver
 
-from nmpc_tilt_mt.rh_base import RecedingHorizonBase
+from ..rh_base import RecedingHorizonBase
 
 
 class QDMHEBase(RecedingHorizonBase):

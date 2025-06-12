@@ -3,9 +3,9 @@
 import numpy as np
 import casadi as ca
 
-from nmpc_tilt_mt.tilt_qd.qd_nmpc_base import QDNMPCBase
-from nmpc_tilt_mt.tilt_qd.fake_sensor import FakeSensor
-from nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
+from .qd_nmpc_base import QDNMPCBase
+from .fake_sensor import FakeSensor
+from . import phys_param_beetle_omni as phys_omni
 
 
 class NMPCTiltQdServoThrustDist(QDNMPCBase):
