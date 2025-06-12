@@ -60,7 +60,7 @@ void Servo::send_command(uint8_t can_id, uint8_t cmd_id, uint16_t option, uint8_
 
 void Servo::receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data)
 {
-  process_motor_packet(data);
+  process_packet(identifier, data);
 }
 
 void Servo::update(void)

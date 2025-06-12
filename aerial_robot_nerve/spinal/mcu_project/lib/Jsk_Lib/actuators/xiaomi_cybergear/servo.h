@@ -44,6 +44,29 @@ namespace Xiaomi_Cybergear
     uint16_t raw_temperature;  //!< raw temperature (for sync data)
   };
 
+  struct MotorParameter
+  {
+    unsigned long stamp_usec;
+    uint16_t run_mode;
+    float iq_ref;
+    float spd_ref;
+    float limit_torque;
+    float cur_kp;
+    float cur_ki;
+    float cur_filt_gain;
+    float loc_ref;
+    float limit_spd;
+    float limit_cur;
+    float mech_pos;
+    float iqf;
+    float mech_vel;
+    float vbus;
+    int16_t rotation;
+    float loc_kp;
+    float spd_kp;
+    float spd_ki;
+  };
+
   class Servo : public CANDirectDevice
   {
   public:
@@ -73,6 +96,7 @@ namespace Xiaomi_Cybergear
 
     MotorComand motor_command_;
     MotorStatus motor_status_;
+    MotorParameter motor_param_;
 
     static constexpr int32_t SERVO_PUB_INTERVAL = 10; // [ms]
     static constexpr int32_t SERVO_CTRL_INTERVAL = 2; // [ms]
@@ -106,7 +130,6 @@ namespace Xiaomi_Cybergear
     void read_ram_data(uint16_t index);
     uint8_t get_run_mode() const;
     uint8_t get_motor_id() const;
-    bool process_packet();
     bool update_motor_status(unsigned long id, const uint8_t * data, unsigned long len);
     MotorStatus get_motor_status() const { return motor_status_; }
     // MotorParameter get_motor_param() const { return motor_param_; }
@@ -116,8 +139,9 @@ namespace Xiaomi_Cybergear
     float uint_to_float(uint16_t x, float x_min, float x_max);
     void send_command(uint8_t can_id, uint8_t cmd_id, uint16_t option, uint8_t len, uint8_t * data);
     bool receive_motor_data(MotorStatus & mot);
+    void process_packet(const uint32_t identifier, uint8_t * data);
     void process_motor_packet(const uint8_t * data);
-    void process_read_parameter_packet(const uint8_t * data, unsigned long len);
+    void process_read_parameter_packet(const uint8_t * data);
     void print_can_packet(uint32_t id, const uint8_t * data, uint8_t len);
   };
 }

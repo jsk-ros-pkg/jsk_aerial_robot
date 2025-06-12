@@ -97,6 +97,16 @@ uint32_t Servo::makeIdentifier(uint8_t can_id, uint8_t cmd_id, uint16_t option)
   return id;
 }
 
+void Servo::process_packet(const uint32_t identifier, uint8_t* data)
+{
+  uint8_t packet_type = (identifier & 0x1F000000) >> 24;
+
+  if(packet_type == CMD_RESPONSE)
+    process_motor_packet(data);
+  else if (packet_type == CMD_RAM_READ)
+    process_read_parameter_packet(data);
+}
+
 void Servo::process_motor_packet(const uint8_t * data)
 {
   motor_status_.raw_position = data[1] | data[0] << 8;
@@ -112,3 +122,75 @@ void Servo::process_motor_packet(const uint8_t * data)
   motor_status_.temperature = motor_status_.raw_temperature / 10.0;
 }
 
+void Servo::process_read_parameter_packet(const uint8_t* data)
+{
+  uint16_t index = data[1] << 8 | data[0];
+
+  uint8_t uint8_data;
+  memcpy(&uint8_data, &data[4], sizeof(uint8_t));
+
+  int16_t int16_data;
+  memcpy(&int16_data, &data[4], sizeof(int16_t));
+
+  float float_data;
+  memcpy(&float_data, &data[4], sizeof(float));
+
+  switch (index) {
+  case ADDR_RUN_MODE:
+    motor_param_.run_mode = uint8_data;
+    break;
+  case ADDR_IQ_REF:
+    motor_param_.iq_ref = float_data;
+    break;
+  case ADDR_SPEED_REF:
+    motor_param_.spd_ref = float_data;
+    break;
+  case ADDR_LIMIT_TORQUE:
+    motor_param_.limit_torque = float_data;
+    break;
+  case ADDR_CURRENT_KP:
+    motor_param_.cur_kp = float_data;
+    break;
+  case ADDR_CURRENT_KI:
+    motor_param_.cur_ki = float_data;
+    break;
+  case ADDR_CURRENT_FILTER_GAIN:
+    motor_param_.cur_filt_gain = float_data;
+    break;
+  case ADDR_LOC_REF:
+    motor_param_.loc_ref = float_data;
+    break;
+  case ADDR_LIMIT_SPEED:
+    motor_param_.limit_spd = float_data;
+    break;
+  case ADDR_LIMIT_CURRENT:
+    motor_param_.limit_cur = float_data;
+    break;
+  case ADDR_MECH_POS:
+    motor_param_.mech_pos = float_data;
+    break;
+  case ADDR_IQF:
+    motor_param_.iqf = float_data;
+    break;
+  case ADDR_MECH_VEL:
+    motor_param_.mech_vel = float_data;
+    break;
+  case ADDR_VBUS:
+    motor_param_.vbus = float_data;
+    break;
+  case ADDR_ROTATION:
+    motor_param_.rotation = int16_data;
+    break;
+  case ADDR_LOC_KP:
+    motor_param_.loc_kp = float_data;
+    break;
+  case ADDR_SPD_KP:
+    motor_param_.spd_kp = float_data;
+    break;
+  case ADDR_SPD_KI:
+    motor_param_.spd_ki = float_data;
+    break;
+  default:
+    break;
+  }
+}
