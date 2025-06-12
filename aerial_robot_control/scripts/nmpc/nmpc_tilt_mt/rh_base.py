@@ -50,7 +50,7 @@ class RecedingHorizonBase(ABC):
         sys.path.insert(0, acados_source_path)
 
         # Set parameters
-        self._ocp.dims.N = self.params["N_steps"]  # Number of time steps along the prediction horizon
+        self._ocp.solver_options.N_horizon = self.params["N_steps"]  # Number of time steps along the prediction horizon
         self._ocp.dims.np = self._acados_model.p.size()[0]  # Number of parameters
         self._ocp.parameter_values = np.zeros(self._ocp.dims.np)  # Initialize parameters with zeros
 

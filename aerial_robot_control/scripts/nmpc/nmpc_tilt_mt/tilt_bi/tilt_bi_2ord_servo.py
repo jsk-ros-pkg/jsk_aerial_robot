@@ -370,7 +370,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         """
         # Get dimensions
         ocp = self.get_ocp()
-        nn = ocp.dims.N
+        nn = ocp.solver_options.N_horizon
         nx = ocp.dims.nx
         nu = ocp.dims.nu
 
