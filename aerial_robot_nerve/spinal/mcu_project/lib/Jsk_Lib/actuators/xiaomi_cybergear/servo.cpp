@@ -41,7 +41,7 @@ void Servo::sendData()
       reset_motor();
       set_mech_position_to_zero();
       enable_motor();
-      set_run_mode(CMD_CONTROL);
+      set_run_mode(CONTROL_MODE);
       activated_ = true;
     }
   else

@@ -1,7 +1,11 @@
 #ifndef CYBER_GEAR_DRIVER_DEFS_H
 #define CYBER_GEAR_DRIVER_DEFS_H
 
-#define CMD_CONTROL 0
+#define CONTROL_MODE 0
+#define POSITION_MODE 1
+#define VELOCITY_MODE 2
+#define CURRENT_MODE 3
+
 #define CMD_POSITION 1
 #define CMD_RESPONSE 2
 #define CMD_ENABLE 3
