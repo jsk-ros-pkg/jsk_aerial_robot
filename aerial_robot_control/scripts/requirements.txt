@@ -1,2 +1,3 @@
 scienceplots==2.1.1
 pandas==2.2.3
+casadi==3.7.0
