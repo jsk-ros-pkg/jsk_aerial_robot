@@ -60,6 +60,7 @@ osThreadId rosPublishHandle;
 osThreadId coreProcessHandle;
 osThreadId canRxHandle;
 osThreadId voltageHandle;
+osThreadId servoTaskHandle;
 osTimerId CoreTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -77,6 +78,7 @@ void rosPublishTask(void const * argument);
 void coreTask(void const * argument);
 void canRxTask(void const * argument);
 void voltageTask(void const * argument);
+void servoTaskCallback(void const * argument);
 void coreEvokeCallback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -190,6 +192,10 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(voltage, voltageTask, osPriorityLow, 0, 128);
   voltageHandle = osThreadCreate(osThread(voltage), NULL);
 
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, servoTaskCallback, osPriorityNormal, 0, 256);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -302,6 +308,24 @@ __weak void voltageTask(void const * argument)
     osDelay(1000);
   }
   /* USER CODE END voltageTask */
+}
+
+/* USER CODE BEGIN Header_servoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_servoTaskCallback */
+__weak void servoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN servoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END servoTaskCallback */
 }
 
 /* coreEvokeCallback function */

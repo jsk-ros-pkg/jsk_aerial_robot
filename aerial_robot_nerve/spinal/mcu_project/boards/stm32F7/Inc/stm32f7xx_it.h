@@ -47,6 +47,7 @@
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
+void DMA1_Stream1_IRQHandler(void);
 void CAN1_RX1_IRQHandler(void);
 void TIM1_TRG_COM_TIM11_IRQHandler(void);
 void USART1_IRQHandler(void);
