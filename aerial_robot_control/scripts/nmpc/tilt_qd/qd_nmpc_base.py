@@ -206,17 +206,17 @@ class QDNMPCBase(RecedingHorizonBase):
             if not self.include_cog_dist_model or not self.include_cog_dist_parameter: raise ValueError(
                 "Impedance cost can only be calculated if disturbance flags are activated.")
 
-            self.mpx = ca.SX.sym("mpx")  # Virtual mass (p = position)
-            self.mpy = ca.SX.sym("mpy")
-            self.mpz = ca.SX.sym("mpz")
-            mp = ca.vertcat(self.mpx, self.mpy, self.mpz)
+            mpx = ca.SX.sym("mpx")  # Virtual mass (p = position)
+            mpy = ca.SX.sym("mpy")
+            mpz = ca.SX.sym("mpz")
+            self.mp = ca.vertcat(mpx, mpy, mpz)
 
-            self.mqx = ca.SX.sym("mqx")  # Virtual inertia (q = quaternion)
-            self.mqy = ca.SX.sym("mqy")
-            self.mqz = ca.SX.sym("mqz")
-            mq = ca.vertcat(self.mqx, self.mqy, self.mqz)
+            mqx = ca.SX.sym("mqx")  # Virtual inertia (q = quaternion)
+            mqy = ca.SX.sym("mqy")
+            mqz = ca.SX.sym("mqz")
+            self.mq = ca.vertcat(mqx, mqy, mqz)
 
-            parameters = ca.vertcat(parameters, mp, mq)
+            parameters = ca.vertcat(parameters, self.mp, self.mq)
 
         # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
         # - World to Body
@@ -384,8 +384,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # Get terms of cost function
         if self.include_impedance:
             # Compute linear acceleration (in World frame) and angular acceleration (in Body frame) for impedance cost
-            # TODO clarify note and fix if necessary        
-            # Note that this part should be f_d_i and no f_d_i_para, since the impedance should not respond to the I Term force.
+            # Note: the wrench from I Term and Wrench Est are all important for this term. If we don't consider I Term,
+            # a constant disturbance will be injected.
             lin_acc_w = (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w
             ang_acc_b = ca.mtimes(I_inv,
                                   (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b))

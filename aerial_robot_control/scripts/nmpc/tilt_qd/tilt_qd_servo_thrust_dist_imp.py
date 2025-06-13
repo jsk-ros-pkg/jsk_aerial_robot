@@ -51,16 +51,6 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
 
         epsilon = self.params["epsilon"]
 
-        p_mtx_imp_inv = ca.SX.zeros(3, 3)
-        p_mtx_imp_inv[0, 0] = 1 / (self.mpx + epsilon)
-        p_mtx_imp_inv[1, 1] = 1 / (self.mpy + epsilon)
-        p_mtx_imp_inv[2, 2] = 1 / (self.mpz + epsilon)
-
-        o_mtx_imp_inv = ca.SX.zeros(3, 3)
-        o_mtx_imp_inv[0, 0] = 1 / (self.mqx + epsilon)
-        o_mtx_imp_inv[1, 1] = 1 / (self.mqy + epsilon)
-        o_mtx_imp_inv[2, 2] = 1 / (self.mqz + epsilon)
-
         state_y = ca.vertcat(
             self.p,
             self.v,
@@ -71,8 +61,8 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.w,
             self.a_s,
             self.ft_s,
-            lin_acc_w - ca.mtimes(p_mtx_imp_inv, self.fds_w),
-            ang_acc_b - ca.mtimes(o_mtx_imp_inv, self.tau_ds_b)
+            ca.times(lin_acc_w, self.mp) - self.fds_w,
+            ca.times(ang_acc_b, self.mq) - self.tau_ds_b
         )
 
         state_y_e = ca.vertcat(
@@ -130,11 +120,11 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             ]
         )
 
-        pM_imp = np.diag([self.params["pMxy"], self.params["pMxy"], self.params["pMz"]])
+        pM_imp = np.eye(3)
         pD_imp = np.diag([self.params["Qv_xy"], self.params["Qv_xy"], self.params["Qv_z"]])
         pK_imp = np.diag([self.params["Qp_xy"], self.params["Qp_xy"], self.params["Qp_z"]])
 
-        oM_imp = np.diag([self.params["oMxy"], self.params["oMxy"], self.params["oMz"]])
+        oM_imp = np.eye(3)
         oD_imp = np.diag([self.params["Qw_xy"], self.params["Qw_xy"], self.params["Qw_z"]])
         oK_imp = np.diag([self.params["Qq_xy"], self.params["Qq_xy"], self.params["Qq_z"]])
 

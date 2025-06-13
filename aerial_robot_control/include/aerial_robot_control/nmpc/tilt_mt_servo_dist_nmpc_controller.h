@@ -10,6 +10,7 @@
 #include "aerial_robot_control/wrench_est/wrench_est_i_term.h"
 
 #include "geometry_msgs/WrenchStamped.h"
+#include "geometry_msgs/Vector3Stamped.h"
 
 using NMPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::NMPCConfig>;
 
@@ -37,8 +38,19 @@ public:
   boost::shared_ptr<aerial_robot_control::WrenchEstActuatorMeasBase> wrench_est_ptr_;
 
 protected:
-  bool if_use_est_wrench_4_control_;
+  bool if_use_est_wrench_4_control_ = false;
+
+  // for threshold function
+  double thresh_force_ = 0.0;
+  double steepness_force_ = 0.0;
+  double impact_coeff_force_ = 0.0;
+
+  double thresh_torque_ = 0.0;
+  double steepness_torque_ = 0.0;
+  double impact_coeff_torque_ = 0.0;
+
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
+  ros::Publisher pub_disturb_wrench_coefficient_;
 
   int idx_p_dist_end_ = 0;
 
@@ -53,7 +65,9 @@ protected:
   void initAllocMat() override;
 
   /* external wrench estimation */
-  virtual void calcDisturbWrench();
+  void updateDisturbWrench() const;
+  void updateWrenchImpactCoeff(const geometry_msgs::Vector3& external_force_w,
+                          const geometry_msgs::Vector3& external_torque_cog);
   void pubDisturbWrench() const;
 
   /* I Term */

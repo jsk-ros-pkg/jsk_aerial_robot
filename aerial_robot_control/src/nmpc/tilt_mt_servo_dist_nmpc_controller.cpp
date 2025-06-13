@@ -16,13 +16,19 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
   ros::NodeHandle control_nh(nh_, "controller");
   getParam<bool>(control_nh, "if_use_est_wrench_4_control", if_use_est_wrench_4_control_, false);
+  ros::NodeHandle disturb_nh(control_nh, "disturb");
+  getParam<double>(disturb_nh, "thresh_force", thresh_force_, 0.1);
+  getParam<double>(disturb_nh, "thresh_torque", thresh_torque_, 0.01);
+  getParam<double>(disturb_nh, "steepness_force", steepness_force_, 1);
+  getParam<double>(disturb_nh, "steepness_torque", steepness_torque_, 1);
 
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
+  pub_disturb_wrench_coefficient_ = nh_.advertise<geometry_msgs::Vector3Stamped>("disturbance_wrench/coefficient", 1);
 }
 
 bool nmpc::TiltMtServoDistNMPC::update()
 {
-  calcDisturbWrench();
+  updateDisturbWrench();
 
   // Note that the meas2VecX() function is called in the update() function. And since it always get the latest info
   // from the estimator, the NMPC result should not be influenced by the disturbance wrench.
@@ -107,6 +113,7 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 {
   TiltMtServoNMPC::prepareNMPCParams();
 
+  // This form of I Term can always be activated, no need to be shut down when the external wrench appears.
   updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
@@ -133,21 +140,23 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
     // the external wrench is only added when the robot is in the hover state
     external_force_w = wrench_est_ptr_->getDistForceW();
     external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
+
+    updateWrenchImpactCoeff(external_force_w, external_torque_cog);
   }
 
   vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
 
-  bx0[13 + joint_num_ + 0] = external_force_w.x;
-  bx0[13 + joint_num_ + 1] = external_force_w.y;
-  bx0[13 + joint_num_ + 2] = external_force_w.z;
-  bx0[13 + joint_num_ + 3] = external_torque_cog.x;
-  bx0[13 + joint_num_ + 4] = external_torque_cog.y;
-  bx0[13 + joint_num_ + 5] = external_torque_cog.z;
+  bx0[13 + joint_num_ + 0] = external_force_w.x * impact_coeff_force_;
+  bx0[13 + joint_num_ + 1] = external_force_w.y * impact_coeff_force_;
+  bx0[13 + joint_num_ + 2] = external_force_w.z * impact_coeff_force_;
+  bx0[13 + joint_num_ + 3] = external_torque_cog.x * impact_coeff_torque_;
+  bx0[13 + joint_num_ + 4] = external_torque_cog.y * impact_coeff_torque_;
+  bx0[13 + joint_num_ + 5] = external_torque_cog.z * impact_coeff_torque_;
 
   return bx0;
 }
 
-void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
+void nmpc::TiltMtServoDistNMPC::updateDisturbWrench() const
 {
   /* update the external wrench estimator based on the Nav State */
   auto nav_state = navigator_->getNaviState();
@@ -166,6 +175,22 @@ void nmpc::TiltMtServoDistNMPC::calcDisturbWrench()
     ROS_ERROR("wrench_est_ptr_ is nullptr");
 }
 
+/* We use sigmoid function right now */
+void nmpc::TiltMtServoDistNMPC::updateWrenchImpactCoeff(const geometry_msgs::Vector3& external_force_w,
+                                                        const geometry_msgs::Vector3& external_torque_cog)
+{
+  const double external_force_norm =
+      sqrt(external_force_w.x * external_force_w.x + external_force_w.y * external_force_w.y +
+           external_force_w.z * external_force_w.z);
+  const double external_torque_norm =
+      sqrt(external_torque_cog.x * external_torque_cog.x + external_torque_cog.y * external_torque_cog.y +
+           external_torque_cog.z * external_torque_cog.z);
+
+  // use sigmoid function to limit the external force
+  impact_coeff_force_ = 1.0 / (1.0 + exp(-steepness_force_ * (external_force_norm - thresh_force_)));
+  impact_coeff_torque_ = 1.0 / (1.0 + exp(-steepness_torque_ * (external_torque_norm - thresh_torque_)));
+}
+
 void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
 {
   geometry_msgs::WrenchStamped dist_wrench_;
@@ -182,8 +207,14 @@ void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
   dist_wrench_.wrench.force.z = tf_dist_force_cog.z();
 
   dist_wrench_.header.stamp = ros::Time::now();
-
   pub_disturb_wrench_.publish(dist_wrench_);
+
+  // publish the disturbance wrench coefficient
+  geometry_msgs::Vector3Stamped dist_wrench_coefficient;
+  dist_wrench_coefficient.header.stamp = ros::Time::now();
+  dist_wrench_coefficient.vector.x = impact_coeff_force_;
+  dist_wrench_coefficient.vector.y = impact_coeff_torque_;
+  pub_disturb_wrench_coefficient_.publish(dist_wrench_coefficient);
 }
 
 void nmpc::TiltMtServoDistNMPC::initAllocMat()
