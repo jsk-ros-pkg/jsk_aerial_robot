@@ -3,12 +3,18 @@
 '''
 
 from functools import wraps
+from typing import Optional
+
 import numpy as np
 import rospy
+import math
 from scipy.spatial.transform import Rotation as R
 
 import tf_conversions as tf
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point, Quaternion, PoseStamped
+
 
 def check_first_data_received(obj: object, attr: str, object_name: str):
     """
@@ -43,7 +49,7 @@ def check_topic_subscription(func):
     return wrapper
 
 
-def check_traj_info(x: np.ndarray):
+def check_traj_info(x: np.ndarray, if_return_path=False) -> Optional[Path]:
     """
     Check trajectory information and print out:
       - Overall time (number of time steps, assuming dt = 1 per step).
@@ -117,6 +123,33 @@ def check_traj_info(x: np.ndarray):
     w = np.sqrt(wx ** 2 + wy ** 2 + wz ** 2)
     print("Angular speed (w): max = {:.3f}".format(np.max(w)))
     print("===========================================\n")
+
+    if if_return_path:
+        # ---------- Build nav_msgs/Path ----------
+        frame_id = "world"
+        path_msg = Path()
+        path_msg.header.frame_id = frame_id
+        path_msg.header.stamp = rospy.Time.now()
+
+        for k in range(total_time_steps):
+            pose = PoseStamped()
+            pose.header.frame_id = frame_id
+
+            # Position
+            pose.pose.position.x = float(px[k])
+            pose.pose.position.y = float(py[k])
+            pose.pose.position.z = float(pz[k])
+
+            # Orientation (keep original quaternion)
+            qw, qx, qy, qz = quats[k]
+            pose.pose.orientation.w = float(qw)
+            pose.pose.orientation.x = float(qx)
+            pose.pose.orientation.y = float(qy)
+            pose.pose.orientation.z = float(qz)
+
+            path_msg.poses.append(pose)
+
+        return path_msg
 
 
 class TrackingErrorCalculator:
@@ -195,3 +228,187 @@ class TrackingErrorCalculator:
         euler_err = tf.transformations.euler_from_matrix(m_err, axes="sxyz")
 
         return dx, dy, dz, euler_err[0], euler_err[1], euler_err[2]
+
+
+def create_wall_markers(points, thickness=0.1, height=2.0,
+                        frame_id="world", ns="walls", color=None):
+    """
+    Build a MarkerArray in which each polygon edge is rendered as a thin box.
+
+    Args
+    ----
+    points     : list of (x, y) tuples.  Edges are formed in order.
+    thickness  : wall thickness in metres
+    height     : wall height in metres
+    frame_id   : target TF frame for RViz
+    ns         : marker namespace
+
+    Returns
+    -------
+    visualization_msgs/MarkerArray
+    """
+    if color is None:
+        color = [0.6, 0.6, 0.6, 1.0]
+    markers = MarkerArray()
+
+    for i in range(len(points) - 1):
+        # End-points of the current edge
+        (x0, y0), (x1, y1) = points[i], points[i + 1]
+
+        # Length and yaw of the edge
+        dx, dy = x1 - x0, y1 - y0
+        length = math.hypot(dx, dy)
+        yaw = math.atan2(dy, dx)
+
+        # Mid-point of the edge (box centre)
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        cz = height / 2.0
+
+        # Quaternion for rotation about Z
+        qx, qy, qz, qw = tf.transformations.quaternion_from_euler(0, 0, yaw)
+
+        m = Marker()
+        m.header.frame_id = frame_id
+        m.header.stamp = rospy.Time.now()
+        m.ns = ns
+        m.id = i  # Unique ID inside the namespace
+        m.type = Marker.CUBE
+        m.action = Marker.ADD
+
+        # Pose
+        m.pose.position = Point(cx, cy, cz)
+        m.pose.orientation = Quaternion(qx, qy, qz, qw)
+
+        # Dimensions: length × thickness × height
+        m.scale.x = length
+        m.scale.y = thickness
+        m.scale.z = height
+
+        # Colour (light grey, fully opaque)
+        if color is not None:
+            if len(color) != 4:
+                raise ValueError("Color must be a list of 4 floats [r, g, b, a]")
+            m.color.r, m.color.g, m.color.b, m.color.a = color
+
+        markers.markers.append(m)
+
+    return markers
+
+
+def pub_0066_wall_rviz(cleanup=False):
+    pub = rospy.Publisher("walls", MarkerArray, queue_size=1, latch=True)  # latch is important
+
+    if cleanup:
+        m = Marker()
+        m.action = Marker.DELETEALL
+
+        markers = MarkerArray()
+        markers.markers.append(m)
+
+        pub.publish(markers)
+        rospy.loginfo("Wall markers deleted on topic 'walls'.")
+        return
+
+    # ---- Corner points of the walls (m) ----
+    pts = [(-2.2, -2.9),
+           (3.9, -2.9),
+           (3.9, 3.4),
+           (-3.4, 3.4),
+           (-3.4, -0.4),
+           (-2.2, -0.4), ]
+    # Close the polygon by repeating the first point
+    pts.append(pts[0])
+    # ----------------------------------------
+
+    pub.publish(create_wall_markers(pts, thickness=0.01, height=2.0, color=[22 / 255, 97 / 255, 171 / 255, 0.2]))
+    # color: DIAN QING
+    rospy.loginfo("Wall markers published on topic 'walls'. Open RViz and add a 'Marker' display.")
+
+
+def create_hand_markers(poses,
+                        mesh_resource="package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae",
+                        frame_id="world",
+                        ns="hand_mesh",
+                        scale=(1.0, 1.0, 1.0)):
+    """
+    Build a MarkerArray that places one mesh for every pose in *poses*.
+
+    poses         : iterable of (x, y, z, roll_deg, pitch_deg, yaw_deg)
+    mesh_resource : URI to the DAE mesh (package:// or file://)
+    frame_id      : TF frame for RViz
+    ns            : marker namespace
+    scale         : (sx, sy, sz) scale factors for the mesh
+    """
+    markers = MarkerArray()
+
+    for idx, (x, y, z, r_deg, p_deg, y_deg) in enumerate(poses):
+        # Convert Euler angles (degrees) to quaternion (xyzw scalar-last)
+        quat_xyzw = tf.transformations.quaternion_from_euler(
+            math.radians(r_deg),
+            math.radians(p_deg),
+            math.radians(y_deg)
+        )
+
+        m = Marker()
+        m.header.frame_id = frame_id
+        m.header.stamp = rospy.Time.now()
+        m.ns = ns
+        m.id = idx  # unique inside this namespace
+        m.type = Marker.MESH_RESOURCE
+        m.action = Marker.ADD
+
+        # Pose
+        m.pose.position = Point(x, y, z)
+        m.pose.orientation = Quaternion(*quat_xyzw)
+
+        # Scale (keep original units if scale = (1,1,1))
+        m.scale.x, m.scale.y, m.scale.z = scale
+
+        # Use embedded material/texture if present
+        m.mesh_resource = mesh_resource
+        m.mesh_use_embedded_materials = True
+
+        # If the mesh has no embedded colour, uncomment the next line:
+        # m.color.r, m.color.g, m.color.b, m.color.a = 0.9, 0.9, 0.9, 1.0
+
+        markers.markers.append(m)
+
+    return markers
+
+
+def pub_hand_markers_rviz(viz_type):
+    pub = rospy.Publisher("hand_markers", MarkerArray, queue_size=1, latch=True)
+
+    if viz_type == 0:  # Cleanup
+        m = Marker()
+        m.action = Marker.DELETEALL
+
+        markers = MarkerArray()
+        markers.markers.append(m)
+
+        pub.publish(markers)
+        rospy.loginfo("Wall markers deleted on topic 'walls'.")
+        return
+
+    # ---- Hand poses (m, deg) ----
+    hand_poses = []
+    mesh_path = ""
+    if viz_type == 1:
+        hand_poses = [
+            (1.0, 1.0, 1.0, 0.0, 30.0, 0.0),
+            (-1.0, 1.0, 1.5, 0.0, 0.0, 30.0),
+            (0.0, 2.0, 1.0, 30.0, 0.0, 0.0),
+        ]  # meters, degrees
+        mesh_path = "package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae"
+
+    if viz_type == 2:
+        hand_poses = [
+            (1.0, 1.0, 1.0, 0.0, 30.0, 0.0),
+            (-1.0, 1.0, 1.5, 0.0, 0.0, 30.0),
+            (0.0, 2.0, 1.0, 30.0, 0.0, 0.0),
+        ]  # meters, degrees
+        mesh_path = "package://aerial_robot_planning/meshes/plastic_hand_16cm_wide.dae"
+
+    marker_array = create_hand_markers(hand_poses, mesh_resource=mesh_path)
+    pub.publish(marker_array)
+    rospy.loginfo("Hand mesh markers published on /hand_meshes.")

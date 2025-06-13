@@ -87,12 +87,12 @@ public:
     {
       if (x_init[i].size() != NX_ || u_init[i].size() != NU_)
         throw std::length_error("x_init[i] or u_init[i] size is not equal to NX_ or NU_");
-      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "x", (void*)x_init[i].data());
-      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, i, "u", (void*)u_init[i].data());
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, i, "x", (void*)x_init[i].data());
+      ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, i, "u", (void*)u_init[i].data());
     }
     if (x_init[NN_].size() != NX_)
       throw std::length_error("x_init[NN_] size is not equal to NX_");
-    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, NN_, "x", (void*)x_init[NN_].data());
+    ocp_nlp_out_set(nlp_config_, nlp_dims_, nlp_out_, nlp_in_, NN_, "x", (void*)x_init[NN_].data());
 
     // update xo_, uo_
     getSolution();
@@ -251,18 +251,87 @@ public:
     }
   }
 
+  // Note: the stage 0 should not be set by this function, as the first constraint is estimated states.
+  void setConstraintsLbx(const std::vector<double>& lbx) const
+  {
+    if (lbx.size() != NBX_)
+      throw std::length_error("lbx size is not equal to NBX_");
+
+    for (int i = 1; i < NN_; i++)  // Note: 1 to NN_ - 1
+      setConstraintsValue("lbx", i, lbx, false);
+  }
+
+  void setConstraintsLbxe(const std::vector<double>& lbx) const
+  {
+    if (lbx.size() != NBXN_)
+      throw std::length_error("lbx size is not equal to NBXN_");
+
+    setConstraintsValue("lbx", NN_, lbx, false);
+  }
+
+  void setConstraintsUbx(const std::vector<double>& ubx) const
+  {
+    if (ubx.size() != NBX_)
+      throw std::length_error("ubx size is not equal to NBX_");
+
+    for (int i = 1; i < NN_; i++)  // Note: 1 to NN_ - 1
+      setConstraintsValue("ubx", i, ubx, false);
+  }
+
+  void setConstraintsUbxe(const std::vector<double>& ubx) const
+  {
+    if (ubx.size() != NBXN_)
+      throw std::length_error("ubx size is not equal to NBXN_");
+
+    setConstraintsValue("ubx", NN_, ubx, false);
+  }
+
+  void setConstraintsLbu(const std::vector<double>& lbu) const
+  {
+    if (lbu.size() != NBU_)
+      throw std::length_error("lbu size is not equal to NBU_");
+
+    for (int i = 0; i < NN_; i++)  // Note: for u, 0 to NN_ - 1. No NN_ for u.
+      setConstraintsValue("lbu", i, lbu, false);
+  }
+
+  void setConstraintsUbu(const std::vector<double>& ubu) const
+  {
+    if (ubu.size() != NBU_)
+      throw std::length_error("ubu size is not equal to NBU_");
+
+    for (int i = 0; i < NN_; i++)  // Note: 1 to NN_ - 1
+      setConstraintsValue("ubu", i, ubu, false);
+  }
+
+  // clang-format off
+  std::vector<int> getConstraintsIdxbx() const { return getConstraintsIdx("idxbx", 1); }
+  std::vector<int> getConstraintsIdxbxe() const { return getConstraintsIdx("idxbx", NN_); }
+  std::vector<int> getConstraintsIdxbu() const { return getConstraintsIdx("idxbu", 1); }
+  std::vector<int> getConstraintsIdxbue() const { return getConstraintsIdx("idxbu", NN_); }
+
+  std::vector<double> getConstraintsLbx() const { return getConstraintsValue("lbx", 1); }
+  std::vector<double> getConstraintsLbxe() const { return getConstraintsValue("lbx", NN_); }
+  std::vector<double> getConstraintsUbx() const { return getConstraintsValue("ubx", 1); }
+  std::vector<double> getConstraintsUbxe() const { return getConstraintsValue("ubx", NN_); }
+  std::vector<double> getConstraintsLbu() const { return getConstraintsValue("lbu", 1); }
+  std::vector<double> getConstraintsLbue() const { return getConstraintsValue("lbu", NN_); }
+  std::vector<double> getConstraintsUbu() const { return getConstraintsValue("ubu", 1); }
+  std::vector<double> getConstraintsUbue() const { return getConstraintsValue("ubu", NN_); }
+  // clang-format on
+
   /* Getters */
   std::vector<double> getMatrixA(int stage)
   {
     std::vector<double> mtx_A(NX_ * NX_);
-    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "A", mtx_A.data());
+    ocp_nlp_get_at_stage(nlp_solver_, stage, "A", mtx_A.data());
     return mtx_A;
   }
 
   std::vector<double> getMatrixB(int stage)
   {
     std::vector<double> mtx_B(NX_ * NU_);
-    ocp_nlp_get_at_stage(nlp_config_, nlp_dims_, nlp_solver_, stage, "B", mtx_B.data());
+    ocp_nlp_get_at_stage(nlp_solver_, stage, "B", mtx_B.data());
     return mtx_B;
   }
 
@@ -273,7 +342,7 @@ public:
     int sqp_iter;
 
     ocp_nlp_out_get(nlp_config_, nlp_dims_, nlp_out_, 0, "kkt_norm_inf", &kkt_norm_inf);
-    ocp_nlp_get(nlp_config_, nlp_solver_, "sqp_iter", &sqp_iter);
+    ocp_nlp_get(nlp_solver_, "sqp_iter", &sqp_iter);
 
     acadosPrintStats();
 
@@ -411,8 +480,8 @@ protected:
     if (bx0.size() != NBX0_)
       throw std::length_error("bx0 size is not equal to NBX0_");
 
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "lbx", (void*)bx0.data());
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, 0, "ubx", (void*)bx0.data());
+    setConstraintsValue("lbx", 0, bx0);
+    setConstraintsValue("ubx", 0, bx0);
   }
 
   inline double solveOCPOnce()
@@ -424,7 +493,7 @@ protected:
     if (status != ACADOS_SUCCESS)
       throw AcadosSolveException(status);
 
-    ocp_nlp_get(nlp_config_, nlp_solver_, "time_tot", &elapsed_time);
+    ocp_nlp_get(nlp_solver_, "time_tot", &elapsed_time);
     min_time = MIN(elapsed_time, min_time);
 
     return min_time;
@@ -459,6 +528,110 @@ protected:
   virtual inline int acadosSolve() = 0;
 
   virtual inline void acadosPrintStats() = 0;
+
+private:
+  void setConstraintsValue(const std::string& constraint_type, int stage, std::vector<double> value,
+                           bool is_check_len = true) const
+  {
+    if (is_check_len)
+    {
+      if (constraint_type == "lbx" or constraint_type == "ubx")
+      {
+        if (stage == 0)
+        {
+          if (value.size() != NBX0_)
+            throw std::length_error("data size is not equal to NBX0_");
+        }
+        else if (stage == NN_)
+        {
+          if (value.size() != NBXN_)
+            throw std::length_error("data size is not equal to NBXN_");
+        }
+        else
+        {
+          if (value.size() != NBX_)
+            throw std::length_error("data size is not equal to NBX_");
+        }
+      }
+      else if (constraint_type == "lbu" or constraint_type == "ubu")
+      {
+        if (value.size() != NBU_)
+          throw std::length_error("data size is not equal to NBU_");
+      }
+      else
+      {
+        throw std::invalid_argument("Invalid constraint type");
+      }
+    }
+
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, nlp_out_, stage, constraint_type.c_str(), value.data());
+  }
+
+  std::vector<int> getConstraintsIdx(const std::string& constraint_type, int stage) const
+  {
+    std::vector<int> idx;
+    if (constraint_type == "idxbx")
+    {
+      int len;
+      if (stage == 0)
+      {
+        len = NBX0_;
+      }
+      else if (stage == NN_)
+      {
+        len = NBXN_;
+      }
+      else
+      {
+        len = NBX_;
+      }
+      idx.resize(len);
+    }
+    else if (constraint_type == "idxbu")
+    {
+      idx.resize(NBU_);
+    }
+    else
+    {
+      throw std::invalid_argument("Invalid constraint type");
+    }
+
+    ocp_nlp_constraints_model_get(nlp_config_, nlp_dims_, nlp_in_, stage, constraint_type.c_str(), idx.data());
+    return idx;
+  }
+
+  std::vector<double> getConstraintsValue(const std::string& constraint_type, int stage) const
+  {
+    std::vector<double> constraints;
+    if (constraint_type == "lbx" or constraint_type == "ubx")
+    {
+      int len;
+      if (stage == 0)
+      {
+        len = NBX0_;
+      }
+      else if (stage == NN_)
+      {
+        len = NBXN_;
+      }
+      else
+      {
+        len = NBX_;
+      }
+      constraints.resize(len);
+    }
+    else if (constraint_type == "lbu" or constraint_type == "ubu")
+    {
+      constraints.resize(NBU_);
+    }
+    else
+    {
+      throw std::invalid_argument("Invalid constraint type");
+    }
+
+    ocp_nlp_constraints_model_get(nlp_config_, nlp_dims_, nlp_in_, stage, constraint_type.c_str(), constraints.data());
+    return constraints;
+  }
 };
 
 }  // namespace mpc_solver

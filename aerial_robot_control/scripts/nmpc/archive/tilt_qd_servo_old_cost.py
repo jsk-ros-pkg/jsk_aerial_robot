@@ -4,7 +4,8 @@ import os, sys
 import numpy as np
 import casadi as ca
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))    # Add parent's parent directory to path to allow relative imports
+sys.path.append(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))  # Add parent's parent directory to path to allow relative imports
 from tilt_qd.qd_nmpc_base import QDNMPCBase
 
 
@@ -14,10 +15,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False):
+
+    def __init__(self):
         # Model name
         model_name = "tilt_qd_servo_old_cost_mdl"
 
@@ -35,16 +35,16 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = True
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-        
+
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCServoOldCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(model_name, overwrite)
+        super().__init__()
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -70,9 +70,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
 
         control_y = ca.vertcat(
             self.ft_c,
-            self.a_c        # <-- Key difference! Use absolute command and not delta to state
+            self.a_c  # <-- Key difference! Use absolute command and not delta to state
         )
-        
+
         return state_y, state_y_e, control_y
 
     def get_weights(self):
@@ -131,19 +131,21 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -161,13 +163,12 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         ur[:, 5] = a_ref[1]
         ur[:, 6] = a_ref[2]
         ur[:, 7] = a_ref[3]
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = True
-    nmpc = NMPCTiltQdServoOldCost(overwrite)
+    nmpc = NMPCTiltQdServoOldCost()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

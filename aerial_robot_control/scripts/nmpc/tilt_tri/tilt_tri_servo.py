@@ -13,7 +13,7 @@ import phys_param_trirotor as phys
 
 
 class NMPCTiltTriServo(RecedingHorizonBase):
-    def __init__(self, overwrite: bool = False):
+    def __init__(self):
         # Model name
         self.model_name = "tilt_tri_servo_mdl"
         self.phys = phys
@@ -32,7 +32,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         self.acados_init_p = None
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc", overwrite)
+        super().__init__("nmpc")
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -425,8 +425,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    overwrite = False
-    nmpc = NMPCTiltTriServo(overwrite)
+    nmpc = NMPCTiltTriServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

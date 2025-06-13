@@ -13,10 +13,9 @@ class NMPCTiltQdNoServo(QDNMPCBase):
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
-    def __init__(self, overwrite: bool = False, phys=phys_art):
+
+    def __init__(self, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_no_servo_mdl"
         self.phys = phys
@@ -24,16 +23,16 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         self.tilt = True
         self.include_servo_model = False
         self.include_servo_derivative = False
-        self.include_thrust_model = False   # TODO extend to include_thrust_derivative
+        self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
-        
+
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServo.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__()
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -99,7 +98,7 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         print("R: \n", R)
 
         return Q, R
-    
+
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
@@ -115,19 +114,21 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.dims.N
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
 
         # Assemble control reference
@@ -141,13 +142,12 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         ur[:, 5] = a_ref[1]
         ur[:, 6] = a_ref[2]
         ur[:, 7] = a_ref[3]
-        
+
         return xr, ur
 
 
 if __name__ == "__main__":
-    overwrite = False
-    nmpc = NMPCTiltQdNoServo(overwrite)
+    nmpc = NMPCTiltQdNoServo()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)

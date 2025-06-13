@@ -21,6 +21,7 @@
 #include "trajectory_msgs/MultiDOFJointTrajectoryPoint.h"
 #include "geometry_msgs/PoseArray.h"
 #include "aerial_robot_msgs/PredXU.h"
+#include "aerial_robot_msgs/FixRotor.h"
 #include "spinal/FourAxisCommand.h"
 #include "spinal/SetControlMode.h"
 #include "spinal/FlightConfigCmd.h"
@@ -71,6 +72,7 @@ protected:
   ros::Subscriber sub_set_rpy_;
   ros::Subscriber sub_set_ref_x_u_;
   ros::Subscriber sub_set_traj_;
+  ros::Subscriber sub_set_fixed_rotor_;
 
   bool is_attitude_ctrl_;
   bool is_body_rate_ctrl_;
@@ -86,6 +88,8 @@ protected:
   double thrust_ctrl_min_;
   int joint_num_;
   double t_servo_;
+  double servo_angle_max_;
+  double servo_angle_min_;
 
   double t_nmpc_samp_;
   double t_nmpc_step_;
@@ -100,16 +104,27 @@ protected:
   Eigen::MatrixXd alloc_mat_pinv_;
 
   bool is_traj_tracking_ = false;  // TODO: tmp value. should be combined with inner traj. tracking in the future
-  ros::Time receive_time_;         // tmp value. should be combined with inner traj. tracking in the future
+  trajectory_msgs::MultiDOFJointTrajectory last_traj_msg_;
 
   aerial_robot_msgs::PredXU x_u_ref_;  // TODO: maybe we should remove x_u_ref_ and use xr_ & ur_ inside mpc_solver_ptr_
   spinal::FourAxisCommand flight_cmd_;
   sensor_msgs::JointState gimbal_ctrl_cmd_;
 
+  // For singularity points
+  int alloc_type_ = 0;
+  double ft_thresh_;
+  int rotor_idx_prev_ = -1;
+  Eigen::MatrixXd alloc_mat_del_rotor_inv_;
+
+  // For fixing rotor
+  bool is_set_fix_rotor_ = false;
+  aerial_robot_msgs::FixRotor fix_rotor_msg_;
+
   /* initialize() */
   virtual void initPlugins() {};
   virtual void initGeneralParams();
   virtual void initNMPCCostW();
+  virtual void initNMPCConstraints();
   void setControlMode();
   virtual inline void initActuatorStates()
   {
@@ -134,7 +149,9 @@ protected:
                   const int& horizon_idx);
   virtual void allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
                             const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
-                            const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u) const;
+                            const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u);
+  void allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha, const VectorXd& ref_wrench_b,
+                                  vector<double>& x, vector<double>& u);
 
   /* callback functions */
   void callbackViz(const ros::TimerEvent& event) override;
@@ -142,6 +159,7 @@ protected:
   void callbackSetRPY(const spinal::DesireCoordConstPtr& msg);
   void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
   void callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
+  void callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg);
   virtual void cfgNMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
@@ -153,6 +171,16 @@ protected:
 
   // debug functions
   void printPhysicalParams();
+
+  // check functions
+  inline bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
+  {
+    return std::fabs(a - b) < epsilon;
+  }
+
+  bool isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
+                                const trajectory_msgs::MultiDOFJointTrajectoryPoint& b, bool if_compare_time = true,
+                                double epsilon = 1e-6);
 
 private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.

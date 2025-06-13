@@ -12,6 +12,7 @@ import tf_conversions as tf
 
 from geometry_msgs.msg import Transform, Twist, Quaternion, Vector3, Pose
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
+from aerial_robot_msgs.msg import FixRotor
 
 from pub_mpc_base import MPCPubBase
 
@@ -29,6 +30,7 @@ class MPCPubJointTraj(MPCPubBase, ABC):
         super().__init__(robot_name=robot_name, node_name=node_name, is_calc_rmse=is_calc_rmse)
         # Publisher for reference trajectory
         self.pub_ref_traj = rospy.Publisher(f"/{robot_name}/set_ref_traj", MultiDOFJointTrajectory, queue_size=3)
+        self.pub_fixed_rotor = rospy.Publisher(f"/{robot_name}/set_fixed_rotor", FixRotor, queue_size=3)
 
     def pub_trajectory_points(self, traj_msg: MultiDOFJointTrajectory):
         """Publish the MultiDOFJointTrajectory message."""
@@ -91,6 +93,20 @@ class MPCTrajPtPub(MPCPubJointTraj):
                 r_rate, p_rate, y_rate = 0.0, 0.0, 0.0
                 r_acc, p_acc, y_acc = 0.0, 0.0, 0.0
 
+            # new feature: fix rotor  TODO: think of a better place to put this function. Only JointTraj has this function.
+            try:
+                rotor_id, ft_fixed, alpha_fixed = self.traj.get_fixed_rotor(t_elapsed)
+
+                if self.traj.use_fix_rotor_flag:
+                    fixed_rotor_msg = FixRotor()
+                    fixed_rotor_msg.header.stamp = rospy.Time.now()
+                    fixed_rotor_msg.rotor_id = rotor_id
+                    fixed_rotor_msg.fix_ft = ft_fixed
+                    fixed_rotor_msg.fix_alpha = alpha_fixed
+                    self.pub_fixed_rotor.publish(fixed_rotor_msg)
+            except AttributeError:
+                pass
+
             # Fill the transforms / velocities / accelerations
             traj_pt.transforms.append(Transform(translation=Vector3(x, y, z), rotation=Quaternion(qx, qy, qz, qw)))
             traj_pt.velocities.append(Twist(linear=Vector3(vx, vy, vz), angular=Vector3(r_rate, p_rate, y_rate)))
@@ -121,6 +137,11 @@ class MPCSinglePtPub(MPCPubJointTraj):
                  pos_tol=0.2, ang_tol=0.3, vel_tol=0.1, rate_tol=0.1):
         super().__init__(robot_name=robot_name, node_name="mpc_single_pt_pub", is_calc_rmse=False)
         self.target_pose = target_pose
+        rospy.loginfo(f"{self.namespace}/{self.node_name}: \n"
+                      f"Target pose: x {self.target_pose.position.x}, "
+                      f"y {self.target_pose.position.y}, z {self.target_pose.position.z}; "
+                      f"qw {self.target_pose.orientation.w}, qx {self.target_pose.orientation.x}, "
+                      f"qy {self.target_pose.orientation.y}, qz {self.target_pose.orientation.z}")
 
         # Tolerances for considering the target "reached"
         self.pos_tol = pos_tol  # e.g. 0.1 m

@@ -13,11 +13,9 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
     """
 
-    def __init__(self, overwrite: bool = False, phys=phys_omni):
+    def __init__(self, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_thrust_dist_imp_mdl"
         self.phys = phys
@@ -34,7 +32,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoThrustImp.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(overwrite)
+        super().__init__()
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model,
@@ -210,8 +208,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
 
 
 if __name__ == "__main__":
-    overwrite = False
-    nmpc = NMPCTiltQdServoThrustImpedance(overwrite)
+    nmpc = NMPCTiltQdServoThrustImpedance()
 
     acados_ocp_solver = nmpc.get_ocp_solver()
     print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)

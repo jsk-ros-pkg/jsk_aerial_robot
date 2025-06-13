@@ -2,7 +2,7 @@ import numpy as np
 from tf_conversions import transformations as tf
 
 
-class QDNMPCReferenceGenerator():
+class QDNMPCReferenceGenerator:
     """
     Class to generate reference trajectories.
 

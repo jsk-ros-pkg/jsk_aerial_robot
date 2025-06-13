@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 from std_msgs.msg import MultiArrayDimension
 from aerial_robot_msgs.msg import PredXU
+from nav_msgs.msg import Path
 
 # Insert current folder into path so we can import from "trajs" or other local files
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -67,12 +68,16 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         self.x_traj = self.scvx_traj[:, 0:19]
         self.u_traj = self.scvx_traj[:, 19:28]
 
-        # Check trajectory information
-        check_traj_info(self.x_traj)
+        # Check trajectory information and visualize it
+        traj_path_msg = check_traj_info(self.x_traj, if_return_path=True)
+        self.traj_path_pub = rospy.Publisher(f"/{self.robot_name}/traj_path", Path, queue_size=1, latch=True)
+        self.traj_path_pub.publish(traj_path_msg)
 
-        input_str = input("Please check the traj info. Press 'Enter' to continue or 'q' to quit...")
+        input_str = input(
+            "Please check the traj info and Rviz visualization. Press 'Enter' to continue or 'q' to quit...")
         while True:
             if input_str.lower() == 'q':
+                self.cleanup_traj_viz()
                 self.is_finished = True
                 return
             elif input_str.lower() == '':
@@ -126,6 +131,16 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         This will cause the base class timer to shut down automatically.
         """
         if t_elapsed > self.x_traj[-1, -2]:
+            self.cleanup_traj_viz()
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Trajectory time finished!")
             return True
+
         return False
+
+    def cleanup_traj_viz(self):
+        """
+        Clean up the trajectory visualization in Rviz.
+        """
+        empty = Path()
+        empty.header.frame_id = "world"
+        self.traj_path_pub.publish(empty)
