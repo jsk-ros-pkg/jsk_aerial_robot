@@ -113,17 +113,10 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 {
   TiltMtServoNMPC::prepareNMPCParams();
 
+  // This form of I Term can always be activated, no need to be shut down when the external wrench appears.
   updateITerm();
   auto mdl_error_force_w = wrench_est_i_term_.getDistForceW();
   auto mdl_error_torque_cog = wrench_est_i_term_.getDistTorqueCOG();
-
-  // if disturbance is too large, don't use I Term
-  mdl_error_force_w.x *= (1.0 - impact_coeff_force_);
-  mdl_error_force_w.y *= (1.0 - impact_coeff_force_);
-  mdl_error_force_w.z *= (1.0 - impact_coeff_force_);
-  mdl_error_torque_cog.x *= (1.0 - impact_coeff_torque_);
-  mdl_error_torque_cog.y *= (1.0 - impact_coeff_torque_);
-  mdl_error_torque_cog.z *= (1.0 - impact_coeff_torque_);
 
   vector<int> idx = { idx_p_phys_end_ + 1, idx_p_phys_end_ + 2, idx_p_phys_end_ + 3,
                       idx_p_phys_end_ + 4, idx_p_phys_end_ + 5, idx_p_phys_end_ + 6 };
