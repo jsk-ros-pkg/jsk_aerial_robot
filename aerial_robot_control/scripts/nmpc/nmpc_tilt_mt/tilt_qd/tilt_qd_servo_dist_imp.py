@@ -50,16 +50,6 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
-        p_mtx_imp_inv = ca.SX.zeros(3, 3)
-        p_mtx_imp_inv[0, 0] = 1 / self.mpx
-        p_mtx_imp_inv[1, 1] = 1 / self.mpy
-        p_mtx_imp_inv[2, 2] = 1 / self.mpz
-
-        o_mtx_imp_inv = ca.SX.zeros(3, 3)
-        o_mtx_imp_inv[0, 0] = 1 / self.mqx
-        o_mtx_imp_inv[1, 1] = 1 / self.mqy
-        o_mtx_imp_inv[2, 2] = 1 / self.mqz
-
         state_y = ca.vertcat(
             self.p,
             self.v,
@@ -69,8 +59,8 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
             qe_z + self.qzr,
             self.w,
             self.a_s,
-            lin_acc_w - ca.mtimes(p_mtx_imp_inv, self.fds_w),
-            ang_acc_b - ca.mtimes(o_mtx_imp_inv, self.tau_ds_b)
+            ca.times(lin_acc_w, self.mp) - self.fds_w,
+            ca.times(ang_acc_b, self.mq) - self.tau_ds_b
         )
 
         state_y_e = ca.vertcat(
@@ -123,11 +113,11 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
             ]
         )
 
-        pM_imp = np.diag([self.params["pMxy"], self.params["pMxy"], self.params["pMz"]])
+        pM_imp = np.eye(3)
         pD_imp = np.diag([self.params["Qv_xy"], self.params["Qv_xy"], self.params["Qv_z"]])
         pK_imp = np.diag([self.params["Qp_xy"], self.params["Qp_xy"], self.params["Qp_z"]])
 
-        oM_imp = np.diag([self.params["oMxy"], self.params["oMxy"], self.params["oMz"]])
+        oM_imp = np.eye(3)
         oD_imp = np.diag([self.params["Qw_xy"], self.params["Qw_xy"], self.params["Qw_z"]])
         oK_imp = np.diag([self.params["Qq_xy"], self.params["Qq_xy"], self.params["Qq_z"]])
 
