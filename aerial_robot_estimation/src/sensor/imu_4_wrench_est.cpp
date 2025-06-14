@@ -74,14 +74,14 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
   tf::Transform cog2baselink_tf;
   tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
   int estimate_mode = estimator_->getEstimateMode();
-  setFilteredOmegaCogInCog(cog2baselink_tf.getBasis() * filtered_omega);
-  setFilteredVelCogInW(estimator_->getVel(Frame::BASELINK, estimate_mode) +
+  setOmegaCogInCog(cog2baselink_tf.getBasis() * filtered_omega);
+  setVelCogInW(estimator_->getVel(Frame::BASELINK, estimate_mode) +
                        estimator_->getOrientation(Frame::BASELINK, estimate_mode) *
                            (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
 
   // TODO: this is a simple version of the acceleration estimation. Need to improve.
-  setFilteredAccCogInCog(cog2baselink_tf.getBasis() * filtered_acc);
-  setFilteredOmegaDotCogInCog(cog2baselink_tf.getBasis() * filtered_omega_dot);
+  setAccCogInCog(cog2baselink_tf.getBasis() * filtered_acc);
+  setOmegaDotCogInCog(cog2baselink_tf.getBasis() * filtered_omega_dot);
 
   estimateProcess();
   updateHealthStamp();

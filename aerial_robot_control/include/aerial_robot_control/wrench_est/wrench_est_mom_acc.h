@@ -55,7 +55,7 @@ public:
 
     // force estimation
     Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
-    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), specific_force_cog);
+    tf::vectorTFToEigen(imu_handler->getAccCogInCog(), specific_force_cog);
 
     double mass = robot_model_->getMass();
 
@@ -73,7 +73,7 @@ public:
 
     // torque estimation
     Eigen::Vector3d omega_cog;
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
+    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
     Eigen::VectorXd sum_momentum = inertia * omega_cog;
 

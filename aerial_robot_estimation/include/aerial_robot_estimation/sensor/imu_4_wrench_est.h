@@ -50,69 +50,69 @@ public:
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator, string sensor_name,
                   int index) override;
 
-  void setFilteredOmegaCogInCog(const tf::Vector3 filtered_omega_cog_in_cog)
+  void setOmegaCogInCog(const tf::Vector3& omega_cog_in_cog)
   {
     boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    filtered_omega_cog_in_cog_ = filtered_omega_cog_in_cog;
+    omega_cog_in_cog_ = omega_cog_in_cog;
   }
 
-  void setFilteredVelCogInW(const tf::Vector3 filtered_vel_cog_in_w)
+  void setVelCogInW(const tf::Vector3& vel_cog_in_w)
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
-    filtered_vel_cog_in_w_ = filtered_vel_cog_in_w;
+    vel_cog_in_w_ = vel_cog_in_w;
   }
 
-  void setFilteredOmegaDotCogInCog(const tf::Vector3 filtered_omega_dot_cog_in_cog)
+  void setOmegaDotCogInCog(const tf::Vector3& omega_dot_cog_in_cog)
   {
     boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    filtered_omega_dot_cog_in_cog_ = filtered_omega_dot_cog_in_cog;
+    omega_dot_cog_in_cog_ = omega_dot_cog_in_cog;
   }
 
-  void setFilteredAccCogInCog(const tf::Vector3 filtered_acc_cog_in_cog)
+  void setAccCogInCog(const tf::Vector3& acc_cog_in_cog)
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
-    filtered_acc_cog_in_cog_ = filtered_acc_cog_in_cog;
+    acc_cog_in_cog_ = acc_cog_in_cog;
   }
 
-  const tf::Vector3 getFilteredOmegaCogInCog()
+  tf::Vector3 getOmegaCogInCog()
   {
     boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    return filtered_omega_cog_in_cog_;
+    return omega_cog_in_cog_;
   }
 
-  const tf::Vector3 getFilteredVelCogInW()
+  tf::Vector3 getVelCogInW()
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
-    return filtered_vel_cog_in_w_;
+    return vel_cog_in_w_;
   }
 
-  const tf::Vector3 getFilteredOmegaDotCogInCog()
+  tf::Vector3 getOmegaDotCogInCog()
   {
     boost::lock_guard<boost::mutex> lock(omega_mutex_);
-    return filtered_omega_dot_cog_in_cog_;
+    return omega_dot_cog_in_cog_;
   }
 
-  const tf::Vector3 getFilteredAccCogInCog()
+  tf::Vector3 getAccCogInCog()
   {
     boost::lock_guard<boost::mutex> lock(vel_mutex_);
-    return filtered_acc_cog_in_cog_;
+    return acc_cog_in_cog_;
   }
 
 protected:
   void ImuCallback(const spinal::ImuConstPtr& imu_msg) override;
 
-  // work around to obtain filter states
+  // semaphore
   boost::mutex omega_mutex_;
   boost::mutex vel_mutex_;
-  tf::Vector3 filtered_vel_cog_in_w_;          // cog point, world frame
-  tf::Vector3 filtered_omega_cog_in_cog_;      // cog point, cog frame
-  tf::Vector3 filtered_acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
 
-  tf::Vector3 filtered_omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
-  tf::Vector3 prev_omega_;
-  double prev_time_;
+  // data
+  tf::Vector3 vel_cog_in_w_;          // cog point, world frame
+  tf::Vector3 acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
 
+  tf::Vector3 omega_cog_in_cog_;      // cog point, cog frame
+  tf::Vector3 omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
 
+  // publisher
   ros::Publisher pub_acc_;
 };
 };  // namespace sensor_plugin
