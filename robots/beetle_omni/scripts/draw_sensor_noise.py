@@ -119,21 +119,23 @@ def _plot_fft(
         title: str,
         has_xlabel: bool = True,
         xlabel: str = "Frequency [Hz]",
+        unit: str = "",
         has_ylabel: bool = True,
         ylabel: str = "Amplitude",
         legend_alpha: float = 0.6,
         xlim: float | None = None,
 ) -> None:
     """Draw *all* spectra belonging to the same group on the provided *Axes*."""
+    linetype = ["-", "--", "-.", ":"]  # different line styles for each channel
 
     for label, amp in spectra.items():
-        ax.plot(freqs, amp, label=label)
+        ax.plot(freqs, amp, label=label, linestyle=linetype.pop(0))
 
     # ax.set_title(title)
     if has_xlabel:
         ax.set_xlabel(xlabel, fontsize=14)
     if has_ylabel:
-        ax.set_ylabel(ylabel, fontsize=14)
+        ax.set_ylabel(ylabel + f" {unit}", fontsize=14)
     if xlim is not None:
         ax.set_xlim([0.0, xlim])
     ax.grid(True, which="both", ls=":", lw=0.5)
@@ -198,7 +200,7 @@ def main(file_path: str) -> None:
     data_rpm2 = data_rpm.copy()
     for c in data_rpm2.columns:
         if c != "__time":
-            data_rpm2[c] = data_rpm2[c] ** 2
+            data_rpm2[c] = data_rpm2[c] ** 2 * 0.000001 * 0.1283
 
     # -----------------------------------------------------------------------
     # 3.  FFT for each block.  We *store* the result so we can later choose how
@@ -211,10 +213,10 @@ def main(file_path: str) -> None:
     freqs_rpm2, spec_rpm2 = _fft_dataframe(data_rpm2, list(rpm_topics.values()))
 
     # modify the legend labels to indicate squared RPM
-    spec_rpm2["$\\hat{\\Omega}^2_1$"] = spec_rpm2["$\\hat{\\Omega}_1$"]  # keep the first channel as a reference
-    spec_rpm2["$\\hat{\\Omega}^2_2$"] = spec_rpm2["$\\hat{\\Omega}_2$"]
-    spec_rpm2["$\\hat{\\Omega}^2_3$"] = spec_rpm2["$\\hat{\\Omega}_3$"]
-    spec_rpm2["$\\hat{\\Omega}^2_4$"] = spec_rpm2["$\\hat{\\Omega}_4$"]
+    spec_rpm2["$\\hat{f}_1$"] = spec_rpm2["$\\hat{\\Omega}_1$"]  # keep the first channel as a reference
+    spec_rpm2["$\\hat{f}_2$"] = spec_rpm2["$\\hat{\\Omega}_2$"]
+    spec_rpm2["$\\hat{f}_3$"] = spec_rpm2["$\\hat{\\Omega}_3$"]
+    spec_rpm2["$\\hat{f}_4$"] = spec_rpm2["$\\hat{\\Omega}_4$"]
     del spec_rpm2["$\\hat{\\Omega}_1$"]  # remove the original channel
     del spec_rpm2["$\\hat{\\Omega}_2$"]
     del spec_rpm2["$\\hat{\\Omega}_3$"]
@@ -249,15 +251,15 @@ def main(file_path: str) -> None:
     # -----------------------------------------------------------------------
     # 5.  Create a **single figure** with 3 × 2 subplots.
     # -----------------------------------------------------------------------
-    fig, axes = plt.subplots(3, 2, figsize=(5, 7), sharex="none")
+    fig, axes = plt.subplots(3, 2, figsize=(5.5, 7), sharex="none")
     axes = axes.flatten()  # easier 1‑D indexing
 
-    _plot_fft(axes[0], freqs_rpm, spec_rpm, "RPM noise spectrum", has_xlabel=False)
-    _plot_fft(axes[1], freqs_rpm2, spec_rpm2, "RPM² (thrust proxy) spectrum", has_xlabel=False, has_ylabel=False)
-    _plot_fft(axes[2], freqs_servo, spec_servo, "Servo‑angle noise spectrum", has_xlabel=False)
-    _plot_fft(axes[3], freqs_acc, spec_acc, "IMU‑accelerometer noise spectrum", has_xlabel=False, has_ylabel=False)
-    _plot_fft(axes[4], freqs_gyro, spec_gyro, "IMU‑gyroscope noise spectrum")
-    _plot_fft(axes[5], freqs_diff, spec_diff, "Differentiated gyroscope spectrum (FIR)", has_ylabel=False)
+    _plot_fft(axes[0], freqs_rpm, spec_rpm, "RPM noise spectrum", has_xlabel=False, unit="[RPM]")
+    _plot_fft(axes[1], freqs_rpm2, spec_rpm2, "RPM² (thrust proxy) spectrum", has_xlabel=False, unit="[N]")
+    _plot_fft(axes[2], freqs_servo, spec_servo, "Servo‑angle noise spectrum", has_xlabel=False, unit="[rad]")
+    _plot_fft(axes[3], freqs_acc, spec_acc, "IMU‑accelerometer noise spectrum", has_xlabel=False, unit="[N/s²]")
+    _plot_fft(axes[4], freqs_gyro, spec_gyro, "IMU‑gyroscope noise spectrum", unit="[rad/s]")
+    _plot_fft(axes[5], freqs_diff, spec_diff, "Differentiated gyroscope spectrum (FIR)", unit="[rad/s²]")
 
     fig.tight_layout()
     # fig.suptitle("Sensor‑noise FFT overview", fontsize=14, y=1.02)
