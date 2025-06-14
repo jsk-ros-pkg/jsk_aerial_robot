@@ -168,6 +168,14 @@ def main(file_path: str) -> None:
         "/beetle1/esc_telem/esc_telemetry_4/rpm": "$\\hat{\Omega}_4$",
     }
 
+    thrust_cmd_topics = {
+        "/beetle1/four_axes/command/base_thrust[0]": "$f_{1c}$",
+        "/beetle1/four_axes/command/base_thrust[1]": "$f_{2c}$",
+        "/beetle1/four_axes/command/base_thrust[2]": "$f_{3c}$",
+        "/beetle1/four_axes/command/base_thrust[3]": "$f_{4c}$",
+    }
+
+
     servo_topics = {
         "/beetle1/joint_states/gimbal1/position": "$\\hat{\\alpha}_1$",
         "/beetle1/joint_states/gimbal2/position": "$\\hat{\\alpha}_2$",
@@ -189,6 +197,7 @@ def main(file_path: str) -> None:
 
     # Drop *any* row with NaN to avoid unequal lengths afterwards.
     data_rpm = data[["__time", *rpm_topics]].dropna().rename(columns=rpm_topics)
+    data_thrust_cmd = data[["__time", *thrust_cmd_topics]].dropna().rename(columns=thrust_cmd_topics)
     data_servo = data[["__time", *servo_topics]].dropna().rename(columns=servo_topics)
     data_acc = data[["__time", *acc_topics]].dropna().rename(columns=acc_topics)
     data_gyro = data[["__time", *gyro_topics]].dropna().rename(columns=gyro_topics)
@@ -222,6 +231,7 @@ def main(file_path: str) -> None:
     del spec_rpm2["$\\hat{\\Omega}_3$"]
     del spec_rpm2["$\\hat{\\Omega}_4$"]
 
+    freqs_thrust_cmd, spec_thrust_cmd = _fft_dataframe(data_thrust_cmd, list(thrust_cmd_topics.values()))
     freqs_servo, spec_servo = _fft_dataframe(data_servo, list(servo_topics.values()))
     freqs_acc, spec_acc = _fft_dataframe(data_acc, list(acc_topics.values()))
     freqs_gyro, spec_gyro = _fft_dataframe(data_gyro, list(gyro_topics.values()))
@@ -254,12 +264,12 @@ def main(file_path: str) -> None:
     fig, axes = plt.subplots(3, 2, figsize=(5.5, 7), sharex="none")
     axes = axes.flatten()  # easier 1‑D indexing
 
-    _plot_fft(axes[0], freqs_rpm, spec_rpm, "RPM noise spectrum", has_xlabel=False, unit="[RPM]")
+    _plot_fft(axes[0], freqs_thrust_cmd, spec_thrust_cmd, "thrust command spectrum", has_xlabel=False, unit="[N]")
     _plot_fft(axes[1], freqs_rpm2, spec_rpm2, "RPM² (thrust proxy) spectrum", has_xlabel=False, unit="[N]")
     _plot_fft(axes[2], freqs_servo, spec_servo, "Servo‑angle noise spectrum", has_xlabel=False, unit="[rad]")
     _plot_fft(axes[3], freqs_acc, spec_acc, "IMU‑accelerometer noise spectrum", has_xlabel=False, unit="[N/s²]")
     _plot_fft(axes[4], freqs_gyro, spec_gyro, "IMU‑gyroscope noise spectrum", unit="[rad/s]")
-    _plot_fft(axes[5], freqs_diff, spec_diff, "Differentiated gyroscope spectrum (FIR)", unit="[rad/s²]")
+    _plot_fft(axes[5], freqs_diff, spec_diff, "Differentiated gyroscope spectrum (FIR)", unit="[rad/s$\\rm ^2$]")
 
     fig.tight_layout()
     # fig.suptitle("Sensor‑noise FFT overview", fontsize=14, y=1.02)

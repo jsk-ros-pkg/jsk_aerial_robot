@@ -165,6 +165,14 @@ def load_and_prepare(csv: Path):
         "/beetle1/esc_telem/esc_telemetry_3/rpm": "rpm3",
         "/beetle1/esc_telem/esc_telemetry_4/rpm": "rpm4",
     }
+
+    thrust_cmd_map = {
+        "/beetle1/four_axes/command/base_thrust[0]": "$f_{1c}$",
+        "/beetle1/four_axes/command/base_thrust[1]": "$f_{2c}$",
+        "/beetle1/four_axes/command/base_thrust[2]": "$f_{3c}$",
+        "/beetle1/four_axes/command/base_thrust[3]": "$f_{4c}$",
+    }
+
     servo_map = {
         "/beetle1/joint_states/gimbal1/position": "servo1",
         "/beetle1/joint_states/gimbal2/position": "servo2",
@@ -183,6 +191,7 @@ def load_and_prepare(csv: Path):
     }
 
     data_rpm = ensure_100hz(df[["__time", *rpm_map]].dropna().rename(columns=rpm_map))
+    data_thrust_cmd = ensure_100hz(df[["__time", *thrust_cmd_map]].dropna().rename(columns=thrust_cmd_map))
     data_servo = ensure_100hz(df[["__time", *servo_map]].dropna().rename(columns=servo_map))
     data_acc = ensure_100hz(df[["__time", *acc_map]].dropna().rename(columns=acc_map))
     data_gyro = ensure_100hz(df[["__time", *gyro_map]].dropna().rename(columns=gyro_map))
@@ -192,7 +201,7 @@ def load_and_prepare(csv: Path):
     for d in (data_rpm, data_servo, data_acc, data_gyro):
         d["__time"] -= t0
 
-    return data_rpm, data_servo, data_acc, data_gyro
+    return data_rpm, data_thrust_cmd, data_servo, data_acc, data_gyro
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -210,7 +219,7 @@ def main():
         raise FileNotFoundError(csv_path)
 
     # Load & prep
-    rpm_df, servo_df, acc_df, gyro_df = load_and_prepare(csv_path)
+    rpm_df, thrust_cmd_df, servo_df, acc_df, gyro_df = load_and_prepare(csv_path)
     acc_df["acc_z"] -= 9.798  # Tokyo gravity in m/s²
 
     # LPF helpers
@@ -218,11 +227,13 @@ def main():
         return {c: biquad_iir(b, a, df[c].to_numpy()) for c in df.columns if c != "__time"}
 
     rpm_raw = {c: rpm_df[c].to_numpy() for c in rpm_df.columns if c != "__time"}
+    thrust_cmd_raw = {c: thrust_cmd_df[c].to_numpy() for c in thrust_cmd_df.columns if c != "__time"}
     servo_raw = {c: servo_df[c].to_numpy() for c in servo_df.columns if c != "__time"}
     acc_raw = {c: acc_df[c].to_numpy() for c in acc_df.columns if c != "__time"}
     gyro_raw = {c: gyro_df[c].to_numpy() for c in gyro_df.columns if c != "__time"}
 
     rpm_lpf = lpf(rpm_df, B884, A884)
+    thrust_cmd_lpf = lpf(thrust_cmd_df, B884, A884)
     servo_lpf = lpf(servo_df, B884, A884)
     acc_lpf = lpf(acc_df, B884, A884)
     gyro_lpf = lpf(gyro_df, B884, A884)
@@ -246,9 +257,10 @@ def main():
     fig, axes = plt.subplots(3, 2, figsize=(13, 13))
     ax = axes.flatten()
 
-    overlay(ax[0], rpm_df["__time"], rpm_raw, rpm_lpf, "ESC RPM", "RPM")
-    overlay(ax[1], servo_df["__time"], servo_raw, servo_lpf, "Servo angle", "Angle [rad]")
-    overlay(ax[2], rpm_df["__time"], thrust_raw, thrust_lpf, "Prop thrust", "Force [N]")
+    # overlay(ax[0], rpm_df["__time"], rpm_raw, rpm_lpf, "ESC RPM", "RPM")
+    overlay(ax[0], thrust_cmd_df["__time"], thrust_cmd_raw, thrust_cmd_lpf, "Thrust command", "Force [N]")
+    overlay(ax[1], rpm_df["__time"], thrust_raw, thrust_lpf, "Prop thrust", "Force [N]")
+    overlay(ax[2], servo_df["__time"], servo_raw, servo_lpf, "Servo angle", "Angle [rad]")
     overlay(ax[3], acc_df["__time"], acc_raw, acc_lpf, "IMU accelerometer", "Accel [$m\,s^{-2}$]")
     overlay(ax[4], gyro_df["__time"], gyro_raw, gyro_lpf, "IMU gyro", "Gyro [$rad\,s^{-1}$]")
     overlay(ax[5], gyro_df["__time"], diff_raw, diff_lpf, "Angular acceleration", "$\\alpha$ [$rad\,s^{-2}$]")
