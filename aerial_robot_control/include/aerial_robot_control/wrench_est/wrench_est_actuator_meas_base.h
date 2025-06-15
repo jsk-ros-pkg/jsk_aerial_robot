@@ -39,9 +39,10 @@ public:
     den_ = a;
   }
 
-  void reset(double y0 = 0.0)
+  void reset()
   {
-    std::fill(z_.begin(), z_.end(), y0);
+    primed_ = false;  // reset the primed flag
+    std::fill(z_.begin(), z_.end(), 0.0);  // reset delay line states
   }
 
   [[nodiscard]] constexpr std::size_t order() const noexcept
@@ -51,6 +52,11 @@ public:
 
   double filter(double x_n)
   {
+    if (!primed_)
+    {
+      resetWMeas(x_n, x_n);  // if not primed, reset with the first sample
+    }
+
     const double a0 = den_[0];
     if (a0 == 0.0)
       throw std::runtime_error("a0 cannot be zero");
@@ -68,21 +74,38 @@ public:
       z_[k - 1] = num_[k] * w + z_[k] + (k < N ? den_[k] * y : 0.0);
 
     // the last state depends on which side is longer
-    std::size_t last = z_.size();
     if constexpr (M > N)
-      z_[last - 1] = num_[N] * w;
+      z_.back() = num_[N] * w;           // remaining numerator term
     else if constexpr (N > M)
-      z_[last - 1] = den_[N - 1] * y;
+      z_.back() = den_.back() * y;       // <-- use a_{N-1}
     else
-      z_[last - 1] = (num_.back() * w + den_.back() * y);
+      z_.back() = num_.back() * w + den_.back() * y;
 
     return y;
   }
 
 private:
+  bool primed_{ false };     // true if filter is primed
   std::vector<double> num_;  // numerator taps (with gain applied)
   std::vector<double> den_;  // denominator taps (a₀ … a_{N‑1})
   std::vector<double> z_;    // delay‑line state, length max(M,N)‑1
+
+  void resetWMeas(double y0, double x0)
+  {
+    /*  Guarantee y[0] = y0 for the first call with input x0:
+        y0 = b0*w0 + z0      (1)
+        w0 = (x0 - Σ_{k=1}^{N-1} a_k z_{k-1}) / a0   (2)
+
+       If we set all zₖ (k>0) to 0, (2) simplifies to w0 = x0/a0.
+       Plug into (1) ⇒  z0 = y0 - b0·x0/a0.
+    */
+    std::fill(z_.begin(), z_.end(), 0.0);
+    if (den_[0] == 0.0)
+      throw std::runtime_error("a0 cannot be zero");
+    z_[0] = y0 - num_[0] * (x0 / den_[0]);
+
+    primed_ = true;
+  }
 };
 
 }  // namespace digital_filter

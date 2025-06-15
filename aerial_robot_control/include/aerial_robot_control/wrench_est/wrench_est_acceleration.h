@@ -31,22 +31,18 @@ public:
     for (int i = 0; i < 4; i++)
     {
       thrust_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
-      thrust_lpf_[i].reset(0.0);
     }
     for (int i = 0; i < 4; i++)
     {
       servo_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
-      servo_lpf_[i].reset(0.0);
     }
     for (int i = 0; i < 3; i++)
     {
       acc_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
-      acc_lpf_[i].reset(0.0);
     }
     for (int i = 0; i < 3; i++)
     {
       omega_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
-      omega_lpf_[i].reset(0.0);
     }
 
     std::vector<double> iir_omega_dot_num(3), iir_omega_dot_den(3);
@@ -57,7 +53,6 @@ public:
     for (int i = 0; i < 3; i++)
     {
       omega_dot_lpf_[i].setCoeffs(iir_omega_dot_num, iir_omega_dot_den, iir_omega_dot_gain);
-      omega_dot_lpf_[i].reset(0.0);
     }
   }
 
@@ -67,15 +62,15 @@ public:
     est_ext_force_cog_ = Eigen::VectorXd::Zero(3);
     est_ext_torque_cog_ = Eigen::VectorXd::Zero(3);
     for (auto& f : thrust_lpf_)
-      f.reset(0.0);
+      f.reset();
     for (auto& f : servo_lpf_)
-      f.reset(0.0);
+      f.reset();
     for (auto& f : acc_lpf_)
-      f.reset(0.0);
+      f.reset();
     for (auto& f : omega_lpf_)
-      f.reset(0.0);
+      f.reset();
     for (auto& f : omega_dot_lpf_)
-      f.reset(0.0);
+      f.reset();
   }
 
   Eigen::VectorXd calDistWrench()
