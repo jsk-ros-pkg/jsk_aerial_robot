@@ -10,6 +10,83 @@
 
 #include "sensor_msgs/JointState.h"
 #include "spinal/ESCTelemetryArray.h"
+#include "spinal/FourAxisCommand.h"
+
+namespace digital_filter
+{
+
+// --------------------------------------------------------------------------
+//  IIRFilter — transposed direct‑form I, explicit a₀, with gain
+// --------------------------------------------------------------------------
+
+template <std::size_t M, std::size_t N>
+class IIRFilter
+{
+  static_assert(M > 0 && N > 0, "IIRFilter must have non‑zero taps");
+
+public:
+  using NumArray = std::array<double, M>;  // b₀ … b_{M‑1}
+  using DenArray = std::array<double, N>;  // a₀ … a_{N‑1}
+
+  constexpr IIRFilter(const NumArray& b, const DenArray& a, double gain = 1.0) noexcept
+  {
+    setCoeffs(b, a, gain);
+    reset(0.0);
+  }
+
+  // ------------------------------------------------------------------ API
+  constexpr void setCoeffs(const NumArray& b, const DenArray& a, double gain = 1.0) noexcept
+  {
+    num_ = b;
+    for (double& v : num_)
+      v *= gain;  // apply pre‑gain to numerator only
+    den_ = a;
+  }
+
+  constexpr void reset(double y0 = 0.0) noexcept
+  {
+    // prime all delay elements so that first output equals y0
+    z_.fill(y0);
+  }
+
+  [[nodiscard]] constexpr std::size_t order() const noexcept
+  {
+    return N - 1;
+  }
+
+  // -------------------------------------------------------------- filter()
+  constexpr double filter(double x_n) noexcept
+  {
+    // Transposed DF‑I with explicit a₀
+    const double a0 = den_[0];
+    double w = (x_n - feedback()) / a0;  // normalised intermediate
+    double y = num_[0] * w + z_[0];      // output
+
+    // update states (shifted accumulators)
+    for (std::size_t k = 1; k < N; ++k)
+    {
+      z_[k - 1] = num_[k] * w + z_[k] + den_[k] * y;
+    }
+    z_[N - 1] = (M > N ? num_[N] : 0.0) * w + (N < M ? 0.0 : 0.0);  // handle unequal M/N
+    return y;
+  }
+
+private:
+  constexpr double feedback() const noexcept
+  {
+    // Σ_{k=1}^{N-1} a_k z_{k-1}
+    double acc = 0.0;
+    for (std::size_t k = 1; k < N; ++k)
+      acc += den_[k] * z_[k - 1];
+    return acc;
+  }
+
+  NumArray num_{};
+  DenArray den_{};
+  std::array<double, (N > 0 ? N - 1 : 1)> z_{};  // state length = N-1
+};
+
+}  // namespace digital_filter
 
 namespace aerial_robot_control
 {
@@ -29,7 +106,6 @@ public:
   {
     WrenchEstBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
-    // TODO: combine this part with the controller. especially the subscriber part.
     ros::NodeHandle motor_nh(nh_, "motor_info");
     getParam<double>(motor_nh, "krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio_, 0.0);
     getParam<double>(motor_nh, "krpm_square_to_thrust_bias", krpm_square_to_thrust_bias_, 0.0);
@@ -39,6 +115,9 @@ public:
 
     thrust_meas_.resize(robot_model_->getRotorNum(), 0.0);
     sub_esc_telem_ = nh_.subscribe("esc_telem", 1, &WrenchEstActuatorMeasBase::callbackESCTelem, this);
+
+    thrust_cmd_.resize(robot_model_->getRotorNum(), 0.0);
+    sub_thrust_cmd_ = nh_.subscribe("four_axes/command", 1, &WrenchEstActuatorMeasBase::callbackFourAxisCmd, this);
   }
 
   void reset() override
@@ -144,7 +223,6 @@ private:
   ros::Subscriber sub_esc_telem_;
   double krpm_square_to_thrust_ratio_;
   double krpm_square_to_thrust_bias_;
-
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
   {
     double krpm;
@@ -159,6 +237,18 @@ private:
 
     krpm = (double)msg->esc_telemetry_4.rpm * 0.001;
     thrust_meas_[3] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
+  }
+
+  // for thrust cmd (use this value may be more stable than actual thrust)
+  std::vector<double> thrust_cmd_;
+
+  ros::Subscriber sub_thrust_cmd_;
+  void callbackFourAxisCmd(const spinal::FourAxisCommandConstPtr& msg)
+  {
+    thrust_cmd_[0] = msg->base_thrust[0];
+    thrust_cmd_[1] = msg->base_thrust[1];
+    thrust_cmd_[2] = msg->base_thrust[2];
+    thrust_cmd_[3] = msg->base_thrust[3];
   }
 };
 
