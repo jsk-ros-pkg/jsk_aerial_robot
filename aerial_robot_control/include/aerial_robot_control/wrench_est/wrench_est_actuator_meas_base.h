@@ -15,97 +15,85 @@
 namespace digital_filter
 {
 
-// --------------------------------------------------------------------------
-//  IIRFilter — transposed DF‑I with gain, vector storage
-// --------------------------------------------------------------------------
-
-template <std::size_t M, std::size_t N>
-class IIRFilter
+/**
+ * @brief Simple 2-pole (biquad) IIR filter, Direct-Form I.
+ *        The internal state is pre-filled with the first sample (see reset())
+ *        so that y[0] == x[0], avoiding the usual start-up dip.
+ */
+class BiquadIIR
 {
-  static_assert(M > 0 && N > 0, "IIRFilter must have non‑zero taps");
-
 public:
-  IIRFilter() : num_(M, 0.0), den_(N, 0.0), z_(std::max(M, N) - 1, 0.0)
-  {
-  }
+  BiquadIIR() = default;
 
+  /**
+   * @param b     Numerator coefficients {b0, b1, b2}
+   * @param a     Denominator coefficients {a0, a1, a2}.  a0 may be != 1;
+   *              the function normalises all taps internally so that a0 → 1.
+   * @param gain  Optional pre-gain applied to all numerator taps.
+   * @throw       std::invalid_argument if a0 is zero (or ~zero).
+   */
   void setCoeffs(const std::vector<double>& b, const std::vector<double>& a, double gain = 1.0)
   {
-    if (b.size() != M || a.size() != N)
-      throw std::invalid_argument("IIR taps size mismatch");
-    num_ = b;
-    for (double& v : num_)
-      v *= gain;  // apply pre‑gain only to numerator
-    den_ = a;
+    if (std::fabs(a[0]) < 1e-12)
+      throw std::invalid_argument("a0 must not be zero");
+
+    // check that b and a have the right size
+    if (b.size() != 3 || a.size() != 3)
+      throw std::invalid_argument("BiquadIIR requires 3 coefficients for b and a");
+
+    const double inv_a0 = 1.0 / a[0];
+
+    // Apply gain, then normalise by a0
+    for (int i = 0; i < 3; ++i)
+      b_[i] = b[i] * gain * inv_a0;
+
+    a1_ = a[1] * inv_a0;
+    a2_ = a[2] * inv_a0;
   }
 
-  void reset()
+  /**
+   * @brief Initialise the delay line so that the very first output equals x0.
+   * @param x0  Value used to prime the internal state.
+   */
+  void reset(double x0 = 0.0)
   {
-    primed_ = false;  // reset the primed flag
-    std::fill(z_.begin(), z_.end(), 0.0);  // reset delay line states
+    x1_ = x2_ = x0;
+    y1_ = y2_ = x0;
+    primed_ = true;
   }
 
-  [[nodiscard]] constexpr std::size_t order() const noexcept
-  {
-    return N - 1;
-  }
-
-  double filter(double x_n)
+  /**
+   * @brief Process a single input sample.
+   * @param x  New input sample.
+   * @return   Filtered output sample.
+   */
+  inline double filter(double x)
   {
     if (!primed_)
-    {
-      resetWMeas(x_n, x_n);  // if not primed, reset with the first sample
-    }
+      reset(x);  // One-shot priming on first call
 
-    const double a0 = den_[0];
-    if (a0 == 0.0)
-      throw std::runtime_error("a0 cannot be zero");
+    // Direct-Form I difference equation:
+    const double y = b_[0] * x + b_[1] * x1_ + b_[2] * x2_ - a1_ * y1_ - a2_ * y2_;
 
-    // feedback term Σ a_k * z_{k-1}
-    double fb = 0.0;
-    for (std::size_t k = 1; k < N; ++k)
-      fb += den_[k] * z_[k - 1];
-
-    double w = (x_n - fb) / a0;
-    double y = num_[0] * w + z_[0];
-
-    // update states
-    for (std::size_t k = 1; k < z_.size(); ++k)
-      z_[k - 1] = num_[k] * w + z_[k] + (k < N ? den_[k] * y : 0.0);
-
-    // the last state depends on which side is longer
-    if constexpr (M > N)
-      z_.back() = num_[N] * w;           // remaining numerator term
-    else if constexpr (N > M)
-      z_.back() = den_.back() * y;       // <-- use a_{N-1}
-    else
-      z_.back() = num_.back() * w + den_.back() * y;
+    // Shift delay line
+    x2_ = x1_;
+    x1_ = x;
+    y2_ = y1_;
+    y1_ = y;
 
     return y;
   }
 
 private:
-  bool primed_{ false };     // true if filter is primed
-  std::vector<double> num_;  // numerator taps (with gain applied)
-  std::vector<double> den_;  // denominator taps (a₀ … a_{N‑1})
-  std::vector<double> z_;    // delay‑line state, length max(M,N)‑1
+  /* Normalised coefficients */
+  double b_[3]{ 0.0, 0.0, 0.0 };  // b0, b1, b2
+  double a1_{ 0.0 }, a2_{ 0.0 };  // a1, a2   (a0 == 1 after normalisation)
 
-  void resetWMeas(double y0, double x0)
-  {
-    /*  Guarantee y[0] = y0 for the first call with input x0:
-        y0 = b0*w0 + z0      (1)
-        w0 = (x0 - Σ_{k=1}^{N-1} a_k z_{k-1}) / a0   (2)
+  /* Delay-line state */
+  double x1_{ 0.0 }, x2_{ 0.0 };  // x[n-1], x[n-2]
+  double y1_{ 0.0 }, y2_{ 0.0 };  // y[n-1], y[n-2]
 
-       If we set all zₖ (k>0) to 0, (2) simplifies to w0 = x0/a0.
-       Plug into (1) ⇒  z0 = y0 - b0·x0/a0.
-    */
-    std::fill(z_.begin(), z_.end(), 0.0);
-    if (den_[0] == 0.0)
-      throw std::runtime_error("a0 cannot be zero");
-    z_[0] = y0 - num_[0] * (x0 / den_[0]);
-
-    primed_ = true;
-  }
+  bool primed_{ false };  // true once the filter has been initialised
 };
 
 }  // namespace digital_filter

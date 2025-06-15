@@ -155,11 +155,11 @@ public:
 
 private:
   // lpf filters
-  std::array<digital_filter::IIRFilter<3, 3>, 4> thrust_lpf_;
-  std::array<digital_filter::IIRFilter<3, 3>, 4> servo_lpf_;
-  std::array<digital_filter::IIRFilter<3, 3>, 3> acc_lpf_;
-  std::array<digital_filter::IIRFilter<3, 3>, 3> omega_lpf_;
-  std::array<digital_filter::IIRFilter<3, 3>, 3> omega_dot_lpf_;
+  std::array<digital_filter::BiquadIIR, 4> thrust_lpf_;
+  std::array<digital_filter::BiquadIIR, 4> servo_lpf_;
+  std::array<digital_filter::BiquadIIR, 3> acc_lpf_;
+  std::array<digital_filter::BiquadIIR, 3> omega_lpf_;
+  std::array<digital_filter::BiquadIIR, 3> omega_dot_lpf_;
 
   // acceleration-based method
   Eigen::VectorXd est_ext_force_cog_;  // TODO: combine these two variables and matrices to a single one
