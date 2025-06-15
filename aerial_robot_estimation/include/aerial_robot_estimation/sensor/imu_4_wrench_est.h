@@ -67,11 +67,9 @@ public:
       coeffs_[i] = b[i] * gain;
   }
 
-  /// Prime the internal delay line so that the first output equals `y0`.
-  void reset(double y0 = 0.0)
+  void reset()
   {
-    std::fill(hist_.begin(), hist_.end(), y0);
-    idx_ = 0;
+    primed_ = false;  // reset the primed flag
   }
 
   [[nodiscard]] constexpr std::size_t order() const noexcept
@@ -82,6 +80,11 @@ public:
   /// Process one sample.
   double filter(double x_n)
   {
+    if (!primed_)
+    {
+      resetWMeas(x_n);  // if not primed, reset with the first sample
+    }
+
     hist_[idx_] = x_n;  // overwrite oldest sample
     double acc = 0.0;
     std::size_t tap = idx_;
@@ -95,9 +98,18 @@ public:
   }
 
 private:
+  bool primed_{ false };        // true if filter is primed
   std::vector<double> coeffs_;  // b₀ … b_{N‑1}
   std::vector<double> hist_;    // circular buffer of past inputs
   std::size_t idx_{};           // write index
+
+  /// Prime the internal delay line so that the first output equals `y0`.
+  void resetWMeas(double y0)
+  {
+    std::fill(hist_.begin(), hist_.end(), y0);
+    idx_ = 0;
+    primed_ = true;  // primed means the filter is ready to process samples
+  }
 };
 
 }  // namespace digital_filter
@@ -110,6 +122,8 @@ public:
   void initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator, string sensor_name,
                   int index) override;
+
+  bool reset() override;
 
   void setOmegaCogInCog(const tf::Vector3& omega_cog_in_cog)
   {

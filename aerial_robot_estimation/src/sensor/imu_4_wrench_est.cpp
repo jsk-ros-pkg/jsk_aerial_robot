@@ -19,12 +19,21 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
   for (auto& f : omega_diff_)
   {
     f.setCoeffs(diffB, gain);
-    f.reset(0.0);
+    f.reset();
   }
 
   // debug
   pub_acc_ = indexed_nhp_.advertise<geometry_msgs::AccelStamped>(string("acc_lin_ang_baselink"), 1);
   ROS_INFO("Imu type: Imu4WrenchEst");
+}
+
+bool Imu4WrenchEst::reset()
+{
+  for (auto& f : omega_diff_)
+  {
+    f.reset();
+  }
+  return true;
 }
 
 // override to get filtered gyro data
