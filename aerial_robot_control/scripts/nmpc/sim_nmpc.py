@@ -4,45 +4,40 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_bi")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_tri")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/tilt_qd")
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/archive")
-
-from nmpc_viz import Visualizer
+from nmpc_tilt_mt.utils.nmpc_viz import Visualizer
 
 # Quadrotor
-import tilt_qd.phys_param_beetle_omni as phys_omni
-import archive.phys_param_beetle_art as phys_art
+import nmpc_tilt_mt.tilt_qd.phys_param_beetle_omni as phys_omni
+import nmpc_tilt_mt.archive.phys_param_beetle_art as phys_art
 
 # - Naive models
-from archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
-from tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
+from nmpc_tilt_mt.archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
+from nmpc_tilt_mt.tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
 
 # - Consider the servo delay with its model
-from tilt_qd.tilt_qd_servo import NMPCTiltQdServo
-from tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
-from archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
-from archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
+from nmpc_tilt_mt.archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
+from nmpc_tilt_mt.archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
 
-from archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
-from tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
+from nmpc_tilt_mt.archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
 
 # - Consider the thrust delay with its model
-from tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
+from nmpc_tilt_mt.tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
 
 # - Consider the servo & thrust delay with its models
-from tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
-from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
-from archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+from nmpc_tilt_mt.archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
 
 # Birotor
-from tilt_bi.tilt_bi_servo import NMPCTiltBiServo
-from tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
+from nmpc_tilt_mt.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
+from nmpc_tilt_mt.tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
 
 # Trirotor
-from tilt_tri.tilt_tri_servo import NMPCTiltTriServo
-from tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
+from nmpc_tilt_mt.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
+from nmpc_tilt_mt.tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
 
 
 def main(args):

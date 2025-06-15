@@ -62,44 +62,18 @@ add_library(control_utils
 target_link_libraries(control_utils ${EIGEN3_LIBRARIES})
 
 ### acados code generation
-# Create a list to hold the target names
-set(ACADOS_PYTHON_TARGETS)
-
-# Create a list of the scripts
-set(ACADOS_PYTHON_SCRIPTS
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_angvel_out.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/fix_qd/fix_qd_thrust_out.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_no_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_dist.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_dist_imp.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_thrust_dist.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/tilt_qd_servo_thrust_dist_imp.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_tri/tilt_tri_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_bi/tilt_bi_2ord_servo.py
-#        ${PROJECT_SOURCE_DIR}/scripts/nmpc/tilt_qd/mhe_wrench_est_acc_mom.py
+add_custom_target(gen_acados_code ALL
+  COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/nmpc/gen_nmpc_code_all.sh
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/scripts/nmpc/
+  COMMENT "Generating acados code for NMPC models"
 )
-
-foreach(script ${ACADOS_PYTHON_SCRIPTS})
-  message("Running ${script}...")
-  get_filename_component(script_name ${script} NAME_WE)
-  add_custom_target(
-          ${script_name} ALL
-          COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CATKIN_DEVEL_PREFIX}/lib/python3/dist-packages:$ENV{PYTHONPATH} ${Python3_EXECUTABLE} ${script}
-          DEPENDS ${script} acados
-          COMMENT "Running ${script}..."
-  )
-  # Append the target name to the list
-  list(APPEND ACADOS_PYTHON_TARGETS ${script_name})
-endforeach()
 
 ### wrench estimation plugin
 add_library(wrench_est_plugins src/wrench_est/wrench_est_actuator_meas.cpp)
 target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES} acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/wrench_est/mhe_wrench_est_acc_mom_mdl/c_generated_code/libacados_ocp_solver_mhe_wrench_est_acc_mom_mdl.so
 )
-add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg)
+add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg  gen_acados_code)
 
 ### mpc solver plugin
 add_library(mpc_solver_plugins src/nmpc/mpc_solver_plugins.cpp)
@@ -116,9 +90,7 @@ target_link_libraries(mpc_solver_plugins ${catkin_LIBRARIES} acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_servo_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_servo_mdl.so
 )
-if(ACADOS_PYTHON_TARGETS)
-  add_dependencies(mpc_solver_plugins ${ACADOS_PYTHON_TARGETS})
-endif()
+add_dependencies(mpc_solver_plugins gen_acados_code)
 
 ### flight control plugin
 add_library(flight_control_pluginlib

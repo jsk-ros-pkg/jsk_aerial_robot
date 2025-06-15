@@ -1,0 +1,165 @@
+#!/usr/bin/env python
+# -*- encoding: ascii -*-
+import numpy as np
+import casadi as ca
+
+from .qd_nmpc_base import QDNMPCBase
+from ..archive import phys_param_beetle_art as phys_art
+
+
+class NMPCTiltQdThrust(QDNMPCBase):
+    """
+    Controller Name: Tiltable Quadrotor NMPC including Thrust Model
+    The controller itself is constructed in base class. This file is used to define the properties
+    of the controller, specifically, the weights and cost function for the acados solver.
+    The output of the controller is the thrust and servo angle command for each rotor.
+    """
+
+    def __init__(self, phys=phys_art):
+        # Model name
+        self.model_name = "tilt_qd_thrust_mdl"
+        self.phys = phys
+
+        # ====== Define controller setup through flags ======
+        #
+        # - tilt: Flag to include tiltable rotors and their effect on the rotation matrix.
+        # - include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
+        # - include_servo_derivative: Flag to include the continuous time-derivative of the servo angle as control input(!) instead of numeric differentation.
+        # - include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
+        # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
+        # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
+        # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
+        # - include_a_prev: Flag to include reference value for the servo angle command in NMPCReferenceGenerator() based on command from previous timestep.
+
+        self.tilt = True
+        self.include_servo_model = False
+        self.include_servo_derivative = False
+        self.include_thrust_model = True  # TODO extend to include_thrust_derivative
+        self.include_cog_dist_model = False
+        self.include_cog_dist_parameter = False  # TODO seperation between model and parameter necessary?
+        self.include_impedance = False
+
+        # Read parameters from configuration file in the robot's package
+        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
+
+        # Create acados model & solver and generate c code
+        super().__init__()
+
+    def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # Cost function
+        # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
+        # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
+        # qe = qr^* multiply q
+        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
+
+        state_y = ca.vertcat(
+            self.p,
+            self.v,
+            self.qwr,
+            qe_x + self.qxr,
+            qe_y + self.qyr,
+            qe_z + self.qzr,
+            self.w,
+            self.ft_s
+        )
+
+        state_y_e = state_y
+
+        control_y = ca.vertcat(
+            self.ft_c - self.ft_s,  # ft_c_ref must be zero!
+            self.a_c)
+
+        return state_y, state_y_e, control_y
+
+    def get_weights(self):
+        # Define Weights
+        Q = np.diag(
+            [
+                self.params["Qp_xy"],
+                self.params["Qp_xy"],
+                self.params["Qp_z"],
+                self.params["Qv_xy"],
+                self.params["Qv_xy"],
+                self.params["Qv_z"],
+                0,
+                self.params["Qq_xy"],
+                self.params["Qq_xy"],
+                self.params["Qq_z"],
+                self.params["Qw_xy"],
+                self.params["Qw_xy"],
+                self.params["Qw_z"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+            ]
+        )
+        print("Q: \n", Q)
+
+        R = np.diag(
+            [
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                50,
+                50,
+                50,
+                50,
+            ]
+        )
+        print("R: \n", R)
+
+        return Q, R
+
+    def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
+        """
+        Assemble reference trajectory from target pose and reference control values.
+        Gets called from reference generator class.
+        Note: The definition of the reference is closely linked to the definition of the cost function.
+        Therefore, this is explicitly stated in each controller file to increase comprehensiveness.
+
+        :param target_xyz: Target position
+        :param target_qwxy: Target quaternions
+        :param ft_ref: Target thrust
+        :param a_ref: Target servo angles
+        :return xr: Reference for the state x
+        :return ur: Reference for the input u
+        """
+        # Get dimensions
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
+
+        # Assemble state reference
+        xr = np.zeros([nn + 1, nx])
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
+        # No reference for vx, vy, vz (idx: 3, 4, 5)
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
+        # No reference for wx, wy, wz (idx: 10, 11, 12)
+        xr[:, 13] = ft_ref[0]
+        xr[:, 14] = ft_ref[1]
+        xr[:, 15] = ft_ref[2]
+        xr[:, 16] = ft_ref[3]
+
+        # Assemble input reference
+        # Note: Reference has to be zero if variable is included as state in cost function!
+        ur = np.zeros([nn, nu])
+        ur[:, 4] = a_ref[0]
+        ur[:, 5] = a_ref[1]
+        ur[:, 6] = a_ref[2]
+        ur[:, 7] = a_ref[3]
+
+        return xr, ur
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")
