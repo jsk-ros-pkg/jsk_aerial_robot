@@ -1,4 +1,4 @@
-#!/bin/bashAdd commentMore actions
+#!/bin/bash
 
 # ===== avoid jobserver warning when "catkin build", given by ChatGPT o3
 set -e
