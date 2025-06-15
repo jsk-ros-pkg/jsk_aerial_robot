@@ -16,7 +16,7 @@ namespace digital_filter
 {
 
 // --------------------------------------------------------------------------
-//  IIRFilter — transposed direct‑form I, explicit a₀, with gain
+//  IIRFilter — transposed DF‑I with gain, vector storage
 // --------------------------------------------------------------------------
 
 template <std::size_t M, std::size_t N>
@@ -25,28 +25,21 @@ class IIRFilter
   static_assert(M > 0 && N > 0, "IIRFilter must have non‑zero taps");
 
 public:
-  using NumArray = std::array<double, M>;  // b₀ … b_{M‑1}
-  using DenArray = std::array<double, N>;  // a₀ … a_{N‑1}
+  IIRFilter() = default;
 
-  constexpr IIRFilter(const NumArray& b, const DenArray& a, double gain = 1.0) noexcept
+  void setCoeffs(const std::vector<double>& b, const std::vector<double>& a, double gain = 1.0)
   {
-    setCoeffs(b, a, gain);
-    reset(0.0);
-  }
-
-  // ------------------------------------------------------------------ API
-  constexpr void setCoeffs(const NumArray& b, const DenArray& a, double gain = 1.0) noexcept
-  {
+    if (b.size() != M || a.size() != N)
+      throw std::invalid_argument("IIR taps size mismatch");
     num_ = b;
     for (double& v : num_)
-      v *= gain;  // apply pre‑gain to numerator only
+      v *= gain;  // apply pre‑gain only to numerator
     den_ = a;
   }
 
-  constexpr void reset(double y0 = 0.0) noexcept
+  void reset(double y0 = 0.0)
   {
-    // prime all delay elements so that first output equals y0
-    z_.fill(y0);
+    std::fill(z_.begin(), z_.end(), y0);
   }
 
   [[nodiscard]] constexpr std::size_t order() const noexcept
@@ -54,36 +47,40 @@ public:
     return N - 1;
   }
 
-  // -------------------------------------------------------------- filter()
-  constexpr double filter(double x_n) noexcept
+  double filter(double x_n)
   {
-    // Transposed DF‑I with explicit a₀
     const double a0 = den_[0];
-    double w = (x_n - feedback()) / a0;  // normalised intermediate
-    double y = num_[0] * w + z_[0];      // output
+    if (a0 == 0.0)
+      throw std::runtime_error("a0 cannot be zero");
 
-    // update states (shifted accumulators)
+    // feedback term Σ a_k * z_{k-1}
+    double fb = 0.0;
     for (std::size_t k = 1; k < N; ++k)
-    {
-      z_[k - 1] = num_[k] * w + z_[k] + den_[k] * y;
-    }
-    z_[N - 1] = (M > N ? num_[N] : 0.0) * w + (N < M ? 0.0 : 0.0);  // handle unequal M/N
+      fb += den_[k] * z_[k - 1];
+
+    double w = (x_n - fb) / a0;
+    double y = num_[0] * w + z_[0];
+
+    // update states
+    for (std::size_t k = 1; k < z_.size(); ++k)
+      z_[k - 1] = num_[k] * w + z_[k] + (k < N ? den_[k] * y : 0.0);
+
+    // the last state depends on which side is longer
+    std::size_t last = z_.size();
+    if constexpr (M > N)
+      z_[last - 1] = num_[N] * w;
+    else if constexpr (N > M)
+      z_[last - 1] = den_[N - 1] * y;
+    else
+      z_[last - 1] = (num_.back() * w + den_.back() * y);
+
     return y;
   }
 
 private:
-  constexpr double feedback() const noexcept
-  {
-    // Σ_{k=1}^{N-1} a_k z_{k-1}
-    double acc = 0.0;
-    for (std::size_t k = 1; k < N; ++k)
-      acc += den_[k] * z_[k - 1];
-    return acc;
-  }
-
-  NumArray num_{};
-  DenArray den_{};
-  std::array<double, (N > 0 ? N - 1 : 1)> z_{};  // state length = N-1
+  std::vector<double> num_;  // numerator taps (with gain applied)
+  std::vector<double> den_;  // denominator taps (a₀ … a_{N‑1})
+  std::vector<double> z_;    // delay‑line state, length max(M,N)‑1
 };
 
 }  // namespace digital_filter

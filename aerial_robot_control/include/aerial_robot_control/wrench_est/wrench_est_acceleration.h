@@ -23,11 +23,11 @@ public:
     // read IIR parameters
     ros::NodeHandle accel_nh(nh_, "controller/accel_observer");
 
-    std::array<double, 3> iir_general_num, iir_general_den;
+    std::vector<double> iir_general_num(3), iir_general_den(3);
     double iir_general_gain;
-    getParam<std::array<double, 3>>(accel_nh, "iir_general/num", iir_general_num, { 0.1, 0.1, 0.1 });
-    getParam<std::array<double, 3>>(accel_nh, "iir_general/den", iir_general_den, { 1.0, 0.0, 0.0 });
-    getParam<double>(accel_nh, "iir_general/gain", iir_general_gain, 1.0);
+    accel_nh.getParam("iir_general/num", iir_general_num);
+    accel_nh.getParam("iir_general/den", iir_general_den);
+    accel_nh.getParam("iir_general/gain", iir_general_gain);
     for (int i = 0; i < 4; i++)
     {
       thrust_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
@@ -49,11 +49,11 @@ public:
       omega_lpf_[i].reset(0.0);
     }
 
-    std::array<double, 3> iir_omega_dot_num, iir_omega_dot_den;
+    std::vector<double> iir_omega_dot_num(3), iir_omega_dot_den(3);
     double iir_omega_dot_gain;
-    getParam<std::array<double, 3>>(accel_nh, "iir_omega_dot/num", iir_omega_dot_num, { 0.1, 0.1, 0.1 });
-    getParam<std::array<double, 3>>(accel_nh, "iir_omega_dot/den", iir_omega_dot_den, { 1.0, 0.0, 0.0 });
-    getParam<double>(accel_nh, "iir_omega_dot/gain", iir_omega_dot_gain, 1.0);
+    accel_nh.getParam("iir_omega_dot/num", iir_omega_dot_num);
+    accel_nh.getParam("iir_omega_dot/den", iir_omega_dot_den);
+    accel_nh.getParam("iir_omega_dot/gain", iir_omega_dot_gain);
     for (int i = 0; i < 3; i++)
     {
       omega_dot_lpf_[i].setCoeffs(iir_omega_dot_num, iir_omega_dot_den, iir_omega_dot_gain);
