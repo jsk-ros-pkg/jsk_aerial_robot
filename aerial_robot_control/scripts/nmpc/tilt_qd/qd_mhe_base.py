@@ -19,8 +19,8 @@ class QDMHEBase(RecedingHorizonBase):
     The child classes only have specifications which define the estimator specifications.
     """
 
-    def __init__(self):
-        super().__init__("wrench_est")
+    def __init__(self, build: bool = True):
+        super().__init__("wrench_est", build)
 
     def compute_dynamical_model(self):
         pass
@@ -29,7 +29,7 @@ class QDMHEBase(RecedingHorizonBase):
     def get_weights(self):
         pass
 
-    def create_acados_ocp_solver(self):
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Create OCP object and set basic properties
         ocp = super().get_ocp()
 
@@ -76,6 +76,6 @@ class QDMHEBase(RecedingHorizonBase):
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
         return solver
