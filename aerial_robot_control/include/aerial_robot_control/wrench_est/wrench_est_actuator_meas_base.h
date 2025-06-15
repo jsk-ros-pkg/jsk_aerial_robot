@@ -57,8 +57,10 @@ public:
    */
   void reset(double x0 = 0.0)
   {
-    x1_ = x2_ = x0;
-    y1_ = y2_ = x0;
+    x1_ = x0;
+    x2_ = x0;
+    y1_ = x0;
+    y2_ = x0;
     primed_ = true;
   }
 

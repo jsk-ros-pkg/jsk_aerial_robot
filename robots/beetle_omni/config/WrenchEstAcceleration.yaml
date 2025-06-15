@@ -3,6 +3,13 @@ wrench_estimator_name: aerial_robot_control::WrenchEstAcceleration
 controller:
   if_use_est_wrench_4_control: true
 
+  disturb:
+    # use sigmoid function for a threshold
+    thresh_force: 0.8  # N
+    thresh_torque: 0.5  # Nm
+    steepness_force: 10.0
+    steepness_torque: 10.0
+
   accel_observer:
     # Use MATLAB Filter Design to get the coefficients
     # 2-Ord Butterworth filter
@@ -14,3 +21,13 @@ controller:
       num: [ 1, 2, 1 ]
       den: [ 1, -1.1211, 0.4032 ]
       gain: 0.0705
+
+    #    iir_general: # 5 Hz
+    #      num: [ 1, 2, 1 ]
+    #      den: [ 1, -1.5610, 0.6414 ]
+    #      gain: 0.0201
+    #    iir_omega_dot: # 4.3 Hz
+    #      num: [ 1, 2, 1 ]
+    #      den: [ 1, -1.6214, 0.6825 ]
+    #      gain: 0.0153
+
