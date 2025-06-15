@@ -61,7 +61,7 @@ public:
     Eigen::VectorXd N = mass * robot_model_->getGravity();                    // mg
     N.tail(3) = aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);  // omega x (I omega)
 
-    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas();  // The wrench is from the actuator measurement
+    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas(thrust_meas_, joint_angles_);
 
     if (prev_est_wrench_timestamp_ == 0)
     {

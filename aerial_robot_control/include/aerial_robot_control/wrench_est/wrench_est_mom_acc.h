@@ -49,7 +49,7 @@ public:
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
-    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas();
+    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas(thrust_meas_, joint_angles_);
     Eigen::VectorXd target_force_cog = target_wrench_cog.head(3);
     Eigen::VectorXd target_torque_cog = target_wrench_cog.tail(3);
 
