@@ -45,7 +45,7 @@ namespace digital_filter
 {
 
 // --------------------------------------------------------------------------
-//  FIRFilter — direct‑form FIR, compile‑time length
+//  FIRFilter — direct‑form FIR, compile‑time length (uses std::vector)
 // --------------------------------------------------------------------------
 
 template <std::size_t N>
@@ -54,23 +54,21 @@ class FIRFilter
   static_assert(N > 0, "FIRFilter length must be > 0");
 
 public:
-  using CoeffArray = std::array<double, N>;
+  FIRFilter() = default;
 
-  constexpr FIRFilter(const CoeffArray& b, double gain = 1.0) noexcept
+  /// Load coefficients and optional gain.
+  void setCoeffs(const std::vector<double>& b, double gain = 1.0)
   {
-    setCoeffs(b, gain);
-    reset(0.0);
-  }
-
-  constexpr void setCoeffs(const CoeffArray& b, double gain = 1.0) noexcept
-  {
+    if (b.size() != N)
+      throw std::invalid_argument("Coefficient length mismatch");
     for (std::size_t i = 0; i < N; ++i)
       coeffs_[i] = b[i] * gain;
   }
 
-  constexpr void reset(double y0 = 0.0) noexcept
+  /// Prime the internal delay line so that the first output equals `y0`.
+  void reset(double y0 = 0.0)
   {
-    hist_.fill(y0);
+    std::fill(hist_.begin(), hist_.end(), y0);
     idx_ = 0;
   }
 
@@ -79,8 +77,8 @@ public:
     return N - 1;
   }
 
-  // Process one sample ----------------------------------------------------
-  constexpr double filter(double x_n) noexcept
+  /// Process one sample.
+  double filter(double x_n)
   {
     hist_[idx_] = x_n;  // overwrite oldest sample
     double acc = 0.0;
@@ -95,10 +93,11 @@ public:
   }
 
 private:
-  CoeffArray coeffs_{};  // b₀ … b_{N‑1}
-  CoeffArray hist_{};    // circular sample history
-  std::size_t idx_{};    // write index
+  std::vector<double> coeffs_;  // b₀ … b_{N‑1}
+  std::vector<double> hist_;    // circular sample history
+  std::size_t idx_{};           // write index
 };
+
 }  // namespace digital_filter
 
 namespace sensor_plugin

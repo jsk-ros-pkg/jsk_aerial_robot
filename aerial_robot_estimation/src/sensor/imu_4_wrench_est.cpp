@@ -14,8 +14,8 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
   Imu::initialize(nh, robot_model, estimator, std::string("sensor_plugin/imu"), index);
 
   // FIR Differentiator for omega dot: 5 point differentiator
-  constexpr std::array<double, 5> diffB{ { -1, 8, 0, -8, 1 } };
-  constexpr double gain = 1.0 / 12.0;
+  std::vector<double> diffB = { -1, 8, 0, -8, 1 };
+  double gain = 1.0 / 12.0;
   for (auto& f : omega_diff_)
   {
     f.setCoeffs(diffB, gain);
