@@ -41,6 +41,66 @@
 using namespace Eigen;
 using namespace std;
 
+namespace digital_filter
+{
+
+// --------------------------------------------------------------------------
+//  FIRFilter — direct‑form FIR, compile‑time length
+// --------------------------------------------------------------------------
+
+template <std::size_t N>
+class FIRFilter
+{
+  static_assert(N > 0, "FIRFilter length must be > 0");
+
+public:
+  using CoeffArray = std::array<double, N>;
+
+  constexpr FIRFilter(const CoeffArray& b, double gain = 1.0) noexcept
+  {
+    setCoeffs(b, gain);
+    reset(0.0);
+  }
+
+  constexpr void setCoeffs(const CoeffArray& b, double gain = 1.0) noexcept
+  {
+    for (std::size_t i = 0; i < N; ++i)
+      coeffs_[i] = b[i] * gain;
+  }
+
+  constexpr void reset(double y0 = 0.0) noexcept
+  {
+    hist_.fill(y0);
+    idx_ = 0;
+  }
+
+  [[nodiscard]] constexpr std::size_t order() const noexcept
+  {
+    return N - 1;
+  }
+
+  // Process one sample ----------------------------------------------------
+  constexpr double filter(double x_n) noexcept
+  {
+    hist_[idx_] = x_n;  // overwrite oldest sample
+    double acc = 0.0;
+    std::size_t tap = idx_;
+    for (std::size_t k = 0; k < N; ++k)
+    {
+      acc += coeffs_[k] * hist_[tap];
+      tap = (tap == 0) ? N - 1 : tap - 1;  // circular buffer walk
+    }
+    idx_ = (idx_ + 1) % N;
+    return acc;
+  }
+
+private:
+  CoeffArray coeffs_{};  // b₀ … b_{N‑1}
+  CoeffArray hist_{};    // circular sample history
+  std::size_t idx_{};    // write index
+};
+}  // namespace digital_filter
+
 namespace sensor_plugin
 {
 class Imu4WrenchEst : public sensor_plugin::Imu
@@ -106,11 +166,14 @@ protected:
   boost::mutex vel_mutex_;
 
   // data
-  tf::Vector3 vel_cog_in_w_;          // cog point, world frame
-  tf::Vector3 acc_cog_in_cog_;        // cog point, cog frame, align with Imu Raw data
+  tf::Vector3 vel_cog_in_w_;    // cog point, world frame
+  tf::Vector3 acc_cog_in_cog_;  // cog point, cog frame, align with Imu Raw data
 
-  tf::Vector3 omega_cog_in_cog_;      // cog point, cog frame
-  tf::Vector3 omega_dot_cog_in_cog_;  // cog point, cog frame. Use dot means numerical derivative
+  tf::Vector3 omega_cog_in_cog_;  // cog point, cog frame
+
+  std::array<digital_filter::FIRFilter<5>, 3> omega_diff_;  // cog point, cog frame, use FIR filter to smooth the
+                                                            // numerical derivative
+  tf::Vector3 omega_dot_cog_in_cog_;                        // cog point, cog frame. Use dot means numerical derivative
 
   // publisher
   ros::Publisher pub_acc_;
