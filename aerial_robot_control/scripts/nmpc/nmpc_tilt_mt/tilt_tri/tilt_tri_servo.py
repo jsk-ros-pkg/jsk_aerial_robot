@@ -398,20 +398,20 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         ur[:, 2] = ft_ref[2]
 
         return xr, ur
-            
+
     def get_reference_generator(self) -> TriNMPCReferenceGenerator:
         return self._reference_generator
-    
+
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return TriNMPCReferenceGenerator(self,
                                          self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b,
                                          self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
                                          self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
-    
+
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -425,14 +425,4 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    nmpc = NMPCTiltTriServo()
-
-    acados_ocp_solver = nmpc.get_ocp_solver()
-    print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
-    print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
-    print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
-    print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
-    print("T_samp: ", nmpc.params["T_samp"])
-    print("T_horizon: ", nmpc.params["T_horizon"])
-    print("T_step: ", nmpc.params["T_step"])
-    print("N_steps: ", nmpc.params["N_steps"])
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

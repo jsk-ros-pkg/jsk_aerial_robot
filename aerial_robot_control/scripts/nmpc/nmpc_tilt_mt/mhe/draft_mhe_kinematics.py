@@ -204,15 +204,5 @@ class MHEKinematics(RecedingHorizonBase):
 
 
 if __name__ == "__main__":
-    # Call MHE class to generate c code
-    mhe = MHEKinematics()
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")
 
-    acados_ocp_solver = mhe.get_ocp_solver()
-    print("Successfully initialized acados OCP solver: ", acados_ocp_solver.acados_ocp)
-    print("Number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
-    print("Number of noises: ", acados_ocp_solver.acados_ocp.dims.nu)
-    print("Number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
-    print("T_samp: ", mhe.params["T_samp"])
-    print("T_horizon: ", mhe.params["T_horizon"])
-    print("T_step: ", mhe.params["T_step"])
-    print("N_steps: ", mhe.params["N_steps"])

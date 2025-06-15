@@ -135,11 +135,4 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
 
 if __name__ == "__main__":
-    # Call controller class to generate c code
-    nmpc = NMPCFixQdThrustOut()
-
-    print("Successfully initialized acados OCP solver: ", nmpc.get_ocp_solver())
-    print("T_samp: ", nmpc.params["T_samp"])
-    print("T_horizon: ", nmpc.params["T_horizon"])
-    print("T_step: ", nmpc.params["T_step"])
-    print("N_steps: ", nmpc.params["N_steps"])
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

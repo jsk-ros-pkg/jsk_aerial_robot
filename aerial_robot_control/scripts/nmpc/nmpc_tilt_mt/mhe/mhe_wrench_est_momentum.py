@@ -20,10 +20,10 @@ class MHEWrenchEstMomentum(MHEBase):
         model_name = "mhe_wrench_est_momentum_mdl"
 
         # Model states
-        v_w = ca.SX.sym("v_w", 3)               # Linear Velocity in World frame
-        omega_b = ca.SX.sym("omega_b", 3)       # Angular Velocity in Body frame
-        fds_w = ca.SX.sym("fds_w", 3)             # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)       # Disturbance on torque in Body frame
+        v_w = ca.SX.sym("v_w", 3)  # Linear Velocity in World frame
+        omega_b = ca.SX.sym("omega_b", 3)  # Angular Velocity in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
 
         states = ca.vertcat(v_w, omega_b, fds_w, tau_ds_b)
 
@@ -34,7 +34,7 @@ class MHEWrenchEstMomentum(MHEBase):
         f_u_w = ca.SX.sym("f_u_w", 3)
         tau_u_b = ca.SX.sym("tau_u_b", 3)
 
-        controls = ca.vertcat(f_u_w, tau_u_b)   # Input u as parameter
+        controls = ca.vertcat(f_u_w, tau_u_b)  # Input u as parameter
 
         # Process noise on force and torque
         w_f = ca.SX.sym("w_f", 3)
@@ -55,7 +55,7 @@ class MHEWrenchEstMomentum(MHEBase):
             w_tau,
         )
         f = ca.Function("f", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
-        
+
         # Implicit dynamics
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - f(states, noise)
@@ -63,8 +63,8 @@ class MHEWrenchEstMomentum(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
@@ -104,7 +104,7 @@ class MHEWrenchEstMomentum(MHEBase):
             ]
         )
         print("R_Q: \n", R_Q)
-        
+
         Q_P = np.diag(
             [
                 self.params["P_v"],
@@ -122,19 +122,9 @@ class MHEWrenchEstMomentum(MHEBase):
             ]
         )
         print("Q_P: \n", Q_P)
-        
+
         return Q_R, R_Q, Q_P
 
 
 if __name__ == "__main__":
-    mhe = MHEWrenchEstMomentum()
-
-    acados_ocp_solver = mhe.get_ocp_solver()
-    print("Successfully initialized acados ocp: ", acados_ocp_solver.acados_ocp)
-    print("number of states: ", acados_ocp_solver.acados_ocp.dims.nx)
-    print("number of controls: ", acados_ocp_solver.acados_ocp.dims.nu)
-    print("number of parameters: ", acados_ocp_solver.acados_ocp.dims.np)
-    print("T_samp: ", mhe.params["T_samp"])
-    print("T_horizon: ", mhe.params["T_horizon"])
-    print("T_step: ", mhe.params["T_step"])
-    print("N_steps: ", mhe.params["N_steps"])
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")
