@@ -6,13 +6,13 @@ from acados_template import AcadosModel
 
 try:
     # For relative import in module
-    from .qd_mhe_base import QDMHEBase
-    from . import phys_param_beetle_omni as phys_omni
+    from .mhe_base import QDMHEBase
+    from ..tilt_qd import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
     import os, sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from tilt_qd.qd_mhe_base import QDMHEBase
+    from mhe.mhe_base import QDMHEBase
     import tilt_qd.phys_param_beetle_omni as phys_omni
 
 

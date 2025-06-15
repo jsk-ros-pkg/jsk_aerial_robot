@@ -15,13 +15,13 @@ from geometry_msgs.msg import WrenchStamped, PoseStamped
 try:
     # For relative import in module
     from .mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-    from .qd_reference_generator import QDNMPCReferenceGenerator
-    from . import phys_param_beetle_omni as phys_omni
+    from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
+    from ..tilt_qd import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from tilt_qd.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
+    from mhe.mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
     from tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
     import tilt_qd.phys_param_beetle_omni as phys_omni
 

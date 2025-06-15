@@ -6,12 +6,12 @@ from spinal.msg import Imu
 
 try:
     # For relative import in module
-    from .mhe_kinematics import MHEKinematics
+    from .draft_mhe_kinematics import MHEKinematics
 except ImportError:
     # For relative import in script
     import os, sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from mhe.mhe_kinematics import MHEKinematics
+    from mhe.draft_mhe_kinematics import MHEKinematics
 
 # TODO why run ros node in python? -> convert this file to cpp and move out of 'scripts/' folder. 
 
