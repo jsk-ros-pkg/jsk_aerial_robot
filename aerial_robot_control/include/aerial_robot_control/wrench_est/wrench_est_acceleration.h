@@ -100,19 +100,17 @@ public:
     omega_dot_cog(2) = omega_dot_lpf_[2].filter(omega_dot_cog(2));
 
     // servo_angle
-    std::vector<double> joint_angles_filtered;
-    joint_angles_filtered.reserve(joint_angles_.size());
+    std::vector<double> joint_angles_filtered(joint_angles_.size());
     for (size_t i = 0; i < joint_angles_.size(); ++i)
     {
-      joint_angles_filtered.push_back(servo_lpf_[i].filter(joint_angles_[i]));
+      joint_angles_filtered[i] = servo_lpf_[i].filter(joint_angles_[i]);
     }
 
     // thrust --- NOTE: here we use thrust_cmd_ instead of thrust_meas_ to decrease noise!!!
-    std::vector<double> thrust_filtered;
-    thrust_filtered.reserve(thrust_cmd_.size());
+    std::vector<double> thrust_filtered(thrust_cmd_.size());
     for (size_t i = 0; i < thrust_cmd_.size(); ++i)
     {
-      thrust_filtered.push_back(thrust_lpf_[i].filter(thrust_cmd_[i]));
+      thrust_filtered[i] = thrust_lpf_[i].filter(thrust_cmd_[i]);
     }
 
     /* calculation */
