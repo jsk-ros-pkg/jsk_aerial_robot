@@ -4,11 +4,11 @@ import numpy as np
 from acados_template import AcadosModel
 import casadi as ca
 
-from ..tilt_qd.qd_mhe_base import QDMHEBase
+from .mhe_base import MHEBase
 from ..tilt_qd.phys_param_beetle_omni import *
 
 
-class MHEWrenchEstIMUAct(QDMHEBase):
+class MHEWrenchEstIMUAct(MHEBase):
     def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEImuActuator.yaml")

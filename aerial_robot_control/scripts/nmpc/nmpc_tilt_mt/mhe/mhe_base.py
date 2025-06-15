@@ -6,7 +6,7 @@ from acados_template import AcadosOcpSolver
 from ..rh_base import RecedingHorizonBase
 
 
-class QDMHEBase(RecedingHorizonBase):
+class MHEBase(RecedingHorizonBase):
     """
     Base class for all quadrotor MHE estimators.
     The child classes only have specifications which define the estimator specifications.
