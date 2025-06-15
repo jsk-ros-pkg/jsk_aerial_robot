@@ -142,16 +142,19 @@ public:
     }
   }
 
-  Eigen::VectorXd calcWrenchFromActuatorMeas() const
+  Eigen::VectorXd calcWrenchFromActuatorMeas(const std::vector<double>& rotor_thrust,
+                                             const std::vector<double>& servo_joint) const
   {
+    assert(rotor_thrust.size() == robot_model_->getRotorNum());
+    assert(servo_joint.size() == robot_model_->getRotorNum());
+
     Eigen::VectorXd z = Eigen::VectorXd::Zero(2 * robot_model_->getRotorNum());
     for (int i = 0; i < robot_model_->getRotorNum(); i++)
     {
-      z(2 * i) = thrust_meas_[i] * sin(joint_angles_[i]);
-      z(2 * i + 1) = thrust_meas_[i] * cos(joint_angles_[i]);
+      z(2 * i) = rotor_thrust[i] * sin(servo_joint[i]);
+      z(2 * i + 1) = rotor_thrust[i] * cos(servo_joint[i]);
     }
 
-    // allocate * z
     Eigen::VectorXd est_wrench_cog = alloc_mat_ * z;
     return est_wrench_cog;
   }
@@ -200,7 +203,7 @@ public:
       ROS_INFO("The offset for external wrench -> false");
   }
 
-private:
+protected:
   // for offset
   bool is_offset_ = false;
   int offset_count_ = 0;

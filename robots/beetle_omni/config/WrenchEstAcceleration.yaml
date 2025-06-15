@@ -3,6 +3,14 @@ wrench_estimator_name: aerial_robot_control::WrenchEstAcceleration
 controller:
   if_use_est_wrench_4_control: true
 
-  acceleration_observer:
-    force_alpha_weight: 0.1  # alpha for low-pass filter  (0.0 ~ 1.0)
-    torque_alpha_weight: 0.05  # alpha for low-pass filter  (0.0 ~ 1.0)
+  accel_observer:
+    # Use MATLAB Filter Design to get the coefficients
+    # 2-Ord Butterworth filter
+    iir_general: # 15 Hz
+      num: [ 1, 2, 1 ]
+      den: [ 1, -0.7478, 0.2722 ]
+      gain: 0.1311
+    iir_omega_dot: # 10.27 Hz
+      num: [ 1, 2, 1 ]
+      den: [ 1, -1.1211, 0.4032 ]
+      gain: 0.0705

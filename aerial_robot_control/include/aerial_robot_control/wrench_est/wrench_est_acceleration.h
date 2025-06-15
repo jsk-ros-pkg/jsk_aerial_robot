@@ -20,49 +20,120 @@ public:
   {
     WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
-    // acceleration-based method
-    force_acc_alpha_matrix_ = Eigen::MatrixXd::Identity(3, 3);
-    torque_acc_alpha_matrix_ = Eigen::MatrixXd::Identity(3, 3);
-    double force_alpha_weight, torque_alpha_weight;
-    ros::NodeHandle acceleration_nh(nh_, "controller/acceleration_observer");
-    getParam<double>(acceleration_nh, "force_alpha_weight", force_alpha_weight, 0.5);
-    getParam<double>(acceleration_nh, "torque_alpha_weight", torque_alpha_weight, 0.5);
-    force_acc_alpha_matrix_ *= force_alpha_weight;
-    torque_acc_alpha_matrix_ *= torque_alpha_weight;
+    // read IIR parameters
+    ros::NodeHandle accel_nh(nh_, "controller/accel_observer");
+
+    std::array<double, 3> iir_general_num, iir_general_den;
+    double iir_general_gain;
+    getParam<std::array<double, 3>>(accel_nh, "iir_general/num", iir_general_num, { 0.1, 0.1, 0.1 });
+    getParam<std::array<double, 3>>(accel_nh, "iir_general/den", iir_general_den, { 1.0, 0.0, 0.0 });
+    getParam<double>(accel_nh, "iir_general/gain", iir_general_gain, 1.0);
+    for (int i = 0; i < 4; i++)
+    {
+      thrust_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      thrust_lpf_[i].reset(0.0);
+    }
+    for (int i = 0; i < 4; i++)
+    {
+      servo_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      servo_lpf_[i].reset(0.0);
+    }
+    for (int i = 0; i < 3; i++)
+    {
+      acc_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      acc_lpf_[i].reset(0.0);
+    }
+    for (int i = 0; i < 3; i++)
+    {
+      omega_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      omega_lpf_[i].reset(0.0);
+    }
+
+    std::array<double, 3> iir_omega_dot_num, iir_omega_dot_den;
+    double iir_omega_dot_gain;
+    getParam<std::array<double, 3>>(accel_nh, "iir_omega_dot/num", iir_omega_dot_num, { 0.1, 0.1, 0.1 });
+    getParam<std::array<double, 3>>(accel_nh, "iir_omega_dot/den", iir_omega_dot_den, { 1.0, 0.0, 0.0 });
+    getParam<double>(accel_nh, "iir_omega_dot/gain", iir_omega_dot_gain, 1.0);
+    for (int i = 0; i < 3; i++)
+    {
+      omega_dot_lpf_[i].setCoeffs(iir_omega_dot_num, iir_omega_dot_den, iir_omega_dot_gain);
+      omega_dot_lpf_[i].reset(0.0);
+    }
   }
 
   void reset() override
   {
     WrenchEstActuatorMeasBase::reset();
-    est_ext_force_cog_filtered_ = Eigen::VectorXd::Zero(3);
-    est_ext_torque_cog_filtered_ = Eigen::VectorXd::Zero(3);
+    est_ext_force_cog_ = Eigen::VectorXd::Zero(3);
+    est_ext_torque_cog_ = Eigen::VectorXd::Zero(3);
+    for (auto& f : thrust_lpf_)
+      f.reset(0.0);
+    for (auto& f : servo_lpf_)
+      f.reset(0.0);
+    for (auto& f : acc_lpf_)
+      f.reset(0.0);
+    for (auto& f : omega_lpf_)
+      f.reset(0.0);
+    for (auto& f : omega_dot_lpf_)
+      f.reset(0.0);
   }
 
   Eigen::VectorXd calDistWrench()
   {
+    /* filter */
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
-    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas();
+    // acc
+    Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
+    tf::vectorTFToEigen(imu_handler->getAccCogInCog(), specific_force_cog);
+    specific_force_cog(0) = acc_lpf_[0].filter(specific_force_cog(0));
+    specific_force_cog(1) = acc_lpf_[1].filter(specific_force_cog(1));
+    specific_force_cog(2) = acc_lpf_[2].filter(specific_force_cog(2));
+
+    // ang_vel (omega)
+    Eigen::Vector3d omega_cog;
+    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);
+    omega_cog(0) = omega_lpf_[0].filter(omega_cog(0));
+    omega_cog(1) = omega_lpf_[1].filter(omega_cog(1));
+    omega_cog(2) = omega_lpf_[2].filter(omega_cog(2));
+
+    // ang_acc (omega_dot)
+    Eigen::Vector3d omega_dot_cog;
+    tf::vectorTFToEigen(imu_handler->getOmegaDotCogInCog(), omega_dot_cog);
+    omega_dot_cog(0) = omega_dot_lpf_[0].filter(omega_dot_cog(0));
+    omega_dot_cog(1) = omega_dot_lpf_[1].filter(omega_dot_cog(1));
+    omega_dot_cog(2) = omega_dot_lpf_[2].filter(omega_dot_cog(2));
+
+    // servo_angle
+    std::vector<double> joint_angles_filtered;
+    joint_angles_filtered.reserve(joint_angles_.size());
+    for (size_t i = 0; i < joint_angles_.size(); ++i)
+    {
+      joint_angles_filtered.push_back(servo_lpf_[i].filter(joint_angles_[i]));
+    }
+
+    // thrust --- NOTE: here we use thrust_cmd_ instead of thrust_meas_ to decrease noise!!!
+    std::vector<double> thrust_filtered;
+    thrust_filtered.reserve(thrust_cmd_.size());
+    for (size_t i = 0; i < thrust_cmd_.size(); ++i)
+    {
+      thrust_filtered.push_back(thrust_lpf_[i].filter(thrust_cmd_[i]));
+    }
+
+    /* calculation */
+    // nominal wrench in CoG frame
+    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas(thrust_filtered, joint_angles_filtered);
     Eigen::VectorXd target_force_cog = target_wrench_cog.head(3);
     Eigen::VectorXd target_torque_cog = target_wrench_cog.tail(3);
 
     // force estimation
-    Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
-    tf::vectorTFToEigen(imu_handler->getAccCogInCog(), specific_force_cog);
-
     double mass = robot_model_->getMass();
-
     auto external_force_cog = mass * specific_force_cog - target_force_cog;
 
     // torque estimation
-    Eigen::Vector3d omega_cog, omega_dot_cog;
-    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);
-    tf::vectorTFToEigen(imu_handler->getOmegaDotCogInCog(), omega_dot_cog);
-
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
     Eigen::VectorXd torque_imu_cog =
         inertia * omega_dot_cog + aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);
-
     auto external_torque_cog = torque_imu_cog - target_torque_cog;
 
     // combine the force and torque
@@ -75,41 +146,31 @@ public:
   {
     /* calculate the external wrench in the CoG frame */
     Eigen::VectorXd external_wrench_cog = calDistWrench();
-    Eigen::VectorXd external_force_cog = external_wrench_cog.head(3);
-    Eigen::VectorXd external_torque_cog = external_wrench_cog.tail(3);
-
-    /* force */
-    // low pass filter  TODO: try a better filter
-    // TODO: put this part to the estimator to perform the same frequency with the IMU.
-    est_ext_force_cog_filtered_ =
-        (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_ext_force_cog_filtered_ +
-        force_acc_alpha_matrix_ * external_force_cog;
+    Eigen::VectorXd est_ext_force_cog_ = external_wrench_cog.head(3);
+    Eigen::VectorXd est_ext_torque_cog_ = external_wrench_cog.tail(3);
 
     // coordinate transformation
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
-    auto est_ext_force_w_filtered = cog_rot * est_ext_force_cog_filtered_;
+    auto est_ext_force_w = cog_rot * est_ext_force_cog_;
 
-    setDistForceW(est_ext_force_w_filtered(0), est_ext_force_w_filtered(1), est_ext_force_w_filtered(2));
-
-    /* torque */
-    // low pass filter  TODO: try a better filter
-    est_ext_torque_cog_filtered_ =
-        (Eigen::MatrixXd::Identity(3, 3) - torque_acc_alpha_matrix_) * est_ext_torque_cog_filtered_ +
-        torque_acc_alpha_matrix_ * external_torque_cog;
-
-    setDistTorqueCOG(est_ext_torque_cog_filtered_(0), est_ext_torque_cog_filtered_(1), est_ext_torque_cog_filtered_(2));
+    setDistForceW(est_ext_force_w(0), est_ext_force_w(1), est_ext_force_w(2));
+    setDistTorqueCOG(est_ext_torque_cog_(0), est_ext_torque_cog_(1), est_ext_torque_cog_(2));
 
     WrenchEstActuatorMeasBase::update();
   }
 
 private:
-  // acceleration-based method
-  Eigen::MatrixXd force_acc_alpha_matrix_;
-  Eigen::VectorXd est_ext_force_cog_filtered_;  // TODO: combine these two variables and matrices to a single one
+  // lpf filters
+  std::array<digital_filter::IIRFilter<3, 3>, 4> thrust_lpf_;
+  std::array<digital_filter::IIRFilter<3, 3>, 4> servo_lpf_;
+  std::array<digital_filter::IIRFilter<3, 3>, 3> acc_lpf_;
+  std::array<digital_filter::IIRFilter<3, 3>, 3> omega_lpf_;
+  std::array<digital_filter::IIRFilter<3, 3>, 3> omega_dot_lpf_;
 
-  Eigen::MatrixXd torque_acc_alpha_matrix_;
-  Eigen::VectorXd est_ext_torque_cog_filtered_;
+  // acceleration-based method
+  Eigen::VectorXd est_ext_force_cog_;  // TODO: combine these two variables and matrices to a single one
+  Eigen::VectorXd est_ext_torque_cog_;
 };
 
 };  // namespace aerial_robot_control
