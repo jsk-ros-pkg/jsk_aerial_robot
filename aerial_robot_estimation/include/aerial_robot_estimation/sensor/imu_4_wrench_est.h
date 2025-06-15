@@ -54,13 +54,15 @@ class FIRFilter
   static_assert(N > 0, "FIRFilter length must be > 0");
 
 public:
-  FIRFilter() = default;
+  FIRFilter() : coeffs_(N, 0.0), hist_(N, 0.0)
+  {
+  }
 
   /// Load coefficients and optional gain.
   void setCoeffs(const std::vector<double>& b, double gain = 1.0)
   {
     if (b.size() != N)
-      throw std::invalid_argument("Coefficient length mismatch");
+      throw std::invalid_argument("FIR taps != N");
     for (std::size_t i = 0; i < N; ++i)
       coeffs_[i] = b[i] * gain;
   }
@@ -94,7 +96,7 @@ public:
 
 private:
   std::vector<double> coeffs_;  // b₀ … b_{N‑1}
-  std::vector<double> hist_;    // circular sample history
+  std::vector<double> hist_;    // circular buffer of past inputs
   std::size_t idx_{};           // write index
 };
 

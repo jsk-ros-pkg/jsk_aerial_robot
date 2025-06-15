@@ -25,7 +25,9 @@ class IIRFilter
   static_assert(M > 0 && N > 0, "IIRFilter must have non‑zero taps");
 
 public:
-  IIRFilter() = default;
+  IIRFilter() : num_(M, 0.0), den_(N, 0.0), z_(std::max(M, N) - 1, 0.0)
+  {
+  }
 
   void setCoeffs(const std::vector<double>& b, const std::vector<double>& a, double gain = 1.0)
   {
