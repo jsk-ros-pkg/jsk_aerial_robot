@@ -6,14 +6,14 @@ import casadi as ca
 try:
     # For relative import in module
     from .qd_nmpc_base import QDNMPCBase
-    from .sim_fake_sensor import FakeSensor
+    from .fake_sensor import FakeSensor
     from . import phys_param_beetle_omni as phys_omni
 except ImportError:
     # For relative import in script
     import os, sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from tilt_qd.qd_nmpc_base import QDNMPCBase
-    from tilt_qd.sim_fake_sensor import FakeSensor
+    from tilt_qd.fake_sensor import FakeSensor
     import tilt_qd.phys_param_beetle_omni as phys_omni
 
 

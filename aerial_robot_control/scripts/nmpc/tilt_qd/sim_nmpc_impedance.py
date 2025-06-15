@@ -8,7 +8,7 @@ try:
     # For relative import in module
     from ..nmpc_viz import Visualizer
 
-    from .sim_fir_differentiator import FIRDifferentiator
+    from .fir_differentiator import FIRDifferentiator
 
     from .tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
     from .tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
@@ -23,7 +23,7 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from nmpc_viz import Visualizer
 
-    from tilt_qd.sim_fir_differentiator import FIRDifferentiator
+    from tilt_qd.fir_differentiator import FIRDifferentiator
 
     from tilt_qd.tilt_qd_servo_thrust_dist_imp import NMPCTiltQdServoThrustImpedance
     from tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
