@@ -2,6 +2,44 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+* [Navigation] refactor the process for landing phase. Only accept new pose in hover state and also reset the target velocity in landing phase (`#653 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/653>`_)
+
+1.3.5 (2024-12-28)
+------------------
+* [Navigation][Trajectory] solve the discontinued problem of yaw rotation (`#634 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/634>`_)
+* [control][navigation] Skip following target_pose trajectory during landing (`#633 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/633>`_)
+
+
+1.3.4 (2024-11-02)
+------------------
+* [Navigation][Land] improve the landing process to be more safe and precise (`#603 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/603>`_)
+* [navigation] failsafe for high input voltage (`#588 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/588>`_)
+* [Control][Landing][Bug]  revert the missing initialization for variable about force landing Merge pull request (`#585 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/585>`_)
+* [Navigation][Land] refactor the landing convergence condition  (`#583 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/583>`_)
+* [CMake] use C++17 compiler for all packages that contain C++ files  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [Navigation] trajectory generation based on optimization methods (e.g. minimum snap trajectory)  (`#556 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/556>`_)
+* [Navigation] improve keyboard teleopration that allows to move the robot with uniform linear motion (`#555 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/555>`_)
+* [Navigation] improve the landing motion for all robots  (`#554 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/554>`_)
+
+1.3.3 (2023-10-26)
+------------------
+* [Navigation] refactor landing and halt command during vel acc-based mode (`#553 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/553>`_)
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+1.3.2 (2023-02-01)
+------------------
+* Refactor the flight navigation procedure: add message to inform user that ready for takeoff (`#528 <https://github.com/jsk-ros-pkg/aerial_robot/issues/528>`_)
+
+1.3.1 (2022-07-02)
+------------------
+
+* Fix bug of non-return function for boolean function to support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+* Fix intialization bug for fully actuated control (`#502 <https://github.com/jsk-ros-pkg/aerial_robot/issues/502>`_)
+
 1.3.0 (2021-08-06)
 ------------------
 

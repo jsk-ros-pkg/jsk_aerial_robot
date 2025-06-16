@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_python_setup()
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -33,6 +33,8 @@ target_link_libraries (aerial_robot_base ${catkin_LIBRARIES})
 add_executable(aerial_robot_base_node src/aerial_robot_base_node.cpp)
 target_link_libraries (aerial_robot_base_node ${catkin_LIBRARIES} aerial_robot_base)
 
+# generate symbolic link for icon images
+add_custom_target(${PROJECT_NAME}_install_icons ALL COMMAND ${PROJECT_SOURCE_DIR}/bin/icon_install.sh)
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})

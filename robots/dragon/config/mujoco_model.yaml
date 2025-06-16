@@ -1,0 +1,7 @@
+package:
+  ["dragon"]
+
+dragon:
+  input: ["robots/quad/euclid_201709.urdf.xacro"]
+  filename: ["quad/euclid_201709"]
+  meshdir: urdf/mesh

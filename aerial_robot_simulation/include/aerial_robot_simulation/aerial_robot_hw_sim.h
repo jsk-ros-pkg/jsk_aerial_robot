@@ -40,7 +40,7 @@
 #ifndef _GAZEBO_ROS_CONTROL___AERIAL_ROBOT_HW_SIM_H_
 #define _GAZEBO_ROS_CONTROL___AERIAL_ROBOT_HW_SIM_H_
 
-#include <aerial_robot_model/transformable_aerial_robot_model.h>
+#include <aerial_robot_model/model/aerial_robot_model.h>
 #include <aerial_robot_simulation/noise_model.h>
 #include <aerial_robot_simulation/spinal_interface.h>
 #include <gazebo_ros_control/default_robot_hw_sim.h>
@@ -95,6 +95,9 @@ protected:
   gazebo::math::Pose baselink_offset_;
 #endif
   std::string baselink_parent_;
+
+  double start_t_;
+  double spinal_init_wait_time_;
 
   uint8_t control_mode_;
   ros::Subscriber sim_vel_sub_, sim_pos_sub_;

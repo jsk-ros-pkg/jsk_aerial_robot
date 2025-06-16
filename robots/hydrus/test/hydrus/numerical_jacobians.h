@@ -41,7 +41,7 @@
 class HydrusNumericalJacobian : public aerial_robot_model::NumericalJacobian
 {
 public:
-  HydrusNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model = std::make_unique<aerial_robot_model::RobotModel>(true));
+  HydrusNumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::transformable::RobotModel> robot_model = std::make_unique<aerial_robot_model::transformable::RobotModel>(true));
   virtual ~HydrusNumericalJacobian() = default;
 
   virtual bool checkJacobians() override;

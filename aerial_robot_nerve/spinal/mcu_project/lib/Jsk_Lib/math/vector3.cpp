@@ -386,10 +386,18 @@ Matrix3<T> Vector3<T>::mul_rowcol(const Vector3<T> &v2) const
                       v1.z * v2.x, v1.z * v2.y, v1.z * v2.z);
 }
 
+template <typename T>
+bool Vector3<T>::is_nan(void)
+{
+    return isnan(x) || isnan(y) || isnan(z);
+}
+
+
 // only define for float
 template void Vector3<float>::rotate(enum Rotation);
 template void Vector3<float>::rotate_inverse(enum Rotation);
 template float Vector3<float>::length(void) const;
+template bool Vector3<float>::is_nan(void);
 template Vector3<float> Vector3<float>::operator %(const Vector3<float> &v) const;
 template float Vector3<float>::operator *(const Vector3<float> &v) const;
 template Vector3<float> Vector3<float>::operator *(const Matrix3<float> &m) const;
@@ -410,6 +418,7 @@ template float Vector3<float>::angle(const Vector3<float> &v) const;
 template void Vector3<double>::rotate(enum Rotation);
 template void Vector3<double>::rotate_inverse(enum Rotation);
 template float Vector3<double>::length(void) const;
+template bool Vector3<double>::is_nan(void);
 template Vector3<double> Vector3<double>::operator %(const Vector3<double> &v) const;
 template double Vector3<double>::operator *(const Vector3<double> &v) const;
 template Vector3<double> Vector3<double>::operator *(const Matrix3<double> &m) const;

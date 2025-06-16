@@ -2,6 +2,39 @@
 Changelog for package hydrus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+
+1.3.5 (2024-12-28)
+------------------
+
+1.3.4 (2024-11-02)
+------------------
+* [CMake] using C++17 for related packages (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [Typo] Fix typos (`#563 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/563>`_)
+* [MuJoCo] enable to use mujoco simulator (`#557 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/557>`_)
+* [Navigation] trajectory generation based on optimization methods (e.g. minimum snap trajectory)  (`#556 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/556>`_)
+
+1.3.3 (2023-10-26)
+------------------
+* [Hydrus][URDF] remove unecessary URDF files (`#560 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/560>`_)
+* Enable visualizing the rotor speed in gazebo (`#500 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/500>`_)
+* [Hydrus] refactor CAD model realted to propeller to enable the visible rotation in gazebo and update the missing CAD model (remove the fixed propeller)
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+
+1.3.2 (2023-02-01)
+------------------
+* [Hydrus][Controller]Fix bug about thrust allocation in tilted robot (`#539 <https://github.com/jsk-ros-pkg/aerial_robot/issues/539>`_)
+
+1.3.1 (2022-07-02)
+------------------
+* [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
+* [Spinal] Support STM32H7 chip (`#504 <https://github.com/jsk-ros-pkg/aerial_robot/issues/504>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
 1.3.0 (2021-08-06)
 ------------------
 

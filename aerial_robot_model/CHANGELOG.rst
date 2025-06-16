@@ -2,6 +2,33 @@
 Changelog for package aerial_robot_model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+
+1.3.5 (2024-12-28)
+------------------
+
+1.3.4 (2024-11-02)
+------------------
+* [CMake] using C++17 for related packages  (`#581 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/581>`_)
+* [MuJoCo] enable to use mujoco simulatorMerge pull request (`#557 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/557>`_)
+
+1.3.3 (2023-10-26)
+------------------
+* [Aerial Robot Model][Underactuated][Plugin] fix the wrong args assignment for model constructor (`#561 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/561>`_)
+* [Robot Control] refactor the control framework (`#526 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/526>`_)
+* [Robot Model] refactor the robot modelling framework (`#525 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/525>`_)
+
+1.3.2 (2023-02-01)
+------------------
+
+1.3.1 (2022-07-02)
+------------------
+* [Spinal] Improve the process of servo bridge (`#499 <https://github.com/jsk-ros-pkg/aerial_robot/issues/499>`_)
+* Fix the bug about the conversion of inertia tensor from SolidEdge (`#511 <https://github.com/jsk-ros-pkg/aerial_robot/issues/511>`_)
+* Support ROS Noetic with Ubuntu Focal (`#507 <https://github.com/jsk-ros-pkg/aerial_robot/issues/507>`_)
+
+
 1.3.0 (2021-08-06)
 ------------------
 

@@ -1,0 +1,41 @@
+on: [push, pull_request]
+
+jobs:
+  ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : melodic
+            DOCKER_IMAGE : ubuntu:bionic
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : noetic
+            DOCKER_IMAGE : ubuntu:focal
+          - runs-on: ubuntu-latest
+            ROS_DISTRO : one
+            DOCKER_IMAGE : ubuntu:jammy
+          - runs-on: ubuntu-22.04-arm
+            ROS_DISTRO : noetic
+            DOCKER_IMAGE : ubuntu:focal
+    runs-on: ${{ matrix.runs-on }}
+    name: ros_build_test-${{ matrix.runs-on }}-${{ matrix.ROS_DISTRO }}
+
+    steps:
+      - name: Setup OS
+        run: |
+          sudo apt-get update -y
+          sudo apt-get upgrade -y
+      - name: Setup Git
+        run: |
+          sudo apt-get install -y git
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: script
+        if: matrix.DOCKER_IMAGE
+        run: |
+          export REPOSITORY=http://packages.ros.org/ros/ubuntu
+          export REPOSITORY_NAME=${PWD##*/}
+          docker run --rm -i -v $PWD:$PWD -e "CI_SOURCE_PATH=$PWD" -e REPOSITORY_NAME -e REPOSITORY -e "HOME=$HOME" -e "ROS_DISTRO=${{ matrix.ROS_DISTRO }}"  ${{ matrix.DOCKER_IMAGE }} sh -c "cd $PWD; /bin/bash .travis.sh"
