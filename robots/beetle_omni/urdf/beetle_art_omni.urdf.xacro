@@ -243,7 +243,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_origin_ball.dae" scale="1 1 1"/>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
         </geometry>
       </visual>
     </link>
@@ -251,7 +251,7 @@
     <joint name="end_to_ball" type="fixed">
       <parent link="end"/>
       <child link="ball"/>
-      <origin xyz="0 0 0" rpy="1.570796 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
     </joint>
   </xacro:if>
 
@@ -275,7 +275,7 @@
     <joint name="end_to_brush" type="fixed">
       <parent link="end"/>
       <child link="brush"/>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
     </joint>
   </xacro:if>
 
