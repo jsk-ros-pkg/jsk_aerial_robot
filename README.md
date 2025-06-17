@@ -20,7 +20,7 @@ sudo apt install -y python3-wstool python3-catkin-tools # for melodic, please re
 mkdir -p ~/ros/jsk_aerial_robot_ws/src
 cd ~/ros/jsk_aerial_robot_ws
 sudo rosdep init
-rosdep update
+rosdep update --include-eol-distros
 wstool init src
 wstool set -u -t src jsk_aerial_robot http://github.com/jsk-ros-pkg/jsk_aerial_robot --git
 ./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o in jammy

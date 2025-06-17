@@ -39,7 +39,7 @@
     <rosparam file="$(arg config_dir)/$(arg type)/RobotModel.yaml" command="load" />
 
     ###########  Motor Config  ###########
-    <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_Afro_15inch.yaml" command="load" />
+    <rosparam file="$(find hydrus_xi)/config/motor_info/MN4010KV475_tmotor40A_15inch.yaml" command="load" />
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/$(arg type)/Battery.yaml" command="load" />
