@@ -255,6 +255,51 @@
     </joint>
   </xacro:if>
 
+  <xacro:if value="${end_effector == 'sensor_ball'}">
+    <!-- Define the ball link with mesh visualization -->
+    <link name="ball">
+      <inertial>
+        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
+        <mass value="0.1030"/>
+        <inertia
+                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="wrench_sensor">
+      <inertial>
+        <origin xyz="-0.00941317 0.00000000 -0.01652886" rpy="0 0 0"/>
+        <mass value="0.285"/>
+        <inertia
+                ixx="0.00008773" iyy="0.00012377" izz="0.00016573"
+                ixy="0.00000000" ixz="0.00000328" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/wrench_sensor_pfs055ya501u6.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="end_to_sensor" type="fixed">
+      <parent link="end"/>
+      <child link="wrench_sensor"/>
+      <origin xyz="0 0 0.031" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="sensor_to_ball" type="fixed">
+      <parent link="wrench_sensor"/>
+      <child link="ball"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+  </xacro:if>
+
   <xacro:if value="${end_effector == 'brush'}">
     <!-- Define the brush link with mesh visualization -->
     <link name="brush">
