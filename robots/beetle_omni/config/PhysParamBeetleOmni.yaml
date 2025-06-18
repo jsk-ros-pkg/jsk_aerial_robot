@@ -12,9 +12,8 @@ physical:  # with original ball and battery
   p4: [ 0.194824, -0.195008, -0.00368224 ] # position of motor 4
   kq_d_kt: 0.0165
 
-  # these parameters are for the beetle art. TODO: recalibrate these parameters
   num_rotors: 4
   t_rotor: 0.0942
 
   num_servos: 4
-  t_servo: 0.085883
+  t_servo: 0.0480  # Dynamixel servo: XC330-T181 with self-tuned PID. As contrary, the previous kondo's value was 0.085883
