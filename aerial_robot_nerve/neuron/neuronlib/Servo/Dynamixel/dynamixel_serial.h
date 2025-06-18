@@ -19,29 +19,50 @@
 #include "Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
-/* first should set the baudrate to 1000000*/
-/* uncomment following macro, and set the uart baudrate to 57143(M
- * X28), then the buadrate will change */
-/* then comment following macro, change the baudrate back to 1000000 */
-
-/* second, should set some setting to the servo */
-/* 1. the responce delay: which is very important for MX28AR,
- *  uncomment the INIT_SETTING marcro, and comment again after the setting
- *  we observed that the RX of uart will turn to 0, after the tx process
- *  therefore, we set the delay of rx after rx to be 0 => no 0V after rx
- *  2. the voltage: we set the voltage limit according to the battery(4s: 17V)
- */
-
-//#define SET_BAUD
-//#define SET_ID
-//#define PING_TEST
-//#define LED_TEST
-//#define INIT_SETTING
-//#define SERVO_TEST
-//#define WHEEL_TEST
-//#define SET_HOMING_OFFSET
 
 //#########################################################################
+
+//################ define - Dynamixel Model table ############################
+#define XC330_M077	0x4A6
+#define XC330_M288	0x4B0
+#define XC330_M181	0x4B0
+#define XC330_T181	0x4BA
+#define XC330_T288	0x4C4
+#define XL430_W250	0x4CE
+#define DXL430_W250	0x442 // 2XL430_W250
+#define XC430_W150	0x42E
+#define XC430_W250	0x438
+#define DXC430_W250	0x488 // 2XC430_W250
+#define XM430_W210	0x406
+#define XH430_W210	0x3F2
+#define XH430_V210	0x41A
+#define XD430_T210	0x3F3
+#define XM430_W350	0x3FC
+#define XH430_W350	0x3E8
+#define XH430_V350	0x410
+#define XD430_T350	0x3E9
+#define XW430_T200	0x500
+#define XW430_T333	0x4F6
+#define XM540_W150	0x46A
+#define XH540_W150	0x456
+#define XH540_V150	0x47E
+#define XM540_W270	0x460
+#define XH540_W270	0x44C
+#define XH540_V270	0x474
+#define XW540_T140	0x49C
+#define XW540_T260	0x492
+#define MX_28	0x1E
+#define MX_64	0x137
+#define MX_106	0x141
+
+//################ define - Dynamixel operating mode table ######################
+#define CURRENT_CONTROL_MODE 0
+#define VELOCITY_CONTROL_MODE 1
+#define POSITION_CONTROL_MODE 3
+#define EXTENDED_POSITION_CONTROL_MODE 4
+#define CURRENT_BASE_POSITION_CONTROL_MODE 5
+#define PWM_CONTROL_MODE 16
+
 //################ define - Dynamixel Hex control table ######################
 
 #define CTRL_MODEL_NUMBER             	0x00
@@ -111,30 +132,36 @@
 #define COMMAND_BULK_WRITE				0x93
 
 //################ Instruction packet lengths #############################
-#define PING_LEN						3
-#define READ_INST_LEN					7
+#define PING_LEN				3
+#define READ_INST_LEN				7
 #define HOMING_OFFSET_BYTE_LEN			4
 #define SET_STATUS_RETURN_LEVEL_LEN		3
-#define REBOOT_LEN						3
+#define REBOOT_LEN				3
 #define TORQUE_ENABLE_BYTE_LEN			1
-#define LED_BYTE_LEN					1
-#define STATUS_RETURN_LEVEL_BYTE_LEN	1
+#define LED_BYTE_LEN				1
+#define STATUS_RETURN_LEVEL_BYTE_LEN		1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
-#define PRESENT_TEMPERATURE_BYTE_LEN	1
-#define MOVING_BYTE_LEN 				1
-#define HARDWARE_ERROR_STATUS_BYTE_LEN	1
+#define PRESENT_TEMPERATURE_BYTE_LEN		1
+#define MOVING_BYTE_LEN 			1
+#define OPERATING_MODE_BYTE_LEN 		1
+#define MODEL_NUMBER_BYTE_LEN 			2
+#define HARDWARE_ERROR_STATUS_BYTE_LEN		1
 #define POSITION_GAINS_BYTE_LEN			6
 #define PROFILE_VELOCITY_BYTE_LEN		4
 #define CURRENT_LIMIT_BYTE_LEN			2
+#define SHUTDOWN_BYTE_LEN			1
+#define RETURN_DELAY_TIME_BYTE_LEN		1
+#define TEMPERATURE_LIMIT_BYTE_LEN		1
 
 //#########################################################################
 //############################ Specials ###################################
 
 #define NONE					0x00
 #define READ					0x01
-#define ALL						0x02
+#define ALL					0x02
 
 #define BROADCAST_ID           	0xFE
 
@@ -151,65 +178,72 @@
 #define PING_TRIAL_NUM			100
 
 //read status packet
-#define READ_HEADER0					0
-#define READ_HEADER1					1
-#define READ_HEADER2					2
-#define READ_HEADER3					3
-#define READ_SERVOID					4
-#define READ_LENL						5
-#define READ_LENH						6
-#define READ_INSTRUCTION				7
-#define READ_ERROR						8
-#define READ_PARAMETER		 			9
-#define READ_CHECKSUML 					10
-#define READ_CHECKSUMH					11
+#define READ_HEADER0				0
+#define READ_HEADER1				1
+#define READ_HEADER2				2
+#define READ_HEADER3				3
+#define READ_SERVOID				4
+#define READ_LENL				5
+#define READ_LENH				6
+#define READ_INSTRUCTION			7
+#define READ_ERROR				8
+#define READ_PARAMETER				9
+#define READ_CHECKSUML 				10
+#define READ_CHECKSUMH				11
 #define STATUS_PACKET_INSTRUCTION		0x55
+#define NO_ERROR				0
 
 //error
-#define ERROR_NO_ERROR					0
-#define ERROR_RESULT_FAIL				1
-#define ERROR_INSTRUCTION_ERROR			2
-#define ERROR_CRC_ERROR					3
-#define ERROR_DATA_RANGE_ERROR			4
-#define ERROR_DATA_LENGTH_ERROR			5
-#define ERROR_DATA_LIMIT_ERROR			6
-#define ERROR_ACCESS_ERROR				7
+#define INPUT_VOLTAGE_ERROR			0
+#define OVERHEATING_ERROR			2
+#define MOTOR_ENCODER_ERROR			3
+#define ELECTRICAL_SHOCK_ERROR			4
+#define OVERLOAD_ERROR				5
 //addintional error status for external encoder
-#define RESOLUTION_RATIO_ERROR 6
-#define ENCODER_CONNECT_ERROR 7
+#define PULLEY_SKIP_ERROR			1
+#define RESOLUTION_RATIO_ERROR			6
+#define ENCODER_CONNECT_ERROR			7
 
 
 //for instruction buffer
 #define INST_GET_CURRENT_LIMIT			0
-#define INST_GET_HARDWARE_ERROR_STATUS  1
+#define INST_GET_HARDWARE_ERROR_STATUS		1
 #define INST_GET_HOMING_OFFSET			2
 #define INST_GET_POSITION_GAINS			3
 #define INST_GET_PRESENT_CURRENT		4
 #define INST_GET_PRESENT_MOVING			5
 #define INST_GET_PRESENT_POS			6
-#define INST_GET_PRESENT_TEMPERATURE	7
+#define INST_GET_PRESENT_TEMPERATURE		7
 #define INST_GET_PROFILE_VELOCITY		8
-#define INST_PING						9
+#define INST_PING				9
 #define INST_SET_CURRENT_LIMIT			10
-#define INST_SET_GOAL_POS 				11
+#define INST_SET_GOAL_COMMAND			11
 #define INST_SET_HOMING_OFFSET			12
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
-#define INST_SET_TORQUE					15
+#define INST_SET_TORQUE				15
+#define INST_GET_MODEL_NUMBER			16
+#define INST_GET_OPERATING_MODE			17
 
 //instruction frequency: 0 means no process
-#define SET_POS_DU 20 //[msec], 20ms => 50Hz
-#define SET_POS_OFFSET 0 // offset from SET_POS
+#define SET_COMMAND_DU 20 //[msec], 20ms => 50Hz
+#define SET_COMMAND_OFFSET 0 // offset from SET_COMMAND
 #define GET_POS_DU 20 //[msec], 20ms => 50Hz
-#define GET_POS_OFFSET 10 //offset from GET_POS
+#define GET_POS_OFFSET 10 //offset from SET_COMMAND
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
-#define GET_LOAD_OFFSET 0 //offset from GET_LOAD
+#define GET_LOAD_OFFSET 0 //offset from SET_COMMAND
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 50 //offset from GET_TEMP
+#define GET_TEMP_OFFSET 50 //offset from SET_COMMAND
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 100 //offset from GET_MOVE
+#define GET_MOVE_OFFSET 100 //offset from SET_COMMAND
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 150
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 150 //offset from SET_COMMAND
+
+// pre-defined configuration for dynamixel
+#define TEMPERATURE_LIMIT			60
+#define RETURN_DELAY_TIME			25
+#define SHUTDOWN_BIT				1 << OVERHEATING_ERROR | 1 << ELECTRICAL_SHOCK_ERROR
+
 
 /* please define the gpio which control the IO direction */
 #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
@@ -280,22 +314,33 @@ public:
 	ServoData(){}
 	ServoData(uint8_t id):
           id_(id),
+          goal_current_(0),
           internal_offset_(0),
+          pulley_skip_time_(0),
+          pulley_skip_reset_du_(1000),
+          operating_mode_(0),
           hardware_error_status_(0),
           torque_enable_(false),
           force_servo_off_(false),
+          send_goal_position_(false),
           first_get_pos_flag_(true)
   {}
 
 	uint8_t id_;
   	int32_t present_position_;
 	int32_t goal_position_;
+  	int16_t goal_current_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
-        uint8_t present_temp_;
+	uint32_t pulley_skip_time_;
+	uint32_t pulley_skip_reset_du_;
+	uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
+  	uint16_t model_number_;
+	uint8_t shutdown_bit_;
+	uint8_t operating_mode_;
 	uint8_t hardware_error_status_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	uint16_t profile_velocity_;
@@ -303,20 +348,22 @@ public:
 	uint16_t send_data_flag_;
         uint16_t external_encoder_flag_;
         int32_t joint_offset_;
-        uint16_t joint_resolution_;
-        uint16_t servo_resolution_;
+        int16_t joint_resolution_;
+        int16_t servo_resolution_;
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
   	bool force_servo_off_;
+	bool send_goal_position_;
 	bool first_get_pos_flag_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
-	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
+	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position;}
+  	int32_t getInternalGoalPosition() const {return resolution_ratio_ * goal_position_ - internal_offset_;}
 	int32_t getGoalPosition() const {return goal_position_;}
-
+	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
+	int16_t getGoalCurrent() const { return goal_current_;}
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
 };
 
@@ -329,7 +376,7 @@ public:
   void ping();
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
   void reboot(uint8_t servo_index);
-  void setTorque(uint8_t servo_index);
+  void setTorque(uint8_t servo_index, bool torque_enable);
   void setHomingOffset(uint8_t servo_index);
   void setRoundOffset(uint8_t servo_index, int32_t ref_value);
   void setPositionGains(uint8_t servo_index);
@@ -339,6 +386,8 @@ public:
   unsigned int getServoNum() const {return servo_num_;}
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
+  uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
+  void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -350,7 +399,8 @@ private:
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   uint16_t ttl_rs485_mixed_;
-  uint32_t set_pos_tick_;
+  uint16_t pulley_skip_thresh_;
+  uint32_t set_command_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
   uint32_t get_temp_tick_;
@@ -375,6 +425,8 @@ private:
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
   inline void cmdReadHomingOffset(uint8_t servo_index);
   inline void cmdReadMoving(uint8_t servo_index);
+  inline void cmdReadModelNumber(uint8_t servo_index);
+  inline void cmdReadOperatingMode(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
@@ -386,26 +438,35 @@ private:
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
+  inline void cmdWriteGoalCurrent(uint8_t servo_index);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHomingOffset(bool send_all = true);
   inline void cmdSyncReadMoving(bool send_all = true);
+  inline void cmdSyncReadModelNumber(bool send_all = true);
+  inline void cmdSyncReadOperatingMode(bool send_all = true);
   inline void cmdSyncReadPositionGains(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
+  inline void cmdSyncWriteGoalCurrent();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();
   inline void cmdSyncWriteTorqueEnable();
+  inline void cmdSyncWriteShutdownBit();
+  inline void cmdSyncWriteReturnDelayTime();
+  inline void cmdSyncWriteTemperatureLimit();
 
   inline void setStatusReturnLevel();
   inline void getHomingOffset();
   inline void getCurrentLimit();
   inline void getPositionGains();
   inline void getProfileVelocity();
+  inline void getModelNumber();
+  inline void getOperatingMode();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };

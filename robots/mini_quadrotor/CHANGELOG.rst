@@ -2,6 +2,13 @@
 Changelog for package mini_quadrotor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+* Handle robots with state machine (`#656 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/656>`_)
+
+1.3.5 (2024-12-28)
+------------------
+
 1.3.4 (2024-11-02)
 ------------------
 * [Mini Quadrotor] implement model with Livox MID360 (`#589 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/589>`_)

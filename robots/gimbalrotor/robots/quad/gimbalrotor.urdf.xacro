@@ -11,6 +11,4 @@
   <xacro:gimbalrotor_thrust_link self="3" rotor_direction="1"/>
   <xacro:gimbalrotor_thrust_link self="4" rotor_direction="-1"/>
 
-
-    
 </robot>

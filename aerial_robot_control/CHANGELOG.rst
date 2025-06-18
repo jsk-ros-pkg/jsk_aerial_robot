@@ -2,6 +2,16 @@
 Changelog for package aerial_robot_control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+* [Navigation] refactor the process for landing phase. Only accept new pose in hover state and also reset the target velocity in landing phase (`#653 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/653>`_)
+
+1.3.5 (2024-12-28)
+------------------
+* [Navigation][Trajectory] solve the discontinued problem of yaw rotation (`#634 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/634>`_)
+* [control][navigation] Skip following target_pose trajectory during landing (`#633 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/633>`_)
+
+
 1.3.4 (2024-11-02)
 ------------------
 * [Navigation][Land] improve the landing process to be more safe and precise (`#603 <https://github.com/jsk-ros-pkg/jsk_aerial_robot/issues/603>`_)

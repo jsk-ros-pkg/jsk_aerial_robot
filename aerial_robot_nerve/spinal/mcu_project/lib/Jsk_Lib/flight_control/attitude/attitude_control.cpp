@@ -13,7 +13,9 @@
 
 #ifdef SIMULATION
 #include <sensor_msgs/JointState.h>
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), use_ground_truth_(false), sim_voltage_(0), gimbal_dof_(0), rotor_coef_(1) {}
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0), gimbal_dof_(0), rotor_coef_(1)
+{
+}
 
 void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 {
@@ -32,6 +34,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   att_control_srv_ = nh_->advertiseService("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this);
   torque_allocation_matrix_inv_sub_ = nh_->subscribe("torque_allocation_matrix_inv", 1, &AttitudeController::torqueAllocationMatrixInvCallback, this);
   sim_vol_sub_ = nh_->subscribe("set_sim_voltage", 1, &AttitudeController::setSimVolCallback, this);
+  offset_rot_sub_ = nh_->subscribe("desire_coordinate", 1, &AttitudeController::offsetRotCallback, this);
   baseInit();
   gimbal_control_pub_ = nh_->advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
 }
@@ -45,16 +48,17 @@ AttitudeController::AttitudeController():
   four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
   pwm_info_sub_("motor_info", &AttitudeController::pwmInfoCallback, this),
   rpy_gain_sub_("rpy/gain", &AttitudeController::rpyGainCallback, this),
-  p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   pwm_test_sub_("pwm_test", &AttitudeController::pwmTestCallback, this ),
-  att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
+  p_matrix_pseudo_inverse_inertia_sub_("p_matrix_pseudo_inverse_inertia", &AttitudeController::pMatrixInertiaCallback, this),
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
-  esc_telem_pub_("esc_telem", &esc_telem_msg_),
-  gimbal_command_pub_("debug/gimbal_commnd", &gimbal_command_msg_)
+  offset_rot_sub_("desire_coordinate", &AttitudeController::offsetRotCallback, this ),
+  att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
+  esc_telem_pub_("esc_telem", &esc_telem_msg_)
 {
 }
 
-void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
+                              DShot* dshot, DirectServo* servo, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
 
   pwm_htim1_ = htim1;
@@ -62,7 +66,6 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_ = nh;
   estimator_ = estimator;
   dshot_ = dshot;
-  // kondo_servo_ = kondo_servo;
   servo_ = servo;
   bat_ = bat;
   mutex_ = mutex;
@@ -109,7 +112,6 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
   nh_->advertise(esc_telem_pub_);
-  nh_->advertise(gimbal_command_pub_);
 
   nh_->subscribe(four_axis_cmd_sub_);
   nh_->subscribe(pwm_info_sub_);
@@ -117,6 +119,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   nh_->subscribe(pwm_test_sub_);
   nh_->subscribe(p_matrix_pseudo_inverse_inertia_sub_);
   nh_->subscribe(torque_allocation_matrix_inv_sub_);
+  nh_->subscribe(offset_rot_sub_);
 
   nh_->advertiseService(att_control_srv_);
 
@@ -155,6 +158,9 @@ void AttitudeController::baseInit()
   control_term_pub_last_time_ = 0;
   control_feedback_state_pub_last_time_ = 0;
   gimbal_command_pub_last_time_ = 0;
+
+  // frame
+  offset_rot_.identity();
 
   reset();
 }
@@ -247,12 +253,12 @@ void AttitudeController::pwmsControl(void)
         {
           if (dshot_->esc_reader_.is_update_all_msg_)
             {
-              // esc_telem_msg_.stamp = nh_->now();
-              // esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
-              // esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
-              // esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
-              // esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
-              // esc_telem_pub_.publish(&esc_telem_msg_);
+              esc_telem_msg_.stamp = nh_->now();
+              esc_telem_msg_.esc_telemetry_1 = dshot_->esc_reader_.esc_msg_1_;
+              esc_telem_msg_.esc_telemetry_2 = dshot_->esc_reader_.esc_msg_2_;
+              esc_telem_msg_.esc_telemetry_3 = dshot_->esc_reader_.esc_msg_3_;
+              esc_telem_msg_.esc_telemetry_4 = dshot_->esc_reader_.esc_msg_4_;
+              esc_telem_pub_.publish(&esc_telem_msg_);
 
               float voltage_ave = (float)(dshot_->esc_reader_.esc_msg_1_.voltage + dshot_->esc_reader_.esc_msg_2_.voltage +
                                           dshot_->esc_reader_.esc_msg_3_.voltage + dshot_->esc_reader_.esc_msg_4_.voltage) / 400.0;
@@ -270,10 +276,10 @@ void AttitudeController::pwmsControl(void)
       pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
     }
 
-  pwm_htim2_->Instance->CCR1 =   (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR2 =  (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR4 =  (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
+  pwm_htim2_->Instance->CCR4 = (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
 
 #endif
 }
@@ -304,29 +310,19 @@ void AttitudeController::update(void)
           setForceLandingFlag(true);
         }
 
-      ap::Vector3f angles;
-      ap::Vector3f vel;
 #ifdef SIMULATION
-      if(use_ground_truth_)
-        {
-          angles = true_angles_;
-          vel = true_vel_;
-        }
-      else
-        {
-          angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-          vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
-        }
-
-      ROS_DEBUG_THROTTLE(0.01, "true vs spinal: r [%f vs %f], p [%f vs %f], y [%f vs %f], ws [%f vs %f], wy [%f vs %f], wz [%f vs %f]", true_angles_.x, angles.x, true_angles_.y, angles.y, true_angles_.z, angles.z, true_vel_.x, vel.x, true_vel_.y, vel.y, true_vel_.z, vel.z);
 
       if(prev_time_ < 0) DELTA_T = 0;
       else DELTA_T = ros::Time::now().toSec() - prev_time_;
       prev_time_ = ros::Time::now().toSec();
-#else
-      angles = estimator_->getAttEstimator()->getAttitude(Frame::VIRTUAL);
-      vel = estimator_->getAttEstimator()->getAngular(Frame::VIRTUAL);
 #endif
+
+      ap::Matrix3f base_rot = estimator_->getAttEstimator()->getRotation();
+      ap::Vector3f base_vel = estimator_->getAttEstimator()->getAngular();
+      ap::Matrix3f rot = base_rot * offset_rot_.transposed();
+      ap::Vector3f vel = offset_rot_ * base_vel;
+      ap::Vector3f angles; // euler angles
+      rot.to_euler(&angles.x, &angles.y, &angles.z);
 
       /* failsafe 3: too large tile angle */
       if(!force_landing_flag_  && (fabs(angles[X]) > MAX_TILT_ANGLE || fabs(angles[Y]) > MAX_TILT_ANGLE))
@@ -889,6 +885,11 @@ void AttitudeController::pMatrixInertiaCallback(const spinal::PMatrixPseudoInver
 #endif
 }
 
+void AttitudeController::offsetRotCallback(const spinal::DesireCoord& msg)
+{
+  offset_rot_.from_euler(msg.roll, msg.pitch, msg.yaw);
+}
+
 bool AttitudeController::activated()
 {
   /* uav model check and motor property */
@@ -1114,22 +1115,16 @@ void AttitudeController::pwmConversion()
                 f_i.y = target_thrust_[i*3+1];
                 f_i.z = target_thrust_[i*3+2];
             
-                // float gimbal_candidate_roll = atan2f(-f_i.y, f_i.z);
-                // float gimbal_candidate_pitch = atan2f(f_i.x, -f_i.y * sin(gimbal_candidate_roll) + f_i.z * cos(gimbal_candidate_roll));
-                target_gimbal_angles_[2*i] = atan2f(-f_i.y, f_i.z);
-                target_gimbal_angles_[2*i+1] = atan2f(f_i.x, -f_i.y * sin(target_gimbal_angles_[2*i]) + f_i.z * cos(target_gimbal_angles_[2*i]));
+                float gimbal_candidate_roll = atan2f(-f_i.y, f_i.z);
+                float gimbal_candidate_pitch = atan2f(f_i.x, -f_i.y * sin(gimbal_candidate_roll) + f_i.z * cos(gimbal_candidate_roll));
                 target_thrust_[i] = ap::pythagorous3(f_i.x,f_i.y,f_i.z);
-                if(target_gimbal_angles_[2*i]>2.0 || target_gimbal_angles_[2*i]<-2.0)
-                  {
-                    int8_t a = 1;
-                  }
 
                 /* simple lpf */
-                // if(std::isfinite(gimbal_candidate_roll) && std::isfinite(gimbal_candidate_pitch)){
-                //   target_gimbal_angles_[2*i] =(target_gimbal_angles_[2*i]+ gimbal_candidate_roll)/2;
-                //   target_gimbal_angles_[2*i+1] =(target_gimbal_angles_[2*i+1]+ gimbal_candidate_pitch)/2;
+                if(std::isfinite(gimbal_candidate_roll) && std::isfinite(gimbal_candidate_pitch)){
+                  target_gimbal_angles_[2*i] =(target_gimbal_angles_[2*i]+ gimbal_candidate_roll)/2;
+                  target_gimbal_angles_[2*i+1] =(target_gimbal_angles_[2*i+1]+ gimbal_candidate_pitch)/2;
             
-                // }
+                }
                 break;
               }
             case 1:
@@ -1137,12 +1132,11 @@ void AttitudeController::pwmConversion()
                 ap::Vector3f f_i;
                 f_i.x = target_thrust_[i*2];
                 f_i.z = target_thrust_[i*2+1];
-                // float gimbal_candidate = atan2f(-f_i.x, f_i.z);
-                target_gimbal_angles_[i] = atan2f(-f_i.x, f_i.z);
+                float gimbal_candidate = atan2f(-f_i.x, f_i.z);
                 target_thrust_[i] = ap::pythagorous2(f_i.x,f_i.z);
 
                 /* simple lpf */
-                // if(std::isfinite(gimbal_candidate)) target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
+                if(std::isfinite(gimbal_candidate)) target_gimbal_angles_[i] =(target_gimbal_angles_[i]+ gimbal_candidate)/2;
 
                 break;
               }
@@ -1160,6 +1154,7 @@ void AttitudeController::pwmConversion()
       /* for ros */
       pwms_msg_.motor_value[i] = (target_pwm_[i] * 2000);
     }
+  //TODO: send target gimbal angles in real machiene
 #ifdef SIMULATION
   //TODO: directly send target gimbal angles to gazebo
   switch(gimbal_dof_)
@@ -1200,9 +1195,6 @@ void AttitudeController::pwmConversion()
             {
               gimbal_map[2*i] =  target_gimbal_angles_[2*i];
               gimbal_map[2*i+1] = target_gimbal_angles_[2*i+1];
-              //for debug
-              gimbal_command_msg_.angles[2*i] = static_cast<int16_t>(target_gimbal_angles_[2*i] * 100);
-              gimbal_command_msg_.angles[2*i+1] = static_cast<int16_t>(target_gimbal_angles_[2*i+1] * 100);
             }
           else
             {
@@ -1211,18 +1203,9 @@ void AttitudeController::pwmConversion()
             }
         }
         if(start_control_flag_)
-          {
-            servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
-            if(HAL_GetTick() - gimbal_command_pub_last_time_ > GIMBAL_COOMMAND_PUB_INTERVAL)
-              {
-                gimbal_command_pub_last_time_ = HAL_GetTick();
-                gimbal_command_pub_.publish(&gimbal_command_msg_);
-              }
-          }
+          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
         else
-          {
-            servo_->torqueEnable(gimbal_map);
-          }
+          servo_->torqueEnable(gimbal_map);
         break;
       }
     case 1:
@@ -1230,34 +1213,18 @@ void AttitudeController::pwmConversion()
         std::map<uint8_t, float> gimbal_map;
         for(int i = 0; i < motor_number_ / (rotor_coef_); i++){
           if(start_control_flag_)
-            {
-              gimbal_map[i] = target_gimbal_angles_[i];
-              //for debug
-              gimbal_command_msg_.angles[i] = static_cast<int16_t>(target_gimbal_angles_[i] * 100);
-            }
+            gimbal_map[i] = target_gimbal_angles_[i];
           else
-            {
-              gimbal_map[i] = 0;
-            }
+            gimbal_map[i] = 0;
         }
         if(start_control_flag_)
-          {
-            servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
-            if(HAL_GetTick() - gimbal_command_pub_last_time_ > GIMBAL_COOMMAND_PUB_INTERVAL)
-              {
-                gimbal_command_pub_last_time_ = HAL_GetTick();
-                gimbal_command_pub_.publish(&gimbal_command_msg_);
-              }
-          }
+          servo_->setGoalAngle(gimbal_map,ValueType::RADIAN);
         else
-          {
-            servo_->torqueEnable(gimbal_map);
-          }
+          servo_->torqueEnable(gimbal_map);
         break;
       }
     default:
       break;
     }
 #endif
-  
 }

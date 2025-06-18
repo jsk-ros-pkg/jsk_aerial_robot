@@ -3,6 +3,8 @@
 #pragma once
 
 #include <aerial_robot_control/flight_navigation.h>
+#include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/QuaternionStamped.h>
 #include <spinal/DesireCoord.h>
 
 namespace aerial_robot_navigation
@@ -30,16 +32,21 @@ namespace aerial_robot_navigation
     virtual void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
     
   private:
-    ros::Publisher curr_target_baselink_rot_pub_;
-    ros::Subscriber final_target_baselink_rot_sub_;
+    ros::Publisher target_baselink_rpy_pub_;
+    ros::Subscriber final_target_baselink_rot_sub_, final_target_baselink_rpy_sub_;
 
     void baselinkRotationProcess();
+    void rosParamInit() override;
+    void targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
+    void targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
     virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
 
+    void reset() override;
 
     /* target baselink rotation */
     double prev_rotation_stamp_;
-    tf::Vector3 curr_target_baselink_rot_, final_target_baselink_rot_;
+    tf::Quaternion curr_target_baselink_rot_, final_target_baselink_rot_;
+    bool eq_cog_world_;
 
     /* rosparam */
     double baselink_rot_change_thresh_;

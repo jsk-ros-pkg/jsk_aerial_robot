@@ -54,20 +54,16 @@ class AttitudeEstimate
 public:
   ~AttitudeEstimate(){}
 #ifdef SIMULATION
-  AttitudeEstimate()
-  {
-    tf_desired_coord_.setIdentity();
-  }
+  AttitudeEstimate(): acc_(0,0,9.8), mag_(1,0,0){}
 
   void init(ros::NodeHandle* nh)
   {
     nh_ = nh;
     imu_pub_ = nh_->advertise<spinal::Imu>("imu", 1);
-    attitude_pub_ = nh_->advertise<geometry_msgs::Vector3Stamped>("attitude", 1),
-    desire_coord_sub_ = nh_->subscribe("desire_coordinate", 1, &AttitudeEstimate::desireCoordCallback, this);
 
     last_imu_pub_time_ = HAL_GetTick();
     last_attitude_pub_time_ = HAL_GetTick();
+    use_ground_truth_ = false;
 
 #if ESTIMATE_TYPE == COMPLEMENTARY
     estimator_ = new ComplementaryAHRS();
@@ -95,26 +91,21 @@ public:
 #else
   AttitudeEstimate():
     imu_pub_("imu", &imu_msg_),
-    attitude_pub_("attitude", &attitude_msg_),
-    desire_coord_sub_("desire_coordinate", &AttitudeEstimate::desireCoordCallback, this ),
-    mag_declination_srv_("mag_declination", &AttitudeEstimate::magDeclinationCallback,this),
-    imu_list_(1),
-    imu_weights_(1,1)
+    mag_declination_srv_("mag_declination", &AttitudeEstimate::magDeclinationCallback,this)
   {}
 
   void init(IMU* imu, GPS* gps, ros::NodeHandle* nh)
   {
     nh_ = nh;
     nh_->advertise(imu_pub_);
-    nh_->advertise(attitude_pub_);
-    nh_->subscribe(desire_coord_sub_);
     nh_->advertiseService(mag_declination_srv_);
 
-    imu_list_[0] = imu;
+    imu_ = imu;
     gps_ = gps;
 
     last_imu_pub_time_ = HAL_GetTick();
     last_attitude_pub_time_ = HAL_GetTick();
+    use_ground_truth_ = false;
 
 #if ESTIMATE_TYPE == COMPLEMENTARY
     estimator_ = new ComplementaryAHRS();
@@ -136,44 +127,17 @@ public:
           }
       }
 
-
-    if(imu_list_[0]->getUpdate())
+    if(imu_->getUpdate())
       {
         /* attitude estimation */
-        Vector3f gyro, acc, mag;
-        multiImuFusion(gyro, acc, mag);
-        estimator_->update(gyro, acc, mag);
+        estimator_->update(imu_->getGyro(), imu_->getAcc(), imu_->getMag());
 
         /* send message to ros*/
         if(nh_->connected())  publish();
 
         /* reset update status of imu*/
-        imu_list_[0]->setUpdate(false);
+        imu_->setUpdate(false);
       }
-  }
-
-  void multiImuFusion(Vector3f& gyro, Vector3f& acc, Vector3f& mag )
-  {
-	  /* only gyro method */
-	  Vector3f sum_gyro = Vector3f();
-	  for(unsigned int i = 0; i < imu_list_.size(); i++)
-	  {
-		 sum_gyro += (imu_list_[i]->getGyro() * imu_weights_[i]);
-	  }
-	  gyro = sum_gyro;
-	  acc = imu_list_[0]->getAcc();
-	  mag = imu_list_[0]->getMag();
-  }
-
-  void addImu(IMU* imu, float weight)
-  {
-	  imu_list_.push_back(imu);
-	  imu_weights_.push_back(weight);
-  }
-
-  void setImuWeight(uint8_t index, float weight)
-  {
-	  imu_weights_[index] = weight;
   }
 #endif
 
@@ -190,76 +154,62 @@ public:
 #else
         imu_msg_.stamp = nh_->now();
 #endif
+        // sensor values
         for(int i = 0; i < 3 ; i ++)
           {
-            imu_msg_.mag_data[i] = estimator_->getMag(Frame::BODY)[i];
-            imu_msg_.acc_data[i] = estimator_->getAcc(Frame::BODY)[i];
-            imu_msg_.gyro_data[i] = estimator_->getAngular(Frame::BODY)[i];
-#if ESTIMATE_TYPE == COMPLEMENTARY
-            imu_msg_.angles[i] = estimator_->getAttitude(Frame::BODY)[i]; // get the attitude at body frame3
-#endif
+            imu_msg_.mag[i] = estimator_->getMag()[i];
+            imu_msg_.acc[i] = estimator_->getAcc()[i];
+            imu_msg_.gyro[i] = estimator_->getAngular()[i];
           }
+
+        // quaternion
+        ap::Quaternion q = estimator_->getQuaternion();
+        imu_msg_.quaternion[0] = q[1]; // x
+        imu_msg_.quaternion[1] = q[2]; // y
+        imu_msg_.quaternion[2] = q[3]; // z
+        imu_msg_.quaternion[3] = q[0]; // w
+
+
 #ifdef SIMULATION
         imu_pub_.publish(imu_msg_);
 #else
         imu_pub_.publish(&imu_msg_);
 #endif
       }
-
-    /* attitude data (default: cog/virtual frame) */
-    if( now_time - last_attitude_pub_time_ >= ATTITUDE_PUB_INTERVAL)
-      {
-        last_attitude_pub_time_ = now_time;
-#ifdef SIMULATION
-        attitude_msg_.header.stamp = ros::Time::now();
-#else
-        attitude_msg_.header.stamp = nh_->now();
-#endif
-
-#if ESTIMATE_TYPE == COMPLEMENTARY
-        /* get the attitude at virtual frame */
-        attitude_msg_.vector.x = estimator_->getAttitude(Frame::VIRTUAL).x;
-        attitude_msg_.vector.y = estimator_->getAttitude(Frame::VIRTUAL).y;
-        attitude_msg_.vector.z = estimator_->getAttitude(Frame::VIRTUAL).z;
-#endif
-#ifdef SIMULATION
-        attitude_pub_.publish(attitude_msg_);
-#else
-        attitude_pub_.publish(&attitude_msg_);
-#endif
-      }
-
   }
 
   EstimatorAlgorithm* getEstimator() {return estimator_;}
 
-  /* receive message via ros protocal */
-  inline const ap::Vector3f getAttitude(uint8_t frame)  { return estimator_->getAttitude(frame); }
-  inline const ap::Vector3f getAngular(uint8_t frame) { return estimator_->getAngular(frame); }
-  inline const ap::Vector3f getSmoothAngular(uint8_t frame) { return estimator_->getSmoothAngular(frame); }
-  inline const ap::Matrix3f getDesiredCoord()  { return estimator_->getDesiredCoord(); }
+  const ap::Matrix3f getRotation()
+  {
+    if (!use_ground_truth_) return estimator_->getRotation();
+    else return ground_truth_rot_;
+  }
+
+  const ap::Vector3f getAngular()
+  {
+    if (!use_ground_truth_) return estimator_->getAngular();
+    else return ground_truth_ang_vel_;
+  }
+
+  inline void useGroundTruth(bool flag) { use_ground_truth_ = flag; } // for simulation
+  void setGroundTruthStates(ap::Matrix3f rot, ap::Vector3f ang_vel)
+  {
+    ground_truth_rot_ = rot;
+    ground_truth_ang_vel_ = ang_vel;
+  }
 
   static const uint8_t IMU_PUB_INTERVAL = 5; //10-> 100Hz, 2 -> 500Hz
-  static const uint8_t ATTITUDE_PUB_INTERVAL = 100; //100 -> 10Hz
 
 private:
   ros::NodeHandle* nh_;
-  ros::Publisher imu_pub_, attitude_pub_;
-
+  ros::Publisher imu_pub_;
   spinal::Imu imu_msg_;
-  geometry_msgs::Vector3Stamped attitude_msg_;
-
-#ifdef SIMULATION
-  ros::Subscriber desire_coord_sub_;
-#else
-  ros::Subscriber<spinal::DesireCoord, AttitudeEstimate> desire_coord_sub_;
-#endif
 
   EstimatorAlgorithm* estimator_;
 #ifndef SIMULATION
-  std::vector< IMU* > imu_list_;
+  IMU* imu_;
   GPS* gps_;
-  std::vector< float > imu_weights_;
 
   /* mag declination */
   ros::ServiceServer<spinal::MagDeclination::Request, spinal::MagDeclination::Response, AttitudeEstimate> mag_declination_srv_;
@@ -290,25 +240,14 @@ private:
 
 #else
   ap::Vector3f acc_, mag_, gyro_;
-  tf::Matrix3x3 tf_desired_coord_;
   uint32_t HAL_GetTick(){ return ros::Time::now().toSec() * 1000; }
 #endif
 
   uint32_t last_imu_pub_time_, last_attitude_pub_time_;
 
-  void desireCoordCallback(const spinal::DesireCoord& coord_msg)
-  {
-    estimator_->coordinateUpdate(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
-#ifdef SIMULATION
-    /* bypass to tf::Matrix3x3 */
-    tf_desired_coord_.setRPY(coord_msg.roll, coord_msg.pitch, coord_msg.yaw);
-#endif
-  }
-
-#ifdef SIMULATION
-public:
-    inline const tf::Matrix3x3 getDesiredCoordTf()  { return tf_desired_coord_; }
-#endif
+  bool use_ground_truth_; // for simulation
+  ap::Matrix3f ground_truth_rot_;
+  ap::Vector3f ground_truth_ang_vel_;
 
 };
 #endif

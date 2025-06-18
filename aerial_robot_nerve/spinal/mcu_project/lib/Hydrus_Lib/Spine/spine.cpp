@@ -32,13 +32,18 @@ namespace Spine
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
+    // merge torque_states to states
     ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
 
 #if SEND_GYRO
     hydrus::Gyro gyro_msg_;
     ros::Publisher gyro_pub_("hydrus_gyro", &gyro_msg_);
 #endif
-    ros::Subscriber<spinal::ServoControlCmd> servo_ctrl_sub_("servo/target_states", servoControlCallback);
+    // rename following subscriber.
+    // taget_states -> target_position
+    // torque_enable -> control_enable
+    ros::Subscriber<spinal::ServoControlCmd> servo_position_sub_("servo/target_states", servoPositionCallback);
+    ros::Subscriber<spinal::ServoControlCmd> servo_current_sub_("servo/target_current", servoCurrentCallback);
     ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("servo/torque_enable", servoTorqueControlCallback);
 
     ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("get_board_info", boardInfoCallback);
@@ -66,6 +71,7 @@ namespace Spine
       spinal::BoardInfo& board = board_info_res_.boards[i];
       board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
       board.dynamixel_ttl_rs485_mixed = neuron.can_servo_.getDynamixelTTLRS485Mixed() ? 1 : 0;
+      board.servo_pulley_skip_thresh = neuron.can_servo_.getPulleySkipThresh();
       board.slave_id = neuron.getSlaveId();
 
       for (unsigned int j = 0; j < board.servos_length; j++) {
@@ -85,12 +91,22 @@ namespace Spine
     res = board_info_res_;
   }
 
-  void servoControlCallback(const spinal::ServoControlCmd& control_msg)
+  void servoPositionCallback(const spinal::ServoControlCmd& control_msg)
   {
     if (!servo_control_flag_) return;
     if (control_msg.index_length != control_msg.angles_length) return;
     for (unsigned int i = 0; i < control_msg.index_length; i++) {
       servo_.at(control_msg.index[i]).get().setGoalPosition(control_msg.angles[i]);
+    }
+  }
+
+  void servoCurrentCallback(const spinal::ServoControlCmd& control_msg)
+  {
+    if (!servo_control_flag_) return;
+    if (control_msg.index_length != control_msg.angles_length) return;
+    for (unsigned int i = 0; i < control_msg.index_length; i++) {
+      servo_.at(control_msg.index[i]).get().setGoalCurrent(control_msg.angles[i]);
+      // TODO: change angles -> commands
     }
   }
 
@@ -134,7 +150,8 @@ namespace Spine
     nh_->advertise(gyro_pub_);
 #endif
 
-    nh_->subscribe(servo_ctrl_sub_);
+    nh_->subscribe(servo_position_sub_);
+    nh_->subscribe(servo_current_sub_);
     nh_->subscribe(servo_torque_ctrl_sub_);
 
     nh_->advertiseService(board_info_srv_);
@@ -193,12 +210,9 @@ namespace Spine
     imu_weight_[0] = 1.0;
     for (uint i = 1; i < imu_weight_.size(); i++) imu_weight_[i] = 0.0;
 
-    estimator_->getAttEstimator()->setImuWeight(0, imu_weight_[0]);
     for (int i = 0; i < slave_num_; i++) {
       HAL_Delay(100);
       neuron_.at(i).can_imu_.init();
-      if(i != baselink_) neuron_.at(i).can_imu_.setVirtualFrame(true);
-      estimator_->getAttEstimator()->addImu(&(neuron_.at(i).can_imu_), imu_weight_[i + 1]);
 
       IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
     }
@@ -221,8 +235,12 @@ namespace Spine
     if(HAL_GetTick() < can_tx_idle_start_time_ + CAN_TX_PAUSE_TIME) return;
 
     if(HAL_GetTick() % 2 == 0) {
+      // 500Hz
       can_motor_send_device_.sendData();
+    }
+    else {
       if (slave_num_ != 0) {
+        // 500Hz
         neuron_.at(send_board_index).can_servo_.sendData();
         send_board_index++;
         if (send_board_index == slave_num_) send_board_index = 0;

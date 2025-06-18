@@ -115,7 +115,9 @@ GPS gps_;
 BatteryStatus battery_status_;
 
 /* servo instance */
+#if SERVO_FLAG
 DirectServo servo_;
+#endif
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -251,7 +253,7 @@ int main(void)
 #else 
   estimator_.init(&imu_, &baro_, NULL, &nh_);
 #endif
-
+  controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
 #if SERVO_FLAG

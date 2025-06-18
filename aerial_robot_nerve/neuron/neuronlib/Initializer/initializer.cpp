@@ -19,7 +19,9 @@ void Initializer::sendBoardConfig()
 	data[0] = servo_.servo_handler_.getServoNum();
 	data[1] = imu_.send_data_flag_ ? 1 : 0;
 	data[2] = servo_.servo_handler_.getTTLRS485Mixed();
-	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 3, data, 1);
+	data[3] = servo_.servo_handler_.getPulleySkipThresh() & 0xFF;
+	data[4] = (servo_.servo_handler_.getPulleySkipThresh() >> 8) & 0xFF;
+	sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_0, m_slave_id, 5, data, 1);
 	for (unsigned int i = 0; i < servo_.servo_handler_.getServoNum(); i++) {
 		const ServoData& s = servo_.servo_handler_.getServo()[i];
 		data[0] = i;
@@ -39,15 +41,16 @@ void Initializer::sendBoardConfig()
 		data[5] = s.current_limit_ & 0xFF;
 		data[6] = (s.current_limit_ >> 8) & 0xFF;
 		data[7] = (s.send_data_flag_ ? 1 : 0);
+		data[7] += ((s.external_encoder_flag_ ? 1 : 0) << 1);
 		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_2, m_slave_id, 8, data, 1);
-                data[0] = i;
-                data[1] = s.hardware_error_status_;
-                data[2] = (s.external_encoder_flag_ ? 1 : 0);
-		data[3] = s.joint_resolution_ & 0xFF;
-		data[4] = (s.joint_resolution_ >> 8) & 0xFF;
-		data[5] = s.servo_resolution_ & 0xFF;
-		data[6] = (s.servo_resolution_ >> 8) & 0xFF;
-                data[7] = 0;
+		data[0] = i;
+		data[1] = s.hardware_error_status_;
+		data[2] = s.goal_current_ & 0xFF;
+		data[3] = (s.goal_current_ >> 8) & 0xFF;
+		data[4] = s.joint_resolution_ & 0xFF;
+		data[5] = (s.joint_resolution_ >> 8) & 0xFF;
+		data[6] = s.servo_resolution_ & 0xFF;
+		data[7] = (s.servo_resolution_ >> 8) & 0xFF;
 		sendMessage(CAN::MESSAGEID_SEND_INITIAL_CONFIG_3, m_slave_id, 8, data, 1);
 	}
 }
@@ -168,7 +171,7 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
                       s.servo_resolution_ = ((data[5] << 8) & 0xFF00) | (data[4] & 0xFF);
                       s.hardware_error_status_ &= ((1 << RESOLUTION_RATIO_ERROR) - 1); // 0b00111111: reset
 
-                      if(s.servo_resolution_ == 65535 || s.joint_resolution_ == 65535){
+                      if(static_cast<uint16_t>(s.servo_resolution_) == 65535 || static_cast<uint16_t>(s.joint_resolution_) == 65535){
                         s.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);  // 0b01000000;
                         s.resolution_ratio_ = 1;
                       }
@@ -186,6 +189,15 @@ void Initializer::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t*
 			uint8_t servo_index = data[1];
 			int32_t ref_value = ((data[5] << 24) & 0xFF000000) | ((data[4] << 16) & 0xFF0000) | ((data[3] << 8) & 0xFF00) | ((data[2] << 0) & 0xFF);
 			servo_.servo_handler_.setRoundOffset(servo_index, ref_value);
+			break;
+		}
+		case CAN::BOARD_CONFIG_SET_SERVO_PULLEY_SKIP_THRESH:
+		{
+			uint16_t thresh = ((data[2] << 8) & 0xFF00) | (data[1] & 0xFF);
+			servo_.servo_handler_.setPulleySkipThresh(thresh);
+			Flashmemory::erase();
+			Flashmemory::write();
+
 			break;
 		}
 		default:

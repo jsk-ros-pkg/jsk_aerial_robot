@@ -18,7 +18,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES gimbalrotor_robot_model gimbalrotor_controller gimbalrotor_navigation
-  CATKIN_DEPENDS   aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs pluginlib roscpp
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs pluginlib roscpp spinal
 )
 
 include_directories(

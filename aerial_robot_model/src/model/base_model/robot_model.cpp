@@ -519,7 +519,7 @@ namespace aerial_robot_model {
   double RobotModel::calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk)
   {
     Eigen::Vector3d uixuj = ui.cross(uj);
-    if (uixuj.norm() < 0.00001) {
+    if (uixuj.norm() < 10e-5) {
       return 0.0;
     }
     return uixuj.dot(uk) / uixuj.norm();
@@ -563,7 +563,12 @@ namespace aerial_robot_model {
         }
 
         Eigen::Vector3d uixuj = u_i.cross(u_j);
-        fc_f_dists_(index) = fabs(dist_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
+        if (uixuj.norm() < 10e-5) {
+          fc_f_dists_(index) = 0;
+        } else {
+          fc_f_dists_(index) = fabs(dist_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
+        }
+
         index++;
       }
     }

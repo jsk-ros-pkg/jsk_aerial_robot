@@ -53,7 +53,7 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
 void DirectServo::update()
 {
   servo_handler_.update();
-  sendData(false);
+  sendData(true);
 }
 
 void DirectServo::sendData(bool flag_send_asap)
@@ -198,7 +198,7 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
       }
     ServoData& s = servo_handler_.getServo()[index];
     s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
-    servo_handler_.setTorque(index);
+    servo_handler_.setTorqueFromPresetnPos(index);
 
   }
 }
@@ -335,7 +335,9 @@ void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, sp
   //TODO: Bad implementation. This features should not be located in servo interface.
   spinal::BoardInfo& board = board_info_res_.boards[0];
   board.imu_send_data_flag = 1;
+#if DYNAMIXEL
   board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+#endif
   board.slave_id = 0;
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];

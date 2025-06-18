@@ -117,34 +117,34 @@ namespace mujoco_ros_control
     tf::Quaternion fc_quat;
     fc_rot_mat.getRotation(fc_quat);
 
-    spinal::Imu imu_msg;
+    tf::Vector3 acc, gyro, mag;
     for(int i = 0; i < mujoco_model_->nsensor; i++)
       {
         if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "acc")
           {
             for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
               {
-                imu_msg.acc_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                acc[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
               }
           }
         if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "gyro")
           {
             for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
               {
-                imu_msg.gyro_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                gyro[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
               }
           }
         if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "mag")
           {
             for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
               {
-                imu_msg.mag_data[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                mag[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
               }
           }
       }
 
-    spinal_interface_.setImuValue(imu_msg.acc_data[0], imu_msg.acc_data[1], imu_msg.acc_data[2], imu_msg.gyro_data[0], imu_msg.gyro_data[1], imu_msg.gyro_data[2]);
-    spinal_interface_.setMagValue(imu_msg.mag_data[0], imu_msg.mag_data[1], imu_msg.mag_data[2]);
+    spinal_interface_.setImuValue(acc.x(), acc.y(), acc.z(), gyro.x(), gyro.y(), gyro.z());
+    spinal_interface_.setMagValue(mag.x(), mag.y(), mag.z());
 
     spinal_interface_.stateEstimate();
 
@@ -159,10 +159,9 @@ namespace mujoco_ros_control
     odom_msg.pose.pose.orientation.z = fc_quat.z();
     odom_msg.pose.pose.orientation.w = fc_quat.w();
 
-    spinal_interface_.setTrueBaselinkOrientation(fc_quat.x(),
-                                                 fc_quat.y(),
-                                                 fc_quat.z(),
-                                                 fc_quat.w());
+    /* set ground truth for controller: use the value with noise */
+    spinal_interface_.setGroundTruthStates(fc_quat.x(), fc_quat.y(), fc_quat.z(), fc_quat.w(),
+                                           gyro.x(), gyro.y(), gyro.z());
 
     if((time - last_mocap_time_).toSec() >= mocap_pub_rate_)
       {

@@ -139,6 +139,17 @@
     </inertial>
   </xacro:extra_module>
 
+  <xacro:extra_module name = "magnet" parent = "main_body" visible = "0" >
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "00" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.0" ixy="0.0" ixz="0.0"
+          iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
   <!-- livox mid360 -->
   <xacro:extra_module name = "lidar_imu" parent = "main_body" visible = "0" > <!-- should be IMU frame -->
     <origin xyz="${0.011} ${0.02329} ${0.0425 + 0.047 - 0.04412}" rpy="0 0 0"/> <!-- TODO: the true pos -->

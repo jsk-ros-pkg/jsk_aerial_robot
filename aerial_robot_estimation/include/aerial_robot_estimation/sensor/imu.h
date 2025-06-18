@@ -58,7 +58,6 @@ namespace sensor_plugin
     ~Imu() {}
     Imu();
 
-    inline tf::Vector3 getAttitude(uint8_t frame)  { return euler_; }
     inline ros::Time getStamp(){return imu_stamp_;}
 
     inline tf::Vector3 getFilteredOmegaCog()
@@ -105,18 +104,17 @@ namespace sensor_plugin
     double sensor_dt_;
 
     /* imu */
-    tf::Vector3 euler_; /* the euler angle of both body and cog frame */
-    tf::Vector3 omega_; /* the omega both body and cog frame */
-    tf::Vector3 mag_; /* the magnetometer both body and cog frame */
-    /* acc */
+    tf::Vector3 omega_; /* the omega both of body frame */
+    tf::Vector3 mag_; /* the magnetometer of body frame */
     tf::Vector3 acc_b_; /* the acceleration in baselink frame */
-    tf::Vector3 acc_l_; /* the acceleration in level frame as to baselink frame: previously is acc_i */
-    tf::Vector3 acc_w_; /* the acceleration in world frame */
-    tf::Vector3 acc_non_bias_w_; /* the acceleration without bias in world frame */
+    tf::Matrix3x3 raw_rot_; /* the raw rotation matrix from IMU */
+    /* acc */
+    std::array<tf::Vector3, 2> acc_w_; /* the acceleration in world frame, for estimate_mode and expriment_mode */
+    std::array<tf::Vector3, 2> acc_non_bias_w_; /* the acceleration without bias in world frame for estimate_mode and expriment_mode */
     /* acc bias */
     tf::Vector3 acc_bias_b_; /* the acceleration bias in baselink frame, only use z axis  */
     tf::Vector3 acc_bias_l_; /* the acceleration bias in level frame as to baselink frame: previously is acc_i */
-    tf::Vector3 acc_bias_w_; /* the acceleration bias in world frame */
+    std::array<tf::Vector3, 2> acc_bias_w_; /* the acceleration bias in world frame for estimate_mode and expriment_mode*/
     bool treat_imu_as_ground_truth_; /* whether use imu value as ground truth */
     /* IIR filter*/
     boost::mutex omega_mutex_;

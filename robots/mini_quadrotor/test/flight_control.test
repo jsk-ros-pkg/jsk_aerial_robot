@@ -10,25 +10,17 @@
     <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="headless" value="$(arg headless)" />
     <arg name="mujoco" value="$(arg mujoco)" />
+    <arg name="demo" value="False" />
   </include>
 
   <!-- test codes -->
-  <!-- 1. topics  -->
-  <test name="publishtest" test-name="publishtest" pkg="rostest" type="publishtest" ns="$(arg robot_ns)" retry="1">
+  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="50" retry="2">
     <rosparam>
-      topics:
-        - name: uav/cog/odom
-          timeout: 5.0
+      waypoint:
+        waypoints: [[0, 0, 1.6]]
     </rosparam>
   </test>
+  <node name="task_task_trigger" pkg="rostopic" type="rostopic" args="pub -1 /task_start std_msgs/Empty" launch-prefix="bash -c 'sleep 5.0; $0 $@' "/>
 
-  <!-- 2. control -->
-  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="30" retry="2">
-    <rosparam>
-      hovering_delay: 5.0
-      hovering_duration: 10.0
-      convergence_thresholds: [0.02, 0.02, 0.02] # hovering threshold
-    </rosparam>
-  </test>
 
 </launch>

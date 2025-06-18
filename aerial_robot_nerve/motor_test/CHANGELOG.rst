@@ -2,6 +2,14 @@
 Changelog for package motor_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.6 (2025-01-15)
+------------------
+
+1.3.5 (2024-12-28)
+------------------
+* [SYSID] [Motor Test] add a py script to analyze motor_test data (`#591 <https://github.com/jsk-ros-pkg/aerial_robot/issues/591>`_)
+* Change to C++17 to support ubuntu22.04 (`#626 <https://github.com/jsk-ros-pkg/aerial_robot/issues/626>`_)
+
 1.3.4 (2024-11-02)
 ------------------
 * [Spinal][PwmTest] send pwm value to each servo independently (`#613 <https://github.com/jsk-ros-pkg/aerial_robot/issues/613>`_)

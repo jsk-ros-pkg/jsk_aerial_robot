@@ -48,6 +48,75 @@ namespace sensor_plugin
                   string sensor_name, int index)
   {
     Imu::initialize(nh, robot_model, estimator, std::string("sensor_plugin/imu"), index);
+
+    //low pass filter
+    double sample_freq, cutoff_freq;
+    getParam<double>("cutoff_freq", cutoff_freq, 20.0);
+    getParam<double>("sample_freq", sample_freq, 200.0);
+    lpf_omega_ = IirFilter(sample_freq, cutoff_freq, 3);
+
+    // debug
+    omega_filter_pub_ = indexed_nhp_.advertise<geometry_msgs::Vector3Stamped>(string("filter_angular_velocity"), 1);
+  }
+
+
+  // override to get filtred gyro data
+  void DragonImu::ImuCallback(const spinal::ImuConstPtr& imu_msg)
+  {
+    imu_stamp_ = imu_msg->stamp;
+    tf::Vector3 filtered_omega;
+
+    for(int i = 0; i < 3; i++)
+      {
+        if(std::isnan(imu_msg->acc[i]) || std::isnan(imu_msg->gyro[i]) || std::isnan(imu_msg->mag[i]))
+          {
+            ROS_ERROR_THROTTLE(1.0, "IMU plugin receives Nan value in IMU sensors !");
+            return;
+          }
+
+        acc_b_[i] = imu_msg->acc[i];
+        omega_[i] = imu_msg->gyro[i];
+        mag_[i] = imu_msg->mag[i];
+      }
+
+    if(std::isnan(imu_msg->quaternion[0]) || std::isnan(imu_msg->quaternion[1]) ||
+       std::isnan(imu_msg->quaternion[2]) || std::isnan(imu_msg->quaternion[3]))
+      {
+        ROS_ERROR_THROTTLE(1.0, "IMU plugin receives Nan value in Quaternion!");
+        return;
+      }
+
+    tf::Quaternion raw_q(imu_msg->quaternion[0], imu_msg->quaternion[1],
+                         imu_msg->quaternion[2], imu_msg->quaternion[3]);
+    raw_rot_ = tf::Matrix3x3(raw_q);
+
+
+    if(first_flag)
+      {
+        lpf_omega_.setInitValues(omega_);
+        first_flag = false;
+      }
+    filtered_omega = lpf_omega_.filterFunction(omega_);
+    geometry_msgs::Vector3Stamped omega_msg;
+    omega_msg.header.stamp = imu_msg->stamp;
+    tf::vector3TFToMsg(filtered_omega, omega_msg.vector);
+    omega_filter_pub_.publish(omega_msg);
+
+    // workaround: use raw roll&pitch omega (not filtered in spinal) for both angular and linear CoG velocity estimation, yaw is still filtered
+    // note: this is different with hydrus-like control which use filtered omega for CoG estimation
+    omega_.setZ(filtered_omega.z());
+
+    // get filtered angular and linear velocity of CoG
+    tf::Transform cog2baselink_tf;
+    tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
+    int estimate_mode = estimator_->getEstimateMode();
+    setFilteredOmegaCog(cog2baselink_tf.getBasis() * filtered_omega);
+    setFilteredVelCog(estimator_->getVel(Frame::BASELINK, estimate_mode)
+                      + estimator_->getOrientation(Frame::BASELINK, estimate_mode)
+                      * (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
+
+    estimateProcess();
+    updateHealthStamp();
   }
 
 };

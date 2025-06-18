@@ -18,7 +18,6 @@ public:
   template <class T> std::vector<T> getThrustCoordRot();
 
 private:
-
   KDL::JntArray gimbal_processed_joint_;
   std::vector<KDL::Rotation> links_rotation_from_cog_;
   std::vector<KDL::Rotation> thrust_coords_rot_;
