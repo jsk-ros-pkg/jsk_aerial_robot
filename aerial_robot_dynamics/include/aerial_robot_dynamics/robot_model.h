@@ -20,6 +20,7 @@
 
 #include <OsqpEigen/OsqpEigen.h>
 
+#include <urdf/model.h>
 #include <ros/ros.h>
 #include <tinyxml.h>
 #include <iostream>
@@ -70,6 +71,7 @@ public:
   Eigen::VectorXd getResetConfiguration();
 
 private:
+  urdf::Model urdf_;
   std::shared_ptr<pinocchio::Model> model_;
   std::shared_ptr<pinocchio::Data> data_;
   std::vector<pinocchio::SE3> joint_M_rotors_;
@@ -84,9 +86,9 @@ private:
   bool is_floating_base_;
   int rotor_num_;
   double m_f_rate_;
-  double max_thrust_;
-  double min_thrust_;
-  double joint_torque_limit_;
+  Eigen::VectorXd joint_torque_limits_;
+  Eigen::VectorXd thrust_upper_limits_;
+  Eigen::VectorXd thrust_lower_limits_;
 
   // ID solver parameters
   double thrust_hessian_weight_ = 0.1;

@@ -12,8 +12,12 @@
 
   <build_depend>osqp-eigen</build_depend>
   <build_depend>pinocchio</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>urdf</build_depend>
 
   <exec_depend>osqp-eigen</exec_depend>
   <exec_depend>pinocchio</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>urdf</exec_depend>
 
 </package>

@@ -9,6 +9,14 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   // Initialize the model and data
   model_ = std::make_shared<pinocchio::Model>();
 
+  if (!urdf_.initParam("robot_description"))
+  {
+    ROS_ERROR("Failed to extract urdf model from rosparam");
+    return;
+  }
+  std::vector<urdf::LinkSharedPtr> urdf_links;
+  urdf_.getLinks(urdf_links);
+
   // Initialize model with URDF file
   std::string robot_model_string = getRobotModelXml("pinocchio_robot_description");
   if (is_floating_base_)
@@ -56,27 +64,28 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   else
     m_f_rate_attr->Attribute("value", &m_f_rate_);
   std::cout << "m_f_rate: " << m_f_rate_ << std::endl;
-  TiXmlElement* max_thrust_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("max_force");
-  if (!max_thrust_attr)
-    ROS_ERROR("Can not get max_force attribute from urdf model");
-  else
-    max_thrust_attr->Attribute("value", &max_thrust_);
-  std::cout << "max thrust: " << max_thrust_ << std::endl;
-  TiXmlElement* min_thrust_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("min_force");
-  if (!min_thrust_attr)
-    ROS_ERROR("Can not get min_force attribute from urdf model");
-  else
-    min_thrust_attr->Attribute("value", &min_thrust_);
-  std::cout << "min thrust: " << min_thrust_ << std::endl;
 
-  // get joint torque limit
-  TiXmlElement* joint_torque_limit_attr =
-      robot_model_xml.FirstChildElement("robot")->FirstChildElement("joint_torque_limit");
-  if (!joint_torque_limit_attr)
-    ROS_ERROR("Can not get joint_torque_limit attribute from urdf model");
-  else
-    joint_torque_limit_attr->Attribute("value", &joint_torque_limit_);
-  std::cout << "joint torque limit: " << joint_torque_limit_ << std::endl;
+  // get joint torque limits
+  joint_torque_limits_.resize(model_->nv);
+  for (int i = is_floating_base_ ? 2 : 1; i < model_->njoints; i++)
+  {
+    std::string joint_name = model_->names[i];
+    double torque_limit = 0;
+    pinocchio::JointIndex v_index = model_->joints[model_->getJointId(joint_name)].idx_v();
+
+    for (const auto& link : urdf_links)
+    {
+      if (link->parent_joint)
+      {
+        if (link->parent_joint->name == joint_name)
+        {
+          torque_limit = link->parent_joint->limits->effort;
+          joint_torque_limits_(v_index) = torque_limit;
+        }
+      }
+    }
+  }
+  std::cout << "Joint torque limits: " << joint_torque_limits_.transpose() << std::endl;
 
   // get rotor number
   rotor_num_ = 0;
@@ -94,18 +103,39 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
       pinocchio::SE3 w_M_joint = data_->oMi[rotor_parent_joint_index];
       pinocchio::SE3 joint_M_rotor = w_M_joint.inverse() * w_M_rotor;
       joint_M_rotors_.push_back(joint_M_rotor);
-
-      std::cout << "joint_M_rotor" << rotor_num_ + 1 << ": " << joint_M_rotor << std::endl;
-
       rotor_num_++;
     }
   }
   std::cout << "Rotor number: " << rotor_num_ << std::endl;
+
+  // Get thrust limits
+  thrust_upper_limits_.resize(rotor_num_);
+  thrust_lower_limits_.resize(rotor_num_);
+  for (int i = 0; i < rotor_num_; i++)
+  {
+    std::string rotor_i_name = "rotor" + std::to_string(i + 1);
+    for (const auto& link : urdf_links)
+    {
+      if (link->parent_joint)
+      {
+        if (link->parent_joint->name == rotor_i_name)
+        {
+          double max_thrust = link->parent_joint->limits->upper;
+          double min_thrust = link->parent_joint->limits->lower;
+          thrust_upper_limits_(i) = max_thrust;
+          thrust_lower_limits_(i) = min_thrust;
+        }
+      }
+    }
+  }
+  std::cout << "Thrust upper limits: " << thrust_upper_limits_.transpose() << std::endl;
+  std::cout << "Thrust lower limits: " << thrust_lower_limits_.transpose() << std::endl;
   std::cout << std::endl;
 
   // Print joint information
   std::vector<int> q_dims(model_->njoints);
   int joint_index = 0;
+  std::cout << "joints:" << std::endl;
   for (int i = 0; i < model_->njoints; i++)
   {
     std::string joint_type = model_->joints[i].shortname();
@@ -115,6 +145,7 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   std::cout << std::endl;
 
   // Print frame information
+  std::cout << "frames:" << std::endl;
   for (int i = 0; i < model_->nframes; i++)
   {
     std::string frame_name = model_->frames[i].name;
@@ -174,17 +205,13 @@ bool PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, const Eigen:
   lower_bound_ = Eigen::VectorXd::Zero(n_constraints);
   upper_bound_ = Eigen::VectorXd::Zero(n_constraints);
 
-  lower_bound_.head(model_->nv) =
-      Eigen::VectorXd::Constant(model_->nv, -joint_torque_limit_);  // joint torque inequality constraint
-  lower_bound_.segment(model_->nv, rotor_num_) =
-      Eigen::VectorXd::Constant(rotor_num_, min_thrust_);  // thrust inequality constraint
-  lower_bound_.tail(model_->nv) = rnea_solution;           // rnea equality constraint
+  lower_bound_.head(model_->nv) = -joint_torque_limits_;                // joint torque inequality constraint
+  lower_bound_.segment(model_->nv, rotor_num_) = thrust_lower_limits_;  // thrust inequality constraint
+  lower_bound_.tail(model_->nv) = rnea_solution;                        // rnea equality constraint
 
-  upper_bound_.head(model_->nv) =
-      Eigen::VectorXd::Constant(model_->nv, joint_torque_limit_);  // joint torque inequality constraint
-  upper_bound_.segment(model_->nv, rotor_num_) =
-      Eigen::VectorXd::Constant(rotor_num_, max_thrust_);  // thrust inequality constraint
-  upper_bound_.tail(model_->nv) = rnea_solution;           // rnea equality constraint
+  upper_bound_.head(model_->nv) = joint_torque_limits_;                 // joint torque inequality constraint
+  upper_bound_.segment(model_->nv, rotor_num_) = thrust_upper_limits_;  // thrust inequality constraint
+  upper_bound_.tail(model_->nv) = rnea_solution;                        // rnea equality constraint
 
   // qp solver
   bool ok = true;

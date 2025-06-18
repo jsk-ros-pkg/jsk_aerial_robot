@@ -3,12 +3,14 @@ project(aerial_robot_dynamics)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  urdf
   )
 
 find_package(Eigen3 REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(OsqpEigen REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(urdfdom_headers REQUIRED)
 if(OPENMP_FOUND)
   message(STATUS "OpenMP found.")
   MESSAGE("OpenMP found.")
@@ -29,6 +31,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   ${OsqpEigen_INCLUDE_DIRS}
   ${pinocchio_INCLUDE_DIRS}
+  ${urdfdom_headers_INCLUDE_DIRS}
   )
 
 add_library(robot_model src/robot_model.cpp)
