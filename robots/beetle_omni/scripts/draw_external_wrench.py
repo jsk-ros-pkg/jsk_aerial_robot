@@ -31,13 +31,12 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     return rmse_x
 
 
-def main(fly_file_path, sensor_file_path, plot_type):
-    # Load the data from csv file
-    sensor_data = pd.read_csv(sensor_file_path)
-    fly_data = pd.read_csv(fly_file_path)
+def main(file_path, plot_type):
+    # Load the data from the csv file
+    fly_data = pd.read_csv(file_path)
 
     # ======= data selection =========
-    data_sen_wrench = sensor_data[
+    data_sen_wrench = fly_data[
         ['__time', '/cfs/data/wrench/force/x', '/cfs/data/wrench/force/y', '/cfs/data/wrench/force/z',
          '/cfs/data/wrench/torque/x', '/cfs/data/wrench/torque/y', '/cfs/data/wrench/torque/z']]
     data_sen_wrench = data_sen_wrench.dropna()
@@ -52,7 +51,7 @@ def main(fly_file_path, sensor_file_path, plot_type):
 
     # offset: according to the hovering data, offset data are fx = 0.2616N, fy = 0.1609N, fz = -2.1902N,
     # tx = -0.1189Nm, ty = 0.1301Nm, tz = 0.1432Nm
-    fly_file_name = fly_file_path.split('/')[-1]
+    fly_file_name = file_path.split('/')[-1]
     offset = np.zeros(7)
     if '20250123' in fly_file_name:
         offset[1:] = np.array([0.2616, 0.1609, -2.1902, -0.1189, 0.1301, 0.1432])
@@ -76,7 +75,7 @@ def main(fly_file_path, sensor_file_path, plot_type):
     time_duration = data_sen_wrench['t'].iloc[-1] - data_sen_wrench['t'].iloc[0]
     # print(data_sen_wrench.shape)  # (5260, 7)
 
-    t_real_start = 1  # s
+    t_real_start = 0  # s
     t_real_end = t_real_start + time_duration
     data_est_wrench_sel = data_est_wrench[(data_est_wrench['t'] >= t_real_start + data_est_wrench['t'].iloc[0]) & (
             data_est_wrench['t'] <= data_est_wrench['t'].iloc[0] + t_real_end)]
@@ -106,12 +105,12 @@ def main(fly_file_path, sensor_file_path, plot_type):
 
         # make the final coordinate transform. This is the conversion from sensor frame to world frame, but
         # I make it here by my observation. TODO: the torque seems to be correct, but the force is not. I need to check.
-        data_sen_wrench_body['fx'].iloc[i] = -force_body[2]
-        data_sen_wrench_body['fy'].iloc[i] = -force_body[1]
-        data_sen_wrench_body['fz'].iloc[i] = -force_body[0]
-        data_sen_wrench_body['tx'].iloc[i] = torque_body[2]
+        data_sen_wrench_body['fx'].iloc[i] = force_body[0]
+        data_sen_wrench_body['fy'].iloc[i] = force_body[1]
+        data_sen_wrench_body['fz'].iloc[i] = force_body[2]
+        data_sen_wrench_body['tx'].iloc[i] = torque_body[0]
         data_sen_wrench_body['ty'].iloc[i] = torque_body[1]
-        data_sen_wrench_body['tz'].iloc[i] = -torque_body[0]
+        data_sen_wrench_body['tz'].iloc[i] = torque_body[2]
 
     # filter data_sen_wrench_body to get data_est_wrench_body_filtered
     data_est_wrench_body_filtered = data_sen_wrench_body.copy()
@@ -146,14 +145,14 @@ def main(fly_file_path, sensor_file_path, plot_type):
         for i, (key, ylabel) in enumerate(zip(keys, ylabels)):
             ax = axes[i]
             # plot ref and real
-            ax.plot(t_ref, data_sen_wrench_body[key], linestyle='--', label='gt', color=color_ref, alpha=0.3)
+            ax.plot(t_ref, data_sen_wrench_body[key], linestyle='--', label='ground truth (gt)', color=color_ref, alpha=0.3)
             ax.plot(t_ref, data_est_wrench_body_filtered[key], linestyle='-', label='gt filtered', color=color_ref)
 
             ax.plot(t_real, data_est_wrench_sel[key], linestyle='-', label='estimation', color=color_real)
 
             # only the first subplot gets a legend
             if i == 4:
-                ax.legend(framealpha=legend_alpha, loc='lower right')
+                ax.legend(framealpha=legend_alpha, loc='lower left')
 
             ax.set_ylabel(ylabel, fontsize=label_size)
 
@@ -189,13 +188,11 @@ def main(fly_file_path, sensor_file_path, plot_type):
 
 
 if __name__ == '__main__':
-    # python draw_external_wrench.py ~/Desktop/20250123_wrench_est.csv ~/Desktop/20250123_torque_sensor.csv
     parser = argparse.ArgumentParser(
-        description='Plot the trajectory. Please use plotjuggler to generate the csv file.')
-    parser.add_argument('fly_file_path', type=str, help='The file name of the trajectory')
-    parser.add_argument('sensor_file_path', type=str, help='The file name of the force sensor data')
+        description='Plot the estimated wrench with true value. Please use plotjuggler to generate the csv file.')
+    parser.add_argument('file_path', type=str, help='The file name of the trajectory')
     parser.add_argument('--type', type=int, default=0, help='The type of the trajectory')
 
     args = parser.parse_args()
 
-    main(args.fly_file_path, args.sensor_file_path, args.type)
+    main(args.file_path, args.type)
