@@ -119,4 +119,10 @@
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
 
+    ###########  Mount Wrench Sensor  ###########
+    <node if="$(eval not arg('simulation') and arg('real_machine') and arg('end_effector') == 'sensor_ball')"
+          name="forces_node" pkg="cfs_sensor" type="cfs_node" output="screen">
+        <rosparam file="$(find cfs_sensor)/config/PFS055YA501U6.yaml" command="load" />
+    </node>
+
 </launch>
