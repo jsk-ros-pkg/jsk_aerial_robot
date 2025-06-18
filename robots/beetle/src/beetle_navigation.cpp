@@ -77,17 +77,17 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       tf::Vector3 target_roll_pitch;
       target_roll_pitch.setX(0.0);
       target_roll_pitch.setY(0.0);
-      setFinalTargetBaselinkRot(target_roll_pitch);
+      setFinalTargetBaselinkRPY(target_roll_pitch);
       ROS_INFO_STREAM("Set target base link rot to horizontal pose.");
       return;
     }
   else if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] == 1)
     {
-      tf::Vector3 target_roll_pitch = getFinalTargetBaselinkRot();
+      tf::Vector3 target_roll_pitch = getFinalTargetBaselinkRPY();
       //pitch positive
       if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1 && !joy_pitch_positive_flag_)
         {
-          target_roll_pitch.setY(getFinalTargetBaselinkRot().y()
+          target_roll_pitch.setY(getFinalTargetBaselinkRPY().y()
                                  + max_target_roll_pitch_rate_);
           joy_pitch_positive_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
@@ -99,7 +99,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //pitch negative
       if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1 && !joy_pitch_negative_flag_)
         {
-          target_roll_pitch.setY(getFinalTargetBaselinkRot().y()
+          target_roll_pitch.setY(getFinalTargetBaselinkRPY().y()
                                  - max_target_roll_pitch_rate_);
           joy_pitch_negative_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
@@ -114,7 +114,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //roll positive
       if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && !joy_roll_positive_flag_)
         {
-          target_roll_pitch.setX(getFinalTargetBaselinkRot().x()
+          target_roll_pitch.setX(getFinalTargetBaselinkRPY().x()
                                  + max_target_roll_pitch_rate_);
           joy_roll_positive_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
@@ -127,7 +127,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       //roll negative
       if(joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] == 1 && !joy_roll_negative_flag_)
         {
-          target_roll_pitch.setX(getFinalTargetBaselinkRot().x()
+          target_roll_pitch.setX(getFinalTargetBaselinkRPY().x()
                                  - max_target_roll_pitch_rate_);
           joy_roll_negative_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
@@ -137,7 +137,7 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           joy_roll_negative_flag_ = false;
           
         }
-      setFinalTargetBaselinkRot(target_roll_pitch);
+      setFinalTargetBaselinkRPY(target_roll_pitch);
       return;
     }
   else
@@ -241,7 +241,7 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
@@ -302,7 +302,7 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
               tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
@@ -481,7 +481,7 @@ void BeetleNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavCons
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(State::YAW_COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
@@ -524,7 +524,7 @@ void BeetleNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavCons
             }
           case LOCAL_FRAME:
             {
-              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(State::YAW_COG, estimate_mode_)[0]);
+              tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), estimator_->getState(Frame::COG, estimate_mode_)[0]);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
               break;

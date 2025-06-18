@@ -511,7 +511,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     setTargetPos(target_pos);
     // setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
-    forceSetTargetBaselinkRot(target_rot);  
+    forceSetTargetBaselinkRPY(target_rot);  
   }
 
   pre_target_pos_.setX(target_pos.x());
