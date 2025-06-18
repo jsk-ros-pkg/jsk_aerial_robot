@@ -22,11 +22,13 @@ namespace aerial_robot_navigation
 
     void update() override;
 
-    tf::Vector3 getCurrTargetBaselinkRot(){return curr_target_baselink_rot_;}
-    tf::Vector3 getFinalTargetBaselinkRot(){return final_target_baselink_rot_;}
+    tf::Quaternion getCurrTargetBaselinkRot(){return curr_target_baselink_rot_;}
+    tf::Quaternion getFinalTargetBaselinkRot(){return final_target_baselink_rot_;}
+    tf::Vector3 getCurrTargetBaselinkRPY();
+    tf::Vector3 getFinalTargetBaselinkRPY();
  
-    void setFinalTargetBaselinkRot(tf::Vector3 final_target_baselink_rot){final_target_baselink_rot_ = final_target_baselink_rot;}
-    void forceSetTargetBaselinkRot(tf::Vector3 target_baselink_rot);
+    void setFinalTargetBaselinkRPY(tf::Vector3 final_target_baselink_rpy);
+    void forceSetTargetBaselinkRPY(tf::Vector3 target_baselink_rpy);
   protected:
     void rosParamInit() override;
     virtual void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
@@ -36,7 +38,6 @@ namespace aerial_robot_navigation
     ros::Subscriber final_target_baselink_rot_sub_, final_target_baselink_rpy_sub_;
 
     void baselinkRotationProcess();
-    void rosParamInit() override;
     void targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
     void targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
     virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;

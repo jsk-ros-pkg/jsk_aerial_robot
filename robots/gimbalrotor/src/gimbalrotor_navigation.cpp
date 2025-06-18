@@ -114,13 +114,38 @@ void GimbalrotorNavigator::baselinkRotationProcess()
     }
 }
 
-void GimbalrotorNavigator::forceSetTargetBaselinkRot(tf::Vector3 target_baselink_rot){
-  final_target_baselink_rot_ = target_baselink_rot;
-  curr_target_baselink_rot_ = target_baselink_rot;
-  spinal::DesireCoord target_baselink_rot_msg;
-  target_baselink_rot_msg.roll = curr_target_baselink_rot_.x();
-  target_baselink_rot_msg.pitch = curr_target_baselink_rot_.y();
-  curr_target_baselink_rot_pub_.publish(target_baselink_rot_msg);  
+void GimbalrotorNavigator::setFinalTargetBaselinkRPY(tf::Vector3 final_target_baselink_rpy)
+{
+  final_target_baselink_rot_.setValue(final_target_baselink_rpy.x(), final_target_baselink_rpy.y(), final_target_baselink_rpy.z());
+}
+
+void GimbalrotorNavigator::forceSetTargetBaselinkRPY(tf::Vector3 target_baselink_rpy)
+{
+  final_target_baselink_rot_.setRPY(target_baselink_rpy.x(), target_baselink_rpy.y(), target_baselink_rpy.z());
+  curr_target_baselink_rot_.setRPY(target_baselink_rpy.x(), target_baselink_rpy.y(), target_baselink_rpy.z());
+  spinal::DesireCoord msg;
+  double r,p,y;
+  tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
+  msg.roll = r;
+  msg.pitch = p;
+  msg.yaw = y;
+  target_baselink_rpy_pub_.publish(msg);
+}
+
+tf::Vector3 GimbalrotorNavigator::getCurrTargetBaselinkRPY()
+{
+  double r,p,y;
+  tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
+  tf::Vector3 curr_target_baselink_rpy(r,p,y);
+  return curr_target_baselink_rpy;
+}
+
+tf::Vector3 GimbalrotorNavigator::getFinalTargetBaselinkRPY()
+{
+  double r,p,y;
+  tf::Matrix3x3(final_target_baselink_rot_).getRPY(r, p, y);
+  tf::Vector3 final_target_baselink_rpy(r,p,y);
+  return final_target_baselink_rpy;
 }
 
 void GimbalrotorNavigator::rosParamInit()
