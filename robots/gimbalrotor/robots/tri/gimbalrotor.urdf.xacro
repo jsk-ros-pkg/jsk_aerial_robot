@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="gimbalrotor" >
+
+  <xacro:include filename="$(find gimbalrotor)/urdf/tri/gimbalrotor.urdf.xacro" />
+  <xacro:include filename="$(find gimbalrotor)/urdf/tri/common.xacro" />
+
+  <xacro:gimbalrotor_center_link child1="1" child2="2" child3="3"/>
+  <xacro:gimbalrotor_thrust_link self="1" rotor_direction="1"/>
+  <xacro:gimbalrotor_thrust_link self="2" rotor_direction="-1"/>
+  <xacro:gimbalrotor_thrust_link self="3" rotor_direction="1"/>
+
+</robot>
