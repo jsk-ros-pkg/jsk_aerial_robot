@@ -151,6 +151,11 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
     std::string frame_name = model_->frames[i].name;
     std::cout << frame_name << std::endl;
   }
+
+  // Get parameters from ROS parameter server
+  ros::NodeHandle nh("~");
+  ros::NodeHandle dynamics_nh(nh, "dynamics");
+  getParam<double>(dynamics_nh, "thrust_hessian_weight", thrust_hessian_weight_, 1.0);
 }
 
 Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v,

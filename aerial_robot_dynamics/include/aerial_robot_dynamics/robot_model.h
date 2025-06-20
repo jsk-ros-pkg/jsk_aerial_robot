@@ -97,12 +97,18 @@ private:
   Eigen::VectorXd thrust_lower_limits_;
 
   // ID solver parameters
-  double thrust_hessian_weight_ = 0.1;
+  double thrust_hessian_weight_;
 
   Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
   pinocchio::container::aligned_vector<pinocchio::Force>
   computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in the LOCAL frame
 
   std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
+
+  template <class T>
+  void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)
+  {
+    nh.param<T>(param_name, param, default_value);
+  }
 };
 }  // namespace aerial_robot_dynamics
