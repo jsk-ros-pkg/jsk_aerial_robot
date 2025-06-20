@@ -180,6 +180,8 @@ Eigen::MatrixXd PinocchioRobotModel::forwardDynamicsDerivatives(const Eigen::Vec
 bool PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
                                           Eigen::VectorXd& tau)
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   // Compute normal inverse dynamics
   Eigen::VectorXd rnea_solution = pinocchio::rnea(*model_, *data_, q, v, a);
 
@@ -245,6 +247,10 @@ bool PinocchioRobotModel::inverseDynamics(const Eigen::VectorXd& q, const Eigen:
   ok &= id_solver_.solve();
 
   tau = id_solver_.getSolution();
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  latest_id_solve_time_ = duration.count();  // microseconds
 
   return ok;
 }

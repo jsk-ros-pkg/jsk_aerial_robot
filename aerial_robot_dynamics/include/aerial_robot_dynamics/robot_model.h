@@ -20,6 +20,7 @@
 
 #include <OsqpEigen/OsqpEigen.h>
 
+#include <chrono>
 #include <urdf/model.h>
 #include <ros/ros.h>
 #include <tinyxml.h>
@@ -68,6 +69,10 @@ public:
   {
     return m_f_rate_;
   }
+  const double& getLatestIdSolveTime() const
+  {
+    return latest_id_solve_time_;
+  }
   Eigen::VectorXd getResetConfiguration();
 
 private:
@@ -77,6 +82,7 @@ private:
   std::vector<pinocchio::SE3> joint_M_rotors_;
 
   // QP solver for Inverse Dynamics
+  double latest_id_solve_time_ = 0.0;
   OsqpEigen::Solver id_solver_;
   Eigen::VectorXd gradient_;
   Eigen::VectorXd lower_bound_;
