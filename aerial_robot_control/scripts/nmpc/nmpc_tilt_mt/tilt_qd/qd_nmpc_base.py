@@ -340,9 +340,9 @@ class QDNMPCBase(RecedingHorizonBase):
             self.v,
             (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w,
             (-self.wx * self.qx - self.wy * self.qy - self.wz * self.qz) / 2,
-            (self.wx * self.qw + self.wz * self.qy - self.wy * self.qz) / 2,
-            (self.wy * self.qw - self.wz * self.qx + self.wx * self.qz) / 2,
-            (self.wz * self.qw + self.wy * self.qx - self.wx * self.qy) / 2,
+            ( self.wx * self.qw + self.wz * self.qy - self.wy * self.qz) / 2,
+            ( self.wy * self.qw - self.wz * self.qx + self.wx * self.qz) / 2,
+            ( self.wz * self.qw + self.wy * self.qx - self.wx * self.qy) / 2,
             ca.mtimes(I_inv, (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b)),
         )
 
@@ -398,7 +398,7 @@ class QDNMPCBase(RecedingHorizonBase):
         model = AcadosModel()
         model.name = self.model_name
         model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = controls
@@ -530,17 +530,17 @@ class QDNMPCBase(RecedingHorizonBase):
 
         if self.tilt and self.include_servo_model:
             ocp.constraints.lbx_e = np.append(ocp.constraints.lbx_e,
-                                              [self.params["a_min"],
-                                               self.params["a_min"],
-                                               self.params["a_min"],
-                                               self.params["a_min"]])
+                [self.params["a_min"],
+                 self.params["a_min"],
+                 self.params["a_min"],
+                 self.params["a_min"]])
 
         if self.include_thrust_model:
             ocp.constraints.lbx_e = np.append(ocp.constraints.lbx_e,
-                                              [self.params["thrust_min"],
-                                               self.params["thrust_min"],
-                                               self.params["thrust_min"],
-                                               self.params["thrust_min"]])
+                [self.params["thrust_min"],
+                 self.params["thrust_min"],
+                 self.params["thrust_min"],
+                 self.params["thrust_min"]])
 
         # -- Upper Terminal State Bound
         ocp.constraints.ubx_e = np.array(
@@ -553,17 +553,17 @@ class QDNMPCBase(RecedingHorizonBase):
 
         if self.tilt and self.include_servo_model:
             ocp.constraints.ubx_e = np.append(ocp.constraints.ubx_e,
-                                              [self.params["a_max"],
-                                               self.params["a_max"],
-                                               self.params["a_max"],
-                                               self.params["a_max"]])
+                [self.params["a_max"],
+                 self.params["a_max"],
+                 self.params["a_max"],
+                 self.params["a_max"]])
 
         if self.include_thrust_model:
             ocp.constraints.ubx_e = np.append(ocp.constraints.ubx_e,
-                                              [self.params["thrust_max"],
-                                               self.params["thrust_max"],
-                                               self.params["thrust_max"],
-                                               self.params["thrust_max"]])
+                [self.params["thrust_max"],
+                 self.params["thrust_max"],
+                 self.params["thrust_max"],
+                 self.params["thrust_max"]])
 
         # - Input box constraints bu
         # TODO Potentially a good idea to omit the input constraint when set the equivalent state
@@ -582,10 +582,10 @@ class QDNMPCBase(RecedingHorizonBase):
 
         if self.tilt:
             ocp.constraints.lbu = np.append(ocp.constraints.lbu,
-                                            [self.params["a_min"],
-                                             self.params["a_min"],
-                                             self.params["a_min"],
-                                             self.params["a_min"]])
+                [self.params["a_min"],
+                 self.params["a_min"],
+                 self.params["a_min"],
+                 self.params["a_min"]])
 
         # -- Upper Input Bound
         ocp.constraints.ubu = np.array(
@@ -596,13 +596,12 @@ class QDNMPCBase(RecedingHorizonBase):
 
         if self.tilt:
             ocp.constraints.ubu = np.append(ocp.constraints.ubu,
-                                            [self.params["a_max"],
-                                             self.params["a_max"],
-                                             self.params["a_max"],
-                                             self.params["a_max"]])
+                [self.params["a_max"],
+                 self.params["a_max"],
+                 self.params["a_max"],
+                 self.params["a_max"]])
 
         # Initial state and reference: Set all values such that robot is hovering
-        # TODO debatable which initial states/inputs make sense -> not necessarily better than just all-zero!
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # Quaternion qw
 
@@ -616,10 +615,16 @@ class QDNMPCBase(RecedingHorizonBase):
         else:
             x_ref[13:17] = self.phys.mass * self.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
 
+        ocp.constraints.x0 = x_ref  # TODO this should be set in control loop and updated before each solver call
+
+        # Note: This is not really necessary, since the reference is always updated before solver is called
         u_ref = np.zeros(nu)
         # Obeserved to be worse than zero!
         u_ref[0:4] = self.phys.mass * self.phys.gravity / 4  # ft1c, ft2c, ft3c, ft4c
+        ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        ocp.cost.yref_e = x_ref
 
+        # Model parameters
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         self.acados_init_p = np.zeros(n_param)
         self.acados_init_p[0] = x_ref[6]  # qw
@@ -627,14 +632,11 @@ class QDNMPCBase(RecedingHorizonBase):
             raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
         self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
 
-        ocp.constraints.x0 = x_ref
-        ocp.cost.yref = np.concatenate((x_ref, u_ref))
-        ocp.cost.yref_e = x_ref
         ocp.parameter_values = self.acados_init_p
 
         # Solver options
         ocp.solver_options.tf = self.params["T_horizon"]
-        ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
+        ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM" # "IPOPT", "FULL_CONDENSING_HPIPM"
         ocp.solver_options.hpipm_mode = "BALANCE"  # "BALANCE", "SPEED_ABS", "SPEED", "ROBUST". Default: "BALANCE".
         # Start up flags:       [Seems only works for FULL_CONDENSING_QPOASES]
         # 0: no warm start; 1: warm start; 2: hot start. Default: 0

@@ -14,12 +14,26 @@ if __name__ == "__main__":
     class_names = [cls for cls in dir() if not cls.startswith('_') and isinstance(globals()[cls], type)]
     class_names_str = ", ".join(class_names)
 
-    parser = argparse.ArgumentParser(description="Run NMPC with different models to generate code.")
-    parser.add_argument("-m", "--model", type=str, required=True,
-                        help=f"Model name to generate code for. Choose from: {class_names_str}")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description="Run NMPC with different models to generate code.")
+    # parser.add_argument("-m", "--model", type=str, required=True,
+    #                     help=f"Model name to generate code for. Choose from: {class_names_str}")
+    # args = parser.parse_args()
+    # model_name = args.model
 
-    model_name = args.model
+    model_name = "NMPCTiltQdServo"
+    #    NMPCFixQdAngvelOut
+    #    NMPCFixQdThrustOut
+    #    NMPCTiltQdNoServo
+    #    NMPCTiltQdServo
+    #    NMPCTiltQdServoDist
+    #    NMPCTiltQdServoImpedance
+    #    NMPCTiltQdServoThrustDist
+    #    NMPCTiltQdServoThrustImpedance
+    #    NMPCTiltTriServo
+    #    NMPCTiltBiServo
+    #    NMPCTiltBi2OrdServo
+    #    MHEWrenchEstAccMom
+
     if model_name not in class_names:
         raise ValueError(f"Model '{model_name}' not found. Available models: {class_names_str}")
 
