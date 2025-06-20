@@ -6,9 +6,9 @@ from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSo
 import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from nmpc.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
-from nmpc.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
-from nmpc.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from nmpc.nmpc_tilt_mt.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
+from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
 
 import ml_casadi.torch as mc
 from network_architecture.normalized_mlp import NormalizedMLP
@@ -388,16 +388,16 @@ class NeuralNMPC():
         Load a pre-trained neural network for the NMPC controller.
         """
         # Get options for model loading
-        load_ops = {"git": model_options.get("git", False),
-                    "model_name": model_options.get("name", None),
-                    "disturbances": sim_options.get("disturbances", False)}
+        model_params = {"git": model_options.get("git", False),
+                        "model_name": model_options.get("name", None),
+                        "disturbances": sim_options.get("disturbances", False)}
 
         # TODO set config elsewhere
         mlp_config = {'approximated': False, 'v_inp': True, 'u_inp': False, 'T_out': False, 'ground_map_input': False,
                       'torque_output': False, 'two_step_rti': False}
         
         # Load trained MLP model
-        directory, file_name = get_model_dir_and_file(load_ops)
+        directory, file_name = get_model_dir_and_file(model_params)
         saved_network = torch.load(os.path.join(directory, f"{file_name}.pt"))
         # saved_network = {"input_size": 12, "hidden_size": 64, "output_size": 12, "hidden_layers": 3, "state_dict": {}}
         base_mlp = mc.nn.MultiLayerPerceptron(saved_network['input_size'], saved_network['hidden_size'],

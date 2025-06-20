@@ -50,8 +50,25 @@ class SimpleSimConfig:
         "motor_noise": False                 # Asymmetric voltage noise in the motors
     }
 
-class ModelConfig:
-    STATE_DIM = 10
+class MLPConfig:
+    """
+    Class for storing the MLP parameters.
+    """
+
+    # Number of hidden layers in the MLP
+    hidden_layers = 3
+
+    # Number of neurons in each hidden layer
+    hidden_neurons = 64
+
+    # Batch size for training
+    batch_size = 64
+
+    # Use batch normalization after each layer
+    use_batch_norm = True
+
+    # Use dropout after each layer
+    use_dropout = False
 
 class ModelFitConfig:
     """
@@ -60,7 +77,9 @@ class ModelFitConfig:
 
     # Dataset loading ## #
     ds_name = "simplified_sim_dataset"
-    ds_metadata = {
+    ds_state_dim = 13
+    ds_input_dim = 8
+    ds_disturbances = {
         "noisy": True,
         "drag": True,
         "payload": False,
@@ -68,17 +87,17 @@ class ModelFitConfig:
     }
 
     # ds_name = "agisim_dataset"
-    # ds_metadata = {
+    # ds_disturbances = {
     #     "agisim": "default",
     # }
 
     # ds_name = "arena_dataset"
-    # ds_metadata = {
+    # ds_disturbances = {
     #     "arena": "default",
     # }
 
     # ds_name = "neurobem_dataset"
-    # ds_metadata = {
+    # ds_disturbances = {
     #     "arena": "default",
     # }
 

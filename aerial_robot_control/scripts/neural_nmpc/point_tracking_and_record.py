@@ -306,15 +306,10 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
                 break
 
         # --- Save data ---
-        # Current target reached!
         if recording:
-            # Write data to file
-            write_recording_data(rec_dict, rec_file)
-            # Reset storage
+            write_recording_data(rec_file, rec_dict)
             rec_dict = make_blank_dict(targets[0].size, nx, nu)
 
-        
-        
         # --- Break condition for the outer loop ---
         if t_now >= sim_options["max_sim_time"]:
             break
@@ -423,7 +418,7 @@ if __name__ == '__main__':
         "recording_options": {
             "recording": False,
             "dataset_name": "test_dataset",
-            "split": "train",
+            "split": "train", # or "val" or "test"
             "aggressive": True  # TODO for now always use aggressive targets
         },
         "sim_options": {

@@ -11,100 +11,37 @@ import ml_casadi.torch as mc
 from config.configurations import DirectoryConfig
 
 
-def make_blank_dict(target_dim, state_dim, input_dim):
-    blank_recording_dict = {
-        "timestamp": np.zeros((0, 1)),
-        "comp_time": np.zeros((0, 1)),
-        "target": np.zeros((0, target_dim)),
-        "state_in": np.zeros((0, state_dim)),
-        "state_out": np.zeros((0, state_dim)),
-        "state_pred": np.zeros((0, state_dim)),
-        "error": np.zeros((0, state_dim)),
-        "control": np.zeros((0, input_dim)),
-    }
-    return blank_recording_dict
-
-def safe_mkdir_recursive(directory, overwrite=False):
-    """
-    Recursively creates a path to the desired directory.
-    :param directory: Directory to be created
-    :param overwrite: If True, the directory will first be removed if it already exists
-    :return: None
-    """
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directory):
-                # Directory already exists
-                pass
-            else:
-                raise
+def safe_mkdir_recursive(directory, overwrite: bool = False):
+    if overwrite:
+        shutil.rmtree(directory)
+        os.makedirs(directory)
     else:
-        if overwrite:
-            try:
-                shutil.rmtree(directory)
-            except Exception as e:
-                print(f'Error while removing directory: {directory} | Error: {e}')
-            # Create the directory again
-            os.makedirs(directory)
+        os.makedirs(directory, exist_ok=True)
 
-def safe_mkfile_recursive(destiny_dir, file_name, overwrite):
-    """
-    Recursively creates the directory path and file name. If the file already exists, it will be removed if
-    overwrite is set to True. Otherwise, it will not be removed and the function will return True.
+def safe_mkfile_recursive(destiny_dir, file_name, overwrite: bool = False):
+    safe_mkdir_recursive(destiny_dir)
 
-    :param destiny_dir: Directory where the file will be created
-    :param file_name: Name of the file to be created
-    :param overwrite: If True, the file will be removed if it already exists
-    :return: False if the file already exists and was not overwritten, True if the file was created or overwritten
-    """
-    # Recursively create the storing directory path
-    safe_mkdir_recursive(destiny_dir)   # Don't use overwrite as the storing file might exist
-    # Check if file already exists and remove it
     if overwrite and os.path.exists(os.path.join(destiny_dir, file_name)):
         os.remove(os.path.join(destiny_dir, file_name))
     if not os.path.exists(os.path.join(destiny_dir, file_name)):
-        # Create file
         Path(os.path.join(destiny_dir, file_name)).touch()
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-# def store_recording_data(rec_dict, state_curr, x_pred):
-#     """
-#     Store the data in the recording dictionary in place.
-#     :param rec_dict: Dictionary to store the data
-#     :param state_curr: Current state of the system in NMPC
-#     :param x_pred: Predicted state of the system in NMPC
-#     :param u_cmd: Last commanded control input
-#     """
-#     rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
-
-#     if x_pred is not None:
-#         error = state_curr - x_pred
-#         rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
-#         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
-
-def write_recording_data(rec_dict, rec_file):
-    # # Current target was reached - remove incomplete recordings
-    # if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
-    #     rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
-    #     rec_dict["comp_time"] = rec_dict["comp_time"][:-1]
-    #     rec_dict["target"] = rec_dict["target"][:-1]
-    #     rec_dict["state_in"] = rec_dict["state_in"][:-1]
-    #     rec_dict["control"] = rec_dict["control"][:-1]
-
-    for key in rec_dict.keys():
-        rec_dict[key] = jsonify(rec_dict[key])
-
-    df = pd.DataFrame(rec_dict)
-    df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
-
-def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_dim, sim_options, overwrite=True):
-    dataset_name = recording_options["dataset_name"]
-
-    # Directory and file name for data recording
-    rec_file_dir, rec_file_name = get_data_dir_and_file(dataset_name, recording_options["split"], sim_options)
+def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_dim, sim_options, overwrite: bool = True):
+    """
+    Returns a dictionary to store the recording data and the file where to store it.
+    :param recording_options: Dictionary with the options for the recording.
+    :param target_dim: Dimension of the target vector.
+    :param state_dim: Dimension of the state vector.
+    :param input_dim: Dimension of the input vector.
+    :param sim_options: Dictionary with the options for disturbances in simulation.
+    :param overwrite: If True, the existing file will be overwritten. Otherwise, it will be appended to.
+    :return: Tuple with the recording dictionary and the file name where to store the data.
+    """
+    rec_file_dir, rec_file_name = get_data_dir_and_file(recording_options["dataset_name"],
+                                                        recording_options["split"],
+                                                        state_dim, input_dim, sim_options)
     rec_file = os.path.join(rec_file_dir, rec_file_name)
 
     # Recursively create the storing directory path
@@ -124,31 +61,30 @@ def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_
 
     return rec_dict, rec_file
 
-def get_data_dir_and_file(ds_name, split, params, read_only=False):
+def get_data_dir_and_file(ds_name, split, state_dim, input_dim, sim_options, read_only=False):
     """
     Returns the directory and file name where to store the next simulation-based dataset.
     :param ds_name: Name of the dataset
-    :param split: Either "train" or "test" depending on the dataset usecase.
-    :param params: Dictionary with the parameters of the dataset
+    :param split: Either "train" or "val" or "test" depending on the dataset usecase.
+    :param state_dim: Dimension of the state space.
+    :param input_dim: Dimension of the input space.
+    :param sim_options: Dictionary with the options for disturbances in simulation.
     :param read_only: If True, the function will not create any directories or files. It will only return the
     directory and file name.
     :return: Tuple with the directory and file name
     """
+    dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name, split)
 
-    # Data folder directory
-    data_dir = DirectoryConfig.DATA_DIR
+    sim_setup = {"state_dim": state_dim, "input_dim": input_dim, **sim_options}
 
     # Dataset split sanity check
-    if not (split == "train" or split == "test"):
-        raise ValueError("Split must be either 'train' or 'test'.")
+    if not (split == "train" or split == "test" or split == "val"):
+        raise ValueError("Split must be either 'train' or 'test' or 'val'.")
 
-    # Check if current dataset folder already exists and store any recorded datasets. Create it otherwise
-    dataset_dir = os.path.join(data_dir, ds_name, split)
     if os.path.exists(dataset_dir):
         dataset_instances = []
         for (_, _, file_names) in os.walk(dataset_dir):
             dataset_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith('.')])
-            break
     else:
         if read_only:
             return None
@@ -156,99 +92,160 @@ def get_data_dir_and_file(ds_name, split, params, read_only=False):
         dataset_instances = []
 
     # Check if metadata file exists
-    json_file_name = os.path.join(data_dir, "metadata.json")
-    try:
+    json_file_name = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
+    if os.path.exists(json_file_name):
         with open(json_file_name, "r") as json_file:
             metadata = json.load(json_file)
         
         # Check if current dataset name with data split exists
         if ds_name in metadata.keys() and split in metadata[ds_name].keys():
-            # Check if configuration parameters already exists in other metadata 
+            # Check if simulation options, i.e., disturbance parameters already exists in metadata 
             existing_instance_idx = -1
             for i, instance in enumerate(dataset_instances):
-                if metadata[ds_name][split][instance] == params:
+                if metadata[ds_name][split][instance] == sim_setup:
                     existing_instance_idx = i
                     if not read_only:
-                        print("This configuration already exists in the dataset with the same name.")
+                        print("Current configuration already exists. Not adding new entry to metadata file.")
 
             if existing_instance_idx == -1:
                 if read_only:
                     return None
 
                 if dataset_instances:
-                    # Dataset exists but currently a new configuration is used
+                    # Dataset name exists but current configuration is new
                     existing_instances = [int(instance.split("_")[1]) for instance in dataset_instances]
                     max_instance_number = max(existing_instances)
                     ds_instance_name = "dataset_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
 
-                    # Add the new parameter configuration to metadata dictionary
-                    metadata[ds_name][split][ds_instance_name] = params
+                    # Add the new simulation configuration to metadata
+                    metadata[ds_name][split][ds_instance_name] = sim_setup
 
                 else:
                     # Edge case where, for some error, there was something added to the metadata file but no actual
                     # datasets were recorded. Remove entries from metadata and add them again.
                     ds_instance_name = "dataset_001"
                     metadata[ds_name][split] = {}
-                    metadata[ds_name][split][ds_instance_name] = params
+                    metadata[ds_name][split][ds_instance_name] = sim_setup
 
             else:
                 # Dataset exists and there is an instance with the same configuration
                 ds_instance_name = dataset_instances[existing_instance_idx]
 
-        # Dataset does not exist yet in metadata
         else:
+            # Dataset does not exist yet in metadata
             if read_only:
                 return None
 
             # Add the new dataset to metadata dictionary
             ds_instance_name = "dataset_001"
             if ds_name in metadata.keys():
-                metadata[ds_name][split] = {ds_instance_name: params}
+                metadata[ds_name][split] = {ds_instance_name: sim_setup}
             else:
-                metadata[ds_name] = {split: {ds_instance_name: params}}
+                metadata[ds_name] = {split: {ds_instance_name: sim_setup}}
 
         if not read_only:
             with open(json_file_name, 'w') as json_file:
                 json.dump(metadata, json_file, indent=4)
         
 
-    except FileNotFoundError:
+    else:
+        # Metadata file does not exist, create it
         if read_only:
             return None
         
-        print("Metadata file not found, creating a new one.")
         with open(json_file_name, "w") as json_file:
             ds_instance_name = "dataset_001"
-            json.dump({ds_name: {split: {ds_instance_name: params}}}, json_file, indent=4)
+            metadata = {ds_name: {split: {ds_instance_name: sim_setup}}}
+            json.dump(metadata, json_file, indent=4)
 
     return dataset_dir, ds_instance_name + '.csv'
 
-
-def get_model_dir_and_file(model_options):
+def get_model_dir_and_file(git_version, model_name, state_dim, input_dim, sim_options):
     """
     Returns the directory and file name of the fitted model.
-    :param model_options: Parameter dictionary with the keys:
-                          "git", "model_name", "model_type", "params".
+    :param git_version: Git commit hash of the model.
+    :param model_name: Name of the model.
+    :param state_dim: Dimension of the state space.
+    :param input_dim: Dimension of the input space.
+    :param sim_options: Dictionary with the options for disturbances in simulation.
     :return: Tuple with the directory and file name
     """
-    # Model folder directory
-    directory = os.path.join(DirectoryConfig.SAVE_DIR, str(model_options["git"]), str(model_options["model_name"]))
+    directory = os.path.join(DirectoryConfig.SAVE_DIR, git_version, model_name)
 
-    # Store parameters in file name
-    model_params = model_options["disturbances"]
-    file_name = ''
-    model_vars = list(model_params.keys())
+    # Store disturbances in file name
+    file_name = 'nx_' + str(state_dim) + '_nu_' + str(input_dim)
+    model_vars = list(sim_options.keys())
     model_vars.sort()
-    for i, param in enumerate(model_vars):
-        if i > 0:
-            file_name += '__'
-        file_name += 'NO_' if not model_params[param] else ''
-        file_name += param
+    for i, dist in enumerate(model_vars):
+        file_name += '__'
+        file_name += 'NO_' if not sim_options[dist] else ''
+        file_name += dist
 
     return directory, file_name
 
+def make_blank_dict(target_dim, state_dim, input_dim):
+    blank_recording_dict = {
+        "timestamp": np.zeros((0, 1)),
+        "comp_time": np.zeros((0, 1)),
+        "target": np.zeros((0, target_dim)),
+        "state_in": np.zeros((0, state_dim)),
+        "state_out": np.zeros((0, state_dim)),
+        "state_pred": np.zeros((0, state_dim)),
+        "error": np.zeros((0, state_dim)),
+        "control": np.zeros((0, input_dim)),
+    }
+    return blank_recording_dict
+
+# def store_recording_data(rec_dict, state_curr, x_pred):
+#     """
+#     Store the data in the recording dictionary in place.
+#     :param rec_dict: Dictionary to store the data
+#     :param state_curr: Current state of the system in NMPC
+#     :param x_pred: Predicted state of the system in NMPC
+#     :param u_cmd: Last commanded control input
+#     """
+#     rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
+
+#     if x_pred is not None:
+#         error = state_curr - x_pred
+#         rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
+#         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
+
+def write_recording_data(rec_file, rec_dict):
+    # # Current target was reached - remove incomplete recordings
+    # if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
+    #     rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
+    #     rec_dict["comp_time"] = rec_dict["comp_time"][:-1]
+    #     rec_dict["target"] = rec_dict["target"][:-1]
+    #     rec_dict["state_in"] = rec_dict["state_in"][:-1]
+    #     rec_dict["control"] = rec_dict["control"][:-1]
+
+    for key in rec_dict.keys():
+        rec_dict[key] = jsonify(rec_dict[key])
+
+    df = pd.DataFrame(rec_dict)
+    df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
+
+def read_dataset(ds_name, split, state_dim, input_dim, sim_options):
+    """
+    Attempts to read a dataset given its name and its metadata.
+    :param ds_name: Name of the dataset.
+    :param split: String indicating to load a training, validation or test split.
+    :param state_dim: Dimension of the state space.
+    :param input_dim: Dimension of the input space.
+    :param sim_options: Dictionary with the options for disturbances in simulation.
+    :return: Pandas DataFrame of the csv dataset.
+    """
+    response = get_data_dir_and_file(ds_name, split, state_dim, input_dim, sim_options, read_only=True)
+    if response is None:
+        raise FileNotFoundError
+    rec_file_dir, rec_file_name = response
+
+    rec_file = os.path.join(rec_file_dir, rec_file_name)
+    return pd.read_csv(rec_file)
 
 def load_pickled_models(directory='', file_name='', model_options=None):
+    raise NotImplementedError()
     """
     Loads a pre-trained model from the specified directory, contained in a given pickle filename. Otherwise, if
     the model_options dictionary is given, use its contents to reconstruct the directory location of the pre-trained
