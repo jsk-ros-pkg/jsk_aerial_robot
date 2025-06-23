@@ -4,40 +4,34 @@ import subprocess
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from network_architecture.simple_mlp import SimpleMLP
 from network_architecture.normalized_mlp import NormalizedMLP
-from utils.data_utils import safe_mkdir_recursive, get_model_dir_and_file, read_dataset
-from config.configurations import MLPConfig, ModelFitConfig, SimpleSimConfig, DynModelConfig
+from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset
+from config.configurations import MLPConfig, ModelFitConfig, SimpleSimConfig
 
 
-def main(model_name: str ="mlp"):
-    # Git commit hash for saving the model
-    git_version = ''
-    try:
-        git_version = subprocess.check_output(['git', 'describe', '--always']).strip().decode("utf-8")
-    except subprocess.CalledProcessError as e:
-        print(e.returncode, e.output)
-    print("The model will be saved using hash: %s" % git_version)
-
+def main(network_name: str ="mlp"):
     ds_name = ModelFitConfig.ds_name
-    state_dim = ModelFitConfig.ds_state_dim
-    input_dim = ModelFitConfig.ds_input_dim
-    sim_options = ModelFitConfig.ds_disturbances
-
-    save_file_path, save_file_name = get_model_dir_and_file(git_version, model_name, state_dim, sim_options)
-    safe_mkdir_recursive(save_file_path)
-    if os.path.exists(save_file_name):
-        print(f"File {save_file_name} already exists.")
-        return
+    ds_instance = ModelFitConfig.ds_instance
+    sanity_check_dataset(ds_name, ds_instance)
+    save_file_path, save_file_name, model_options = get_model_dir_and_file(ds_name, ds_instance, network_name)
+    
+    # Retrieve metadata
+    nmpc_type = model_options['nmpc_type']
+    state_dim, input_dim = model_options['state_dim'], model_options['input_dim']
 
     # === Load data ===
-    train_dataset = read_dataset(ds_name, "train", state_dim, input_dim, sim_options)
-    val_dataset = read_dataset(ds_name, "val", state_dim, input_dim, sim_options)
-    test_dataset = read_dataset(ds_name, "test", state_dim, input_dim, sim_options)
+    dataset = read_dataset(ds_name, ds_instance)
+
+    train_size = int(0.8 * len(dataset))
+    val_size = int(0.1 * len(dataset))
+    test_size = len(dataset) - train_size - val_size
+
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # Load training and test data
     # TODO create own dataset class

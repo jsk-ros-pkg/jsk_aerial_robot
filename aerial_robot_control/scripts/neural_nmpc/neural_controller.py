@@ -1,24 +1,57 @@
 import os, sys
+from typing import NamedTuple
 import numpy as np
 import torch
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import torch
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
-from nmpc.nmpc_tilt_mt.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
-from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
-from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
-
 import ml_casadi.torch as mc
 from network_architecture.normalized_mlp import NormalizedMLP
 
 from utils.data_utils import get_model_dir_and_file
 
+# Quadrotor
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+# - Naive models
+from nmpc.nmpc_tilt_mt.archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
+
+# - Consider the servo delay with its model
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
+from nmpc.nmpc_tilt_mt.archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
+from nmpc.nmpc_tilt_mt.archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
+
+# - Conside servo angle derivative as state
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
+
+# - Consider the absolute servo angle command in cost
+from nmpc.nmpc_tilt_mt.archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+
+# - Consider the thrust delay with its model
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
+
+# - Consider the servo & thrust delay with its models
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust import NMPCTiltQdServoThrust
+from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
+from nmpc.nmpc_tilt_mt.archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoThrustDrag
+
+# Fixed Quadrotor
+from nmpc.nmpc_tilt_mt.fix_qd.fix_qd_angvel_out import NMPCFixQdAngvelOut
+from nmpc.nmpc_tilt_mt.fix_qd.fix_qd_thrust_out import NMPCFixQdThrustOut
+
+# Birotor
+from nmpc.nmpc_tilt_mt.tilt_bi.tilt_bi_servo import NMPCTiltBiServo
+from nmpc.nmpc_tilt_mt.tilt_bi.tilt_bi_2ord_servo import NMPCTiltBi2OrdServo
+
+# Trirotor
+from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo import NMPCTiltTriServo
+from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
 
 class NeuralNMPC():
     def __init__(self, model_options, solver_options, sim_options,
-                 T_sim=0.005, use_mlp=None, rdrv_d_mat=None):
+                 T_sim=0.005, rdrv_d_mat=None):
         # TODO: Introduce approximated MLP
         # TODO: Add GP regressor
         # TODO: Load / save trained model -> overwrite model
@@ -34,12 +67,59 @@ class NeuralNMPC():
         # Nominal model and solver
         # TODO pass down solver options
         self.arch_type = model_options["arch_type"]
-        if self.arch_type == "tilt_bi":
-            self.nmpc = NMPCTiltBiServo(build=False)
-        elif self.arch_type == "tilt_tri":
-            self.nmpc = NMPCTiltTriServo(build=False)
-        elif self.arch_type == "tilt_qd":
-            self.nmpc = NMPCTiltQdServoThrust(build=False)
+        self.nmpc_type = model_options["nmpc_type"]
+        if self.arch_type == "qd":
+            if self.nmpc_type == "NMPCTiltQdNoServo":
+                self.nmpc = NMPCTiltQdNoServo(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServo":
+                self.nmpc = NMPCTiltQdServo(build=False)
+            elif self.nmpc_type == "NMPCTiltQdThrust":
+                self.nmpc = NMPCTiltQdThrust(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoThrust":
+                self.nmpc = NMPCTiltQdServoThrust(build=False)
+
+            elif self.nmpc_type == "NMPCTiltQdServoDist":
+                self.nmpc = NMPCTiltQdServoDist(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
+                self.nmpc = NMPCTiltQdServoThrustDist(build=False)
+
+            # Fixed rotor models
+            elif self.nmpc_type == "NMPCFixQdAngvelOut":
+                self.nmpc = NMPCFixQdAngvelOut(build=False)
+            elif self.nmpc_type == "NMPCFixQdThrustOut":
+                self.nmpc = NMPCFixQdThrustOut(build=False)
+
+            # Archived methods
+            elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
+                self.nmpc = NMPCTiltQdNoServoAcCost(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoOldCost":
+                self.nmpc = NMPCTiltQdServoOldCost(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoDiff":
+                self.nmpc = NMPCTiltQdServoDiff(build=False)
+                alpha_integ = np.zeros(4)   # TODO not implemented yet
+            elif self.nmpc_type == "NMPCTiltQdServoDragDist":
+                self.nmpc = NMPCTiltQdServoDragDist(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
+                self.nmpc = NMPCTiltQdServoThrustDrag(build=False)
+            elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
+                self.nmpc = NMPCTiltQdServoWCogEndDist(build=False)
+            else:
+                raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
+        elif self.arch_type == 'bi':
+
+            if self.nmpc_type == "NMPCTiltBiServo":
+                self.nmpc = NMPCTiltBiServo(build=False)
+            elif self.nmpc_type == "NMPCTiltBi2OrdServo":
+                self.nmpc = NMPCTiltBi2OrdServo(build=False)
+            else:
+                raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
+        elif self.arch_type == 'tri':
+            if self.nmpc_type == "NMPCTiltTriServo":
+                self.nmpc = NMPCTiltTriServo(build=False)
+            elif self.nmpc_type == "NMPCTiltTriServoDist":
+                self.nmpc = NMPCTiltTriServoDist(build=False)
+            else:
+                raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         else:
             raise ValueError("Invalid architecture type specified.")
 
@@ -66,7 +146,7 @@ class NeuralNMPC():
 
         # Load pre-trained MLP
         # Note: If no pre-trained model is given, the controller will only use the nominal model
-        if use_mlp:
+        if model_options["use_mlp"]:
             self.neural_model, self.mlp_config = self.load_model(model_options, sim_options)
             self.mlp_approx = None
         else:
@@ -161,7 +241,8 @@ class NeuralNMPC():
         
 
         # TEMPORARY
-        self.neural_model(mlp_in=torch.zeros((1, self.neural_model.input_size)))
+        if self.neural_model:
+            self.neural_model(mlp_in=torch.zeros((1, self.neural_model.input_size)))
         mlp_out = np.zeros(self.state.size())
 
         # Explicit dynamics
@@ -444,9 +525,9 @@ class NeuralNMPC():
         Get the positions of the rotors in the body frame.
         :return: 3x4 matrix containing the positions of the rotors in the body frame.
         """
-        if self.arch_type == "tilt_bi":
+        if self.arch_type == "bi":
             return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b])
-        elif self.arch_type == "tilt_tri":
+        elif self.arch_type == "tri":
             return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b, self.nmpc.phys.p3_b])
-        elif self.arch_type == "tilt_qd":
+        elif self.arch_type == "qd":
             return np.array([self.nmpc.phys.p1_b, self.nmpc.phys.p2_b, self.nmpc.phys.p3_b, self.nmpc.phys.p4_b])

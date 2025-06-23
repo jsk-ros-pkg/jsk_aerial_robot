@@ -13,23 +13,23 @@ from neural_controller import NeuralNMPC
 
 np.random.seed(345)  # Set seed for reproducibility
 
-def main(model_options, solver_options, recording_options, sim_options, parameters):
+def main(model_options, solver_options, dataset_options, sim_options, run_parameters):
     """
     Main function to run the NMPC simulation and recording.
     :param model_options: Options for the NMPC model.
-    :param recording_options: Options for the recording.
+    :param dataset_options: Options for the recording.
     :param sim_options: Options for the simulation.
-    :param parameters: Additional parameters for the simulation.
+    :param run_parameters: Additional parameters for the simulation.
     """
 
     # ------------------------
     # TODO set these somewhere else
     # Model options
-    model_options.update({
-        "MODEL_ID": 0,
-        "version": 1,
-        "name": "test_model"
-    })
+    # model_options.update({
+    #     "MODEL_ID": 0,
+    #     "version": 1,
+    #     "name": "test_model"
+    # })
     T_sim = 0.005  # or 0.001
     # ------------------------
 
@@ -38,7 +38,7 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
     if True:
         # Create blank NMPC object
         rtnmpc = NeuralNMPC(model_options=model_options, solver_options=solver_options,
-                            sim_options=sim_options, T_sim=T_sim, use_mlp=True)
+                            sim_options=sim_options, T_sim=T_sim)
 
     # Solver
     ocp_solver = rtnmpc.ocp_solver
@@ -62,41 +62,44 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
     assert T_samp >= T_sim
 
     # --- Set initial state ---
-    if parameters["initial_state"] is None:
+    if run_parameters["initial_state"] is None:
         # state = [p, v, q, w, (a and or t and or ds)]
         state_curr = np.zeros(nx)
         state_curr[6] = 1.0     # Real quaternion
     else:
-        state_curr = parameters["initial_state"]
+        state_curr = run_parameters["initial_state"]
     state_curr_sim = state_curr.copy()
 
     # --- Set target states ---
-    if parameters["preset_targets"] is not None:
-        targets = parameters["preset_targets"]
+    if run_parameters["preset_targets"] is not None:
+        targets = run_parameters["preset_targets"]
     else:
         targets = sample_random_target(np.array(state_curr[:3]), sim_options["world_radius"],
-                                       aggressive=recording_options["aggressive"])
+                                       aggressive=run_parameters["aggressive"])
     targets_reached = np.array([False for _ in targets])
 
     # --- Prepare recording ---
-    recording = recording_options["recording"]
+    recording = run_parameters["recording"]
     if recording:
         # Create an empty dict or get a pre-recorded dict and filepath to store
         # TODO actually able to use a pre-recorded dict? And if so make it overwriteable
-        rec_dict, rec_file = get_recording_dict_and_file(recording_options, targets[0].size, nx, nu, sim_options)
+        model_options["state_dim"] = nx
+        model_options["input_dim"] = nu
+        ds_name = model_options["nmpc_type"] + "_" + dataset_options["ds_name_suffix"]
+        rec_dict, rec_file = get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, targets[0].size)
 
-        if sim_options["real_time_plot"]:
-            sim_options["real_time_plot"] = False
+        if run_parameters["real_time_plot"]:
+            run_parameters["real_time_plot"] = False
             print("Turned off real time plot during recording mode.")
 
     # --- Real time plot ---
     # Real time plot params TODO set elsewhere
     plot_sim_traj = False
-    animation = sim_options["save_animation"]
+    animation = run_parameters["save_animation"]
     
     
     # Generate necessary art pack for real time plot
-    if sim_options["real_time_plot"]:
+    if run_parameters["real_time_plot"]:
         art_pack = initialize_plotter(world_rad=sim_options["world_radius"], n_properties=N)
         trajectory_history = state_curr[np.newaxis, :]
         rotor_positions = rtnmpc.get_rotor_positions()
@@ -214,7 +217,7 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
             #     state_pred = state_pred[-1, :]
 
             # --- Plot realtime ---
-            if sim_options["real_time_plot"]:
+            if run_parameters["real_time_plot"]:
                 trajectory_pred = rtnmpc.simulate_trajectory()
                 draw_robot(art_pack, targets, targets_reached, state_curr,
                               trajectory_pred, trajectory_history,
@@ -275,9 +278,9 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
                     initial_guess = None
 
                     # Generate new target
-                    if parameters["preset_targets"] is None:
+                    if run_parameters["preset_targets"] is None:
                         new_target = sample_random_target(state_curr_sim[:3], sim_options["world_radius"],
-                                                          aggressive=recording_options["aggressive"])
+                                                          aggressive=run_parameters["aggressive"])
                         targets = np.append(targets, new_target, axis=0)
                         targets_reached = np.append(targets_reached, False)
                     break
@@ -296,7 +299,7 @@ def main(model_options, solver_options, recording_options, sim_options, paramete
                 rec_dict["state_pred"] = np.append(rec_dict["state_pred"], state_pred[np.newaxis, :], axis=0)
 
             # --- Log trajectory for real-time plot ---
-            if sim_options["real_time_plot"]:
+            if run_parameters["real_time_plot"]:
                 trajectory_history = np.append(trajectory_history, state_curr_sim[np.newaxis, :], axis=0)
                 if len(trajectory_history) > 300:
                     trajectory_history = np.delete(trajectory_history, obj=0, axis=0) # Delete first logged state
@@ -381,7 +384,7 @@ if __name__ == '__main__':
             "model_name": args.model_name,
             "reg_type": args.model_type
         },
-        "recording_options": {
+        "dataset_options": {
             "recording": args.recording,
             "dataset_name": args.dataset_name,
             "split": split,
@@ -393,7 +396,7 @@ if __name__ == '__main__':
             "max_sim_time": args.simulation_time,
             "world_radius": args.world_radius
         },
-        "parameters": {
+        "run_parameters": {
             "preset_targets": None,
             "initial_state": None,
             "initial_guess": None,
@@ -405,35 +408,46 @@ if __name__ == '__main__':
     """
 if __name__ == '__main__':
     
-    run_options = {
+    options = {
         "model_options": {
-            "arch_type": "tilt_qd",
-            "model_name": "test_model",
-            "use_mlp": True
+            "model_name": "standard_neural_nmpc",
+            "arch_type": "qd", # or "bi" or "tri"
+            "nmpc_type": "NMPCTiltQdServo",
+            #    NMPCFixQdAngvelOut
+            #    NMPCFixQdThrustOut
+            #    NMPCTiltQdNoServo
+            #    NMPCTiltQdServo
+            #    NMPCTiltQdServoDist
+            #    NMPCTiltQdServoImpedance
+            #    NMPCTiltQdServoThrustDist
+            #    NMPCTiltQdServoThrustImpedance
+            #    NMPCTiltTriServo
+            #    NMPCTiltBiServo
+            #    NMPCTiltBi2OrdServo
+            #    MHEWrenchEstAccMom
+            "use_mlp": False
         },
         "solver_options": {
             "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this
             "terminal_cost": True
         },
-        "recording_options": {
-            "recording": False,
-            "dataset_name": "test_dataset",
-            "split": "train", # or "val" or "test"
-            "aggressive": True  # TODO for now always use aggressive targets
+        "dataset_options": {
+            "ds_name_suffix": "simple_dataset"
         },
         "sim_options": {
             "disturbances": SimpleSimConfig.disturbances,   # TODO use all disturbances in environment
-            "real_time_plot": True,
-            "save_animation": False,
-            "max_sim_time": 20,
-            "world_radius": 3
+            "max_sim_time": 60,
+            "world_radius": 3,
         },
-        "parameters": {
+        "run_parameters": {
             "preset_targets": None,
             "initial_state": None,
-            "initial_guess": None
+            "initial_guess": None,
+            "aggressive": True,  # TODO for now always use aggressive targets
+            "recording": True,
+            "real_time_plot": False,
+            "save_animation": False,
         }
     }
 
-    main(**run_options)
-    
+    main(**options)

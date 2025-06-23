@@ -28,20 +28,13 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite: bool = False):
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_dim, sim_options, overwrite: bool = True):
+def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, target_dim, overwrite: bool = True):
     """
     Returns a dictionary to store the recording data and the file where to store it.
-    :param recording_options: Dictionary with the options for the recording.
-    :param target_dim: Dimension of the target vector.
-    :param state_dim: Dimension of the state vector.
-    :param input_dim: Dimension of the input vector.
-    :param sim_options: Dictionary with the options for disturbances in simulation.
     :param overwrite: If True, the existing file will be overwritten. Otherwise, it will be appended to.
-    :return: Tuple with the recording dictionary and the file name where to store the data.
     """
-    rec_file_dir, rec_file_name = get_data_dir_and_file(recording_options["dataset_name"],
-                                                        recording_options["split"],
-                                                        state_dim, input_dim, sim_options)
+    rec_file_dir, rec_file_name = get_data_dir_and_file(ds_name, model_options,
+                                                        sim_options, solver_options)
     rec_file = os.path.join(rec_file_dir, rec_file_name)
 
     # Recursively create the storing directory path
@@ -49,7 +42,7 @@ def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_
 
     # Create empty recording dictionary
     # TODO shouldn't we load the existing data if file exists?
-    rec_dict = make_blank_dict(target_dim, state_dim, input_dim)
+    rec_dict = make_blank_dict(target_dim, model_options["state_dim"], model_options["input_dim"])
     # Generate new CSV to store data in
     rec_json = dict()
     if is_blank:
@@ -61,33 +54,21 @@ def get_recording_dict_and_file(recording_options, target_dim, state_dim, input_
 
     return rec_dict, rec_file
 
-def get_data_dir_and_file(ds_name, split, state_dim, input_dim, sim_options, read_only=False):
+def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
     """
     Returns the directory and file name where to store the next simulation-based dataset.
-    :param ds_name: Name of the dataset
-    :param split: Either "train" or "val" or "test" depending on the dataset usecase.
-    :param state_dim: Dimension of the state space.
-    :param input_dim: Dimension of the input space.
-    :param sim_options: Dictionary with the options for disturbances in simulation.
-    :param read_only: If True, the function will not create any directories or files. It will only return the
-    directory and file name.
-    :return: Tuple with the directory and file name
     """
-    dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name, split)
+    dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
-    sim_setup = {"state_dim": state_dim, "input_dim": input_dim, **sim_options}
+    outer_fields = {**model_options, "solver_options": solver_options}
+    inner_fields = sim_options
 
-    # Dataset split sanity check
-    if not (split == "train" or split == "test" or split == "val"):
-        raise ValueError("Split must be either 'train' or 'test' or 'val'.")
-
+    # Parse recorded datasets
     if os.path.exists(dataset_dir):
         dataset_instances = []
         for (_, _, file_names) in os.walk(dataset_dir):
             dataset_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith('.')])
     else:
-        if read_only:
-            return None
         safe_mkdir_recursive(dataset_dir)
         dataset_instances = []
 
@@ -97,91 +78,115 @@ def get_data_dir_and_file(ds_name, split, state_dim, input_dim, sim_options, rea
         with open(json_file_name, "r") as json_file:
             metadata = json.load(json_file)
         
-        # Check if current dataset name with data split exists
-        if ds_name in metadata.keys() and split in metadata[ds_name].keys():
-            # Check if simulation options, i.e., disturbance parameters already exists in metadata 
-            existing_instance_idx = -1
-            for i, instance in enumerate(dataset_instances):
-                if metadata[ds_name][split][instance] == sim_setup:
-                    existing_instance_idx = i
-                    if not read_only:
-                        print("Current configuration already exists. Not adding new entry to metadata file.")
+        # Check if current dataset name exists
+        if ds_name in metadata.keys():
+            # Check if current controller configuration exists
+            existing_controller = 1
+            for field in metadata[ds_name].keys():
+                if field.startswith("dataset_"):
+                    continue
+                if metadata[ds_name][field] == outer_fields[field]:
+                    existing_controller *= 1
+                else:
+                    existing_controller *= 0
 
-            if existing_instance_idx == -1:
-                if read_only:
-                    return None
+            if existing_controller:
+                # Check if simulation options, i.e., disturbance parameters already exists in metadata 
+                existing_instance_idx = -1
+                for i, instance in enumerate(dataset_instances):
+                    if metadata[ds_name][instance] == inner_fields:
+                        existing_instance_idx = i
+                        print("Current configuration already exists. Skipping new entry to metadata file.")
 
-                if dataset_instances:
-                    # Dataset name exists but current configuration is new
-                    existing_instances = [int(instance.split("_")[1]) for instance in dataset_instances]
-                    max_instance_number = max(existing_instances)
-                    ds_instance_name = "dataset_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
+                if existing_instance_idx == -1:
+                    if dataset_instances:
+                        # Dataset name and controller exists but current simulation options are new
+                        existing_instances = [int(instance.split("_")[1]) for instance in dataset_instances]
+                        max_instance_number = max(existing_instances)
+                        ds_instance_name = "dataset_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
 
-                    # Add the new simulation configuration to metadata
-                    metadata[ds_name][split][ds_instance_name] = sim_setup
+                        # Add the new simulation configuration to metadata
+                        metadata[ds_name][ds_instance_name] = inner_fields
+
+                    else:
+                        # Edge case where, for some error, there was something added to the metadata file but no actual
+                        # datasets were recorded. Remove entries from metadata and add them again.
+                        # TODO think this through, possibly not working as expected
+                        ds_instance_name = "dataset_001"
+                        metadata[ds_name][ds_instance_name] = inner_fields
 
                 else:
-                    # Edge case where, for some error, there was something added to the metadata file but no actual
-                    # datasets were recorded. Remove entries from metadata and add them again.
-                    ds_instance_name = "dataset_001"
-                    metadata[ds_name][split] = {}
-                    metadata[ds_name][split][ds_instance_name] = sim_setup
+                    # Dataset exists and there is an instance with the same configuration
+                    # Don't update metadata, just return the existing instance for loading/overwriting
+                    print(f"Dataset \"{ds_name}\" with instance \"{dataset_instances[existing_instance_idx]}\" already exists.")
+                    print("[!] Warning: When generating new data, the existing dataset will be overwritten.")
+                    ds_instance_name = dataset_instances[existing_instance_idx]
 
             else:
-                # Dataset exists and there is an instance with the same configuration
-                ds_instance_name = dataset_instances[existing_instance_idx]
+                raise ValueError(f"Existing configuration {outer_fields} for dataset {ds_name} found. \
+                                   Set unique dataset name for new configuration.")
+            #     # Dataset name exists but current controller configuration is new
+            #     metadata[ds_name] = outer_fields
+            #     ds_instance_name = "dataset_001"
+            #     metadata[ds_name][ds_instance_name] = inner_fields
 
         else:
             # Dataset does not exist yet in metadata
-            if read_only:
-                return None
-
             # Add the new dataset to metadata dictionary
             ds_instance_name = "dataset_001"
-            if ds_name in metadata.keys():
-                metadata[ds_name][split] = {ds_instance_name: sim_setup}
-            else:
-                metadata[ds_name] = {split: {ds_instance_name: sim_setup}}
+            metadata[ds_name] = outer_fields
+            metadata[ds_name][ds_instance_name] = inner_fields
 
-        if not read_only:
-            with open(json_file_name, 'w') as json_file:
-                json.dump(metadata, json_file, indent=4)
-        
+        # Write updated metadata to file
+        with open(json_file_name, 'w') as json_file:
+            json.dump(metadata, json_file, indent=4)
 
     else:
-        # Metadata file does not exist, create it
-        if read_only:
-            return None
-        
+        # Metadata file does not exist yet
         with open(json_file_name, "w") as json_file:
             ds_instance_name = "dataset_001"
-            metadata = {ds_name: {split: {ds_instance_name: sim_setup}}}
+            metadata = {ds_name:
+                        {**outer_fields,
+                        ds_instance_name: inner_fields}}
             json.dump(metadata, json_file, indent=4)
 
     return dataset_dir, ds_instance_name + '.csv'
 
-def get_model_dir_and_file(git_version, model_name, state_dim, input_dim, sim_options):
+def get_model_dir_and_file(ds_name, ds_instance, model_name):
     """
-    Returns the directory and file name of the fitted model.
-    :param git_version: Git commit hash of the model.
-    :param model_name: Name of the model.
-    :param state_dim: Dimension of the state space.
-    :param input_dim: Dimension of the input space.
-    :param sim_options: Dictionary with the options for disturbances in simulation.
-    :return: Tuple with the directory and file name
+    Returns the directory and file name of the fitted neural network model.
     """
-    directory = os.path.join(DirectoryConfig.SAVE_DIR, git_version, model_name)
+    model_dir = os.path.join(DirectoryConfig.SAVE_DIR, model_name)
 
-    # Store disturbances in file name
-    file_name = 'nx_' + str(state_dim) + '_nu_' + str(input_dim)
-    model_vars = list(sim_options.keys())
-    model_vars.sort()
-    for i, dist in enumerate(model_vars):
-        file_name += '__'
-        file_name += 'NO_' if not sim_options[dist] else ''
-        file_name += dist
+    # Check for existing models
+    if os.path.exists(model_dir):
+        model_instances = []
+        for (_, _, file_names) in os.walk(model_dir):
+            model_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith('.')])
+    else:
+        safe_mkdir_recursive(model_dir)
+        model_instances = []
 
-    return directory, file_name
+    # Increment counter for model file name
+    if model_instances:
+        existing_instances = [int(instance.split("_")[1]) for instance in model_instances]
+        max_instance_number = max(existing_instances)
+        model_file = "neuralmodel_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
+    else:
+        model_file = "neuralmodel_001"
+
+    # Get metadata information for configuration of controller and simulation setup
+    json_file_name = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
+    with open(json_file_name, "r") as json_file:
+        metadata = json.load(json_file)
+    model_options = metadata[ds_name].copy()
+
+    # Add model information to metadata
+    with open(json_file_name, "w") as json_file:
+        metadata[ds_name][ds_instance].update({"trained_model": model_file})
+        json.dump(metadata, json_file, indent=4)
+
+    return model_dir, model_file, model_options
 
 def make_blank_dict(target_dim, state_dim, input_dim):
     blank_recording_dict = {
@@ -226,23 +231,30 @@ def write_recording_data(rec_file, rec_dict):
     df = pd.DataFrame(rec_dict)
     df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
 
-def read_dataset(ds_name, split, state_dim, input_dim, sim_options):
-    """
-    Attempts to read a dataset given its name and its metadata.
-    :param ds_name: Name of the dataset.
-    :param split: String indicating to load a training, validation or test split.
-    :param state_dim: Dimension of the state space.
-    :param input_dim: Dimension of the input space.
-    :param sim_options: Dictionary with the options for disturbances in simulation.
-    :return: Pandas DataFrame of the csv dataset.
-    """
-    response = get_data_dir_and_file(ds_name, split, state_dim, input_dim, sim_options, read_only=True)
-    if response is None:
-        raise FileNotFoundError
-    rec_file_dir, rec_file_name = response
+def sanity_check_dataset(ds_name, ds_instance):
+    # Check actual files
+    if not os.path.exists(os.path.join(DirectoryConfig.DATA_DIR, ds_name, ds_instance + ".csv")):
+        raise FileNotFoundError(f"Dataset directory for dataset {ds_name} and instance {ds_instance} does not exist.\
+                                  Record dataset or check naming.")
 
-    rec_file = os.path.join(rec_file_dir, rec_file_name)
-    return pd.read_csv(rec_file)
+    # Check metadata
+    json_file_name = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
+    with open(json_file_name, "r") as json_file:
+        metadata = json.load(json_file)
+    if ds_name not in metadata.keys():
+        raise ValueError(f"Dataset \"{ds_name}\" not found in metadata.")
+    if ds_instance not in metadata[ds_name].keys():
+        raise ValueError(f"Dataset instance \"{ds_instance}\" not found in metadata for dataset \"{ds_name}\".")
+
+def read_dataset(ds_name, ds_instance):
+    """
+    Attempts to read a dataset given its name and returns a Pandas DataFrame of the csv dataset.
+    """
+    ds_file_name = os.path.join(DirectoryConfig.DATA_DIR, ds_name, f"{ds_instance}.csv")
+    if not os.path.exists(ds_file_name):
+        raise FileNotFoundError(f"Dataset {ds_name} with instance {ds_instance} not found.")
+
+    return pd.read_csv(ds_file_name)
 
 def load_pickled_models(directory='', file_name='', model_options=None):
     raise NotImplementedError()

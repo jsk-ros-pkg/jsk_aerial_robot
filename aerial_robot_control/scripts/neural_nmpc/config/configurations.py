@@ -75,16 +75,29 @@ class ModelFitConfig:
     Class for storing flags for the model fitting scripts.
     """
 
-    # Dataset loading ## #
-    ds_name = "simplified_sim_dataset"
-    ds_state_dim = 13
-    ds_input_dim = 8
-    ds_disturbances = {
-        "noisy": True,
-        "drag": True,
-        "payload": False,
-        "motor_noise": True
-    }
+    # Dataset loading
+    ds_name = "NMPCTiltQdServoDist_simple_dataset"
+            #    NMPCFixQdAngvelOut
+            #    NMPCFixQdThrustOut
+            #    NMPCTiltQdNoServo
+            #    NMPCTiltQdServo
+            #    NMPCTiltQdServoDist
+            #    NMPCTiltQdServoImpedance
+            #    NMPCTiltQdServoThrustDist
+            #    NMPCTiltQdServoThrustImpedance
+            #    NMPCTiltTriServo
+            #    NMPCTiltBiServo
+            #    NMPCTiltBi2OrdServo
+            #    MHEWrenchEstAccMom
+    ds_instance = "dataset_001"
+
+    
+    # ds_disturbances = {
+    #     "noisy": True,
+    #     "drag": True,
+    #     "payload": False,
+    #     "motor_noise": True
+    # }
 
     # ds_name = "agisim_dataset"
     # ds_disturbances = {
