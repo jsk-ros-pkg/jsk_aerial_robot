@@ -21,6 +21,7 @@ class MagEncoder
 {
 public:
   MagEncoder();
+  MagEncoder(const char * topic_name);
   ~MagEncoder(){};
   
   static const uint8_t AS5600_I2C_ADDRESS =  0x6c; // 0x36 << 1; NOTE: STM: i2c_address << 1 !!!
