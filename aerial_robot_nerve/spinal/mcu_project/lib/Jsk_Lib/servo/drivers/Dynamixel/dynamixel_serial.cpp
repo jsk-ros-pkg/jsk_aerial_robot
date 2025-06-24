@@ -41,13 +41,10 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
-	HAL_Delay(500);
+        cmdReboot(DX_BROADCAST_ID);
+	HAL_Delay(3000);
 	ping();
 	HAL_Delay(500);
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		reboot(i);
-	}
-	HAL_Delay(2000);
 
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
