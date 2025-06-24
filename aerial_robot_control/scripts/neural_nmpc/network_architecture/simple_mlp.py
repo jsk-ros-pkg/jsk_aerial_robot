@@ -1,15 +1,15 @@
 import torch.nn as nn
 
 class SimpleMLP(nn.Module):
-    def __init__(self):
+    def __init__(self, in_dim, out_dim):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(28*28, 512),
+            nn.Linear(in_dim, 512),
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(512, 10)
+            nn.Linear(512, out_dim)
         )
 
     def forward(self, x):

@@ -84,7 +84,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_parame
         # Create an empty dict or get a pre-recorded dict and filepath to store
         # TODO actually able to use a pre-recorded dict? And if so make it overwriteable
         model_options["state_dim"] = nx
-        model_options["input_dim"] = nu
+        model_options["control_dim"] = nu
         ds_name = model_options["nmpc_type"] + "_" + dataset_options["ds_name_suffix"]
         rec_dict, rec_file = get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, targets[0].size)
 
@@ -191,6 +191,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_parame
             # --- Record time, target, current state and last optimized input ---
             if recording:
                 rec_dict["timestamp"] = np.append(rec_dict["timestamp"], t_now)
+                rec_dict["dt"] = np.append(rec_dict["dt"], t_now - rec_dict["timestamp"][-2] if len(rec_dict["timestamp"]) > 1 else 0.0)
                 rec_dict["comp_time"] = np.append(rec_dict["comp_time"], comp_time)
                 rec_dict["target"] = np.append(rec_dict["target"], current_target[np.newaxis, :], axis=0)
                 rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
@@ -293,10 +294,10 @@ def main(model_options, solver_options, dataset_options, sim_options, run_parame
             if recording:
                 state_pred = ocp_solver.get(1, "x") # Predicted state by the controller at next sampling time
                 rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr_sim[np.newaxis, :], axis=0)
+                rec_dict["state_pred"] = np.append(rec_dict["state_pred"], state_pred[np.newaxis, :], axis=0)
 
                 error = state_curr_sim - state_pred
                 rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
-                rec_dict["state_pred"] = np.append(rec_dict["state_pred"], state_pred[np.newaxis, :], axis=0)
 
             # --- Log trajectory for real-time plot ---
             if run_parameters["real_time_plot"]:
@@ -308,6 +309,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_parame
             if t_now >= sim_options["max_sim_time"]:
                 break
 
+        # Current target was reached!
         # --- Save data ---
         if recording:
             write_recording_data(rec_file, rec_dict)

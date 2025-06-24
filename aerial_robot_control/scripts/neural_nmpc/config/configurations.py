@@ -62,7 +62,7 @@ class MLPConfig:
     hidden_neurons = 64
 
     # Batch size for training
-    batch_size = 64
+    batch_size = 32
 
     # Use batch normalization after each layer
     use_batch_norm = True
@@ -70,13 +70,22 @@ class MLPConfig:
     # Use dropout after each layer
     use_dropout = False
 
+    # Number of epochs
+    num_epochs = 100
+
+    # Learning rate
+    learning_rate = 1e-4
+
+    # Number of workers, i.e., number of threads for loading data
+    num_workers = 0
+
 class ModelFitConfig:
     """
     Class for storing flags for the model fitting scripts.
     """
 
     # Dataset loading
-    ds_name = "NMPCTiltQdServoDist_simple_dataset"
+    ds_name = "NMPCTiltQdServo" + "_simple_dataset"
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
             #    NMPCTiltQdNoServo

@@ -47,7 +47,7 @@ class QDNMPCBase(RecedingHorizonBase):
                 "CoG disturbance parameter flag not set. Please set the include_cog_dist_parameter attribute in the child class.")
 
         # These two variables are only for impedance control
-        # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states.
+        # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model state.
         if not hasattr(self, "include_cog_dist_model"):
             self.include_cog_dist_model = False
         # - include_impedance: Flag to include virtual mass and inertia to calculate impedance cost. Doesn't add any functionality for the model.
@@ -92,7 +92,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.wy = ca.SX.sym("wy")
         self.wz = ca.SX.sym("wz")
         self.w = ca.vertcat(self.wx, self.wy, self.wz)
-        states = ca.vertcat(self.p, self.v, self.q, self.w)
+        state = ca.vertcat(self.p, self.v, self.q, self.w)
 
         # - Extend state-space by dynamics of servo angles (actual)
         # Differentiate between actual angles and control angles
@@ -104,7 +104,7 @@ class QDNMPCBase(RecedingHorizonBase):
             self.a3s = ca.SX.sym("a3s")
             self.a4s = ca.SX.sym("a4s")
             self.a_s = ca.vertcat(self.a1s, self.a2s, self.a3s, self.a4s)
-            states = ca.vertcat(states, self.a_s)
+            state = ca.vertcat(state, self.a_s)
 
         # - Extend state-space by dynamics of rotor (actual)
         # Differentiate between actual thrust and control thrust
@@ -114,7 +114,7 @@ class QDNMPCBase(RecedingHorizonBase):
             self.ft3s = ca.SX.sym("ft3s")
             self.ft4s = ca.SX.sym("ft4s")
             self.ft_s = ca.vertcat(self.ft1s, self.ft2s, self.ft3s, self.ft4s)
-            states = ca.vertcat(states, self.ft_s)
+            state = ca.vertcat(state, self.ft_s)
 
         # - Extend state-space by disturbance on CoG (actual)
         # Differentiate between actual disturbance set as state and set as parameter
@@ -124,7 +124,7 @@ class QDNMPCBase(RecedingHorizonBase):
             # Torque disturbance applied to CoG in Body frame
             self.tau_ds_b = ca.SX.sym("tau_ds_b", 3)
 
-            states = ca.vertcat(states, self.fds_w, self.tau_ds_b)
+            state = ca.vertcat(state, self.fds_w, self.tau_ds_b)
         else:
             self.fds_w = ca.vertcat(0.0, 0.0, 0.0)
             self.tau_ds_b = ca.vertcat(0.0, 0.0, 0.0)
@@ -335,7 +335,7 @@ class QDNMPCBase(RecedingHorizonBase):
         I_inv = ca.diag(ca.vertcat(1 / Ixx, 1 / Iyy, 1 / Izz))
         g_w = ca.vertcat(0, 0, -gravity)  # World frame
 
-        # Dynamic model (Time-derivative of states)
+        # Dynamic model (Time-derivative of state)
         ds = ca.vertcat(
             self.v,
             (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w,
@@ -374,12 +374,12 @@ class QDNMPCBase(RecedingHorizonBase):
                             )
 
         # Assemble acados function
-        f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
+        f = ca.Function("f", [state, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
         # Implicit dynamics
         # Note: Used only mainly because of acados template
-        x_dot = ca.SX.sym("x_dot", states.size())  # Combined state vector
-        f_impl = x_dot - f(states, controls)
+        x_dot = ca.SX.sym("x_dot", state.size())  # Combined state vector
+        f_impl = x_dot - f(state, controls)
 
         # Get terms of cost function
         if self.include_impedance:
@@ -397,9 +397,9 @@ class QDNMPCBase(RecedingHorizonBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = self.model_name
-        model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
+        model.f_expl_expr = f(state, controls)  # CasADi expression for the explicit dynamics
         model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
-        model.x = states
+        model.x = state
         model.xdot = x_dot
         model.u = controls
         model.p = parameters

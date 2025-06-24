@@ -42,7 +42,7 @@ def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_opti
 
     # Create empty recording dictionary
     # TODO shouldn't we load the existing data if file exists?
-    rec_dict = make_blank_dict(target_dim, model_options["state_dim"], model_options["input_dim"])
+    rec_dict = make_blank_dict(target_dim, model_options["state_dim"], model_options["control_dim"])
     # Generate new CSV to store data in
     rec_json = dict()
     if is_blank:
@@ -188,16 +188,17 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
 
     return model_dir, model_file, model_options
 
-def make_blank_dict(target_dim, state_dim, input_dim):
+def make_blank_dict(target_dim, state_dim, control_dim):
     blank_recording_dict = {
         "timestamp": np.zeros((0, 1)),
+        "dt": np.zeros((0, 1)),
         "comp_time": np.zeros((0, 1)),
         "target": np.zeros((0, target_dim)),
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
         "state_pred": np.zeros((0, state_dim)),
         "error": np.zeros((0, state_dim)),
-        "control": np.zeros((0, input_dim)),
+        "control": np.zeros((0, control_dim)),
     }
     return blank_recording_dict
 
@@ -218,7 +219,8 @@ def make_blank_dict(target_dim, state_dim, input_dim):
 
 def write_recording_data(rec_file, rec_dict):
     # # Current target was reached - remove incomplete recordings
-    # if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
+    if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
+        raise ValueError("Recording dictionary is not consistent.")
     #     rec_dict["timestamp"] = rec_dict["timestamp"][:-1]
     #     rec_dict["comp_time"] = rec_dict["comp_time"][:-1]
     #     rec_dict["target"] = rec_dict["target"][:-1]

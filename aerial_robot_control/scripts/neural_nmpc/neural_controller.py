@@ -10,6 +10,7 @@ import ml_casadi.torch as mc
 from network_architecture.normalized_mlp import NormalizedMLP
 
 from utils.data_utils import get_model_dir_and_file
+from utils.geometry_utils import quaternion_inverse, v_dot_q
 
 # Quadrotor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
@@ -177,14 +178,7 @@ class NeuralNMPC():
         #                         self.mlp_regressor.sym_approx_params(order=self.mlp_conf['approx_order'],
         #                                                                 flat=True))
 
-        # -----------------------------------------------------
-        # TODO Understand and implement correctly
-        # state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
-        # #  Transform velocity to body frame
-        # v_b = v_dot_q(state[7:10], quaternion_inverse(state[3:7]))
-        # state = ca.vertcat(state[:7], v_b, state[10:])
-        # mlp_in = v_b
-        # -----------------------------------------------------
+        
 
         # Adjust input vector
         # if self.mlp_conf['torque_output']:
@@ -238,7 +232,19 @@ class NeuralNMPC():
         #     mlp_out_means = v_dot_q(mlp_out, state[3:7])
 
 
-        
+        # -----------------------------------------------------
+        # TODO Understand and implement correctly
+        # state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
+        # -----------------------------------------------------
+
+        # MLP is trained to receive and predict the velocity in the body frame
+        # Transform input velocity to body frame
+        # TODO IMPORTANT!
+        # TODO also make sense for angular velocity????
+        # TODO also makes sense for thrust and servo angles????
+        # If changed also change in dataset.py for preprocessing
+        v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
+        mlp_in = ca.vertcat(self.state[:3], v_b, self.state[6:])
 
         # TEMPORARY
         if self.neural_model:
@@ -468,6 +474,14 @@ class NeuralNMPC():
         """
         Load a pre-trained neural network for the NMPC controller.
         """
+
+
+        # # === Load the model ===
+        # model = SimpleMLP().to(device)
+        # model.load_state_dict(torch.load("model.pth", weights_only=True))
+
+
+
         # Get options for model loading
         model_params = {"git": model_options.get("git", False),
                         "model_name": model_options.get("name", None),

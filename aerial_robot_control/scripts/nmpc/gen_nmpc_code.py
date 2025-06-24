@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # args = parser.parse_args()
     # model_name = args.model
 
-    model_name = "NMPCTiltQdServo"
+    model_name = "NMPCTiltQdServoDist"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo

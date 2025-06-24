@@ -37,6 +37,10 @@ def euclidean_dist(x, y, thresh=None):
     return dist < thresh
 
 def v_dot_q(v, q):
+    """
+    Applies the rotation of quaternion q to vector v. In order words, rotates vector v by q.
+    Quaternion format: wxyz.
+    """
     rot_mat = q_to_rot_mat(q)
     if isinstance(q, np.ndarray) and isinstance(rot_mat, np.ndarray):
         return rot_mat.dot(v)

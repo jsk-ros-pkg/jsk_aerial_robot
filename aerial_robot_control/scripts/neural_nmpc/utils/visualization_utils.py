@@ -263,6 +263,21 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
             [r1[1], r3[1], pos[1], r2[1], r4[1]],
             [r1[2], r3[2], pos[2], r2[2], r4[2]])
 
+
+def plot_losses(total_losses):
+    """
+    Plot the training and validation losses.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(total_losses["train"], label="Train Loss", color='blue')
+    ax.plot(total_losses["val"], label="Validation Loss", color='orange')
+    if "test" in total_losses.keys():
+        ax.plot(total_losses["test"], label="Test Loss", color='green')
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Loss")
+    ax.set_title(f"Training, Validation {'and Test' if 'test' in total_losses.keys() else ''} Losses")
+    ax.legend()
+    plt.show()
     
 def trajectory_tracking_results(t_ref, x_ref, x_executed, u_ref, u_executed, title, w_control=None, legend_labels=None,
                                 quat_error=True):
