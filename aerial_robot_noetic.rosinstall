@@ -51,8 +51,12 @@
 #    uri: https://github.com/tongtybj/realsense-ros.git
 #    version: multi_realsense_t265
 
-# docking_mechanism
 # mocap optitrack
+- git:
+    local-name: mocap_optitrack
+    uri: https://github.com/sugikazu75/mocap_optitrack.git
+    version: 50fb60d
+# docking_mechanism
 - git:
     local-name: gazebo-pkgs
     uri: https://github.com/sugihara-16/gazebo-pkgs.git
@@ -61,6 +65,3 @@
     local-name: general-message-pkgs
     uri: https://github.com/JenniferBuehler/general-message-pkgs.git
     version: f0c7a0c
-    local-name: mocap_optitrack
-    uri: https://github.com/sugikazu75/mocap_optitrack.git
-    version: 50fb60d
