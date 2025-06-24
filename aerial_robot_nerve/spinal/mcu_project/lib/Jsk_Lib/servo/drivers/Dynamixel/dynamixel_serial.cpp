@@ -282,13 +282,7 @@ void DynamixelSerial::update()
     if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
     else set_pos_tick_ = current_time;
 
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, i));
-      }
-    } else {
-      instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
-    }
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
   }
 
   /* read servo position(angle) */
