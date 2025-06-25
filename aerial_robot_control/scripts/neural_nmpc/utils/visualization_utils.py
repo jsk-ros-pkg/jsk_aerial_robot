@@ -272,7 +272,7 @@ def plot_losses(total_losses):
     ax.plot(total_losses["train"], label="Train Loss", color='blue')
     ax.plot(total_losses["val"], label="Validation Loss", color='orange')
     if "test" in total_losses.keys():
-        ax.plot(total_losses["test"], label="Test Loss", color='green')
+        ax.plot([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label="Test Loss", color='green')
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Loss")
     ax.set_title(f"Training, Validation {'and Test' if 'test' in total_losses.keys() else ''} Losses")

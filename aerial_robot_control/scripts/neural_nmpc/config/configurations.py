@@ -74,7 +74,7 @@ class MLPConfig:
     num_epochs = 100
 
     # Learning rate
-    learning_rate = 1e-4
+    learning_rate = 1e-3
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
