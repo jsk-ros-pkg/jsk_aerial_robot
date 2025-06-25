@@ -73,13 +73,27 @@ public:
   {
     return latest_id_solve_time_;
   }
+  const int& getRotorDirection(int index) const
+  {
+    return rotor_direction_.at(index);
+  }
+  const Eigen::VectorXd& getThrustUpperLimits() const
+  {
+    return thrust_upper_limits_;
+  }
+  const Eigen::VectorXd& getThrustLowerLimits() const
+  {
+    return thrust_lower_limits_;
+  }
   Eigen::VectorXd getResetConfiguration();
 
 private:
   urdf::Model urdf_;
   std::shared_ptr<pinocchio::Model> model_;
   std::shared_ptr<pinocchio::Data> data_;
+  std::vector<std::string> rotor_names_;
   std::vector<pinocchio::SE3> joint_M_rotors_;
+  std::vector<int> rotor_direction_;
 
   // QP solver for Inverse Dynamics
   double latest_id_solve_time_ = 0.0;
@@ -103,7 +117,8 @@ private:
   pinocchio::container::aligned_vector<pinocchio::Force>
   computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in the LOCAL frame
 
-  std::string getRobotModelXml(const std::string& param_name, ros::NodeHandle nh = ros::NodeHandle());
+  bool getRobotModelXml(const std::string& param_name, std::string& pinocchio_robot_description,
+                        ros::NodeHandle nh = ros::NodeHandle());
 
   template <class T>
   void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)

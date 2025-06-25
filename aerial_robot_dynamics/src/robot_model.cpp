@@ -18,11 +18,15 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   urdf_.getLinks(urdf_links);
 
   // Initialize model with URDF file
-  std::string robot_model_string = getRobotModelXml("pinocchio_robot_description");
+  std::string pinocchio_robot_description = "";
+  while (!getRobotModelXml("pinocchio_robot_description", pinocchio_robot_description))
+  {
+  }
+
   if (is_floating_base_)
-    pinocchio::urdf::buildModelFromXML(robot_model_string, pinocchio::JointModelFreeFlyer(), *model_);
+    pinocchio::urdf::buildModelFromXML(pinocchio_robot_description, pinocchio::JointModelFreeFlyer(), *model_);
   else
-    pinocchio::urdf::buildModelFromXML(robot_model_string, *model_);
+    pinocchio::urdf::buildModelFromXML(pinocchio_robot_description, *model_);
 
   if (is_floating_base_)
   {
@@ -46,7 +50,7 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
 
   // Parse the URDF string to xml
   TiXmlDocument robot_model_xml;
-  robot_model_xml.Parse(robot_model_string.c_str());
+  robot_model_xml.Parse(pinocchio_robot_description.c_str());
 
   // get baselink name from urdf
   TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
@@ -89,47 +93,57 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
 
   // get rotor number
   rotor_num_ = 0;
-  joint_M_rotors_.resize(0);
+  rotor_names_.clear();
   for (int i = 0; i < model_->nframes; i++)
   {
     std::string frame_name = model_->frames[i].name;
     if (frame_name.find("rotor") != std::string::npos)
     {
-      std::string rotor_frame_name = "rotor" + std::to_string(rotor_num_ + 1);
-      pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
-      pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
-
-      pinocchio::SE3 w_M_rotor = data_->oMf[rotor_frame_index];
-      pinocchio::SE3 w_M_joint = data_->oMi[rotor_parent_joint_index];
-      pinocchio::SE3 joint_M_rotor = w_M_joint.inverse() * w_M_rotor;
-      joint_M_rotors_.push_back(joint_M_rotor);
+      rotor_names_.push_back(frame_name);
       rotor_num_++;
     }
   }
   std::cout << "Rotor number: " << rotor_num_ << std::endl;
+  std::sort(rotor_names_.begin(), rotor_names_.end());  // alphabetical order
 
-  // Get thrust limits
-  thrust_upper_limits_.resize(rotor_num_);
-  thrust_lower_limits_.resize(rotor_num_);
+  // rotor offset from parent joint
+  joint_M_rotors_.clear();
   for (int i = 0; i < rotor_num_; i++)
   {
-    std::string rotor_i_name = "rotor" + std::to_string(i + 1);
+    std::string rotor_frame_name = rotor_names_.at(i);
+    pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
+    pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
+
+    pinocchio::SE3 w_M_rotor = data_->oMf[rotor_frame_index];
+    pinocchio::SE3 w_M_joint = data_->oMi[rotor_parent_joint_index];
+    pinocchio::SE3 joint_M_rotor = w_M_joint.inverse() * w_M_rotor;
+    joint_M_rotors_.push_back(joint_M_rotor);
+    std::cout << rotor_frame_name << " offset: \n" << joint_M_rotor << std::endl;
+  }
+
+  // Get thrust limits and rotor direction
+  thrust_upper_limits_.resize(rotor_num_);
+  thrust_lower_limits_.resize(rotor_num_);
+  rotor_direction_.resize(rotor_num_);
+  for (int i = 0; i < rotor_num_; i++)
+  {
     for (const auto& link : urdf_links)
     {
       if (link->parent_joint)
       {
-        if (link->parent_joint->name == rotor_i_name)
+        if (link->parent_joint->name == rotor_names_.at(i))
         {
           double max_thrust = link->parent_joint->limits->upper;
           double min_thrust = link->parent_joint->limits->lower;
+          int direction = link->parent_joint->axis.z;
+          std::cout << rotor_names_.at(i) << " " << min_thrust << " " << max_thrust << " " << direction << std::endl;
           thrust_upper_limits_(i) = max_thrust;
           thrust_lower_limits_(i) = min_thrust;
+          rotor_direction_.at(i) = direction;
         }
       }
     }
   }
-  std::cout << "Thrust upper limits: " << thrust_upper_limits_.transpose() << std::endl;
-  std::cout << "Thrust lower limits: " << thrust_lower_limits_.transpose() << std::endl;
   std::cout << std::endl;
 
   // Print joint information
@@ -153,9 +167,10 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   }
 
   // Get parameters from ROS parameter server
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh = ros::NodeHandle();
   ros::NodeHandle dynamics_nh(nh, "dynamics");
   getParam<double>(dynamics_nh, "thrust_hessian_weight", thrust_hessian_weight_, 1.0);
+  std::cout << "hessian weight: " << thrust_hessian_weight_ << std::endl;
 }
 
 Eigen::VectorXd PinocchioRobotModel::forwardDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
@@ -372,7 +387,7 @@ std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativ
   for (int i = 0; i < rotor_num_; i++)
   {
     // get rotor joint index
-    std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+    std::string rotor_frame_name = rotor_names_.at(i);
     pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
     pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
 
@@ -385,7 +400,7 @@ std::vector<Eigen::MatrixXd> PinocchioRobotModel::computeTauExtByThrustDerivativ
     // make thrust wrench unit in parent joint frame
     pinocchio::Force thrust_wrench_unit;
     thrust_wrench_unit.linear() = Eigen::Vector3d(0, 0, 1);
-    thrust_wrench_unit.angular() = Eigen::Vector3d(0, 0, m_f_rate_);
+    thrust_wrench_unit.angular() = Eigen::Vector3d(0, 0, rotor_direction_.at(i) * m_f_rate_);
     pinocchio::Force thrust_wrench_unit_parent_joint = joint_M_rotors_.at(i).act(thrust_wrench_unit);
 
     // get jacobian of rotor_i jacobian w.r.t q_j
@@ -438,7 +453,7 @@ Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen
     Eigen::MatrixXd rotor_i_jacobian =
         Eigen::MatrixXd::Zero(6, model_->nv);  // must be initialized by zeros. see frames.hpp
 
-    std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+    std::string rotor_frame_name = rotor_names_.at(i);
     pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
 
     pinocchio::computeFrameJacobian(*model_, *data_, q, rotor_frame_index, pinocchio::LOCAL,
@@ -447,7 +462,7 @@ Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen
     // thrust wrench unit
     Eigen::VectorXd thrust_wrench_unit = Eigen::VectorXd::Zero(6);
     thrust_wrench_unit.head<3>() = Eigen::Vector3d(0, 0, 1);
-    thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, m_f_rate_);
+    thrust_wrench_unit.tail<3>() = Eigen::Vector3d(0, 0, rotor_direction_.at(i) * m_f_rate_);
     tauext_partial_thrust.col(i) = rotor_i_jacobian.transpose() * thrust_wrench_unit;
   }
 
@@ -461,14 +476,14 @@ PinocchioRobotModel::computeFExtByThrust(const Eigen::VectorXd& thrust)
   pinocchio::container::aligned_vector<pinocchio::Force> fext(model_->njoints, pinocchio::Force::Zero());
   for (int i = 0; i < rotor_num_; i++)
   {
-    std::string rotor_frame_name = "rotor" + std::to_string(i + 1);
+    std::string rotor_frame_name = rotor_names_.at(i);
     pinocchio::FrameIndex rotor_frame_index = model_->getFrameId(rotor_frame_name);
     pinocchio::JointIndex rotor_parent_joint_index = model_->frames[rotor_frame_index].parent;
 
     // LOCAL
     pinocchio::Force rotor_frame_wrench;
     rotor_frame_wrench.linear() = Eigen::Vector3d(0, 0, thrust(i));
-    rotor_frame_wrench.angular() = Eigen::Vector3d(0, 0, m_f_rate_ * thrust(i));
+    rotor_frame_wrench.angular() = Eigen::Vector3d(0, 0, rotor_direction_.at(i) * m_f_rate_ * thrust(i));
 
     // Convert to parent joint frame
     pinocchio::Force rotor_parent_joint_wrench =
@@ -480,13 +495,17 @@ PinocchioRobotModel::computeFExtByThrust(const Eigen::VectorXd& thrust)
   return fext;
 }
 
-std::string PinocchioRobotModel::getRobotModelXml(const std::string& param_name, ros::NodeHandle nh)
+bool PinocchioRobotModel::getRobotModelXml(const std::string& param_name, std::string& pinocchio_robot_description,
+                                           ros::NodeHandle nh)
 {
   // This function should retrieve the robot model XML string from the parameter server
-  std::string robot_model_string = "";
-  if (!nh.getParam(param_name, robot_model_string))
-    ROS_ERROR("Failed to get robot model XML from parameter server");
-  return robot_model_string;
+  if (!nh.getParam(param_name, pinocchio_robot_description))
+  {
+    ROS_ERROR_STREAM_THROTTLE(1.0, "Failed to get " << param_name << " from ros parameter server");
+    return false;
+  }
+  else
+    return true;
 }
 
 Eigen::VectorXd PinocchioRobotModel::getResetConfiguration()
