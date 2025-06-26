@@ -44,6 +44,14 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	HAL_Delay(500);
 	ping();
 	HAL_Delay(500);
+        //sort servos according to servos' IDs
+        std::sort(
+                  servo_.begin(), servo_.end(),
+                  [](const ServoData& a, const ServoData& b) {
+                    return a.id_ < b.id_;
+                  }
+                  );
+        //reboot servos
 	for (unsigned int i = 0; i < servo_num_; i++) {
 		reboot(i);
 	}
