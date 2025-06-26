@@ -45,10 +45,13 @@
 //2.1.2 Barometer Sensor
 #define BARO_FLAG 1
 //2.1.3 GPS Sensor
-#define GPS_FLAG 1
+#define GPS_FLAG 0
 //2.1.3 Direct Servo Control
-#define SERVO_FLAG 0
-
+#define SERVO_FLAG 1
+#define DYNAMIXEL 1
+#define KONDO 0
+//2.1.3.1 Dynamixel Servo Control without external convertor board
+#define DYNAMIXEL_BOARDLESS_CONTROL 0
 
 //2.2 State Estimate
 //2.2.1 Attitude Estimate
