@@ -118,14 +118,14 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
-  spinal::ServoControlCmd gimbal_command_msg_;
+  // spinal::ServoControlCmd gimbal_command_msg_;
 #endif
 
   ros::NodeHandle* nh_;
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
   ros::Publisher control_feedback_state_pub_;
-  ros::Publisher gimbal_command_pub_;
+  // ros::Publisher gimbal_command_pub_;
   spinal::Pwms pwms_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
   spinal::RollPitchYawTerm control_feedback_state_msg_;

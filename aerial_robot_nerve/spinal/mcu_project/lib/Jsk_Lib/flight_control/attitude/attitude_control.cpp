@@ -820,12 +820,12 @@ void AttitudeController::setMotorNumber(uint16_t motor_number)
       control_term_msg_.motors_length = control_term_msg_size;
       pwms_msg_.motor_value = new uint16_t[motor_number];
       control_term_msg_.motors = new spinal::RollPitchYawTerm[control_term_msg_size];
-      if(gimbal_dof_)
-        {
-          size_t gimbal_command_msg_size = motor_number / rotor_coef_ * gimbal_dof_;
-          gimbal_command_msg_.index_length = gimbal_command_msg_size;
-          gimbal_command_msg_.angles_length = gimbal_command_msg_size;
-        }
+      // if(gimbal_dof_)
+      //   {
+      //     size_t gimbal_command_msg_size = motor_number / rotor_coef_ * gimbal_dof_;
+      //     gimbal_command_msg_.index_length = gimbal_command_msg_size;
+      //     gimbal_command_msg_.angles_length = gimbal_command_msg_size;
+      //   }
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
 
