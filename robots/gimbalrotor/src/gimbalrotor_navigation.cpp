@@ -116,13 +116,19 @@ void GimbalrotorNavigator::baselinkRotationProcess()
 
 void GimbalrotorNavigator::setFinalTargetBaselinkRPY(tf::Vector3 final_target_baselink_rpy)
 {
-  final_target_baselink_rot_.setValue(final_target_baselink_rpy.x(), final_target_baselink_rpy.y(), final_target_baselink_rpy.z());
+  final_target_baselink_rot_.setRPY(final_target_baselink_rpy.x(), final_target_baselink_rpy.y(), final_target_baselink_rpy.z());
 }
 
 void GimbalrotorNavigator::forceSetTargetBaselinkRPY(tf::Vector3 target_baselink_rpy)
 {
   final_target_baselink_rot_.setRPY(target_baselink_rpy.x(), target_baselink_rpy.y(), target_baselink_rpy.z());
   curr_target_baselink_rot_.setRPY(target_baselink_rpy.x(), target_baselink_rpy.y(), target_baselink_rpy.z());
+
+  KDL::Rotation rot;
+  tf::quaternionTFToKDL(curr_target_baselink_rot_, rot);
+  robot_model_->setCogDesireOrientation(rot);
+
+  //send to spinal
   spinal::DesireCoord msg;
   double r,p,y;
   tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r, p, y);
