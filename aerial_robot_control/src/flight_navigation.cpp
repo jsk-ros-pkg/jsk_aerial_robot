@@ -437,10 +437,8 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   double raw_y_cmd = 0;
   double raw_z_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_UPWARDS];
   double raw_yaw_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_LEFTWARDS];
-  if(!joy_rotation_flag_){
-    raw_x_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_UPWARDS];
-    raw_y_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_LEFTWARDS];
-  }
+  raw_x_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_UPWARDS];
+  raw_y_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_LEFTWARDS];
 
   /* Motion: Z (Height) */
   if(getNaviState() == HOVER_STATE)
