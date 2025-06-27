@@ -1,6 +1,7 @@
 // -*- mode: c++ -*-
 
 #include <ninja/ninja_navigation.h>
+#include <aerial_robot_control/util/joy_parser.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;
@@ -1077,6 +1078,13 @@ void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConst
 
 void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 {
+  sensor_msgs::Joy joy_cmd = joyParse(*joy_msg);
+  if (joy_cmd.axes.size() == 0 || joy_cmd.buttons.size() == 0)
+    {
+      ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
+      return;
+    }
+
   if(getCurrentAssembled())
     joy_duplicated_flag_ = true;
   else
@@ -1084,26 +1092,11 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
 
   auto copied_joy_msg = boost::make_shared<sensor_msgs::Joy>(*joy_msg);  
 
-  sensor_msgs::Joy joy_cmd;
-  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
-    {
-      joy_cmd = (*joy_msg);
-    }
-  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS)
-    {
-      joy_cmd = ps4joyToPs3joyConvert(*joy_msg);
-    }
-  else
-    {
-      ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
-      return;
-    }
-
   /* Translational Contol*/
-  double raw_x_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_UPWARDS];
-  double raw_y_cmd = joy_cmd.axes[PS3_AXIS_STICK_LEFT_LEFTWARDS];
-  double raw_z_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_UPWARDS];
-  double raw_yaw_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+  double raw_x_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_UPWARDS];
+  double raw_y_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_LEFTWARDS];
+  double raw_z_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_UPWARDS];
+  double raw_yaw_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_LEFTWARDS];
 
   //xy control
   if(fabs(raw_x_cmd) >= joy_stick_deadzone_ || fabs(raw_y_cmd) >= joy_stick_deadzone_)
@@ -1158,11 +1151,11 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   if(pseudo_assembly_mode_ && control_flag_)
     {
       /*pseudo assembly formation control*/
-      int raw_right_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT];
-      int raw_left_cmd = joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT];
+      int raw_right_cmd = joy_cmd.buttons[JOY_BUTTON_CROSS_RIGHT];
+      int raw_left_cmd = joy_cmd.buttons[JOY_BUTTON_CROSS_LEFT];
       pseudo_cog_com_dist_ += (raw_right_cmd - raw_left_cmd) * pseudo_radius_change_rate_;
 
-      if(joy_cmd.buttons[PS3_BUTTON_ACTION_TRIANGLE] == 1 && joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1)
+      if(joy_cmd.buttons[JOY_BUTTON_ACTION_TRIANGLE] == 1 && joy_cmd.buttons[JOY_BUTTON_CROSS_UP] == 1)
         {
           setTargetCoMPoseFromCurrState();
         }
