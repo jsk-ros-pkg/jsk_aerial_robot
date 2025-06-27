@@ -66,8 +66,6 @@
 #define CONTROL_TERM_PUB_INTERVAL 100
 #define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
 #define PWM_PUB_INTERVAL 100 //100ms
-#define GIMBAL_CONTROL_PUB_INTERVAL 25 //25ms
-#define GIMBAL_COOMMAND_PUB_INTERVAL 100 //100ms
 
 #define MOTOR_TEST 0
 
@@ -118,14 +116,12 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
-  // spinal::ServoControlCmd gimbal_command_msg_;
 #endif
 
   ros::NodeHandle* nh_;
   ros::Publisher pwms_pub_;
   ros::Publisher control_term_pub_;
   ros::Publisher control_feedback_state_pub_;
-  // ros::Publisher gimbal_command_pub_;
   spinal::Pwms pwms_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
   spinal::RollPitchYawTerm control_feedback_state_msg_;
@@ -172,6 +168,7 @@ private:
 #endif
 
   StateEstimate* estimator_;
+
   int8_t uav_model_;
   uint16_t motor_number_;
   uint8_t gimbal_dof_;
@@ -225,7 +222,7 @@ private:
   uint8_t motor_ref_index_;
   float v_factor_;
   uint32_t voltage_update_last_time_;
-  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_, gimbal_control_pub_last_time_, gimbal_command_pub_last_time_;
+  uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 

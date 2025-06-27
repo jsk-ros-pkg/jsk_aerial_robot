@@ -56,7 +56,6 @@ public:
     start_control_flag_ = false;
     pwm_test_flag_ = false;
     integrate_flag_ = false;
-    gimbal_set_flag_ = false;
   }
 
   inline AttitudeController& getAttController(){ return att_controller_;}
@@ -85,7 +84,7 @@ public:
     nh_->subscribe(gimbal_dof_sub_);
 
     estimator_ = estimator;
-    servo_ = servo;
+
     bat_ = bat;
 
     pwm_htim1_ = htim1;
@@ -162,8 +161,6 @@ private:
   AttitudeController att_controller_;
 #ifndef SIMULATION
   StateEstimate* estimator_;
-  KondoServo* kondo_servo_;
-  DirectServo* servo_;
   BatteryStatus* bat_;
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef*  pwm_htim2_;
@@ -245,7 +242,7 @@ void uavInfoConfigCallback(const spinal::UavInfo& config_msg)
 /* get DoF of gimbal rotation */
 void gimbalDofCallback(const std_msgs::UInt8& gimbal_msg)
   {
-    if(!gimbal_set_flag_)
+    if(gimbal_msg.data && !gimbal_set_flag_)
       {
         att_controller_.setGimbalDof(gimbal_msg.data);
         att_controller_.setRotorCoef(gimbal_msg.data + 1);
