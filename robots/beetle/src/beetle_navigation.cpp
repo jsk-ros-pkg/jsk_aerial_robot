@@ -1,6 +1,7 @@
 // -*- mode: c++ -*-
 
 #include <beetle/beetle_navigation.h>
+#include <aerial_robot_control/util/joy_parser.h>
 
 using namespace aerial_robot_model;
 using namespace aerial_robot_navigation;
@@ -54,25 +55,18 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       BaseNavigator::joyStickControl(copied_joy_msg);
       return;
     }
-  sensor_msgs::Joy joy_cmd;
-  if(joy_msg->axes.size() == PS3_AXES && joy_msg->buttons.size() == PS3_BUTTONS)
-    {
-      joy_cmd = (*joy_msg);
-    }
-  else if(joy_msg->axes.size() == PS4_AXES && joy_msg->buttons.size() == PS4_BUTTONS)
-    {
-      joy_cmd = ps4joyToPs3joyConvert(*joy_msg);
-    }
-  else
+
+  sensor_msgs::Joy joy_cmd = joyParse(*joy_msg);
+  if (joy_cmd.axes.size() == 0 || joy_cmd.buttons.size() == 0)
     {
       ROS_WARN("the joystick type is not supported (buttons: %d, axes: %d)", (int)joy_msg->buttons.size(), (int)joy_msg->axes.size());
       return;
-    }
+    }  
 
   /* Motion: Roll and Pitch*/
   /* this is the roll and pitch_angle control */
   
-  if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] == 1 && joy_cmd.buttons[PS3_BUTTON_REAR_RIGHT_1] == 1)
+  if(joy_cmd.buttons[JOY_BUTTON_REAR_LEFT_1] == 1 && joy_cmd.buttons[JOY_BUTTON_REAR_RIGHT_1] == 1)
     {
       tf::Vector3 target_roll_pitch;
       target_roll_pitch.setX(0.0);
@@ -81,23 +75,23 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
       ROS_INFO_STREAM("Set target base link rot to horizontal pose.");
       return;
     }
-  else if(joy_cmd.buttons[PS3_BUTTON_REAR_LEFT_1] == 1)
+  else if(joy_cmd.buttons[JOY_BUTTON_REAR_LEFT_1] == 1)
     {
       tf::Vector3 target_roll_pitch = getFinalTargetBaselinkRPY();
       //pitch positive
-      if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] == 1 && !joy_pitch_positive_flag_)
+      if(joy_cmd.buttons[JOY_BUTTON_CROSS_UP] == 1 && !joy_pitch_positive_flag_)
         {
           target_roll_pitch.setY(getFinalTargetBaselinkRPY().y()
                                  + max_target_roll_pitch_rate_);
           joy_pitch_positive_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
         }
-      else if(joy_cmd.buttons[PS3_BUTTON_CROSS_UP] != 1 && joy_pitch_positive_flag_)
+      else if(joy_cmd.buttons[JOY_BUTTON_CROSS_UP] != 1 && joy_pitch_positive_flag_)
         {
           joy_pitch_positive_flag_ = false;
         }
       //pitch negative
-      if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] == 1 && !joy_pitch_negative_flag_)
+      if(joy_cmd.buttons[JOY_BUTTON_CROSS_DOWN] == 1 && !joy_pitch_negative_flag_)
         {
           target_roll_pitch.setY(getFinalTargetBaselinkRPY().y()
                                  - max_target_roll_pitch_rate_);
@@ -105,34 +99,34 @@ void BeetleNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
           
         }
-      else if(joy_cmd.buttons[PS3_BUTTON_CROSS_DOWN] != 1 && joy_pitch_negative_flag_)
+      else if(joy_cmd.buttons[JOY_BUTTON_CROSS_DOWN] != 1 && joy_pitch_negative_flag_)
         {
           joy_pitch_negative_flag_ = false;
           
         }
 
       //roll positive
-      if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] == 1 && !joy_roll_positive_flag_)
+      if(joy_cmd.buttons[JOY_BUTTON_CROSS_RIGHT] == 1 && !joy_roll_positive_flag_)
         {
           target_roll_pitch.setX(getFinalTargetBaselinkRPY().x()
                                  + max_target_roll_pitch_rate_);
           joy_roll_positive_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
         }
-      else if(joy_cmd.buttons[PS3_BUTTON_CROSS_RIGHT] != 1 && joy_roll_positive_flag_)
+      else if(joy_cmd.buttons[JOY_BUTTON_CROSS_RIGHT] != 1 && joy_roll_positive_flag_)
         {
           joy_roll_positive_flag_ = false;
           
         }
       //roll negative
-      if(joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] == 1 && !joy_roll_negative_flag_)
+      if(joy_cmd.buttons[JOY_BUTTON_CROSS_LEFT] == 1 && !joy_roll_negative_flag_)
         {
           target_roll_pitch.setX(getFinalTargetBaselinkRPY().x()
                                  - max_target_roll_pitch_rate_);
           joy_roll_negative_flag_ = true;
           ROS_INFO_STREAM("Set target base link rot to [" << target_roll_pitch.x() << ", "<< target_roll_pitch.y() << ", "<< target_roll_pitch.z() << "]");
         }
-      else if(joy_cmd.buttons[PS3_BUTTON_CROSS_LEFT] != 1 && joy_roll_negative_flag_)
+      else if(joy_cmd.buttons[JOY_BUTTON_CROSS_LEFT] != 1 && joy_roll_negative_flag_)
         {
           joy_roll_negative_flag_ = false;
           
