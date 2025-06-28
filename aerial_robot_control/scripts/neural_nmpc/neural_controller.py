@@ -254,6 +254,7 @@ class NeuralNMPC():
         # Explicit dynamics
         # Here f is already symbolically evaluated to f(x,u)
         nominal_dynamics = self.nominal_model.f_expl_expr
+        # TODO only use selected features of mlp_out e.g. only acceleration using a matrix B_x
         f_neural = nominal_dynamics + mlp_out
         
         # Implicit dynamics

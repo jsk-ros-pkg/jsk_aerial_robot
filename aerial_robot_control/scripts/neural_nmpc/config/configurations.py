@@ -55,29 +55,38 @@ class MLPConfig:
     Class for storing the MLP parameters.
     """
 
-    # Number of hidden layers in the MLP
-    hidden_layers = 3
-
     # Number of neurons in each hidden layer
-    hidden_neurons = 64
+    hidden_sizes = [32, 64, 126, 256] # In_features of each hidden layer
 
-    # Batch size for training
-    batch_size = 32
+    # Activation function
+    activation = "Tanh"  # Options: "ReLU", "LeakyReLU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
-    use_batch_norm = True
+    use_batch_norm = False
 
     # Use dropout after each layer
-    use_dropout = False
+    dropout_p = 0.0     # To disable dropout, set to 0.0
+
+    # -----------------------------------------------------------------------------------------
 
     # Number of epochs
     num_epochs = 100
 
+    # Batch size
+    batch_size = 64
+
     # Learning rate
-    learning_rate = 1e-3
+    learning_rate = 1e-4
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
+
+    # ------------------------------------------------------------------------------------------
+
+    # Histogram pruning parameters
+    histogram_n_bins = 40
+    histogram_thresh = 0.005    # Remove bins where the total ratio of data is lower than threshold
+    vel_cap = 16                # Remove datapoints where abs(velocity) > vel_cap
 
 class ModelFitConfig:
     """
@@ -85,7 +94,7 @@ class ModelFitConfig:
     """
 
     # Dataset loading
-    ds_name = "NMPCTiltQdServo" + "_simple_dataset"
+    ds_name = "NMPCTiltQdNoServo" + "_simple_dataset"
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
             #    NMPCTiltQdNoServo

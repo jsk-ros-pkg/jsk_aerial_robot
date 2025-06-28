@@ -414,7 +414,7 @@ if __name__ == '__main__':
         "model_options": {
             "model_name": "standard_neural_nmpc",
             "arch_type": "qd", # or "bi" or "tri"
-            "nmpc_type": "NMPCTiltQdServo",
+            "nmpc_type": "NMPCTiltQdNoServo",
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
             #    NMPCTiltQdNoServo
@@ -438,7 +438,7 @@ if __name__ == '__main__':
         },
         "sim_options": {
             "disturbances": SimpleSimConfig.disturbances,   # TODO use all disturbances in environment
-            "max_sim_time": 60,
+            "max_sim_time": 100,
             "world_radius": 3,
         },
         "run_parameters": {

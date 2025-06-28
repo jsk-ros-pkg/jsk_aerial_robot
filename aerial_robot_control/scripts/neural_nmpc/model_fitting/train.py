@@ -2,18 +2,21 @@ import os
 import torch
 from torch.utils.data import DataLoader, random_split
 from progress_table import ProgressTable
+from torchsummary import summary
+
+import ml_casadi.torch as mc    # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataset import TrajectoryDataset
-from network_architecture.simple_mlp import SimpleMLP
+from network_architecture.naive_mlp import NaiveMLP
 from network_architecture.normalized_mlp import NormalizedMLP
 from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset
 from utils.visualization_utils import plot_losses
 from config.configurations import MLPConfig, ModelFitConfig, SimpleSimConfig
 
 
-def main(network_name: str ="mlp", test: bool = False, plot: bool = False, save: bool = True):
+def main(network_name: str ="mlp", approximated_mlp: bool = False, test: bool = False, plot: bool = False, save: bool = True):
     device = get_device()
 
     ds_name = ModelFitConfig.ds_name
@@ -27,18 +30,27 @@ def main(network_name: str ="mlp", test: bool = False, plot: bool = False, save:
 
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)
-    
+
+    # import pandas as pd
+    # df = pd.read_csv("/home/johannes/ros/neural-mpc/ros_dd_mpc/data/simplified_sim_dataset/train/dataset_001.csv")
+
     # === Datasets ===
-    dataset = TrajectoryDataset(df)
-    in_dim = dataset.inputs.shape[1]
+    # TODO prune wrt angular velocity as well
+    dataset = TrajectoryDataset(df,
+                                histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
+                                histogram_pruning_thresh=MLPConfig.histogram_thresh,
+                                vel_cap=MLPConfig.vel_cap,
+                                plot=plot)
+    in_dim = dataset.x.shape[1]
     out_dim = dataset.y.shape[1]
 
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
     test_size = len(dataset) - train_size - val_size
 
-    train_dataset, val_dataset, test_dataset = \
-        random_split(dataset, [train_size, val_size, test_size])
+    # train_dataset, val_dataset, test_dataset = \
+    #     random_split(dataset, [train_size, val_size, test_size])
+    train_dataset, val_dataset, test_dataset = dataset, dataset, dataset
 
     # === Dataloaders ===
     train_dataloader, val_dataloader, test_dataloader = \
@@ -48,13 +60,28 @@ def main(network_name: str ="mlp", test: bool = False, plot: bool = False, save:
 
 
     # === Model ===
-    model = SimpleMLP(in_dim, out_dim).to(device)
+    if approximated_mlp:
+        # TODO implement batch normalization and dropout?
+        # TODO combine and call it "ApproximatedMLP"
+        mlp = mc.nn.MultiLayerPerceptron(in_dim, MLPConfig.hidden_sizes[0],
+                          out_dim, len(MLPConfig.hidden_sizes),
+                          activation=MLPConfig.activation).to(device)
+        model = NormalizedMLP(mlp,
+                              torch.tensor(dataset.x_mean), torch.tensor(dataset.x_std),
+                              torch.tensor(dataset.y_mean), torch.tensor(dataset.y_std)).to(device)
+    else:
+        model = NaiveMLP(in_dim, MLPConfig.hidden_sizes, out_dim,
+                          activation=MLPConfig.activation,
+                          dropout_p=MLPConfig.dropout_p,
+                          x_mean=torch.tensor(dataset.x_mean), x_std=torch.tensor(dataset.x_std),
+                          y_mean=torch.tensor(dataset.y_mean), y_std=torch.tensor(dataset.y_std)).to(device)
     print(model)
+    summary(model, (in_dim,))
 
     # === Loss function ===
     loss_fn = loss_function
 
-    # === Optimizer ===2
+    # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
 
     # === Training Loop ===
@@ -92,9 +119,8 @@ def main(network_name: str ="mlp", test: bool = False, plot: bool = False, save:
         save_dict = {
             'state_dict': model.state_dict(),
             'input_size': in_dim,
-            'hidden_size': MLPConfig.hidden_neurons,
-            'output_size': out_dim,
-            'hidden_layers': MLPConfig.hidden_layers
+            'hidden_sizes': MLPConfig.hidden_sizes,
+            'output_size': out_dim
         }
         if save: torch.save(save_dict, os.path.join(save_file_path, f'{save_file_name}.pt'))
     table.close()
@@ -109,6 +135,7 @@ def main(network_name: str ="mlp", test: bool = False, plot: bool = False, save:
     # === Plotting ===
     if plot:
         plot_losses(total_losses)
+        halt = 1
     
 
 def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_workers=0):
@@ -139,7 +166,7 @@ def get_device():
 def loss_function(y, y_pred):
     return torch.square(y - y_pred).mean()
 
-def get_optimizer(model, learning_rate=1e-4):
+def get_optimizer(model, learning_rate):
     return torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 def train(dataloader, model, loss_fn, optimizer, device, table):
@@ -205,4 +232,4 @@ def inference(dataloader, model, loss_fn, device, table, validation=True):
 
 if __name__ == '__main__':
     model_name = "simple_mlp"  # or "normalized_mlp"
-    main(model_name, test=False, plot=True, save=False)
+    main(model_name, approximated_mlp=False, test=False, plot=True, save=False)
