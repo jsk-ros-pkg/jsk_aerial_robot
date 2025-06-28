@@ -235,7 +235,7 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_).z();
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
@@ -296,7 +296,7 @@ void BeetleNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & 
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_).z();
               tf::Vector3 target_acc = frameConversion(tf::Vector3(msg->target_acc_x, msg->target_acc_y, 0), yaw_angle);
               setTargetAccX(target_acc.x());
               setTargetAccY(target_acc.y());
@@ -475,7 +475,7 @@ void BeetleNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavCons
             }
           case LOCAL_FRAME:
             {
-              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_)[0];
+              double yaw_angle = estimator_->getState(Frame::COG, estimate_mode_).z();
               tf::Vector3 target_vel = frameConversion(tf::Vector3(msg->target_vel_x, msg->target_vel_y, 0), yaw_angle);
               setTargetVelX(target_vel.x());
               setTargetVelY(target_vel.y());
