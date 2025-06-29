@@ -534,7 +534,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     setTargetPos(target_pos);
     // setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
-    forceSetTargetBaselinkRPY(target_rot);
+    forceSetTargetBaselinkRPY(tf::Vector3( target_rot.x(), target_rot.y(), 0));
   }
   pre_target_pos_.setX(target_pos.x());
   pre_target_pos_.setY(target_pos.y());
