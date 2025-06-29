@@ -965,7 +965,7 @@ void NinjaNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & m
           }
         }
     }
-  BeetleNavigator::naviCallback(msg);
+  BaseNavigator::naviCallback(msg);
 }
 
 void NinjaNavigator::assemblyNavCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
