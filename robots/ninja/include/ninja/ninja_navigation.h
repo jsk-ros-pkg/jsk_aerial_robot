@@ -149,6 +149,7 @@ namespace aerial_robot_navigation
     void assemblyJointPosCallback(const sensor_msgs::JointStateConstPtr& msg);
     void jointStateCallback(const sensor_msgs::JointStateConstPtr& state);
     void moduleJointsCallback(const sensor_msgs::JointStateConstPtr& state);
+    void jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& state);
     void comRotationProcess();
     void comMovingProcess();
 
@@ -157,6 +158,7 @@ namespace aerial_robot_navigation
     ros::Subscriber target_com_rot_sub_;
     ros::Subscriber target_joints_pos_sub_;
     ros::Subscriber joint_state_sub_;
+    ros::Subscriber joint_ctrl_sub_;
     ros::Subscriber target_com_pos_sub_;
     ros::Publisher joint_control_pub_;
     ros::Publisher dock_joints_pos_pub_;
@@ -176,6 +178,8 @@ namespace aerial_robot_navigation
     std::map<int, ModuleData> assembled_modules_data_;
     std::vector<double> joint_pos_errs_;
     std::map<int, KDL::JntArray> all_modules_joints_pos_;
+    KDL::JntArray my_crr_joints_pos_;
+    KDL::JntArray my_tgt_joints_pos_;
 
     KDL::Rotation goal_com_rot_;
     KDL::Rotation target_com_rot_;

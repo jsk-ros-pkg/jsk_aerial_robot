@@ -28,8 +28,11 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   target_com_rot_sub_ = nh_.subscribe("/target_com_rot", 1, &NinjaNavigator::setGoalCoMRotCallback, this);
   target_joints_pos_sub_ = nh_.subscribe("/assembly/target_joint_pos", 1, &NinjaNavigator::assemblyJointPosCallback, this);
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &NinjaNavigator::jointStateCallback, this);
+  joint_ctrl_sub_ = nh_.subscribe("joints_ctrl", 1, &NinjaNavigator::jointsCtrlCallback, this);
   tfBuffer_.setUsingDedicatedThread(true);
   joint_pos_errs_.resize(module_joint_num_);
+  my_crr_joints_pos_ = KDL::JntArray(module_joint_num_);
+  my_tgt_joints_pos_ = KDL::JntArray(module_joint_num_);
   prev_morphing_stamp_ = ros::Time::now().toSec();
   for(int i = 0; i < getMaxModuleNum(); i++){
     std::string module_name  = string("/") + getMyName() + std::to_string(i+1);
@@ -38,7 +41,6 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
     all_modules_joints_pos_.insert(make_pair(i+1,joints_pos));
   }
 }
-
 void NinjaNavigator::update()
 {
   updateEntSysState();
@@ -110,7 +112,27 @@ void NinjaNavigator::update()
         target_com_pose_pub_.publish(com_pose_msg);
       }
   }
+
+  // fix dock mech's joints positions to current positions
+  if(getNaviState() == START_STATE)
+    {
+      sensor_msgs::JointState joints_ctrl_msg;
+      joints_ctrl_msg.name.push_back("yaw_dock_joint");
+      joints_ctrl_msg.name.push_back("pitch_dock_joint");
+      joints_ctrl_msg.position.push_back(my_crr_joints_pos_(YAW));
+      joints_ctrl_msg.position.push_back(my_crr_joints_pos_(PITCH));
+      joint_control_pub_.publish(joints_ctrl_msg);
+      // set current positions to target positions
+      my_tgt_joints_pos_(YAW) = my_crr_joints_pos_(YAW);
+      my_tgt_joints_pos_(PITCH) = my_tgt_joints_pos_(PITCH);
+    }
   
+  sensor_msgs::JointState dock_joint_pos_msg;  
+  dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/yaw"));
+  dock_joint_pos_msg.position.push_back(my_tgt_joints_pos_(YAW));
+  dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/pitch"));
+  dock_joint_pos_msg.position.push_back(my_tgt_joints_pos_(PITCH));
+  dock_joints_pos_pub_.publish(dock_joint_pos_msg);
 }
 
 void NinjaNavigator::updateEntSysState()
@@ -512,9 +534,8 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     setTargetPos(target_pos);
     // setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
-    forceSetTargetBaselinkRPY(target_rot);  
+    forceSetTargetBaselinkRPY(target_rot);
   }
-
   pre_target_pos_.setX(target_pos.x());
   pre_target_pos_.setY(target_pos.y());
   pre_target_pos_.setZ(target_pos.z());
@@ -823,14 +844,16 @@ void NinjaNavigator::jointStateCallback(const sensor_msgs::JointStateConstPtr& s
       {
         dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/yaw"));
         dock_joint_pos_msg.position.push_back(joint_states.position[i]);
+        my_crr_joints_pos_(YAW)  = joint_states.position[i];
       }
     else if(joint_states.name[i] =="pitch_dock_joint")
       {
         dock_joint_pos_msg.name.push_back(string("mod")+std::to_string(getMyID())+string("/pitch"));
         dock_joint_pos_msg.position.push_back(joint_states.position[i]);
+        my_crr_joints_pos_(PITCH)  = joint_states.position[i];
       }
   }
-  dock_joints_pos_pub_.publish(dock_joint_pos_msg);
+  // dock_joints_pos_pub_.publish(dock_joint_pos_msg);
 }
 
 void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr& state)
@@ -857,6 +880,21 @@ void NinjaNavigator::moduleJointsCallback(const sensor_msgs::JointStateConstPtr&
       if(joint_name == "pitch") axis = PITCH;
       module_joint_pos(axis) = joint_states.position[i];
     }
+}
+
+void NinjaNavigator::jointsCtrlCallback(const sensor_msgs::JointStateConstPtr& state)
+{
+  sensor_msgs::JointState joint_states = *state;
+  for(int i =0; i< joint_states.name.size(); i++) {
+    if(joint_states.name[i] =="yaw_dock_joint")
+      {
+        my_tgt_joints_pos_(YAW)  = joint_states.position[i];
+      }
+    else if(joint_states.name[i] =="pitch_dock_joint")
+      {
+        my_tgt_joints_pos_(PITCH)  = joint_states.position[i];
+      }
+  }
 }
 
 void NinjaNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg)
