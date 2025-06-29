@@ -59,6 +59,16 @@ class coordTransformer():
             rospy.logerr("Transform error: %s", e)
             return None
 
+
+    def transform_vector(self, from_frame, to_frame, vec):
+        H = self.getHomoMatFromCoordName(from_frame, to_frame)
+        if H is None:
+            rospy.logerr("Failed to get transform from %s to %s", from_frame, to_frame)
+            return None
+        R = H[:3, :3]
+        v = np.array(vec, dtype=float)
+        return R.dot(v)        
+
 if __name__ == '__main__':
     try:
         rospy.init_node("coordTransformer")

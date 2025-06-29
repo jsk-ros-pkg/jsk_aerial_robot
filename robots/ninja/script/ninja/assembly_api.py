@@ -5,6 +5,7 @@ import smach
 import smach_ros
 import math,time
 from std_msgs.msg import Empty, String, Bool
+from geometry_msgs.msg import TwistStamped
 from aerial_robot_msgs.msg import FlightNav, PoseControlPid
 from spinal.msg import DesireCoord
 from geometry_msgs.msg import PoseStamped
@@ -345,6 +346,8 @@ class ApproachState(smach.State):
         self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
         self.assembly_nav_pub = rospy.Publisher("/assembly/uav/nav", FlightNav, queue_size=10)
+        self.follower_twist_pub = rospy.Publisher(self.robot_name+"/target_velocity_twist",TwistStamped,queue_size=1)
+        self.leader_twist_pub = rospy.Publisher(self.leader+"/target_velocity_twist",TwistStamped,queue_size=1)
         
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
@@ -398,10 +401,25 @@ class ApproachState(smach.State):
                               "follower_target_cog",
                               "world")
 
+        vel_cog_f = self.coordTransformer.transform_vector(
+            from_frame=f"{self.robot_name}/cog",
+            to_frame=f"{self.robot_name}/{self.follower_cp_name}",
+            vec=[ self.contact_vel_x * self.attach_dir * -1.0,
+                  0.0,
+                  0.0 ]
+        )
+
+        vel_cog_l = self.coordTransformer.transform_vector(
+            from_frame=f"{self.leader}/cog",
+            to_frame=f"{self.leader}/{self.leader_cp_name}",
+            vec=[ self.contact_vel_x * self.attach_dir,
+                  0.0,
+                  0.0 ]
+        )
+
+
         pos_error = np.array(self.target_offset[:3] - follower_from_leader[0])
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
-
-        rospy.loginfo(pos_error)
 
         #check if pos and att error are within the torrelance
         if np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol)):
@@ -428,14 +446,18 @@ class ApproachState(smach.State):
             nav_msg_follower.target = 1
             nav_msg_follower.control_frame = 1
             nav_msg_follower.pos_xy_nav_mode=1
-            nav_msg_follower.target_vel_x = self.contact_vel_x * self.attach_dir*(-1.0)
+            # nav_msg_follower.target_vel_x = self.contact_vel_x * self.attach_dir*(-1.0)
+            nav_msg_follower.target_vel_x = float(vel_cog_f[0])
+            nav_msg_follower.target_vel_y = float(vel_cog_f[1])
             #leader
             nav_msg_leader = FlightNav()
             nav_msg_leader.target = 1
             nav_msg_leader.control_frame = 1
             nav_msg_leader.pos_xy_nav_mode=1
-            nav_msg_leader.target_vel_x = self.contact_vel_x * self.attach_dir
-            #assembly
+            # nav_msg_leader.target_vel_x = self.contact_vel_x * self.attach_dir
+            nav_msg_leader.target_vel_x = float(vel_cog_l[0])
+            nav_msg_leader.target_vel_y = float(vel_cog_l[1])
+            #TODO:assembly
             nav_msg_assembly = FlightNav()
             if self.attach_dir < 0:
                 nav_msg_assembly.target = 2
@@ -444,6 +466,29 @@ class ApproachState(smach.State):
             nav_msg_assembly.control_frame = 1
             nav_msg_assembly.pos_xy_nav_mode=1
             nav_msg_assembly.target_vel_x = self.contact_vel_x * self.attach_dir
+
+
+            leader_twist_msg = TwistStamped()
+            leader_twist_msg.header.stamp = rospy.Time.now()
+            leader_twist_msg.header.frame_id = f"{self.leader}/cog"
+            leader_twist_msg.twist.linear.x = vel_cog_l[0]
+            leader_twist_msg.twist.linear.y = vel_cog_l[1]
+            leader_twist_msg.twist.linear.z = vel_cog_l[2]
+            leader_twist_msg.twist.angular.x = 0.0
+            leader_twist_msg.twist.angular.y = 0.0
+            leader_twist_msg.twist.angular.z = 0.0
+            self.leader_twist_pub.publish(leader_twist_msg)
+
+            follower_twist_msg = TwistStamped()
+            follower_twist_msg.header.stamp = rospy.Time.now()
+            follower_twist_msg.header.frame_id = f"{self.robot_name}/cog"
+            follower_twist_msg.twist.linear.x = vel_cog_f[0]
+            follower_twist_msg.twist.linear.y = vel_cog_f[1]
+            follower_twist_msg.twist.linear.z = vel_cog_f[2]
+            follower_twist_msg.twist.angular.x = 0.0
+            follower_twist_msg.twist.angular.y = 0.0
+            follower_twist_msg.twist.angular.z = 0.0
+            self.follower_twist_pub.publish(follower_twist_msg)
 
             # traj_msg_follower = PoseStamped()
             # traj_msg_follower.header.stamp = rospy.Time.now()
