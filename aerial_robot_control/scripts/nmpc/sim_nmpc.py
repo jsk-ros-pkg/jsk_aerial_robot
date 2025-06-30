@@ -187,6 +187,8 @@ def main(args):
         nx_sim,
         nu,
         x_init_sim,
+        x_lower_constraints=dict(zip(ocp_solver.acados_ocp.constraints.idxbx, ocp_solver.acados_ocp.constraints.lbx)),
+        x_upper_constraints=dict(zip(ocp_solver.acados_ocp.constraints.idxbx, ocp_solver.acados_ocp.constraints.ubx)),
         tilt=nmpc.tilt,
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
@@ -333,6 +335,25 @@ def main(args):
             raise Exception(f"acados integrator returned status {status} in closed loop instance {i}")
 
         x_now_sim = sim_solver.get("x")
+
+        # --------- Check constraints ----------
+        for idx in ocp_solver.acados_ocp.constraints.idxbx:
+            lbxi = np.where(ocp_solver.acados_ocp.constraints.idxbx==idx)[0][0]
+            if x_now_sim[idx] < ocp_solver.acados_ocp.constraints.lbx[lbxi] or \
+                    x_now_sim[idx] > ocp_solver.acados_ocp.constraints.ubx[lbxi]:
+                print(f"Warning: Constraint violation at index {idx} in simulation step {i}. "
+                      f"Value: {x_now_sim[idx]}, "
+                      f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx[lbxi]}, "
+                      f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx[lbxi]}")
+        for idx_e in ocp_solver.acados_ocp.constraints.idxbx_e:
+            lbxi_e = np.where(ocp_solver.acados_ocp.constraints.idxbx_e==idx_e)[0][0]
+            if x_now_sim[idx_e] < ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e] or \
+                    x_now_sim[idx_e] > ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]:
+                print(f"Warning: Constraint violation at index {idx_e} in simulation step {i}. "
+                      f"Value: {x_now_sim[idx_e]}, "
+                      f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e]}, "
+                      f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]}, "
+                      "for end of horizon")
 
         # Save current simulation data for later comparison
         x_history.append(x_now_sim.copy())
