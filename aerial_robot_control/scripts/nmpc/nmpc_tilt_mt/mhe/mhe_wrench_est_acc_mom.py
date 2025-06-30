@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
 import numpy as np
-from acados_template import AcadosModel
 import casadi as ca
-
+from acados_template import AcadosModel
 from .mhe_base import MHEBase
-from ..tilt_qd.phys_param_beetle_omni import *
+from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
 class MHEWrenchEstAccMom(MHEBase):
     def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom.yaml")
+        self.phys = phys_omni
 
         super(MHEWrenchEstAccMom, self).__init__()
 
@@ -20,15 +20,15 @@ class MHEWrenchEstAccMom(MHEBase):
         model_name = "mhe_wrench_est_acc_mom_mdl"
 
         # Model states
-        omega_b = ca.SX.sym("omega_b", 3)  # Angular Velocity in Body frame
-        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
+        omega_b = ca.SX.sym("omega_b", 3)       # Angular Velocity in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)           # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)     # Disturbance on torque in Body frame
 
         states = ca.vertcat(omega_b, fds_w, tau_ds_b)
 
         # Model parameters
         tau_u_b = ca.SX.sym("tau_u_b", 3)
-        controls = ca.vertcat(tau_u_b)  # Input u as parameter
+        controls = ca.vertcat(tau_u_b)          # Input u as parameter
 
         # Process noise on force and torque
         w_f = ca.SX.sym("w_f", 3)
@@ -40,8 +40,8 @@ class MHEWrenchEstAccMom(MHEBase):
         measurements = ca.vertcat(fds_w, omega_b)
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
 
         # Explicit dynamics
         ds = ca.vertcat(
@@ -58,8 +58,8 @@ class MHEWrenchEstAccMom(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise

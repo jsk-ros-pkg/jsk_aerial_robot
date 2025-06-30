@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
-
-from .tri_reference_generator import TriNMPCReferenceGenerator
 from ..rh_base import RecedingHorizonBase
-from . import phys_param_trirotor as phys
+from .tri_reference_generator import TriNMPCReferenceGenerator
+from . import phys_param_trirotor as phys_tri
 
 
 class NMPCTiltTriServo(RecedingHorizonBase):
-    def __init__(self):
+    def __init__(self, build: bool = True):
         # Model name
         self.model_name = "tilt_tri_servo_mdl"
-        self.phys = phys
+        self.phys = phys_tri
 
         self.tilt = True
         self.include_servo_model = True
@@ -30,7 +29,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         self.acados_init_p = None
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc")
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -181,7 +180,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         return model
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
         ocp = super().get_ocp()
 
@@ -350,7 +349,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Compile acados ocp
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver
@@ -409,7 +408,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
                                          self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
                                          self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
 
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -421,7 +420,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
 
 
 if __name__ == "__main__":

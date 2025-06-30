@@ -2,8 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
 from ..tilt_qd.qd_nmpc_base import QDNMPCBase
+from . import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoOldCost(QDNMPCBase):
@@ -13,10 +13,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     """
-
-    def __init__(self):
+    def __init__(self, build: bool = True, phys = phys_art):
         # Model name
-        model_name = "tilt_qd_servo_old_cost_mdl"
+        self.model_name = "tilt_qd_servo_old_cost_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -37,11 +36,14 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.include_cog_dist_parameter = False
         self.include_impedance = False
 
+        # Load robot specific parameters
+        self.phys = phys
+
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCServoOldCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__()
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -135,14 +137,14 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]  # x
-        xr[:, 1] = target_xyz[1]  # y
-        xr[:, 2] = target_xyz[2]  # z
+        xr[:, 0] = target_xyz[0]       # x
+        xr[:, 1] = target_xyz[1]       # y
+        xr[:, 2] = target_xyz[2]       # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]  # qx
-        xr[:, 7] = target_qwxyz[1]  # qx
-        xr[:, 8] = target_qwxyz[2]  # qy
-        xr[:, 9] = target_qwxyz[3]  # qz
+        xr[:, 6] = target_qwxyz[0]     # qx
+        xr[:, 7] = target_qwxyz[1]     # qx
+        xr[:, 8] = target_qwxyz[2]     # qy
+        xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]

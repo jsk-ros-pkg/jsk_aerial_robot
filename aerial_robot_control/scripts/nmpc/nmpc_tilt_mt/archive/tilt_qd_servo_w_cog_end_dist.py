@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
-
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 from ..rh_base import RecedingHorizonBase
 from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
-
-from .phys_param_beetle_art import *
-from . import phys_param_beetle_art as phys
+from . import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
@@ -25,8 +22,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
     is has drag - i.e. a disturbance - on each rotor and not only on CoG. This idea was discarded for 
     future use and therefore not included in base definition.
     """
-
-    def __init__(self):
+    def __init__(self, build: bool = True, phys=phys_art):
         # Store model name
         self.model_name = "tilt_qd_servo_thrust_drag_mdl"
 
@@ -56,7 +52,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFullITermDrag.yaml")
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc")
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -133,17 +129,17 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
-        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-        rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-        rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-        rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
+        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
 
-        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-        rot_be4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
+        rot_be4 = np.array([[self.phys.p4_b[0] / den, -self.phys.p4_b[1] / den, 0], [self.phys.p4_b[1] / den, self.phys.p4_b[0] / den, 0], [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -164,44 +160,44 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         ft_r3 = ca.vertcat(0, 0, ft3 - fd3)
         ft_r4 = ca.vertcat(0, 0, ft4 - fd4)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * (ft1 - fd1) * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * (ft2 - fd1) * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * (ft3 - fd1) * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * (ft4 - fd1) * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -self.phys.dr1 * (ft1 - fd1) * self.phys.kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -self.phys.dr2 * (ft2 - fd2) * self.phys.kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -self.phys.dr3 * (ft3 - fd3) * self.phys.kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -self.phys.dr4 * (ft4 - fd4) * self.phys.kq_d_kt)
 
         # Wrench in Body frame
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(self.phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(self.phys.p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        g_i = np.array([0, 0, -gravity])
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        g_i = np.array([0, 0, -self.phys.gravity])
 
         # Explicit dynamics
         ds = ca.vertcat(
             v,
-            ca.mtimes(rot_ib, f_u_b) / mass + g_i + f_dist_i / mass,
+            ca.mtimes(rot_ib, f_u_b) / self.phys.mass + g_i + f_dist_i / self.phys.mass,
             (-wx * qx - wy * qy - wz * qz) / 2,
             (wx * qw + wz * qy - wy * qz) / 2,
             (wy * qw - wz * qx + wx * qz) / 2,
             (wz * qw + wy * qx - wx * qy) / 2,
             ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b + m_dist_b)),
-            (ac - a) / t_servo,
+            (ac - a) / self.phys.t_servo,
         )
         f = ca.Function("f", [states, controls], [ds], ["state", "control_input"], ["ds"], {"allow_free": True})
 
@@ -222,7 +218,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         model = AcadosModel()
         model.name = self.model_name
         model.f_expl_expr = f(states, controls)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = controls
@@ -232,7 +228,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
         return model
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
         ocp = super().get_ocp()
 
@@ -387,7 +383,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # qw
         u_ref = np.zeros(nu)
-        u_ref[0:4] = mass * gravity / 4  # ft1, ft2, ft3, ft4
+        u_ref[0:4] = self.phys.mass * self.phys.gravity / 4  # ft1, ft2, ft3, ft4
         ocp.constraints.x0 = x_ref
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref
@@ -407,7 +403,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
         # Compile acados OCP
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
 
         return solver
 
@@ -433,14 +429,14 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]  # x
-        xr[:, 1] = target_xyz[1]  # y
-        xr[:, 2] = target_xyz[2]  # z
+        xr[:, 0] = target_xyz[0]       # x
+        xr[:, 1] = target_xyz[1]       # y
+        xr[:, 2] = target_xyz[2]       # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]  # qx
-        xr[:, 7] = target_qwxyz[1]  # qx
-        xr[:, 8] = target_qwxyz[2]  # qy
-        xr[:, 9] = target_qwxyz[3]  # qz
+        xr[:, 6] = target_qwxyz[0]     # qx
+        xr[:, 7] = target_qwxyz[1]     # qx
+        xr[:, 8] = target_qwxyz[2]     # qy
+        xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -467,7 +463,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
                                         self.phys.dr1, self.phys.dr2, self.phys.dr3, self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
 
-    def create_acados_sim_solver(self, ocp_model: AcadosModel, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, ocp_model: AcadosModel, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -478,7 +474,7 @@ class NMPCTiltQdServoWCogEndDist(RecedingHorizonBase):
         acados_sim.parameter_values = np.zeros(n_params)
 
         acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
 
 
 if __name__ == "__main__":

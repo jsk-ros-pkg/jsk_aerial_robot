@@ -1,7 +1,3 @@
-"""
- Created by li-jinjie on 24-10-5.
-"""
-
 import yaml
 import os
 import rospkg

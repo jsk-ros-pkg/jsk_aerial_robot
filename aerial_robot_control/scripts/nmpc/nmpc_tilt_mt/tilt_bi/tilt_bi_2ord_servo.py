@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 import casadi as ca
-
-from .bi_reference_generator import BINMPCReferenceGenerator
+from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 from ..rh_base import RecedingHorizonBase
-from . import phys_param_birotor as phys
+from .bi_reference_generator import BINMPCReferenceGenerator
+from . import phys_param_birotor as phys_bi
 
 
 class NMPCTiltBi2OrdServo(RecedingHorizonBase):
-    def __init__(self):
+    def __init__(self, build: bool = True):
         # Model name
         self.model_name = "tilt_bi_2_ord_servo_mdl"
 
@@ -35,13 +34,13 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         self.include_impedance = False
 
         # Load robot specific parameters
-        self.phys = phys
+        self.phys = phys_bi
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltBi2OrdRotorNMPC.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__("nmpc")
+        super().__init__("nmpc", build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -102,11 +101,13 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
         rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
-                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                            [0, 0, 1]])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
         rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
-                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                            [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -124,14 +125,14 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         # Wrench in Body frame
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
         )
 
         tau_s_e1 = ca.vertcat(self.phys.kps * (a1c - a1) + self.phys.kds * (0 - b1), 0, 0)
@@ -190,7 +191,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         return model
 
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
         ocp = super().get_ocp()
 
@@ -349,7 +350,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         # Compile acados OCP
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
-        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+        solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
 
         return solver
@@ -376,14 +377,14 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]  # x
-        xr[:, 1] = target_xyz[1]  # y
-        xr[:, 2] = target_xyz[2]  # z
+        xr[:, 0] = target_xyz[0]       # x
+        xr[:, 1] = target_xyz[1]       # y
+        xr[:, 2] = target_xyz[2]       # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]  # qx
-        xr[:, 7] = target_qwxyz[1]  # qx
-        xr[:, 8] = target_qwxyz[2]  # qy
-        xr[:, 9] = target_qwxyz[3]  # qz
+        xr[:, 6] = target_qwxyz[0]     # qx
+        xr[:, 7] = target_qwxyz[1]     # qx
+        xr[:, 8] = target_qwxyz[2]     # qy
+        xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -402,24 +403,12 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
     def _create_reference_generator(self) -> BINMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return BINMPCReferenceGenerator(self,
-                                        self.phys.p1_b, self.phys.p2_b,
-                                        self.phys.dr1, self.phys.dr2,
+                                        self.phys.p1_b,    self.phys.p2_b,
+                                        self.phys.dr1,     self.phys.dr2,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
 
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
-        ocp_model = super().get_acados_model()
-
-        acados_sim = AcadosSim()
-        acados_sim.model = ocp_model
-
-        n_params = ocp_model.p.size()[0]
-        acados_sim.dims.np = n_params
-        acados_sim.parameter_values = np.zeros(n_params)
-
-        acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
-
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    
+    def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -430,6 +419,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         acados_sim.parameter_values = np.zeros(n_params)
 
         acados_sim.solver_options.T = ts_sim
+
         # Important to sim 2-ord servo model
         acados_sim.solver_options.integrator_type = 'IRK'
         acados_sim.solver_options.num_stages = 3
@@ -437,7 +427,7 @@ class NMPCTiltBi2OrdServo(RecedingHorizonBase):
         acados_sim.solver_options.newton_iter = 3  # for implicit integrator
         acados_sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
 
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
 
 
 if __name__ == "__main__":

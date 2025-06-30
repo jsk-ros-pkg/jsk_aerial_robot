@@ -2,7 +2,6 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
 from ..tilt_qd.qd_nmpc_base import QDNMPCBase
 from . import phys_param_mini_qd as phys_mini_qd
 
@@ -13,8 +12,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the thrust for each rotor.
     """
-
-    def __init__(self, phys=phys_mini_qd):
+    def __init__(self, build: bool = True, phys=phys_mini_qd):
         # Model name
         self.model_name = "fix_qd_thrust_out_mdl"
         self.phys = phys
@@ -32,7 +30,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCFullModel.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__()
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -113,14 +111,14 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]  # x
-        xr[:, 1] = target_xyz[1]  # y
-        xr[:, 2] = target_xyz[2]  # z
+        xr[:, 0] = target_xyz[0]       # x
+        xr[:, 1] = target_xyz[1]       # y
+        xr[:, 2] = target_xyz[2]       # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]  # qx
-        xr[:, 7] = target_qwxyz[1]  # qx
-        xr[:, 8] = target_qwxyz[2]  # qy
-        xr[:, 9] = target_qwxyz[3]  # qz
+        xr[:, 6] = target_qwxyz[0]     # qx
+        xr[:, 7] = target_qwxyz[1]     # qx
+        xr[:, 8] = target_qwxyz[2]     # qy
+        xr[:, 9] = target_qwxyz[3]     # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
 
         # Assemble control reference

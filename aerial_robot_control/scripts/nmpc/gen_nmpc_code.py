@@ -14,17 +14,33 @@ if __name__ == "__main__":
     class_names = [cls for cls in dir() if not cls.startswith('_') and isinstance(globals()[cls], type)]
     class_names_str = ", ".join(class_names)
 
-    parser = argparse.ArgumentParser(description="Run NMPC with different models to generate code.")
-    parser.add_argument("-m", "--model", type=str, required=True,
-                        help=f"Model name to generate code for. Choose from: {class_names_str}")
-    args = parser.parse_args()
+    debug = 0
+    if debug:
+        model_name = "NMPCTiltQdServoDist"
+        #    NMPCFixQdAngvelOut
+        #    NMPCFixQdThrustOut
+        #    NMPCTiltQdNoServo
+        #    NMPCTiltQdServo
+        #    NMPCTiltQdServoDist
+        #    NMPCTiltQdServoImpedance
+        #    NMPCTiltQdServoThrustDist
+        #    NMPCTiltQdServoThrustImpedance
+        #    NMPCTiltTriServo
+        #    NMPCTiltBiServo
+        #    NMPCTiltBi2OrdServo
+        #    MHEWrenchEstAccMom
 
-    model_name = args.model
+    else:
+        parser = argparse.ArgumentParser(description="Run NMPC with different models to generate code.")
+        parser.add_argument("-m", "--model", type=str, required=True,
+                            help=f"Model name to generate code for. Choose from: {class_names_str}")
+        args = parser.parse_args()
+        model_name = args.model
+
     if model_name not in class_names:
         raise ValueError(f"Model '{model_name}' not found. Available models: {class_names_str}")
 
     print(f"Generating code for model: {model_name}")
-    # create object based on the str class name
     nmpc_class = globals()[model_name]
     nmpc = nmpc_class()
 

@@ -109,7 +109,7 @@ def main(args):
     N_sim = int(t_total_sim / ts_sim)
 
     # Sim solver
-    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, is_build=True)
+    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, build=True)
     nx_sim = sim_solver.acados_sim.dims.nx
 
     # Disturbance Initialization
@@ -299,13 +299,13 @@ def main(args):
                         wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # World frame
                 alpha_torque = 0.05
                 disturb_estimated[3:6] = (1 - alpha_torque) * disturb_estimated[3:6] + alpha_torque * (
-                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # Body frame
+                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])   # Body frame
 
             elif args.est_dist_type == 2:
                 # Step 1: Shift u_list
                 mhe_u_list[:-1, :] = mhe_u_list[1:, :]
                 mhe_u_list[-1, :3] = np.dot(rot_wb, wrench_u_sensor_b[:3])  # f_u_w
-                mhe_u_list[-1, 3:] = wrench_u_sensor_b[3:]  # tau_u_b
+                mhe_u_list[-1, 3:] = wrench_u_sensor_b[3:]                  # tau_u_b
 
                 # Step 2: Shift yref_list
                 mhe_nu = mhe_solver.acados_ocp.dims.nu
@@ -388,7 +388,7 @@ def main(args):
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = sf_b_imu
-                mhe_yref_list[-1, 3:6] = w_imu  # omega_b, from sensor
+                mhe_yref_list[-1, 3:6] = w_imu               # omega_b, from sensor
 
                 # Step 3: Fill yref and p
                 mhe_solver.set(0, "yref", mhe_yref_0)

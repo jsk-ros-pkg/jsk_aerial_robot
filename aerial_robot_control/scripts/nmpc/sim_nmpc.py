@@ -20,8 +20,11 @@ from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_dist import NMPCTiltQdServoDist
 from nmpc_tilt_mt.archive.tilt_qd_servo_drag_w_dist import NMPCTiltQdServoDragDist
 from nmpc_tilt_mt.archive.tilt_qd_servo_w_cog_end_dist import NMPCTiltQdServoWCogEndDist
 
-from nmpc_tilt_mt.archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
+# - Conside servo angle derivative as state
 from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_diff import NMPCTiltQdServoDiff
+
+# - Consider the absolute servo angle command in cost
+from nmpc_tilt_mt.archive.tilt_qd_servo_old_cost import NMPCTiltQdServoOldCost
 
 # - Consider the thrust delay with its model
 from nmpc_tilt_mt.tilt_qd.tilt_qd_thrust import NMPCTiltQdThrust
@@ -167,7 +170,7 @@ def main(args):
     N_sim = int(t_total_sim / ts_sim)
 
     # Sim solver
-    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, is_build=True)
+    sim_solver = sim_nmpc.create_acados_sim_solver(ts_sim, build=True)
     nx_sim = sim_solver.acados_sim.dims.nx
 
     # State Initialization
