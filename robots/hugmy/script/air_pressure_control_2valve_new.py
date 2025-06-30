@@ -13,8 +13,8 @@ class Perching:
         self.air_pressure_sensor1_msg = Int8()
         self.max_pressure = 50
         self.ready_pressure = 18
-        self.perching_pressure = 45
-        self.bottom_usual_pressure = 15
+        self.perching_pressure = 50
+        self.bottom_usual_pressure = 20
 
         # Flight state
         self.flight_state_sub = rospy.Subscriber('/quadrotor/flight_state', UInt8, self.flight_state_cb)
@@ -27,6 +27,9 @@ class Perching:
         self.perching_flag = 0
         self.perching_sub_flag = False
         self.deperching_pub = rospy.Publisher('/perching_state',UInt8,queue_size = 1)
+        # self.pump_msg = UInt8()
+        # self.pump_msg.data = 0
+        # self.pump_pub = rospy.Publisher('/pump',UInt8,queue_size = 1)
         self.deperching_msg = UInt8()
         self.deperching_msg.data = 2
 
@@ -147,18 +150,18 @@ class Perching:
             self.adjust_pump()
         elif self.air_pressure_sensor1_msg.data >= self.ready_pressure:
             rospy.logwarn("==============ready perching==================")
-            self.stop_pump()
             self.stop_solenoid_valve_all()
+            self.stop_pump()
             rospy.logwarn("joint to bottom!!!")
-            rospy.sleep(2.0)
-            self.perching_sub_flag = False
-            self.perching_flag = 2
+            rospy.sleep(100.0)
+            # self.perching_sub_flag = False
+            # self.perching_flag = 2
 
     def start_perching(self):
         # if self.flight_state_flag:
         rospy.logwarn("==============perching==================")
         if self.air_pressure_sensor_msg.data <= self.max_pressure:
-            if self.air_pressure_sensor_msg.data >= 21 and self.halt_flag:
+            if self.air_pressure_sensor_msg.data >= 15 and self.halt_flag:
                 self.max_work_pump()
                 rospy.logwarn("halt")
                 self.halt_pub.publish(Empty())
@@ -182,15 +185,18 @@ class Perching:
         rospy.loginfo(self.cnt)
         self.cnt +=1
         if self.cnt >= 50:
+            self.cnt = 0
             rospy.sleep(1.0)
             rospy.loginfo("deperch ready")
             self.perching_flag = 4
         else:
-            if self.air_pressure_sensor1_msg.data <= 5:
+            if self.air_pressure_sensor1_msg.data < 20:
                 self.start_solenoid_valve()
-                self.cal_pressure(5, 1)
+                self.cal_pressure(20, 1)
                 self.adjust_pump()
             elif self.air_pressure_sensor_msg.data < self.perching_pressure:
+                self.stop_solenoid_valve()
+                self.stop_solenoid_valve1()
                 self.cal_pressure(self.perching_pressure, 0)
                 self.adjust_pump()
             else:
