@@ -19,13 +19,13 @@ controller:
     a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -1.5708
 
-    # Cost function weights
-    Qp_xy: 300  # 0
-    Qp_z: 400  # 500
-    Qv_xy: 10  # 0
-    Qv_z: 10  # 100
-    Qq_xy: 300  # 400
-    Qq_z: 600
+    # params for the cost function
+    Qp_xy: 30  #300 # 0
+    Qp_z: 40  #400 # 500
+    Qv_xy: 1 #10 # 0
+    Qv_z: 1  #10 # 100
+    Qq_xy: 30  #300 # 400
+    Qq_z: 60 #600
     Qw_xy: 5
     Qw_z: 5
     Rt: 1

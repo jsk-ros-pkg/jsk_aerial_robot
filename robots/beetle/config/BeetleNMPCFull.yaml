@@ -11,8 +11,8 @@ controller:
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
-    v_max: 1
-    v_min: -1
+    v_max: 10 # 1
+    v_min: -10 # 1
 
     thrust_max: 30 # N
     thrust_min: 0 # N
@@ -20,7 +20,34 @@ controller:
     a_max: 3.1416  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -3.1416
 
-    # Cost function weights
+    # Weights for cost function
+    # How to improve controller performance (in order of effectiveness):
+    # 1. Change reference (e.g. aggressive csv)
+    # 2. Increase constraints (specifially, v_max)
+    # 3. Modify weights
+    # ==== From paper ====
+    # Qp_xy: 10
+    # Qp_z: 10
+    # Qv_xy: 0.05
+    # Qv_z: 0.05
+    # Qq_xy: 0.001
+    # Qq_z: 0.001
+    # Qw_xy: 0.005
+    # Qw_z: 0.005
+    # Rt: 0.1
+    # ==== Aggressive (overshooting) ====
+    # Qp_xy: 300 # 300
+    # Qp_z: 400 # 400
+    # Qv_xy: 0.1 # 10
+    # Qv_z: 0.1 # 10
+    # Qq_xy: 10 # 300
+    # Qq_z: 10 # 600
+    # Qw_xy: 10
+    # Qw_z: 10
+    # Qa: 1
+    # Rt: 0.001 # 1
+    # Rac_d: 100 # 250  # difference of ac
+    # ==== Default ====
     Qp_xy: 300
     Qp_z: 400
     Qv_xy: 10
