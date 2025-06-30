@@ -180,6 +180,9 @@ def main(args):
     # ---------- Reference ----------
     reference_generator = nmpc.get_reference_generator()
 
+    # Disturbance simulation
+    impulse_done =  False
+
     # ---------- Visualization ----------
     viz = Visualizer(
         args.arch,
@@ -229,6 +232,12 @@ def main(args):
                 x_now[13:16] = deepcopy(x_now_sim[16:19])
             elif args.arch == 'qd':
                 x_now[13:17] = deepcopy(x_now_sim[17:21])
+
+        # -------- Velocity disturbance --------
+        if t_now > 3.0 and not impulse_done:
+            x_now_sim[3:6] += np.array([5.0, 5.0, 5.0])
+            x_now_sim[10:13] += np.array([10.0, 10.0, 10.0])
+            impulse_done = True
 
         # -------- Update control target --------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
