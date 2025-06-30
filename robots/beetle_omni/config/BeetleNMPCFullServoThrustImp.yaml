@@ -7,7 +7,7 @@ controller:
     T_horizon: 2.0  # seconds
     T_step: 0.1  # seconds
 
-    # constraint
+    # Hard constraints
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
@@ -20,7 +20,7 @@ controller:
     a_max: 3.92699  # 180 + 45 degree ~ 0.5
     a_min: -3.92699
 
-    # params for the cost function
+    # Cost function weights
     epsilon: 0.00001  # avoid the dividend is 0 when M = 0
     # position
     pMxy: 1.5
@@ -44,6 +44,10 @@ controller:
 
     Rtc_d: 1  # difference of ftc
     Rac_d: 250  # difference of ac
+
+    # Slack constraint weights
+    linear_slack_weight: 10
+    quadratic_slack_weight: 100
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false

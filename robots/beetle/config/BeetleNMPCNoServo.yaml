@@ -6,7 +6,7 @@ controller:
     T_horizon: 2.0  # seconds
     T_step: 0.1  # seconds
 
-    # constraint
+    # Hard constraints
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
@@ -30,6 +30,10 @@ controller:
     Qw_z: 5
     Rt: 1
     Rac: 50 # 5
+
+    # Slack constraint weights
+    linear_slack_weight: 10
+    quadratic_slack_weight: 100
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false

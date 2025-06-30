@@ -51,6 +51,10 @@ class QDNMPCBase(RecedingHorizonBase):
         if not hasattr(self, "include_impedance"):
             self.include_impedance = False
 
+        # - include_soft_constraints: Flag to include soft constraints for the state.
+        if not hasattr(self, "include_soft_constraints"):
+            self.include_soft_constraints = False
+
         self.acados_init_p = None  # initial value for parameters in acados. Mainly for physical parameters.
 
         # Call RecedingHorizon constructor coming as NMPC method
@@ -597,6 +601,23 @@ class QDNMPCBase(RecedingHorizonBase):
                  self.params["a_max"],
                  self.params["a_max"],
                  self.params["a_max"]])
+
+        # - Slack variables for soft constraints
+        if self.include_soft_constraints:
+            # Note: Symmetrically for upper and lower bounds
+            # -- Indices of slacked constraints within bx
+            ocp.constraints.idxsbx = np.arange(len(ocp.constraints.idxbx))
+            ocp.constraints.idxsbx_e = np.arange(len(ocp.constraints.idxbx))
+            # -- Linear term
+            ocp.cost.Zl =   self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
+            ocp.cost.Zu =   self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
+            ocp.cost.Zl_e = self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            ocp.cost.Zu_e = self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            # -- Quadratic term
+            ocp.cost.zl =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
+            ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
+            ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
 
         # Initial state and reference: Set all values such that robot is hovering
         x_ref = np.zeros(nx)
