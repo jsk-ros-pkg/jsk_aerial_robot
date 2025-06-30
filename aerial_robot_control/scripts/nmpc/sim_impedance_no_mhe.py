@@ -46,7 +46,7 @@ def main(args):
 
     # --------- Disturbance Rejection ---------
     ts_sensor = 0.01
-    disturb_estimated = np.zeros(6)  # fds_w, tau_ds_b. Note that, they are in different frames.
+    disturb_estimated = np.zeros(6)  # fds_w, tau_ds_b. Note that they are in different frames.
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
@@ -125,14 +125,22 @@ def main(args):
 
         # Simulate fixed disturbance at singular points
         if 2.0 <= t_now < 3.0:
-            disturb[0] = 3.0
+            disturb[0] = 5.0
+
+        if 3.0 <= t_now < 4.0:
             disturb[1] = -5.0
-            disturb[2] = -2.0
+
+        if 4.0 <= t_now < 5.0:
+            disturb[2] = -5.0
 
         if 5.0 <= t_now < 6.0:
-            disturb[3] = 0.3
+            disturb[3] = 0.5
+
+        if 6.0 <= t_now < 7.0:
             disturb[4] = -0.5
-            disturb[5] = 0.2
+
+        if 7.0 <= t_now < 8.0:
+            disturb[5] = 0.5
 
         # --------- Update state estimation ---------
         assert nmpc.include_impedance or nmpc.include_cog_dist_model
@@ -142,21 +150,21 @@ def main(args):
         x_now[-6:] = disturb_estimated
 
         # -------- Update control target --------
-        target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+        target_xyz = np.array([[0.0, 0.0, 0.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
         if args.plot_type == 2:
             target_xyz = np.array([[0.0, 0.0, 0.0]]).T
             target_rpy = np.array([[0.5, 0.5, 0.5]]).T
 
-        if t_total_sim > 2.0:
-            if 2.0 <= t_now < 6:
-                target_xyz = np.array([[0.3, 0.6, 1.0]]).T
-
-                roll = 30.0 / 180.0 * np.pi
-                pitch = 60.0 / 180.0 * np.pi
-                yaw = 90.0 / 180.0 * np.pi
-                target_rpy = np.array([[roll, pitch, yaw]]).T
+        # if t_total_sim > 2.0:
+        #     if 2.0 <= t_now < 6:
+        #         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
+        #
+        #         roll = 30.0 / 180.0 * np.pi
+        #         pitch = 60.0 / 180.0 * np.pi
+        #         yaw = 90.0 / 180.0 * np.pi
+        #         target_rpy = np.array([[roll, pitch, yaw]]).T
 
         # Compute reference trajectory from target pose
         xr, ur = reference_generator.compute_trajectory(target_xyz, target_rpy)
@@ -305,6 +313,8 @@ def main(args):
             ts_sim,
             t_total_sim
         )
+    elif args.plot_type == 3:
+        viz.visualize_disturb(ts_sim, t_total_sim)
 
 
 if __name__ == "__main__":
