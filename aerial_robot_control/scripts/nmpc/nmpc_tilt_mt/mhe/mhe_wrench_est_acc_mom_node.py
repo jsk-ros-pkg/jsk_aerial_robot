@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-'''
- Created by li-jinjie on 24-12-15.
-'''
-
 import os
 import yaml
 import rospy

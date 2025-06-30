@@ -36,8 +36,8 @@ controller:
     oMz: 0.9
     Qw_xy: 10  # oDxy
     Qw_z: 10  # oDz
-    Qq_xy: 6  # oKxy
-    Qq_z: 6  # oKz
+    Qq_xy: 15  # oKxy
+    Qq_z: 15  # oKz
 
     # actuators
     Qa: 2

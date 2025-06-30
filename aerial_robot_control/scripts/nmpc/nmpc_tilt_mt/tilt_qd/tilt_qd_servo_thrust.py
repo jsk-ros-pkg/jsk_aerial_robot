@@ -124,8 +124,10 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
@@ -152,3 +154,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         ur = np.zeros([nn, nu])
 
         return xr, ur
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

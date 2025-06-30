@@ -201,3 +201,7 @@ class MHEKinematics(RecedingHorizonBase):
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
         return AcadosOcpSolver(ocp, json_file=json_file_path, build=True)
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")

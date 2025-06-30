@@ -3,15 +3,16 @@
 import numpy as np
 import casadi as ca
 from acados_template import AcadosModel
-from .mhe_base import QDMHEBase
+from .mhe_base import MHEBase
 from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
-class MHEWrenchEstIMUAct(QDMHEBase):
+class MHEWrenchEstIMUAct(MHEBase):
     def __init__(self):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEImuActuator.yaml")
+        self.phys = phys_omni
 
         super(MHEWrenchEstIMUAct, self).__init__()
 
@@ -239,3 +240,7 @@ class MHEWrenchEstIMUAct(QDMHEBase):
         print("Q_P: \n", Q_P)
 
         return Q_R, R_Q, Q_P
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")

@@ -129,8 +129,10 @@ class NMPCTiltQdThrust(QDNMPCBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
@@ -157,3 +159,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
         ur[:, 7] = a_ref[3]
 
         return xr, ur
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

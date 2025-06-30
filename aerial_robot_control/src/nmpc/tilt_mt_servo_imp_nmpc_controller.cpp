@@ -88,9 +88,7 @@ void nmpc::TiltMtServoImpNMPC::setImpParams()
 
   const double* pM = imp_mpc_solver_ptr->getpM();
   const double* oM = imp_mpc_solver_ptr->getoM();
-  double enlarge_factor = imp_mpc_solver_ptr->getEnlargeFactor();
-  vector<double> p = { pM[0] * enlarge_factor, pM[1] * enlarge_factor, pM[2] * enlarge_factor,
-                       oM[0] * enlarge_factor, oM[1] * enlarge_factor, oM[2] * enlarge_factor };
+  vector<double> p = { pM[0], pM[1], pM[2], oM[0], oM[1], oM[2] };
   mpc_solver_ptr_->setParamSparseAllStages(idx, p);
 
   idx_p_imp_end_ = idx_p_dist_end_ + 6;

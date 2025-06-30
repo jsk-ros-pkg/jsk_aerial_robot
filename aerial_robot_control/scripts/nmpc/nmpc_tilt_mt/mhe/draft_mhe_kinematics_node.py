@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped, TwistStamped, AccelStamped
 from spinal.msg import Imu
-from nmpc_tilt_mt.mhe.draft_mhe_kinematics import MHEKinematics # Bugfix for check_python3 workflow
+from .draft_mhe_kinematics import MHEKinematics
 
 # TODO why run ros node in python? -> convert this file to cpp and move out of 'scripts/' folder. 
 

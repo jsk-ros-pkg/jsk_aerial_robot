@@ -10,7 +10,7 @@ from . import phys_param_birotor as phys_bi
 
 
 class NMPCTiltBiServo(RecedingHorizonBase):
-    def __init__(self, overwrite: bool = False, build: bool = True):
+    def __init__(self, build: bool = True):
         # Model name
         self.model_name = "tilt_bi_servo_mdl"
 
@@ -350,8 +350,10 @@ class NMPCTiltBiServo(RecedingHorizonBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
@@ -398,3 +400,7 @@ class NMPCTiltBiServo(RecedingHorizonBase):
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

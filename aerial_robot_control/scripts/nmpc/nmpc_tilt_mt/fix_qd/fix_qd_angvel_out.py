@@ -18,9 +18,6 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
     is the only one to not have the angular velocity as state and instead has it defined as control input.
     Therefore, it differs fundamentally in the model and solver.
-    
-    :param bool overwrite: Flag to overwrite existing c generated code for the OCP solver. Default: False
-    :param bool build: Flag to build a solver as c generated code. Default: True
     """
     def __init__(self, build: bool = True, phys=phys_art):
         # Read parameters from configuration file in the robot's package
@@ -191,7 +188,6 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
         return AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
-    
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
 
@@ -214,3 +210,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

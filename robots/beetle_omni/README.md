@@ -141,6 +141,15 @@ rosrun aerial_robot_planning mpc_smach_node.py beetle1
 ```
 Then choose the trajectory you want the drone to perform.
 
+## Experiments
+
+Most commands are the same with simulation.
+
+For using wrench sensor, call the following command in hovering to calibrate the wrench sensor:
+```bash
+rosservice call /cfs_sensor_calib "{}"
+```
+
 # Flying Hand
 
 We need two notebooks, one as ground station and the other for visual feedback.

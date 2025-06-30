@@ -25,7 +25,7 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "gimbalrotor", "TiltTriRotorNMPC.yaml")
-        
+
         # Create acados model & solver and generate c code
         super().__init__("nmpc", build)
 
@@ -81,24 +81,30 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                            [0, 0, 1]])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                            [0, 0, 1]])
 
         den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
+        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+                            [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0],
+                            [0, 0, 1]])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -189,7 +195,8 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0]; nu = ocp.model.u.size()[0]
+        nx = ocp.model.x.size()[0]
+        nu = ocp.model.u.size()[0]
 
         # Define weights
         Q = np.diag(
@@ -367,8 +374,10 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
@@ -393,20 +402,19 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
         ur[:, 2] = ft_ref[2]
 
         return xr, ur
-            
+
     def get_reference_generator(self) -> TriNMPCReferenceGenerator:
         return self._reference_generator
-    
+
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
         return TriNMPCReferenceGenerator(self,
                                          self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b,
                                          self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
                                          self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
-    
     def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
-        
+
         acados_sim = AcadosSim()
         acados_sim.model = ocp_model
 
@@ -416,3 +424,7 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

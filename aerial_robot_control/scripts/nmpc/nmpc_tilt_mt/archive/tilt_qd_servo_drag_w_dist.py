@@ -20,8 +20,6 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
     For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
     is has drag - i.e. a disturbance - on each rotor and not only on CoG. This idea was discarded for 
     future use and therefore not included in base definition.
-
-    :param bool build: Flag to build a solver as c generated code. Default: True
     """
     def __init__(self, build: bool = True, phys=phys_art):
         # Model name
@@ -424,8 +422,10 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
         :return ur: Reference for the input u
         """
         # Get dimensions
-        ocp = self.get_ocp(); nn = ocp.dims.N
-        nx = ocp.dims.nx; nu = ocp.dims.nu
+        ocp = self.get_ocp()
+        nn = ocp.solver_options.N_horizon
+        nx = ocp.dims.nx
+        nu = ocp.dims.nu
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
@@ -475,3 +475,7 @@ class NMPCTiltQdServoDragDist(RecedingHorizonBase):
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this controller.")

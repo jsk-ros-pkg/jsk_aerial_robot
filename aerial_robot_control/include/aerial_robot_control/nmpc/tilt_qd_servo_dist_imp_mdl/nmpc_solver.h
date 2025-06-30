@@ -174,7 +174,7 @@ protected:
     // position
     Eigen::MatrixXd pK_imp = Eigen::DiagonalMatrix<double, 3>(pK_[0], pK_[1], pK_[2]);
     Eigen::MatrixXd pD_imp = Eigen::DiagonalMatrix<double, 3>(pD_[0], pD_[1], pD_[2]);
-    Eigen::MatrixXd pM_imp = Eigen::DiagonalMatrix<double, 3>(pM_[0], pM_[1], pM_[2]);
+    Eigen::MatrixXd pM_imp = Eigen::DiagonalMatrix<double, 3>(1.0, 1.0, 1.0);
 
     Eigen::MatrixXd p_weight(9, 3);
     p_weight.block<3, 3>(0, 0) = pK_imp;
@@ -186,7 +186,7 @@ protected:
     // orientation
     Eigen::MatrixXd oK_imp = Eigen::DiagonalMatrix<double, 3>(oK_[0], oK_[1], oK_[2]);
     Eigen::MatrixXd oD_imp = Eigen::DiagonalMatrix<double, 3>(oD_[0], oD_[1], oD_[2]);
-    Eigen::MatrixXd oM_imp = Eigen::DiagonalMatrix<double, 3>(oM_[0], oM_[1], oM_[2]);
+    Eigen::MatrixXd oM_imp = Eigen::DiagonalMatrix<double, 3>(1.0, 1.0, 1.0);
 
     Eigen::MatrixXd o_weight(9, 3);
     o_weight.block<3, 3>(0, 0) = oK_imp;

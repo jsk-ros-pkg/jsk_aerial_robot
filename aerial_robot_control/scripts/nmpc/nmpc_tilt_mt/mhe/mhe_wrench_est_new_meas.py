@@ -3,11 +3,11 @@
 import numpy as np
 from acados_template import AcadosModel
 import casadi as ca
-from .mhe_base import QDMHEBase
+from .mhe_base import MHEBase
 from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
-class MHEVelDynIMU(QDMHEBase):
+class MHEVelDynIMU(MHEBase):
     def __init__(self):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
@@ -55,7 +55,7 @@ class MHEVelDynIMU(QDMHEBase):
             ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
-        
+
         rot_bw = rot_wb.T
 
         # Sensor function
@@ -67,7 +67,6 @@ class MHEVelDynIMU(QDMHEBase):
         # Inertia
         I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
         I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
-        
         # dynamic model
         ds = ca.vertcat(
             ca.mtimes(I_inv, (-ca.cross(omega_b, ca.mtimes(I, omega_b)) + tau_u_b + tau_ds_b)),
@@ -79,7 +78,7 @@ class MHEVelDynIMU(QDMHEBase):
         # Implicit dynamics
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - f(states, noise)
-        
+
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
@@ -141,3 +140,7 @@ class MHEVelDynIMU(QDMHEBase):
         print("Q_P: \n", Q_P)
 
         return Q_R, R_Q, Q_P
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")

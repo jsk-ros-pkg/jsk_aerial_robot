@@ -3,15 +3,16 @@
 import numpy as np
 import casadi as ca
 from acados_template import AcadosModel
-from .mhe_base import QDMHEBase
+from .mhe_base import MHEBase
 from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
-class MHEWrenchEstMomentum(QDMHEBase):
+class MHEWrenchEstMomentum(MHEBase):
     def __init__(self):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEMomentum.yaml")
+        self.phys = phys_omni
 
         super(MHEWrenchEstMomentum, self).__init__()
 
@@ -55,7 +56,7 @@ class MHEWrenchEstMomentum(QDMHEBase):
             w_tau,
         )
         f = ca.Function("f", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
-        
+
         # Implicit dynamics
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - f(states, noise)
@@ -104,7 +105,7 @@ class MHEWrenchEstMomentum(QDMHEBase):
             ]
         )
         print("R_Q: \n", R_Q)
-        
+
         Q_P = np.diag(
             [
                 self.params["P_v"],
@@ -122,5 +123,9 @@ class MHEWrenchEstMomentum(QDMHEBase):
             ]
         )
         print("Q_P: \n", Q_P)
-        
+
         return Q_R, R_Q, Q_P
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")

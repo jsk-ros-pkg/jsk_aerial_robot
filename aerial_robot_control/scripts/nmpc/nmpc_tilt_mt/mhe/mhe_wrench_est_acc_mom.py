@@ -3,15 +3,16 @@
 import numpy as np
 import casadi as ca
 from acados_template import AcadosModel
-from .mhe_base import QDMHEBase
+from .mhe_base import MHEBase
 from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
-class MHEWrenchEstAccMom(QDMHEBase):
+class MHEWrenchEstAccMom(MHEBase):
     def __init__(self):
         self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom.yaml")
+        self.phys = phys_omni
 
         super(MHEWrenchEstAccMom, self).__init__()
 
@@ -21,8 +22,8 @@ class MHEWrenchEstAccMom(QDMHEBase):
 
         # Model states
         omega_b = ca.SX.sym("omega_b", 3)       # Angular Velocity in Body frame
-        fds_w = ca.SX.sym("fds_w", 3)             # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)       # Disturbance on torque in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)           # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)     # Disturbance on torque in Body frame
 
         states = ca.vertcat(omega_b, fds_w, tau_ds_b)
 
@@ -54,7 +55,7 @@ class MHEWrenchEstAccMom(QDMHEBase):
         # Implicit dynamics
         x_dot = ca.SX.sym("x_dot", states.size()[0])
         f_impl = x_dot - f(states, noise)
-        
+
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
@@ -116,3 +117,7 @@ class MHEWrenchEstAccMom(QDMHEBase):
         print("Q_P: \n", Q_P)
 
         return Q_R, R_Q, Q_P
+
+
+if __name__ == "__main__":
+    print("Please run the gen_nmpc_code.py in the nmpc folder to generate the code for this estimator.")
