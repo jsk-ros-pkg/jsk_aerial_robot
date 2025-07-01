@@ -731,12 +731,12 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 #ifndef SIMULATION
   if(pwm_msg.motor_index_length)
     {
+	  if (motor_number_== 0)
+		{
+		  motor_number_ = 4;
+		  nh_->logwarn("Motor number set to 4 for test. If you want to test more motors, please perform motor arming before running the PWM test.");
+	    }
       /*Individual test mode*/
-      if (motor_number_== 0)
-        {
-        motor_number_ = 4;
-        nh_->logwarn("Motor number set to 4 for test. If you want to test more motors, please perform motor arming before running the PWM test.");
-        }
       if(pwm_msg.motor_index_length != pwm_msg.pwms_length)
         {
           nh_->logerror("The number of index does not match the number of pwms.");
@@ -748,7 +748,7 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         /*fail safe*/
         if (motor_index < motor_number_)
           {
-            if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] < MAX_PWM)
+            if (IDLE_DUTY <= pwm_msg.pwms[i] && pwm_msg.pwms[i] <= MAX_PWM)
               {
                 pwm_test_value_[motor_index] = pwm_msg.pwms[i];
               }
@@ -760,8 +760,9 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
           }
         else
           {
-            pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+        	pwm_test_value_[motor_index] = std::max(IDLE_DUTY, std::min(pwm_msg.pwms[i], MAX_PWM));
           }
+
         if (!pwm_test_flag_)
           {
             target_pwm_[motor_index] = pwm_test_value_[motor_index];
@@ -775,12 +776,12 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
           if(!pwm_test_flag_)
             {
             pwm_test_flag_ = true;
-            nh_->logwarn("Enter pwm test mode");
+            nh_->logwarn("Enter pwm test mode for all motors");
             }
           /*Simultaneous test mode*/
           for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
             /*fail safe*/
-              if (pwm_msg.pwms[0] >= IDLE_DUTY && pwm_msg.pwms[0] < MAX_PWM)
+              if (IDLE_DUTY <= pwm_msg.pwms[0] && pwm_msg.pwms[0] <= MAX_PWM)
                 {
                   pwm_test_value_[i] = pwm_msg.pwms[0];
                 }
@@ -793,8 +794,8 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         }
       else if(!pwm_msg.pwms_length && pwm_test_flag_)
         {
-          pwm_test_flag_ = false;
-          nh_->logwarn("Escape from pwm test mode");
+    	  pwm_test_flag_ = false;
+    	  nh_->logwarn("Escape from pwm test mode");
         }
     }
 #endif
