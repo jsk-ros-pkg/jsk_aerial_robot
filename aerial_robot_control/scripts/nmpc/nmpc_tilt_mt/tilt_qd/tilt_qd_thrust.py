@@ -38,6 +38,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False  # TODO seperation between model and parameter necessary?
         self.include_impedance = False
+        self.include_quaternion_constraint = True
         self.include_soft_constraints = True
 
         # Read parameters from configuration file in the robot's package
