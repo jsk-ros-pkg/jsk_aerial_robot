@@ -144,9 +144,9 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
     {
       JointProf joint_prof = joint_profiles_[servo.first];
       int32_t goal_pos;
-      if(value_type = ValueType::BIT){
+      if(value_type == ValueType::BIT){
         goal_pos = static_cast<int32_t>(servo.second);
-      }else if(value_type = ValueType::RADIAN){
+      }else if(value_type == ValueType::RADIAN){
         goal_pos = static_cast<int32_t>(servo.second*joint_prof.angle_sgn/joint_prof.angle_scale + joint_prof.zero_point_offset);
       }
 
