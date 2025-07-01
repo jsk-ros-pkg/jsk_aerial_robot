@@ -180,9 +180,6 @@ def main(args):
     # ---------- Reference ----------
     reference_generator = nmpc.get_reference_generator()
 
-    # Disturbance simulation
-    impulse_done =  False
-
     # ---------- Visualization ----------
     viz = Visualizer(
         args.arch,
@@ -233,13 +230,7 @@ def main(args):
             elif args.arch == 'qd':
                 x_now[13:17] = deepcopy(x_now_sim[17:21])
 
-        # -------- Velocity disturbance --------
-        if t_now > 3.0 and not impulse_done:
-            x_now_sim[3:6] += np.array([5.0, 5.0, 5.0])
-            x_now_sim[10:13] += np.array([10.0, 10.0, 10.0])
-            impulse_done = True
-
-        # -------- Update control target --------
+        # --------- Update control target ---------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
@@ -286,7 +277,7 @@ def main(args):
             elif args.arch == 'qd':
                 ur[:, 4:] = 0.0
 
-        # -------- Set SQP mode --------
+        # --------- Set SQP mode ---------
         if is_sqp_change and t_sqp_start > t_sqp_end:
             if t_now >= t_sqp_start:
                 ocp_solver.solver_options["nlp_solver_type"] = "SQP"
@@ -294,7 +285,7 @@ def main(args):
             if t_now >= t_sqp_end:
                 ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
 
-        # -------- Update solver --------
+        # --------- Update solver ---------
         comp_time_start = time.time()
 
         if t_ctl >= ts_ctrl:
@@ -335,7 +326,7 @@ def main(args):
                 alpha_integ += u_cmd[4:] * ts_ctrl
                 u_cmd[4:] = alpha_integ  # convert from delta input to real input
 
-        # --------- Update simulation ----------
+        # --------- Update simulation ---------
         sim_solver.set("x", x_now_sim)
         sim_solver.set("u", u_cmd)
 
@@ -345,7 +336,8 @@ def main(args):
 
         x_now_sim = sim_solver.get("x")
 
-        # --------- Check constraints ----------
+        # --------- Check constraints ---------
+        # Boundary constraints
         for idx in ocp_solver.acados_ocp.constraints.idxbx:
             lbxi = np.where(ocp_solver.acados_ocp.constraints.idxbx==idx)[0][0]
             if x_now_sim[idx] < ocp_solver.acados_ocp.constraints.lbx[lbxi] or \
@@ -354,21 +346,18 @@ def main(args):
                       f"Value: {x_now_sim[idx]}, "
                       f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx[lbxi]}, "
                       f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx[lbxi]}")
-        for idx_e in ocp_solver.acados_ocp.constraints.idxbx_e:
-            lbxi_e = np.where(ocp_solver.acados_ocp.constraints.idxbx_e==idx_e)[0][0]
-            if x_now_sim[idx_e] < ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e] or \
-                    x_now_sim[idx_e] > ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]:
-                print(f"Warning: Constraint violation at index {idx_e} in simulation step {i}. "
-                      f"Value: {x_now_sim[idx_e]}, "
-                      f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e]}, "
-                      f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]}, "
-                      "for end of horizon")
+        # Nonlinear unit quaternion constraint
+        quat_norm = np.linalg.norm(x_now_sim[6:10])
+        if quat_norm < 0.999 or quat_norm > 1.001:
+            print(f"Warning: Constraint violation for unit quaternion in simulation step {i}. "
+                  f"Value: {quat_norm} != 1.0, "
+                  f"Quaternion: {x_now_sim[6:10]}")
 
-        # Save current simulation data for later comparison
+        # --------- Log simulation data ---------
         x_history.append(x_now_sim.copy())
         u_history.append(u_cmd.copy())
 
-        # --------- Update visualizer ----------
+        # --------- Update visualizer ---------
         viz.update(i, x_now_sim, u_cmd)  # Note: The recording frequency of u_cmd is the same as ts_sim
 
     # ========== Visualize ==========

@@ -52,6 +52,10 @@ class QDNMPCBase(RecedingHorizonBase):
         if not hasattr(self, "include_impedance"):
             self.include_impedance = False
 
+        # - include_quaternion_constraint: Flag to include unit quaternion constraint.
+        if not hasattr(self, "include_quaternion_constraint"):
+            self.include_quaternion_constraint = False
+
         # - include_soft_constraints: Flag to include soft constraints for the state.
         if not hasattr(self, "include_soft_constraints"):
             self.include_soft_constraints = False
@@ -603,22 +607,40 @@ class QDNMPCBase(RecedingHorizonBase):
                  self.params["a_max"],
                  self.params["a_max"]])
 
+        # Nonlinear constraint for quaternions
+        if self.include_quaternion_constraint:
+            # Note: This is necessary to ensure that the quaternion stays on the unit sphere
+            # and represents a valid rotation.
+            ocp.model.con_h_expr = self.qw ** 2 + self.qx ** 2 + self.qy ** 2 + self.qz ** 2 - 1.0   # ||q||^2 - 1 = 0
+            ocp.model.con_h_expr_e = ocp.model.con_h_expr
+            ocp.constraints.lh = np.array([0.0])
+            ocp.constraints.uh = np.array([0.0])
+            ocp.constraints.lh_e = np.array([0.0])
+            ocp.constraints.uh_e = np.array([0.0])
+
         # - Slack variables for soft constraints
         if self.include_soft_constraints:
             # Note: Symmetrically for upper and lower bounds
             # -- Indices of slacked constraints within bx
             ocp.constraints.idxsbx = np.arange(len(ocp.constraints.idxbx))
             ocp.constraints.idxsbx_e = np.arange(len(ocp.constraints.idxbx))
+            num_constraints = len(ocp.constraints.idxsbx)
+            num_constraints_e = len(ocp.constraints.idxsbx_e)
+            if self.include_quaternion_constraint:
+                ocp.constraints.idxsh = np.array([0])
+                ocp.constraints.idxsh_e = np.array([0])
+                num_constraints += 1
+                num_constraints_e += 1
             # -- Linear term
-            ocp.cost.Zl =   self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.Zu =   self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.Zl_e = self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
-            ocp.cost.Zu_e = self.params["linear_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            ocp.cost.Zl =   self.params["linear_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.Zu =   self.params["linear_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.Zl_e = self.params["linear_slack_weight"]*np.ones((num_constraints_e,))
+            ocp.cost.Zu_e = self.params["linear_slack_weight"]*np.ones((num_constraints_e,))
             # -- Quadratic term
-            ocp.cost.zl =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
-            ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            ocp.cost.zl =   self.params["quadratic_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
+            ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
 
         # Initial state and reference: Set all values such that robot is hovering
         x_ref = np.zeros(nx)
