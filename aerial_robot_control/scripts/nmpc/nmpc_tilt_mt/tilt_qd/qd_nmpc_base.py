@@ -681,7 +681,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # Start up flags:       [Seems only works for FULL_CONDENSING_QPOASES]
         # 0: no warm start; 1: warm start; 2: hot start. Default: 0
         # ocp.solver_options.qp_solver_warm_start = 1
-        ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
+        ocp.solver_options.hessian_approx = "GAUSS_NEWTON"  # "EXACT", "GAUSS_NEWTON"
         ocp.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
