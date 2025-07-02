@@ -315,6 +315,8 @@ def main(args):
         )
     elif args.plot_type == 3:
         viz.visualize_disturb(ts_sim, t_total_sim)
+    elif args.plot_type == 4:
+        viz.visualize_nothing_but_save(ocp_solver.acados_ocp.model.name, sim_solver.model_name)
 
 
 if __name__ == "__main__":

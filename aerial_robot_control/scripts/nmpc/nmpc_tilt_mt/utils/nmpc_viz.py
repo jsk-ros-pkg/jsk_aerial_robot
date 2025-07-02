@@ -2,6 +2,8 @@ import transformations as tf
 import matplotlib.pyplot as plt
 from math import ceil
 import numpy as np
+import datetime
+import os
 import scienceplots  # DON'T DELETE, it is used indirectly in matplotlib for fonts
 
 legend_alpha = 0.3
@@ -588,6 +590,27 @@ class Visualizer:
         plt.tight_layout()
         plt.show()
 
+    def visualize_nothing_but_save(self, model_name: str, sim_name: str):
+        """
+        Visualize nothing but save the figure with the model and simulation names.
+        :param model_name:
+        :param sim_name:
+        :return:
+        """
+        folder_path = "../../../../scripts/nmpc/sim_data"
+
+        # if there is no sim_data folder, create it
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        # save self.x_sim_all, self.u_sim_all, self.est_disturb_f_w_all, and self.est_disturb_tau_g_all to a file
+        time_stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_x_sim_all.npy", self.x_sim_all)
+        np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_u_sim_all.npy", self.u_sim_all)
+        np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_est_disturb_f_w_all.npy", self.est_disturb_f_w_all)
+        np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_est_disturb_tau_g_all.npy", self.est_disturb_tau_g_all)
+
+        print(f"Data saved to {folder_path}/{time_stamp}_{model_name}_{sim_name}_*.npy files.")
 
 
 class SensorVisualizer:
