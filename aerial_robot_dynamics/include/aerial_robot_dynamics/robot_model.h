@@ -56,6 +56,7 @@ public:
 
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
+  Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
 
   const bool& getIsFloatingBase() const
   {
@@ -113,7 +114,6 @@ private:
   // ID solver parameters
   double thrust_hessian_weight_;
 
-  Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
   pinocchio::container::aligned_vector<pinocchio::Force>
   computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in the LOCAL frame
 
