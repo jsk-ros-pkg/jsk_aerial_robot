@@ -264,20 +264,39 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
             [r1[2], r3[2], pos[2], r2[2], r4[2]])
 
 
-def plot_losses(total_losses):
+def plot_losses(total_losses, inference_times, save_file_path=None, save_file_name=None):
     """
     Plot the training and validation losses.
     """
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(total_losses["train"], label="Train Loss", color='blue')
-    ax.plot(total_losses["val"], label="Validation Loss", color='orange')
+    fig, axs = plt.subplots(1, 2, figsize=(14, 6))
+
+    ax = axs[0]
+    ax.plot(total_losses["train"], label=f"Train Loss (final = {total_losses['train'][-1]:.4f})", color='blue')
+    ax.plot(total_losses["val"], label=f"Validation Loss (final = {total_losses['val'][-1]:.4f})", color='orange')
     if "test" in total_losses.keys():
-        ax.plot([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label="Test Loss", color='green')
+        ax.plot([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label=f"Test Loss = {total_losses['test']:.4f}", color='green')
+    ax.set_xlim([0, len(total_losses["train"])])
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Loss")
-    ax.set_title(f"Training, Validation {'and Test' if 'test' in total_losses.keys() else ''} Losses")
+    ax.set_title(f"Losses")
+    ax.grid()
     ax.legend()
+
+    ax2 = axs[1]
+    ax2.plot(inference_times)
+    mean  = np.mean(inference_times)
+    ax2.plot([0, len(inference_times)], [mean, mean], label=f"Avg = {mean:.2f} ms", color='red')
+    ax2.set_xlim([0, len(inference_times)])
+    ax2.set_xlabel("Epochs")
+    ax2.set_ylabel("Inference Time (ms)")
+    ax2.set_title("Inference Times")
+    ax2.grid()
+    ax2.legend()
+    # Adjust layout and display
+    plt.tight_layout()
     plt.show()
+    if save_file_path is not None and save_file_name is not None:
+        fig.savefig(os.path.join(save_file_path + '/plot', f'{save_file_name}_plot.png'), dpi=300, bbox_inches='tight')
     
 def trajectory_tracking_results(t_ref, x_ref, x_executed, u_ref, u_executed, title, w_control=None, legend_labels=None,
                                 quat_error=True):

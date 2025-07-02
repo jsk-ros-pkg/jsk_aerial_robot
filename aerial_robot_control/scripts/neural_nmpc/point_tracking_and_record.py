@@ -427,7 +427,8 @@ if __name__ == '__main__':
             #    NMPCTiltBiServo
             #    NMPCTiltBi2OrdServo
             #    MHEWrenchEstAccMom
-            "use_mlp": False
+            "mlp_name": "neuralmodel_" + "001", # or None
+            "only_use_mlp": True
         },
         "solver_options": {
             "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this
@@ -446,7 +447,7 @@ if __name__ == '__main__':
             "initial_state": None,
             "initial_guess": None,
             "aggressive": True,  # TODO for now always use aggressive targets
-            "recording": True,
+            "recording": False,
             "real_time_plot": False,
             "save_animation": False,
         }

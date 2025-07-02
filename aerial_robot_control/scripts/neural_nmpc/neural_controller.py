@@ -150,10 +150,12 @@ class NeuralNMPC():
         if model_options["use_mlp"]:
             self.neural_model, self.mlp_config = self.load_model(model_options, sim_options)
             self.mlp_approx = None
+            self.only_use_mlp = model_options["only_use_mlp"]
         else:
             self.neural_model = None
             self.mlp_config = None
             self.mlp_approx = None
+            self.only_use_mlp = False
 
         # Load pre-trained RDRv model
         # Not use MLP AND RDRv at the same time!
@@ -255,11 +257,13 @@ class NeuralNMPC():
         # Here f is already symbolically evaluated to f(x,u)
         nominal_dynamics = self.nominal_model.f_expl_expr
         # TODO only use selected features of mlp_out e.g. only acceleration using a matrix B_x
-        f_neural = nominal_dynamics + mlp_out
+        f_total = nominal_dynamics + mlp_out
+        if self.only_use_mlp:
+            f_total = mlp_out
         
         # Implicit dynamics
         x_dot = ca.SX.sym('x_dot', self.state.size())
-        f_impl = x_dot - f_neural
+        f_impl = x_dot - f_total
 
         # Cost function TODO think this over!
         state_y, state_y_e, control_y = self.nmpc.get_cost_function()
@@ -267,7 +271,7 @@ class NeuralNMPC():
         # Assemble acados model
         self.acados_model = AcadosModel()
         self.acados_model.name = self.model_name
-        self.acados_model.f_expl_expr = f_neural  # CasADi expression for the explicit dynamics
+        self.acados_model.f_expl_expr = f_total  # CasADi expression for the explicit dynamics
         self.acados_model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         self.acados_model.x = self.state  # State vector
         self.acados_model.xdot = x_dot
@@ -471,56 +475,7 @@ class NeuralNMPC():
         
         return x_traj
 
-    def load_model(self, model_options, sim_options):
-        """
-        Load a pre-trained neural network for the NMPC controller.
-        """
-
-
-        # # === Load the model ===
-        # model = SimpleMLP().to(device)
-        # model.load_state_dict(torch.load("model.pth", weights_only=True))
-
-
-
-        # Get options for model loading
-        model_params = {"git": model_options.get("git", False),
-                        "model_name": model_options.get("name", None),
-                        "disturbances": sim_options.get("disturbances", False)}
-
-        # TODO set config elsewhere
-        mlp_config = {'approximated': False, 'v_inp': True, 'u_inp': False, 'T_out': False, 'ground_map_input': False,
-                      'torque_output': False, 'two_step_rti': False}
-        
-        # Load trained MLP model
-        directory, file_name = get_model_dir_and_file(model_params)
-        saved_network = torch.load(os.path.join(directory, f"{file_name}.pt"))
-        # saved_network = {"input_size": 12, "hidden_size": 64, "output_size": 12, "hidden_layers": 3, "state_dict": {}}
-        base_mlp = mc.nn.MultiLayerPerceptron(saved_network['input_size'], saved_network['hidden_size'],
-                                              saved_network['output_size'], saved_network['hidden_layers'],
-                                              'Tanh')
-        neural_model = NormalizedMLP(
-                            base_mlp,
-                            torch.tensor(np.zeros((saved_network['input_size'],))).float(),
-                            torch.tensor(np.zeros((saved_network['input_size'],))).float(),
-                            torch.tensor(np.zeros((saved_network['output_size'],))).float(),
-                            torch.tensor(np.zeros((saved_network['output_size'],))).float())
-        # Load weights and biases from saved model
-        neural_model.load_state_dict(saved_network['state_dict'])
-        neural_model.eval()
-
-        # if reg_type.endswith('approx2'):
-        #     mlp_config['approximated'] = True
-        #     mlp_config['approx_order'] = 2
-        # elif reg_type.endswith('approx') or reg_type.endswith('approx_1'):
-        #     mlp_config['approximated'] = True
-        #     mlp_config['approx_order'] = 1
-        # if '_u' in reg_type:
-        #     mlp_config['u_inp'] = True
-        # if '_T' in reg_type:
-        #     mlp_config['T_out'] = True
-
-        return neural_model, mlp_config
+    
 
     def check_constraints(self, u_cmd):
         """

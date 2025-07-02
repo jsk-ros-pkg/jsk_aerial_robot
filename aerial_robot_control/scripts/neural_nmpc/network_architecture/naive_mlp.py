@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 class NaiveMLP(nn.Module):
-    def __init__(self, in_size, hidden_sizes, out_size, activation='relu', dropout_p=0.0,
+    def __init__(self, in_size, hidden_sizes, out_size, activation='relu', use_batch_norm=True, dropout_p=0.0,
                  x_mean=None, x_std=None, y_mean=None, y_std=None):
 
         super().__init__()
@@ -17,7 +17,8 @@ class NaiveMLP(nn.Module):
             # Fully connected layer
             layers.append(nn.Linear(prev_size, next_size))
             # Batch normalization
-            layers.append(nn.BatchNorm1d(next_size))
+            if use_batch_norm:
+                layers.append(nn.BatchNorm1d(next_size))
             # Activation function
             if activation == 'ReLU':
                 layers.append(nn.ReLU())

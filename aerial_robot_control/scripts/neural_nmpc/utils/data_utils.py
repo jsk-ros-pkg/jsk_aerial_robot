@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import ml_casadi.torch as mc
-from config.configurations import DirectoryConfig
+from config.configurations import DirectoryConfig, ModelFitConfig
 
 
 def safe_mkdir_recursive(directory, overwrite: bool = False):
@@ -154,9 +154,34 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
 
 def get_model_dir_and_file(ds_name, ds_instance, model_name):
     """
-    Returns the directory and file name of the fitted neural network model.
+    Reads the metadata for datasets and appends the model information to it.
+    Creates/appends the current model configuration to the model's metadata file.
+    Returns the directory and file name of the new neural network model.
     """
     model_dir = os.path.join(DirectoryConfig.SAVE_DIR, model_name)
+
+    # Add model information to dataset metadata
+    json_file_name_dataset = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
+    with open(json_file_name_dataset, "r") as json_file:
+        metadata_dataset = json.load(json_file)
+    with open(json_file_name_dataset, "w") as json_file:
+        if "trained_models" not in metadata_dataset[ds_name][ds_instance]:
+            metadata_dataset[ds_name][ds_instance]["trained_models"] = [model_file]
+        else:
+            metadata_dataset[ds_name][ds_instance]["trained_models"].append(model_file)
+        json.dump(metadata_dataset, json_file, indent=4)
+
+    # Check if metadata file for models exists
+    json_file_name = os.path.join(DirectoryConfig.SAVE_DIR, "metadata.json")
+    if os.path.exists(json_file_name):
+        with open(json_file_name, "r") as json_file:
+            metadata = json.load(json_file)
+    else:
+        metadata = {}
+
+    # Check if current model name exists
+    if model_name not in metadata.keys():
+        metadata[model_name] = {}
 
     # Check for existing models
     if os.path.exists(model_dir):
@@ -175,18 +200,24 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
     else:
         model_file = "neuralmodel_001"
 
-    # Get metadata information for configuration of controller and simulation setup
-    json_file_name = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
-    with open(json_file_name, "r") as json_file:
-        metadata = json.load(json_file)
-    model_options = metadata[ds_name].copy()
+    # Store model configuration in metadata
+    # TODO get important information for loading
+    # TODO store it here
+    # TODO double check in loading if correct model is loaded
+    metadata[model_name][model_file] = {
+        "ds_name": ds_name,
+        "ds_instance": ds_instance,
+        "disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
+        "x_feats": x_feats,
+        "u_feats": u_feats,
+        "y_reg_dims": y_reg_dims,
+    }
 
-    # Add model information to metadata
-    with open(json_file_name, "w") as json_file:
-        metadata[ds_name][ds_instance].update({"trained_model": model_file})
+    # Write updated metadata to file
+    with open(json_file_name, 'w') as json_file:
         json.dump(metadata, json_file, indent=4)
 
-    return model_dir, model_file, model_options
+    return model_dir, model_file
 
 def make_blank_dict(target_dim, state_dim, control_dim):
     blank_recording_dict = {
@@ -257,67 +288,6 @@ def read_dataset(ds_name, ds_instance):
         raise FileNotFoundError(f"Dataset {ds_name} with instance {ds_instance} not found.")
 
     return pd.read_csv(ds_file_name)
-
-def load_pickled_models(directory='', file_name='', model_options=None):
-    raise NotImplementedError()
-    """
-    Loads a pre-trained model from the specified directory, contained in a given pickle filename. Otherwise, if
-    the model_options dictionary is given, use its contents to reconstruct the directory location of the pre-trained
-    model fitting the requirements.
-
-    :param directory: directory where the model file is located
-    :param file_name: file name of the pre-trained model
-    :param model_options: dictionary with the keys: "noisy" (bool), "drag" (bool), "git" (string), "training_samples"
-    (int), "payload" (bool).
-
-    :return: a dictionary with the recovered models from the pickle files.
-    """
-
-    if model_options is not None:
-        directory, file_name = get_model_dir_and_file(model_options)
-
-    try:
-        pickled_files = os.listdir(directory)
-    except FileNotFoundError:
-        return None
-
-    loaded_models = []
-
-    try:
-        for file in pickled_files:
-            if not file.startswith(file_name) and file != 'feats.csv':
-                continue
-            if '.pt' in file:
-                directory, file_name = get_model_dir_and_file(load_ops)
-                saved_dict = torch.load(os.path.join(directory, f"{file_name}.pt"))
-                mlp_model = mc.nn.MultiLayerPerceptron(saved_dict['input_size'], saved_dict['hidden_size'],
-                                               saved_dict['output_size'], saved_dict['hidden_layers'], 'Tanh')
-                model = NormalizedMLP(mlp_model, torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
-                                      torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
-                                      torch.tensor(np.zeros((saved_dict['output_size'],))).float(),
-                                      torch.tensor(np.zeros((saved_dict['output_size'],))).float())
-                model.load_state_dict(saved_dict['state_dict'])
-                model.eval()
-                pre_trained_models = model
-                loaded_models.append(joblib.load(os.path.join(directory, file)))
-                continue
-            if '.pkl' not in file and '.csv' not in file:
-                continue
-            if '.pkl' in file:
-                loaded_models.append(joblib.load(os.path.join(directory, file)))
-
-    except IsADirectoryError:
-        raise FileNotFoundError("Tried to load file from directory %s, but it was not found." % directory)
-
-    if loaded_models is not None:
-        if loaded_models:
-            pre_trained_models = {"models": loaded_models}
-        else:
-            pre_trained_models = None
-    else:
-        pre_trained_models = None
-
-    return pre_trained_models
 
 def jsonify(array):
     if isinstance(array, np.ndarray):

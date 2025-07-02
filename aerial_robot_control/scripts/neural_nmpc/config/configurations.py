@@ -51,12 +51,8 @@ class SimpleSimConfig:
     }
 
 class MLPConfig:
-    """
-    Class for storing the MLP parameters.
-    """
-
     # Number of neurons in each hidden layer
-    hidden_sizes = [32, 64, 126, 256] # In_features of each hidden layer
+    hidden_sizes = [32, 32, 32, 32] # In_features of each hidden layer
 
     # Activation function
     activation = "Tanh"  # Options: "ReLU", "LeakyReLU", "Tanh", "Sigmoid"
@@ -75,6 +71,9 @@ class MLPConfig:
     # Batch size
     batch_size = 64
 
+    # Optimizer
+    optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
+
     # Learning rate
     learning_rate = 1e-4
 
@@ -89,10 +88,6 @@ class MLPConfig:
     vel_cap = 16                # Remove datapoints where abs(velocity) > vel_cap
 
 class ModelFitConfig:
-    """
-    Class for storing flags for the model fitting scripts.
-    """
-
     # Dataset loading
     ds_name = "NMPCTiltQdNoServo" + "_simple_dataset"
             #    NMPCFixQdAngvelOut
