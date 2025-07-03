@@ -268,6 +268,8 @@ def plot_losses(total_losses, inference_times, save_file_path=None, save_file_na
     """
     Plot the training and validation losses.
     """
+    os.makedirs(os.path.join(save_file_path, 'plot'), exist_ok=True)
+
     fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
     ax = axs[0]

@@ -51,6 +51,16 @@ class SimpleSimConfig:
     }
 
 class MLPConfig:
+    # Set type of model to be used
+    model_name = "naive_mlp"
+    # model_name = "approximated_mlp"
+
+    if model_name == "approximated_mlp":
+        # Use propietary RTNMPC library for approximated MLP
+        approximated_mlp = True  # Set to True to use the RTNMPC library
+    else:
+        approximated_mlp = False
+
     # Number of neurons in each hidden layer
     hidden_sizes = [32, 32, 32, 32] # In_features of each hidden layer
 
@@ -88,7 +98,7 @@ class MLPConfig:
     vel_cap = 16                # Remove datapoints where abs(velocity) > vel_cap
 
 class ModelFitConfig:
-    # Dataset loading
+    # ------- Dataset loading -------
     ds_name = "NMPCTiltQdNoServo" + "_simple_dataset"
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
@@ -104,7 +114,23 @@ class ModelFitConfig:
             #    MHEWrenchEstAccMom
     ds_instance = "dataset_001"
 
-    
+    # ------- Features used for the model -------
+    # State features
+    x_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
+    # x_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
+    # x_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
+    # x_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
+
+    # Control input features
+    u_feats = [0, 1, 2, 3]  # [thrust_cmd_1, thrust_cmd_2, thrust_cmd_3, thrust_cmd_4]
+    u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
+
+    # Variables to be regressed
+    y_reg_dims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
+    # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
+    # y_reg_dims.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
+    # y_reg_dims.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
+
     # ds_disturbances = {
     #     "noisy": True,
     #     "drag": True,
@@ -137,11 +163,6 @@ class ModelFitConfig:
     x_viz = [7, 8, 9]
     u_viz = []
     y_viz = [7, 8, 9]
-
-    # ## Data post-processing ## #
-    histogram_bins = 40              # Cluster data using histogram binning
-    histogram_threshold = 0.001      # Remove bins where the total ratio of data is lower than this threshold
-    velocity_cap = 16                # Also remove datasets point if abs(velocity) > x_cap
 
     # ############# Experimental ############# #
 

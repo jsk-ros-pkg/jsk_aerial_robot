@@ -14,17 +14,17 @@ from dataset import TrajectoryDataset
 from network_architecture.naive_mlp import NaiveMLP
 from network_architecture.normalized_mlp import NormalizedMLP
 from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset
+from utils.model_utils import sanity_check_features_and_reg_dims, get_device
 from utils.visualization_utils import plot_losses
-from config.configurations import MLPConfig, ModelFitConfig, SimpleSimConfig
+from config.configurations import MLPConfig, ModelFitConfig
 
 
-def main(network_name: str ="mlp", approximated_mlp: bool = False, test: bool = False, plot: bool = False, save: bool = True):
+def main(test: bool = False, plot: bool = False, save: bool = True):
     device = get_device()
 
     ds_name = ModelFitConfig.ds_name
     ds_instance = ModelFitConfig.ds_instance
     sanity_check_dataset(ds_name, ds_instance)
-    if save or plot: save_file_path, save_file_name = get_model_dir_and_file(network_name)  # Checks for settings in ModelFitConfig
 
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)
@@ -54,24 +54,37 @@ def main(network_name: str ="mlp", approximated_mlp: bool = False, test: bool = 
         get_dataloaders(train_dataset, val_dataset, test_dataset,
                         batch_size=MLPConfig.batch_size,
                         num_workers=MLPConfig.num_workers)
+    
+    # === Define model input and output features ===
+    x_feats = ModelFitConfig.x_feats
+    u_feats = ModelFitConfig.u_feats
+    y_reg_dims = ModelFitConfig.y_reg_dims
+    sanity_check_features_and_reg_dims(x_feats, u_feats, y_reg_dims, in_dim, out_dim)
+
+    if save or plot:
+        save_file_path, save_file_name = \
+            get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name, 
+                                   x_feats, u_feats, y_reg_dims)
 
     # === Model ===
-    if approximated_mlp:
+    if MLPConfig.approximated_mlp:
         # TODO implement batch normalization and dropout?
         # TODO combine and call it "ApproximatedMLP"
-        mlp = mc.nn.MultiLayerPerceptron(in_dim, MLPConfig.hidden_sizes[0],
+        base_mlp = mc.nn.MultiLayerPerceptron(in_dim, MLPConfig.hidden_sizes[0],
                                          out_dim, len(MLPConfig.hidden_sizes),
-                                         activation=MLPConfig.activation).to(device)
-        model = NormalizedMLP(mlp,
+                                         activation=MLPConfig.activation)
+        model = NormalizedMLP(base_mlp,
                               torch.tensor(dataset.x_mean), torch.tensor(dataset.x_std),
-                              torch.tensor(dataset.y_mean), torch.tensor(dataset.y_std)).to(device)
+                              torch.tensor(dataset.y_mean), torch.tensor(dataset.y_std)
+                ).to(device)
     else:
         model = NaiveMLP(in_dim, MLPConfig.hidden_sizes, out_dim,
                          activation=MLPConfig.activation,
                          use_batch_norm=MLPConfig.use_batch_norm,
                          dropout_p=MLPConfig.dropout_p,
                          x_mean=torch.tensor(dataset.x_mean), x_std=torch.tensor(dataset.x_std),
-                         y_mean=torch.tensor(dataset.y_mean), y_std=torch.tensor(dataset.y_std)).to(device)
+                         y_mean=torch.tensor(dataset.y_mean), y_std=torch.tensor(dataset.y_std)
+                ).to(device)
     print(model)
     summary(model, (in_dim,))
 
@@ -121,7 +134,10 @@ def main(network_name: str ="mlp", approximated_mlp: bool = False, test: bool = 
                 'state_dict': model.state_dict(),
                 'input_size': in_dim,
                 'hidden_sizes': MLPConfig.hidden_sizes,
-                'output_size': out_dim
+                'output_size': out_dim,
+                'activation': MLPConfig.activation,
+                'use_batch_norm': MLPConfig.use_batch_norm,
+                'dropout_p': MLPConfig.dropout_p
             }
             torch.save(save_dict, os.path.join(save_file_path, f'{save_file_name}.pt'))
     table.close()
@@ -144,16 +160,6 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=True, num_workers=num_workers)
     test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=True, num_workers=num_workers)
     return train_dataloader, val_dataloader, test_dataloader
-
-def get_device():
-    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-    print(f"Using {device} device")
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        return torch.device("mps")
-    else:
-        return torch.device("cpu")
 
 def loss_function(y, y_pred):
     return torch.square(y - y_pred).mean()
@@ -226,5 +232,4 @@ def inference(dataloader, model, loss_fn, device, table, validation=True):
 
 
 if __name__ == '__main__':
-    model_name = "simple_mlp"  # or "normalized_mlp"
-    main(model_name, approximated_mlp=True, test=False, plot=True, save=False)
+    main(test=False, plot=True, save=True)

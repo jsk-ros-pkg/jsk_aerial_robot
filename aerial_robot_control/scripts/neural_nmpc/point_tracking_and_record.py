@@ -34,17 +34,12 @@ def main(model_options, solver_options, dataset_options, sim_options, run_parame
     # ------------------------
 
     # --- Initialize controller ---
-    # if version is not None and name is not None:
-    if True:
-        # Create blank NMPC object
-        rtnmpc = NeuralNMPC(model_options=model_options, solver_options=solver_options,
-                            sim_options=sim_options, T_sim=T_sim)
+    rtnmpc = NeuralNMPC(model_options=model_options, solver_options=solver_options,
+                        sim_options=sim_options, T_sim=T_sim)
 
-    # Solver
     ocp_solver = rtnmpc.ocp_solver
     sim_solver = rtnmpc.sim_solver
 
-    # Reference generator
     reference_generator = rtnmpc.get_reference_generator()
 
     # Recover some necessary variables from the NMPC object
@@ -427,8 +422,13 @@ if __name__ == '__main__':
             #    NMPCTiltBiServo
             #    NMPCTiltBi2OrdServo
             #    MHEWrenchEstAccMom
-            "mlp_name": "neuralmodel_" + "001", # or None
-            "only_use_mlp": True
+            "only_use_nominal": False,
+            "only_use_mlp": False,
+            "neural_model_name": "naive_mlp",
+            "neural_model_instance": "neuralmodel_001",
+            # "x_feats": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], #, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4, fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
+            # "u_feats": [0, 1, 2, 3, 4, 5, 6, 7], # [thrust_cmd_1, thrust_cmd_2, thrust_cmd_3, thrust_cmd_4, servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
+            # "y_reg_dims": [3, 4, 5], #[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], # 13, 14, 15, 16], # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4, fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
         },
         "solver_options": {
             "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this

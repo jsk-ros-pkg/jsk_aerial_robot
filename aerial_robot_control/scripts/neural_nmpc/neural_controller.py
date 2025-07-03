@@ -1,19 +1,13 @@
 import os, sys
-from typing import NamedTuple
 import numpy as np
-import torch
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
-import torch
 
-import ml_casadi.torch as mc
-from network_architecture.normalized_mlp import NormalizedMLP
-
-from utils.data_utils import get_model_dir_and_file
 from utils.geometry_utils import quaternion_inverse, v_dot_q
+from utils.model_utils import load_model, get_output_mapping
 
 # Quadrotor
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))    # Add parent directory to path to allow relative imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # - Naive models
 from nmpc.nmpc_tilt_mt.archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
 from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
@@ -53,9 +47,6 @@ from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
 class NeuralNMPC():
     def __init__(self, model_options, solver_options, sim_options,
                  T_sim=0.005, rdrv_d_mat=None):
-        # TODO: Introduce approximated MLP
-        # TODO: Add GP regressor
-        # TODO: Load / save trained model -> overwrite model
         # TODO implement solver options flexibly
         """
         :param T_sim: Discretized time-step for the aerial robot simulation
@@ -65,6 +56,7 @@ class NeuralNMPC():
         :param rdrv_d_mat: 3x3 matrix that corrects the drag with a linear model
                            according to Faessler et al. 2018
         """
+        self.model_options = model_options
         # Nominal model and solver
         # TODO pass down solver options
         self.arch_type = model_options["arch_type"]
@@ -131,7 +123,7 @@ class NeuralNMPC():
         self.N = self.nmpc.params["N_steps"]            # Number of MPC nodes
         self.T_step = self.nmpc.params["T_step"]        # Step size used in optimization loop in MPC controller
         # TODO set somewhere else and by default set to T_samp/2
-        self.T_sim = T_sim                  # TODO set somewhere else! Discretized time-step for the aerial robot simulation
+        self.T_sim = T_sim                              # Discretized time-step for the aerial robot simulation
         
         # Get OCP model from NMPC TODO implement drag correction with RDRv
         self.nominal_model = self.nmpc.get_acados_model()
@@ -142,29 +134,24 @@ class NeuralNMPC():
         # Get OCP solver from NMPC
         self.nominal_solver = self.nmpc.get_ocp_solver()
 
-        # Set name of the controller
-        self.model_name = "neural_" + self.nominal_model.name
+        if not model_options["only_use_nominal"]:
+            # Set name of the controller
+            self.model_name = "Neural_" + self.nominal_model.name
 
-        # Load pre-trained MLP
-        # Note: If no pre-trained model is given, the controller will only use the nominal model
-        if model_options["use_mlp"]:
-            self.neural_model, self.mlp_config = self.load_model(model_options, sim_options)
-            self.mlp_approx = None
-            self.only_use_mlp = model_options["only_use_mlp"]
+            # Load pre-trained MLP
+            self.neural_model, self.mlp_metadata = load_model(model_options, sim_options)
+
+            # Add neural network model to nominal model 
+            self.extend_acados_model()
+
+            # Extend the acados solver with the extended model
+            self.extend_acados_solver()
+
         else:
-            self.neural_model = None
-            self.mlp_config = None
-            self.mlp_approx = None
-            self.only_use_mlp = False
+            self.model_name = self.nominal_model.name
+            self.acados_model = self.nominal_model
+            self.ocp_solver = self.nominal_solver
 
-        # Load pre-trained RDRv model
-        # Not use MLP AND RDRv at the same time!
-        # rdrv_d = load_rdrv(model_options=load_ops)
-
-        # Add neural network model to nominal model 
-        self.extend_acados_model()
-        # Extend the acados solver with the extended model
-        self.extend_acados_solver()
         # Create sim solver for the extended model
         self.create_acados_sim_solver()
     
@@ -180,50 +167,12 @@ class NeuralNMPC():
         #                         self.mlp_regressor.sym_approx_params(order=self.mlp_conf['approx_order'],
         #                                                                 flat=True))
 
-        
-
-        # Adjust input vector
-        # if self.mlp_conf['torque_output']:
-        #     mlp_in = ca.vertcat(mlp_in, state[10:])
-
-        # if self.mlp_conf['u_inp']:
-        #     mlp_in = ca.vertcat(mlp_in, self.controls)
-
-        # if self.mlp_conf['ground_map_input']:
-        #     map_conf = GroundEffectMapConfig
-        #     map = GroundMapWithBox(np.array(map_conf.box_min),
-        #                             np.array(map_conf.box_max),
-        #                             map_conf.box_height,
-        #                             horizon=map_conf.horizon,
-        #                             resolution=map_conf.resolution)
-
-        #     self._map_res = map_conf.resolution
-
-        #     self._static_ground_map, self._org_to_map_org = map.at(np.array(map_conf.origin))
-        #     ground_map_dx = ca.MX(self._static_ground_map)
-
-        #     idx = ca.DM(np.arange(0, 3, 1))
-
-        #     x, y, z = state[0], state[1], state[2]
-        #     orientation = state[3:7]
-
-        #     x_idxs = ca.floor((x - self._org_to_map_org[0]) / map_conf.resolution) + idx - 1
-        #     y_idxs = ca.floor((y - self._org_to_map_org[1]) / map_conf.resolution) + idx - 1
-        #     ground_patch = ground_map_dx[x_idxs, y_idxs]
-
-        #     relative_ground_patch = z - ground_patch
-        #     relative_ground_patch = 4 * (ca.fmax(ca.fmin(relative_ground_patch, 0.5), 0.0) - 0.25)
-
-        #     ground_effect_in = ca.vertcat(ca.reshape(relative_ground_patch, 9, 1), orientation*0)
-
-        #     mlp_in = ca.vertcat(mlp_in, ground_effect_in)
-
-        # # TODO Important!!! Understand approximation --- Propietary library used here
+        # TODO Important!!! Understand approximation --- Propietary library used here
         # if not self.mlp_conf['approximated']:
         #     mlp_out = self.mlp_regressor(mlp_in)
         # else:
         #     mlp_out = self.mlp_regressor.approx(mlp_in, order=self.mlp_conf['approx_order'], parallel=False)
-
+        
         # # Unpack prediction outputs. Transform back to world reference frame
         # if self.mlp_conf['torque_output']:
         #     # Append torque if needed 
@@ -246,20 +195,32 @@ class NeuralNMPC():
         # TODO also makes sense for thrust and servo angles????
         # If changed also change in dataset.py for preprocessing
         v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
-        mlp_in = ca.vertcat(self.state[:3], v_b, self.state[6:])
+        state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
 
-        # TEMPORARY
-        if self.neural_model:
-            self.neural_model(mlp_in=torch.zeros((1, self.neural_model.input_size)))
-        mlp_out = np.zeros(self.state.size())
+        x_feats = eval(self.mlp_metadata['x_feats'])
+        u_feats = eval(self.mlp_metadata['u_feats'])
+        mlp_in = ca.vertcat(state_b[x_feats], self.controls[u_feats])
+
+        # mlp_out = self.neural_model(mlp_in)
+        mlp_out = ca.MX.sym('mlp_out', len(eval(self.mlp_metadata["y_reg_dims"])))
 
         # Explicit dynamics
-        # Here f is already symbolically evaluated to f(x,u)
-        nominal_dynamics = self.nominal_model.f_expl_expr
-        # TODO only use selected features of mlp_out e.g. only acceleration using a matrix B_x
-        f_total = nominal_dynamics + mlp_out
-        if self.only_use_mlp:
+        if self.model_options["only_use_mlp"]:
+            if mlp_out.size() != self.state.size():
+                raise ValueError("[only_use_mlp] The regressed dims of the MLP \
+                                 do not match the state size. Please check the MLP \
+                                 configuration or set 'only_use_mlp' to False.")
             f_total = mlp_out
+        else:
+            # Here f is already symbolically evaluated to f(x,u)
+            nominal_dynamics = self.nominal_model.f_expl_expr
+
+            # Map output of MLP to the state space
+            M = get_output_mapping(self.state.shape[0],
+                                   eval(self.mlp_metadata["y_reg_dims"]))
+
+            # Combine nominal dynamics with neural dynamics
+            f_total = nominal_dynamics + M @ mlp_out
         
         # Implicit dynamics
         x_dot = ca.SX.sym('x_dot', self.state.size())

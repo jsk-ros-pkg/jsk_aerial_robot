@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import ml_casadi.torch as mc
-from config.configurations import DirectoryConfig, ModelFitConfig
+from config.configurations import DirectoryConfig, MLPConfig
 
 
 def safe_mkdir_recursive(directory, overwrite: bool = False):
@@ -152,24 +152,13 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
 
     return dataset_dir, ds_instance_name + '.csv'
 
-def get_model_dir_and_file(ds_name, ds_instance, model_name):
+def get_model_dir_and_file(ds_name, ds_instance, model_name, x_feats, u_feats, y_reg_dims):
     """
     Reads the metadata for datasets and appends the model information to it.
     Creates/appends the current model configuration to the model's metadata file.
     Returns the directory and file name of the new neural network model.
     """
     model_dir = os.path.join(DirectoryConfig.SAVE_DIR, model_name)
-
-    # Add model information to dataset metadata
-    json_file_name_dataset = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
-    with open(json_file_name_dataset, "r") as json_file:
-        metadata_dataset = json.load(json_file)
-    with open(json_file_name_dataset, "w") as json_file:
-        if "trained_models" not in metadata_dataset[ds_name][ds_instance]:
-            metadata_dataset[ds_name][ds_instance]["trained_models"] = [model_file]
-        else:
-            metadata_dataset[ds_name][ds_instance]["trained_models"].append(model_file)
-        json.dump(metadata_dataset, json_file, indent=4)
 
     # Check if metadata file for models exists
     json_file_name = os.path.join(DirectoryConfig.SAVE_DIR, "metadata.json")
@@ -196,28 +185,38 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
     if model_instances:
         existing_instances = [int(instance.split("_")[1]) for instance in model_instances]
         max_instance_number = max(existing_instances)
-        model_file = "neuralmodel_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
+        model_instance = "neuralmodel_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
     else:
-        model_file = "neuralmodel_001"
+        model_instance = "neuralmodel_001"
 
-    # Store model configuration in metadata
-    # TODO get important information for loading
-    # TODO store it here
-    # TODO double check in loading if correct model is loaded
-    metadata[model_name][model_file] = {
+    # Add model information to dataset metadata and get dataset config
+    json_file_name_dataset = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
+    with open(json_file_name_dataset, "r") as json_file:
+        metadata_dataset = json.load(json_file)
+    with open(json_file_name_dataset, "w") as json_file:
+        if "trained_models" not in metadata_dataset[ds_name][ds_instance]:
+            metadata_dataset[ds_name][ds_instance]["trained_models"] = [model_instance]
+        else:
+            metadata_dataset[ds_name][ds_instance]["trained_models"].append(model_instance)
+        json.dump(metadata_dataset, json_file, indent=4)
+
+    # Store new model configuration in metadata
+    metadata[model_name][model_instance] = {
         "ds_name": ds_name,
         "ds_instance": ds_instance,
-        "disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
-        "x_feats": x_feats,
-        "u_feats": u_feats,
-        "y_reg_dims": y_reg_dims,
+        "ds_nmpc_type": metadata_dataset[ds_name]["nmpc_type"],
+        "ds_disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
+        "x_feats": str(x_feats),
+        "u_feats": str(u_feats),
+        "y_reg_dims": str(y_reg_dims),
+        "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
     }
 
     # Write updated metadata to file
     with open(json_file_name, 'w') as json_file:
         json.dump(metadata, json_file, indent=4)
 
-    return model_dir, model_file
+    return model_dir, model_instance
 
 def make_blank_dict(target_dim, state_dim, control_dim):
     blank_recording_dict = {
