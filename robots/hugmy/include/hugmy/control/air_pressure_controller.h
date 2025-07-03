@@ -22,7 +22,7 @@ public:
 private:
     void sensorCb(const std_msgs::Int8::ConstPtr& msg);
     void sensor1Cb(const std_msgs::Int8::ConstPtr& msg);
-    void publishAirPwm(const std::vector<int>& indices, const std::vector<float>& pwms);
+    void publishAirPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms);
     // void adjustPump();
     // void startSVSwitch();
     // void stopSVSwitch();

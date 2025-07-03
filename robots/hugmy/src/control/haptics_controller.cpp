@@ -1,4 +1,4 @@
-#include "haptics_controller.h"
+#include <hugmy/control/haptics_controller.h>
 
 HapticsController::HapticsController(ros::NodeHandle& nh){
     pwm_haptic_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/haptic", 1);
@@ -25,7 +25,7 @@ void HapticsController::setJoy(const sensor_msgs::Joy& msg) {
     joy_ = msg;
 }
 
-void HapticsController::publishHapticsPwm(const std::vector<int>& indices, const std::vector<float>& pwms) {
+void HapticsController::publishHapticsPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms) {
     spinal::PwmTest msg;
     msg.motor_index = indices;
     msg.pwms = pwms;
@@ -74,8 +74,8 @@ void HapticsController::publishTargetMarker() {
     marker_pub_.publish(marker);
 }
 
-double HapticsController::calThrustPower(double strength_norm) {
-    double thrust = 4.0 * std::abs(strength_norm);
+double HapticsController::calThrustPower(double strength) {
+    double thrust = 4.0 * std::abs(strength);
     double pwm = -0.000679 * thrust * thrust + 0.044878 * thrust + 0.5;
     return std::min(pwm, 0.65);
 }
@@ -90,54 +90,38 @@ void HapticsController::controlManual() {
     y = (std::abs(y) > deadzone) ? y : 0.0;
 
     Eigen::Vector2d target_force(x,y);
+    double target_force_norm = target_force.norm();
+    std::vector<float> motor_pwms(4, 0.5);
+
     Eigen::Matrix<double, 2, 4> motor_dirs;
     motor_dirs <<  1, -1, -1,  1,
                  -1, -1,  1,  1;
     Eigen::Vector4d alpha =  Eigen::Vector4d::Zero();
-    Eigen::Vector4d alpha_tmp = Eigen::Vector4d::Zero();
+    Eigen::Vector2d target_force_dir = target_force.normalized();
     const int max_iter = 100;
-    const double ls = 0.1;
-
-    if (target_force.norm() > 1e-6) {
-        target_force.normalize();
-        target_force *= std::hypot(x, y);
-    }
+    const double lr = 0.1;
 
     for (int i = 0; i < max_iter; ++i) {
-        Eigen::Vector2d residual = motor_dirs * alpha - target_force;
-        Eigen::Vector2d gradient = motor_dirs.transpose() * residual;
-        alpha_tmp = lr * gradient;
-        alpha_tmp = alpha_tmp.cwiseMax(0.0); // Ensure non-negative thrust
+        Eigen::Vector2d residual = motor_dirs * alpha - target_force_dir;
+        Eigen::Vector4d gradient = motor_dirs.transpose() * residual;
+        alpha -= lr * gradient;
+        alpha = alpha.cwiseMax(0.0); // Ensure non-negative thrust
     }
-    alpha = alpha_tmp;
+    alpha *= target_force_norm;
 
-    std::vector<float> motor_pwms(4, 0.5);
-    if (x != 0.0 || y != 0.0) {
-        double norm = std::hypot(x, y);
-        std::vector<double> direction = { (norm > 1e-6) ? x / norm : 0.0,
-                                            (norm > 1e-6) ? y / norm : 0.0 };
-
-        std::vector<std::vector<double>> motor_dirs = {
-            {1, -1}, {-1, -1}, {-1, 1}, {1, 1}
-        };
-
-        std::vector<double> alpha(4, 0.0);
-
+    if (target_force_norm < 1e-6) {
+        publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.5, 0.5});
+        return;
+    }else{
         for (size_t i = 0; i < 4; ++i) {
-            double dot = motor_dirs[i][0] * direction[0] + motor_dirs[i][1] * direction[1];
-            alpha[i] = std::max(dot * norm, 0.0);
-        }
-
-        for (size_t i = 0; i < 4; ++i) {
-            motor_pwms[i] = calThrustPower(alpha[i]);
-        }
+        motor_pwms[i] = calThrustPower(alpha[i]);
+        }   
+        publishHapticsPwm({0,1,2,3}, motor_pwms);
     }
 
-    publishHapticsPwm({0,1,2,3}, motor_pwms);
-
-    //debag
+    //debug
     spinal::PwmTest alpha_msg;
-    alpha_msg.motor_index = {0, 1, 2, 3};  // モータ番号
+    alpha_msg.motor_index = {0, 1, 2, 3};
     for (size_t i = 0; i < 4; ++i) {
         alpha_msg.pwms.push_back(static_cast<float>(alpha[i]));
     }
@@ -150,44 +134,70 @@ void HapticsController::controlAuto() {
         target_x_ = pose_.position.x + 0.5;
         target_y_ = pose_.position.y + 0.5;
         pos_flag_ = false;
-        ROS_INFO("Target position set to: (%.2f, %.2f)", target_x_, target_y_);
+        ROS_INFO("Current position: (%.2f, %.2f)", pose_.position.x, pose_.position.y);
+        ROS_INFO("Target position : (%.2f, %.2f)", target_x_, target_y_);
     }
+    publishTargetMarker();
 
     double dx = target_x_ - pose_.position.x;
     double dy = target_y_ - pose_.position.y;
-    ROS_INFO("dx: %.2f, dy: %.2f", dx, dy);
+    //ROS_INFO("dx: %.2f, dy: %.2f", dx, dy);
+    Eigen::Vector2d target_force(dx, dy);
 
-    double cos_yaw = cos(-euler_.z);
-    double sin_yaw = sin(-euler_.z);
-    double dx_body = dx * cos_yaw + dy * sin_yaw;
-    double dy_body = -dx * sin_yaw + dy * cos_yaw;
-
+    double cos_yaw = cos(euler_.z);
+    double sin_yaw = sin(euler_.z);
+    ROS_INFO("cos_yaw: %.2f, sin_yaw: %.2f", cos_yaw, sin_yaw);
+    // transform to local coordinate
+    // double dx_body = dx * cos_yaw + dy * sin_yaw;
+    // double dy_body = -dx * sin_yaw + dy * cos_yaw;
+    // Eigen::Vector2d target_force(dx_body, dy_body);
+    // ROS_INFO("dx_body: %.2f, dy_body: %.2f", dx_body, dy_body);
+    double target_force_norm = target_force.norm();
     std::vector<float> motor_pwms(4, 0.5);
-    if (std::abs(dx_body) > 0.1 || std::abs(dy_body) > 0.1) {
-        std::vector<double> dir = {dx_body, dy_body};
-        double norm = std::hypot(dx_body, dy_body);
-        std::vector<double> dir_n = { (norm > 1e-6) ? dx_body / norm : 0.0,
-                                        (norm > 1e-6) ? dy_body / norm : 0.0 };
 
-        std::vector<std::vector<double>> motor_dirs = {
-            {1, -1}, {-1, -1}, {-1, 1}, {1, 1}
-        };
-
-        std::vector<double> alpha(4, 0.0);
-        for (size_t i = 0; i < 4; ++i) {
-            double dot = motor_dirs[i][0] * dir_n[0] + motor_dirs[i][1] * dir_n[1];
-            alpha[i] = std::max(dot * norm, 0.0);
+    Eigen::Matrix<double, 2, 4> motor_dirs_base;
+    motor_dirs_base <<  1, -1, -1,  1,
+                    -1, -1,  1,  1;
+    Eigen::Matrix2d R;
+    R << cos_yaw, -sin_yaw,
+         sin_yaw,  cos_yaw;
+    Eigen::Matrix<double, 2, 4> motor_dirs = R * motor_dirs_base;
+    std::ostringstream oss;
+    oss << "motor_dirs:\n";
+    for (int row = 0; row < motor_dirs.rows(); ++row) {
+        for (int col = 0; col < motor_dirs.cols(); ++col) {
+            oss << motor_dirs(row, col) << "\t";
         }
-
-        for (size_t i = 0; i < 4; ++i) {
-            motor_pwms[i] = calThrustPower(alpha[i]);
-        }
+        oss << "\n";
     }
-    publishHapticsPwm({0,1,2,3}, motor_pwms);
+    ROS_INFO_STREAM(oss.str());
 
-    //debag
+    Eigen::Vector4d alpha =  Eigen::Vector4d::Zero();
+    Eigen::Vector2d target_force_dir = target_force.normalized();
+    const int max_iter = 100;
+    const double lr = 0.1;
+
+    for (int i = 0; i < max_iter; ++i) {
+        Eigen::Vector2d residual = motor_dirs * alpha - target_force_dir;
+        Eigen::Vector4d gradient = motor_dirs.transpose() * residual;
+        alpha -= lr * gradient;
+        alpha = alpha.cwiseMax(0.0); // Ensure non-negative thrust
+    }
+    alpha *= target_force_norm;
+
+    if (target_force_norm < 1e-6) {
+        publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.5, 0.5});
+        return;
+    }else{
+        for (size_t i = 0; i < 4; ++i) {
+        motor_pwms[i] = calThrustPower(alpha[i]);
+        }   
+        publishHapticsPwm({0,1,2,3}, motor_pwms);
+    }
+
+    //debug
     spinal::PwmTest alpha_msg;
-    alpha_msg.motor_index = {0, 1, 2, 3};  // モータ番号
+    alpha_msg.motor_index = {0, 1, 2, 3};
     for (size_t i = 0; i < 4; ++i) {
         alpha_msg.pwms.push_back(static_cast<float>(alpha[i]));
     }

@@ -1,5 +1,5 @@
-#include "air_pressure_controller.h"
-#include "haptics_controller.h"
+#include <hugmy/control/air_pressure_controller.h>
+#include <hugmy/control/haptics_controller.h>
 
 #include <ros/ros.h>
 #include <spinal/PwmTest.h>
@@ -81,7 +81,7 @@ private:
     spinal::PwmTest air_pwm_msg = air_.getAirPwm();
     spinal::PwmTest haptics_pwm_msg = haptics_.getHapticsPwm();
 
-    std::map<int, float> merged_pwm;
+    std::map<uint8_t, float> merged_pwm;
     for (size_t i = 0; i < haptics_pwm_msg.motor_index.size(); ++i) {
         merged_pwm[haptics_pwm_msg.motor_index[i]] = haptics_pwm_msg.pwms[i];
     }

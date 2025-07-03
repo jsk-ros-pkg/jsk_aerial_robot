@@ -1,4 +1,4 @@
-#include "air_pressure_controller.h"
+#include <hugmy/control/air_pressure_controller.h>
 
 AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     sensor_joint_sub_ = nh.subscribe("/sensor", 1, &AirPressureController::sensorCb, this);
@@ -69,7 +69,7 @@ void AirPressureController::sensor1Cb(const std_msgs::Int8::ConstPtr& msg) {
 //     publishAirPwm({7},{0.0});
 // }
 
-void AirPressureController::publishAirPwm(const std::vector<int>& indices, const std::vector<float>& pwms) {
+void AirPressureController::publishAirPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms) {
     pwm_air_cmd_.motor_index = indices;
     pwm_air_cmd_.pwms = pwms;
     pwm_air_pub_.publish(pwm_air_cmd_);
@@ -89,7 +89,7 @@ void AirPressureController::calPressure(int target_pressure, int sensor_index) {
 }
 
 void AirPressureController::adjustAirPressure() {
-    std::vector<int> indices = {4, 5, 6, 7};
+    std::vector<uint8_t> indices = {4, 5, 6, 7};
     std::vector<float> pwms(4, 0.0);  // 初期値はすべて0.0
     if (air_pressure_bottom_ <= bottom_usual_pressure_) {
         pwms[0] = static_cast<float>(output_);  // 4番: ポンプ

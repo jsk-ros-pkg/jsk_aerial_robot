@@ -12,6 +12,7 @@
 #include <vector>
 #include <cmath>
 #include <Eigen/Dense>
+#include <sensor_msgs/Joy.h>
 
 class HapticsController{
 public:
@@ -22,12 +23,13 @@ public:
     void stopAllMotors();
     void setJoy(const sensor_msgs::Joy& msg);
     spinal::PwmTest getHapticsPwm() const;
+    bool pos_flag_;
 
 private:
     void odomCb(const nav_msgs::Odometry::ConstPtr& msg);
     void publishTargetMarker();
-    void publishHapticsPwm(const std::vector<int>& indices, const std::vector<float>& pwms);
-    double calThrustPower(double strength_norm);
+    void publishHapticsPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms);
+    double calThrustPower(double strength);
 
     ros::Publisher pwm_haptic_pub_;
     ros::Publisher marker_pub_;
@@ -38,8 +40,7 @@ private:
     geometry_msgs::Pose pose_;
     geometry_msgs::Vector3 euler_;
     double target_x_, target_y_;
-    bool pos_flag_;
-    double output_; 
+    double output_;
     spinal::PwmTest last_published_pwm_;
 };
 
