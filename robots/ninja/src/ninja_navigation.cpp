@@ -597,6 +597,7 @@ void NinjaNavigator::comMovingProcess()
       transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
       tf::transformMsgToKDL(transformStamped.transform, current_com);
       tf::vectorKDLToTF(current_com.p, current_com_pos);
+      curr_com_pose_ = current_com;
     }
   catch (tf2::TransformException& ex)
     {
@@ -1134,7 +1135,9 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   double raw_x_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_UPWARDS];
   double raw_y_cmd = joy_cmd.axes[JOY_AXIS_STICK_LEFT_LEFTWARDS];
   double raw_z_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_UPWARDS];
+  /* Rotational Contol*/
   double raw_yaw_cmd = joy_cmd.axes[JOY_AXIS_STICK_RIGHT_LEFTWARDS];
+  int end_efct_flag = joy_cmd.buttons[JOY_BUTTON_REAR_RIGHT_1];
 
   //xy control
   if(fabs(raw_x_cmd) >= joy_stick_deadzone_ || fabs(raw_y_cmd) >= joy_stick_deadzone_)
@@ -1169,21 +1172,86 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           }
         }
     }
-  //z control
-  if(fabs(raw_z_cmd) >= joy_stick_deadzone_)
-      {
-        asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
-        setTargetVelCandZ(raw_z_cmd * max_teleop_z_vel_);
-      }
+
   //yaw control
   if(fabs(raw_yaw_cmd) > joy_stick_deadzone_)
     {
-      asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
-      setTargetOmegaCandZ(raw_yaw_cmd * max_teleop_yaw_vel_);
+      if(end_efct_flag)
+        {
+          std::string left_efct_coord = my_name_ + std::to_string(assembled_modules_ids_[0]) + std::string("/pitch_connect_point");
+          std::string com_coord = my_name_ + std::to_string(my_id_) + std::string("/center_of_moving");
+          try
+            {
+              auto tfst = tfBuffer_.lookupTransform(
+                                                    com_coord, left_efct_coord, ros::Time(0));
+              KDL::Frame left2com;
+              tf::transformMsgToKDL(tfst.transform, left2com);
+
+              double w = raw_yaw_cmd * max_teleop_yaw_vel_;
+              KDL::Vector omega_local(w, 0.0, 0.0);
+
+              KDL::Twist twist_left;
+              twist_left.vel = KDL::Vector::Zero();
+              twist_left.rot = omega_local;
+
+              KDL::Twist twist_com = left2com * twist_left;
+
+              KDL::Vector v_world = curr_com_pose_.M * twist_com.vel;
+              tf::Vector3 target_vel_w;
+              tf::vectorKDLToTF(v_world, target_vel_w);
+              asm_teleop_reset_time_ =
+                asm_teleop_reset_duration_ + ros::Time::now().toSec();
+              setTargetOmegaCandZ(twist_com.rot.z());
+              switch (asm_xy_control_mode_)
+                {
+                case POS_CONTROL_MODE:
+                  {
+                    /* vel command */
+                    setTargetVelCandX(target_vel_w.x());
+                    setTargetVelCandY(target_vel_w.y());
+                    asm_xy_control_mode_ = VEL_CONTROL_MODE;
+                    break;
+                  }
+                case VEL_CONTROL_MODE:
+                  {
+                    /* vel command */
+                    setTargetVelCandX(target_vel_w.x());
+                    setTargetVelCandY(target_vel_w.y());
+                    break;
+                  }
+                default:
+                  {
+                    break;
+                  }
+                }
+              // ROS_ERROR_STREAM("vel = [" << target_vel_w.x()<<", " << target_vel_w.y()<<", "  << target_vel_w.z() << "]");
+              // ROS_ERROR_STREAM("rot = [" << twist_com.rot.x()<<", " << twist_com.rot.y()<<", "  << twist_com.rot.z() << "]");
+            }
+          catch (tf2::TransformException& ex)
+            {
+              ROS_ERROR_STREAM("Conversion between " << left_efct_coord << " and " << com_coord <<" is not found");
+              return;
+            }
+ 
+        }
+      else
+        {
+          asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+          setTargetOmegaCandZ(raw_yaw_cmd * max_teleop_yaw_vel_);
+        }
+      yaw_teleop_flag_ = true;
     }
   else
     {
       setTargetOmegaCandZ(0);
+      yaw_teleop_flag_ = false;
+    }
+
+  //z control
+  if(fabs(raw_z_cmd) >= joy_stick_deadzone_ && !yaw_teleop_flag_)
+    {
+      asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
+      setTargetVelCandZ(raw_z_cmd * max_teleop_z_vel_);
     }
 
   if(pseudo_assembly_mode_ && control_flag_)

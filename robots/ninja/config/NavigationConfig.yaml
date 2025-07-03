@@ -47,6 +47,8 @@ navigation:
   free_joint_flag: false
   max_teleop_xy_vel: 0.2
   max_teleop_z_vel: 0.2
+  max_teleop_yaw_vel: 0.2
+  morphing_process_interval: 0.0
 
   # trajectory
   trajectory_min_du: 2.0

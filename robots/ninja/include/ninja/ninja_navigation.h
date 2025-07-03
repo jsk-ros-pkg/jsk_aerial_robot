@@ -185,6 +185,7 @@ namespace aerial_robot_navigation
     KDL::Rotation target_com_rot_;
     KDL::Frame com2base_;
     KDL::Frame test_frame_;
+    KDL::Frame curr_com_pose_;
 
     int module_joint_num_;
     double default_morphing_vel_;
@@ -208,6 +209,8 @@ namespace aerial_robot_navigation
 
     double pseudo_cog_com_dist_;
     double pseudo_radius_change_rate_;
+
+    bool yaw_teleop_flag_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
