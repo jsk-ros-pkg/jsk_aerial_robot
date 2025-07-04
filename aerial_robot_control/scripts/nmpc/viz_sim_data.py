@@ -203,9 +203,15 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
     ax_f.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
     ax_tau.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
 
+    handles, _ = axes_lin[-1].get_legend_handles_labels()
+    labels  = ["Track. NMPC", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)", "Imp. NMPC ($\gamma=16$)"]
+    fig_lin.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01), framealpha=LEGEND_ALPHA, ncol=3,
+               frameon=False)
+
     fig_lin.subplots_adjust(hspace=0.25)
+    fig_lin.tight_layout(rect=[0, 0.06, 1.0, 1.0])
+
     fig_ang.subplots_adjust(hspace=0.25)
-    fig_lin.tight_layout()
     fig_ang.tight_layout()
     plt.show()
 
