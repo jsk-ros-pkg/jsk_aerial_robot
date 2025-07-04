@@ -63,7 +63,7 @@ def main(args):
 
     ts_sim = 0.005  # or 0.001
 
-    t_total_sim = 8.0
+    t_total_sim = 40.0
     if args.plot_type == 1:
         t_total_sim = 4.0
     if args.plot_type == 2:
@@ -124,23 +124,29 @@ def main(args):
         # disturb[2] = np.random.normal(1.0, 3.0)  # fz in N
 
         # Simulate fixed disturbance at singular points
-        if 2.0 <= t_now < 3.0:
+        if 2.0 <= t_now < 7.0:
             disturb[0] = 5.0
 
-        if 3.0 <= t_now < 4.0:
+        if 7.0 <= t_now < 12.0:
+            disturb[0] = 5.0
             disturb[1] = -5.0
 
-        if 4.0 <= t_now < 5.0:
+        if 12.0 <= t_now < 17.0:
+            disturb[0] = 5.0
+            disturb[1] = -5.0
             disturb[2] = -5.0
 
-        if 5.0 <= t_now < 6.0:
-            disturb[3] = 0.5
+        if 20.0 <= t_now < 25.0:
+            disturb[3] = 5.0
 
-        if 6.0 <= t_now < 7.0:
-            disturb[4] = -0.5
+        if 25.0 <= t_now < 30.0:
+            disturb[3] = 5.0
+            disturb[4] = -5.0
 
-        if 7.0 <= t_now < 8.0:
-            disturb[5] = 0.5
+        if 30.0 <= t_now < 35.0:
+            disturb[3] = 5.0
+            disturb[4] = -5.0
+            disturb[5] = 5.0
 
         # --------- Update state estimation ---------
         assert nmpc.include_impedance or nmpc.include_cog_dist_model
