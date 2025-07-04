@@ -121,7 +121,7 @@ tags
 *.mp4
 
 # Trained torch models
-*.pt
+**/results/model_fitting/
 
 # TEMPORARY skip ml_casadi -> TODO use as submodule
 **/ml_casadi/
