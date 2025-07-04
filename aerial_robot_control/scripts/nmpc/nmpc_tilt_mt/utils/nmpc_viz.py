@@ -32,6 +32,8 @@ class Visualizer:
             self.is_tri = True
         elif robot_arch == "qd":
             self.is_qd = True
+        elif robot_arch == '':
+            pass
         else:
             raise ValueError("This robot architecture is not implemented yet!")
 

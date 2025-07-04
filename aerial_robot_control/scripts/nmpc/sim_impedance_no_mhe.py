@@ -9,6 +9,7 @@ from nmpc_tilt_mt.utils.fir_differentiator import FIRDifferentiator
 
 from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_thrust_dist import NMPCTiltQdServoThrustDist
 from nmpc_tilt_mt.tilt_qd.tilt_qd_servo_dist_imp import NMPCTiltQdServoImpedance
+from nmpc_tilt_mt.misc.nominal_impedance import NominalImpedance
 
 np.random.seed(42)
 
@@ -49,7 +50,10 @@ def main(args):
     disturb_estimated = np.zeros(6)  # fds_w, tau_ds_b. Note that they are in different frames.
 
     # ---------- Simulator ----------
-    sim_nmpc = NMPCTiltQdServoThrustDist()
+    if args.sim_model == 0:
+        sim_nmpc = NMPCTiltQdServoThrustDist()
+    elif args.sim_model == 1:
+        sim_nmpc = NominalImpedance()
 
     # Get time constants
     if sim_nmpc.include_servo_model:
@@ -341,7 +345,7 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="The simulation model. "
-             "Options: 0 (default: servo+thrust+dist).",
+             "Options: 0 (default: servo+thrust+dist), 1 (pure impedance).",
     )
 
     parser.add_argument(
