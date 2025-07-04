@@ -316,7 +316,7 @@ def main(args):
                 break
 
         comp_time_end = time.time()
-        viz.comp_time[i] = comp_time_end - comp_time_start
+        viz.comp_time[i] = (comp_time_end - comp_time_start) * 1000.0  # in ms
 
         if args.arch == 'qd':
             # Use previous servo angle as reference

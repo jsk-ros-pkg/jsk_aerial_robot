@@ -153,20 +153,39 @@ class QDNMPCBase(RecedingHorizonBase):
 
         kq_d_kt = ca.MX.sym("kq_d_kt")  # Coupling factor between thrust and torque
 
-        dr = ca.MX.sym("dr", 4)         # Distance from CoG to rotor in Body frame [dr1, dr2, dr3, dr4]
+        # dr = ca.MX.sym("dr", 4)         # Distance from CoG to rotor in Body frame [dr1, dr2, dr3, dr4]
 
-        # TODO dont actually use z-dimensions! -> omit
+        # # TODO dont actually use z-dimensions! -> omit
+        # p1_b = ca.MX.sym("p1_b", 3)
+        # p2_b = ca.MX.sym("p2_b", 3)
+        # p3_b = ca.MX.sym("p3_b", 3)
+        # p4_b = ca.MX.sym("p4_b", 3)
+        # p_b = ca.horzcat(p1_b, p2_b, p3_b, p4_b).T    # Positions of rotors in Body frame
+
+        # t_rotor = ca.MX.sym("t_rotor")
+        # t_servo = ca.MX.sym("t_servo")
+
+        # phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
+        #                         dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+
+        dr1 = ca.MX.sym("dr1")
+        dr2 = ca.MX.sym("dr2")
+        dr3 = ca.MX.sym("dr3")
+        dr4 = ca.MX.sym("dr4")
+        dr = ca.vertcat(dr1, dr2, dr3, dr4)
+
         p1_b = ca.MX.sym("p1_b", 3)
         p2_b = ca.MX.sym("p2_b", 3)
         p3_b = ca.MX.sym("p3_b", 3)
         p4_b = ca.MX.sym("p4_b", 3)
-        p_b = ca.horzcat(p1_b, p2_b, p3_b, p4_b).T    # Positions of rotors in Body frame
+        p_b = ca.horzcat(p1_b, p2_b, p3_b, p4_b).T
 
         t_rotor = ca.MX.sym("t_rotor")
         t_servo = ca.MX.sym("t_servo")
 
         phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
-                                dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
+                                dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo)
+
         parameters = ca.vertcat(parameters, phy_params)
 
         # - Extend model parameters by CoG disturbance
@@ -198,116 +217,242 @@ class QDNMPCBase(RecedingHorizonBase):
 
             parameters = ca.vertcat(parameters, self.mp, self.mq)
 
-        # ===================================================================================================
-        # Transformation between coordinate systems World, Body, End-of-arm, Rotor using quaternions
-        # - Rotor to End-of-arm
-        # Take tilt rotation with angle alpha (a) of R frame to E frame into account
-        if self.tilt:
-            # If servo dynamics are modeled, use angle state.
-            # Else use angle control which is then assumed to be equal to the angle state at all times.
-            if self.include_servo_model:
-                a = self.a_s
+        if True:
+            # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
+            # - World to Body
+            row_1 = ca.horzcat(
+                ca.MX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2), ca.MX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
+                ca.MX(2 * self.qx * self.qz + 2 * self.qw * self.qy)
+            )
+            row_2 = ca.horzcat(
+                ca.MX(2 * self.qx * self.qy + 2 * self.qw * self.qz), ca.MX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
+                ca.MX(2 * self.qy * self.qz - 2 * self.qw * self.qx)
+            )
+            row_3 = ca.horzcat(
+                ca.MX(2 * self.qx * self.qz - 2 * self.qw * self.qy), ca.MX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
+                ca.MX(1 - 2 * self.qx ** 2 - 2 * self.qy ** 2)
+            )
+            rot_wb = ca.vertcat(row_1, row_2, row_3)
+            # - Body to End-of-arm
+            denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+            rot_be1 = ca.vertcat(
+                ca.horzcat(p1_b[0] / denominator, -p1_b[1] / denominator, 0),
+                ca.horzcat(p1_b[1] / denominator,  p1_b[0] / denominator, 0),
+                ca.horzcat(0, 0, 1)
+            )
+
+            denominator = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+            rot_be2 = ca.vertcat(
+                ca.horzcat(p2_b[0] / denominator, -p2_b[1] / denominator, 0),
+                ca.horzcat(p2_b[1] / denominator,  p2_b[0] / denominator, 0),
+                ca.horzcat(0, 0, 1)
+            )
+
+            denominator = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+            rot_be3 = ca.vertcat(
+                ca.horzcat(p3_b[0] / denominator, -p3_b[1] / denominator, 0),
+                ca.horzcat(p3_b[1] / denominator,  p3_b[0] / denominator, 0),
+                ca.horzcat(0, 0, 1)
+            )
+
+            denominator = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+            rot_be4 = ca.vertcat(
+                ca.horzcat(p4_b[0] / denominator, -p4_b[1] / denominator, 0),
+                ca.horzcat(p4_b[1] / denominator,  p4_b[0] / denominator, 0),
+                ca.horzcat(0, 0, 1)
+            )
+
+            # - End-of-arm to Rotor
+            # Take tilt rotation with angle alpha (a) of R frame to E frame into account
+            if self.tilt:
+                # If servo dynamics are modeled, use angle state.
+                # Else use angle control which is then assumed to be equal to the angle state at all times.
+                if self.include_servo_model:
+                    a1 = self.a_s[0];
+                    a2 = self.a_s[1];
+                    a3 = self.a_s[2];
+                    a4 = self.a_s[3];
+                else:
+                    a1 = self.a1c;
+                    a2 = self.a2c;
+                    a3 = self.a3c;
+                    a4 = self.a4c
+
+                rot_e1r1 = ca.vertcat(
+                    ca.horzcat(1, 0, 0),
+                    ca.horzcat(0, ca.cos(a1), -ca.sin(a1)),
+                    ca.horzcat(0, ca.sin(a1),  ca.cos(a1))
+                )
+                rot_e2r2 = ca.vertcat(
+                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
+                )
+                rot_e3r3 = ca.vertcat(
+                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a3), -ca.sin(a3)), ca.horzcat(0, ca.sin(a3), ca.cos(a3))
+                )
+                rot_e4r4 = ca.vertcat(
+                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
+                )
             else:
-                a = self.a_c
+                rot_e1r1 = ca.MX.eye(3);
+                rot_e2r2 = ca.MX.eye(3);
+                rot_e3r3 = ca.MX.eye(3);
+                rot_e4r4 = ca.MX.eye(3)
 
-            # Compute cos and sin of angles
-            cos_a = ca.cos(a)
-            sin_a = ca.sin(a)
+            # Wrench in Rotor frame
+            # If rotor dynamics are modeled, explicitly use thrust state as force.
+            # Else use thrust control which is then assumed to be equal to the thrust state at all times.
+            if self.include_thrust_model:
+                ft1 = self.ft_s[0];
+                ft2 = self.ft_s[1];
+                ft3 = self.ft_s[2];
+                ft4 = self.ft_s[3];
+            else:
+                ft1 = self.ft_c[0];
+                ft2 = self.ft_c[1];
+                ft3 = self.ft_c[2];
+                ft4 = self.ft_c[3];
+
+            ft_r1 = ca.vertcat(0, 0, ft1)
+            ft_r2 = ca.vertcat(0, 0, ft2)
+            ft_r3 = ca.vertcat(0, 0, ft3)
+            ft_r4 = ca.vertcat(0, 0, ft4)
+
+            tau_r1 = ca.vertcat(0, 0, -dr1 * ft1 * kq_d_kt)
+            tau_r2 = ca.vertcat(0, 0, -dr2 * ft2 * kq_d_kt)
+            tau_r3 = ca.vertcat(0, 0, -dr3 * ft3 * kq_d_kt)
+            tau_r4 = ca.vertcat(0, 0, -dr4 * ft4 * kq_d_kt)
+
+            # Wrench in Body frame
+            fu_b = (
+                    ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+                    + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+                    + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+                    + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+            )
+            fu_w = rot_wb @ fu_b
+            tau_u_b = (
+                    ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+                    + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+                    + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+                    + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+                    + ca.cross(p1_b, ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+                    + ca.cross(p2_b, ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+                    + ca.cross(p3_b, ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+                    + ca.cross(p4_b, ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            )
 
         else:
-            cos_a = ca.MX.ones(4,1)
-            sin_a = ca.MX.zeros(4,1)
 
-        # - End-of-arm to Body
-        # Vectorized rotation matrices rot_be (3x3x4)
-        # We'll compute the rotated forces later directly without storing the full rotation matrices
-        norm_xy = ca.sqrt(p_b[:, 0] ** 2 + p_b[:, 1] ** 2)    # Avoid using norm_2()
-        cos_theta = p_b[:, 1] / norm_xy
-        sin_theta = p_b[:, 0] / norm_xy
+            # ===================================================================================================
+            # Transformation between coordinate systems World, Body, End-of-arm, Rotor using quaternions
+            # - Rotor to End-of-arm
+            # Take tilt rotation with angle alpha (a) of R frame to E frame into account
+            if self.tilt:
+                # If servo dynamics are modeled, use angle state.
+                # Else use angle control which is then assumed to be equal to the angle state at all times.
+                if self.include_servo_model:
+                    a = self.a_s
+                else:
+                    a = self.a_c
 
-        # - Body to World
-        row_1 = ca.horzcat(
-            1 - 2 * self.qy ** 2 - 2 * self.qz ** 2,
-            2 * self.qx * self.qy - 2 * self.qw * self.qz,
-            2 * self.qx * self.qz + 2 * self.qw * self.qy
-        )
-        row_2 = ca.horzcat(
-            2 * self.qx * self.qy + 2 * self.qw * self.qz,
-            1 - 2 * self.qx ** 2 - 2 * self.qz ** 2,
-            2 * self.qy * self.qz - 2 * self.qw * self.qx
-        )
-        row_3 = ca.horzcat(
-            2 * self.qx * self.qz - 2 * self.qw * self.qy,
-            2 * self.qy * self.qz + 2 * self.qw * self.qx,
-            1 - 2 * self.qx ** 2 - 2 * self.qy ** 2
-        )
-        rot_wb = ca.vertcat(row_1, row_2, row_3)
-        
-        # 0. Wrench in Rotor frame
-        # If rotor dynamics are modeled, explicitly use thrust state as force.
-        # Else use thrust control which is then assumed to be equal to the thrust state at all times.
-        if self.include_thrust_model:
-            ft_r_z = self.ft_s
-        else:
-            ft_r_z = self.ft_c
+                # Compute cos and sin of angles
+                cos_a = ca.cos(a)
+                sin_a = ca.sin(a)
 
-        # Torque in Rotor frame from thrust and coupling factor kq_d_kt
-        # Torque generated by each rotor around its z-axis (reaction torque)
-        tau_r_z = - dr * ft_r_z * kq_d_kt
+            else:
+                cos_a = ca.MX.ones(4,1)
+                sin_a = ca.MX.zeros(4,1)
 
-        # 1. Apply transformation from Rotor to End-of-arm: rot_er @ ft_r:
-        # [1,         0,         0]   [    0]   [                0]
-        # [0,  cos(a_i), -sin(a_i)] @ [    0] = [(-sin(a_i))*ft_ri]
-        # [0,  sin(a_i),  cos(a_i)]   [ft_ri]   [   cos(a_i)*ft_ri]
+            # - End-of-arm to Body
+            # Vectorized rotation matrices rot_be (3x3x4)
+            # We'll compute the rotated forces later directly without storing the full rotation matrices
+            norm_xy = ca.sqrt(p_b[:, 0] ** 2 + p_b[:, 1] ** 2)    # Avoid using norm_2()
+            sin_theta = p_b[:, 1] / norm_xy
+            cos_theta = p_b[:, 0] / norm_xy
 
-        ft_e_y = - sin_a * ft_r_z
-        ft_e_z =   cos_a * ft_r_z
+            # - Body to World
+            row_1 = ca.horzcat(
+                1 - 2 * self.qy ** 2 - 2 * self.qz ** 2,
+                2 * self.qx * self.qy - 2 * self.qw * self.qz,
+                2 * self.qx * self.qz + 2 * self.qw * self.qy
+            )
+            row_2 = ca.horzcat(
+                2 * self.qx * self.qy + 2 * self.qw * self.qz,
+                1 - 2 * self.qx ** 2 - 2 * self.qz ** 2,
+                2 * self.qy * self.qz - 2 * self.qw * self.qx
+            )
+            row_3 = ca.horzcat(
+                2 * self.qx * self.qz - 2 * self.qw * self.qy,
+                2 * self.qy * self.qz + 2 * self.qw * self.qx,
+                1 - 2 * self.qx ** 2 - 2 * self.qy ** 2
+            )
+            rot_wb = ca.vertcat(row_1, row_2, row_3)
+            
+            # 0. Wrench in Rotor frame
+            # If rotor dynamics are modeled, explicitly use thrust state as force.
+            # Else use thrust control which is then assumed to be equal to the thrust state at all times.
+            if self.include_thrust_model:
+                ft_r_z = self.ft_s
+            else:
+                ft_r_z = self.ft_c
 
-        tau_e_y = - sin_a * tau_r_z
-        tau_e_z =   cos_a * tau_r_z
+            # Torque in Rotor frame from thrust and coupling factor kq_d_kt
+            # Torque generated by each rotor around its z-axis (reaction torque)
+            tau_r_z = - dr * ft_r_z * kq_d_kt
 
-        # 2. Apply transformation from End-of-arm to Body: rot_be @ ft_e:
-        # [cos(theta_i), -sin(theta_i), 0]   [                0]   [(-sin(theta_i))*ft_ri*(-sin(a_i))]   [[(-sin(theta_i))*ft_e_y]
-        # [sin(theta_i),  cos(theta_i), 0] @ [ft_ri*(-sin(a_i))] = [   cos(theta_i)*ft_ri*(-sin(a_i))] = [    cos(theta_i)*ft_e_y]
-        # [        0,          0,       1]   [   ft_ri*cos(a_i)]   [                   ft_ri*cos(a_i)]   [                 ft_e_z]
-        #
-        # with sin(theta_i) = pi_b[1] / sqrt(pi_b[0]^2 + pi_b[1]^2)
-        # and  cos(theta_i) = pi_b[0] / sqrt(pi_b[0]^2 + pi_b[1]^2)
+            # 1. Apply transformation from Rotor to End-of-arm: rot_er @ ft_r:
+            # [1,         0,         0]   [    0]   [                0]
+            # [0,  cos(a_i), -sin(a_i)] @ [    0] = [(-sin(a_i))*ft_ri]
+            # [0,  sin(a_i),  cos(a_i)]   [ft_ri]   [   cos(a_i)*ft_ri]
 
-        ft_b_x = - sin_theta * ft_e_y
-        ft_b_y =   cos_theta * ft_e_y
-        ft_b_z =   ft_e_z
+            ft_e_y = - sin_a * ft_r_z
+            ft_e_z =   cos_a * ft_r_z
 
-        tau_b_x = - sin_theta * tau_e_y
-        tau_b_y =   cos_theta * tau_e_y
-        tau_b_z =   tau_e_z
+            tau_e_y = - sin_a * tau_r_z
+            tau_e_z =   cos_a * tau_r_z
 
-        # 4. Add cross product terms: p_b × f_b for each rotor position
-        # These represent the torques due to thrust forces acting at distance from CoG
-        cross_tau_b_x = p_b[:, 1] * ft_b_z - p_b[:, 2] * ft_b_y  # p_y * f_z - p_z * f_y
-        cross_tau_b_y = p_b[:, 2] * ft_b_x - p_b[:, 0] * ft_b_z  # p_z * f_x - p_x * f_z
-        cross_tau_b_z = p_b[:, 0] * ft_b_y - p_b[:, 1] * ft_b_x  # p_x * f_y - p_y * f_x
+            # 2. Apply transformation from End-of-arm to Body: rot_be @ ft_e:
+            # [cos(theta_i), -sin(theta_i), 0]   [                0]   [(-sin(theta_i))*ft_ri*(-sin(a_i))]   [[(-sin(theta_i))*ft_e_y]
+            # [sin(theta_i),  cos(theta_i), 0] @ [ft_ri*(-sin(a_i))] = [   cos(theta_i)*ft_ri*(-sin(a_i))] = [    cos(theta_i)*ft_e_y]
+            # [        0,          0,       1]   [   ft_ri*cos(a_i)]   [                   ft_ri*cos(a_i)]   [                 ft_e_z]
+            #
+            # with sin(theta_i) = pi_b[1] / sqrt(pi_b[0]^2 + pi_b[1]^2)
+            # and  cos(theta_i) = pi_b[0] / sqrt(pi_b[0]^2 + pi_b[1]^2)
 
-        # 5. Sum over all rotor contributions
-        fu_b = ca.vertcat(
-            ca.sum1(ft_b_x),
-            ca.sum1(ft_b_y),
-            ca.sum1(ft_b_z)
-        )
+            ft_b_x = - sin_theta * ft_e_y
+            ft_b_y =   cos_theta * ft_e_y
+            ft_b_z =   ft_e_z
 
-        tau_u_b = ca.vertcat(
-            ca.sum1(tau_b_x + cross_tau_b_x),
-            ca.sum1(tau_b_y + cross_tau_b_y),
-            ca.sum1(tau_b_z + cross_tau_b_z)
-        )
+            tau_b_x = - sin_theta * tau_e_y
+            tau_b_y =   cos_theta * tau_e_y
+            tau_b_z =   tau_e_z
 
-        # 6. Apply transformation from Body to World: rot_wb @ ft_b:
-        # [1 - 2*qy^2 - 2*qz^2, 2*qx*qy - 2*qw*qz, 2*qx*qz + 2*qw*qy]
-        # [2*qx*qy + 2*qw*qz, 1 - 2*qx^2 - 2*qz^2, 2*qy*qz - 2*qw*qx] @ [fu_b] = [fu_w]
-        # [2*qx*qz - 2*qw*qy, 2*qy*qz + 2*qw*qx, 1 - 2*qx^2 - 2*qy^2]
+            # 4. Add cross product terms: p_b × f_b for each rotor position
+            # These represent the torques due to thrust forces acting at distance from CoG
+            cross_tau_b_x = p_b[:, 1] * ft_b_z - p_b[:, 2] * ft_b_y  # p_y * f_z - p_z * f_y
+            cross_tau_b_y = p_b[:, 2] * ft_b_x - p_b[:, 0] * ft_b_z  # p_z * f_x - p_x * f_z
+            cross_tau_b_z = p_b[:, 0] * ft_b_y - p_b[:, 1] * ft_b_x  # p_x * f_y - p_y * f_x
 
-        fu_w = rot_wb @ fu_b
-        # ===================================================================================================
+            # 5. Sum over all rotor contributions
+            fu_b = ca.vertcat(
+                ca.sum1(ft_b_x),
+                ca.sum1(ft_b_y),
+                ca.sum1(ft_b_z)
+            )
+
+            tau_u_b = ca.vertcat(
+                ca.sum1(tau_b_x + cross_tau_b_x),
+                ca.sum1(tau_b_y + cross_tau_b_y),
+                ca.sum1(tau_b_z + cross_tau_b_z)
+            )
+
+            # 6. Apply transformation from Body to World: rot_wb @ ft_b:
+            # [1 - 2*qy^2 - 2*qz^2, 2*qx*qy - 2*qw*qz, 2*qx*qz + 2*qw*qy]
+            # [2*qx*qy + 2*qw*qz, 1 - 2*qx^2 - 2*qz^2, 2*qy*qz - 2*qw*qx] @ [fu_b] = [fu_w]
+            # [2*qx*qz - 2*qw*qy, 2*qy*qz + 2*qw*qx, 1 - 2*qx^2 - 2*qy^2]
+
+            fu_w = rot_wb @ fu_b
+            # ===================================================================================================
 
         # Compute Inertia
         I = ca.diag(ca.vertcat(Ixx, Iyy, Izz))
@@ -348,8 +493,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # - Extend model by disturbances simply to match state dimensions
         if self.include_cog_dist_model:
             ds = ca.vertcat(ds,
-                            ca.MX.zeros(3, 1),
-                            ca.MX.zeros(3, 1)
+                            ca.vertcat(0.0, 0.0, 0.0),
+                            ca.vertcat(0.0, 0.0, 0.0),
                             )
 
         # Assemble acados function

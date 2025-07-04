@@ -24,8 +24,8 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True
         self.include_impedance = False
-        self.include_quaternion_constraint = True
-        self.include_soft_constraints = True
+        self.include_quaternion_constraint = False
+        self.include_soft_constraints = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullDist.yaml")
