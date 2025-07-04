@@ -140,8 +140,14 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
 
     last_t: np.ndarray | None = None  # for x‑limits
 
+    line_styles = ['-', '-', '-.', '--', ':']  # different line styles for each dataset
+    i = 0
+
     # Iterate datasets sorted by timestamp for reproducibility
     for stamp, entry in sorted(entries.items()):
+        line_style = line_styles[i % len(line_styles)]
+        i += 1
+
         try:
             x, _u, f_d, tau_d, lbl = _load_arrays(entry)
         except RuntimeError as e:
@@ -163,12 +169,12 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
             ax_f.plot(t, f_d[:, 2], label=r"$f_z$", color="#EDB120")
             drawn_force = True
 
-        ax_px.plot(t, x[:, 0], label=lbl)
-        ax_py.plot(t, x[:, 1], label=lbl)
-        ax_pz.plot(t, x[:, 2], label=lbl)
-        ax_vx.plot(t, x[:, 3], label=lbl)
-        ax_vy.plot(t, x[:, 4], label=lbl)
-        ax_vz.plot(t, x[:, 5], label=lbl)
+        ax_px.plot(t, x[:, 0], label=lbl, linestyle=line_style)
+        ax_py.plot(t, x[:, 1], label=lbl, linestyle=line_style)
+        ax_pz.plot(t, x[:, 2], label=lbl, linestyle=line_style)
+        ax_vx.plot(t, x[:, 3], label=lbl, linestyle=line_style)
+        ax_vy.plot(t, x[:, 4], label=lbl, linestyle=line_style)
+        ax_vz.plot(t, x[:, 5], label=lbl, linestyle=line_style)
 
         # ------------------------------------------------------------------
         # Figure‑2 : angular quantities
@@ -180,12 +186,12 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
             drawn_torque = True
 
         euler_deg = _quaternion_array_to_euler_deg(x[:, 6:10])
-        ax_roll.plot(t, euler_deg[:, 0], label=lbl)
-        ax_pitch.plot(t, euler_deg[:, 1], label=lbl)
-        ax_yaw.plot(t, euler_deg[:, 2], label=lbl)
-        ax_wx.plot(t, x[:, 10], label=lbl)
-        ax_wy.plot(t, x[:, 11], label=lbl)
-        ax_wz.plot(t, x[:, 12], label=lbl)
+        ax_roll.plot(t, euler_deg[:, 0], label=lbl, linestyle=line_style)
+        ax_pitch.plot(t, euler_deg[:, 1], label=lbl, linestyle=line_style)
+        ax_yaw.plot(t, euler_deg[:, 2], label=lbl, linestyle=line_style)
+        ax_wx.plot(t, x[:, 10], label=lbl, linestyle=line_style)
+        ax_wy.plot(t, x[:, 11], label=lbl, linestyle=line_style)
+        ax_wz.plot(t, x[:, 12], label=lbl, linestyle=line_style)
 
     # ---------------------------------------------------------------------
     # Styling & shared tweaks
@@ -203,16 +209,22 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
     ax_f.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
     ax_tau.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
 
+    labels = ["Track. NMPC", "Imp. Nominal", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)",
+              "Imp. NMPC ($\gamma=16$)"]
+
     handles, _ = axes_lin[-1].get_legend_handles_labels()
-    labels  = ["Track. NMPC", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)", "Imp. NMPC ($\gamma=16$)", "Imp. Nominal"]
     fig_lin.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), framealpha=LEGEND_ALPHA, ncol=3,
-               frameon=False)
+                   frameon=False)
 
     fig_lin.subplots_adjust(hspace=0.25)
     fig_lin.tight_layout(rect=[0, 0.06, 1.0, 1.0])
 
+    handles, _ = axes_ang[-1].get_legend_handles_labels()
+    fig_ang.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), framealpha=LEGEND_ALPHA, ncol=3,
+                   frameon=False)
+
     fig_ang.subplots_adjust(hspace=0.25)
-    fig_ang.tight_layout()
+    fig_ang.tight_layout(rect=[0, 0.06, 1.0, 1.0])
     plt.show()
 
 
