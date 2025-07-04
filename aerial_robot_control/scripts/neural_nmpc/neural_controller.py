@@ -134,23 +134,17 @@ class NeuralNMPC():
         # Get OCP solver from NMPC
         self.nominal_solver = self.nmpc.get_ocp_solver()
 
-        if not model_options["only_use_nominal"]:
-            # Set name of the controller
-            self.model_name = "Neural_" + self.nominal_model.name
+        # Set name of the controller
+        self.model_name = "Neural_" + self.nominal_model.name
 
-            # Load pre-trained MLP
-            self.neural_model, self.mlp_metadata = load_model(model_options, sim_options)
+        # Load pre-trained MLP
+        self.neural_model, self.mlp_metadata = load_model(model_options, sim_options)
 
-            # Add neural network model to nominal model 
-            self.extend_acados_model()
+        # Add neural network model to nominal model 
+        self.extend_acados_model()
 
-            # Extend the acados solver with the extended model
-            self.extend_acados_solver()
-
-        else:
-            self.model_name = self.nominal_model.name
-            self.acados_model = self.nominal_model
-            self.ocp_solver = self.nominal_solver
+        # Extend the acados solver with the extended model
+        self.extend_acados_solver()
 
         # Create sim solver for the extended model
         self.create_acados_sim_solver()
@@ -204,12 +198,19 @@ class NeuralNMPC():
         # mlp_out = self.neural_model(mlp_in)
         mlp_out = ca.MX.sym('mlp_out', len(eval(self.mlp_metadata["y_reg_dims"])))
 
+        # Transform velocity back to world frame
+        y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
+        if [3, 4, 5] in y_reg_dims:
+            v_idx = np.where(y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
+            v_w = v_dot_q(mlp_out[v_idx:v_idx+3], self.state[6:10])
+            mlp_out = ca.vertcat(mlp_out[:v_idx], v_w, mlp_out[v_idx+3:])
+
         # Explicit dynamics
-        if self.model_options["only_use_mlp"]:
+        if self.model_options["end_to_end_mlp"]:
             if mlp_out.size() != self.state.size():
-                raise ValueError("[only_use_mlp] The regressed dims of the MLP \
-                                 do not match the state size. Please check the MLP \
-                                 configuration or set 'only_use_mlp' to False.")
+                raise ValueError("[end_to_end_mlp] The regressed dims of the MLP \
+                                 do not match the state space. Please check the MLP \
+                                 configuration or set 'end_to_end_mlp' to False.")
             f_total = mlp_out
         else:
             # Here f is already symbolically evaluated to f(x,u)

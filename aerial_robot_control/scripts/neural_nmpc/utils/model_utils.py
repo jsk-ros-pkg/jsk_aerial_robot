@@ -30,7 +30,7 @@ def load_model(model_options, sim_options):
         metadata = json.load(json_file)[neural_model_name][neural_model_instance]
 
     # Cross-check simulation environment options with metadata
-    # metadata = cross_check_options(model_options, sim_options, metadata)
+    metadata = cross_check_options(model_options, sim_options, metadata)
 
     # Load trained MLP model
     file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
@@ -72,31 +72,10 @@ def cross_check_options(model_options, sim_options, metadata):
     Cross-check the model options and simulation options to ensure they match the configuration
     that the neural model was trained with.
     """
-    # Check the features and regression values
-    x_feats = model_options['x_feats']
-    u_feats = model_options['u_feats']
-    y_reg_dims = model_options['y_reg_dims']
-    x_feats_metadata = eval(metadata['x_feats'])  # Converts string back into list
-    u_feats_metadata = eval(metadata['u_feats'])
-    y_reg_dims_metadata = eval(metadata['y_reg_dims'])
-
     if model_options["nmpc_type"] != metadata["ds_nmpc_type"]:
         raise ValueError("NMPC type used in dataset for training the neural model doesn't match the simulation environment.")
 
-    if x_feats != x_feats_metadata:
-        raise ValueError("The features in x_feats don't match the simulation environment.")
-
-    if u_feats != u_feats_metadata:
-        raise ValueError("The features in u_feats don't match the simulation environment.")
-
-    if y_reg_dims != y_reg_dims_metadata:
-        raise ValueError("The regression variables in y_reg_dims don't match the simulation environment.")
-
-    # Check the model and simulation options
-    if metadata["ds_nmpc_type"] != model_options["nmpc_type"]:
-        raise ValueError("NMPC type used in dataset for training the neural model doesn't match the simulation environment.")
-
-    if metadata["ds_disturbances"] != sim_options["disturbances"]:
+    if sim_options["disturbances"] != metadata["ds_disturbances"]:
         raise ValueError("Disturbances used in dataset for training the neural model don't match the simulation environment.")
 
     return metadata
