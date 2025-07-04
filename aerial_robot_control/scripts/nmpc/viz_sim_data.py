@@ -101,74 +101,112 @@ def _quaternion_array_to_euler_deg(qwxyz: np.ndarray) -> np.ndarray:
 # -----------------------------------------------------------------------------
 
 def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
-    data_entries = _scan_folder(folder)
-    if not data_entries:
-        raise FileNotFoundError(f"No .npy result files found in {folder}")
+    entries = _scan_folder(folder)
+    if not entries:
+        raise FileNotFoundError(f"No .npy files in {folder}")
 
-    # Prepare figure & sub‑plots
-    fig = plt.figure(figsize=(7, 10))
-    axes = [plt.subplot(8, 1, i + 1) for i in range(8)]
-    ax_force, ax_px, ax_py, ax_pz, ax_torque, ax_roll, ax_pitch, ax_yaw = axes
-    ax_roll.set_ylabel(r"Roll [$^\circ$]")
-    ax_pitch.set_ylabel(r"Pitch [$^\circ$]")
-    ax_yaw.set_ylabel(r"Yaw [$^\circ$]")
-    ax_yaw.set_xlabel("Time [s]")
+    # --- Prepare two figures --------------------------------------------------
+    plt.rcParams.update({'font.size': 11})  # default is 10
+    label_size = 14
 
-    global t
+    fig_lin = plt.figure(figsize=(7, 11))
+    axes_lin = [plt.subplot(7, 1, i + 1) for i in range(7)]
+    ax_f, ax_px, ax_py, ax_pz, ax_vx, ax_vy, ax_vz = axes_lin
 
-    if_plot_disturb_wrench = False  # only plot disturb wrench once since all data has the same wrench
+    fig_ang = plt.figure(figsize=(7, 11))
+    axes_ang = [plt.subplot(7, 1, i + 1) for i in range(7)]
+    ax_tau, ax_roll, ax_pitch, ax_yaw, ax_wx, ax_wy, ax_wz = axes_ang
 
-    for stamp, entry in sorted(data_entries.items()):
+    # Label y‑axes (x‑axis labels later)
+    ax_f.set_ylabel(r"${^W\boldsymbol{f}_e}$ [N]", fontsize=label_size)
+    ax_tau.set_ylabel(r"${^B\boldsymbol{\tau}_e}$ [N$\cdot$m]", fontsize=label_size)
+
+    ax_px.set_ylabel(r"$p_x$ [m]", fontsize=label_size)
+    ax_py.set_ylabel(r"$p_y$ [m]", fontsize=label_size)
+    ax_pz.set_ylabel(r"$p_z$ [m]", fontsize=label_size)
+    ax_vx.set_ylabel(r"$v_x$ [m/s]", fontsize=label_size)
+    ax_vy.set_ylabel(r"$v_y$ [m/s]", fontsize=label_size)
+    ax_vz.set_ylabel(r"$v_z$ [m/s]", fontsize=label_size)
+
+    ax_roll.set_ylabel(r"Roll [$^\circ$]", fontsize=label_size)
+    ax_pitch.set_ylabel(r"Pitch [$^\circ$]", fontsize=label_size)
+    ax_yaw.set_ylabel(r"Yaw [$^\circ$]", fontsize=label_size)
+    ax_wx.set_ylabel(r"$\omega_x$ [rad/s]", fontsize=label_size)
+    ax_wy.set_ylabel(r"$\omega_y$ [rad/s]", fontsize=label_size)
+    ax_wz.set_ylabel(r"$\omega_z$ [rad/s]", fontsize=label_size)
+
+    # Will plot disturbance wrench only once (assumed same for all data‑sets)
+    drawn_force = drawn_torque = False
+
+    last_t: np.ndarray | None = None  # for x‑limits
+
+    # Iterate datasets sorted by timestamp for reproducibility
+    for stamp, entry in sorted(entries.items()):
         try:
-            x_org, _u, f_d, tau_d, lbl = _load_arrays(entry)
-        except RuntimeError as err:
-            print(err)
+            x, _u, f_d, tau_d, lbl = _load_arrays(entry)
+        except RuntimeError as e:
+            print(e)
             continue
 
-        t = np.arange(_u.shape[0]) * ts_sim  # Note: The recording frequency of u_cmd is the same as ts_sim
-        x = x_org[1:]
+        # time axis (based on u length – same as x minus first line)
+        t = np.arange(_u.shape[0]) * ts_sim
+        x = x[1:]  # skip duplicate first line
+        if last_t is None or t[-1] > last_t[-1]:
+            last_t = t
 
-        if not if_plot_disturb_wrench:
-            # Disturbance force
-            ax_force.plot(t, f_d[:, 0], label=rf"$f_x$")
-            ax_force.plot(t, f_d[:, 1], label=rf"$f_y$")
-            ax_force.plot(t, f_d[:, 2], label=rf"$f_z$")
-            # Disturbance torque
-            ax_torque.plot(t, tau_d[:, 0], label=rf"$\tau_x$")
-            ax_torque.plot(t, tau_d[:, 1], label=rf"$\tau_y$")
-            ax_torque.plot(t, tau_d[:, 2], label=rf"$\tau_z$")
+        # ------------------------------------------------------------------
+        # Figure‑1 : linear quantities
+        # ------------------------------------------------------------------
+        if not drawn_force:
+            ax_f.plot(t, f_d[:, 0], label=r"$f_x$", color="#0072BD")
+            ax_f.plot(t, f_d[:, 1], label=r"$f_y$", color="#D95319")
+            ax_f.plot(t, f_d[:, 2], label=r"$f_z$", color="#EDB120")
+            drawn_force = True
 
-            if_plot_disturb_wrench = True
+        ax_px.plot(t, x[:, 0], label=lbl)
+        ax_py.plot(t, x[:, 1], label=lbl)
+        ax_pz.plot(t, x[:, 2], label=lbl)
+        ax_vx.plot(t, x[:, 3], label=lbl)
+        ax_vy.plot(t, x[:, 4], label=lbl)
+        ax_vz.plot(t, x[:, 5], label=lbl)
 
-        # Position
-        ax_px.plot(t, x[:, 0], label=f"{lbl}")
-        ax_py.plot(t, x[:, 1], label=f"{lbl}")
-        ax_pz.plot(t, x[:, 2], label=f"{lbl}")
-        # Euler angles
+        # ------------------------------------------------------------------
+        # Figure‑2 : angular quantities
+        # ------------------------------------------------------------------
+        if not drawn_torque:
+            ax_tau.plot(t, tau_d[:, 0], label=r"$\tau_x$", color="#0072BD")
+            ax_tau.plot(t, tau_d[:, 1], label=r"$\tau_y$", color="#D95319")
+            ax_tau.plot(t, tau_d[:, 2], label=r"$\tau_z$", color="#EDB120")
+            drawn_torque = True
+
         euler_deg = _quaternion_array_to_euler_deg(x[:, 6:10])
-        ax_roll.plot(t, euler_deg[:, 0], label=f"{lbl}")
-        ax_pitch.plot(t, euler_deg[:, 1], label=f"{lbl}")
-        ax_yaw.plot(t, euler_deg[:, 2], label=f"{lbl}")
+        ax_roll.plot(t, euler_deg[:, 0], label=lbl)
+        ax_pitch.plot(t, euler_deg[:, 1], label=lbl)
+        ax_yaw.plot(t, euler_deg[:, 2], label=lbl)
+        ax_wx.plot(t, x[:, 10], label=lbl)
+        ax_wy.plot(t, x[:, 11], label=lbl)
+        ax_wz.plot(t, x[:, 12], label=lbl)
 
-    # Beautify: labels and limits
-    ax_force.set_ylabel(r"Force [N]")
-    ax_px.set_ylabel(r"$p_x$ [m]")
-    ax_py.set_ylabel(r"$p_y$ [m]")
-    ax_pz.set_ylabel(r"$p_z$ [m]")
-    ax_torque.set_ylabel(r"Torque [N$\cdot$ m]")
+    # ---------------------------------------------------------------------
+    # Styling & shared tweaks
+    # ---------------------------------------------------------------------
+    for axs in (axes_lin + axes_ang):
+        axs.grid(True, alpha=0.3)
+        if last_t is not None:
+            axs.set_xlim([0.0, last_t[-1]])
 
-    for ax in axes:
-        ax.set_xlim([0.0, t[-1]])
-        ax.grid(True, alpha=0.3)
+    # x‑axis labels only for bottom panels
+    axes_lin[-1].set_xlabel("$t$ [s]", fontsize=label_size)
+    axes_ang[-1].set_xlabel("$t$ [s]", fontsize=label_size)
 
-    # # Legends – keep them compact by combining where possible
-    ax_force.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=7)
-    ax_torque.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=7)
-    # ax_px.legend(framealpha=LEGEND_ALPHA, ncol=2, fontsize=7)
-    # # Other axes share same labels; omit duplicate legends to reduce clutter
+    # Legends
+    ax_f.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
+    ax_tau.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
 
-    fig.subplots_adjust(hspace=0.25)
-    plt.tight_layout()
+    fig_lin.subplots_adjust(hspace=0.25)
+    fig_ang.subplots_adjust(hspace=0.25)
+    fig_lin.tight_layout()
+    fig_ang.tight_layout()
     plt.show()
 
 
