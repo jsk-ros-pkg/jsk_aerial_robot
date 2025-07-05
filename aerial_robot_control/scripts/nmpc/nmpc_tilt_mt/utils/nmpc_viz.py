@@ -249,12 +249,13 @@ class Visualizer:
         plt.grid(True)
 
         # Plot Computation Time
-        print("Average computation time: ", np.mean(self.comp_time))
+        print(f"Average computation time: {np.mean(self.comp_time):.3f} ms")
         plt.subplot(ceil(n_plots/2), 2, 6)
-        plt.plot(time_data_x, self.comp_time)
+        plt.plot(time_data_x, self.comp_time, label=f"Avg = {np.mean(self.comp_time):.3f} ms")
+        plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("Computation Time (s)")
+        plt.ylabel("Computation Time (ms)")
         plt.grid(True)
 
         # Plot Servo Angle as State
