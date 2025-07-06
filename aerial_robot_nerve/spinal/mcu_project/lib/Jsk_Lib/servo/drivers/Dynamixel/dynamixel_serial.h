@@ -303,6 +303,8 @@ public:
   uint8_t getServoIndex(uint8_t id);
 
 private:
+  bool direct_ttl_mode_;
+
   RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
 
   // a new and quicker method to read servo data
