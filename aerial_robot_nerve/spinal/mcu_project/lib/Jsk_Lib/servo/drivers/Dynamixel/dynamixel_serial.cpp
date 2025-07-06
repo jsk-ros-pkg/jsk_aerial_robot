@@ -120,9 +120,35 @@ void DynamixelSerial::pinReconfig()
   huart_->Init.Mode = UART_MODE_TX_RX;
   /*Initialize as halfduplex mode*/
 #if DYNAMIXEL_BOARDLESS_CONTROL
-  while(HAL_HalfDuplex_Init(huart_) != HAL_OK);  
-#else 
+
+  while(HAL_HalfDuplex_Init(huart_) != HAL_OK);
+#else
   while(HAL_UART_Init(huart_) != HAL_OK);
+#endif
+
+  // change the pull mode for gpio
+#if DYNAMIXEL_BOARDLESS_CONTROL
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+#if STM32H7_V2
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5);
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#else
+#ifdef STM32H7
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8);
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#endif
+#endif
 #endif
 }
 
