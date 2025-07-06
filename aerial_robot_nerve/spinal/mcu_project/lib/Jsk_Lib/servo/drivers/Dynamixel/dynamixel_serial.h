@@ -15,13 +15,14 @@
 #include <utility>
 #include <cmath>
 // #include "flashmemory.h"
-#include "flashmemory/flashmemory.h"
 // #include "sensors/encoder/mag_encoder.h"
 #include "sensors/encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
 #include <string.h>
 #include "config.h"
+
+#include "servo/drivers/servo_base_driver.h"
 
 /* first should set the baudrate to 1000000*/
 /* uncomment following macro, and set the uart baudrate to 57143(M
@@ -150,8 +151,6 @@
 
 #define INSTRUCTION_PACKET_SIZE 64
 #define STATUS_PACKET_SIZE 		64
-
-#define MAX_SERVO_NUM			10
 #define PING_TRIAL_NUM			100
 
 //read status packet
@@ -279,99 +278,34 @@ private:
   uint16_t buffer_length_;
 };
 
-class ServoData {
-public:
-	ServoData(){}
-  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
-
-	uint8_t id_;
-  	int32_t present_position_;
-	int32_t goal_position_;
-        int32_t calib_value_;
-	int32_t homing_offset_;
-        int32_t internal_offset_;
-        uint8_t present_temp_;
-	int16_t present_current_;
-	uint8_t moving_;
-	uint8_t hardware_error_status_;
-	uint16_t p_gain_, i_gain_, d_gain_;
-	uint16_t profile_velocity_;
-	uint16_t current_limit_;
-	uint16_t send_data_flag_;
-        uint16_t external_encoder_flag_;
-        int32_t joint_offset_;
-        uint16_t joint_resolution_;
-        uint16_t servo_resolution_;
-        float resolution_ratio_;
-	bool led_;
-	bool torque_enable_;
-	bool first_get_pos_flag_;
-        float angle_scale_;
-        uint16_t zero_point_offset_;
-
-	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
-	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
-	int32_t getPresentPosition() const {return present_position_;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
-        int32_t getGoalPosition() const {return goal_position_;}
-        float getAngleScale() const {return angle_scale_;}
-        uint16_t getZeroPointOffset() const {return zero_point_offset_;}
-  
-
-	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
-};
-
-class DynamixelSerial
+class DynamixelSerial : public ServoBase
 {
 public:
   DynamixelSerial(){}
 
-  // void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
-  void init(UART_HandleTypeDef* huart,  osMutexId* mutex = NULL);
-  void ping();
-  HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
-  void reboot(uint8_t servo_index);
-  void setTorque(uint8_t servo_index);
-  void setHomingOffset(uint8_t servo_index);
-  void setRoundOffset(uint8_t servo_index, int32_t ref_value);
-  void setPositionGains(uint8_t servo_index);
-  void setProfileVelocity(uint8_t servo_index);
-  void setCurrentLimit(uint8_t servo_index);
-  void update();
-  unsigned int getServoNum() const {return servo_num_;}
+  void init(UART_HandleTypeDef* huart, osMutexId* mutex = NULL) override;
+  void pinReconfig() override;
+  void ping() override;
+  HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout) override;
+  void reboot(uint8_t servo_index) override;
+  void setTorque(uint8_t servo_index) override;
+  void setTorqueFromPresetnPos(uint8_t servo_index) override;
+  void setHomingOffset(uint8_t servo_index) override;
+  void setRoundOffset(uint8_t servo_index, int32_t ref_value) override;
+  void setPositionGains(uint8_t servo_index) override;
+  void setProfileVelocity(uint8_t servo_index) override;
+  void setCurrentLimit(uint8_t servo_index) override;
+  void update() override;
+  
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
-  std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
-  const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
   ServoData& getOneServo(uint8_t id);
   uint8_t getServoIndex(uint8_t id);
 
-  void setROSCommFlag(bool flag) {flag_send_ros_ = flag;}
-  bool getROSCommFlag() const {return flag_send_ros_;}
-
 private:
-  UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
-  osMutexId* mutex_; // for UART (RS485) I/O mutex
-  MagEncoder encoder_handler_;
   RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
-  unsigned int servo_num_;
-  std::array<ServoData, MAX_SERVO_NUM> servo_;
-  uint16_t ttl_rs485_mixed_;
-  uint32_t set_pos_tick_;
-  uint32_t get_pos_tick_;
-  uint32_t get_load_tick_;
-  uint32_t get_temp_tick_;
-  uint32_t get_move_tick_;
-  uint32_t get_error_tick_;
 
-  /* uart rx */
-  // uint8_t rx_buf_[RX_BUFFER_SIZE];
-  uint32_t rd_ptr_;
-
-  /* ros comm */
-  bool flag_send_ros_ = false;
-
-  /* a new and quicker method to read servo data */
+  // a new and quicker method to read servo data
   bool read_status_packet_flag_ = false;
   std::pair<uint8_t, uint8_t> instruction_last_ = std::make_pair(255, 255);
 
@@ -416,13 +350,14 @@ private:
   inline void cmdSyncWriteProfileVelocity();
   inline void cmdSyncWriteTorqueEnable();
 
-  inline void setStatusReturnLevel();
-  inline void getHomingOffset();
-  inline void getCurrentLimit();
-  inline void getPositionGains();
-  inline void getProfileVelocity();
+  inline void setStatusReturnLevel() override;
+  inline void getHomingOffset() override;
+  inline void getCurrentLimit() override;
+  inline void getPositionGains() override;
+  inline void getProfileVelocity() override;
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };
+
 
 #endif
