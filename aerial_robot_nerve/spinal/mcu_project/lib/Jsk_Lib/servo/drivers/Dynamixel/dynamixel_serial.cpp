@@ -31,9 +31,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
         /* rx */
   __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
   __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
-  #if DYNAMIXEL_BOARDLESS_CONTROL
-    HAL_HalfDuplex_EnableReceiver(huart_);
-  #endif
   HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
   rd_ptr_ = 0;
   memset(rx_buf_, 0, sizeof(rx_buf_));
@@ -552,19 +549,9 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
 
 #if DYNAMIXEL_BOARDLESS_CONTROL
   HAL_HalfDuplex_EnableTransmitter(huart_);
-  uint8_t ret;
-  ret = HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
-  if(ret == HAL_OK)
-  {
-    while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
-    // After transmitting, enable the receiver
-    HAL_HalfDuplex_EnableReceiver(huart_);
-  }
-#else
-// WE; 
-  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
-// RE;
 #endif
+
+  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
 }
 /* Receive status packet to Dynamixel */
 int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
@@ -581,6 +568,12 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	bool read_end_flag = false;
 	int loop_count = 0;
 	uint8_t servo_id;
+
+#if DYNAMIXEL_BOARDLESS_CONTROL
+        while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
+        // After transmitting, enable the receiver
+        HAL_HalfDuplex_EnableReceiver(huart_);
+#endif
 
 	while(!read_end_flag) {
 		HAL_StatusTypeDef receive_status = read(&rx_data, 1);
