@@ -113,6 +113,11 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
             servo_[i].goal_current_ = current_limit * 0.8; // workaround: set 80% of the overload threshold
             cmdWriteGoalCurrent(i);
           }
+          if(operating_mode == CURRENT_CONTROL_MODE)
+            {
+              servo_[i].goal_current_ = 0.0; // initialized as 0
+              cmdWriteGoalCurrent(i);
+            }
 	}
 
 
