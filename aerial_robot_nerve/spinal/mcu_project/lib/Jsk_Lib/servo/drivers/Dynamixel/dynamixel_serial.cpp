@@ -38,7 +38,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
 	//initialize servo motors
-        cmdReboot(DX_BROADCAST_ID);
+  cmdReboot(DX_BROADCAST_ID);
 	HAL_Delay(3000);
 	ping();
 	HAL_Delay(500);
