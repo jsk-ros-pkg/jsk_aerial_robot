@@ -125,9 +125,12 @@
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
+#define OPERATING_MODE_BYTE_LEN 		1
+#define MODEL_NUMBER_BYTE_LEN 			2
 #define MOVING_BYTE_LEN 				1
 #define HARDWARE_ERROR_STATUS_BYTE_LEN	1
 #define POSITION_GAINS_BYTE_LEN			6
@@ -199,6 +202,8 @@
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
+#define INST_GET_MODEL_NUMBER			16
+#define INST_GET_OPERATING_MODE			17
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -324,6 +329,8 @@ private:
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
   inline void cmdReadHomingOffset(uint8_t servo_index);
   inline void cmdReadMoving(uint8_t servo_index);
+  inline void cmdReadModelNumber(uint8_t servo_index);
+  inline void cmdReadOperatingMode(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
@@ -335,16 +342,20 @@ private:
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
+  inline void cmdWriteGoalCurrent(uint8_t servo_index);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHomingOffset(bool send_all = true);
   inline void cmdSyncReadMoving(bool send_all = true);
+  inline void cmdSyncReadModelNumber(bool send_all = true);
+  inline void cmdSyncReadOperatingMode(bool send_all = true);
   inline void cmdSyncReadPositionGains(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
+  inline void cmdSyncWriteGoalCurrent();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();
@@ -355,6 +366,8 @@ private:
   inline void getCurrentLimit() override;
   inline void getPositionGains() override;
   inline void getProfileVelocity() override;
+  inline void getModelNumber();
+  inline void getOperatingMode();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };
