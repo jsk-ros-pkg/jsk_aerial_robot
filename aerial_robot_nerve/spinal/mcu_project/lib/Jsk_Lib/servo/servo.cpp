@@ -23,7 +23,8 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
 #endif
   
   nh_ = nh;
-  nh_->subscribe(servo_ctrl_sub_);
+  nh_->subscribe(servo_position_sub_);
+  nh_->subscribe(servo_current_sub_);
   nh_->subscribe(servo_torque_ctrl_sub_);
   nh_->subscribe(joint_profiles_sub_);
   nh_->advertise(servo_state_pub_);
@@ -166,7 +167,7 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
     }
 }
 
-void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
+void DirectServo::servoPositionCallback(const spinal::ServoControlCmd& control_msg)
 {
   if (control_msg.index_length != control_msg.angles_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
@@ -183,6 +184,22 @@ void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_ms
       s.torque_enable_ = true;
       servo_handler_.setTorque(index);
     }
+  }
+}
+
+void DirectServo::servoCurrentCallback(const spinal::ServoControlCmd& control_msg)
+{
+  if (control_msg.index_length != control_msg.angles_length) return;
+  for (unsigned int i = 0; i < control_msg.index_length; i++) {
+    uint8_t index = control_msg.index[i];
+    if(index >= servo_handler_.getServoNum())
+      {
+        nh_->logerror("Invalid Servo ID!");
+        return;
+      }
+    ServoData& s = servo_handler_.getServo()[index];
+    int32_t goal_curr = static_cast<int32_t>(control_msg.angles[i]);
+    s.setGoalCurrent(goal_curr);
   }
 }
 
