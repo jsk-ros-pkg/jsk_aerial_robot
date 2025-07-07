@@ -186,6 +186,8 @@ void DynamixelSerial::reboot(uint8_t servo_index)
 
 void DynamixelSerial::setTorque(uint8_t servo_index)
 {
+  ServoData& s = servo_[servo_index];
+  if(s.operating_mode_ == CURRENT_CONTROL_MODE) s.goal_current_ = 0;
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
@@ -193,6 +195,7 @@ void DynamixelSerial::setTorqueFromPresetnPos(uint8_t servo_index)
 {
   ServoData& s = servo_[servo_index];
   if(s.torque_enable_) s.goal_position_ = s.present_position_;
+  if(s.operating_mode_ == CURRENT_CONTROL_MODE) s.goal_current_ = 0;
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
 }
 
