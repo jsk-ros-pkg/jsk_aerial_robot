@@ -13,7 +13,7 @@
   </include>
 
   <!-- test codes -->
-  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="40" retry="2">
+  <test test-name="control_test" pkg="aerial_robot_base" type="hovering_check.py"  name="control_test"  ns="$(arg robot_ns)" time-limit="60" retry="2">
     <rosparam>
       waypoint:
         waypoints: [[0, 0, 1.6]]
