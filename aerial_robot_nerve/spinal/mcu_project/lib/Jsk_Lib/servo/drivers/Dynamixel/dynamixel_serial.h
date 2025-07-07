@@ -46,6 +46,14 @@
 //#define WHEEL_TEST
 //#define SET_HOMING_OFFSET
 
+//################ define - Dynamixel operating mode table ######################
+#define CURRENT_CONTROL_MODE 0
+#define VELOCITY_CONTROL_MODE 1
+#define POSITION_CONTROL_MODE 3
+#define EXTENDED_POSITION_CONTROL_MODE 4
+#define CURRENT_BASE_POSITION_CONTROL_MODE 5
+#define PWM_CONTROL_MODE 16
+
 //#########################################################################
 //################ define - Dynamixel Hex control table ######################
 
@@ -197,7 +205,7 @@
 #define INST_GET_PROFILE_VELOCITY		8
 #define INST_PING						9
 #define INST_SET_CURRENT_LIMIT			10
-#define INST_SET_GOAL_POS 				11
+#define INST_SET_GOAL_COMMAND 				11
 #define INST_SET_HOMING_OFFSET			12
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14

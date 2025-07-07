@@ -105,6 +105,17 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
           }
 	}
 
+        //  set initial goal current if necessary
+        for (unsigned int i = 0; i < servo_num_; i++) {
+          uint8_t operating_mode = servo_[i].operating_mode_;
+          uint16_t current_limit = servo_[i].current_limit_;
+          if (operating_mode == CURRENT_BASE_POSITION_CONTROL_MODE) {
+            servo_[i].goal_current_ = current_limit * 0.8; // workaround: set 80% of the overload threshold
+            cmdWriteGoalCurrent(i);
+          }
+	}
+
+
         /*set angle scale values*/
         for (int i = 0; i < MAX_SERVO_NUM; i++){
           servo_[i].zero_point_offset_ = 2047;
@@ -304,7 +315,7 @@ void DynamixelSerial::update()
     if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
     else set_pos_tick_ = current_time;
 
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_COMMAND, 0));
   }
 
   /* read servo position(angle) */
@@ -390,8 +401,9 @@ void DynamixelSerial::update()
 
       /* set command */
       switch (instruction.first) {
-      case INST_SET_GOAL_POS: /* send angle command to servo */
+      case INST_SET_GOAL_COMMAND: /* send angle command to servo */
         cmdSyncWriteGoalPosition();
+        cmdSyncWriteGoalCurrent();
         break;
       case INST_SET_TORQUE: /* send torque enable flag */
         cmdWriteTorqueEnable(servo_index);
