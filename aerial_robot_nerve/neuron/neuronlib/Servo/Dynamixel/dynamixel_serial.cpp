@@ -131,6 +131,13 @@ void DynamixelSerial::setTorque(uint8_t servo_index, bool torque_enable)
     // send the lastest goal position to Spinal
     servo_[servo_index].send_goal_position_ = true;
   }
+  else
+    {
+      if(servo_[servo_index].operating_mode_ == CURRENT_CONTROL_MODE)
+        {
+          servo_[servo_index].goal_current_ = 0;
+        }
+    }
 
   servo_[servo_index].torque_enable_ = torque_enable;
 
