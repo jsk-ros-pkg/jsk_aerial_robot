@@ -101,23 +101,28 @@ def _quaternion_array_to_euler_deg(qwxyz: np.ndarray) -> np.ndarray:
 # -----------------------------------------------------------------------------
 
 def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
+    """Overlay all simulation runs in *folder* on a single two‑column figure."""
     entries = _scan_folder(folder)
     if not entries:
         raise FileNotFoundError(f"No .npy files in {folder}")
 
-    # --- Prepare two figures --------------------------------------------------
-    plt.rcParams.update({'font.size': 11})  # default is 10
+    # ── Matplotlib defaults ─────────────────────────────────────────────
+    plt.rcParams.update({'font.size': 11})
     label_size = 14
 
-    fig_lin = plt.figure(figsize=(7, 11))
-    axes_lin = [plt.subplot(7, 1, i + 1) for i in range(7)]
-    ax_f, ax_px, ax_py, ax_pz, ax_vx, ax_vy, ax_vz = axes_lin
+    # Create a 7×2 grid of sub‑plots (share x within each row)
+    fig, axes = plt.subplots(nrows=7, ncols=2, sharex="row",
+                             figsize=(14, 11),
+                             # gridspec_kw={"wspace": 0.15, "hspace": 0.25}
+                             )
 
-    fig_ang = plt.figure(figsize=(7, 11))
-    axes_ang = [plt.subplot(7, 1, i + 1) for i in range(7)]
-    ax_tau, ax_roll, ax_pitch, ax_yaw, ax_wx, ax_wy, ax_wz = axes_ang
+    # Unpack axes for clarity --------------------------------------------------
+    # Left column (linear)
+    ax_f, ax_px, ax_py, ax_pz, ax_vx, ax_vy, ax_vz = axes[:, 0]
+    # Right column (angular)
+    ax_tau, ax_roll, ax_pitch, ax_yaw, ax_wx, ax_wy, ax_wz = axes[:, 1]
 
-    # Label y‑axes (x‑axis labels later)
+    # Label y‑axes -------------------------------------------------------------
     ax_f.set_ylabel(r"${^W\boldsymbol{f}_e}$ [N]", fontsize=label_size)
     ax_tau.set_ylabel(r"${^B\boldsymbol{\tau}_e}$ [N$\cdot$m]", fontsize=label_size)
 
@@ -135,34 +140,29 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
     ax_wy.set_ylabel(r"$\omega_y$ [rad/s]", fontsize=label_size)
     ax_wz.set_ylabel(r"$\omega_z$ [rad/s]", fontsize=label_size)
 
-    # Will plot disturbance wrench only once (assumed same for all data‑sets)
+    # Disturbance wrench plotted only once (assumed identical across runs)
     drawn_force = drawn_torque = False
 
-    last_t: np.ndarray | None = None  # for x‑limits
+    last_t: np.ndarray | None = None  # for x‑axis limits
 
-    line_styles = ['-', '-', '-.', '--', ':']  # different line styles for each dataset
-    i = 0
+    line_styles = ['-', '-', ':', ':', ':', '--', '--', '--', '-.']
 
-    # Iterate datasets sorted by timestamp for reproducibility
-    for stamp, entry in sorted(entries.items()):
+    # Iterate datasets sorted by timestamp ------------------------------------
+    for i, (stamp, files) in enumerate(sorted(entries.items())):
         line_style = line_styles[i % len(line_styles)]
-        i += 1
 
         try:
-            x, _u, f_d, tau_d, lbl = _load_arrays(entry)
+            x, _u, f_d, tau_d, lbl = _load_arrays(files)
         except RuntimeError as e:
             print(e)
             continue
 
-        # time axis (based on u length – same as x minus first line)
         t = np.arange(_u.shape[0]) * ts_sim
-        x = x[1:]  # skip duplicate first line
+        x = x[1:]  # drop duplicate first line
         if last_t is None or t[-1] > last_t[-1]:
             last_t = t
 
-        # ------------------------------------------------------------------
-        # Figure‑1 : linear quantities
-        # ------------------------------------------------------------------
+        # Left column (linear) -------------------------------------------------
         if not drawn_force:
             ax_f.plot(t, f_d[:, 0], label=r"$f_x$", color="#0072BD")
             ax_f.plot(t, f_d[:, 1], label=r"$f_y$", color="#D95319")
@@ -176,9 +176,7 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
         ax_vy.plot(t, x[:, 4], label=lbl, linestyle=line_style)
         ax_vz.plot(t, x[:, 5], label=lbl, linestyle=line_style)
 
-        # ------------------------------------------------------------------
-        # Figure‑2 : angular quantities
-        # ------------------------------------------------------------------
+        # Right column (angular) ----------------------------------------------
         if not drawn_torque:
             ax_tau.plot(t, tau_d[:, 0], label=r"$\tau_x$", color="#0072BD")
             ax_tau.plot(t, tau_d[:, 1], label=r"$\tau_y$", color="#D95319")
@@ -193,38 +191,31 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
         ax_wy.plot(t, x[:, 11], label=lbl, linestyle=line_style)
         ax_wz.plot(t, x[:, 12], label=lbl, linestyle=line_style)
 
-    # ---------------------------------------------------------------------
-    # Styling & shared tweaks
-    # ---------------------------------------------------------------------
-    for axs in (axes_lin + axes_ang):
-        axs.grid(True, alpha=0.3)
+    # Styling & shared tweaks --------------------------------------------------
+    for ax in axes.ravel():
+        ax.grid(True, alpha=0.3)
         if last_t is not None:
-            axs.set_xlim([0.0, last_t[-1]])
+            ax.set_xlim([0.0, last_t[-1]])
 
-    # x‑axis labels only for bottom panels
-    axes_lin[-1].set_xlabel("$t$ [s]", fontsize=label_size)
-    axes_ang[-1].set_xlabel("$t$ [s]", fontsize=label_size)
+    # x‑labels only for bottom row
+    axes[-1, 0].set_xlabel("$t$ [s]", fontsize=label_size)
+    axes[-1, 1].set_xlabel("$t$ [s]", fontsize=label_size)
 
-    # Legends
+    # Local legends for disturbance wrench sub‑plots --------------------------
     ax_f.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
     ax_tau.legend(framealpha=LEGEND_ALPHA, ncol=3, fontsize=label_size)
 
-    labels = ["Track. NMPC", "Imp. Nominal", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)",
-              "Imp. NMPC ($\gamma=16$)"]
+    # Global legend for run labels (use last sampled handles)
+    handles, _ = axes[-1, 0].get_legend_handles_labels()
+    labels = ["Track. NMPC", "Imp. Nominal", "Imp. Nominal ($K=12$)",
+              "Imp. Nominal ($D=50$)", "Imp. Nominal ($M=15$)", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)",
+              "Imp. NMPC ($\gamma=16$)", "Imp. NMPC ($\gamma=8,Q_\\alpha=R_f=0$)"]
 
-    handles, _ = axes_lin[-1].get_legend_handles_labels()
-    fig_lin.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), framealpha=LEGEND_ALPHA, ncol=3,
-                   frameon=False)
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01),
+               framealpha=LEGEND_ALPHA, ncol=5, frameon=False)
 
-    fig_lin.subplots_adjust(hspace=0.25)
-    fig_lin.tight_layout(rect=[0, 0.06, 1.0, 1.0])
-
-    handles, _ = axes_ang[-1].get_legend_handles_labels()
-    fig_ang.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), framealpha=LEGEND_ALPHA, ncol=3,
-                   frameon=False)
-
-    fig_ang.subplots_adjust(hspace=0.25)
-    fig_ang.tight_layout(rect=[0, 0.06, 1.0, 1.0])
+    # Tidy layout -------------------------------------------------------------
+    fig.tight_layout(rect=[0, 0.05, 1, 1])  # leave space for bottom legend
     plt.show()
 
 
