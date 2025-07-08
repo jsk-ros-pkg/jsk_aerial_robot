@@ -156,6 +156,8 @@ def main(file_path, plot_type):
 
             ax.set_ylabel(ylabel, fontsize=label_size)
 
+            ax.axvspan(26, 29, facecolor="#EDB120", alpha=0.3)
+
             # # bottom‐row plots (i = 4,5) get the shared x‐label
             # if i >= 4:
             #     ax.set_xlabel('Time [s]', fontsize=label_size)
