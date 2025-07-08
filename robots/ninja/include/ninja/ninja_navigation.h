@@ -211,6 +211,9 @@ namespace aerial_robot_navigation
     double pseudo_radius_change_rate_;
 
     bool yaw_teleop_flag_;
+    double pure_vel_control_init_z_;
+
+    bool pure_vel_control_flag_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()

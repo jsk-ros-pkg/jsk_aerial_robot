@@ -52,13 +52,19 @@ void NinjaNavigator::update()
       comRotationProcess();
       morphingProcess();
       morphing_flag_ = true;
-      prev_morphing_stamp_ = ros::Time::now().toSec();
+      prev_morphing_stamp_ = ros::Time::now().toSec();      
     }
   else
     {
       morphing_flag_ = false;
     }
   comMovingProcess();
+
+  if(getCurrentAssembled())
+    {
+      setTargetZeroVel();
+      setTargetZeroOmega();
+    }
 
   GimbalrotorNavigator::update();
   setControlFlag((getNaviState() == HOVER_STATE || getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE) ? true : false);
@@ -514,15 +520,23 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   target_my_pose = target_com_pose * getCom2Base<KDL::Frame>() * raw_base2cog; // com -> cog
 
   /*Target twist conversion*/
-  KDL::Vector target_com_vel;
-  KDL::Vector target_my_vel;
-  tf::vectorTFToKDL(getTargetVelCand(),target_com_vel);
-  target_my_vel = (getCom2Base<KDL::Frame>() * raw_base2cog).M * target_com_vel; // com -> cog
+  // KDL::Vector target_com_vel;
+  // KDL::Vector target_my_vel;
+  // tf::vectorTFToKDL(getTargetVelCand(),target_com_vel);
+  // target_my_vel = (getCom2Base<KDL::Frame>() * raw_base2cog).M * target_com_vel; // com -> cog
 
-  tf::Vector3 target_pos, target_rot, target_vel;
+  KDL::Twist target_com_twist;
+  KDL::Twist target_my_twist;
+  tf::vectorTFToKDL(getTargetVelCand(),target_com_twist.vel);
+  tf::vectorTFToKDL(getTargetOmegaCand(),target_com_twist.rot);
+  target_my_twist = raw_base2cog * getCom2Base<KDL::Frame>() * target_com_twist; // com -> cog
+
+  tf::Vector3 target_pos, target_rot, target_vel, target_omega;
   double target_roll, target_pitch, target_yaw;
   tf::vectorKDLToTF(target_my_pose.p, target_pos);
-  tf::vectorKDLToTF(target_my_vel, target_vel);
+  // tf::vectorKDLToTF(target_my_vel, target_vel);
+  tf::vectorKDLToTF(target_my_twist.vel, target_vel);
+  tf::vectorKDLToTF(target_my_twist.rot, target_omega);
   target_my_pose.M.GetEulerZYX(target_yaw, target_pitch, target_roll);
   target_rot.setX(target_roll);
   target_rot.setY(target_pitch);
@@ -532,9 +546,20 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
   if( getNaviState() == HOVER_STATE ||
       getNaviState() == TAKEOFF_STATE){
     setTargetPos(target_pos);
-    // setTargetVel(target_vel);
     setTargetYaw(target_rot.z());
     forceSetTargetBaselinkRPY(tf::Vector3( target_rot.x(), target_rot.y(), 0));
+    if(pure_vel_control_flag_)
+      {
+        setTargetVel(target_vel);
+        setTargetOmega(target_omega);
+        xy_control_mode_ = VEL_CONTROL_MODE;
+      }
+    else
+      {
+        setTargetZeroVel();
+        setTargetZeroOmega();
+        xy_control_mode_ = POS_CONTROL_MODE;
+      }
   }
   pre_target_pos_.setX(target_pos.x());
   pre_target_pos_.setY(target_pos.y());
@@ -1182,6 +1207,7 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
           std::string com_coord = my_name_ + std::to_string(my_id_) + std::string("/center_of_moving");
           try
             {
+              pure_vel_control_init_z_ = curr_com_pose_.p.z();
               auto tfst = tfBuffer_.lookupTransform(
                                                     com_coord, left_efct_coord, ros::Time(0));
               KDL::Frame left2com;
@@ -1224,6 +1250,7 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
                     break;
                   }
                 }
+              pure_vel_control_flag_ = true;
               // ROS_ERROR_STREAM("vel = [" << target_vel_w.x()<<", " << target_vel_w.y()<<", "  << target_vel_w.z() << "]");
               // ROS_ERROR_STREAM("rot = [" << twist_com.rot.x()<<", " << twist_com.rot.y()<<", "  << twist_com.rot.z() << "]");
             }
@@ -1232,7 +1259,6 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               ROS_ERROR_STREAM("Conversion between " << left_efct_coord << " and " << com_coord <<" is not found");
               return;
             }
- 
         }
       else
         {
@@ -1243,8 +1269,20 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
     }
   else
     {
-      setTargetOmegaCandZ(0);
-      yaw_teleop_flag_ = false;
+      if(yaw_teleop_flag_)
+        {
+          setTargetOmegaCandZ(0);
+          yaw_teleop_flag_ = false;
+          if(pure_vel_control_flag_)
+            {
+              pure_vel_control_flag_ = false;
+              asm_xy_control_mode_ = POS_CONTROL_MODE;
+              setTargetVelCandX(0);
+              setTargetVelCandY(0);
+              setTargetCoMPoseFromCurrState();
+              setTargetPosCandZ(pure_vel_control_init_z_);
+            }
+        }
     }
 
   //z control
@@ -1265,6 +1303,14 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
         {
           setTargetCoMPoseFromCurrState();
         }
+    }
+
+  if(joy_cmd.buttons[JOY_BUTTON_REAR_RIGHT_2] && joy_cmd.buttons[JOY_BUTTON_REAR_LEFT_2])
+    {
+      asm_xy_control_mode_ = POS_CONTROL_MODE;
+      setTargetVelCandX(0);
+      setTargetVelCandY(0);
+      setTargetCoMPoseFromCurrState();
     }
   
   BeetleNavigator::joyStickControl(copied_joy_msg);
