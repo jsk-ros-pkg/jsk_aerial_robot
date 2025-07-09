@@ -58,3 +58,6 @@ navigation:
 
   #pseudo
   pseudo_cog_com_dist: 0.7
+
+  #manipulation
+  end_efct_mode: true

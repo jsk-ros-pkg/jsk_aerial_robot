@@ -284,6 +284,7 @@ namespace aerial_robot_navigation
     double pure_vel_control_init_z_;
 
     bool pure_vel_control_flag_;
+    bool end_efct_mode_;
 
     IirFilter lpf_vel_;
     IirFilter lpf_omega_;

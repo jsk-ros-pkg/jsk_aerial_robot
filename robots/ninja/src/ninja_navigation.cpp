@@ -1267,7 +1267,7 @@ void NinjaNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
               return;
             }
         }
-      else
+      else if(!end_efct_mode_)
         {
           asm_teleop_reset_time_ = asm_teleop_reset_duration_ + ros::Time::now().toSec();
           setTargetOmegaCandZ(raw_yaw_cmd * max_teleop_yaw_vel_);
@@ -1526,6 +1526,8 @@ void NinjaNavigator::rosParamInit()
 
   getParam<double>(nh, "pseudo_cog_com_dist", pseudo_cog_com_dist_, 1.0);
   getParam<double>(nh, "pseudo_radius_change_rate_", pseudo_radius_change_rate_, 0.005);
+
+  getParam<bool>(nh, "end_efct_mode", end_efct_mode_, false);
 
   BeetleNavigator::rosParamInit();
 }
