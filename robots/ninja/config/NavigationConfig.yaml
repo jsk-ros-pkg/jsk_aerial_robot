@@ -30,6 +30,8 @@ navigation:
   max_target_tilt_angle: 0.2
   cmd_angle_lev2_gain : 1.5
 
+  asm_vel_nav_threshold: 0.2
+
   # gps waypoint
   gps_waypoint_threshold: 3.0
   gps_waypoint_check_du: 1.0
@@ -45,9 +47,10 @@ navigation:
   default_morphing_vel: 0.04
   joint_process_func: 2 # 0 -> CONSTANT, 1 -> FRAC, 2 -> EXP
   free_joint_flag: false
-  max_teleop_xy_vel: 0.2
-  max_teleop_z_vel: 0.2
+  max_teleop_xy_vel: 0.1
+  max_teleop_z_vel: 0.1
   max_teleop_yaw_vel: 0.2
+  asm_teleop_reset_duration: 0.25
   morphing_process_interval: 0.0
 
   # trajectory
