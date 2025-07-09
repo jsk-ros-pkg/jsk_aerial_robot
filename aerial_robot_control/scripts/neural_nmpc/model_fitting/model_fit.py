@@ -1,21 +1,23 @@
 import os
 import time
+import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 from progress_table import ProgressTable
 from torchsummary import summary
 
-import ml_casadi.torch as mc    # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
-
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import ml_casadi.torch as mc    # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
+
 from dataset import TrajectoryDataset
 from network_architecture.naive_mlp import NaiveMLP
 from network_architecture.normalized_mlp import NormalizedMLP
-from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset
+from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset, log_metrics
 from utils.model_utils import sanity_check_features_and_reg_dims, get_device
-from utils.visualization_utils import plot_losses
+from utils.visualization_utils import plot_fitting
 from config.configurations import MLPConfig, ModelFitConfig
 
 
@@ -26,6 +28,17 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     ds_instance = ModelFitConfig.ds_instance
     sanity_check_dataset(ds_name, ds_instance)
 
+    # === Define model input and output features ===
+    state_feats = ModelFitConfig.state_feats
+    u_feats = ModelFitConfig.u_feats
+    y_reg_dims = ModelFitConfig.y_reg_dims
+
+    # === Set save path and populate metadata ===
+    if save or plot:
+        save_file_path, save_file_name = \
+            get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name, 
+                                   state_feats, u_feats, y_reg_dims)
+
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)
 
@@ -34,13 +47,22 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Datasets ===
     # TODO prune wrt angular velocity as well
-    dataset = TrajectoryDataset(df,
+    if "residual" in MLPConfig.model_name:
+        mode = "residual"
+    elif "e2e" in MLPConfig.model_name:
+        mode = "e2e"
+    else:
+        raise ValueError(f"Unsupported model name: {MLPConfig.model_name}")
+    dataset = TrajectoryDataset(df, mode,
+                                state_feats, u_feats, y_reg_dims,
                                 histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
                                 histogram_pruning_thresh=MLPConfig.histogram_thresh,
                                 vel_cap=MLPConfig.vel_cap,
-                                plot=False)
+                                plot=False, save_file_path=save_file_path,
+                                save_file_name=save_file_name)
     in_dim = dataset.x.shape[1]
     out_dim = dataset.y.shape[1]
+    sanity_check_features_and_reg_dims(state_feats, u_feats, y_reg_dims, in_dim, out_dim)
 
     train_size = int(0.8 * len(dataset))
     val_size = int(0.1 * len(dataset))
@@ -54,20 +76,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         get_dataloaders(train_dataset, val_dataset, test_dataset,
                         batch_size=MLPConfig.batch_size,
                         num_workers=MLPConfig.num_workers)
-    
-    # === Define model input and output features ===
-    x_feats = ModelFitConfig.x_feats
-    u_feats = ModelFitConfig.u_feats
-    y_reg_dims = ModelFitConfig.y_reg_dims
-    sanity_check_features_and_reg_dims(x_feats, u_feats, y_reg_dims, in_dim, out_dim)
-
-    if save or plot:
-        save_file_path, save_file_name = \
-            get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name, 
-                                   x_feats, u_feats, y_reg_dims)
 
     # === Model ===
-    if MLPConfig.approximated_mlp:
+    if "approximated" in MLPConfig.model_name:
         # TODO implement batch normalization and dropout?
         # TODO combine and call it "ApproximatedMLP"
         base_mlp = mc.nn.MultiLayerPerceptron(in_dim, MLPConfig.hidden_sizes[0],
@@ -93,6 +104,14 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
+    if MLPConfig.lr_scheduler is not None:
+        if MLPConfig.lr_scheduler == "ReduceLROnPlateau":
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5)
+        elif MLPConfig.lr_scheduler == "LRScheduler":
+            lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
+        else:
+            raise ValueError(f"Unsupported learning rate scheduler: {MLPConfig.lr_scheduler}")
+    learning_rates = []
 
     # === Training Loop ===
     print("==========================================")
@@ -112,8 +131,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Train Loss", color="red", width=25)
     table.add_column("Val Loss", color="BRIGHT green", width=25)
     table.add_column("Inference Time", width=19)
-    if test:
-        table.add_column("Test Loss", color="bold green", column_width=25)
+    table.add_column("Learning Rate", width=25)
 
     for t in table(MLPConfig.num_epochs, show_throughput=False, show_eta=True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
@@ -123,10 +141,16 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         total_losses["train"].append(train_losses)
 
         # === Validation ===
-        val_losses, inference_time = inference(val_dataloader, model, loss_fn, device, table)
+        val_losses, inference_time = inference(val_dataloader, model, loss_fn, device, table=table)
         total_losses["val"].append(val_losses)
         inference_times.append(inference_time)
         table.next_row()
+
+        # === Schedule learning rate ===
+        if MLPConfig.lr_scheduler is not None:
+            lr_scheduler.step(train_losses)
+        learning_rates.append(optimizer.param_groups[0]['lr'])
+        table["Learning Rate"] = learning_rates[-1]
 
         # === Save model ===
         if save:
@@ -147,18 +171,21 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     if test:
         test_losses, _ = inference(test_dataloader, model, loss_fn, device, validation=False)
         total_losses["test"] = test_losses
-        print(f"Test avg loss: {test_losses:>8f}")
+
+    # === Store metrics ===
+    log_metrics(total_losses, inference_times, learning_rates,
+                save_file_path, save_file_name)
 
     # === Plotting ===
     if plot:
-        plot_losses(total_losses, inference_times, save_file_path, save_file_name)
+        plot_fitting(total_losses, inference_times, learning_rates,
+                     save_file_path, save_file_name)
         halt = 1
 
-
 def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_workers=0):
-    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=True, num_workers=num_workers)
-    test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=True, num_workers=num_workers)
+    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=False, num_workers=num_workers)
+    test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=False, num_workers=num_workers)
     return train_dataloader, val_dataloader, test_dataloader
 
 def loss_function(y, y_pred):
@@ -175,6 +202,7 @@ def train(dataloader, model, loss_fn, optimizer, device, table):
     mov_size = 0
     for x, y in table(dataloader, total=MLPConfig.num_epochs, description="Epoch"):
         x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
         
         # === Forward pass ===
         y_pred = model(x)
@@ -185,7 +213,6 @@ def train(dataloader, model, loss_fn, optimizer, device, table):
         # === Backpropagation ===
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
 
         # === Logging ===
         # Weighted moving average
@@ -198,7 +225,7 @@ def train(dataloader, model, loss_fn, optimizer, device, table):
     return loss_avg
 
 
-def inference(dataloader, model, loss_fn, device, table, validation=True):
+def inference(dataloader, model, loss_fn, device, table=None, validation=True):
     model.eval()
     loss_avg = 0.0
     mov_size = 0
@@ -223,13 +250,14 @@ def inference(dataloader, model, loss_fn, device, table, validation=True):
             loss_avg = (loss_avg*prev_mov_size + loss * batch_size) / mov_size
             if validation:
                 table["Val Loss"] = loss_avg
-            else:
-                table["Test Loss"] = loss_avg
             # TODO implement some form of accuracy metric
     time_avg = np.mean(inference_times) * 1000 # in ms
-    table["Inference Time"] = f"{time_avg:.2f} ms"
+    if validation:
+        table["Inference Time"] = f"{time_avg:.2f} ms"
+    else:
+        print(f"Test avg loss: {loss_avg:>8f}")
     return loss_avg, time_avg
 
 
 if __name__ == '__main__':
-    main(test=False, plot=True, save=True)
+    main(test=True, plot=True, save=True)

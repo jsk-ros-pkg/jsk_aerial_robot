@@ -1,14 +1,11 @@
 import os
 import json
-import errno
+import time
 import shutil
 from pathlib import Path
-import joblib
 import numpy as np
 import pandas as pd
-import torch
-import ml_casadi.torch as mc
-from config.configurations import DirectoryConfig, MLPConfig
+from config.configurations import DirectoryConfig, MLPConfig, ModelFitConfig
 
 
 def safe_mkdir_recursive(directory, overwrite: bool = False):
@@ -28,7 +25,8 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite: bool = False):
         return True  # File was newly created or overwritten
     return False     # File already exists and was not overwritten
 
-def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, target_dim, overwrite: bool = True):
+def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options,
+                                target_dim, overwrite: bool = True):
     """
     Returns a dictionary to store the recording data and the file where to store it.
     :param overwrite: If True, the existing file will be overwritten. Otherwise, it will be appended to.
@@ -60,7 +58,8 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
     """
     dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
-    outer_fields = {**model_options, "solver_options": solver_options}
+    outer_fields = {"date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                    **model_options, "solver_options": solver_options}
     inner_fields = sim_options
 
     # Parse recorded datasets
@@ -83,7 +82,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
             # Check if current controller configuration exists
             existing_controller = 1
             for field in metadata[ds_name].keys():
-                if field.startswith("dataset_"):
+                if field.startswith("dataset_") or field.startswith("date"):
                     continue
                 if metadata[ds_name][field] == outer_fields[field]:
                     existing_controller *= 1
@@ -152,7 +151,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
 
     return dataset_dir, ds_instance_name + '.csv'
 
-def get_model_dir_and_file(ds_name, ds_instance, model_name, x_feats, u_feats, y_reg_dims):
+def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feats, y_reg_dims):
     """
     Reads the metadata for datasets and appends the model information to it.
     Creates/appends the current model configuration to the model's metadata file.
@@ -204,9 +203,11 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name, x_feats, u_feats, y
     metadata[model_name][model_instance] = {
         "ds_name": ds_name,
         "ds_instance": ds_instance,
+        "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
         "ds_nmpc_type": metadata_dataset[ds_name]["nmpc_type"],
+        "ds_nmpc_params": metadata_dataset[ds_name]["nmpc_params"],
         "ds_disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
-        "x_feats": str(x_feats),
+        "state_feats": str(state_feats),
         "u_feats": str(u_feats),
         "y_reg_dims": str(y_reg_dims),
         "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
@@ -247,7 +248,7 @@ def make_blank_dict(target_dim, state_dim, control_dim):
 #         rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
 #         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
 
-def write_recording_data(rec_file, rec_dict):
+def write_recording_data(rec_dict, rec_file):
     # # Current target was reached - remove incomplete recordings
     if len(rec_dict["state_in"]) > len(rec_dict["state_out"]):
         raise ValueError("Recording dictionary is not consistent.")
@@ -257,10 +258,11 @@ def write_recording_data(rec_file, rec_dict):
     #     rec_dict["state_in"] = rec_dict["state_in"][:-1]
     #     rec_dict["control"] = rec_dict["control"][:-1]
 
+    rec_dict_json = dict()
     for key in rec_dict.keys():
-        rec_dict[key] = jsonify(rec_dict[key])
+        rec_dict_json[key] = jsonify(rec_dict[key])
 
-    df = pd.DataFrame(rec_dict)
+    df = pd.DataFrame(rec_dict_json)
     df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
 
 def sanity_check_dataset(ds_name, ds_instance):
@@ -287,6 +289,22 @@ def read_dataset(ds_name, ds_instance):
         raise FileNotFoundError(f"Dataset {ds_name} with instance {ds_instance} not found.")
 
     return pd.read_csv(ds_file_name)
+
+def log_metrics(total_losses, inference_times, learning_rates,
+                save_file_path, save_file_name):
+    metrics = {
+        "total_losses": total_losses,
+        "inference_times": inference_times,
+        "learning_rates": learning_rates,
+        "model_config": {
+            "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
+            "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")}
+        }
+    }
+    metrics_file_path = os.path.join(save_file_path + '/log', f'{save_file_name}_metrics.json')
+    safe_mkfile_recursive(save_file_path + '/log', metrics_file_path)
+    with open(metrics_file_path, 'w') as f:
+        json.dump(metrics, f, indent=4)
 
 def jsonify(array):
     if isinstance(array, np.ndarray):

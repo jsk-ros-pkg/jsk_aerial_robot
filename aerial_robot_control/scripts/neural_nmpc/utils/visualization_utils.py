@@ -264,7 +264,77 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
             [r1[2], r3[2], pos[2], r2[2], r4[2]])
 
 
-def plot_losses(total_losses, inference_times, save_file_path=None, save_file_name=None):
+def plot_dataset(x, y, state_raw, state_out, state_pred, save_file_path=None, save_file_name=None):
+    """
+    Plot the dataset features and labels.
+    :param x: Input features to the network.
+    :param y: Labels of the dataset, i.e., ground truth values.
+    """
+    os.makedirs(os.path.join(save_file_path, 'plot'), exist_ok=True)
+
+    fig = plt.subplots(figsize=(20, 5))
+
+    n_plots = max(x.shape[1], y.shape[1], state_raw.shape[1])
+
+    # Plot input state features
+    for dim in range(state_raw.shape[1]):
+        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.plot(state_raw[:, dim], label='state_raw')
+        plt.plot(state_out[:, dim], label='state_out')
+        plt.plot(state_pred[:, dim], label='state_pred')
+        plt.plot(x[:, dim], color='r', label='x')
+        plt.ylabel(f'Feature {dim}')
+        if dim == 0:
+            plt.title('State In & State Out')
+            plt.legend()
+        plt.grid('on')
+
+    # Plot labels
+    for dim in range(y.shape[1]):
+        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.plot(y[:, dim], color='green', label='y')
+        if dim == 0:
+            plt.title('Labels')
+            plt.legend()
+        plt.grid('on')
+
+    diff1 = state_raw - state_out
+    diff2 = state_out - state_pred
+
+    fig = plt.subplots(figsize=(20, 5))
+    for dim in range(state_raw.shape[1]):
+        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.plot(diff1[:, dim], color='red')
+        plt.ylabel(f'D{dim}')
+        if dim == 0:
+            plt.title('State In - State Out')
+        plt.grid('on')
+
+    for dim in range(state_raw.shape[1]):
+        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.plot(diff2[:, dim], color='green')
+        if dim == 0:
+            plt.title('State Out - State Pred')
+        plt.grid('on')
+
+    # Plot control inputs
+    fig = plt.subplots(figsize=(20, 5))
+    control = x[:, state_raw.shape[1]:]
+    for dim in range(control.shape[1]):
+        plt.subplot(n_plots, 1, dim + 2)
+        plt.plot(control[:, dim], label='control')
+        if dim == 0:
+            plt.title('Control')
+            plt.legend()
+        plt.grid('on')
+
+    plt.tight_layout()
+    plt.show()
+
+    if save_file_path is not None and save_file_name is not None:
+        plt.savefig(os.path.join(save_file_path + '/plot', f'{save_file_name}_dataset_plot.png'), dpi=300, bbox_inches='tight')
+
+def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=None, save_file_name=None):
     """
     Plot the training and validation losses.
     """
@@ -272,17 +342,21 @@ def plot_losses(total_losses, inference_times, save_file_path=None, save_file_na
 
     fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
-    ax = axs[0]
-    ax.plot(total_losses["train"], label=f"Train Loss (final = {total_losses['train'][-1]:.4f})", color='blue')
-    ax.plot(total_losses["val"], label=f"Validation Loss (final = {total_losses['val'][-1]:.4f})", color='orange')
+    ax1 = axs[0]
+    ax1.loglog(total_losses["train"], label=f"Train Loss (final = {total_losses['train'][-1]:.4f})", color='blue')
+    ax1.loglog(total_losses["val"], label=f"Validation Loss (final = {total_losses['val'][-1]:.4f})", color='orange')
     if "test" in total_losses.keys():
-        ax.plot([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label=f"Test Loss = {total_losses['test']:.4f}", color='green')
-    ax.set_xlim([0, len(total_losses["train"])])
-    ax.set_xlabel("Epochs")
-    ax.set_ylabel("Loss")
-    ax.set_title(f"Losses")
-    ax.grid()
-    ax.legend()
+        ax1.loglog([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label=f"Test Loss = {total_losses['test']:.4f}", color='green')
+    # ax1.set_xlim([0, len(total_losses["train"])])
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Loss")
+    ax1.set_title(f"Losses")
+    ax1.grid()
+    ax1.legend(loc='upper left')
+    ax1_right = ax1.twinx()
+    ax1_right.plot(learning_rates, label="Learning Rate", color='red', alpha=0.7)
+    ax1_right.set_ylabel("Learning Rate")
+    ax1_right.legend(loc='upper right')
 
     ax2 = axs[1]
     ax2.plot(inference_times)

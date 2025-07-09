@@ -81,13 +81,13 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Standard state-space (Note: store in self to access for cost function in child controller class)
         self.p = ca.MX.sym("p", 3)  # Position
-        self.v = ca.MX.sym("v", 3)  # Linear velocity
-        self.q = ca.MX.sym("q", 4)  # Quaternion
+        self.v = ca.MX.sym("v", 3)  # Linear velocity in World frame (inertial reference for Newton's laws)
+        self.q = ca.MX.sym("q", 4)  # Quaternion (representing orientation of the Body frame relative to the World frame)
         self.qw = self.q[0]
         self.qx = self.q[1]
         self.qy = self.q[2]
         self.qz = self.q[3]
-        self.w = ca.MX.sym("w", 3)  # Angular velocity
+        self.w = ca.MX.sym("w", 3)  # Angular velocity in Body frame (principal axes, diagonal inertia matrix)
         self.wx = self.w[0]
         self.wy = self.w[1]
         self.wz = self.w[2]
@@ -136,7 +136,7 @@ class QDNMPCBase(RecedingHorizonBase):
                 controls = ca.vertcat(controls, self.a_c)
 
         # Model parameters
-        self.qwr = ca.MX.sym("qwr")  # Reference for quaternions
+        self.qwr = ca.MX.sym("qwr")     # Reference for quaternions
         self.qxr = ca.MX.sym("qxr")
         self.qyr = ca.MX.sym("qyr")
         self.qzr = ca.MX.sym("qzr")
@@ -152,35 +152,20 @@ class QDNMPCBase(RecedingHorizonBase):
 
         kq_d_kt = ca.MX.sym("kq_d_kt")  # Coupling factor between thrust and torque
 
-        # dr = ca.MX.sym("dr", 4)         # Distance from CoG to rotor in Body frame [dr1, dr2, dr3, dr4]
-
-        # # TODO dont actually use z-dimensions! -> omit
-        # p1_b = ca.MX.sym("p1_b", 3)
-        # p2_b = ca.MX.sym("p2_b", 3)
-        # p3_b = ca.MX.sym("p3_b", 3)
-        # p4_b = ca.MX.sym("p4_b", 3)
-        # p_b = ca.horzcat(p1_b, p2_b, p3_b, p4_b).T    # Positions of rotors in Body frame
-
-        # t_rotor = ca.MX.sym("t_rotor")
-        # t_servo = ca.MX.sym("t_servo")
-
-        # phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
-        #                         dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-
-        dr1 = ca.MX.sym("dr1")
+        dr1 = ca.MX.sym("dr1")          # Distance from CoG to rotors
         dr2 = ca.MX.sym("dr2")
         dr3 = ca.MX.sym("dr3")
         dr4 = ca.MX.sym("dr4")
         dr = ca.vertcat(dr1, dr2, dr3, dr4)
 
-        p1_b = ca.MX.sym("p1_b", 3)
+        p1_b = ca.MX.sym("p1_b", 3)     # Position of rotors in Body frame
         p2_b = ca.MX.sym("p2_b", 3)
         p3_b = ca.MX.sym("p3_b", 3)
         p4_b = ca.MX.sym("p4_b", 3)
         p_b = ca.horzcat(p1_b, p2_b, p3_b, p4_b).T
 
-        t_rotor = ca.MX.sym("t_rotor")
-        t_servo = ca.MX.sym("t_servo")
+        t_rotor = ca.MX.sym("t_rotor")  # Time constant of thrust dynamics
+        t_servo = ca.MX.sym("t_servo")  # Time constant of servo dynamics
 
         phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
                                 dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo)
@@ -220,18 +205,22 @@ class QDNMPCBase(RecedingHorizonBase):
             # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
             # - World to Body
             row_1 = ca.horzcat(
-                ca.MX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2), ca.MX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
+                ca.MX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2),
+                ca.MX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
                 ca.MX(2 * self.qx * self.qz + 2 * self.qw * self.qy)
             )
             row_2 = ca.horzcat(
-                ca.MX(2 * self.qx * self.qy + 2 * self.qw * self.qz), ca.MX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
+                ca.MX(2 * self.qx * self.qy + 2 * self.qw * self.qz),
+                ca.MX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
                 ca.MX(2 * self.qy * self.qz - 2 * self.qw * self.qx)
             )
             row_3 = ca.horzcat(
-                ca.MX(2 * self.qx * self.qz - 2 * self.qw * self.qy), ca.MX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
+                ca.MX(2 * self.qx * self.qz - 2 * self.qw * self.qy),
+                ca.MX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
                 ca.MX(1 - 2 * self.qx ** 2 - 2 * self.qy ** 2)
             )
             rot_wb = ca.vertcat(row_1, row_2, row_3)
+
             # - Body to End-of-arm
             denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
             rot_be1 = ca.vertcat(
@@ -267,15 +256,15 @@ class QDNMPCBase(RecedingHorizonBase):
                 # If servo dynamics are modeled, use angle state.
                 # Else use angle control which is then assumed to be equal to the angle state at all times.
                 if self.include_servo_model:
-                    a1 = self.a_s[0];
-                    a2 = self.a_s[1];
-                    a3 = self.a_s[2];
-                    a4 = self.a_s[3];
+                    a1 = self.a_s[0]
+                    a2 = self.a_s[1]
+                    a3 = self.a_s[2]
+                    a4 = self.a_s[3]
                 else:
-                    a1 = self.a1c;
-                    a2 = self.a2c;
-                    a3 = self.a3c;
-                    a4 = self.a4c
+                    a1 = self.a_c[0]
+                    a2 = self.a_c[1]
+                    a3 = self.a_c[2]
+                    a4 = self.a_c[3]
 
                 rot_e1r1 = ca.vertcat(
                     ca.horzcat(1, 0, 0),
@@ -283,33 +272,39 @@ class QDNMPCBase(RecedingHorizonBase):
                     ca.horzcat(0, ca.sin(a1),  ca.cos(a1))
                 )
                 rot_e2r2 = ca.vertcat(
-                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
+                    ca.horzcat(1, 0, 0),
+                    ca.horzcat(0, ca.cos(a2), -ca.sin(a2)),
+                    ca.horzcat(0, ca.sin(a2),  ca.cos(a2))
                 )
                 rot_e3r3 = ca.vertcat(
-                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a3), -ca.sin(a3)), ca.horzcat(0, ca.sin(a3), ca.cos(a3))
+                    ca.horzcat(1, 0, 0),
+                    ca.horzcat(0, ca.cos(a3), -ca.sin(a3)),
+                    ca.horzcat(0, ca.sin(a3),  ca.cos(a3))
                 )
                 rot_e4r4 = ca.vertcat(
-                    ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
+                    ca.horzcat(1, 0, 0),
+                    ca.horzcat(0, ca.cos(a4), -ca.sin(a4)),
+                    ca.horzcat(0, ca.sin(a4),  ca.cos(a4))
                 )
             else:
-                rot_e1r1 = ca.MX.eye(3);
-                rot_e2r2 = ca.MX.eye(3);
-                rot_e3r3 = ca.MX.eye(3);
+                rot_e1r1 = ca.MX.eye(3)
+                rot_e2r2 = ca.MX.eye(3)
+                rot_e3r3 = ca.MX.eye(3)
                 rot_e4r4 = ca.MX.eye(3)
 
             # Wrench in Rotor frame
             # If rotor dynamics are modeled, explicitly use thrust state as force.
             # Else use thrust control which is then assumed to be equal to the thrust state at all times.
             if self.include_thrust_model:
-                ft1 = self.ft_s[0];
-                ft2 = self.ft_s[1];
-                ft3 = self.ft_s[2];
-                ft4 = self.ft_s[3];
+                ft1 = self.ft_s[0]
+                ft2 = self.ft_s[1]
+                ft3 = self.ft_s[2]
+                ft4 = self.ft_s[3]
             else:
-                ft1 = self.ft_c[0];
-                ft2 = self.ft_c[1];
-                ft3 = self.ft_c[2];
-                ft4 = self.ft_c[3];
+                ft1 = self.ft_c[0]
+                ft2 = self.ft_c[1]
+                ft3 = self.ft_c[2]
+                ft4 = self.ft_c[3]
 
             ft_r1 = ca.vertcat(0, 0, ft1)
             ft_r2 = ca.vertcat(0, 0, ft2)
@@ -328,7 +323,6 @@ class QDNMPCBase(RecedingHorizonBase):
                     + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
                     + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
             )
-            fu_w = rot_wb @ fu_b
             tau_u_b = (
                     ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
                     + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
@@ -339,6 +333,9 @@ class QDNMPCBase(RecedingHorizonBase):
                     + ca.cross(p3_b, ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
                     + ca.cross(p4_b, ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
             )
+
+            # Force in World frame
+            fu_w = rot_wb @ fu_b
 
         else:
 
@@ -427,7 +424,7 @@ class QDNMPCBase(RecedingHorizonBase):
             tau_b_z =   tau_e_z
 
             # 4. Add cross product terms: p_b × f_b for each rotor position
-            # These represent the torques due to thrust forces acting at distance from CoG
+            # TODO what do they represent?
             cross_tau_b_x = p_b[:, 1] * ft_b_z - p_b[:, 2] * ft_b_y  # p_y * f_z - p_z * f_y
             cross_tau_b_y = p_b[:, 2] * ft_b_x - p_b[:, 0] * ft_b_z  # p_z * f_x - p_x * f_z
             cross_tau_b_z = p_b[:, 0] * ft_b_y - p_b[:, 1] * ft_b_x  # p_x * f_y - p_y * f_x
@@ -451,6 +448,7 @@ class QDNMPCBase(RecedingHorizonBase):
             # [2*qx*qz - 2*qw*qy, 2*qy*qz + 2*qw*qx, 1 - 2*qx^2 - 2*qy^2]
 
             fu_w = rot_wb @ fu_b
+            # Note: The torque in World frame is not needed for the dynamics.
             # ===================================================================================================
 
         # Compute Inertia
@@ -462,11 +460,11 @@ class QDNMPCBase(RecedingHorizonBase):
         ds = ca.vertcat(
             self.v,
             (fu_w + self.fds_w + self.fdp_w) / mass + g_w,
-            (-self.wx * self.qx - self.wy * self.qy - self.wz * self.qz) / 2,
+            (-self.wx * self.qx - self.wy * self.qy - self.wz * self.qz) / 2,   # Convert angular velocity to rotation in World frame
             ( self.wx * self.qw + self.wz * self.qy - self.wy * self.qz) / 2,
             ( self.wy * self.qw - self.wz * self.qx + self.wx * self.qz) / 2,
             ( self.wz * self.qw + self.wy * self.qx - self.wx * self.qy) / 2,
-            ca.mtimes(I_inv, (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b)),
+            ca.mtimes(I_inv, (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b)),  # Stay in Body frame
         )
 
         # - Extend model by servo first-order dynamics
@@ -492,8 +490,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # - Extend model by disturbances simply to match state dimensions
         if self.include_cog_dist_model:
             ds = ca.vertcat(ds,
-                            ca.vertcat(0.0, 0.0, 0.0),
-                            ca.vertcat(0.0, 0.0, 0.0),
+                            ca.MX.zeros(3),
+                            ca.MX.zeros(3),
                             )
 
         # Assemble acados function

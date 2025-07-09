@@ -9,8 +9,8 @@ controller:
   nmpc:
     T_samp: 0.01    # 100 Hz  TODO: should be adjusted by main_rate
     T_horizon: 2.0  # in seconds
-    T_step: 0.1     # in seconds
-
+    T_step: 0.01     # in seconds
+ 
     # Hard constraints
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
@@ -27,8 +27,8 @@ controller:
     # Cost function weights
     Qp_xy: 300
     Qp_z: 400
-    Qv_xy: 10
-    Qv_z: 10
+    Qv_xy: 1
+    Qv_z: 1
     Qq_xy: 300
     Qq_z: 600
     Qw_xy: 5

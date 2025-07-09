@@ -6,16 +6,26 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.statistic_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.data_utils import undo_jsonify
+from utils.visualization_utils import plot_dataset
 
 
 class TrajectoryDataset(Dataset):
+    """
+    Dataset for training neural networks on trajectory data.
+    :param mode: 'residual' for residual networks, 'e2e' for end-to-end networks.
+    """
     # TODO dataset pruning based on samples with velocity outliers (idea from RTNMPC)
     # TODO Normalization
-    def __init__(self, dataframe, histogram_pruning_n_bins=None, histogram_pruning_thresh=None, vel_cap=None, plot=False):
+    def __init__(self, dataframe, mode, state_feats, u_feats, y_reg_dims,
+                 histogram_pruning_n_bins=None, histogram_pruning_thresh=None,
+                 vel_cap=None, plot=False, save_file_path=None, save_file_name=None):
         self.df = dataframe
-        self.prepare_data()
-        self.prune(histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
+        self.mode = mode
+        self.prepare_data(state_feats, u_feats, y_reg_dims)
+        self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
         self.calculate_statistics()
+        if plot:
+            plot_dataset(self.x, self.y, self.state_in, self.state_out, self.state_pred, save_file_path, save_file_name)
 
     def __len__(self):
         return len(self.x)
@@ -25,8 +35,8 @@ class TrajectoryDataset(Dataset):
         # TODO support not using control as input for network
         return self.x[idx], self.y[idx]
 
-    def prepare_data(self):
-        state_raw = undo_jsonify(self.df['state_in'].to_numpy())
+    def prepare_data(self, state_feats=None, u_feats=None, y_reg_dims=None):
+        state_in = undo_jsonify(self.df['state_in'].to_numpy())
         state_out = undo_jsonify(self.df['state_out'].to_numpy())
         state_pred = undo_jsonify(self.df['state_pred'].to_numpy())
         control = undo_jsonify(self.df['control'].to_numpy())
@@ -35,16 +45,16 @@ class TrajectoryDataset(Dataset):
 
         # Remove invalid entries (dt = 0)
         invalid = np.where(dt == 0)
-        state_raw = np.delete(state_raw, invalid, axis=0)
+        state_in = np.delete(state_in, invalid, axis=0)
         state_out = np.delete(state_out, invalid, axis=0)
         state_pred = np.delete(state_pred, invalid, axis=0)
         control = np.delete(control, invalid, axis=0)
         dt = np.delete(dt, invalid, axis=0)
 
         # Sanity check
-        if state_raw.shape != state_out.shape or \
-           state_raw.shape != state_pred.shape or \
-           state_raw.shape[0] != control.shape[0]:
+        if state_in.shape != state_out.shape or \
+           state_in.shape != state_pred.shape or \
+           state_in.shape[0] != control.shape[0]:
             raise ValueError("Inconsistent shapes in the dataset.")
 
         # Transform velocity to body frame
@@ -60,46 +70,61 @@ class TrajectoryDataset(Dataset):
 
             v_b_traj = np.empty_like(v_w_traj)
             for t in range(len(v_w_traj)):
-                v_b_traj[t] = v_dot_q(v_w_traj[t], quaternion_inverse(q_traj[t]))
+                v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
             # return np.concatenate((p_traj, q_traj, v_b_traj, other_traj), axis=1)
 
-        state_raw = velocity_mapping(state_raw)
+        state_in = velocity_mapping(state_in)
         state_pred = velocity_mapping(state_pred)
         state_out = velocity_mapping(state_out)
 
+        # =============================================================
         # Compute error between predicted and actual state
-        y_err = state_out - state_pred
+        if self.mode == 'residual':
+            # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
+            y_diff = state_out - state_pred
+        elif self.mode == 'e2e':
+            y_diff = state_out - state_in
         # Normalize error by window time, i.e., predict error dynamics instead of error itself
-        y_err /= np.expand_dims(dt, 1)  # TODO maybe reduce number of predicted states
+        y_diff /= np.expand_dims(dt, 1)
+        # =============================================================
 
         # Store features
-        self.state_raw = state_raw
+        self.state_in = state_in
         self.state_out = state_out
         self.state_pred = state_pred
         self.control = control
-        self.y = y_err.astype(np.float32)
+        self.y = y_diff.astype(np.float32)[:, y_reg_dims]
         self.dt = dt
 
         # Store network input
         # TODO select subset of features to use as input
-        self.x = np.concatenate((state_raw, control), axis=1, dtype=np.float32)
+        self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
 
-    def prune(self, histogram_n_bins, histogram_thresh, vel_cap=None, plot=False):
+    def prune(self, state_feats, y_reg_dims, histogram_n_bins,
+              histogram_thresh, vel_cap=None, plot=False):
         """
         Prune the dataset to remove samples with outliers in velocity.
         """
+        x_vel_idx = np.array([3, 4, 5])
+        y_vel_idx = np.array([3, 4, 5])
+        # x_vel_idx = np.array([7, 8, 9])
+        # y_vel_idx = np.array([7, 8, 9])
+        if set(x_vel_idx).issubset(set(state_feats)) and \
+           set(y_vel_idx).issubset(set(y_reg_dims)):
+            x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
+            y_vel_idx_real = np.where(np.in1d(y_reg_dims, y_vel_idx))[0]
+        else:
+            # Pruning only works right now if the velocity features are part of the input and output
+            return
+
         # Prune noisy data
         if histogram_n_bins is not None and histogram_thresh is not None:
-            x_vel_idx = np.array([3, 4, 5])
-            y_vel_idx = np.array([3, 4, 5])
-            # x_vel_idx = np.array([7, 8, 9])
-            # y_vel_idx = np.array([7, 8, 9])
 
             # labels = [self.data_labels[dim] for dim in np.atleast_1d(y_vel_idx)]
             labels = ['vx', 'vy', 'vz']
 
-            self.pruned_idx = prune_dataset(self.x[:, x_vel_idx], self.y[:, y_vel_idx],
+            self.pruned_idx = prune_dataset(self.x[:, x_vel_idx_real], self.y[:, y_vel_idx_real],
                                             vel_cap, histogram_n_bins, histogram_thresh,
                                             plot=plot, labels=labels)
             self.x = self.x[self.pruned_idx]
@@ -111,3 +136,6 @@ class TrajectoryDataset(Dataset):
         self.x_std = np.std(self.x, axis=0)
         self.y_mean = np.mean(self.y, axis=0)
         self.y_std = np.std(self.y, axis=0)
+        # Sanity check since we divide by x_std in normalization
+        if np.any(self.x_std == 0):
+            raise ValueError("Input features have zero standard deviation, cannot normalize.")

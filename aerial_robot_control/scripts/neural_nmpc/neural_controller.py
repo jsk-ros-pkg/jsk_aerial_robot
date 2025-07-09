@@ -4,7 +4,8 @@ import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
 
 from utils.geometry_utils import quaternion_inverse, v_dot_q
-from utils.model_utils import load_model, get_output_mapping
+from utils.model_utils import load_model, get_output_mapping, get_inverse_output_mapping
+from utils.model_utils import cross_check_params
 
 # Quadrotor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -46,10 +47,10 @@ from nmpc.nmpc_tilt_mt.tilt_tri.tilt_tri_servo_dist import NMPCTiltTriServoDist
 
 class NeuralNMPC():
     def __init__(self, model_options, solver_options, sim_options,
-                 T_sim=0.005, rdrv_d_mat=None):
+                 run_options, rdrv_d_mat=None):
         # TODO implement solver options flexibly
+        # TODO run options should be removed, if possible
         """
-        :param T_sim: Discretized time-step for the aerial robot simulation
         :param model_options: Dictionary containing model options, such as architecture type
         :param use_mlp: Flag to toggle use of a pre-trained MLP in the NMPC controller
         :param solver_options: Set of additional options dictionary for acados solver
@@ -123,7 +124,6 @@ class NeuralNMPC():
         self.N = self.nmpc.params["N_steps"]            # Number of MPC nodes
         self.T_step = self.nmpc.params["T_step"]        # Step size used in optimization loop in MPC controller
         # TODO set somewhere else and by default set to T_samp/2
-        self.T_sim = T_sim                              # Discretized time-step for the aerial robot simulation
         
         # Get OCP model from NMPC TODO implement drag correction with RDRv
         self.nominal_model = self.nmpc.get_acados_model()
@@ -138,16 +138,16 @@ class NeuralNMPC():
         self.model_name = "Neural_" + self.nominal_model.name
 
         # Load pre-trained MLP
-        self.neural_model, self.mlp_metadata = load_model(model_options, sim_options)
+        self.neural_model, self.mlp_metadata = load_model(model_options, sim_options, run_options)
+        # Cross-check weights and meta parameters used for MPC to train MLP
+        if not model_options["only_use_nominal"]:
+            cross_check_params(self.nmpc.params, self.mlp_metadata)
 
         # Add neural network model to nominal model 
         self.extend_acados_model()
 
         # Extend the acados solver with the extended model
         self.extend_acados_solver()
-
-        # Create sim solver for the extended model
-        self.create_acados_sim_solver()
     
     def get_reference_generator(self):
         return self.nmpc.get_reference_generator()
@@ -166,52 +166,44 @@ class NeuralNMPC():
         #     mlp_out = self.mlp_regressor(mlp_in)
         # else:
         #     mlp_out = self.mlp_regressor.approx(mlp_in, order=self.mlp_conf['approx_order'], parallel=False)
-        
-        # # Unpack prediction outputs. Transform back to world reference frame
-        # if self.mlp_conf['torque_output']:
-        #     # Append torque if needed 
-        #     mlp_out_force = mlp_out[:3]
-        #     mlp_out_torque = mlp_out[3:]
-        #     mlp_out_means = ca.vertcat(v_dot_q(mlp_out_force, state[3:7]), mlp_out_torque)
-        # else:
-        #     mlp_out_means = v_dot_q(mlp_out, state[3:7])
-
 
         # -----------------------------------------------------
         # TODO Understand and implement correctly
         # state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
         # -----------------------------------------------------
 
+        # === MLP input ===
         # MLP is trained to receive and predict the velocity in the body frame
         # Transform input velocity to body frame
-        # TODO IMPORTANT!
-        # TODO also make sense for angular velocity????
-        # TODO also makes sense for thrust and servo angles????
-        # If changed also change in dataset.py for preprocessing
         v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
         state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
 
-        x_feats = eval(self.mlp_metadata['x_feats'])
-        u_feats = eval(self.mlp_metadata['u_feats'])
-        mlp_in = ca.vertcat(state_b[x_feats], self.controls[u_feats])
+        self.state_feats = eval(self.mlp_metadata['state_feats'])
+        self.u_feats = eval(self.mlp_metadata['u_feats'])
+        mlp_in = ca.vertcat(state_b[self.state_feats], self.controls[self.u_feats])
 
-        # mlp_out = self.neural_model(mlp_in)
-        mlp_out = ca.MX.sym('mlp_out', len(eval(self.mlp_metadata["y_reg_dims"])))
+        # === MLP forward pass ===
+        mlp_out = self.neural_model(mlp_in)
 
         # Transform velocity back to world frame
-        y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
-        if [3, 4, 5] in y_reg_dims:
-            v_idx = np.where(y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
+        self.y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
+        if set([3, 4, 5]).issubset(set(self.y_reg_dims)):
+            v_idx = np.where(self.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
             v_w = v_dot_q(mlp_out[v_idx:v_idx+3], self.state[6:10])
             mlp_out = ca.vertcat(mlp_out[:v_idx], v_w, mlp_out[v_idx+3:])
 
         # Explicit dynamics
         if self.model_options["end_to_end_mlp"]:
-            if mlp_out.size() != self.state.size():
-                raise ValueError("[end_to_end_mlp] The regressed dims of the MLP \
-                                 do not match the state space. Please check the MLP \
-                                 configuration or set 'end_to_end_mlp' to False.")
-            f_total = mlp_out
+            # Map output of MLP to the state space
+            M = get_output_mapping(self.state.shape[0],
+                                   eval(self.mlp_metadata["y_reg_dims"]))
+            O = get_inverse_output_mapping(self.state.shape[0],
+                                   eval(self.mlp_metadata["y_reg_dims"]))
+
+            # Combine nominal dynamics with neural dynamics
+            f_total = O @ self.nominal_model.f_expl_expr + M @ mlp_out
+        elif self.model_options["only_use_nominal"]:
+            f_total = self.nominal_model.f_expl_expr
         else:
             # Here f is already symbolically evaluated to f(x,u)
             nominal_dynamics = self.nominal_model.f_expl_expr
@@ -222,9 +214,9 @@ class NeuralNMPC():
 
             # Combine nominal dynamics with neural dynamics
             f_total = nominal_dynamics + M @ mlp_out
-        
+
         # Implicit dynamics
-        x_dot = ca.SX.sym('x_dot', self.state.size())
+        x_dot = ca.MX.sym('x_dot', self.state.size())
         f_impl = x_dot - f_total
 
         # Cost function TODO think this over!
@@ -235,13 +227,19 @@ class NeuralNMPC():
         self.acados_model.name = self.model_name
         self.acados_model.f_expl_expr = f_total  # CasADi expression for the explicit dynamics
         self.acados_model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
-        self.acados_model.x = self.state  # State vector
+        self.acados_model.x = self.state
         self.acados_model.xdot = x_dot
         self.acados_model.u = self.controls
         self.acados_model.p = self.parameters
         self.acados_model.cost_y_expr_0 = ca.vertcat(state_y, control_y)    # NONLINEAR_LS
         self.acados_model.cost_y_expr = ca.vertcat(state_y, control_y)      # NONLINEAR_LS
-        self.acados_model.cost_y_expr_e = state_y_e    
+        self.acados_model.cost_y_expr_e = state_y_e
+
+        if self.nmpc.include_quaternion_constraint:
+            # Note: This is necessary to ensure that the quaternion stays on the unit sphere
+            # and represents a valid rotation.
+            self.acados_model.con_h_expr = self.state[7] ** 2 + self.state[8] ** 2 + self.state[9] ** 2 + self.state[10] ** 2 - 1.0   # ||q||^2 - 1 = 0
+            self.acados_model.con_h_expr_e = self.acados_model.con_h_expr
 
     def extend_acados_solver(self):
         """
@@ -301,7 +299,12 @@ class NeuralNMPC():
         # TODO Extend cost function ?
         # TODO CHECK SOLVER OPTIONS ?
     
-    def create_acados_sim_solver(self) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, T_sim) -> AcadosSimSolver:
+        """
+        Create a simulation solver based on the acados model.
+        :param T_sim: Discretized time-step for the aerial robot simulation
+        """
+        self.T_sim = T_sim
         # Create a simulation solver based on the acados model
         acados_sim = AcadosSim()
         acados_sim.model = self.acados_model
@@ -319,23 +322,21 @@ class NeuralNMPC():
         # =====================================================================
 
         # Set the horizon for the simulation
-        acados_sim.solver_options.T = self.T_sim
+        acados_sim.solver_options.T = T_sim
         acados_sim.solver_options.num_steps = 1     # Default TODO think about increasing this to increase accuracy
 
         # Generate solver
         json_file_path = os.path.join("./" + self.acados_model.name + "_acados_sim.json")
-        self.sim_solver = AcadosSimSolver(acados_sim, json_file=json_file_path, build=True)
+        sim_solver = AcadosSimSolver(acados_sim, json_file=json_file_path, build=True)
         print("Generated C code for sim solver successfully to " + os.getcwd())
+        return sim_solver
 
     def track(self, xr, ur):
         """
         Tracks a trajectory defined by xr and ur, where xr is the reference state and ur is the reference control input.
-        
         :param xr: Reference state trajectory (N+1, state_dim)
         :param ur: Reference control input trajectory (N, control_dim)
         """
-        # TODO what is self.nmpc.acados_init_p and why do we need to set it?
-
         # 0 ~ N-1
         for j in range(self.ocp_solver.N):
             yr = np.concatenate((xr[j, :], ur[j, :]))
@@ -406,7 +407,7 @@ class NeuralNMPC():
     #                 self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1)),
     #                                                                          mlp_params[j]]))
 
-    def simulate_trajectory(self):
+    def simulate_trajectory(self, sim_solver):
         """
         Simulate trajectory using optimal control sequence from the OCP solver.
         """
@@ -417,39 +418,53 @@ class NeuralNMPC():
         u_sequence = np.array([self.ocp_solver.get(i, "u") for i in range(N)])
 
         # Get initial state
-        state_curr = self.sim_solver.get("x")
+        state_curr = sim_solver.get("x")
         
         # Simulate forward
         x_traj = np.zeros((N + 1, state_curr.shape[0]))
         x_traj[0, :] = state_curr
         
         for n in range(N):
-            self.sim_solver.set("x", state_curr)
-            self.sim_solver.set("u", u_sequence[n])
-            
-            status = self.sim_solver.solve()
+            sim_solver.set("x", state_curr)
+            sim_solver.set("u", u_sequence[n])
+
+            status = sim_solver.solve()
             if status != 0:
-                print(f"Round {n}: acados ocp_solver returned status {self.sim_solver.status}. Exiting.")
-                return 
-                
-            state_curr = self.sim_solver.get("x")
+                print(f"Round {n}: acados ocp_solver returned status {sim_solver.status}. Exiting.")
+                return
+
+            state_curr = sim_solver.get("x")
             x_traj[n + 1, :] = state_curr
         
         return x_traj
-
     
+    def check_state_constraints(self, state_curr, i):
+        # Boundary constraints
+        for idx in self.ocp_solver.acados_ocp.constraints.idxbx:
+            lbxi = np.where(self.ocp_solver.acados_ocp.constraints.idxbx==idx)[0][0]
+            if state_curr[idx] < self.ocp_solver.acados_ocp.constraints.lbx[lbxi]*1.01 or \
+                    state_curr[idx] > self.ocp_solver.acados_ocp.constraints.ubx[lbxi]*1.01:
+                print(f"Warning: Constraint violation at index {idx} in simulation step {i}. "
+                      f"Value: {state_curr[idx]:.14f}, "
+                      f"Lower bound: {self.ocp_solver.acados_ocp.constraints.lbx[lbxi]}, "
+                      f"Upper bound: {self.ocp_solver.acados_ocp.constraints.ubx[lbxi]}")
+        # Nonlinear unit quaternion constraint
+        quat_norm = np.linalg.norm(state_curr[6:10])
+        if quat_norm < 0.999 or quat_norm > 1.001:
+            print(f"Warning: Constraint violation for unit_q in simulation step {i}. "
+                  f"Value: {quat_norm:.14f} != 1.0, "
+                  f"Quaternion: {state_curr[6:10]}")
 
-    def check_constraints(self, u_cmd):
+    def check_input_constraints(self, u_cmd, i):
         """
         Check if the control input command u_cmd respects the constraints of the system.
-        :param u_cmd: Control input command.
         """
         if np.any(u_cmd[:4]) < self.nmpc.params["thrust_min"] or np.any(u_cmd[:4]) > self.nmpc.params["thrust_max"]:
-            print(f"=== Control thrust input violates constraints: {u_cmd[:4]} ===")
+            print(f"=== Control thrust input violates constraints: {u_cmd[:4]} at index {i} ===")
             raise ValueError("Control thrust input violates constraints.")
         if u_cmd.shape[0] > 4:
             if np.any(u_cmd[4:]) < self.nmpc.params["a_min"] or np.any(u_cmd[4:]) > self.nmpc.params["a_max"]:
-                print(f"=== Control servo angle input violates constraints: {u_cmd[4:]} ===")
+                print(f"=== Control servo angle input violates constraints: {u_cmd[4:]} at index {i} ===")
                 raise ValueError("Control servo angle input violates constraints.")
             
     def get_rotor_positions(self):
