@@ -44,6 +44,9 @@ namespace aerial_robot_control
     KDL::Tree module_tree_for_control_;
 
     ros::Subscriber pseudo_assembly_flag_sub_;
+    ros::Publisher com_motion_pid_pub_;
+
+    aerial_robot_msgs::PoseControlPid com_motion_pid_msg_;
 
   protected:
     void calcInteractionWrench() override;

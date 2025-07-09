@@ -23,7 +23,34 @@ namespace aerial_robot_control
     // ninja_robot_model_->copyTreeStructure(ninja_robot_model_->getInitModuleTree(), module_tree_for_control_);
 
     pseudo_assembly_flag_sub_ = nh_.subscribe("/pseudo_assembly_flag",1,&NinjaController::pseudoAsmCallback, this);
+    com_motion_pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/com_motion/pid", 1);
+
+    com_motion_pid_msg_.x.total.resize(1);
+    com_motion_pid_msg_.x.p_term.resize(1);
+    com_motion_pid_msg_.x.i_term.resize(1);
+    com_motion_pid_msg_.x.d_term.resize(1);
+    com_motion_pid_msg_.y.total.resize(1);
+    com_motion_pid_msg_.y.p_term.resize(1);
+    com_motion_pid_msg_.y.i_term.resize(1);
+    com_motion_pid_msg_.y.d_term.resize(1);
+    com_motion_pid_msg_.z.total.resize(1);
+    com_motion_pid_msg_.z.p_term.resize(1);
+    com_motion_pid_msg_.z.i_term.resize(1);
+    com_motion_pid_msg_.z.d_term.resize(1);
+    com_motion_pid_msg_.roll.total.resize(1);
+    com_motion_pid_msg_.roll.p_term.resize(1);
+    com_motion_pid_msg_.roll.i_term.resize(1);
+    com_motion_pid_msg_.roll.d_term.resize(1);
+    com_motion_pid_msg_.pitch.total.resize(1);
+    com_motion_pid_msg_.pitch.p_term.resize(1);
+    com_motion_pid_msg_.pitch.i_term.resize(1);
+    com_motion_pid_msg_.pitch.d_term.resize(1);
+    com_motion_pid_msg_.yaw.total.resize(1);
+    com_motion_pid_msg_.yaw.p_term.resize(1);
+    com_motion_pid_msg_.yaw.i_term.resize(1);
+    com_motion_pid_msg_.yaw.d_term.resize(1);
   }
+
   bool NinjaController::update()
   {
     if(!ninja_navigator_->getControlFlag())
@@ -59,6 +86,81 @@ namespace aerial_robot_control
           }
       }
     joint_control_timestamp_ = ros::Time::now().toSec();
+
+    com_motion_pid_msg_.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
+    
+    tf::Vector3 curr_com_pos = ninja_navigator_->getCurrComPos();
+    tf::Vector3 curr_com_vel = ninja_navigator_->getCurrComVel();
+    tf::Vector3 target_com_pos = ninja_navigator_->getTargetFinalPosCand();
+    tf::Vector3 target_com_vel = ninja_navigator_->getTargetVelCand();
+    tf::Vector3 com_pos_err = target_com_pos - curr_com_pos;
+    tf::Vector3 com_vel_err = target_com_vel - curr_com_vel;
+
+    tf::Vector3 curr_com_rpy = ninja_navigator_->getCurrComRPY();
+    tf::Vector3 curr_com_omega = ninja_navigator_->getCurrComOmega();
+    tf::Vector3 target_com_rpy = ninja_navigator_->getTargetFinalRPYCand();
+    tf::Vector3 target_com_omega = ninja_navigator_->getTargetOmegaCand();
+    tf::Vector3 com_rpy_err = target_com_rpy - curr_com_rpy;
+    tf::Vector3 com_omega_err = target_com_omega - curr_com_omega;
+
+    // com_motion_pid_msg_.x.total.at(0) = pid_controllers_.at(FX).result();
+    // com_motion_pid_msg_.x.p_term.at(0) = pid_controllers_.at(FX).getPTerm();
+    // com_motion_pid_msg_.x.i_term.at(0) = pid_controllers_.at(FX).getITerm();
+    // com_motion_pid_msg_.x.d_term.at(0) = pid_controllers_.at(FX).getDTerm();
+    com_motion_pid_msg_.x.target_p = target_com_pos.x();
+    com_motion_pid_msg_.x.err_p = com_pos_err.x();
+    com_motion_pid_msg_.x.target_d = target_com_vel.x();
+    com_motion_pid_msg_.x.err_d = com_vel_err.x();
+
+    // com_motion_pid_msg_.y.total.at(0) = pid_controllers_.at(FY).result();
+    // com_motion_pid_msg_.y.p_term.at(0) = pid_controllers_.at(FY).getPTerm();
+    // com_motion_pid_msg_.y.i_term.at(0) = pid_controllers_.at(FY).getITerm();
+    // com_motion_pid_msg_.y.d_term.at(0) = pid_controllers_.at(FY).getDTerm();
+    com_motion_pid_msg_.y.target_p = target_com_pos.y();
+    com_motion_pid_msg_.y.err_p = com_pos_err.y();
+    com_motion_pid_msg_.y.target_d = target_com_vel.y();
+    com_motion_pid_msg_.y.err_d = com_vel_err.y();
+
+    // com_motion_pid_msg_.z.total.at(0) = pid_controllers_.at(FZ).result();
+    // com_motion_pid_msg_.z.p_term.at(0) = pid_controllers_.at(FZ).getPTerm();
+    // com_motion_pid_msg_.z.i_term.at(0) = pid_controllers_.at(FZ).getITerm();
+    // com_motion_pid_msg_.z.d_term.at(0) = pid_controllers_.at(FZ).getDTerm();
+    com_motion_pid_msg_.z.target_p = target_com_pos.z();
+    com_motion_pid_msg_.z.err_p = com_pos_err.z();
+    com_motion_pid_msg_.z.target_d = target_com_vel.z();
+    com_motion_pid_msg_.z.err_d = com_vel_err.z();
+
+    // com_motion_pid_msg_.roll.total.at(0) = pid_controllers_.at(ROLL).result();
+    // com_motion_pid_msg_.roll.p_term.at(0) = pid_controllers_.at(ROLL).getPTerm();
+    // com_motion_pid_msg_.roll.i_term.at(0) = pid_controllers_.at(ROLL).getITerm();
+    // com_motion_pid_msg_.roll.d_term.at(0) = pid_controllers_.at(ROLL).getDTerm();
+    com_motion_pid_msg_.roll.target_p = target_com_rpy.x();
+    com_motion_pid_msg_.roll.err_p = com_rpy_err.x();
+    com_motion_pid_msg_.roll.target_d = target_com_omega.x();
+    com_motion_pid_msg_.roll.err_d = com_omega_err.x();
+
+    // com_motion_pid_msg_.pitch.total.at(0) = pid_contpitchers_.at(PITCH).result();
+    // com_motion_pid_msg_.pitch.p_term.at(0) = pid_contpitchers_.at(PITCH).getPTerm();
+    // com_motion_pid_msg_.pitch.i_term.at(0) = pid_contpitchers_.at(PITCH).getITerm();
+    // com_motion_pid_msg_.pitch.d_term.at(0) = pid_contpitchers_.at(PITCH).getDTerm();
+    com_motion_pid_msg_.pitch.target_p = target_com_rpy.y();
+    com_motion_pid_msg_.pitch.err_p = com_rpy_err.y();
+    com_motion_pid_msg_.pitch.target_d = target_com_omega.y();
+    com_motion_pid_msg_.pitch.err_d = com_omega_err.y();
+
+    // com_motion_pid_msg_.yaw.total.at(0) = pid_contyawers_.at(YAW).result();
+    // com_motion_pid_msg_.yaw.p_term.at(0) = pid_contyawers_.at(YAW).getPTerm();
+    // com_motion_pid_msg_.yaw.i_term.at(0) = pid_contyawers_.at(YAW).getITerm();
+    // com_motion_pid_msg_.yaw.d_term.at(0) = curr_com_rpy.z();
+    com_motion_pid_msg_.yaw.target_p = target_com_rpy.z();
+    com_motion_pid_msg_.yaw.err_p = com_rpy_err.z();
+    com_motion_pid_msg_.yaw.target_d = target_com_omega.z();
+    com_motion_pid_msg_.yaw.err_d = com_omega_err.z();
+    //curr_com_rpy.z = target_com_rpy.z
+
+
+    com_motion_pid_pub_.publish(com_motion_pid_msg_);
+
     BeetleController::controlCore();
   }
 

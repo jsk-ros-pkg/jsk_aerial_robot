@@ -34,12 +34,16 @@ void NinjaNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   my_crr_joints_pos_ = KDL::JntArray(module_joint_num_);
   my_tgt_joints_pos_ = KDL::JntArray(module_joint_num_);
   prev_morphing_stamp_ = ros::Time::now().toSec();
+  prev_calc_err_stamp_ = ros::Time::now().toSec();
   for(int i = 0; i < getMaxModuleNum(); i++){
     std::string module_name  = string("/") + getMyName() + std::to_string(i+1);
     module_joints_subs_.insert(make_pair(module_name, nh_.subscribe( module_name + string("/dock_joints_pos"), 1, &NinjaNavigator::moduleJointsCallback, this)));
     KDL::JntArray joints_pos(2);
     all_modules_joints_pos_.insert(make_pair(i+1,joints_pos));
   }
+
+  lpf_vel_ = IirFilter(40.0, 10, 3);
+  lpf_omega_ = IirFilter(40.0, 10, 3);
 }
 void NinjaNavigator::update()
 {
@@ -59,6 +63,8 @@ void NinjaNavigator::update()
       morphing_flag_ = false;
     }
   comMovingProcess();
+
+  calcComStateProcess();
 
   if(getCurrentAssembled())
     {
@@ -498,6 +504,7 @@ void NinjaNavigator::convertTargetPosFromCoG2CoM()
     if(!disassembly_flag_) setTargetJointPosFromCurrState(); //bad implementation
     ROS_INFO("switched");
     pre_assembled_ = current_assembled;
+    prev_calc_err_stamp_ = ros::Time::now().toSec();
     return;
   }else if(!current_assembled){
     return;
@@ -622,7 +629,7 @@ void NinjaNavigator::comMovingProcess()
       transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
       tf::transformMsgToKDL(transformStamped.transform, current_com);
       tf::vectorKDLToTF(current_com.p, current_com_pos);
-      curr_com_pose_ = current_com;
+      // curr_com_pose_ = current_com;
     }
   catch (tf2::TransformException& ex)
     {
@@ -1432,6 +1439,70 @@ void NinjaNavigator::morphingProcess()
     }
   else
     {
+      return;
+    }
+}
+
+void NinjaNavigator::calcComStateProcess()
+{
+  if(!getCurrentAssembled() || !control_flag_) return;
+  if(getNaviState() != HOVER_STATE)
+    {
+      prev_calc_err_stamp_ = ros::Time::now().toSec();
+      return;
+    }
+  
+  try
+    {
+      geometry_msgs::TransformStamped transformStamped;
+      transformStamped = tfBuffer_.lookupTransform("world", my_name_ + std::to_string(my_id_) + std::string("/center_of_moving") , ros::Time(0));
+      tf::transformMsgToKDL(transformStamped.transform, curr_com_pose_);
+      if(reconfig_flag_)
+        {
+          prev_com_pose_ =  curr_com_pose_;
+          return;
+        }
+      double du = ros::Time::now().toSec() - prev_calc_err_stamp_;
+
+      tf::Vector3 curr_com_pos;
+      tf::Vector3 curr_com_rpy;
+      tf::Vector3 curr_com_vel;
+      tf::Vector3 curr_com_omega;
+      double curr_roll, curr_pitch, curr_yaw;
+      double prev_roll, prev_pitch, prev_yaw;
+
+      curr_com_pos = tf::Vector3(curr_com_pose_.p.x(), curr_com_pose_.p.y(), curr_com_pose_.p.z());
+      
+      curr_com_vel = tf::Vector3((curr_com_pose_.p.x() - prev_com_pose_.p.x())/du, (curr_com_pose_.p.y() - prev_com_pose_.p.y())/du, (curr_com_pose_.p.z() - prev_com_pose_.p.z())/du);
+
+      curr_com_pose_.M.GetEulerZYX(curr_yaw, curr_pitch, curr_roll);
+      prev_com_pose_.M.GetEulerZYX(prev_yaw, prev_pitch, prev_roll);
+      curr_com_rpy = tf::Vector3(curr_roll, curr_pitch, curr_yaw);
+      curr_com_omega = tf::Vector3(angles::shortest_angular_distance(prev_roll, curr_roll)/du, angles::shortest_angular_distance(prev_pitch, curr_pitch)/du, angles::shortest_angular_distance(prev_yaw, curr_yaw)/du);
+
+      bool hasNaN = std::isnan(curr_com_vel.x()) || std::isnan(curr_com_vel.y()) || std::isnan(curr_com_vel.z()) || std::isnan(curr_com_omega.x()) || std::isnan(curr_com_omega.y()) || std::isnan(curr_com_omega.z());
+
+      bool hasInf = std::isinf(curr_com_vel.x()) || std::isinf(curr_com_vel.y()) || std::isinf(curr_com_vel.z()) || std::isinf(curr_com_omega.x()) || std::isinf(curr_com_omega.y()) || std::isinf(curr_com_omega.z());
+      if(hasNaN || hasInf) return;
+
+      if(lpf_init_flag_)
+        {
+          lpf_vel_.setInitValues(curr_com_vel);
+          lpf_omega_.setInitValues(curr_com_omega);
+          lpf_init_flag_ = false;
+        }
+
+      setCurrComPos(curr_com_pos);
+      setCurrComRPY(curr_com_rpy);
+      setCurrVelCand(lpf_vel_.filterFunction(curr_com_vel));
+      setCurrOmegaCand(lpf_omega_.filterFunction(curr_com_omega));
+      prev_com_pose_ = curr_com_pose_;
+      prev_calc_err_stamp_ = ros::Time::now().toSec();
+
+    }
+  catch (tf2::TransformException& ex)
+    {
+      ROS_ERROR_STREAM("CoM is not defined (comMovingProcess)");
       return;
     }
 }

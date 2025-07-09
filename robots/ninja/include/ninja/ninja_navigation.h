@@ -8,6 +8,8 @@
 #include <regex>
 #include <aerial_robot_control/control/utils/pid.h>
 #include <std_msgs/Bool.h>
+#include <kalman_filter/lpf_filter.h>
+#include <angles/angles.h>
 
 namespace aerial_robot_navigation
 {
@@ -57,6 +59,8 @@ namespace aerial_robot_navigation
                     boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
                     double loop_du) override;
     void update() override;
+
+    /*accessor for target rotation*/
     void setTargetComRot(KDL::Rotation target_com_rot){ target_com_rot_ = target_com_rot;}
     void setGoalComRot(KDL::Rotation goal_com_rot){ goal_com_rot_ = goal_com_rot;}
     inline void setGoalComRoll( float value)
@@ -71,9 +75,21 @@ namespace aerial_robot_navigation
     {
       setGoalComRot(KDL::Rotation::RPY(0,0,value));
     }
+    inline void setTargetComRPY( tf::Vector3 value)
+    {
+      setGoalComRot(KDL::Rotation::RPY(value.x(),value.y(),value.z()));
+    }
+    
     void setTargetCoMPoseFromCurrState();
     void setTargetJointPosFromCurrState();
     void setCoM2Base(const KDL::Frame com2base){com2base_ = com2base;}
+
+    /*accessor for current pos*/
+    inline void setCurrComPos( tf::Vector3 value)
+    {
+      curr_com_pos_ = value;
+    }
+    
     /*accessor for target vel*/
     inline void setTargetVelCandX( float value)
     {
@@ -93,6 +109,24 @@ namespace aerial_robot_navigation
     inline void setTargetVelCand( tf::Vector3 value)
     {
       target_vel_candidate_ = value;
+    }
+
+    /*accessor for error vel*/
+    inline void setCurrVelCand( tf::Vector3 value)
+    {
+      curr_vel_candidate_ = value;
+    }    
+
+    /*accessor for error vel*/
+    inline void setErrVelCand( tf::Vector3 value)
+    {
+      err_vel_candidate_ = value;
+    }
+
+    /*accessor for current rpy*/
+    inline void setCurrComRPY( tf::Vector3 value)
+    {
+      curr_com_rpy_ = value;
     }
 
     /*accessor for target omega*/
@@ -115,6 +149,19 @@ namespace aerial_robot_navigation
     {
       target_omega_candidate_ = value;
     }
+
+    /*accessor for curr omega*/
+    inline void setCurrOmegaCand( tf::Vector3 value)
+    {
+      curr_omega_candidate_ = value;
+    }
+
+    /*accessor for error omega*/
+    inline void setErrOmegaCand( tf::Vector3 value)
+    {
+      err_omega_candidate_ = value;
+    }
+    
         
     inline void setFinalTargetPosCandX( float value){  target_final_pos_candidate_.setX(value);}
     inline void setFinalTargetPosCandY( float value){  target_final_pos_candidate_.setY(value);}
@@ -123,12 +170,26 @@ namespace aerial_robot_navigation
     
     void morphingProcess();
 
+    void calcComStateProcess();
+
     bool getFreeJointFlag(){return free_joint_flag_;}
     std::vector<double> getJointPosErr(){return joint_pos_errs_;}
     template<class T> T getCom2Base();
     inline tf::Vector3 getTargetFinalPosCand() {return target_final_pos_candidate_;}
+    inline tf::Vector3 getTargetFinalRPYCand()
+    {
+      double target_roll, target_pitch, target_yaw;
+      target_com_rot_.GetEulerZYX(target_yaw, target_pitch, target_roll);
+      return tf::Vector3(target_roll, target_pitch, target_yaw);
+    }
+    inline tf::Vector3 getCurrComPos() {return curr_com_pos_;}
+    inline tf::Vector3 getCurrComRPY() {return curr_com_rpy_;}
+    inline tf::Vector3 getCurrComVel() {return curr_vel_candidate_;}
+    inline tf::Vector3 getCurrComOmega() {return curr_omega_candidate_;}
     inline tf::Vector3 getTargetVelCand() {return target_vel_candidate_;}
     inline tf::Vector3 getTargetOmegaCand() {return target_omega_candidate_;}
+    inline tf::Vector3 getErrVelCand() {return err_vel_candidate_;}
+    inline tf::Vector3 getErrOmegaCand() {return err_omega_candidate_;}
 
   protected:
     std::mutex mutex_com2base_;
@@ -167,6 +228,13 @@ namespace aerial_robot_navigation
     tf::Vector3 target_final_pos_candidate_;
     tf::Vector3 target_vel_candidate_;
     tf::Vector3 target_omega_candidate_;
+    tf::Vector3 curr_com_pos_;
+    tf::Vector3 curr_com_rpy_;
+    tf::Vector3 curr_omega_candidate_;
+    tf::Vector3 curr_vel_candidate_;
+    tf::Vector3 err_omega_candidate_;
+    tf::Vector3 err_vel_candidate_;
+    
 
     double asm_vel_nav_threshold_;
     double asm_nav_vel_limit_;
@@ -186,6 +254,7 @@ namespace aerial_robot_navigation
     KDL::Frame com2base_;
     KDL::Frame test_frame_;
     KDL::Frame curr_com_pose_;
+    KDL::Frame prev_com_pose_;
 
     int module_joint_num_;
     double default_morphing_vel_;
@@ -196,6 +265,7 @@ namespace aerial_robot_navigation
 
     double morphing_process_interval_;
     double prev_morphing_stamp_;
+    double prev_calc_err_stamp_;
     bool morphing_flag_;
 
     double com_roll_change_thresh_;
@@ -214,6 +284,10 @@ namespace aerial_robot_navigation
     double pure_vel_control_init_z_;
 
     bool pure_vel_control_flag_;
+
+    IirFilter lpf_vel_;
+    IirFilter lpf_omega_;
+    bool lpf_init_flag_;
     
   };
   template<> inline KDL::Frame NinjaNavigator::getCom2Base()
