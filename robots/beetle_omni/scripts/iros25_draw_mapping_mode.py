@@ -7,6 +7,17 @@ import argparse
 legend_alpha = 0.5
 
 
+def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
+    angle_seq = angle_seq.copy()  # avoid modifying the input array
+    for i in range(1, len(angle_seq)):
+        delta = angle_seq[i] - angle_seq[i - 1]
+        if delta > np.pi:
+            angle_seq[i:] -= 2 * np.pi
+        elif delta < -np.pi:
+            angle_seq[i:] += 2 * np.pi
+    return angle_seq
+
+
 def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     x_ref_interp = np.interp(t, t_ref, x_ref)
     if is_yaw:
@@ -350,6 +361,163 @@ def main(file_path, plot_type):
         # Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label
         ax.tick_params(labelbottom=True)
         ax.set_xlabel('Time [s]', fontsize=label_size)
+
+        plt.tight_layout()
+        fig.subplots_adjust(hspace=0.2)
+        plt.show()
+
+    if plot_type == 2:
+        # ======= xyz =========
+        data_xyz = data[
+            ['__time', '/beetle1/uav/cog/odom/pose/pose/position/x', '/beetle1/uav/cog/odom/pose/pose/position/y',
+             '/beetle1/uav/cog/odom/pose/pose/position/z']].dropna()
+
+        data_xyz_ref = data[
+            ['__time', '/hand/mocap/pose/pose/position/x', '/hand/mocap/pose/pose/position/y',
+             '/hand/mocap/pose/pose/position/z']].dropna()
+
+        # ======= rpy =========
+        data_qwxyz = data[
+            ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w', '/beetle1/uav/cog/odom/pose/pose/orientation/x',
+             '/beetle1/uav/cog/odom/pose/pose/orientation/y', '/beetle1/uav/cog/odom/pose/pose/orientation/z']].dropna()
+
+        data_qwxyz_ref = data[
+            ['__time', '/hand/mocap/pose/pose/orientation/w', '/hand/mocap/pose/pose/orientation/x',
+             '/hand/mocap/pose/pose/orientation/y', '/hand/mocap/pose/pose/orientation/z']].dropna()
+
+        # convert to euler
+        data_euler_ref = pd.DataFrame()
+        data_euler_ref['__time'] = data_qwxyz_ref['__time']
+        data_euler_ref = pd.DataFrame()
+        data_euler_ref['__time'] = data_qwxyz_ref['__time']
+        data_euler_ref['roll'], data_euler_ref['pitch'], data_euler_ref['yaw'] = quat2euler(
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
+
+        data_euler = pd.DataFrame()
+        data_euler['__time'] = data_qwxyz['__time']
+        data_euler['roll'], data_euler['pitch'], data_euler['yaw'] = quat2euler(
+            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'],
+            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
+            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'],
+            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
+
+        # ======= Plotting Settings =======
+        plt.style.use(["science", "grid"])
+        plt.rcParams.update({'font.size': 11})
+        label_size = 14
+
+        # The later initial time of the two data is used as the time offset
+        t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
+        # Define the rotation interval (only for annotation in the figure)
+        time_start_rotate = 28.6993
+        time_stop_rotate = 35.2177
+
+        # Create 7 subplots with a shared x-axis
+        fig, axes = plt.subplots(6, 1, sharex=True, figsize=(7, 6))
+
+        # --- Subplot 1: X position ---
+        ax = axes[0]
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
+        x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
+        t = np.array(data_xyz['__time']) - t_bias
+        x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
+        x_ref_offset = x_ref - x_ref[0] + x[0]
+
+        ax.plot(t_ref, x_ref, label='hand', linestyle="--", color=matlab_blue)
+        ax.plot(t_ref, x_ref_offset, label='hand offset', linestyle="-.", color="k")
+        ax.plot(t, x, label='robot', color=matlab_orange)
+        ax.legend(framealpha=legend_alpha, loc="center right")
+        ax.set_ylabel('X [m]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+
+        rmse_x = calculate_rmse(t, x, t_ref, x_ref)
+        print(f'RMSE X [m]: {rmse_x}')
+
+        # --- Subplot 2: Y position ---
+        ax = axes[1]
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
+        y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
+        t = np.array(data_xyz['__time']) - t_bias
+        y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
+        y_ref_offset = y_ref - y_ref[0] + y[0]
+
+        ax.plot(t_ref, y_ref, label='hand', linestyle="--", color=matlab_blue)
+        ax.plot(t_ref, y_ref_offset, label='hand offset', linestyle="-.", color="k")
+        ax.plot(t, y, label='robot', color=matlab_orange)
+        ax.set_ylabel('Y [m]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+
+        rmse_y = calculate_rmse(t, y, t_ref, y_ref)
+        print(f'RMSE Y [m]: {rmse_y}')
+
+        # --- Subplot 3: Z position ---
+        ax = axes[2]
+        t_ref = np.array(data_xyz_ref['__time']) - t_bias
+        z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
+        ax.plot(t_ref, z_ref, label='hand', linestyle="--", color=matlab_blue)
+        t = np.array(data_xyz['__time']) - t_bias
+        z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
+        ax.plot(t, z, label='robot', color=matlab_orange)
+        ax.set_ylabel('Z [m]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+
+        rmse_z = calculate_rmse(t, z, t_ref, z_ref)
+        print(f'RMSE Z [m]: {rmse_z}')
+
+        # --- Subplot 4: Roll ---
+        ax = axes[3]
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
+        roll_ref = unwrap_angle_sequence(np.array(data_euler_ref['roll'])) * 180.0 / np.pi
+        ax.plot(t_ref, roll_ref, label='hand', linestyle="--", color=matlab_blue)
+        t = np.array(data_euler['__time']) - t_bias
+        roll = unwrap_angle_sequence(np.array(data_euler['roll'])) * 180.0 / np.pi
+        ax.plot(t, roll, label='robot', color=matlab_orange)
+        ax.legend(framealpha=legend_alpha, loc='lower right')
+        ax.set_ylabel('Roll [$^\circ$]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
+        print(f'RMSE Roll [rad]: {rmse_roll}')
+
+        # --- Subplot 5: Pitch ---
+        ax = axes[4]
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
+        pitch_ref = unwrap_angle_sequence(np.array(data_euler_ref['pitch'])) * 180.0 / np.pi
+        ax.plot(t_ref, pitch_ref, label='hand', linestyle="--", color=matlab_blue)
+        t = np.array(data_euler['__time']) - t_bias
+        pitch = unwrap_angle_sequence(np.array(data_euler['pitch'])) * 180.0 / np.pi
+        ax.plot(t, pitch, label='robot', color=matlab_orange)
+        ax.set_ylabel('Pitch [$^\circ$]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
+        print(f'RMSE Pitch [rad]: {rmse_pitch}')
+
+        # --- Subplot 6: Yaw ---
+        ax = axes[5]
+        t_ref = np.array(data_euler_ref['__time']) - t_bias
+        yaw_ref = unwrap_angle_sequence(np.array(data_euler_ref['yaw'])) * 180.0 / np.pi
+        ax.plot(t_ref, yaw_ref, label='hand', linestyle="--", color=matlab_blue)
+        t = np.array(data_euler['__time']) - t_bias
+        yaw = unwrap_angle_sequence(np.array(data_euler['yaw'])) * 180.0 / np.pi
+        ax.plot(t, yaw, label='robot', color=matlab_orange)
+        ax.set_ylabel('Yaw [$^\circ$]', fontsize=label_size)
+        ax.set_xlim(0, 50)
+        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        ax.legend(framealpha=legend_alpha, loc='lower right')
+        rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
+        print(f'RMSE Yaw [rad]: {rmse_yaw}')
+
+        # --- Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label ---
+        for ax in axes[:-1]:
+            ax.tick_params(labelbottom=False)
+        axes[-1].set_xlabel('Time [s]', fontsize=label_size)
 
         plt.tight_layout()
         fig.subplots_adjust(hspace=0.2)
