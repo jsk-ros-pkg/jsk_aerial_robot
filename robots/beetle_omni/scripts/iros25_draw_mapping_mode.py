@@ -110,7 +110,7 @@ def main(file_path, plot_type):
         ax.plot(t_ref, x_ref_offset, label='hand offset', linestyle="-.", color="k")
         ax.plot(t, x, label='robot', color=matlab_orange)
         ax.legend(framealpha=legend_alpha, loc="center right")
-        ax.set_ylabel('X [m]', fontsize=label_size)
+        ax.set_ylabel('$p_x$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -128,7 +128,7 @@ def main(file_path, plot_type):
         ax.plot(t_ref, y_ref, label='hand', linestyle="--", color=matlab_blue)
         ax.plot(t_ref, y_ref_offset, label='hand offset', linestyle="-.", color="k")
         ax.plot(t, y, label='robot', color=matlab_orange)
-        ax.set_ylabel('Y [m]', fontsize=label_size)
+        ax.set_ylabel('$p_y$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -143,7 +143,7 @@ def main(file_path, plot_type):
         t = np.array(data_xyz['__time']) - t_bias
         z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
         ax.plot(t, z, label='robot', color=matlab_orange)
-        ax.set_ylabel('Z [m]', fontsize=label_size)
+        ax.set_ylabel('$p_z$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -159,7 +159,7 @@ def main(file_path, plot_type):
         qw = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'])
         ax.plot(t, qw, label='robot', color=matlab_orange)
         ax.legend(framealpha=legend_alpha, loc='lower right')
-        ax.set_ylabel('qw', fontsize=label_size)
+        ax.set_ylabel('$q_w$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -174,7 +174,7 @@ def main(file_path, plot_type):
         t = np.array(data_qwxyz['__time']) - t_bias
         qx = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'])
         ax.plot(t, qx, label='robot', color=matlab_orange)
-        ax.set_ylabel('qx', fontsize=label_size)
+        ax.set_ylabel('$q_x$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -189,7 +189,7 @@ def main(file_path, plot_type):
         t = np.array(data_qwxyz['__time']) - t_bias
         qy = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'])
         ax.plot(t, qy, label='robot', color=matlab_orange)
-        ax.set_ylabel('qy', fontsize=label_size)
+        ax.set_ylabel('$q_y$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -204,7 +204,7 @@ def main(file_path, plot_type):
         t = np.array(data_qwxyz['__time']) - t_bias
         qz = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
         ax.plot(t, qz, label='robot', color=matlab_orange)
-        ax.set_ylabel('qz', fontsize=label_size)
+        ax.set_ylabel('$q_z$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
@@ -214,7 +214,7 @@ def main(file_path, plot_type):
         # --- Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label ---
         for ax in axes[:-1]:
             ax.tick_params(labelbottom=False)
-        axes[-1].set_xlabel('Time [s]', fontsize=label_size)
+        axes[-1].set_xlabel('Time $t$ [s]', fontsize=label_size)
 
         plt.tight_layout()
         fig.subplots_adjust(hspace=0.2)
@@ -271,7 +271,7 @@ def main(file_path, plot_type):
         x_ref_interp = np.interp(t, t_ref, x_ref - x_ref[0] + x[0])
         abs_error_x = np.abs(x - x_ref_interp)
         ax.plot(t, abs_error_x, label='X', color=matlab_blue)
-        ax.set_ylabel('X [m]', fontsize=label_size)
+        ax.set_ylabel('$p_x$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)  # Hide x-axis ticks for all but the last subplot
@@ -285,7 +285,7 @@ def main(file_path, plot_type):
         y_ref_interp = np.interp(t, t_ref, y_ref - y_ref[0] + y[0])
         abs_error_y = np.abs(y - y_ref_interp)
         ax.plot(t, abs_error_y, label='Y', color=matlab_blue)
-        ax.set_ylabel('Y [m]', fontsize=label_size)
+        ax.set_ylabel('$p_y$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)
@@ -299,7 +299,7 @@ def main(file_path, plot_type):
         z_ref_interp = np.interp(t, t_ref, z_ref)
         abs_error_z = np.abs(z - z_ref_interp)
         ax.plot(t, abs_error_z, label='Z', color=matlab_blue)
-        ax.set_ylabel('Z [m]', fontsize=label_size)
+        ax.set_ylabel('$p_z$ [m]', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)
@@ -313,7 +313,7 @@ def main(file_path, plot_type):
         qw_ref_interp = np.interp(t, t_ref, qw_ref)
         abs_error_qw = np.abs(qw - qw_ref_interp)
         ax.plot(t, abs_error_qw, label='qw', color=matlab_blue)
-        ax.set_ylabel('qw', fontsize=label_size)
+        ax.set_ylabel('$q_w$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)
@@ -327,7 +327,7 @@ def main(file_path, plot_type):
         qx_ref_interp = np.interp(t, t_ref, qx_ref)
         abs_error_qx = np.abs(qx - qx_ref_interp)
         ax.plot(t, abs_error_qx, label='qx', color=matlab_blue)
-        ax.set_ylabel('qx', fontsize=label_size)
+        ax.set_ylabel('$q_x$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)
@@ -341,7 +341,7 @@ def main(file_path, plot_type):
         qy_ref_interp = np.interp(t, t_ref, qy_ref)
         abs_error_qy = np.abs(qy - qy_ref_interp)
         ax.plot(t, abs_error_qy, label='qy', color=matlab_blue)
-        ax.set_ylabel('qy', fontsize=label_size)
+        ax.set_ylabel('$q_y$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.tick_params(labelbottom=False)
@@ -355,12 +355,12 @@ def main(file_path, plot_type):
         qz_ref_interp = np.interp(t, t_ref, qz_ref)
         abs_error_qz = np.abs(qz - qz_ref_interp)
         ax.plot(t, abs_error_qz, label='qz', color=matlab_blue)
-        ax.set_ylabel('qz', fontsize=label_size)
+        ax.set_ylabel('$q_z$', fontsize=label_size)
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         # Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label
         ax.tick_params(labelbottom=True)
-        ax.set_xlabel('Time [s]', fontsize=label_size)
+        ax.set_xlabel('Time $t$ [s]', fontsize=label_size)
 
         plt.tight_layout()
         fig.subplots_adjust(hspace=0.2)

@@ -109,8 +109,8 @@ def main(file_path, plot_type):
         plt.plot(x_ref, y_ref, label='ref.', linestyle="-.", color="black")
         plt.plot(x, y, label='real', linestyle="-", color=color_real)
 
-        plt.xlabel('X [m]', fontsize=label_size)
-        plt.ylabel('Y [m]', fontsize=label_size)
+        plt.xlabel('Position $p_x$ [m]', fontsize=label_size)
+        plt.ylabel('Position $p_y$ [m]', fontsize=label_size)
 
         # set 1:1
         plt.gca().set_aspect('equal', adjustable='box')
@@ -132,8 +132,6 @@ def main(file_path, plot_type):
         print(f"RMSE X: {rmse_x:.4f} m")
         print(f"RMSE Y: {rmse_y:.4f} m")
         print(f"RMSE Z: {rmse_z:.4f} m")
-
-
 
     if plot_type == 1:
         fig = plt.figure(figsize=(5, 3))
@@ -167,8 +165,8 @@ def main(file_path, plot_type):
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
-        plt.xlabel('X [m]', fontsize=label_size)
-        plt.ylabel('Y [m]', fontsize=label_size)
+        plt.xlabel('Position $p_x$ [m]', fontsize=label_size)
+        plt.ylabel('Position $p_y$ [m]', fontsize=label_size)
 
         plt.xlim(0.0, 0.40)
         plt.ylim(0.0, 0.35)
@@ -221,8 +219,8 @@ def main(file_path, plot_type):
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
-        plt.xlabel('X [m]', fontsize=label_size)
-        plt.ylabel('Y [m]', fontsize=label_size)
+        plt.xlabel('Position $p_x$ [m]', fontsize=label_size)
+        plt.ylabel('Position $p_y$ [m]', fontsize=label_size)
 
         plt.xlim(0.0, 0.5)
         plt.ylim(-0.3, 0.3)
