@@ -114,7 +114,7 @@ def main(file_path, plot_type):
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
-        rmse_x = calculate_rmse(t, x, t_ref, x_ref)
+        rmse_x = calculate_rmse(t, x, t_ref, x_ref_offset)
         print(f'RMSE X [m]: {rmse_x}')
 
         # --- Subplot 2: Y position ---
@@ -132,7 +132,7 @@ def main(file_path, plot_type):
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
 
-        rmse_y = calculate_rmse(t, y, t_ref, y_ref)
+        rmse_y = calculate_rmse(t, y, t_ref, y_ref_offset)
         print(f'RMSE Y [m]: {rmse_y}')
 
         # --- Subplot 3: Z position ---
