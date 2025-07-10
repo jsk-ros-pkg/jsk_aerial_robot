@@ -32,11 +32,17 @@ def main(file_path, plot_type):
     data = pd.read_csv(file_path)
 
     # ======= xyz =========
+    data_xyz_ref = data[
+        ['__time', '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x',
+         '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y',
+         '/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z']
+    ]
+
     data_xyz = data[
         ['__time', '/beetle1/uav/cog/odom/pose/pose/position/x', '/beetle1/uav/cog/odom/pose/pose/position/y',
          '/beetle1/uav/cog/odom/pose/pose/position/z']]
 
-    data_xyz_ref = data[
+    data_xyz_hand = data[
         ['__time', '/hand/mocap/pose/pose/position/x', '/hand/mocap/pose/pose/position/y',
          '/hand/mocap/pose/pose/position/z']]
 
@@ -44,8 +50,9 @@ def main(file_path, plot_type):
         ['__time', '/arm/mocap/pose/pose/position/x', '/arm/mocap/pose/pose/position/y',
          '/arm/mocap/pose/pose/position/z']]
 
-    data_xyz = data_xyz.dropna()
     data_xyz_ref = data_xyz_ref.dropna()
+    data_xyz = data_xyz.dropna()
+    data_xyz_hand = data_xyz_hand.dropna()
     data_xyz_arm = data_xyz_arm.dropna()
 
     # ======= rpy =========
@@ -86,30 +93,67 @@ def main(file_path, plot_type):
     color_ref = '#0072BD'
     color_real = '#D95319'
 
-    t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
+    t_bias = max(data_xyz['__time'].iloc[0], data_xyz_hand['__time'].iloc[0])
 
     if plot_type == 0:
-        fig = plt.figure(figsize=(5, 5))
+        fig = plt.figure(figsize=(5, 3))
+
+        x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
+        y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
+        z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
+
+        x_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x'])
+        y_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y'])
+        z_ref = np.array(data_xyz_ref['/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z'])
+
+        plt.plot(x_ref, y_ref, label='ref.', linestyle="-.", color="black")
+        plt.plot(x, y, label='real', linestyle="-", color=color_real)
+
+        plt.xlabel('X [m]', fontsize=label_size)
+        plt.ylabel('Y [m]', fontsize=label_size)
+
+        # set 1:1
+        plt.gca().set_aspect('equal', adjustable='box')
+
+        # plot the first point as a star
+        plt.plot(x[0], y[0], 'r*', markersize=10)
+
+        # legend
+        plt.legend(loc='center', fontsize=label_size, framealpha=legend_alpha)
+
+        # ======== RMSE =========
+        rmse_x = calculate_rmse(data_xyz['__time'], x, data_xyz_ref['__time'], x_ref)
+        rmse_y = calculate_rmse(data_xyz['__time'], y, data_xyz_ref['__time'], y_ref)
+        rmse_z = calculate_rmse(data_xyz['__time'], z, data_xyz_ref['__time'], z_ref)
+        rmse_xyz = np.sqrt(rmse_x ** 2 + rmse_y ** 2 + rmse_z ** 2)
+        rmse_xy = np.sqrt(rmse_x ** 2 + rmse_y ** 2)
+        print(f"RMSE XYZ: {rmse_xyz:.4f} m")
+        print(f"RMSE XY: {rmse_xy:.4f} m")
+        print(f"RMSE X: {rmse_x:.4f} m")
+        print(f"RMSE Y: {rmse_y:.4f} m")
+        print(f"RMSE Z: {rmse_z:.4f} m")
+
+
 
     if plot_type == 1:
         fig = plt.figure(figsize=(5, 3))
 
         # ----------
         # Plot the x and y position
-        data_xyz_ref['__time'] = pd.to_datetime(data_xyz_ref['__time'])
+        data_xyz_hand['__time'] = pd.to_datetime(data_xyz_hand['__time'])
         data_xyz_arm['__time'] = pd.to_datetime(data_xyz_arm['__time'])
-        data_xyz_ref = data_xyz_ref.set_index('__time')
+        data_xyz_hand = data_xyz_hand.set_index('__time')
         data_xyz_arm = data_xyz_arm.set_index('__time')
 
         # Remove duplicate time tags and only keep the first occurrence
-        data_xyz_ref = data_xyz_ref[~data_xyz_ref.index.duplicated(keep='first')]
+        data_xyz_hand = data_xyz_hand[~data_xyz_hand.index.duplicated(keep='first')]
         data_xyz_arm = data_xyz_arm[~data_xyz_arm.index.duplicated(keep='first')]
 
         # Construct a common time index
-        common_time = data_xyz_ref.index.union(data_xyz_arm.index).sort_values()
+        common_time = data_xyz_hand.index.union(data_xyz_arm.index).sort_values()
 
         # Reindex and align data using time interpolation
-        data_xyz_ref_aligned = data_xyz_ref.reindex(common_time).interpolate(method='time')
+        data_xyz_ref_aligned = data_xyz_hand.reindex(common_time).interpolate(method='time')
         data_xyz_arm_aligned = data_xyz_arm.reindex(common_time).interpolate(method='time')
 
         # Reset the index if necessary
@@ -120,9 +164,6 @@ def main(file_path, plot_type):
             '/arm/mocap/pose/pose/position/x'])
         y = np.array(data_xyz_ref_aligned['/hand/mocap/pose/pose/position/y'] - data_xyz_arm_aligned[
             '/arm/mocap/pose/pose/position/y'])
-
-        # x = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
-        # y = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
@@ -138,10 +179,10 @@ def main(file_path, plot_type):
         # plot the first point as a star
         plt.plot(x[0], y[0], 'r*', markersize=10)
 
-        # plot the position of shoulder
+        # plot the position of the shoulder
         plt.plot(0.0, 0.0, 'rP', markersize=10)
 
-        # plot a green circle for stop zone
+        # plot a green circle for the stop zone
         circle = patches.Circle((0.0, 0.0), 0.2, edgecolor='green', facecolor='none', alpha=0.2, linewidth=2)
         plt.gca().add_patch(circle)
 
@@ -153,20 +194,20 @@ def main(file_path, plot_type):
 
         # ----------
         # Plot the x and y position
-        data_xyz_ref['__time'] = pd.to_datetime(data_xyz_ref['__time'])
+        data_xyz_hand['__time'] = pd.to_datetime(data_xyz_hand['__time'])
         data_xyz_arm['__time'] = pd.to_datetime(data_xyz_arm['__time'])
-        data_xyz_ref = data_xyz_ref.set_index('__time')
+        data_xyz_hand = data_xyz_hand.set_index('__time')
         data_xyz_arm = data_xyz_arm.set_index('__time')
 
         # Remove duplicate time tags and only keep the first occurrence
-        data_xyz_ref = data_xyz_ref[~data_xyz_ref.index.duplicated(keep='first')]
+        data_xyz_hand = data_xyz_hand[~data_xyz_hand.index.duplicated(keep='first')]
         data_xyz_arm = data_xyz_arm[~data_xyz_arm.index.duplicated(keep='first')]
 
         # Construct a common time index
-        common_time = data_xyz_ref.index.union(data_xyz_arm.index).sort_values()
+        common_time = data_xyz_hand.index.union(data_xyz_arm.index).sort_values()
 
         # Reindex and align data using time interpolation
-        data_xyz_ref_aligned = data_xyz_ref.reindex(common_time).interpolate(method='time')
+        data_xyz_ref_aligned = data_xyz_hand.reindex(common_time).interpolate(method='time')
         data_xyz_arm_aligned = data_xyz_arm.reindex(common_time).interpolate(method='time')
 
         # Reset the index if necessary
@@ -177,9 +218,6 @@ def main(file_path, plot_type):
             '/arm/mocap/pose/pose/position/x'])
         y = np.array(data_xyz_ref_aligned['/hand/mocap/pose/pose/position/y'] - data_xyz_arm_aligned[
             '/arm/mocap/pose/pose/position/y'])
-
-        # x = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
-        # y = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
@@ -195,10 +233,10 @@ def main(file_path, plot_type):
         # plot the first point as a star
         plt.plot(x[0], y[0], 'r*', markersize=10)
 
-        # plot the position of shoulder
+        # plot the position of the shoulder
         plt.plot(0.0, 0.0, 'rP', markersize=10)
 
-        # plot a green circle for stop zone
+        # plot a green circle for the stop zone
         circle = patches.Circle((0.3, 0.0), 0.15, edgecolor='none', facecolor='green', alpha=0.2, linewidth=2)
         plt.gca().add_patch(circle)
 
@@ -212,6 +250,8 @@ def main(file_path, plot_type):
 
 
 if __name__ == '__main__':
+    # python iros25_draw_spherical_cartesian_mode.py ~/Desktop/spherical_mode.csv --type 1
+    # python iros25_draw_spherical_cartesian_mode.py ~/Desktop/cartesian_mode.csv --type 2
     parser = argparse.ArgumentParser(
         description='Plot the trajectory. Please use plotjuggler to generate the csv file.')
     parser.add_argument('file_path', type=str, help='The file name of the trajectory')
