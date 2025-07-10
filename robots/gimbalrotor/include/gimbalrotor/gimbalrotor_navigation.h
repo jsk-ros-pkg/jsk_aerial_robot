@@ -32,6 +32,7 @@ namespace aerial_robot_navigation
   protected:
     void rosParamInit() override;
     virtual void setFinalTargetBaselinkRotCallback(const spinal::DesireCoordConstPtr & msg);
+    virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
     
   private:
     ros::Publisher target_baselink_rpy_pub_;
@@ -40,7 +41,6 @@ namespace aerial_robot_navigation
     void baselinkRotationProcess();
     void targetBaselinkRotCallback(const geometry_msgs::QuaternionStampedConstPtr & msg);
     void targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr & msg);
-    virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg) override;
 
     void reset() override;
 

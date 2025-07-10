@@ -229,6 +229,11 @@ namespace aerial_robot_control
             navigator_->setTargetPitch(target_pitch_);
           }
       }
+    else
+      {
+        target_roll_ = navigator_->getTargetRPY().x();
+        target_pitch_ = navigator_->getTargetRPY().y();
+      }
 
     /*  calculate target base thrust (considering only translational components)*/
     double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
