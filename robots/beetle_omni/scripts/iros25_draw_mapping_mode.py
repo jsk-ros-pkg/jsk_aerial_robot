@@ -37,6 +37,54 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     return rmse_x
 
 
+def calculate_quat_error(qw: pd.Series, qx: pd.Series, qy: pd.Series, qz: pd.Series,
+                         qwr: pd.Series, qxr: pd.Series, qyr: pd.Series, qzr: pd.Series
+                         ) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+    """
+    Quaternion tracking error e = q ⊗ qr⁻¹.
+
+    Parameters
+    ----------
+    qw, qx, qy, qz : pandas.Series
+        Actual quaternion components (scalar–vector order w, x, y, z).
+    qwr, qxr, qyr, qzr : pandas.Series
+        Reference quaternion components (same order, same index).
+
+    Returns
+    -------
+    ew, ex, ey, ez : pandas.Series
+        Error quaternion (w, x, y, z), indexed exactly like the inputs.
+    """
+    # 1. SciPy expects (x, y, z, w) → stack accordingly
+    quat_act = np.column_stack([qx.to_numpy(),
+                                qy.to_numpy(),
+                                qz.to_numpy(),
+                                qw.to_numpy()])
+    quat_ref = np.column_stack([qxr.to_numpy(),
+                                qyr.to_numpy(),
+                                qzr.to_numpy(),
+                                qwr.to_numpy()])
+
+    # 2. Build Rotation objects
+    rot_act = Rotation.from_quat(quat_act)
+    rot_ref = Rotation.from_quat(quat_ref)
+
+    # 3. Error rotation: qr⁻¹ ⊗ q  (actual minus reference)
+    rot_err = rot_ref.inv() * rot_act
+
+    # 4. Back to quaternion (SciPy returns x, y, z, w)
+    quat_err = rot_err.as_quat()
+    ex, ey, ez, ew = quat_err.T  # transpose to unpack
+
+    # 5. Wrap as Series with the original index
+    idx = qw.index
+    ew = pd.Series(ew, index=idx, name="ew")
+    ex = pd.Series(ex, index=idx, name="ex")
+    ey = pd.Series(ey, index=idx, name="ey")
+    ez = pd.Series(ez, index=idx, name="ez")
+    return ew, ex, ey, ez
+
+
 def quat2euler(qw: pd.Series,
                qx: pd.Series,
                qy: pd.Series,
@@ -45,24 +93,7 @@ def quat2euler(qw: pd.Series,
                degrees: bool = True) -> tuple[pd.Series, pd.Series, pd.Series]:
     """
     Convert quaternion (w, x, y, z) series to Euler angles.
-
-    Parameters
-    ----------
-    qw, qx, qy, qz : pandas.Series
-        Aligned quaternion components (same index, same length).
-    sequence : str, default "xyz"
-        Axis sequence for Euler output.  Common choices:
-        "xyz"  → roll-pitch-yaw,
-        "zyx"  → yaw-pitch-roll, etc.
-    degrees : bool, default True
-        Return angles in degrees (True) or radians (False).
-
-    Returns
-    -------
-    roll, pitch, yaw : pandas.Series
-        Euler angles in the requested unit, sharing the original index.
     """
-    # Stack into the (N, 4) format expected by scipy (x, y, z, w)
     quat_array = np.column_stack([qx.to_numpy(),
                                   qy.to_numpy(),
                                   qz.to_numpy(),
@@ -252,21 +283,46 @@ def main(file_path, plot_type):
         # convert to euler
         data_euler_ref = pd.DataFrame()
         data_euler_ref['__time'] = data_qwxyz_ref['__time']
-        data_euler_ref = pd.DataFrame()
-        data_euler_ref['__time'] = data_qwxyz_ref['__time']
         data_euler_ref['roll'], data_euler_ref['pitch'], data_euler_ref['yaw'] = quat2euler(
             data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'],
             data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'],
             data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'],
             data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
 
+        # interpolate the real quaternion date
+        t_ref = np.array(data_qwxyz_ref['__time'])
+        t = np.array(data_qwxyz['__time'])
+
+        data_qwxyz_interp = pd.DataFrame()
+        data_qwxyz_interp['__time'] = t_ref
+        data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/w'] = np.interp(t_ref, t, data_qwxyz[
+            '/beetle1/uav/cog/odom/pose/pose/orientation/w'])
+        data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/x'] = np.interp(t_ref, t, data_qwxyz[
+            '/beetle1/uav/cog/odom/pose/pose/orientation/x'])
+        data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/y'] = np.interp(t_ref, t, data_qwxyz[
+            '/beetle1/uav/cog/odom/pose/pose/orientation/y'])
+        data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/z'] = np.interp(t_ref, t, data_qwxyz[
+            '/beetle1/uav/cog/odom/pose/pose/orientation/z'])
+
+        # calculate the quaternion error
+        ew, ex, ey, ez = calculate_quat_error(
+            data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/w'],
+            data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
+            data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/y'],
+            data_qwxyz_interp['/beetle1/uav/cog/odom/pose/pose/orientation/z'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'],
+            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z']
+        )
+
+        e_roll, e_pitch, e_yaw = quat2euler(ew, ex, ey, ez, sequence='ZYX', degrees=True)
+
         data_euler = pd.DataFrame()
-        data_euler['__time'] = data_qwxyz['__time']
-        data_euler['roll'], data_euler['pitch'], data_euler['yaw'] = quat2euler(
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
+        data_euler['__time'] = t_ref
+        data_euler['roll'] = e_roll.to_numpy() + data_euler_ref['roll'].to_numpy()
+        data_euler['pitch'] = e_pitch.to_numpy() + data_euler_ref['pitch'].to_numpy()
+        data_euler['yaw'] = e_yaw.to_numpy() + data_euler_ref['yaw'].to_numpy()
 
         # ======= Plotting Settings =======
         plt.style.use(["science", "grid"])
@@ -347,7 +403,7 @@ def main(file_path, plot_type):
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
-        print(f'RMSE Roll [rad]: {rmse_roll}')
+        print(f'RMSE Roll [deg]: {rmse_roll}')
 
         # --- Subplot 5: Pitch ---
         ax = axes[4]
@@ -361,7 +417,7 @@ def main(file_path, plot_type):
         ax.set_xlim(0, 50)
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
-        print(f'RMSE Pitch [rad]: {rmse_pitch}')
+        print(f'RMSE Pitch [deg]: {rmse_pitch}')
 
         # --- Subplot 6: Yaw ---
         ax = axes[5]
@@ -376,7 +432,7 @@ def main(file_path, plot_type):
         ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
         ax.legend(framealpha=legend_alpha, loc='lower right')
         rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
-        print(f'RMSE Yaw [rad]: {rmse_yaw}')
+        print(f'RMSE Yaw [deg]: {rmse_yaw}')
 
         # --- Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label ---
         for ax in axes[:-1]:
