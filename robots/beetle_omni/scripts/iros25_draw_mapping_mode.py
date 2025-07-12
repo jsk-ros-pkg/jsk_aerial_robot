@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-import scienceplots
+import scienceplots  # For better plotting styles
+from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 import argparse
 
@@ -36,10 +37,45 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
     return rmse_x
 
 
-def quat2euler(qw, qx, qy, qz):
-    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx ** 2 + qy ** 2))
-    pitch = np.arcsin(2 * (qw * qy - qz * qx))
-    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy ** 2 + qz ** 2))
+def quat2euler(qw: pd.Series,
+               qx: pd.Series,
+               qy: pd.Series,
+               qz: pd.Series,
+               sequence: str = "ZYX",
+               degrees: bool = True) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """
+    Convert quaternion (w, x, y, z) series to Euler angles.
+
+    Parameters
+    ----------
+    qw, qx, qy, qz : pandas.Series
+        Aligned quaternion components (same index, same length).
+    sequence : str, default "xyz"
+        Axis sequence for Euler output.  Common choices:
+        "xyz"  → roll-pitch-yaw,
+        "zyx"  → yaw-pitch-roll, etc.
+    degrees : bool, default True
+        Return angles in degrees (True) or radians (False).
+
+    Returns
+    -------
+    roll, pitch, yaw : pandas.Series
+        Euler angles in the requested unit, sharing the original index.
+    """
+    # Stack into the (N, 4) format expected by scipy (x, y, z, w)
+    quat_array = np.column_stack([qx.to_numpy(),
+                                  qy.to_numpy(),
+                                  qz.to_numpy(),
+                                  qw.to_numpy()])
+
+    # Convert
+    euler = Rotation.from_quat(quat_array).as_euler(sequence, degrees=degrees)
+
+    # Wrap back into Series with the original time index
+    idx = qw.index
+    roll = pd.Series(euler[:, 0], index=idx, name="roll")
+    pitch = pd.Series(euler[:, 1], index=idx, name="pitch")
+    yaw = pd.Series(euler[:, 2], index=idx, name="yaw")
     return roll, pitch, yaw
 
 
@@ -301,10 +337,10 @@ def main(file_path, plot_type):
         # --- Subplot 4: Roll ---
         ax = axes[3]
         t_ref = np.array(data_euler_ref['__time']) - t_bias
-        roll_ref = unwrap_angle_sequence(np.array(data_euler_ref['roll'])) * 180.0 / np.pi
+        roll_ref = unwrap_angle_sequence(np.array(data_euler_ref['roll']))
         ax.plot(t_ref, roll_ref, label='hand', linestyle="--", color=matlab_blue)
         t = np.array(data_euler['__time']) - t_bias
-        roll = unwrap_angle_sequence(np.array(data_euler['roll'])) * 180.0 / np.pi
+        roll = unwrap_angle_sequence(np.array(data_euler['roll']))
         ax.plot(t, roll, label='robot', color=matlab_orange)
         ax.legend(framealpha=legend_alpha, loc='lower right')
         ax.set_ylabel('Roll [$^\circ$]', fontsize=label_size)
@@ -316,10 +352,10 @@ def main(file_path, plot_type):
         # --- Subplot 5: Pitch ---
         ax = axes[4]
         t_ref = np.array(data_euler_ref['__time']) - t_bias
-        pitch_ref = unwrap_angle_sequence(np.array(data_euler_ref['pitch'])) * 180.0 / np.pi
+        pitch_ref = unwrap_angle_sequence(np.array(data_euler_ref['pitch']))
         ax.plot(t_ref, pitch_ref, label='hand', linestyle="--", color=matlab_blue)
         t = np.array(data_euler['__time']) - t_bias
-        pitch = unwrap_angle_sequence(np.array(data_euler['pitch'])) * 180.0 / np.pi
+        pitch = unwrap_angle_sequence(np.array(data_euler['pitch']))
         ax.plot(t, pitch, label='robot', color=matlab_orange)
         ax.set_ylabel('Pitch [$^\circ$]', fontsize=label_size)
         ax.set_xlim(0, 50)
@@ -330,10 +366,10 @@ def main(file_path, plot_type):
         # --- Subplot 6: Yaw ---
         ax = axes[5]
         t_ref = np.array(data_euler_ref['__time']) - t_bias
-        yaw_ref = unwrap_angle_sequence(np.array(data_euler_ref['yaw'])) * 180.0 / np.pi
+        yaw_ref = unwrap_angle_sequence(np.array(data_euler_ref['yaw']))
         ax.plot(t_ref, yaw_ref, label='hand', linestyle="--", color=matlab_blue)
         t = np.array(data_euler['__time']) - t_bias
-        yaw = unwrap_angle_sequence(np.array(data_euler['yaw'])) * 180.0 / np.pi
+        yaw = unwrap_angle_sequence(np.array(data_euler['yaw']))
         ax.plot(t, yaw, label='robot', color=matlab_orange)
         ax.set_ylabel('Yaw [$^\circ$]', fontsize=label_size)
         ax.set_xlim(0, 50)
