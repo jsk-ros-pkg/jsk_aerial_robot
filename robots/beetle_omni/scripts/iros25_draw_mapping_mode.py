@@ -6,6 +6,12 @@ import argparse
 
 legend_alpha = 0.5
 
+matlab_blue = '#0072BD'
+matlab_orange = '#D95319'
+matlab_yellow = '#EDB120'
+matlab_green = '#77AC30'
+matlab_purple = "#7E2F8E"
+
 
 def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
     angle_seq = angle_seq.copy()  # avoid modifying the input array
@@ -37,9 +43,59 @@ def quat2euler(qw, qx, qy, qz):
     return roll, pitch, yaw
 
 
-matlab_blue = '#0072BD'
-matlab_orange = '#D95319'
-matlab_purple = "#7E2F8E"
+# ---------- Helper: plot reference, robot and error in one subplot --------
+def _plot_with_error(ax, t, y, t_ref, y_ref, y_label_left, y_label_right, label_size, time_start_rotate,
+                     time_stop_rotate, has_legend=False, legend_loc='center left'):
+    """Draw reference (hand), robot and |error| on the same time axis.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Left-hand y-axis for reference & robot.
+    t, y : 1-D array
+        Time and robot signal.
+    t_ref, y_ref : 1-D array
+        Time and reference (hand) signal.
+    y_label_left : str
+        Label for the left y-axis.
+    """
+    # Plot the time span of the rotation. This should be plotted before the main curves
+    ax.axvspan(time_start_rotate, time_stop_rotate,
+               facecolor=matlab_yellow, alpha=0.3)
+
+    # Secondary y-axis for error
+    ax_err = ax.twinx()
+
+    # Right y-axis: absolute error
+    abs_err = np.abs(y - np.interp(t, t_ref, y_ref))
+    ln3 = ax_err.fill_between(
+        t, 0, abs_err,
+        color=matlab_blue,
+        alpha=0.2,
+        label="error"
+    )
+
+    # Left y-axis curves
+    ln1 = ax.plot(t_ref, y_ref, linestyle="--", color=matlab_blue,
+                  label='hand (offset)')[0]
+    ln2 = ax.plot(t, y, linestyle="-", color=matlab_orange,
+                  label='robot')[0]
+
+    # Axis labels
+    ax.set_ylabel(y_label_left, fontsize=label_size)
+    ax_err.set_ylabel(y_label_right, fontsize=label_size, rotation=90, labelpad=0)
+
+    # Formatting
+    ax.set_xlim(0, 50)
+    ax.grid(True)
+
+    # Merge legends (handles from both y-axes)
+    handles = [ln1, ln2, ln3]
+    if has_legend:
+        ax.legend(handles, [h.get_label() for h in handles],
+                  framealpha=legend_alpha, ncol=3, loc=legend_loc, fontsize=label_size - 1)
+
+    return abs_err  # You can compute RMSE outside if needed
 
 
 def main(file_path, plot_type):
@@ -47,323 +103,95 @@ def main(file_path, plot_type):
     data = pd.read_csv(file_path)
 
     if plot_type == 0:
-        # ======= xyz =========
-        data_xyz = data[
-            ['__time', '/beetle1/uav/cog/odom/pose/pose/position/x', '/beetle1/uav/cog/odom/pose/pose/position/y',
-             '/beetle1/uav/cog/odom/pose/pose/position/z']].dropna()
+        # ====== Data acquisition (same as original) ==============================
+        # --- xyz ---
+        data_xyz = data[['__time',
+                         '/beetle1/uav/cog/odom/pose/pose/position/x',
+                         '/beetle1/uav/cog/odom/pose/pose/position/y',
+                         '/beetle1/uav/cog/odom/pose/pose/position/z']].dropna()
+        data_xyz_ref = data[['__time',
+                             '/hand/mocap/pose/pose/position/x',
+                             '/hand/mocap/pose/pose/position/y',
+                             '/hand/mocap/pose/pose/position/z']].dropna()
 
-        data_xyz_ref = data[
-            ['__time', '/hand/mocap/pose/pose/position/x', '/hand/mocap/pose/pose/position/y',
-             '/hand/mocap/pose/pose/position/z']].dropna()
+        # --- quaternion ---
+        data_qwxyz = data[['__time',
+                           '/beetle1/uav/cog/odom/pose/pose/orientation/w',
+                           '/beetle1/uav/cog/odom/pose/pose/orientation/x',
+                           '/beetle1/uav/cog/odom/pose/pose/orientation/y',
+                           '/beetle1/uav/cog/odom/pose/pose/orientation/z']].dropna()
+        data_qwxyz_ref = data[['__time',
+                               '/hand/mocap/pose/pose/orientation/w',
+                               '/hand/mocap/pose/pose/orientation/x',
+                               '/hand/mocap/pose/pose/orientation/y',
+                               '/hand/mocap/pose/pose/orientation/z']].dropna()
 
-        # ======= rpy =========
-        data_qwxyz = data[
-            ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w', '/beetle1/uav/cog/odom/pose/pose/orientation/x',
-             '/beetle1/uav/cog/odom/pose/pose/orientation/y', '/beetle1/uav/cog/odom/pose/pose/orientation/z']].dropna()
-
-        data_qwxyz_ref = data[
-            ['__time', '/hand/mocap/pose/pose/orientation/w', '/hand/mocap/pose/pose/orientation/x',
-             '/hand/mocap/pose/pose/orientation/y', '/hand/mocap/pose/pose/orientation/z']].dropna()
-
-        # convert to euler
-        data_euler_ref = pd.DataFrame()
-        data_euler_ref['__time'] = data_qwxyz_ref['__time']
-        data_euler_ref = pd.DataFrame()
-        data_euler_ref['__time'] = data_qwxyz_ref['__time']
-        data_euler_ref['roll'], data_euler_ref['pitch'], data_euler_ref['yaw'] = quat2euler(
-            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'],
-            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'],
-            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'],
-            data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
-
-        data_euler = pd.DataFrame()
-        data_euler['__time'] = data_qwxyz['__time']
-        data_euler['roll'], data_euler['pitch'], data_euler['yaw'] = quat2euler(
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'],
-            data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
-
-        # ======= Plotting Settings =======
+        # ====== Plot settings =====================================================
         plt.style.use(["science", "grid"])
         plt.rcParams.update({'font.size': 11})
         label_size = 14
-
-        # The later initial time of the two data is used as the time offset
         t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
-        # Define the rotation interval (only for annotation in the figure)
         time_start_rotate = 28.6993
         time_stop_rotate = 35.2177
 
-        # Create 7 subplots with a shared x-axis
         fig, axes = plt.subplots(7, 1, sharex=True, figsize=(7, 6))
 
-        # --- Subplot 1: X position ---
-        ax = axes[0]
-        t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
+        # ---------- 1. p_x --------------------------------------------------------
         t = np.array(data_xyz['__time']) - t_bias
         x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
-        x_ref_offset = x_ref - x_ref[0] + x[0]
-
-        ax.plot(t_ref, x_ref, label='hand', linestyle="--", color=matlab_blue)
-        ax.plot(t_ref, x_ref_offset, label='hand offset', linestyle="-.", color="k")
-        ax.plot(t, x, label='robot', color=matlab_orange)
-        ax.legend(framealpha=legend_alpha, loc="center right")
-        ax.set_ylabel('$p_x$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-
-        rmse_x = calculate_rmse(t, x, t_ref, x_ref_offset)
-        print(f'RMSE X [m]: {rmse_x}')
-
-        # --- Subplot 2: Y position ---
-        ax = axes[1]
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
-        t = np.array(data_xyz['__time']) - t_bias
+        x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x']) \
+                - data_xyz_ref['/hand/mocap/pose/pose/position/x'].iloc[0] + x[0]
+        _plot_with_error(axes[0], t, x, t_ref, x_ref, '$p_x$ [m]', '$e_{p_x}$ [m]', label_size, time_start_rotate,
+                         time_stop_rotate,
+                         has_legend=True)
+
+        # ---------- 2. p_y --------------------------------------------------------
         y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
-        y_ref_offset = y_ref - y_ref[0] + y[0]
+        y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y']) \
+                - data_xyz_ref['/hand/mocap/pose/pose/position/y'].iloc[0] + y[0]
+        _plot_with_error(axes[1], t, y, t_ref, y_ref, '$p_y$ [m]', '$e_{p_y}$ [m]', label_size, time_start_rotate,
+                         time_stop_rotate)
 
-        ax.plot(t_ref, y_ref, label='hand', linestyle="--", color=matlab_blue)
-        ax.plot(t_ref, y_ref_offset, label='hand offset', linestyle="-.", color="k")
-        ax.plot(t, y, label='robot', color=matlab_orange)
-        ax.set_ylabel('$p_y$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-
-        rmse_y = calculate_rmse(t, y, t_ref, y_ref_offset)
-        print(f'RMSE Y [m]: {rmse_y}')
-
-        # --- Subplot 3: Z position ---
-        ax = axes[2]
-        t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
-        ax.plot(t_ref, z_ref, label='hand', linestyle="--", color=matlab_blue)
-        t = np.array(data_xyz['__time']) - t_bias
+        # ---------- 3. p_z --------------------------------------------------------
         z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
-        ax.plot(t, z, label='robot', color=matlab_orange)
-        ax.set_ylabel('$p_z$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
+        _plot_with_error(axes[2], t, z, t_ref, z_ref, '$p_z$ [m]', '$e_{p_z}$ [m]', label_size, time_start_rotate,
+                         time_stop_rotate)
 
-        rmse_z = calculate_rmse(t, z, t_ref, z_ref)
-        print(f'RMSE Z [m]: {rmse_z}')
-
-        # --- Subplot 4: Quaternion w ---
-        ax = axes[3]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qw_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'])
-        ax.plot(t_ref, qw_ref, label='hand', linestyle="--", color=matlab_blue)
-        t = np.array(data_qwxyz['__time']) - t_bias
+        # ---------- 4. q_w --------------------------------------------------------
         qw = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'])
-        ax.plot(t, qw, label='robot', color=matlab_orange)
-        ax.legend(framealpha=legend_alpha, loc='lower right')
-        ax.set_ylabel('$q_w$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        qw_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'])
+        t_q = np.array(data_qwxyz['__time']) - t_bias
+        t_qref = np.array(data_qwxyz_ref['__time']) - t_bias
+        _plot_with_error(axes[3], t_q, qw, t_qref, qw_ref, '$q_w$', '$e_{q_w}$', label_size, time_start_rotate,
+                         time_stop_rotate)
 
-        rmse_qw = calculate_rmse(t, qw, t_ref, qw_ref)
-        print(f'RMSE qw: {rmse_qw}')
-
-        # --- Subplot 5: Quaternion x ---
-        ax = axes[4]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qx_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'])
-        ax.plot(t_ref, qx_ref, label='hand', linestyle="--", color=matlab_blue)
-        t = np.array(data_qwxyz['__time']) - t_bias
+        # ---------- 5. q_x --------------------------------------------------------
         qx = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'])
-        ax.plot(t, qx, label='robot', color=matlab_orange)
-        ax.set_ylabel('$q_x$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        qx_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'])
+        _plot_with_error(axes[4], t_q, qx, t_qref, qx_ref, '$q_x$', '$e_{q_x}$', label_size, time_start_rotate,
+                         time_stop_rotate, has_legend=False)
 
-        rmse_qx = calculate_rmse(t, qx, t_ref, qx_ref)
-        print(f'RMSE qx: {rmse_qx}')
-
-        # --- Subplot 6: Quaternion y ---
-        ax = axes[5]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qy_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'])
-        ax.plot(t_ref, qy_ref, label='hand', linestyle="--", color=matlab_blue)
-        t = np.array(data_qwxyz['__time']) - t_bias
+        # ---------- 6. q_y --------------------------------------------------------
         qy = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'])
-        ax.plot(t, qy, label='robot', color=matlab_orange)
-        ax.set_ylabel('$q_y$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        qy_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'])
+        _plot_with_error(axes[5], t_q, qy, t_qref, qy_ref, '$q_y$', '$e_{q_y}$', label_size, time_start_rotate,
+                         time_stop_rotate)
 
-        rmse_qy = calculate_rmse(t, qy, t_ref, qy_ref)
-        print(f'RMSE qy: {rmse_qy}')
-
-        # --- Subplot 7: Quaternion z ---
-        ax = axes[6]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qz_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
-        ax.plot(t_ref, qz_ref, label='hand', linestyle="--", color=matlab_blue)
-        t = np.array(data_qwxyz['__time']) - t_bias
+        # ---------- 7. q_z --------------------------------------------------------
         qz = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
-        ax.plot(t, qz, label='robot', color=matlab_orange)
-        ax.set_ylabel('$q_z$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
+        qz_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
+        _plot_with_error(axes[6], t_q, qz, t_qref, qz_ref, '$q_z$', '$e_{q_z}$', label_size, time_start_rotate,
+                         time_stop_rotate)
 
-        rmse_qz = calculate_rmse(t, qz, t_ref, qz_ref)
-        print(f'RMSE qz: {rmse_qz}')
-
-        # --- Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label ---
+        # ---------- Shared X-axis -------------------------------------------------
         for ax in axes[:-1]:
             ax.tick_params(labelbottom=False)
         axes[-1].set_xlabel('Time $t$ [s]', fontsize=label_size)
 
         plt.tight_layout()
-        fig.subplots_adjust(hspace=0.2)
-        plt.show()
-
-    if plot_type == 1:
-        # ======= position =======
-        data_xyz = data[
-            ['__time', '/beetle1/uav/cog/odom/pose/pose/position/x',
-             '/beetle1/uav/cog/odom/pose/pose/position/y',
-             '/beetle1/uav/cog/odom/pose/pose/position/z']
-        ].dropna()
-
-        data_xyz_ref = data[
-            ['__time', '/hand/mocap/pose/pose/position/x',
-             '/hand/mocap/pose/pose/position/y',
-             '/hand/mocap/pose/pose/position/z']
-        ].dropna()
-
-        # ======= quaternion =======
-        data_qwxyz = data[
-            ['__time', '/beetle1/uav/cog/odom/pose/pose/orientation/w',
-             '/beetle1/uav/cog/odom/pose/pose/orientation/x',
-             '/beetle1/uav/cog/odom/pose/pose/orientation/y',
-             '/beetle1/uav/cog/odom/pose/pose/orientation/z']
-        ].dropna()
-
-        data_qwxyz_ref = data[
-            ['__time', '/hand/mocap/pose/pose/orientation/w',
-             '/hand/mocap/pose/pose/orientation/x',
-             '/hand/mocap/pose/pose/orientation/y',
-             '/hand/mocap/pose/pose/orientation/z']
-        ].dropna()
-
-        # ======= Plotting Settings =======
-        plt.style.use(["science", "grid"])
-        plt.rcParams.update({'font.size': 11})
-        label_size = 14
-
-        t_bias = max(data_xyz['__time'].iloc[0], data_xyz_ref['__time'].iloc[0])
-
-        time_start_rotate = 28.6993
-        time_stop_rotate = 35.2177
-
-        fig, axes = plt.subplots(7, 1, sharex=True, figsize=(7, 5))
-
-        # --- Subplot 1: X abs. error ---
-        ax = axes[0]
-        t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x'])
-        t = np.array(data_xyz['__time']) - t_bias
-        x = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/x'])
-        # 参考值偏移处理后进行插值
-        x_ref_interp = np.interp(t, t_ref, x_ref - x_ref[0] + x[0])
-        abs_error_x = np.abs(x - x_ref_interp)
-        ax.plot(t, abs_error_x, label='X', color=matlab_blue)
-        ax.set_ylabel('$p_x$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)  # Hide x-axis ticks for all but the last subplot
-
-        # --- Subplot 2: Y abs. error ---
-        ax = axes[1]
-        t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y'])
-        t = np.array(data_xyz['__time']) - t_bias
-        y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
-        y_ref_interp = np.interp(t, t_ref, y_ref - y_ref[0] + y[0])
-        abs_error_y = np.abs(y - y_ref_interp)
-        ax.plot(t, abs_error_y, label='Y', color=matlab_blue)
-        ax.set_ylabel('$p_y$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)
-
-        # --- Subplot 3: Z abs. error ---
-        ax = axes[2]
-        t_ref = np.array(data_xyz_ref['__time']) - t_bias
-        z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
-        t = np.array(data_xyz['__time']) - t_bias
-        z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
-        z_ref_interp = np.interp(t, t_ref, z_ref)
-        abs_error_z = np.abs(z - z_ref_interp)
-        ax.plot(t, abs_error_z, label='Z', color=matlab_blue)
-        ax.set_ylabel('$p_z$ [m]', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)
-
-        # --- Subplot 4: Quaternion w abs. error ---
-        ax = axes[3]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qw_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'])
-        t = np.array(data_qwxyz['__time']) - t_bias
-        qw = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/w'])
-        qw_ref_interp = np.interp(t, t_ref, qw_ref)
-        abs_error_qw = np.abs(qw - qw_ref_interp)
-        ax.plot(t, abs_error_qw, label='qw', color=matlab_blue)
-        ax.set_ylabel('$q_w$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)
-
-        # --- Subplot 5: Quaternion x abs. error ---
-        ax = axes[4]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qx_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'])
-        t = np.array(data_qwxyz['__time']) - t_bias
-        qx = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'])
-        qx_ref_interp = np.interp(t, t_ref, qx_ref)
-        abs_error_qx = np.abs(qx - qx_ref_interp)
-        ax.plot(t, abs_error_qx, label='qx', color=matlab_blue)
-        ax.set_ylabel('$q_x$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)
-
-        # --- Subplot 6: Quaternion y abs. error ---
-        ax = axes[5]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qy_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'])
-        t = np.array(data_qwxyz['__time']) - t_bias
-        qy = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'])
-        qy_ref_interp = np.interp(t, t_ref, qy_ref)
-        abs_error_qy = np.abs(qy - qy_ref_interp)
-        ax.plot(t, abs_error_qy, label='qy', color=matlab_blue)
-        ax.set_ylabel('$q_y$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        ax.tick_params(labelbottom=False)
-
-        # --- Subplot 7: Quaternion z abs. error ---
-        ax = axes[6]
-        t_ref = np.array(data_qwxyz_ref['__time']) - t_bias
-        qz_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
-        t = np.array(data_qwxyz['__time']) - t_bias
-        qz = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
-        qz_ref_interp = np.interp(t, t_ref, qz_ref)
-        abs_error_qz = np.abs(qz - qz_ref_interp)
-        ax.plot(t, abs_error_qz, label='qz', color=matlab_blue)
-        ax.set_ylabel('$q_z$', fontsize=label_size)
-        ax.set_xlim(0, 50)
-        ax.axvspan(time_start_rotate, time_stop_rotate, facecolor="#EDB120", alpha=0.3)
-        # Hide the X-axis scales of all subplots except the bottom one, and set a common X-axis label
-        ax.tick_params(labelbottom=True)
-        ax.set_xlabel('Time $t$ [s]', fontsize=label_size)
-
-        plt.tight_layout()
-        fig.subplots_adjust(hspace=0.2)
+        fig.subplots_adjust(hspace=0.25)
         plt.show()
 
     if plot_type == 2:
