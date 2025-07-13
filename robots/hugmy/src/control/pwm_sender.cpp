@@ -1,5 +1,6 @@
 #include <hugmy/control/air_pressure_controller.h>
 #include <hugmy/control/haptics_controller.h>
+#include <hugmy/control/haptics_visualizer.h>
 
 #include <ros/ros.h>
 #include <spinal/PwmTest.h>
@@ -9,46 +10,49 @@
 
 class IntegratedController {
 public:
-    IntegratedController()
-        : nh_(),
-          air_(nh_),
-          haptics_(nh_),
-          control_mode_(0)
-    {
-        pwm_pub_ = nh_.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
-        joy_sub_ = nh_.subscribe("/quadrotor/joy", 1, &IntegratedController::joyCb, this);
-        halt_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/halt", 1);
+  IntegratedController()
+  : nh_(),
+  air_(nh_),
+  haptics_(nh_),
+  // visualizer_(nh_),
+  control_mode_(0)
+{
+  pwm_pub_ = nh_.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
+  joy_sub_ = nh_.subscribe("/quadrotor/joy", 1, &IntegratedController::joyCb, this);
+  halt_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/halt", 1);
+}
 
-    }
-
-    void spin() {
-        ros::Rate rate(100);
-        while (ros::ok()) {
-            ROS_INFO("Mode: %d", control_mode_);
-            if (control_mode_ == 0) {
-                air_.stopAllPneumatics();
-                haptics_.stopAllMotors();
-            } else {
-                air_.update();
-                haptics_.update();
-                if (control_mode_ == 1) {
-                    haptics_.controlManual();
-                } else if (control_mode_ == 2) {
-                    haptics_.controlAuto();
-                }
-            }
-
-            publishMergedPwm();
-
-            ros::spinOnce();
-            rate.sleep();
+  void spin() {
+    ros::Rate rate(100);
+    while (ros::ok()) {
+      ROS_INFO("Mode: %d", control_mode_);
+      if (control_mode_ == 0) {
+        air_.stopAllPneumatics();
+        haptics_.stopAllMotors();
+        haptics_.pos_flag_ = true;
+      } else {
+        air_.update();
+        if (control_mode_ == 1) {
+          haptics_.controlManual();
+          haptics_.pos_flag_ = true;
+        } else if (control_mode_ == 2) {
+          haptics_.controlAuto();
         }
+      }
+      haptics_.updateRviz();
+
+      publishMergedPwm();
+
+      ros::spinOnce();
+      rate.sleep();
     }
+  }
 
 private:
   ros::NodeHandle nh_;
   AirPressureController air_;
-  HapticsController haptics_;
+  // HapticsController haptics_;
+  HapticsVisualizer haptics_;
   ros::Publisher pwm_pub_;
   ros::Subscriber joy_sub_;
   ros::Publisher halt_pub_;

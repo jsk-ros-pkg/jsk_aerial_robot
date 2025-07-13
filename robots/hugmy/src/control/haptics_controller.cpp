@@ -13,10 +13,6 @@ HapticsController::HapticsController(ros::NodeHandle& nh){
     output_ = 0.0;
 }
 
-void HapticsController::update() {
-    publishTargetMarker();
-}
-
 spinal::PwmTest HapticsController::getHapticsPwm() const {
     return last_published_pwm_;
 }
@@ -49,35 +45,12 @@ void HapticsController::odomCb(const nav_msgs::Odometry::ConstPtr& msg){
     euler_.x = roll;
     euler_.y = pitch;
     euler_.z = yaw;
-
-}
-
-void HapticsController::publishTargetMarker() {
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "target";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = target_x_;
-    marker.pose.position.y = target_y_;
-    marker.pose.position.z = 0.8;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.2;
-    marker.scale.y = 0.2;
-    marker.scale.z = 0.2;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    marker.color.a = 1.0;
-    marker_pub_.publish(marker);
 }
 
 double HapticsController::calThrustPower(double strength) {
-    double thrust = 4.0 * std::abs(strength);
+    double thrust = 5.0 * std::abs(strength);
     double pwm = -0.000679 * thrust * thrust + 0.044878 * thrust + 0.5;
-    return std::min(pwm, 0.65);
+    return std::min(pwm, 0.7);
 }
 
 void HapticsController::controlManual() {

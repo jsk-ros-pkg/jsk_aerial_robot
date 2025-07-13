@@ -23,6 +23,7 @@ target_link_libraries(hugmy_navigation ${catkin_LIBRARIES})
 add_executable(haptics_integrated_controller src/control/pwm_sender.cpp
   src/control/air_pressure_controller.cpp
   src/control/haptics_controller.cpp
+  src/control/rviz_visualizer.cpp
   )
 target_link_libraries(haptics_integrated_controller ${catkin_LIBRARIES})
 add_dependencies(haptics_integrated_controller ${catkin_EXPORTED_TARGETS})

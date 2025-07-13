@@ -69,7 +69,7 @@
     <!-- <arg name="robot_model" value="$(find hugmy)/urdf/robot_ver2.$(arg description_mode).xacro" unless="$(arg direct_model)"/> -->
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz_config.rviz" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
