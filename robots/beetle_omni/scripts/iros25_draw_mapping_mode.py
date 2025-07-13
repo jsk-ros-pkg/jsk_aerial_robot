@@ -38,8 +38,7 @@ def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
 
 
 def calculate_quat_error(qw: pd.Series, qx: pd.Series, qy: pd.Series, qz: pd.Series,
-                         qwr: pd.Series, qxr: pd.Series, qyr: pd.Series, qzr: pd.Series
-                         ) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+                         qwr: pd.Series, qxr: pd.Series, qyr: pd.Series, qzr: pd.Series):
     """
     Quaternion tracking error e = q ⊗ qr⁻¹.
 
@@ -90,7 +89,7 @@ def quat2euler(qw: pd.Series,
                qy: pd.Series,
                qz: pd.Series,
                sequence: str = "ZYX",
-               degrees: bool = True) -> tuple[pd.Series, pd.Series, pd.Series]:
+               degrees: bool = True):
     """
     Convert quaternion (w, x, y, z) series to Euler angles.
     """
@@ -150,7 +149,7 @@ def _plot_with_error(ax, t, y, t_ref, y_ref, y_label_left, y_label_right, label_
 
     # Axis labels
     ax.set_ylabel(y_label_left, fontsize=label_size)
-    ax_err.set_ylabel(y_label_right, fontsize=label_size, rotation=90, labelpad=0)
+    ax_err.set_ylabel(y_label_right, fontsize=label_size, rotation=90, labelpad=5)
 
     # Formatting
     ax.set_xlim(0, 50)
@@ -209,7 +208,7 @@ def main(file_path, plot_type):
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x']) \
                 - data_xyz_ref['/hand/mocap/pose/pose/position/x'].iloc[0] + x[0]
-        _plot_with_error(axes[0], t, x, t_ref, x_ref, '$p_x$ [m]', '$e_{p_x}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[0], t, x, t_ref, x_ref, '$p_x$ [m]', '$\\lvert e_{p_x} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate,
                          has_legend=True)
 
@@ -220,7 +219,7 @@ def main(file_path, plot_type):
         y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
         y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y']) \
                 - data_xyz_ref['/hand/mocap/pose/pose/position/y'].iloc[0] + y[0]
-        _plot_with_error(axes[1], t, y, t_ref, y_ref, '$p_y$ [m]', '$e_{p_y}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[1], t, y, t_ref, y_ref, '$p_y$ [m]', '$\\lvert e_{p_y} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_y = calculate_rmse(t, y, t_ref, y_ref)
@@ -229,7 +228,7 @@ def main(file_path, plot_type):
         # ---------- 3. p_z --------------------------------------------------------
         z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
         z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
-        _plot_with_error(axes[2], t, z, t_ref, z_ref, '$p_z$ [m]', '$e_{p_z}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[2], t, z, t_ref, z_ref, '$p_z$ [m]', '$\\lvert e_{p_z} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_z = calculate_rmse(t, z, t_ref, z_ref)
@@ -240,7 +239,7 @@ def main(file_path, plot_type):
         qw_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/w'])
         t_q = np.array(data_qwxyz['__time']) - t_bias
         t_qref = np.array(data_qwxyz_ref['__time']) - t_bias
-        _plot_with_error(axes[3], t_q, qw, t_qref, qw_ref, '$q_w$', '$e_{q_w}$', label_size, time_start_rotate,
+        _plot_with_error(axes[3], t_q, qw, t_qref, qw_ref, '$q_w$', '$\\lvert e_{q_w} \\rvert$', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_qw = calculate_rmse(t_q, qw, t_qref, qw_ref)
@@ -249,7 +248,7 @@ def main(file_path, plot_type):
         # ---------- 5. q_x --------------------------------------------------------
         qx = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/x'])
         qx_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/x'])
-        _plot_with_error(axes[4], t_q, qx, t_qref, qx_ref, '$q_x$', '$e_{q_x}$', label_size, time_start_rotate,
+        _plot_with_error(axes[4], t_q, qx, t_qref, qx_ref, '$q_x$', '$\\lvert e_{q_x} \\rvert$', label_size, time_start_rotate,
                          time_stop_rotate, has_legend=False)
 
         rmse_qx = calculate_rmse(t_q, qx, t_qref, qx_ref)
@@ -258,7 +257,7 @@ def main(file_path, plot_type):
         # ---------- 6. q_y --------------------------------------------------------
         qy = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/y'])
         qy_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/y'])
-        _plot_with_error(axes[5], t_q, qy, t_qref, qy_ref, '$q_y$', '$e_{q_y}$', label_size, time_start_rotate,
+        _plot_with_error(axes[5], t_q, qy, t_qref, qy_ref, '$q_y$', '$\\lvert e_{q_y} \\rvert$', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_qy = calculate_rmse(t_q, qy, t_qref, qy_ref)
@@ -267,7 +266,7 @@ def main(file_path, plot_type):
         # ---------- 7. q_z --------------------------------------------------------
         qz = np.array(data_qwxyz['/beetle1/uav/cog/odom/pose/pose/orientation/z'])
         qz_ref = -np.array(data_qwxyz_ref['/hand/mocap/pose/pose/orientation/z'])
-        _plot_with_error(axes[6], t_q, qz, t_qref, qz_ref, '$q_z$', '$e_{q_z}$', label_size, time_start_rotate,
+        _plot_with_error(axes[6], t_q, qz, t_qref, qz_ref, '$q_z$', '$\\lvert e_{q_z} \\rvert$', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_qz = calculate_rmse(t_q, qz, t_qref, qz_ref)
@@ -366,7 +365,7 @@ def main(file_path, plot_type):
         t_ref = np.array(data_xyz_ref['__time']) - t_bias
         x_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/x']) \
                 - data_xyz_ref['/hand/mocap/pose/pose/position/x'].iloc[0] + x[0]
-        _plot_with_error(axes[0], t, x, t_ref, x_ref, '$p_x$ [m]', '$e_{p_x}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[0], t, x, t_ref, x_ref, '$p_x$ [m]', '$\\lvert e_{p_x} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate,
                          has_legend=True)
 
@@ -377,7 +376,7 @@ def main(file_path, plot_type):
         y = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/y'])
         y_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/y']) \
                 - data_xyz_ref['/hand/mocap/pose/pose/position/y'].iloc[0] + y[0]
-        _plot_with_error(axes[1], t, y, t_ref, y_ref, '$p_y$ [m]', '$e_{p_y}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[1], t, y, t_ref, y_ref, '$p_y$ [m]', '$\\lvert e_{p_y} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_y = calculate_rmse(t, y, t_ref, y_ref)
@@ -386,7 +385,7 @@ def main(file_path, plot_type):
         # ---------- 3. p_z --------------------------------------------------------
         z = np.array(data_xyz['/beetle1/uav/cog/odom/pose/pose/position/z'])
         z_ref = np.array(data_xyz_ref['/hand/mocap/pose/pose/position/z'])
-        _plot_with_error(axes[2], t, z, t_ref, z_ref, '$p_z$ [m]', '$e_{p_z}$ [m]', label_size, time_start_rotate,
+        _plot_with_error(axes[2], t, z, t_ref, z_ref, '$p_z$ [m]', '$\\lvert e_{p_z} \\rvert$ [m]', label_size, time_start_rotate,
                          time_stop_rotate)
 
         rmse_z = calculate_rmse(t, z, t_ref, z_ref)
@@ -397,7 +396,7 @@ def main(file_path, plot_type):
         roll_ref = unwrap_angle_sequence(np.array(data_euler_ref['roll']))
         t_roll = np.array(data_euler['__time']) - t_bias
         t_roll_ref = np.array(data_euler_ref['__time']) - t_bias
-        _plot_with_error(axes[3], t_roll, roll, t_roll_ref, roll_ref, 'Roll [$^\circ$]', '$e_{\\rm Roll}$ [$^\circ$]',
+        _plot_with_error(axes[3], t_roll, roll, t_roll_ref, roll_ref, 'Roll [$^\circ$]', '$\\lvert e_{\\rm Roll} \\rvert$ [$^\circ$]',
                          label_size, time_start_rotate, time_stop_rotate)
 
         rmse_roll = calculate_rmse(t_roll, roll, t_roll_ref, roll_ref, is_yaw=True)
@@ -408,7 +407,8 @@ def main(file_path, plot_type):
         pitch_ref = unwrap_angle_sequence(np.array(data_euler_ref['pitch']))
         t_pitch = np.array(data_euler['__time']) - t_bias
         t_pitch_ref = np.array(data_euler_ref['__time']) - t_bias
-        _plot_with_error(axes[4], t_pitch, pitch, t_pitch_ref, pitch_ref, 'Pitch [$^\circ$]', '$e_{\\rm Pitch}$ [$^\circ$]',
+        _plot_with_error(axes[4], t_pitch, pitch, t_pitch_ref, pitch_ref, 'Pitch [$^\circ$]',
+                         '$\\lvert e_{\\rm Pitch} \\rvert$ [$^\circ$]',
                          label_size, time_start_rotate, time_stop_rotate)
 
         rmse_pitch = calculate_rmse(t_pitch, pitch, t_pitch_ref, pitch_ref, is_yaw=True)
@@ -419,7 +419,7 @@ def main(file_path, plot_type):
         yaw_ref = unwrap_angle_sequence(np.array(data_euler_ref['yaw']))
         t_yaw = np.array(data_euler['__time']) - t_bias
         t_yaw_ref = np.array(data_euler_ref['__time']) - t_bias
-        _plot_with_error(axes[5], t_yaw, yaw, t_yaw_ref, yaw_ref, 'Yaw [$^\circ$]', '$e_{\\rm Yaw}$ [$^\circ$]',
+        _plot_with_error(axes[5], t_yaw, yaw, t_yaw_ref, yaw_ref, 'Yaw [$^\circ$]', '$\\lvert e_{\\rm Yaw} \\rvert$ [$^\circ$]',
                          label_size, time_start_rotate, time_stop_rotate, has_legend=False)
 
         rmse_yaw = calculate_rmse(t_yaw, yaw, t_yaw_ref, yaw_ref, is_yaw=True)

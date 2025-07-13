@@ -165,8 +165,8 @@ def main(file_path, plot_type):
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
-        plt.xlabel('Position $p_x$ [m]', fontsize=label_size)
-        plt.ylabel('Position $p_y$ [m]', fontsize=label_size)
+        plt.xlabel('Position $^Sp_x$ [m]', fontsize=label_size)
+        plt.ylabel('Position $^Sp_y$ [m]', fontsize=label_size)
 
         plt.xlim(0.0, 0.40)
         plt.ylim(0.0, 0.35)
@@ -219,8 +219,8 @@ def main(file_path, plot_type):
 
         plt.plot(x, y, label='robot', linestyle="--", color=color_ref)
 
-        plt.xlabel('Position $p_x$ [m]', fontsize=label_size)
-        plt.ylabel('Position $p_y$ [m]', fontsize=label_size)
+        plt.xlabel('Position $^Sp_x$ [m]', fontsize=label_size)
+        plt.ylabel('Position $^Sp_y$ [m]', fontsize=label_size)
 
         plt.xlim(0.0, 0.5)
         plt.ylim(-0.3, 0.3)
