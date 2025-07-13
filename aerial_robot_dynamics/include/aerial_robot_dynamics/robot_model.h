@@ -78,6 +78,10 @@ public:
   {
     return rotor_direction_.at(index);
   }
+  const Eigen::VectorXd& getJointTorqueLimits() const
+  {
+    return joint_torque_limits_;
+  }
   const Eigen::VectorXd& getThrustUpperLimits() const
   {
     return thrust_upper_limits_;
@@ -85,6 +89,10 @@ public:
   const Eigen::VectorXd& getThrustLowerLimits() const
   {
     return thrust_lower_limits_;
+  }
+  const double getThrustHessianWeight() const
+  {
+    return thrust_hessian_weight_;
   }
   Eigen::VectorXd getResetConfiguration();
 
