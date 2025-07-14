@@ -3,9 +3,9 @@ name: pre-commit-style-check
 on:
   # Trigger on pushes to main / master branches and on pull-request events
   push:
-    branches: [main, master, develop/MPC_tilt_mt]
+    branches: [ main, master, develop/MPC_tilt_mt ]
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   lint:
@@ -20,7 +20,7 @@ jobs:
       # 2) Install Python (required by pre-commit hooks)
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       # 3) Determine the commit range to lint (works for both PRs and direct pushes)
       - name: Set git range
