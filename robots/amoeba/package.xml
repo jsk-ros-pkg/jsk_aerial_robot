@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>amoeba</name>
+  <version>1.0.0</version>
+  <description>The amoeba package</description>
+
+  <maintainer email="zicen-xiong@dragon.t.u-tokyo.ac.jp">XIONG, Zicen</maintainer>
+  <license>BSD</license>
+  <url type="website">https://github.com/jsk-ros-pkg/jsk_aerial_robot</url>
+  <author email="zicen-xiong@dragon.t.u-tokyo.ac.jp">XIONG, Zicen</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>aerial_robot_control</build_depend>
+  <build_depend>aerial_robot_model</build_depend>
+  <build_depend>aerial_robot_msgs</build_depend>
+  <build_depend>gimbalrotor</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>diagnostic_msgs</build_depend>
+
+  <exec_depend>aerial_robot_control</exec_depend>
+  <exec_depend>aerial_robot_model</exec_depend>
+  <exec_depend>aerial_robot_msgs</exec_depend>
+  <exec_depend>aerial_robot_estimation</exec_depend>
+  <exec_depend>aerial_robot_simulation</exec_depend>
+  <exec_depend>aerial_robot_base</exec_depend>
+  <exec_depend>gimbalrotor</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>

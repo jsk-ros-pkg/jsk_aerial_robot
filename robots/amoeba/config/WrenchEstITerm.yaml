@@ -1,0 +1,17 @@
+# I Term is always used and has higher priority than the other wrench estimation methods.
+controller:
+  i_term:
+    # disturb_rej
+    limit_fx: 1.0
+    limit_fy: 1.0
+    limit_fz: 2.0
+    limit_mx: 0.5
+    limit_my: 0.5
+    limit_mz: 0.5
+
+    i_gain_x: 100
+    i_gain_y: 100
+    i_gain_z: 500
+    i_gain_roll: 10
+    i_gain_pitch: 10
+    i_gain_yaw: 50

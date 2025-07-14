@@ -1,0 +1,322 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+ <tabbed_widget name="Main Window" parent="main_window">
+  <Tab tab_name="tab1" containers="1">
+   <Container>
+    <DockSplitter count="1" sizes="1" orientation="-">
+     <DockSplitter count="2" sizes="0.5;0.5" orientation="|">
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.093757" right="30.056131" bottom="-4.941702" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/x"/>
+         <curve color="#d62728" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/y"/>
+         <curve color="#1ac938" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="3.425416" right="30.056131" bottom="-0.083547" left="0.000000"/>
+         <limitY/>
+         <curve color="#17becf" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/force/x"/>
+         <curve color="#bcbd22" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/force/y"/>
+         <curve color="#1f77b4" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/force/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.267352" right="30.056131" bottom="-2.012065" left="0.000000"/>
+         <limitY/>
+         <curve color="#f14cc1" name="/beetle1/disturbance_wrench/wrench/force/x"/>
+         <curve color="#9467bd" name="/beetle1/disturbance_wrench/wrench/force/y"/>
+         <curve color="#17becf" name="/beetle1/disturbance_wrench/wrench/force/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.769213" right="30.056131" bottom="-0.439227" left="0.000000"/>
+         <limitY/>
+         <curve color="#ff7f0e" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/x"/>
+         <curve color="#f14cc1" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/y"/>
+         <curve color="#9467bd" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.100000" right="30.056131" bottom="-0.100000" left="0.000000"/>
+         <limitY/>
+         <curve color="#d62728" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/torque/x"/>
+         <curve color="#1ac938" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/torque/y"/>
+         <curve color="#ff7f0e" name="/beetle1/dist_w_f_cog_tq/iterm/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.799526" right="30.056131" bottom="-0.442203" left="0.000000"/>
+         <limitY/>
+         <curve color="#bcbd22" name="/beetle1/disturbance_wrench/wrench/torque/x"/>
+         <curve color="#1f77b4" name="/beetle1/disturbance_wrench/wrench/torque/y"/>
+         <curve color="#d62728" name="/beetle1/disturbance_wrench/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab tab_name="tab2" containers="1">
+   <Container>
+    <DockSplitter count="2" sizes="0.5;0.5" orientation="-">
+     <DockArea name="...">
+      <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+       <range top="1.060871" right="30.040995" bottom="-0.383210" left="0.056993"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/beetle1/uav/cog/odom/pose/pose/position/x"/>
+       <curve color="#d62728" name="/beetle1/uav/cog/odom/pose/pose/position/y"/>
+       <curve color="#1ac938" name="/beetle1/uav/cog/odom/pose/pose/position/z"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+       <range top="1.153092" right="30.040995" bottom="-0.262649" left="0.056993"/>
+       <limitY/>
+       <curve color="#f14cc1" name="/beetle1/uav/cog/odom/pose/pose/orientation/roll"/>
+       <curve color="#ff7f0e" name="/beetle1/uav/cog/odom/pose/pose/orientation/pitch"/>
+       <curve color="#9467bd" name="/beetle1/uav/cog/odom/pose/pose/orientation/yaw"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab tab_name="tab2" containers="1">
+   <Container>
+    <DockSplitter count="1" sizes="1" orientation="-">
+     <DockSplitter count="2" sizes="0.5;0.5" orientation="|">
+      <DockSplitter count="2" sizes="0.5;0.5" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.093757" right="30.058639" bottom="-4.941702" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/x"/>
+         <curve color="#d62728" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/y"/>
+         <curve color="#1ac938" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.769213" right="30.058639" bottom="-0.439227" left="0.000000"/>
+         <limitY/>
+         <curve color="#ff7f0e" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/x"/>
+         <curve color="#f14cc1" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/y"/>
+         <curve color="#9467bd" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter count="2" sizes="0.5;0.5" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.166057" right="30.058639" bottom="-5.257899" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/beetle1/test_dist_est/mhe/wrench/force/x"/>
+         <curve color="#d62728" name="/beetle1/test_dist_est/mhe/wrench/force/y"/>
+         <curve color="#1ac938" name="/beetle1/test_dist_est/mhe/wrench/force/z"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.834168" right="30.058639" bottom="-0.476708" left="0.000000"/>
+         <limitY/>
+         <curve color="#ff7f0e" name="/beetle1/test_dist_est/mhe/wrench/torque/x"/>
+         <curve color="#f14cc1" name="/beetle1/test_dist_est/mhe/wrench/torque/y"/>
+         <curve color="#9467bd" name="/beetle1/test_dist_est/mhe/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab tab_name="tab3" containers="1">
+   <Container>
+    <DockSplitter count="1" sizes="1" orientation="-">
+     <DockSplitter count="2" sizes="0.5;0.5" orientation="|">
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="1.283334" right="30.058639" bottom="-0.836678" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/x"/>
+         <curve color="#1f77b4" name="/beetle1/test_dist_est/mhe/wrench/force/x"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.060340" right="30.058639" bottom="-0.923513" left="0.000000"/>
+         <limitY/>
+         <curve color="#d62728" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/y"/>
+         <curve color="#d62728" name="/beetle1/test_dist_est/mhe/wrench/force/y"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="-0.446974" right="30.058639" bottom="-5.194166" left="0.000000"/>
+         <limitY/>
+         <curve color="#1ac938" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/z"/>
+         <curve color="#1ac938" name="/beetle1/test_dist_est/mhe/wrench/force/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.417057" right="30.058639" bottom="-0.466535" left="0.000000"/>
+         <limitY/>
+         <curve color="#ff7f0e" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/x"/>
+         <curve color="#ff7f0e" name="/beetle1/test_dist_est/mhe/wrench/torque/x"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.826510" right="30.058639" bottom="-0.162738" left="0.000000"/>
+         <limitY/>
+         <curve color="#f14cc1" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/y"/>
+         <curve color="#f14cc1" name="/beetle1/test_dist_est/mhe/wrench/torque/y"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.443069" right="30.058639" bottom="-0.024357" left="0.000000"/>
+         <limitY/>
+         <curve color="#9467bd" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/z"/>
+         <curve color="#9467bd" name="/beetle1/test_dist_est/mhe/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab tab_name="tab2" containers="1">
+   <Container>
+    <DockSplitter count="1" sizes="1" orientation="-">
+     <DockSplitter count="2" sizes="0.382163;0.617837" orientation="|">
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="1.311433" right="30.058655" bottom="-1.988750" left="0.000000"/>
+         <limitY/>
+         <curve color="#17becf" name="/beetle1/test_dist_est/acc/wrench/force/x"/>
+         <curve color="#1f77b4" name="/beetle1/test_dist_est/mhe/wrench/force/x"/>
+         <curve color="#d62728" name="/beetle1/disturbance_wrench/wrench/force/x"/>
+         <curve color="#ff7f0e" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/x"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.064548" right="30.058655" bottom="-1.096050" left="0.000000"/>
+         <limitY/>
+         <curve color="#bcbd22" name="/beetle1/test_dist_est/acc/wrench/force/y"/>
+         <curve color="#d62728" name="/beetle1/test_dist_est/mhe/wrench/force/y"/>
+         <curve color="#1f77b4" name="/beetle1/disturbance_wrench/wrench/force/y"/>
+         <curve color="#f14cc1" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/y"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="2.346626" right="30.058655" bottom="-5.262303" left="0.000000"/>
+         <limitY/>
+         <curve color="#1f77b4" name="/beetle1/test_dist_est/acc/wrench/force/z"/>
+         <curve color="#1ac938" name="/beetle1/test_dist_est/mhe/wrench/force/z"/>
+         <curve color="#bcbd22" name="/beetle1/disturbance_wrench/wrench/force/z"/>
+         <curve color="#c91a23" name="/beetle1/dist_w_f_cog_tq/ext/wrench/force/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+      <DockSplitter count="3" sizes="0.333602;0.332796;0.333602" orientation="-">
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.417057" right="30.058655" bottom="-0.466535" left="0.000000"/>
+         <limitY/>
+         <curve color="#d62728" name="/beetle1/test_dist_est/acc/wrench/torque/x"/>
+         <curve color="#ff7f0e" name="/beetle1/test_dist_est/mhe/wrench/torque/x"/>
+         <curve color="#f14cc1" name="/beetle1/disturbance_wrench/wrench/torque/x"/>
+         <curve color="#9467bd" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/x"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.826510" right="30.058655" bottom="-0.162738" left="0.000000"/>
+         <limitY/>
+         <curve color="#1ac938" name="/beetle1/test_dist_est/acc/wrench/torque/y"/>
+         <curve color="#f14cc1" name="/beetle1/test_dist_est/mhe/wrench/torque/y"/>
+         <curve color="#9467bd" name="/beetle1/disturbance_wrench/wrench/torque/y"/>
+         <curve color="#17becf" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/y"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" style="Lines" mode="TimeSeries" flip_y="false">
+         <range top="0.443223" right="30.058655" bottom="-0.030674" left="0.000000"/>
+         <limitY/>
+         <curve color="#ff7f0e" name="/beetle1/test_dist_est/acc/wrench/torque/z"/>
+         <curve color="#9467bd" name="/beetle1/test_dist_est/mhe/wrench/torque/z"/>
+         <curve color="#17becf" name="/beetle1/disturbance_wrench/wrench/torque/z"/>
+         <curve color="#bcbd22" name="/beetle1/dist_w_f_cog_tq/ext/wrench/torque/z"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="4"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters delimiter="0" time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad MCAP"/>
+  <plugin ID="DataLoad ROS bags">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value="/beetle1/attitude;/beetle1/baro;/beetle1/battery_voltage_status;/beetle1/controller/i_term/parameter_descriptions;/beetle1/controller/i_term/parameter_updates;/beetle1/controller/nmpc/parameter_descriptions;/beetle1/controller/nmpc/parameter_updates;/beetle1/dist_w_f_cog_tq/ext;/beetle1/dist_w_f_cog_tq/iterm;/beetle1/disturbance_wrench;/beetle1/esc_telem;/beetle1/flight_config_ack;/beetle1/flight_config_cmd;/beetle1/flight_state;/beetle1/four_axes/command;/beetle1/gimbals_ctrl;/beetle1/imu;/beetle1/joint_profiles;/beetle1/joint_states;/beetle1/joy;/beetle1/kf/imu1/data;/beetle1/kf/mocap1/data;/beetle1/mocap/pose;/beetle1/mocap_node/mocap/ground_pose;/beetle1/mocap_node/optitrack_config/parameter_descriptions;/beetle1/mocap_node/optitrack_config/parameter_updates;/beetle1/motor_info;/beetle1/motor_pwms;/beetle1/mujoco/ctrl_input;/beetle1/nmpc/viz_pred;/beetle1/nmpc/viz_ref;/beetle1/rpy/pid;/beetle1/sensor_plugin/imu1/acc_lin_ang_baselink;/beetle1/sensor_plugin/imu1/acc_only;/beetle1/sensor_plugin/imu1/ros_converted;/beetle1/servo/states;/beetle1/servo/target_states;/beetle1/servo/torque_states;/beetle1/uav/baselink/odom;/beetle1/uav/cog/odom;/beetle1/uav/full_state;/beetle1/uav_info;/diagnostics;/rosout;/rosout_agg;/tf;/tf_static;/beetle1/uav_power"/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="ROS Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value="/beetle1/attitude;/beetle1/baro;/beetle1/battery_voltage_status;/beetle1/controller/i_term/parameter_descriptions;/beetle1/controller/i_term/parameter_updates;/beetle1/controller/nmpc/parameter_descriptions;/beetle1/controller/nmpc/parameter_updates;/beetle1/dist_w_f_cog_tq/ext;/beetle1/dist_w_f_cog_tq/iterm;/beetle1/disturbance_wrench;/beetle1/esc_telem;/beetle1/flight_state;/beetle1/four_axes/command;/beetle1/gimbals_ctrl;/beetle1/imu;/beetle1/joint_states;/beetle1/joy;/beetle1/kf/imu1/data;/beetle1/kf/mocap1/data;/beetle1/mocap/pose;/beetle1/mocap_node/mocap/ground_pose;/beetle1/mocap_node/optitrack_config/parameter_descriptions;/beetle1/mocap_node/optitrack_config/parameter_updates;/beetle1/motor_pwms;/beetle1/mujoco/ctrl_input;/beetle1/nmpc/viz_pred;/beetle1/nmpc/viz_ref;/beetle1/rpy/pid;/beetle1/sensor_plugin/imu1/acc_lin_ang_baselink;/beetle1/sensor_plugin/imu1/acc_only;/beetle1/sensor_plugin/imu1/ros_converted;/beetle1/servo/states;/beetle1/servo/target_states;/beetle1/servo/torque_states;/beetle1/set_rpy;/beetle1/test_dist_est/acc;/beetle1/test_dist_est/mhe;/beetle1/uav/baselink/odom;/beetle1/uav/cog/odom;/beetle1/uav/full_state;/beetle1/uav_power;/clock;/diagnostics;/rosout;/tf;/tf_static;/rosout_agg"/>
+  </plugin>
+  <plugin ID="UDP Server"/>
+  <plugin ID="WebSocket Server"/>
+  <plugin ID="ZMQ Subscriber"/>
+  <plugin ID="Fast Fourier Transform"/>
+  <plugin ID="Quaternion to RPY"/>
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays&#xa;&#xa; new_series: a series previously created with ScatterXY.new(name)&#xa; prefix:     prefix of the timeseries, before the index of the array&#xa; suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.&#xa; suffix_Y:   suffix to complete the name of the series containing the Y value&#xa; timestamp:   usually the tracker_time variable&#xa;              &#xa; Example:&#xa; &#xa; Assuming we have multiple series in the form:&#xa; &#xa;   /trajectory/node.{X}/position/x&#xa;   /trajectory/node.{X}/position/y&#xa;   &#xa; where {N} is the index of the array (integer). We can create a reactive series from the array with:&#xa; &#xa;   new_series = ScatterXY.new(&quot;my_trajectory&quot;) &#xa;   CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time );&#xa;--]]&#xa;&#xa;function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )&#xa;  &#xa;  --- clear previous values&#xa;  new_series:clear()&#xa;  &#xa;  --- Append points to new_series&#xa;  index = 0&#xa;  while(true) do&#xa;&#xa;    x = index;&#xa;    -- if not nil, get the X coordinate from a series&#xa;    if suffix_X ~= nil then &#xa;      series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )&#xa;      if series_x == nil then break end&#xa;      x = series_x:atTime(timestamp)&#x9; &#xa;    end&#xa;    &#xa;    series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )&#xa;    if series_y == nil then break end &#xa;    y = series_y:atTime(timestamp)&#xa;    &#xa;    new_series:push_back(x,y)&#xa;    index = index+1&#xa;  end&#xa;end&#xa;&#xa;--[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]&#xa;&#xa;function GetSeriesNamesByPrefix(prefix)&#xa;  -- GetSeriesNames(9 is a built-in function&#xa;  all_names = GetSeriesNames()&#xa;  filtered_names = {}&#xa;  for i, name in ipairs(all_names)  do&#xa;    -- check the prefix&#xa;    if name:find(prefix, 1, #prefix) then&#xa;      table.insert(filtered_names, name);&#xa;    end&#xa;  end&#xa;  return filtered_names&#xa;end&#xa;&#xa;--[[ Modify an existing series, applying offsets to all their X and Y values&#xa;&#xa; series: an existing timeseries, obtained with TimeseriesView.find(name)&#xa; delta_x: offset to apply to each x value&#xa; delta_y: offset to apply to each y value &#xa;  &#xa;--]]&#xa;&#xa;function ApplyOffsetInPlace(series, delta_x, delta_y)&#xa;  -- use C++ indeces, not Lua indeces&#xa;  for index=0, series:size()-1 do&#xa;    x,y = series:at(index)&#xa;    series:set(index, x + delta_x, y + delta_y)&#xa;  end&#xa;end&#xa;"/>
+   <scripts/>
+  </plugin>
+  <plugin ID="CSV Exporter"/>
+  <plugin ID="ROS /rosout Visualization"/>
+  <plugin ID="ROS Topic Re-Publisher"/>
+ </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
+ <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <customMathEquations/>
+ <snippets/>
+ <!-- - - - - - - - - - - - - - - -->
+</root>
+
