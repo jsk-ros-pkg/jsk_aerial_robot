@@ -1,0 +1,40 @@
+name: pre-commit-style-check
+
+on:
+  # Trigger on pushes to main / master branches and on pull-request events
+  push:
+    branches: [main, master, develop/MPC_tilt_mt]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Check out the full history so the diff range is available
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2) Install Python (required by pre-commit hooks)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3) Determine the commit range to lint (works for both PRs and direct pushes)
+      - name: Set git range
+        id: range
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "FROM=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+            echo "TO=${{ github.event.pull_request.head.sha }}"  >> $GITHUB_ENV
+          else
+            echo "FROM=${{ github.event.before }}" >> $GITHUB_ENV
+            echo "TO=${{ github.sha }}"              >> $GITHUB_ENV
+          fi
+
+      # 4) Run pre-commit; the job fails if any file would be reformatted
+      - uses: pre-commit/action@v3.0.1   # Latest stable release as of July 2025
+        with:
+          extra_args: --from-ref ${{ env.FROM }} --to-ref ${{ env.TO }}
