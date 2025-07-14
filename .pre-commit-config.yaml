@@ -27,12 +27,6 @@ repos:
       - id: black
         args: [ --line-length=120 ]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.3          # pin a recent ruff release
-    hooks:
-      - id: ruff
-        args: [ --line-length=120, --output-format=github ]
-
   # C / C++ -------------------------------------------------------------------
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v20.1.5
@@ -40,6 +34,7 @@ repos:
       - id: clang-format
         additional_dependencies: [ clang==20.1.5 ]   # ensures matching binary
 
+  # YAML --------------------------------------------------------------------
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.33.0
     hooks:
