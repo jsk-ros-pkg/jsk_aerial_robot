@@ -60,9 +60,9 @@ def create_acados_model() -> AcadosModel:
     return model
 
 
-def plot_servo(
-    shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, latexify=False, plt_show=True, X_true_label=None
-):
+def plot_servo(shooting_nodes, u_max, U, X_true,
+               X_est=None, Y_measured=None, latexify=False,
+               plt_show=True, X_true_label=None):
     """
     Plot the simulation of the servo controller.
 
