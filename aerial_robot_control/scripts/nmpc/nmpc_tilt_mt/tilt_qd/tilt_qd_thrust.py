@@ -13,6 +13,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     """
+
     def __init__(self, build: bool = True, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_thrust_mdl"
@@ -46,6 +47,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
         super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # fmt: off
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -72,6 +74,7 @@ class NMPCTiltQdThrust(QDNMPCBase):
             self.a_c)
 
         return state_y, state_y_e, control_y
+        # fmt: on
 
     def get_weights(self):
         # Define Weights
@@ -136,14 +139,14 @@ class NMPCTiltQdThrust(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = ft_ref[0]
         xr[:, 14] = ft_ref[1]
