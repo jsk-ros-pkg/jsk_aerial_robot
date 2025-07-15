@@ -29,10 +29,10 @@ class MHEWrenchEstAccMomNode:
 
         :param robot_name: Name of the robot (e.g., "beetle1").
         """
-        
+
         self.robot_name = robot_name
 
-        rospy.init_node(f'{self.robot_name}_mhe_node', anonymous=True)
+        rospy.init_node(f"{self.robot_name}_mhe_node", anonymous=True)
 
         # MHE
         mhe = MHEWrenchEstAccMom()
@@ -54,15 +54,28 @@ class MHEWrenchEstAccMomNode:
         self.mhe_p_list = np.zeros((self.mhe_N + 1, self.mhe_np))
 
         # Publishers
-        self.mhe_wrench_est_publisher = rospy.Publisher(f"/{self.robot_name}/test_dist_est/mhe/", WrenchStamped,
-                                                        queue_size=10)
-        self.acc_wrench_est_publisher = rospy.Publisher(f"/{self.robot_name}/test_dist_est/acc", WrenchStamped,
-                                                        queue_size=10)
+        self.mhe_wrench_est_publisher = rospy.Publisher(
+            f"/{self.robot_name}/test_dist_est/mhe/", WrenchStamped, queue_size=10
+        )
+        self.acc_wrench_est_publisher = rospy.Publisher(
+            f"/{self.robot_name}/test_dist_est/acc", WrenchStamped, queue_size=10
+        )
 
         # Others
-        ref_gen = QDNMPCReferenceGenerator(object(), phys_omni.p1_b, phys_omni.p2_b, phys_omni.p3_b, phys_omni.p4_b,
-                                 phys_omni.dr1, phys_omni.dr2, phys_omni.dr3, phys_omni.dr4,
-                                 phys_omni.kq_d_kt, phys_omni.mass, phys_omni.gravity)
+        ref_gen = QDNMPCReferenceGenerator(
+            object(),
+            phys_omni.p1_b,
+            phys_omni.p2_b,
+            phys_omni.p3_b,
+            phys_omni.p4_b,
+            phys_omni.dr1,
+            phys_omni.dr2,
+            phys_omni.dr3,
+            phys_omni.dr4,
+            phys_omni.kq_d_kt,
+            phys_omni.mass,
+            phys_omni.gravity,
+        )
 
         self.alloc_mat = ref_gen.get_alloc_mat()
         self.disturb_estimate_acc = np.zeros(6)
@@ -129,12 +142,15 @@ class MHEWrenchEstAccMomNode:
 
         # Calculate wrench_u_imu_b
         sf_b_imu = np.array(
-            [self.latest_imu_data.acc_data[0], self.latest_imu_data.acc_data[1], self.latest_imu_data.acc_data[2]])
+            [self.latest_imu_data.acc_data[0], self.latest_imu_data.acc_data[1], self.latest_imu_data.acc_data[2]]
+        )
         w_imu = np.array(
-            [self.latest_imu_data.gyro_data[0], self.latest_imu_data.gyro_data[1], self.latest_imu_data.gyro_data[2]])
+            [self.latest_imu_data.gyro_data[0], self.latest_imu_data.gyro_data[1], self.latest_imu_data.gyro_data[2]]
+        )
 
         w_last = np.array(
-            [self.last_imu_data.gyro_data[0], self.last_imu_data.gyro_data[1], self.last_imu_data.gyro_data[2]])
+            [self.last_imu_data.gyro_data[0], self.last_imu_data.gyro_data[1], self.last_imu_data.gyro_data[2]]
+        )
         ang_acc_b_imu = (w_imu - w_last) / (self.latest_imu_data_time - self.last_imu_data_time)
 
         wrench_u_imu_b = np.zeros(6)
@@ -146,6 +162,7 @@ class MHEWrenchEstAccMomNode:
         self.mhe_p_list[-1, 0:3] = wrench_u_sensor_b[3:6]  # tau_u_g
 
         # step 2: shift yref_list
+        # fmt: off
         self.mhe_yref_0[:self.mhe_nm + self.mhe_nu] = self.mhe_yref_list[0, :self.mhe_nm + self.mhe_nu]
         self.mhe_yref_0[self.mhe_nm + self.mhe_nu:] = self.x0_bar
 
@@ -164,6 +181,7 @@ class MHEWrenchEstAccMomNode:
 
         self.mhe_solver.set(self.mhe_N, "yref", self.mhe_yref_list[self.mhe_N - 1, :self.mhe_nm])
         self.mhe_solver.set(self.mhe_N, "p", self.mhe_p_list[self.mhe_N, :])
+        # fmt: on
 
         # step 4: solve
         self.mhe_solver.solve()
@@ -185,11 +203,13 @@ class MHEWrenchEstAccMomNode:
         ### acceleration-based disturbance estimation
         alpha_force = 0.1
         self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * np.dot(
-            self.rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # world frame
+            self.rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])
+        )  # World frame
 
         alpha_torque = 0.05
         self.disturb_estimate_acc[3:6] = (1 - alpha_torque) * self.disturb_estimate_acc[3:6] + alpha_torque * (
-                wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # body frame
+            wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]
+        )  # Body frame
 
         acc_wrench_estimated = WrenchStamped()
         acc_wrench_estimated.wrench.force.x = self.disturb_estimate_acc[0]
@@ -247,9 +267,11 @@ class MHEWrenchEstAccMomNode:
         qy = pose_data.pose.orientation.y
         qz = pose_data.pose.orientation.z
 
+        # fmt: off
         row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
         row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
         row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
+        # fmt: on
         self.rot_ib = np.vstack((row_1, row_2, row_3))
 
     def run(self):
@@ -259,7 +281,7 @@ class MHEWrenchEstAccMomNode:
         rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         # Fetch robot name from ROS parameter server or use default
         robot_name = rospy.get_param("~robot_name", "beetle1")

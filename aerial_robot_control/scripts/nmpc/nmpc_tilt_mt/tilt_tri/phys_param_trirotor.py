@@ -1,5 +1,5 @@
 """
- Created by li-jinjie on 24-10-17.
+Created by li-jinjie on 24-10-17.
 """
 
 import os
@@ -29,6 +29,7 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 
 # concatenate the parameters to make a new list
+# fmt: off
 physical_param_list = [
     mass, gravity, Ixx, Iyy, Izz,
     kq_d_kt,
@@ -37,3 +38,4 @@ physical_param_list = [
     dr3, p3_b[0], p3_b[1], p3_b[2],
     0.0, t_servo,
 ]
+# fmt: on

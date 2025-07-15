@@ -27,6 +27,7 @@ If you don't like the style formatted by black for Python, please add the follow
 # fmt: on
 ```
 This will disable the black formatting for this file, and you can format it manually.
+
 If you don't like the style formated by clang-format for C++, please add the following line to the top of your C++ file:
 
 ```cpp

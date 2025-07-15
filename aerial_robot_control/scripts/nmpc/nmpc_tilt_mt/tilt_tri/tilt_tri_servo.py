@@ -35,6 +35,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         self._reference_generator = self._create_reference_generator()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model states
         p = ca.SX.sym("p", 3)
         v = ca.SX.sym("v", 3)
@@ -77,24 +78,42 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array([
+                [self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                [self.phys.p1_b[1] / den,  self.phys.p1_b[0] / den, 0],
+                [0, 0, 1],
+        ])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array([
+                [self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                [self.phys.p2_b[1] / den,  self.phys.p2_b[0] / den, 0],
+                [0, 0, 1],
+        ])
 
         den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
+        rot_be3 = np.array([
+                [self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+                [self.phys.p3_b[1] / den,  self.phys.p3_b[0] / den, 0],
+                [0, 0, 1],
+        ])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -179,6 +198,7 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         model.cost_y_expr_e = state_y_e
 
         return model
+        # fmt: on
 
     def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         # Get OCP object
@@ -376,14 +396,14 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -403,10 +423,18 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
-        return TriNMPCReferenceGenerator(self,
-                                         self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b,
-                                         self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
-                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        return TriNMPCReferenceGenerator(
+            self,
+            self.phys.p1_b,
+            self.phys.p2_b,
+            self.phys.p3_b,
+            self.phys.dr1,
+            self.phys.dr2,
+            self.phys.dr3,
+            self.phys.kq_d_kt,
+            self.phys.mass,
+            self.phys.gravity,
+        )
 
     def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
