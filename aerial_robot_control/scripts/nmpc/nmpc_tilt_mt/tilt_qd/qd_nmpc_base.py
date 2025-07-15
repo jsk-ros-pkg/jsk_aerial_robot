@@ -222,22 +222,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
         # - World to Body
-        row_1 = ca.horzcat(
-            ca.SX(1 - 2 * self.qy ** 2 - 2 * self.qz ** 2),
-            ca.SX(2 * self.qx * self.qy - 2 * self.qw * self.qz),
-            ca.SX(2 * self.qx * self.qz + 2 * self.qw * self.qy)
-        )
-        row_2 = ca.horzcat(
-            ca.SX(2 * self.qx * self.qy + 2 * self.qw * self.qz),
-            ca.SX(1 - 2 * self.qx ** 2 - 2 * self.qz ** 2),
-            ca.SX(2 * self.qy * self.qz - 2 * self.qw * self.qx)
-        )
-        row_3 = ca.horzcat(
-            ca.SX(2 * self.qx * self.qz - 2 * self.qw * self.qy),
-            ca.SX(2 * self.qy * self.qz + 2 * self.qw * self.qx),
-            ca.SX(1 - 2 * self.qx ** 2 - 2 * self.qy ** 2)
-        )
-        rot_wb = ca.vertcat(row_1, row_2, row_3)
+        rot_wb = self._get_rot_wb_ca(self.qw, self.qx, self.qy, self.qz)
         # - Body to End-of-arm
         denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
         rot_be1 = np.array(
@@ -291,18 +276,10 @@ class QDNMPCBase(RecedingHorizonBase):
                 a3 = self.a3c
                 a4 = self.a4c
 
-            rot_e1r1 = ca.vertcat(
-                ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
-            )
-            rot_e2r2 = ca.vertcat(
-                ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a2), -ca.sin(a2)), ca.horzcat(0, ca.sin(a2), ca.cos(a2))
-            )
-            rot_e3r3 = ca.vertcat(
-                ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a3), -ca.sin(a3)), ca.horzcat(0, ca.sin(a3), ca.cos(a3))
-            )
-            rot_e4r4 = ca.vertcat(
-                ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a4), -ca.sin(a4)), ca.horzcat(0, ca.sin(a4), ca.cos(a4))
-            )
+            rot_e1r1 = self._get_rot_around_x(a1)
+            rot_e2r2 = self._get_rot_around_x(a2)
+            rot_e3r3 = self._get_rot_around_x(a3)
+            rot_e4r4 = self._get_rot_around_x(a4)
         else:
             rot_e1r1 = ca.SX.eye(3)
             rot_e2r2 = ca.SX.eye(3)
@@ -430,6 +407,73 @@ class QDNMPCBase(RecedingHorizonBase):
 
         return model
         # fmt: on
+
+    @staticmethod
+    def _get_rot_around_x(angle):  # TODO: change these parts to some library
+        """
+        Returns the rotation matrix for a rotation around the X axis by the given angle.
+        """
+        return ca.vertcat(
+            ca.horzcat(1, 0, 0),
+            ca.horzcat(0, ca.cos(angle), -ca.sin(angle)),
+            ca.horzcat(0, ca.sin(angle), ca.cos(angle))
+        )
+
+    @staticmethod
+    def _get_rot_wb_ca(qw, qx, qy, qz):
+        row_1 = ca.horzcat(
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
+        )
+        row_2 = ca.horzcat(
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
+        )
+        row_3 = ca.horzcat(
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+        )
+        rot_wb = ca.vertcat(row_1, row_2, row_3)
+        return rot_wb
+
+    @staticmethod
+    def _get_rot_wb_np(qw, qx, qy, qz):
+        """
+        Create a rotation matrix from quaternions.
+        :param qw: Quaternion component w.
+        :param qx: Quaternion component x.
+        :param qy: Quaternion component y.
+        :param qz: Quaternion component z.
+        :return: Rotation matrix from World to Body frame.
+        """
+        return np.array([[1 - 2 * (qy ** 2 + qz ** 2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
+                         [2 * (qx * qy + qw * qz), 1 - 2 * (qx ** 2 + qz ** 2), 2 * (qy * qz - qw * qx)],
+                         [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx ** 2 + qy ** 2)]])
+
+    @staticmethod
+    def _get_skew_symmetric_matrix(vector):
+        """
+        Create a skew-symmetric matrix from a 3D vector.
+        :param vector: 3D vector to create the skew-symmetric matrix from.
+        :return: Skew-symmetric matrix.
+        """
+        skew_mtx = ca.vertcat(
+            ca.horzcat(0, -vector[2], vector[1]),
+            ca.horzcat(vector[2], 0, -vector[0]),
+            ca.horzcat(-vector[1], vector[0], 0)
+        )
+
+        return skew_mtx
+
+    @staticmethod
+    def _quaternion_multiply(qw1, qx1, qy1, qz1, qw2, qx2, qy2, qz2):
+        """
+        Multiply two quaternions.
+        """
+        return (qw1 * qw2 - qx1 * qx2 - qy1 * qy2 - qz1 * qz2,
+                qw1 * qx2 + qx1 * qw2 + qy1 * qz2 - qz1 * qy2,
+                qw1 * qy2 - qx1 * qz2 + qy1 * qw2 + qz1 * qx2,
+                qw1 * qz2 + qx1 * qy2 - qy1 * qx2 + qz1 * qw2)
 
     @abstractmethod
     def get_weights(self):
