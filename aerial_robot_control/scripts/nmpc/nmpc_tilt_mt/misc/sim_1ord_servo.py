@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 
 
 # Created from the acados python example "pendulum_model".
-
-
 def create_acados_model() -> AcadosModel:
     """
     Create acados model object.
@@ -130,6 +128,7 @@ if __name__ == "__main__":
     # Set simulation solver options
     acados_sim.solver_options.T = Tf  # Simulation time
     acados_sim.solver_options.integrator_type = "IRK"
+
     acados_sim.solver_options.num_stages = 3
     acados_sim.solver_options.num_steps = 3
     acados_sim.solver_options.newton_iter = 3  # For implicit integrator
