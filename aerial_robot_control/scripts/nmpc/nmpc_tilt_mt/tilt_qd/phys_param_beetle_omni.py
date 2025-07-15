@@ -1,7 +1,3 @@
-"""
- Created by li-jinjie on 24-10-5.
-"""
-
 import yaml
 import os
 import rospkg
@@ -33,6 +29,7 @@ t_servo = physical_params["t_servo"]  # time constant of servo
 t_rotor = physical_params["t_rotor"]  # time constant of rotor
 
 # concatenate the parameters to make a new list
+# fmt: off
 physical_param_list = [
     mass, gravity, Ixx, Iyy, Izz,
     kq_d_kt,
@@ -42,3 +39,4 @@ physical_param_list = [
     dr4, p4_b[0], p4_b[1], p4_b[2],
     t_rotor, t_servo,
 ]
+# fmt: on

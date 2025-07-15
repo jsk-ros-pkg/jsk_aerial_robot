@@ -12,6 +12,7 @@ class QDNMPCBase(RecedingHorizonBase):
     Base class for all NMPC controllers for quadrotors.
     Inherits from RecedingHorizonBase which also lays foundations for MHE classes.
     """
+
     def __init__(self, build: bool = True):
         #     The child classes only have specifications which define the controller specifications and need to set the following flags:
         # check if the model name is set
@@ -27,21 +28,24 @@ class QDNMPCBase(RecedingHorizonBase):
         # - include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
         if not hasattr(self, "include_servo_model"):
             raise AttributeError(
-                "Servo model flag not set. Please set the include_servo_model attribute in the child class.")
+                "Servo model flag not set. Please set the include_servo_model attribute in the child class."
+            )
         # - include_servo_derivative: Flag to include the continuous time-derivative of the servo angle as control input(!) instead of numeric differentation.
         if not hasattr(self, "include_servo_derivative"):
             self.include_servo_derivative = False
         # - include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
         if not hasattr(self, "include_thrust_model"):
             raise AttributeError(
-                "Thrust model flag not set. Please set the include_thrust_model attribute in the child class.")
+                "Thrust model flag not set. Please set the include_thrust_model attribute in the child class."
+            )
 
         # Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
         # include_cog_dist_parameter are for I term, which accounts for model error. include_cog_dist_model are for disturbances.
         # - include_cog_dist_parameter: Flag to include disturbance on the CoG into the acados model parameters.
         if not hasattr(self, "include_cog_dist_parameter"):
             raise AttributeError(
-                "CoG disturbance parameter flag not set. Please set the include_cog_dist_parameter attribute in the child class.")
+                "CoG disturbance parameter flag not set. Please set the include_cog_dist_parameter attribute in the child class."
+            )
 
         # These two variables are only for impedance control
         # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model state.
@@ -76,8 +80,11 @@ class QDNMPCBase(RecedingHorizonBase):
         Calculate transformation matrix from robot's architecture to compute internal wrench.
         Assemble acados model based on given cost function.
         """
-        if self.include_servo_derivative and not self.include_servo_model: raise ValueError(
-            "Servo derivative can only work with servo angle defined as state through the 'include_servo_model' flag.")
+        # fmt: off
+        if self.include_servo_derivative and not self.include_servo_model:
+            raise ValueError(
+                "Servo derivative can only work with servo angle defined as state through the 'include_servo_model' flag."
+            )
 
         # Standard state-space (Note: store in self to access for cost function in child controller class)
         self.p = ca.MX.sym("p", 3)  # Position
@@ -167,9 +174,9 @@ class QDNMPCBase(RecedingHorizonBase):
         t_rotor = ca.MX.sym("t_rotor")  # Time constant of thrust dynamics
         t_servo = ca.MX.sym("t_servo")  # Time constant of servo dynamics
 
-        phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
-                                dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo)
-
+        phy_params = ca.vertcat(
+            mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
+        )
         parameters = ca.vertcat(parameters, phy_params)
 
         # - Extend model parameters by CoG disturbance
@@ -186,12 +193,12 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # - Extend model parameters by virtual mass and inertia for impedance cost function
         if self.include_impedance:
-            if not self.include_cog_dist_model or not self.include_cog_dist_parameter: raise ValueError(
-                "Impedance cost can only be calculated if disturbance flags are activated.")
+            if not self.include_cog_dist_model or not self.include_cog_dist_parameter:
+                raise ValueError("Impedance cost can only be calculated if disturbance flags are activated.")
             # TODO Optimize such that less separate variables are created
-            mpx = ca.MX.sym("mpx")  # Virtual mass (p = position)
-            mpy = ca.MX.sym("mpy")
-            mpz = ca.MX.sym("mpz")
+            mpx = ca.SX.sym("mpx")  # Virtual mass (p = position)
+            mpy = ca.SX.sym("mpy")
+            mpz = ca.SX.sym("mpz")
             self.mp = ca.vertcat(mpx, mpy, mpz)
 
             mqx = ca.MX.sym("mqx")  # Virtual inertia (q = quaternion)
@@ -383,7 +390,7 @@ class QDNMPCBase(RecedingHorizonBase):
                 1 - 2 * self.qx ** 2 - 2 * self.qy ** 2
             )
             rot_wb = ca.vertcat(row_1, row_2, row_3)
-            
+
             # 0. Wrench in Rotor frame
             # If rotor dynamics are modeled, explicitly use thrust state as force.
             # Else use thrust control which is then assumed to be equal to the thrust state at all times.
@@ -507,9 +514,10 @@ class QDNMPCBase(RecedingHorizonBase):
             # Compute linear acceleration (in World frame) and angular acceleration (in Body frame) for impedance cost
             # Note: the wrench from I Term and Wrench Est are all important for this term. If we don't consider I Term,
             # a constant disturbance will be injected.
-            lin_acc_w = (fu_w + self.fds_w + self.fdp_w) / mass + g_w
-            ang_acc_b = ca.mtimes(I_inv,
-                                  (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b))
+            lin_acc_w = (ca.mtimes(rot_wb, fu_b) + self.fds_w + self.fdp_w) / mass + g_w
+            ang_acc_b = ca.mtimes(
+                I_inv, (-ca.cross(self.w, ca.mtimes(I, self.w)) + tau_u_b + self.tau_ds_b + self.tau_dp_b)
+            )
 
             state_y, state_y_e, control_y = self.get_cost_function(lin_acc_w=lin_acc_w, ang_acc_b=ang_acc_b)
         else:
@@ -519,7 +527,7 @@ class QDNMPCBase(RecedingHorizonBase):
         model = AcadosModel()
         model.name = self.model_name
         model.f_expl_expr = f(state, controls)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl               # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
         model.x = state
         model.xdot = x_dot
         model.u = controls
@@ -528,6 +536,7 @@ class QDNMPCBase(RecedingHorizonBase):
         model.cost_y_expr_e = state_y_e
 
         return model
+        # fmt: on
 
     @abstractmethod
     def get_weights(self):
@@ -579,6 +588,7 @@ class QDNMPCBase(RecedingHorizonBase):
             ocp.constraints.idxbx = np.append(ocp.constraints.idxbx, [13, 14, 15, 16])
 
         # -- Lower State Bound
+        # fmt: off
         ocp.constraints.lbx = np.array(
             [self.params["v_min"],
              self.params["v_min"],
@@ -756,13 +766,14 @@ class QDNMPCBase(RecedingHorizonBase):
             ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((num_constraints,))
             ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
             ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
+        # fmt: on
 
         # Initial state and reference: Set all values such that robot is hovering
         x_ref = np.zeros(nx)
         x_ref[6] = 1.0  # Quaternion qw
 
         if self.tilt:
-            # When included servo AND thrust, use further indices 
+            # When included servo AND thrust, use further indices
             if self.include_servo_model and self.include_thrust_model:
                 x_ref[17:21] = self.phys.mass * self.phys.gravity / 4  # ft1s, ft2s, ft3s, ft4s
             # When only included thrust, use the same indices
@@ -792,7 +803,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Solver options
         ocp.solver_options.tf = self.params["T_horizon"]
-        ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM" # "IPOPT", "FULL_CONDENSING_HPIPM"
+        ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"  # "IPOPT", "FULL_CONDENSING_HPIPM"
         ocp.solver_options.hpipm_mode = "BALANCE"  # "BALANCE", "SPEED_ABS", "SPEED", "ROBUST". Default: "BALANCE".
         # Start up flags:       [Seems only works for FULL_CONDENSING_QPOASES]
         # 0: no warm start; 1: warm start; 2: hot start. Default: 0
@@ -815,11 +826,13 @@ class QDNMPCBase(RecedingHorizonBase):
         pass
 
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
+        # fmt: off
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
                                         self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
                                         self.phys.dr1,     self.phys.dr2,  self.phys.dr3,  self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        # fmt: on
 
     def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()

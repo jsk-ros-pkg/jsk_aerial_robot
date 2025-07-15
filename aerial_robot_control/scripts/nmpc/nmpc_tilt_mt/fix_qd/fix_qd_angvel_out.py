@@ -15,10 +15,11 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the body rate and collective acceleration.
 
-    For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
+    For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file
     is the only one to not have the angular velocity as state and instead has it defined as control input.
     Therefore, it differs fundamentally in the model and solver.
     """
+
     def __init__(self, build: bool = True, phys=phys_art):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCBodyRate.yaml")
@@ -26,8 +27,9 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
         # Create acados model & solver and generate c code
         super().__init__("nmpc", build)
-    
+
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "fix_qd_angvel_out_mdl"
 
@@ -112,6 +114,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         model.cost_y_expr = ca.vertcat(state_y, control_y)  # NONLINEAR_LS
         model.cost_y_expr_e = state_y
         return model
+        # fmt: on
 
     def create_acados_ocp_solver(self, build: bool = True):
         # Create OCP object and set basic properties
@@ -147,12 +150,12 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
         # Set constraints
         # - State box constraints bx
-        ocp.constraints.idxbx = np.array([3, 4, 5])     # vx, vy, vz
+        ocp.constraints.idxbx = np.array([3, 4, 5])  # vx, vy, vz
         ocp.constraints.lbx = np.array([self.params["v_min"], self.params["v_min"], self.params["v_min"]])
         ocp.constraints.ubx = np.array([self.params["v_max"], self.params["v_max"], self.params["v_max"]])
 
         # - Terminal state box constraints bx_e
-        ocp.constraints.idxbx_e = np.array([3, 4, 5])   # vx, vy, vz
+        ocp.constraints.idxbx_e = np.array([3, 4, 5])  # vx, vy, vz
         ocp.constraints.lbx_e = np.array([self.params["v_min"], self.params["v_min"], self.params["v_min"]])
         ocp.constraints.ubx_e = np.array([self.params["v_max"], self.params["v_max"], self.params["v_max"]])
 
@@ -188,15 +191,18 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
         return AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
+
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
 
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
+        # fmt: off
         # Pass the model's and robot's properties to the reference generator
         return QDNMPCReferenceGenerator(self,
                                         self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
                                         self.phys.dr1,     self.phys.dr2,  self.phys.dr3,  self.phys.dr4,
                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        # fmt: on
 
     def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()

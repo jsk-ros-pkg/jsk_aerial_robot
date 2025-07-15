@@ -11,9 +11,10 @@ class NMPCFixQdThrustOut(QDNMPCBase):
     Controller Name: Fixed Quadrotor NMPC with Thrust Output
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the thrust for each rotor.
-    
+
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
+
     def __init__(self, build: bool = True, phys=phys_mini_qd):
         # Model name
         self.model_name = "fix_qd_thrust_out_mdl"
@@ -61,6 +62,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         return state_y, state_y_e, control_y
 
     def get_weights(self):
+        # fmt: off
         # Define weights
         Q = np.diag(
             [
@@ -90,6 +92,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         )
 
         return Q, R
+        # fmt: on
 
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
@@ -113,14 +116,14 @@ class NMPCFixQdThrustOut(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
 
         # Assemble control reference

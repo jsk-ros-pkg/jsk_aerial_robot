@@ -16,6 +16,7 @@ class MHEVelDynIMU(MHEBase):
         super(MHEVelDynIMU, self).__init__()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_vel_dyn_imu_mdl"
 
@@ -46,13 +47,19 @@ class MHEVelDynIMU(MHEBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
@@ -62,7 +69,7 @@ class MHEVelDynIMU(MHEBase):
         measurements = ca.vertcat(
             (f_u_b + ca.mtimes(rot_bw, fds_w)) / self.phys.mass,
             omega_b
-            )
+        )
 
         # Inertia
         I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
@@ -82,8 +89,8 @@ class MHEVelDynIMU(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl            # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
@@ -97,6 +104,7 @@ class MHEVelDynIMU(MHEBase):
         model.cost_y_expr_e = measurements  # y
 
         return model
+        # fmt: on
 
     def get_weights(self):
         # Weights
