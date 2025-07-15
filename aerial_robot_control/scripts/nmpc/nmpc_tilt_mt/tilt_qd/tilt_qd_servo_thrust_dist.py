@@ -14,6 +14,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     """
+
     def __init__(self, build: bool = True, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_thrust_dist_mdl"
@@ -35,17 +36,16 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         super().__init__(build)
 
         # Necessary for simulation environment
-        self.fake_sensor = FakeSensor(self.include_servo_model,
-                                      self.include_thrust_model,
-                                      self.include_cog_dist_model)
+        self.fake_sensor = FakeSensor(self.include_servo_model, self.include_thrust_model, self.include_cog_dist_model)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # fmt: off
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
-        qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
@@ -59,7 +59,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
             self.a_s,
             self.ft_s,
             self.fds_w,
-            self.tau_ds_b
+            self.tau_ds_b,
         )
 
         state_y_e = state_y
@@ -70,6 +70,7 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         )
 
         return state_y, state_y_e, control_y
+        # fmt: on
 
     def get_weights(self):
         # Define Weights
@@ -144,14 +145,14 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]

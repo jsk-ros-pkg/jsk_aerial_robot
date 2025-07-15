@@ -10,9 +10,14 @@ class FakeSensor:
     :param bool include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
     :param bool include_cog_dist_model: Flag to include disturbance on the CoG into the acados model states. Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
     """
-    def __init__(self, include_servo_model: bool = False, 
-                       include_thrust_model: bool = False,
-                       include_cog_dist_model: bool = False):
+
+    def __init__(
+        self,
+        include_servo_model: bool = False,
+        include_thrust_model: bool = False,
+        include_cog_dist_model: bool = False,
+    ):
+        # fmt: off
         # Store controller flags
         self.include_servo_model = include_servo_model
         self.include_thrust_model = include_thrust_model
@@ -39,15 +44,40 @@ class FakeSensor:
 
         # Precompute rotation matrices
         denominator = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        self.rot_be1 = np.array([[self.phys.p1_b[0] / denominator, -self.phys.p1_b[1] / denominator, 0], [self.phys.p1_b[1] / denominator, self.phys.p1_b[0] / denominator, 0], [0, 0, 1]])
+        self.rot_be1 = np.array(
+            [
+                [self.phys.p1_b[0] / denominator, -self.phys.p1_b[1] / denominator, 0],
+                [self.phys.p1_b[1] / denominator,  self.phys.p1_b[0] / denominator, 0],
+                [0, 0, 1],
+            ]
+        )
         denominator = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        self.rot_be2 = np.array([[self.phys.p2_b[0] / denominator, -self.phys.p2_b[1] / denominator, 0], [self.phys.p2_b[1] / denominator, self.phys.p2_b[0] / denominator, 0], [0, 0, 1]])
+        self.rot_be2 = np.array(
+            [
+                [self.phys.p2_b[0] / denominator, -self.phys.p2_b[1] / denominator, 0],
+                [self.phys.p2_b[1] / denominator,  self.phys.p2_b[0] / denominator, 0],
+                [0, 0, 1],
+            ]
+        )
         denominator = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        self.rot_be3 = np.array([[self.phys.p3_b[0] / denominator, -self.phys.p3_b[1] / denominator, 0], [self.phys.p3_b[1] / denominator, self.phys.p3_b[0] / denominator, 0], [0, 0, 1]])
+        self.rot_be3 = np.array(
+            [
+                [self.phys.p3_b[0] / denominator, -self.phys.p3_b[1] / denominator, 0],
+                [self.phys.p3_b[1] / denominator,  self.phys.p3_b[0] / denominator, 0],
+                [0, 0, 1],
+            ]
+        )
         denominator = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
-        self.rot_be4 = np.array([[self.phys.p4_b[0] / denominator, -self.phys.p4_b[1] / denominator, 0], [self.phys.p4_b[1] / denominator, self.phys.p4_b[0] / denominator, 0], [0, 0, 1]])
+        self.rot_be4 = np.array(
+            [
+                [self.phys.p4_b[0] / denominator, -self.phys.p4_b[1] / denominator, 0],
+                [self.phys.p4_b[1] / denominator,  self.phys.p4_b[0] / denominator, 0],
+                [0, 0, 1],
+            ]
+        )
 
     def update_acc(self, x):
+        # fmt: off
         # Deconstruct state variable
         # - Quaternions
         qw, qx, qy, qz = x[6:10]
@@ -111,11 +141,12 @@ class FakeSensor:
 
         # Specific Force in Body frame
         sf_b = (f_u_b + np.dot(rot_bw, fds_w)) / self.mass
-        
+
         # Angular Acceleration in Body frame
         ang_acc_b = np.dot(self.I_inv, (-np.cross(w, np.dot(self.I, w)) + tau_u_b + tau_ds_b))
 
         return sf_b, ang_acc_b, rot_wb
+        # fmt: on
 
     @staticmethod
     def rot_e2r(a):

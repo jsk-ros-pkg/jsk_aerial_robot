@@ -10,13 +10,11 @@ class TriNMPCReferenceGenerator:
     :param bool include_a_prev: Flag to include reference for servo angle command from previous timestep.
     :param bool include_servo_model: Flag to include the servo model based on the angle alpha (a) between frame E (end of arm) and R (rotor). If not included, angle control is assumed to be equal to angle state.
     :param bool include_thrust_model: Flag to include dynamics from rotor and use thrust as state. If not included, thrust control is assumed to be equal to thrust state.
-    
+
     """
-    def __init__(self, nmpc,
-                 p1_b, p2_b, p3_b,
-                 dr1,  dr2,  dr3,
-                 kq_d_kt, mass, gravity):
-        
+
+    def __init__(self, nmpc, p1_b, p2_b, p3_b, dr1, dr2, dr3, kq_d_kt, mass, gravity):
+
         self.nmpc = nmpc
 
         self.p1_b = p1_b
@@ -95,7 +93,7 @@ class TriNMPCReferenceGenerator:
     def compute_trajectory(self, target_xyz, target_rpy):
         """
         Convert current target pose to a reference trajectory over the entire horizon.
-        Compute target quaternions and control reference from a target rotation and then 
+        Compute target quaternions and control reference from a target rotation and then
         get assembled reference trajectories from controller file.
 
         :param target_xyz: Target position
@@ -113,8 +111,8 @@ class TriNMPCReferenceGenerator:
         # Convert [0,0,gravity] to Body frame
         q_inv = tf.quaternion_inverse(q)
         rot = tf.quaternion_matrix(q_inv)
-        fg_w = np.array([0, 0, self.mass * self.gravity, 0])    # World frame
-        fg_b = rot @ fg_w                                       # Body frame
+        fg_w = np.array([0, 0, self.mass * self.gravity, 0])  # World frame
+        fg_b = rot @ fg_w  # Body frame
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
         # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
@@ -134,7 +132,7 @@ class TriNMPCReferenceGenerator:
         ft3_ref = np.sqrt(target_force[4, 0] ** 2 + target_force[5, 0] ** 2)
         ft_ref = [ft1_ref, ft2_ref, ft3_ref]
 
-        # Assemble reference trajectories in controller file since their definition is 
+        # Assemble reference trajectories in controller file since their definition is
         # closely related to the cost function
         xr, ur = self.nmpc.get_reference(target_xyz, target_qwxyz, ft_ref, a_ref)
 

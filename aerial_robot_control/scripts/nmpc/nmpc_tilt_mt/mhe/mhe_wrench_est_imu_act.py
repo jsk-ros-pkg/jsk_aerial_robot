@@ -16,6 +16,7 @@ class MHEWrenchEstIMUAct(MHEBase):
         super(MHEWrenchEstIMUAct, self).__init__()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_wrench_est_imu_act_mdl"
 
@@ -67,33 +68,55 @@ class MHEWrenchEstIMUAct(MHEBase):
         a4c = ca.SX.sym("a4c")
         a_c = ca.vertcat(a1c, a2c, a3c, a4c)
 
-        controls = ca.vertcat(q, ft_c, a_c)   # Input u as parameters
+        controls = ca.vertcat(q, ft_c, a_c)  # Input u as parameters
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         rot_bw = rot_wb.T
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array([
+            [self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+            [self.phys.p1_b[1] / den,  self.phys.p1_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array([
+            [self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+            [self.phys.p2_b[1] / den,  self.phys.p2_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
         den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
+        rot_be3 = np.array([
+            [self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+            [self.phys.p3_b[1] / den,  self.phys.p3_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
         den = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
-        rot_be4 = np.array([[self.phys.p4_b[0] / den, -self.phys.p4_b[1] / den, 0], [self.phys.p4_b[1] / den, self.phys.p4_b[0] / den, 0], [0, 0, 1]])
+        rot_be4 = np.array([
+            [self.phys.p4_b[0] / den, -self.phys.p4_b[1] / den, 0],
+            [self.phys.p4_b[1] / den,  self.phys.p4_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1s), -ca.sin(a1s)), ca.horzcat(0, ca.sin(a1s), ca.cos(a1s))
@@ -171,7 +194,7 @@ class MHEWrenchEstIMUAct(MHEBase):
         model.xdot = x_dot
         model.u = noise
         model.p = controls
-        
+
         # Cost function
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error
@@ -180,6 +203,7 @@ class MHEWrenchEstIMUAct(MHEBase):
         model.cost_y_expr_e = measurements  # y
 
         return model
+        # fmt: on
 
     def get_weights(self):
         # Weights

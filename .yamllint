@@ -1,0 +1,23 @@
+# .yamllint — ROS-oriented
+extends: default
+
+rules:
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+
+  trailing-spaces:
+    level: error
+
+  brackets:
+    max-spaces-inside: 1   # allow up to one space, e.g. “[1, 2, 3]”
+    level: warning         # downgrade “too many spaces inside brackets”
+
+  key-duplicates: disable
+  empty-values: disable
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']

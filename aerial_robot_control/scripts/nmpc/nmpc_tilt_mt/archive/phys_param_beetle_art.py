@@ -34,6 +34,7 @@ c2 = physical_params["c2"]
 c3 = physical_params["c3"]
 c4 = physical_params["c4"]
 
+# fmt: off
 # concatenate the parameters to make a new list
 physical_param_list = [
     mass, gravity, Ixx, Iyy, Izz,
@@ -44,3 +45,4 @@ physical_param_list = [
     dr4, p4_b[0], p4_b[1], p4_b[2],
     t_rotor, t_servo,
 ]
+# fmt: on
