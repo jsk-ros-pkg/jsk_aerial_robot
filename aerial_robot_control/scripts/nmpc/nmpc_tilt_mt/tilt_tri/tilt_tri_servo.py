@@ -422,19 +422,13 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         return self._reference_generator
 
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
+        # fmt: off
         # Pass the model's and robot's properties to the reference generator
-        return TriNMPCReferenceGenerator(
-            self,
-            self.phys.p1_b,
-            self.phys.p2_b,
-            self.phys.p3_b,
-            self.phys.dr1,
-            self.phys.dr2,
-            self.phys.dr3,
-            self.phys.kq_d_kt,
-            self.phys.mass,
-            self.phys.gravity,
-        )
+        return TriNMPCReferenceGenerator(self,
+                                         self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b,
+                                         self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
+                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        # fmt: on
 
     def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
