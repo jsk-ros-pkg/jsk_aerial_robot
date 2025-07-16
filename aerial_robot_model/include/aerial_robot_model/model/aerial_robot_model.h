@@ -166,6 +166,19 @@ namespace aerial_robot_model {
 
     KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector);
 
+    /* contact point */
+    std::vector<double> getCoGtoEEContactPosition() const
+    {
+      return { cog_to_ee_contact_.p.x(), cog_to_ee_contact_.p.y(), cog_to_ee_contact_.p.z() };
+    }
+
+    std::vector<double> getCoGtoEEContactQuaternion() const
+    {
+      double qw, qx, qy, qz;
+      cog_to_ee_contact_.M.GetQuaternion(qx, qy, qz, qw);
+      return { qw, qx, qy, qz };
+    }
+
   private:
 
     // kinematics
@@ -243,8 +256,19 @@ namespace aerial_robot_model {
     KDL::Frame forwardKinematicsImpl(std::string link, const KDL::JntArray& joint_positions) const;
     std::map<std::string, KDL::Frame> fullForwardKinematicsImpl(const KDL::JntArray& joint_positions);
 
+    /* contact point */
+    KDL::Frame cog_to_ee_contact_ = KDL::Frame::Identity(); // CoG to end-effector contact point transform
+
   protected:
     virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
+
+    /* for the robot with end-effectors */
+    // Note: this function is not updated in updateRobotModelImpl. Need to be called when you have the ee_contact frame in URDF.
+    void updateCoGtoEEContact()
+    {
+      KDL::Frame ee_contact_frame = seg_tf_map_.at("ee_contact");
+      cog_to_ee_contact_ = cog_.Inverse() * ee_contact_frame;
+    }
 
     void setCog(const KDL::Frame cog)
     {

@@ -38,18 +38,11 @@ class NMPCTiltQdServoDist(QDNMPCBase):
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off
         # Cost function
-        p_BTo = np.array([self.phys.ball_effector_p[0],
-                          self.phys.ball_effector_p[1],
-                          self.phys.ball_effector_p[2]])
-        q_BT = np.array([self.phys.ball_effector_q[0],
-                         self.phys.ball_effector_q[1],
-                         self.phys.ball_effector_q[2],
-                         self.phys.ball_effector_q[3]])  # qw, qx, qy, qz
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
         q_wt_w, q_wt_x, q_wt_y, q_wt_z = self._quaternion_multiply(self.qw, self.qx, self.qy, self.qz,
-                                                                   q_BT[0], q_BT[1], q_BT[2], q_BT[3])
+                                                                   self.ee_q[0], self.ee_q[1], self.ee_q[2], self.ee_q[3])
 
         qe_w, qe_x, qe_y, qe_z = self._quaternion_multiply(self.qwr, -self.qxr, -self.qyr, -self.qzr,
                                                            q_wt_w, q_wt_x, q_wt_y, q_wt_z)
@@ -59,8 +52,8 @@ class NMPCTiltQdServoDist(QDNMPCBase):
 
         # Note: The quaternion error is defined as the quaternion that rotates the current orientation to the reference
         state_y = ca.vertcat(
-            self.p + rot_wb @ p_BTo,
-            self.v + rot_wb @ skew_w @ p_BTo,
+            self.p + rot_wb @ self.ee_p,
+            self.v + rot_wb @ skew_w @ self.ee_p,
             self.qwr,
             qe_x + self.qxr,
             qe_y + self.qyr,

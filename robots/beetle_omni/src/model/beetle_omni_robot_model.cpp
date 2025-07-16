@@ -16,6 +16,8 @@ void BeetleOmniRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posit
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
   RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
+
+  updateCoGtoEEContact();  // Note: this function should by manually called.
 }
 
 /* plugin registration */

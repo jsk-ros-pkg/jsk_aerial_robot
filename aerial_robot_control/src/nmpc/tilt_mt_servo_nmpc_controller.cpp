@@ -391,8 +391,9 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
   double kq_d_kt = abs(robot_model_->getMFRate());  // PAY ATTENTION: should be positive value
 
-  std::vector<double> phys_p(2 + 3 + 1 + 4 * rotor_num + 2, 0);
+  std::vector<double> phys_p(2 + 3 + 1 + 4 * rotor_num + 2 + 7, 0);
   // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
+  // ee_p, ee_qwxyz
   phys_p[0] = mass_;
   phys_p[1] = gravity_const_;
   phys_p[2] = inertia_[0];
@@ -414,6 +415,16 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   phys_p[idx] = t_rotor_;
   idx++;
   phys_p[idx] = t_servo_;
+  idx++;
+
+  std::vector<double> contact_frame_p = robot_model_->getCoGtoEEContactPosition();
+  std::vector<double> contact_frame_q = robot_model_->getCoGtoEEContactQuaternion();
+
+  std::copy(contact_frame_p.begin(), contact_frame_p.end(), phys_p.begin() + idx);
+  idx += static_cast<int>(contact_frame_p.size());
+
+  std::copy(contact_frame_q.begin(), contact_frame_q.end(), phys_p.begin() + idx);
+  idx += static_cast<int>(contact_frame_q.size());
 
   return phys_p;
 }
