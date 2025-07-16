@@ -1,13 +1,10 @@
 #include <beetle_omni/model/beetle_omni_robot_model.h>
 
-BeetleOmniRobotModel::BeetleOmniRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon) :
-  RobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon)
+BeetleOmniRobotModel::BeetleOmniRobotModel(bool init_with_rosparam, bool verbose, double fc_t_min_thre, double epsilon)
+  : RobotModel(init_with_rosparam, verbose, fc_t_min_thre, epsilon)
 {
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
-
-  links_rotation_from_cog_.resize(rotor_num);
-  thrust_coords_rot_.resize(rotor_num);
 }
 
 void BeetleOmniRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -19,14 +16,6 @@ void BeetleOmniRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posit
   const KDL::Rotation cog_frame = f_baselink.M * getCogDesireOrientation<KDL::Rotation>().Inverse();
   RobotModel::updateRobotModelImpl(joint_positions);
   const auto seg_tf_map = getSegmentsTf();
-
-  /* get local coords of thrust links */
-  for(int i = 0; i < getRotorNum(); ++i)
-    {
-      std::string thrust = "rotor_arm" + std::to_string(i + 1);
-      KDL::Frame f = seg_tf_map.at(thrust);
-      thrust_coords_rot_[i] = cog_frame.Inverse() * f.M;
-    }
 }
 
 /* plugin registration */

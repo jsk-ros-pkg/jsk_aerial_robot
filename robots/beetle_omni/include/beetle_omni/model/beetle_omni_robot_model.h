@@ -6,38 +6,13 @@
 
 using namespace aerial_robot_model;
 
-class BeetleOmniRobotModel : public aerial_robot_model::RobotModel{
+class BeetleOmniRobotModel : public aerial_robot_model::RobotModel
+{
 public:
-  BeetleOmniRobotModel(bool init_with_rosparam = true,
-                    bool verbose = false,
-                    double fc_t_min_thre = 0,
-                    double epsilon = 10);
-  virtual ~BeetleOmniRobotModel() = default;
-
-  template <class T> std::vector<T> getLinksRotationFromCog();
-  template <class T> std::vector<T> getThrustCoordRot();
-
-private:
-
-  KDL::JntArray gimbal_processed_joint_;
-  std::vector<KDL::Rotation> links_rotation_from_cog_;
-  std::vector<KDL::Rotation> thrust_coords_rot_;
-  std::mutex links_rotation_mutex_;
-  std::mutex thrust_rotation_mutex_;
+  BeetleOmniRobotModel(bool init_with_rosparam = true, bool verbose = false, double fc_t_min_thre = 0,
+                       double epsilon = 10);
+  ~BeetleOmniRobotModel() override = default;
 
 protected:
   void updateRobotModelImpl(const KDL::JntArray& joint_positions) override;
-
 };
-
-template<> inline std::vector<KDL::Rotation> BeetleOmniRobotModel::getLinksRotationFromCog()
-{
-  std::lock_guard<std::mutex> lock(links_rotation_mutex_);
-  return links_rotation_from_cog_;
-}
-
-template<> inline std::vector<KDL::Rotation> BeetleOmniRobotModel::getThrustCoordRot()
-{
-  std::lock_guard<std::mutex> lock(thrust_rotation_mutex_);
-  return thrust_coords_rot_;
-}
