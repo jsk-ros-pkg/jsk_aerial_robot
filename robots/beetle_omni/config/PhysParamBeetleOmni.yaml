@@ -17,3 +17,6 @@ physical:  # with original ball and battery
 
   num_servos: 4
   t_servo: 0.0480  # Dynamixel servo: XC330-T181 with self-tuned PID. As contrary, the previous kondo's value was 0.085883
+
+  ball_effector_p: [ 0, 0, 0.264 ]  # m
+  ball_effector_q: [ 1, 0, 0, 0 ]  # quaternion, qw, qx, qy, qz

@@ -5,9 +5,6 @@ import casadi as ca
 from .qd_nmpc_base import QDNMPCBase
 from . import phys_param_beetle_omni as phys_omni
 
-p_BTo = np.array([0.0, 0.0, 0.3])
-q_BT = np.array([1.0, 0.0, 0.0, 0.0])  # qw, qx, qy, qz
-
 
 class NMPCTiltQdServoDist(QDNMPCBase):
     """
@@ -41,6 +38,13 @@ class NMPCTiltQdServoDist(QDNMPCBase):
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off
         # Cost function
+        p_BTo = np.array([self.phys.ball_effector_p[0],
+                          self.phys.ball_effector_p[1],
+                          self.phys.ball_effector_p[2]])
+        q_BT = np.array([self.phys.ball_effector_q[0],
+                         self.phys.ball_effector_q[1],
+                         self.phys.ball_effector_q[2],
+                         self.phys.ball_effector_q[3]])  # qw, qx, qy, qz
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q

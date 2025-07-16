@@ -1,3 +1,7 @@
+"""
+ Created by li-jinjie on 24-10-5.
+"""
+
 import yaml
 import os
 import rospkg
@@ -47,3 +51,6 @@ physical_param_list = [
     t_rotor, t_servo,
 ]
 # fmt: on
+
+ball_effector_p = physical_params["ball_effector_p"]
+ball_effector_q = physical_params["ball_effector_q"]  # qw, qx, qy, qz
