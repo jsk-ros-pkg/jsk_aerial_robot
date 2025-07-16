@@ -229,14 +229,14 @@
     <joint name="ee_mount_to_fork" type="fixed">
       <parent link="ee_mount"/>
       <child link="fork"/>
-      <origin xyz="0 0 0" rpy="1.570796 0 -1.570796"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
     <!-- Contact point for the fork tips -->
     <joint name="fork_to_ee_contact" type="fixed">
       <parent link="fork"/>
       <child link="ee_contact"/>
-      <origin xyz="0.07 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0.104" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
@@ -260,14 +260,14 @@
     <joint name="ee_mount_to_ball" type="fixed">
       <parent link="ee_mount"/>
       <child link="ball"/>
-      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
     <!-- Contact point at the ball’s center -->
     <joint name="ball_to_ee_contact" type="fixed">
       <parent link="ball"/>
       <child link="ee_contact"/>
-      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <origin xyz="0 0 0.11" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
@@ -316,14 +316,14 @@
     <joint name="sensor_to_ball" type="fixed">
       <parent link="wrench_sensor"/>
       <child link="ball"/>
-      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
     <!-- Contact point at ball tip -->
     <joint name="ball_to_ee_contact" type="fixed">
       <parent link="ball"/>
       <child link="ee_contact"/>
-      <origin xyz="0 0 -0.03" rpy="0 0 0"/>
+      <origin xyz="0 0 0.11" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
@@ -347,14 +347,14 @@
     <joint name="ee_mount_to_brush" type="fixed">
       <parent link="ee_mount"/>
       <child link="brush"/>
-      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
     <!-- Contact frame at the bristle tip -->
     <joint name="brush_to_ee_contact" type="fixed">
       <parent link="brush"/>
       <child link="ee_contact"/>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <origin xyz="0 0 0.144" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
