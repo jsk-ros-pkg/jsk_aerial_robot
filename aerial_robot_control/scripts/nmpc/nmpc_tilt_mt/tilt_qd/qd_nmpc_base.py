@@ -186,9 +186,14 @@ class QDNMPCBase(RecedingHorizonBase):
         t_rotor = ca.SX.sym("t_rotor")
         t_servo = ca.SX.sym("t_servo")
 
-        phy_params = ca.vertcat(
-            mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
-        )
+        # added on 2025-07-16: add the pose of end-effector
+        # position and quaternion of an end-effector in CoG frame
+        self.ee_p = ca.SX.sym("ee_p", 3)
+        self.ee_q = ca.SX.sym("ee_qwxyz", 4)  # qw, qx, qy, qz
+
+        phy_params = ca.vertcat(mass, gravity, Ixx, Iyy, Izz, kq_d_kt,
+                                dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo,
+                                self.ee_p, self.ee_q)
         parameters = ca.vertcat(parameters, phy_params)
 
         # - Extend model parameters by CoG disturbance
@@ -697,9 +702,9 @@ class QDNMPCBase(RecedingHorizonBase):
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         self.acados_init_p = np.zeros(n_param)
         self.acados_init_p[0] = x_ref[6]  # qw
-        if len(self.phys.physical_param_list) != 24:
+        if len(self.phys.physical_param_list) != 31:
             raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
-        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+        self.acados_init_p[4:4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
 
         ocp.parameter_values = self.acados_init_p
 
@@ -746,7 +751,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         self.acados_init_p = np.zeros(n_param)
         self.acados_init_p[0] = 1.0  # qw
-        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+        self.acados_init_p[4:4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim

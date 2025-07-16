@@ -39,6 +39,9 @@ kq_d_kt = physical_params["kq_d_kt"]
 t_servo = physical_params["t_servo"]  # time constant of servo
 t_rotor = physical_params["t_rotor"]  # time constant of rotor
 
+ball_effector_p = physical_params["ball_effector_p"]
+ball_effector_q = physical_params["ball_effector_q"]  # qw, qx, qy, qz
+
 # concatenate the parameters to make a new list
 # fmt: off
 physical_param_list = [
@@ -52,5 +55,6 @@ physical_param_list = [
 ]
 # fmt: on
 
-ball_effector_p = physical_params["ball_effector_p"]
-ball_effector_q = physical_params["ball_effector_q"]  # qw, qx, qy, qz
+# Add ball effector parameters
+physical_param_list.extend(ball_effector_p)
+physical_param_list.extend(ball_effector_q)

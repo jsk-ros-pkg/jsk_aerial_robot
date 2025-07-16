@@ -54,3 +54,6 @@ physical_param_list = [
     t_rotor, t_servo,
 ]
 # fmt: on
+
+physical_param_list.extend([0.0, 0.0, 0.0])
+physical_param_list.extend([1.0, 0.0, 0.0, 0.0])  # to compatible with end-effectors.
