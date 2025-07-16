@@ -190,25 +190,26 @@
   <xacro:beetle_thrust_link self="3" rotor_direction="1"/>
   <xacro:beetle_thrust_link self="4" rotor_direction="-1"/>
 
-<!-- ============ End Effector =============== -->
-  <!-- Define a parameter to choose the end effector type: "fork" or "ball" -->
-  <xacro:arg name="end_effector" default="fork" />
-  <xacro:property name="end_effector" value="$(arg end_effector)" />
+  <!-- ============ End‑Effector (EE) =============== -->
 
-  <!-- Define the "end" link, which is positioned 0.3m along the Z axis relative to main_body -->
-  <link name="end">
-    <!-- Optionally, you can add inertial, collision, and visual information here -->
-  </link>
+  <!-- Select EE type:  fork | ball | sensor_ball | brush -->
+  <xacro:arg name="end_effector" default="fork"/>
+  <xacro:property name="end_effector" value="$(arg end_effector)"/>
 
-  <joint name="main_body_to_end" type="fixed">
+  <!-- Fixed the flange that all tools attach to -->
+  <link name="ee_mount"/>
+  <joint name="body_to_ee_mount" type="fixed">
     <parent link="main_body"/>
-    <child link="end"/>
+    <child link="ee_mount"/>
     <origin xyz="0 0 0.1725" rpy="0 0 0"/>
   </joint>
 
-  <!-- Conditionally create the fork or ball link based on the parameter value -->
+  <!-- Tool‑agnostic contact frame (pose set inside each branch) -->
+  <link name="ee_contact"/>
+
+  <!-- ############# Fork tool ############# -->
   <xacro:if value="${end_effector == 'fork'}">
-    <!-- Define the fork link with mesh visualization -->
+    <!-- Tool geometry -->
     <link name="fork">
       <inertial>
         <origin xyz="0.00000000 0.06681059 -0.00005783" rpy="0 0 0"/>
@@ -224,39 +225,23 @@
       </visual>
     </link>
 
-    <joint name="end_to_fork" type="fixed">
-      <parent link="end"/>
+    <!-- Mount fork to the flange -->
+    <joint name="ee_mount_to_fork" type="fixed">
+      <parent link="ee_mount"/>
       <child link="fork"/>
       <origin xyz="0 0 0" rpy="1.570796 0 -1.570796"/>
     </joint>
-  </xacro:if>
 
-  <xacro:if value="${end_effector == 'ball'}">
-    <!-- Define the ball link with mesh visualization -->
-    <link name="ball">
-      <inertial>
-        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
-        <mass value="0.1030"/>
-        <inertia
-                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
-                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
-      </inertial>
-      <visual>
-        <geometry>
-          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
-        </geometry>
-      </visual>
-    </link>
-
-    <joint name="end_to_ball" type="fixed">
-      <parent link="end"/>
-      <child link="ball"/>
-      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    <!-- Contact point for the fork tips -->
+    <joint name="fork_to_ee_contact" type="fixed">
+      <parent link="fork"/>
+      <child link="ee_contact"/>
+      <origin xyz="0.07 0 0" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
-  <xacro:if value="${end_effector == 'sensor_ball'}">
-    <!-- Define the ball link with mesh visualization -->
+  <!-- ############# Ball tool ############# -->
+  <xacro:if value="${end_effector == 'ball'}">
     <link name="ball">
       <inertial>
         <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
@@ -272,6 +257,24 @@
       </visual>
     </link>
 
+    <joint name="ee_mount_to_ball" type="fixed">
+      <parent link="ee_mount"/>
+      <child link="ball"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+
+    <!-- Contact point at the ball’s center -->
+    <joint name="ball_to_ee_contact" type="fixed">
+      <parent link="ball"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+
+  <!-- ############# Sensor‑ball tool ############# -->
+  <xacro:if value="${end_effector == 'sensor_ball'}">
+
+    <!-- Wrench sensor -->
     <link name="wrench_sensor">
       <inertial>
         <origin xyz="-0.00941317 0.00000000 -0.01652886" rpy="0 0 0"/>
@@ -287,21 +290,45 @@
       </visual>
     </link>
 
-    <joint name="end_to_sensor" type="fixed">
-      <parent link="end"/>
+    <joint name="ee_mount_to_sensor" type="fixed">
+      <parent link="ee_mount"/>
       <child link="wrench_sensor"/>
       <origin xyz="0 0 0.031" rpy="0 0 0"/>
     </joint>
+
+    <!-- Ball attached to the sensor -->
+    <link name="ball">
+      <!-- (same as plain ball) -->
+      <inertial>
+        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
+        <mass value="0.1030"/>
+        <inertia
+                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
 
     <joint name="sensor_to_ball" type="fixed">
       <parent link="wrench_sensor"/>
       <child link="ball"/>
       <origin xyz="0 0 0" rpy="0 0 1.570796"/>
     </joint>
+
+    <!-- Contact point at ball tip -->
+    <joint name="ball_to_ee_contact" type="fixed">
+      <parent link="ball"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 -0.03" rpy="0 0 0"/>
+    </joint>
   </xacro:if>
 
+  <!-- ############# Brush tool ############# -->
   <xacro:if value="${end_effector == 'brush'}">
-    <!-- Define the brush link with mesh visualization -->
     <link name="brush">
       <inertial>
         <origin xyz="0.00000000 0.06565796 -0.00001172" rpy="0 0 0"/>
@@ -317,10 +344,17 @@
       </visual>
     </link>
 
-    <joint name="end_to_brush" type="fixed">
-      <parent link="end"/>
+    <joint name="ee_mount_to_brush" type="fixed">
+      <parent link="ee_mount"/>
       <child link="brush"/>
       <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+
+    <!-- Contact frame at the bristle tip -->
+    <joint name="brush_to_ee_contact" type="fixed">
+      <parent link="brush"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
     </joint>
   </xacro:if>
 
