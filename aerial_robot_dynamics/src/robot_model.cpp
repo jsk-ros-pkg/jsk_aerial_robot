@@ -75,6 +75,9 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
   {
     std::string joint_name = model_->names[i];
     double torque_limit = 0;
+    double max_position_limit = std::numeric_limits<double>::infinity();
+    double min_position_limit = -std::numeric_limits<double>::infinity();
+    pinocchio::JointIndex q_index = model_->joints[model_->getJointId(joint_name)].idx_q();
     pinocchio::JointIndex v_index = model_->joints[model_->getJointId(joint_name)].idx_v();
 
     for (const auto& link : urdf_links)
@@ -84,7 +87,12 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
         if (link->parent_joint->name == joint_name)
         {
           torque_limit = link->parent_joint->limits->effort;
+          max_position_limit = link->parent_joint->limits->upper;
+          min_position_limit = link->parent_joint->limits->lower;
+
           joint_torque_limits_(v_index) = torque_limit;
+          model_->upperPositionLimit(q_index) = max_position_limit;
+          model_->lowerPositionLimit(q_index) = min_position_limit;
         }
       }
     }
