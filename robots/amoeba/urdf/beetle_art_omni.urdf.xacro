@@ -8,11 +8,11 @@
     ## main body
     <link name="main_body">
       <inertial>
-        <origin xyz="0.00000847 0.00023741 0.01491666" rpy="0 0 0"/>
-        <mass value="2.27739"/>
+        <origin xyz="-0.0002494 0.0002857 0.0310495" rpy="0 0 0"/>
+        <mass value="1.9660957"/>
         <inertia
-            ixx="0.02747704" iyy="0.02676088" izz="0.04047304"
-            ixy="-0.00000599" ixz="0.00009626" iyz="0.00006750"/>
+            ixx="0.018188022" iyy="0.018172157" izz="0.022508471"
+            ixy="-0.00006050" ixz="0.00012987" iyz="0.00007583"/>
       </inertial>   
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -47,7 +47,8 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="main_body"/>
-      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06647"/>  # should be aligned with the position of IMU
+      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06347"/>  # should be aligned with the position of IMU
+      # changed from omni to amoeba
     </joint>
 
     ## rotor arm macro
@@ -72,10 +73,10 @@
     </xacro:macro>
 
     ## dummy rotor arms
-    <xacro:dummy_rotor_arm id = "${child1}" x = "0.205789" y="0.205789" z = "-0.0156" yaw = "${pi*1.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.205789" y="0.205789" z = "-0.0156" yaw = "${pi*3.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.205789" y="-0.205789" z = "-0.0156" yaw = "${pi*5.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child4}" x = "0.205789" y="-0.205789" z = "-0.0156" yaw = "${-pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.198956" y="0.198956" z = "0.0154" yaw = "${pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.198956" y="0.198956" z = "0.0154" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.198956" y="-0.198956" z = "0.0154" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.198956" y="-0.198956" z = "0.0154" yaw = "${-pi*1.0/4.0}"/>
 
     <xacro:friction self="main_body"/>
   </xacro:macro>
@@ -85,10 +86,10 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.02085225 0.0 -0.01276312" rpy="0 0 0"/>
-        <mass value="0.15944"/>
+        <origin xyz="0.02554008 -0.00002352 -0.01513287" rpy="0 0 0"/>
+        <mass value="0.1702000"/>
         <inertia
-            ixx="0.00007281" iyy="0.00007289" izz="0.00007635"
+            ixx="0.00020423" iyy="0.00031264" izz="0.00034511"
             ixy="0.0" ixz="0.0" iyz="0.0"/>
       </inertial>
       <collision>
@@ -100,7 +101,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://amoeba/urdf/mesh/omni_rotor_module.dae"/>
+          <mesh filename="package://amoeba/urdf/mesh/amoeba_rotor_module.dae"/>
         </geometry>
       </visual>
     </link>
