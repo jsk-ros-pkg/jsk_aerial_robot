@@ -49,6 +49,9 @@ class NMPCTiltQdServoDist(QDNMPCBase):
 
         rot_wb = self._get_rot_wb_ca(self.qw, self.qx, self.qy, self.qz)
         skew_w = self._get_skew_symmetric_matrix(self.w)
+        
+        rot_bt = self._get_rot_wb_ca(self.ee_q[0], self.ee_q[1], self.ee_q[2], self.ee_q[3])
+        rot_tb = rot_bt.T
 
         # Note: The quaternion error is defined as the quaternion that rotates the current orientation to the reference
         state_y = ca.vertcat(
@@ -58,7 +61,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
             qe_x + self.qxr,
             qe_y + self.qyr,
             qe_z + self.qzr,
-            self.w,
+            rot_tb @ self.w,
             self.a_s,
             self.fds_w,
             self.tau_ds_b,

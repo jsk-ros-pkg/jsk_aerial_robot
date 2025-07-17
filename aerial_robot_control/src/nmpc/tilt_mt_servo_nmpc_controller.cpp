@@ -552,7 +552,7 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
   tf::Matrix3x3 target_ee_mtx = target_cog_mtx * cog_to_ee_mtx;
   tf::Quaternion target_ee_quat;
   target_ee_mtx.getRotation(target_ee_quat);
-  tf::Vector3 target_ee_omega = target_cog_omega;  // TODO: may have problems, need more check
+  tf::Vector3 target_ee_omega = cog_to_ee_mtx.inverse() * target_cog_omega;
 
   // set the reference state and control input
   setXrUrRef(target_ee_pos_in_w, target_ee_vel_in_w, tf::Vector3(0, 0, 0), target_ee_quat, target_ee_omega,
