@@ -56,6 +56,10 @@
 #include <urdf/model.h>
 #include <vector>
 
+// for contact point
+#include <tf/tf.h>
+
+
 namespace aerial_robot_model {
 
   //Basic Aerial Robot Model
@@ -167,6 +171,11 @@ namespace aerial_robot_model {
     KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector);
 
     /* contact point */
+    bool hasEEContact() const
+    {
+      return seg_tf_map_.find("ee_contact") != seg_tf_map_.end();
+    }
+
     std::vector<double> getCoGtoEEContactPosition() const
     {
       return { cog_to_ee_contact_.p.x(), cog_to_ee_contact_.p.y(), cog_to_ee_contact_.p.z() };
@@ -178,6 +187,11 @@ namespace aerial_robot_model {
       cog_to_ee_contact_.M.GetQuaternion(qx, qy, qz, qw);
       return { qw, qx, qy, qz };
     }
+
+    void convertFromCoGToEEContact(const tf::Vector3& cog_pos_in_w, const tf::Vector3& cog_vel_in_w,
+                                   const tf::Quaternion& cog_quat, const tf::Vector3& cog_omega,
+                                   tf::Vector3& ee_pos_in_w, tf::Vector3& ee_vel_in_w,
+                                   tf::Quaternion& ee_quat, tf::Vector3& ee_omega) const;
 
   private:
 

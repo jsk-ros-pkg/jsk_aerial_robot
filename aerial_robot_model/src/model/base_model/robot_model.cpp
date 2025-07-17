@@ -650,5 +650,29 @@ namespace aerial_robot_model {
     return joint_positions;
   }
 
+  void RobotModel::convertFromCoGToEEContact(const tf::Vector3& cog_pos_in_w, const tf::Vector3& cog_vel_in_w,
+                                 const tf::Quaternion& cog_quat, const tf::Vector3& cog_omega,
+                                 tf::Vector3& ee_pos_in_w, tf::Vector3& ee_vel_in_w,
+                                 tf::Quaternion& ee_quat, tf::Vector3& ee_omega) const
+    {
+      // get the conversion from CoG to end-effector (EE) contact frame
+      std::vector<double> cog_to_ee_p = getCoGtoEEContactPosition();
+      std::vector<double> cog_to_ee_q = getCoGtoEEContactQuaternion();  // qw, qx, qy, qz
+
+      tf::Vector3 p_ee_in_cog(cog_to_ee_p[0], cog_to_ee_p[1], cog_to_ee_p[2]);
+      tf::Matrix3x3 cog_to_ee_mtx;
+      cog_to_ee_mtx.setRotation(tf::Quaternion(cog_to_ee_q[1], cog_to_ee_q[2], cog_to_ee_q[3], cog_to_ee_q[0]));  // qxyzw
+
+      // make conversion
+      tf::Matrix3x3 cog_mtx;
+      cog_mtx.setRotation(cog_quat);
+
+      ee_pos_in_w = cog_pos_in_w + cog_mtx * p_ee_in_cog;
+      ee_vel_in_w = cog_vel_in_w + cog_mtx * cog_omega.cross(p_ee_in_cog);
+      tf::Matrix3x3 ee_mtx = cog_mtx * cog_to_ee_mtx;
+      ee_mtx.getRotation(ee_quat);
+      ee_omega = cog_to_ee_mtx.inverse() * cog_omega;
+    }
+
 } //namespace aerial_robot_model
 

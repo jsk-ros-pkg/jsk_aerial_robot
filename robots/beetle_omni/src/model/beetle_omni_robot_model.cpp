@@ -9,8 +9,7 @@ void BeetleOmniRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posit
 {
   RobotModel::updateRobotModelImpl(joint_positions);
 
-  const auto seg_tf_map = getSegmentsTf();
-  if (seg_tf_map.find("ee_contact") != seg_tf_map.end())
+  if (hasEEContact())
   {
     updateCoGtoEEContact();
   }
