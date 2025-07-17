@@ -528,14 +528,35 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
   }
 
   /* if not in tracking mode, we use point mode --> set target */
-  tf::Vector3 target_pos = navigator_->getTargetPos();
-  tf::Vector3 target_vel = navigator_->getTargetVel();
-  tf::Vector3 target_rpy = navigator_->getTargetRPY();
-  tf::Quaternion target_quat;
-  target_quat.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-  tf::Vector3 target_omega = navigator_->getTargetOmega();
+  // Added on 2025-07-17: Note: in this mode we should always track the CoG point. So if the reference of NMPC
+  // is assumed in tool frame, we need to do a conversion. On the contrary, for traj. tracking, we directly track tool
+  // frame.
+  tf::Vector3 target_cog_pos_in_w = navigator_->getTargetPos();
+  tf::Vector3 target_cog_vel_in_w = navigator_->getTargetVel();
+  tf::Vector3 target_cog_rpy = navigator_->getTargetRPY();
+  tf::Matrix3x3 target_cog_mtx;
+  target_cog_mtx.setRPY(target_cog_rpy.x(), target_cog_rpy.y(), target_cog_rpy.z());
+  tf::Vector3 target_cog_omega = navigator_->getTargetOmega();
 
-  setXrUrRef(target_pos, target_vel, tf::Vector3(0, 0, 0), target_quat, target_omega, tf::Vector3(0, 0, 0), -1);
+  // get the conversion from CoG to end-effector (EE) contact frame
+  std::vector<double> cog_to_ee_p = robot_model_->getCoGtoEEContactPosition();
+  std::vector<double> cog_to_ee_q = robot_model_->getCoGtoEEContactQuaternion();  // qw, qx, qy, qz
+
+  tf::Vector3 p_ee_in_cog(cog_to_ee_p[0], cog_to_ee_p[1], cog_to_ee_p[2]);
+  tf::Matrix3x3 cog_to_ee_mtx;
+  cog_to_ee_mtx.setRotation(tf::Quaternion(cog_to_ee_q[1], cog_to_ee_q[2], cog_to_ee_q[3], cog_to_ee_q[0]));  // qxyzw
+
+  // make conversion
+  tf::Vector3 target_ee_pos_in_w = target_cog_pos_in_w + target_cog_mtx * p_ee_in_cog;
+  tf::Vector3 target_ee_vel_in_w = target_cog_vel_in_w + target_cog_mtx * target_cog_omega.cross(p_ee_in_cog);
+  tf::Matrix3x3 target_ee_mtx = target_cog_mtx * cog_to_ee_mtx;
+  tf::Quaternion target_ee_quat;
+  target_ee_mtx.getRotation(target_ee_quat);
+  tf::Vector3 target_ee_omega = target_cog_omega;  // TODO: may have problems, need more check
+
+  // set the reference state and control input
+  setXrUrRef(target_ee_pos_in_w, target_ee_vel_in_w, tf::Vector3(0, 0, 0), target_ee_quat, target_ee_omega,
+             tf::Vector3(0, 0, 0), -1);
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
