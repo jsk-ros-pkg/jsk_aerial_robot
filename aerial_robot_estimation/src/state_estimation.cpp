@@ -88,6 +88,7 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/baselink/odom", 1);
   cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/cog/odom", 1);
   full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("uav/full_state", 1);
+  ee_contact_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/ee_contact/odom", 1);
 
   nhp_.param("tf_prefix", tf_prefix_, std::string(""));
 
@@ -181,6 +182,29 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   tf::pointTFToMsg(getPos(Frame::COG, estimate_mode_), odom_state.pose.pose.position);
   tf::vector3TFToMsg(getVel(Frame::COG, estimate_mode_), odom_state.twist.twist.linear);
   cog_odom_pub_.publish(odom_state);
+
+  /* Contact Point */
+  if (robot_model_->hasEEContact())
+  {
+    // make conversion
+    tf::Vector3 target_ee_pos_in_w, target_ee_vel_in_w, target_ee_omega;
+    tf::Quaternion target_ee_quat;
+    robot_model_->convertFromCoGToEEContact(
+      getPos(Frame::COG, estimate_mode_),getVel(Frame::COG, estimate_mode_),
+      q, getAngularVel(Frame::COG, estimate_mode_),
+      target_ee_pos_in_w, target_ee_vel_in_w, target_ee_quat, target_ee_omega);
+
+    // ee_contact_odom_pub_
+    odom_state.child_frame_id = tf::resolve(tf_prefix_, std::string("ee_contact"));
+    // Rotation
+    tf::quaternionTFToMsg(target_ee_quat, odom_state.pose.pose.orientation);
+    tf::vector3TFToMsg(target_ee_omega, odom_state.twist.twist.angular);
+    // Translation
+    tf::pointTFToMsg(target_ee_pos_in_w, odom_state.pose.pose.position);
+    tf::vector3TFToMsg(target_ee_vel_in_w, odom_state.twist.twist.linear);
+
+    ee_contact_odom_pub_.publish(odom_state);
+  }
 
 }
 
