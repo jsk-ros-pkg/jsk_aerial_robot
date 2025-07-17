@@ -68,8 +68,7 @@ jobs:
           set -eux
           python -m pip install --upgrade pip setuptools wheel
           # core deps
-          python -m pip install numpy matplotlib pandas scipy transforms3d tf-transformations
-          # create a minimal non-ROS shim for tf_conversions so imports succeed
+          python -m pip install -r aerial_robot_control/scripts/requirements.txt
           python - <<'EOF'
           import pathlib
           shim = pathlib.Path('tf_conversions')
