@@ -47,6 +47,11 @@ class QDNMPCBase(RecedingHorizonBase):
                 "CoG disturbance parameter flag not set. Please set the include_cog_dist_parameter attribute in the child class."
             )
 
+        # Small noise on the nominal thrust of each rotor in Body frame.
+        # - include_motor_noise_parameter: Flag to include motor noise into the acados model parameters.
+        if not hasattr(self, "include_motor_noise_parameter"):
+            self.include_motor_noise_parameter = False
+
         # These two variables are only for impedance control
         # - include_cog_dist_model: Flag to include disturbance on the CoG into the acados model state.
         if not hasattr(self, "include_cog_dist_model"):
@@ -228,6 +233,16 @@ class QDNMPCBase(RecedingHorizonBase):
 
             parameters = ca.vertcat(parameters, self.mp, self.mq)
 
+        # - Extend model parameters by noise on the nominal thrust of each rotor in Body frame
+        if self.include_motor_noise_parameter:
+            self.fnp_b = ca.SX.sym("fnp_b", 4)
+            if self.tilt:
+                self.anp_b = ca.SX.sym("anp_b", 4)
+            parameters = ca.vertcat(parameters, self.fnp_b, self.anp_b)
+        else:
+            self.fnp_b = ca.SX.zeros(4)
+            self.anp_b = ca.SX.zeros(4)
+
         # Transformation matrices between coordinate systems World, Body, End-of-arm, Rotor using quaternions
         # - World to Body
         row_1 = ca.horzcat(
@@ -299,6 +314,12 @@ class QDNMPCBase(RecedingHorizonBase):
                 a3 = self.a3c
                 a4 = self.a4c
 
+            # Add motor noise, if specified
+            a1 += self.anp_b[0]
+            a2 += self.anp_b[1]
+            a3 += self.anp_b[2]
+            a4 += self.anp_b[3]
+
             rot_e1r1 = ca.vertcat(
                 ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
             )
@@ -330,6 +351,12 @@ class QDNMPCBase(RecedingHorizonBase):
             ft2 = self.ft2c
             ft3 = self.ft3c
             ft4 = self.ft4c
+
+        # Add motor noise if specified
+        ft1 += self.fnp_b[0]
+        ft2 += self.fnp_b[1]
+        ft3 += self.fnp_b[2]
+        ft4 += self.fnp_b[3]
 
         ft_r1 = ca.vertcat(0, 0, ft1)
         ft_r2 = ca.vertcat(0, 0, ft2)
