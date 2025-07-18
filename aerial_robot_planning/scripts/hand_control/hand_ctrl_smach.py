@@ -1,6 +1,7 @@
-'''
- Refactored by li-jinjie on 25-3-19.
-'''
+"""
+Refactored by li-jinjie on 25-3-19.
+"""
+
 import os
 import sys
 import rospy
@@ -14,6 +15,7 @@ if current_path not in sys.path:
 
 from util import TopicNotAvailableError
 
+# fmt: off
 from hand_control.sub_pos_objects import (
     HandPose,
     ArmPose,
@@ -28,6 +30,7 @@ from hand_control.hand_ctrl_modes import (
     LockingMode,
     SphericalMode
 )
+# fmt: on
 
 # global variables
 shared_data = {"hand_pose": None, "arm_pose": None, "drone_pose": None, "glove": None}
@@ -131,11 +134,7 @@ class WaitState(smach.State):
 
 class BaseModeState(smach.State):
     def __init__(self, mode_class: HandControlBaseMode, outcomes, outcome_map):
-        super(BaseModeState, self).__init__(
-            outcomes=outcomes,
-            input_keys=["robot_name"],
-            output_keys=[]
-        )
+        super(BaseModeState, self).__init__(outcomes=outcomes, input_keys=["robot_name"], output_keys=[])
         self.mode_class = mode_class
         self.outcome_map = outcome_map
         self.pub_object = None
@@ -220,8 +219,7 @@ def create_hand_control_state_machine():
         smach.StateMachine.add(
             "HAND_CONTROL_INIT",
             InitObjectState(),
-            transitions={"go_wait": "WAIT",
-                         "done_hand_ctrl": "DONE"},
+            transitions={"go_wait": "WAIT", "done_hand_ctrl": "DONE"},
         )
 
         # WaitState

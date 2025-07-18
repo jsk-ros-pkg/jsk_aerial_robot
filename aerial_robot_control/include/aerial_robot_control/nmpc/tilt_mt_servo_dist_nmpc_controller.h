@@ -67,7 +67,7 @@ protected:
   /* external wrench estimation */
   void updateDisturbWrench() const;
   void updateWrenchImpactCoeff(const geometry_msgs::Vector3& external_force_w,
-                          const geometry_msgs::Vector3& external_torque_cog);
+                               const geometry_msgs::Vector3& external_torque_cog);
   void pubDisturbWrench() const;
 
   /* I Term */

@@ -1,6 +1,7 @@
-'''
- Created by li-jinjie on 25-6-1.
-'''
+"""
+Created by li-jinjie on 25-6-1.
+"""
+
 """
 Compute maximum thrust or torque in the body frame for a fully actuated omnidirectional aerial vehicle.
 Usage examples:
@@ -51,7 +52,7 @@ def check_wrench_available(alloc_mtx, tgt_wrench, f_th_max=THRUST_MAX, wrench_er
     # constraints: each rotor's (Fx, Fy) magnitude ≤ f_th_max
     constraints = []
     for i in range(4):
-        constraints.append(x[2 * i] ** 2 + x[2 * i + 1] ** 2 <= f_th_max ** 2)
+        constraints.append(x[2 * i] ** 2 + x[2 * i + 1] ** 2 <= f_th_max**2)
 
     prob = cp.Problem(objective, constraints)
     try:
@@ -67,9 +68,9 @@ def check_wrench_available(alloc_mtx, tgt_wrench, f_th_max=THRUST_MAX, wrench_er
     return (wrench_error <= wrench_error_limit), wrench_error
 
 
-def find_max_wrench_for_orientation_body(alloc_mtx, roll_deg, pitch_deg, yaw_deg,
-                                         search_min, search_max,
-                                         mode="force", tol=1e-2, max_iters=30):
+def find_max_wrench_for_orientation_body(
+    alloc_mtx, roll_deg, pitch_deg, yaw_deg, search_min, search_max, mode="force", tol=1e-2, max_iters=30
+):
     """
     Binary search to find the maximum force or torque along the body z-axis
     for a given orientation.
@@ -128,27 +129,22 @@ def find_max_wrench_for_orientation_body(alloc_mtx, roll_deg, pitch_deg, yaw_deg
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Analyze maximum force or torque in the BODY frame."
-    )
+    parser = argparse.ArgumentParser(description="Analyze maximum force or torque in the BODY frame.")
     parser.add_argument(
         "--mode",
         "-m",
         choices=["force", "torque"],
         required=True,
-        help="Select 'force' to compute maximum thrust, or 'torque' to compute maximum torque."
+        help="Select 'force' to compute maximum thrust, or 'torque' to compute maximum torque.",
     )
     parser.add_argument(
-        "--resolution", "-r",
+        "--resolution",
+        "-r",
         type=float,
         default=30,
-        help="Resolution of yaw/pitch angles in degrees (e.g., 30 means 30° steps)."
+        help="Resolution of yaw/pitch angles in degrees (e.g., 30 means 30° steps).",
     )
-    parser.add_argument(
-        "--save_to_npz",
-        action="store_true",
-        help="If set, save the results to a .npz file."
-    )
+    parser.add_argument("--save_to_npz", action="store_true", help="If set, save the results to a .npz file.")
 
     args = parser.parse_args()
     mode = args.mode
@@ -180,7 +176,7 @@ if __name__ == "__main__":
                     yaw_deg=yaw_deg,
                     search_min=0.0,
                     search_max=thrust_limit,
-                    mode="force"
+                    mode="force",
                 )
                 result_map[i, j] = max_f
             print(f"[Body Force] Completed pitch = {pitch_deg:.1f}°")
@@ -196,7 +192,7 @@ if __name__ == "__main__":
         mags = []
         for i, pitch_deg in enumerate(pitch_list):
             for j, yaw_deg in enumerate(yaw_list):
-                R_bn_zero_roll = R.from_euler('zyx', [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
+                R_bn_zero_roll = R.from_euler("zyx", [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
                 dir_z = R_bn_zero_roll[:, 2]  # world ← body: body z-axis expressed in world
                 dirs.append(dir_z)
                 mags.append(result_map[i, j])
@@ -224,10 +220,7 @@ if __name__ == "__main__":
         fig = plt.figure(figsize=(5, 4))
         ax = fig.add_subplot(111, projection="3d")
         surf = ax.plot_surface(
-            X, Y, Z,
-            facecolors=colors,
-            rstride=1, cstride=1,
-            linewidth=0, antialiased=False, shade=False
+            X, Y, Z, facecolors=colors, rstride=1, cstride=1, linewidth=0, antialiased=False, shade=False
         )
         ax.set_xlabel("$^B f_x$ [N]")
         ax.set_ylabel("$^B f_y$ [N]")
@@ -238,10 +231,7 @@ if __name__ == "__main__":
         # ---------- 2D X–Z projection scatter plot ----------
         fig2 = plt.figure(figsize=(5, 4))
         ax2 = fig2.add_subplot(111)
-        sc2 = ax2.scatter(
-            endpoints[:, 0], endpoints[:, 2],
-            c=mags, cmap="viridis", s=8
-        )
+        sc2 = ax2.scatter(endpoints[:, 0], endpoints[:, 2], c=mags, cmap="viridis", s=8)
         ax2.set_xlabel("$^B f_x$ [N]")
         ax2.set_ylabel("$^B f_z$ [N]")
         ax2.set_aspect("equal", adjustable="box")
@@ -268,7 +258,7 @@ if __name__ == "__main__":
                     yaw_deg=yaw_deg,
                     search_min=0.0,
                     search_max=torque_limit,
-                    mode="torque"
+                    mode="torque",
                 )
                 result_map[i, j] = max_tau
             print(f"[Body Torque] Completed pitch = {pitch_deg:.1f}°")
@@ -283,7 +273,7 @@ if __name__ == "__main__":
         mags = []
         for i, pitch_deg in enumerate(pitch_list):
             for j, yaw_deg in enumerate(yaw_list):
-                R_bn_zero_roll = R.from_euler('zyx', [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
+                R_bn_zero_roll = R.from_euler("zyx", [yaw_deg, pitch_deg, 0.0], degrees=True).as_matrix().T
                 dir_z = R_bn_zero_roll[:, 2]
                 dirs.append(dir_z)
                 mags.append(result_map[i, j])
@@ -309,10 +299,7 @@ if __name__ == "__main__":
         fig = plt.figure(figsize=(5, 4))
         ax = fig.add_subplot(111, projection="3d")
         surf = ax.plot_surface(
-            X, Y, Z,
-            facecolors=colors,
-            rstride=1, cstride=1,
-            linewidth=0, antialiased=False, shade=False
+            X, Y, Z, facecolors=colors, rstride=1, cstride=1, linewidth=0, antialiased=False, shade=False
         )
         ax.set_xlabel("$^B \\tau_x$ [N·m]")
         ax.set_ylabel("$^B \\tau_y$ [N·m]")
@@ -323,10 +310,7 @@ if __name__ == "__main__":
         # ---------- 2D X–Z projection scatter plot for torque ----------
         fig2 = plt.figure(figsize=(5, 4))
         ax2 = fig2.add_subplot(111)
-        sc2 = ax2.scatter(
-            endpoints[:, 0], endpoints[:, 2],
-            c=mags, cmap="plasma", s=8
-        )
+        sc2 = ax2.scatter(endpoints[:, 0], endpoints[:, 2], c=mags, cmap="plasma", s=8)
         ax2.set_xlabel("$^B \\tau_x$ [N·m]")
         ax2.set_ylabel("$^B \\tau_z$ [N·m]")
         ax2.set_aspect("equal", adjustable="box")
