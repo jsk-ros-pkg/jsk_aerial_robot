@@ -13,8 +13,8 @@ controller:
     v_max: 1
     v_min: -1
 
-    thrust_max: 30 # N
-    thrust_min: 0 # N
+    thrust_max: 30  # N
+    thrust_min: 0  # N
 
     a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -1.5708
@@ -29,7 +29,7 @@ controller:
     Qw_xy: 5
     Qw_z: 5
     Rt: 1
-    Rac: 50 # 5
+    Rac: 50  # 5
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
