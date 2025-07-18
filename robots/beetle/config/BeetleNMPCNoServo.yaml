@@ -22,10 +22,10 @@ controller:
     # params for the cost function
     Qp_xy: 30  #300 # 0
     Qp_z: 40  #400 # 500
-    Qv_xy: 1 #10 # 0
+    Qv_xy: 1  #10 # 0
     Qv_z: 1  #10 # 100
     Qq_xy: 30  #300 # 400
-    Qq_z: 60 #600
+    Qq_z: 60  #600
     Qw_xy: 5
     Qw_z: 5
     Rt: 1
