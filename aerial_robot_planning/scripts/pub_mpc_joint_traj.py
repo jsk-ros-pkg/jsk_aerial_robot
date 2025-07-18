@@ -1,6 +1,7 @@
 """
- Created by li-jinjie on 24-1-3.
+Created by li-jinjie on 24-1-3.
 """
+
 # !/usr/bin/env python3
 
 import sys
@@ -133,15 +134,16 @@ class MPCSinglePtPub(MPCPubJointTraj):
     and checks if the robot has reached it within a certain error threshold.
     """
 
-    def __init__(self, robot_name: str, target_pose: Pose,
-                 pos_tol=0.2, ang_tol=0.3, vel_tol=0.1, rate_tol=0.1):
+    def __init__(self, robot_name: str, target_pose: Pose, pos_tol=0.2, ang_tol=0.3, vel_tol=0.1, rate_tol=0.1):
         super().__init__(robot_name=robot_name, node_name="mpc_single_pt_pub", is_calc_rmse=False)
         self.target_pose = target_pose
-        rospy.loginfo(f"{self.namespace}/{self.node_name}: \n"
-                      f"Target pose: x {self.target_pose.position.x}, "
-                      f"y {self.target_pose.position.y}, z {self.target_pose.position.z}; "
-                      f"qw {self.target_pose.orientation.w}, qx {self.target_pose.orientation.x}, "
-                      f"qy {self.target_pose.orientation.y}, qz {self.target_pose.orientation.z}")
+        rospy.loginfo(
+            f"{self.namespace}/{self.node_name}: \n"
+            f"Target pose: x {self.target_pose.position.x}, "
+            f"y {self.target_pose.position.y}, z {self.target_pose.position.z}; "
+            f"qw {self.target_pose.orientation.w}, qx {self.target_pose.orientation.x}, "
+            f"qy {self.target_pose.orientation.y}, qz {self.target_pose.orientation.z}"
+        )
 
         # Tolerances for considering the target "reached"
         self.pos_tol = pos_tol  # e.g. 0.1 m
@@ -167,12 +169,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
 
         for i in range(self.N_nmpc + 1):
             traj_pt = MultiDOFJointTrajectoryPoint()
-            traj_pt.transforms.append(
-                Transform(
-                    translation=Vector3(x, y, z),
-                    rotation=Quaternion(qx, qy, qz, qw)
-                )
-            )
+            traj_pt.transforms.append(Transform(translation=Vector3(x, y, z), rotation=Quaternion(qx, qy, qz, qw)))
             # No velocity or acceleration
             traj_pt.velocities.append(Twist())
             traj_pt.accelerations.append(Twist())
@@ -216,8 +213,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
         rate_err = math.sqrt(wx * wx + wy * wy + wz * wz)
 
         # Check thresholds
-        if (pos_err < self.pos_tol and ang_err < self.ang_tol
-                and vel_err < self.vel_tol and rate_err < self.rate_tol):
+        if pos_err < self.pos_tol and ang_err < self.ang_tol and vel_err < self.vel_tol and rate_err < self.rate_tol:
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Target reached!")
             return True
         else:

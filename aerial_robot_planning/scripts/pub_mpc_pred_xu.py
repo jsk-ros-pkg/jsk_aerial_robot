@@ -1,6 +1,7 @@
 """
- Created by li-jinjie on 24-1-3.
+Created by li-jinjie on 24-1-3.
 """
+
 # !/usr/bin/env python3
 
 import sys
@@ -64,7 +65,7 @@ class MPCPubCSVPredXU(MPCPubPredXU):
             raise ValueError("This class is designed for 23 states and 8 control inputs! Check the NMPC type!")
 
         # Load trajectory from a CSV
-        self.scvx_traj = np.loadtxt(file_path, delimiter=',')  # one row for one time step
+        self.scvx_traj = np.loadtxt(file_path, delimiter=",")  # one row for one time step
         self.x_traj = self.scvx_traj[:, 0:19]
         self.u_traj = self.scvx_traj[:, 19:28]
 
@@ -74,13 +75,14 @@ class MPCPubCSVPredXU(MPCPubPredXU):
         self.traj_path_pub.publish(traj_path_msg)
 
         input_str = input(
-            "Please check the traj info and Rviz visualization. Press 'Enter' to continue or 'q' to quit...")
+            "Please check the traj info and Rviz visualization. Press 'Enter' to continue or 'q' to quit..."
+        )
         while True:
-            if input_str.lower() == 'q':
+            if input_str.lower() == "q":
                 self.cleanup_traj_viz()
                 self.is_finished = True
                 return
-            elif input_str.lower() == '':
+            elif input_str.lower() == "":
                 break
             else:
                 input_str = input("Invalid input. Please press 'Enter' to continue or 'q' to quit...")
