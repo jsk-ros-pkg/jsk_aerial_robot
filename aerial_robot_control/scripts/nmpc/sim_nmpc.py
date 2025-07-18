@@ -196,6 +196,12 @@ def main(args):
         x_upper_constraints=dict(
             list(zip(ocp_solver.acados_ocp.constraints.idxbx, ocp_solver.acados_ocp.constraints.ubx))
         ),
+        u_lower_constraints=(
+            [nmpc.params["thrust_min"], nmpc.params["a_min"]] if nmpc.tilt else [nmpc.params["thrust_min"]]
+        ),
+        u_upper_constraints=(
+            [nmpc.params["thrust_max"], nmpc.params["a_max"]] if nmpc.tilt else [nmpc.params["thrust_max"]]
+        ),
         tilt=nmpc.tilt,
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
@@ -354,23 +360,18 @@ def main(args):
             ):
                 print(
                     f"Warning: Constraint violation at index {idx} in simulation step {i}. "
-                    f"Value: {x_now_sim[idx]}, "
+                    f"Value: {x_now_sim[idx]:.14f}, "
                     f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx[lbxi]}, "
                     f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx[lbxi]}"
                 )
-        for idx_e in ocp_solver.acados_ocp.constraints.idxbx_e:
-            lbxi_e = np.where(ocp_solver.acados_ocp.constraints.idxbx_e == idx_e)[0][0]
-            if (
-                x_now_sim[idx_e] < ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e]
-                or x_now_sim[idx_e] > ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]
-            ):
-                print(
-                    f"Warning: Constraint violation at index {idx_e} in simulation step {i}. "
-                    f"Value: {x_now_sim[idx_e]}, "
-                    f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx_e[lbxi_e]}, "
-                    f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx_e[lbxi_e]}, "
-                    "for end of horizon"
-                )
+        # Nonlinear unit quaternion constraint
+        quat_norm = np.linalg.norm(x_now_sim[6:10])
+        if quat_norm < 0.999 or quat_norm > 1.001:
+            print(
+                f"Warning: Constraint violation for unit_q in simulation step {i}. "
+                f"Value: {quat_norm:.14f} != 1.0, "
+                f"Quaternion: {x_now_sim[6:10]}"
+            )
 
         # --------- Log simulation data ---------
         x_history.append(x_now_sim.copy())

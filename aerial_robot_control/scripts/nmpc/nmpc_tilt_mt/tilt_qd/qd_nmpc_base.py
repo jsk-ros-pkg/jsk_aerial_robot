@@ -663,10 +663,10 @@ class QDNMPCBase(RecedingHorizonBase):
             ocp.cost.Zl_e = self.params["linear_slack_weight"]*np.ones((num_constraints_e,))
             ocp.cost.Zu_e = self.params["linear_slack_weight"]*np.ones((num_constraints_e,))
             # -- Quadratic term
-            ocp.cost.zl =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx),))
-            ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
-            ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((len(ocp.constraints.idxsbx_e),))
+            ocp.cost.zl =   self.params["quadratic_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.zu =   self.params["quadratic_slack_weight"]*np.ones((num_constraints,))
+            ocp.cost.zl_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
+            ocp.cost.zu_e = self.params["quadratic_slack_weight"]*np.ones((num_constraints_e,))
         # fmt: on
 
         # Initial state and reference: Set all values such that robot is hovering
