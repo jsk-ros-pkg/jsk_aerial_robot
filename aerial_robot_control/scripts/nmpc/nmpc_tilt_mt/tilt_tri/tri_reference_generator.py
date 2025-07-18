@@ -1,5 +1,5 @@
 import numpy as np
-from tf_conversions import transformations as tf
+import transformations as tf
 
 
 class TriNMPCReferenceGenerator:
@@ -107,14 +107,14 @@ class TriNMPCReferenceGenerator:
         pitch = target_rpy[1]
         yaw = target_rpy[2]
 
-        q = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
-        target_qwxyz = np.array([[q[3], q[0], q[1], q[2]]]).T
+        qwxyz = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+        target_qwxyz = np.array([qwxyz]).T
 
         # Convert [0,0,gravity] to Body frame
-        q_inv = tf.quaternion_inverse(q)
-        rot = tf.quaternion_matrix(q_inv)
+        q_inv = tf.quaternion_conjugate(qwxyz)
+        rot_inv = tf.quaternion_matrix(q_inv)
         fg_w = np.array([0, 0, self.mass * self.gravity, 0])    # World frame
-        fg_b = rot @ fg_w                                       # Body frame
+        fg_b = rot_inv @ fg_w                                       # Body frame
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
         # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
