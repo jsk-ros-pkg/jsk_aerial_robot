@@ -310,15 +310,15 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                nmpc.acados_init_p[0:4] = quaternion_r
-                ocp_solver.set(j, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+                nmpc.acados_parameters[0:4] = quaternion_r
+                ocp_solver.set(j, "p", nmpc.acados_parameters)  # For nonlinear quaternion error
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            nmpc.acados_init_p[0:4] = quaternion_r
-            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+            nmpc.acados_parameters[0:4] = quaternion_r
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_parameters)  # For nonlinear quaternion error
 
             # Compute control feedback and take the first action
             try:

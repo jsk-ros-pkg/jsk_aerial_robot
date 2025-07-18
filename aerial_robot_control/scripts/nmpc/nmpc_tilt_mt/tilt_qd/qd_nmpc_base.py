@@ -63,7 +63,7 @@ class QDNMPCBase(RecedingHorizonBase):
         if not hasattr(self, "include_soft_constraints"):
             self.include_soft_constraints = False
 
-        self.acados_init_p = None  # initial value for parameters in acados. Mainly for physical parameters.
+        self.acados_parameters = None  # initial value for parameters in acados. Mainly for physical parameters.
 
         # Call RecedingHorizon constructor coming as NMPC method
         super().__init__("nmpc", build)
@@ -694,13 +694,13 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Model parameters
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-        self.acados_init_p = np.zeros(n_param)
-        self.acados_init_p[0] = x_ref[6]  # qw
+        self.acados_parameters = np.zeros(n_param)
+        self.acados_parameters[0] = x_ref[6]  # qw
         if len(self.phys.physical_param_list) != 24:
             raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
-        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
+        self.acados_parameters[4:28] = np.array(self.phys.physical_param_list)
 
-        ocp.parameter_values = self.acados_init_p
+        ocp.parameter_values = self.acados_parameters
 
         # Solver options
         ocp.solver_options.tf = self.params["T_horizon"]
@@ -743,10 +743,10 @@ class QDNMPCBase(RecedingHorizonBase):
 
         n_param = ocp_model.p.size()[0]
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-        self.acados_init_p = np.zeros(n_param)
-        self.acados_init_p[0] = 1.0  # qw
-        self.acados_init_p[4:28] = np.array(self.phys.physical_param_list)
-        acados_sim.parameter_values = self.acados_init_p
+        self.acados_parameters = np.zeros(n_param)
+        self.acados_parameters[0] = 1.0  # qw
+        self.acados_parameters[4:28] = np.array(self.phys.physical_param_list)
+        acados_sim.parameter_values = self.acados_parameters
 
         acados_sim.solver_options.T = ts_sim
         return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
