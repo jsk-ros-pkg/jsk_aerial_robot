@@ -187,7 +187,7 @@ After the robot reach the status of hovering - see terminal output of main launc
     - **5**: Exit Mode
 
     To check the current mode, you can run:`rosparam get /operation_mode`
-    
+
 **Ground Station**
 Three terminals are needed.
 
