@@ -89,13 +89,31 @@ class NMPCTiltTriServo(RecedingHorizonBase):
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0], [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array(
+            [
+                [self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0], [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array(
+            [
+                [self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0], [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
+        rot_be3 = np.array(
+            [
+                [self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+                [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -118,12 +136,12 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Wrench in Body frame
         f_u_b = (
-              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
             + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
         )
         tau_u_b = (
-              ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
             + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
             + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
             + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
@@ -377,14 +395,14 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
@@ -404,10 +422,18 @@ class NMPCTiltTriServo(RecedingHorizonBase):
 
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
-        return TriNMPCReferenceGenerator(self,
-                                         self.phys.p1_b,    self.phys.p2_b, self.phys.p3_b,
-                                         self.phys.dr1,     self.phys.dr2,  self.phys.dr3,
-                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        return TriNMPCReferenceGenerator(
+            self,
+            self.phys.p1_b,
+            self.phys.p2_b,
+            self.phys.p3_b,
+            self.phys.dr1,
+            self.phys.dr2,
+            self.phys.dr3,
+            self.phys.kq_d_kt,
+            self.phys.mass,
+            self.phys.gravity,
+        )
 
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()

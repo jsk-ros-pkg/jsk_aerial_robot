@@ -55,21 +55,12 @@ class NMPCTiltQdThrust(QDNMPCBase):
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
-            self.p,
-            self.v,
-            self.qwr,
-            qe_x + self.qxr,
-            qe_y + self.qyr,
-            qe_z + self.qzr,
-            self.w,
-            self.ft_s
+            self.p, self.v, self.qwr, qe_x + self.qxr, qe_y + self.qyr, qe_z + self.qzr, self.w, self.ft_s
         )
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(
-            self.ft_c - self.ft_s,  # ft_c_ref must be zero!
-            self.a_c)
+        control_y = ca.vertcat(self.ft_c - self.ft_s, self.a_c)  # ft_c_ref must be zero!
 
         return state_y, state_y_e, control_y
 

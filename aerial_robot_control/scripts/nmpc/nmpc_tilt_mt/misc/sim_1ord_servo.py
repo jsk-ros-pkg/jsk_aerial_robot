@@ -6,31 +6,30 @@ import matplotlib.pyplot as plt
 
 # Created from the acados python example "pendulum_model".
 
+
 def create_acados_model() -> AcadosModel:
     """
     Create acados model object.
     """
     # Model name
-    model_name = 'servo_ode'
+    model_name = "servo_ode"
 
     # Servo time constant
     t_servo = 0.08
 
     # State
-    a_s = ca.SX.sym('a_s')      # Servo angle alpha between Body frame and Rotor frame as state
+    a_s = ca.SX.sym("a_s")  # Servo angle alpha between Body frame and Rotor frame as state
     states = ca.vertcat(a_s)
 
     # Input
-    a_c = ca.SX.sym('a_c')      # Servo angle alpha between Body frame and Rotor frame as control input
+    a_c = ca.SX.sym("a_c")  # Servo angle alpha between Body frame and Rotor frame as control input
     u = ca.vertcat(a_c)
 
     # Explicit dynamics
-    f = ca.vertcat(
-        (a_c - a_s) / t_servo
-    )
+    f = ca.vertcat((a_c - a_s) / t_servo)
 
     # Implicit dynamics
-    x_dot = ca.SX.sym('x_dot', states.size())
+    x_dot = ca.SX.sym("x_dot", states.size())
     f_impl = x_dot - f
 
     # Assemble acados model
@@ -45,9 +44,9 @@ def create_acados_model() -> AcadosModel:
     return model
 
 
-def plot_servo(shooting_nodes, u_max, U, X_true, 
-               X_est=None, Y_measured=None, latexify=False, 
-               plt_show=True, X_true_label=None):
+def plot_servo(
+    shooting_nodes, u_max, U, X_true, X_est=None, Y_measured=None, latexify=False, plt_show=True, X_true_label=None
+):
     """
     Plot the simulation of the servo controller.
 
@@ -77,34 +76,34 @@ def plot_servo(shooting_nodes, u_max, U, X_true,
         t_mhe = np.linspace(N_mhe * Ts, Tf, N_sim - N_mhe)
 
     plt.subplot(nx + 1, 1, 1)
-    line, = plt.step(t, np.append([U[0]], U))
+    (line,) = plt.step(t, np.append([U[0]], U))
     if X_true_label is not None:
         line.set_label(X_true_label)
     else:
-        line.set_color('r')
+        line.set_color("r")
 
-    plt.ylabel('$u$')
-    plt.xlabel('$t$')
-    plt.hlines(u_max, t[0], t[-1], linestyles='dashed', alpha=0.7)
-    plt.hlines(-u_max, t[0], t[-1], linestyles='dashed', alpha=0.7)
+    plt.ylabel("$u$")
+    plt.xlabel("$t$")
+    plt.hlines(u_max, t[0], t[-1], linestyles="dashed", alpha=0.7)
+    plt.hlines(-u_max, t[0], t[-1], linestyles="dashed", alpha=0.7)
     plt.ylim([-1.2 * u_max, 1.2 * u_max])
     plt.xlim(t[0], t[-1])
     plt.grid()
 
-    states_lables = ['$x$', r'$\theta$', '$v$', r'$\dot{\theta}$']
+    states_lables = ["$x$", r"$\theta$", "$v$", r"$\dot{\theta}$"]
 
     for i in range(nx):
         plt.subplot(nx + 1, 1, i + 2)
-        line, = plt.plot(t, X_true[:, i], label='true')
+        (line,) = plt.plot(t, X_true[:, i], label="true")
         if X_true_label is not None:
             line.set_label(X_true_label)
 
         if WITH_ESTIMATION:
-            plt.plot(t_mhe, X_est[:, i], '--', label='estimated')
-            plt.plot(t, Y_measured[:, i], 'x', label='measured')
+            plt.plot(t_mhe, X_est[:, i], "--", label="estimated")
+            plt.plot(t, Y_measured[:, i], "x", label="measured")
 
         plt.ylabel(states_lables[i])
-        plt.xlabel('$t$')
+        plt.xlabel("$t$")
         plt.grid()
         plt.legend(loc=1)
         plt.xlim(t[0], t[-1])
@@ -124,11 +123,13 @@ if __name__ == "__main__":
     acados_sim.model = model
 
     Tf = 0.001
-    nx = model.x.size()[0]; nu = model.u.size()[0]; nn = 1000
+    nx = model.x.size()[0]
+    nu = model.u.size()[0]
+    nn = 1000
 
     # Set simulation solver options
-    acados_sim.solver_options.T = Tf           # Simulation time
-    acados_sim.solver_options.integrator_type = 'IRK'
+    acados_sim.solver_options.T = Tf  # Simulation time
+    acados_sim.solver_options.integrator_type = "IRK"
     acados_sim.solver_options.num_stages = 3
     acados_sim.solver_options.num_steps = 3
     acados_sim.solver_options.newton_iter = 3  # For implicit integrator
@@ -151,7 +152,7 @@ if __name__ == "__main__":
         sim_solver.set("x", x_now[i, :])
 
         # Initialize IRK
-        if acados_sim.solver_options.integrator_type == 'IRK':
+        if acados_sim.solver_options.integrator_type == "IRK":
             sim_solver.set("xdot", np.zeros((nx,)))
 
         # Solve optimization problem
@@ -159,7 +160,7 @@ if __name__ == "__main__":
         x_now[i + 1, :] = sim_solver.get("x")
 
         if status != 0:
-            raise Exception(f'acados returned status {status} in closed loop instance {i}.')
+            raise Exception(f"acados returned status {status} in closed loop instance {i}.")
 
     # Retrieve sensitivities
     S_forw = sim_solver.get("S_forw")

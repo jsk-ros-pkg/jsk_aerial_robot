@@ -80,14 +80,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
             ]
         )
 
-        R = np.diag(
-            [
-                self.params["Rt"],
-                self.params["Rt"],
-                self.params["Rt"],
-                self.params["Rt"]
-            ]
-        )
+        R = np.diag([self.params["Rt"], self.params["Rt"], self.params["Rt"], self.params["Rt"]])
 
         return Q, R
 

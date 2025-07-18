@@ -17,9 +17,9 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
     This NMPC controller is used for a fixed-quadrotor (meaning the rotors are fixed to the body frame).
     The output of the controller is the body rate and collective acceleration.
 
-    For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file 
+    For information: The reason why this file doesnt get refactored to 'qd_nmpc_base.py' is that this file
     is the only one to not have the angular velocity as state and instead has it defined as control input.
-    Therefore, it differs fundamentally in the model and solver. 
+    Therefore, it differs fundamentally in the model and solver.
     """
 
     def __init__(self):
@@ -69,7 +69,7 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
             vz,
             2 * (qx * qz + qw * qy) * f_u_b,
             2 * (qy * qz - qw * qx) * f_u_b,
-            (1 - 2 * qx ** 2 - 2 * qy ** 2) * f_u_b - phys.gravity,
+            (1 - 2 * qx**2 - 2 * qy**2) * f_u_b - phys.gravity,
             (-wx * qx - wy * qy - wz * qz) * 0.5,
             (wx * qw + wz * qy - wy * qz) * 0.5,
             (wy * qw - wz * qx + wx * qz) * 0.5,
@@ -197,10 +197,20 @@ class NMPCFixQdAngvelOut(RecedingHorizonBase):
 
     def _create_reference_generator(self) -> QDNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
-        return QDNMPCReferenceGenerator(self,
-                                        self.phys.p1_b, self.phys.p2_b, self.phys.p3_b, self.phys.p4_b,
-                                        self.phys.dr1, self.phys.dr2, self.phys.dr3, self.phys.dr4,
-                                        self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        return QDNMPCReferenceGenerator(
+            self,
+            self.phys.p1_b,
+            self.phys.p2_b,
+            self.phys.p3_b,
+            self.phys.p4_b,
+            self.phys.dr1,
+            self.phys.dr2,
+            self.phys.dr3,
+            self.phys.dr4,
+            self.phys.kq_d_kt,
+            self.phys.mass,
+            self.phys.gravity,
+        )
 
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()

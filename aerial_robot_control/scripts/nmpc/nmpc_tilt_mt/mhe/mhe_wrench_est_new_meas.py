@@ -20,9 +20,9 @@ class MHEVelDynIMU(MHEBase):
         model_name = "mhe_vel_dyn_imu_mdl"
 
         # Model states
-        omega_b = ca.SX.sym("omega_b", 3)       # Angular Velocity in Body frame
-        fds_w = ca.SX.sym("fds_w", 3)             # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)       # Disturbance on torque in Body frame
+        omega_b = ca.SX.sym("omega_b", 3)  # Angular Velocity in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
 
         states = ca.vertcat(omega_b, fds_w, tau_ds_b)
 
@@ -46,23 +46,20 @@ class MHEVelDynIMU(MHEBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         rot_bw = rot_wb.T
 
         # Sensor function
-        measurements = ca.vertcat(
-            (f_u_b + ca.mtimes(rot_bw, fds_w)) / mass,
-            omega_b
-            )
+        measurements = ca.vertcat((f_u_b + ca.mtimes(rot_bw, fds_w)) / mass, omega_b)
 
         # Inertia
         I = ca.diag([Ixx, Iyy, Izz])
@@ -83,8 +80,8 @@ class MHEVelDynIMU(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise

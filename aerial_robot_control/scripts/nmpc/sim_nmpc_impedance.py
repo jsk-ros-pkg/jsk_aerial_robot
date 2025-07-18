@@ -134,7 +134,7 @@ def main(args):
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
         include_cog_dist_model=sim_nmpc.include_cog_dist_model,
-        include_cog_dist_est=True
+        include_cog_dist_est=True,
     )
 
     is_sqp_change = False
@@ -143,8 +143,11 @@ def main(args):
 
     # ---------- Sensors ----------
     fir_param = [1, -1]  # central difference [0.5, 0, -0.5] # backward difference [1, -1]
-    gyro_differentiator = [FIRDifferentiator(fir_param, 1 / ts_sensor), FIRDifferentiator(fir_param, 1 / ts_sensor),
-                           FIRDifferentiator(fir_param, 1 / ts_sensor)]  # for gyro differentiation
+    gyro_differentiator = [
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+    ]  # for gyro differentiation
 
     # ========== Run simulation ==========
     u_cmd = u_init
@@ -162,7 +165,7 @@ def main(args):
         assert nmpc.include_impedance or nmpc.include_cog_dist_model
         # Assemble state from simulation and disturbance estimation
         x_now = np.zeros(nx)
-        x_now[:nx - 6] = x_now_sim[:nx - 6]
+        x_now[: nx - 6] = x_now_sim[: nx - 6]
         x_now[-6:] = disturb_estimated
 
         # -------- Update control target --------
@@ -217,8 +220,16 @@ def main(args):
                 nmpc.acados_init_p[0:4] = quaternion_r
 
                 if nmpc.include_impedance:
-                    nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
-                                                          nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
+                    nmpc.acados_init_p[34:40] = np.array(
+                        [
+                            nmpc.params["pMxy"],
+                            nmpc.params["pMxy"],
+                            nmpc.params["pMz"],
+                            nmpc.params["oMxy"],
+                            nmpc.params["oMxy"],
+                            nmpc.params["oMz"],
+                        ]
+                    )
                     # Note that we don't need to multiply the enlarge_factor here as it has been included in the cost mtx.
 
                 ocp_solver.set(j, "p", nmpc.acados_init_p)
@@ -230,8 +241,16 @@ def main(args):
             nmpc.acados_init_p[0:4] = quaternion_r
 
             if nmpc.include_impedance:
-                nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
-                                                      nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
+                nmpc.acados_init_p[34:40] = np.array(
+                    [
+                        nmpc.params["pMxy"],
+                        nmpc.params["pMxy"],
+                        nmpc.params["pMz"],
+                        nmpc.params["oMxy"],
+                        nmpc.params["oMxy"],
+                        nmpc.params["oMz"],
+                    ]
+                )
 
             ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
 
@@ -261,7 +280,7 @@ def main(args):
             I = sim_nmpc.fake_sensor.I
 
             sf_b_imu = sf_b + np.random.normal(0.0, 0.1, 3)  # add noise. real: scale = 0.00727 * gravity
-            w_imu = w + np.random.normal(0.0, 0.01, 3)       # add noise. real: scale = 0.0008 rad/s
+            w_imu = w + np.random.normal(0.0, 0.01, 3)  # add noise. real: scale = 0.0008 rad/s
 
             ang_acc_b_imu = np.zeros(3)
             if args.if_use_ang_acc == 0:
@@ -295,11 +314,13 @@ def main(args):
             if args.est_dist_type == 1:
                 # Only use the wrench difference between the imu and the actuator sensor, no u_mpc
                 alpha_force = 0.1
-                disturb_estimated[0:3] = (1 - alpha_force) * disturb_estimated[0:3] + alpha_force * np.dot(rot_wb, (
-                        wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # World frame
+                disturb_estimated[0:3] = (1 - alpha_force) * disturb_estimated[0:3] + alpha_force * np.dot(
+                    rot_wb, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])
+                )  # World frame
                 alpha_torque = 0.05
                 disturb_estimated[3:6] = (1 - alpha_torque) * disturb_estimated[3:6] + alpha_torque * (
-                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # Body frame
+                    wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]
+                )  # Body frame
 
             elif args.est_dist_type == 2:
                 # Step 1: Shift u_list
@@ -309,12 +330,12 @@ def main(args):
 
                 # Step 2: Shift yref_list
                 mhe_nu = mhe_solver.acados_ocp.dims.nu
-                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
-                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+                mhe_yref_0[: n_meas + mhe_nu] = mhe_yref_list[0, : n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu :] = x0_bar
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, :3] = x_now[3:6]  # v_w
-                mhe_yref_list[-1, 3:6] = w_imu      # omega_b, from sensor
+                mhe_yref_list[-1, 3:6] = w_imu  # omega_b, from sensor
 
                 # Step 3: Fill yref and p
                 mhe_solver.set(0, "yref", mhe_yref_0)
@@ -345,8 +366,8 @@ def main(args):
 
                 # Step 2: Shift yref_list
                 mhe_nu = mhe_solver.acados_ocp.dims.nu
-                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
-                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+                mhe_yref_0[: n_meas + mhe_nu] = mhe_yref_list[0, : n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu :] = x0_bar
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = np.dot(rot_wb, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # f_d_w
@@ -379,12 +400,12 @@ def main(args):
                 mhe_u_list[:-1, :] = mhe_u_list[1:, :]
                 mhe_u_list[-1, 0:3] = wrench_u_sensor_b[:3]  # f_u_b
                 mhe_u_list[-1, 3:6] = wrench_u_sensor_b[3:]  # tau_u_b
-                mhe_u_list[-1, 6:10] = x_now_sim[6:10]       # Quaternions
+                mhe_u_list[-1, 6:10] = x_now_sim[6:10]  # Quaternions
 
                 # Step 2: Shift yref_list
                 mhe_nu = mhe_solver.acados_ocp.dims.nu
-                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
-                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+                mhe_yref_0[: n_meas + mhe_nu] = mhe_yref_list[0, : n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu :] = x0_bar
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = sf_b_imu
@@ -416,17 +437,17 @@ def main(args):
                 # Step 1: Shift u_list
                 mhe_u_list[:-1, :] = mhe_u_list[1:, :]
                 mhe_u_list[-1, 0:4] = x_now_sim[6:10]  # Quaternions
-                mhe_u_list[-1, 4:] = u_cmd             # ft_c and a_c
+                mhe_u_list[-1, 4:] = u_cmd  # ft_c and a_c
 
                 # Step 2: Shift yref_list
                 mhe_nu = mhe_solver.acados_ocp.dims.nu
-                mhe_yref_0[:n_meas + mhe_nu] = mhe_yref_list[0, :n_meas + mhe_nu]
-                mhe_yref_0[n_meas + mhe_nu:] = x0_bar
+                mhe_yref_0[: n_meas + mhe_nu] = mhe_yref_list[0, : n_meas + mhe_nu]
+                mhe_yref_0[n_meas + mhe_nu :] = x0_bar
 
                 mhe_yref_list[:-1, :] = mhe_yref_list[1:, :]
                 mhe_yref_list[-1, 0:3] = sf_b_imu
-                mhe_yref_list[-1, 3:6] = w_imu               # omega_b, from sensor
-                mhe_yref_list[-1, 6:10] = x_now_sim[13:17]   # a_s
+                mhe_yref_list[-1, 3:6] = w_imu  # omega_b, from sensor
+                mhe_yref_list[-1, 6:10] = x_now_sim[13:17]  # a_s
                 mhe_yref_list[-1, 10:14] = x_now_sim[17:21]  # ft_s
 
                 # Step 3: Fill yref and p
@@ -492,19 +513,12 @@ def main(args):
             ts_sim,
             t_total_sim,
             t_servo_ctrl=t_servo_ctrl,
-            t_servo_sim=t_servo_sim
+            t_servo_sim=t_servo_sim,
         )
     elif args.plot_type == 1:
-        viz.visualize_less(
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_less(ts_sim, t_total_sim)
     elif args.plot_type == 2:
-        viz.visualize_rpy(
-            ocp_solver.acados_ocp.model.name,
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_rpy(ocp_solver.acados_ocp.model.name, ts_sim, t_total_sim)
 
 
 if __name__ == "__main__":
@@ -513,8 +527,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "model",
         type=int,
-        help="The NMPC model to be simulated. "
-             "Options: 0 (disturbance), 1 (impedance).",
+        help="The NMPC model to be simulated. " "Options: 0 (disturbance), 1 (impedance).",
     )
 
     parser.add_argument(
@@ -522,8 +535,7 @@ if __name__ == "__main__":
         "--sim_model",
         type=int,
         default=0,
-        help="The simulation model. "
-             "Options: 0 (default: servo+thrust+dist).",
+        help="The simulation model. " "Options: 0 (default: servo+thrust+dist).",
     )
 
     parser.add_argument(
@@ -531,8 +543,7 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. "
-             "Options: 0 (default: full), 1 (less), 2 (only rpy)."
+        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
     )
 
     parser.add_argument(
@@ -541,8 +552,8 @@ if __name__ == "__main__":
         type=int,
         default=3,
         help="The type of disturbance estimation. "
-             "Options: 0 (None), 1 (default: only use sensors), "
-             "2-5 (different MHE implementations)."
+        "Options: 0 (None), 1 (default: only use sensors), "
+        "2-5 (different MHE implementations).",
     )
 
     parser.add_argument(
@@ -550,15 +561,11 @@ if __name__ == "__main__":
         "--if_use_ang_acc",
         type=int,
         default=0,
-        help="Flag to use ground truth angular acceleration. Default: 0 (False)"
+        help="Flag to use ground truth angular acceleration. Default: 0 (False)",
     )
 
     parser.add_argument(
-        "-a",
-        "--arch",
-        type=str,
-        default='qd',
-        help="The robot's architecture. Options: bi, tri, qd (default)."
+        "-a", "--arch", type=str, default="qd", help="The robot's architecture. Options: bi, tri, qd (default)."
     )
 
     args = parser.parse_args()

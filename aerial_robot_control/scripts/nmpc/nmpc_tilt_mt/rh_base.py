@@ -9,7 +9,7 @@ import rospkg
 class RecedingHorizonBase(ABC):
     """
     Base class for the receding horizon methods NMPC and MHE.
-    
+
     :param string method: Sets correct path to save c generated code and is either "nmpc" or "wrench_est".
     """
 
@@ -76,7 +76,8 @@ class RecedingHorizonBase(ABC):
         # Make a directory for generating cpp files of the acados model and solver
         # 'method' is either "nmpc" or "wrench_est"
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method,
-                                   model_name)
+        folder_path = os.path.join(
+            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method, model_name
+        )
         os.makedirs(folder_path, exist_ok=True)
         os.chdir(folder_path)  # Change working directory to the model folder (also affects inherited classes)

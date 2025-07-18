@@ -44,22 +44,12 @@ class NMPCTiltQdServoDiff(QDNMPCBase):
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
-            self.p,
-            self.v,
-            self.qwr,
-            qe_x + self.qxr,
-            qe_y + self.qyr,
-            qe_z + self.qzr,
-            self.w,
-            self.a_s
+            self.p, self.v, self.qwr, qe_x + self.qxr, qe_y + self.qyr, qe_z + self.qzr, self.w, self.a_s
         )
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(
-            self.ft_c,
-            self.ad_c
-        )
+        control_y = ca.vertcat(self.ft_c, self.ad_c)
 
         return state_y, state_y_e, control_y
 

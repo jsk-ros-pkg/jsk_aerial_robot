@@ -9,11 +9,9 @@ class BINMPCReferenceGenerator:
     Parameters are physical properties set in robot's .yaml config as well as OCP dimensions.
     :param nmpc: NMPC controller object
     """
-    def __init__(self, nmpc, 
-                 p1_b, p2_b,
-                 dr1,  dr2,
-                 kq_d_kt, mass, gravity):
-        
+
+    def __init__(self, nmpc, p1_b, p2_b, dr1, dr2, kq_d_kt, mass, gravity):
+
         self.nmpc = nmpc
 
         self.p1_b = p1_b
@@ -79,7 +77,7 @@ class BINMPCReferenceGenerator:
     def compute_trajectory(self, target_xyz, target_rpy):
         """
         Convert current target pose to a reference trajectory over the entire horizon.
-        Compute target quaternions and control reference from a target rotation and then 
+        Compute target quaternions and control reference from a target rotation and then
         get assembled reference trajectories from controller file.
 
         :param target_xyz: Target position
@@ -97,8 +95,8 @@ class BINMPCReferenceGenerator:
         # Convert [0,0,gravity] to Body frame
         q_inv = tf.quaternion_conjugate(qwxyz)
         rot_inv = tf.quaternion_matrix(q_inv)
-        fg_w = np.array([0, 0, self.mass * self.gravity, 0])    # World frame
-        fg_b = rot_inv @ fg_w                                       # Body frame
+        fg_w = np.array([0, 0, self.mass * self.gravity, 0])  # World frame
+        fg_b = rot_inv @ fg_w  # Body frame
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
         # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
@@ -116,7 +114,7 @@ class BINMPCReferenceGenerator:
         a2_ref = np.arctan2(target_force[2, 0], target_force[3, 0])
         a_ref = [a1_ref, a2_ref]
 
-        # Assemble reference trajectories in controller file since their definition is 
+        # Assemble reference trajectories in controller file since their definition is
         # closely related to the cost function
         xr, ur = self.nmpc.get_reference(target_xyz, target_qwxyz, ft_ref, a_ref)
 
