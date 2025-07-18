@@ -5,7 +5,8 @@ from geometry_msgs.msg import PoseStamped, TwistStamped, AccelStamped
 from spinal.msg import Imu
 from .draft_mhe_kinematics import MHEKinematics
 
-# TODO why run ros node in python? -> convert this file to cpp and move out of 'scripts/' folder. 
+# TODO why run ros node in python? -> convert this file to cpp and move out of 'scripts/' folder.
+
 
 class MHEKinematicsNode:
     def __init__(self, robot_name):
@@ -16,13 +17,13 @@ class MHEKinematicsNode:
         """
         self.robot_name = robot_name
 
-        rospy.init_node(f'{self.robot_name}_mhe_node', anonymous=True)
+        rospy.init_node(f"{self.robot_name}_mhe_node", anonymous=True)
 
         # Create MHE object and its solver
         mhe = MHEKinematics()
         self.mhe_solver = mhe.get_ocp_solver()
 
-        self.mhe_nm = 13    # Number of measurements
+        self.mhe_nm = 13  # Number of measurements
         self.mhe_nx = self.mhe_solver.acados_ocp.dims.nx
         self.mhe_nu = self.mhe_solver.acados_ocp.dims.nu
         self.mhe_np = self.mhe_solver.acados_ocp.dims.np
@@ -30,17 +31,19 @@ class MHEKinematicsNode:
 
         # Initialize parameter list
         self.mhe_p_list = np.zeros((self.mhe_N, self.mhe_np))
-        self.mhe_p_list[:, 0] = 1.0     # Initialize quaternion
+        self.mhe_p_list[:, 0] = 1.0  # Initialize quaternion
 
         # Initialize state estimation at t=0 for MHE solver
-        self.x0_bar = np.zeros(self.mhe_nx) 
-        self.x0_bar[9] = 1.0            # Initialize quaternion
-        for stage in range(self.mhe_N + 1):     # Prediction horizon is until the Nth time Step, therefore there are N+1 time Steps when including initial time Step t0
+        self.x0_bar = np.zeros(self.mhe_nx)
+        self.x0_bar[9] = 1.0  # Initialize quaternion
+        # Prediction horizon is until the Nth time step, therefore there are
+        # N+1 time steps when including initial time step t0
+        for stage in range(self.mhe_N + 1):
             self.mhe_solver.set(stage, "x", self.x0_bar)
 
         # Initialize reference
         self.mhe_yref_0 = np.zeros(self.mhe_nm + self.mhe_nu + self.mhe_nx)
-        self.mhe_yref_0[6] = 1.0        # Initialize quaternion
+        self.mhe_yref_0[6] = 1.0  # Initialize quaternion
         self.mhe_yref_list = np.zeros((self.mhe_N, self.mhe_nm + self.mhe_nu))
         self.mhe_yref_list[:, 6] = 1.0  # Initialize quaternion
 
@@ -73,7 +76,7 @@ class MHEKinematicsNode:
         if self.latest_mocap_pose is None:
             rospy.logwarn("No mocap pose received from MHE.")
             return
-        
+
         # Get state information
         pos_meas = self.latest_mocap_pose.pose.position
         acc_meas = self.latest_imu_data.acc_data
@@ -81,19 +84,26 @@ class MHEKinematicsNode:
         omega_meas = self.latest_imu_data.gyro_data
 
         # Step 1: Shift and update parameter list
-        self.mhe_p_list[:-1, :] = self.mhe_p_list[1:, :]    # Overwrite rows 0 to n-1 with rows from 1 to n
-        self.mhe_p_list[-1, :] = np.array([quat_meas.w, quat_meas.x, quat_meas.y, quat_meas.z])     # Update quartenion parameters to nth row
+        self.mhe_p_list[:-1, :] = self.mhe_p_list[1:, :]  # Overwrite rows 0 to n-1 with rows from 1 to n
+        # Update quaternion parameters to nth row
+        self.mhe_p_list[-1, :] = np.array([quat_meas.w, quat_meas.x, quat_meas.y, quat_meas.z])
 
         # Step 2: Shift and update yref_list
+        # fmt: off
         self.mhe_yref_0[:self.mhe_nm + self.mhe_nu] = self.mhe_yref_list[0, :self.mhe_nm + self.mhe_nu]
         self.mhe_yref_0[self.mhe_nm + self.mhe_nu:] = self.x0_bar
+        # fmt: on
 
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]
 
-        self.mhe_yref_list[-1, 0:3] = np.array([pos_meas.x, pos_meas.y, pos_meas.z])                    # position, from Mocap
-        self.mhe_yref_list[-1, 3:6] = np.array([acc_meas[0], acc_meas[1], acc_meas[2]])                 # acc, from IMU
-        self.mhe_yref_list[-1, 6:10] = np.array([quat_meas.w, quat_meas.x, quat_meas.y, quat_meas.z])   # quaternion angles, from Mocap
-        self.mhe_yref_list[-1, 10:13] = np.array([omega_meas[0], omega_meas[1], omega_meas[2]])         # omega, from IMU
+        # Position, from Mocap
+        self.mhe_yref_list[-1, 0:3] = np.array([pos_meas.x, pos_meas.y, pos_meas.z])
+        # Acceleration, from IMU
+        self.mhe_yref_list[-1, 3:6] = np.array([acc_meas[0], acc_meas[1], acc_meas[2]])
+        # Quaternions, from Mocap
+        self.mhe_yref_list[-1, 6:10] = np.array([quat_meas.w, quat_meas.x, quat_meas.y, quat_meas.z])
+        # Omega, from IMU
+        self.mhe_yref_list[-1, 10:13] = np.array([omega_meas[0], omega_meas[1], omega_meas[2]])
 
         # Step 3: Set parameters and yref
         self.mhe_solver.set(0, "p", self.mhe_p_list[0, :])
@@ -103,7 +113,9 @@ class MHEKinematicsNode:
             self.mhe_solver.set(stage, "p", self.mhe_p_list[stage, :])
             self.mhe_solver.set(stage, "yref", self.mhe_yref_list[stage - 1, :])
 
+        # fmt: off
         self.mhe_solver.set(self.mhe_N, "yref", self.mhe_yref_list[self.mhe_N - 1, :self.mhe_nm])
+        # fmt: on
 
         # Step 4: Solve OCP
         self.mhe_solver.solve()
@@ -166,7 +178,7 @@ class MHEKinematicsNode:
         rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         # Fetch robot name from ROS parameter server or use default
         robot_name = rospy.get_param("~robot_name", "beetle1")

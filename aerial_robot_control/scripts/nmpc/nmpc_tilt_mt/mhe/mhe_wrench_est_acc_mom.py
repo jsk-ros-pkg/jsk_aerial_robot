@@ -17,6 +17,7 @@ class MHEWrenchEstAccMom(MHEBase):
         super(MHEWrenchEstAccMom, self).__init__()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_wrench_est_acc_mom_mdl"
 
@@ -74,6 +75,7 @@ class MHEWrenchEstAccMom(MHEBase):
         model.cost_y_expr_e = measurements  # y
 
         return model
+        # fmt: on
 
     def get_weights(self):
         # Weights

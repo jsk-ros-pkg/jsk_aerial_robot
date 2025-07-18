@@ -20,9 +20,10 @@ class MHEKinematics(RecedingHorizonBase):
         super().__init__("wrench_est")
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_kinematics_mdl"
-        
+
         # Model states
         p = ca.SX.sym("p", 3)           # World frame
         v = ca.SX.sym("v", 3)           # World frame
@@ -52,13 +53,19 @@ class MHEKinematics(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
@@ -108,6 +115,7 @@ class MHEKinematics(RecedingHorizonBase):
         model.cost_y_expr = ca.vertcat(meas_y, noise)  # y, u
         model.cost_y_expr_e = meas_y_e  # y
         return model
+        # fmt: on
 
     def create_acados_ocp_solver(self) -> AcadosOcpSolver:
         # Create OCP object and set basic properties
