@@ -180,6 +180,9 @@ def main(args):
     # ---------- Reference ----------
     reference_generator = nmpc.get_reference_generator()
 
+    # Disturbance simulation
+    impulse_done = False
+
     # ---------- Visualization ----------
     viz = Visualizer(
         args.arch,

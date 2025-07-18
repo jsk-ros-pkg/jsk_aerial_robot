@@ -14,6 +14,7 @@ Then, follow the instructions below:
 - Install acados itself: Please follow the instructions on the acados website https://docs.acados.org/installation/index.html
 - Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html, but don't create virtual env in step 2. The virtual env has compatibility problem with ROS env.
 - **Pay attention** that you must execute the step 5 in https://docs.acados.org/python_interface/index.html to test the installation. This step should automatically install t_renderer. If something goes wrong, please follow step 6 to manually install the t_renderer binary.
+- When performing step 6, please note that VIM4 is **aarch64(arm64)**, don't build t_renderer in amd64(x86) format.
 - Optional: For developers trying to optimize the solver options for their applications, here is a convenient command to install more tested solvers in the cmake process of acados:
 ```bash
 cmake -DACADOS_WITH_QPOASES=ON -DACADOS_WITH_DAQP=ON -DACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
@@ -82,6 +83,10 @@ Install required packages:
 ```bash
 pip install -r src/jsk_aerial_robot/aerial_robot_control/scripts/requirements.txt
 ```
+For VIM4, since  it's Ubuntu20.04 python3.8, pandas's version is incompatible, we should use different pkgs:
+```bash
+pip install -r src/jsk_aerial_robot/aerial_robot_control/scripts/requirementsVIM4.txt
+```
 
 For the first run, **uncomment** these code in `aerial_robot_control/scripts/nmpc/gen_nmpc_code_all.sh`
 ```bash
@@ -107,8 +112,6 @@ MODELS=(
 cd ~/path_to_ws
 catkin build
 ```
-
-
 
 For convenience, open `~/.bashrc` and add sourcing of the workspace to the end of the file:
 

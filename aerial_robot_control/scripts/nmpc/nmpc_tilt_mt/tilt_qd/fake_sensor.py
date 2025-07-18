@@ -90,11 +90,11 @@ class FakeSensor:
             idx += 4
         # - Thrust
         if self.include_thrust_model:
-            ft1s, ft2s, ft3s, ft4s = x[idx:idx+4]
+            ft1s, ft2s, ft3s, ft4s = x[idx:idx + 4]
             idx += 4
         # - Disturbance on CoG
         if self.include_cog_dist_model:
-            fds_w = x[idx:idx+3]
+            fds_w = x[idx:idx + 3]
             tau_ds_b = x[idx+3:idx+6]
 
         # Transformation matrix

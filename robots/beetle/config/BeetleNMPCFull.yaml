@@ -8,14 +8,14 @@ controller:
     T_step: 0.1  # seconds
 
     # Hard constraints
-    w_max: 10 # 6  # 1 rad/s ~ 57 deg/s
-    w_min: -10 # -6
+    w_max: 10  # 6  # 1 rad/s ~ 57 deg/s
+    w_min: -10  # -6
 
-    v_max: 15 # 1
-    v_min: -15 # 1
+    v_max: 15  # 1
+    v_min: -15  # 1
 
-    thrust_max: 30 # N
-    thrust_min: 0 # N
+    thrust_max: 30  # N
+    thrust_min: 0  # N
 
     a_max: 3.1416  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -3.1416
@@ -45,8 +45,8 @@ controller:
     Qw_xy: 0.1
     Qw_z: 10
     Qa: 0.01
-    Rt: 0.001 # 1
-    Rac_d: 1 # 250  # difference of ac
+    Rt: 0.001  # 1
+    Rac_d: 1  # 250  # difference of ac
     # ==== Default ====
     # Qp_xy: 300
     # Qp_z: 400

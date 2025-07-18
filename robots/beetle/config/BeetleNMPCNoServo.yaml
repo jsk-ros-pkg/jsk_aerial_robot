@@ -13,8 +13,8 @@ controller:
     v_max: 1
     v_min: -1
 
-    thrust_max: 30 # N
-    thrust_min: 0 # N
+    thrust_max: 30  # N
+    thrust_min: 0  # N
 
     a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -1.5708
@@ -22,14 +22,14 @@ controller:
     # params for the cost function
     Qp_xy: 30  #300 # 0
     Qp_z: 40  #400 # 500
-    Qv_xy: 1 #10 # 0
+    Qv_xy: 1  #10 # 0
     Qv_z: 1  #10 # 100
     Qq_xy: 30  #300 # 400
-    Qq_z: 60 #600
+    Qq_z: 60  #600
     Qw_xy: 5
     Qw_z: 5
     Rt: 1
-    Rac: 50 # 5
+    Rac: 50  # 5
 
     # Slack constraint weights
     linear_slack_weight: 10

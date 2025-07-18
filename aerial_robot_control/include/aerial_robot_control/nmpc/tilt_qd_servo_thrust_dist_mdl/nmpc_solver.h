@@ -5,7 +5,6 @@
 #ifndef TILT_QD_SERVO_THRUST_DIST_MDL_NMPC_SOLVER_H
 #define TILT_QD_SERVO_THRUST_DIST_MDL_NMPC_SOLVER_H
 
-
 #include "aerial_robot_control/nmpc/base_mpc_solver.h"
 #include "aerial_robot_control/nmpc/tilt_qd_servo_thrust_dist_mdl/c_generated_code/acados_solver_tilt_qd_servo_thrust_dist_mdl.h"
 
@@ -62,8 +61,8 @@ public:
 
     int status = tilt_qd_servo_thrust_dist_mdl_acados_create(acados_ocp_capsule_);
     if (status)
-      throw std::runtime_error("tilt_qd_servo_thrust_dist_mdl_acados_create() returned status " + std::to_string(status) +
-                               ". Exiting.");
+      throw std::runtime_error("tilt_qd_servo_thrust_dist_mdl_acados_create() returned status " +
+                               std::to_string(status) + ". Exiting.");
 
     nlp_config_ = tilt_qd_servo_thrust_dist_mdl_acados_get_nlp_config(acados_ocp_capsule_);
     nlp_dims_ = tilt_qd_servo_thrust_dist_mdl_acados_get_nlp_dims(acados_ocp_capsule_);
@@ -81,7 +80,8 @@ public:
 
     status = tilt_qd_servo_thrust_dist_mdl_acados_free_capsule(acados_ocp_capsule_);
     if (status)
-      std::cout << "tilt_qd_servo_thrust_dist_mdl_acados_free_capsule() returned status " << status << ". \n" << std::endl;
+      std::cout << "tilt_qd_servo_thrust_dist_mdl_acados_free_capsule() returned status " << status << ". \n"
+                << std::endl;
   };
 
 protected:
@@ -95,7 +95,8 @@ protected:
 
   inline int acadosUpdateParamsSparse(int stage, std::vector<int>& idx, std::vector<double>& p, int n_update) override
   {
-    return tilt_qd_servo_thrust_dist_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx.data(), p.data(), n_update);
+    return tilt_qd_servo_thrust_dist_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx.data(), p.data(),
+                                                                     n_update);
   }
 
   inline int acadosSolve() override

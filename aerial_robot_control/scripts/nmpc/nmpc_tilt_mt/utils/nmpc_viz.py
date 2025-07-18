@@ -1,4 +1,4 @@
-from tf_conversions import transformations as tf
+import transformations as tf
 import matplotlib.pyplot as plt
 from math import ceil
 import numpy as np
@@ -9,23 +9,23 @@ legend_alpha = 0.3
 
 class Visualizer:
     def __init__(
-            self,
-            robot_arch,
-            N_sim,
-            nx,
-            nu,
-            x0,
-            x_lower_constraints=None,
-            x_upper_constraints=None,
-            u_lower_constraints=None,
-            u_upper_constraints=None,
-            tilt=False,
-            include_servo_model=False,
-            include_thrust_model=False,
-            include_cog_dist_model=False,
-            include_cog_dist_est=False,
-            is_record_diff_u=False
-        ):
+        self,
+        robot_arch,
+        N_sim,
+        nx,
+        nu,
+        x0,
+        x_lower_constraints=None,
+        x_upper_constraints=None,
+        u_lower_constraints=None,
+        u_upper_constraints=None,
+        tilt=False,
+        include_servo_model=False,
+        include_thrust_model=False,
+        include_cog_dist_model=False,
+        include_cog_dist_est=False,
+        is_record_diff_u=False,
+    ):
         # Store robot architecture
         self.is_bi, self.is_tri, self.is_qd = False, False, False
         if robot_arch == "bi":
@@ -122,6 +122,7 @@ class Visualizer:
         time_data_x = np.arange(self.data_idx) * ts_sim
 
         # Plot Position
+        # fmt: off
         plt.subplot(ceil(n_plots/2), 2, 1)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
@@ -152,7 +153,6 @@ class Visualizer:
         plt.legend(framealpha=legend_alpha)
         plt.grid(True)
 
-        # fmt: off
         # Plot Velocity
         plt.subplot(ceil(n_plots/2), 2, 3)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
@@ -210,12 +210,11 @@ class Visualizer:
         plt.legend(framealpha=legend_alpha)
         plt.grid(True)
 
-        # Use tf2 to convert x_sim_all[:, 6:10] to euler angle
+        # Convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
         plt.subplot(ceil(n_plots/2), 2, 2)
@@ -470,12 +469,11 @@ class Visualizer:
         plt.ylabel("Position (m)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.65), loc="lower left")
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
         euler = euler * 180 / np.pi  # in degree
 
         # Plot Euler Angles (with y-axis on the right side)
@@ -553,12 +551,11 @@ class Visualizer:
         title = title.replace("_", r"\_")
         # fig.title(title)
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # fmt: off
         # Plot Euler Angles

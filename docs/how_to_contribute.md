@@ -19,6 +19,11 @@ Pre-commit, the format plugin, will run automatically before each commit. The sp
     pre-commit run --files $(find path/to/folder -type f)
 ```
 
+To turn off the pre-commit check locally, run:
+```bash
+    pre-commit uninstall
+```
+
 If you don't like the style formatted by black for Python, please add the following line to the top of your Python file:
 
 ```python

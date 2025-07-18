@@ -43,7 +43,7 @@ public:
   {
     Eigen::Vector3d vel_w, omega_cog;
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
-    tf::vectorTFToEigen(imu_handler->getFilteredVelCogInW(), vel_w);        // the vel of CoG point in world frame
+    tf::vectorTFToEigen(imu_handler->getFilteredVelCogInW(), vel_w);          // the vel of CoG point in world frame
     tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
