@@ -8,7 +8,6 @@
 #include "aerial_robot_control/nmpc/base_mhe_solver.h"
 #include "aerial_robot_control/wrench_est/mhe_wrench_est_acc_mom_mdl/c_generated_code/acados_solver_mhe_wrench_est_acc_mom_mdl.h"
 
-
 namespace aerial_robot_control
 {
 
@@ -98,7 +97,8 @@ protected:
 
   inline int acadosUpdateParamsSparse(int stage, std::vector<int>& idx, std::vector<double>& p, int n_update) override
   {
-    return mhe_wrench_est_acc_mom_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx.data(), p.data(), n_update);
+    return mhe_wrench_est_acc_mom_mdl_acados_update_params_sparse(acados_ocp_capsule_, stage, idx.data(), p.data(),
+                                                                  n_update);
   }
 
   inline int acadosSolve() override
@@ -112,8 +112,8 @@ protected:
   }
 };
 
-}  // namespace mpc_solver
+}  // namespace mhe_solver
 
 }  // namespace aerial_robot_control
 
-#endif //MHE_WRENCH_EST_ACC_MOM_SOLVER_H
+#endif  // MHE_WRENCH_EST_ACC_MOM_SOLVER_H

@@ -14,6 +14,7 @@ Then, follow the instructions below:
 - Install acados itself: Please follow the instructions on the acados website https://docs.acados.org/installation/index.html
 - Install Python interface: Please follow the instructions on the acados website https://docs.acados.org/python_interface/index.html, but don't create virtual env in step 2. The virtual env has compatibility problem with ROS env.
 - **Pay attention** that you must execute the step 5 in https://docs.acados.org/python_interface/index.html to test the installation. This step should automatically install t_renderer. If something wrong, please follow step 6 to manually install t_renderer.
+- When performing step6, please note that VIM4 is **aarch64(arm64)**, don't build t_renderer in amd64(x86) format.
 
 ### 2. Install the code base and the necessary ROS related packages ...
 
@@ -49,7 +50,7 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic   # instal
 ```
 
 ### 2.2 ... for Ubuntu 22.04 and ROS-O
-Install ROS-O for ubuntu 22.04 from https://ros.packages.techfak.net/ and source the setup file:
+Run the following bash script that conveniently installs all packages and software, including ROS-O for Ubuntu 22.04 from https://ros.packages.techfak.net/. Then source the setup file:
 
 ```bash
 ./jsk_aerial_robot/configure.sh   # for configuration especially for ROS-O in jammy
@@ -73,18 +74,14 @@ wstool update -t src    # install unofficial packages
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO      # install the dependencies/packages stated in package.xml
 ```
 
-For convenience, open `~/.bashrc` and add sourcing of the workspace to the end of the file:
-
-```bash
-In ~/.bashrc:
-
-source ~/[path_to_ws]/devel/setup.bash
-```
-
 ### 3. Install python packages and link them to acados
 Install required packages:
 ```bash
 pip install -r src/jsk_aerial_robot/aerial_robot_control/scripts/requirements.txt
+```
+For VIM4, since  it's Ubuntu20.04 python3.8, pandas's version is incompatible, we should use different pkgs:
+```bash
+pip install -r src/jsk_aerial_robot/aerial_robot_control/scripts/requirementsVIM4.txt
 ```
 
 For the first run, **uncomment** these code in `aerial_robot_control/scripts/nmpc/gen_nmpc_code_all.sh`
@@ -112,7 +109,17 @@ cd ~/path_to_ws
 catkin build
 ```
 
-A frequent problem is the handling of the jobservers in the build process. When occuring during the build process - especially in the aerial_robot_control package - please try simply running the build command again.
+For convenience, open `~/.bashrc` and add sourcing of the workspace to the end of the file:
+
+```bash
+In ~/.bashrc:
+
+source ~/[path_to_ws]/devel/setup.bash
+```
+
+#### Addendum: Potential fixes to common problems
+- A frequent problem is the handling of the jobservers in the build process. When occuring during the build process - especially in the aerial_robot_control package - please try simply running the build command again.
+- If for some reason there is a NumPy version error while building, the correct version to use is 1.21.5 since ROS-O only supports versions up to it. Therefore, please check with `apt list | grep numpy` and `pip list | grep numpy` for all NumPy versions on your system. Then uninstall all packages corresponding to incorrect versions using apt or pip respectively. Then reinstall NumPy with the correct version flag, e.g., `pip install numpy==1.21.5`.
 
 ### 5. If the build is successful, comment the code in step 3 back.
 
@@ -182,7 +189,7 @@ After the robot reach the status of hovering - see terminal output of main launc
     - **5**: Exit Mode
 
     To check the current mode, you can run:`rosparam get /operation_mode`
-    
+
 **Ground Station**
 Three terminals are needed.
 

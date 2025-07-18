@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 
-sys.path.append('../scripts/nmpc/')
+sys.path.append("../scripts/nmpc/")
 from sim_nmpc import main
 
 current_path = os.path.abspath(os.path.dirname(__file__))
@@ -14,7 +14,7 @@ class SimArgs:
         self.model = 0
         self.sim_model = 0
         self.plot_type = 1
-        self.arch = 'qd'
+        self.arch = "qd"
         self.no_viz = True
         self.save_data = False
         self.file_path = "../../../../test/data/"
@@ -26,7 +26,7 @@ def print_error(x, x_true, u, u_true):
     print(f"accumulated error: {np.sum(np.abs(x - x_true))}, {np.sum(np.abs(u - u_true))}")
 
 
-def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_type=1, arch='qd', no_viz=True):
+def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_type=1, arch="qd", no_viz=True):
     """
     Run simulation and compare against reference data.
 
@@ -44,7 +44,7 @@ def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_ty
     """
     os.chdir(current_path)
     npzfile = np.load(npz_filename)
-    x_true, u_true = npzfile['x'], npzfile['u']
+    x_true, u_true = npzfile["x"], npzfile["u"]
 
     sim_args = SimArgs()
     sim_args.model = nmpc_model_id
@@ -61,100 +61,100 @@ def run_simulation_test(npz_filename, nmpc_model_id, sim_model_id, atol, plot_ty
 class TestTiltQd(unittest.TestCase):
     def test_tilt_qd_no_servo(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdNoServo_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdNoServo_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=0,
             sim_model_id=0,
             atol=1e-1,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_servo(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdServo_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdServo_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=1,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_thrust(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdThrust_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdThrust_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=2,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_servo_thrust(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdServoThrust_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdServoThrust_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=3,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_servo_dist(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdServoDist_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdServoDist_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=21,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_servo_thrust_dist(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdServoThrustDist_sim_NMPCTiltQdServoThrust.npz',
+            npz_filename="data/nmpc_NMPCTiltQdServoThrustDist_sim_NMPCTiltQdServoThrust.npz",
             nmpc_model_id=22,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
     def test_tilt_qd_servo_thrust_drag_sim_model(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltQdServo_sim_NMPCTiltQdServoThrustDrag.npz',
+            npz_filename="data/nmpc_NMPCTiltQdServo_sim_NMPCTiltQdServoThrustDrag.npz",
             nmpc_model_id=1,
             sim_model_id=1,
             atol=1e-3,
             plot_type=1,
-            no_viz=True
+            no_viz=True,
         )
 
 
 class TestTiltTri(unittest.TestCase):
     def test_tilt_tri_servo(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltTriServo_sim_NMPCTiltTriServo.npz',
+            npz_filename="data/nmpc_NMPCTiltTriServo_sim_NMPCTiltTriServo.npz",
             nmpc_model_id=0,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            arch='tri',
-            no_viz=True
+            arch="tri",
+            no_viz=True,
         )
 
 
 class TestTiltBi(unittest.TestCase):
     def test_tilt_bi_servo(self):
         run_simulation_test(
-            npz_filename='data/nmpc_NMPCTiltBiServo_sim_NMPCTiltBiServo.npz',
+            npz_filename="data/nmpc_NMPCTiltBiServo_sim_NMPCTiltBiServo.npz",
             nmpc_model_id=0,
             sim_model_id=0,
             atol=1e-3,
             plot_type=1,
-            arch='bi',
-            no_viz=True
+            arch="bi",
+            no_viz=True,
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 """
- Created by li-jinjie on 25-1-4.
+Created by li-jinjie on 25-1-4.
 """
 
 import os
@@ -160,7 +160,7 @@ class InitState(smach.State):
         else:
             csv_file = csv_files[userdata.traj_type - len(traj_cls_list)]
             rospy.loginfo(f"Using CSV file: {csv_file}")
-            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=',', max_rows=1)
+            csv_traj = np.loadtxt(os.path.join(csv_folder_path, csv_file), delimiter=",", max_rows=1)
             x, y, z = csv_traj[0:3]
             qw, qx, qy, qz = csv_traj[6:10]
 
@@ -292,10 +292,16 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SMACH-based MPC Trajectory Publisher")
     parser.add_argument("robot_name", type=str, help="Robot name, e.g., beetle1, gimbalrotors")
-    parser.add_argument("--has_0066_viz", "-6", action="store_true", default=False,
-                        help="Whether to visualize the 0066 flight range (default: False)")
-    parser.add_argument("--hand_markers_viz_type", "-v", type=int, default=0,
-                        help="0: no viz; 1: viz type 1 (default: 0)")
+    parser.add_argument(
+        "--has_0066_viz",
+        "-6",
+        action="store_true",
+        default=False,
+        help="Whether to visualize the 0066 flight range (default: False)",
+    )
+    parser.add_argument(
+        "--hand_markers_viz_type", "-v", type=int, default=0, help="0: no viz; 1: viz type 1 (default: 0)"
+    )
 
     args = parser.parse_args()
     main(args)

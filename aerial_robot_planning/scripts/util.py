@@ -1,6 +1,6 @@
-'''
- Created by jiaxuan and jinjie on 25/01/22.
-'''
+"""
+Created by jiaxuan and jinjie on 25/01/22.
+"""
 
 from functools import wraps
 from typing import Optional
@@ -90,7 +90,7 @@ def check_traj_info(x: np.ndarray, if_return_path=False) -> Optional[Path]:
     print("Velocity (vz): max = {:.3f}".format(np.max(vz)))
 
     # Compute overall speed v = sqrt(vx^2 + vy^2 + vz^2)
-    v = np.sqrt(vx ** 2 + vy ** 2 + vz ** 2)
+    v = np.sqrt(vx**2 + vy**2 + vz**2)
     print("Speed (v): max = {:.3f}".format(np.max(v)))
 
     # --- Orientation ---
@@ -100,7 +100,7 @@ def check_traj_info(x: np.ndarray, if_return_path=False) -> Optional[Path]:
     quats_xyzw = np.hstack((quats[:, 1:], quats[:, 0:1]))
 
     # Convert quaternion to Euler angles in degrees using the 'xyz' (roll, pitch, yaw) convention
-    eulers = R.from_quat(quats_xyzw).as_euler('xyz', degrees=True)
+    eulers = R.from_quat(quats_xyzw).as_euler("xyz", degrees=True)
     roll = eulers[:, 0]
     pitch = eulers[:, 1]
     yaw = eulers[:, 2]
@@ -120,7 +120,7 @@ def check_traj_info(x: np.ndarray, if_return_path=False) -> Optional[Path]:
     print("Angular Velocity (wz): max = {:.3f}".format(np.max(wz)))
 
     # Compute overall angular speed w = sqrt(wx^2 + wy^2 + wz^2)
-    w = np.sqrt(wx ** 2 + wy ** 2 + wz ** 2)
+    w = np.sqrt(wx**2 + wy**2 + wz**2)
     print("Angular speed (w): max = {:.3f}".format(np.max(w)))
     print("===========================================\n")
 
@@ -175,9 +175,9 @@ class TrackingErrorCalculator:
         all_pos_err_np = np.array(self.all_pos_err)
         all_ang_err_np = np.array(self.all_ang_err)
 
-        pos_rmse = np.sqrt(np.mean(all_pos_err_np ** 2, axis=1))
+        pos_rmse = np.sqrt(np.mean(all_pos_err_np**2, axis=1))
         pos_rmse_norm = np.linalg.norm(pos_rmse)
-        ang_rmse = np.sqrt(np.mean(all_ang_err_np ** 2, axis=1))
+        ang_rmse = np.sqrt(np.mean(all_ang_err_np**2, axis=1))
         ang_rmse_norm = np.linalg.norm(ang_rmse)
 
         return pos_rmse_norm, pos_rmse, ang_rmse_norm, ang_rmse
@@ -190,10 +190,12 @@ class TrackingErrorCalculator:
         """
         # Current pose
         cur_pos = uav_odom.pose.pose.position
-        q_cur = [uav_odom.pose.pose.orientation.x,
-                 uav_odom.pose.pose.orientation.y,
-                 uav_odom.pose.pose.orientation.z,
-                 uav_odom.pose.pose.orientation.w]
+        q_cur = [
+            uav_odom.pose.pose.orientation.x,
+            uav_odom.pose.pose.orientation.y,
+            uav_odom.pose.pose.orientation.z,
+            uav_odom.pose.pose.orientation.w,
+        ]
 
         # Extract reference pose
         try:
@@ -230,8 +232,7 @@ class TrackingErrorCalculator:
         return dx, dy, dz, euler_err[0], euler_err[1], euler_err[2]
 
 
-def create_wall_markers(points, thickness=0.1, height=2.0,
-                        frame_id="world", ns="walls", color=None):
+def create_wall_markers(points, thickness=0.1, height=2.0, frame_id="world", ns="walls", color=None):
     """
     Build a MarkerArray in which each polygon edge is rendered as a thin box.
 
@@ -310,12 +311,14 @@ def pub_0066_wall_rviz(cleanup=False):
         return
 
     # ---- Corner points of the walls (m) ----
-    pts = [(-2.2, -2.9),
-           (3.9, -2.9),
-           (3.9, 3.4),
-           (-3.4, 3.4),
-           (-3.4, -0.4),
-           (-2.2, -0.4), ]
+    pts = [
+        (-2.2, -2.9),
+        (3.9, -2.9),
+        (3.9, 3.4),
+        (-3.4, 3.4),
+        (-3.4, -0.4),
+        (-2.2, -0.4),
+    ]
     # Close the polygon by repeating the first point
     pts.append(pts[0])
     # ----------------------------------------
@@ -325,11 +328,13 @@ def pub_0066_wall_rviz(cleanup=False):
     rospy.loginfo("Wall markers published on topic 'walls'. Open RViz and add a 'Marker' display.")
 
 
-def create_hand_markers(poses,
-                        mesh_resource="package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae",
-                        frame_id="world",
-                        ns="hand_mesh",
-                        scale=(1.0, 1.0, 1.0)):
+def create_hand_markers(
+    poses,
+    mesh_resource="package://aerial_robot_planning/meshes/plastic_hand_9cm_wide.dae",
+    frame_id="world",
+    ns="hand_mesh",
+    scale=(1.0, 1.0, 1.0),
+):
     """
     Build a MarkerArray that places one mesh for every pose in *poses*.
 
@@ -344,9 +349,7 @@ def create_hand_markers(poses,
     for idx, (x, y, z, r_deg, p_deg, y_deg) in enumerate(poses):
         # Convert Euler angles (degrees) to quaternion (xyzw scalar-last)
         quat_xyzw = tf.transformations.quaternion_from_euler(
-            math.radians(r_deg),
-            math.radians(p_deg),
-            math.radians(y_deg)
+            math.radians(r_deg), math.radians(p_deg), math.radians(y_deg)
         )
 
         m = Marker()

@@ -14,6 +14,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     """
+
     def __init__(self, build: bool = True, phys=phys_omni):
         # Model name
         self.model_name = "tilt_qd_servo_thrust_dist_imp_mdl"
@@ -36,11 +37,10 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         super().__init__(build)
 
         # Necessary for simulation environment
-        self.fake_sensor = FakeSensor(self.include_servo_model,
-                                      self.include_thrust_model,
-                                      self.include_cog_dist_model)
+        self.fake_sensor = FakeSensor(self.include_servo_model, self.include_thrust_model, self.include_cog_dist_model)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # fmt: off
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -63,7 +63,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.a_s,
             self.ft_s,
             ca.times(lin_acc_w, self.mp) - self.fds_w,
-            ca.times(ang_acc_b, self.mq) - self.tau_ds_b
+            ca.times(ang_acc_b, self.mq) - self.tau_ds_b,
         )
 
         state_y_e = ca.vertcat(
@@ -76,8 +76,8 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.w,
             self.a_s,
             self.ft_s,
-            ca.vertcat(0, 0, 0),    # lin acc = 0 for infinite horizon
-            ca.vertcat(0, 0, 0)     # ang acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0),  # lin acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0),  # ang acc = 0 for infinite horizon
         )
 
         control_y = ca.vertcat(
@@ -86,6 +86,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         )
 
         return state_y, state_y_e, control_y
+        # fmt: on
 
     def get_weights(self):
         # Define Weights
@@ -183,14 +184,14 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
 
         # Assemble state reference
         xr = np.zeros([nn + 1, nx])
-        xr[:, 0] = target_xyz[0]       # x
-        xr[:, 1] = target_xyz[1]       # y
-        xr[:, 2] = target_xyz[2]       # z
+        xr[:, 0] = target_xyz[0]  # x
+        xr[:, 1] = target_xyz[1]  # y
+        xr[:, 2] = target_xyz[2]  # z
         # No reference for vx, vy, vz (idx: 3, 4, 5)
-        xr[:, 6] = target_qwxyz[0]     # qx
-        xr[:, 7] = target_qwxyz[1]     # qx
-        xr[:, 8] = target_qwxyz[2]     # qy
-        xr[:, 9] = target_qwxyz[3]     # qz
+        xr[:, 6] = target_qwxyz[0]  # qx
+        xr[:, 7] = target_qwxyz[1]  # qx
+        xr[:, 8] = target_qwxyz[2]  # qy
+        xr[:, 9] = target_qwxyz[3]  # qz
         # No reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
