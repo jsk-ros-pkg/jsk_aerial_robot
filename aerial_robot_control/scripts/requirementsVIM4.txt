@@ -1,0 +1,2 @@
+scienceplots==2.1.1
+casadi==3.7.0
