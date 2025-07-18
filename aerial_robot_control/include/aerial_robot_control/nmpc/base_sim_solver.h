@@ -22,7 +22,7 @@ class AcadosSolveException : public std::runtime_error
 {
 public:
   int status_;
-  explicit AcadosSolveException(int status) : std::runtime_error(createErrorMessage(status)), status_(status){};
+  explicit AcadosSolveException(int status) : std::runtime_error(createErrorMessage(status)), status_(status) {};
 
 private:
   static std::string createErrorMessage(int status)
