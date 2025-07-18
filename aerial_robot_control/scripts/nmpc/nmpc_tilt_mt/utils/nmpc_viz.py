@@ -15,6 +15,10 @@ class Visualizer:
         nx,
         nu,
         x0,
+        x_lower_constraints=None,
+        x_upper_constraints=None,
+        u_lower_constraints=None,
+        u_upper_constraints=None,
         tilt=False,
         include_servo_model=False,
         include_thrust_model=False,
@@ -118,11 +122,11 @@ class Visualizer:
         time_data_x = np.arange(self.data_idx) * ts_sim
 
         # Plot Position
-        plt.subplot(ceil(n_plots / 2), 2, 1)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 0], label="x")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 1], label="y")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 2], label="z")
-        plt.legend(framealpha=legend_alpha)
+        # fmt: off
+        plt.subplot(ceil(n_plots/2), 2, 1)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Position (m)")
@@ -149,7 +153,6 @@ class Visualizer:
         plt.legend(framealpha=legend_alpha)
         plt.grid(True)
 
-        # fmt: off
         # Plot Velocity
         plt.subplot(ceil(n_plots/2), 2, 3)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
@@ -214,11 +217,10 @@ class Visualizer:
             euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
-        plt.subplot(ceil(n_plots / 2), 2, 2)
-        plt.plot(time_data_x, euler[: self.data_idx, 0], label="roll")
-        plt.plot(time_data_x, euler[: self.data_idx, 1], label="pitch")
-        plt.plot(time_data_x, euler[: self.data_idx, 2], label="yaw")
-        plt.legend(framealpha=legend_alpha)
+        plt.subplot(ceil(n_plots/2), 2, 2)
+        plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
+        plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
+        plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Euler Angle (rad)")
@@ -228,11 +230,10 @@ class Visualizer:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         # Plot Angular Velocity
-        plt.subplot(ceil(n_plots / 2), 2, 4)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 10], label="wx")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 11], label="wy")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 12], label="wz")
-        plt.legend(framealpha=legend_alpha)
+        plt.subplot(ceil(n_plots/2), 2, 4)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 10], label="wx")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 11], label="wy")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 12], label="wz")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Angular Velocity (rad/s)")
@@ -255,12 +256,13 @@ class Visualizer:
         plt.grid(True)
 
         # Plot Computation Time
-        print("Average computation time: ", np.mean(self.comp_time))
-        plt.subplot(ceil(n_plots / 2), 2, 6)
-        plt.plot(time_data_x, self.comp_time)
+        print(f"Average computation time: {np.mean(self.comp_time):.3f} ms")
+        plt.subplot(ceil(n_plots/2), 2, 6)
+        plt.plot(time_data_x, self.comp_time, label=f"Avg = {np.mean(self.comp_time):.3f} ms")
+        plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("Computation Time (s)")
+        plt.ylabel("Computation Time (ms)")
         plt.grid(True)
 
         # Plot Servo Angle as State
