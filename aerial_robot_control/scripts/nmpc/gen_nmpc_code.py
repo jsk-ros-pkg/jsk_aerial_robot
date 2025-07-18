@@ -11,12 +11,17 @@ from nmpc_tilt_mt.tilt_tri import *
 
 if __name__ == "__main__":
     # get the name of all classes imported from *
-    class_names = [cls for cls in dir() if not cls.startswith('_') and isinstance(globals()[cls], type)]
+    class_names = [cls for cls in dir() if not cls.startswith("_") and isinstance(globals()[cls], type)]
     class_names_str = ", ".join(class_names)
 
     parser = argparse.ArgumentParser(description="Run NMPC with different models to generate code.")
-    parser.add_argument("-m", "--model", type=str, required=True,
-                        help=f"Model name to generate code for. Choose from: {class_names_str}")
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help=f"Model name to generate code for. Choose from: {class_names_str}",
+    )
     args = parser.parse_args()
 
     model_name = args.model

@@ -55,15 +55,12 @@ class NMPCTiltQdServoDist(QDNMPCBase):
             self.w,
             self.a_s,
             self.fds_w,
-            self.tau_ds_b
+            self.tau_ds_b,
         )
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(
-            self.ft_c,
-            self.a_c - self.a_s  # a_c_ref must be zero!
-        )
+        control_y = ca.vertcat(self.ft_c, self.a_c - self.a_s)  # a_c_ref must be zero!
 
         return state_y, state_y_e, control_y
 

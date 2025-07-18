@@ -27,7 +27,7 @@ class MHEBase(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0];
+        nx = ocp.model.x.size()[0]
         nw = ocp.model.u.size()[0]
         n_meas = ocp.model.cost_y_expr.size()[0] - nw
 

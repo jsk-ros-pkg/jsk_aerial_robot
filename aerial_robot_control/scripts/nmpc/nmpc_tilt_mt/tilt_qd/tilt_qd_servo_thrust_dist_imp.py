@@ -36,9 +36,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         super().__init__()
 
         # Necessary for simulation environment
-        self.fake_sensor = FakeSensor(self.include_servo_model,
-                                      self.include_thrust_model,
-                                      self.include_cog_dist_model)
+        self.fake_sensor = FakeSensor(self.include_servo_model, self.include_thrust_model, self.include_cog_dist_model)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -63,7 +61,7 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.a_s,
             self.ft_s,
             ca.times(lin_acc_w, self.mp) - self.fds_w,
-            ca.times(ang_acc_b, self.mq) - self.tau_ds_b
+            ca.times(ang_acc_b, self.mq) - self.tau_ds_b,
         )
 
         state_y_e = ca.vertcat(
@@ -77,12 +75,11 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
             self.a_s,
             self.ft_s,
             ca.vertcat(0, 0, 0),  # lin acc = 0 for infinite horizon
-            ca.vertcat(0, 0, 0)  # ang acc = 0 for infinite horizon
+            ca.vertcat(0, 0, 0),  # ang acc = 0 for infinite horizon
         )
 
         control_y = ca.vertcat(
-            self.ft_c - self.ft_s,  # ft_c_ref must be zero!
-            self.a_c - self.a_s  # a_c_ref must be zero!
+            self.ft_c - self.ft_s, self.a_c - self.a_s  # ft_c_ref must be zero!  # a_c_ref must be zero!
         )
 
         return state_y, state_y_e, control_y

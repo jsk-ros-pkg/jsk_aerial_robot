@@ -82,27 +82,42 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_ib = ca.vertcat(row_1, row_2, row_3)
 
         den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
-        rot_be1 = np.array([[self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
-                            [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0], [0, 0, 1]])
+        rot_be1 = np.array(
+            [
+                [self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+                [self.phys.p1_b[1] / den, self.phys.p1_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
-        rot_be2 = np.array([[self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
-                            [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0], [0, 0, 1]])
+        rot_be2 = np.array(
+            [
+                [self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+                [self.phys.p2_b[1] / den, self.phys.p2_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
-        rot_be3 = np.array([[self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
-                            [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0], [0, 0, 1]])
+        rot_be3 = np.array(
+            [
+                [self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+                [self.phys.p3_b[1] / den, self.phys.p3_b[0] / den, 0],
+                [0, 0, 1],
+            ]
+        )
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1), -ca.sin(a1)), ca.horzcat(0, ca.sin(a1), ca.cos(a1))
@@ -125,17 +140,17 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
         # Wrench in Body frame
         f_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
         )
         tau_u_b = (
-                ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(self.phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(self.phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
         )
 
         # Inertia
@@ -193,7 +208,7 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
         ocp = super().get_ocp()
 
         # Model dimensions
-        nx = ocp.model.x.size()[0];
+        nx = ocp.model.x.size()[0]
         nu = ocp.model.u.size()[0]
 
         # Define weights
@@ -406,10 +421,18 @@ class NMPCTiltTriServoDist(RecedingHorizonBase):
 
     def _create_reference_generator(self) -> TriNMPCReferenceGenerator:
         # Pass the model's and robot's properties to the reference generator
-        return TriNMPCReferenceGenerator(self,
-                                         self.phys.p1_b, self.phys.p2_b, self.phys.p3_b,
-                                         self.phys.dr1, self.phys.dr2, self.phys.dr3,
-                                         self.phys.kq_d_kt, self.phys.mass, self.phys.gravity)
+        return TriNMPCReferenceGenerator(
+            self,
+            self.phys.p1_b,
+            self.phys.p2_b,
+            self.phys.p3_b,
+            self.phys.dr1,
+            self.phys.dr2,
+            self.phys.dr3,
+            self.phys.kq_d_kt,
+            self.phys.mass,
+            self.phys.gravity,
+        )
 
     def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()

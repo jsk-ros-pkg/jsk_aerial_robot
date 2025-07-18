@@ -17,5 +17,5 @@ __all__ = [
     "NMPCTiltQdServoDist",
     "NMPCTiltQdServoImpedance",
     "NMPCTiltQdServoThrustDist",
-    "NMPCTiltQdServoThrustImpedance"
+    "NMPCTiltQdServoThrustImpedance",
 ]

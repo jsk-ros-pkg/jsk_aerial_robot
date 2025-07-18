@@ -86,12 +86,13 @@ class FingerDataManager:
         )
 
         # If the gesture is not valid, get the gesture state number is -1.
-        gesture_state_text, gesture_state_num = self.gesture_to_state_mapping.get(gesture_state_tuple,
-                                                                                  ("State_no_change", -1))
+        gesture_state_text, gesture_state_num = self.gesture_to_state_mapping.get(
+            gesture_state_tuple, ("State_no_change", -1)
+        )
         self.update_control_mode(gesture_state_num)
 
     def update_control_mode(self, gesture_state_num: int) -> None:
-        """ Updates the control mode using ROS parameters. """
+        """Updates the control mode using ROS parameters."""
         if gesture_state_num == -1:
             self.last_state = self.get_current_mode()
             self.last_check_time = None
@@ -118,7 +119,7 @@ class FingerDataManager:
 
 
 def shut_publisher(sig, frame) -> None:
-    """ Shuts down the ROS node and OSC server. """
+    """Shuts down the ROS node and OSC server."""
     print("\nShutting down the OSC server and ROS node...")
     rospy.signal_shutdown("Ctrl+C pressed")
     sys.exit(0)

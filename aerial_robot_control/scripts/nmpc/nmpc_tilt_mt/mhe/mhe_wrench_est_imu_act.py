@@ -20,12 +20,12 @@ class MHEWrenchEstIMUAct(MHEBase):
         model_name = "mhe_wrench_est_imu_act_mdl"
 
         # Model states
-        wx = ca.SX.sym("wx")      # Angular velocity
+        wx = ca.SX.sym("wx")  # Angular velocity
         wy = ca.SX.sym("wy")
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1s = ca.SX.sym("a1s")    # Servo angle
+        a1s = ca.SX.sym("a1s")  # Servo angle
         a2s = ca.SX.sym("a2s")
         a3s = ca.SX.sym("a3s")
         a4s = ca.SX.sym("a4s")
@@ -37,8 +37,8 @@ class MHEWrenchEstIMUAct(MHEBase):
         ft4s = ca.SX.sym("ft4s")
         ft_s = ca.vertcat(ft1s, ft2s, ft3s, ft4s)
 
-        fds_w = ca.SX.sym("fds_w", 3)         # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)   # Disturbance on torque in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
 
         states = ca.vertcat(w, fds_w, tau_ds_b, a_s, ft_s)
 
@@ -67,17 +67,17 @@ class MHEWrenchEstIMUAct(MHEBase):
         a4c = ca.SX.sym("a4c")
         a_c = ca.vertcat(a1c, a2c, a3c, a4c)
 
-        controls = ca.vertcat(q, ft_c, a_c)   # Input u as parameters
+        controls = ca.vertcat(q, ft_c, a_c)  # Input u as parameters
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
@@ -120,29 +120,24 @@ class MHEWrenchEstIMUAct(MHEBase):
         tau_r4 = ca.vertcat(0, 0, -dr4 * ft4s * kq_d_kt)
 
         f_u_b = (
-                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-                + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-                + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-                + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-                + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Sensor function
-        measurements = ca.vertcat(
-            (f_u_b + ca.mtimes(rot_bw, fds_w)) / mass,
-            w,
-            a_s,
-            ft_s
-        )
+        measurements = ca.vertcat((f_u_b + ca.mtimes(rot_bw, fds_w)) / mass, w, a_s, ft_s)
 
         # Inertia
         I = ca.diag([Ixx, Iyy, Izz])
@@ -154,7 +149,7 @@ class MHEWrenchEstIMUAct(MHEBase):
             w_f,
             w_tau,
             (a_c - a_s) / t_servo,
-            (ft_c - ft_s) / t_rotor
+            (ft_c - ft_s) / t_rotor,
         )
         f = ca.Function("f", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
@@ -165,13 +160,13 @@ class MHEWrenchEstIMUAct(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
         model.p = controls
-        
+
         # Cost function
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error

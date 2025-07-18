@@ -9,5 +9,5 @@ __all__ = [
     "NMPCTiltQdServoDragDist",
     "NMPCTiltQdServoOldCost",
     "NMPCTiltQdServoThrustDrag",
-    "NMPCTiltQdServoWCogEndDist"
+    "NMPCTiltQdServoWCogEndDist",
 ]

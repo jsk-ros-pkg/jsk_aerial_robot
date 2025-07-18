@@ -39,12 +39,12 @@ def main(args):
 
     # --------- Disturbance Rejection ---------
     ts_sensor = 0.0025
-    disturb_estimated = np.zeros(6)     # fds_w, tau_ds_b. Note that, they are in different frames.
-    disturb_nmpc_compd = np.zeros(6)    # fds_w, tau_ds_b. The disturbance that has been compensated by the nmpc.
+    disturb_estimated = np.zeros(6)  # fds_w, tau_ds_b. Note that, they are in different frames.
+    disturb_nmpc_compd = np.zeros(6)  # fds_w, tau_ds_b. The disturbance that has been compensated by the nmpc.
 
     # ---------- Simulator ----------
     sim_nmpc = NMPCTiltQdServoThrustDist()
-    
+
     # Get time constants
     if sim_nmpc.include_servo_model:
         t_servo_sim = sim_nmpc.phys.t_servo
@@ -56,7 +56,6 @@ def main(args):
         t_rotor_sim = 0.0
 
     ts_sim = 0.005  # or 0.001
-
 
     t_total_sim = 15.0
     if args.plot_type == 1:
@@ -94,11 +93,11 @@ def main(args):
         nx_sim,
         nu,
         x_init_sim,
-        tilt = nmpc.tilt,
-        include_servo_model = sim_nmpc.include_servo_model,
-        include_thrust_model = sim_nmpc.include_thrust_model,
-        include_cog_dist_model = sim_nmpc.include_cog_dist_model,
-        is_record_diff_u=True
+        tilt=nmpc.tilt,
+        include_servo_model=sim_nmpc.include_servo_model,
+        include_thrust_model=sim_nmpc.include_thrust_model,
+        include_cog_dist_model=sim_nmpc.include_cog_dist_model,
+        is_record_diff_u=True,
     )
 
     is_sqp_change = False
@@ -107,8 +106,11 @@ def main(args):
 
     # ---------- Sensors ----------
     fir_param = [-0.5, 0, 0.5]  # central difference
-    gyro_differentiator = [FIRDifferentiator(fir_param, ts_sensor), FIRDifferentiator(fir_param, ts_sensor),
-                           FIRDifferentiator(fir_param, ts_sensor)]  # for gyro differentiation
+    gyro_differentiator = [
+        FIRDifferentiator(fir_param, ts_sensor),
+        FIRDifferentiator(fir_param, ts_sensor),
+        FIRDifferentiator(fir_param, ts_sensor),
+    ]  # for gyro differentiation
 
     # ========== Run simulation ==========
     u_cmd = u_init
@@ -126,7 +128,7 @@ def main(args):
         # Assemble state from simulation and disturbance estimation
         if nmpc.include_cog_dist_model:
             x_now = np.zeros(nx)
-            x_now[:nx - 6] = x_now_sim[:nx - 6]
+            x_now[: nx - 6] = x_now_sim[: nx - 6]
             x_now[-6:] = disturb_estimated
         else:
             x_now = x_now_sim[:nx]  # The dimension of x_now may be smaller than x_now_sim
@@ -216,13 +218,13 @@ def main(args):
             # Calculate the internal wrench from IMU measurements in Body frame
             sf_b, ang_acc_b, rot_wb = sim_nmpc.fake_sensor.update_acc(x_now_sim)
 
-            w = x_now_sim[10:13]    # Angular velocity
+            w = x_now_sim[10:13]  # Angular velocity
             mass = sim_nmpc.fake_sensor.mass
             gravity = sim_nmpc.fake_sensor.gravity
             I = sim_nmpc.fake_sensor.I
 
             sf_b_imu = sf_b + np.random.normal(0.0, 0.1, 3)  # add noise. real: scale = 0.00727 * gravity
-            w_imu = w + np.random.normal(0.0, 0.001, 3)      # add noise. real: scale = 0.0008 rad/s
+            w_imu = w + np.random.normal(0.0, 0.001, 3)  # add noise. real: scale = 0.0008 rad/s
 
             ang_acc_b_imu = np.zeros(3)
             if args.if_use_ang_acc == 0:
@@ -280,10 +282,12 @@ def main(args):
             if args.if_est_dist:
                 # Only use the wrench difference between the imu and the actuator sensor, no u_mpc
                 alpha = 0.005
-                disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(rot_wb, (
-                        wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # World frame
+                disturb_estimated[0:3] = (1 - alpha) * disturb_estimated[0:3] + alpha * np.dot(
+                    rot_wb, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])
+                )  # World frame
                 disturb_estimated[3:6] = (1 - alpha) * disturb_estimated[3:6] + alpha * (
-                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])   # Body frame
+                    wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]
+                )  # Body frame
 
             # --- For the methods that need to update u_cmd, such as INDI ---
             if args.indi_type > 0:
@@ -300,8 +304,9 @@ def main(args):
                 if wrench_2norm_sq == 0:
                     B_inv = np.dot(np.expand_dims(u_mpc, axis=1), (0 * np.expand_dims(wrench_u_b, axis=1).T))
                 else:
-                    B_inv = np.dot(np.expand_dims(u_mpc, axis=1),
-                                   (1 / wrench_2norm_sq * np.expand_dims(wrench_u_b, axis=1).T))
+                    B_inv = np.dot(
+                        np.expand_dims(u_mpc, axis=1), (1 / wrench_2norm_sq * np.expand_dims(wrench_u_b, axis=1).T)
+                    )
 
                 # NOTE: d_u should be negatively related to dist_wrench_res_b
                 d_u = np.dot(B_inv, -dist_wrench_res_b)
@@ -362,37 +367,26 @@ def main(args):
             ts_sim,
             t_total_sim,
             t_servo_ctrl=t_servo_ctrl,
-            t_servo_sim=t_servo_sim
+            t_servo_sim=t_servo_sim,
         )
     elif args.plot_type == 1:
-        viz.visualize_less(
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_less(ts_sim, t_total_sim)
     elif args.plot_type == 2:
-        viz.visualize_rpy(
-            ocp_solver.acados_ocp.model.name,
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_rpy(ocp_solver.acados_ocp.model.name, ts_sim, t_total_sim)
 
 
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different disturbance rejection methods.")
-    parser.add_argument(
-        "if_est_dist",
-        type=int,
-        help="Whether to estimate the disturbance. Options: 0 (no), 1 (yes)."
-    )
+    parser.add_argument("if_est_dist", type=int, help="Whether to estimate the disturbance. Options: 0 (no), 1 (yes).")
     parser.add_argument(
         "indi_type",
         type=int,
         help="Whether to use INDI. Options: 0 (no), "
-             "1 (the B_inv is calculated using mpc command), "
-             "2 (the B_inv is calculated using shifted mpc command), "
-             "3 (the B_inv is calculated using sensor command), "
-             "4 (the B_inv is calculated using the inverse of allocation matrix)."
+        "1 (the B_inv is calculated using mpc command), "
+        "2 (the B_inv is calculated using shifted mpc command), "
+        "3 (the B_inv is calculated using sensor command), "
+        "4 (the B_inv is calculated using the inverse of allocation matrix).",
     )
 
     parser.add_argument(
@@ -400,8 +394,7 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. "
-        "Options: 0 (default: full), 1 (less), 2 (only rpy)."
+        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
     )
 
     parser.add_argument(
@@ -409,7 +402,7 @@ if __name__ == "__main__":
         "--if_use_ang_acc",
         type=int,
         default=1,
-        help="Flag to use ground truth angular acceleration. Default: 1 (True)"
+        help="Flag to use ground truth angular acceleration. Default: 1 (True)",
     )
 
     args = parser.parse_args()
