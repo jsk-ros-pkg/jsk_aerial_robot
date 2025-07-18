@@ -1,26 +1,27 @@
-import sys, os
+import os
 import time
-import argparse
 import numpy as np
 
+from sim_environment.forward_prop import init_forward_prop, forward_prop
+from sim_environment.disturbances import apply_cog_disturbance, apply_motor_noise
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, write_recording_data
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import euclidean_dist
-from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot
+from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory
 from config.configurations import EnvConfig
 from neural_controller import NeuralNMPC
 
 
-np.random.seed(123)  # Set seed for reproducibility
-
 def main(model_options, solver_options, dataset_options, sim_options, run_options):
     """
-    Main function to run the NMPC simulation and recording.
+    Main function to run the NMPC simulation loop and label recording.
     :param model_options: Options for the NMPC model.
     :param dataset_options: Options for the recording.
     :param sim_options: Options for the simulation.
     :param run_options: Additional parameters for the simulation.
     """
+    np.random.seed(sim_options["seed"])  # Set seed for reproducibility
+
     # ------------------------
     # TODO set these somewhere else
     # Model options
@@ -29,7 +30,8 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     #     "version": 1,
     #     "name": "test_model"
     # })
-    T_sim = 0.005  # or 0.001
+    T_sim = 0.005 # or 0.001
+    T_prop_step = 0.001
     # ------------------------
 
     # --- Initialize controller ---
@@ -37,8 +39,6 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                         sim_options=sim_options, run_options=run_options)
 
     ocp_solver = rtnmpc.ocp_solver
-    # Create sim solver for the extended model
-    sim_solver = rtnmpc.create_acados_sim_solver(T_sim)
 
     reference_generator = rtnmpc.get_reference_generator()
 
@@ -55,6 +55,25 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     # Sanity check: The optimization should be faster or equal than the duration of the optimization time step
     assert T_samp <= T_horizon / N
     assert T_samp >= T_sim
+
+    # --- Initialize simulation environment ---
+    # Create sim solver for the extended model
+    sim_solver = rtnmpc.create_acados_sim_solver(T_sim)
+    # Undisturbed model for creating labels to train on
+    dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(rtnmpc.nmpc)
+    # Set disturbance flags
+    if EnvConfig.sim_options["disturbances"]["cog_dist"]:
+        rtnmpc.nmpc.include_cog_dist_parameter = True
+    else:
+        rtnmpc.nmpc.include_cog_dist_parameter = False
+
+    if EnvConfig.sim_options["disturbances"]["motor_noise"]:
+        rtnmpc.nmpc.include_motor_noise_parameter = True
+    else:
+        rtnmpc.nmpc.include_motor_noise_parameter = False
+
+    drag = EnvConfig.sim_options["disturbances"]["drag"]
+    payload = EnvConfig.sim_options["disturbances"]["payload"]
 
     # --- Set initial state ---
     if run_options["initial_state"] is None:
@@ -80,6 +99,8 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         # TODO actually able to use a pre-recorded dict? And if so make it overwriteable
         model_options["state_dim"] = nx
         model_options["control_dim"] = nu
+        model_options["include_quaternion_constraint"] = rtnmpc.nmpc.include_quaternion_constraint
+        model_options["include_soft_constraints"] = rtnmpc.nmpc.include_soft_constraints
         model_options["nmpc_params"] = rtnmpc.nmpc.params
         ds_name = model_options["nmpc_type"] + "_" + dataset_options["ds_name_suffix"]
         rec_dict, rec_file = get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, targets[0].size)
@@ -105,7 +126,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     t_now = 0.0  # Total virtual time in seconds
 
     # ---------- Targets loop ----------
-    print("Targets reached: ", end='')
+    print("Targets reached:")
     while False in targets_reached:
         # --- Target ---
         current_target_idx = np.where(targets_reached == False)[0][0]
@@ -115,7 +136,10 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         # --- Reference ---
         # Compute reference for Input u with an allocation matrix - TODO still makes sense if we don't know model in the first place?
         # Alternative is setting the modular trajectory yref dynamically in control loop
-        state_ref, control_ref = reference_generator.compute_trajectory(target_xyz=current_target[:3], target_rpy=current_target[6:9])
+        state_ref, control_ref = reference_generator.compute_trajectory(
+                                    target_xyz=current_target[:3],
+                                    target_rpy=current_target[6:9]
+        )
         # Track reference in solver over horizon
         rtnmpc.track(state_ref, control_ref)
 
@@ -132,13 +156,12 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 sim_solver.set("x", state_ref[-1,:])
 
             # --- Get current state ---
-            if u_cmd is not None:
-                # Basically don't overwrite initial state
+            if u_cmd is None:
+                # If no command is available, use initial/last state
+                sim_solver.set("x", state_curr)
+            else:
                 state_curr = sim_solver.get("x")
                 rtnmpc.check_state_constraints(state_curr, i)
-            else:
-                # Set initial state in solver
-                sim_solver.set("x", state_curr)
 
             # --- Initial guess ---
             # TODO set initial guess to prev iteration?
@@ -147,14 +170,21 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             # # TODO understand: "Save initial guess for future optimization. It is a time-shift of the current optimized variables"
             # initial_guess = np.array(cs.vertcat(initial_guess[1:, :], cs.DM.zeros(4).T))
 
+            # --- Set disturbance forces as parameters ---
+            if rtnmpc.nmpc.include_cog_dist_parameter:
+                apply_cog_disturbance(rtnmpc, state_curr)
+            if rtnmpc.nmpc.include_motor_noise_parameter:
+                apply_motor_noise(rtnmpc, u_cmd)
+
             # --- Optimize control input ---
             # Compute control feedback and take the first action
             comp_time = time.time()
             try:
-                u_cmd = ocp_solver.solve_for_x0(state_curr)  # Wrapper to solve the OCP and get first command
+                # acados wrapper to solve the OCP and get first control command from sequence
+                u_cmd = ocp_solver.solve_for_x0(state_curr)
             except Exception as e:
                 print(f"Round {i}: acados ocp_solver returned status {ocp_solver.status}. Exiting.")
-                # TODO try to recover from this
+                # TODO try to recover from this gracefully
                 continue # raise e
             comp_time = (time.time() - comp_time) * 1000  # in ms
 
@@ -170,18 +200,11 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
                 rec_dict["control"] = np.append(rec_dict["control"], u_cmd[np.newaxis, :], axis=0)
 
-            # if recording:
-            #     # Integrate first input. Will be used as nominal model prediction during next save
-            #     state_pred, _ = rtnmpc.forward_prop(np.squeeze(state_curr), u_cmd=u_cmd[:4],
-            #                                       T_horizon=control_period, use_gp=False)
-            #     state_pred = state_pred[-1, :]
-
             # --- Plot realtime ---
             if run_options["real_time_plot"]:
-                trajectory_pred = rtnmpc.simulate_trajectory(sim_solver)
-                draw_robot(art_pack, targets, targets_reached, state_curr,
-                           trajectory_pred, trajectory_history,
-                           rotor_positions, follow_robot=False, 
+                state_traj = rtnmpc.simulate_trajectory(sim_solver)
+                draw_robot(art_pack, targets, targets_reached, state_curr, state_traj,
+                           trajectory_history, rotor_positions, follow_robot=False,
                            animation=run_options["save_animation"])
 
             # --- Simulate forward ---
@@ -191,7 +214,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             # Simply trigger new control optimization after simulating for T_samp seconds
             simulation_time = 0.0
             j = 0
-            state_curr_sim = state_curr.copy()  # TODO kind of redundant
+            state_curr_sim = state_curr.copy()
             while simulation_time < T_samp:
                 # Simulation runtime (inner loop)
                 simulation_time += T_sim
@@ -216,49 +239,61 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 # Target check
                 if euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.05):
                     # Target reached!
-                    print("*", end='')
-                    sys.stdout.flush()
-
-                    # Mark current target as reached
                     current_target_reached = True
                     targets_reached[current_target_idx] = True
-                    i = 0; j = 0
-                    simulation_time = 0.0
-
-                    # # Remove initial guess
-                    # initial_guess = None
-
-                    # Generate new target
-                    if run_options["preset_targets"] is None:
-                        new_target = sample_random_target(state_curr_sim[:3], sim_options["world_radius"],
-                                                          aggressive=run_options["aggressive"])
-                        targets = np.append(targets, new_target, axis=0)
-                        targets_reached = np.append(targets_reached, False)
-                    break
+                    
+                    # NOTE: Break condition turned off to allow for complete simulation
+                    # and therefore smooth trajectory
+                    # Also, it makes no physical sense to jump to next control step immediately
+                    # break
                 # --- Increment simulation step ---
                 j += 1
             # --- Increment control step ---
-            if not current_target_reached:
+            if current_target_reached:
+                i = 0; j = 0
+                simulation_time = 0.0
+
+                # Remove initial guess
+                # initial_guess = None
+
+                # Generate new target
+                if run_options["preset_targets"] is None:
+                    new_target = sample_random_target(state_curr_sim[:3], sim_options["world_radius"],
+                                                        aggressive=run_options["aggressive"])
+                    targets = np.append(targets, new_target, axis=0)
+                    targets_reached = np.append(targets_reached, False)
+            else:
                 i += 1
 
             # --- Record out data ---
             if recording or plot:
-                # TODO this gets the state after T_step = 0.1 but the curr state is only passed for T_samp = 0.01
-                if T_samp != T_step:
-                    raise ValueError("T_samp and T_step must be equal for prediction to make any sense since.")
-                state_pred = ocp_solver.get(1, "x") # Predicted state by the controller at next sampling time
-                rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr_sim[np.newaxis, :], axis=0)
-                rec_dict["state_pred"] = np.append(rec_dict["state_pred"], state_pred[np.newaxis, :], axis=0)
+                # State after simulation
+                rec_dict["state_out"] = np.append(rec_dict["state_out"],
+                                                  state_curr_sim[np.newaxis, :], axis=0)
+                
+                ###################### OLD ###########################
+                # if T_samp != T_step:
+                #     raise ValueError("T_samp and T_step must be equal for prediction to make any sense since.")
+                # NOTE this gets the state after T_step = 0.1 but the curr state is only passed for T_samp = 0.01
+                # state_pred = ocp_solver.get(1, "x") # Predicted state by the controller at next sampling time
+                ######################################################
 
-                error = state_curr_sim - state_pred
-                rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
+                # Compute next state prediction through more precise and undisturbed integration
+                state_pred = forward_prop(dynamics_forward_prop, state_forward_prop,
+                                          u_forward_prop, state_curr[np.newaxis, :],
+                                          u_cmd[np.newaxis, :], T_horizon=T_samp,
+                                          T_step=T_prop_step, m_int_steps=1)
+                state_pred = state_pred[-1, :]  # Get last predicted state
+                rec_dict["state_pred"] = np.append(rec_dict["state_pred"],
+                                                   state_pred[np.newaxis, :], axis=0)
 
             # --- Log trajectory for real-time plot ---
             if run_options["real_time_plot"]:
-                trajectory_history = np.append(trajectory_history, state_curr_sim[np.newaxis, :], axis=0)
+                trajectory_history = np.append(trajectory_history,
+                                               state_curr_sim[np.newaxis, :], axis=0)
                 if len(trajectory_history) > 300:
-                    trajectory_history = np.delete(trajectory_history, obj=0, axis=0) # Delete first logged state
-        
+                    trajectory_history = np.delete(trajectory_history, obj=0, axis=0)
+
             # --- Break condition for the inner loop ---
             if t_now >= sim_options["max_sim_time"]:
                 break
@@ -275,6 +310,9 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
         print(f"Computation time for target {current_target_idx}: {time.time() - global_comp_time}")
 
+    # End of simulation
+    if recording:
+        print(f"Recording finished. Data saved to {rec_file}")
 
     # --- Create video ---
     if run_options["save_animation"]:
@@ -294,140 +332,9 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     if plot:
         plot_trajectory(rec_dict, rtnmpc)
 
-def plot_trajectory(rec_dict, rtnmpc):
-    import matplotlib.pyplot as plt
-    fig = plt.subplots(figsize=(20, 5))
-    # Plot input features
-    state_in = rec_dict["state_in"]
-    state_out = rec_dict["state_out"]
-    state_pred = rec_dict["state_pred"]
-    # x = np.concatenate(state_in, rec_dict["control"])
-    n_plots = state_in.shape[1]#, x.shape[1])
-    for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(state_in[:, dim], label='state_in')
-        plt.plot(state_out[:, dim], label='state_out')
-        plt.plot(state_pred[:, dim], label='state_pred')
-        plt.ylabel(f'D{dim}')
-        if dim == 0:
-            plt.title('State In & State Out')
-            plt.legend()
-        plt.grid('on')
+    halt = 1
 
-    control = rec_dict["control"]
-    for dim in range(control.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(control[:, dim], label='control')
-        if dim == 0:
-            plt.title('Control')
-            plt.legend()
-        plt.grid('on')
 
-    plt.tight_layout()
-    plt.show()
-
-    fig = plt.figure(figsize=(20, 5))
-    plt.plot(rec_dict["comp_time"])
-    plt.plot([0, rec_dict["comp_time"].shape[0]], [np.mean(rec_dict['comp_time']), np.mean(rec_dict['comp_time'])], color='r', label=f"Avg = {np.mean(rec_dict['comp_time']):.4f} ms")
-    plt.xlabel('Simulation time [s]')
-    plt.ylabel('Computation time [ms]')
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
-    plt.show()
-
-    dt = np.expand_dims(rec_dict["dt"], 1)
-
-    diff1 = state_out - state_in
-    d1 = diff1 / dt
-    diff2 = state_out - state_pred
-
-    fig = plt.subplots(figsize=(20, 5))
-    for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(d1[:, dim], label='d1', color='red')
-        plt.ylabel(f'D{dim}')
-        if dim == 0:
-            plt.title('State Out - State In')
-            plt.legend()
-        plt.grid('on')
-
-    for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(diff2[:, dim], label='diff2', color='green')
-        if dim == 0:
-            plt.title('State Out - State Pred')
-            plt.legend()
-        plt.grid('on')
-
-    plt.tight_layout()
-    plt.show()
-
-    plt.subplots(figsize=(10, 5))
-    import torch
-    y = torch.zeros((state_in.shape[0], rtnmpc.y_reg_dims.shape[0])).type(torch.float32).to(torch.device("cuda"))
-    for t in range(state_in.shape[0]):
-        s = torch.from_numpy(state_in[t, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cuda"))
-        u = torch.from_numpy(control[t, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cuda"))
-        x = torch.cat((s, u)).unsqueeze(0)  # Add batch dimension
-        rtnmpc.neural_model.eval()
-        y[t] = rtnmpc.neural_model(x)
-
-    y = y.cpu().detach().numpy()
-    y_true = d1 # state_out - state_pred
-    for dim in range(y.shape[1]):
-        plt.subplot(y.shape[1], 1, dim+1)
-        plt.plot(y[:, dim], label='y_regressed')
-        plt.plot(y[:,dim] - y_true[:, dim], label='error', color='r', linestyle='--', alpha=0.5)
-        plt.plot(y_true[:, dim], label='y_true', color="orange")
-        # plt.plot(state_out[:, dim+3], label='state_out', linestyle='--')
-        # plt.plot(state_out[:, dim+3] - y[:, dim], label='error', linestyle=':')
-        plt.ylabel(f'D{dim}')
-        if dim == 0:
-            plt.title('State Out - State In')
-            plt.legend()
-        plt.grid('on')
-    plt.tight_layout()
-    plt.show()
-
-"""
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--arch_type", type=str, default="tilt_qd",
-                        help="Type of the aerial robot used. " \
-                             "Options: tilt_bi, tilt_tri, (default) tilt_qd, fix_qd")
-
-    parser.add_argument("--model_name", type=str, default="",
-                        help="Name of the regression model.")
-
-    parser.add_argument("--model_type", type=str, default="gp", choices=["gp", "rdrv"],
-                        help="Type of the regression model (GP or RDRv linear).")
-
-    parser.add_argument("--recording", dest="recording", action="store_true",
-                        help="Set this flag to enable recording mode.")
-    parser.set_defaults(recording=False)
-
-    parser.add_argument("--dataset_name", type=str, default="simplified_sim_dataset",
-                        help="Name for the generated dataset.")
-
-    parser.add_argument("--test_split", dest="test_split", action="store_true",
-                        help="Set this flag to use this dataset as test split; " \
-                             "by default used as training split.")
-    parser.set_defaults(test_split=False)
-
-    parser.add_argument("--simulation_time", type=float, default=300,
-                        help="Total duration of the simulation in seconds.")
-    
-    parser.add_argument("--world_radius", type=float, default=3,
-                        help="Radius of the simulation environment in meters inside which " \
-                             "the robot performs randomly sampled maneuvers. Default: 3 meters")
-
-    args = parser.parse_args()
-
-    np.random.seed(123 if args.test_split else 456)
-    """
 if __name__ == '__main__':
 
     main(EnvConfig.model_options, EnvConfig.solver_options,

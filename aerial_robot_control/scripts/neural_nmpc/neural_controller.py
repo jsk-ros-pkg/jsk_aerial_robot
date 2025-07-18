@@ -64,54 +64,54 @@ class NeuralNMPC():
         self.nmpc_type = model_options["nmpc_type"]
         if self.arch_type == "qd":
             if self.nmpc_type == "NMPCTiltQdNoServo":
-                self.nmpc = NMPCTiltQdNoServo(build=False)
+                self.nmpc = NMPCTiltQdNoServo(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServo":
-                self.nmpc = NMPCTiltQdServo(build=False)
+                self.nmpc = NMPCTiltQdServo(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdThrust":
-                self.nmpc = NMPCTiltQdThrust(build=False)
+                self.nmpc = NMPCTiltQdThrust(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoThrust":
-                self.nmpc = NMPCTiltQdServoThrust(build=False)
+                self.nmpc = NMPCTiltQdServoThrust(build=False, **sim_options["disturbances"])
 
             elif self.nmpc_type == "NMPCTiltQdServoDist":
-                self.nmpc = NMPCTiltQdServoDist(build=False)
+                self.nmpc = NMPCTiltQdServoDist(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
-                self.nmpc = NMPCTiltQdServoThrustDist(build=False)
+                self.nmpc = NMPCTiltQdServoThrustDist(build=False, **sim_options["disturbances"])
 
             # Fixed rotor models
             elif self.nmpc_type == "NMPCFixQdAngvelOut":
-                self.nmpc = NMPCFixQdAngvelOut(build=False)
+                self.nmpc = NMPCFixQdAngvelOut(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCFixQdThrustOut":
-                self.nmpc = NMPCFixQdThrustOut(build=False)
+                self.nmpc = NMPCFixQdThrustOut(build=False, **sim_options["disturbances"])
 
             # Archived methods
             elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
-                self.nmpc = NMPCTiltQdNoServoAcCost(build=False)
+                self.nmpc = NMPCTiltQdNoServoAcCost(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoOldCost":
-                self.nmpc = NMPCTiltQdServoOldCost(build=False)
+                self.nmpc = NMPCTiltQdServoOldCost(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoDiff":
-                self.nmpc = NMPCTiltQdServoDiff(build=False)
+                self.nmpc = NMPCTiltQdServoDiff(build=False, **sim_options["disturbances"])
                 alpha_integ = np.zeros(4)   # TODO not implemented yet
             elif self.nmpc_type == "NMPCTiltQdServoDragDist":
-                self.nmpc = NMPCTiltQdServoDragDist(build=False)
+                self.nmpc = NMPCTiltQdServoDragDist(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
-                self.nmpc = NMPCTiltQdServoThrustDrag(build=False)
+                self.nmpc = NMPCTiltQdServoThrustDrag(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
-                self.nmpc = NMPCTiltQdServoWCogEndDist(build=False)
+                self.nmpc = NMPCTiltQdServoWCogEndDist(build=False, **sim_options["disturbances"])
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         elif self.arch_type == 'bi':
 
             if self.nmpc_type == "NMPCTiltBiServo":
-                self.nmpc = NMPCTiltBiServo(build=False)
+                self.nmpc = NMPCTiltBiServo(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltBi2OrdServo":
-                self.nmpc = NMPCTiltBi2OrdServo(build=False)
+                self.nmpc = NMPCTiltBi2OrdServo(build=False, **sim_options["disturbances"])
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         elif self.arch_type == 'tri':
             if self.nmpc_type == "NMPCTiltTriServo":
-                self.nmpc = NMPCTiltTriServo(build=False)
+                self.nmpc = NMPCTiltTriServo(build=False, **sim_options["disturbances"])
             elif self.nmpc_type == "NMPCTiltTriServoDist":
-                self.nmpc = NMPCTiltTriServoDist(build=False)
+                self.nmpc = NMPCTiltTriServoDist(build=False, **sim_options["disturbances"])
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         else:
@@ -137,10 +137,10 @@ class NeuralNMPC():
         # Set name of the controller
         self.model_name = "Neural_" + self.nominal_model.name
 
-        # Load pre-trained MLP
-        self.neural_model, self.mlp_metadata = load_model(model_options, sim_options, run_options)
-        # Cross-check weights and meta parameters used for MPC to train MLP
         if not model_options["only_use_nominal"]:
+            # Load pre-trained MLP
+            self.neural_model, self.mlp_metadata = load_model(model_options, sim_options, run_options)
+            # Cross-check weights and meta parameters used for MPC to train MLP
             cross_check_params(self.nmpc.params, self.mlp_metadata)
 
         # Add neural network model to nominal model 
@@ -172,48 +172,49 @@ class NeuralNMPC():
         # state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
         # -----------------------------------------------------
 
-        # === MLP input ===
-        # MLP is trained to receive and predict the velocity in the body frame
-        # Transform input velocity to body frame
-        v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
-        state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
-
-        self.state_feats = eval(self.mlp_metadata['state_feats'])
-        self.u_feats = eval(self.mlp_metadata['u_feats'])
-        mlp_in = ca.vertcat(state_b[self.state_feats], self.controls[self.u_feats])
-
-        # === MLP forward pass ===
-        mlp_out = self.neural_model(mlp_in)
-
-        # Transform velocity back to world frame
-        self.y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
-        if set([3, 4, 5]).issubset(set(self.y_reg_dims)):
-            v_idx = np.where(self.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
-            v_w = v_dot_q(mlp_out[v_idx:v_idx+3], self.state[6:10])
-            mlp_out = ca.vertcat(mlp_out[:v_idx], v_w, mlp_out[v_idx+3:])
-
-        # Explicit dynamics
-        if self.model_options["end_to_end_mlp"]:
-            # Map output of MLP to the state space
-            M = get_output_mapping(self.state.shape[0],
-                                   eval(self.mlp_metadata["y_reg_dims"]))
-            O = get_inverse_output_mapping(self.state.shape[0],
-                                   eval(self.mlp_metadata["y_reg_dims"]))
-
-            # Combine nominal dynamics with neural dynamics
-            f_total = O @ self.nominal_model.f_expl_expr + M @ mlp_out
-        elif self.model_options["only_use_nominal"]:
+        if self.model_options["only_use_nominal"]:
             f_total = self.nominal_model.f_expl_expr
         else:
-            # Here f is already symbolically evaluated to f(x,u)
-            nominal_dynamics = self.nominal_model.f_expl_expr
+            # === MLP input ===
+            # MLP is trained to receive and predict the velocity in the body frame
+            # Transform input velocity to body frame
+            v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
+            state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
 
-            # Map output of MLP to the state space
-            M = get_output_mapping(self.state.shape[0],
-                                   eval(self.mlp_metadata["y_reg_dims"]))
+            self.state_feats = eval(self.mlp_metadata['state_feats'])
+            self.u_feats = eval(self.mlp_metadata['u_feats'])
+            mlp_in = ca.vertcat(state_b[self.state_feats], self.controls[self.u_feats])
 
-            # Combine nominal dynamics with neural dynamics
-            f_total = nominal_dynamics + M @ mlp_out
+            # === MLP forward pass ===
+            mlp_out = self.neural_model(mlp_in)
+
+            # Transform velocity back to world frame
+            self.y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
+            if set([3, 4, 5]).issubset(set(self.y_reg_dims)):
+                v_idx = np.where(self.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
+                v_w = v_dot_q(mlp_out[v_idx:v_idx+3], self.state[6:10])
+                mlp_out = ca.vertcat(mlp_out[:v_idx], v_w, mlp_out[v_idx+3:])
+
+            # Explicit dynamics
+            if self.model_options["end_to_end_mlp"]:
+                # Map output of MLP to the state space
+                M = get_output_mapping(self.state.shape[0],
+                                    eval(self.mlp_metadata["y_reg_dims"]))
+                O = get_inverse_output_mapping(self.state.shape[0],
+                                    eval(self.mlp_metadata["y_reg_dims"]))
+
+                # Combine nominal dynamics with neural dynamics
+                f_total = O @ self.nominal_model.f_expl_expr + M @ mlp_out
+            else:
+                # Here f is already symbolically evaluated to f(x,u)
+                nominal_dynamics = self.nominal_model.f_expl_expr
+
+                # Map output of MLP to the state space
+                M = get_output_mapping(self.state.shape[0],
+                                    eval(self.mlp_metadata["y_reg_dims"]))
+
+                # Combine nominal dynamics with neural dynamics
+                f_total = nominal_dynamics + M @ mlp_out
 
         # Implicit dynamics
         x_dot = ca.MX.sym('x_dot', self.state.size())
@@ -278,16 +279,16 @@ class NeuralNMPC():
         u_ref[0:4] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1c, ft2c, ft3c, ft4c
 
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-        self.acados_init_p = np.zeros(_ocp.dims.np)
-        self.acados_init_p[0] = x_ref[6]  # qw
+        self.acados_parameters = np.zeros(_ocp.dims.np)
+        self.acados_parameters[0] = x_ref[6]  # qw
         if len(self.nmpc.phys.physical_param_list) != 24:
             raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
-        self.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
+        self.acados_parameters[4:28] = np.array(self.nmpc.phys.physical_param_list)
 
         _ocp.constraints.x0 = x_ref
         _ocp.cost.yref = np.concatenate((x_ref, u_ref))
         _ocp.cost.yref_e = x_ref
-        _ocp.parameter_values = self.acados_init_p
+        _ocp.parameter_values = self.acados_parameters
         # =====================================================================
 
         # Build acados ocp into current working directory (which was created in super class)
@@ -315,10 +316,10 @@ class NeuralNMPC():
         n_param = self.acados_model.p.size()[0]
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         # TODO set this elsewhere since its confusing where this gets modified/accessed
-        self.nmpc.acados_init_p = np.zeros(n_param)
-        self.nmpc.acados_init_p[0] = 1.0  # qw
-        self.nmpc.acados_init_p[4:28] = np.array(self.nmpc.phys.physical_param_list)
-        acados_sim.parameter_values = self.nmpc.acados_init_p
+        self.nmpc.acados_parameters = np.zeros(n_param)
+        self.nmpc.acados_parameters[0] = 1.0  # qw
+        self.nmpc.acados_parameters[4:28] = np.array(self.nmpc.phys.physical_param_list)
+        acados_sim.parameter_values = self.nmpc.acados_parameters
         # =====================================================================
 
         # Set the horizon for the simulation
@@ -342,15 +343,15 @@ class NeuralNMPC():
             yr = np.concatenate((xr[j, :], ur[j, :]))
             self.ocp_solver.set(j, "yref", yr)
             quaternion_ref = xr[j, 6:10]
-            self.nmpc.acados_init_p[0:4] = quaternion_ref
-            self.ocp_solver.set(j, "p", self.nmpc.acados_init_p)                # For nonlinear quaternion error
+            self.nmpc.acados_parameters[0:4] = quaternion_ref
+            self.ocp_solver.set(j, "p", self.nmpc.acados_parameters)                # For nonlinear quaternion error
 
         # N
         yr = xr[self.ocp_solver.N, :]
         self.ocp_solver.set(self.ocp_solver.N, "yref", yr)
         quaternion_ref = xr[self.ocp_solver.N, 6:10]
-        self.nmpc.acados_init_p[0:4] = quaternion_ref
-        self.ocp_solver.set(self.ocp_solver.N, "p", self.nmpc.acados_init_p)    # For nonlinear quaternion error
+        self.nmpc.acados_parameters[0:4] = quaternion_ref
+        self.ocp_solver.set(self.ocp_solver.N, "p", self.nmpc.acados_parameters)    # For nonlinear quaternion error
 
     # def set_optimization_parameters(self, initial_state=None, use_model=0, return_x=False):
     #  ========= SET PARAMETERS FOR NOMINAL =========
@@ -421,9 +422,9 @@ class NeuralNMPC():
         state_curr = sim_solver.get("x")
         
         # Simulate forward
-        x_traj = np.zeros((N + 1, state_curr.shape[0]))
-        x_traj[0, :] = state_curr
-        
+        state_traj = np.zeros((N + 1, state_curr.shape[0]))
+        state_traj[0, :] = state_curr
+
         for n in range(N):
             sim_solver.set("x", state_curr)
             sim_solver.set("u", u_sequence[n])
@@ -434,9 +435,9 @@ class NeuralNMPC():
                 return
 
             state_curr = sim_solver.get("x")
-            x_traj[n + 1, :] = state_curr
+            state_traj[n + 1, :] = state_curr
         
-        return x_traj
+        return state_traj
     
     def check_state_constraints(self, state_curr, i):
         # Boundary constraints

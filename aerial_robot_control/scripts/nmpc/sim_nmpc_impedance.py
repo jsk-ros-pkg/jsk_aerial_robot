@@ -214,26 +214,26 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                nmpc.acados_init_p[0:4] = quaternion_r
+                nmpc.acados_parameters[0:4] = quaternion_r
 
                 if nmpc.include_impedance:
-                    nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
+                    nmpc.acados_parameters[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
                                                           nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
                     # Note that we don't need to multiply the enlarge_factor here as it has been included in the cost mtx.
 
-                ocp_solver.set(j, "p", nmpc.acados_init_p)
+                ocp_solver.set(j, "p", nmpc.acados_parameters)
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            nmpc.acados_init_p[0:4] = quaternion_r
+            nmpc.acados_parameters[0:4] = quaternion_r
 
             if nmpc.include_impedance:
-                nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
+                nmpc.acados_parameters[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
                                                       nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
 
-            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_parameters)
 
             # Compute control feedback and take the first action
             try:

@@ -42,9 +42,6 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)
 
-    # import pandas as pd
-    # df = pd.read_csv("/home/johannes/ros/neural-mpc/ros_dd_mpc/data/simplified_sim_dataset/train/dataset_001.csv")
-
     # === Datasets ===
     # TODO prune wrt angular velocity as well
     if "residual" in MLPConfig.model_name:
@@ -65,8 +62,12 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     sanity_check_features_and_reg_dims(state_feats, u_feats, y_reg_dims, in_dim, out_dim)
 
     train_size = int(0.8 * len(dataset))
-    val_size = int(0.1 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
+    if test:
+        val_size = int(0.1 * len(dataset))
+        test_size = len(dataset) - train_size - val_size
+    else:
+        val_size = len(dataset) - train_size
+        test_size = 0
 
     train_dataset, val_dataset, test_dataset = \
         random_split(dataset, [train_size, val_size, test_size])
@@ -77,7 +78,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
                         batch_size=MLPConfig.batch_size,
                         num_workers=MLPConfig.num_workers)
 
-    # === Model ===
+    # === Neural Network ===
     if "approximated" in MLPConfig.model_name:
         # TODO implement batch normalization and dropout?
         # TODO combine and call it "ApproximatedMLP"
@@ -106,7 +107,10 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
     if MLPConfig.lr_scheduler is not None:
         if MLPConfig.lr_scheduler == "ReduceLROnPlateau":
-            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=5)
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                                      factor=0.1,
+                                                                      threshold=0.005,
+                                                                      patience=5)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -148,7 +152,8 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
         # === Schedule learning rate ===
         if MLPConfig.lr_scheduler is not None:
-            lr_scheduler.step(train_losses)
+            # lr_scheduler.step(train_losses)
+            lr_scheduler.step(val_losses)
         learning_rates.append(optimizer.param_groups[0]['lr'])
         table["Learning Rate"] = learning_rates[-1]
 
@@ -175,6 +180,8 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     # === Store metrics ===
     log_metrics(total_losses, inference_times, learning_rates,
                 save_file_path, save_file_name)
+    if save:
+        print(f"Model saved to results/{MLPConfig.model_name}/{save_file_name}.pt")
 
     # === Plotting ===
     if plot:

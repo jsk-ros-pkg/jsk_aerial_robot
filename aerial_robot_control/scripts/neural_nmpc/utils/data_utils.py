@@ -82,7 +82,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
             # Check if current controller configuration exists
             existing_controller = 1
             for field in metadata[ds_name].keys():
-                if field.startswith("dataset_") or field.startswith("date"):
+                if field.startswith("dataset_"):# or field.startswith("date"):
                     continue
                 if metadata[ds_name][field] == outer_fields[field]:
                     existing_controller *= 1
@@ -122,12 +122,16 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                     ds_instance_name = dataset_instances[existing_instance_idx]
 
             else:
-                raise ValueError(f"Existing configuration {outer_fields} for dataset {ds_name} found. \
-                                   Set unique dataset name for new configuration.")
-            #     # Dataset name exists but current controller configuration is new
-            #     metadata[ds_name] = outer_fields
-            #     ds_instance_name = "dataset_001"
-            #     metadata[ds_name][ds_instance_name] = inner_fields
+                # Dataset name exists but current controller configuration is new
+                if ds_name.split("_")[-1].isdigit():
+                    counter = int(ds_name.split("_")[-1])
+                    ds_name = ds_name[:-2]
+                    ds_name += "_" + str(counter + 1).zfill(2)
+                else:
+                    ds_name += "_02"
+                metadata[ds_name] = outer_fields
+                ds_instance_name = "dataset_001"
+                metadata[ds_name][ds_instance_name] = inner_fields
 
         else:
             # Dataset does not exist yet in metadata
@@ -228,25 +232,9 @@ def make_blank_dict(target_dim, state_dim, control_dim):
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
         "state_pred": np.zeros((0, state_dim)),
-        "error": np.zeros((0, state_dim)),
         "control": np.zeros((0, control_dim)),
     }
     return blank_recording_dict
-
-# def store_recording_data(rec_dict, state_curr, x_pred):
-#     """
-#     Store the data in the recording dictionary in place.
-#     :param rec_dict: Dictionary to store the data
-#     :param state_curr: Current state of the system in NMPC
-#     :param x_pred: Predicted state of the system in NMPC
-#     :param u_cmd: Last commanded control input
-#     """
-#     rec_dict["state_out"] = np.append(rec_dict["state_out"], state_curr[np.newaxis, :], axis=0)
-
-#     if x_pred is not None:
-#         error = state_curr - x_pred
-#         rec_dict["error"] = np.append(rec_dict["error"], error[np.newaxis, :], axis=0)
-#         rec_dict["state_pred"] = np.append(rec_dict["state_pred"], x_pred[np.newaxis, :], axis=0)
 
 def write_recording_data(rec_dict, rec_file):
     # # Current target was reached - remove incomplete recordings

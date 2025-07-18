@@ -12,10 +12,8 @@ class NMPCTiltQdServo(QDNMPCBase):
     The controller itself is constructed in base class. This file is used to define the properties
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
-    
-    :param bool build: Flag to build a solver as c generated code. Default: True
     """
-    def __init__(self, build: bool = True, phys=phys_art):
+    def __init__(self, build: bool = True, phys=phys_art, **kwargs):
         # Model name
         self.model_name = "tilt_qd_servo_mdl"
         self.phys = phys
@@ -25,10 +23,24 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.include_servo_derivative = False
         self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
-        self.include_cog_dist_parameter = False  # TODO separation between model and parameter necessary?
         self.include_impedance = False
-        self.include_quaternion_constraint = True
-        self.include_soft_constraints = True
+
+        if "cog_dist" in kwargs:
+            self.include_cog_dist_parameter = kwargs["cog_dist"]
+        else:
+            self.include_cog_dist_parameter = False
+        if "motor_noise" in kwargs:
+            self.include_motor_noise_parameter = kwargs["motor_noise"]
+        else:
+            self.include_motor_noise_parameter = False
+        if "soft_constraints" in kwargs:
+            self.include_soft_constraints = kwargs["soft_constraints"]
+        else:
+            self.include_soft_constraints = True
+        if "quaternion_constraint" in kwargs:
+            self.include_quaternion_constraint = kwargs["quaternion_constraint"]
+        else:
+            self.include_quaternion_constraint = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")

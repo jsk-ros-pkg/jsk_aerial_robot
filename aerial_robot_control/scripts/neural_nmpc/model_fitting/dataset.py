@@ -31,8 +31,6 @@ class TrajectoryDataset(Dataset):
         return len(self.x)
 
     def __getitem__(self, idx):
-        # TODO support only a selection of features as input (e.g., only everything except position)
-        # TODO support not using control as input for network
         return self.x[idx], self.y[idx]
 
     def prepare_data(self, state_feats=None, u_feats=None, y_reg_dims=None):
@@ -40,7 +38,6 @@ class TrajectoryDataset(Dataset):
         state_out = undo_jsonify(self.df['state_out'].to_numpy())
         state_pred = undo_jsonify(self.df['state_pred'].to_numpy())
         control = undo_jsonify(self.df['control'].to_numpy())
-        # control = undo_jsonify(self.df['input_in'].to_numpy())
         dt = self.df["dt"].to_numpy()
 
         # Remove invalid entries (dt = 0)
@@ -63,29 +60,24 @@ class TrajectoryDataset(Dataset):
             v_w_traj = state_sequence[:, 3:6]
             q_traj = state_sequence[:, 6:10]
             other_traj = state_sequence[:, 10:]     # w, a_s, f_s, etc.
-            # p_traj = state_sequence[:, :3]
-            # q_traj = state_sequence[:, 3:7]
-            # v_w_traj = state_sequence[:, 7:10]
-            # other_traj = state_sequence[:, 10:]     # w, a_s, f_s, etc.
 
             v_b_traj = np.empty_like(v_w_traj)
             for t in range(len(v_w_traj)):
                 v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
-            # return np.concatenate((p_traj, q_traj, v_b_traj, other_traj), axis=1)
 
         state_in = velocity_mapping(state_in)
         state_pred = velocity_mapping(state_pred)
         state_out = velocity_mapping(state_out)
 
         # =============================================================
-        # Compute error between predicted and actual state
+        # Compute residual of predicted and disturbed state
         if self.mode == 'residual':
             # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
             y_diff = state_out - state_pred
         elif self.mode == 'e2e':
             y_diff = state_out - state_in
-        # Normalize error by window time, i.e., predict error dynamics instead of error itself
+        # Compute residual dynamics
         y_diff /= np.expand_dims(dt, 1)
         # =============================================================
 
@@ -98,8 +90,9 @@ class TrajectoryDataset(Dataset):
         self.dt = dt
 
         # Store network input
-        # TODO select subset of features to use as input
-        self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
+        self.x = np.concatenate((state_in[:, state_feats],
+                                 control[:, u_feats]),
+                                 axis=1, dtype=np.float32)
 
     def prune(self, state_feats, y_reg_dims, histogram_n_bins,
               histogram_thresh, vel_cap=None, plot=False):
@@ -108,8 +101,6 @@ class TrajectoryDataset(Dataset):
         """
         x_vel_idx = np.array([3, 4, 5])
         y_vel_idx = np.array([3, 4, 5])
-        # x_vel_idx = np.array([7, 8, 9])
-        # y_vel_idx = np.array([7, 8, 9])
         if set(x_vel_idx).issubset(set(state_feats)) and \
            set(y_vel_idx).issubset(set(y_reg_dims)):
             x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
@@ -120,8 +111,6 @@ class TrajectoryDataset(Dataset):
 
         # Prune noisy data
         if histogram_n_bins is not None and histogram_thresh is not None:
-
-            # labels = [self.data_labels[dim] for dim in np.atleast_1d(y_vel_idx)]
             labels = ['vx', 'vy', 'vz']
 
             self.pruned_idx = prune_dataset(self.x[:, x_vel_idx_real], self.y[:, y_vel_idx_real],

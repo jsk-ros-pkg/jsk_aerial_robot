@@ -15,6 +15,7 @@ import os
 # import json
 import tikzplotlib
 import numpy as np
+import torch
 
 import matplotlib.pyplot as plt
 # from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
@@ -57,7 +58,7 @@ def initialize_plotter(world_rad, n_properties):
     # Set limits
     ax.set_xlim([-world_rad, world_rad])
     ax.set_ylim([-world_rad, world_rad])
-    ax.set_zlim([-world_rad, world_rad])
+    ax.set_zlim([0, 2.25 * world_rad])
 
     # Set labels
     ax.set_xlabel('x [m]')
@@ -95,7 +96,7 @@ def initialize_plotter(world_rad, n_properties):
 
 
 def draw_robot(art_pack, targets, targets_reached,
-                  state_curr, trajectory_pred, trajectory_history,
+                  state_curr, state_traj, trajectory_history,
                   rotor_positions, follow_robot=False, animation=False):
     """
     Animates the robot's state, previous and predicted trajectories, and their projections in a 3D plot.
@@ -103,7 +104,7 @@ def draw_robot(art_pack, targets, targets_reached,
     :param targets: Array of target positions.
     :param targets_reached: Boolean array indicating which targets have been reached.
     :param state_curr: Current state of the robot.
-    :param trajectory_pred: Predicted trajectory of the robot.
+    :param state_traj: Predicted trajectory of the robot.
     :param trajectory_history: History of the robot's trajectory.
     :param rotor_positions: Positions of the rotors in the robot's body frame.
     :param follow_robot: If True, the view will follow the robot's position.
@@ -174,8 +175,8 @@ def draw_robot(art_pack, targets, targets_reached,
     [ax.draw_artist(projected_traj_artist) for projected_traj_artist in projected_traj_artists]
 
     # Draw predicted trajectory
-    if trajectory_pred is not None:
-        draw_fading_traj(trajectory_pred, sim_traj_artists)
+    if state_traj is not None:
+        draw_fading_traj(state_traj, sim_traj_artists)
         for sim_traj_artist in sim_traj_artists:
             ax.draw_artist(sim_traj_artist)
 
@@ -333,6 +334,188 @@ def plot_dataset(x, y, state_raw, state_out, state_pred, save_file_path=None, sa
 
     if save_file_path is not None and save_file_name is not None:
         plt.savefig(os.path.join(save_file_path + '/plot', f'{save_file_name}_dataset_plot.png'), dpi=300, bbox_inches='tight')
+
+
+def plot_trajectory(rec_dict, rtnmpc):
+    state_in = rec_dict["state_in"]
+    state_out = rec_dict["state_out"]
+    state_pred = rec_dict["state_pred"]
+    control = rec_dict["control"]
+    timestamp = rec_dict["timestamp"]
+    # Plot state features
+    plt.subplots(figsize=(20, 5))
+    n_plots = state_in.shape[1]
+    for dim in range(state_in.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.plot(timestamp, state_in[:, dim], label='state_in')
+        plt.plot(timestamp, state_out[:, dim], label='state_out')
+        plt.plot(timestamp, state_pred[:, dim], label='state_pred')
+        plt.ylabel(f'D{dim}')
+        if dim == 0:
+            plt.title('State In & State Out')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    # Plot control features
+    for dim in range(control.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.plot(timestamp, control[:, dim], label='control')
+        if dim == 0:
+            plt.title('Control')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    # Plot in single state feature
+    plt.figure(figsize=(20, 5))
+    plt.plot(timestamp, state_in[:, 0], label='state_in')
+    plt.plot(timestamp, state_out[:, 0], label='state_out')
+    plt.plot(timestamp, state_pred[:, 0], label='state_pred')
+    plt.grid('on')
+    plt.title('Dim 0 zoom in')
+    plt.legend()
+    plt.xlim(timestamp[0], timestamp[-1])
+
+    # Plot computation time
+    plt.figure(figsize=(20, 5))
+    plt.plot(timestamp, rec_dict["comp_time"])
+    plt.plot([0, rec_dict["comp_time"].shape[0]], \
+             [np.mean(rec_dict['comp_time']), np.mean(rec_dict['comp_time'])], \
+             color='r', label=f"Avg = {np.mean(rec_dict['comp_time']):.4f} ms")
+    plt.xlabel('Simulation time [s]')
+    plt.ylabel('Computation time [ms]')
+    plt.legend()
+    plt.grid()
+    plt.xlim(timestamp[0], timestamp[-1])
+
+    # Plot state differentiation, i.e., derivative
+    dt = np.expand_dims(rec_dict["dt"], 1)
+
+    diff1 = state_out - state_in
+    d1 = diff1 / dt
+    diff2 = state_pred - state_in
+    d2 = diff2 / dt
+
+    plt.subplots(figsize=(20, 5))
+    for dim in range(state_in.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.plot(timestamp, d1[:, dim])
+        plt.ylabel(f'D{dim}')
+        if dim == 0:
+            plt.title('(State Out - State In) / dt')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    for dim in range(state_in.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.plot(timestamp, d2[:, dim], color='red')
+        if dim == 0:
+            plt.title('(State Pred - State In) / dt')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    # Plot labels for neural network regression
+    diff3 = state_out - state_pred
+    diff4 = state_out - state_pred
+    d4 = diff4 / dt
+
+    plt.subplots(figsize=(20, 5))
+    for dim in range(state_in.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.plot(timestamp, diff3[:, dim])
+        plt.ylabel(f'D{dim}')
+        if dim == 0:
+            plt.title('State Out - State Pred')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    for dim in range(state_in.shape[1]-1,-1,-1):
+        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.plot(timestamp, d4[:, dim], color='red')
+        if dim == 0:
+            plt.title('(State Out - State Pred) / dt')
+            plt.legend()
+        plt.grid('on')
+        plt.xlim(timestamp[0], timestamp[-1])
+        if dim != state_in.shape[1]-1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    # Plot regression of neural network
+    if not rtnmpc.model_options["only_use_nominal"]:
+        plt.subplots(figsize=(10, 5))
+        # Transform velocity of state to Body frame
+        state_b = np.zeros(state_in.shape)
+        for t in range(state_in.shape[0]):
+            v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
+            state_b[t] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
+        # Compute forward pass
+        y = np.zeros((state_in.shape[0], 3)).astype(np.float32)
+        for t in range(state_in.shape[0]):
+            s = torch.from_numpy(state_b[t, :13]).type(torch.float32).to(torch.device("cuda"))
+            u = torch.from_numpy(control[t, :]).type(torch.float32).to(torch.device("cuda"))
+            x = torch.cat((s, u)).unsqueeze(0)  # Add batch dimension
+            rtnmpc.neural_model.eval()
+            mlp_out = rtnmpc.neural_model(x).cpu().detach().numpy()
+            # Transform velocity back to world frame
+            # NOTE be careful when regressing other variables
+            mlp_out = v_dot_q(mlp_out.T, state_in[t, 6:10])
+            y[t, :] = np.squeeze(mlp_out)
+
+        # Plot true labels vs. actual regression
+        y_true = (state_out - state_pred) / dt
+        for dim in range(y.shape[1]-1,-1,-1):
+            plt.subplot(y.shape[1], 1, dim+1)
+            plt.plot(timestamp, y[:, dim], label='y_regressed')
+            plt.plot(timestamp, y[:, dim] - y_true[:, dim+3], label='error', color='r', linestyle='--', alpha=0.5)
+            plt.plot(timestamp, y_true[:, dim+3], label='y_true', color="orange")
+            plt.ylabel(f'D{dim}')
+            if dim == 0:
+                plt.title('(State Out - State Pred) / dt')
+                plt.legend()
+            plt.grid('on')
+            plt.xlim(timestamp[0], timestamp[-1])
+            if dim != state_in.shape[1]-1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+
+        # Plot model output
+        plt.subplots(figsize=(10, 5))
+        for dim in range(y.shape[1]-1,-1,-1):
+            plt.subplot(y.shape[1], 1, dim+1)
+            plt.plot(timestamp, state_out[:, dim], label='Sim Output')
+            plt.plot(timestamp, state_out[:, dim] + y[:, dim], label='Neural Compensation')
+            plt.plot(timestamp, state_pred[:, dim], label='Undisturbed Output', color='orange')
+            plt.ylabel(f'D{dim}')
+            if dim == 0:
+                plt.title('Model Output')
+                plt.legend()
+            plt.grid('on')
+            plt.xlim(timestamp[0], timestamp[-1])
+            if dim != y.shape[1]-1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+    plt.show()
+
 
 def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=None, save_file_name=None):
     """

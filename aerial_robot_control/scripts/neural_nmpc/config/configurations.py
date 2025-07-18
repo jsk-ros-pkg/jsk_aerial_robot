@@ -32,9 +32,9 @@ class EnvConfig:
     """
 
     model_options = {
-            "model_name": "standard_neural_nmpc",
+            "model_name": "standard_nmpc",
             "arch_type": "qd", # or "bi" or "tri"
-            "nmpc_type": "NMPCTiltQdServoDist",
+            "nmpc_type": "NMPCTiltQdServo",
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
             #    NMPCTiltQdNoServo
@@ -49,8 +49,8 @@ class EnvConfig:
             #    MHEWrenchEstAccMom
             "only_use_nominal": True,
             "end_to_end_mlp": False,
-            "neural_model_name": "naive_e2e_mlp", # "naive_e2e_mlp" or "naive_residual_mlp" or "approximated_mlp"
-            "neural_model_instance": "neuralmodel_010",
+            "neural_model_name": "naive_residual_mlp", # "naive_e2e_mlp" or "naive_residual_mlp" or "approximated_mlp"
+            "neural_model_instance": "neuralmodel_016",
     }
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
@@ -61,20 +61,21 @@ class EnvConfig:
     }
 
     dataset_options = {
-            "ds_name_suffix": "simple_dataset"
+            "ds_name_suffix": "residual_dataset"
     }
     sim_options = {
             # Choice of disturbances modeled in our Simplified Simulator. For more details about the parameters used refer to
             # the script: src/quad_mpc/quad_3d.py.
             # TODO actually implement the disturbances in NMPC and network
             "disturbances": {
-                "noisy": True,                       # Thrust and torque gaussian noises
+                "cog_dist": True,                    # Disturbance forces and torques on CoG
+                "motor_noise": True,                 # Asymmetric voltage noise in the motors
                 "drag": False,                       # 2nd order polynomial aerodynamic drag effect
                 "payload": False,                    # Payload force in the Z axis
-                "motor_noise": False                 # Asymmetric voltage noise in the motors
             },
-            "max_sim_time": 25,
+            "max_sim_time": 30,
             "world_radius": 3,
+            "seed": 678,
     }
     run_options = {
             "preset_targets": None,
@@ -98,24 +99,23 @@ class EnvConfig:
     # Set to True to show the trajectory that will be executed before the execution time
     pre_run_debug_plots = True
 
-    
 
 class MLPConfig:
     # Use naive implementation of MLP using torch
-    # model_name = "naive_residual_mlp"
-    model_name = "naive_e2e_mlp"
+    model_name = "naive_residual_mlp"
+    # model_name = "naive_e2e_mlp"
 
     # Use propietary RTNMPC library for approximated MLP
     # model_name = "approximated_mlp"
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [256, 256, 256, 128, 64] # In_features of each hidden layer
+    hidden_sizes = [64, 64, 64, 64] # In_features of each hidden layer
 
     # Activation function
-    activation = "Tanh"  # Options: "ReLU", "LeakyReLU", "Tanh", "Sigmoid"
+    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
-    use_batch_norm = False
+    use_batch_norm = True
 
     # Use dropout after each layer
     dropout_p = 0.0     # To disable dropout, set to 0.0
@@ -123,7 +123,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 500
+    num_epochs = 250
 
     # Batch size
     batch_size = 64
@@ -147,7 +147,7 @@ class MLPConfig:
 
 class ModelFitConfig:
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServoDist" + "_simple_dataset"
+    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset"
             #    NMPCFixQdAngvelOut
             #    NMPCFixQdThrustOut
             #    NMPCTiltQdNoServo
@@ -164,13 +164,15 @@ class ModelFitConfig:
 
     # ------- Features used for the model -------
     # State features
-    state_feats = [3, 4, 5]
+    # state_feats = [3, 4, 5]
+    state_feats = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     # state_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # state_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
 
     # Control input features
+    # u_feats = []
     u_feats = [0, 1, 2, 3]  # [thrust_cmd_1, thrust_cmd_2, thrust_cmd_3, thrust_cmd_4]
     u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
 

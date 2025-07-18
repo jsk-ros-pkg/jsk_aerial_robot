@@ -88,3 +88,23 @@ def q_dot_q(q, r):
         return np.array([t0, t1, t2, t3])
     else:
         return cs.vertcat(t0, t1, t2, t3)
+    
+def skew_symmetric(v):
+    """
+    Computes the skew-symmetric matrix of a 3D vector (PAMPC version)
+
+    :param v: 3D numpy vector or CasADi MX
+    :return: the corresponding skew-symmetric matrix of v with the same data type as v
+    """
+
+    if isinstance(v, np.ndarray):
+        return np.array([[0,    -v[0], -v[1], -v[2]],
+                         [v[0],     0,  v[2], -v[1]],
+                         [v[1], -v[2],     0,  v[0]],
+                         [v[2],  v[1], -v[0],     0]])
+
+    return cs.vertcat(
+        cs.horzcat(0,    -v[0], -v[1], -v[2]),
+        cs.horzcat(v[0],     0,  v[2], -v[1]),
+        cs.horzcat(v[1], -v[2],     0,  v[0]),
+        cs.horzcat(v[2],  v[1], -v[0],     0))

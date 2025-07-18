@@ -46,8 +46,7 @@ def load_model(model_options, sim_options, run_options):
         metadata = json.load(json_file)[neural_model_name][neural_model_instance]
 
     # Cross-check simulation environment options with metadata
-    if not run_options["recording"]:
-        metadata = cross_check_options(model_options, sim_options, metadata)
+    metadata = cross_check_options(model_options, sim_options, metadata)
 
     # Load trained MLP model
     file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
@@ -186,10 +185,6 @@ def sanity_check_features_and_reg_dims(state_feats, u_feats, y_reg_dims, in_dim,
     for y_reg in y_reg_dims:
         if y_reg not in state_feats:
             raise ValueError(f"Feature {y_reg} in y_reg_dims is not present in state_feats.")
-
-    for x_feat in state_feats:
-        if x_feat < 0 or x_feat >= in_dim:
-            raise ValueError(f"Feature index {x_feat} in state_feats is out of bounds for input dimension {in_dim}.")
 
     if len(state_feats) + len(u_feats) != in_dim:
         raise ValueError(f"Total number of features {len(state_feats) + len(u_feats)} does not match input dimension {in_dim}.")

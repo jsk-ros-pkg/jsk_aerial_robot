@@ -13,6 +13,7 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
     if aggressive:
         max_attempts = 100
         min_distance = 1 * world_radius
+        z_offset = 1.1 * world_radius  # Offset to ensure z is above the ground
         
         for _ in range(max_attempts):
             # Generate random point uniformly in sphere
@@ -25,8 +26,8 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
             
             x = r * np.sin(phi) * np.cos(theta)
             y = r * np.sin(phi) * np.sin(theta)  
-            z = r * np.cos(phi)
-            
+            z = r * np.cos(phi) + z_offset
+
             target_pos = np.array([x, y, z])
             
             # Check if far enough from current position
@@ -34,7 +35,7 @@ def sample_random_target(current_pos, world_radius, aggressive=True):
                 break
         
         # Fallback: If final target_pos is outside sphere, project it back
-        if np.linalg.norm(target_pos) > world_radius:
+        if np.linalg.norm(target_pos - np.array([0, 0, z_offset])) > world_radius:
             target_pos = target_pos / np.linalg.norm(target_pos) * world_radius * 0.95
     
         # # Polar coordinates
