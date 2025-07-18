@@ -3,8 +3,8 @@ aerial_robot_control_name: aerial_robot_control/beetle_controller
 controller:
   torque_allocation_matrix_inv_pub_interval: 0.05
   wrench_allocation_matrix_pub_interval: 0.1
-  gimbal_calc_in_fc : false
-  wrench_estimate_update_rate: 100 
+  gimbal_calc_in_fc: false
+  wrench_estimate_update_rate: 100
   momentum_observer_force_weight: 3
   momentum_observer_torque_weight: 2.5
 
@@ -13,7 +13,7 @@ controller:
   external_force_upper_limit: 0.0
   external_force_lower_limit: 0.0
   external_torque_lower_limit: 0.0
-  external_torque_lower_limit: 0.0
+  external_torque_upper_limit: 0.0
   cutoff_freq: 1.0
   sample_freq: 40.0
 
@@ -31,16 +31,16 @@ controller:
     i_gain: 1.0
     d_gain: 2.5
     limit_err_p: 1.0
-    limit_sum: 25.0 # N for clamping thrust force
+    limit_sum: 25.0  # N for clamping thrust force
     limit_p: 25.0
     limit_i: 25.0
     limit_d: 25.0
     force_landing_descending_rate: -0.5
 
   roll:
-    p_gain: 8.0 #8~25
+    p_gain: 8.0  #8~25
     i_gain: 1.0
-    d_gain: 5.0 #4~11
+    d_gain: 5.0  #4~11
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
@@ -49,9 +49,9 @@ controller:
     start_rp_integration_height: 0.01
 
   pitch:
-    p_gain: 8.0 #8~25
+    p_gain: 8.0  #8~25
     i_gain: 1.0
-    d_gain: 6.0 #4~11
+    d_gain: 6.0  #4~11
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0

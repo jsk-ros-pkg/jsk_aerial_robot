@@ -1,8 +1,8 @@
 servo_controller:
-# # comment this part to use the default topics
-#  state_sub_topic: kondo_servo/states_real
-#  ctrl_pub_topic: kondo_servo/states_cmd
-#  torque_pub_topic: kondo_servo/activate_cmd
+  # # comment this part to use the default topics
+  #  state_sub_topic: kondo_servo/states_real
+  #  ctrl_pub_topic: kondo_servo/states_cmd
+  #  torque_pub_topic: kondo_servo/activate_cmd
 
   gimbals:
     angle_sgn: 1
