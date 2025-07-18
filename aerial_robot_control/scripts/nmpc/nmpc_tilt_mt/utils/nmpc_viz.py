@@ -1,4 +1,4 @@
-from tf_conversions import transformations as tf
+import transformations as tf
 import matplotlib.pyplot as plt
 from math import ceil
 import numpy as np
@@ -149,12 +149,11 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        # Use tf2 to convert x_sim_all[:, 6:10] to euler angle
+        # convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
         plt.subplot(ceil(n_plots/2), 2, 2)
@@ -384,12 +383,11 @@ class Visualizer:
         plt.ylabel("Position (m)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.65), loc="lower left")
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
         euler = euler * 180 / np.pi     # in degree
 
         # Plot Euler Angles (with y-axis on the right side)
@@ -469,12 +467,11 @@ class Visualizer:
         title = title.replace("_", r"\_")
         # fig.title(title)
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
         plt.plot([0, t_total_sim], [0.5, 0.5], label="ref", linestyle="-.")     # Plot reference as constant 0.5
