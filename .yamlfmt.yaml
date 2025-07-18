@@ -1,0 +1,7 @@
+# .yamlfmt (YAML syntax!)
+formatter:
+  type: basic
+  indent: 2
+  pad_line_comments: 2
+  retain_line_breaks: true
+wrap: 120
