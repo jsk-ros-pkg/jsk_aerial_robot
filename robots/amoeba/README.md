@@ -22,14 +22,16 @@ Setup the folder architecture and clone the repo **with the specific branch**:
 ```bash
 mkdir -p ~/[path_to_ws]/src
 cd ~/[path_to_ws]/src
-git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt    # pay attention to the branch flag
+# git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt 
+git clone https://github.com/ZCen-Xiong/jsk_aerial_robot_dev_amb.git -b develop/amoeba 
+   # pay attention to the branch flag
 ```
 
 ### 2.1 ... for Ubuntu 20.04 and ROS Noetic
 Install ROS Noetic for Ubuntu 20.04 from https://wiki.ros.org/ROS/Installation and source the setup file:
 
 ```bash
-source /opt/ros/one/setup.bash
+source /opt/ros/noetic/setup.bash
 ```
 
 We use rosdep to manage the dependencies. So, if you have never done this in your computer before, do the following:
@@ -43,7 +45,7 @@ Then, do the following:
 ```bash
 cd ~/[path_to_ws]
 wstool init src
-wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall
+wstool merge -t src src/jsk_aerial_robot_dev_amb/aerial_robot_noetic.rosinstall
 wstool update -t src    # install unofficial packages
 rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic   # install the dependencies/packages stated in package.xml
 ```
@@ -52,7 +54,7 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic   # instal
 Install ROS-O for ubuntu 22.04 from https://ros.packages.techfak.net/ and source the setup file:
 
 ```bash
-./jsk_aerial_robot/configure.sh   # for configuration especially for ROS-O in jammy
+./jsk_aerial_robot_dev_amb/configure.sh   # for configuration especially for ROS-O in jammy
 source /opt/ros/one/setup.bash
 ```
 
@@ -84,7 +86,7 @@ source ~/[path_to_ws]/devel/setup.bash
 ### 3. Install python packages and link them to acados
 Install required packages:
 ```bash
-pip install -r src/jsk_aerial_robot/aerial_robot_control/scripts/requirements.txt
+pip install -r src/jsk_aerial_robot_dev_amb/aerial_robot_control/scripts/requirements.txt
 ```
 
 For the first run, **uncomment** these code in `aerial_robot_control/scripts/nmpc/gen_nmpc_code_all.sh`
