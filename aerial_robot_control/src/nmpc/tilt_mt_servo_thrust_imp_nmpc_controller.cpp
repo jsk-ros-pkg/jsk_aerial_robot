@@ -78,9 +78,10 @@ void nmpc::TiltMtServoThrustImpNMPC::initNMPCCostW()
 void nmpc::TiltMtServoThrustImpNMPC::setImpParams()
 {
   vector<int> idx = { idx_p_dist_end_ + 1, idx_p_dist_end_ + 2, idx_p_dist_end_ + 3,
-                    idx_p_dist_end_ + 4, idx_p_dist_end_ + 5, idx_p_dist_end_ + 6 };
+                      idx_p_dist_end_ + 4, idx_p_dist_end_ + 5, idx_p_dist_end_ + 6 };
 
-  auto imp_mpc_solver_ptr = boost::dynamic_pointer_cast<mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver>(mpc_solver_ptr_);
+  auto imp_mpc_solver_ptr =
+      boost::dynamic_pointer_cast<mpc_solver::TiltQdServoThrustDistImpMdlMPCSolver>(mpc_solver_ptr_);
   if (!imp_mpc_solver_ptr)
   {
     ROS_ERROR("The MPC solver is not the impedance model. Please check the MPC solver!!!!");
@@ -100,7 +101,6 @@ void nmpc::TiltMtServoThrustImpNMPC::initNMPCParams()
   TiltMtServoThrustDistNMPC::initNMPCParams();
   setImpParams();
 }
-
 
 void nmpc::TiltMtServoThrustImpNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
