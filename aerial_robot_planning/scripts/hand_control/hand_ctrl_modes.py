@@ -22,14 +22,17 @@ from sub_pos_objects import HandPose, ArmPose, Glove
 """
 For example: From arm to hand, denoted as a2h; from hand to drone, denoted as h2d.
 """
+
+
 class HandControlBaseMode(MPCPubJointTraj, ABC):
-    def __init__(self,
-                 robot_name: str,
-                 hand_pose: HandPose,
-                 arm_pose: ArmPose,
-                 glove: Glove,
-                 node_name: str,
-                 ):
+    def __init__(
+        self,
+        robot_name: str,
+        hand_pose: HandPose,
+        arm_pose: ArmPose,
+        glove: Glove,
+        node_name: str,
+    ):
         super().__init__(robot_name=robot_name, node_name=node_name, is_calc_rmse=False)
         self.hand_pose = hand_pose
         self.arm_pose = arm_pose
@@ -124,7 +127,7 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
             return self.is_finished
 
         current_ctrl_mode = self.glove.get_control_mode()
-        if  self.mode_num != current_ctrl_mode:  # if the control mode is changed by the glove
+        if self.mode_num != current_ctrl_mode:  # if the control mode is changed by the glove
             self.to_return_control_mode = current_ctrl_mode
             self.is_finished = True
 
@@ -139,11 +142,11 @@ class HandControlBaseMode(MPCPubJointTraj, ABC):
 ##########################################
 class OperationMode(HandControlBaseMode):
     def __init__(
-            self,
-            robot_name: str,
-            hand_pose: HandPose,
-            arm_pose: ArmPose,
-            glove: Glove,
+        self,
+        robot_name: str,
+        hand_pose: HandPose,
+        arm_pose: ArmPose,
+        glove: Glove,
     ):
         super().__init__(robot_name, hand_pose, arm_pose, glove, node_name="operation_mode_traj_pub")
 
@@ -260,9 +263,10 @@ class SphericalMode(HandControlBaseMode):
 
         self.expected_a2d_distance = max(1, min(20, self.expected_a2d_distance))
 
-        target_position = [a2h_unit_vector[i] * self.expected_a2d_distance + getattr(
-            self.hand_pose.pose_msg.pose.position, axis)
-                           for i, axis in enumerate(["x", "y"])] + [self.hand_pose.pose_msg.pose.position.z]
+        target_position = [
+            a2h_unit_vector[i] * self.expected_a2d_distance + getattr(self.hand_pose.pose_msg.pose.position, axis)
+            for i, axis in enumerate(["x", "y"])
+        ] + [self.hand_pose.pose_msg.pose.position.z]
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -338,10 +342,9 @@ class CartesianMode(HandControlBaseMode):
             self.expected_d2target_distance = 0.2
 
         target_position = [
-                              o2h_unit_vector[i] * self.expected_d2target_distance + getattr(
-                                  self.uav_odom.pose.pose.position, axis)
-                              for i, axis in enumerate(["x", "y"])
-                          ] + [self.hand_pose.pose_msg.pose.position.z]
+            o2h_unit_vector[i] * self.expected_d2target_distance + getattr(self.uav_odom.pose.pose.position, axis)
+            for i, axis in enumerate(["x", "y"])
+        ] + [self.hand_pose.pose_msg.pose.position.z]
 
         target_hand_distance = math.hypot(
             target_position[0] - current_hand_position[0], target_position[1] - current_hand_position[1]

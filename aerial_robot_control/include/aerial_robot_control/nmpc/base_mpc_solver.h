@@ -564,7 +564,8 @@ private:
       }
     }
 
-    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, nlp_out_, stage, constraint_type.c_str(), value.data());
+    ocp_nlp_constraints_model_set(nlp_config_, nlp_dims_, nlp_in_, nlp_out_, stage, constraint_type.c_str(),
+                                  value.data());
   }
 
   std::vector<int> getConstraintsIdx(const std::string& constraint_type, int stage) const

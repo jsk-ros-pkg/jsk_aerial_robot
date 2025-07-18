@@ -1,4 +1,4 @@
-from tf_conversions import transformations as tf
+import transformations as tf
 import matplotlib.pyplot as plt
 from math import ceil
 import numpy as np
@@ -157,18 +157,17 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        # Use tf2 to convert x_sim_all[:, 6:10] to euler angle
+        # Convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
-        plt.subplot(ceil(n_plots/2), 2, 2)
-        plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
-        plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
-        plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
+        plt.subplot(ceil(n_plots / 2), 2, 2)
+        plt.plot(time_data_x, euler[: self.data_idx, 0], label="roll")
+        plt.plot(time_data_x, euler[: self.data_idx, 1], label="pitch")
+        plt.plot(time_data_x, euler[: self.data_idx, 2], label="yaw")
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -178,10 +177,10 @@ class Visualizer:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         # Plot Angular Velocity
-        plt.subplot(ceil(n_plots/2), 2, 4)
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 10], label="wx")
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 11], label="wy")
-        plt.plot(time_data_x, x_sim_all[:self.data_idx, 12], label="wz")
+        plt.subplot(ceil(n_plots / 2), 2, 4)
+        plt.plot(time_data_x, x_sim_all[: self.data_idx, 10], label="wx")
+        plt.plot(time_data_x, x_sim_all[: self.data_idx, 11], label="wy")
+        plt.plot(time_data_x, x_sim_all[: self.data_idx, 12], label="wz")
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -192,7 +191,7 @@ class Visualizer:
 
         # Plot Computation Time
         print("Average computation time: ", np.mean(self.comp_time))
-        plt.subplot(ceil(n_plots/2), 2, 6)
+        plt.subplot(ceil(n_plots / 2), 2, 6)
         plt.plot(time_data_x, self.comp_time)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -394,12 +393,11 @@ class Visualizer:
         plt.ylabel("Position (m)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.65), loc="lower left")
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
         euler = euler * 180 / np.pi  # in degree
 
         # Plot Euler Angles (with y-axis on the right side)
@@ -477,12 +475,11 @@ class Visualizer:
         title = title.replace("_", r"\_")
         # fig.title(title)
 
-        # Convert Quaternions into Euler Angles using tf
+        # Convert Quaternions into Euler Angles using transformations
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
-            qxyzw = np.concatenate((qwxyz[1:], qwxyz[:1]))
-            euler[i, :] = tf.euler_from_quaternion(qxyzw, axes="sxyz")
+            euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # fmt: off
         # Plot Euler Angles

@@ -1,6 +1,7 @@
-'''
- Refactored by li-jinjie on 25-3-19.
-'''
+"""
+Refactored by li-jinjie on 25-3-19.
+"""
+
 import rospy
 from std_msgs.msg import UInt8
 from nav_msgs.msg import Odometry
@@ -13,6 +14,7 @@ from util import check_first_data_received, check_topic_subscription
 ##########################################
 # one-to-one mapping of all instantiation classes required.
 ##########################################
+
 
 class PoseBase(ABC):
     def __init__(self, object_name: str, topic_name: str, msg_type):
@@ -93,14 +95,13 @@ class Glove:
         return rospy.get_param(self.param_name)
 
     @staticmethod
-    def set_control_mode(new_mode:int):
+    def set_control_mode(new_mode: int):
         """
         Updates the control mode parameter.
 
         :param new_mode: The new control mode value to set.
         """
         rospy.set_param("/hand/control_mode", new_mode)
-
 
     def print_current_mode(self):
         """

@@ -21,7 +21,7 @@ class MHEVelDynIMU(MHEBase):
         model_name = "mhe_vel_dyn_imu_mdl"
 
         # Model states
-        omega_b = ca.SX.sym("omega_b", 3)       # Angular Velocity in Body frame
+        omega_b = ca.SX.sym("omega_b", 3)         # Angular Velocity in Body frame
         fds_w = ca.SX.sym("fds_w", 3)             # Disturbance on force in World frame
         tau_ds_b = ca.SX.sym("tau_ds_b", 3)       # Disturbance on torque in Body frame
 

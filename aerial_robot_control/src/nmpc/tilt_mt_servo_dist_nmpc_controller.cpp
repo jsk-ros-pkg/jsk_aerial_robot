@@ -91,11 +91,11 @@ void nmpc::TiltMtServoDistNMPC::updateITerm()
                      mpc_solver_ptr_->xo_.at(1).at(2));
   tf::Vector3 target_pos = pos_x0 + (pos_x1 - pos_x0) * t_nmpc_samp_ / t_nmpc_step_;
 
-  tf::Quaternion quat_x0(mpc_solver_ptr_->xo_.at(0).at(7), mpc_solver_ptr_->xo_.at(0).at(8), mpc_solver_ptr_->xo_.at(0).at(9),
-                         mpc_solver_ptr_->xo_.at(0).at(6));
+  tf::Quaternion quat_x0(mpc_solver_ptr_->xo_.at(0).at(7), mpc_solver_ptr_->xo_.at(0).at(8),
+                         mpc_solver_ptr_->xo_.at(0).at(9), mpc_solver_ptr_->xo_.at(0).at(6));
   quat_x0.normalize();
-  tf::Quaternion quat_x1(mpc_solver_ptr_->xo_.at(1).at(7), mpc_solver_ptr_->xo_.at(1).at(8), mpc_solver_ptr_->xo_.at(1).at(9),
-                         mpc_solver_ptr_->xo_.at(1).at(6));
+  tf::Quaternion quat_x1(mpc_solver_ptr_->xo_.at(1).at(7), mpc_solver_ptr_->xo_.at(1).at(8),
+                         mpc_solver_ptr_->xo_.at(1).at(9), mpc_solver_ptr_->xo_.at(1).at(6));
   quat_x1.normalize();
   tf::Quaternion target_q = quat_x0.slerp(quat_x1, t_nmpc_samp_ / t_nmpc_step_);
 

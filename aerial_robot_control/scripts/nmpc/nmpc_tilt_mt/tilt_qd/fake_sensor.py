@@ -90,17 +90,17 @@ class FakeSensor:
             idx += 4
         # - Thrust
         if self.include_thrust_model:
-            ft1s, ft2s, ft3s, ft4s = x[idx:idx+4]
+            ft1s, ft2s, ft3s, ft4s = x[idx : idx + 4]
             idx += 4
         # - Disturbance on CoG
         if self.include_cog_dist_model:
-            fds_w = x[idx:idx+3]
-            tau_ds_b = x[idx+3:idx+6]
+            fds_w = x[idx : idx + 3]
+            tau_ds_b = x[idx + 3 : idx + 6]
 
         # Transformation matrix
-        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
-        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
-        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
+        row_1 = np.array([1 - 2 * qy**2 - 2 * qz**2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx**2 - 2 * qz**2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx**2 - 2 * qy**2])
         rot_wb = np.vstack((row_1, row_2, row_3))
         rot_bw = rot_wb.T
 
