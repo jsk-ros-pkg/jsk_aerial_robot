@@ -1,60 +1,83 @@
 # For use on Jetson Orin NX with ARM64 architecture
 FROM arm64v8/ros:noetic
 
-ENV ROS_DISTRO noetic
-ENV DEBIAN_FRONTEND=noninteractive
+# Use NVIDIA L4T base image for Jetson compatibility
+# FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3
 
+ENV ROS_DISTRO=noetic
+ENV DEBIAN_FRONTEND=noninteractive
+# For NVIDIA container toolkit
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Install apt packages
 RUN apt-get update && \
     apt-get install -y \
     python3-wstool \
     python3-catkin-tools \
+    python3-pip \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
-RUN apt-get update && \
-    apt-get install -y \
-    python3-pip \
-    python3-setuptools \
-    python3-opencv
-
-RUN pip3 install --no-cache-dir \
-    torch==2.6.0 \
+RUN pip3 install \
+    numpy==1.21.5 \
+    torch==2.4.1 \
+    # TODO get stable version (==2.6.0 not compatible)
     scienceplots==2.1.1 \
     scipy==1.10 \
-    scikit-learn==1.6.1 \
+    scikit-learn==1.3.2 \
+    #TODO get stable version (==1.6.1) \
     matplotlib==3.5.1 \
     pandas==1.3.5 \
     casadi==3.7.0 \
     tikzplotlib==0.10.1 \
-    scikit-learn==0.23.2 \
     progress-table==3.1.2 \
     torchsummary==1.5.1
+    # For real-time inference
+    # tensorrt \
+    # pycuda
 
-# RUN apt-get update && \
-#     apt-get install -y python3-rosdep && \
-#     rosdep init || true && \
-#     rosdep update --include-eol-distros
+# Set up acados
+RUN cd /root && \
+    git clone https://github.com/acados/acados.git --branch v0.5.0 && \
+    cd /root/acados && \
+    git submodule update --recursive --init && \
+    mkdir -p /root/acados/build && \
+    cd /root/acados/build && \
+    cmake -DACADOS_WITH_QPOASES=ON .. && \
+    make install -j4
+# acados Python interface
+RUN pip3 install -e /root/acados/interfaces/acados_template
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/root/acados/lib"
+ENV ACADOS_SOURCE_DIR=/root/acados
+# Download and install t_renderer binary for acados
+RUN mkdir -p /root/acados/bin
+RUN curl -L -o /root/acados/bin/t_renderer https://github.com/acados/tera_renderer/releases/download/v0.2.0/t_renderer-v0.2.0-linux-arm64 && \
+    chmod +x /root/acados/bin/t_renderer
 
-# RUN mkdir -p /root/ros/jsk_aerial_robot_ws/src && \
-#     cd /root/ros/jsk_aerial_robot_ws && \
-#     wstool init src && \
-#     wstool set -u -t src jsk_aerial_robot http://github.com/jsk-ros-pkg/jsk_aerial_robot --git -y && \
-#     cd src/jsk_aerial_robot && \
-#     bash configure.sh && \
-#     cd /root/ros/jsk_aerial_robot_ws && \
-#     wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall && \
-#     wstool update -t src
+# Set up workspace, install ROS and its dependencies
+RUN apt-get update && \
+    apt-get install -y python3-rosdep && \
+    rosdep init || true && \
+    rosdep update --include-eol-distros
 
-# RUN cd /root/ros/jsk_aerial_robot_ws && \
-#     rosdep install -y -r --from-paths src --ignore-src --rosdistro ${ROS_DISTRO}
+RUN mkdir -p /root/ros/jsk_aerial_robot_ws/src && \
+    cd /root/ros/jsk_aerial_robot_ws/src && \
+    git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/RTNMPC && \
+    cd /root/ros/jsk_aerial_robot_ws && \
+    wstool init src && \
+    # wstool set -u -t src jsk_aerial_robot http://github.com/johanneskbl/jsk_aerial_robot --git -y && \
+    wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall && \
+    wstool update -t src && \
+    rosdep install -y -r --from-paths src --ignore-src --rosdistro ${ROS_DISTRO}
 
-# RUN cd /root/ros/jsk_aerial_robot_ws && \
-#     catkin config --extend /opt/ros/${ROS_DISTRO} && \
-#     catkin build
+RUN cd /root/ros/jsk_aerial_robot_ws && \
+    catkin config --extend /opt/ros/${ROS_DISTRO} && \
+    catkin build
 
-# RUN echo "source /root/ros/jsk_aerial_robot_ws/devel/setup.bash" >> /root/.bashrc
+RUN echo "source /root/ros/jsk_aerial_robot_ws/devel/setup.bash" >> /root/.bashrc
 
 WORKDIR /root/ros/jsk_aerial_robot_ws
 CMD ["bash"]
