@@ -22,7 +22,7 @@ repos:
 
   # Python --------------------------------------------------------------------
   - repo: https://github.com/psf/black
-    rev: 25.1.0  # 2025-01-29
+    rev: 23.11.0  # from the next version of black (24.1.0), it requires Python >3.8
     hooks:
       - id: black
         args: [--line-length=120]
