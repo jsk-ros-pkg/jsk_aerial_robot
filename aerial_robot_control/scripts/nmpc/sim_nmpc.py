@@ -47,7 +47,6 @@ def main(args):
     # ========== Init ==========
     # ---------- Controller ----------
     if args.arch == "qd":
-
         if args.model == 0:
             nmpc = NMPCTiltQdNoServo(phys=phys_art)
         elif args.model == 1:
@@ -80,7 +79,6 @@ def main(args):
             raise ValueError(f"Invalid control model {args.model}.")
 
     elif args.arch == "bi":
-
         if args.model == 0:
             nmpc = NMPCTiltBiServo()
         elif args.model == 1:
@@ -89,7 +87,6 @@ def main(args):
             raise ValueError(f"Invalid model {args.model}.")
 
     elif args.arch == "tri":
-
         if args.model == 0:
             nmpc = NMPCTiltTriServo()
         elif args.model == 1:
@@ -124,7 +121,6 @@ def main(args):
 
     # ---------- Simulator ----------
     if args.arch == "qd":
-
         sim_phy = phys_omni if 20 < args.model < 30 else phys_art
         if args.sim_model == 0:
             sim_nmpc = NMPCTiltQdServoThrust(phys=sim_phy)  # Consider both the servo delay and the thrust delay
@@ -134,7 +130,6 @@ def main(args):
             raise ValueError(f"Invalid sim model {args.sim_model}.")
 
     elif args.arch == "bi":
-
         if args.sim_model == 0:
             sim_nmpc = NMPCTiltBiServo()
         # elif args.sim_model == 1:
@@ -143,7 +138,6 @@ def main(args):
             raise ValueError(f"Invalid sim model {args.sim_model}.")
 
     elif args.arch == "tri":
-
         sim_nmpc = NMPCTiltTriServo()
 
     else:

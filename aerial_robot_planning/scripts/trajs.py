@@ -562,7 +562,6 @@ class SingularityPointTraj(BaseTraj):
     def get_3d_orientation(
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
-
         yaw = np.pi / 4.0
         roll = np.pi / 2.0
         pitch = 0.0
