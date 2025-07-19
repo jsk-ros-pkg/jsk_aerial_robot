@@ -14,10 +14,9 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     """
 
-    def __init__(self, phys=phys_art):
+    def __init__(self, build: bool = True, phys=phys_art):
         # Model name
         self.model_name = "tilt_qd_no_servo_ac_cost_mdl"
-        self.phys = phys
 
         # ====== Define controller setup through flags ======
         #
@@ -42,13 +41,17 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
         # Use previous servo angle command as reference
         self.a1c_prev, self.a2c_prev, self.a3c_prev, self.a4c_prev = 0, 0, 0, 0
 
+        # Load robot specific parameters
+        self.phys = phys
+
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServoAcCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__()
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # fmt: off
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -57,13 +60,25 @@ class NMPCTiltQdNoServoAcCost(QDNMPCBase):
         qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
-        state_y = ca.vertcat(self.p, self.v, self.qwr, qe_x + self.qxr, qe_y + self.qyr, qe_z + self.qzr, self.w)
+        state_y = ca.vertcat(
+            self.p,
+            self.v,
+            self.qwr,
+            qe_x + self.qxr,
+            qe_y + self.qyr,
+            qe_z + self.qzr,
+            self.w
+        )
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(self.ft_c, self.a_c)
+        control_y = ca.vertcat(
+            self.ft_c,
+            self.a_c
+        )
 
         return state_y, state_y_e, control_y
+        # fmt: on
 
     def get_weights(self):
         # Define Weights

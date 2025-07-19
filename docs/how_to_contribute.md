@@ -19,7 +19,12 @@ Pre-commit, the format plugin, will run automatically before each commit. The sp
     pre-commit run --files $(find path/to/folder -type f)
 ```
 
-If you don't like the style formated by black for Python, please add the following line to the top of your Python file:
+To turn off the pre-commit check locally, run:
+```bash
+    pre-commit uninstall
+```
+
+If you don't like the style formatted by black for Python, please add the following line to the top of your Python file:
 
 ```python
 # fmt: off
@@ -27,6 +32,7 @@ If you don't like the style formated by black for Python, please add the followi
 # fmt: on
 ```
 This will disable the black formatting for this file, and you can format it manually.
+
 If you don't like the style formated by clang-format for C++, please add the following line to the top of your C++ file:
 
 ```cpp

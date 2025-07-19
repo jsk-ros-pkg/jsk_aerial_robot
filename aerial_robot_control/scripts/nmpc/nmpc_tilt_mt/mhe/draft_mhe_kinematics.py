@@ -1,10 +1,9 @@
-import os, sys
+import os
 import numpy as np
-from acados_template import AcadosModel, AcadosOcpSolver
 import casadi as ca
-
+from acados_template import AcadosModel, AcadosOcpSolver
 from ..rh_base import RecedingHorizonBase
-from ..tilt_qd.phys_param_beetle_omni import *  # Define physical parameters
+from ..tilt_qd import phys_param_beetle_omni as pyhs_omni
 
 
 class MHEKinematics(RecedingHorizonBase):
@@ -15,19 +14,21 @@ class MHEKinematics(RecedingHorizonBase):
     def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("estimation", "mhe", "beetle_omni", "StateEstimationMHE.yaml")
+        self.pyhs = pyhs_omni
 
         # Create acados model & solver and generate c code
         super().__init__("wrench_est")
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_kinematics_mdl"
 
         # Model states
-        p = ca.SX.sym("p", 3)  # World frame
-        v = ca.SX.sym("v", 3)  # World frame
-        a_sf = ca.SX.sym("a_sf", 3)  # Body frame
-        qw = ca.SX.sym("qw")  # Quaternions
+        p = ca.SX.sym("p", 3)           # World frame
+        v = ca.SX.sym("v", 3)           # World frame
+        a_sf = ca.SX.sym("a_sf", 3)     # Body frame
+        qw = ca.SX.sym("qw")            # Quaternions
         qx = ca.SX.sym("qx")
         qy = ca.SX.sym("qy")
         qz = ca.SX.sym("qz")
@@ -39,7 +40,7 @@ class MHEKinematics(RecedingHorizonBase):
         states = ca.vertcat(p, v, a_sf, q, w)
 
         # Model parameters
-        qwr = ca.SX.sym("qwr")  # Reference for quaternions
+        qwr = ca.SX.sym("qwr")          # Reference for quaternions
         qxr = ca.SX.sym("qxr")
         qyr = ca.SX.sym("qyr")
         qzr = ca.SX.sym("qzr")
@@ -52,18 +53,24 @@ class MHEKinematics(RecedingHorizonBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         # Gravity
-        g_w = np.array([0, 0, -gravity])
+        g_w = np.array([0, 0, -self.pyhs.gravity])
 
         # Explicit dynamics
         ds = ca.vertcat(
@@ -71,10 +78,10 @@ class MHEKinematics(RecedingHorizonBase):
             ca.mtimes(rot_wb, a_sf) + g_w,
             w_a_sf,
             (-wx * qx - wy * qy - wz * qz) / 2,
-            (wx * qw + wz * qy - wy * qz) / 2,
-            (wy * qw - wz * qx + wx * qz) / 2,
-            (wz * qw + wy * qx - wx * qy) / 2,
-            w_w,
+            ( wx * qw + wz * qy - wy * qz) / 2,
+            ( wy * qw - wz * qx + wx * qz) / 2,
+            ( wz * qw + wy * qx - wx * qy) / 2,
+            w_w
         )
         f = ca.Function("func", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
@@ -86,8 +93,8 @@ class MHEKinematics(RecedingHorizonBase):
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error
         # qe = qr^* multiply q
-        qe_x = qwr * qx - qw * qxr - qyr * qz + qy * qzr
-        qe_y = qwr * qy - qw * qyr + qxr * qz - qx * qzr
+        qe_x =  qwr * qx - qw * qxr - qyr * qz + qy * qzr
+        qe_y =  qwr * qy - qw * qyr + qxr * qz - qx * qzr
         qe_z = -qxr * qy + qx * qyr + qwr * qz - qw * qzr
 
         # Sensor function
@@ -98,7 +105,7 @@ class MHEKinematics(RecedingHorizonBase):
         model = AcadosModel()
         model.name = model_name
         model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl            # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
@@ -108,6 +115,7 @@ class MHEKinematics(RecedingHorizonBase):
         model.cost_y_expr = ca.vertcat(meas_y, noise)  # y, u
         model.cost_y_expr_e = meas_y_e  # y
         return model
+        # fmt: on
 
     def create_acados_ocp_solver(self) -> AcadosOcpSolver:
         # Create OCP object and set basic properties

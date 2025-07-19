@@ -167,6 +167,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
         qz = self.target_pose.orientation.z
         qw = self.target_pose.orientation.w
 
+        # fmt: off
         for i in range(self.N_nmpc + 1):
             traj_pt = MultiDOFJointTrajectoryPoint()
             traj_pt.transforms.append(Transform(translation=Vector3(x, y, z), rotation=Quaternion(qx, qy, qz, qw)))
@@ -180,6 +181,7 @@ class MPCSinglePtPub(MPCPubJointTraj):
             traj_msg.points.append(traj_pt)
 
         return traj_msg
+        # fmt: on
 
     def check_finished(self, t_elapsed: float) -> bool:
         """

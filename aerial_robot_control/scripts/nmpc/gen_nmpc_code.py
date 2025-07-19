@@ -23,13 +23,12 @@ if __name__ == "__main__":
         help=f"Model name to generate code for. Choose from: {class_names_str}",
     )
     args = parser.parse_args()
-
     model_name = args.model
+
     if model_name not in class_names:
         raise ValueError(f"Model '{model_name}' not found. Available models: {class_names_str}")
 
     print(f"Generating code for model: {model_name}")
-    # create object based on the str class name
     nmpc_class = globals()[model_name]
     nmpc = nmpc_class()
 

@@ -13,11 +13,11 @@ class RecedingHorizonBase(ABC):
     :param string method: Sets correct path to save c generated code and is either "nmpc" or "wrench_est".
     """
 
-    def __init__(self, method):
+    def __init__(self, method, build: bool = True):
         self._acados_model = self.create_acados_model()
         self._create_acados_ocp()
         self._mkdir(method, self._acados_model.name)
-        self._ocp_solver = self.create_acados_ocp_solver()  # Goes into child class's implementation
+        self._ocp_solver = self.create_acados_ocp_solver(build)
 
     def read_params(self, mode, method, robot_package, file_name):
         # Read parameters from configuration file in the robot's package
@@ -68,7 +68,7 @@ class RecedingHorizonBase(ABC):
         pass
 
     @abstractmethod
-    def create_acados_ocp_solver(self) -> AcadosOcpSolver:
+    def create_acados_ocp_solver(self, build: bool = True) -> AcadosOcpSolver:
         pass
 
     @staticmethod

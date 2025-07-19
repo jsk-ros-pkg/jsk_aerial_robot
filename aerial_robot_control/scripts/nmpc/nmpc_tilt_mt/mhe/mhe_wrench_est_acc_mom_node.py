@@ -1,23 +1,16 @@
 #!/usr/bin/env python
-"""
-Created by li-jinjie on 24-12-15.
-"""
-
-import numpy as np
+import os
+import yaml
 import rospy
+import rospkg
+import numpy as np
 from spinal.msg import Imu, ESCTelemetryArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import WrenchStamped, PoseStamped
-
 from .mhe_wrench_est_acc_mom import MHEWrenchEstAccMom
-
 from ..tilt_qd.qd_reference_generator import QDNMPCReferenceGenerator
-
 from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
-import rospkg
-import yaml
-import os
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
@@ -118,7 +111,6 @@ class MHEWrenchEstAccMomNode:
         self.dist_est_timer = rospy.Timer(rospy.Duration(mhe_params["T_samp"]), self.dist_est_timer_callback)
 
     def dist_est_timer_callback(self, event):
-
         if self.last_imu_data is None or self.latest_esc_telem is None or self.latest_joint_states is None:
             return
 
@@ -169,8 +161,9 @@ class MHEWrenchEstAccMomNode:
         self.mhe_p_list[-1, 0:3] = wrench_u_sensor_b[3:6]  # tau_u_g
 
         # step 2: shift yref_list
-        self.mhe_yref_0[: self.mhe_nm + self.mhe_nu] = self.mhe_yref_list[0, : self.mhe_nm + self.mhe_nu]
-        self.mhe_yref_0[self.mhe_nm + self.mhe_nu :] = self.x0_bar
+        # fmt: off
+        self.mhe_yref_0[:self.mhe_nm + self.mhe_nu] = self.mhe_yref_list[0, :self.mhe_nm + self.mhe_nu]
+        self.mhe_yref_0[self.mhe_nm + self.mhe_nu:] = self.x0_bar
 
         self.mhe_yref_list[:-1, :] = self.mhe_yref_list[1:, :]
 
@@ -185,8 +178,9 @@ class MHEWrenchEstAccMomNode:
             self.mhe_solver.set(stage, "yref", self.mhe_yref_list[stage - 1, :])
             self.mhe_solver.set(stage, "p", self.mhe_p_list[stage, :])
 
-        self.mhe_solver.set(self.mhe_N, "yref", self.mhe_yref_list[self.mhe_N - 1, : self.mhe_nm])
+        self.mhe_solver.set(self.mhe_N, "yref", self.mhe_yref_list[self.mhe_N - 1, :self.mhe_nm])
         self.mhe_solver.set(self.mhe_N, "p", self.mhe_p_list[self.mhe_N, :])
+        # fmt: on
 
         # step 4: solve
         self.mhe_solver.solve()
@@ -209,12 +203,12 @@ class MHEWrenchEstAccMomNode:
         alpha_force = 0.1
         self.disturb_estimate_acc[0:3] = (1 - alpha_force) * self.disturb_estimate_acc[0:3] + alpha_force * np.dot(
             self.rot_ib, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])
-        )  # world frame
+        )  # World frame
 
         alpha_torque = 0.05
         self.disturb_estimate_acc[3:6] = (1 - alpha_torque) * self.disturb_estimate_acc[3:6] + alpha_torque * (
             wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]
-        )  # body frame
+        )  # Body frame
 
         acc_wrench_estimated = WrenchStamped()
         acc_wrench_estimated.wrench.force.x = self.disturb_estimate_acc[0]
@@ -272,9 +266,11 @@ class MHEWrenchEstAccMomNode:
         qy = pose_data.pose.orientation.y
         qz = pose_data.pose.orientation.z
 
-        row_1 = np.array([1 - 2 * qy**2 - 2 * qz**2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
-        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx**2 - 2 * qz**2, 2 * qy * qz - 2 * qw * qx])
-        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx**2 - 2 * qy**2])
+        # fmt: off
+        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
+        # fmt: on
         self.rot_ib = np.vstack((row_1, row_2, row_3))
 
     def run(self):

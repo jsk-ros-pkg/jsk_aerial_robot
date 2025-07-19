@@ -11,7 +11,6 @@ class QDNMPCReferenceGenerator:
     """
 
     def __init__(self, nmpc, p1_b, p2_b, p3_b, p4_b, dr1, dr2, dr3, dr4, kq_d_kt, mass, gravity):
-
         self.nmpc = nmpc
 
         self.p1_b = p1_b
@@ -115,6 +114,8 @@ class QDNMPCReferenceGenerator:
         :return xr: Reference for the state x
         :return ur: Reference for the input u
         """
+        if len(target_xyz) != 3 or len(target_rpy) != 3:
+            raise ValueError("Target state should be given in xyz and rpy.")
         roll = target_rpy[0]
         pitch = target_rpy[1]
         yaw = target_rpy[2]

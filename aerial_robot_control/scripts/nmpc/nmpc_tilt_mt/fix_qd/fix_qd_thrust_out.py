@@ -2,7 +2,6 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
 from ..tilt_qd.qd_nmpc_base import QDNMPCBase
 from . import phys_param_mini_qd as phys_mini_qd
 
@@ -14,7 +13,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
     The output of the controller is the thrust for each rotor.
     """
 
-    def __init__(self, phys=phys_mini_qd):
+    def __init__(self, build: bool = True, phys=phys_mini_qd):
         # Model name
         self.model_name = "fix_qd_thrust_out_mdl"
         self.phys = phys
@@ -32,7 +31,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         self.read_params("controller", "nmpc", "mini_quadrotor", "FlightControlNMPCFullModel.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__()
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # Cost function
@@ -61,6 +60,7 @@ class NMPCFixQdThrustOut(QDNMPCBase):
         return state_y, state_y_e, control_y
 
     def get_weights(self):
+        # fmt: off
         # Define weights
         Q = np.diag(
             [
@@ -80,9 +80,17 @@ class NMPCFixQdThrustOut(QDNMPCBase):
             ]
         )
 
-        R = np.diag([self.params["Rt"], self.params["Rt"], self.params["Rt"], self.params["Rt"]])
+        R = np.diag(
+            [
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"],
+                self.params["Rt"]
+            ]
+        )
 
         return Q, R
+        # fmt: on
 
     def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """

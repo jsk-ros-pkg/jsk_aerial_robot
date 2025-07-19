@@ -1,6 +1,5 @@
 import numpy as np
-
-from ..tilt_qd.phys_param_beetle_omni import *
+from . import phys_param_beetle_omni as phys_omni
 
 
 class FakeSensor:
@@ -18,64 +17,67 @@ class FakeSensor:
         include_thrust_model: bool = False,
         include_cog_dist_model: bool = False,
     ):
+        # fmt: off
         # Store controller flags
         self.include_servo_model = include_servo_model
         self.include_thrust_model = include_thrust_model
         self.include_cog_dist_model = include_cog_dist_model
 
         # Store physical properties
-        self.mass = mass
-        self.gravity = gravity
+        self.phys = phys_omni
+        self.mass = self.phys.mass
+        self.gravity = self.phys.gravity
 
-        self.I = np.diag([Ixx, Iyy, Izz])
-        self.I_inv = np.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
-        self.g_i = np.array([0, 0, -gravity])
+        self.I = np.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        self.I_inv = np.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
+        self.g_i = np.array([0, 0, -self.phys.gravity])
 
-        self.dr1 = dr1
-        self.dr2 = dr2
-        self.dr3 = dr3
-        self.dr4 = dr4
-        self.p1_b = p1_b
-        self.p2_b = p2_b
-        self.p3_b = p3_b
-        self.p4_b = p4_b
-        self.kq_d_kt = kq_d_kt
+        self.dr1 = self.phys.dr1
+        self.dr2 = self.phys.dr2
+        self.dr3 = self.phys.dr3
+        self.dr4 = self.phys.dr4
+        self.p1_b = self.phys.p1_b
+        self.p2_b = self.phys.p2_b
+        self.p3_b = self.phys.p3_b
+        self.p4_b = self.phys.p4_b
+        self.kq_d_kt = self.phys.kq_d_kt
 
         # Precompute rotation matrices
-        denominator = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
+        denominator = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
         self.rot_be1 = np.array(
             [
-                [p1_b[0] / denominator, -p1_b[1] / denominator, 0],
-                [p1_b[1] / denominator, p1_b[0] / denominator, 0],
+                [self.phys.p1_b[0] / denominator, -self.phys.p1_b[1] / denominator, 0],
+                [self.phys.p1_b[1] / denominator,  self.phys.p1_b[0] / denominator, 0],
                 [0, 0, 1],
             ]
         )
-        denominator = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
+        denominator = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
         self.rot_be2 = np.array(
             [
-                [p2_b[0] / denominator, -p2_b[1] / denominator, 0],
-                [p2_b[1] / denominator, p2_b[0] / denominator, 0],
+                [self.phys.p2_b[0] / denominator, -self.phys.p2_b[1] / denominator, 0],
+                [self.phys.p2_b[1] / denominator,  self.phys.p2_b[0] / denominator, 0],
                 [0, 0, 1],
             ]
         )
-        denominator = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
+        denominator = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
         self.rot_be3 = np.array(
             [
-                [p3_b[0] / denominator, -p3_b[1] / denominator, 0],
-                [p3_b[1] / denominator, p3_b[0] / denominator, 0],
+                [self.phys.p3_b[0] / denominator, -self.phys.p3_b[1] / denominator, 0],
+                [self.phys.p3_b[1] / denominator,  self.phys.p3_b[0] / denominator, 0],
                 [0, 0, 1],
             ]
         )
-        denominator = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
+        denominator = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
         self.rot_be4 = np.array(
             [
-                [p4_b[0] / denominator, -p4_b[1] / denominator, 0],
-                [p4_b[1] / denominator, p4_b[0] / denominator, 0],
+                [self.phys.p4_b[0] / denominator, -self.phys.p4_b[1] / denominator, 0],
+                [self.phys.p4_b[1] / denominator,  self.phys.p4_b[0] / denominator, 0],
                 [0, 0, 1],
             ]
         )
 
     def update_acc(self, x):
+        # fmt: off
         # Deconstruct state variable
         # - Quaternions
         qw, qx, qy, qz = x[6:10]
@@ -88,17 +90,17 @@ class FakeSensor:
             idx += 4
         # - Thrust
         if self.include_thrust_model:
-            ft1s, ft2s, ft3s, ft4s = x[idx : idx + 4]
+            ft1s, ft2s, ft3s, ft4s = x[idx:idx + 4]
             idx += 4
         # - Disturbance on CoG
         if self.include_cog_dist_model:
-            fds_w = x[idx : idx + 3]
-            tau_ds_b = x[idx + 3 : idx + 6]
+            fds_w = x[idx:idx + 3]
+            tau_ds_b = x[idx+3:idx+6]
 
         # Transformation matrix
-        row_1 = np.array([1 - 2 * qy**2 - 2 * qz**2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
-        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx**2 - 2 * qz**2, 2 * qy * qz - 2 * qw * qx])
-        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx**2 - 2 * qy**2])
+        row_1 = np.array([1 - 2 * qy ** 2 - 2 * qz ** 2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy])
+        row_2 = np.array([2 * qx * qy + 2 * qw * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2, 2 * qy * qz - 2 * qw * qx])
+        row_3 = np.array([2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx ** 2 - 2 * qy ** 2])
         rot_wb = np.vstack((row_1, row_2, row_3))
         rot_bw = rot_wb.T
 
@@ -120,14 +122,14 @@ class FakeSensor:
 
         # Wrench in Body frame
         f_u_b = (
-            np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1))
+              np.dot(self.rot_be1, np.dot(rot_e1r1, ft_r1))
             + np.dot(self.rot_be2, np.dot(rot_e2r2, ft_r2))
             + np.dot(self.rot_be3, np.dot(rot_e3r3, ft_r3))
             + np.dot(self.rot_be4, np.dot(rot_e4r4, ft_r4))
         )
 
         tau_u_b = (
-            np.dot(self.rot_be1, np.dot(rot_e1r1, tau_r1))
+              np.dot(self.rot_be1, np.dot(rot_e1r1, tau_r1))
             + np.dot(self.rot_be2, np.dot(rot_e2r2, tau_r2))
             + np.dot(self.rot_be3, np.dot(rot_e3r3, tau_r3))
             + np.dot(self.rot_be4, np.dot(rot_e4r4, tau_r4))
@@ -144,6 +146,7 @@ class FakeSensor:
         ang_acc_b = np.dot(self.I_inv, (-np.cross(w, np.dot(self.I, w)) + tau_u_b + tau_ds_b))
 
         return sf_b, ang_acc_b, rot_wb
+        # fmt: on
 
     @staticmethod
     def rot_e2r(a):

@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 
 
 # Created from the acados python example "pendulum_model".
-
-
 def create_acados_model() -> AcadosModel:
     """
     Create acados model object.

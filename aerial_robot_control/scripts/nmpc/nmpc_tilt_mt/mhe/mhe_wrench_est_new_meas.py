@@ -3,26 +3,27 @@
 import numpy as np
 from acados_template import AcadosModel
 import casadi as ca
-
 from .mhe_base import MHEBase
-from ..tilt_qd.phys_param_beetle_omni import *
+from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
 class MHEVelDynIMU(MHEBase):
     def __init__(self):
+        self.phys = phys_omni
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEAccMom2.yaml")
 
         super(MHEVelDynIMU, self).__init__()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_vel_dyn_imu_mdl"
 
         # Model states
-        omega_b = ca.SX.sym("omega_b", 3)  # Angular Velocity in Body frame
-        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
+        omega_b = ca.SX.sym("omega_b", 3)         # Angular Velocity in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)             # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)       # Disturbance on torque in Body frame
 
         states = ca.vertcat(omega_b, fds_w, tau_ds_b)
 
@@ -46,24 +47,33 @@ class MHEVelDynIMU(MHEBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         rot_bw = rot_wb.T
 
         # Sensor function
-        measurements = ca.vertcat((f_u_b + ca.mtimes(rot_bw, fds_w)) / mass, omega_b)
+        measurements = ca.vertcat(
+            (f_u_b + ca.mtimes(rot_bw, fds_w)) / self.phys.mass,
+            omega_b
+        )
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
 
         # dynamic model
         ds = ca.vertcat(
@@ -81,7 +91,7 @@ class MHEVelDynIMU(MHEBase):
         model = AcadosModel()
         model.name = model_name
         model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_impl_expr = f_impl            # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
@@ -95,6 +105,7 @@ class MHEVelDynIMU(MHEBase):
         model.cost_y_expr_e = measurements  # y
 
         return model
+        # fmt: on
 
     def get_weights(self):
         # Weights

@@ -2,8 +2,8 @@
 # -*- encoding: ascii -*-
 import numpy as np
 import casadi as ca
-
 from ..tilt_qd.qd_nmpc_base import QDNMPCBase
+from . import phys_param_beetle_art as phys_art
 
 
 class NMPCTiltQdServoOldCost(QDNMPCBase):
@@ -14,9 +14,9 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     """
 
-    def __init__(self):
+    def __init__(self, build: bool = True, phys=phys_art):
         # Model name
-        model_name = "tilt_qd_servo_old_cost_mdl"
+        self.model_name = "tilt_qd_servo_old_cost_mdl"
 
         # ====== Define controller setup through flags ======
         #
@@ -37,13 +37,17 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         self.include_cog_dist_parameter = False
         self.include_impedance = False
 
+        # Load robot specific parameters
+        self.phys = phys
+
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCServoOldCost.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__()
+        super().__init__(build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
+        # fmt: off
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
@@ -53,14 +57,25 @@ class NMPCTiltQdServoOldCost(QDNMPCBase):
         qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
-            self.p, self.v, self.qwr, qe_x + self.qxr, qe_y + self.qyr, qe_z + self.qzr, self.w, self.a_s
+            self.p,
+            self.v,
+            self.qwr,
+            qe_x + self.qxr,
+            qe_y + self.qyr,
+            qe_z + self.qzr,
+            self.w,
+            self.a_s
         )
 
         state_y_e = state_y
 
-        control_y = ca.vertcat(self.ft_c, self.a_c)  # <-- Key difference! Use absolute command and not delta to state
+        control_y = ca.vertcat(
+            self.ft_c,
+            self.a_c  # <-- Key difference! Use absolute command and not delta to state
+        )
 
         return state_y, state_y_e, control_y
+        # fmt: on
 
     def get_weights(self):
         # Define Weights

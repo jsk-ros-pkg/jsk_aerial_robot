@@ -129,11 +129,12 @@ class Visualizer:
             plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
         plt.grid(True)
 
+        # fmt: off
         # Plot Velocity
-        plt.subplot(ceil(n_plots / 2), 2, 3)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 3], label="vx")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 4], label="vy")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 5], label="vz")
+        plt.subplot(ceil(n_plots/2), 2, 3)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 4], label="vy")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 5], label="vz")
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -143,11 +144,11 @@ class Visualizer:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         # Plot Quaternions
-        plt.subplot(ceil(n_plots / 2), 2, 5)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 6], label="qw")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 7], label="qx")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 8], label="qy")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 9], label="qz")
+        plt.subplot(ceil(n_plots/2), 2, 5)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 6], label="qw")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 7], label="qx")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 8], label="qy")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 9], label="qz")
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -156,7 +157,7 @@ class Visualizer:
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
-        # convert x_sim_all[:, 6:10] to euler angle
+        # Convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
         for i in range(x_sim_all.shape[0]):
             qwxyz = x_sim_all[i, 6:10]
@@ -200,15 +201,15 @@ class Visualizer:
         # Plot Servo Angle as State
         x_idx = 12
         if self.tilt and self.include_servo_model:
-            plt.subplot(ceil(n_plots / 2), 2, 7)
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="a1s")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 2], label="a2s")
+            plt.subplot(ceil(n_plots/2), 2, 7)
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="a1s")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+2], label="a2s")
             x_idx += 2
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="a3s")
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="a3s")
                 x_idx += 1
             if self.is_qd:
-                plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="a4s")
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="a4s")
                 x_idx += 1
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
@@ -220,15 +221,15 @@ class Visualizer:
 
         # Plot Thrust as State
         if self.include_thrust_model:
-            plt.subplot(ceil(n_plots / 2), 2, 8)
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="ft1s")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 2], label="ft2s")
+            plt.subplot(ceil(n_plots/2), 2, 8)
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft1s")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+2], label="ft2s")
             x_idx += 2
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="ft3s")
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft3s")
                 x_idx += 1
             if self.is_qd:
-                plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="ft4s")
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft4s")
                 x_idx += 1
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
@@ -240,17 +241,17 @@ class Visualizer:
 
         # Plot Thrust as Control Input
         if self.include_thrust_model:
-            plt.subplot(ceil(n_plots / 2), 2, 10)
+            plt.subplot(ceil(n_plots/2), 2, 10)
         else:
-            plt.subplot(ceil(n_plots / 2), 2, 8)
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 0], label="ft1c")
-        plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 1], label="ft2c")
+            plt.subplot(ceil(n_plots/2), 2, 8)
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 0], label="ft1c")
+        plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 1], label="ft2c")
         u_idx = 1
         if self.is_tri or self.is_qd:
-            plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 2], label="ft3c")
+            plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 2], label="ft3c")
             u_idx = 2
         if self.is_qd:
-            plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, 3], label="ft4c")
+            plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 3], label="ft4c")
             u_idx = 3
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
@@ -263,15 +264,15 @@ class Visualizer:
         # Plot Servo Angle as Control Input
         if self.tilt:
             if self.include_servo_model:
-                plt.subplot(ceil(n_plots / 2), 2, 9)
+                plt.subplot(ceil(n_plots/2), 2, 9)
             else:
-                plt.subplot(ceil(n_plots / 2), 2, 7)
-            plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, u_idx + 1], label="a1c")
-            plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, u_idx + 2], label="a2c")
+                plt.subplot(ceil(n_plots/2), 2, 7)
+            plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+1], label="a1c")
+            plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+2], label="a2c")
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, u_idx + 3], label="a3c")
+                plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+3], label="a3c")
             if self.is_qd:
-                plt.plot(time_data_x[1:], u_sim_all[: self.data_idx - 1, u_idx + 4], label="a4c")
+                plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+4], label="a4c")
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
             plt.xlim([0, t_total_sim])
@@ -283,25 +284,25 @@ class Visualizer:
         plot_idx = 10
         # Plot seperate MPC control variable
         if self.is_record_diff_u:
-            plt.subplot(ceil(n_plots / 2), 2, 11)
-            plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 4], label="a1c_mpc")
-            plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 5], label="a2c_mpc")
+            plt.subplot(ceil(n_plots/2), 2, 11)
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 4], label="a1c_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 5], label="a2c_mpc")
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 6], label="a3c_mpc")
+                plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 6], label="a3c_mpc")
             if self.is_qd:
-                plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 7], label="a4c_mpc")
+                plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 7], label="a4c_mpc")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Servo Angle Cmd MPC (rad)")
             plt.grid(True)
 
-            plt.subplot(ceil(n_plots / 2), 2, 12)
-            plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 0], label="ft1c_mpc")
-            plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 1], label="ft2c_mpc")
+            plt.subplot(ceil(n_plots/2), 2, 12)
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 0], label="ft1c_mpc")
+            plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 1], label="ft2c_mpc")
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 2], label="ft3c_mpc")
+                plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 2], label="ft3c_mpc")
             if self.is_qd:
-                plt.plot(time_data_x[1:], self.u_sim_mpc_all[: self.data_idx - 1, 3], label="ft4c_mpc")
+                plt.plot(time_data_x[1:], self.u_sim_mpc_all[:self.data_idx - 1, 3], label="ft4c_mpc")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Thrust Cmd MPC (N)")
@@ -311,20 +312,20 @@ class Visualizer:
 
         if self.include_cog_dist_model:
             # Plot Disturbance Force as State in NMPC
-            plt.subplot(ceil(n_plots / 2), 2, plot_idx + 1)
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 1], label="f_d_x")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 2], label="f_d_y")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 3], label="f_d_z")
+            plt.subplot(ceil(n_plots/2), 2, plot_idx+1)
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="f_d_x")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+2], label="f_d_y")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+3], label="f_d_z")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Disturbance Force (N)")
             plt.grid(True)
 
             # Plot Disturbance Torque as State in NMPC
-            plt.subplot(ceil(n_plots / 2), 2, plot_idx + 2)
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 4], label="tau_d_x")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 5], label="tau_d_y")
-            plt.plot(time_data_x, x_sim_all[: self.data_idx, x_idx + 6], label="tau_d_z")
+            plt.subplot(ceil(n_plots/2), 2, plot_idx+2)
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+4], label="tau_d_x")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+5], label="tau_d_y")
+            plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+6], label="tau_d_z")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Disturbance Torque (N*m)")
@@ -334,20 +335,20 @@ class Visualizer:
 
         if self.include_cog_dist_est:
             # Plot estimated Disturbance Force by MHE
-            plt.subplot(ceil(n_plots / 2), 2, plot_idx + 1)
-            plt.plot(time_data_x, self.est_disturb_f_w_all[: self.data_idx, 0], label="est. f_d_x")
-            plt.plot(time_data_x, self.est_disturb_f_w_all[: self.data_idx, 1], label="est. f_d_y")
-            plt.plot(time_data_x, self.est_disturb_f_w_all[: self.data_idx, 2], label="est. f_d_z")
+            plt.subplot(ceil(n_plots/2), 2, plot_idx+1)
+            plt.plot(time_data_x, self.est_disturb_f_w_all[:self.data_idx, 0], label="est. f_d_x")
+            plt.plot(time_data_x, self.est_disturb_f_w_all[:self.data_idx, 1], label="est. f_d_y")
+            plt.plot(time_data_x, self.est_disturb_f_w_all[:self.data_idx, 2], label="est. f_d_z")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Est. Disturbance Force (N)")
             plt.grid(True)
 
             # Plot estimated Disturbance Torque by MHE
-            plt.subplot(ceil(n_plots / 2), 2, plot_idx + 2)
-            plt.plot(time_data_x, self.est_disturb_tau_g_all[: self.data_idx, 0], label="est. tau_d_x")
-            plt.plot(time_data_x, self.est_disturb_tau_g_all[: self.data_idx, 1], label="est. tau_d_y")
-            plt.plot(time_data_x, self.est_disturb_tau_g_all[: self.data_idx, 2], label="est. tau_d_z")
+            plt.subplot(ceil(n_plots/2), 2, plot_idx+2)
+            plt.plot(time_data_x, self.est_disturb_tau_g_all[:self.data_idx, 0], label="est. tau_d_x")
+            plt.plot(time_data_x, self.est_disturb_tau_g_all[:self.data_idx, 1], label="est. tau_d_y")
+            plt.plot(time_data_x, self.est_disturb_tau_g_all[:self.data_idx, 2], label="est. tau_d_z")
             plt.legend(framealpha=legend_alpha, loc="upper left")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Est. Disturbance Torque (N*m)")
@@ -356,9 +357,9 @@ class Visualizer:
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
         plt.show()
+        # fmt: on
 
     def visualize_less(self, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size
@@ -383,10 +384,11 @@ class Visualizer:
         # fig.suptitle(title)
         ax = plt.subplot(211)
 
+        # fmt: off
         # Plot Position
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 0], label="x")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 1], label="y")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 2], label="z")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
         plt.ylabel("Position (m)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.65), loc="lower left")
 
@@ -399,20 +401,20 @@ class Visualizer:
 
         # Plot Euler Angles (with y-axis on the right side)
         ax_right = ax.twinx()
-        ax_right.plot(time_data_x, euler[: self.data_idx, 0], label="roll", linestyle="--")
-        ax_right.plot(time_data_x, euler[: self.data_idx, 1], label="pitch", linestyle="--")
-        ax_right.plot(time_data_x, euler[: self.data_idx, 2], label="yaw", linestyle="--")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 0], label="roll", linestyle="--")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 1], label="pitch", linestyle="--")
+        ax_right.plot(time_data_x, euler[:self.data_idx, 2], label="yaw", linestyle="--")
         ax_right.set_ylabel("Euler Angle ($^\\circ$)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.45, 0.7), loc="lower left")
 
         # Plot Thrust as Control Input
         ax2 = plt.subplot(212, sharex=ax)
-        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 0], label="$f_{c1}$")
-        plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 1], label="$f_{c2}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 0], label="$f_{c1}$")
+        plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 1], label="$f_{c2}$")
         if self.is_tri or self.is_qd:
-            plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 2], label="$f_{c3}$")
+            plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2], label="$f_{c3}$")
         if self.is_qd:
-            plt.plot(time_data_u, u_sim_all[: self.data_idx - 1, 3], label="$f_{c4}$")
+            plt.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3], label="$f_{c4}$")
         plt.ylabel("Thrust Cmd. (N)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, ncol=4, bbox_to_anchor=(0.1, 0.75), loc="lower left")
@@ -421,35 +423,26 @@ class Visualizer:
         if self.tilt:
             ax2_right = ax2.twinx()
             if self.is_bi:
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 2] * 180 / np.pi, label="$\\alpha_{c1}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c2}$", linestyle="--"
-                )
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 2] * 180 / np.pi, label="$\\alpha_{c1}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c2}$",
+                               linestyle="--")
             if self.is_tri:
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c1}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c2}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c3}$", linestyle="--"
-                )
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 3] * 180 / np.pi, label="$\\alpha_{c1}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c2}$",
+                               linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c3}$",
+                               linestyle="--")
             if self.is_qd:
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c1}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c2}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 6] * 180 / np.pi, label="$\\alpha_{c3}$", linestyle="--"
-                )
-                ax2_right.plot(
-                    time_data_u, u_sim_all[: self.data_idx - 1, 7] * 180 / np.pi, label="$\\alpha_{c4}$", linestyle="--"
-                )
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 4] * 180 / np.pi, label="$\\alpha_{c1}$",
+                            linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 5] * 180 / np.pi, label="$\\alpha_{c2}$",
+                            linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 6] * 180 / np.pi, label="$\\alpha_{c3}$",
+                        linestyle="--")
+                ax2_right.plot(time_data_u, u_sim_all[:self.data_idx - 1, 7] * 180 / np.pi, label="$\\alpha_{c4}$",
+                        linestyle="--")
             ax2_right.set_ylabel("Servo Angle Cmd. ($^\\circ$)", fontsize=label_size)
             plt.legend(framealpha=legend_alpha, ncol=4, bbox_to_anchor=(0.1, 0.00), loc="lower left")
             plt.xlim([-0.1, t_total_sim])
@@ -460,9 +453,9 @@ class Visualizer:
         fig.subplots_adjust(hspace=0.15)
 
         plt.show()
+        # fmt: on
 
     def visualize_rpy(self, ocp_model_name: str, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size
@@ -486,11 +479,12 @@ class Visualizer:
             qwxyz = x_sim_all[i, 6:10]
             euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
+        # fmt: off
         # Plot Euler Angles
         plt.plot([0, t_total_sim], [0.5, 0.5], label="ref", linestyle="-.")  # Plot reference as constant 0.5
-        plt.plot(time_data_x, euler[: self.data_idx, 0], label="roll")
-        plt.plot(time_data_x, euler[: self.data_idx, 1], label="pitch")
-        plt.plot(time_data_x, euler[: self.data_idx, 2], label="yaw")
+        plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
+        plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
+        plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
         plt.legend(framealpha=legend_alpha, loc="lower right")
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim([0, t_total_sim])
@@ -501,6 +495,7 @@ class Visualizer:
         plt.tight_layout()
 
         plt.show()
+        # fmt: on
 
 
 class SensorVisualizer:
@@ -531,22 +526,23 @@ class SensorVisualizer:
         # Timeseries
         time_data_x = np.arange(self.data_idx) * ts_sim
 
+        # fmt: off
         # Plot Angular Velocity as States
         ax = plt.subplot(211)
-        plt.plot(time_data_x, self.gyro_sim_all[: self.data_idx, 0], label="gyro_x")
-        plt.plot(time_data_x, self.gyro_sim_all[: self.data_idx, 1], label="gyro_y")
-        plt.plot(time_data_x, self.gyro_sim_all[: self.data_idx, 2], label="gyro_z")
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 0], label="gyro_x")
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 1], label="gyro_y")
+        plt.plot(time_data_x, self.gyro_sim_all[:self.data_idx, 2], label="gyro_z")
         plt.ylabel("Gyro Angular Vel. (rad/s)")
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
 
         # Plot Angular Acceleration as States and Estimates
         ax2 = plt.subplot(212, sharex=ax)
-        plt.plot(time_data_x, self.ang_acc_real_all[: self.data_idx, 0], label="ang_acc_real_x")
-        plt.plot(time_data_x, self.ang_acc_real_all[: self.data_idx, 1], label="ang_acc_real_y")
-        plt.plot(time_data_x, self.ang_acc_real_all[: self.data_idx, 2], label="ang_acc_real_z")
-        plt.plot(time_data_x, self.ang_acc_est_all[: self.data_idx, 0], label="ang_acc_est_x")
-        plt.plot(time_data_x, self.ang_acc_est_all[: self.data_idx, 1], label="ang_acc_est_y")
-        plt.plot(time_data_x, self.ang_acc_est_all[: self.data_idx, 2], label="ang_acc_est_z")
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 0], label="ang_acc_real_x")
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 1], label="ang_acc_real_y")
+        plt.plot(time_data_x, self.ang_acc_real_all[:self.data_idx, 2], label="ang_acc_real_z")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 0], label="ang_acc_est_x")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 1], label="ang_acc_est_y")
+        plt.plot(time_data_x, self.ang_acc_est_all[:self.data_idx, 2], label="ang_acc_est_z")
         plt.ylabel("Angular Acc. (rad/s^2)")
         plt.xlabel("Time (s)")
         plt.legend(framealpha=legend_alpha, ncol=3, bbox_to_anchor=(0.0, 0.7), loc="lower left")
@@ -557,3 +553,4 @@ class SensorVisualizer:
         fig.subplots_adjust(hspace=0.15)
 
         plt.show()
+        # fmt: on

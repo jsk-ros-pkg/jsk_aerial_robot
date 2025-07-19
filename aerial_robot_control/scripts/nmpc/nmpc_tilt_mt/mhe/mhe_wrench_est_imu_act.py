@@ -1,31 +1,32 @@
 #!/usr/bin/env python
 # -*- encoding: ascii -*-
 import numpy as np
-from acados_template import AcadosModel
 import casadi as ca
-
+from acados_template import AcadosModel
 from .mhe_base import MHEBase
-from ..tilt_qd.phys_param_beetle_omni import *
+from ..tilt_qd import phys_param_beetle_omni as phys_omni
 
 
 class MHEWrenchEstIMUAct(MHEBase):
     def __init__(self):
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "mhe", "beetle_omni", "WrenchEstMHEImuActuator.yaml")
+        self.phys = phys_omni
 
         super(MHEWrenchEstIMUAct, self).__init__()
 
     def create_acados_model(self) -> AcadosModel:
+        # fmt: off
         # Model name
         model_name = "mhe_wrench_est_imu_act_mdl"
 
         # Model states
-        wx = ca.SX.sym("wx")  # Angular velocity
+        wx = ca.SX.sym("wx")      # Angular velocity
         wy = ca.SX.sym("wy")
         wz = ca.SX.sym("wz")
         w = ca.vertcat(wx, wy, wz)
 
-        a1s = ca.SX.sym("a1s")  # Servo angle
+        a1s = ca.SX.sym("a1s")    # Servo angle
         a2s = ca.SX.sym("a2s")
         a3s = ca.SX.sym("a3s")
         a4s = ca.SX.sym("a4s")
@@ -37,8 +38,8 @@ class MHEWrenchEstIMUAct(MHEBase):
         ft4s = ca.SX.sym("ft4s")
         ft_s = ca.vertcat(ft1s, ft2s, ft3s, ft4s)
 
-        fds_w = ca.SX.sym("fds_w", 3)  # Disturbance on force in World frame
-        tau_ds_b = ca.SX.sym("tau_ds_b", 3)  # Disturbance on torque in Body frame
+        fds_w = ca.SX.sym("fds_w", 3)         # Disturbance on force in World frame
+        tau_ds_b = ca.SX.sym("tau_ds_b", 3)   # Disturbance on torque in Body frame
 
         states = ca.vertcat(w, fds_w, tau_ds_b, a_s, ft_s)
 
@@ -71,29 +72,51 @@ class MHEWrenchEstIMUAct(MHEBase):
 
         # Transformation matrix
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qx * qy - 2 * qw * qz),
+            ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
+            ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
+            ca.SX(2 * qx * qz - 2 * qw * qy),
+            ca.SX(2 * qy * qz + 2 * qw * qx),
+            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
 
         rot_bw = rot_wb.T
 
-        den = np.sqrt(p1_b[0] ** 2 + p1_b[1] ** 2)
-        rot_be1 = np.array([[p1_b[0] / den, -p1_b[1] / den, 0], [p1_b[1] / den, p1_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p1_b[0] ** 2 + self.phys.p1_b[1] ** 2)
+        rot_be1 = np.array([
+            [self.phys.p1_b[0] / den, -self.phys.p1_b[1] / den, 0],
+            [self.phys.p1_b[1] / den,  self.phys.p1_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
-        den = np.sqrt(p2_b[0] ** 2 + p2_b[1] ** 2)
-        rot_be2 = np.array([[p2_b[0] / den, -p2_b[1] / den, 0], [p2_b[1] / den, p2_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p2_b[0] ** 2 + self.phys.p2_b[1] ** 2)
+        rot_be2 = np.array([
+            [self.phys.p2_b[0] / den, -self.phys.p2_b[1] / den, 0],
+            [self.phys.p2_b[1] / den,  self.phys.p2_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
-        den = np.sqrt(p3_b[0] ** 2 + p3_b[1] ** 2)
-        rot_be3 = np.array([[p3_b[0] / den, -p3_b[1] / den, 0], [p3_b[1] / den, p3_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p3_b[0] ** 2 + self.phys.p3_b[1] ** 2)
+        rot_be3 = np.array([
+            [self.phys.p3_b[0] / den, -self.phys.p3_b[1] / den, 0],
+            [self.phys.p3_b[1] / den,  self.phys.p3_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
-        den = np.sqrt(p4_b[0] ** 2 + p4_b[1] ** 2)
-        rot_be4 = np.array([[p4_b[0] / den, -p4_b[1] / den, 0], [p4_b[1] / den, p4_b[0] / den, 0], [0, 0, 1]])
+        den = np.sqrt(self.phys.p4_b[0] ** 2 + self.phys.p4_b[1] ** 2)
+        rot_be4 = np.array([
+            [self.phys.p4_b[0] / den, -self.phys.p4_b[1] / den, 0],
+            [self.phys.p4_b[1] / den,  self.phys.p4_b[0] / den, 0],
+            [0, 0, 1],
+        ])
 
         rot_e1r1 = ca.vertcat(
             ca.horzcat(1, 0, 0), ca.horzcat(0, ca.cos(a1s), -ca.sin(a1s)), ca.horzcat(0, ca.sin(a1s), ca.cos(a1s))
@@ -114,42 +137,47 @@ class MHEWrenchEstIMUAct(MHEBase):
         ft_r3 = ca.vertcat(0, 0, ft3s)
         ft_r4 = ca.vertcat(0, 0, ft4s)
 
-        tau_r1 = ca.vertcat(0, 0, -dr1 * ft1s * kq_d_kt)
-        tau_r2 = ca.vertcat(0, 0, -dr2 * ft2s * kq_d_kt)
-        tau_r3 = ca.vertcat(0, 0, -dr3 * ft3s * kq_d_kt)
-        tau_r4 = ca.vertcat(0, 0, -dr4 * ft4s * kq_d_kt)
+        tau_r1 = ca.vertcat(0, 0, -self.phys.dr1 * ft1s * self.phys.kq_d_kt)
+        tau_r2 = ca.vertcat(0, 0, -self.phys.dr2 * ft2s * self.phys.kq_d_kt)
+        tau_r3 = ca.vertcat(0, 0, -self.phys.dr3 * ft3s * self.phys.kq_d_kt)
+        tau_r4 = ca.vertcat(0, 0, -self.phys.dr4 * ft4s * self.phys.kq_d_kt)
 
         f_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
+                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4))
         )
         tau_u_b = (
-            ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
-            + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
-            + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
-            + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
-            + ca.cross(np.array(p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
-            + ca.cross(np.array(p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
-            + ca.cross(np.array(p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
-            + ca.cross(np.array(p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
+                  ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, tau_r1))
+                + ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, tau_r2))
+                + ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, tau_r3))
+                + ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, tau_r4))
+                + ca.cross(np.array(self.phys.p1_b), ca.mtimes(rot_be1, ca.mtimes(rot_e1r1, ft_r1)))
+                + ca.cross(np.array(self.phys.p2_b), ca.mtimes(rot_be2, ca.mtimes(rot_e2r2, ft_r2)))
+                + ca.cross(np.array(self.phys.p3_b), ca.mtimes(rot_be3, ca.mtimes(rot_e3r3, ft_r3)))
+                + ca.cross(np.array(self.phys.p4_b), ca.mtimes(rot_be4, ca.mtimes(rot_e4r4, ft_r4)))
         )
 
         # Sensor function
-        measurements = ca.vertcat((f_u_b + ca.mtimes(rot_bw, fds_w)) / mass, w, a_s, ft_s)
+        measurements = ca.vertcat(
+            (f_u_b + ca.mtimes(rot_bw, fds_w)) / self.phys.mass,
+            w,
+            a_s,
+            ft_s
+        )
 
         # Inertia
-        I = ca.diag([Ixx, Iyy, Izz])
-        I_inv = ca.diag([1 / Ixx, 1 / Iyy, 1 / Izz])
+        I = ca.diag([self.phys.Ixx, self.phys.Iyy, self.phys.Izz])
+        I_inv = ca.diag([1 / self.phys.Ixx, 1 / self.phys.Iyy, 1 / self.phys.Izz])
 
         # Explicit dynamics
         ds = ca.vertcat(
             ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b + tau_ds_b)),
             w_f,
             w_tau,
-            (a_c - a_s) / t_servo,
-            (ft_c - ft_s) / t_rotor,
+            (a_c - a_s) / self.phys.t_servo,
+            (ft_c - ft_s) / self.phys.t_rotor
         )
         f = ca.Function("f", [states, noise], [ds], ["state", "noise"], ["ds"], {"allow_free": True})
 
@@ -160,8 +188,8 @@ class MHEWrenchEstIMUAct(MHEBase):
         # Assemble acados model
         model = AcadosModel()
         model.name = model_name
-        model.f_expl_expr = f(states, noise)  # CasADi expression for the explicit dynamics
-        model.f_impl_expr = f_impl  # CasADi expression for the implicit dynamics
+        model.f_expl_expr = f(states, noise)    # CasADi expression for the explicit dynamics
+        model.f_impl_expr = f_impl              # CasADi expression for the implicit dynamics
         model.x = states
         model.xdot = x_dot
         model.u = noise
@@ -175,6 +203,7 @@ class MHEWrenchEstIMUAct(MHEBase):
         model.cost_y_expr_e = measurements  # y
 
         return model
+        # fmt: on
 
     def get_weights(self):
         # Weights

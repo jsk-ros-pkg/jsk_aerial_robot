@@ -50,7 +50,7 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic   # instal
 ```
 
 ### 2.2 ... for Ubuntu 22.04 and ROS-O
-Install ROS-O for ubuntu 22.04 from https://ros.packages.techfak.net/ and source the setup file:
+Run the following bash script that conveniently installs all packages and software, including ROS-O for Ubuntu 22.04 from https://ros.packages.techfak.net/. Then source the setup file:
 
 ```bash
 ./jsk_aerial_robot/configure.sh   # for configuration especially for ROS-O in jammy
@@ -72,14 +72,6 @@ wstool init src
 wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src    # install unofficial packages
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO      # install the dependencies/packages stated in package.xml
-```
-
-For convenience, open `~/.bashrc` and add sourcing of the workspace to the end of the file after your `catkin build`:
-
-```bash
-In ~/.bashrc:
-
-source ~/[path_to_ws]/devel/setup.bash
 ```
 
 ### 3. Install python packages and link them to acados
@@ -117,7 +109,17 @@ cd ~/path_to_ws
 catkin build
 ```
 
-A frequent problem is the handling of the jobservers in the build process. When occuring during the build process - especially in the aerial_robot_control package - please try simply running the build command again.
+For convenience, open `~/.bashrc` and add sourcing of the workspace to the end of the file:
+
+```bash
+In ~/.bashrc:
+
+source ~/[path_to_ws]/devel/setup.bash
+```
+
+#### Addendum: Potential fixes to common problems
+- A frequent problem is the handling of the jobservers in the build process. When occuring during the build process - especially in the aerial_robot_control package - please try simply running the build command again.
+- If for some reason there is a NumPy version error while building, the correct version to use is 1.21.5 since ROS-O only supports versions up to it. Therefore, please check with `apt list | grep numpy` and `pip list | grep numpy` for all NumPy versions on your system. Then uninstall all packages corresponding to incorrect versions using apt or pip respectively. Then reinstall NumPy with the correct version flag, e.g., `pip install numpy==1.21.5`.
 
 ### 5. If the build is successful, comment the code in step 3 back.
 

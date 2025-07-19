@@ -15,9 +15,22 @@ if current_path not in sys.path:
 
 from util import TopicNotAvailableError
 
-from hand_control.sub_pos_objects import HandPose, ArmPose, DronePose, Glove
+# fmt: off
+from hand_control.sub_pos_objects import (
+    HandPose,
+    ArmPose,
+    DronePose,
+    Glove
+)
 
-from hand_control.hand_ctrl_modes import HandControlBaseMode, OperationMode, CartesianMode, LockingMode, SphericalMode
+from hand_control.hand_ctrl_modes import (
+    HandControlBaseMode,
+    OperationMode,
+    CartesianMode,
+    LockingMode,
+    SphericalMode
+)
+# fmt: on
 
 # global variables
 shared_data = {"hand_pose": None, "arm_pose": None, "drone_pose": None, "glove": None}

@@ -562,7 +562,6 @@ class SingularityPointTraj(BaseTraj):
     def get_3d_orientation(
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
-
         yaw = np.pi / 4.0
         roll = np.pi / 2.0
         pitch = 0.0
@@ -648,35 +647,16 @@ class HappyBirthdayFixedRotorTraj(BaseTrajwFixedRotor):
     def __init__(self, loop_num: int = 1, beat: float = 1.0) -> None:
         super().__init__(loop_num)
 
+        # fmt: off
         # beats of Happy Birthday (use strings for dot-notation)
         # note that the last beat is half note so it is doubled
         self.notes: list[str] = [
-            "5",
-            "6",
-            "5",
-            ".1",
-            "7",
-            "7",
-            "5",
-            "6",
-            "5",
-            ".2",
-            ".1",
-            ".1",
-            "5",
-            ".5",
-            ".3",
-            ".1",
-            "7",
-            "6",
-            "6",
-            ".4",
-            ".3",
-            ".1",
-            ".2",
-            ".1",
-            ".1",
+            "5", "6", "5", ".1", "7", "7",
+            "5", "6", "5", ".2", ".1", ".1",
+            "5", ".5", ".3", ".1", "7", "6", "6",
+            ".4", ".3", ".1", ".2", ".1", ".1"
         ]
+        # fmt: on
 
         self.beat = beat  # for quarter note
         self.t_total = len(self.notes) * self.beat
