@@ -153,6 +153,7 @@ class Visualizer:
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 4], label="vy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 5], label="vz")
+        plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Velocity (m/s)")
@@ -180,6 +181,7 @@ class Visualizer:
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 7], label="qx")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 8], label="qy")
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 9], label="qz")
+        plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Quaternion")
@@ -308,6 +310,7 @@ class Visualizer:
                 plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+3], label="ft3s")
             if self.is_qd:
                 plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+4], label="ft4s")
+            plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Thrust State (N)")
@@ -454,7 +457,6 @@ class Visualizer:
         # fmt: on
 
     def visualize_less(self, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size
@@ -551,7 +553,6 @@ class Visualizer:
         # fmt: on
 
     def visualize_rpy(self, ocp_model_name: str, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size

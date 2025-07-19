@@ -14,7 +14,6 @@ class TriNMPCReferenceGenerator:
     """
 
     def __init__(self, nmpc, p1_b, p2_b, p3_b, dr1, dr2, dr3, kq_d_kt, mass, gravity):
-
         self.nmpc = nmpc
 
         self.p1_b = p1_b

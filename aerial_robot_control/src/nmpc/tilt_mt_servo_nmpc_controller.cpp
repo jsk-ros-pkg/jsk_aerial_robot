@@ -681,7 +681,8 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
     if (ft_ref_vec[i] > ft_thresh_)
       continue;
 
-    if (a_ref_vec[i] >= -M_PI_2 && a_ref_vec[i] <= M_PI_2)
+    // TODO: the 0.1 here is a magic number. Need to find the reason.
+    if (a_ref_vec[i] >= -M_PI_2 - 0.1 && a_ref_vec[i] <= M_PI_2 + 0.1)
       continue;
 
     rotor_idx_vec.push_back(i);
