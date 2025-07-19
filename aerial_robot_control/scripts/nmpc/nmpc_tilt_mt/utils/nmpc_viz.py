@@ -360,7 +360,6 @@ class Visualizer:
         # fmt: on
 
     def visualize_less(self, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size
@@ -457,7 +456,6 @@ class Visualizer:
         # fmt: on
 
     def visualize_rpy(self, ocp_model_name: str, ts_sim: float, t_total_sim: float):
-
         plt.style.use(["science", "grid"])
 
         # Font size

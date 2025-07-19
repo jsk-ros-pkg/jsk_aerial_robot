@@ -11,7 +11,6 @@ class BINMPCReferenceGenerator:
     """
 
     def __init__(self, nmpc, p1_b, p2_b, dr1, dr2, kq_d_kt, mass, gravity):
-
         self.nmpc = nmpc
 
         self.p1_b = p1_b
