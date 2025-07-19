@@ -111,7 +111,6 @@ class MHEWrenchEstAccMomNode:
         self.dist_est_timer = rospy.Timer(rospy.Duration(mhe_params["T_samp"]), self.dist_est_timer_callback)
 
     def dist_est_timer_callback(self, event):
-
         if self.last_imu_data is None or self.latest_esc_telem is None or self.latest_joint_states is None:
             return
 
