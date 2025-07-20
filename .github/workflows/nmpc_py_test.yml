@@ -5,6 +5,7 @@ on:
     branches: [main, master, develop/MPC_tilt_mt]
   pull_request:
     types: [opened, synchronize, reopened]
+    branches: [main, master, develop/MPC_tilt_mt]
 
 permissions: read-all
 
@@ -20,13 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # fetch your repo submodules (not acados)
+          submodules: recursive
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v5
         with:
           python-version: '3.8'
-          cache: 'pip'  # built-in pip caching
+          cache: 'pip'
 
       - name: Cache acados build
         id: cache-acados
@@ -57,27 +58,37 @@ jobs:
         if: steps.cache-acados.outputs.cache-hit == 'true'
         run: echo "Using cached acados install at ${ACADOS_INSTALL_DIR}"
 
+      - name: Download tera_renderer binary
+        run: |
+          set -eux
+          mkdir -p "${ACADOS_INSTALL_DIR}/bin"
+          if [ ! -f "${ACADOS_INSTALL_DIR}/bin/t_renderer" ]; then
+            curl -L -o "${ACADOS_INSTALL_DIR}/bin/t_renderer" \
+              https://github.com/acados/tera_renderer/releases/download/v0.2.0/t_renderer-v0.2.0-linux-amd64
+            chmod +x "${ACADOS_INSTALL_DIR}/bin/t_renderer"
+          fi
+
       - name: Export acados env vars
         run: |
           echo "ACADOS_SOURCE_DIR=${{ env.ACADOS_INSTALL_DIR }}" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=${{ env.ACADOS_INSTALL_DIR }}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=${{ env.ACADOS_INSTALL_DIR }}/lib/pkgconfig:${PKG_CONFIG_PATH}" >> $GITHUB_ENV
+          echo "${{ env.ACADOS_INSTALL_DIR }}/bin" >> $GITHUB_PATH
 
       - name: Install Python dependencies
         run: |
           set -eux
           python -m pip install --upgrade pip setuptools wheel
-          # core deps
           python -m pip install -r aerial_robot_control/scripts/requirements.txt
           python - <<'EOF'
-          import pathlib
+          import pathlib, textwrap
           shim = pathlib.Path('tf_conversions')
           shim.mkdir(exist_ok=True)
-          (shim/'__init__.py').write_text(
-              "# minimal shim for non-ROS CI\\n"
-              "from tf_transformations import *  # noqa\\n"
-          )
-          print("Created tf_conversions shim at", shim.resolve())
+          (shim/'__init__.py').write_text(textwrap.dedent("""\
+              # minimal shim for non-ROS CI
+              from tf_transformations import *  # noqa
+          """))
+          print('Created tf_conversions shim at', shim.resolve())
           EOF
 
       - name: Show installed packages (debug)
