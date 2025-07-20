@@ -2,9 +2,9 @@ name: acados-python-tests
 
 on:
   push:
-    branches: [ main, master, develop/MPC_tilt_mt ]
+    branches: [main, master, develop/MPC_tilt_mt]
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [opened, synchronize, reopened]
 
 permissions: read-all
 
