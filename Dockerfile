@@ -13,6 +13,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # Install apt packages
 RUN apt-get update && \
     apt-get install -y \
+    build-essential \
     python3-wstool \
     python3-catkin-tools \
     python3-pip \
@@ -50,12 +51,16 @@ RUN cd /root && \
     make install -j4
 # acados Python interface
 RUN pip3 install -e /root/acados/interfaces/acados_template
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/root/acados/lib"
-ENV ACADOS_SOURCE_DIR=/root/acados
+RUN echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/acados/lib" >> /root/.bashrc
+RUN echo "ACADOS_SOURCE_DIR=/root/acados" >> /root/.bashrc
+RUN source /root/.bashrc
 # Download and install t_renderer binary for acados
-RUN mkdir -p /root/acados/bin
-RUN curl -L -o /root/acados/bin/t_renderer https://github.com/acados/tera_renderer/releases/download/v0.2.0/t_renderer-v0.2.0-linux-arm64 && \
-    chmod +x /root/acados/bin/t_renderer
+# Install rust (and cargo) for building from source
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN git clone https://github.com/acados/tera_renderer.git --branch v0.0.35
+RUN cd /root/acados/tera_renderer
+RUN /root/.cargo/bin/cargo build --verbose --release
+RUN cp /root/acados/tera_renderer/target/release/t_renderer /root/acados/bin
 
 # Set up workspace, install ROS and its dependencies
 RUN apt-get update && \
