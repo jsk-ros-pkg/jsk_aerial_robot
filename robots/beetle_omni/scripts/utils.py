@@ -13,14 +13,14 @@ matlab_purple = "#7E2F8E"
 
 
 def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
-    angle_seq = angle_seq.copy()  # avoid modifying the input array
-    for i in range(1, len(angle_seq)):
-        delta = angle_seq[i] - angle_seq[i - 1]
+    angle_seq_wrap = angle_seq.copy()  # avoid modifying the input array
+    for i in range(1, len(angle_seq_wrap)):
+        delta = angle_seq_wrap[i] - angle_seq_wrap[i - 1]
         if delta > np.pi:
-            angle_seq[i:] -= 2 * np.pi
+            angle_seq_wrap[i:] -= 2 * np.pi
         elif delta < -np.pi:
-            angle_seq[i:] += 2 * np.pi
-    return angle_seq
+            angle_seq_wrap[i:] += 2 * np.pi
+    return angle_seq_wrap
 
 
 def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
@@ -91,6 +91,14 @@ def quat2euler(qw: pd.Series, qx: pd.Series, qy: pd.Series, qz: pd.Series, seque
     the common aerospace sequence (yaw, pitch, roll).
     """
     quat_array = np.column_stack([qx.to_numpy(), qy.to_numpy(), qz.to_numpy(), qw.to_numpy()])
+
+    # interplate zero norm quaternions
+    norm_quat = np.linalg.norm(quat_array, axis=1)
+    zero_norm_indices = np.where(norm_quat == 0)[0]
+    if len(zero_norm_indices) > 0:
+        # replace zero norm quaternions with identity quaternion
+        quat_array[zero_norm_indices] = np.array([0, 0, 0, 1])
+        print(f"Warning: {len(zero_norm_indices)} zero norm quaternions replaced with identity quaternion.")
 
     # Convert
     euler = Rotation.from_quat(quat_array).as_euler(sequence, degrees=degrees)
