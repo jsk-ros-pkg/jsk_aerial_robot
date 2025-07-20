@@ -216,10 +216,21 @@ void AttitudeController::pwmsControl(void)
     uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
 
     if (motor_v > DSHOT_MAX_THROTTLE)
+    {
       motor_v = DSHOT_MAX_THROTTLE;
+    }
     else if (motor_v < DSHOT_MIN_THROTTLE)
+    {  
       motor_v = DSHOT_MIN_THROTTLE;
-    
+    }
+    // ESC init
+    if ((dshot_->init_count_ < dshot_->init_duration_) && (motor_v == DSHOT_MIN_THROTTLE))
+    {
+
+      motor_v = 0;
+      dshot_->init_count_ ++;
+
+    }
     motor_value[i] = motor_v;
   }
 

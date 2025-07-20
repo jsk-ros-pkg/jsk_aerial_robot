@@ -18,6 +18,18 @@ void DShot::init(dshot_type_e dshot_type, TIM_HandleTypeDef* htim_motor_1, uint3
   htim_motor_4_ = htim_motor_4;
   channel_motor_4_ = channel_motor_4;
 
+
+  switch (if_init_esc_) {
+      case false:
+          init_duration_ = 0;
+          break;
+      case true:
+          init_duration_ = 5000; 
+          break;
+      default:
+          init_duration_ = 0;
+          break;
+  }
   dshot_set_timer(dshot_type);
   dshot_put_tc_callback_function();
   dshot_start_pwm();

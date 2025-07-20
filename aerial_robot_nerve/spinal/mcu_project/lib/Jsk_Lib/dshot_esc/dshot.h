@@ -82,6 +82,11 @@ public:
   int id_telem_ = 0;
   int id_telem_prev_ = -1;
 
+    // esc init
+  bool if_init_esc_ = true; // true(AM32), false(BELHI) 
+  int init_count_  = 0;
+  int init_duration_ = 0; //5000(AM32), 0(BELHI) 
+  
   ESCReader esc_reader_;
 
 private:
