@@ -92,6 +92,11 @@ jobs:
           print('Created tf_conversions shim at', shim.resolve())
           EOF
 
+      - name: Install acados_template Python interface
+        run: |
+          python -m pip install \
+            git+https://github.com/acados/acados.git@${ACADOS_VERSION}#subdirectory=interfaces/acados_template
+
       - name: Show installed packages (debug)
         run: pip list
 
