@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACADOS_VERSION: v0.5.0
+      RENDERER_VERSION: v0.2.0
       ACADOS_INSTALL_DIR: ${{ github.workspace }}/_acados_install
 
     steps:
@@ -29,12 +30,12 @@ jobs:
           python-version: '3.8'
           cache: 'pip'
 
-      - name: Cache acados build
+      - name: Cache acados build (+ renderer)
         id: cache-acados
         uses: actions/cache@v4
         with:
           path: ${{ env.ACADOS_INSTALL_DIR }}
-          key: acados-${{ runner.os }}-${{ env.ACADOS_VERSION }}
+          key: acados-${{ runner.os }}-${{ env.ACADOS_VERSION }}-renderer-${{ env.RENDERER_VERSION }}
 
       - name: Build & install acados (if cache miss)
         if: steps.cache-acados.outputs.cache-hit != 'true'
@@ -58,13 +59,13 @@ jobs:
         if: steps.cache-acados.outputs.cache-hit == 'true'
         run: echo "Using cached acados install at ${ACADOS_INSTALL_DIR}"
 
-      - name: Download tera_renderer binary
+      - name: Ensure tera_renderer binary present
         run: |
           set -eux
           mkdir -p "${ACADOS_INSTALL_DIR}/bin"
           if [ ! -f "${ACADOS_INSTALL_DIR}/bin/t_renderer" ]; then
             curl -L -o "${ACADOS_INSTALL_DIR}/bin/t_renderer" \
-              https://github.com/acados/tera_renderer/releases/download/v0.2.0/t_renderer-v0.2.0-linux-amd64
+              "https://github.com/acados/tera_renderer/releases/download/${RENDERER_VERSION}/t_renderer-${RENDERER_VERSION}-linux-amd64"
             chmod +x "${ACADOS_INSTALL_DIR}/bin/t_renderer"
           fi
 
