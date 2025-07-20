@@ -6,37 +6,9 @@ import argparse
 
 from matplotlib.lines import lineStyles
 
+from utils import unwrap_angle_sequence, calculate_rmse, quat2euler
+
 legend_alpha = 0.5
-
-
-def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
-    angle_seq = angle_seq.copy()  # avoid modifying the input array
-    for i in range(1, len(angle_seq)):
-        delta = angle_seq[i] - angle_seq[i - 1]
-        if delta > np.pi:
-            angle_seq[i:] -= 2 * np.pi
-        elif delta < -np.pi:
-            angle_seq[i:] += 2 * np.pi
-    return angle_seq
-
-
-def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
-    x_ref_interp = np.interp(t, t_ref, x_ref)
-    if is_yaw:
-        # calculate the RMSE for yaw
-        error = np.minimum(np.abs(x - x_ref_interp), 2 * np.pi - np.abs(x - x_ref_interp))
-    else:
-        error = x - x_ref_interp
-
-    rmse_x = np.sqrt(np.mean(error**2))
-    return rmse_x
-
-
-def quat2euler(qw, qx, qy, qz):
-    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
-    pitch = np.arcsin(2 * (qw * qy - qz * qx))
-    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
-    return roll, pitch, yaw
 
 
 def main(file_path, type):
@@ -114,6 +86,8 @@ def main(file_path, type):
         data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x"],
         data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y"],
         data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z"],
+        sequence="ZYX",
+        degrees=False,
     )
 
     data_euler = pd.DataFrame()
@@ -125,6 +99,8 @@ def main(file_path, type):
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"],
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"],
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"],
+        sequence="ZYX",
+        degrees=False,
     )
 
     # thrust_cmd

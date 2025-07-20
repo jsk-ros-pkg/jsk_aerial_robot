@@ -8,29 +8,6 @@ from scipy.spatial.transform import Rotation as R
 legend_alpha = 0.5
 
 
-def unwrap_angle_sequence(angle_seq: np.ndarray) -> np.ndarray:
-    angle_seq = angle_seq.copy()  # avoid modifying the input array
-    for i in range(1, len(angle_seq)):
-        delta = angle_seq[i] - angle_seq[i - 1]
-        if delta > np.pi:
-            angle_seq[i:] -= 2 * np.pi
-        elif delta < -np.pi:
-            angle_seq[i:] += 2 * np.pi
-    return angle_seq
-
-
-def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
-    x_ref_interp = np.interp(t, t_ref, x_ref)
-    if is_yaw:
-        # calculate the RMSE for yaw
-        error = np.minimum(np.abs(x - x_ref_interp), 2 * np.pi - np.abs(x - x_ref_interp))
-    else:
-        error = x - x_ref_interp
-
-    rmse_x = np.sqrt(np.mean(error**2))
-    return rmse_x
-
-
 def main(file_path, plot_type):
     # Load the data from the csv file
     fly_data = pd.read_csv(file_path)

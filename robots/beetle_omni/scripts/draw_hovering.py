@@ -7,27 +7,9 @@ import numpy as np
 import scienceplots
 import matplotlib.pyplot as plt
 import argparse
+from utils import quat2euler, calculate_rmse
 
 legend_alpha = 0.5
-
-
-def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
-    x_ref_interp = np.interp(t, t_ref, x_ref)
-    if is_yaw:
-        # calculate the RMSE for yaw
-        error = np.minimum(np.abs(x - x_ref_interp), 2 * np.pi - np.abs(x - x_ref_interp))
-    else:
-        error = x - x_ref_interp
-
-    rmse_x = np.sqrt(np.mean(error**2))
-    return rmse_x
-
-
-def quat2euler(qw, qx, qy, qz):
-    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
-    pitch = np.arcsin(2 * (qw * qy - qz * qx))
-    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
-    return roll, pitch, yaw
 
 
 def main(file_path):
@@ -105,6 +87,8 @@ def main(file_path):
         data_qwxyz_ref["/beetle1/set_ref_traj/x/data[7]"],
         data_qwxyz_ref["/beetle1/set_ref_traj/x/data[8]"],
         data_qwxyz_ref["/beetle1/set_ref_traj/x/data[9]"],
+        sequence="ZYX",
+        degrees=False,
     )
 
     data_euler = pd.DataFrame()
@@ -116,6 +100,8 @@ def main(file_path):
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"],
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"],
         data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"],
+        sequence="ZYX",
+        degrees=False,
     )
 
     # thrust_cmd
