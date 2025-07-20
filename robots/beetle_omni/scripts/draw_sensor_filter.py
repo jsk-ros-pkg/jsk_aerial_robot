@@ -75,6 +75,7 @@ def ensure_100hz(df: pd.DataFrame) -> pd.DataFrame:
 #  Minimal 2‑pole IIR (bi‑quad) – Direct‑form I with **warm‑start**
 # ────────────────────────────────────────────────────────────────────────────────
 
+
 def biquad_iir(b: Tuple[float, float, float], a: Tuple[float, float, float], x: np.ndarray) -> np.ndarray:
     """Apply a 2‑pole IIR whose internal state is *initialised with x₀* so
     the very first output equals the first measurement (y₀ = x₀).  This avoids
@@ -92,13 +93,7 @@ def biquad_iir(b: Tuple[float, float, float], a: Tuple[float, float, float], x: 
     # --- standard DF‑I recurrence starting from n = 1 ----------------------
     for n in range(1, len(x)):
         xn = x[n]
-        yn = (
-                b[0] * xn
-                + b[1] * x_prev1
-                + b[2] * x_prev2
-                - a[1] * y_prev1
-                - a[2] * y_prev2
-        )
+        yn = b[0] * xn + b[1] * x_prev1 + b[2] * x_prev2 - a[1] * y_prev1 - a[2] * y_prev2
         y[n] = yn
         # shift history
         x_prev2, x_prev1 = x_prev1, xn
@@ -127,8 +122,9 @@ THRUST_COEFF = 0.000001 * 0.1283  # ≈ 1.283e-7
 # ────────────────────────────────────────────────────────────────────────────────
 
 
-def overlay(ax: plt.Axes, t: np.ndarray, raw: Dict[str, np.ndarray], flt: Dict[str, np.ndarray],
-            title: str, ylabel: str) -> None:
+def overlay(
+    ax: plt.Axes, t: np.ndarray, raw: Dict[str, np.ndarray], flt: Dict[str, np.ndarray], title: str, ylabel: str
+) -> None:
     """Plot raw (faded) and filtered (solid) curves for each channel."""
     for k in raw:
         ax.plot(t, raw[k], alpha=0.30, label=f"{k} raw")

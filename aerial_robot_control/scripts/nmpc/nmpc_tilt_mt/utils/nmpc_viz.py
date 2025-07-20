@@ -32,7 +32,7 @@ class Visualizer:
             self.is_tri = True
         elif robot_arch == "qd":
             self.is_qd = True
-        elif robot_arch == '':
+        elif robot_arch == "":
             pass
         else:
             raise ValueError("This robot architecture is not implemented yet!")
@@ -501,9 +501,7 @@ class Visualizer:
         plt.show()
         # fmt: on
 
-    def visualize_disturb(self,
-                          ts_sim: float,
-                          t_total_sim: float):
+    def visualize_disturb(self, ts_sim: float, t_total_sim: float):
         """
         Visualize disturbance wrench, position and 3-2-1 Euler attitude (degrees).
 
@@ -516,7 +514,7 @@ class Visualizer:
         """
         # ── appearance ────────────────────────────────────────────────
         plt.style.use(["science", "grid"])
-        plt.rcParams.update({'font.size': 10})
+        plt.rcParams.update({"font.size": 10})
         legend_alpha = 0.3
 
         # ── time axis ─────────────────────────────────────────────────
@@ -535,53 +533,53 @@ class Visualizer:
 
         # 1) Disturbance force
         ax1 = plt.subplot(8, 1, 1)
-        ax1.plot(t, self.est_disturb_f_w_all[:self.data_idx, 0], label=r"$f_x$")
-        ax1.plot(t, self.est_disturb_f_w_all[:self.data_idx, 1], label=r"$f_y$")
-        ax1.plot(t, self.est_disturb_f_w_all[:self.data_idx, 2], label=r"$f_z$")
+        ax1.plot(t, self.est_disturb_f_w_all[: self.data_idx, 0], label=r"$f_x$")
+        ax1.plot(t, self.est_disturb_f_w_all[: self.data_idx, 1], label=r"$f_y$")
+        ax1.plot(t, self.est_disturb_f_w_all[: self.data_idx, 2], label=r"$f_z$")
         ax1.set_ylabel(r"Force [N]")
         ax1.legend(framealpha=legend_alpha, ncol=3, loc="upper left")
 
         # 2) p_x
         ax2 = plt.subplot(8, 1, 2, sharex=ax1)
-        ax2.plot(t, self.x_sim_all[:self.data_idx, 0], label=r"$p_x$")
+        ax2.plot(t, self.x_sim_all[: self.data_idx, 0], label=r"$p_x$")
         ax2.set_ylabel(r"$p_x$ [m]")
         ax2.legend(framealpha=legend_alpha, loc="upper left")
 
         # 3) p_y
         ax3 = plt.subplot(8, 1, 3, sharex=ax1)
-        ax3.plot(t, self.x_sim_all[:self.data_idx, 1], label=r"$p_y$")
+        ax3.plot(t, self.x_sim_all[: self.data_idx, 1], label=r"$p_y$")
         ax3.set_ylabel(r"$p_y$ [m]")
         ax3.legend(framealpha=legend_alpha, loc="upper left")
 
         # 4) p_z
         ax4 = plt.subplot(8, 1, 4, sharex=ax1)
-        ax4.plot(t, self.x_sim_all[:self.data_idx, 2], label=r"$p_z$")
+        ax4.plot(t, self.x_sim_all[: self.data_idx, 2], label=r"$p_z$")
         ax4.set_ylabel(r"$p_z$ [m]")
         ax4.legend(framealpha=legend_alpha, loc="upper left")
 
         # 5) Disturbance torque
         ax5 = plt.subplot(8, 1, 5, sharex=ax1)
-        ax5.plot(t, self.est_disturb_tau_g_all[:self.data_idx, 0], label=r"$\tau_x$")
-        ax5.plot(t, self.est_disturb_tau_g_all[:self.data_idx, 1], label=r"$\tau_y$")
-        ax5.plot(t, self.est_disturb_tau_g_all[:self.data_idx, 2], label=r"$\tau_z$")
+        ax5.plot(t, self.est_disturb_tau_g_all[: self.data_idx, 0], label=r"$\tau_x$")
+        ax5.plot(t, self.est_disturb_tau_g_all[: self.data_idx, 1], label=r"$\tau_y$")
+        ax5.plot(t, self.est_disturb_tau_g_all[: self.data_idx, 2], label=r"$\tau_z$")
         ax5.set_ylabel(r"Torque [N$\!\cdot$m]")
         ax5.legend(framealpha=legend_alpha, ncol=3, loc="upper left")
 
         # 6) roll (φ)
         ax6 = plt.subplot(8, 1, 6, sharex=ax1)
-        ax6.plot(t, euler_deg[:self.data_idx, 0], label=r"$\phi$")
+        ax6.plot(t, euler_deg[: self.data_idx, 0], label=r"$\phi$")
         ax6.set_ylabel(r"Roll [$^\circ$]")
         ax6.legend(framealpha=legend_alpha, loc="upper left")
 
         # 7) pitch (θ)
         ax7 = plt.subplot(8, 1, 7, sharex=ax1)
-        ax7.plot(t, euler_deg[:self.data_idx, 1], label=r"$\theta$")
+        ax7.plot(t, euler_deg[: self.data_idx, 1], label=r"$\theta$")
         ax7.set_ylabel(r"Pitch [$^\circ$]")
         ax7.legend(framealpha=legend_alpha, loc="upper left")
 
         # 8) yaw (ψ)
         ax8 = plt.subplot(8, 1, 8, sharex=ax1)
-        ax8.plot(t, euler_deg[:self.data_idx, 2], label=r"$\psi$")
+        ax8.plot(t, euler_deg[: self.data_idx, 2], label=r"$\psi$")
         ax8.set_ylabel(r"Yaw [$^\circ$]")
         ax8.set_xlabel(r"Time [s]")
         ax8.legend(framealpha=legend_alpha, loc="upper left")
@@ -610,7 +608,9 @@ class Visualizer:
         np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_x_sim_all.npy", self.x_sim_all)
         np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_u_sim_all.npy", self.u_sim_all)
         np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_est_disturb_f_w_all.npy", self.est_disturb_f_w_all)
-        np.save(f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_est_disturb_tau_g_all.npy", self.est_disturb_tau_g_all)
+        np.save(
+            f"{folder_path}/{time_stamp}_{model_name}_{sim_name}_est_disturb_tau_g_all.npy", self.est_disturb_tau_g_all
+        )
 
         print(f"Data saved to {folder_path}/{time_stamp}_{model_name}_{sim_name}_*.npy files.")
 

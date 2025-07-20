@@ -101,14 +101,22 @@ def main(args):
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
         include_cog_dist_model=sim_nmpc.include_cog_dist_model,
-        include_cog_dist_est=True
+        include_cog_dist_est=True,
     )
 
     # ---------- Sensors ----------
-    fir_param = [-1 / 12, 8 / 12, 0 / 12, -8 / 12,
-                 1 / 12]  # central difference [0.5, 0, -0.5] # backward difference [1, -1]
-    gyro_differentiator = [FIRDifferentiator(fir_param, 1 / ts_sensor), FIRDifferentiator(fir_param, 1 / ts_sensor),
-                           FIRDifferentiator(fir_param, 1 / ts_sensor)]  # for gyro differentiation
+    fir_param = [
+        -1 / 12,
+        8 / 12,
+        0 / 12,
+        -8 / 12,
+        1 / 12,
+    ]  # central difference [0.5, 0, -0.5] # backward difference [1, -1]
+    gyro_differentiator = [
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+        FIRDifferentiator(fir_param, 1 / ts_sensor),
+    ]  # for gyro differentiation
 
     # ========== Run simulation ==========
     u_cmd = u_init
@@ -156,7 +164,7 @@ def main(args):
         assert nmpc.include_impedance or nmpc.include_cog_dist_model
         # Assemble state from simulation and disturbance estimation
         x_now = np.zeros(nx)
-        x_now[:nx - 6] = x_now_sim[:nx - 6]
+        x_now[: nx - 6] = x_now_sim[: nx - 6]
         x_now[-6:] = disturb_estimated
 
         # -------- Update control target --------
@@ -198,8 +206,16 @@ def main(args):
                 nmpc.acados_init_p[0:4] = quaternion_r
 
                 if nmpc.include_impedance:
-                    nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
-                                                          nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
+                    nmpc.acados_init_p[34:40] = np.array(
+                        [
+                            nmpc.params["pMxy"],
+                            nmpc.params["pMxy"],
+                            nmpc.params["pMz"],
+                            nmpc.params["oMxy"],
+                            nmpc.params["oMxy"],
+                            nmpc.params["oMz"],
+                        ]
+                    )
                     # Note that we don't need to multiply the enlarge_factor here as it has been included in the cost mtx.
 
                 ocp_solver.set(j, "p", nmpc.acados_init_p)
@@ -211,8 +227,16 @@ def main(args):
             nmpc.acados_init_p[0:4] = quaternion_r
 
             if nmpc.include_impedance:
-                nmpc.acados_init_p[34:40] = np.array([nmpc.params["pMxy"], nmpc.params["pMxy"], nmpc.params["pMz"],
-                                                      nmpc.params["oMxy"], nmpc.params["oMxy"], nmpc.params["oMz"]])
+                nmpc.acados_init_p[34:40] = np.array(
+                    [
+                        nmpc.params["pMxy"],
+                        nmpc.params["pMxy"],
+                        nmpc.params["pMz"],
+                        nmpc.params["oMxy"],
+                        nmpc.params["oMxy"],
+                        nmpc.params["oMz"],
+                    ]
+                )
 
             ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
 
@@ -279,11 +303,13 @@ def main(args):
             if args.est_dist_type == 1:
                 # Only use the wrench difference between the imu and the actuator sensor, no u_mpc
                 alpha_force = 0.1
-                disturb_estimated[0:3] = (1 - alpha_force) * disturb_estimated[0:3] + alpha_force * np.dot(rot_wb, (
-                        wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3]))  # World frame
+                disturb_estimated[0:3] = (1 - alpha_force) * disturb_estimated[0:3] + alpha_force * np.dot(
+                    rot_wb, (wrench_u_imu_b[0:3] - wrench_u_sensor_b[0:3])
+                )  # World frame
                 alpha_torque = 0.05
                 disturb_estimated[3:6] = (1 - alpha_torque) * disturb_estimated[3:6] + alpha_torque * (
-                        wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6])  # Body frame
+                    wrench_u_imu_b[3:6] - wrench_u_sensor_b[3:6]
+                )  # Body frame
 
         # --------- Update simulation ----------
         x_now_sim[-6:] = disturb
@@ -310,19 +336,12 @@ def main(args):
             ts_sim,
             t_total_sim,
             t_servo_ctrl=t_servo_ctrl,
-            t_servo_sim=t_servo_sim
+            t_servo_sim=t_servo_sim,
         )
     elif args.plot_type == 1:
-        viz.visualize_less(
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_less(ts_sim, t_total_sim)
     elif args.plot_type == 2:
-        viz.visualize_rpy(
-            ocp_solver.acados_ocp.model.name,
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_rpy(ocp_solver.acados_ocp.model.name, ts_sim, t_total_sim)
     elif args.plot_type == 3:
         viz.visualize_disturb(ts_sim, t_total_sim)
     elif args.plot_type == 4:
@@ -335,8 +354,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "model",
         type=int,
-        help="The NMPC model to be simulated. "
-             "Options: 0 (disturbance), 1 (impedance).",
+        help="The NMPC model to be simulated. " "Options: 0 (disturbance), 1 (impedance).",
     )
 
     parser.add_argument(
@@ -344,8 +362,7 @@ if __name__ == "__main__":
         "--sim_model",
         type=int,
         default=0,
-        help="The simulation model. "
-             "Options: 0 (default: servo+thrust+dist), 1 (pure impedance).",
+        help="The simulation model. " "Options: 0 (default: servo+thrust+dist), 1 (pure impedance).",
     )
 
     parser.add_argument(
@@ -353,8 +370,7 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. "
-             "Options: 0 (default: full), 1 (less), 2 (only rpy)."
+        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
     )
 
     parser.add_argument(
@@ -363,8 +379,8 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="The type of disturbance estimation. "
-             "Options: 0 (None), 1 (default: only use sensors), "
-             "2-5 (different MHE implementations)."
+        "Options: 0 (None), 1 (default: only use sensors), "
+        "2-5 (different MHE implementations).",
     )
 
     parser.add_argument(
@@ -372,15 +388,11 @@ if __name__ == "__main__":
         "--if_use_ang_acc",
         type=int,
         default=0,
-        help="Flag to use ground truth angular acceleration. Default: 0 (False)"
+        help="Flag to use ground truth angular acceleration. Default: 0 (False)",
     )
 
     parser.add_argument(
-        "-a",
-        "--arch",
-        type=str,
-        default='qd',
-        help="The robot's architecture. Options: bi, tri, qd (default)."
+        "-a", "--arch", type=str, default="qd", help="The robot's architecture. Options: bi, tri, qd (default)."
     )
 
     args = parser.parse_args()

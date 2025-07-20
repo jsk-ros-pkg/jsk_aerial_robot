@@ -80,9 +80,7 @@ def _load_arrays(entry: Dict[str, Path]) -> Tuple[np.ndarray, np.ndarray, np.nda
         f_dist = np.load(entry["est_disturb_f_w_all"], allow_pickle=False)
         tau_dist = np.load(entry["est_disturb_tau_g_all"], allow_pickle=False)
     except KeyError as exc:
-        raise RuntimeError(
-            f"Incomplete data set for timestamp {entry.get('label', 'unknown')}"
-        ) from exc
+        raise RuntimeError(f"Incomplete data set for timestamp {entry.get('label', 'unknown')}") from exc
     return x, u, f_dist, tau_dist, entry["label"]
 
 
@@ -100,6 +98,7 @@ def _quaternion_array_to_euler_deg(qwxyz: np.ndarray) -> np.ndarray:
 # Plotting
 # -----------------------------------------------------------------------------
 
+
 def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
     """Overlay all simulation runs in *folder* on a single two‑column figure."""
     entries = _scan_folder(folder)
@@ -107,14 +106,17 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
         raise FileNotFoundError(f"No .npy files in {folder}")
 
     # ── Matplotlib defaults ─────────────────────────────────────────────
-    plt.rcParams.update({'font.size': 11})
+    plt.rcParams.update({"font.size": 11})
     label_size = 14
 
     # Create a 7×2 grid of sub‑plots (share x within each row)
-    fig, axes = plt.subplots(nrows=7, ncols=2, sharex="row",
-                             figsize=(14, 11),
-                             # gridspec_kw={"wspace": 0.15, "hspace": 0.25}
-                             )
+    fig, axes = plt.subplots(
+        nrows=7,
+        ncols=2,
+        sharex="row",
+        figsize=(14, 11),
+        # gridspec_kw={"wspace": 0.15, "hspace": 0.25}
+    )
 
     # Unpack axes for clarity --------------------------------------------------
     # Left column (linear)
@@ -145,7 +147,7 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
 
     last_t: np.ndarray | None = None  # for x‑axis limits
 
-    line_styles = ['-', '-', ':', ':', ':', '--', '--', '--', '-.']
+    line_styles = ["-", "-", ":", ":", ":", "--", "--", "--", "-."]
 
     # Iterate datasets sorted by timestamp ------------------------------------
     for i, (stamp, files) in enumerate(sorted(entries.items())):
@@ -207,12 +209,21 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
 
     # Global legend for run labels (use last sampled handles)
     handles, _ = axes[-1, 0].get_legend_handles_labels()
-    labels = ["Track. NMPC", "Imp. Nominal", "Imp. Nominal ($K=12$)",
-              "Imp. Nominal ($D=50$)", "Imp. Nominal ($M=15$)", "Imp. NMPC ($\gamma=1)$", "Imp. NMPC ($\gamma=8$)",
-              "Imp. NMPC ($\gamma=16$)", "Imp. NMPC ($\gamma=8,Q_\\alpha=R_f=0$)"]
+    labels = [
+        "Track. NMPC",
+        "Imp. Nominal",
+        "Imp. Nominal ($K=12$)",
+        "Imp. Nominal ($D=50$)",
+        "Imp. Nominal ($M=15$)",
+        "Imp. NMPC ($\gamma=1)$",
+        "Imp. NMPC ($\gamma=8$)",
+        "Imp. NMPC ($\gamma=16$)",
+        "Imp. NMPC ($\gamma=8,Q_\\alpha=R_f=0$)",
+    ]
 
-    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01),
-               framealpha=LEGEND_ALPHA, ncol=5, frameon=False)
+    fig.legend(
+        handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.01), framealpha=LEGEND_ALPHA, ncol=5, frameon=False
+    )
 
     # Tidy layout -------------------------------------------------------------
     fig.tight_layout(rect=[0, 0.05, 1, 1])  # leave space for bottom legend
@@ -223,12 +234,13 @@ def plot_disturb_multi(folder: Path, ts_sim: float) -> None:
 # CLI entry point
 # -----------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Overlay multiple NMPC disturb/pose plots")
-    parser.add_argument("--folder", type=str, default="./sim_data/",
-                        help="Path to directory containing *_x_sim_all.npy … files")
-    parser.add_argument("--ts_sim", type=float, default=0.005,
-                        help="Simulation sampling period [s] (default: 0.01)")
+    parser.add_argument(
+        "--folder", type=str, default="./sim_data/", help="Path to directory containing *_x_sim_all.npy … files"
+    )
+    parser.add_argument("--ts_sim", type=float, default=0.005, help="Simulation sampling period [s] (default: 0.01)")
     args = parser.parse_args()
 
     plot_disturb_multi(Path(args.folder).expanduser(), args.ts_sim)

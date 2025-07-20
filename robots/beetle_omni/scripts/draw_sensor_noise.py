@@ -113,17 +113,17 @@ def _fft_dataframe(df: pd.DataFrame, value_cols: List[str]) -> Tuple[np.ndarray,
 
 
 def _plot_fft(
-        ax: plt.Axes,
-        freqs: np.ndarray,
-        spectra: Dict[str, np.ndarray],
-        title: str,
-        has_xlabel: bool = True,
-        xlabel: str = "Frequency [Hz]",
-        unit: str = "",
-        has_ylabel: bool = True,
-        ylabel: str = "Amplitude",
-        legend_alpha: float = 0.6,
-        xlim: float | None = None,
+    ax: plt.Axes,
+    freqs: np.ndarray,
+    spectra: Dict[str, np.ndarray],
+    title: str,
+    has_xlabel: bool = True,
+    xlabel: str = "Frequency [Hz]",
+    unit: str = "",
+    has_ylabel: bool = True,
+    ylabel: str = "Amplitude",
+    legend_alpha: float = 0.6,
+    xlim: float | None = None,
 ) -> None:
     """Draw *all* spectra belonging to the same group on the provided *Axes*."""
     linetype = ["-", "--", "-.", ":"]  # different line styles for each channel
@@ -174,7 +174,6 @@ def main(file_path: str) -> None:
         "/beetle1/four_axes/command/base_thrust[2]": "$f_{3c}$",
         "/beetle1/four_axes/command/base_thrust[3]": "$f_{4c}$",
     }
-
 
     servo_topics = {
         "/beetle1/joint_states/gimbal1/position": "$\\hat{\\alpha}_1$",
@@ -247,8 +246,9 @@ def main(file_path: str) -> None:
     for axis in ["$^B\\hat{\\omega}_{x}$", "$^B\\hat{\\omega}_{y}$", "$^B\\hat{\\omega}_{z}$"]:
         data_gyro_diff[axis] = np.convolve(data_gyro[axis].to_numpy(), fir_coeff, mode="same")
 
-    freqs_diff, spec_diff = _fft_dataframe(data_gyro_diff, ["$^B\\hat{\\omega}_{x}$", "$^B\\hat{\\omega}_{y}$",
-                                                            "$^B\\hat{\\omega}_{z}$"])
+    freqs_diff, spec_diff = _fft_dataframe(
+        data_gyro_diff, ["$^B\\hat{\\omega}_{x}$", "$^B\\hat{\\omega}_{y}$", "$^B\\hat{\\omega}_{z}$"]
+    )
 
     # modify the legend labels to indicate differentiated gyro
     spec_diff["$^B\\hat{\\dot{\\omega}}_{x}$"] = spec_diff["$^B\\hat{\\omega}_{x}$"]
@@ -284,7 +284,7 @@ def main(file_path: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Convert sensor data to the frequency domain and plot spectra\n"
-                    "The CSV should be exported via PlotJuggler with a column named '__time'."
+        "The CSV should be exported via PlotJuggler with a column named '__time'."
     )
     parser.add_argument("file_path", type=str, help="CSV file containing the logged sensor data")
     args = parser.parse_args()

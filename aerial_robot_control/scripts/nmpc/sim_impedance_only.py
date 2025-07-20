@@ -55,7 +55,7 @@ def main(args):
 
     # ---------- Visualization ----------
     viz = Visualizer(
-        '',
+        "",
         N_sim,
         nx_sim,
         0,
@@ -64,7 +64,7 @@ def main(args):
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
         include_cog_dist_model=sim_nmpc.include_cog_dist_model,
-        include_cog_dist_est=True
+        include_cog_dist_est=True,
     )
 
     # ========== Run simulation ==========
@@ -124,25 +124,12 @@ def main(args):
     # ========== Visualize ==========
     if args.plot_type == 0:
         viz.visualize(
-            "no_mdl",
-            sim_solver.model_name,
-            0.0,
-            ts_sim,
-            t_total_sim,
-            t_servo_ctrl=0.0,
-            t_servo_sim=t_servo_sim
+            "no_mdl", sim_solver.model_name, 0.0, ts_sim, t_total_sim, t_servo_ctrl=0.0, t_servo_sim=t_servo_sim
         )
     elif args.plot_type == 1:
-        viz.visualize_less(
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_less(ts_sim, t_total_sim)
     elif args.plot_type == 2:
-        viz.visualize_rpy(
-            "no_mdl",
-            ts_sim,
-            t_total_sim
-        )
+        viz.visualize_rpy("no_mdl", ts_sim, t_total_sim)
     elif args.plot_type == 3:
         viz.visualize_disturb(ts_sim, t_total_sim)
     elif args.plot_type == 4:
@@ -158,8 +145,7 @@ if __name__ == "__main__":
         "--sim_model",
         type=int,
         default=0,
-        help="The simulation model. "
-             "Options: 0 (default: servo+thrust+dist), 1 (pure impedance).",
+        help="The simulation model. " "Options: 0 (default: servo+thrust+dist), 1 (pure impedance).",
     )
 
     parser.add_argument(
@@ -167,8 +153,7 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. "
-             "Options: 0 (default: full), 1 (less), 2 (only rpy)."
+        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
     )
 
     args = parser.parse_args()
