@@ -15,7 +15,14 @@ from ..tilt_qd import phys_param_beetle_omni as phys_omni
 # read parameters from yaml
 rospack = rospkg.RosPack()
 
-mhe_param_path = os.path.join(rospack.get_path("beetle_omni"), "config", "WrenchEstMHEAccMom.yaml")
+try:
+    mhe_param_path = os.path.join(rospack.get_path("beetle_omni"), "config", "WrenchEstMHEAccMom.yaml")
+except rospkg.common.ResourceNotFound:  # non-ROS environment
+    # Fallback: construct absolute path from current file
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(this_dir, "../../../../.."))
+    mhe_param_path = os.path.join(project_root, "robots/beetle_omni/config/WrenchEstMHEAccMom.yaml")
+
 with open(mhe_param_path, "r") as f:
     mhe_param_dict = yaml.load(f, Loader=yaml.FullLoader)
 mhe_params = mhe_param_dict["controller"]["mhe"]

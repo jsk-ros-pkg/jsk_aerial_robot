@@ -1,0 +1,102 @@
+name: acados-python-tests
+
+on:
+  push:
+    branches: [main, master, develop/MPC_tilt_mt]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master, develop/MPC_tilt_mt]
+
+permissions: read-all
+
+jobs:
+  test-nmpc:
+    name: Build acados & run Python unit tests
+    runs-on: ubuntu-latest
+    env:
+      ACADOS_VERSION: v0.5.0
+      RENDERER_VERSION: v0.2.0
+      ACADOS_INSTALL_DIR: ${{ github.workspace }}/_acados_install
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+
+      - name: Cache acados build (+ renderer)
+        id: cache-acados
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ACADOS_INSTALL_DIR }}
+          key: acados-${{ runner.os }}-${{ env.ACADOS_VERSION }}-renderer-${{ env.RENDERER_VERSION }}
+
+      - name: Build & install acados (if cache miss)
+        if: steps.cache-acados.outputs.cache-hit != 'true'
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config libblas-dev liblapack-dev libgfortran5
+          git clone --depth 1 --branch ${ACADOS_VERSION} https://github.com/acados/acados.git
+          cd acados
+          git submodule update --init --recursive
+          cmake -B build -S . \
+            -DCMAKE_INSTALL_PREFIX=${ACADOS_INSTALL_DIR} \
+            -DACADOS_WITH_QPOASES=ON \
+            -DACADOS_WITH_SYSTEM_BLASFEO=OFF
+          cmake --build build --target install -j$(nproc)
+          # Install Python interface (editable)
+          pip install -e interfaces/acados_template
+
+      - name: Using cached acados (skip build)
+        if: steps.cache-acados.outputs.cache-hit == 'true'
+        run: echo "Using cached acados install at ${ACADOS_INSTALL_DIR}"
+
+      - name: Ensure tera_renderer binary present
+        run: |
+          set -eux
+          mkdir -p "${ACADOS_INSTALL_DIR}/bin"
+          if [ ! -f "${ACADOS_INSTALL_DIR}/bin/t_renderer" ]; then
+            curl -L -o "${ACADOS_INSTALL_DIR}/bin/t_renderer" \
+              "https://github.com/acados/tera_renderer/releases/download/${RENDERER_VERSION}/t_renderer-${RENDERER_VERSION}-linux-amd64"
+            chmod +x "${ACADOS_INSTALL_DIR}/bin/t_renderer"
+          fi
+
+      - name: Export acados env vars
+        run: |
+          echo "ACADOS_SOURCE_DIR=${{ env.ACADOS_INSTALL_DIR }}" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=${{ env.ACADOS_INSTALL_DIR }}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=${{ env.ACADOS_INSTALL_DIR }}/lib/pkgconfig:${PKG_CONFIG_PATH}" >> $GITHUB_ENV
+          echo "${{ env.ACADOS_INSTALL_DIR }}/bin" >> $GITHUB_PATH
+
+      - name: Install Python dependencies
+        run: |
+          set -eux
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r aerial_robot_control/scripts/requirements.txt
+          python - <<'EOF'
+          import pathlib, textwrap
+          shim = pathlib.Path('tf_conversions')
+          shim.mkdir(exist_ok=True)
+          (shim/'__init__.py').write_text(textwrap.dedent("""\
+              # minimal shim for non-ROS CI
+              from tf_transformations import *  # noqa
+          """))
+          print('Created tf_conversions shim at', shim.resolve())
+          EOF
+
+      - name: Show installed packages (debug)
+        run: pip list
+
+      - name: Run unit tests (test_nmpc.py)
+        working-directory: aerial_robot_control/test
+        run: |
+          set -eux
+          python -m unittest test_nmpc.py -v

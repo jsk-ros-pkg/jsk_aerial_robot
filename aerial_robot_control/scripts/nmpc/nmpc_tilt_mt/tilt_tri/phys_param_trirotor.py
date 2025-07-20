@@ -8,7 +8,15 @@ import rospkg
 
 # read parameters from yaml
 rospack = rospkg.RosPack()
-param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "PhysParamTrirotor.yaml")
+
+try:
+    param_path = os.path.join(rospack.get_path("gimbalrotor"), "config", "PhysParamTrirotor.yaml")
+except rospkg.common.ResourceNotFound:  # non-ROS environment
+    # Fallback: construct absolute path from current file
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(this_dir, "../../../../.."))
+    param_path = os.path.join(project_root, "robots/gimbalrotor/config/PhysParamTrirotor.yaml")
+
 with open(param_path, "r") as f:
     param_dict = yaml.load(f, Loader=yaml.FullLoader)
 

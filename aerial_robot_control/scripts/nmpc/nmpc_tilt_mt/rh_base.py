@@ -24,7 +24,14 @@ class RecedingHorizonBase(ABC):
         # 'mode' is either "control" or "estimation"
         # 'method' is either "nmpc" or "mhe"
         rospack = rospkg.RosPack()
-        param_path = os.path.join(rospack.get_path(robot_package), "config", file_name)
+        try:
+            param_path = os.path.join(rospack.get_path(robot_package), "config", file_name)
+        except rospkg.common.ResourceNotFound:  # non-ROS environment
+            # Fallback: construct absolute path from current file
+            this_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(this_dir, "../../../.."))
+            param_path = os.path.join(project_root, "robots", robot_package, "config", file_name)
+
         try:
             with open(param_path, "r") as f:
                 param_dict = yaml.load(f, Loader=yaml.FullLoader)
@@ -76,8 +83,17 @@ class RecedingHorizonBase(ABC):
         # Make a directory for generating cpp files of the acados model and solver
         # 'method' is either "nmpc" or "wrench_est"
         rospack = rospkg.RosPack()
-        folder_path = os.path.join(
-            rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method, model_name
-        )
+        try:
+            folder_path = os.path.join(
+                rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method, model_name
+            )
+        except rospkg.common.ResourceNotFound:  # non-ROS environment
+            # Fallback: construct absolute path from current file
+            this_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(this_dir, "../../../.."))
+            folder_path = os.path.join(
+                project_root, "aerial_robot_control", "include", "aerial_robot_control", method, model_name
+            )
+
         os.makedirs(folder_path, exist_ok=True)
         os.chdir(folder_path)  # Change working directory to the model folder (also affects inherited classes)
