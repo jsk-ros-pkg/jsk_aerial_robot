@@ -43,18 +43,26 @@ class NMPCTiltQdServoThrustDist(QDNMPCBase):
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # NONLINEAR_LS = error^T @ Q @ error; error = y - y_ref
         # qe = qr^* multiply q
-        qe_x = self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y = self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
-        qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
+        q_wt_w, q_wt_x, q_wt_y, q_wt_z = self._quaternion_multiply(self.qw, self.qx, self.qy, self.qz,
+                                                                   self.ee_q[0], self.ee_q[1], self.ee_q[2], self.ee_q[3])
+
+        qe_w, qe_x, qe_y, qe_z = self._quaternion_multiply(self.qwr, -self.qxr, -self.qyr, -self.qzr,
+                                                           q_wt_w, q_wt_x, q_wt_y, q_wt_z)
+
+        rot_wb = self._get_rot_wb_ca(self.qw, self.qx, self.qy, self.qz)
+        skew_w = self._get_skew_symmetric_matrix(self.w)
+
+        rot_bt = self._get_rot_wb_ca(self.ee_q[0], self.ee_q[1], self.ee_q[2], self.ee_q[3])
+        rot_tb = rot_bt.T
 
         state_y = ca.vertcat(
-            self.p,
-            self.v,
+            self.p + rot_wb @ self.ee_p,
+            self.v + rot_wb @ skew_w @ self.ee_p,
             self.qwr,
             qe_x + self.qxr,
             qe_y + self.qyr,
             qe_z + self.qzr,
-            self.w,
+            rot_tb @ self.w,
             self.a_s,
             self.ft_s,
             self.fds_w,
