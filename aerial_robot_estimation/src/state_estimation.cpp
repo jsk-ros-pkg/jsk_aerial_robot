@@ -40,48 +40,53 @@
 using namespace aerial_robot_estimation;
 
 StateEstimator::StateEstimator()
-  : sensor_fusion_flag_(false),
-    qu_size_(0),
-    flying_flag_(false),
-    landing_mode_flag_(false),
-    landed_flag_(false),
-    un_descend_flag_(false),
-    landing_height_(0),
-    force_att_control_flag_(false),
-    has_groundtruth_odom_(false),
-    imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
+  : sensor_fusion_flag_(false)
+  , qu_size_(0)
+  , flying_flag_(false)
+  , landing_mode_flag_(false)
+  , landed_flag_(false)
+  , un_descend_flag_(false)
+  , landing_height_(0)
+  , force_att_control_flag_(false)
+  , has_groundtruth_odom_(false)
+  , imu_handlers_(0)
+  , alt_handlers_(0)
+  , vo_handlers_(0)
+  , gps_handlers_(0)
+  , plane_detection_handlers_(0)
 {
   fuser_[0].resize(0);
   fuser_[1].resize(0);
 
-  for(int i = 0; i < 6; i ++)
+  for (int i = 0; i < 6; i++)
+  {
+    for (int j = 0; j < 3; j++)
     {
-      for(int j = 0; j < 3; j++)
-        {
-          state_[i][j].first = 0;
-          state_[i][j].second = tf::Vector3(0, 0, 0);
-        }
+      state_[i][j].first = 0;
+      state_[i][j].second = tf::Vector3(0, 0, 0);
     }
+  }
 
-  for(int i = 0; i < 3; i ++)
-    {
-      base_rots_.at(i).setIdentity();
-      cog_rots_.at(i).setIdentity();
-      base_omegas_.at(i).setZero();
-      cog_omegas_.at(i).setZero();
-      base_rot_status_.at(i) = 0;
-      cog_rot_status_.at(i) = 0;
-    }
+  for (int i = 0; i < 3; i++)
+  {
+    base_rots_.at(i).setIdentity();
+    cog_rots_.at(i).setIdentity();
+    base_omegas_.at(i).setZero();
+    cog_omegas_.at(i).setZero();
+    base_rot_status_.at(i) = 0;
+    cog_rot_status_.at(i) = 0;
+  }
 
   /* TODO: represented sensors unhealth level */
   unhealth_level_ = 0;
 }
 
-void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, boost::shared_ptr<aerial_robot_model::RobotModel> robot_model)
+void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private,
+                                boost::shared_ptr<aerial_robot_model::RobotModel> robot_model)
 {
   nh_ = nh;
   nhp_ = nh_private;
-  robot_model_ =robot_model;
+  robot_model_ = robot_model;
 
   rosParamInit();
 
@@ -97,46 +102,46 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   state_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / rate), &StateEstimator::statePublish, this);
 }
 
-void StateEstimator::statePublish(const ros::TimerEvent & e)
+void StateEstimator::statePublish(const ros::TimerEvent& e)
 {
   ros::Time imu_stamp = boost::dynamic_pointer_cast<sensor_plugin::Imu>(imu_handlers_.at(0))->getStamp();
   aerial_robot_msgs::States full_state;
   full_state.header.stamp = imu_stamp;
 
-  for(int axis = 0; axis < 6; axis++)
+  for (int axis = 0; axis < 6; axis++)
+  {
+    aerial_robot_msgs::State r_state;
+    AxisState state = getState(axis);
+
+    switch (axis)
     {
-      aerial_robot_msgs::State r_state;
-      AxisState state = getState(axis);
-
-      switch(axis)
-        {
-        case State::X_COG:
-          r_state.id = "x_cog";
-          break;
-        case State::Y_COG:
-          r_state.id = "y_cog";
-          break;
-        case State::Z_COG:
-          r_state.id = "z_cog";
-          break;
-        case State::X_BASE:
-          r_state.id = "x_b";
-          break;
-        case State::Y_BASE:
-          r_state.id = "y_b";
-          break;
-        case State::Z_BASE:
-          r_state.id = "z_b";
-          break;
-        default:
-          break;
-        }
-      r_state.state.resize(3);
-      for(int mode = 0; mode < 3; mode++)
-        tf::vector3TFToMsg(state[mode].second, r_state.state[mode]);
-
-      full_state.states.push_back(r_state);
+      case State::X_COG:
+        r_state.id = "x_cog";
+        break;
+      case State::Y_COG:
+        r_state.id = "y_cog";
+        break;
+      case State::Z_COG:
+        r_state.id = "z_cog";
+        break;
+      case State::X_BASE:
+        r_state.id = "x_b";
+        break;
+      case State::Y_BASE:
+        r_state.id = "y_b";
+        break;
+      case State::Z_BASE:
+        r_state.id = "z_b";
+        break;
+      default:
+        break;
     }
+    r_state.state.resize(3);
+    for (int mode = 0; mode < 3; mode++)
+      tf::vector3TFToMsg(state[mode].second, r_state.state[mode]);
+
+    full_state.states.push_back(r_state);
+  }
   full_state_pub_.publish(full_state);
 
   nav_msgs::Odometry odom_state;
@@ -145,7 +150,8 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
 
   /* Baselink */
   /* Rotation */
-  tf::Quaternion q; getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
+  tf::Quaternion q;
+  getOrientation(Frame::BASELINK, estimate_mode_).getRotation(q);
   tf::quaternionTFToMsg(q, odom_state.pose.pose.orientation);
   tf::vector3TFToMsg(getAngularVel(Frame::BASELINK, estimate_mode_), odom_state.twist.twist.angular);
 
@@ -158,16 +164,15 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
   /* TF broadcast from world frame */
   tf::Transform root2baselink_tf;
   const auto segments_tf = robot_model_->getSegmentsTf();
-  if(segments_tf.size() > 0) // kinemtiacs is initialized
+  if (segments_tf.size() > 0)  // kinemtiacs is initialized
     tf::transformKDLToTF(segments_tf.at(robot_model_->getBaselinkName()), root2baselink_tf);
   else
-    root2baselink_tf.setIdentity(); // not initialized
+    root2baselink_tf.setIdentity();  // not initialized
 
   tf::Transform world2baselink_tf;
   tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
   geometry_msgs::TransformStamped transformStamped;
-  tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
-                                                   imu_stamp, "world",
+  tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(), imu_stamp, "world",
                                                    tf::resolve(tf_prefix_, std::string("root"))),
                               transformStamped);
   br_.sendTransform(transformStamped);
@@ -189,10 +194,9 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
     // make conversion
     tf::Vector3 target_ee_pos_in_w, target_ee_vel_in_w, target_ee_omega;
     tf::Quaternion target_ee_quat;
-    robot_model_->convertFromCoGToEEContact(
-      getPos(Frame::COG, estimate_mode_),getVel(Frame::COG, estimate_mode_),
-      q, getAngularVel(Frame::COG, estimate_mode_),
-      target_ee_pos_in_w, target_ee_vel_in_w, target_ee_quat, target_ee_omega);
+    robot_model_->convertFromCoGToEEContact(getPos(Frame::COG, estimate_mode_), getVel(Frame::COG, estimate_mode_), q,
+                                            getAngularVel(Frame::COG, estimate_mode_), target_ee_pos_in_w,
+                                            target_ee_vel_in_w, target_ee_quat, target_ee_omega);
 
     // ee_contact_odom_pub_
     odom_state.child_frame_id = tf::resolve(tf_prefix_, std::string("ee_contact"));
@@ -205,120 +209,128 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
 
     ee_contact_odom_pub_.publish(odom_state);
   }
-
 }
-
 
 void StateEstimator::rosParamInit()
 {
-  auto pattern_match = [](std::string &pl, std::string &pl_candidate)
-  {
+  auto pattern_match = [](std::string& pl, std::string& pl_candidate) {
     int cmp = fnmatch(pl.c_str(), pl_candidate.c_str(), FNM_CASEFOLD);
     if (cmp == 0)
       return true;
-    else if (cmp != FNM_NOMATCH) {
+    else if (cmp != FNM_NOMATCH)
+    {
       // never see that, i think that it is fatal error.
-      ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d",
-                pl.c_str(), pl_candidate.c_str(), cmp);
+      ROS_FATAL("Plugin list check error! fnmatch('%s', '%s', FNM_CASEFOLD) -> %d", pl.c_str(), pl_candidate.c_str(),
+                cmp);
       ros::shutdown();
     }
     return false;
   };
 
-  nhp_.param ("param_verbose", param_verbose_, true);
+  nhp_.param("param_verbose", param_verbose_, true);
 
   ros::NodeHandle nh = ros::NodeHandle(nh_, "estimation");
-  nh.param ("mode", estimate_mode_, 0); //EGOMOTION_ESTIMATE: 0
-  ROS_WARN("mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE)?string("EGOMOTION_ESTIMATE").c_str():((estimate_mode_ == EXPERIMENT_ESTIMATE)?string("EXPERIMENT_ESTIMATE").c_str():((estimate_mode_ == GROUND_TRUTH)?string("GROUND_TRUTH").c_str():string("WRONG_MODE").c_str())));
+  nh.param("mode", estimate_mode_, 0);  // EGOMOTION_ESTIMATE: 0
+  ROS_WARN("mode is %s", (estimate_mode_ == EGOMOTION_ESTIMATE) ?
+                             string("EGOMOTION_ESTIMATE").c_str() :
+                             ((estimate_mode_ == EXPERIMENT_ESTIMATE) ?
+                                  string("EXPERIMENT_ESTIMATE").c_str() :
+                                  ((estimate_mode_ == GROUND_TRUTH) ? string("GROUND_TRUTH").c_str() :
+                                                                      string("WRONG_MODE").c_str())));
 
-  sensor_fusion_loader_ptr_ = boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
+  sensor_fusion_loader_ptr_ = boost::shared_ptr<pluginlib::ClassLoader<kf_plugin::KalmanFilter> >(
+      new pluginlib::ClassLoader<kf_plugin::KalmanFilter>("kalman_filter", "kf_plugin::KalmanFilter"));
 
   /* kalman filter egomotion plugin initialization for 0: egomotion, 1: experiment */
   for (int i = 0; i < 2; i++)
+  {
+    /* kalman filter egomotion plugin list */
+    ros::V_string pl_list{};
+    string prefix;
+    if (i == EGOMOTION_ESTIMATE)
+      prefix = string("egomotion");
+    else if (i == EXPERIMENT_ESTIMATE)
+      prefix = string("experiment");
+
+    nh.getParam(prefix + "_list", pl_list);
+
+    for (auto& pl_name : pl_list)
     {
-      /* kalman filter egomotion plugin list */
-      ros::V_string pl_list{};
-      string prefix;
-      if(i == EGOMOTION_ESTIMATE) prefix = string("egomotion");
-      else if(i == EXPERIMENT_ESTIMATE) prefix = string("experiment");
+      for (auto& name : sensor_fusion_loader_ptr_->getDeclaredClasses())
+      {
+        if (!pattern_match(pl_name, name))
+          continue;
 
-      nh.getParam(prefix + "_list", pl_list);
+        std::stringstream fuser_no;
+        fuser_no << fuser_[i].size() + 1;
 
-      for (auto &pl_name : pl_list)
-        {
-          for (auto &name : sensor_fusion_loader_ptr_->getDeclaredClasses())
-            {
-              if(!pattern_match(pl_name, name)) continue;
+        int fuser_id;
+        string fuser_name;
 
-              std::stringstream fuser_no;
-              fuser_no << fuser_[i].size() + 1;
+        if (!nh.getParam("fuser_" + prefix + "_id" + fuser_no.str(), fuser_id))
+          ROS_ERROR("%s, no param in fuser %s id", prefix.c_str(), fuser_no.str().c_str());
 
-              int fuser_id;
-              string fuser_name;
+        if (!nh.getParam("fuser_" + prefix + "_name" + fuser_no.str(), fuser_name))
+          ROS_ERROR("%s, no param in fuser %s name", prefix.c_str(), fuser_no.str().c_str());
 
-              if (!nh.getParam ("fuser_" + prefix + "_id" + fuser_no.str(), fuser_id))
-                ROS_ERROR("%s, no param in fuser %s id", prefix.c_str(), fuser_no.str().c_str());
-
-              if (!nh.getParam ("fuser_" + prefix + "_name" + fuser_no.str(), fuser_name))
-                ROS_ERROR("%s, no param in fuser %s name", prefix.c_str(), fuser_no.str().c_str());
-
-              boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
-              plugin_ptr->initialize(fuser_name, fuser_id);
-              fuser_[i].push_back(make_pair(name, plugin_ptr));
-              break;
-            }
-        }
+        boost::shared_ptr<kf_plugin::KalmanFilter> plugin_ptr = sensor_fusion_loader_ptr_->createInstance(name);
+        plugin_ptr->initialize(fuser_name, fuser_id);
+        fuser_[i].push_back(make_pair(name, plugin_ptr));
+        break;
+      }
     }
+  }
 
-  sensor_plugin_ptr_ =  boost::shared_ptr< pluginlib::ClassLoader<sensor_plugin::SensorBase> >( new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_estimation", "sensor_plugin::SensorBase"));
+  sensor_plugin_ptr_ = boost::shared_ptr<pluginlib::ClassLoader<sensor_plugin::SensorBase> >(
+      new pluginlib::ClassLoader<sensor_plugin::SensorBase>("aerial_robot_estimation", "sensor_plugin::SensorBase"));
 
   ros::V_string sensor_list{};
   nh.getParam("sensor_list", sensor_list);
 
   vector<int> sensor_index(0);
 
-  for (auto &sensor_plugin_name : sensor_list)
+  for (auto& sensor_plugin_name : sensor_list)
+  {
+    for (auto& name : sensor_plugin_ptr_->getDeclaredClasses())
     {
-      for (auto &name : sensor_plugin_ptr_->getDeclaredClasses())
-        {
-          if(!pattern_match(sensor_plugin_name, name)) continue;
+      if (!pattern_match(sensor_plugin_name, name))
+        continue;
 
-          sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
-          sensor_index.push_back(1);
+      sensors_.push_back(sensor_plugin_ptr_->createInstance(name));
+      sensor_index.push_back(1);
 
-          if(name.find("imu") != std::string::npos)
-            {
-              imu_handlers_.push_back(sensors_.back());
-              sensor_index.back() = imu_handlers_.size();
-            }
+      if (name.find("imu") != std::string::npos)
+      {
+        imu_handlers_.push_back(sensors_.back());
+        sensor_index.back() = imu_handlers_.size();
+      }
 
-          if(name.find("gps") != std::string::npos)
-            {
-              gps_handlers_.push_back(sensors_.back());
-              sensor_index.back() = gps_handlers_.size();
-            }
+      if (name.find("gps") != std::string::npos)
+      {
+        gps_handlers_.push_back(sensors_.back());
+        sensor_index.back() = gps_handlers_.size();
+      }
 
-          if(name.find("alt") != std::string::npos)
-            {
-              alt_handlers_.push_back(sensors_.back());
-              sensor_index.back() = alt_handlers_.size();
-            }
+      if (name.find("alt") != std::string::npos)
+      {
+        alt_handlers_.push_back(sensors_.back());
+        sensor_index.back() = alt_handlers_.size();
+      }
 
-          if(name.find("vo") != std::string::npos)
-            {
-              vo_handlers_.push_back(sensors_.back());
-              sensor_index.back() = vo_handlers_.size();
-            }
+      if (name.find("vo") != std::string::npos)
+      {
+        vo_handlers_.push_back(sensors_.back());
+        sensor_index.back() = vo_handlers_.size();
+      }
 
-          if(name.find("plane_detection") != std::string::npos)
-            {
-              plane_detection_handlers_.push_back(sensors_.back());
-              sensor_index.back() = plane_detection_handlers_.size();
-            }
+      if (name.find("plane_detection") != std::string::npos)
+      {
+        plane_detection_handlers_.push_back(sensors_.back());
+        sensor_index.back() = plane_detection_handlers_.size();
+      }
 
-
-          sensors_.back()->initialize(nh_, robot_model_, shared_from_this(), name, sensor_index.back());
-          break;
-        }
+      sensors_.back()->initialize(nh_, robot_model_, shared_from_this(), name, sensor_index.back());
+      break;
     }
+  }
 }

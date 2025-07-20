@@ -421,22 +421,19 @@ class QDNMPCBase(RecedingHorizonBase):
         return ca.vertcat(
             ca.horzcat(1, 0, 0),
             ca.horzcat(0, ca.cos(angle), -ca.sin(angle)),
-            ca.horzcat(0, ca.sin(angle), ca.cos(angle))
+            ca.horzcat(0, ca.sin(angle), ca.cos(angle)),
         )
 
     @staticmethod
     def _get_rot_wb_ca(qw, qx, qy, qz):
         row_1 = ca.horzcat(
-            ca.SX(1 - 2 * qy ** 2 - 2 * qz ** 2), ca.SX(2 * qx * qy - 2 * qw * qz),
-            ca.SX(2 * qx * qz + 2 * qw * qy)
+            ca.SX(1 - 2 * qy**2 - 2 * qz**2), ca.SX(2 * qx * qy - 2 * qw * qz), ca.SX(2 * qx * qz + 2 * qw * qy)
         )
         row_2 = ca.horzcat(
-            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx ** 2 - 2 * qz ** 2),
-            ca.SX(2 * qy * qz - 2 * qw * qx)
+            ca.SX(2 * qx * qy + 2 * qw * qz), ca.SX(1 - 2 * qx**2 - 2 * qz**2), ca.SX(2 * qy * qz - 2 * qw * qx)
         )
         row_3 = ca.horzcat(
-            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx),
-            ca.SX(1 - 2 * qx ** 2 - 2 * qy ** 2)
+            ca.SX(2 * qx * qz - 2 * qw * qy), ca.SX(2 * qy * qz + 2 * qw * qx), ca.SX(1 - 2 * qx**2 - 2 * qy**2)
         )
         rot_wb = ca.vertcat(row_1, row_2, row_3)
         return rot_wb
@@ -451,9 +448,13 @@ class QDNMPCBase(RecedingHorizonBase):
         :param qz: Quaternion component z.
         :return: Rotation matrix from World to Body frame.
         """
-        return np.array([[1 - 2 * (qy ** 2 + qz ** 2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
-                         [2 * (qx * qy + qw * qz), 1 - 2 * (qx ** 2 + qz ** 2), 2 * (qy * qz - qw * qx)],
-                         [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx ** 2 + qy ** 2)]])
+        return np.array(
+            [
+                [1 - 2 * (qy**2 + qz**2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
+                [2 * (qx * qy + qw * qz), 1 - 2 * (qx**2 + qz**2), 2 * (qy * qz - qw * qx)],
+                [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx**2 + qy**2)],
+            ]
+        )
 
     @staticmethod
     def _get_skew_symmetric_matrix(vector):
@@ -465,7 +466,7 @@ class QDNMPCBase(RecedingHorizonBase):
         skew_mtx = ca.vertcat(
             ca.horzcat(0, -vector[2], vector[1]),
             ca.horzcat(vector[2], 0, -vector[0]),
-            ca.horzcat(-vector[1], vector[0], 0)
+            ca.horzcat(-vector[1], vector[0], 0),
         )
 
         return skew_mtx
@@ -475,10 +476,12 @@ class QDNMPCBase(RecedingHorizonBase):
         """
         Multiply two quaternions.
         """
-        return (qw1 * qw2 - qx1 * qx2 - qy1 * qy2 - qz1 * qz2,
-                qw1 * qx2 + qx1 * qw2 + qy1 * qz2 - qz1 * qy2,
-                qw1 * qy2 - qx1 * qz2 + qy1 * qw2 + qz1 * qx2,
-                qw1 * qz2 + qx1 * qy2 - qy1 * qx2 + qz1 * qw2)
+        return (
+            qw1 * qw2 - qx1 * qx2 - qy1 * qy2 - qz1 * qz2,
+            qw1 * qx2 + qx1 * qw2 + qy1 * qz2 - qz1 * qy2,
+            qw1 * qy2 - qx1 * qz2 + qy1 * qw2 + qz1 * qx2,
+            qw1 * qz2 + qx1 * qy2 - qy1 * qx2 + qz1 * qw2,
+        )
 
     @abstractmethod
     def get_weights(self):
@@ -704,7 +707,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.acados_init_p[0] = x_ref[6]  # qw
         if len(self.phys.physical_param_list) != 31:
             raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
-        self.acados_init_p[4:4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
+        self.acados_init_p[4 : 4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
 
         ocp.parameter_values = self.acados_init_p
 
@@ -751,7 +754,7 @@ class QDNMPCBase(RecedingHorizonBase):
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         self.acados_init_p = np.zeros(n_param)
         self.acados_init_p[0] = 1.0  # qw
-        self.acados_init_p[4:4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
+        self.acados_init_p[4 : 4 + len(self.phys.physical_param_list)] = np.array(self.phys.physical_param_list)
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim

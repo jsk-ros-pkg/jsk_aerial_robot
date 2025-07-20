@@ -49,7 +49,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
 
         rot_wb = self._get_rot_wb_ca(self.qw, self.qx, self.qy, self.qz)
         skew_w = self._get_skew_symmetric_matrix(self.w)
-        
+
         rot_bt = self._get_rot_wb_ca(self.ee_q[0], self.ee_q[1], self.ee_q[2], self.ee_q[3])
         rot_tb = rot_bt.T
 
