@@ -233,7 +233,7 @@ class NominalImpedance(RecedingHorizonBase):
         pass
         return None
 
-    def create_acados_sim_solver(self, ts_sim: float, is_build: bool = True) -> AcadosSimSolver:
+    def create_acados_sim_solver(self, ts_sim: float, build: bool = True) -> AcadosSimSolver:
         ocp_model = super().get_acados_model()
 
         acados_sim = AcadosSim()
@@ -245,7 +245,7 @@ class NominalImpedance(RecedingHorizonBase):
         acados_sim.parameter_values = self.acados_init_p
 
         acados_sim.solver_options.T = ts_sim
-        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=is_build)
+        return AcadosSimSolver(acados_sim, json_file=ocp_model.name + "_acados_sim.json", build=build)
 
 
 if __name__ == "__main__":
