@@ -105,7 +105,11 @@ def quat2euler(qw: pd.Series, qx: pd.Series, qy: pd.Series, qz: pd.Series, seque
 
     # Wrap back into Series with the original time index
     idx = qw.index
-    roll = pd.Series(euler[:, 0], index=idx, name="roll")
-    pitch = pd.Series(euler[:, 1], index=idx, name="pitch")
-    yaw = pd.Series(euler[:, 2], index=idx, name="yaw")
+    if sequence == "ZYX":
+        yaw = pd.Series(euler[:, 0], index=idx, name="yaw")
+        pitch = pd.Series(euler[:, 1], index=idx, name="pitch")
+        roll = pd.Series(euler[:, 2], index=idx, name="roll")
+    else:
+        raise ValueError(f"Unknown sequence: {sequence}")
+
     return roll, pitch, yaw
