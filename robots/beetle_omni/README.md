@@ -157,11 +157,11 @@ For using wrench sensor, call the following command in hovering to calibrate the
 rosservice call /cfs_sensor_calib "{}"
 ```
 
-# Flying Hand
+## Flying Hand
 
 We need two notebooks, one as ground station and the other for visual feedback.
 
-**MoCap Computer**
+### MoCap Computer
 
 1. Run the software for the data glove and calibrate it. Note that the ip should be set to the ros master computer.
 2. Check the MoCap is set correctly.
@@ -169,7 +169,7 @@ We need two notebooks, one as ground station and the other for visual feedback.
 If there is something wrong with glove connection, please refer
 to https://stretchsense.my.site.com/defaulthelpcenter26Sep/s/article/Studio-Glove-and-Dongle-Setup?language=en_US
 
-**Onboard Computer**
+### Onboard Computer
 
 Four terminals are needed.
 
@@ -194,7 +194,7 @@ After the robot reach the status of hovering - see terminal output of main launc
 
     To check the current mode, you can run:`rosparam get /operation_mode`
 
-**Ground Station**
+### Ground Station
 Three terminals are needed.
 
 Before takeoff:
@@ -203,7 +203,28 @@ Before takeoff:
 2. `roslaunch aerial_robot_base joy_stick.launch robot_name:=beetle1`
 3. `rviz -d ~/ros1/jsk_ws/src/jsk_aerial_robot_dev/robots/beetle/config/nmpc.rviz`
 
-**Visual Computer**
+### Visual Computer
 
 1. `rosrun aerial_robot_planning visual_fb_mode.py`
 2. Adjust the window to fullfill the screen.
+
+## Build on onboard computer
+If you run into dependency issues with GLIBC - e.g., because you use Ubuntu 20.04 to run ROS but still need to use acados for NMPC control - please build `tera_renderer` from source. For background, GLIBC is one of the most central libraries that the Linux system builds on and its version is highly connected to the Ubuntu version used. Therefore, it is hard to upgrade it when needed by certain packages. One of these packages that need a relatively high version of GLIBC is `tera_renderer`. The newest version - at the time of writing - is v0.2.0 which provides already build AMD64 and ARM64 executables. To run these executables a GLIBC of >= 2.32 but Ubuntu 20.04 is on version GLIBC 2.31. The most recommended solution is to build the `tera_renderer` executable from source based on a previous version of the Tera Renderer git. To upgrade GLIBC is widely discouraged as it can easily break the OS.
+
+To install `tera_renderer` from source execute this _after_ cloning and installing acados.
+
+```bash
+# Install rust, cargo etc.
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Clone the Tera Renderer git and use a previous version that supports the GLIBC of the Ubuntu version you are using
+git clone https://github.com/acados/tera_renderer.git --branch v0.0.35
+
+cd <acados_root>/tera_renderer
+
+# Build the executable using cargo and store it in the folder 'release'
+$HOME/.cargo/bin/cargo build --verbose --release
+
+# Move binary to folder such that acados can access it
+cp <acados_root>/tera_renderer/target/release/t_renderer <acados_root>/bin
+```
