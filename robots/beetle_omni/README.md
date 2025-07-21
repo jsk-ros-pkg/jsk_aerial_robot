@@ -25,8 +25,8 @@ cmake -DACADOS_WITH_QPOASES=ON -DACADOS_WITH_DAQP=ON -DACADOS_WITH_QPDUNES=ON -D
 Setup the folder architecture and clone the repo **with the specific branch**:
 
 ```bash
-mkdir -p ~/[path_to_ws]/src
-cd ~/[path_to_ws]/src
+mkdir -p ~/<path_to_ws>/src
+cd ~/<path_to_ws>/src
 git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt    # pay attention to the branch flag
 ```
 
@@ -34,7 +34,7 @@ git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_t
 Install ROS Noetic for Ubuntu 20.04 from https://wiki.ros.org/ROS/Installation and source the setup file:
 
 ```bash
-source /opt/ros/one/setup.bash
+source /opt/ros/neotic/setup.bash
 ```
 
 We use rosdep to manage the dependencies. So, if you have never done this in your computer before, do the following:
@@ -46,7 +46,7 @@ rosdep update
 
 Then, do the following:
 ```bash
-cd ~/[path_to_ws]
+cd ~/<path_to_ws>
 wstool init src
 wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall
 wstool update -t src    # install unofficial packages
@@ -71,7 +71,7 @@ rosdep update
 Then, do the following:
 
 ```bash
-cd ~/[path_to_ws]
+cd ~/<path_to_ws>
 wstool init src
 wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
 wstool update -t src    # install unofficial packages
@@ -118,7 +118,7 @@ For convenience, open `~/.bashrc` and add sourcing of the workspace to the end o
 ```bash
 In ~/.bashrc:
 
-source ~/[path_to_ws]/devel/setup.bash
+source ~/<path_to_ws>/devel/setup.bash
 ```
 
 #### Addendum: Potential fixes to common problems
