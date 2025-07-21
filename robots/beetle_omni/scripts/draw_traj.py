@@ -6,7 +6,7 @@ import argparse
 
 from matplotlib.lines import lineStyles
 
-from utils import unwrap_angle_sequence, calculate_rmse, quat2euler
+from utils import unwrap_angle_sequence, calculate_rmse, quat2euler, calculate_quat_error
 
 legend_alpha = 0.5
 
@@ -90,18 +90,44 @@ def main(file_path, type):
         degrees=False,
     )
 
-    data_euler = pd.DataFrame()
-    data_euler["__time"] = data_qwxyz["__time"]
-    data_euler = pd.DataFrame()
-    data_euler["__time"] = data_qwxyz["__time"]
-    data_euler["roll"], data_euler["pitch"], data_euler["yaw"] = quat2euler(
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/w"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"],
-        sequence="ZYX",
-        degrees=False,
+    # interpolate the real quaternion date
+    t_ref = np.array(data_qwxyz_ref["__time"])
+    t = np.array(data_qwxyz["__time"])
+
+    data_qwxyz_interp = pd.DataFrame()
+    data_qwxyz_interp["__time"] = t_ref
+    data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/w"] = np.interp(
+        t_ref, t, data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/w"]
     )
+    data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/x"] = np.interp(
+        t_ref, t, data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"]
+    )
+    data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/y"] = np.interp(
+        t_ref, t, data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"]
+    )
+    data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/z"] = np.interp(
+        t_ref, t, data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"]
+    )
+
+    # calculate the quaternion error
+    ew, ex, ey, ez = calculate_quat_error(
+        data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/w"],
+        data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/x"],
+        data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/y"],
+        data_qwxyz_interp["/beetle1/uav/cog/odom/pose/pose/orientation/z"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z"],
+    )
+
+    e_roll, e_pitch, e_yaw = quat2euler(ew, ex, ey, ez, sequence="ZYX", degrees=False)
+
+    data_euler = pd.DataFrame()
+    data_euler["__time"] = t_ref
+    data_euler["roll"] = e_roll.to_numpy() + data_euler_ref["roll"].to_numpy()
+    data_euler["pitch"] = e_pitch.to_numpy() + data_euler_ref["pitch"].to_numpy()
+    data_euler["yaw"] = e_yaw.to_numpy() + data_euler_ref["yaw"].to_numpy()
 
     # thrust_cmd
     data_thrust_cmd = data[
