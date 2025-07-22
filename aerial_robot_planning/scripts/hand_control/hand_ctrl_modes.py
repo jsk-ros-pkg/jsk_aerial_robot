@@ -7,6 +7,8 @@
 
 import math
 from abc import ABC, abstractmethod
+from tf_conversions import transformations as tf
+import numpy as np
 
 import rospy
 from geometry_msgs.msg import Twist, Vector3, Quaternion, Transform
@@ -154,6 +156,9 @@ class OperationMode(HandControlBaseMode):
         self.initial_drone_position = None
         self.position_hand_change = None
 
+        # for continuous rotation
+        self.cont_rot_gen = ContRotationGen()
+
     @staticmethod
     def _init_mode_num():
         return 1
@@ -192,12 +197,10 @@ class OperationMode(HandControlBaseMode):
             self.initial_drone_position[2] + self.position_hand_change[2],
         ]
 
-        hand_orientation = [
-            self.hand_pose.pose_msg.pose.orientation.x,
-            self.hand_pose.pose_msg.pose.orientation.y,
-            self.hand_pose.pose_msg.pose.orientation.z,
-            self.hand_pose.pose_msg.pose.orientation.w,
-        ]
+        # === detect continuous rotation ===  TODO: add a parameter to enable/disable this feature
+        hand_quat = self.hand_pose.pose_msg.pose.orientation
+        hand_ori_proc, self.vel_twist = self.cont_rot_gen.update(hand_quat, self.vel_twist)
+        # ==================================
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
         t_has_started = rospy.Time.now().to_sec() - self.start_time
@@ -207,7 +210,7 @@ class OperationMode(HandControlBaseMode):
             traj_pt.transforms.append(
                 Transform(
                     translation=Vector3(*target_position),
-                    rotation=Quaternion(*hand_orientation),
+                    rotation=Quaternion(*hand_ori_proc),
                 )
             )
             traj_pt.velocities.append(self.vel_twist)
@@ -220,6 +223,67 @@ class OperationMode(HandControlBaseMode):
             multi_dof_joint_traj.points.append(traj_pt)
 
         return multi_dof_joint_traj
+
+
+class ContRotationGen:
+    def __init__(self, roll_start=0.0, pitch_start=np.pi / 2.0, yaw_start=0.0, axes="rzyx"):  # pitch = 90 degrees
+        self.cont_rotate_start_t = None
+        self.cont_rotate_dir = None  # +1 for right rotation, -1 for left rotation
+        self.cont_rotate_start_yaw_error = None
+
+        self.quat_start = tf.quaternion_from_euler(roll_start, pitch_start, yaw_start, axes=axes)
+
+    def is_rotating(self) -> bool:
+        return self.cont_rotate_start_t is not None
+
+    def reset(self):
+        self.cont_rotate_start_t = None
+        self.cont_rotate_dir = None
+        self.cont_rotate_start_yaw_error = None
+
+    def update(self, hand_quat: Quaternion, vel_twist: Twist) -> (Quaternion, Twist):
+        quat_error = tf.quaternion_multiply(
+            tf.quaternion_inverse(self.quat_start), [hand_quat.x, hand_quat.y, hand_quat.z, hand_quat.w]
+        )
+        euler_error = tf.euler_from_quaternion(quat_error, axes="rzyx")
+        euler_error = np.degrees(euler_error)
+        roll_error = euler_error[2]
+        pitch_error = euler_error[1]
+        yaw_error = euler_error[0]
+
+        if not self.is_rotating():
+            # Entry
+            if abs(roll_error) < 5 and abs(pitch_error) < 5:
+                if yaw_error > 60:  # degrees
+                    rospy.loginfo("Enter vertical mode: right rotation")
+                    self.cont_rotate_start_t = rospy.Time.now().to_sec()
+                    self.cont_rotate_dir = 1  # right rotation
+                    self.cont_rotate_start_yaw_error = yaw_error
+                elif yaw_error < -60:  # degrees
+                    rospy.loginfo("Enter vertical mode: left rotation")
+                    self.cont_rotate_start_t = rospy.Time.now().to_sec()
+                    self.cont_rotate_dir = -1  # left rotation
+                    self.cont_rotate_start_yaw_error = yaw_error
+            return hand_quat, vel_twist
+
+        # Continuous rotation
+        rotate_t = rospy.Time.now().to_sec() - self.cont_rotate_start_t
+
+        # Exit
+        cond_1 = self.cont_rotate_dir == 1 and 0 > yaw_error - self.cont_rotate_start_yaw_error > -5
+        cond_2 = self.cont_rotate_dir == -1 and 0 < yaw_error - self.cont_rotate_start_yaw_error < 5
+        if (cond_1 or cond_2) and rotate_t > 5.0:
+            rospy.loginfo("Exit vertical mode")
+            self.reset()
+
+        # Stay
+        omega = 2 * np.pi / 30
+        target_quat = tf.quaternion_from_euler(0.0, np.pi / 2.0, omega * rotate_t, axes="rxyz")
+
+        hand_ori = Quaternion([target_quat.x, target_quat.y, target_quat.z, target_quat.w])
+        vel_twist.angular.z = omega
+
+        return hand_ori, vel_twist
 
 
 ##########################################
