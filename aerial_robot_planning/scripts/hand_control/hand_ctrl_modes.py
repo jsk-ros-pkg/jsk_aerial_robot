@@ -210,7 +210,7 @@ class OperationMode(HandControlBaseMode):
             traj_pt.transforms.append(
                 Transform(
                     translation=Vector3(*target_position),
-                    rotation=Quaternion(*hand_ori_proc),
+                    rotation=hand_ori_proc,
                 )
             )
             traj_pt.velocities.append(self.vel_twist)
@@ -254,6 +254,7 @@ class ContRotationGen:
         if not self.is_rotating():
             # Entry
             if abs(roll_error) < 5 and abs(pitch_error) < 5:
+                rospy.loginfo_throttle(1, "Enter vertical mode: yaw error = {:.2f} degrees".format(yaw_error))
                 if yaw_error > 60:  # degrees
                     rospy.loginfo("Enter vertical mode: right rotation")
                     self.cont_rotate_start_t = rospy.Time.now().to_sec()
@@ -277,10 +278,12 @@ class ContRotationGen:
             self.reset()
 
         # Stay
-        omega = 2 * np.pi / 30
-        target_quat = tf.quaternion_from_euler(0.0, np.pi / 2.0, omega * rotate_t, axes="rxyz")
+        omega = 2 * np.pi / 30 * self.cont_rotate_dir
+        target_quat = tf.quaternion_from_euler(
+            0.0, np.pi / 2.0, omega * rotate_t + np.deg2rad(self.cont_rotate_start_yaw_error), axes="rxyz"
+        )
 
-        hand_ori = Quaternion([target_quat.x, target_quat.y, target_quat.z, target_quat.w])
+        hand_ori = Quaternion(*target_quat)
         vel_twist.angular.z = omega
 
         return hand_ori, vel_twist
