@@ -199,7 +199,7 @@ class OperationMode(HandControlBaseMode):
 
         # === detect continuous rotation ===  TODO: add a parameter to enable/disable this feature
         hand_quat = self.hand_pose.pose_msg.pose.orientation
-        robot_quat = self.uav_odom.pose.orientation
+        robot_quat = self.uav_odom.pose.pose.orientation
         hand_ori_proc, self.vel_twist = self.cont_rot_gen.update(hand_quat, robot_quat, self.vel_twist)
         # ==================================
 
@@ -237,7 +237,7 @@ class ContRotationGen:
         self.cont_rot_dir = None  # +1 for right rotation, -1 for left rotation
         self.cont_rot_start_theta = None
 
-        self.cont_rot_perid = 30.0  # seconds
+        self.cont_rot_period = 30.0  # seconds
 
         q_list = tf.quaternion_from_euler(roll_start, pitch_start, yaw_start, axes=axes)
         self.quat_start = Quaternion(*q_list)
@@ -271,8 +271,8 @@ class ContRotationGen:
 
         if not self.is_rotating():
             # Entry
-            if np.linalg.norm(qe_axis - np.array([0.0, 0.0, 1.0])) < 0.1:  # close to vertical
-                rospy.loginfo_throttle(1, "Enter vertical mode: rotate {:.2f} degrees".format(qe_angle))
+            if np.linalg.norm(qe_axis - np.array([-1.0, 0.0, 0.0])) < 0.2:  # close to vertical
+                rospy.loginfo_throttle(1, "Enter vertical mode: rotate {:.2f} degrees".format(np.rad2deg(qe_angle)))
 
                 if abs(qe_angle) > np.deg2rad(60):
                     self.cont_rot_start_t = rospy.Time.now().to_sec()
@@ -291,13 +291,14 @@ class ContRotationGen:
         qe_r2h = self.get_quat_error(robot_quat, hand_quat)
         qe_r2h_angle = 2 * np.arccos(np.linalg.norm(qe_r2h))  # angle in radians
         cond_1 = qe_r2h_angle < np.deg2rad(10)  # robot is close to hand
-        cond_2 = rotate_t > self.cont_rot_perid  # seconds
+        cond_2 = rotate_t > self.cont_rot_period  # seconds
         if (cond_1 or cond_2) and rotate_t > 5.0:
             rospy.loginfo("Exit vertical mode")
             self.reset()
+            return hand_quat, vel_twist
 
         # Stay
-        omega = 2 * np.pi / self.cont_rot_perid * self.cont_rot_dir
+        omega = 2 * np.pi / self.cont_rot_period * self.cont_rot_dir
         target_quat = tf.quaternion_from_euler(
             0.0, np.pi / 2.0, omega * rotate_t + self.cont_rot_start_theta, axes="rxyz"
         )
