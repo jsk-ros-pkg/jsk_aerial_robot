@@ -53,7 +53,9 @@ AttitudeController::AttitudeController():
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
   offset_rot_sub_("desire_coordinate", &AttitudeController::offsetRotCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  esc_telem_pub_("esc_telem", &esc_telem_msg_)
+  esc_telem_pub_("esc_telem", &esc_telem_msg_),
+  gimbal_dof_(0),
+  rotor_coef_(1)
 {
 }
 
