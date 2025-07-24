@@ -200,7 +200,7 @@ class OperationMode(HandControlBaseMode):
         # === detect continuous rotation ===  TODO: add a parameter to enable/disable this feature
         hand_quat = self.hand_pose.pose_msg.pose.orientation
         robot_quat = self.uav_odom.pose.pose.orientation
-        hand_ori_proc, self.vel_twist = self.cont_rot_gen.update(hand_quat, robot_quat, self.vel_twist)
+        robot_quat_ref, self.vel_twist = self.cont_rot_gen.update(hand_quat, robot_quat, self.vel_twist)
         # ==================================
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
@@ -211,7 +211,7 @@ class OperationMode(HandControlBaseMode):
             traj_pt.transforms.append(
                 Transform(
                     translation=Vector3(*target_position),
-                    rotation=hand_ori_proc,
+                    rotation=robot_quat_ref,
                 )
             )
             traj_pt.velocities.append(self.vel_twist)
@@ -235,10 +235,11 @@ class ContRotationGen:
     def __init__(self, roll_start=0.0, pitch_start=np.pi / 2.0, yaw_start=0.0, axes="rzyx"):  # pitch = 90 degrees
         self.cont_rot_start_t = None
         self.cont_rot_dir = None  # +1 for right rotation, -1 for left rotation
-        self.cont_rot_start_q_angle = None
+        self.cont_rot_qe_angle_init = None
 
+        # hyper-parameters
+        self.cont_rot_qe_axis = np.array([-1.0, 0.0, 0.0])
         self.cont_rot_period = 30.0  # seconds
-
         q_list = tf.quaternion_from_euler(roll_start, pitch_start, yaw_start, axes=axes)
         self.quat_start = Quaternion(*q_list)
 
@@ -248,60 +249,20 @@ class ContRotationGen:
     def reset(self):
         self.cont_rot_start_t = None
         self.cont_rot_dir = None
-        self.cont_rot_start_q_angle = None
-
-    @staticmethod
-    def _get_quat_error(quat: Quaternion, quat_ref: Quaternion):
-        # error = x - x_r = q_r^* @ q
-        quat_error = tf.quaternion_multiply(
-            tf.quaternion_conjugate([quat_ref.x, quat_ref.y, quat_ref.z, quat_ref.w]), [quat.x, quat.y, quat.z, quat.w]
-        )
-
-        qe_w = quat_error[3]
-        qe_vec = quat_error[:3]
-
-        return np.sign(qe_w) * np.array(qe_vec)
-
-    def _get_quat_error_rot_axis_angle(self, quat: Quaternion, quat_ref: Quaternion) -> (np.ndarray, float):
-        """
-        Get the quaternion error as a rotation axis and angle.
-        :param quat: The current quaternion.
-        :param quat_ref: The reference quaternion.
-        :return: A tuple of the rotation axis and angle in radians.
-        """
-        qe_vec = self._get_quat_error(quat, quat_ref)
-        qe_norm = np.linalg.norm(qe_vec)
-
-        if qe_norm < 1e-6:
-            return np.array([0.0, 0.0, 0.0]), 0.0
-
-        qe_axis = qe_vec / qe_norm
-        qe_angle = 2 * np.arccos(qe_norm)  # angle in radians
-
-        return qe_axis, qe_angle
-
-    @staticmethod
-    def _check_quat_axis_align(quat_axis: np.ndarray, ref_axis: np.ndarray, thresh: float = 0.2) -> bool:
-        """
-        Check if the quaternion axis is aligned with the reference axis within a threshold.
-        :param quat_axis: The quaternion axis to check.
-        :param ref_axis: The reference axis to compare against.
-        :param thresh: The threshold for alignment.
-        :return: True if aligned, False otherwise.
-        """
-        return np.linalg.norm(quat_axis - ref_axis) < thresh
+        self.cont_rot_qe_angle_init = None
 
     def update(self, hand_quat: Quaternion, robot_quat: Quaternion, vel_twist: Twist) -> (Quaternion, Twist):
-        qe_axis, qe_angle = self._get_quat_error_rot_axis_angle(hand_quat, self.quat_start)
+        quat_start_flipped = self._handle_quat_flip(self.quat_start, hand_quat)
+        qe_axis, qe_angle = self._get_axis_angle_from_quat(self._get_quat_error(hand_quat, quat_start_flipped))
 
         if not self.is_rotating():
             # Entry
-            if self._check_quat_axis_align(qe_axis, np.array([-1.0, 0.0, 0.0]), 0.2):  # close to vertical
+            if self._check_quat_axis_align(qe_axis, self.cont_rot_qe_axis, 0.2):  # close to vertical
                 rospy.loginfo_throttle(1, "Enter vertical mode: rotate {:.2f} degrees".format(np.rad2deg(qe_angle)))
 
                 if abs(qe_angle) > np.deg2rad(60):
                     self.cont_rot_start_t = rospy.Time.now().to_sec()
-                    self.cont_rot_start_q_angle = qe_angle
+                    self.cont_rot_qe_angle_init = qe_angle
                     self.cont_rot_dir = 1 if qe_angle > 0 else -1
 
                     direction = "right" if qe_angle > 0 else "left"
@@ -313,7 +274,8 @@ class ContRotationGen:
         rotate_t = rospy.Time.now().to_sec() - self.cont_rot_start_t
 
         # Exit
-        qe_r2h_axis, qe_r2h_angle = self._get_quat_error_rot_axis_angle(robot_quat, hand_quat)
+        robot_quat_flipped = self._handle_quat_flip(robot_quat, hand_quat)  # avoid quaternion flip issue
+        qe_r2h_axis, qe_r2h_angle = self._get_axis_angle_from_quat(self._get_quat_error(robot_quat_flipped, hand_quat))
 
         cond_1 = qe_r2h_angle < np.deg2rad(10)  # robot is close to hand
         cond_2 = rotate_t > self.cont_rot_period  # seconds
@@ -323,15 +285,98 @@ class ContRotationGen:
             return hand_quat, vel_twist
 
         # Stay
+        # - angular vel
         omega = 2 * np.pi / self.cont_rot_period * self.cont_rot_dir
-        target_quat = tf.quaternion_from_euler(
-            0.0, np.pi / 2.0, omega * rotate_t + self.cont_rot_start_q_angle, axes="rxyz"
+
+        # - attitude quat
+        qe_r2h_angle_ref = self.cont_rot_qe_angle_init + omega * rotate_t
+        qe_r2h_ref = self._get_quat_from_axis_angle(self.cont_rot_qe_axis, qe_r2h_angle_ref)
+        target_robot_quat_list = tf.quaternion_multiply(
+            [hand_quat.x, hand_quat.y, hand_quat.z, hand_quat.w],
+            [qe_r2h_ref.x, qe_r2h_ref.y, qe_r2h_ref.z, qe_r2h_ref.w],
         )
 
-        hand_ori = Quaternion(*target_quat)
+        # - assign data
+        target_robot_quat = Quaternion(*target_robot_quat_list)
+        target_robot_quat = self._handle_quat_flip(target_robot_quat, robot_quat)  # avoid quaternion flip issue
+        vel_twist.angular.x = 0.0
+        vel_twist.angular.y = 0.0
         vel_twist.angular.z = omega
 
-        return hand_ori, vel_twist
+        return target_robot_quat, vel_twist
+
+    @staticmethod
+    def _handle_quat_flip(quat_checked: Quaternion, quat_const: Quaternion) -> Quaternion:
+        """Handle the quaternion flip issue.
+        If the w component is negative, flip the quaternion to ensure a consistent representation.
+        :param quat_checked: The quaternion to check.
+        :param quat_const: The constant quaternion to compare against.
+        :return: The quaternion with a positive w component.
+        """
+        q_element_dot = (
+            quat_checked.x * quat_const.x
+            + quat_checked.y * quat_const.y
+            + quat_checked.z * quat_const.z
+            + quat_checked.w * quat_const.w
+        )
+
+        if q_element_dot < 0:
+            return Quaternion(-quat_checked.x, -quat_checked.y, -quat_checked.z, -quat_checked.w)
+
+        return quat_checked
+
+    @staticmethod
+    def _get_quat_error(quat: Quaternion, quat_ref: Quaternion) -> Quaternion:
+        # error = x - x_r = q_r^* @ q
+        quat_error = tf.quaternion_multiply(
+            tf.quaternion_conjugate([quat_ref.x, quat_ref.y, quat_ref.z, quat_ref.w]), [quat.x, quat.y, quat.z, quat.w]
+        )
+        return Quaternion(*quat_error)
+
+    @staticmethod
+    def _get_axis_angle_from_quat(quat: Quaternion) -> (np.ndarray, float):
+        """
+        Get the rotation axis and angle from a quaternion.
+        :param quat: The quaternion to convert.
+        :return: A tuple of the rotation axis and angle in radians.
+        """
+        quat_array = np.array([quat.x, quat.y, quat.z, quat.w])
+        if np.linalg.norm(quat_array) < 1e-6:
+            return np.array([0.0, 0.0, 0.0]), 0.0
+
+        angle = 2 * np.arccos(quat.w)
+        sin_half_angle = np.sqrt(1 - quat.w**2)
+
+        if sin_half_angle < 1e-6:
+            return np.array([1.0, 0.0, 0.0]), angle
+
+        axis = quat_array[:3] / sin_half_angle
+        return axis, angle
+
+    @staticmethod
+    def _get_quat_from_axis_angle(axis: np.ndarray, angle: float) -> Quaternion:
+        """
+        Convert a rotation axis and angle to a quaternion.
+        :param axis: The rotation axis.
+        :param angle: The rotation angle in radians.
+        :return: The resulting quaternion.
+        """
+        half_angle = angle / 2.0
+        sin_half_angle = np.sin(angle / 2.0)
+        return Quaternion(
+            x=axis[0] * sin_half_angle, y=axis[1] * sin_half_angle, z=axis[2] * sin_half_angle, w=np.cos(half_angle)
+        )
+
+    @staticmethod
+    def _check_quat_axis_align(quat_axis: np.ndarray, ref_axis: np.ndarray, thresh: float = 0.2) -> bool:
+        """
+        Check if the quaternion axis is aligned with the reference axis within a threshold.
+        :param quat_axis: The quaternion axis to check.
+        :param ref_axis: The reference axis to compare against.
+        :param thresh: The threshold for alignment.
+        :return: True if aligned, False otherwise.
+        """
+        return np.linalg.norm(quat_axis - ref_axis) < thresh
 
 
 ##########################################
