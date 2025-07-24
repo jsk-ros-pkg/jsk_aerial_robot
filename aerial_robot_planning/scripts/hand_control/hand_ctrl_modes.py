@@ -201,6 +201,10 @@ class OperationMode(HandControlBaseMode):
         hand_quat = self.hand_pose.pose_msg.pose.orientation
         robot_quat = self.uav_odom.pose.pose.orientation
         robot_quat_ref, self.vel_twist = self.cont_rot_gen.update(hand_quat, robot_quat, self.vel_twist)
+
+        if self.cont_rot_gen.is_rotating():  # fix y and z but allow x to change for safety.
+            target_position[1] = self.uav_odom.pose.pose.position.y
+            target_position[2] = self.uav_odom.pose.pose.position.z
         # ==================================
 
         multi_dof_joint_traj = MultiDOFJointTrajectory()
@@ -277,7 +281,8 @@ class ContRotationGen:
         robot_quat_flipped = self._handle_quat_flip(robot_quat, hand_quat)  # avoid quaternion flip issue
         qe_r2h_axis, qe_r2h_angle = self._get_axis_angle_from_quat(self._get_quat_error(robot_quat_flipped, hand_quat))
 
-        cond_1 = qe_r2h_angle < np.deg2rad(10)  # robot is close to hand
+        # robot is close to hand TODO: check
+        cond_1 = self._check_quat_axis_align(qe_r2h_axis, self.cont_rot_qe_axis, 0.2) and qe_r2h_angle < np.deg2rad(10)
         cond_2 = rotate_t > self.cont_rot_period  # seconds
         if (cond_1 or cond_2) and rotate_t > 5.0:
             rospy.loginfo("Exit vertical mode")
