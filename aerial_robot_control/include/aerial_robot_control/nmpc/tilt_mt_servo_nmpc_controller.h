@@ -169,6 +169,10 @@ protected:
   // conversion functions
   std::vector<double> meas2VecX() override;
 
+  // ensure the continuity of servo angles
+  double ensureOneServoContinuity(double a_ref, int idx) const;
+  std::vector<double> ensureAllServoContinuity(std::vector<double>& a_ref_vec) const;
+
   // debug functions
   void printPhysicalParams();
 
