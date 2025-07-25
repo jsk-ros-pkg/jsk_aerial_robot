@@ -13,7 +13,7 @@
 
 #ifdef SIMULATION
 #include <sensor_msgs/JointState.h>
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0), gimbal_dof_(0), rotor_coef_(1)
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0)
 {
 }
 
@@ -53,9 +53,7 @@ AttitudeController::AttitudeController():
   torque_allocation_matrix_inv_sub_("torque_allocation_matrix_inv", &AttitudeController::torqueAllocationMatrixInvCallback, this),
   offset_rot_sub_("desire_coordinate", &AttitudeController::offsetRotCallback, this ),
   att_control_srv_("set_attitude_control", &AttitudeController::setAttitudeControlCallback, this),
-  esc_telem_pub_("esc_telem", &esc_telem_msg_),
-  gimbal_dof_(0),
-  rotor_coef_(1)
+  esc_telem_pub_("esc_telem", &esc_telem_msg_)
 {
 }
 
