@@ -30,6 +30,8 @@ class QDNMPCReferenceGenerator:
         self._compute_alloc_mat()
         self._compute_alloc_mat_pinv()
 
+        self.a_ref_prev = [0.0, 0.0, 0.0, 0.0]
+
     def get_alloc_mat(self):
         return self.alloc_mat
 
@@ -103,6 +105,20 @@ class QDNMPCReferenceGenerator:
     def _compute_alloc_mat_pinv(self):
         self.alloc_mat_pinv = np.linalg.pinv(self.alloc_mat)
 
+    @staticmethod
+    def _ensure_servo_angles_continuity(a_ref: np.array, a_ref_prev: np.array) -> np.array:
+        """
+        Ensure that the servo angles are continuous by checking the difference
+        between the current and previous reference angles.
+        If the difference exceeds pi, adjust the angle to maintain continuity.
+        """
+        for i in range(len(a_ref)):
+            if a_ref[i] - a_ref_prev[i] > np.pi:
+                a_ref[i] -= 2 * np.pi
+            elif a_ref[i] - a_ref_prev[i] < -np.pi:
+                a_ref[i] += 2 * np.pi
+        return a_ref
+
     def compute_trajectory(self, target_xyz, target_rpy):
         """
         Convert current target pose to a reference trajectory over the entire horizon.
@@ -148,6 +164,10 @@ class QDNMPCReferenceGenerator:
         a3_ref = np.arctan2(target_force[4, 0], target_force[5, 0])
         a4_ref = np.arctan2(target_force[6, 0], target_force[7, 0])
         a_ref = [a1_ref, a2_ref, a3_ref, a4_ref]
+
+        # Ensure servo angles are continuous
+        a_ref = self._ensure_servo_angles_continuity(a_ref, self.a_ref_prev)
+        self.a_ref_prev = a_ref
 
         # Assemble reference trajectories in controller file since their definition is
         # closely related to the cost function
