@@ -87,7 +87,7 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find amoeba)/robots/beetle_art_omni.$(arg description_mode).xacro"/>
+    <arg name="robot_model" value="$(find amoeba)/robots/amoeba.$(arg description_mode).xacro"/>
     <arg name="model_options" value="end_effector:=$(arg end_effector)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz/nmpc.rviz" />

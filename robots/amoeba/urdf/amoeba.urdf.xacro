@@ -1,0 +1,373 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_link" >
+
+  <xacro:macro name="beetle_center_link" params="child1 child2 child3 child4">
+    ## dummy
+    <link name="root"/>
+
+    ## main body
+    <link name="main_body">
+      <inertial>
+        <origin xyz="-0.0002494 0.0002857 0.0310495" rpy="0 0 0"/>
+        <mass value="1.9660957"/>
+        <inertia
+            ixx="0.018188022" iyy="0.018172157" izz="0.022508471"
+            ixy="-0.00006050" ixz="0.00012987" iyz="0.00007583"/>
+      </inertial>   
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/amoeba_base.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.0385" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.35 0.35 0.275"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="main_body"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+
+    ## fc: flight controller. Note that "baselink" is assigned to "fc" in common.xacro by default
+    <link name="fc">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="fc_joint" type="fixed">
+      <child link="fc"/>
+      <parent link="main_body"/>
+      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06347"/>  # should be aligned with the position of IMU
+      # changed from omni to amoeba
+    </joint>
+
+    ## rotor arm macro
+    <xacro:macro name="dummy_rotor_arm" params="id x y z yaw">
+      ## dummy rotor arm link (virtual anchor point)
+      <link name="rotor_arm${id}">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      ## joint from main body to dummy rotor arm
+      <joint name="base_arm_joint${id}" type="fixed">
+        <parent link="main_body"/>
+        <child link="rotor_arm${id}"/>
+        <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
+      </joint>
+
+      ## extendable arm link
+      <link name="extendable${id}">
+        <inertial>
+          <origin xyz="0.05 0 0" rpy="0 0 0"/>
+          <mass value="0.2"/>
+          <inertia
+              ixx="0.001" ixy="0.0" ixz="0.0"
+              iyy="0.002" iyz="0.0"
+              izz="0.002"/>
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <mesh filename="package://amoeba/urdf/mesh/amoeba_arm_in.dae"/>
+          </geometry>
+        </visual>
+        <collision>
+          <origin xyz="0.05 0 0" rpy="0 0 0"/>
+          <geometry>
+            <box size="0.1 0.02 0.02"/>
+          </geometry>
+        </collision>
+      </link>
+      ## prismatic joint for extendable arm
+      <joint name="extendable_joint${id}" type="prismatic">
+        <parent link="rotor_arm${id}"/>
+        <child link="extendable${id}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="1 0 0"/>
+        <limit effort="100.0" lower="0.0" upper="0.2" velocity="0.1"/>
+        <dynamics damping="1.0" friction="0.1"/>
+      </joint>
+
+      ## transmission for extendable joint
+      <transmission name="extendable_tran${id}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="extendable_joint${id}">
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="extendable_actuator${id}">
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:macro>
+
+    ## dummy rotor arms
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.198956" y="0.198956" z = "0.0154" yaw = "${pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.198956" y="0.198956" z = "0.0154" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.198956" y="-0.198956" z = "0.0154" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.198956" y="-0.198956" z = "0.0154" yaw = "${-pi*1.0/4.0}"/>
+
+    <xacro:friction self="main_body"/>
+  </xacro:macro>
+
+  <xacro:macro name="beetle_thrust_link" params="self rotor_direction">
+    ## link
+    #### rotor parent link (virtual) ####
+    <link name="gimbal_link${self}">
+      <inertial>
+        <origin xyz="0.02554008 -0.00002352 -0.01513287" rpy="0 0 0"/>
+        <mass value="0.1702000"/>
+        <inertia
+            ixx="0.00020423" iyy="0.00031264" izz="0.00034511"
+            ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+      <collision>
+        <origin xyz="0.06 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.11 0.11 0.05"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/amoeba_rotor_module.dae"/>
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link="gimbal_link${self}"/>
+
+    ## rotor parent link (virtual)
+    <link name="rotor_parent${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+
+    ## thrust link (virtual)
+    <link name="thrust${self}">
+      <inertial>      
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.005"/>
+        <inertia
+            ixx="0.001" ixy="0.0" ixz="0.0"
+            iyy="0.001" iyz="0.0"
+            izz="0.001"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link="thrust${self}"/>
+
+    #### joints ####
+
+    #### gimbal joints ####
+    <joint name="gimbal${self}" type="revolute">
+      <limit effort="6.6" lower="-3.926991" upper="3.926991" velocity="3.0"/>
+      <parent link="extendable${self}"/>
+      <child link="gimbal_link${self}"/>
+      <origin rpy="0 0 0" xyz="0.1 0 0"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
+    <transmission name="joint_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    #### rotor parent link joint (virtual) ####
+    <joint name="rotor_parent_link_joint${self}" type="fixed">
+      <parent link="gimbal_link${self}"/>
+      <child link="rotor_parent${self}"/>
+      <origin rpy="0 0 0" xyz="0.02185 0.0 0.0"/>
+    </joint>
+
+    #### rotor joint (virtual) ####
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <parent link="rotor_parent${self}"/>
+      <child link="thrust${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor_actuator${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+<!-- Define beetle -->
+  <xacro:arg name="robot_name" default="beetle-art-omni" />
+
+  <xacro:beetle_center_link child1="1" child2="2" child3="3" child4="4"/>
+  <xacro:beetle_thrust_link self="1" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="2" rotor_direction="-1"/>
+  <xacro:beetle_thrust_link self="3" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="4" rotor_direction="-1"/>
+
+<!-- ============ End Effector =============== -->
+  <!-- Define a parameter to choose the end effector type: "fork" or "ball" -->
+  <xacro:arg name="end_effector" default="fork" />
+  <xacro:property name="end_effector" value="$(arg end_effector)" />
+
+  <!-- Define the "end" link, which is positioned 0.3m along the Z axis relative to main_body -->
+  <link name="end">
+    <!-- Optionally, you can add inertial, collision, and visual information here -->
+  </link>
+
+  <joint name="main_body_to_end" type="fixed">
+    <parent link="main_body"/>
+    <child link="end"/>
+    <origin xyz="0 0 0.1725" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Conditionally create the fork or ball link based on the parameter value -->
+  <xacro:if value="${end_effector == 'fork'}">
+    <!-- Define the fork link with mesh visualization -->
+    <link name="fork">
+      <inertial>
+        <origin xyz="0.00000000 0.06681059 -0.00005783" rpy="0 0 0"/>
+        <mass value="0.140"/>
+        <inertia
+                ixx="0.00040632" iyy="0.00053824" izz="0.00040617"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/end_effector_fork.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="end_to_fork" type="fixed">
+      <parent link="end"/>
+      <child link="fork"/>
+      <origin xyz="0 0 0" rpy="1.570796 0 -1.570796"/>
+    </joint>
+  </xacro:if>
+
+  <xacro:if value="${end_effector == 'ball'}">
+    <!-- Define the ball link with mesh visualization -->
+    <link name="ball">
+      <inertial>
+        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
+        <mass value="0.1030"/>
+        <inertia
+                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="end_to_ball" type="fixed">
+      <parent link="end"/>
+      <child link="ball"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+  </xacro:if>
+
+  <xacro:if value="${end_effector == 'sensor_ball'}">
+    <!-- Define the ball link with mesh visualization -->
+    <link name="ball">
+      <inertial>
+        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
+        <mass value="0.1030"/>
+        <inertia
+                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/end_effector_ball.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="wrench_sensor">
+      <inertial>
+        <origin xyz="-0.00941317 0.00000000 -0.01652886" rpy="0 0 0"/>
+        <mass value="0.285"/>
+        <inertia
+                ixx="0.00008773" iyy="0.00012377" izz="0.00016573"
+                ixy="0.00000000" ixz="0.00000328" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/wrench_sensor_pfs055ya501u6.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="end_to_sensor" type="fixed">
+      <parent link="end"/>
+      <child link="wrench_sensor"/>
+      <origin xyz="0 0 0.031" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="sensor_to_ball" type="fixed">
+      <parent link="wrench_sensor"/>
+      <child link="ball"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+  </xacro:if>
+
+  <xacro:if value="${end_effector == 'brush'}">
+    <!-- Define the brush link with mesh visualization -->
+    <link name="brush">
+      <inertial>
+        <origin xyz="0.00000000 0.06565796 -0.00001172" rpy="0 0 0"/>
+        <mass value="0.100"/>
+        <inertia
+                ixx="0.00019687" iyy="0.00013173" izz="0.00019689"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://amoeba/urdf/mesh/end_effector_brush.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="end_to_brush" type="fixed">
+      <parent link="end"/>
+      <child link="brush"/>
+      <origin xyz="0 0 0" rpy="0 0 1.570796"/>
+    </joint>
+  </xacro:if>
+
+</robot>

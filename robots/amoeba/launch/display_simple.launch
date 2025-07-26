@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  Launch Config  ###########
+  <arg name="robot_id" default="1" />
+  <arg name="robot_ns" value="beetle$(arg robot_id)" />
+  <arg name="end_effector" default="none"/>  <!-- "ball", "fork", "brush", "sensor_ball"   -->
+  <arg name="config_dir" default="$(find amoeba)/config"/>
+  <arg name="headless" default="false" />
+
+  ###########  Robot Model Display  ###########
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="robot_model" value="$(find amoeba)/robots/amoeba.urdf.xacro"/>
+    <arg name="model_options" value="end_effector:=$(arg end_effector)"/>
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz/nmpc.rviz" />
+    <arg name="rviz_init_pose" value="$(arg config_dir)/rviz/RvizInit.yaml" />
+    <arg name="need_joint_state" value="true" />
+  </include >
+
+  ###########  Joint State Publisher with GUI  ###########
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" ns="$(arg robot_ns)" output="screen">
+    <param name="use_gui" value="true"/>
+    <remap from="/joint_states" to="joint_states"/>
+  </node>
+
+</launch>

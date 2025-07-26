@@ -215,7 +215,14 @@ void AttitudeController::pwmsControl(void)
     // target_pwm_: 0.5 ~ 1.0
     uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
 
-    if (motor_v > DSHOT_MAX_THROTTLE)
+    // Highest priority rule: if target_pwm[i] < 0.506, set motor_v to 0
+    // for am32 2.18, if the motor value is less than 60=48+12(0.506) during flight,
+    // rotor will stop in 10 seconds and can never start again, which is dangerous.
+    if (target_pwm_[i] <= 0.506)
+    {
+      motor_v = 0;
+    }
+    else if (motor_v > DSHOT_MAX_THROTTLE)
     {
       motor_v = DSHOT_MAX_THROTTLE;
     }
