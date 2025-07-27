@@ -18,7 +18,7 @@ from geometry_msgs.msg import Point, Quaternion, PoseStamped
 
 def check_first_data_received(obj: object, attr: str, object_name: str):
     """
-    Waits until the position is initialized. Logs a message repeatedly
+    Waits until the position is initialized. Logs a message repeatedly  TODO: use rospy.wait_for_message instead?
     :param obj:  The object to check the position of
     :param attr:  The attribute of the object to check
     :param object_name:  The name of the object being tracked
@@ -30,6 +30,14 @@ def check_first_data_received(obj: object, attr: str, object_name: str):
 
     if getattr(obj, attr) is not None:
         rospy.loginfo(f"{object_name} '{attr}' msg is received for the first time")
+
+
+def topic_ready(topic_name, msg_type, timeout=1.0):
+    try:
+        rospy.wait_for_message(topic_name, msg_type, timeout=timeout)
+        return True
+    except rospy.ROSException:
+        return False
 
 
 class TopicNotAvailableError(Exception):

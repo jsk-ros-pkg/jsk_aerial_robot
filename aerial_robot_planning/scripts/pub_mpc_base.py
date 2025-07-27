@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import rospy
 
 from nav_msgs.msg import Odometry
-from util import check_first_data_received, TrackingErrorCalculator
+from util import topic_ready, check_first_data_received, TrackingErrorCalculator
 
 
 ##########################################
@@ -43,7 +43,15 @@ class MPCPubBase(ABC):
 
         # Store latest odometry here
         self.uav_odom = None
-        self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
+
+        # check if the topic to /uav/ee_contact/odom is available
+        if topic_ready(f"/{robot_name}/uav/ee_contact/odom", Odometry, timeout=1.0):
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: Using /{robot_name}/uav/ee_contact/odom for odometry.")
+            self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/ee_contact/odom", Odometry, self._sub_odom_callback)
+        else:
+            rospy.loginfo(f"{self.namespace}/{self.node_name}: Using /{robot_name}/uav/cog/odom for odometry.")
+            self.odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, self._sub_odom_callback)
+
         check_first_data_received(self, "uav_odom", robot_name)
 
         # Calculate tracking error

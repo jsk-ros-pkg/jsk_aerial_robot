@@ -391,8 +391,9 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   const map<int, int> rotor_dr = robot_model_->getRotorDirection();
   double kq_d_kt = abs(robot_model_->getMFRate());  // PAY ATTENTION: should be positive value
 
-  std::vector<double> phys_p(2 + 3 + 1 + 4 * rotor_num + 2, 0);
+  std::vector<double> phys_p(2 + 3 + 1 + 4 * rotor_num + 2 + 7, 0);
   // order: mass, gravity, Ixx, Iyy, Izz, kq_d_kt, dr1, p1_b, dr2, p2_b, dr3, p3_b, dr4, p4_b, t_rotor, t_servo
+  // ee_p, ee_qwxyz
   phys_p[0] = mass_;
   phys_p[1] = gravity_const_;
   phys_p[2] = inertia_[0];
@@ -414,6 +415,16 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   phys_p[idx] = t_rotor_;
   idx++;
   phys_p[idx] = t_servo_;
+  idx++;
+
+  std::vector<double> contact_frame_p = robot_model_->getCoGtoEEContactPosition();
+  std::vector<double> contact_frame_q = robot_model_->getCoGtoEEContactQuaternion();
+
+  std::copy(contact_frame_p.begin(), contact_frame_p.end(), phys_p.begin() + idx);
+  idx += static_cast<int>(contact_frame_p.size());
+
+  std::copy(contact_frame_q.begin(), contact_frame_q.end(), phys_p.begin() + idx);
+  idx += static_cast<int>(contact_frame_q.size());
 
   return phys_p;
 }
@@ -517,14 +528,25 @@ void nmpc::TiltMtServoNMPC::prepareNMPCRef()
   }
 
   /* if not in tracking mode, we use point mode --> set target */
-  tf::Vector3 target_pos = navigator_->getTargetPos();
-  tf::Vector3 target_vel = navigator_->getTargetVel();
-  tf::Vector3 target_rpy = navigator_->getTargetRPY();
-  tf::Quaternion target_quat;
-  target_quat.setRPY(target_rpy.x(), target_rpy.y(), target_rpy.z());
-  tf::Vector3 target_omega = navigator_->getTargetOmega();
+  // Added on 2025-07-17: Note: in this mode we should always track the CoG point. So if the reference of NMPC
+  // is assumed in tool frame, we need to do a conversion. On the contrary, for traj. tracking, we directly track tool
+  // frame.
+  tf::Vector3 target_cog_pos_in_w = navigator_->getTargetPos();
+  tf::Vector3 target_cog_vel_in_w = navigator_->getTargetVel();
+  tf::Vector3 target_cog_rpy = navigator_->getTargetRPY();
+  tf::Quaternion target_cog_quat;
+  target_cog_quat.setRPY(target_cog_rpy.x(), target_cog_rpy.y(), target_cog_rpy.z());
+  tf::Vector3 target_cog_omega = navigator_->getTargetOmega();
 
-  setXrUrRef(target_pos, target_vel, tf::Vector3(0, 0, 0), target_quat, target_omega, tf::Vector3(0, 0, 0), -1);
+  // make conversion
+  tf::Vector3 target_ee_pos_in_w, target_ee_vel_in_w, target_ee_omega;
+  tf::Quaternion target_ee_quat;
+  robot_model_->convertFromCoGToEEContact(target_cog_pos_in_w, target_cog_vel_in_w, target_cog_quat, target_cog_omega,
+                                          target_ee_pos_in_w, target_ee_vel_in_w, target_ee_quat, target_ee_omega);
+
+  // set the reference state and control input
+  setXrUrRef(target_ee_pos_in_w, target_ee_vel_in_w, tf::Vector3(0, 0, 0), target_ee_quat, target_ee_omega,
+             tf::Vector3(0, 0, 0), -1);
   rosXU2VecXU(x_u_ref_, mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_);
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
