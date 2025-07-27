@@ -197,7 +197,7 @@ class PitchRotationTraj(BaseTraj):
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        max_pitch = 3.2
+        max_pitch = 3.5
 
         if 0 < t <= self.T / 2:
             pitch = max_pitch * (2 * t / self.T)  # from 0 to max_pitch rad
@@ -339,7 +339,7 @@ class RollRotationTraj(BaseTraj):
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        max_roll = 3.2
+        max_roll = 3.5
 
         if 0 < t <= self.T / 2:
             roll = max_roll * (2 * t / self.T)  # from 0 to max_roll rad

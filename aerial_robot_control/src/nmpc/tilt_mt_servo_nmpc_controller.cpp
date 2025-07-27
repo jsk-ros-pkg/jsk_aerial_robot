@@ -661,14 +661,19 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   Eigen::VectorXd x_lambda = alloc_mat_pinv_ * ref_wrench_b;
   std::vector<double> ft_ref_vec(motor_num_);
   std::vector<double> a_ref_vec(joint_num_);
-  // assert(motor_num_ == joint_num_);
+
+  if (motor_num_ != joint_num_)
+  {
+    ROS_ERROR("motor_num_ is not equal to joint_num_! Cannot allocate to X and U!");
+    throw std::runtime_error("motor_num_ is not equal to joint_num_! Cannot allocate to X and U!");
+  }
   for (int i = 0; i < motor_num_; i++)
   {
     ft_ref_vec[i] = sqrt(x_lambda(2 * i) * x_lambda(2 * i) + x_lambda(2 * i + 1) * x_lambda(2 * i + 1));
     a_ref_vec[i] = atan2(x_lambda(2 * i), x_lambda(2 * i + 1));
 
     u.at(i) = ft_ref_vec[i];
-    x.at(13 + i) = a_ref_vec[i];
+    x.at(13 + i) = ensureOneServoContinuity(a_ref_vec[i], i);
   }
 
   if (alloc_type_ == 0)
@@ -749,10 +754,18 @@ void nmpc::TiltMtServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double
       z_except_rotor.tail(z_except_rotor.size() - 2 * fix_rotor_idx);
 
   // 6) reconstruct the thrust and servo angle
+  // check motor_num_ == joint_num_ before this function is called
+  if (motor_num_ != joint_num_)
+  {
+    ROS_ERROR("motor_num_ is not equal to joint_num_! Cannot allocate to X and U!");
+    throw std::runtime_error("motor_num_ is not equal to joint_num_! Cannot allocate to X and U!");
+  }
   for (int i = 0; i < motor_num_; i++)
   {
-    u.at(i) = sqrt(z_final(2 * i) * z_final(2 * i) + z_final(2 * i + 1) * z_final(2 * i + 1));
-    x.at(13 + i) = atan2(z_final(2 * i), z_final(2 * i + 1));
+    const double ft = sqrt(z_final(2 * i) * z_final(2 * i) + z_final(2 * i + 1) * z_final(2 * i + 1));
+    u.at(i) = ft;
+    const double alpha = atan2(z_final(2 * i), z_final(2 * i + 1));
+    x.at(13 + i) = ensureOneServoContinuity(alpha, i);
   }
 
   // if the fixed rotor is the same with previous one, no need to recalculate the allocation matrix.
@@ -1060,6 +1073,26 @@ std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
   for (int i = 0; i < joint_num_; i++)
     bx0[13 + i] = joint_angles_[i];
   return bx0;
+}
+
+double nmpc::TiltMtServoNMPC::ensureOneServoContinuity(double a_ref, int idx) const
+{
+  double a_now = gimbal_ctrl_cmd_.position[idx];
+  // ensure the servo angle is continuous
+  if (a_ref - a_now > M_PI)
+    a_ref -= 2 * M_PI;
+  else if (a_ref - a_now < -M_PI)
+    a_ref += 2 * M_PI;
+
+  return a_ref;
+}
+
+std::vector<double> nmpc::TiltMtServoNMPC::ensureAllServoContinuity(std::vector<double>& a_ref_vec) const
+{
+  for (int i = 0; i < joint_num_; i++)
+    a_ref_vec[i] = ensureOneServoContinuity(a_ref_vec[i], i);
+
+  return a_ref_vec;
 }
 
 void nmpc::TiltMtServoNMPC::printPhysicalParams()
