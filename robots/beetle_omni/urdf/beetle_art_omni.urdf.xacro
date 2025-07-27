@@ -143,7 +143,7 @@
       <dynamics damping="0.8" friction="0.0"/>
     </joint>
 
-    <transmission name="joint_tran${self}">3.141593
+    <transmission name="joint_tran${self}">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="gimbal${self}">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
