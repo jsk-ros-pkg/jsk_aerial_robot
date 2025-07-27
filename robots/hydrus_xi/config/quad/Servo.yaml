@@ -1,7 +1,4 @@
 servo_controller:
-  state_sub_topic: servo/states
-  ctrl_pub_topic: servo/target_states
-  torque_pub_topic: servo/torque_enable
 
   joints:
     angle_sgn: 1
@@ -45,7 +42,7 @@ servo_controller:
       id: 3
       name: gimbal2
       simulation:
-        init_value: 0
+        init_value: 0.0
 
     controller3:
       id: 5
@@ -57,4 +54,4 @@ servo_controller:
       id: 6
       name: gimbal4
       simulation:
-        init_value: 0
+        init_value: 0.0

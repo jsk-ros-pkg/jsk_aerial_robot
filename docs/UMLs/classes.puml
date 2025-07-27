@@ -1,0 +1,102 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+set namespaceSeparator ::
+
+abstract class aerial_robot_control::ControlBase {
+    + ControlBase()
+    + ~ControlBase()
+    + initialize()
+    + update()
+    + activate()
+    + reset()
+}
+
+abstract class aerial_robot_control::PoseLinearController extends aerial_robot_control::ControlBase {
+    + PoseLinearController()
+    + ~PoseLinearController()
+    + initialize()
+    + update()
+    + reset()
+}
+
+class aerial_robot_control::FullyActuatedController extends aerial_robot_control::PoseLinearController {
+    + FullyActuatedController()
+    + ~FullyActuatedController()
+    + initialize()
+    + reset()
+    + controlCore()
+    + sendCmd()
+}
+
+class aerial_robot_control::UnderActuatedController extends aerial_robot_control::PoseLinearController {
+    + UnderActuatedController()
+    + ~UnderActuatedController()
+    + initialize()
+    + reset()
+}
+
+class aerial_robot_control::UnderActuatedLQIController extends aerial_robot_control::PoseLinearController {
+    + UnderActuatedLQIController()
+    + ~UnderActuatedLQIController()
+    + initialize()
+    + activate()
+}
+
+class aerial_robot_control::UnderActuatedTiltedLQIController extends aerial_robot_control::UnderActuatedLQIController {
+    + UnderActuatedTiltedLQIController()
+    + ~UnderActuatedTiltedLQIController()
+    + initialize()
+    + activate()
+}
+
+class aerial_robot_control::HydrusLQIController extends aerial_robot_control::UnderActuatedLQIController {
+    + HydrusLQIController()
+    + initialize()
+    + checkRobotModel()
+}
+
+class aerial_robot_control::HydrusTiltedLQIController extends aerial_robot_control::UnderActuatedTiltedLQIController {
+    + HydrusTiltedLQIController()
+    + initialize()
+    + checkRobotModel()
+}
+
+class aerial_robot_control::DragonLQIGimbalController extends aerial_robot_control::HydrusLQIController {
+    + DragonLQIGimbalController()
+    + ~DragonLQIGimbalController()
+    + initialize()
+    + update()
+    + reset()
+}
+
+class aerial_robot_control::DragonFullVectoringController extends aerial_robot_control::PoseLinearController {
+    + DragonFullVectoringController()
+    + ~DragonFullVectoringController()
+    + initialize()
+}
+
+namespace aerial_robot_control {
+    note "under-actuated multi-rotor (quad-rotor)" as ud_mr
+    note "hydrus (option)" as hy
+    note "fully-actuated multi-rotor (tilted hex-rotor)" as fu_mr
+    note "hydrus_xi (hex type)" as hy_xi
+    note "hydrus (non tilted)" as hy_nt
+    note "dragon" as dragon
+    note "hydrus (non tilted/ tilted)" as hy_all
+}
+UnderActuatedController .. ud_mr
+UnderActuatedController .. hy
+FullyActuatedController .. fu_mr
+FullyActuatedController .. hy_xi
+HydrusLQIController .. hy_nt
+HydrusLQIController .. ud_mr
+HydrusTiltedLQIController .. hy_all
+DragonLQIGimbalController .. dragon
+DragonFullVectoringController .. dragon
+
+
+
+'TODO: give a unique namespace to robot specific controllers
+
+@enduml

@@ -1,0 +1,7 @@
+package:
+  ["hydrus"]
+
+hydrus:
+  input: ["robots/quad/default_mode_201907/robot.urdf.xacro", "robots/quad/tilt_10deg_201907/robot.urdf.xacro"]
+  filename: ["quad/default_mode_201907", "quad/tilt_10deg_201907"]
+  meshdir: "urdf/mesh"

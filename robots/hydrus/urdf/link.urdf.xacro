@@ -212,7 +212,7 @@
         </xacro:unless>
       </xacro:if>
       <xacro:unless value="${tilt_mode == 1}">
-        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+        <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0.013"/>
       </xacro:unless>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
@@ -233,6 +233,17 @@
           <cylinder length="0.1" radius="${protector_radius + 0.01}"/>
         </geometry>
       </collision>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0.032"/>
+        <geometry>
+          <xacro:if value="${rotor_direction == 1}">
+            <mesh filename="package://hydrus/urdf/mesh/propeller/T-motor-CF-14inch-CCW.dae"/>
+          </xacro:if>
+          <xacro:if value="${rotor_direction == -1}">
+            <mesh filename="package://hydrus/urdf/mesh/propeller/T-motor-CF-14inch-CW.dae"/>
+          </xacro:if>
+        </geometry>
+      </visual>
     </link>
     <xacro:damping_factor link ="thrust${self}"/>
 

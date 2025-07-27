@@ -23,6 +23,7 @@ import rospkg
 import rospy
 from spinal.msg import Imu
 from spinal.srv import *
+from tf.transformations import euler_from_quaternion
 import rosgraph
 from rqt_gui_py.plugin import Plugin
 from rqt_plot.rosplot import ROSData, RosPlotException
@@ -188,13 +189,14 @@ class IMUCalibWidget(QWidget):
         if rospy.get_time() - self.imu_stamp < 0.1: #hard-coding
             return
 
-        self.gyro_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.gyro_data[0]) + ', ' + "{0:.5f}".format(msg.gyro_data[1]) + ', ' + "{0:.5f}".format(msg.gyro_data[2])
+        self.gyro_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.gyro[0]) + ', ' + "{0:.5f}".format(msg.gyro[1]) + ', ' + "{0:.5f}".format(msg.gyro[2])
 
-        self.acc_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.acc_data[0]) + ', ' + "{0:.5f}".format(msg.acc_data[1]) + ', ' + "{0:.5f}".format(msg.acc_data[2])
+        self.acc_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.acc[0]) + ', ' + "{0:.5f}".format(msg.acc[1]) + ', ' + "{0:.5f}".format(msg.acc[2])
 
-        self.mag_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.mag_data[0]) + ', ' + "{0:.5f}".format(msg.mag_data[1]) + ', ' + "{0:.5f}".format(msg.mag_data[2])
+        self.mag_table_data[0][self.common_headers.index("value")] = "{0:.5f}".format(msg.mag[0]) + ', ' + "{0:.5f}".format(msg.mag[1]) + ', ' + "{0:.5f}".format(msg.mag[2])
 
-        self.att_table_data[0][0] = "{0:.5f}".format(msg.angles[0]) + ', ' + "{0:.5f}".format(msg.angles[1]) + ', ' + "{0:.5f}".format(msg.angles[2])
+        rpy = euler_from_quaternion(msg.quaternion)
+        self.att_table_data[0][0] = "{0:.5f}".format(rpy[0]) + ', ' + "{0:.5f}".format(rpy[1]) + ', ' + "{0:.5f}".format(rpy[2])
 
 
         self.imu_stamp = rospy.get_time();
@@ -203,9 +205,9 @@ class IMUCalibWidget(QWidget):
             self.mag_data_plot.clear_sample()
 
         if self.mag_view_start_flag:
-            self.mag_data_plot.update_sample(msg.mag_data[0],
-                                             msg.mag_data[1],
-                                             msg.mag_data[2])
+            self.mag_data_plot.update_sample(msg.mag[0],
+                                             msg.mag[1],
+                                             msg.mag[2])
     def update_mag_plot(self):
         self.mag_data_plot.redraw()
 

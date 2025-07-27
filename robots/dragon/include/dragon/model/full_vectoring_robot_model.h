@@ -55,7 +55,7 @@ namespace Dragon
     virtual ~FullVectoringRobotModel() = default;
 
 
-    inline boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
+    inline boost::shared_ptr<aerial_robot_model::transformable::RobotModel> getRobotModelForPlan() { return robot_model_for_plan_;}
     inline const Eigen::VectorXd& getHoverVectoringF() const {return hover_vectoring_f_;}
 
     const std::vector<int> getRollLockedGimbal()
@@ -82,13 +82,13 @@ namespace Dragon
 
     // rewrite
     Eigen::VectorXd calcFeasibleControlFxyDists(const std::vector<int>& gimbal_roll_lock, const std::vector<double>& locked_roll_angles, int rotor_num, const std::vector<Eigen::Matrix3d>& link_rot);
-    Eigen::VectorXd calcFeasibleControlTDists(const std::vector<int>& gimbal_roll_lock, const std::vector<double>& locked_roll_angles, int rotor_num, const std::vector<Eigen::Vector3d>& rotor_pos, const std::vector<Eigen::Matrix3d>& link_rot);
+    Eigen::VectorXd calcFeasibleControlTDists(const std::vector<int>& gimbal_roll_lock, const std::vector<double>& locked_roll_angles, int rotor_num, const std::vector<Eigen::Vector3d>& rotor_pos, const std::vector<Eigen::Matrix3d>& link_rot, const Eigen::Matrix3d& cog_rot);
 
     bool stabilityCheck(bool verbose) override;
 
   private:
 
-    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_plan_;
+    boost::shared_ptr<aerial_robot_model::transformable::RobotModel> robot_model_for_plan_;
 
     Eigen::VectorXd hover_vectoring_f_;
 
@@ -107,7 +107,9 @@ namespace Dragon
     double min_torque_weight_;
     double min_force_normalized_weight_;
     double min_torque_normalized_weight_;
-    std::vector<KDL::Rotation> prev_links_rotation_from_cog_;
+    std::vector<KDL::Rotation> prev_links_rotation_from_cog_; // for gimbal lock check
+    std::vector<KDL::Rotation> last_links_rotation_from_cog_; // for configuration check
+    double configuration_t_, confinguration_check_du_, fix_configuration_tresh_;
     int robot_model_refine_max_iteration_;
     double robot_model_refine_threshold_;
     std::mutex roll_locked_gimbal_mutex_;

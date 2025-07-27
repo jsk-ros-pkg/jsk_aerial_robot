@@ -2,7 +2,7 @@
 
 namespace aerial_robot_model {
 
-  NumericalJacobian::NumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<aerial_robot_model::RobotModel> robot_model):
+  NumericalJacobian::NumericalJacobian(ros::NodeHandle nh, ros::NodeHandle nhp, std::unique_ptr<transformable::RobotModel> robot_model):
     nh_(nh),
     nhp_(nhp),
     robot_model_(std::move(robot_model)),
