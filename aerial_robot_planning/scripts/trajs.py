@@ -13,8 +13,12 @@ class BaseTraj:
         self.loop_num = loop_num
         self.use_constant_ref = False
 
+        self.t_total = None
+
     def check_finished(self, t: float) -> bool:
-        return t > self.T * self.loop_num
+        if self.t_total is None:
+            self.t_total = self.T * self.loop_num
+        return t > self.t_total
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
@@ -193,28 +197,46 @@ class PitchRotationTraj(BaseTraj):
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
 
+        self.converge_t = 3
+        self.t_total = self.T * 2 + 3 * self.converge_t
+
     def get_3d_orientation(
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        max_pitch = 3.5
+        max_pitch = np.pi
+        cnvg_t = self.converge_t
 
         if 0 < t <= self.T / 2:
-            pitch = max_pitch * (2 * t / self.T)  # from 0 to max_pitch rad
-        elif self.T / 2 < t <= self.T:
-            pitch = max_pitch * (2 - 2 * t / self.T)  # from max_pitch to 0 rad
+            pitch = max_pitch * (2 * t / self.T)
+            pitch_rate = max_pitch * 2 / self.T
+
+        elif self.T / 2 < t <= self.T / 2 + cnvg_t:
+            pitch = max_pitch
+            pitch_rate = 0.0
+
+        elif self.T / 2 + cnvg_t < t <= self.T * 3 / 2 + cnvg_t:
+            tau = t - self.T / 2 - cnvg_t
+            pitch = max_pitch * (1 - 2 * tau / self.T)
+            pitch_rate = -max_pitch * 2 / self.T
+
+        elif self.T * 3 / 2 + cnvg_t < t <= self.T * 3 / 2 + 2 * cnvg_t:
+            pitch = -max_pitch
+            pitch_rate = 0.0
+
+        elif self.T * 3 / 2 + 2 * cnvg_t < t <= self.T * 2 + 2 * cnvg_t:
+            tau = t - self.T * 3 / 2 - 2 * cnvg_t
+            pitch = max_pitch * (2 * tau / self.T - 1)
+            pitch_rate = max_pitch * 2 / self.T
+
         else:
             pitch = 0.0
+            pitch_rate = 0.0
 
         roll = 0.0
         yaw = 0.0
 
         (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-
-        if t <= self.T / 2:
-            pitch_rate = max_pitch * 2 / self.T
-        else:
-            pitch_rate = -max_pitch * 2 / self.T
 
         roll_rate = 0.0
         yaw_rate = 0.0
@@ -335,28 +357,46 @@ class RollRotationTraj(BaseTraj):
         self.T = 10  # total time for one full rotation cycle (0 to -2.5 and back to 0)
         self.omega = 2 * np.pi / self.T  # angular velocity
 
+        self.converge_t = 3
+        self.t_total = self.T * 2 + 3 * self.converge_t
+
     def get_3d_orientation(
         self, t: float
     ) -> Tuple[float, float, float, float, float, float, float, float, float, float]:
         # Calculate the pitch angle based on time
-        max_roll = 3.5
+        max_roll = np.pi
+        cnvg_t = self.converge_t
 
         if 0 < t <= self.T / 2:
-            roll = max_roll * (2 * t / self.T)  # from 0 to max_roll rad
-        elif self.T / 2 < t <= self.T:
-            roll = max_roll * (2 - 2 * t / self.T)  # from max_roll to 0 rad
+            roll = max_roll * (2 * t / self.T)
+            roll_rate = 2 * max_roll / self.T
+
+        elif self.T / 2 < t <= self.T / 2 + cnvg_t:
+            roll = max_roll
+            roll_rate = 0.0
+
+        elif self.T / 2 + cnvg_t < t <= self.T * 3 / 2 + cnvg_t:
+            tau = t - self.T / 2 - cnvg_t
+            roll = max_roll * (1 - 2 * tau / self.T)
+            roll_rate = -2 * max_roll / self.T
+
+        elif self.T * 3 / 2 + cnvg_t < t <= self.T * 3 / 2 + 2 * cnvg_t:
+            roll = -max_roll
+            roll_rate = 0.0
+
+        elif self.T * 3 / 2 + 2 * cnvg_t < t <= self.T * 2 + 2 * cnvg_t:
+            tau = t - self.T * 3 / 2 - 2 * cnvg_t
+            roll = max_roll * (2 * tau / self.T - 1)
+            roll_rate = 2 * max_roll / self.T
+
         else:
             roll = 0.0
+            roll_rate = 0.0
 
         pitch = 0.0
         yaw = 0.0
 
         (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-
-        if t <= self.T / 2:
-            roll_rate = max_roll * 2 / self.T
-        else:
-            roll_rate = -max_roll * 2 / self.T
 
         pitch_rate = 0.0
         yaw_rate = 0.0
