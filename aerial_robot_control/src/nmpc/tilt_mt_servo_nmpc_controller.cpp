@@ -708,8 +708,7 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
     if (ft_ref_vec[i] > ft_thresh_)
       continue;
 
-    // TODO: the 0.1 here is a magic number. Need to find the reason.
-    if (a_ref_vec[i] >= -M_PI_2 - 0.1 && a_ref_vec[i] <= M_PI_2 + 0.1)
+    if (a_ref_vec[i] >= -M_PI_2 && a_ref_vec[i] <= M_PI_2)
       continue;
 
     rotor_idx_vec.push_back(i);
@@ -718,13 +717,30 @@ void nmpc::TiltMtServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf:
   if (rotor_idx_vec.empty())
     return;
 
+  int rotor_idx;
   if (rotor_idx_vec.size() > 1)
   {
-    ROS_ERROR("More than one rotor is below threshold and flip backwards! Cannot allocate!");
-    return;
-  }
+    double max_ft = 0.0;
+    int max_rotor_idx = -1;
+    for (const auto& idx : rotor_idx_vec)
+    {
+      if (ft_ref_vec[idx] > max_ft)
+      {
+        max_ft = ft_ref_vec[idx];
+        max_rotor_idx = idx;
+      }
+    }
+    rotor_idx = max_rotor_idx;
 
-  int rotor_idx = rotor_idx_vec.at(0);
+    ROS_WARN(
+        "More than one rotor is below threshold and flip backwards! Select rotor %d with thrust %.2f as the "
+        "fixed rotor.",
+        rotor_idx, max_ft);
+  }
+  else
+  {
+    rotor_idx = rotor_idx_vec.at(0);
+  }
 
   // 3) if rotor_idx is not empty, maintain the thrust and modify the angle
   double ft_stop_rotor = ft_ref_vec[rotor_idx];
