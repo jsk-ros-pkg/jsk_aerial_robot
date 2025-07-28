@@ -5,26 +5,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import argparse
 
+from utils import quat2euler, calculate_rmse
+
 legend_alpha = 0.5
-
-
-def calculate_rmse(t, x, t_ref, x_ref, is_yaw=False):
-    x_ref_interp = np.interp(t, t_ref, x_ref)
-    if is_yaw:
-        # calculate the RMSE for yaw
-        error = np.minimum(np.abs(x - x_ref_interp), 2 * np.pi - np.abs(x - x_ref_interp))
-    else:
-        error = x - x_ref_interp
-
-    rmse_x = np.sqrt(np.mean(error**2))
-    return rmse_x
-
-
-def quat2euler(qw, qx, qy, qz):
-    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
-    pitch = np.arcsin(2 * (qw * qy - qz * qx))
-    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
-    return roll, pitch, yaw
 
 
 def main(file_path, plot_type):
@@ -72,51 +55,6 @@ def main(file_path, plot_type):
     data_xyz = data_xyz.dropna()
     data_xyz_hand = data_xyz_hand.dropna()
     data_xyz_arm = data_xyz_arm.dropna()
-
-    # ======= rpy =========
-    data_qwxyz = data[
-        [
-            "__time",
-            "/beetle1/uav/cog/odom/pose/pose/orientation/w",
-            "/beetle1/uav/cog/odom/pose/pose/orientation/x",
-            "/beetle1/uav/cog/odom/pose/pose/orientation/y",
-            "/beetle1/uav/cog/odom/pose/pose/orientation/z",
-        ]
-    ]
-
-    data_qwxyz_ref = data[
-        [
-            "__time",
-            "/hand/mocap/pose/pose/orientation/w",
-            "/hand/mocap/pose/pose/orientation/x",
-            "/hand/mocap/pose/pose/orientation/y",
-            "/hand/mocap/pose/pose/orientation/z",
-        ]
-    ]
-
-    data_qwxyz_ref = data_qwxyz_ref.dropna()
-    data_qwxyz = data_qwxyz.dropna()
-
-    # convert to euler
-    data_euler_ref = pd.DataFrame()
-    data_euler_ref["__time"] = data_qwxyz_ref["__time"]
-    data_euler_ref = pd.DataFrame()
-    data_euler_ref["__time"] = data_qwxyz_ref["__time"]
-    data_euler_ref["roll"], data_euler_ref["pitch"], data_euler_ref["yaw"] = quat2euler(
-        data_qwxyz_ref["/hand/mocap/pose/pose/orientation/w"],
-        data_qwxyz_ref["/hand/mocap/pose/pose/orientation/x"],
-        data_qwxyz_ref["/hand/mocap/pose/pose/orientation/y"],
-        data_qwxyz_ref["/hand/mocap/pose/pose/orientation/z"],
-    )
-
-    data_euler = pd.DataFrame()
-    data_euler["__time"] = data_qwxyz["__time"]
-    data_euler["roll"], data_euler["pitch"], data_euler["yaw"] = quat2euler(
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/w"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"],
-        data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"],
-    )
 
     # ======= Plotting =========
     plt.style.use(["science", "grid"])
