@@ -48,38 +48,105 @@
       <child link="fc"/>
       <parent link="main_body"/>
       <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06347"/>  # should be aligned with the position of IMU
-      # changed from omni to amoeba
+      <!-- changed from omni to amoeba -->
     </joint>
 
-    ## rotor arm macro
-    <xacro:macro name="dummy_rotor_arm" params="id x y z yaw">
+    ## female rotor arm macro
+    <xacro:macro name="dummy_rotor_arm_f" params="id x y z yaw">
       ## dummy rotor arm link (virtual anchor point)
-      <link name="rotor_arm${id}">
+      <link name="rotor_arm_f_${id}">
         <inertial>
           <origin xyz="0 0 0" rpy="0 0 0"/>
-          <mass value="0.0001"/>
+          <mass value="0.0000001"/>
           <inertia
-              ixx="0.000001" ixy="0.0" ixz="0.0"
-              iyy="0.0001" iyz="0.0"
-              izz="0.0001"/>
+              ixx="0.0000001" ixy="0.0" ixz="0.0"
+              iyy="0.0000001" iyz="0.0"
+              izz="0.0000001"/>
         </inertial>
       </link>
       ## joint from main body to dummy rotor arm
-      <joint name="base_arm_joint${id}" type="fixed">
+      <joint name="base_arm_joint_f_${id}" type="fixed">
         <parent link="main_body"/>
-        <child link="rotor_arm${id}"/>
+        <child link="rotor_arm_f_${id}"/>
         <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
       </joint>
 
-      ## extendable arm link
+      ## female extendable arm link 
       <link name="extendable${id}">
         <inertial>
-          <origin xyz="0.05 0 0" rpy="0 0 0"/>
-          <mass value="0.2"/>
+          <origin xyz="-0.0916461 -0.000000 -0.0011561" rpy="0 0 0"/>
+          <mass value="0.1110974"/>
           <inertia
-              ixx="0.001" ixy="0.0" ixz="0.0"
-              iyy="0.002" iyz="0.0"
-              izz="0.002"/>
+              ixx="0.0000192" ixy="0.0" ixz="0.0000010"
+              iyy="0.0013666" iyz="0.0"
+              izz="0.0013682"/>
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <mesh filename="package://amoeba/urdf/mesh/amoeba_arm_out.dae"/>
+          </geometry>
+        </visual>
+        <!-- the motor_case's limit pin is 87mm from the servo -->
+        <collision>
+          <origin xyz="-0.0435 0 0" rpy="0 0 0"/>
+          <geometry>
+            <box size="0.087 0.02 0.02"/>
+          </geometry>
+        </collision>
+      </link>
+      ## prismatic joint for extendable arm
+      <joint name="extendable_joint_f_${id}" type="prismatic">
+        <parent link="rotor_arm_f_${id}"/>
+        <child link="extendable${id}"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="1 0 0"/>
+        <limit effort="100.0" lower="-0.1" upper="0.1" velocity="0.1"/>
+        <dynamics damping="1.0" friction="0.1"/>
+      </joint>
+
+      ## transmission for extendable joint
+      <transmission name="extendable_tran_f_${id}">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="extendable_joint_f_${id}">
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="extendable_actuator_f_${id}">
+          <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+      </transmission>
+    </xacro:macro>
+
+    ## male rotor arm macro
+    <xacro:macro name="dummy_rotor_arm_m" params="id x y z yaw">
+      ## dummy rotor arm link (virtual anchor point)
+      <link name="rotor_arm_m_${id}">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0000001"/>
+          <inertia
+              ixx="0.0000001" ixy="0.0" ixz="0.0"
+              iyy="0.0000001" iyz="0.0"
+              izz="0.0000001"/>
+        </inertial>
+      </link>
+      ## joint from main body to dummy rotor arm
+      <joint name="base_arm_joint_m_${id}" type="fixed">
+        <parent link="main_body"/>
+        <child link="rotor_arm_m_${id}"/>
+        <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
+      </joint>
+
+      ## extendable arm link male
+      <link name="extendable${id}">
+        <inertial>
+          <origin xyz="-0.0930395 -0.000002 -0.0011329" rpy="0 0 0"/>
+          <mass value="0.1142974"/>
+          <inertia
+              ixx="0.0000195" ixy="0.0000001" ixz="0.0000011"
+              iyy="0.0014420" iyz="0.0"
+              izz="0.0014439"/>
         </inertial>
         <visual>
           <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -87,30 +154,31 @@
             <mesh filename="package://amoeba/urdf/mesh/amoeba_arm_in.dae"/>
           </geometry>
         </visual>
+        <!-- the motor_case's limit pin is 87mm from the servo -->
         <collision>
-          <origin xyz="0.05 0 0" rpy="0 0 0"/>
+          <origin xyz="-0.0435 0 0" rpy="0 0 0"/>
           <geometry>
-            <box size="0.1 0.02 0.02"/>
+            <box size="0.087 0.02 0.02"/>
           </geometry>
         </collision>
       </link>
       ## prismatic joint for extendable arm
-      <joint name="extendable_joint${id}" type="prismatic">
-        <parent link="rotor_arm${id}"/>
+      <joint name="extendable_joint_m_${id}" type="prismatic">
+        <parent link="rotor_arm_m_${id}"/>
         <child link="extendable${id}"/>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <axis xyz="1 0 0"/>
-        <limit effort="100.0" lower="0.0" upper="0.2" velocity="0.1"/>
+        <limit effort="100.0" lower="-0.1" upper="0.1" velocity="0.1"/>
         <dynamics damping="1.0" friction="0.1"/>
       </joint>
 
       ## transmission for extendable joint
-      <transmission name="extendable_tran${id}">
+      <transmission name="extendable_tran_m_${id}">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="extendable_joint${id}">
+        <joint name="extendable_joint_m_${id}">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
-        <actuator name="extendable_actuator${id}">
+        <actuator name="extendable_actuator_m_${id}">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
@@ -118,10 +186,10 @@
     </xacro:macro>
 
     ## dummy rotor arms
-    <xacro:dummy_rotor_arm id = "${child1}" x = "0.198956" y="0.198956" z = "0.0154" yaw = "${pi*1.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.198956" y="0.198956" z = "0.0154" yaw = "${pi*3.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.198956" y="-0.198956" z = "0.0154" yaw = "${pi*5.0/4.0}"/>
-    <xacro:dummy_rotor_arm id = "${child4}" x = "0.198956" y="-0.198956" z = "0.0154" yaw = "${-pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm_f id = "${child1}" x = " 0.198956" y=" 0.198956" z = "0.0154" yaw = "${pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm_m id = "${child2}" x = "-0.198956" y=" 0.198956" z = "0.0154" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm_f id = "${child3}" x = "-0.198956" y="-0.198956" z = "0.0154" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm_m id = "${child4}" x = " 0.198956" y="-0.198956" z = "0.0154" yaw = "${-pi*1.0/4.0}"/>
 
     <xacro:friction self="main_body"/>
   </xacro:macro>
@@ -184,7 +252,7 @@
       <limit effort="6.6" lower="-3.926991" upper="3.926991" velocity="3.0"/>
       <parent link="extendable${self}"/>
       <child link="gimbal_link${self}"/>
-      <origin rpy="0 0 0" xyz="0.1 0 0"/>
+      <origin rpy="0 0 0" xyz="0.0 0 0"/>
       <axis xyz="1 0 0"/>
       <dynamics damping="0.8" friction="0.0"/>
     </joint>

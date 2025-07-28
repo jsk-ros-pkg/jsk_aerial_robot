@@ -40,3 +40,20 @@ servo_controller:
         pid: {p: 5.0, i: 0.1, d: 0.1, i_clamp_max: 2.0, i_clamp_min: -2.0}
         init_value: 0
         type: effort_controllers/JointPositionController
+
+    # Extendable joint controller (unified control for all 4 joints)
+    # f1, f3: +x direction (2cm per 2π rotation)
+    # m2, m4: -x direction (2cm per 2π rotation, opposite to f1, f3)
+    controller5:
+      id: 4
+      name: extendable_joints_unified
+      joints: [extendable_joint_f_1, extendable_joint_f_3, extendable_joint_m_2, extendable_joint_m_4]
+      motion_coupling:
+        # Servo rotation to linear displacement mapping: 2π rotation = 2cm displacement
+        rotation_to_displacement: 0.318309886  # 2cm / (2π) = 0.318309886 cm/rad
+        # Joint motion directions: f1,f3 = +1 (positive), m2,m4 = -1 (negative)
+        direction_multipliers: [1.0, 1.0, -1.0, -1.0]
+      simulation:
+        pid: {p: 100.0, i: 1.0, d: 10.0, i_clamp_max: 50.0, i_clamp_min: -50.0}
+        init_value: 0
+        type: effort_controllers/JointPositionController
