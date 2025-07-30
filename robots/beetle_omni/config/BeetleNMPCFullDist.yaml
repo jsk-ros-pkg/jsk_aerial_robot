@@ -21,8 +21,8 @@ controller:
     thrust_max: 30  # N
     thrust_min: 0  # N
 
-    a_max: 3.92699  # 180 + 45 degree ~ 0.5
-    a_min: -3.92699
+    a_max: 3.15  # 180 deg + a little bit
+    a_min: -3.15
 
     # params for the cost function
     Qp_xy: 300
