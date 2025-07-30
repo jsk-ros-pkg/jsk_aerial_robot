@@ -343,7 +343,15 @@ if __name__ == "__main__":
                 rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
 
                 if len(rotor_idx) > 1:
-                    raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+                    max_ft = 0.0
+                    max_rotor_idx = -1
+                    for i in rotor_idx:
+                        if ft_ref[i] > max_ft:
+                            max_ft = ft_ref[i]
+                            max_rotor_idx = i
+
+                    rotor_idx = max_rotor_idx
+                    print(f"Multiple rotors below threshold, using rotor {rotor_idx + 1} with thrust {max_ft:.2f} N")
                 elif len(rotor_idx) == 0:
                     rotor_idx = -1
                 elif len(rotor_idx) == 1:
