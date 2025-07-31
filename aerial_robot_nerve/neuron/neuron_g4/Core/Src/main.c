@@ -200,9 +200,10 @@ int main(void)
     return 0;
   }
 
-  imu_ = IMU();
   motor_ = Motor(slave_id);
+  imu_ = IMU(slave_id);
   servo_ = Servo(slave_id);
+
   Initializer initializer(slave_id, servo_, imu_);
 
   imu_.init(&hspi1);
