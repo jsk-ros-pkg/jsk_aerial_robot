@@ -9,7 +9,7 @@ controller:
   nmpc:
     T_samp: 0.01    # 100 Hz  TODO: should be adjusted by main_rate
     T_horizon: 2.0  # in seconds
-    T_step: 0.1     # in seconds
+    T_step: 0.1     # in secondsi
 
     # constraint
     w_max: 6  # 1 rad/s ~ 57 deg/s
@@ -40,5 +40,5 @@ controller:
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
 
-    is_print_phys_params: false
+    is_print_phys_params: true
     is_debug: false
