@@ -42,36 +42,45 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
   # Separate group for prismatic joints (linear actuators)
+  # NOTE: All four extendable joints are mechanically coupled to a single servo (id:4)
+  # The real hardware mechanism: 1 full rotation (2π) of servo id:4 causes:
+  # - extendable_joint1/3 to extend +0.1m (synchronized pair)
+  # - extendable_joint2/4 to retract -0.1m (synchronized pair)
   extendable_joints:
     no_real_state: true  # Skip servo bridge's angular processing
+    mechanical_coupling: true  # All joints driven by single servo id:4
     
     controller1:
-      id: 4
+      id: 4  # Physical servo id:4 controls all joints
       name: extendable_joint1
+      mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
         pid: {p: 100.0, i: 1.0, d: 10.0, i_clamp_max: 50.0, i_clamp_min: -50.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
     controller2:
-      id: 5
+      id: 4  # Same physical servo id:4
       name: extendable_joint2
+      mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
         pid: {p: 100.0, i: 1.0, d: 10.0, i_clamp_max: 50.0, i_clamp_min: -50.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
     controller3:
-      id: 6
+      id: 4  # Same physical servo id:4
       name: extendable_joint3
+      mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
         pid: {p: 100.0, i: 1.0, d: 10.0, i_clamp_max: 50.0, i_clamp_min: -50.0}
         init_value: 0
         type: effort_controllers/JointPositionController
 
     controller4:
-      id: 7
+      id: 4  # Same physical servo id:4
       name: extendable_joint4
+      mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
         pid: {p: 100.0, i: 1.0, d: 10.0, i_clamp_max: 50.0, i_clamp_min: -50.0}
         init_value: 0

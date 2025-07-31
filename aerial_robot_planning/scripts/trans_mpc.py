@@ -4,8 +4,13 @@
 
  A standalone MPC trajectory tracking script that:
  1. Uses CircleTraj for robot motion (1 loop only)
- 2. Controls servo ID 4 to move from 0.0 to 0.1 during trajectory execution
+ 2. Controls servo ID 4 to move all four extendable joints according to real hardware mechanism
  3. Can be run with rosrun
+ 
+ Real Hardware Mechanism:
+   - Servo id:4 mechanically drives all four extendable joints simultaneously
+   - 1 full rotation (2π) causes: joint1,3 → +0.1m, joint2,4 → -0.1m
+   - This reflects the actual mechanical coupling in the amoeba robot
  
  Usage:
    rosrun aerial_robot_planning trans_mpc.py [robot_name]
@@ -19,8 +24,8 @@
    
  Trajectory Details:
    - Circle trajectory: radius=1m, center=(-1,0,0.5), period=10s, 1 loop
-   - Extendable joint motion: Linear from 0.0m to 0.1m over the duration of circle
-   - Controls extendable_joint1 via JointState messages
+   - Extendable joint motion: Synchronized motion reflecting real hardware
+   - Controls all extendable joints via JointState messages
 """
 
 import sys
@@ -40,13 +45,22 @@ import trajs
 
 class CircleTrajWithServo:
     """
-    A CircleTraj wrapper that adds extendable joint control functionality
-    Controls extendable_joint1 with linear motion from 0.0m to 0.1m
+    A CircleTraj wrapper that adds synchronized extendable joint control
+    
+    Real Hardware Mechanism:
+    - Servo id:4 mechanically couples all four extendable joints
+    - 1 full rotation (2π) → joint1,3: +0.1m, joint2,4: -0.1m
+    - This synchronized motion reflects the actual hardware coupling
     """
     def __init__(self, loop_num: int = 1):
         self.circle_traj = trajs.CircleTraj(loop_num)
-        self.servo_start_pos = 0.0  # Start position for extendable_joint1 (meters linear)
-        self.servo_end_pos = 0.1    # End position for extendable_joint1 (meters linear)
+        
+        # Hardware mechanism parameters
+        self.max_displacement = 0.1  # Maximum joint displacement (meters)
+        self.joint_coupling_ratios = [1.0, -1.0, 1.0, -1.0]  # j1,j3: forward; j2,j4: reverse
+        
+        self.joint_names = ['extendable_joint1', 'extendable_joint2', 
+                           'extendable_joint3', 'extendable_joint4']
         
     def get_3d_pt(self, t: float):
         """Get 3D position, velocity, and acceleration from CircleTraj"""
@@ -67,17 +81,33 @@ class CircleTrajWithServo:
         """Check if trajectory is finished"""
         return self.circle_traj.check_finished(t)
     
-    def get_servo_position(self, t: float) -> float:
-        """Calculate servo position based on trajectory progress"""
+    def get_servo_positions(self, t: float) -> list:
+        """
+        Calculate synchronized servo positions for all four extendable joints
+        
+        Args:
+            t (float): Current time
+            
+        Returns:
+            list: Joint positions [j1, j2, j3, j4] reflecting hardware mechanism
+        """
         # Get trajectory progress (0.0 to 1.0)
         if self.circle_traj.check_finished(t):
             progress = 1.0
         else:
             progress = min(1.0, t / self.circle_traj.T)
         
-        # Linear interpolation between start and end positions
-        servo_pos = self.servo_start_pos + progress * (self.servo_end_pos - self.servo_start_pos)
-        return servo_pos
+        # Convert progress to servo rotation equivalent (0 to 2π over trajectory)
+        servo_rotation = progress * 2 * np.pi
+        
+        # Calculate base displacement from servo rotation
+        # Real mechanism: 2π rotation → ±max_displacement
+        base_displacement = (servo_rotation / (2 * np.pi)) * self.max_displacement
+        
+        # Apply coupling ratios to get individual joint positions
+        joint_positions = [base_displacement * ratio for ratio in self.joint_coupling_ratios]
+        
+        return joint_positions
 
 
 class TransMPCNode:
@@ -104,31 +134,32 @@ class TransMPCNode:
         self.start_time = rospy.Time.now().to_sec()
         
         rospy.loginfo(f"TransMPC initialized for robot: {robot_name}")
-        rospy.loginfo("Circle trajectory with extendable_joint1 control started")
-        rospy.loginfo("Extendable joint will move 0.0→0.1m linear during circle execution")
+        rospy.loginfo("Circle trajectory with synchronized extendable joint control started")
+        rospy.loginfo("Real hardware mechanism: servo id:4 drives all four joints")
+        rospy.loginfo("Expected motion: joint1/2 (0→+0.1m), joint3/4 (0→-0.1m)")
         rospy.loginfo("Using JointState messages to /{robot_name}/extendable_joints_ctrl")
     
     def servo_timer_callback(self, event):
-        """Timer callback to publish servo commands"""
+        """Timer callback to publish synchronized servo commands"""
         # Calculate elapsed time
         t_elapsed = rospy.Time.now().to_sec() - self.start_time
         
-        # Get desired servo position in linear units (meters)
-        servo_pos_linear = self.traj_with_servo.get_servo_position(t_elapsed)
+        # Get desired servo positions for all four joints (synchronized)
+        joint_positions = self.traj_with_servo.get_servo_positions(t_elapsed)
         
         # Create JointState message for extendable joints control
         joint_cmd = JointState()
         joint_cmd.header.stamp = rospy.Time.now()
-        joint_cmd.name = ['extendable_joint1', 'extendable_joint2', 'extendable_joint3', 'extendable_joint4']
-        # Only move extendable_joint1, keep others at 0.0
-        joint_cmd.position = [servo_pos_linear, 0.0, 0.0, 0.0]
-        joint_cmd.velocity = [0.01]  # Set a reasonable velocity
+        joint_cmd.name = self.traj_with_servo.joint_names
+        joint_cmd.position = joint_positions
+        joint_cmd.velocity = [0.01] * len(joint_positions)  # Set reasonable velocities
         joint_cmd.effort = []
         
         self.servo_pub.publish(joint_cmd)
         
-        # Log servo position occasionally
-        rospy.loginfo_throttle(2.0, f"Extendable joint1 position: {servo_pos_linear:.4f}m linear")
+        # Log joint positions occasionally
+        rospy.loginfo_throttle(2.0, f"Joint positions: {[f'{pos:.4f}' for pos in joint_positions]} (m)")
+        rospy.loginfo_throttle(2.0, f"Motion pattern: j1,j3→{joint_positions[0]:.3f}m, j2,j4→{joint_positions[1]:.3f}m")
     
     def is_finished(self) -> bool:
         """Check if both trajectory and servo control are finished"""

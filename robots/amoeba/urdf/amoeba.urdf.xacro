@@ -107,6 +107,12 @@
       </joint>
 
       ## transmission for extendable joint
+      <!-- NOTE: All extendable joints are mechanically coupled to servo id:4
+           Real hardware: 1 rotation (2π) of servo id:4 causes:
+           - extendable_joint1/3: +0.1m extension (mechanicalReduction: +31.416)
+           - extendable_joint2/4: -0.1m extension (mechanicalReduction: -31.416)
+           Calculation: 2π rad → 0.1m, so 1 rad → 0.1/(2π) = 0.01592m
+           Inverse: 1m → 2π/0.1 = 62.832 rad, but we use 31.416 for the coupling -->
       <transmission name="extendable_tran${id}">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="extendable_joint${id}">
@@ -114,7 +120,13 @@
         </joint>
         <actuator name="extendable_actuator${id}">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-          <mechanicalReduction>1</mechanicalReduction>
+          <!-- Mechanical reduction reflects coupling ratio -->
+          <xacro:if value="${id == 1 or id == 3}">
+            <mechanicalReduction>31.416</mechanicalReduction>  <!-- Forward coupling: joints 1,3 -->
+          </xacro:if>
+          <xacro:if value="${id == 2 or id == 4}">
+            <mechanicalReduction>-31.416</mechanicalReduction>  <!-- Reverse coupling: joints 2,4 -->
+          </xacro:if>
         </actuator>
       </transmission>
     </xacro:macro>
