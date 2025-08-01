@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-Simple combined MPC + Servo control for Amoeba robot.
+Simple combined MPC + Servo control for beetle1 robot.
 Combines trans_mpc.py and gripper_move.py functionality.
 
 Usage: 
-  Trajectory mode: rosrun aerial_robot_planning combined_mpc.py amoeba
-  Direct control:  rosrun aerial_robot_planning combined_mpc.py amoeba joint=[-0.05] velocity=[0.01]
+  Trajectory mode: rosrun aerial_robot_planning combined_mpc.py beetle1
+  Direct control:  rosrun aerial_robot_planning combined_mpc.py beetle1 joint=-0.05 v=0.01
   
 Joint control examples:
-  joint=[-0.1]     → servo rotates -2π (full reverse)
-  joint=[0.05]     → servo rotates π (half forward) 
-  joint=[0.0]      → servo at 0° (center position)
+  joint=-0.1     → servo rotates -2π (full reverse)
+  joint=0.05     → servo rotates π (half forward) 
+  joint=0.0      → servo at 0° (center position)
+  
+Alternative formats also supported:
+  joint=[-0.1] velocity=[0.01]  (list format)
+  joint=-0.1 velocity=0.01      (direct format)
+  joint=-0.1 v=0.01             (shortened velocity)
 """
 
 import sys
@@ -33,9 +38,8 @@ import trajs
 
 
 class CombinedMPCController:
-    """Combined controller: trans_mpc.py + gripper_move.py functionality"""
-    
-    def __init__(self, robot_name: str = "amoeba", joint_target=None, joint_velocity=None):
+   
+    def __init__(self, robot_name: str = "beetle1", joint_target=None, joint_velocity=None):
         rospy.init_node('combined_mpc_node', anonymous=True)
         self.robot_name = robot_name
         self.joint_target = joint_target
@@ -55,7 +59,7 @@ class CombinedMPCController:
         self.joint_ratios = [1.0, -1.0, 1.0, -1.0]  # j1,j3: forward; j2,j4: reverse
         
         # Servo control setup
-        self.servo_id = 4  # Amoeba servo
+        self.servo_id = 4  # beetle1 servo
         self.servo_pub = rospy.Publisher(f'{robot_name}/servo/target_states', ServoControlCmd, queue_size=10)
         rospy.Subscriber(f'{robot_name}/servo/states', ServoStates, self._servo_callback)
         
@@ -169,26 +173,36 @@ class CombinedMPCController:
             self.timer.shutdown()
 
 
-def parse_list_argument(arg_string):
-    """Parse list arguments like joint=[-0.1] or velocity=[0.01]"""
+def parse_numeric_argument(arg_string):
+    """Parse numeric arguments - handles both list format [value] and direct value"""
     try:
-        return ast.literal_eval(arg_string)
+        # First try to parse as literal (handles lists like [-0.1])
+        result = ast.literal_eval(arg_string)
+        if isinstance(result, list):
+            return result
+        else:
+            # Single value, wrap in list
+            return [result]
     except:
-        rospy.logerr(f"Failed to parse argument: {arg_string}")
-        return None
+        try:
+            # Try to parse as a simple float
+            return [float(arg_string)]
+        except:
+            rospy.logerr(f"Failed to parse argument: {arg_string}")
+            return None
 
 
 def main():
     # Parse arguments manually to handle joint= and velocity= syntax
-    robot_name = "amoeba"  # default
+    robot_name = "beetle1"  # default
     joint_target = None
     joint_velocity = None
     
     for arg in sys.argv[1:]:
         if arg.startswith("joint="):
-            joint_target = parse_list_argument(arg.split("=", 1)[1])
-        elif arg.startswith("velocity="):
-            joint_velocity = parse_list_argument(arg.split("=", 1)[1])
+            joint_target = parse_numeric_argument(arg.split("=", 1)[1])
+        elif arg.startswith("velocity=") or arg.startswith("v="):
+            joint_velocity = parse_numeric_argument(arg.split("=", 1)[1])
         elif not "=" in arg:
             robot_name = arg  # Robot name without =
     
