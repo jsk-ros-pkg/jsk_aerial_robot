@@ -27,7 +27,7 @@ from spinal.msg import ServoStates, ServoControlCmd
 class ServoMoveNode:
 
     def __init__(self):
-        print(f'Hi, I am beetle1 servo controller')
+        print(f'amoeba_deform_initiate')
         rospy.init_node('servo_move', anonymous=True)
         self.servo_index = 0
         self.servo_angle = 0.0
