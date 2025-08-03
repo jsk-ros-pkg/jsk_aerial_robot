@@ -80,12 +80,11 @@ class ServoMoveNode:
         # Clamp to servo limits
         target_angle = max(self.servo_min_angles, min(self.servo_max_angles, target_angle))
         
-        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
-        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
-        
-        # Add joint control functionality
+        # 1. joint control, 2. servo control
         self.joint_control(target_angle)
+        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
         self.servo_target_cmd(self.servo_target_index, target_angle)
+        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
 
     def joint_control(self, servo_angle):
         """
@@ -110,11 +109,11 @@ class ServoMoveNode:
         servo_normalized = (servo_angle - servo_min) / (servo_max - servo_min)
         
         # Map to joint positions
-        # joints 1,3: linear mapping (-0.1 to 0.1)
-        joint_13_position = joint_min + servo_normalized * (joint_max - joint_min)
+        # joints 1,3: linear mapping (0.1 to -0.1)
+        joint_13_position = joint_max - servo_normalized * (joint_max - joint_min)
         
-        # joints 2,4: negative linear mapping (0.1 to -0.1)
-        joint_24_position = joint_max - servo_normalized * (joint_max - joint_min)
+        # joints 2,4: negative linear mapping (-0.1 to 0.1)
+        joint_24_position = joint_min + servo_normalized * (joint_max - joint_min)
         
         # Create joint positions array
         joint_positions = [joint_13_position, joint_24_position, joint_13_position, joint_24_position]
