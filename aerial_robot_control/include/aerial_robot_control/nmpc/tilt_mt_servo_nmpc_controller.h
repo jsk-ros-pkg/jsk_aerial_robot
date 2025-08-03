@@ -164,7 +164,7 @@ protected:
 
   /* utils */
   // get functions
-  double getCommand(int idx_u, double T_horizon = 0.0);
+  double getCommand(int idx_u, double T_horizon = 0.0) const;
 
   // conversion functions
   std::vector<double> meas2VecX() override;
@@ -177,7 +177,7 @@ protected:
   void printPhysicalParams();
 
   // check functions
-  inline bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
+  static bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
   {
     return std::fabs(a - b) < epsilon;
   }

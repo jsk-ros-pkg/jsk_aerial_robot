@@ -1065,7 +1065,7 @@ void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
   }
 }
 
-double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon)
+double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon) const
 {
   if (T_horizon == 0)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
