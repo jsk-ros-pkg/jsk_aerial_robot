@@ -102,21 +102,23 @@ void nmpc::TiltMtServoNMPC::reset()
 {
   ControlBase::reset();
 
-  /* reset controller using odom */
-  std::vector<double> x_vec = meas2VecX();
+  // reset x_u_ref_
+  std::vector<double> x_vec_ee = meas2VecX(true);
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);
 
-  // reset x_u_ref_
   int &NX = mpc_solver_ptr_->NX_, &NU = mpc_solver_ptr_->NU_, &NN = mpc_solver_ptr_->NN_;
   for (int i = 0; i < mpc_solver_ptr_->NN_; i++)
   {
-    std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * i);
+    std::copy(x_vec_ee.begin(), x_vec_ee.begin() + NX, x_u_ref_.x.data.begin() + NX * i);
     std::copy(u_vec.begin(), u_vec.begin() + NU, x_u_ref_.u.data.begin() + NU * i);
   }
-  std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
+  std::copy(x_vec_ee.begin(), x_vec_ee.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
 
   // reset mpc solver
-  mpc_solver_ptr_->resetByX0U0(x_vec, u_vec);
+  mpc_solver_ptr_->resetXrUrByX0U0(x_vec_ee, u_vec);
+
+  std::vector<double> x_vec = meas2VecX();
+  mpc_solver_ptr_->resetSolverByX0U0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);

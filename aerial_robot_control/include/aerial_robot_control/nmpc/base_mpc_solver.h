@@ -73,12 +73,16 @@ public:
     setRTIPhase();
   };
 
-  void reset(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
+  /* Note: extract resetXrUr out of resetSolver since the xr & ur might be different from x & u in the solver.
+   * For example, for EE-centric NMPC, the xr & ur are in the EE frame but x & u are in the CoG frame. */
+  void resetXrUr(const std::vector<std::vector<double>>& xr_init, const std::vector<std::vector<double>>& ur_init)
   {
-    // reset ref
-    xr_ = x_init;
-    ur_ = u_init;
+    xr_ = xr_init;
+    ur_ = ur_init;
+  }
 
+  void resetSolver(const std::vector<std::vector<double>>& x_init, const std::vector<std::vector<double>>& u_init)
+  {
     // reset solver
     if (x_init.size() != NN_ + 1 || u_init.size() != NN_)
       throw std::length_error("x_init or u_init size is not equal to NN_ + 1 or NN_");
@@ -98,14 +102,25 @@ public:
     getSolution();
   }
 
-  void resetByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
+  void resetXrUrByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
   {
     if (x0.size() != NX_ || u0.size() != NU_)
       throw std::length_error("x0 or u0 size is not equal to NX_ or NU_");
 
-    std::vector<std::vector<double>> x_init(NN_ + 1, x0);
-    std::vector<std::vector<double>> u_init(NN_, u0);
-    reset(x_init, u_init);
+    std::vector xr_init(NN_ + 1, x0);
+    std::vector ur_init(NN_, u0);
+
+    resetXrUr(xr_init, ur_init);
+  }
+
+  void resetSolverByX0U0(const std::vector<double>& x0, const std::vector<double>& u0)
+  {
+    if (x0.size() != NX_ || u0.size() != NU_)
+      throw std::length_error("x0 or u0 size is not equal to NX_ or NU_");
+
+    std::vector x_init(NN_ + 1, x0);
+    std::vector u_init(NN_, u0);
+    resetSolver(x_init, u_init);
   }
 
   int solve(const std::vector<double>& bx0, const bool is_debug = false)
