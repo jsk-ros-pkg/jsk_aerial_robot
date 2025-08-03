@@ -80,6 +80,10 @@ void nmpc::TiltMtServoNMPC::activate()
   if (is_print_phys_params_)
     printPhysicalParams();
 
+  // make takeoff slow
+  modifyVelConstraints(-vel_limit_takeoff_, vel_limit_takeoff_);
+  has_restored_vel_ = false;  // reset the flag, so that we can restore the velocity after hovering
+
   /* also for some commands that should be sent after takeoff */
   // enable imu sending, only works in simulation. TODO: check its compatibility with real robot
   spinal::FlightConfigCmd flight_config_cmd;
@@ -143,7 +147,9 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
 
   getParam<int>(alloc_nh, "type", alloc_type_, 0);
   getParam<double>(alloc_nh, "ft_thresh", ft_thresh_, 0.5);
-  assert(ft_thresh_ > 0.0);  // used to calculate angle in singularity pose
+  if (ft_thresh_ <= 0.0)
+    throw std::runtime_error(
+        "ft_thresh must be greater than zero! Please set a positive value for ft_thresh in the parameter server.");
 
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
@@ -209,15 +215,18 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
-  double body_rate_max, body_rate_min, vel_max, vel_min;
+  double body_rate_max, body_rate_min;
   getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
   getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
-  getParam<double>(nmpc_nh, "v_max", vel_max, 1.0);
-  getParam<double>(nmpc_nh, "v_min", vel_min, -1.0);
+  getParam<double>(nmpc_nh, "v_max", vel_max_, 1.0);
+  getParam<double>(nmpc_nh, "v_min", vel_min_, -1.0);
   getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
   getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
+
+  //  TODO: this should be set in flight_navigation
+  getParam<double>(control_nh, "vel_limit_takeoff", vel_limit_takeoff_, 0.5);
 
   // lbx and ubx
   std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
@@ -232,8 +241,8 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
     ROS_ERROR("idxbx is not equal to idxbx_desired, we cannot set constraints lbx and ubx!");
   }
 
-  std::vector<double> lbx = { vel_min, vel_min, vel_min, body_rate_min, body_rate_min, body_rate_min };
-  std::vector<double> ubx = { vel_max, vel_max, vel_max, body_rate_max, body_rate_max, body_rate_max };
+  std::vector<double> lbx = { vel_min_, vel_min_, vel_min_, body_rate_min, body_rate_min, body_rate_min };
+  std::vector<double> ubx = { vel_max_, vel_max_, vel_max_, body_rate_max, body_rate_max, body_rate_max };
   lbx.resize(6 + joint_num_);
   ubx.resize(6 + joint_num_);
   for (int i = 0; i < joint_num_; i++)
@@ -386,6 +395,38 @@ void nmpc::TiltMtServoNMPC::updateInertialParams()
   inertia_[2] = inertia_mtx(2, 2);
 }
 
+void nmpc::TiltMtServoNMPC::modifyVelConstraints(double vel_min, double vel_max) const
+{
+  // Hardcoded: the vel idx is 3,4,5, which are the first three elements. TODO: consider to make it more general
+
+  std::vector<double> lbx = mpc_solver_ptr_->getConstraintsLbx();
+  lbx[0] = vel_min;
+  lbx[1] = vel_min;
+  lbx[2] = vel_min;
+  mpc_solver_ptr_->setConstraintsLbx(lbx);
+
+  std::vector<double> lbxe = mpc_solver_ptr_->getConstraintsLbxe();
+  lbxe[0] = vel_min;
+  lbxe[1] = vel_min;
+  lbxe[2] = vel_min;
+  mpc_solver_ptr_->setConstraintsLbxe(lbxe);
+
+  std::vector<double> ubx = mpc_solver_ptr_->getConstraintsUbx();
+  ubx[0] = vel_max;
+  ubx[1] = vel_max;
+  ubx[2] = vel_max;
+  mpc_solver_ptr_->setConstraintsUbx(ubx);
+
+  std::vector<double> ubxe = mpc_solver_ptr_->getConstraintsUbxe();
+  ubxe[0] = vel_max;
+  ubxe[1] = vel_max;
+  ubxe[2] = vel_max;
+  mpc_solver_ptr_->setConstraintsUbxe(ubxe);
+
+  ROS_INFO("Velocity constraints modified: [%f, %f, %f] for lbx and [%f, %f, %f] for ubx", lbx[0], lbx[1], lbx[2],
+           ubx[0], ubx[1], ubx[2]);
+}
+
 std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
 {
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
@@ -433,6 +474,13 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
 
 void nmpc::TiltMtServoNMPC::controlCore()
 {
+  // restore velocity constraints after hovering
+  if (navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE and has_restored_vel_ == false)
+  {
+    modifyVelConstraints(vel_min_, vel_max_);
+    has_restored_vel_ = true;
+  }
+
   prepareNMPCRef();
 
   prepareNMPCParams();
@@ -884,9 +932,9 @@ void nmpc::TiltMtServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& ms
 void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   /* failsafe check */
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
   {
-    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    ROS_WARN_THROTTLE(1, "The robot has not hovered, so the reference trajectory will be ignored!");
     return;
   }
 
@@ -910,9 +958,9 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
     ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
 
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
   {
-    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    ROS_WARN_THROTTLE(1, "The robot has not hovered, so the reference trajectory will be ignored!");
     return;
   }
 
