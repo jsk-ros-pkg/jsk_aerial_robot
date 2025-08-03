@@ -8,10 +8,10 @@
     ## main body
     <link name="main_body">
       <inertial>
-        <origin xyz="-0.00034267 0.00045403 0.03598886" rpy="0 0 0"/>
-        <mass value="1.23731225"/>
+        <origin xyz="-0.00027907 0.00036976 0.03599093" rpy="0 0 0"/>
+        <mass value="1.51931225"/>
         <inertia
-            ixx="0.00874381" iyy="0.00872797" izz="0.00460590"
+            ixx="0.00913984" iyy="0.00912399" izz="0.00466230"
             ixy="0.00000741" ixz="0.00013082" iyz="0.00007583"/>
       </inertial>   
       <visual>
