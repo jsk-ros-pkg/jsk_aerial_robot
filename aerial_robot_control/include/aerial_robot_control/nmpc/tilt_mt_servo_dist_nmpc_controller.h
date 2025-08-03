@@ -60,7 +60,7 @@ protected:
 
   void prepareNMPCParams() override;
 
-  std::vector<double> meas2VecX() override;
+  std::vector<double> meas2VecX(bool is_ee_centric) override;
 
   void initAllocMat() override;
 

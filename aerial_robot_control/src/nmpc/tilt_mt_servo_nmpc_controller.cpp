@@ -1074,7 +1074,7 @@ double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon) const
          T_horizon / t_nmpc_step_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
-std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
+std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX(bool is_ee_centric)
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
 
@@ -1093,8 +1093,23 @@ std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
   }
 
   quat_prev_ = quat;
-  // =========================
 
+  // === for reference, we may need to convert the position and velocity to the end-effector frame ===
+  if (is_ee_centric)
+  {
+    // convert the position and velocity from CoG to end-effector frame
+    tf::Vector3 target_pos, target_ee_vel, target_ee_omega;
+    tf::Quaternion target_ee_quat;
+    robot_model_->convertFromCoGToEEContact(pos, vel, quat, ang_vel, target_pos, target_ee_vel, target_ee_quat,
+                                            target_ee_omega);
+
+    pos = target_pos;
+    vel = target_ee_vel;
+    quat = target_ee_quat;
+    ang_vel = target_ee_omega;
+  }
+
+  // === fill the vector ===
   bx0[0] = pos.x();
   bx0[1] = pos.y();
   bx0[2] = pos.z();
