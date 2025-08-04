@@ -34,7 +34,8 @@ RUN pip3 install \
     casadi==3.7.0 \
     tikzplotlib==0.10.1 \
     progress-table==3.1.2 \
-    torchsummary==1.5.1
+    torchsummary==1.5.1 \
+    transformations==2022.9.26
     # For real-time inference
     # tensorrt \
     # pycuda
@@ -50,8 +51,8 @@ RUN cd /root && \
     make install -j4
 # acados Python interface
 RUN pip3 install -e /root/acados/interfaces/acados_template
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/root/acados/lib"
-ENV ACADOS_SOURCE_DIR=/root/acados
+RUN echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/acados/lib' >> ~/.bashrc
+RUN echo 'export ACADOS_SOURCE_DIR="/root/acados"' >> ~/.bashrc
 # Download and install t_renderer binary for acados
 RUN mkdir -p /root/acados/bin
 RUN curl -L -o /root/acados/bin/t_renderer https://github.com/acados/tera_renderer/releases/download/v0.2.0/t_renderer-v0.2.0-linux-arm64 && \
@@ -73,11 +74,13 @@ RUN mkdir -p /root/ros/jsk_aerial_robot_ws/src && \
     wstool update -t src && \
     rosdep install -y -r --from-paths src --ignore-src --rosdistro ${ROS_DISTRO}
 
-RUN cd /root/ros/jsk_aerial_robot_ws && \
-    catkin config --extend /opt/ros/${ROS_DISTRO} && \
-    catkin build
+# RUN cd /root/ros/jsk_aerial_robot_ws && \
+#     catkin config --extend /opt/ros/${ROS_DISTRO} && \
+#     catkin build
 
-RUN echo "source /root/ros/jsk_aerial_robot_ws/devel/setup.bash" >> /root/.bashrc
+# RUN echo "source /root/ros/jsk_aerial_robot_ws/devel/setup.bash" >> /root/.bashrc
+
+RUN echo "Please build the workspace 'catkin build' and 'source /root/ros/jsk_aerial_robot_ws/devel/setup.bash'"
 
 WORKDIR /root/ros/jsk_aerial_robot_ws
 CMD ["bash"]
