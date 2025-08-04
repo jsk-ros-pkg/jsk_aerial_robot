@@ -39,7 +39,7 @@ public:
     prev_est_wrench_timestamp_ = 0;
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     Eigen::Vector3d vel_w, omega_cog;
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
@@ -82,7 +82,7 @@ public:
     setDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
     setDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
 
-    WrenchEstActuatorMeasBase::update();
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

@@ -176,7 +176,7 @@ public:
     return external_wrench_cog;
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     /* calculate the external wrench in the CoG frame */
     Eigen::VectorXd external_wrench_cog = calDistWrench();
@@ -198,7 +198,7 @@ public:
     setDistForceW(est_ext_force_w(0), est_ext_force_w(1), est_ext_force_w(2));
     setDistTorqueCOG(est_ext_torque_cog_(0), est_ext_torque_cog_(1), est_ext_torque_cog_(2));
 
-    WrenchEstActuatorMeasBase::update();
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

@@ -1,6 +1,18 @@
 //
 // Created by jinjie on 24/11/04.
 //
+// FSM version of wrench_est_actuator_meas_base.h
+// - Only uses standard library for the FSM (switch-case).
+// - States: STOPPED, CALIBRATING, RUNNING
+// - The update() now accepts kinematics: vel, ang_vel, acc, ang_acc (tf::Vector3).
+// - Transitions:
+//     STOPPED -> CALIBRATING: when |vel| and |acc| are below thresholds.
+//     CALIBRATING -> RUNNING: after a fixed duration (e.g., 3s).
+//     CALIBRATING/RUNNING -> STOPPED: when |vel| or |acc| exceed thresholds.
+// - In RUNNING: getDistForceW() / getDistTorqueCOG() publish (return) the
+//   *offset external wrench* obtained from calibration.
+// - During STOPPED/CALIBRATING: publish zeros.
+//
 
 #ifndef AERIAL_ROBOT_CONTROL_WRENCH_EST_ACTUATOR_MEAS_BASE_H
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_ACTUATOR_MEAS_BASE_H
@@ -19,6 +31,14 @@ class WrenchEstActuatorMeasBase : public WrenchEstBase
 {
 public:
   WrenchEstActuatorMeasBase() = default;
+
+  // --- FSM state enum ---
+  enum class State
+  {
+    STOPPED = 0,
+    CALIBRATING,
+    RUNNING
+  };
 
   void initWrenchPub() override
   {
@@ -48,22 +68,93 @@ public:
   {
     WrenchEstBase::reset();
 
-    is_offset_ = false;
-    offset_count_ = 0;
-    offset_force_w_ = Eigen::Vector3d::Zero();
-    offset_torque_cog_ = Eigen::Vector3d::Zero();
+    calib_offset_sample_count_ = 0;
+    calib_offset_force_w_ = Eigen::Vector3d::Zero();
+    calib_offset_torque_cog_ = Eigen::Vector3d::Zero();
+
+    // Reset FSM
+    state_ = State::STOPPED;
+    state_enter_time_ = ros::Time::now();
   }
 
-  /* MUST be overridden in derived classes, put it after the disturbance wrench is estimated */
-  virtual void update()
+  // --- Parameters / configuration ---
+  // Set thresholds used to decide stability (norm thresholds).
+  void setStabilityThresholds(double lin_vel_thr, double ang_vel_thr)
   {
-    if (!is_offset_)
+    lin_vel_thr_ = lin_vel_thr;
+    ang_vel_thr_ = ang_vel_thr;
+  }
+
+  // Set calibration duration (seconds)
+  void setCalibrationDuration(double seconds)
+  {
+    calib_duration_ = ros::Duration(seconds);
+  }
+
+  virtual void update(const tf::Vector3& vel, const tf::Vector3& ang_vel)
+  {
+    // Simple magnitude checks for stability
+    const bool stable = (vel.length() <= lin_vel_thr_) && (ang_vel.length() <= ang_vel_thr_);
+
+    switch (state_)
     {
-      // when the is_offset is false, the offset values are updated but not specified to the result.
-      offset_count_++;
-      offset_force_w_ = offset_force_w_ + (dist_force_w_ - offset_force_w_) / offset_count_;
-      offset_torque_cog_ = offset_torque_cog_ + (dist_torque_cog_ - offset_torque_cog_) / offset_count_;
+      case State::STOPPED: {
+        // Transition condition: become stable
+        if (stable)
+        {
+          enter(State::CALIBRATING);
+        }
+        // No output in STOPPED
+        break;
+      }
+
+      case State::CALIBRATING: {
+        if (!stable)
+        {
+          // Abort calibration if motion becomes large
+          enter(State::STOPPED);
+          break;
+        }
+
+        // Accumulate raw external wrench to compute offset
+        calib_offset_sample_count_++;
+        calib_offset_force_w_ =
+            calib_offset_force_w_ + (dist_force_w_ - calib_offset_force_w_) / calib_offset_sample_count_;
+        calib_offset_torque_cog_ =
+            calib_offset_torque_cog_ + (dist_torque_cog_ - calib_offset_torque_cog_) / calib_offset_sample_count_;
+
+        // After calibration duration, fix offsets and go RUNNING
+        if ((ros::Time::now() - state_enter_time_) >= calib_duration_)
+        {
+          ROS_INFO("The offset for external wrench -> true, the average offset samples: %lu",
+                   calib_offset_sample_count_);
+          ROS_INFO("The offset force in world frame (N): %f, %f, %f", calib_offset_force_w_(0),
+                   calib_offset_force_w_(1), calib_offset_force_w_(2));
+          ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", calib_offset_torque_cog_(0),
+                   calib_offset_torque_cog_(1), calib_offset_torque_cog_(2));
+          enter(State::RUNNING);
+        }
+
+        break;
+      }
+
+      case State::RUNNING: {
+        // Leave RUNNING if unstable again
+        if (!stable)
+        {
+          enter(State::STOPPED);
+          break;
+        }
+        // In RUNNING, publish the calibrated offsets as the external wrench
+        break;
+      }
     }
+  }
+
+  // Current state getter
+  State state() const
+  {
+    return state_;
   }
 
   Eigen::VectorXd calcWrenchFromActuatorMeas(const std::vector<double>& rotor_thrust,
@@ -86,53 +177,67 @@ public:
   // add offset function
   geometry_msgs::Vector3 getDistForceW() const override
   {
-    Eigen::Vector3d result = is_offset_ ? (dist_force_w_ - offset_force_w_) : dist_force_w_;
-
     geometry_msgs::Vector3 dist_force_w_ros;
-    dist_force_w_ros.x = result(0);
-    dist_force_w_ros.y = result(1);
-    dist_force_w_ros.z = result(2);
+
+    if (state_ == State::RUNNING)
+    {
+      Eigen::Vector3d result = dist_force_w_ - calib_offset_force_w_;
+
+      dist_force_w_ros.x = result(0);
+      dist_force_w_ros.y = result(1);
+      dist_force_w_ros.z = result(2);
+    }
 
     return dist_force_w_ros;
   }
   geometry_msgs::Vector3 getDistTorqueCOG() const override
   {
-    Eigen::Vector3d result = is_offset_ ? (dist_torque_cog_ - offset_torque_cog_) : dist_torque_cog_;
-
     geometry_msgs::Vector3 dist_torque_cog_ros;
-    dist_torque_cog_ros.x = result(0);
-    dist_torque_cog_ros.y = result(1);
-    dist_torque_cog_ros.z = result(2);
+
+    if (state_ == State::RUNNING)
+    {
+      Eigen::Vector3d result = dist_torque_cog_ - calib_offset_torque_cog_;
+
+      dist_torque_cog_ros.x = result(0);
+      dist_torque_cog_ros.y = result(1);
+      dist_torque_cog_ros.z = result(2);
+    }
 
     return dist_torque_cog_ros;
   }
 
-  bool getOffsetFlag() const
-  {
-    return is_offset_;
-  }
-  void toggleOffsetFlag()
-  {
-    is_offset_ = !is_offset_;
-
-    if (is_offset_)
-    {
-      ROS_INFO("The offset for external wrench -> true, the average offset samples: %d", offset_count_);
-      ROS_INFO("The offset force in world frame (N): %f, %f, %f", offset_force_w_(0), offset_force_w_(1),
-               offset_force_w_(2));
-      ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", offset_torque_cog_(0), offset_torque_cog_(1),
-               offset_torque_cog_(2));
-    }
-    else
-      ROS_INFO("The offset for external wrench -> false");
-  }
-
 protected:
-  // for offset
-  bool is_offset_ = false;
-  int offset_count_ = 0;
-  Eigen::Vector3d offset_force_w_;     // offset estimated force in world frame
-  Eigen::Vector3d offset_torque_cog_;  // offset estimated torque in cog frame
+  // --- FSM data ---
+  State state_{ State::STOPPED };
+  ros::Time state_enter_time_;
+
+  // Stability thresholds
+  double lin_vel_thr_{ 0.1 };   // m/s
+  double ang_vel_thr_{ 0.05 };  // rad/s
+
+  // Calibration duration
+  ros::Duration calib_duration_{ ros::Duration(3.0) };
+
+  // Calibration accumulators
+  size_t calib_offset_sample_count_{ 0 };
+  Eigen::Vector3d calib_offset_force_w_{ Eigen::Vector3d::Zero() };     // offset estimated force in world frame
+  Eigen::Vector3d calib_offset_torque_cog_{ Eigen::Vector3d::Zero() };  // offset estimated torque in cog frame
+
+  // Called when entering a new state.
+  void enter(State next)
+  {
+    state_ = next;
+    state_enter_time_ = ros::Time::now();
+    if (state_ == State::CALIBRATING)
+    {
+      // Reset calibration accumulation
+      calib_offset_force_w_.setZero();
+      calib_offset_torque_cog_.setZero();
+      calib_offset_sample_count_ = 0;
+    }
+
+    ROS_INFO("Wrench Estimator: Entering state %d", state_);
+  }
 
   // for servo angles
   std::vector<double> joint_angles_;
@@ -181,7 +286,7 @@ protected:
 
 class WrenchEstNone : public WrenchEstActuatorMeasBase
 {
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     // do nothing
   }

@@ -45,7 +45,7 @@ public:
     prev_est_wrench_timestamp_ = 0;
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
@@ -96,6 +96,8 @@ public:
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
     setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
+
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

@@ -30,7 +30,7 @@ public:
     mhe_solver_.reset();
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
@@ -82,7 +82,7 @@ public:
     setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
     setDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
 
-    WrenchEstActuatorMeasBase::update();
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:
