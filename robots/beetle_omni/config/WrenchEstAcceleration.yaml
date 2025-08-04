@@ -4,6 +4,9 @@ controller:
   if_use_est_wrench_4_control: true
 
   disturb:
+    #    ext_force_limit: 10 # N
+    #    ext_torque_limit: 2 # Nm
+
     # use sigmoid function for a threshold
     thresh_force: 0.6  # N
     thresh_torque: 0.3  # Nm
@@ -11,18 +14,20 @@ controller:
     steepness_torque: 10.0
 
   accel_observer:
+    thrust_type: 0  # how to get thrust data. 0: cmd, 1: measured
+
     # Use MATLAB Filter Design to get the coefficients
     # 2-Ord Butterworth filter
-    iir_general: # 15 Hz
-      num: [ 1, 2, 1 ]
-      den: [ 1, -0.7478, 0.2722 ]
+    iir_sensor_general:  # 15 Hz
+      num: [1, 2, 1]
+      den: [1, -0.7478, 0.2722]
       gain: 0.1311
-    iir_omega_dot: # 10.27 Hz
-      num: [ 1, 2, 1 ]
-      den: [ 1, -1.1211, 0.4032 ]
+    iir_omega_dot:  # 10.27 Hz
+      num: [1, 2, 1]
+      den: [1, -1.1211, 0.4032]
       gain: 0.0705
 
-    #    iir_general: # 5 Hz
+    #    iir_sensor_general: # 5 Hz
     #      num: [ 1, 2, 1 ]
     #      den: [ 1, -1.5610, 0.6414 ]
     #      gain: 0.0201
@@ -31,3 +36,7 @@ controller:
     #      den: [ 1, -1.6214, 0.6825 ]
     #      gain: 0.0153
 
+    iir_wrench:  # 2 Hz
+      num: [1, 2, 1]
+      den: [1, -1.8227, 0.8372]
+      gain: 0.0036

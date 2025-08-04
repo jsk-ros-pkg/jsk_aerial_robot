@@ -20,29 +20,31 @@ public:
   {
     WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
-    // read IIR parameters
     ros::NodeHandle accel_nh(nh_, "controller/accel_observer");
 
-    std::vector<double> iir_general_num(3), iir_general_den(3);
-    double iir_general_gain;
-    accel_nh.getParam("iir_general/num", iir_general_num);
-    accel_nh.getParam("iir_general/den", iir_general_den);
-    accel_nh.getParam("iir_general/gain", iir_general_gain);
+    accel_nh.getParam("thrust_type", thrust_type_);
+
+    // IIR of sensors
+    std::vector<double> iir_sensor_general_num(3), iir_sensor_general_den(3);
+    double iir_sensor_general_gain;
+    accel_nh.getParam("iir_sensor_general/num", iir_sensor_general_num);
+    accel_nh.getParam("iir_sensor_general/den", iir_sensor_general_den);
+    accel_nh.getParam("iir_sensor_general/gain", iir_sensor_general_gain);
     for (int i = 0; i < 4; i++)
     {
-      thrust_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      thrust_lpf_[i].setCoeffs(iir_sensor_general_num, iir_sensor_general_den, iir_sensor_general_gain);
     }
     for (int i = 0; i < 4; i++)
     {
-      servo_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      servo_lpf_[i].setCoeffs(iir_sensor_general_num, iir_sensor_general_den, iir_sensor_general_gain);
     }
     for (int i = 0; i < 3; i++)
     {
-      acc_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      acc_lpf_[i].setCoeffs(iir_sensor_general_num, iir_sensor_general_den, iir_sensor_general_gain);
     }
     for (int i = 0; i < 3; i++)
     {
-      omega_lpf_[i].setCoeffs(iir_general_num, iir_general_den, iir_general_gain);
+      omega_lpf_[i].setCoeffs(iir_sensor_general_num, iir_sensor_general_den, iir_sensor_general_gain);
     }
 
     std::vector<double> iir_omega_dot_num(3), iir_omega_dot_den(3);
@@ -54,6 +56,22 @@ public:
     {
       omega_dot_lpf_[i].setCoeffs(iir_omega_dot_num, iir_omega_dot_den, iir_omega_dot_gain);
     }
+
+    // IIR of wrench
+    std::vector<double> iir_wrench_num(3), iir_wrench_den(3);
+    double iir_wrench_gain;
+    accel_nh.getParam("iir_wrench/num", iir_wrench_num);
+    accel_nh.getParam("iir_wrench/den", iir_wrench_den);
+    accel_nh.getParam("iir_wrench/gain", iir_wrench_gain);
+    for (int i = 0; i < 3; i++)
+    {
+      ext_force_lpf_[i].setCoeffs(iir_wrench_num, iir_wrench_den, iir_wrench_gain);
+      ext_torque_lpf_[i].setCoeffs(iir_wrench_num, iir_wrench_den, iir_wrench_gain);
+    }
+
+    // get the rotor time constant
+    ros::NodeHandle physical_nh(nh_, "physical");
+    getParam<double>(physical_nh, "t_rotor", ts_rotor_, 0.09);
   }
 
   void reset() override
@@ -70,6 +88,10 @@ public:
     for (auto& f : omega_lpf_)
       f.reset();
     for (auto& f : omega_dot_lpf_)
+      f.reset();
+    for (auto& f : ext_force_lpf_)
+      f.reset();
+    for (auto& f : ext_torque_lpf_)
       f.reset();
   }
 
@@ -106,11 +128,29 @@ public:
       joint_angles_filtered[i] = servo_lpf_[i].filter(joint_angles_[i]);
     }
 
-    // thrust --- NOTE: here we use thrust_cmd_ instead of thrust_meas_ to decrease noise!!!
-    std::vector<double> thrust_filtered(thrust_cmd_.size());
-    for (size_t i = 0; i < thrust_cmd_.size(); ++i)
+    // thrust --- NOTE: using thrust_cmd_ instead of thrust_meas_ can decrease noise, but it introduces delay.
+    std::vector<double> thrust_filtered(robot_model_->getRotorNum());
+    if (thrust_type_ == 0)  // thrust type 0: use thrust command
     {
-      thrust_filtered[i] = thrust_lpf_[i].filter(thrust_cmd_[i]);
+      double alpha = getCtrlLoopDu() / (getCtrlLoopDu() + ts_rotor_);
+      for (size_t i = 0; i < thrust_cmd_.size(); ++i)
+      {
+        // Note: the thrust command is delayed by ts_rotor_ seconds to have effect, so we need to compensate for it.
+        double thrust_cmd_delayed = thrust_cmd_[i] * alpha + (1 - alpha) * thrust_lpf_[i].getLastOutput();
+        thrust_filtered[i] = thrust_lpf_[i].filter(thrust_cmd_delayed);
+      }
+    }
+    else if (thrust_type_ == 1)  // thrust type 1: use actual thrust
+    {
+      for (size_t i = 0; i < thrust_meas_.size(); ++i)
+      {
+        thrust_filtered[i] = thrust_lpf_[i].filter(thrust_meas_[i]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("Unknown thrust type: %d", thrust_type_);
+      return Eigen::VectorXd::Zero(6);
     }
 
     /* calculation */
@@ -142,6 +182,13 @@ public:
     Eigen::VectorXd est_ext_force_cog_ = external_wrench_cog.head(3);
     Eigen::VectorXd est_ext_torque_cog_ = external_wrench_cog.tail(3);
 
+    // filter the external force and torque
+    for (int i = 0; i < 3; ++i)
+    {
+      est_ext_force_cog_(i) = ext_force_lpf_[i].filter(est_ext_force_cog_(i));
+      est_ext_torque_cog_(i) = ext_torque_lpf_[i].filter(est_ext_torque_cog_(i));
+    }
+
     // coordinate transformation
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
@@ -160,6 +207,12 @@ private:
   std::array<digital_filter::BiquadIIR, 3> acc_lpf_;
   std::array<digital_filter::BiquadIIR, 3> omega_lpf_;
   std::array<digital_filter::BiquadIIR, 3> omega_dot_lpf_;
+
+  std::array<digital_filter::BiquadIIR, 3> ext_force_lpf_;
+  std::array<digital_filter::BiquadIIR, 3> ext_torque_lpf_;
+
+  int thrust_type_;
+  double ts_rotor_;  // time step for rotor, compensate for the delay of thrust command
 
   // acceleration-based method
   Eigen::VectorXd est_ext_force_cog_;  // TODO: combine these two variables and matrices to a single one

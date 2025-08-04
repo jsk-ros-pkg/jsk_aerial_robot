@@ -69,7 +69,7 @@ public:
    * @param x  New input sample.
    * @return   Filtered output sample.
    */
-  inline double filter(double x)
+  double filter(double x)
   {
     if (!primed_)
       reset(x);  // One-shot priming on first call
@@ -84,6 +84,11 @@ public:
     y1_ = y;
 
     return y;
+  }
+
+  double getLastOutput() const
+  {
+    return y1_;
   }
 
 private:
