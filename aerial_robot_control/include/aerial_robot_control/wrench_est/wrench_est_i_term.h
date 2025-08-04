@@ -6,7 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_I_TERM_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
-#include "i_term.h"
+#include "aerial_robot_control/wrench_est/utils.h"
 
 /* dynamic reconfigure */
 #include <dynamic_reconfigure/server.h>

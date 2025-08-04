@@ -6,6 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_ACCELERATION_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_actuator_meas_base.h"
+#include "aerial_robot_control/wrench_est/utils.h"
 
 namespace aerial_robot_control
 {
@@ -202,14 +203,14 @@ public:
 
 private:
   // lpf filters
-  std::array<digital_filter::BiquadIIR, 4> thrust_lpf_;
-  std::array<digital_filter::BiquadIIR, 4> servo_lpf_;
-  std::array<digital_filter::BiquadIIR, 3> acc_lpf_;
-  std::array<digital_filter::BiquadIIR, 3> omega_lpf_;
-  std::array<digital_filter::BiquadIIR, 3> omega_dot_lpf_;
+  std::array<BiquadIIR, 4> thrust_lpf_;
+  std::array<BiquadIIR, 4> servo_lpf_;
+  std::array<BiquadIIR, 3> acc_lpf_;
+  std::array<BiquadIIR, 3> omega_lpf_;
+  std::array<BiquadIIR, 3> omega_dot_lpf_;
 
-  std::array<digital_filter::BiquadIIR, 3> ext_force_lpf_;
-  std::array<digital_filter::BiquadIIR, 3> ext_torque_lpf_;
+  std::array<BiquadIIR, 3> ext_force_lpf_;
+  std::array<BiquadIIR, 3> ext_torque_lpf_;
 
   int thrust_type_;
   double ts_rotor_;  // time step for rotor, compensate for the delay of thrust command
