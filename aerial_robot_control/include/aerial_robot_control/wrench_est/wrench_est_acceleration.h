@@ -78,8 +78,8 @@ public:
   void reset() override
   {
     WrenchEstActuatorMeasBase::reset();
-    est_ext_force_cog_ = Eigen::VectorXd::Zero(3);
-    est_ext_torque_cog_ = Eigen::VectorXd::Zero(3);
+    est_ext_force_cog_ = Eigen::Vector3d::Zero();
+    est_ext_torque_cog_ = Eigen::Vector3d::Zero();
     for (auto& f : thrust_lpf_)
       f.reset();
     for (auto& f : servo_lpf_)
@@ -180,8 +180,8 @@ public:
   {
     /* calculate the external wrench in the CoG frame */
     Eigen::VectorXd external_wrench_cog = calDistWrench();
-    Eigen::VectorXd est_ext_force_cog_ = external_wrench_cog.head(3);
-    Eigen::VectorXd est_ext_torque_cog_ = external_wrench_cog.tail(3);
+    est_ext_force_cog_ = external_wrench_cog.head(3);
+    est_ext_torque_cog_ = external_wrench_cog.tail(3);
 
     // filter the external force and torque
     for (int i = 0; i < 3; ++i)
@@ -216,8 +216,8 @@ private:
   double ts_rotor_;  // time step for rotor, compensate for the delay of thrust command
 
   // acceleration-based method
-  Eigen::VectorXd est_ext_force_cog_;  // TODO: combine these two variables and matrices to a single one
-  Eigen::VectorXd est_ext_torque_cog_;
+  Eigen::Vector3d est_ext_force_cog_;  // TODO: combine these two variables and matrices to a single one
+  Eigen::Vector3d est_ext_torque_cog_;
 };
 
 };  // namespace aerial_robot_control

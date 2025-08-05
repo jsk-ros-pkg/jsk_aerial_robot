@@ -28,6 +28,10 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
 bool nmpc::TiltMtServoDistNMPC::update()
 {
+  // update the disturbance wrench only after activation. The updateDisturbWrench() should be called before the
+  // TiltMtServoNMPC::update() to ensure that the disturbance wrench is updated before the NMPC solver uses it.
+  if (!ControlBase::update())
+    return false;
   updateDisturbWrench();
 
   // Note that the meas2VecX() function is called in the update() function. And since it always get the latest info
