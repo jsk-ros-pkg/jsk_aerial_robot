@@ -45,10 +45,8 @@ bool nmpc::TiltMtServoDistNMPC::update()
   return true;
 }
 
-void nmpc::TiltMtServoDistNMPC::reset()
+void nmpc::TiltMtServoDistNMPC::resetPlugins()
 {
-  TiltMtServoNMPC::reset();
-
   wrench_est_i_term_.reset();
 
   if (wrench_est_ptr_ != nullptr)

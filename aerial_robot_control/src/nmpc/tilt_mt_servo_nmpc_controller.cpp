@@ -102,6 +102,8 @@ void nmpc::TiltMtServoNMPC::reset()
 {
   ControlBase::reset();
 
+  resetPlugins();
+
   /* reset controller using odom */
   std::vector<double> x_vec = meas2VecX();
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);

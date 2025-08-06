@@ -30,8 +30,6 @@ public:
 
   bool update() override;
 
-  void reset() override;
-
   aerial_robot_control::WrenchEstITerm wrench_est_i_term_;  // I term is indispensable to eliminate steady error.
 
   boost::shared_ptr<pluginlib::ClassLoader<aerial_robot_control::WrenchEstActuatorMeasBase>> wrench_est_loader_ptr_;
@@ -55,6 +53,7 @@ protected:
   int idx_p_dist_end_ = 0;
 
   void initPlugins() override;
+  void resetPlugins() override;
 
   void initNMPCParams() override;
 
