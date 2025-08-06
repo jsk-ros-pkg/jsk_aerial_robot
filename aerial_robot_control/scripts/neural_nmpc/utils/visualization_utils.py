@@ -12,16 +12,18 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
+
 # import json
 import tikzplotlib
 import numpy as np
 import torch
 
 import matplotlib.pyplot as plt
+
 # from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 # from matplotlib.colorbar import ColorbarBase
 # from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
+from mpl_toolkits.mplot3d import Axes3D  # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
 import matplotlib.animation as animation
 
 # from config.configuration_parameters import DirectoryConfig as PathConfig
@@ -30,13 +32,14 @@ from utils.data_utils import safe_mkdir_recursive
 
 frames = []
 
+
 def initialize_plotter(world_rad, n_properties):
     """
     Initializes the real-time 3D plot for the robot simulation.
     :param world_rad: Radius of the world in meters.
     :param n_properties: Number of properties to visualize.
     :param full_traj: Optional full trajectory to plot as a dashed line.
-    
+
     Setup figure size based on resolution
     resolution_settings = {
         '720p': {'figsize': (12.8, 7.2), 'dpi': 100, 'bitrate': 3000},
@@ -53,7 +56,7 @@ def initialize_plotter(world_rad, n_properties):
     mng.resize(*mng.window.maxsize())
 
     # Create 3D renderer object
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     # Set limits
     ax.set_xlim([-world_rad, world_rad])
@@ -61,9 +64,9 @@ def initialize_plotter(world_rad, n_properties):
     ax.set_zlim([0, 2.25 * world_rad])
 
     # Set labels
-    ax.set_xlabel('x [m]')
-    ax.set_ylabel('y [m]')
-    ax.set_zlabel('z [m]')
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
     fig.canvas.draw()
     plt.draw()
 
@@ -71,33 +74,53 @@ def initialize_plotter(world_rad, n_properties):
     background = fig.canvas.copy_from_bbox(ax.bbox)
 
     artists = {
-        "trajectory": ax.plot([], [])[0], 
-        "robot": ax.plot([], [], 'o-')[0],
-        "robot_first_rotor": ax.plot([], [], 'o-', color='r')[0],   # Highlight first rotor
-        "missing_targets": ax.plot([], [], [], color='r', marker='o', linestyle='None', markersize=12)[0],
-        "reached_targets": ax.plot([], [], [], color='g', marker='o', linestyle='None', markersize=12)[0],
-        "sim_trajectory": [ax.plot([], [], [], '-', color='tab:blue', alpha=0.9 - i * 0.2 / n_properties)[0]
-                           for i in range(n_properties)],
-        "int_trajectory": [ax.plot([], [], [], '-', color='tab:orange', alpha=0.9 - i * 0.5 / n_properties)[0]
-                           for i in range(n_properties + 1)],
-        "prop_trajectory": [ax.plot([], [], [], '-', color='tab:red', alpha=0.9 - i * 0.2 / n_properties)[0]
-                            for i in range(n_properties)],
-        "prop_covariance": [ax.plot([], [], [], color='r', alpha=0.5 - i * 0.45 / n_properties)[0]
-                            for i in range(n_properties)],
-        "projection_traj": [ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0],
-                            ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0],
-                            ax.plot([], [], [], '-', color='tab:blue', alpha=0.2)[0]],
-        "projection_target": [ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0],
-                              ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0],
-                              ax.plot([], [], [], marker='o', color='r', linestyle='None', alpha=0.2)[0]]}
+        "trajectory": ax.plot([], [])[0],
+        "robot": ax.plot([], [], "o-")[0],
+        "robot_first_rotor": ax.plot([], [], "o-", color="r")[0],  # Highlight first rotor
+        "missing_targets": ax.plot([], [], [], color="r", marker="o", linestyle="None", markersize=12)[0],
+        "reached_targets": ax.plot([], [], [], color="g", marker="o", linestyle="None", markersize=12)[0],
+        "sim_trajectory": [
+            ax.plot([], [], [], "-", color="tab:blue", alpha=0.9 - i * 0.2 / n_properties)[0]
+            for i in range(n_properties)
+        ],
+        "int_trajectory": [
+            ax.plot([], [], [], "-", color="tab:orange", alpha=0.9 - i * 0.5 / n_properties)[0]
+            for i in range(n_properties + 1)
+        ],
+        "prop_trajectory": [
+            ax.plot([], [], [], "-", color="tab:red", alpha=0.9 - i * 0.2 / n_properties)[0]
+            for i in range(n_properties)
+        ],
+        "prop_covariance": [
+            ax.plot([], [], [], color="r", alpha=0.5 - i * 0.45 / n_properties)[0] for i in range(n_properties)
+        ],
+        "projection_traj": [
+            ax.plot([], [], [], "-", color="tab:blue", alpha=0.2)[0],
+            ax.plot([], [], [], "-", color="tab:blue", alpha=0.2)[0],
+            ax.plot([], [], [], "-", color="tab:blue", alpha=0.2)[0],
+        ],
+        "projection_target": [
+            ax.plot([], [], [], marker="o", color="r", linestyle="None", alpha=0.2)[0],
+            ax.plot([], [], [], marker="o", color="r", linestyle="None", alpha=0.2)[0],
+            ax.plot([], [], [], marker="o", color="r", linestyle="None", alpha=0.2)[0],
+        ],
+    }
 
     art_pack = fig, ax, artists, background, world_rad
     return art_pack
 
 
-def draw_robot(art_pack, targets, targets_reached,
-                  state_curr, state_traj, trajectory_history,
-                  rotor_positions, follow_robot=False, animation=False):
+def draw_robot(
+    art_pack,
+    targets,
+    targets_reached,
+    state_curr,
+    state_traj,
+    trajectory_history,
+    rotor_positions,
+    follow_robot=False,
+    animation=False,
+):
     """
     Animates the robot's state, previous and predicted trajectories, and their projections in a 3D plot.
     :param art_pack: Tuple containing the figure, axis, artists, background, and world radius.
@@ -120,7 +143,7 @@ def draw_robot(art_pack, targets, targets_reached,
     trajectories_artist = artists["trajectory"] if "trajectory" in artists.keys() else []
     projected_traj_artists = artists["projection_traj"] if "projection_traj" in artists.keys() else []
     robot_sketch_artist = artists["robot"] if "robot" in artists.keys() else []
-    robot_sketch_artist_first_rotor = artists["robot_first_rotor"] if "robot_first_rotor" in artists.keys() else[]
+    robot_sketch_artist_first_rotor = artists["robot_first_rotor"] if "robot_first_rotor" in artists.keys() else []
     sim_traj_artists = artists["sim_trajectory"] if "sim_trajectory" in artists.keys() else []
     # int_traj_artists = artists["int_trajectory"] if "int_trajectory" in artists.keys() else []
     # pred_traj_artists = artists["prop_trajectory"] if "prop_trajectory" in artists.keys() else []
@@ -128,7 +151,7 @@ def draw_robot(art_pack, targets, targets_reached,
 
     # Restore background
     fig.canvas.restore_region(background)
-    
+
     # Draw missing and reached targets
     if targets is not None and targets_reached is not None:
         missing = targets[targets_reached == False, :][:, :3]
@@ -136,7 +159,7 @@ def draw_robot(art_pack, targets, targets_reached,
         ax.draw_artist(missing_targets_artist)
 
         reached = targets[targets_reached == True, :][:, :3]
-        reached = reached[-2:, :]   # Only draw last two reached targets
+        reached = reached[-2:, :]  # Only draw last two reached targets
         reached_targets_artist.set_data_3d(reached[:, 0], reached[:, 1], reached[:, 2])
         ax.draw_artist(reached_targets_artist)
 
@@ -156,22 +179,24 @@ def draw_robot(art_pack, targets, targets_reached,
     ax.draw_artist(robot_sketch_artist_first_rotor)
 
     # Draw previous trajectory
-    trajectory_start_pt = max(len(trajectory_history) - 100, 0) # Start from the last 100 points
-    trajectories_artist.set_data_3d(trajectory_history[trajectory_start_pt:, 0],
-                                    trajectory_history[trajectory_start_pt:, 1],
-                                    trajectory_history[trajectory_start_pt:, 2])
+    trajectory_start_pt = max(len(trajectory_history) - 100, 0)  # Start from the last 100 points
+    trajectories_artist.set_data_3d(
+        trajectory_history[trajectory_start_pt:, 0],
+        trajectory_history[trajectory_start_pt:, 1],
+        trajectory_history[trajectory_start_pt:, 2],
+    )
     ax.draw_artist(trajectories_artist)
 
     # Draw previous trajectory projections
-    projected_traj_artists[0].set_data_3d(ax.get_xlim()[0],
-                                          trajectory_history[trajectory_start_pt:, 1],
-                                          trajectory_history[trajectory_start_pt:, 2])
-    projected_traj_artists[1].set_data_3d(trajectory_history[trajectory_start_pt:, 0],
-                                          ax.get_ylim()[1],
-                                          trajectory_history[trajectory_start_pt:, 2])
-    projected_traj_artists[2].set_data_3d(trajectory_history[trajectory_start_pt:, 0],
-                                          trajectory_history[trajectory_start_pt:, 1],
-                                          ax.get_zlim()[0])
+    projected_traj_artists[0].set_data_3d(
+        ax.get_xlim()[0], trajectory_history[trajectory_start_pt:, 1], trajectory_history[trajectory_start_pt:, 2]
+    )
+    projected_traj_artists[1].set_data_3d(
+        trajectory_history[trajectory_start_pt:, 0], ax.get_ylim()[1], trajectory_history[trajectory_start_pt:, 2]
+    )
+    projected_traj_artists[2].set_data_3d(
+        trajectory_history[trajectory_start_pt:, 0], trajectory_history[trajectory_start_pt:, 1], ax.get_zlim()[0]
+    )
     [ax.draw_artist(projected_traj_artist) for projected_traj_artist in projected_traj_artists]
 
     # Draw predicted trajectory
@@ -222,17 +247,20 @@ def draw_robot(art_pack, targets, targets_reached,
         frame = frame.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         frames.append(frame)
 
+
 def animate_robot(file_name):
     """
     Create video from frames
     """
+
     def animate(frame_num):
         plt.clf()
         plt.imshow(frames[frame_num])
-        plt.axis('off')
+        plt.axis("off")
 
     anim = animation.FuncAnimation(plt.figure(), animate, frames=len(frames))
     anim.save(file_name, writer="ffmpeg", fps=30, dpi=600, bitrate=5000)
+
 
 def draw_fading_traj(traj, traj_artists):
     """
@@ -243,10 +271,12 @@ def draw_fading_traj(traj, traj_artists):
     traj = np.squeeze(traj)
     for j in range(min(traj.shape[0] - 1, len(traj_artists))):
         # Get the x,y,z coords from two consecutive points along traj with length N+1 and draw line
-        traj_artists[j].set_data_3d([traj[j, 0], traj[j + 1, 0]], [traj[j, 1], traj[j + 1, 1]], [traj[j, 2], traj[j + 1, 2]])
+        traj_artists[j].set_data_3d(
+            [traj[j, 0], traj[j + 1, 0]], [traj[j, 1], traj[j + 1, 1]], [traj[j, 2], traj[j + 1, 2]]
+        )
+
 
 def compute_robot_coords(pos, quaternions, rotor_positions):
-
     # Define quadrotor extremities in Body frame
     r1 = np.array(rotor_positions[0])
     r2 = np.array(rotor_positions[1])
@@ -260,80 +290,84 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
     r4 = v_dot_q(r4, quaternions) + pos
 
     # Build set of coordinates for plotting
-    return ([r1[0], r3[0], pos[0], r2[0], r4[0]],
-            [r1[1], r3[1], pos[1], r2[1], r4[1]],
-            [r1[2], r3[2], pos[2], r2[2], r4[2]])
+    return (
+        [r1[0], r3[0], pos[0], r2[0], r4[0]],
+        [r1[1], r3[1], pos[1], r2[1], r4[1]],
+        [r1[2], r3[2], pos[2], r2[2], r4[2]],
+    )
 
 
-def plot_dataset(x, y, state_raw, state_out, state_pred, save_file_path=None, save_file_name=None):
+def plot_dataset(x, y, state_in, state_out, state_pred, save_file_path=None, save_file_name=None):
     """
     Plot the dataset features and labels.
     :param x: Input features to the network.
     :param y: Labels of the dataset, i.e., ground truth values.
     """
-    os.makedirs(os.path.join(save_file_path, 'plot'), exist_ok=True)
+    os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
 
     fig = plt.subplots(figsize=(20, 5))
 
-    n_plots = max(x.shape[1], y.shape[1], state_raw.shape[1])
+    n_plots = max(x.shape[1], y.shape[1], state_in.shape[1])
 
     # Plot input state features
-    for dim in range(state_raw.shape[1]):
+    for dim in range(state_in.shape[1]):
         plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(state_raw[:, dim], label='state_raw')
-        plt.plot(state_out[:, dim], label='state_out')
-        plt.plot(state_pred[:, dim], label='state_pred')
-        plt.plot(x[:, dim], color='r', label='x')
-        plt.ylabel(f'Feature {dim}')
+        plt.plot(state_in[:, dim], label="state_in")
+        plt.plot(state_out[:, dim], label="state_out")
+        plt.plot(state_pred[:, dim], label="state_pred")
+        plt.plot(x[:, dim], color="r", label="x")
+        plt.ylabel(f"Feature {dim}")
         if dim == 0:
-            plt.title('State In & State Out')
+            plt.title("State In & State Out")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
 
     # Plot labels
     for dim in range(y.shape[1]):
         plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(y[:, dim], color='green', label='y')
+        plt.plot(y[:, dim], color="green", label="y")
         if dim == 0:
-            plt.title('Labels')
+            plt.title("Labels")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
 
-    diff1 = state_raw - state_out
+    diff1 = state_in - state_out
     diff2 = state_out - state_pred
 
     fig = plt.subplots(figsize=(20, 5))
-    for dim in range(state_raw.shape[1]):
+    for dim in range(state_in.shape[1]):
         plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(diff1[:, dim], color='red')
-        plt.ylabel(f'D{dim}')
+        plt.plot(diff1[:, dim], color="red")
+        plt.ylabel(f"D{dim}")
         if dim == 0:
-            plt.title('State In - State Out')
-        plt.grid('on')
+            plt.title("State In - State Out")
+        plt.grid("on")
 
-    for dim in range(state_raw.shape[1]):
+    for dim in range(state_in.shape[1]):
         plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(diff2[:, dim], color='green')
+        plt.plot(diff2[:, dim], color="green")
         if dim == 0:
-            plt.title('State Out - State Pred')
-        plt.grid('on')
+            plt.title("State Out - State Pred")
+        plt.grid("on")
 
     # Plot control inputs
     fig = plt.subplots(figsize=(20, 5))
-    control = x[:, state_raw.shape[1]:]
+    control = x[:, state_in.shape[1] :]
     for dim in range(control.shape[1]):
         plt.subplot(n_plots, 1, dim + 2)
-        plt.plot(control[:, dim], label='control')
+        plt.plot(control[:, dim], label="control")
         if dim == 0:
-            plt.title('Control')
+            plt.title("Control")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
 
     plt.tight_layout()
     plt.show()
 
     if save_file_path is not None and save_file_name is not None:
-        plt.savefig(os.path.join(save_file_path + '/plot', f'{save_file_name}_dataset_plot.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(
+            os.path.join(save_file_path + "/plot", f"{save_file_name}_dataset_plot.png"), dpi=300, bbox_inches="tight"
+        )
 
 
 def plot_trajectory(rec_dict, rtnmpc):
@@ -345,52 +379,55 @@ def plot_trajectory(rec_dict, rtnmpc):
     # Plot state features
     plt.subplots(figsize=(20, 5))
     n_plots = state_in.shape[1]
-    for dim in range(state_in.shape[1]-1,-1,-1):
+    for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(timestamp, state_in[:, dim], label='state_in')
-        plt.plot(timestamp, state_out[:, dim], label='state_out')
-        plt.plot(timestamp, state_pred[:, dim], label='state_pred')
-        plt.ylabel(f'D{dim}')
+        plt.plot(timestamp, state_in[:, dim], label="state_in")
+        plt.plot(timestamp, state_out[:, dim], label="state_out")
+        plt.plot(timestamp, state_pred[:, dim], label="state_pred")
+        plt.ylabel(f"D{dim}")
         if dim == 0:
-            plt.title('State In & State Out')
+            plt.title("State In & State Out")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
     # Plot control features
-    for dim in range(control.shape[1]-1,-1,-1):
+    for dim in range(control.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(timestamp, control[:, dim], label='control')
+        plt.plot(timestamp, control[:, dim], label="control")
         if dim == 0:
-            plt.title('Control')
+            plt.title("Control")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
     # Plot in single state feature
     plt.figure(figsize=(20, 5))
-    plt.plot(timestamp, state_in[:, 0], label='state_in')
-    plt.plot(timestamp, state_out[:, 0], label='state_out')
-    plt.plot(timestamp, state_pred[:, 0], label='state_pred')
-    plt.grid('on')
-    plt.title('Dim 0 zoom in')
+    plt.plot(timestamp, state_in[:, 0], label="state_in")
+    plt.plot(timestamp, state_out[:, 0], label="state_out")
+    plt.plot(timestamp, state_pred[:, 0], label="state_pred")
+    plt.grid("on")
+    plt.title("Dim 0 zoom in")
     plt.legend()
     plt.xlim(timestamp[0], timestamp[-1])
 
     # Plot computation time
     plt.figure(figsize=(20, 5))
     plt.plot(timestamp, rec_dict["comp_time"])
-    plt.plot([0, rec_dict["comp_time"].shape[0]], \
-             [np.mean(rec_dict['comp_time']), np.mean(rec_dict['comp_time'])], \
-             color='r', label=f"Avg = {np.mean(rec_dict['comp_time']):.4f} ms")
-    plt.xlabel('Simulation time [s]')
-    plt.ylabel('Computation time [ms]')
+    plt.plot(
+        [0, rec_dict["comp_time"].shape[0]],
+        [np.mean(rec_dict["comp_time"]), np.mean(rec_dict["comp_time"])],
+        color="r",
+        label=f"Avg = {np.mean(rec_dict['comp_time']):.4f} ms",
+    )
+    plt.xlabel("Simulation time [s]")
+    plt.ylabel("Computation time [ms]")
     plt.legend()
     plt.grid()
     plt.xlim(timestamp[0], timestamp[-1])
@@ -404,28 +441,28 @@ def plot_trajectory(rec_dict, rtnmpc):
     d2 = diff2 / dt
 
     plt.subplots(figsize=(20, 5))
-    for dim in range(state_in.shape[1]-1,-1,-1):
+    for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 1)
         plt.plot(timestamp, d1[:, dim])
-        plt.ylabel(f'D{dim}')
+        plt.ylabel(f"D{dim}")
         if dim == 0:
-            plt.title('(State Out - State In) / dt')
+            plt.title("(State Out - State In) / dt")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
-    for dim in range(state_in.shape[1]-1,-1,-1):
+    for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(timestamp, d2[:, dim], color='red')
+        plt.plot(timestamp, d2[:, dim], color="red")
         if dim == 0:
-            plt.title('(State Pred - State In) / dt')
+            plt.title("(State Pred - State In) / dt")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
@@ -435,28 +472,28 @@ def plot_trajectory(rec_dict, rtnmpc):
     d4 = diff4 / dt
 
     plt.subplots(figsize=(20, 5))
-    for dim in range(state_in.shape[1]-1,-1,-1):
+    for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 1)
         plt.plot(timestamp, diff3[:, dim])
-        plt.ylabel(f'D{dim}')
+        plt.ylabel(f"D{dim}")
         if dim == 0:
-            plt.title('State Out - State Pred')
+            plt.title("State Out - State Pred")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
-    for dim in range(state_in.shape[1]-1,-1,-1):
+    for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(timestamp, d4[:, dim], color='red')
+        plt.plot(timestamp, d4[:, dim], color="red")
         if dim == 0:
-            plt.title('(State Out - State Pred) / dt')
+            plt.title("(State Out - State Pred) / dt")
             plt.legend()
-        plt.grid('on')
+        plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1]-1:
+        if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
@@ -483,35 +520,35 @@ def plot_trajectory(rec_dict, rtnmpc):
 
         # Plot true labels vs. actual regression
         y_true = (state_out - state_pred) / dt
-        for dim in range(y.shape[1]-1,-1,-1):
-            plt.subplot(y.shape[1], 1, dim+1)
-            plt.plot(timestamp, y[:, dim], label='y_regressed')
-            plt.plot(timestamp, y[:, dim] - y_true[:, dim+3], label='error', color='r', linestyle='--', alpha=0.5)
-            plt.plot(timestamp, y_true[:, dim+3], label='y_true', color="orange")
-            plt.ylabel(f'D{dim}')
+        for dim in range(y.shape[1] - 1, -1, -1):
+            plt.subplot(y.shape[1], 1, dim + 1)
+            plt.plot(timestamp, y[:, dim], label="y_regressed")
+            plt.plot(timestamp, y[:, dim] - y_true[:, dim + 3], label="error", color="r", linestyle="--", alpha=0.5)
+            plt.plot(timestamp, y_true[:, dim + 3], label="y_true", color="orange")
+            plt.ylabel(f"D{dim}")
             if dim == 0:
-                plt.title('(State Out - State Pred) / dt')
+                plt.title("(State Out - State Pred) / dt")
                 plt.legend()
-            plt.grid('on')
+            plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
-            if dim != state_in.shape[1]-1:
+            if dim != state_in.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
 
         # Plot model output
         plt.subplots(figsize=(10, 5))
-        for dim in range(y.shape[1]-1,-1,-1):
-            plt.subplot(y.shape[1], 1, dim+1)
-            plt.plot(timestamp, state_out[:, dim], label='Sim Output')
-            plt.plot(timestamp, state_out[:, dim] + y[:, dim], label='Neural Compensation')
-            plt.plot(timestamp, state_pred[:, dim], label='Undisturbed Output', color='orange')
-            plt.ylabel(f'D{dim}')
+        for dim in range(y.shape[1] - 1, -1, -1):
+            plt.subplot(y.shape[1], 1, dim + 1)
+            plt.plot(timestamp, state_out[:, dim], label="Sim Output")
+            plt.plot(timestamp, state_out[:, dim] + y[:, dim], label="Neural Compensation")
+            plt.plot(timestamp, state_pred[:, dim], label="Undisturbed Output", color="orange")
+            plt.ylabel(f"D{dim}")
             if dim == 0:
-                plt.title('Model Output')
+                plt.title("Model Output")
                 plt.legend()
-            plt.grid('on')
+            plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
-            if dim != y.shape[1]-1:
+            if dim != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
     plt.show()
@@ -521,30 +558,35 @@ def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=N
     """
     Plot the training and validation losses.
     """
-    os.makedirs(os.path.join(save_file_path, 'plot'), exist_ok=True)
+    os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
 
     fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
     ax1 = axs[0]
-    ax1.loglog(total_losses["train"], label=f"Train Loss (final = {total_losses['train'][-1]:.4f})", color='blue')
-    ax1.loglog(total_losses["val"], label=f"Validation Loss (final = {total_losses['val'][-1]:.4f})", color='orange')
+    ax1.loglog(total_losses["train"], label=f"Train Loss (final = {total_losses['train'][-1]:.4f})", color="blue")
+    ax1.loglog(total_losses["val"], label=f"Validation Loss (final = {total_losses['val'][-1]:.4f})", color="orange")
     if "test" in total_losses.keys():
-        ax1.loglog([0, len(total_losses["train"])], [total_losses["test"], total_losses["test"]], label=f"Test Loss = {total_losses['test']:.4f}", color='green')
+        ax1.loglog(
+            [0, len(total_losses["train"])],
+            [total_losses["test"], total_losses["test"]],
+            label=f"Test Loss = {total_losses['test']:.4f}",
+            color="green",
+        )
     # ax1.set_xlim([0, len(total_losses["train"])])
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Loss")
     ax1.set_title(f"Losses")
     ax1.grid()
-    ax1.legend(loc='upper left')
+    ax1.legend(loc="upper left")
     ax1_right = ax1.twinx()
-    ax1_right.plot(learning_rates, label="Learning Rate", color='red', alpha=0.7)
+    ax1_right.plot(learning_rates, label="Learning Rate", color="red", alpha=0.7)
     ax1_right.set_ylabel("Learning Rate")
-    ax1_right.legend(loc='upper right')
+    ax1_right.legend(loc="upper right")
 
     ax2 = axs[1]
     ax2.plot(inference_times)
-    mean  = np.mean(inference_times)
-    ax2.plot([0, len(inference_times)], [mean, mean], label=f"Avg = {mean:.2f} ms", color='red')
+    mean = np.mean(inference_times)
+    ax2.plot([0, len(inference_times)], [mean, mean], label=f"Avg = {mean:.2f} ms", color="red")
     ax2.set_xlim([0, len(inference_times)])
     ax2.set_xlabel("Epochs")
     ax2.set_ylabel("Inference Time (ms)")
@@ -555,39 +597,40 @@ def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=N
     plt.tight_layout()
     plt.show()
     if save_file_path is not None and save_file_name is not None:
-        fig.savefig(os.path.join(save_file_path + '/plot', f'{save_file_name}_plot.png'), dpi=300, bbox_inches='tight')
-    
-def trajectory_tracking_results(t_ref, x_ref, x_executed, u_ref, u_executed, title, w_control=None, legend_labels=None,
-                                quat_error=True):
+        fig.savefig(os.path.join(save_file_path + "/plot", f"{save_file_name}_plot.png"), dpi=300, bbox_inches="tight")
 
+
+def trajectory_tracking_results(
+    t_ref, x_ref, x_executed, u_ref, u_executed, title, w_control=None, legend_labels=None, quat_error=True
+):
     if legend_labels is None:
-        legend_labels = ['reference', 'simulated']
+        legend_labels = ["reference", "simulated"]
 
     with_ref = True if x_ref is not None else False
 
-    fig, ax = plt.subplots(3, 4, sharex='all', figsize=(7, 9))
+    fig, ax = plt.subplots(3, 4, sharex="all", figsize=(7, 9))
 
     SMALL_SIZE = 8
     MEDIUM_SIZE = 10
     BIGGER_SIZE = 12
 
-    plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
-    plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
-    plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
-    plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
-    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+    plt.rc("font", size=SMALL_SIZE)  # controls default text sizes
+    plt.rc("axes", titlesize=SMALL_SIZE)  # fontsize of the axes title
+    plt.rc("axes", labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+    plt.rc("xtick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc("ytick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
+    plt.rc("figure", titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-    labels = ['x', 'y', 'z']
+    labels = ["x", "y", "z"]
     for i in range(3):
         ax[i, 0].plot(t_ref, x_executed[:, i], label=legend_labels[1])
         if with_ref:
             ax[i, 0].plot(t_ref, x_ref[:, i], label=legend_labels[0])
         ax[i, 0].legend()
         ax[i, 0].set_ylabel(labels[i])
-    ax[0, 0].set_title(r'$p\:[m]$')
-    ax[2, 0].set_xlabel(r'$t [s]$')
+    ax[0, 0].set_title(r"$p\:[m]$")
+    ax[2, 0].set_xlabel(r"$t [s]$")
 
     q_euler = np.stack([quaternion_to_euler(x_executed[j, 3:7]) for j in range(x_executed.shape[0])])
     for i in range(3):
@@ -602,61 +645,68 @@ def trajectory_tracking_results(t_ref, x_ref, x_executed, u_ref, u_executed, tit
         for i in range(3):
             ax[i, 1].plot(t_ref, ref_euler[:, i], label=legend_labels[0])
             if quat_error:
-                ax[i, 1].plot(t_ref, q_err[:, i + 1], label='quat error')
+                ax[i, 1].plot(t_ref, q_err[:, i + 1], label="quat error")
     for i in range(3):
         ax[i, 1].legend()
-    ax[0, 1].set_title(r'$\theta\:[rad]$')
-    ax[2, 1].set_xlabel(r'$t [s]$')
+    ax[0, 1].set_title(r"$\theta\:[rad]$")
+    ax[2, 1].set_xlabel(r"$t [s]$")
 
     for i in range(3):
         ax[i, 2].plot(t_ref, x_executed[:, i + 7], label=legend_labels[1])
         if with_ref:
             ax[i, 2].plot(t_ref, x_ref[:, i + 7], label=legend_labels[0])
         ax[i, 2].legend()
-    ax[0, 2].set_title(r'$v\:[m/s]$')
-    ax[2, 2].set_xlabel(r'$t [s]$')
+    ax[0, 2].set_title(r"$v\:[m/s]$")
+    ax[2, 2].set_xlabel(r"$t [s]$")
 
     for i in range(3):
         ax[i, 3].plot(t_ref, x_executed[:, i + 10], label=legend_labels[1])
         if with_ref:
             ax[i, 3].plot(t_ref, x_ref[:, i + 10], label=legend_labels[0])
         if w_control is not None:
-            ax[i, 3].plot(t_ref, w_control[:, i], label='control')
+            ax[i, 3].plot(t_ref, w_control[:, i], label="control")
         ax[i, 3].legend()
-    ax[0, 3].set_title(r'$\omega\:[rad/s]$')
-    ax[2, 3].set_xlabel(r'$t [s]$')
+    ax[0, 3].set_title(r"$\omega\:[rad/s]$")
+    ax[2, 3].set_xlabel(r"$t [s]$")
 
     plt.suptitle(title)
 
     if u_ref is not None and u_executed is not None:
         ax = plt.subplots(1, 4, sharex="all", sharey="all")[1]
         for i in range(4):
-            ax[i].plot(t_ref, u_ref[:, i], label='ref')
-            ax[i].plot(t_ref, u_executed[:, i], label='simulated')
-            ax[i].set_xlabel(r'$t [s]$')
-            tit = 'Control %d' % (i + 1)
+            ax[i].plot(t_ref, u_ref[:, i], label="ref")
+            ax[i].plot(t_ref, u_executed[:, i], label="simulated")
+            ax[i].set_xlabel(r"$t [s]$")
+            tit = "Control %d" % (i + 1)
             ax[i].set_title(tit)
             ax[i].legend()
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    img_save_dir = dir_path + '/../../results/images/'
+    img_save_dir = dir_path + "/../../results/images/"
     safe_mkdir_recursive(img_save_dir, overwrite=False)
-    fig.savefig(img_save_dir + 'mse_exp', dpi=None, facecolor='w', edgecolor='w',
-                orientation='portrait',
-                transparent=False, pad_inches=0.1)
+    fig.savefig(
+        img_save_dir + "mse_exp",
+        dpi=None,
+        facecolor="w",
+        edgecolor="w",
+        orientation="portrait",
+        transparent=False,
+        pad_inches=0.1,
+    )
 
 
-def mse_tracking_experiment_plot(v_max, mse, traj_type_vec, train_samples_vec, legends, y_labels, t_opt=None,
-                                 font_size=16):
-
+def mse_tracking_experiment_plot(
+    v_max, mse, traj_type_vec, train_samples_vec, legends, y_labels, t_opt=None, font_size=16
+):
     # Check if there is the variants dimension in the data
     if len(mse.shape) == 4:
         variants_dim = mse.shape[3]
     else:
         variants_dim = 1
 
-    fig, axes = plt.subplots(variants_dim, len(traj_type_vec), sharex='col', sharey='none',
-                             figsize=(17, 2.5 * variants_dim + 2))
+    fig, axes = plt.subplots(
+        variants_dim, len(traj_type_vec), sharex="col", sharey="none", figsize=(17, 2.5 * variants_dim + 2)
+    )
     if variants_dim == 1 and len(traj_type_vec) > 1:
         axes = axes[np.newaxis, :]
     elif variants_dim == 1:
@@ -670,37 +720,44 @@ def mse_tracking_experiment_plot(v_max, mse, traj_type_vec, train_samples_vec, l
             for i, _ in enumerate(train_samples_vec):
                 mse_data = mse[seed_id, :, i, j] if len(mse.shape) == 4 else mse[seed_id, :, i]
                 label = legends[i] if seed_id == 0 and j == 0 else None
-                if legends[i] == 'perfect':
-                    axes[j, seed_id].plot(v_max[seed_id, :], mse_data, '--o', linewidth=4, label=label)
+                if legends[i] == "perfect":
+                    axes[j, seed_id].plot(v_max[seed_id, :], mse_data, "--o", linewidth=4, label=label)
                 else:
-                    axes[j, seed_id].plot(v_max[seed_id, :], mse_data, '--o', label=label)
+                    axes[j, seed_id].plot(v_max[seed_id, :], mse_data, "--o", label=label)
             if seed_id == 0:
                 axes[j, seed_id].set_ylabel(y_labels[j], size=font_size)
             if j == 0:
-                axes[j, seed_id].set_title('RMSE [m] | ' + str(track_seed), size=font_size+2)
+                axes[j, seed_id].set_title("RMSE [m] | " + str(track_seed), size=font_size + 2)
 
             axes[j, seed_id].grid()
             axes[j, seed_id].tick_params(labelsize=font_size)
 
-        axes[variants_dim - 1, seed_id].set_xlabel('max vel [m/s]', size=font_size)
+        axes[variants_dim - 1, seed_id].set_xlabel("max vel [m/s]", size=font_size)
 
     legend_cols = len(train_samples_vec)
-    fig.legend(loc="upper center", fancybox=True, borderaxespad=0.05, ncol=legend_cols, mode="expand",
-               fontsize=font_size - 4)
+    fig.legend(
+        loc="upper center", fancybox=True, borderaxespad=0.05, ncol=legend_cols, mode="expand", fontsize=font_size - 4
+    )
     plt.tight_layout(h_pad=1.4)
     plt.subplots_adjust(top=0.7 + 0.05 * variants_dim)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    img_save_dir = dir_path + '/../../results/images/'
+    img_save_dir = dir_path + "/../../results/images/"
     safe_mkdir_recursive(img_save_dir, overwrite=False)
 
     try:
         tikzplotlib.save(img_save_dir + "mse.tex")
     except:
         pass
-    fig.savefig(img_save_dir + 'mse', dpi=None, facecolor='w', edgecolor='w',
-                orientation='portrait',
-                transparent=False, pad_inches=0.1)
+    fig.savefig(
+        img_save_dir + "mse",
+        dpi=None,
+        facecolor="w",
+        edgecolor="w",
+        orientation="portrait",
+        transparent=False,
+        pad_inches=0.1,
+    )
 
     if t_opt is None:
         return
@@ -711,19 +768,26 @@ def mse_tracking_experiment_plot(v_max, mse, traj_type_vec, train_samples_vec, l
     fig = plt.figure(figsize=(17, 4.5))
     for i, n_train in enumerate(train_samples_vec):
         plt.plot(v[ind_v], t_opt.reshape(t_opt.shape[0] * t_opt.shape[1], -1)[ind_v, i], label=legends[i])
-    fig.legend(loc="upper center", fancybox=True, borderaxespad=0.05, ncol=legend_cols, mode="expand",
-               fontsize=font_size)
-    plt.ylabel('Mean MPC loop time (s)', fontsize=font_size)
-    plt.xlabel('Max vel [m/s]', fontsize=font_size)
+    fig.legend(
+        loc="upper center", fancybox=True, borderaxespad=0.05, ncol=legend_cols, mode="expand", fontsize=font_size
+    )
+    plt.ylabel("Mean MPC loop time (s)", fontsize=font_size)
+    plt.xlabel("Max vel [m/s]", fontsize=font_size)
 
     try:
         tikzplotlib.save(img_save_dir + "t_opt.tex")
     except:
         pass
-    fig.savefig(img_save_dir + 't_opt', dpi=None, facecolor='w', edgecolor='w',
-                orientation='portrait',
-                transparent=False, bbox_inches=None, pad_inches=0.1)
-
+    fig.savefig(
+        img_save_dir + "t_opt",
+        dpi=None,
+        facecolor="w",
+        edgecolor="w",
+        orientation="portrait",
+        transparent=False,
+        bbox_inches=None,
+        pad_inches=0.1,
+    )
 
 
 # def draw_covariance_ellipsoid(center, covar):

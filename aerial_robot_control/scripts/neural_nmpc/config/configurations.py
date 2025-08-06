@@ -20,10 +20,10 @@ class DirectoryConfig:
     """
 
     _dir_path = os.path.dirname(os.path.realpath(__file__))
-    SAVE_DIR = _dir_path + '/../results/model_fitting'
-    RESULTS_DIR = _dir_path + '/../results'
-    CONFIG_DIR = _dir_path + ''
-    DATA_DIR = _dir_path + '/../data'
+    SAVE_DIR = _dir_path + "/../results/model_fitting"
+    RESULTS_DIR = _dir_path + "/../results"
+    CONFIG_DIR = _dir_path + ""
+    DATA_DIR = _dir_path + "/../data"
 
 
 class EnvConfig:
@@ -32,25 +32,25 @@ class EnvConfig:
     """
 
     model_options = {
-            "model_name": "standard_nmpc",
-            "arch_type": "qd", # or "bi" or "tri"
-            "nmpc_type": "NMPCTiltQdServo",
-            #    NMPCFixQdAngvelOut
-            #    NMPCFixQdThrustOut
-            #    NMPCTiltQdNoServo
-            #    NMPCTiltQdServo
-            #    NMPCTiltQdServoDist
-            #    NMPCTiltQdServoImpedance
-            #    NMPCTiltQdServoThrustDist
-            #    NMPCTiltQdServoThrustImpedance
-            #    NMPCTiltTriServo
-            #    NMPCTiltBiServo
-            #    NMPCTiltBi2OrdServo
-            #    MHEWrenchEstAccMom
-            "only_use_nominal": True,
-            "end_to_end_mlp": False,
-            "neural_model_name": "naive_residual_mlp", # "naive_e2e_mlp" or "naive_residual_mlp" or "approximated_mlp"
-            "neural_model_instance": "neuralmodel_016",
+        "model_name": "standard_nmpc",
+        "arch_type": "qd",  # or "bi" or "tri"
+        "nmpc_type": "NMPCTiltQdServo",
+        #    NMPCFixQdAngvelOut
+        #    NMPCFixQdThrustOut
+        #    NMPCTiltQdNoServo
+        #    NMPCTiltQdServo
+        #    NMPCTiltQdServoDist
+        #    NMPCTiltQdServoImpedance
+        #    NMPCTiltQdServoThrustDist
+        #    NMPCTiltQdServoThrustImpedance
+        #    NMPCTiltTriServo
+        #    NMPCTiltBiServo
+        #    NMPCTiltBi2OrdServo
+        #    MHEWrenchEstAccMom
+        "only_use_nominal": False,
+        "end_to_end_mlp": False,
+        "neural_model_name": "naive_residual_temporal_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
+        "neural_model_instance": "neuralmodel_008",
     }
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
@@ -60,32 +60,30 @@ class EnvConfig:
         "terminal_cost": True,
     }
 
-    dataset_options = {
-            "ds_name_suffix": "residual_dataset"
-    }
+    dataset_options = {"ds_name_suffix": "residual_dataset"}
     sim_options = {
-            # Choice of disturbances modeled in our Simplified Simulator. For more details about the parameters used refer to
-            # the script: src/quad_mpc/quad_3d.py.
-            # TODO actually implement the disturbances in NMPC and network
-            "disturbances": {
-                "cog_dist": True,                    # Disturbance forces and torques on CoG
-                "motor_noise": True,                 # Asymmetric voltage noise in the motors
-                "drag": False,                       # 2nd order polynomial aerodynamic drag effect
-                "payload": False,                    # Payload force in the Z axis
-            },
-            "max_sim_time": 30,
-            "world_radius": 3,
-            "seed": 678,
+        # Choice of disturbances modeled in our Simplified Simulator. For more details about the parameters used refer to
+        # the script: src/quad_mpc/quad_3d.py.
+        # TODO actually implement the disturbances in NMPC and network
+        "disturbances": {
+            "cog_dist": True,  # Disturbance forces and torques on CoG
+            "motor_noise": False,  # Asymmetric voltage noise in the motors
+            "drag": False,  # 2nd order polynomial aerodynamic drag effect
+            "payload": False,  # Payload force in the Z axis
+        },
+        "max_sim_time": 30,
+        "world_radius": 3,
+        "seed": 678,
     }
     run_options = {
-            "preset_targets": None,
-            "initial_state": None,
-            "initial_guess": None,
-            "aggressive": True,  # TODO for now always use aggressive targets
-            "recording": False,
-            "plot_traj": True,
-            "real_time_plot": False,
-            "save_animation": False,
+        "preset_targets": None,
+        "initial_state": None,
+        "initial_guess": None,
+        "aggressive": True,  # TODO for now always use aggressive targets
+        "recording": False,
+        "plot_traj": True,
+        "real_time_plot": False,
+        "save_animation": False,
     }
 
     ################################################################
@@ -102,23 +100,27 @@ class EnvConfig:
 
 class MLPConfig:
     # Use naive implementation of MLP using torch
-    model_name = "naive_residual_mlp"
+    model_name = "naive_residual_temporal_mlp"
+    # model_name = "naive_residual_mlp"
     # model_name = "naive_e2e_mlp"
 
     # Use propietary RTNMPC library for approximated MLP
     # model_name = "approximated_mlp"
 
+    # Delay horizon for temporal networks
+    delay_horizon = 10  # Number of time steps into the past to consider (set to 0 to only use current state)
+
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64, 64, 64] # In_features of each hidden layer
+    hidden_sizes = [64, 64, 64, 64]  # In_features of each hidden layer
 
     # Activation function
-    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "Tanh", "Sigmoid"
+    activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
     use_batch_norm = True
 
     # Use dropout after each layer
-    dropout_p = 0.0     # To disable dropout, set to 0.0
+    dropout_p = 0.0  # To disable dropout, set to 0.0
 
     # -----------------------------------------------------------------------------------------
 
@@ -133,7 +135,7 @@ class MLPConfig:
 
     # Learning rate
     learning_rate = 1e-2
-    lr_scheduler = "ReduceLROnPlateau" # "ReduceLROnPlateau", "LRScheduler", None
+    lr_scheduler = "ReduceLROnPlateau"  # "ReduceLROnPlateau", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
@@ -142,25 +144,26 @@ class MLPConfig:
 
     # Histogram pruning parameters
     histogram_n_bins = 40
-    histogram_thresh = 0.005    # Remove bins where the total ratio of data is lower than threshold
-    vel_cap = 16                # Remove datapoints where abs(velocity) > vel_cap
+    histogram_thresh = 0.005  # Remove bins where the total ratio of data is lower than threshold
+    vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
+
 
 class ModelFitConfig:
     # ------- Dataset loading -------
     ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset"
-            #    NMPCFixQdAngvelOut
-            #    NMPCFixQdThrustOut
-            #    NMPCTiltQdNoServo
-            #    NMPCTiltQdServo
-            #    NMPCTiltQdServoDist
-            #    NMPCTiltQdServoImpedance
-            #    NMPCTiltQdServoThrustDist
-            #    NMPCTiltQdServoThrustImpedance
-            #    NMPCTiltTriServo
-            #    NMPCTiltBiServo
-            #    NMPCTiltBi2OrdServo
-            #    MHEWrenchEstAccMom
-    ds_instance = "dataset_001"
+    #    NMPCFixQdAngvelOut
+    #    NMPCFixQdThrustOut
+    #    NMPCTiltQdNoServo
+    #    NMPCTiltQdServo
+    #    NMPCTiltQdServoDist
+    #    NMPCTiltQdServoImpedance
+    #    NMPCTiltQdServoThrustDist
+    #    NMPCTiltQdServoThrustImpedance
+    #    NMPCTiltTriServo
+    #    NMPCTiltBiServo
+    #    NMPCTiltBi2OrdServo
+    #    MHEWrenchEstAccMom
+    ds_instance = "dataset_002"
 
     # ------- Features used for the model -------
     # State features
@@ -233,6 +236,7 @@ class GroundEffectMapConfig:
     """
     Class for storing parameters for the ground effect map.
     """
+
     resolution = 0.1
     origin = (-4, 9)
     horizon = ((-7, 7), (-7, 7))

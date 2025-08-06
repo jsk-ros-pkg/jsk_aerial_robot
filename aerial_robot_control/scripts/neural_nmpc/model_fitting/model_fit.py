@@ -8,9 +8,10 @@ from progress_table import ProgressTable
 from torchsummary import summary
 
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import ml_casadi.torch as mc    # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
+import ml_casadi.torch as mc  # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
 
 from dataset import TrajectoryDataset
 from network_architecture.naive_mlp import NaiveMLP
@@ -35,9 +36,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Set save path and populate metadata ===
     if save or plot:
-        save_file_path, save_file_name = \
-            get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name, 
-                                   state_feats, u_feats, y_reg_dims)
+        save_file_path, save_file_name = get_model_dir_and_file(
+            ds_name, ds_instance, MLPConfig.model_name, state_feats, u_feats, y_reg_dims
+        )
 
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)
@@ -50,16 +51,25 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         mode = "e2e"
     else:
         raise ValueError(f"Unsupported model name: {MLPConfig.model_name}")
-    dataset = TrajectoryDataset(df, mode,
-                                state_feats, u_feats, y_reg_dims,
-                                histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
-                                histogram_pruning_thresh=MLPConfig.histogram_thresh,
-                                vel_cap=MLPConfig.vel_cap,
-                                plot=False, save_file_path=save_file_path,
-                                save_file_name=save_file_name)
+    dataset = TrajectoryDataset(
+        df,
+        mode,
+        MLPConfig.delay_horizon,
+        state_feats,
+        u_feats,
+        y_reg_dims,
+        histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
+        histogram_pruning_thresh=MLPConfig.histogram_thresh,
+        vel_cap=MLPConfig.vel_cap,
+        plot=False,
+        save_file_path=save_file_path,
+        save_file_name=save_file_name,
+    )
     in_dim = dataset.x.shape[1]
     out_dim = dataset.y.shape[1]
-    sanity_check_features_and_reg_dims(state_feats, u_feats, y_reg_dims, in_dim, out_dim)
+    sanity_check_features_and_reg_dims(
+        MLPConfig.model_name, state_feats, u_feats, y_reg_dims, in_dim, out_dim, MLPConfig.delay_horizon
+    )
 
     train_size = int(0.8 * len(dataset))
     if test:
@@ -69,34 +79,40 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         val_size = len(dataset) - train_size
         test_size = 0
 
-    train_dataset, val_dataset, test_dataset = \
-        random_split(dataset, [train_size, val_size, test_size])
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # === Dataloaders ===
-    train_dataloader, val_dataloader, test_dataloader = \
-        get_dataloaders(train_dataset, val_dataset, test_dataset,
-                        batch_size=MLPConfig.batch_size,
-                        num_workers=MLPConfig.num_workers)
+    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
+        train_dataset, val_dataset, test_dataset, batch_size=MLPConfig.batch_size, num_workers=MLPConfig.num_workers
+    )
 
     # === Neural Network ===
     if "approximated" in MLPConfig.model_name:
         # TODO implement batch normalization and dropout?
         # TODO combine and call it "ApproximatedMLP"
-        base_mlp = mc.nn.MultiLayerPerceptron(in_dim, MLPConfig.hidden_sizes[0],
-                                         out_dim, len(MLPConfig.hidden_sizes),
-                                         activation=MLPConfig.activation)
-        model = NormalizedMLP(base_mlp,
-                              torch.tensor(dataset.x_mean), torch.tensor(dataset.x_std),
-                              torch.tensor(dataset.y_mean), torch.tensor(dataset.y_std)
-                ).to(device)
+        base_mlp = mc.nn.MultiLayerPerceptron(
+            in_dim, MLPConfig.hidden_sizes[0], out_dim, len(MLPConfig.hidden_sizes), activation=MLPConfig.activation
+        )
+        model = NormalizedMLP(
+            base_mlp,
+            torch.tensor(dataset.x_mean),
+            torch.tensor(dataset.x_std),
+            torch.tensor(dataset.y_mean),
+            torch.tensor(dataset.y_std),
+        ).to(device)
     else:
-        model = NaiveMLP(in_dim, MLPConfig.hidden_sizes, out_dim,
-                         activation=MLPConfig.activation,
-                         use_batch_norm=MLPConfig.use_batch_norm,
-                         dropout_p=MLPConfig.dropout_p,
-                         x_mean=torch.tensor(dataset.x_mean), x_std=torch.tensor(dataset.x_std),
-                         y_mean=torch.tensor(dataset.y_mean), y_std=torch.tensor(dataset.y_std)
-                ).to(device)
+        model = NaiveMLP(
+            in_dim,
+            MLPConfig.hidden_sizes,
+            out_dim,
+            activation=MLPConfig.activation,
+            use_batch_norm=MLPConfig.use_batch_norm,
+            dropout_p=MLPConfig.dropout_p,
+            x_mean=torch.tensor(dataset.x_mean),
+            x_std=torch.tensor(dataset.x_std),
+            y_mean=torch.tensor(dataset.y_mean),
+            y_std=torch.tensor(dataset.y_std),
+        ).to(device)
     print(model)
     summary(model, (in_dim,))
 
@@ -107,10 +123,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
     if MLPConfig.lr_scheduler is not None:
         if MLPConfig.lr_scheduler == "ReduceLROnPlateau":
-            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                                      factor=0.1,
-                                                                      threshold=0.005,
-                                                                      patience=5)
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, factor=0.1, threshold=0.005, patience=20
+            )
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -127,7 +142,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         # pbar_style_embed="rich",
         pbar_style="rich",
         # pbar_style="angled alt red blue",
-        num_decimal_places=6
+        num_decimal_places=6,
     )
 
     table.add_column("Epoch", color="white", width=13)
@@ -148,27 +163,27 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         val_losses, inference_time = inference(val_dataloader, model, loss_fn, device, table=table)
         total_losses["val"].append(val_losses)
         inference_times.append(inference_time)
-        table.next_row()
 
         # === Schedule learning rate ===
         if MLPConfig.lr_scheduler is not None:
             # lr_scheduler.step(train_losses)
             lr_scheduler.step(val_losses)
-        learning_rates.append(optimizer.param_groups[0]['lr'])
+        learning_rates.append(optimizer.param_groups[0]["lr"])
         table["Learning Rate"] = learning_rates[-1]
+        table.next_row()
 
         # === Save model ===
         if save:
             save_dict = {
-                'state_dict': model.state_dict(),
-                'input_size': in_dim,
-                'hidden_sizes': MLPConfig.hidden_sizes,
-                'output_size': out_dim,
-                'activation': MLPConfig.activation,
-                'use_batch_norm': MLPConfig.use_batch_norm,
-                'dropout_p': MLPConfig.dropout_p
+                "state_dict": model.state_dict(),
+                "input_size": in_dim,
+                "hidden_sizes": MLPConfig.hidden_sizes,
+                "output_size": out_dim,
+                "activation": MLPConfig.activation,
+                "use_batch_norm": MLPConfig.use_batch_norm,
+                "dropout_p": MLPConfig.dropout_p,
             }
-            torch.save(save_dict, os.path.join(save_file_path, f'{save_file_name}.pt'))
+            torch.save(save_dict, os.path.join(save_file_path, f"{save_file_name}.pt"))
     table.close()
     print("Training Finished!")
 
@@ -178,16 +193,15 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         total_losses["test"] = test_losses
 
     # === Store metrics ===
-    log_metrics(total_losses, inference_times, learning_rates,
-                save_file_path, save_file_name)
+    log_metrics(total_losses, inference_times, learning_rates, save_file_path, save_file_name)
     if save:
         print(f"Model saved to results/{MLPConfig.model_name}/{save_file_name}.pt")
 
     # === Plotting ===
     if plot:
-        plot_fitting(total_losses, inference_times, learning_rates,
-                     save_file_path, save_file_name)
+        plot_fitting(total_losses, inference_times, learning_rates, save_file_path, save_file_name)
         halt = 1
+
 
 def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_workers=0):
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=False, num_workers=num_workers)
@@ -195,22 +209,25 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=False, num_workers=num_workers)
     return train_dataloader, val_dataloader, test_dataloader
 
+
 def loss_function(y, y_pred):
     return torch.square(y - y_pred).mean()
+
 
 def get_optimizer(model, learning_rate):
     optimizer_class = getattr(torch.optim, MLPConfig.optimizer)
     return optimizer_class(model.parameters(), lr=learning_rate)
 
+
 def train(dataloader, model, loss_fn, optimizer, device, table):
     size = len(dataloader.dataset)
     model.train()
-    loss_avg= 0.0
+    loss_avg = 0.0
     mov_size = 0
-    for x, y in table(dataloader, total=MLPConfig.num_epochs, description="Epoch"):
+    for x, y in dataloader:
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        
+
         # === Forward pass ===
         y_pred = model(x)
 
@@ -254,11 +271,11 @@ def inference(dataloader, model, loss_fn, device, table=None, validation=True):
             batch_size = x.shape[0]
             prev_mov_size = mov_size
             mov_size += batch_size
-            loss_avg = (loss_avg*prev_mov_size + loss * batch_size) / mov_size
+            loss_avg = (loss_avg * prev_mov_size + loss * batch_size) / mov_size
             if validation:
                 table["Val Loss"] = loss_avg
             # TODO implement some form of accuracy metric
-    time_avg = np.mean(inference_times) * 1000 # in ms
+    time_avg = np.mean(inference_times) * 1000  # in ms
     if validation:
         table["Inference Time"] = f"{time_avg:.2f} ms"
     else:
@@ -266,5 +283,5 @@ def inference(dataloader, model, loss_fn, device, table=None, validation=True):
     return loss_avg, time_avg
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(test=True, plot=True, save=True)
