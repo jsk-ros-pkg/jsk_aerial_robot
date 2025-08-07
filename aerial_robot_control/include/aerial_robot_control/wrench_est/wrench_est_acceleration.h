@@ -21,7 +21,7 @@ public:
   {
     WrenchEstActuatorMeasBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
 
-    ros::NodeHandle accel_nh(nh_, "controller/accel_observer");
+    ros::NodeHandle accel_nh(nh_, "controller/wrench_est/accel_observer");
 
     accel_nh.getParam("thrust_type", thrust_type_);
 
