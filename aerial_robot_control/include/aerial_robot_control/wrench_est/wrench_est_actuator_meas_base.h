@@ -338,7 +338,7 @@ protected:
     dist_wrench_coeff.wrench.torque.x = coeff_torque_[0].getValue();
     dist_wrench_coeff.wrench.torque.y = coeff_torque_[1].getValue();
     dist_wrench_coeff.wrench.torque.z = coeff_torque_[2].getValue();
-    dist_wrench_coeff.header.frame_id = "beetle1/cog";
+    dist_wrench_coeff.header.frame_id = nh_.getNamespace() + "/cog";
     pub_disturb_wrench_coeff_.publish(dist_wrench_coeff);
   }
 
