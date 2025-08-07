@@ -80,6 +80,10 @@ void nmpc::TiltMtServoNMPC::activate()
   if (is_print_phys_params_)
     printPhysicalParams();
 
+  // make takeoff slow
+  modifyVelConstraints(-vel_limit_takeoff_, vel_limit_takeoff_);
+  has_restored_vel_ = false;  // reset the flag, so that we can restore the velocity after hovering
+
   /* also for some commands that should be sent after takeoff */
   // enable imu sending, only works in simulation. TODO: check its compatibility with real robot
   spinal::FlightConfigCmd flight_config_cmd;
@@ -104,21 +108,23 @@ void nmpc::TiltMtServoNMPC::reset()
 
   resetPlugins();
 
-  /* reset controller using odom */
-  std::vector<double> x_vec = meas2VecX();
+  // reset x_u_ref_
+  std::vector<double> x_vec_ee = meas2VecX(true);
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);
 
-  // reset x_u_ref_
   int &NX = mpc_solver_ptr_->NX_, &NU = mpc_solver_ptr_->NU_, &NN = mpc_solver_ptr_->NN_;
   for (int i = 0; i < mpc_solver_ptr_->NN_; i++)
   {
-    std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * i);
+    std::copy(x_vec_ee.begin(), x_vec_ee.begin() + NX, x_u_ref_.x.data.begin() + NX * i);
     std::copy(u_vec.begin(), u_vec.begin() + NU, x_u_ref_.u.data.begin() + NU * i);
   }
-  std::copy(x_vec.begin(), x_vec.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
+  std::copy(x_vec_ee.begin(), x_vec_ee.begin() + NX, x_u_ref_.x.data.begin() + NX * NN);
 
   // reset mpc solver
-  mpc_solver_ptr_->resetByX0U0(x_vec, u_vec);
+  mpc_solver_ptr_->resetXrUrByX0U0(x_vec_ee, u_vec);
+
+  std::vector<double> x_vec = meas2VecX();
+  mpc_solver_ptr_->resetSolverByX0U0(x_vec, u_vec);
 
   /* reset control input */
   flight_cmd_.base_thrust = std::vector<float>(motor_num_, 0.0);
@@ -143,7 +149,9 @@ void nmpc::TiltMtServoNMPC::initGeneralParams()
 
   getParam<int>(alloc_nh, "type", alloc_type_, 0);
   getParam<double>(alloc_nh, "ft_thresh", ft_thresh_, 0.5);
-  assert(ft_thresh_ > 0.0);  // used to calculate angle in singularity pose
+  if (ft_thresh_ <= 0.0)
+    throw std::runtime_error(
+        "ft_thresh must be greater than zero! Please set a positive value for ft_thresh in the parameter server.");
 
   getParam<int>(physical_nh, "num_servos", joint_num_, 0);
   getParam<double>(physical_nh, "t_servo", t_servo_, 0.01);
@@ -209,15 +217,18 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
 
-  double body_rate_max, body_rate_min, vel_max, vel_min;
+  double body_rate_max, body_rate_min;
   getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
   getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
-  getParam<double>(nmpc_nh, "v_max", vel_max, 1.0);
-  getParam<double>(nmpc_nh, "v_min", vel_min, -1.0);
+  getParam<double>(nmpc_nh, "v_max", vel_max_, 1.0);
+  getParam<double>(nmpc_nh, "v_min", vel_min_, -1.0);
   getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
   getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
   getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
   getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
+
+  //  TODO: this should be set in flight_navigation; don't know why set 0.2 results solver failure
+  getParam<double>(control_nh, "vel_limit_takeoff", vel_limit_takeoff_, 1.0);  // m/s
 
   // lbx and ubx
   std::vector<int> idxbx = mpc_solver_ptr_->getConstraintsIdxbx();
@@ -232,8 +243,8 @@ void nmpc::TiltMtServoNMPC::initNMPCConstraints()
     ROS_ERROR("idxbx is not equal to idxbx_desired, we cannot set constraints lbx and ubx!");
   }
 
-  std::vector<double> lbx = { vel_min, vel_min, vel_min, body_rate_min, body_rate_min, body_rate_min };
-  std::vector<double> ubx = { vel_max, vel_max, vel_max, body_rate_max, body_rate_max, body_rate_max };
+  std::vector<double> lbx = { vel_min_, vel_min_, vel_min_, body_rate_min, body_rate_min, body_rate_min };
+  std::vector<double> ubx = { vel_max_, vel_max_, vel_max_, body_rate_max, body_rate_max, body_rate_max };
   lbx.resize(6 + joint_num_);
   ubx.resize(6 + joint_num_);
   for (int i = 0; i < joint_num_; i++)
@@ -386,6 +397,38 @@ void nmpc::TiltMtServoNMPC::updateInertialParams()
   inertia_[2] = inertia_mtx(2, 2);
 }
 
+void nmpc::TiltMtServoNMPC::modifyVelConstraints(double vel_min, double vel_max) const
+{
+  // Hardcoded: the vel idx is 3,4,5, which are the first three elements. TODO: consider to make it more general
+
+  std::vector<double> lbx = mpc_solver_ptr_->getConstraintsLbx();
+  lbx[0] = vel_min;
+  lbx[1] = vel_min;
+  lbx[2] = vel_min;
+  mpc_solver_ptr_->setConstraintsLbx(lbx);
+
+  std::vector<double> lbxe = mpc_solver_ptr_->getConstraintsLbxe();
+  lbxe[0] = vel_min;
+  lbxe[1] = vel_min;
+  lbxe[2] = vel_min;
+  mpc_solver_ptr_->setConstraintsLbxe(lbxe);
+
+  std::vector<double> ubx = mpc_solver_ptr_->getConstraintsUbx();
+  ubx[0] = vel_max;
+  ubx[1] = vel_max;
+  ubx[2] = vel_max;
+  mpc_solver_ptr_->setConstraintsUbx(ubx);
+
+  std::vector<double> ubxe = mpc_solver_ptr_->getConstraintsUbxe();
+  ubxe[0] = vel_max;
+  ubxe[1] = vel_max;
+  ubxe[2] = vel_max;
+  mpc_solver_ptr_->setConstraintsUbxe(ubxe);
+
+  ROS_INFO("Velocity constraints modified: [%f, %f, %f] for lbx and [%f, %f, %f] for ubx", lbx[0], lbx[1], lbx[2],
+           ubx[0], ubx[1], ubx[2]);
+}
+
 std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
 {
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
@@ -433,6 +476,13 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
 
 void nmpc::TiltMtServoNMPC::controlCore()
 {
+  // restore velocity constraints after hovering
+  if (navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE and has_restored_vel_ == false)
+  {
+    modifyVelConstraints(vel_min_, vel_max_);
+    has_restored_vel_ = true;
+  }
+
   prepareNMPCRef();
 
   prepareNMPCParams();
@@ -884,9 +934,9 @@ void nmpc::TiltMtServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& ms
 void nmpc::TiltMtServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   /* failsafe check */
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
   {
-    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    ROS_WARN_THROTTLE(1, "The robot has not hovered, so the reference trajectory will be ignored!");
     return;
   }
 
@@ -910,9 +960,9 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
   if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
     ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
 
-  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
   {
-    ROS_WARN_THROTTLE(1, "The robot is taking off, so the reference trajectory will be ignored!");
+    ROS_WARN_THROTTLE(1, "The robot has not hovered, so the reference trajectory will be ignored!");
     return;
   }
 
@@ -1067,7 +1117,7 @@ void nmpc::TiltMtServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
   }
 }
 
-double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon)
+double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon) const
 {
   if (T_horizon == 0)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
@@ -1076,7 +1126,7 @@ double nmpc::TiltMtServoNMPC::getCommand(int idx_u, double T_horizon)
          T_horizon / t_nmpc_step_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
-std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
+std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX(bool is_ee_centric)
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
 
@@ -1095,8 +1145,23 @@ std::vector<double> nmpc::TiltMtServoNMPC::meas2VecX()
   }
 
   quat_prev_ = quat;
-  // =========================
 
+  // === for reference, we may need to convert the position and velocity to the end-effector frame ===
+  if (is_ee_centric)
+  {
+    // convert the position and velocity from CoG to end-effector frame
+    tf::Vector3 target_pos, target_ee_vel, target_ee_omega;
+    tf::Quaternion target_ee_quat;
+    robot_model_->convertFromCoGToEEContact(pos, vel, quat, ang_vel, target_pos, target_ee_vel, target_ee_quat,
+                                            target_ee_omega);
+
+    pos = target_pos;
+    vel = target_ee_vel;
+    quat = target_ee_quat;
+    ang_vel = target_ee_omega;
+  }
+
+  // === fill the vector ===
   bx0[0] = pos.x();
   bx0[1] = pos.y();
   bx0[2] = pos.z();
