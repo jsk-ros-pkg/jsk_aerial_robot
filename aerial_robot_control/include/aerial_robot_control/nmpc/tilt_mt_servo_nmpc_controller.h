@@ -120,6 +120,10 @@ protected:
   bool is_set_fix_rotor_ = false;
   aerial_robot_msgs::FixRotor fix_rotor_msg_;
 
+  // For different vel during takeoff and landing
+  bool has_restored_vel_ = false;  // whether the velocity is restored to set value when hovering
+  double vel_max_, vel_min_, vel_limit_takeoff_;
+
   /* initialize() */
   virtual void initPlugins() {};
   virtual void initGeneralParams();
@@ -136,6 +140,8 @@ protected:
   virtual void initNMPCParams();
   void updateInertialParams();
   std::vector<double> PhysToNMPCParams() const;
+
+  void modifyVelConstraints(double vel_min, double vel_max) const;
 
   /* update() */
   void controlCore() override;
@@ -164,10 +170,15 @@ protected:
 
   /* utils */
   // get functions
-  double getCommand(int idx_u, double T_horizon = 0.0);
+  double getCommand(int idx_u, double T_horizon = 0.0) const;
 
   // conversion functions
-  std::vector<double> meas2VecX() override;
+  std::vector<double> meas2VecX() override
+  {
+    return meas2VecX(false);
+  }
+
+  virtual std::vector<double> meas2VecX(bool is_ee_centric);
 
   // ensure the continuity of servo angles
   double ensureOneServoContinuity(double a_ref, int idx) const;
@@ -177,7 +188,7 @@ protected:
   void printPhysicalParams();
 
   // check functions
-  inline bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
+  static bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)
   {
     return std::fabs(a - b) < epsilon;
   }
