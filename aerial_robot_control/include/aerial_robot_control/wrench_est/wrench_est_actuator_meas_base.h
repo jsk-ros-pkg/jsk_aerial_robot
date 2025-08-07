@@ -283,6 +283,31 @@ protected:
   Eigen::Vector3d calib_offset_force_w_{ Eigen::Vector3d::Zero() };     // offset estimated force in world frame
   Eigen::Vector3d calib_offset_torque_cog_{ Eigen::Vector3d::Zero() };  // offset estimated torque in cog frame
 
+  // --- limit ---
+  std::vector<double> ext_force_limit_{ 0.0, 0.0, 0.0 };   // force limit in world frame
+  std::vector<double> ext_torque_limit_{ 0.0, 0.0, 0.0 };  // torque limit in cog frame
+
+  // --- threshold function ---
+  // We use sigmoid function right now
+  std::vector<Sigmoid> coeff_force_{ 3 };
+  std::vector<Sigmoid> coeff_torque_{ 3 };
+
+  ros::Publisher pub_disturb_wrench_coeff_;
+
+  // for servo angles
+  ros::Subscriber sub_joint_states_;
+  std::vector<double> joint_angles_;
+
+  // for actual thrust
+  std::vector<double> thrust_meas_;
+  ros::Subscriber sub_esc_telem_;
+  double krpm_square_to_thrust_ratio_;
+  double krpm_square_to_thrust_bias_;
+
+  // for thrust cmd (use this value may be more stable than actual thrust)
+  std::vector<double> thrust_cmd_;
+  ros::Subscriber sub_thrust_cmd_;
+
   // called when entering a new state.
   void enter(State next)
   {
@@ -301,17 +326,6 @@ protected:
     wrench_est_nh.setParam("state", static_cast<int>(state_));
   }
 
-  // --- limit ---
-  std::vector<double> ext_force_limit_{ 0.0, 0.0, 0.0 };   // force limit in world frame
-  std::vector<double> ext_torque_limit_{ 0.0, 0.0, 0.0 };  // torque limit in cog frame
-
-  // --- threshold function ---
-  // We use sigmoid function right now
-  std::vector<Sigmoid> coeff_force_{ 3 };
-  std::vector<Sigmoid> coeff_torque_{ 3 };
-
-  ros::Publisher pub_disturb_wrench_coeff_;
-
   void cbPubDistWrench(const ros::TimerEvent& event) const override
   {
     WrenchEstBase::cbPubDistWrench(event);
@@ -328,22 +342,12 @@ protected:
     pub_disturb_wrench_coeff_.publish(dist_wrench_coeff);
   }
 
-  // for servo angles
-  std::vector<double> joint_angles_;
-
-  ros::Subscriber sub_joint_states_;
   void callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
   {
     for (int i = 0; i < robot_model_->getJointNum(); i++)
       joint_angles_[i] = msg->position[i];
   }
 
-  // for actual thrust
-  std::vector<double> thrust_meas_;
-
-  ros::Subscriber sub_esc_telem_;
-  double krpm_square_to_thrust_ratio_;
-  double krpm_square_to_thrust_bias_;
   void callbackESCTelem(const spinal::ESCTelemetryArrayConstPtr& msg)
   {
     double krpm;
@@ -360,10 +364,6 @@ protected:
     thrust_meas_[3] = krpm * krpm * krpm_square_to_thrust_ratio_ + krpm_square_to_thrust_bias_;
   }
 
-  // for thrust cmd (use this value may be more stable than actual thrust)
-  std::vector<double> thrust_cmd_;
-
-  ros::Subscriber sub_thrust_cmd_;
   void callbackFourAxisCmd(const spinal::FourAxisCommandConstPtr& msg)
   {
     thrust_cmd_[0] = msg->base_thrust[0];
