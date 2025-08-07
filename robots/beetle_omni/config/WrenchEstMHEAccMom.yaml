@@ -3,25 +3,34 @@ wrench_estimator_name: aerial_robot_control::WrenchEstMHEAccMom
 controller:
   if_use_est_wrench_4_control: true
 
-  disturb:
-    # use sigmoid function for threshold
+  wrench_est:
+    # mode switch
+    calib_duration_t: 5.0  # seconds
+    lin_vel_threshold: [0.2, 0.2, 0.2]  # [x, y, z] m/s
+    ang_vel_threshold: [0.3, 0.3, 0.3]  # [x, y, z] rad/s
+
+    # overall limit
+    ext_force_limit: [10, 10, 10]  # N
+    ext_torque_limit: [5, 5, 5]  # Nm
+
+    # small noise: use sigmoid function for a threshold
     thresh_force: 0.8  # N
     thresh_torque: 0.5  # Nm
     steepness_force: 10.0
     steepness_torque: 10.0
 
-  mhe:
-    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
-    T_horizon: 0.2  # seconds
-    T_step: 0.01  # seconds
+    mhe:
+      T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+      T_horizon: 0.2  # seconds
+      T_step: 0.01  # seconds
 
-    # arrival cost
-    P_omega: 0.1
-    P_f_d: 50
-    P_tau_d: 0.1
+      # arrival cost
+      P_omega: 0.1
+      P_f_d: 50
+      P_tau_d: 0.1
 
-    R_f_d: 0.1
-    R_omega: 0.1
+      R_f_d: 0.1
+      R_omega: 0.1
 
-    Q_w_f: 1
-    Q_w_tau: 0.1
+      Q_w_f: 1
+      Q_w_tau: 0.1
