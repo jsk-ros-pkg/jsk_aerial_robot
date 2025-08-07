@@ -19,18 +19,18 @@ controller:
     steepness_force: 10.0
     steepness_torque: 10.0
 
-    mhe:
-      T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
-      T_horizon: 0.2  # seconds
-      T_step: 0.01  # seconds
+  mhe:
+    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+    T_horizon: 0.2  # seconds
+    T_step: 0.01  # seconds
 
-      # arrival cost
-      P_omega: 0.1
-      P_f_d: 50
-      P_tau_d: 0.1
+    # arrival cost
+    P_omega: 0.1
+    P_f_d: 50
+    P_tau_d: 0.1
 
-      R_f_d: 0.1
-      R_omega: 0.1
+    R_f_d: 0.1
+    R_omega: 0.1
 
-      Q_w_f: 1
-      Q_w_tau: 0.1
+    Q_w_f: 1
+    Q_w_tau: 0.1
