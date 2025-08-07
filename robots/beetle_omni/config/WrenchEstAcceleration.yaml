@@ -10,8 +10,8 @@ controller:
     ang_vel_threshold: [0.3, 0.3, 0.3]  # [x, y, z] rad/s
 
     # overall limit
-    ext_force_limit: 10  # N
-    ext_torque_limit: 2  # Nm
+    ext_force_limit: [10, 10, 10]  # N
+    ext_torque_limit: [5, 5, 5]  # Nm
 
     # small noise: use sigmoid function for a threshold
     thresh_force: 0.6  # N

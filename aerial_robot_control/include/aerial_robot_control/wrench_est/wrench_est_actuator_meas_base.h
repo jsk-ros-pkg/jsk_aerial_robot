@@ -63,6 +63,12 @@ public:
     getParam<double>(wrench_est_nh, "calib_duration_t", duration_t, 3.0);
     calib_duration_t_ = ros::Duration(duration_t);
 
+    // overall limit
+    ext_force_limit_.resize(3, 0.0);
+    ext_torque_limit_.resize(3, 0.0);
+    wrench_est_nh.getParam("ext_force_limit", ext_force_limit_);
+    wrench_est_nh.getParam("ext_torque_limit", ext_torque_limit_);
+
     // threshold for small noise
     double thresh_force, thresh_torque, steepness_force, steepness_torque;
     getParam<double>(wrench_est_nh, "thresh_force", thresh_force, 0.1);
@@ -211,6 +217,18 @@ public:
       dist_force_w_ros.x = result(0) * coeff_force_[0].getValue();
       dist_force_w_ros.y = result(1) * coeff_force_[1].getValue();
       dist_force_w_ros.z = result(2) * coeff_force_[2].getValue();
+
+      // apply external force limit
+      if (abs(dist_force_w_ros.x) > ext_force_limit_[0] || abs(dist_force_w_ros.y) > ext_force_limit_[1] ||
+          abs(dist_force_w_ros.z) > ext_force_limit_[2])
+      {
+        ROS_WARN_THROTTLE(0.5, "Disturbance force: %.4f, %.4f, %.4f exceeds limit: %.4f, %.4f, %.4f N",
+                          dist_force_w_ros.x, dist_force_w_ros.y, dist_force_w_ros.z, ext_force_limit_[0],
+                          ext_force_limit_[1], ext_force_limit_[2]);
+      }
+      dist_force_w_ros.x = std::clamp(dist_force_w_ros.x, -ext_force_limit_[0], ext_force_limit_[0]);
+      dist_force_w_ros.y = std::clamp(dist_force_w_ros.y, -ext_force_limit_[1], ext_force_limit_[1]);
+      dist_force_w_ros.z = std::clamp(dist_force_w_ros.z, -ext_force_limit_[2], ext_force_limit_[2]);
     }
 
     return dist_force_w_ros;
@@ -227,6 +245,19 @@ public:
       dist_torque_cog_ros.x = result(0) * coeff_torque_[0].getValue();
       dist_torque_cog_ros.y = result(1) * coeff_torque_[1].getValue();
       dist_torque_cog_ros.z = result(2) * coeff_torque_[2].getValue();
+
+      // apply external torque limit
+      if (abs(dist_torque_cog_ros.x) > ext_torque_limit_[0] || abs(dist_torque_cog_ros.y) > ext_torque_limit_[1] ||
+          abs(dist_torque_cog_ros.z) > ext_torque_limit_[2])
+      {
+        ROS_WARN_THROTTLE(0.5, "Disturbance torque: %.4f, %.4f, %.4f exceeds limit: %.4f, %.4f, %.4f Nm",
+                          dist_torque_cog_ros.x, dist_torque_cog_ros.y, dist_torque_cog_ros.z, ext_torque_limit_[0],
+                          ext_torque_limit_[1], ext_torque_limit_[2]);
+      }
+
+      dist_torque_cog_ros.x = std::clamp(dist_torque_cog_ros.x, -ext_torque_limit_[0], ext_torque_limit_[0]);
+      dist_torque_cog_ros.y = std::clamp(dist_torque_cog_ros.y, -ext_torque_limit_[1], ext_torque_limit_[1]);
+      dist_torque_cog_ros.z = std::clamp(dist_torque_cog_ros.z, -ext_torque_limit_[2], ext_torque_limit_[2]);
     }
 
     return dist_torque_cog_ros;
@@ -241,22 +272,22 @@ protected:
   std::vector<double> lin_vel_thresh_;  // m/s
   std::vector<double> ang_vel_thresh_;  // rad/s
 
-  // Calibration duration
+  // calibration duration
   ros::Duration calib_duration_t_;
 
-  // Calibration accumulators
+  // calibration accumulators
   size_t calib_offset_sample_count_{ 0 };
   Eigen::Vector3d calib_offset_force_w_{ Eigen::Vector3d::Zero() };     // offset estimated force in world frame
   Eigen::Vector3d calib_offset_torque_cog_{ Eigen::Vector3d::Zero() };  // offset estimated torque in cog frame
 
-  // Called when entering a new state.
+  // called when entering a new state.
   void enter(State next)
   {
     state_ = next;
     state_enter_time_ = ros::Time::now();
     if (state_ == State::CALIBRATING)
     {
-      // Reset calibration accumulation
+      // reset calibration accumulation
       calib_offset_force_w_.setZero();
       calib_offset_torque_cog_.setZero();
       calib_offset_sample_count_ = 0;
@@ -265,7 +296,11 @@ protected:
     ROS_INFO("Wrench Estimator: Entering state %d", state_);
   }
 
-  // for threshold function
+  // --- limit ---
+  std::vector<double> ext_force_limit_{ 0.0, 0.0, 0.0 };   // force limit in world frame
+  std::vector<double> ext_torque_limit_{ 0.0, 0.0, 0.0 };  // torque limit in cog frame
+
+  // --- threshold function ---
   // We use sigmoid function right now
   std::vector<Sigmoid> coeff_force_{ 3 };
   std::vector<Sigmoid> coeff_torque_{ 3 };
