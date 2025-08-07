@@ -19,6 +19,7 @@
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
 #include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
+#include "aerial_robot_control/wrench_est/utils.h"
 
 #include "sensor_msgs/JointState.h"
 #include "spinal/ESCTelemetryArray.h"
@@ -63,10 +64,19 @@ public:
     calib_duration_t_ = ros::Duration(duration_t);
 
     // threshold for small noise
-    getParam<double>(wrench_est_nh, "thresh_force", thresh_force_, 0.1);
-    getParam<double>(wrench_est_nh, "thresh_torque", thresh_torque_, 0.01);
-    getParam<double>(wrench_est_nh, "steepness_force", steepness_force_, 1);
-    getParam<double>(wrench_est_nh, "steepness_torque", steepness_torque_, 1);
+    double thresh_force, thresh_torque, steepness_force, steepness_torque;
+    getParam<double>(wrench_est_nh, "thresh_force", thresh_force, 0.1);
+    getParam<double>(wrench_est_nh, "thresh_torque", thresh_torque, 0.01);
+    getParam<double>(wrench_est_nh, "steepness_force", steepness_force, 1);
+    getParam<double>(wrench_est_nh, "steepness_torque", steepness_torque, 1);
+
+    coeff_force_.resize(3);
+    coeff_torque_.resize(3);
+    for (int i = 0; i < 3; ++i)
+    {
+      coeff_force_[i].initialize(steepness_force, thresh_force);
+      coeff_torque_[i].initialize(steepness_torque, thresh_torque);
+    }
 
     // sensors
     ros::NodeHandle motor_nh(nh_, "motor_info");
@@ -153,7 +163,12 @@ public:
           break;
         }
 
-        updateWrenchImpactCoeff(dist_force_w_, dist_torque_cog_);
+        // update coeff to avoid the influence of too small values.
+        for (int i = 0; i < 3; ++i)
+        {
+          coeff_force_[i].updateRMS(dist_force_w_(i));
+          coeff_torque_[i].updateRMS(dist_torque_cog_(i));
+        }
 
         break;
       }
@@ -193,11 +208,9 @@ public:
       Eigen::Vector3d result = dist_force_w_ - calib_offset_force_w_;
 
       // apply impact coefficient
-      result *= impact_coeff_force_;
-
-      dist_force_w_ros.x = result(0);
-      dist_force_w_ros.y = result(1);
-      dist_force_w_ros.z = result(2);
+      dist_force_w_ros.x = result(0) * coeff_force_[0].getValue();
+      dist_force_w_ros.y = result(1) * coeff_force_[1].getValue();
+      dist_force_w_ros.z = result(2) * coeff_force_[2].getValue();
     }
 
     return dist_force_w_ros;
@@ -211,11 +224,9 @@ public:
       Eigen::Vector3d result = dist_torque_cog_ - calib_offset_torque_cog_;
 
       // apply impact coefficient
-      result *= impact_coeff_torque_;
-
-      dist_torque_cog_ros.x = result(0);
-      dist_torque_cog_ros.y = result(1);
-      dist_torque_cog_ros.z = result(2);
+      dist_torque_cog_ros.x = result(0) * coeff_torque_[0].getValue();
+      dist_torque_cog_ros.y = result(1) * coeff_torque_[1].getValue();
+      dist_torque_cog_ros.z = result(2) * coeff_torque_[2].getValue();
     }
 
     return dist_torque_cog_ros;
@@ -255,13 +266,9 @@ protected:
   }
 
   // for threshold function
-  double thresh_force_ = 0.0;
-  double steepness_force_ = 0.0;
-  double impact_coeff_force_ = 0.0;
-
-  double thresh_torque_ = 0.0;
-  double steepness_torque_ = 0.0;
-  double impact_coeff_torque_ = 0.0;
+  // We use sigmoid function right now
+  std::vector<Sigmoid> coeff_force_{ 3 };
+  std::vector<Sigmoid> coeff_torque_{ 3 };
 
   ros::Publisher pub_disturb_wrench_coeff_;
 
@@ -271,29 +278,14 @@ protected:
 
     geometry_msgs::WrenchStamped dist_wrench_coeff;
     dist_wrench_coeff.header.stamp = ros::Time::now();
-    dist_wrench_coeff.wrench.force.x = impact_coeff_force_;
-    dist_wrench_coeff.wrench.force.y = impact_coeff_force_;
-    dist_wrench_coeff.wrench.force.z = impact_coeff_force_;
-    dist_wrench_coeff.wrench.torque.x = impact_coeff_torque_;
-    dist_wrench_coeff.wrench.torque.y = impact_coeff_torque_;
-    dist_wrench_coeff.wrench.torque.z = impact_coeff_torque_;
+    dist_wrench_coeff.wrench.force.x = coeff_force_[0].getValue();
+    dist_wrench_coeff.wrench.force.y = coeff_force_[1].getValue();
+    dist_wrench_coeff.wrench.force.z = coeff_force_[2].getValue();
+    dist_wrench_coeff.wrench.torque.x = coeff_torque_[0].getValue();
+    dist_wrench_coeff.wrench.torque.y = coeff_torque_[1].getValue();
+    dist_wrench_coeff.wrench.torque.z = coeff_torque_[2].getValue();
     dist_wrench_coeff.header.frame_id = "beetle1/cog";
     pub_disturb_wrench_coeff_.publish(dist_wrench_coeff);
-  }
-
-  /* We use sigmoid function right now */
-  void updateWrenchImpactCoeff(const Eigen::Vector3d& external_force_w, const Eigen::Vector3d& external_torque_cog)
-  {
-    const double external_force_norm =
-        sqrt(external_force_w(0) * external_force_w(0) + external_force_w(1) * external_force_w(1) +
-             external_force_w(2) * external_force_w(2));
-    const double external_torque_norm =
-        sqrt(external_torque_cog(0) * external_torque_cog(0) + external_torque_cog(1) * external_torque_cog(1) +
-             external_torque_cog(2) * external_torque_cog(2));
-
-    // use sigmoid function to limit the external force
-    impact_coeff_force_ = 1.0 / (1.0 + exp(-steepness_force_ * (external_force_norm - thresh_force_)));
-    impact_coeff_torque_ = 1.0 / (1.0 + exp(-steepness_torque_ * (external_torque_norm - thresh_torque_)));
   }
 
   // for servo angles

@@ -159,6 +159,38 @@ private:
   bool primed_{ false };  // true once the filter has been initialised
 };
 
+class Sigmoid
+{
+public:
+  Sigmoid() = default;
+
+  void initialize(double steepness, double threshold)
+  {
+    steepness_ = steepness;
+    threshold_ = threshold;
+  }
+
+  void updateRMS(double x)
+  {
+    update(sqrt(x * x));
+  }
+
+  void update(double x)
+  {
+    value_ = 1.0 / (1.0 + exp(-steepness_ * (x - threshold_)));
+  }
+
+  double getValue() const
+  {
+    return value_;
+  }
+
+private:
+  double steepness_{ 0.0 };
+  double threshold_{ 0.0 };
+  double value_{ 0.0 };
+};
+
 }  // namespace aerial_robot_control
 
 #endif  // AERIAL_ROBOT_CONTROL_UTILS_H
