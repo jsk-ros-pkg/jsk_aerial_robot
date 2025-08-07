@@ -21,7 +21,7 @@
 #include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
 #include "aerial_robot_control/wrench_est/utils.h"
 
-#include "sensor_msgs/JointState.h"
+#include <sensor_msgs/JointState.h>
 #include "spinal/ESCTelemetryArray.h"
 #include "spinal/FourAxisCommand.h"
 
@@ -110,14 +110,17 @@ public:
     // Reset FSM
     state_ = State::STOPPED;
     state_enter_time_ = ros::Time::now();
+
+    ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
+    wrench_est_nh.setParam("state", static_cast<int>(state_));
   }
 
   virtual void update(const tf::Vector3& vel, const tf::Vector3& ang_vel)
   {
     // Simple magnitude checks for stability
-    const bool stable = (vel.x() <= lin_vel_thresh_[0]) && (vel.y() <= lin_vel_thresh_[1]) &&
-                        (vel.z() <= lin_vel_thresh_[2]) && (ang_vel.x() <= ang_vel_thresh_[0]) &&
-                        (ang_vel.y() <= ang_vel_thresh_[1]) && (ang_vel.z() <= ang_vel_thresh_[2]);
+    const bool stable = (abs(vel.x()) <= lin_vel_thresh_[0]) && (abs(vel.y()) <= lin_vel_thresh_[1]) &&
+                        (abs(vel.z()) <= lin_vel_thresh_[2]) && (abs(ang_vel.x()) <= ang_vel_thresh_[0]) &&
+                        (abs(ang_vel.y()) <= ang_vel_thresh_[1]) && (abs(ang_vel.z()) <= ang_vel_thresh_[2]);
 
     switch (state_)
     {
@@ -294,6 +297,8 @@ protected:
     }
 
     ROS_INFO("Wrench Estimator: Entering state %d", state_);
+    ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
+    wrench_est_nh.setParam("state", static_cast<int>(state_));
   }
 
   // --- limit ---

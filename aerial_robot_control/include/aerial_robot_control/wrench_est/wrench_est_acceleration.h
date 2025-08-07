@@ -6,7 +6,6 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_ACCELERATION_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_actuator_meas_base.h"
-#include "aerial_robot_control/wrench_est/utils.h"
 
 namespace aerial_robot_control
 {
