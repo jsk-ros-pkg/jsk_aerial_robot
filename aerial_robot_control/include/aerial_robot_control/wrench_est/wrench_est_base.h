@@ -48,18 +48,6 @@ public:
     alloc_mat_pinv_ = alloc_mat_pinv;
   }
 
-  // Note that force is in world frame, and torque is in CoG frame. Only for debug.
-  void cbPubDistWrench(const ros::TimerEvent& event)
-  {
-    geometry_msgs::WrenchStamped dist_wrench_;
-    dist_wrench_.header.stamp = ros::Time::now();
-
-    dist_wrench_.wrench.force = getDistForceW();
-    dist_wrench_.wrench.torque = getDistTorqueCOG();
-
-    pub_disturb_wrench_.publish(dist_wrench_);
-  }
-
   /* getter */
   virtual geometry_msgs::Vector3 getDistForceW() const
   {
@@ -118,6 +106,18 @@ protected:
   Eigen::Vector3d dist_torque_cog_;  // disturbance torque in cog frame
 
   WrenchEstBase() = default;
+
+  // Note that force is in world frame, and torque is in CoG frame. Only for debug.
+  virtual void cbPubDistWrench(const ros::TimerEvent& event) const
+  {
+    geometry_msgs::WrenchStamped dist_wrench_;
+    dist_wrench_.header.stamp = ros::Time::now();
+
+    dist_wrench_.wrench.force = getDistForceW();
+    dist_wrench_.wrench.torque = getDistTorqueCOG();
+
+    pub_disturb_wrench_.publish(dist_wrench_);
+  }
 
   template <class T>
   void getParam(ros::NodeHandle nh, std::string param_name, T& param, T default_value)

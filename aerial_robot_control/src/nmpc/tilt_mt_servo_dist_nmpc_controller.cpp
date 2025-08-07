@@ -16,14 +16,8 @@ void nmpc::TiltMtServoDistNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
   ros::NodeHandle control_nh(nh_, "controller");
   getParam<bool>(control_nh, "if_use_est_wrench_4_control", if_use_est_wrench_4_control_, false);
-  ros::NodeHandle disturb_nh(control_nh, "disturb");
-  getParam<double>(disturb_nh, "thresh_force", thresh_force_, 0.1);
-  getParam<double>(disturb_nh, "thresh_torque", thresh_torque_, 0.01);
-  getParam<double>(disturb_nh, "steepness_force", steepness_force_, 1);
-  getParam<double>(disturb_nh, "steepness_torque", steepness_torque_, 1);
 
   pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("disturbance_wrench", 1);
-  pub_disturb_wrench_coefficient_ = nh_.advertise<geometry_msgs::Vector3Stamped>("disturbance_wrench/coefficient", 1);
 }
 
 bool nmpc::TiltMtServoDistNMPC::update()
@@ -129,6 +123,8 @@ void nmpc::TiltMtServoDistNMPC::prepareNMPCParams()
 
 std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
 {
+  vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
+
   /* disturbance rejection */
   geometry_msgs::Vector3 external_force_w;     // default: 0, 0, 0
   geometry_msgs::Vector3 external_torque_cog;  // default: 0, 0, 0
@@ -137,18 +133,14 @@ std::vector<double> nmpc::TiltMtServoDistNMPC::meas2VecX()
   {
     external_force_w = wrench_est_ptr_->getDistForceW();
     external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
-
-    updateWrenchImpactCoeff(external_force_w, external_torque_cog);
   }
 
-  vector<double> bx0 = TiltMtServoNMPC::meas2VecX();
-
-  bx0[13 + joint_num_ + 0] = external_force_w.x * impact_coeff_force_;
-  bx0[13 + joint_num_ + 1] = external_force_w.y * impact_coeff_force_;
-  bx0[13 + joint_num_ + 2] = external_force_w.z * impact_coeff_force_;
-  bx0[13 + joint_num_ + 3] = external_torque_cog.x * impact_coeff_torque_;
-  bx0[13 + joint_num_ + 4] = external_torque_cog.y * impact_coeff_torque_;
-  bx0[13 + joint_num_ + 5] = external_torque_cog.z * impact_coeff_torque_;
+  bx0[13 + joint_num_ + 0] = external_force_w.x;
+  bx0[13 + joint_num_ + 1] = external_force_w.y;
+  bx0[13 + joint_num_ + 2] = external_force_w.z;
+  bx0[13 + joint_num_ + 3] = external_torque_cog.x;
+  bx0[13 + joint_num_ + 4] = external_torque_cog.y;
+  bx0[13 + joint_num_ + 5] = external_torque_cog.z;
 
   return bx0;
 }
@@ -165,22 +157,6 @@ void nmpc::TiltMtServoDistNMPC::updateDisturbWrench() const
   auto ang_vel = estimator_->getAngularVel(Frame::COG, estimate_mode_);
 
   wrench_est_ptr_->update(vel, ang_vel);
-}
-
-/* We use sigmoid function right now */
-void nmpc::TiltMtServoDistNMPC::updateWrenchImpactCoeff(const geometry_msgs::Vector3& external_force_w,
-                                                        const geometry_msgs::Vector3& external_torque_cog)
-{
-  const double external_force_norm =
-      sqrt(external_force_w.x * external_force_w.x + external_force_w.y * external_force_w.y +
-           external_force_w.z * external_force_w.z);
-  const double external_torque_norm =
-      sqrt(external_torque_cog.x * external_torque_cog.x + external_torque_cog.y * external_torque_cog.y +
-           external_torque_cog.z * external_torque_cog.z);
-
-  // use sigmoid function to limit the external force
-  impact_coeff_force_ = 1.0 / (1.0 + exp(-steepness_force_ * (external_force_norm - thresh_force_)));
-  impact_coeff_torque_ = 1.0 / (1.0 + exp(-steepness_torque_ * (external_torque_norm - thresh_torque_)));
 }
 
 void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
@@ -200,13 +176,6 @@ void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
 
   dist_wrench_.header.stamp = ros::Time::now();
   pub_disturb_wrench_.publish(dist_wrench_);
-
-  // publish the disturbance wrench coefficient
-  geometry_msgs::Vector3Stamped dist_wrench_coefficient;
-  dist_wrench_coefficient.header.stamp = ros::Time::now();
-  dist_wrench_coefficient.vector.x = impact_coeff_force_;
-  dist_wrench_coefficient.vector.y = impact_coeff_torque_;
-  pub_disturb_wrench_coefficient_.publish(dist_wrench_coefficient);
 }
 
 void nmpc::TiltMtServoDistNMPC::initAllocMat()

@@ -43,13 +43,32 @@ public:
   void initWrenchPub() override
   {
     pub_disturb_wrench_ = nh_.advertise<geometry_msgs::WrenchStamped>("dist_w_f_cog_tq/ext", 1);
+    pub_disturb_wrench_coeff_ = nh_.advertise<geometry_msgs::WrenchStamped>("dist_w_f_cog_tq/ext_coeff", 1);
   }
 
   void initialize(ros::NodeHandle& nh, boost::shared_ptr<aerial_robot_model::RobotModel>& robot_model,
                   boost::shared_ptr<aerial_robot_estimation::StateEstimator>& estimator, double ctrl_loop_du) override
   {
     WrenchEstBase::initialize(nh, robot_model, estimator, ctrl_loop_du);
+    ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
 
+    // state machine mode switch
+    lin_vel_thresh_.resize(3, 0.0);
+    ang_vel_thresh_.resize(3, 0.0);
+    wrench_est_nh.getParam("lin_vel_threshold", lin_vel_thresh_);
+    wrench_est_nh.getParam("ang_vel_threshold", ang_vel_thresh_);
+
+    double duration_t;
+    getParam<double>(wrench_est_nh, "calib_duration_t", duration_t, 3.0);
+    calib_duration_t_ = ros::Duration(duration_t);
+
+    // threshold for small noise
+    getParam<double>(wrench_est_nh, "thresh_force", thresh_force_, 0.1);
+    getParam<double>(wrench_est_nh, "thresh_torque", thresh_torque_, 0.01);
+    getParam<double>(wrench_est_nh, "steepness_force", steepness_force_, 1);
+    getParam<double>(wrench_est_nh, "steepness_torque", steepness_torque_, 1);
+
+    // sensors
     ros::NodeHandle motor_nh(nh_, "motor_info");
     getParam<double>(motor_nh, "krpm_square_to_thrust_ratio", krpm_square_to_thrust_ratio_, 0.0);
     getParam<double>(motor_nh, "krpm_square_to_thrust_bias", krpm_square_to_thrust_bias_, 0.0);
@@ -77,24 +96,12 @@ public:
     state_enter_time_ = ros::Time::now();
   }
 
-  // --- Parameters / configuration ---
-  // Set thresholds used to decide stability (norm thresholds).
-  void setStabilityThresholds(double lin_vel_thr, double ang_vel_thr)
-  {
-    lin_vel_thr_ = lin_vel_thr;
-    ang_vel_thr_ = ang_vel_thr;
-  }
-
-  // Set calibration duration (seconds)
-  void setCalibrationDuration(double seconds)
-  {
-    calib_duration_ = ros::Duration(seconds);
-  }
-
   virtual void update(const tf::Vector3& vel, const tf::Vector3& ang_vel)
   {
     // Simple magnitude checks for stability
-    const bool stable = (vel.length() <= lin_vel_thr_) && (ang_vel.length() <= ang_vel_thr_);
+    const bool stable = (vel.x() <= lin_vel_thresh_[0]) && (vel.y() <= lin_vel_thresh_[1]) &&
+                        (vel.z() <= lin_vel_thresh_[2]) && (ang_vel.x() <= ang_vel_thresh_[0]) &&
+                        (ang_vel.y() <= ang_vel_thresh_[1]) && (ang_vel.z() <= ang_vel_thresh_[2]);
 
     switch (state_)
     {
@@ -124,7 +131,7 @@ public:
             calib_offset_torque_cog_ + (dist_torque_cog_ - calib_offset_torque_cog_) / calib_offset_sample_count_;
 
         // After calibration duration, fix offsets and go RUNNING
-        if ((ros::Time::now() - state_enter_time_) >= calib_duration_)
+        if ((ros::Time::now() - state_enter_time_) >= calib_duration_t_)
         {
           ROS_INFO("The offset for external wrench -> true, the average offset samples: %lu",
                    calib_offset_sample_count_);
@@ -145,7 +152,9 @@ public:
           enter(State::STOPPED);
           break;
         }
-        // In RUNNING, publish the calibrated offsets as the external wrench
+
+        updateWrenchImpactCoeff(dist_force_w_, dist_torque_cog_);
+
         break;
       }
     }
@@ -183,6 +192,9 @@ public:
     {
       Eigen::Vector3d result = dist_force_w_ - calib_offset_force_w_;
 
+      // apply impact coefficient
+      result *= impact_coeff_force_;
+
       dist_force_w_ros.x = result(0);
       dist_force_w_ros.y = result(1);
       dist_force_w_ros.z = result(2);
@@ -198,6 +210,9 @@ public:
     {
       Eigen::Vector3d result = dist_torque_cog_ - calib_offset_torque_cog_;
 
+      // apply impact coefficient
+      result *= impact_coeff_torque_;
+
       dist_torque_cog_ros.x = result(0);
       dist_torque_cog_ros.y = result(1);
       dist_torque_cog_ros.z = result(2);
@@ -211,12 +226,12 @@ protected:
   State state_{ State::STOPPED };
   ros::Time state_enter_time_;
 
-  // Stability thresholds
-  double lin_vel_thr_{ 0.1 };   // m/s
-  double ang_vel_thr_{ 0.05 };  // rad/s
+  // state switch thresholds
+  std::vector<double> lin_vel_thresh_;  // m/s
+  std::vector<double> ang_vel_thresh_;  // rad/s
 
   // Calibration duration
-  ros::Duration calib_duration_{ ros::Duration(3.0) };
+  ros::Duration calib_duration_t_;
 
   // Calibration accumulators
   size_t calib_offset_sample_count_{ 0 };
@@ -237,6 +252,48 @@ protected:
     }
 
     ROS_INFO("Wrench Estimator: Entering state %d", state_);
+  }
+
+  // for threshold function
+  double thresh_force_ = 0.0;
+  double steepness_force_ = 0.0;
+  double impact_coeff_force_ = 0.0;
+
+  double thresh_torque_ = 0.0;
+  double steepness_torque_ = 0.0;
+  double impact_coeff_torque_ = 0.0;
+
+  ros::Publisher pub_disturb_wrench_coeff_;
+
+  void cbPubDistWrench(const ros::TimerEvent& event) const override
+  {
+    WrenchEstBase::cbPubDistWrench(event);
+
+    geometry_msgs::WrenchStamped dist_wrench_coeff;
+    dist_wrench_coeff.header.stamp = ros::Time::now();
+    dist_wrench_coeff.wrench.force.x = impact_coeff_force_;
+    dist_wrench_coeff.wrench.force.y = impact_coeff_force_;
+    dist_wrench_coeff.wrench.force.z = impact_coeff_force_;
+    dist_wrench_coeff.wrench.torque.x = impact_coeff_torque_;
+    dist_wrench_coeff.wrench.torque.y = impact_coeff_torque_;
+    dist_wrench_coeff.wrench.torque.z = impact_coeff_torque_;
+    dist_wrench_coeff.header.frame_id = "beetle1/cog";
+    pub_disturb_wrench_coeff_.publish(dist_wrench_coeff);
+  }
+
+  /* We use sigmoid function right now */
+  void updateWrenchImpactCoeff(const Eigen::Vector3d& external_force_w, const Eigen::Vector3d& external_torque_cog)
+  {
+    const double external_force_norm =
+        sqrt(external_force_w(0) * external_force_w(0) + external_force_w(1) * external_force_w(1) +
+             external_force_w(2) * external_force_w(2));
+    const double external_torque_norm =
+        sqrt(external_torque_cog(0) * external_torque_cog(0) + external_torque_cog(1) * external_torque_cog(1) +
+             external_torque_cog(2) * external_torque_cog(2));
+
+    // use sigmoid function to limit the external force
+    impact_coeff_force_ = 1.0 / (1.0 + exp(-steepness_force_ * (external_force_norm - thresh_force_)));
+    impact_coeff_torque_ = 1.0 / (1.0 + exp(-steepness_torque_ * (external_torque_norm - thresh_torque_)));
   }
 
   // for servo angles

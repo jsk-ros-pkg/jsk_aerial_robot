@@ -38,17 +38,7 @@ public:
 protected:
   bool if_use_est_wrench_4_control_ = false;
 
-  // for threshold function
-  double thresh_force_ = 0.0;
-  double steepness_force_ = 0.0;
-  double impact_coeff_force_ = 0.0;
-
-  double thresh_torque_ = 0.0;
-  double steepness_torque_ = 0.0;
-  double impact_coeff_torque_ = 0.0;
-
   ros::Publisher pub_disturb_wrench_;  // for disturbance wrench
-  ros::Publisher pub_disturb_wrench_coefficient_;
 
   int idx_p_dist_end_ = 0;
 
@@ -65,8 +55,7 @@ protected:
 
   /* external wrench estimation */
   void updateDisturbWrench() const;
-  void updateWrenchImpactCoeff(const geometry_msgs::Vector3& external_force_w,
-                               const geometry_msgs::Vector3& external_torque_cog);
+
   void pubDisturbWrench() const;
 
   /* I Term */
