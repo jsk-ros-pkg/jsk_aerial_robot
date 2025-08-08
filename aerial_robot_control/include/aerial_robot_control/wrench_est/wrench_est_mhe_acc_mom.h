@@ -79,8 +79,8 @@ public:
 
     auto x_est = mhe_solver_.getEstimatedState(mhe_solver_.NN_);
 
-    setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
-    setDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
+    setRawDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
+    setRawDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
 
     WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }

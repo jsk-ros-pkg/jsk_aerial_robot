@@ -145,9 +145,9 @@ public:
         // Accumulate raw external wrench to compute offset
         calib_offset_sample_count_++;
         calib_offset_force_w_ =
-            calib_offset_force_w_ + (dist_force_w_ - calib_offset_force_w_) / calib_offset_sample_count_;
+            calib_offset_force_w_ + (raw_dist_force_w_ - calib_offset_force_w_) / calib_offset_sample_count_;
         calib_offset_torque_cog_ =
-            calib_offset_torque_cog_ + (dist_torque_cog_ - calib_offset_torque_cog_) / calib_offset_sample_count_;
+            calib_offset_torque_cog_ + (raw_dist_torque_cog_ - calib_offset_torque_cog_) / calib_offset_sample_count_;
 
         // After calibration duration, fix offsets and go RUNNING
         if ((ros::Time::now() - state_enter_time_) >= calib_duration_t_)
@@ -214,7 +214,7 @@ public:
 
     if (state_ == State::RUNNING)
     {
-      Eigen::Vector3d result = dist_force_w_ - calib_offset_force_w_;
+      Eigen::Vector3d result = raw_dist_force_w_ - calib_offset_force_w_;
 
       // apply impact coefficient
       dist_force_w_ros.x = result(0) * coeff_force_[0].getValue();
@@ -242,7 +242,7 @@ public:
 
     if (state_ == State::RUNNING)
     {
-      Eigen::Vector3d result = dist_torque_cog_ - calib_offset_torque_cog_;
+      Eigen::Vector3d result = raw_dist_torque_cog_ - calib_offset_torque_cog_;
 
       // apply impact coefficient
       dist_torque_cog_ros.x = result(0) * coeff_torque_[0].getValue();

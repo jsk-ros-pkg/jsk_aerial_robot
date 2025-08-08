@@ -79,8 +79,8 @@ public:
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
     /* set value */
-    setDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
-    setDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
+    setRawDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
+    setRawDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
 
     WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }

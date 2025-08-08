@@ -78,8 +78,8 @@ public:
     double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe.getY());
     double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe.getZ());
 
-    setDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
-    setDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
+    setRawDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
+    setRawDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
   }
 
   void takeAwayITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)

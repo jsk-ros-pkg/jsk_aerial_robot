@@ -38,8 +38,8 @@ public:
 
   virtual void reset()
   {
-    dist_force_w_ = Eigen::Vector3d::Zero();
-    dist_torque_cog_ = Eigen::Vector3d::Zero();
+    raw_dist_force_w_ = Eigen::Vector3d::Zero();
+    raw_dist_torque_cog_ = Eigen::Vector3d::Zero();
   }
 
   void init_alloc_mtx(Eigen::MatrixXd& alloc_mat, Eigen::MatrixXd& alloc_mat_pinv)
@@ -52,18 +52,18 @@ public:
   virtual geometry_msgs::Vector3 getDistForceW() const
   {
     geometry_msgs::Vector3 dist_force_w_ros;
-    dist_force_w_ros.x = dist_force_w_(0);
-    dist_force_w_ros.y = dist_force_w_(1);
-    dist_force_w_ros.z = dist_force_w_(2);
+    dist_force_w_ros.x = raw_dist_force_w_(0);
+    dist_force_w_ros.y = raw_dist_force_w_(1);
+    dist_force_w_ros.z = raw_dist_force_w_(2);
 
     return dist_force_w_ros;
   }
   virtual geometry_msgs::Vector3 getDistTorqueCOG() const
   {
     geometry_msgs::Vector3 dist_torque_cog_ros;
-    dist_torque_cog_ros.x = dist_torque_cog_(0);
-    dist_torque_cog_ros.y = dist_torque_cog_(1);
-    dist_torque_cog_ros.z = dist_torque_cog_(2);
+    dist_torque_cog_ros.x = raw_dist_torque_cog_(0);
+    dist_torque_cog_ros.y = raw_dist_torque_cog_(1);
+    dist_torque_cog_ros.z = raw_dist_torque_cog_(2);
 
     return dist_torque_cog_ros;
   }
@@ -73,13 +73,13 @@ public:
   }
 
   /* setter */
-  void setDistForceW(double x, double y, double z)
+  void setRawDistForceW(double x, double y, double z)
   {
-    dist_force_w_ << x, y, z;
+    raw_dist_force_w_ << x, y, z;
   }
-  void setDistTorqueCOG(double x, double y, double z)
+  void setRawDistTorqueCOG(double x, double y, double z)
   {
-    dist_torque_cog_ << x, y, z;
+    raw_dist_torque_cog_ << x, y, z;
   }
   void setParamVerbose(bool param_verbose)
   {
@@ -102,21 +102,21 @@ protected:
   ros::Timer tmr_pub_dist_wrench_;
   ros::Publisher pub_disturb_wrench_;
 
-  Eigen::Vector3d dist_force_w_;     // disturbance force in world frame
-  Eigen::Vector3d dist_torque_cog_;  // disturbance torque in cog frame
+  Eigen::Vector3d raw_dist_force_w_;     // disturbance force in world frame
+  Eigen::Vector3d raw_dist_torque_cog_;  // disturbance torque in cog frame
 
   WrenchEstBase() = default;
 
   // Note that force is in world frame, and torque is in CoG frame. Only for debug.
   virtual void cbPubDistWrench(const ros::TimerEvent& event) const
   {
-    geometry_msgs::WrenchStamped dist_wrench_;
-    dist_wrench_.header.stamp = ros::Time::now();
+    geometry_msgs::WrenchStamped dist_wrench;
+    dist_wrench.header.stamp = ros::Time::now();
 
-    dist_wrench_.wrench.force = getDistForceW();
-    dist_wrench_.wrench.torque = getDistTorqueCOG();
+    dist_wrench.wrench.force = getDistForceW();
+    dist_wrench.wrench.torque = getDistTorqueCOG();
 
-    pub_disturb_wrench_.publish(dist_wrench_);
+    pub_disturb_wrench_.publish(dist_wrench);
   }
 
   template <class T>

@@ -194,8 +194,8 @@ public:
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
     auto est_ext_force_w = cog_rot * est_ext_force_cog_;
 
-    setDistForceW(est_ext_force_w(0), est_ext_force_w(1), est_ext_force_w(2));
-    setDistTorqueCOG(est_ext_torque_cog_(0), est_ext_torque_cog_(1), est_ext_torque_cog_(2));
+    setRawDistForceW(est_ext_force_w(0), est_ext_force_w(1), est_ext_force_w(2));
+    setRawDistTorqueCOG(est_ext_torque_cog_(0), est_ext_torque_cog_(1), est_ext_torque_cog_(2));
 
     WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }

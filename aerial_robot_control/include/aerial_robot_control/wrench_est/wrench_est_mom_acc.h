@@ -69,7 +69,7 @@ public:
     est_external_force_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_ +
                           force_acc_alpha_matrix_ * est_external_force_now;
 
-    setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
+    setRawDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
 
     // torque estimation
     Eigen::Vector3d omega_cog;
@@ -95,7 +95,7 @@ public:
 
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
-    setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
+    setRawDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
 
     WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
