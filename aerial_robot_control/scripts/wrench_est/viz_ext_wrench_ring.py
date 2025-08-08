@@ -41,17 +41,26 @@ class RingMarker:
     # ------------------------- Callbacks ------------------------- #
     def wrench_callback(self, msg: WrenchStamped):
         """Update ring colour according to force magnitude."""
-        f = msg.wrench.force
-        mag = math.sqrt(f.x**2 + f.y**2 + f.z**2)
-
-        # Clamp and normalise
-        ratio = max(0.0, min(mag / self.max_force, 1.0))
+        # # TODO: modify this part
+        # f = msg.wrench.force
+        # mag = math.sqrt(f.x**2 + f.y**2 + f.z**2)
+        #
+        # # Clamp and normalise
+        # ratio = max(0.0, min(mag / self.max_force, 1.0))
 
         # Simple green→red gradient
-        r = ratio
-        g = 1.0 - ratio
-        b = 0.0
-        a = 0.8
+        wrench_nh = rospy.get_namespace() + "controller/wrench_est"
+        state = rospy.get_param(wrench_nh + "/state")
+
+        r, g, b, a = 0.0, 0.0, 0.0, 0.8
+        if state == 0:  # STOP - red
+            r = 1.0
+        elif state == 1:  # CALIBRATE - blue
+            b = 1.0
+        elif state == 2:  # RUN - green
+            g = 1.0
+        else:
+            r, g, b = 1.0, 1.0, 1.0
         self.colour = (r, g, b, a)
 
     # ----------------------- Publishing -------------------------- #
