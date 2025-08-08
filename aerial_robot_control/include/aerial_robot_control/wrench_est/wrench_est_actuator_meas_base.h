@@ -175,8 +175,8 @@ public:
         // update coeff to avoid the influence of too small values.
         for (int i = 0; i < 3; ++i)
         {
-          coeff_force_[i].updateRMS(dist_force_w_(i));
-          coeff_torque_[i].updateRMS(dist_torque_cog_(i));
+          coeff_force_[i].updateRMS(raw_dist_force_w_(i) - calib_offset_force_w_(i));
+          coeff_torque_[i].updateRMS(raw_dist_torque_cog_(i) - calib_offset_torque_cog_(i));
         }
 
         break;
