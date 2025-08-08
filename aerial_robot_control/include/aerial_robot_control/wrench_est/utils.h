@@ -80,6 +80,7 @@ class BiquadIIR
 {
 public:
   BiquadIIR() = default;
+  ~BiquadIIR() = default;
 
   /**
    * @param b     Numerator coefficients {b0, b1, b2}
@@ -163,32 +164,53 @@ class Sigmoid
 {
 public:
   Sigmoid() = default;
+  ~Sigmoid() = default;
 
-  void initialize(double steepness, double threshold)
-  {
-    steepness_ = steepness;
-    threshold_ = threshold;
-  }
-
-  void updateRMS(double x)
-  {
-    update(sqrt(x * x));
-  }
-
-  void update(double x)
-  {
-    value_ = 1.0 / (1.0 + exp(-steepness_ * (x - threshold_)));
-  }
-
-  double getValue() const
-  {
-    return value_;
-  }
+  // clang-format off
+  void initialize(double steepness, double threshold) { steepness_ = steepness; threshold_ = threshold; }
+  void reset() { value_ = 0.0; }
+  void updateRMS(double x) { update(sqrt(x * x)); }
+  void update(double x) { value_ = 1.0 / (1.0 + exp(-steepness_ * (x - threshold_))); }
+  double getValue() const { return value_; }
+  // clang-format on
 
 private:
   double steepness_{ 0.0 };
   double threshold_{ 0.0 };
   double value_{ 0.0 };
+};
+
+class AverageCalibrator
+{
+public:
+  AverageCalibrator() = default;
+  ~AverageCalibrator() = default;
+
+  void reset()
+  {
+    calib_offset_sample_count_ = 0;
+    calib_offset_sum_value_.setZero();
+  }
+
+  void update(const Eigen::Vector3d& value)
+  {
+    calib_offset_sum_value_ += value;
+    calib_offset_sample_count_++;
+  }
+
+  Eigen::Vector3d calibrate(const Eigen::Vector3d& value) const
+  {
+    return value - getOffsetValue();
+  }
+
+  // clang-format off
+  int getSampleCount() const { return calib_offset_sample_count_; }
+  Eigen::Vector3d getOffsetValue() const { return calib_offset_sum_value_ / calib_offset_sample_count_; }
+  // clang-format on
+
+private:
+  size_t calib_offset_sample_count_{ 0 };
+  Eigen::Vector3d calib_offset_sum_value_{ Eigen::Vector3d::Zero() };
 };
 
 }  // namespace aerial_robot_control

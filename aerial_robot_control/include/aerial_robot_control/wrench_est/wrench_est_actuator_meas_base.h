@@ -103,9 +103,13 @@ public:
   {
     WrenchEstBase::reset();
 
-    calib_offset_sample_count_ = 0;
-    calib_offset_force_w_ = Eigen::Vector3d::Zero();
-    calib_offset_torque_cog_ = Eigen::Vector3d::Zero();
+    calibrator_force_.reset();
+    calibrator_torque_.reset();
+    for (int i = 0; i < 3; ++i)
+    {
+      coeff_force_[i].reset();
+      coeff_torque_[i].reset();
+    }
 
     // Reset FSM
     state_ = State::STOPPED;
@@ -143,21 +147,19 @@ public:
         }
 
         // Accumulate raw external wrench to compute offset
-        calib_offset_sample_count_++;
-        calib_offset_force_w_ =
-            calib_offset_force_w_ + (raw_dist_force_w_ - calib_offset_force_w_) / calib_offset_sample_count_;
-        calib_offset_torque_cog_ =
-            calib_offset_torque_cog_ + (raw_dist_torque_cog_ - calib_offset_torque_cog_) / calib_offset_sample_count_;
+        calibrator_force_.update(raw_dist_force_w_);
+        calibrator_torque_.update(raw_dist_torque_cog_);
 
         // After calibration duration, fix offsets and go RUNNING
         if ((ros::Time::now() - state_enter_time_) >= calib_duration_t_)
         {
-          ROS_INFO("The offset for external wrench -> true, the average offset samples: %lu",
-                   calib_offset_sample_count_);
-          ROS_INFO("The offset force in world frame (N): %f, %f, %f", calib_offset_force_w_(0),
-                   calib_offset_force_w_(1), calib_offset_force_w_(2));
-          ROS_INFO("The offset torque in cog frame (Nm): %f, %f, %f", calib_offset_torque_cog_(0),
-                   calib_offset_torque_cog_(1), calib_offset_torque_cog_(2));
+          Eigen::Vector3d calib_force = calibrator_force_.getOffsetValue();
+          ROS_INFO("The offset force in world frame (N): %d samples, %f, %f, %f", calibrator_force_.getSampleCount(),
+                   calib_force(0), calib_force(1), calib_force(2));
+          Eigen::Vector3d calib_torque = calibrator_torque_.getOffsetValue();
+          ROS_INFO("The offset torque in cog frame (Nm): %d samples, %f, %f, %f", calibrator_torque_.getSampleCount(),
+                   calib_torque(0), calib_torque(1), calib_torque(2));
+
           enter(State::RUNNING);
         }
 
@@ -173,10 +175,12 @@ public:
         }
 
         // update coeff to avoid the influence of too small values.
+        Eigen::Vector3d ext_force = calibrator_force_.calibrate(raw_dist_force_w_);
+        Eigen::Vector3d ext_torque = calibrator_torque_.calibrate(raw_dist_torque_cog_);
         for (int i = 0; i < 3; ++i)
         {
-          coeff_force_[i].updateRMS(raw_dist_force_w_(i) - calib_offset_force_w_(i));
-          coeff_torque_[i].updateRMS(raw_dist_torque_cog_(i) - calib_offset_torque_cog_(i));
+          coeff_force_[i].updateRMS(ext_force(i));
+          coeff_torque_[i].updateRMS(ext_torque(i));
         }
 
         break;
@@ -214,7 +218,7 @@ public:
 
     if (state_ == State::RUNNING)
     {
-      Eigen::Vector3d result = raw_dist_force_w_ - calib_offset_force_w_;
+      Eigen::Vector3d result = calibrator_force_.calibrate(raw_dist_force_w_);
 
       // apply impact coefficient
       dist_force_w_ros.x = result(0) * coeff_force_[0].getValue();
@@ -242,7 +246,7 @@ public:
 
     if (state_ == State::RUNNING)
     {
-      Eigen::Vector3d result = raw_dist_torque_cog_ - calib_offset_torque_cog_;
+      Eigen::Vector3d result = calibrator_torque_.calibrate(raw_dist_torque_cog_);
 
       // apply impact coefficient
       dist_torque_cog_ros.x = result(0) * coeff_torque_[0].getValue();
@@ -279,9 +283,8 @@ protected:
   ros::Duration calib_duration_t_;
 
   // calibration accumulators
-  size_t calib_offset_sample_count_{ 0 };
-  Eigen::Vector3d calib_offset_force_w_{ Eigen::Vector3d::Zero() };     // offset estimated force in world frame
-  Eigen::Vector3d calib_offset_torque_cog_{ Eigen::Vector3d::Zero() };  // offset estimated torque in cog frame
+  AverageCalibrator calibrator_force_;
+  AverageCalibrator calibrator_torque_;
 
   // --- limit ---
   std::vector<double> ext_force_limit_{ 0.0, 0.0, 0.0 };   // force limit in world frame
@@ -315,10 +318,13 @@ protected:
     state_enter_time_ = ros::Time::now();
     if (state_ == State::CALIBRATING)
     {
-      // reset calibration accumulation
-      calib_offset_force_w_.setZero();
-      calib_offset_torque_cog_.setZero();
-      calib_offset_sample_count_ = 0;
+      calibrator_force_.reset();
+      calibrator_torque_.reset();
+      for (int i = 0; i < 3; ++i)
+      {
+        coeff_force_[i].reset();
+        coeff_torque_[i].reset();
+      }
     }
 
     ROS_INFO("Wrench Estimator: Entering state %d", state_);
