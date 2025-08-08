@@ -21,8 +21,10 @@ class RingMarker:
         self.max_force = rospy.get_param("~max_force", 10.0)  # [N] for colour scaling
 
         # Publishers / Subscribers
-        self.marker_pub = rospy.Publisher("ext_wrench_ring", Marker, queue_size=1, latch=True)
-        rospy.Subscriber("beetle1/disturbance_wrench", WrenchStamped, self.wrench_callback)
+        self.marker_pub = rospy.Publisher(
+            rospy.get_namespace() + "disturbance_wrench/viz_ring", Marker, queue_size=1, latch=True
+        )
+        rospy.Subscriber(rospy.get_namespace() + "disturbance_wrench", WrenchStamped, self.wrench_callback)
 
         # Cache the most recent colour (start as green / no disturbance)
         self.colour = (0.0, 1.0, 0.0, 0.8)
@@ -55,8 +57,7 @@ class RingMarker:
     # ----------------------- Publishing -------------------------- #
     def publish_ring(self):
         marker = Marker()
-        # marker.header.frame_id = rospy.get_namespace() + "cog"
-        marker.header.frame_id = "beetle1/cog"
+        marker.header.frame_id = rospy.get_namespace().strip("/") + "/cog"
         marker.header.stamp = rospy.Time.now()
         marker.ns = "ring"
         marker.id = 0
