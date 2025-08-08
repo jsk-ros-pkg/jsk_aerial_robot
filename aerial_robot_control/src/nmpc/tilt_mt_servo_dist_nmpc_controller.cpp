@@ -162,7 +162,7 @@ void nmpc::TiltMtServoDistNMPC::updateDisturbWrench() const
 void nmpc::TiltMtServoDistNMPC::pubDisturbWrench() const
 {
   geometry_msgs::WrenchStamped dist_wrench_;
-  dist_wrench_.header.frame_id = nh_.getNamespace() + "/cog";
+  dist_wrench_.header.frame_id = nh_.getNamespace().substr(1) + "/cog";
 
   auto ext_force_w = wrench_est_ptr_->getDistForceW();
   dist_wrench_.wrench.torque = wrench_est_ptr_->getDistTorqueCOG();
