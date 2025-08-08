@@ -108,6 +108,7 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
     if (frame_name.find("rotor") != std::string::npos)
     {
       rotor_names_.push_back(frame_name);
+      rotor_frame_indices_.push_back(model_->getFrameId(frame_name));
       rotor_num_++;
     }
   }

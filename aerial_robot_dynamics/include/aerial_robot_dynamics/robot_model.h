@@ -80,6 +80,11 @@ public:
   {
     return rotor_direction_.at(index);
   }
+
+  const std::vector<int>& getRotorFrameIndices() const
+  {
+    return rotor_frame_indices_;
+  }
   const Eigen::VectorXd& getJointTorqueLimits() const
   {
     return joint_torque_limits_;
@@ -105,6 +110,7 @@ private:
   std::vector<std::string> rotor_names_;
   std::vector<pinocchio::SE3> joint_M_rotors_;
   std::vector<int> rotor_direction_;
+  std::vector<int> rotor_frame_indices_;
 
   // QP solver for Inverse Dynamics
   double latest_id_solve_time_ = 0.0;
