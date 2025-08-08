@@ -22,9 +22,9 @@ class RingMarker:
 
         # Publishers / Subscribers
         self.marker_pub = rospy.Publisher(
-            rospy.get_namespace() + "disturbance_wrench/viz_ring", Marker, queue_size=1, latch=True
+            rospy.get_namespace() + "ext_wrench_est/viz_ring", Marker, queue_size=1, latch=True
         )
-        rospy.Subscriber(rospy.get_namespace() + "disturbance_wrench", WrenchStamped, self.wrench_callback)
+        rospy.Subscriber(rospy.get_namespace() + "ext_wrench_est/value", WrenchStamped, self.wrench_callback)
 
         # Cache the most recent colour (start as green / no disturbance)
         self.colour = (0.0, 1.0, 0.0, 0.8)
