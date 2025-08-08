@@ -5,24 +5,16 @@
         <node pkg="aerial_robot_control" type="viz_ext_wrench_ring.py" name="viz_ext_wrench_ring" output="screen"/>
     </group>
 
+    <!-- ======================== -->
+    <!-- Joystick Teleop          -->
+    <!-- ======================== -->
+    <include file="$(find aerial_robot_base)/launch/external_module/joy_stick.launch">
+        <arg name="robot_name" value="$(arg robot_ns)"/>
+    </include>
 
-    <!--    &lt;!&ndash; Whether to start hand‑arm teleoperation &ndash;&gt;-->
-    <!--    <arg name="use_hand" default="false" />-->
+    <!-- ======================== -->
+    <!-- RViz                     -->
+    <!-- ======================== -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find beetle_omni)/config/rviz/nmpc_exp.rviz"/>
 
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    &lt;!&ndash; Joystick Teleop          &ndash;&gt;-->
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    <include file="$(find aerial_robot_base)/launch/joy_stick.launch">-->
-    <!--        <arg name="robot_name" value="$(arg robot_ns)" />-->
-    <!--    </include>-->
-
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    &lt;!&ndash; RViz                     &ndash;&gt;-->
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find beetle_omni)/config/rviz/nmpc_exp.rviz" />-->
-
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    &lt;!&ndash; Hand‑Arm Glove (optional)&ndash;&gt;-->
-    <!--    &lt;!&ndash; ======================== &ndash;&gt;-->
-    <!--    <include file="$(find aerial_robot_planning)/launch/hand_arm_glove.launch" if="$(eval arg('use_hand') == 'true')" />-->
 </launch>
