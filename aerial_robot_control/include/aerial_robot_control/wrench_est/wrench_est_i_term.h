@@ -82,33 +82,6 @@ public:
     setRawDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
   }
 
-  void takeAwayITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
-  {
-    pos_i_term_[0].changeITerm(-dist_force_w.x);
-    pos_i_term_[1].changeITerm(-dist_force_w.y);
-    pos_i_term_[2].changeITerm(-dist_force_w.z);
-    pos_i_term_[3].changeITerm(-dist_torque_cog.x);
-    pos_i_term_[4].changeITerm(-dist_torque_cog.y);
-    pos_i_term_[5].changeITerm(-dist_torque_cog.z);
-    if_take_away_i_term_ = true;
-  }
-
-  void giveBackITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
-  {
-    pos_i_term_[0].changeITerm(dist_force_w.x);
-    pos_i_term_[1].changeITerm(dist_force_w.y);
-    pos_i_term_[2].changeITerm(dist_force_w.z);
-    pos_i_term_[3].changeITerm(dist_torque_cog.x);
-    pos_i_term_[4].changeITerm(dist_torque_cog.y);
-    pos_i_term_[5].changeITerm(dist_torque_cog.z);
-    if_take_away_i_term_ = false;
-  }
-
-  bool getTakeAwayFlag() const
-  {
-    return if_take_away_i_term_;
-  }
-
   void reset() override
   {
     WrenchEstBase::reset();
@@ -118,8 +91,6 @@ public:
   }
 
 private:
-  bool if_take_away_i_term_ = false;
-
   ITerm pos_i_term_[6];  // x, y, z, roll, pitch, yaw
 
   std::vector<boost::shared_ptr<ITermDynamicConfig>> reconf_servers_;

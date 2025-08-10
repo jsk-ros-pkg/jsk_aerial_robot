@@ -332,9 +332,9 @@ protected:
     wrench_est_nh.setParam("state", static_cast<int>(state_));
   }
 
-  void cbPubDistWrench(const ros::TimerEvent& event) const override
+  void callbackPubDistWrench(const ros::TimerEvent& event) const override
   {
-    WrenchEstBase::cbPubDistWrench(event);
+    WrenchEstBase::callbackPubDistWrench(event);
 
     geometry_msgs::WrenchStamped dist_wrench_coeff;
     dist_wrench_coeff.header.stamp = ros::Time::now();
