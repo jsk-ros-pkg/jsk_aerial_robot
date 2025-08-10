@@ -54,10 +54,15 @@ public:
     ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
 
     // state machine mode switch
-    lin_vel_thresh_.resize(3, 0.0);
-    ang_vel_thresh_.resize(3, 0.0);
-    wrench_est_nh.getParam("lin_vel_threshold", lin_vel_thresh_);
-    wrench_est_nh.getParam("ang_vel_threshold", ang_vel_thresh_);
+    lin_vel_thresh_calib_.resize(3, 0.0);
+    ang_vel_thresh_calib_.resize(3, 0.0);
+    wrench_est_nh.getParam("lin_vel_thresh_calib", lin_vel_thresh_calib_);
+    wrench_est_nh.getParam("ang_vel_thresh_calib", ang_vel_thresh_calib_);
+
+    lin_vel_thresh_stop_.resize(3, 0.0);
+    ang_vel_thresh_stop_.resize(3, 0.0);
+    wrench_est_nh.getParam("lin_vel_thresh_stop", lin_vel_thresh_stop_);
+    wrench_est_nh.getParam("ang_vel_thresh_stop", ang_vel_thresh_stop_);
 
     double duration_t;
     getParam<double>(wrench_est_nh, "calib_duration_t", duration_t, 3.0);
@@ -112,25 +117,17 @@ public:
     }
 
     // Reset FSM
-    state_ = State::STOPPED;
-    state_enter_time_ = ros::Time::now();
-
-    ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
-    wrench_est_nh.setParam("state", static_cast<int>(state_));
+    enter(State::STOPPED);
   }
 
   virtual void update(const tf::Vector3& vel, const tf::Vector3& ang_vel)
   {
-    // Simple magnitude checks for stability
-    const bool stable = (abs(vel.x()) <= lin_vel_thresh_[0]) && (abs(vel.y()) <= lin_vel_thresh_[1]) &&
-                        (abs(vel.z()) <= lin_vel_thresh_[2]) && (abs(ang_vel.x()) <= ang_vel_thresh_[0]) &&
-                        (abs(ang_vel.y()) <= ang_vel_thresh_[1]) && (abs(ang_vel.z()) <= ang_vel_thresh_[2]);
-
     switch (state_)
     {
       case State::STOPPED: {
-        // Transition condition: become stable
-        if (stable)
+        const bool condition_calib = absElementLessEqualThan(vel, lin_vel_thresh_calib_) &&
+                                     absElementLessEqualThan(ang_vel, ang_vel_thresh_calib_);
+        if (condition_calib)
         {
           enter(State::CALIBRATING);
         }
@@ -139,7 +136,9 @@ public:
       }
 
       case State::CALIBRATING: {
-        if (!stable)
+        const bool condition_stop = !(absElementLessEqualThan(vel, lin_vel_thresh_stop_) &&
+                                      absElementLessEqualThan(ang_vel, ang_vel_thresh_stop_));
+        if (condition_stop)
         {
           // Abort calibration if motion becomes large
           enter(State::STOPPED);
@@ -168,7 +167,10 @@ public:
 
       case State::RUNNING: {
         // Leave RUNNING if unstable again
-        if (!stable)
+        const bool condition_stop = !(absElementLessEqualThan(vel, lin_vel_thresh_stop_) &&
+                                      absElementLessEqualThan(ang_vel, ang_vel_thresh_stop_));
+
+        if (condition_stop)
         {
           enter(State::STOPPED);
           break;
@@ -271,13 +273,20 @@ public:
   }
 
 protected:
+  std::vector<double> thrust_meas_;
+  std::vector<double> thrust_cmd_;  // for thrust cmd (use this value may be more stable than actual thrust)
+  std::vector<double> joint_angles_;
+
+private:
   // --- FSM data ---
   State state_{ State::STOPPED };
   ros::Time state_enter_time_;
 
   // state switch thresholds
-  std::vector<double> lin_vel_thresh_;  // m/s
-  std::vector<double> ang_vel_thresh_;  // rad/s
+  std::vector<double> lin_vel_thresh_calib_;  // m/s
+  std::vector<double> ang_vel_thresh_calib_;  // rad/s
+  std::vector<double> lin_vel_thresh_stop_;   // m/s
+  std::vector<double> ang_vel_thresh_stop_;   // rad/s
 
   // calibration duration
   ros::Duration calib_duration_t_;
@@ -299,16 +308,13 @@ protected:
 
   // for servo angles
   ros::Subscriber sub_joint_states_;
-  std::vector<double> joint_angles_;
 
   // for actual thrust
-  std::vector<double> thrust_meas_;
   ros::Subscriber sub_esc_telem_;
   double krpm_square_to_thrust_ratio_;
   double krpm_square_to_thrust_bias_;
 
-  // for thrust cmd (use this value may be more stable than actual thrust)
-  std::vector<double> thrust_cmd_;
+  // for thrust command
   ros::Subscriber sub_thrust_cmd_;
 
   // called when entering a new state.
@@ -376,6 +382,11 @@ protected:
     thrust_cmd_[1] = msg->base_thrust[1];
     thrust_cmd_[2] = msg->base_thrust[2];
     thrust_cmd_[3] = msg->base_thrust[3];
+  }
+
+  static bool absElementLessEqualThan(const tf::Vector3& vec, const std::vector<double>& thresh)
+  {
+    return (abs(vec.x()) < thresh[0]) && (abs(vec.y()) < thresh[1]) && (abs(vec.z()) < thresh[2]);
   }
 };
 
