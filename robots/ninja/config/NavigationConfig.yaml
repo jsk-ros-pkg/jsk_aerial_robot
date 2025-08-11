@@ -24,7 +24,7 @@ navigation:
 
   cmd_vel_lev2_gain : 2.0
   nav_vel_limit : 0.2
-  vel_nav_threshold : 0.05
+  vel_nav_threshold : 0.2
 
   gain_tunning_mode: 0
   max_target_tilt_angle: 0.2
@@ -47,8 +47,8 @@ navigation:
   default_morphing_vel: 0.04
   joint_process_func: 2 # 0 -> CONSTANT, 1 -> FRAC, 2 -> EXP
   free_joint_flag: false
-  max_teleop_xy_vel: 0.1
-  max_teleop_z_vel: 0.1
+  max_teleop_xy_vel: 0.2
+  max_teleop_z_vel: 0.2
   max_teleop_yaw_vel: 0.2
   asm_teleop_reset_duration: 0.25
   morphing_process_interval: 0.0
