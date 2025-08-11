@@ -447,5 +447,18 @@
     <xacro:damping_factor link="battery_2"/>
 
   </xacro:macro>
-  
+
+  <!-- livox mid360 -->
+  <xacro:macro name="livox">
+    <xacro:extra_module name = "lidar_imu" parent = "main_body" visible = "0" > <!-- should be IMU frame -->
+      <origin xyz="${-0.053 + 0.011} ${0.02329} ${0.046 + 0.025}" rpy="0 0 0"/> 
+      <inertial>
+	<mass value = "0.262" />
+	<origin xyz="0 0 0.0038" rpy="0 0 0"/>
+	<inertia
+            ixx="0.000122" ixy="0.0" ixz="0.0"
+            iyy="0.000132" iyz="0.0" izz="0.000131"/>
+      </inertial>
+    </xacro:extra_module>
+  </xacro:macro>  
 </robot>
