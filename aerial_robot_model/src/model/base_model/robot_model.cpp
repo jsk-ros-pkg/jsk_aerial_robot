@@ -708,8 +708,8 @@ void RobotModel::convertFromCoGToEEContact(const tf::Vector3& cog_pos_in_w, cons
                                            tf::Vector3& ee_omega) const
 {
   // get the conversion from CoG to end-effector (EE) contact frame
-  std::vector<double> cog_to_ee_p = getCoGtoEEContactPosition();
-  std::vector<double> cog_to_ee_q = getCoGtoEEContactQuaternion();  // qw, qx, qy, qz
+  std::vector<double> cog_to_ee_p, cog_to_ee_q;
+  getCoGtoFramePosQuat("ee_contact", cog_to_ee_p, cog_to_ee_q);
 
   tf::Vector3 p_ee_in_cog(cog_to_ee_p[0], cog_to_ee_p[1], cog_to_ee_p[2]);
   tf::Matrix3x3 cog_to_ee_mtx;

@@ -460,8 +460,8 @@ std::vector<double> nmpc::TiltMtServoNMPC::PhysToNMPCParams() const
   phys_p[idx] = t_servo_;
   idx++;
 
-  std::vector<double> contact_frame_p = robot_model_->getCoGtoEEContactPosition();
-  std::vector<double> contact_frame_q = robot_model_->getCoGtoEEContactQuaternion();
+  std::vector<double> contact_frame_p, contact_frame_q;
+  robot_model_->getCoGtoFramePosQuat("ee_contact", contact_frame_p, contact_frame_q);
 
   std::copy(contact_frame_p.begin(), contact_frame_p.end(), phys_p.begin() + idx);
   idx += static_cast<int>(contact_frame_p.size());
