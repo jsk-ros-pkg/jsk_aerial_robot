@@ -189,7 +189,7 @@ void StateEstimator::statePublish(const ros::TimerEvent& e)
   cog_odom_pub_.publish(odom_state);
 
   /* Contact Point */
-  if (robot_model_->hasEEContact())
+  if (robot_model_->hasFrame("ee_contact"))
   {
     // make conversion
     tf::Vector3 target_ee_pos_in_w, target_ee_vel_in_w, target_ee_omega;
