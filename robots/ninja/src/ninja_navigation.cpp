@@ -11,7 +11,8 @@ NinjaNavigator::NinjaNavigator():
   module_joint_num_(2),
   morphing_flag_(false),
   asm_teleop_reset_time_(0),
-  asm_vel_based_waypoint_(false)
+  asm_vel_based_waypoint_(false),
+  pure_vel_control_flag_(false)
 {
 }
 
@@ -939,6 +940,14 @@ void NinjaNavigator::naviCallback(const aerial_robot_msgs::FlightNavConstPtr & m
   if(force_att_control_flag_) return;
 
   /* xy control */
+  if(msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::STAY_HERE_MODE)
+    {
+      xy_control_mode_ = POS_CONTROL_MODE;
+      setTargetVelX(0);
+      setTargetVelY(0);
+      setTargetXyFromCurrentState();
+    }
+
   if(msg->pos_xy_nav_mode == aerial_robot_msgs::FlightNav::VEL_MODE)
     {
       /* do not switch to pure vel mode */
