@@ -45,17 +45,17 @@ public:
     prev_est_wrench_timestamp_ = 0;
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
-    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas();
+    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas(thrust_meas_, joint_angles_);
     Eigen::VectorXd target_force_cog = target_wrench_cog.head(3);
     Eigen::VectorXd target_torque_cog = target_wrench_cog.tail(3);
 
     // force estimation
     Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
-    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), specific_force_cog);
+    tf::vectorTFToEigen(imu_handler->getAccCogInCog(), specific_force_cog);
 
     double mass = robot_model_->getMass();
 
@@ -69,11 +69,11 @@ public:
     est_external_force_ = (Eigen::MatrixXd::Identity(3, 3) - force_acc_alpha_matrix_) * est_external_force_ +
                           force_acc_alpha_matrix_ * est_external_force_now;
 
-    setDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
+    setRawDistForceW(est_external_force_(0), est_external_force_(1), est_external_force_(2));
 
     // torque estimation
     Eigen::Vector3d omega_cog;
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
+    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
     Eigen::Matrix3d inertia = robot_model_->getInertia<Eigen::Matrix3d>();
     Eigen::VectorXd sum_momentum = inertia * omega_cog;
 
@@ -95,7 +95,9 @@ public:
 
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
-    setDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
+    setRawDistTorqueCOG(est_external_torque_(0), est_external_torque_(1), est_external_torque_(2));
+
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

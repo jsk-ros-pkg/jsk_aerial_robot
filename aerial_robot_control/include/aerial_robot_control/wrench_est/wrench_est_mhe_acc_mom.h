@@ -30,20 +30,20 @@ public:
     mhe_solver_.reset();
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
 
-    Eigen::VectorXd meas_wrench_cog = calcWrenchFromActuatorMeas();
+    Eigen::VectorXd meas_wrench_cog = calcWrenchFromActuatorMeas(thrust_meas_, joint_angles_);
     Eigen::VectorXd meas_force_cog = meas_wrench_cog.head(3);
     Eigen::VectorXd meas_torque_cog = meas_wrench_cog.tail(3);
 
     // IMU measurement
     Eigen::Vector3d omega_cog;
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);
+    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);
 
     Eigen::Vector3d specific_force_cog;  // the specific force of CoG point in CoG frame, i.e., acceleration - gravity
-    tf::vectorTFToEigen(imu_handler->getFilteredAccCogInCog(), specific_force_cog);
+    tf::vectorTFToEigen(imu_handler->getAccCogInCog(), specific_force_cog);
 
     // force estimation
     double mass = robot_model_->getMass();
@@ -79,10 +79,10 @@ public:
 
     auto x_est = mhe_solver_.getEstimatedState(mhe_solver_.NN_);
 
-    setDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
-    setDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
+    setRawDistForceW(x_est.at(3), x_est.at(4), x_est.at(5));
+    setRawDistTorqueCOG(x_est.at(6), x_est.at(7), x_est.at(8));
 
-    WrenchEstActuatorMeasBase::update();
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

@@ -214,13 +214,8 @@ std::vector<double> nmpc::TiltMtServoThrustDistNMPC::meas2VecX(bool is_ee_centri
   geometry_msgs::Vector3 external_force_w;     // default: 0, 0, 0
   geometry_msgs::Vector3 external_torque_cog;  // default: 0, 0, 0
 
-  auto nav_state = navigator_->getNaviState();
-  if (if_use_est_wrench_4_control_ && nav_state == aerial_robot_navigation::HOVER_STATE)
+  if (if_use_est_wrench_4_control_)
   {
-    if (!wrench_est_ptr_->getOffsetFlag())
-      wrench_est_ptr_->toggleOffsetFlag();
-
-    // the external wrench is only added when the robot is in the hover state
     external_force_w = wrench_est_ptr_->getDistForceW();
     external_torque_cog = wrench_est_ptr_->getDistTorqueCOG();
   }

@@ -75,6 +75,11 @@ target_link_libraries(wrench_est_plugins ${catkin_LIBRARIES} acados
 )
 add_dependencies(wrench_est_plugins  ${PROJECT_NAME}_gencfg  gen_acados_code)
 
+catkin_install_python(PROGRAMS
+  scripts/wrench_est/viz_ext_wrench_ring.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 ### mpc solver plugin
 add_library(mpc_solver_plugins src/nmpc/mpc_solver_plugins.cpp)
 target_link_libraries(mpc_solver_plugins ${catkin_LIBRARIES} acados

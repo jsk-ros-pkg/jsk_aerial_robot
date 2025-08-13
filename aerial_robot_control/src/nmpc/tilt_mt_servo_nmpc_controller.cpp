@@ -106,6 +106,8 @@ void nmpc::TiltMtServoNMPC::reset()
 {
   ControlBase::reset();
 
+  resetPlugins();
+
   // reset x_u_ref_
   std::vector<double> x_vec_ee = meas2VecX(true);
   std::vector<double> u_vec(mpc_solver_ptr_->NU_, 0);

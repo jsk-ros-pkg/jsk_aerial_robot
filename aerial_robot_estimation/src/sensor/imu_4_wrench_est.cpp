@@ -4,11 +4,6 @@
 
 #include "aerial_robot_estimation/sensor/imu_4_wrench_est.h"
 
-namespace
-{
-bool first_flag = true;
-};
-
 namespace sensor_plugin
 {
 
@@ -18,9 +13,27 @@ void Imu4WrenchEst::initialize(ros::NodeHandle nh, boost::shared_ptr<aerial_robo
 {
   Imu::initialize(nh, robot_model, estimator, std::string("sensor_plugin/imu"), index);
 
+  // FIR Differentiator for omega dot: 5 point differentiator
+  std::vector<double> diffB = { -1, 8, 0, -8, 1 };
+  double gain = 1.0 / 12.0;
+  for (auto& f : omega_diff_)
+  {
+    f.setCoeffs(diffB, gain);
+    f.reset();
+  }
+
   // debug
   pub_acc_ = indexed_nhp_.advertise<geometry_msgs::AccelStamped>(string("acc_lin_ang_baselink"), 1);
   ROS_INFO("Imu type: Imu4WrenchEst");
+}
+
+bool Imu4WrenchEst::reset()
+{
+  for (auto& f : omega_diff_)
+  {
+    f.reset();
+  }
+  return true;
 }
 
 // override to get filtered gyro data
@@ -43,45 +56,32 @@ void Imu4WrenchEst::ImuCallback(const spinal::ImuConstPtr& imu_msg)
     mag_[i] = imu_msg->mag_data[i];
   }
 
-  if (first_flag)
-  {
-    prev_omega_ = omega_;
-    prev_time_ = imu_msg->stamp.toSec();
-    first_flag = false;
-    return;
-  }
-
   // get omega dot
-  tf::Vector3 omega_dot;
-
-  omega_dot = (omega_ - prev_omega_) / (imu_msg->stamp.toSec() - prev_time_);
-  prev_omega_ = omega_;
-  prev_time_ = imu_msg->stamp.toSec();
-
-  // assign values. TODO: We don't use lpf filter now, since we don't know why using the IIR filter causes 50ms delay.
-  tf::Vector3 filtered_acc = acc_b_;
-  tf::Vector3 filtered_omega = omega_;
-  tf::Vector3 filtered_omega_dot = omega_dot;
+  tf::Vector3 omega_b_dot;
+  omega_b_dot.setX(omega_diff_[0].filter(omega_[0]));
+  omega_b_dot.setY(omega_diff_[1].filter(omega_[1]));
+  omega_b_dot.setZ(omega_diff_[2].filter(omega_[2]));
+  // Note: if IMU runs at 200Hz, the 5-point filter will have a delay of 2 * 5ms = 10ms.
 
   // publish acc
   geometry_msgs::AccelStamped acc_msg;
   acc_msg.header.stamp = imu_msg->stamp;
-  tf::vector3TFToMsg(filtered_acc, acc_msg.accel.linear);
-  tf::vector3TFToMsg(filtered_omega_dot, acc_msg.accel.angular);
+  tf::vector3TFToMsg(acc_b_, acc_msg.accel.linear);
+  tf::vector3TFToMsg(omega_b_dot, acc_msg.accel.angular);
   pub_acc_.publish(acc_msg);
 
-  // get filtered angular and linear velocity of CoG
+  // coordinate transform
   tf::Transform cog2baselink_tf;
   tf::transformKDLToTF(robot_model_->getCog2Baselink<KDL::Frame>(), cog2baselink_tf);
   int estimate_mode = estimator_->getEstimateMode();
-  setFilteredOmegaCogInCog(cog2baselink_tf.getBasis() * filtered_omega);
-  setFilteredVelCogInW(estimator_->getVel(Frame::BASELINK, estimate_mode) +
-                       estimator_->getOrientation(Frame::BASELINK, estimate_mode) *
-                           (filtered_omega.cross(cog2baselink_tf.inverse().getOrigin())));
+  setOmegaCogInCog(cog2baselink_tf.getBasis() * omega_);
+  setVelCogInW(estimator_->getVel(Frame::BASELINK, estimate_mode) +
+               estimator_->getOrientation(Frame::BASELINK, estimate_mode) *
+                   (omega_.cross(cog2baselink_tf.inverse().getOrigin())));
 
   // TODO: this is a simple version of the acceleration estimation. Need to improve.
-  setFilteredAccCogInCog(cog2baselink_tf.getBasis() * filtered_acc);
-  setFilteredOmegaDotCogInCog(cog2baselink_tf.getBasis() * filtered_omega_dot);
+  setAccCogInCog(cog2baselink_tf.getBasis() * acc_b_);
+  setOmegaDotCogInCog(cog2baselink_tf.getBasis() * omega_b_dot);
 
   estimateProcess();
   updateHealthStamp();

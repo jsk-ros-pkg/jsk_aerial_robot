@@ -39,12 +39,12 @@ public:
     prev_est_wrench_timestamp_ = 0;
   }
 
-  void update() override
+  void update(const tf::Vector3& vel, const tf::Vector3& ang_vel) override
   {
     Eigen::Vector3d vel_w, omega_cog;
     auto imu_handler = boost::dynamic_pointer_cast<sensor_plugin::Imu4WrenchEst>(estimator_->getImuHandler(0));
-    tf::vectorTFToEigen(imu_handler->getFilteredVelCogInW(), vel_w);          // the vel of CoG point in world frame
-    tf::vectorTFToEigen(imu_handler->getFilteredOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
+    tf::vectorTFToEigen(imu_handler->getVelCogInW(), vel_w);          // the vel of CoG point in world frame
+    tf::vectorTFToEigen(imu_handler->getOmegaCogInCog(), omega_cog);  // the omega of CoG point in CoG frame
     Eigen::Matrix3d cog_rot;
     tf::matrixTFToEigen(estimator_->getOrientation(Frame::COG, estimator_->getEstimateMode()), cog_rot);
 
@@ -61,7 +61,7 @@ public:
     Eigen::VectorXd N = mass * robot_model_->getGravity();                    // mg
     N.tail(3) = aerial_robot_model::skew(omega_cog) * (inertia * omega_cog);  // omega x (I omega)
 
-    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas();  // The wrench is from the actuator measurement
+    Eigen::VectorXd target_wrench_cog = calcWrenchFromActuatorMeas(thrust_meas_, joint_angles_);
 
     if (prev_est_wrench_timestamp_ == 0)
     {
@@ -79,10 +79,10 @@ public:
     prev_est_wrench_timestamp_ = ros::Time::now().toSec();
 
     /* set value */
-    setDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
-    setDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
+    setRawDistForceW(est_external_wrench_(0), est_external_wrench_(1), est_external_wrench_(2));
+    setRawDistTorqueCOG(est_external_wrench_(3), est_external_wrench_(4), est_external_wrench_(5));
 
-    WrenchEstActuatorMeasBase::update();
+    WrenchEstActuatorMeasBase::update(vel, ang_vel);
   }
 
 private:

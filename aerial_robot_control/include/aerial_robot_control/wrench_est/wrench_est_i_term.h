@@ -6,7 +6,7 @@
 #define AERIAL_ROBOT_CONTROL_WRENCH_EST_I_TERM_H
 
 #include "aerial_robot_control/wrench_est/wrench_est_base.h"
-#include "i_term.h"
+#include "aerial_robot_control/wrench_est/utils.h"
 
 /* dynamic reconfigure */
 #include <dynamic_reconfigure/server.h>
@@ -78,35 +78,8 @@ public:
     double my_cog_i_term = pos_i_term_[4].update(sign_qe_w * qe.getY());
     double mz_cog_i_term = pos_i_term_[5].update(sign_qe_w * qe.getZ());
 
-    setDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
-    setDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
-  }
-
-  void takeAwayITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
-  {
-    pos_i_term_[0].changeITerm(-dist_force_w.x);
-    pos_i_term_[1].changeITerm(-dist_force_w.y);
-    pos_i_term_[2].changeITerm(-dist_force_w.z);
-    pos_i_term_[3].changeITerm(-dist_torque_cog.x);
-    pos_i_term_[4].changeITerm(-dist_torque_cog.y);
-    pos_i_term_[5].changeITerm(-dist_torque_cog.z);
-    if_take_away_i_term_ = true;
-  }
-
-  void giveBackITerm(geometry_msgs::Vector3 dist_force_w, geometry_msgs::Vector3 dist_torque_cog)
-  {
-    pos_i_term_[0].changeITerm(dist_force_w.x);
-    pos_i_term_[1].changeITerm(dist_force_w.y);
-    pos_i_term_[2].changeITerm(dist_force_w.z);
-    pos_i_term_[3].changeITerm(dist_torque_cog.x);
-    pos_i_term_[4].changeITerm(dist_torque_cog.y);
-    pos_i_term_[5].changeITerm(dist_torque_cog.z);
-    if_take_away_i_term_ = false;
-  }
-
-  bool getTakeAwayFlag() const
-  {
-    return if_take_away_i_term_;
+    setRawDistForceW(fx_w_i_term, fy_w_i_term, fz_w_i_term);
+    setRawDistTorqueCOG(mx_cog_i_term, my_cog_i_term, mz_cog_i_term);
   }
 
   void reset() override
@@ -118,8 +91,6 @@ public:
   }
 
 private:
-  bool if_take_away_i_term_ = false;
-
   ITerm pos_i_term_[6];  // x, y, z, roll, pitch, yaw
 
   std::vector<boost::shared_ptr<ITermDynamicConfig>> reconf_servers_;
