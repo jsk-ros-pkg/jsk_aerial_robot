@@ -394,8 +394,9 @@
     </joint>
 
   </xacro:macro>
-  
-  <xacro:macro name="battery">
+
+  ## battery 3000mAh
+  <xacro:macro name="battery_3000mAh">
     <joint name="battry_1_joint" type="fixed">
       <parent link="main_body"/>
       <child link="battery_1"/>
@@ -447,6 +448,66 @@
     <xacro:damping_factor link="battery_2"/>
 
   </xacro:macro>
+
+    ## battery 1300mAh
+  <xacro:macro name="battery_1300mAh">
+    <joint name="battry_1_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_1"/>
+      <origin rpy="0 0 ${pi/2-0.977}" xyz="-0.10215 -0.07574 -0.04"/>
+      <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="battery_1">
+      <inertial>
+        <origin xyz="-0.00161235  0.0 -0.01674383" rpy="0 0 0"/>
+        <mass value="0.19795108"/>
+        <inertia
+            ixx = "0.00004618" ixy = "0.00000000" ixz = "0.00000000"
+            iyx = "0.00000000" iyy = "0.00010688" iyz = "0.00000000"
+            izx = "0.00000000" izy = "0.00000000" izz = "0.00011601"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.076 0.04 0.0335"/>
+        </geometry>
+        <material name="blue">
+          <color rgba="0.0 0.0 1.0 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <xacro:damping_factor link="battery_1"/>
+
+    <joint name="battry_2_joint" type="fixed">
+      <parent link="main_body"/>
+      <child link="battery_2"/>
+      <origin rpy="0 0 -${pi/2-0.977}" xyz="-0.10215 0.07574 -0.04"/>
+      <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="battery_2">
+      <inertial>
+        <origin xyz="-0.00161235  0.0 -0.01674383" rpy="0 0 0"/>
+        <mass value="0.19795108"/>
+        <inertia
+            ixx = "0.00004618" ixy = "0.00000000" ixz = "0.00000000"
+            iyx = "0.00000000" iyy = "0.00010688" iyz = "0.00000000"
+            izx = "0.00000000" izy = "0.00000000" izz = "0.00011601"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.076 0.04 0.0335"/>
+        </geometry>
+        <material name="blue">
+          <color rgba="0.0 0.0 1.0 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <xacro:damping_factor link="battery_2"/>
+
+  </xacro:macro>  
 
   <!-- livox mid360 -->
   <xacro:macro name="livox">
