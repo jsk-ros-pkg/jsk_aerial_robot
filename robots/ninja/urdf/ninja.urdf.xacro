@@ -454,7 +454,7 @@
     <joint name="battry_1_joint" type="fixed">
       <parent link="main_body"/>
       <child link="battery_1"/>
-      <origin rpy="0 0 ${pi/2-0.977}" xyz="-0.10215 -0.07574 -0.04"/>
+      <origin rpy="0 0 0" xyz="-0.21 -0.15 -0.04"/>
       <axis xyz="0 0 0"/>
     </joint>
 
@@ -482,7 +482,7 @@
     <joint name="battry_2_joint" type="fixed">
       <parent link="main_body"/>
       <child link="battery_2"/>
-      <origin rpy="0 0 -${pi/2-0.977}" xyz="-0.10215 0.07574 -0.04"/>
+      <origin rpy="0 0 0" xyz="-0.21 0.15 -0.04"/>
       <axis xyz="0 0 0"/>
     </joint>
 
