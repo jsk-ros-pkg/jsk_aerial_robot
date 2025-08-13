@@ -21,7 +21,7 @@ class BaseTraj:
         return t > self.t_total
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(
@@ -676,24 +676,6 @@ class SingularityPointTraj(BaseTraj):
 
         self.t_converge = 8.0
         self.T = 8 * self.t_converge
-
-    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z = 0.0, 0.0, 1.0
-        vx, vy, vz = 0.0, 0.0, 0.0
-        ax, ay, az = 0.0, 0.0, 0.0
-
-        displace = 0.5  # m
-
-        if 2 * self.t_converge >= t > self.t_converge:
-            x, y, z = 0.0 - displace, 0.0, 1.0
-
-        if 3 * self.t_converge >= t > 2 * self.t_converge:
-            x, y, z = 0.0 - displace, 0.0, 1.0 + displace
-
-        if 4 * self.t_converge >= t > 3 * self.t_converge:
-            x, y, z = 0.0, 0.0, 1.0 + displace
-
-        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(
         self, t: float

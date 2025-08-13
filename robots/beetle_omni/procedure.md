@@ -25,7 +25,7 @@ urdf:     <joint name="ball_to_ee_contact" type="fixed">
 </joint>
 
 0 0 0.11: traj: 7 + poking
-0 0 -0.1: traj: 7 + poking
+0 0 -0.14: traj: 7 + poking
 0.2 0.0 0.11: traj: 7
 -0.3 0.0 0.11: traj: 7
 
