@@ -71,6 +71,8 @@ PinocchioRobotModel::PinocchioRobotModel(bool is_floating_base)
 
   // get joint torque limits
   joint_torque_limits_.resize(model_->nv);
+  if (is_floating_base_)
+    joint_torque_limits_.head(6).setConstant(0);  // no external force can be added to root link directly
   for (int i = is_floating_base_ ? 2 : 1; i < model_->njoints; i++)
   {
     std::string joint_name = model_->names[i];
