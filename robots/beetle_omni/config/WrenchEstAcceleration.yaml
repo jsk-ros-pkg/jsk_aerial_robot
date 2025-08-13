@@ -13,7 +13,7 @@ controller:
     ang_vel_thresh_stop: [0.8, 0.8, 0.8]  # [x, y, z] rad/s
 
     # overall limit
-    ext_force_limit: [15, 15, 15]  # N
+    ext_force_limit: [40, 40, 40]  # N
     ext_torque_limit: [5, 5, 5]  # Nm
 
     # small noise: use sigmoid function for a threshold
