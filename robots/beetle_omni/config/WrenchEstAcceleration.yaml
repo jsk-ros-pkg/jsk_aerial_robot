@@ -6,8 +6,8 @@ controller:
   wrench_est:
     # mode switch
     calib_duration_t: 3.0  # seconds
-    lin_vel_thresh_calib: [0.2, 0.2, 0.2]  # [x, y, z] m/s
-    ang_vel_thresh_calib: [0.2, 0.2, 0.2]  # [x, y, z] rad/s
+    lin_vel_thresh_calib: [0.1, 0.1, 0.1]  # [x, y, z] m/s
+    ang_vel_thresh_calib: [0.1, 0.1, 0.1]  # [x, y, z] rad/s
 
     lin_vel_thresh_stop: [0.5, 0.5, 0.5]  # [x, y, z] m/s
     ang_vel_thresh_stop: [0.5, 0.5, 0.5]  # [x, y, z] rad/s
