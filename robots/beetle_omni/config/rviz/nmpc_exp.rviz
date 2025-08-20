@@ -11,6 +11,8 @@ Panels:
         - /PoseArray1
         - /PoseArray2
         - /WrenchStamped1
+        - /Pose1
+        - /Pose2
       Splitter Ratio: 0.47863247990608215
     Tree Height: 1194
   - Class: rviz/Selection
@@ -66,6 +68,11 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        brush:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         ee_contact:
           Alpha: 1
           Show Axes: false
@@ -78,11 +85,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        fork:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         gimbal_link1:
           Alpha: 1
           Show Axes: false
@@ -173,6 +175,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        beetle1/brush:
+          Value: true
         beetle1/cog:
           Value: true
         beetle1/ee_contact:
@@ -180,8 +184,6 @@ Visualization Manager:
         beetle1/ee_mount:
           Value: true
         beetle1/fc:
-          Value: true
-        beetle1/fork:
           Value: true
         beetle1/gimbal_link1:
           Value: true
@@ -234,7 +236,7 @@ Visualization Manager:
               {}
             beetle1/main_body:
               beetle1/ee_mount:
-                beetle1/fork:
+                beetle1/brush:
                   beetle1/ee_contact:
                     {}
               beetle1/fc:
@@ -318,6 +320,38 @@ Visualization Manager:
         ring: true
       Queue Size: 100
       Value: true
+    - Alpha: 1
+      Axes Length: 0.10000000149011612
+      Axes Radius: 0.019999999552965164
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 2
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /arm/mocap/pose
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 0.10000000149011612
+      Axes Radius: 0.019999999552965164
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /hand/mocap/pose
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -346,7 +380,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.293896198272705
+      Distance: 7.394373893737793
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -362,9 +396,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.19039787352085114
+      Pitch: 0.11039792001247406
       Target Frame: <Fixed Frame>
-      Yaw: 4.718582630157471
+      Yaw: 4.688581943511963
     Saved: ~
 Window Geometry:
   Displays:

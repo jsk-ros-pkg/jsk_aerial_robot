@@ -200,8 +200,7 @@ Three terminals are needed.
 Before takeoff:
 
 1. run `sudo ds4drv` to connect the joystick.
-2. `roslaunch aerial_robot_base joy_stick.launch robot_name:=beetle1`
-3. `rviz -d ~/ros1/jsk_ws/src/jsk_aerial_robot_dev/robots/beetle/config/nmpc.rviz`
+2. `roslaunch beetle_omni bringup_pc.launch`
 
 ### Visual Computer
 

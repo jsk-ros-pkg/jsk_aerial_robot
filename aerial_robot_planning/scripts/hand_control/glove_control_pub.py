@@ -40,7 +40,7 @@ class FingerDataManager:
             (-1, 1, 1, -1, -1): ("gesture_state_2", 2),
             (-1, 1, 1, 1, -1): ("gesture_state_3", 3),
             (-1, 1, 1, 1, 1): ("gesture_state_4", 4),
-            (-1, -1, -1, -1, -1): ("gesture_state_5", 5),
+            (1, -1, -1, -1, -1): ("gesture_state_5", 5),
         }
 
     @staticmethod
