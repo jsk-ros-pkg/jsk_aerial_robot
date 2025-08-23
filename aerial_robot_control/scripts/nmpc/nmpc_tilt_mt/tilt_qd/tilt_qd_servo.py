@@ -13,6 +13,7 @@ class NMPCTiltQdServo(QDNMPCBase):
     of the controller, specifically, the weights and cost function for the acados solver.
     The output of the controller is the thrust and servo angle command for each rotor.
     """
+
     def __init__(self, build: bool = True, phys=phys_art, **kwargs):
         # Model name
         self.model_name = "tilt_qd_servo_mdl"
@@ -25,14 +26,26 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_impedance = False
 
+        # Optional disturbances
         if "cog_dist" in kwargs:
             self.include_cog_dist_parameter = kwargs["cog_dist"]
+            if self.include_cog_dist_parameter:
+                self.cog_dist_start_idx = 28
         else:
             self.include_cog_dist_parameter = False
         if "motor_noise" in kwargs:
             self.include_motor_noise_parameter = kwargs["motor_noise"]
+            if self.include_motor_noise_parameter:
+                if self.include_cog_dist_parameter:
+                    self.motor_noise_start_idx = 34
+                else:
+                    self.motor_noise_start_idx = 28
+            if self.include_impedance:
+                raise NotImplementedError("Adjust indices for parameters.")
         else:
             self.include_motor_noise_parameter = False
+
+        # Optional constraint settings
         if "soft_constraints" in kwargs:
             self.include_soft_constraints = kwargs["soft_constraints"]
         else:

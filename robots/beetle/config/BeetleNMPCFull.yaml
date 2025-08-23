@@ -36,29 +36,29 @@ controller:
     # Qw_z: 0.005
     # Rt: 0.1
     # ==== Aggressive (overshooting) ====
-    Qp_xy: 500
-    Qp_z: 350
-    Qv_xy: 0.01
-    Qv_z: 0.01
-    Qq_xy: 0.0001
-    Qq_z: 0.0001
-    Qw_xy: 0.1
-    Qw_z: 10
-    Qa: 0.01
-    Rt: 0.001  # 1
-    Rac_d: 1  # 250  # difference of ac
+    # Qp_xy: 500
+    # Qp_z: 350
+    # Qv_xy: 0.01
+    # Qv_z: 0.01
+    # Qq_xy: 0.0001
+    # Qq_z: 0.0001
+    # Qw_xy: 0.1
+    # Qw_z: 10
+    # Qa: 0.01
+    # Rt: 0.001  # 1
+    # Rac_d: 1  # 250  # difference of ac
     # ==== Default ====
-    # Qp_xy: 300
-    # Qp_z: 400
-    # Qv_xy: 10
-    # Qv_z: 10
-    # Qq_xy: 300
-    # Qq_z: 600
-    # Qw_xy: 5
-    # Qw_z: 5
-    # Qa: 1
-    # Rt: 1
-    # Rac_d: 250  # difference of ac
+    Qp_xy: 500  # 300
+    Qp_z: 500  # 400
+    Qv_xy: 10
+    Qv_z: 10
+    Qq_xy: 0.1  # 300
+    Qq_z: 0.1  # 600
+    Qw_xy: 5
+    Qw_z: 5
+    Qa: 1
+    Rt: 1
+    Rac_d: 250  # difference of ac
 
     # Slack constraint weights
     linear_slack_weight: 10

@@ -1,16 +1,3 @@
-""" Set of tunable parameters for the Simplified Simulator and model fitting.
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <http://www.gnu.org/licenses/>.
-"""
-
 import os
 
 
@@ -49,8 +36,8 @@ class EnvConfig:
         #    MHEWrenchEstAccMom
         "only_use_nominal": False,
         "end_to_end_mlp": False,
-        "neural_model_name": "naive_residual_temporal_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
-        "neural_model_instance": "neuralmodel_008",
+        "neural_model_name": "naive_residual_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
+        "neural_model_instance": "neuralmodel_029",
     }
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
@@ -60,55 +47,60 @@ class EnvConfig:
         "terminal_cost": True,
     }
 
-    dataset_options = {"ds_name_suffix": "residual_dataset"}
+    dataset_options = {"ds_name_suffix": "residual_dataset_02"}
     sim_options = {
-        # Choice of disturbances modeled in our Simplified Simulator. For more details about the parameters used refer to
-        # the script: src/quad_mpc/quad_3d.py.
+        # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
         "disturbances": {
             "cog_dist": True,  # Disturbance forces and torques on CoG
-            "motor_noise": False,  # Asymmetric voltage noise in the motors
+            "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
+            "cog_dist_factor": 0.2,
+            "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
         },
-        "max_sim_time": 30,
+        "max_sim_time": 1,
         "world_radius": 3,
-        "seed": 678,
+        "seed": 456,
     }
+
+    # Trajectory options
     run_options = {
         "preset_targets": None,
+        "low_flight_targets": True,
         "initial_state": None,
         "initial_guess": None,
-        "aggressive": True,  # TODO for now always use aggressive targets
-        "recording": False,
-        "plot_traj": True,
-        "real_time_plot": False,
-        "save_animation": False,
+        "aggressive": True,
     }
 
-    ################################################################
-    # Set to True to show a real-time Matplotlib animation of the experiments for the Simulator. Execution
-    # will be slower if the GUI is turned on. Note: setting to True may require some further library installation work.
-    custom_sim_gui = False
+    # Recording options
+    run_options.update(
+        {
+            "recording": False,
+        }
+    )
 
-    # Set to True to display a plot describing the trajectory tracking results after the execution.
-    result_plots = True
-
-    # Set to True to show the trajectory that will be executed before the execution time
-    pre_run_debug_plots = True
+    # Visualization options
+    run_options.update(
+        {
+            "plot_trajectory": True,
+            "real_time_plot": False,
+            "save_animation": False,
+        }
+    )
 
 
 class MLPConfig:
     # Use naive implementation of MLP using torch
-    model_name = "naive_residual_temporal_mlp"
-    # model_name = "naive_residual_mlp"
+    # model_name = "naive_residual_temporal_mlp"
+    model_name = "naive_residual_mlp"
     # model_name = "naive_e2e_mlp"
 
     # Use propietary RTNMPC library for approximated MLP
     # model_name = "approximated_mlp"
 
     # Delay horizon for temporal networks
-    delay_horizon = 10  # Number of time steps into the past to consider (set to 0 to only use current state)
+    delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
     hidden_sizes = [64, 64, 64, 64]  # In_features of each hidden layer
@@ -134,8 +126,10 @@ class MLPConfig:
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
     # Learning rate
-    learning_rate = 1e-2
-    lr_scheduler = "ReduceLROnPlateau"  # "ReduceLROnPlateau", "LRScheduler", None
+    learning_rate = 1e-3  # for residual
+    # learning_rate = 1e-5 # for temporal
+    # learning_rate = 1e-3 # for LR scheduling
+    lr_scheduler = "LambdaLR"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
@@ -150,7 +144,7 @@ class MLPConfig:
 
 class ModelFitConfig:
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset"
+    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_02"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo
@@ -163,12 +157,12 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_002"
+    ds_instance = "dataset_001"
 
     # ------- Features used for the model -------
     # State features
     # state_feats = [3, 4, 5]
-    state_feats = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    state_feats = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     # state_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
@@ -180,6 +174,7 @@ class ModelFitConfig:
     u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
 
     # Variables to be regressed
+    # y_reg_dims = [5]  # [vz]
     y_reg_dims = [3, 4, 5]  # [vx, vy, vz]
     # y_reg_dims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
@@ -230,16 +225,3 @@ class ModelFitConfig:
     # ## Clustering for multidimensional models ## #
     clusters = 1
     load_clusters = False
-
-
-class GroundEffectMapConfig:
-    """
-    Class for storing parameters for the ground effect map.
-    """
-
-    resolution = 0.1
-    origin = (-4, 9)
-    horizon = ((-7, 7), (-7, 7))
-    box_min = (-4.25, 9.37)
-    box_max = (-2.76, 10.13)
-    box_height = 0.7

@@ -593,8 +593,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # Set constraints
         # TODO include fixed rotor arch
         # - State box constraints bx
-        # -- Index for vx, vy, vz, wx, wy, wz
-        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
+        # -- Index for z, vx, vy, vz, wx, wy, wz
+        ocp.constraints.idxbx = np.array([2, 3, 4, 5, 10, 11, 12])
 
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
@@ -611,7 +611,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # -- Lower State Bound
         # fmt: off
         ocp.constraints.lbx = np.array(
-            [self.params["v_min"],
+            [0,
+             self.params["v_min"],
              self.params["v_min"],
              self.params["v_min"],
              self.params["w_min"],
@@ -634,7 +635,8 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # -- Upper State Bound
         ocp.constraints.ubx = np.array(
-            [self.params["v_max"],
+            [1e8,  # TODO there has to be a better way to implement one sided constraint
+             self.params["v_max"],
              self.params["v_max"],
              self.params["v_max"],
              self.params["w_max"],
@@ -657,7 +659,7 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # - Terminal state box constraints bx_e
         # -- Index for vx, vy, vz, wx, wy, wz
-        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
+        ocp.constraints.idxbx_e = np.array([2, 3, 4, 5, 10, 11, 12])
 
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
@@ -673,7 +675,8 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # -- Lower Terminal State Bound
         ocp.constraints.lbx_e = np.array(
-            [self.params["v_min"],
+            [0,
+             self.params["v_min"],
              self.params["v_min"],
              self.params["v_min"],
              self.params["w_min"],
@@ -696,7 +699,8 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # -- Upper Terminal State Bound
         ocp.constraints.ubx_e = np.array(
-            [self.params["v_max"],
+            [1e8,
+             self.params["v_max"],
              self.params["v_max"],
              self.params["v_max"],
              self.params["w_max"],

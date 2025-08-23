@@ -2,10 +2,12 @@ import numpy as np
 import casadi as cs
 import pyquaternion
 
+
 def quaternion_to_euler(q):
     q = pyquaternion.Quaternion(w=q[0], x=q[1], y=q[2], z=q[3])
     yaw, pitch, roll = q.yaw_pitch_roll
     return [roll, pitch, yaw]
+
 
 def quaternion_inverse(q):
     w, x, y, z = q[0], q[1], q[2], q[3]
@@ -14,6 +16,21 @@ def quaternion_inverse(q):
         return np.array([w, -x, -y, -z])
     else:
         return cs.vertcat(w, -x, -y, -z)
+
+
+def unit_quaternion(q):
+    """
+    Normalizes a quaternion to be unit modulus.
+    :param q: 4-dimensional numpy array or CasADi object
+    :return: the unit quaternion in the same data format as the original one
+    """
+
+    if isinstance(q, np.ndarray):
+        q_norm = np.linalg.norm(q)
+    else:
+        q_norm = cs.sqrt(cs.sumsqr(q))
+    return q / q_norm
+
 
 def euclidean_dist(x, y, thresh=None):
     """
@@ -36,6 +53,7 @@ def euclidean_dist(x, y, thresh=None):
 
     return dist < thresh
 
+
 def v_dot_q(v, q):
     """
     Applies the rotation of quaternion q to vector v. In order words, rotates vector v by q.
@@ -49,22 +67,28 @@ def v_dot_q(v, q):
     else:
         raise TypeError("Unsupported type for rotation matrix or vector.")
 
+
 def q_to_rot_mat(q):
     qw, qx, qy, qz = q[0], q[1], q[2], q[3]
 
     if isinstance(q, np.ndarray):
-        rot_mat = np.array([
-            [1 - 2 * (qy ** 2 + qz ** 2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
-            [2 * (qx * qy + qw * qz), 1 - 2 * (qx ** 2 + qz ** 2), 2 * (qy * qz - qw * qx)],
-            [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx ** 2 + qy ** 2)]])
+        rot_mat = np.array(
+            [
+                [1 - 2 * (qy**2 + qz**2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
+                [2 * (qx * qy + qw * qz), 1 - 2 * (qx**2 + qz**2), 2 * (qy * qz - qw * qx)],
+                [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx**2 + qy**2)],
+            ]
+        )
 
     else:
         rot_mat = cs.vertcat(
-            cs.horzcat(1 - 2 * (qy ** 2 + qz ** 2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)),
-            cs.horzcat(2 * (qx * qy + qw * qz), 1 - 2 * (qx ** 2 + qz ** 2), 2 * (qy * qz - qw * qx)),
-            cs.horzcat(2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx ** 2 + qy ** 2)))
+            cs.horzcat(1 - 2 * (qy**2 + qz**2), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)),
+            cs.horzcat(2 * (qx * qy + qw * qz), 1 - 2 * (qx**2 + qz**2), 2 * (qy * qz - qw * qx)),
+            cs.horzcat(2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx**2 + qy**2)),
+        )
 
     return rot_mat
+
 
 def q_dot_q(q, r):
     """
@@ -88,7 +112,9 @@ def q_dot_q(q, r):
         return np.array([t0, t1, t2, t3])
     else:
         return cs.vertcat(t0, t1, t2, t3)
-    
+
+
+# fmt: off
 def skew_symmetric(v):
     """
     Computes the skew-symmetric matrix of a 3D vector (PAMPC version)

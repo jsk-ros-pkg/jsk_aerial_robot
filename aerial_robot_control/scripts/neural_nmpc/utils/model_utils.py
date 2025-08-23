@@ -14,10 +14,57 @@ from network_architecture.naive_mlp import NaiveMLP
 from network_architecture.normalized_mlp import NormalizedMLP
 
 
-def get_output_mapping(state_dim, y_reg_dims):
+def set_temporal_states(rtnmpc, ocp_solver, history_y, u_cmd):
+    # Set previous state and control as parameters
+    if u_cmd is None:
+        # Take init values for all nodes at t=0
+        for j in range(ocp_solver.N):
+            rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = history_y.copy().flatten()
+            ocp_solver.set(j, "p", rtnmpc.acados_parameters)
+        ocp_solver.set(ocp_solver.N, "p", rtnmpc.acados_parameters)
+    else:
+        for j in range(ocp_solver.N):
+            if j == 0:
+                # Use all available history steps from current node with size of the delay horizon
+                # Take all available history steps in order of actuality
+                running_y = history_y.copy()
+            else:
+                # Shift history steps from current node with size of the delay horizon
+                # Note, delay horizon is sorted from newest to oldest, so discard last indices first
+                running_y = running_y[:-1, :]
+
+                # Use predicted states for all previous nodes from current node to fill up delay window
+                # Note, this is an approximation since we are using the state prediction from the previous optimization scheme and
+                # not the best possible estimate for the previous states
+                predicted_x = ocp_solver.get(j, "x")
+                predicted_u = ocp_solver.get(j, "u")
+                running_y = np.append(np.append(predicted_x, predicted_u)[np.newaxis, :], running_y, axis=0)
+
+            # Set acados parameters in OCP solver
+            rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
+            ocp_solver.set(j, "p", rtnmpc.acados_parameters)
+
+        # Add terminal node
+        running_y = running_y[:-1, :]
+        predicted_x = ocp_solver.get(ocp_solver.N, "x")
+        predicted_u = [None] * rtnmpc.nu
+        running_y = np.append(np.append(predicted_x, predicted_u)[np.newaxis, :], running_y, axis=0)
+        rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
+        ocp_solver.set(ocp_solver.N, "p", rtnmpc.acados_parameters)
+
+
+def get_output_mapping(state_dim, y_reg_dims, only_vz=False):
     M = np.zeros((state_dim, len(y_reg_dims)))
     for i in range(len(y_reg_dims)):
         M[y_reg_dims[i], i] = 1
+
+    if only_vz:
+        # Special case: MLP only predicts v_z
+        # Set mapping for v_x and v_y to 1 to account for their influence from v_z
+        M_v_xy = np.zeros((state_dim, 2))
+        M_v_xy[3, 0] = 1
+        M_v_xy[4, 1] = 1
+        M = np.append(M_v_xy, M, axis=1)
     return M
 
 

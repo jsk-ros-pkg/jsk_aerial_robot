@@ -36,14 +36,14 @@ class TrajectoryDataset(Dataset):
         self.df = dataframe
         self.mode = mode
         self.prepare_data(state_feats, u_feats, y_reg_dims)
-        if delay == 0:
+        if False and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
         if delay > 0:
             self.append_history(delay, state_feats, u_feats)
         self.calculate_statistics()
         if plot:
-            plot_dataset(self.x, self.y, self.state_in, self.state_out, self.state_pred, save_file_path, save_file_name)
+            plot_dataset(self.x, self.y, self.state_in, self.state_out, self.state_prop, save_file_path, save_file_name)
 
     def __len__(self):
         return len(self.x)
@@ -54,7 +54,7 @@ class TrajectoryDataset(Dataset):
     def prepare_data(self, state_feats=None, u_feats=None, y_reg_dims=None):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
-        state_pred = undo_jsonify(self.df["state_pred"].to_numpy())
+        state_prop = undo_jsonify(self.df["state_prop"].to_numpy())
         control = undo_jsonify(self.df["control"].to_numpy())
         dt = self.df["dt"].to_numpy()
 
@@ -62,14 +62,14 @@ class TrajectoryDataset(Dataset):
         invalid = np.where(dt == 0)
         state_in = np.delete(state_in, invalid, axis=0)
         state_out = np.delete(state_out, invalid, axis=0)
-        state_pred = np.delete(state_pred, invalid, axis=0)
+        state_prop = np.delete(state_prop, invalid, axis=0)
         control = np.delete(control, invalid, axis=0)
         dt = np.delete(dt, invalid, axis=0)
 
         # Sanity check
         if (
             state_in.shape != state_out.shape
-            or state_in.shape != state_pred.shape
+            or state_in.shape != state_prop.shape
             or state_in.shape[0] != control.shape[0]
         ):
             raise ValueError("Inconsistent shapes in the dataset.")
@@ -87,14 +87,14 @@ class TrajectoryDataset(Dataset):
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
 
         state_in = velocity_mapping(state_in)
-        state_pred = velocity_mapping(state_pred)
+        state_prop = velocity_mapping(state_prop)
         state_out = velocity_mapping(state_out)
 
         # =============================================================
         # Compute residual of predicted and disturbed state
         if self.mode == "residual":
             # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-            y_diff = state_out - state_pred
+            y_diff = state_out - state_prop
         elif self.mode == "e2e":
             y_diff = state_out - state_in
         # Compute residual dynamics
@@ -104,7 +104,7 @@ class TrajectoryDataset(Dataset):
         # Store features
         self.state_in = state_in
         self.state_out = state_out
-        self.state_pred = state_pred
+        self.state_prop = state_prop
         self.control = control
         self.y = y_diff.astype(np.float32)[:, y_reg_dims]
         self.dt = dt

@@ -297,7 +297,7 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
     )
 
 
-def plot_dataset(x, y, state_in, state_out, state_pred, save_file_path=None, save_file_name=None):
+def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, save_file_name=None):
     """
     Plot the dataset features and labels.
     :param x: Input features to the network.
@@ -314,7 +314,7 @@ def plot_dataset(x, y, state_in, state_out, state_pred, save_file_path=None, sav
         plt.subplot(n_plots, 2, dim * 2 + 1)
         plt.plot(state_in[:, dim], label="state_in")
         plt.plot(state_out[:, dim], label="state_out")
-        plt.plot(state_pred[:, dim], label="state_pred")
+        plt.plot(state_prop[:, dim], label="state_prop")
         plt.plot(x[:, dim], color="r", label="x")
         plt.ylabel(f"Feature {dim}")
         if dim == 0:
@@ -332,7 +332,7 @@ def plot_dataset(x, y, state_in, state_out, state_pred, save_file_path=None, sav
         plt.grid("on")
 
     diff1 = state_in - state_out
-    diff2 = state_out - state_pred
+    diff2 = state_out - state_prop
 
     fig = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1]):
@@ -373,7 +373,7 @@ def plot_dataset(x, y, state_in, state_out, state_pred, save_file_path=None, sav
 def plot_trajectory(rec_dict, rtnmpc):
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
-    state_pred = rec_dict["state_pred"]
+    state_prop = rec_dict["state_prop"]
     control = rec_dict["control"]
     timestamp = rec_dict["timestamp"]
     # Plot state features
@@ -383,7 +383,7 @@ def plot_trajectory(rec_dict, rtnmpc):
         plt.subplot(n_plots, 2, dim * 2 + 1)
         plt.plot(timestamp, state_in[:, dim], label="state_in")
         plt.plot(timestamp, state_out[:, dim], label="state_out")
-        plt.plot(timestamp, state_pred[:, dim], label="state_pred")
+        plt.plot(timestamp, state_prop[:, dim], label="state_prop")
         plt.ylabel(f"D{dim}")
         if dim == 0:
             plt.title("State In & State Out")
@@ -411,9 +411,19 @@ def plot_trajectory(rec_dict, rtnmpc):
     plt.figure(figsize=(20, 5))
     plt.plot(timestamp, state_in[:, 0], label="state_in")
     plt.plot(timestamp, state_out[:, 0], label="state_out")
-    plt.plot(timestamp, state_pred[:, 0], label="state_pred")
+    plt.plot(timestamp, state_prop[:, 0], label="state_prop")
     plt.grid("on")
     plt.title("Dim 0 zoom in")
+    plt.legend()
+    plt.xlim(timestamp[0], timestamp[-1])
+
+    # Plot in single state feature
+    plt.figure(figsize=(20, 5))
+    plt.plot(timestamp, state_in[:, 5], label="state_in")
+    plt.plot(timestamp, state_out[:, 5], label="state_out")
+    plt.plot(timestamp, state_prop[:, 5], label="state_prop")
+    plt.grid("on")
+    plt.title("Dim 5 zoom in")
     plt.legend()
     plt.xlim(timestamp[0], timestamp[-1])
 
@@ -437,7 +447,7 @@ def plot_trajectory(rec_dict, rtnmpc):
 
     diff1 = state_out - state_in
     d1 = diff1 / dt
-    diff2 = state_pred - state_in
+    diff2 = state_prop - state_in
     d2 = diff2 / dt
 
     plt.subplots(figsize=(20, 5))
@@ -467,8 +477,8 @@ def plot_trajectory(rec_dict, rtnmpc):
             ax.axes.xaxis.set_ticklabels([])
 
     # Plot labels for neural network regression
-    diff3 = state_out - state_pred
-    diff4 = state_out - state_pred
+    diff3 = state_out - state_prop
+    diff4 = state_out - state_prop
     d4 = diff4 / dt
 
     plt.subplots(figsize=(20, 5))
@@ -498,7 +508,7 @@ def plot_trajectory(rec_dict, rtnmpc):
             ax.axes.xaxis.set_ticklabels([])
 
     # Plot regression of neural network
-    if not rtnmpc.model_options["only_use_nominal"]:
+    if rtnmpc.use_mlp:
         plt.subplots(figsize=(10, 5))
         # Transform velocity of state to Body frame
         state_b = np.zeros(state_in.shape)
@@ -508,50 +518,68 @@ def plot_trajectory(rec_dict, rtnmpc):
         # Compute forward pass
         y = np.zeros((state_in.shape[0], 3)).astype(np.float32)
         for t in range(state_in.shape[0]):
-            s = torch.from_numpy(state_b[t, :13]).type(torch.float32).to(torch.device("cuda"))
-            u = torch.from_numpy(control[t, :]).type(torch.float32).to(torch.device("cuda"))
-            x = torch.cat((s, u)).unsqueeze(0)  # Add batch dimension
+            # Assemble input
+            s_b = torch.from_numpy(state_b[t, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cuda"))
+            u = torch.from_numpy(control[t, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cuda"))
+            mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
+            # Forward call MLP
             rtnmpc.neural_model.eval()
-            mlp_out = rtnmpc.neural_model(x).cpu().detach().numpy()
+            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
             # Transform velocity back to world frame
-            # NOTE be careful when regressing other variables
-            mlp_out = v_dot_q(mlp_out.T, state_in[t, 6:10])
+            if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
+                v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
+                v_b = mlp_out[v_idx : v_idx + 3] * dt[t]
+                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
+            elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
+                v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
+                v_b = np.append(0, mlp_out[v_idx : v_idx + 2]) * dt[t]
+                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
+            elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
+                # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
+                # The predicted v_z therefore also has influence on the x and y velocities in World frame
+                # Adjust mapping later on
+                v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
+                v_b = np.append(np.array([0, 0]), mlp_out[v_idx]) * dt[t]
+                v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
+                mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
             y[t, :] = np.squeeze(mlp_out)
 
         # Plot true labels vs. actual regression
-        y_true = (state_out - state_pred) / dt
-        for dim in range(y.shape[1] - 1, -1, -1):
-            plt.subplot(y.shape[1], 1, dim + 1)
-            plt.plot(timestamp, y[:, dim], label="y_regressed")
-            plt.plot(timestamp, y[:, dim] - y_true[:, dim + 3], label="error", color="r", linestyle="--", alpha=0.5)
-            plt.plot(timestamp, y_true[:, dim + 3], label="y_true", color="orange")
-            plt.ylabel(f"D{dim}")
-            if dim == 0:
-                plt.title("(State Out - State Pred) / dt")
+        y_true = state_out - state_prop
+        for i, dim in enumerate(rtnmpc.y_reg_dims):
+            plt.subplot(y.shape[1], 1, i + 1)
+            plt.plot(timestamp, y[:, i], label="y_regressed")
+            plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
+            plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
+            plt.ylabel(f"D{i}")
+            if i == 0:
+                plt.title("State Out - State Pred")
                 plt.legend()
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
-            if dim != state_in.shape[1] - 1:
+            if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
 
         # Plot model output
         plt.subplots(figsize=(10, 5))
-        for dim in range(y.shape[1] - 1, -1, -1):
-            plt.subplot(y.shape[1], 1, dim + 1)
+        for i, dim in enumerate(rtnmpc.y_reg_dims):
+            plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
             plt.plot(timestamp, state_out[:, dim], label="Sim Output")
-            plt.plot(timestamp, state_out[:, dim] + y[:, dim], label="Neural Compensation")
-            plt.plot(timestamp, state_pred[:, dim], label="Undisturbed Output", color="orange")
+            plt.plot(timestamp, state_out[:, dim] + y[:, i], label="Neural Compensation")
+            plt.plot(timestamp, state_prop[:, dim], label="Undisturbed Output", color="orange")
             plt.ylabel(f"D{dim}")
-            if dim == 0:
+            if i == 0:
                 plt.title("Model Output")
                 plt.legend()
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
-            if dim != y.shape[1] - 1:
+            if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
-    plt.show()
+    # plt.show()
 
 
 def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=None, save_file_name=None):
@@ -598,6 +626,47 @@ def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=N
     plt.show()
     if save_file_path is not None and save_file_name is not None:
         fig.savefig(os.path.join(save_file_path + "/plot", f"{save_file_name}_plot.png"), dpi=300, bbox_inches="tight")
+
+
+def plot_disturbances(dist_dict):
+    # CoG disturbance
+    if "cog_dist" in dist_dict:
+        plt.subplots(2, 1, figsize=(20, 5))
+        plt.subplot(2, 1, 1)
+        ax = plt.gca()
+        ax.plot(dist_dict["timestamp"], dist_dict["cog_dist"][:, :3], alpha=0.7, label=["x", "y", "z"])
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("cog_dist force [N]")
+        ax.grid()
+        ax.set_xlim([0, dist_dict["timestamp"][-1]])
+        ax_right = ax.twinx()
+        ax_right.plot(dist_dict["timestamp"], dist_dict["z"], label="height")
+        ax_right.set_ylabel("Height z [m]")
+        plt.legend()
+        plt.tight_layout()
+
+        plt.subplot(2, 1, 2)
+        ax = plt.gca()
+        ax.plot(dist_dict["timestamp"], dist_dict["cog_dist"][:, 3:], alpha=0.7, label=["x", "y", "z"])
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("cog_dist moment [Nm]")
+        ax.grid()
+        ax.set_xlim([0, dist_dict["timestamp"][-1]])
+        ax_right = ax.twinx()
+        ax_right.plot(dist_dict["timestamp"], dist_dict["z"], label="height")
+        ax_right.set_ylabel("Height z [m]")
+        plt.legend()
+        plt.tight_layout()
+
+    # Motor noise
+    if "motor_noise" in dist_dict:
+        plt.figure(figsize=(20, 5))
+        plt.plot(dist_dict["timestamp"], dist_dict["motor_noise"])
+        plt.ylabel("motor_noise [N]")
+        plt.xlabel("Time [s]")
+        plt.grid()
+        plt.tight_layout()
+    # plt.show()
 
 
 def trajectory_tracking_results(

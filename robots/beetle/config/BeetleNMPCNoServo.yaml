@@ -7,19 +7,33 @@ controller:
     T_step: 0.1  # seconds
 
     # Hard constraints
-    w_max: 6  # 1 rad/s ~ 57 deg/s
-    w_min: -6
+    w_max: 10  # 6  # 1 rad/s ~ 57 deg/s
+    w_min: -10  # -6
 
-    v_max: 1
-    v_min: -1
+    v_max: 15  # 1
+    v_min: -15  # 1
 
     thrust_max: 30  # N
     thrust_min: 0  # N
 
     a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -1.5708
+    # a_max: 3.1416  # 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
+    # a_min: -3.1416  # -1.5708
 
     # params for the cost function
+    # ==== Aggressive (overshooting) ====
+    # Qp_xy: 500
+    # Qp_z: 350
+    # Qv_xy: 0.01
+    # Qv_z: 0.01
+    # Qq_xy: 0.0001
+    # Qq_z: 0.0001
+    # Qw_xy: 0.1
+    # Qw_z: 10
+    # Rt: 0.001  # 1
+    # Rac: 1  # 250
+    # ==== Default ====
     Qp_xy: 30  #300 # 0
     Qp_z: 40  #400 # 500
     Qv_xy: 1  #10 # 0

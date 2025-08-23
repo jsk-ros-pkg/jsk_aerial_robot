@@ -15,6 +15,7 @@ def safe_mkdir_recursive(directory, overwrite: bool = False):
     else:
         os.makedirs(directory, exist_ok=True)
 
+
 def safe_mkfile_recursive(destiny_dir, file_name, overwrite: bool = False):
     safe_mkdir_recursive(destiny_dir)
 
@@ -23,16 +24,17 @@ def safe_mkfile_recursive(destiny_dir, file_name, overwrite: bool = False):
     if not os.path.exists(os.path.join(destiny_dir, file_name)):
         Path(os.path.join(destiny_dir, file_name)).touch()
         return True  # File was newly created or overwritten
-    return False     # File already exists and was not overwritten
+    return False  # File already exists and was not overwritten
 
-def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options,
-                                target_dim, overwrite: bool = True):
+
+def get_recording_dict_and_file(
+    ds_name, model_options, sim_options, solver_options, target_dim, overwrite: bool = True
+):
     """
     Returns a dictionary to store the recording data and the file where to store it.
     :param overwrite: If True, the existing file will be overwritten. Otherwise, it will be appended to.
     """
-    rec_file_dir, rec_file_name = get_data_dir_and_file(ds_name, model_options,
-                                                        sim_options, solver_options)
+    rec_file_dir, rec_file_name = get_data_dir_and_file(ds_name, model_options, sim_options, solver_options)
     rec_file = os.path.join(rec_file_dir, rec_file_name)
 
     # Recursively create the storing directory path
@@ -52,21 +54,25 @@ def get_recording_dict_and_file(ds_name, model_options, sim_options, solver_opti
 
     return rec_dict, rec_file
 
+
 def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
     """
     Returns the directory and file name where to store the next simulation-based dataset.
     """
     dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
-    outer_fields = {"date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                    **model_options, "solver_options": solver_options}
+    outer_fields = {
+        "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        **model_options,
+        "solver_options": solver_options,
+    }
     inner_fields = sim_options
 
     # Parse recorded datasets
     if os.path.exists(dataset_dir):
         dataset_instances = []
-        for (_, _, file_names) in os.walk(dataset_dir):
-            dataset_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith('.')])
+        for _, _, file_names in os.walk(dataset_dir):
+            dataset_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith(".")])
     else:
         safe_mkdir_recursive(dataset_dir)
         dataset_instances = []
@@ -76,13 +82,13 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
     if os.path.exists(json_file_name):
         with open(json_file_name, "r") as json_file:
             metadata = json.load(json_file)
-        
+
         # Check if current dataset name exists
         if ds_name in metadata.keys():
             # Check if current controller configuration exists
             existing_controller = 1
             for field in metadata[ds_name].keys():
-                if field.startswith("dataset_"):# or field.startswith("date"):
+                if field.startswith("dataset_"):  # or field.startswith("date"):
                     continue
                 if metadata[ds_name][field] == outer_fields[field]:
                     existing_controller *= 1
@@ -90,7 +96,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                     existing_controller *= 0
 
             if existing_controller:
-                # Check if simulation options, i.e., disturbance parameters already exists in metadata 
+                # Check if simulation options, i.e., disturbance parameters already exists in metadata
                 existing_instance_idx = -1
                 for i, instance in enumerate(dataset_instances):
                     if metadata[ds_name][instance] == inner_fields:
@@ -102,7 +108,9 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                         # Dataset name and controller exists but current simulation options are new
                         existing_instances = [int(instance.split("_")[1]) for instance in dataset_instances]
                         max_instance_number = max(existing_instances)
-                        ds_instance_name = "dataset_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
+                        ds_instance_name = "dataset_" + str(max_instance_number + 1).zfill(
+                            3
+                        )  # Add counter in the filename
 
                         # Add the new simulation configuration to metadata
                         metadata[ds_name][ds_instance_name] = inner_fields
@@ -117,7 +125,9 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                 else:
                     # Dataset exists and there is an instance with the same configuration
                     # Don't update metadata, just return the existing instance for loading/overwriting
-                    print(f"Dataset \"{ds_name}\" with instance \"{dataset_instances[existing_instance_idx]}\" already exists.")
+                    print(
+                        f'Dataset "{ds_name}" with instance "{dataset_instances[existing_instance_idx]}" already exists.'
+                    )
                     print("[!] Warning: When generating new data, the existing dataset will be overwritten.")
                     ds_instance_name = dataset_instances[existing_instance_idx]
 
@@ -132,7 +142,8 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                 metadata[ds_name] = outer_fields
                 ds_instance_name = "dataset_001"
                 metadata[ds_name][ds_instance_name] = inner_fields
-
+                # Update directory path
+                dataset_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
         else:
             # Dataset does not exist yet in metadata
             # Add the new dataset to metadata dictionary
@@ -141,19 +152,18 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
             metadata[ds_name][ds_instance_name] = inner_fields
 
         # Write updated metadata to file
-        with open(json_file_name, 'w') as json_file:
+        with open(json_file_name, "w") as json_file:
             json.dump(metadata, json_file, indent=4)
 
     else:
         # Metadata file does not exist yet
         with open(json_file_name, "w") as json_file:
             ds_instance_name = "dataset_001"
-            metadata = {ds_name:
-                        {**outer_fields,
-                        ds_instance_name: inner_fields}}
+            metadata = {ds_name: {**outer_fields, ds_instance_name: inner_fields}}
             json.dump(metadata, json_file, indent=4)
 
-    return dataset_dir, ds_instance_name + '.csv'
+    return dataset_dir, ds_instance_name + ".csv"
+
 
 def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feats, y_reg_dims):
     """
@@ -178,8 +188,8 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feat
     # Check for existing models
     if os.path.exists(model_dir):
         model_instances = []
-        for (_, _, file_names) in os.walk(model_dir):
-            model_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith('.')])
+        for _, _, file_names in os.walk(model_dir):
+            model_instances.extend([os.path.splitext(file)[0] for file in file_names if not file.startswith(".")])
     else:
         safe_mkdir_recursive(model_dir)
         model_instances = []
@@ -188,7 +198,7 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feat
     if model_instances:
         existing_instances = [int(instance.split("_")[1]) for instance in model_instances]
         max_instance_number = max(existing_instances)
-        model_instance = "neuralmodel_" + str(max_instance_number + 1).zfill(3)   # Add counter in the filename
+        model_instance = "neuralmodel_" + str(max_instance_number + 1).zfill(3)  # Add counter in the filename
     else:
         model_instance = "neuralmodel_001"
 
@@ -218,10 +228,11 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feat
     }
 
     # Write updated metadata to file
-    with open(json_file_name, 'w') as json_file:
+    with open(json_file_name, "w") as json_file:
         json.dump(metadata, json_file, indent=4)
 
     return model_dir, model_instance
+
 
 def make_blank_dict(target_dim, state_dim, control_dim):
     blank_recording_dict = {
@@ -231,10 +242,11 @@ def make_blank_dict(target_dim, state_dim, control_dim):
         "target": np.zeros((0, target_dim)),
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
-        "state_pred": np.zeros((0, state_dim)),
+        "state_prop": np.zeros((0, state_dim)),
         "control": np.zeros((0, control_dim)),
     }
     return blank_recording_dict
+
 
 def write_recording_data(rec_dict, rec_file):
     # # Current target was reached - remove incomplete recordings
@@ -251,22 +263,26 @@ def write_recording_data(rec_dict, rec_file):
         rec_dict_json[key] = jsonify(rec_dict[key])
 
     df = pd.DataFrame(rec_dict_json)
-    df.to_csv(rec_file, index=True, mode='a', header=False) # Append to CSV file
+    df.to_csv(rec_file, index=True, mode="a", header=False)  # Append to CSV file
+
 
 def sanity_check_dataset(ds_name, ds_instance):
     # Check actual files
     if not os.path.exists(os.path.join(DirectoryConfig.DATA_DIR, ds_name, ds_instance + ".csv")):
-        raise FileNotFoundError(f"Dataset directory for dataset {ds_name} and instance {ds_instance} does not exist.\
-                                  Record dataset or check naming.")
+        raise FileNotFoundError(
+            f"Dataset directory for dataset {ds_name} and instance {ds_instance} does not exist.\
+              Record dataset or check naming."
+        )
 
     # Check metadata
     json_file_name = os.path.join(DirectoryConfig.DATA_DIR, "metadata.json")
     with open(json_file_name, "r") as json_file:
         metadata = json.load(json_file)
     if ds_name not in metadata.keys():
-        raise ValueError(f"Dataset \"{ds_name}\" not found in metadata.")
+        raise ValueError(f'Dataset "{ds_name}" not found in metadata.')
     if ds_instance not in metadata[ds_name].keys():
-        raise ValueError(f"Dataset instance \"{ds_instance}\" not found in metadata for dataset \"{ds_name}\".")
+        raise ValueError(f'Dataset instance "{ds_instance}" not found in metadata for dataset "{ds_name}".')
+
 
 def read_dataset(ds_name, ds_instance):
     """
@@ -278,21 +294,22 @@ def read_dataset(ds_name, ds_instance):
 
     return pd.read_csv(ds_file_name)
 
-def log_metrics(total_losses, inference_times, learning_rates,
-                save_file_path, save_file_name):
+
+def log_metrics(total_losses, inference_times, learning_rates, save_file_path, save_file_name):
     metrics = {
         "total_losses": total_losses,
         "inference_times": inference_times,
         "learning_rates": learning_rates,
         "model_config": {
             "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
-            "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")}
-        }
+            "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")},
+        },
     }
-    metrics_file_path = os.path.join(save_file_path + '/log', f'{save_file_name}_metrics.json')
-    safe_mkfile_recursive(save_file_path + '/log', metrics_file_path)
-    with open(metrics_file_path, 'w') as f:
+    metrics_file_path = os.path.join(save_file_path + "/log", f"{save_file_name}_metrics.json")
+    safe_mkfile_recursive(save_file_path + "/log", metrics_file_path)
+    with open(metrics_file_path, "w") as f:
         json.dump(metrics, f, indent=4)
+
 
 def jsonify(array):
     if isinstance(array, np.ndarray):
@@ -301,10 +318,11 @@ def jsonify(array):
         return array
     return array
 
+
 def undo_jsonify(array):
     x = []
     for elem in array:
-        a = elem.split('[')[1].split(']')[0].split(',')
+        a = elem.split("[")[1].split("]")[0].split(",")
         a = [float(num) for num in a]
         x = x + [a]
     return np.array(x)

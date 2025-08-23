@@ -2,14 +2,16 @@ import numpy as np
 import casadi as ca
 
 import os, sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.geometry_utils import skew_symmetric
 
+
 def init_forward_prop(nmpc):
-    p = ca.SX.sym("p", 3)  # Position
-    v = ca.SX.sym("v", 3)  # Linear velocity in World frame (inertial reference for Newton's laws)
-    q = ca.SX.sym("q", 4)  # Quaternion (representing orientation of the Body frame relative to the World frame)
-    w = ca.SX.sym("w", 3)  # Angular velocity in Body frame (principal axes, diagonal inertia matrix)
+    p = ca.MX.sym("p", 3)  # Position
+    v = ca.MX.sym("v", 3)  # Linear velocity in World frame (inertial reference for Newton's laws)
+    q = ca.MX.sym("q", 4)  # Quaternion (representing orientation of the Body frame relative to the World frame)
+    w = ca.MX.sym("w", 3)  # Angular velocity in Body frame (principal axes, diagonal inertia matrix)
     state = ca.vertcat(p, v, q, w)
 
     # - Extend state-space by dynamics of servo angles (actual)
@@ -17,25 +19,25 @@ def init_forward_prop(nmpc):
     # Note: If servo angle is not used as control input the model for omnidirectional Quadrotor
     # has been observed to be unstable (see https://arxiv.org/abs/2405.09871).
     if nmpc.tilt and nmpc.include_servo_model:
-        a_s = ca.SX.sym("a_s", 4)
+        a_s = ca.MX.sym("a_s", 4)
         state = ca.vertcat(state, a_s)
 
     # - Extend state-space by dynamics of rotor (actual)
     # Differentiate between actual thrust and control thrust
     if nmpc.include_thrust_model:
-        ft_s = ca.SX.sym("ft_s", 4)
+        ft_s = ca.MX.sym("ft_s", 4)
         state = ca.vertcat(state, ft_s)
 
-    ft_c = ca.SX.sym("ft_c", 4)
-    a_c = ca.SX.sym("a_c", 4)
+    ft_c = ca.MX.sym("ft_c", 4)
+    a_c = ca.MX.sym("a_c", 4)
     u = ca.vertcat(ft_c, a_c)
 
     # Generate symbolic CasADi function
     dynamics = full_dynamics(nmpc, state, u)
     return dynamics, state, u
 
-def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
-                 T_horizon, T_step, m_int_steps=1):
+
+def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd, T_horizon, T_step, num_stages=1):
     """
     Propagates forward the state estimate described by the mean vector state_0 and the covariance matrix covar, and a
     sequence of inputs for the system u_seq. These inputs can either be numerical or symbolic.
@@ -46,7 +48,7 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
     1D vector, which will be the diagonal of the covariance matrix. In both cases, the resulting covariance matrix
     must be nxn shape, where n is the length of state_0.
     :param T_horizon: time span of the control inputs (default is the time horizon of the MPC)
-    :param m_int_steps: Number of integration steps per control input. Default is 1, i.e. the control inputs are
+    :param num_stages: Number of integration steps per control input. Default is 1, i.e. the control inputs are
     applied at the end of the integration step.
     :param dt: Optional. Vector of length m, with the corresponding integration time for every control input in
     u_cmd. If none is provided, the default integration step is used.
@@ -56,13 +58,13 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
     covariance matrices.
     """
     if T_horizon % T_step != 0:
-        print(f"Warning: T_horizon {T_horizon} is not a multiple of T_step {T_step}.")
-    
+        print(f"Warning: In forward propagation, T_horizon {T_horizon} is not a multiple of T_step {T_step}.")
+
     # Initialize parameters
     # N = u_cmd.shape[0]    # Number of steps in the integration horizon
     # T_step = T_horizon / N
     # nx = state_0.shape[0]
-    N = int(T_horizon / T_step)
+    N = int(T_horizon / T_step)  # Number of integration steps
 
     # if cov_0 is None:
     #     cov_0 = np.zeros((nx, nx))
@@ -74,7 +76,8 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
     #     raise ValueError("Invalid shape for covariance matrix")
 
     # Initialize sequence of propagated states
-    state_prop = state_0     # Mean of the state estimate
+    state_k = state_0.copy()  # Mean of the state estimate
+    state_prop = state_k.copy()
     # cov_prop = [cov_0]      # Covariance of the state estimate
     # cost_prop = [0.0]       # Cost associated with the state estimate
 
@@ -85,23 +88,22 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
     # return uncertainty_forward_propagation(state_0, u_cmd, T_horizon, covar=cov_0,
     #                                         discrete_dynamics_f=quad_opt.discretize_f_and_q,
     #                                         dynamics_jac_f=quad_opt.quad_xdot_jac,
-    #                                         B_x=B_x, m_integration_steps=1)
+    #                                         B_x=B_x, num_stages=1)
 
     # state_prop, cov_prop, _ = _forward_prop_core(state_0, u_cmd, T_horizon, discrete_dynamics_f, dynamics_jac_f, B_x,
-    #                                     gp_regressors, cov_0, dt, m_integration_steps, use_model)
+    #                                     gp_regressors, cov_0, dt, num_stages, use_model)
+
+    # Propagate estimate
+    # state(k+1) vector from propagation equations. Pass state through nominal dynamics.
+    f = discretize_dynamics_and_cost(dynamics, state_sym, u_sym, T_step, num_stages)  # Create casadi function
 
     for k in range(N):
-        # Get current control input and current state mean and covariance
+        # Get current control input and current state
         u_k = u_cmd[k, :]
-        state_k = state_prop[k, :]
         # cov_k = cov_prop[k]
 
-        # Propagate estimate
-        # state(k+1) vector from propagation equations. Pass state through nominal dynamics.
-        f = discretize_dynamics_and_cost(dynamics, state_sym, u_sym, T_step, m_int_steps)    # Create casadi function
-
-        f_k = f(state_k, u_k) # Call casadi function with current state and control input
-        state_next = np.array(f_k)#['x_f']
+        f_k = f(state_k, u_k)  # Call casadi function with current state and control input
+        state_k = np.array(f_k)  # ['x_f']
         # stage_cost = f_k['qf']
 
         # K(k+1) matrix from propagation equations
@@ -110,8 +112,8 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
         # Evaluate linearized dynamics at current state
         # l_mat = linearized_dynamics(state_k, u_k) * dt + np.eye(nx)
 
-        # Add next state estimate to lists
-        state_prop = np.append(state_prop, state_next.T, axis=0)
+        # Add next state to history
+        state_prop = np.append(state_prop, state_k.T, axis=0)
         # cov_prop.append(ca.mtimes(ca.mtimes(l_mat, K_mat), l_mat.T))
         # cost_prop.append(stage_cost)
 
@@ -119,12 +121,12 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd,
     return state_prop
 
 
-def discretize_dynamics_and_cost(dynamics, x, u, T_horizon, m_steps_per_point):
+def discretize_dynamics_and_cost(dynamics, x, u, T_step, num_stages):
     """
     Integrates the symbolic dynamics and cost equations until the time horizon using a RK4 method.
-    :param T_horizon: Time horizon in seconds
+    :param T_step: Single step size of forward integration in seconds
     :param N: Number of control input points until time horizon
-    :param m_steps_per_point: Number of integrations steps per control input
+    :param num_stages: Number of integration iterations per integration step
     :param state: Symbolic vector for state, with length nx
     :param u: Symbolic vector for control input, with length nu
     :param cost_f: symbolic cost function written in CasADi symbolic syntax. If None, then cost 0 is returned.
@@ -133,30 +135,31 @@ def discretize_dynamics_and_cost(dynamics, x, u, T_horizon, m_steps_per_point):
     points until the time horizon given an initial state and
     """
 
-
     # if isinstance(cost_f, list):
     #     # Select the list of cost functions
-    #     cost_f = cost_f[ind * m_steps_per_point:(ind + 1) * m_steps_per_point]
+    #     cost_f = cost_f[ind * num_stages:(ind + 1) * num_stages]
     # else:
-    #     cost_f = [cost_f] * m_steps_per_point
+    #     cost_f = [cost_f] * num_stages
 
-    dt = T_horizon / m_steps_per_point
+    dt = T_step / num_stages
     # q = 0
     x0 = x  # Initial state
 
     # Fixed step Runge-Kutta 4 integrator
-    for j in range(m_steps_per_point):
-        k1 = dynamics(x=x, u=u)['x_dot']
-        k2 = dynamics(x=x + dt / 2 * k1, u=u)['x_dot']
-        k3 = dynamics(x=x + dt / 2 * k2, u=u)['x_dot']
-        k4 = dynamics(x=x + dt * k3, u=u)['x_dot']
-        x += dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    for j in range(num_stages):
+        m1 = dynamics(x=x, u=u)["x_dot"]
+        m2 = dynamics(x=x + dt / 2 * m1, u=u)["x_dot"]
+        m3 = dynamics(x=x + dt / 2 * m2, u=u)["x_dot"]
+        m4 = dynamics(x=x + dt * m3, u=u)["x_dot"]
+        x += dt / 6 * (m1 + 2 * m2 + 2 * m3 + m4)
 
         # if cost_f and cost_f[j] is not None:
         #     q += cost_f[j](x=x, u=u)['q']
 
-    return ca.Function('F', [x0, u], [x], ['x0', 'u'], ['xf'])
+    return ca.Function("F", [x0, u], [x], ["x0", "u"], ["xf"])
 
+
+# fmt: off
 def linearized_dynamics(state, input, nx, nu, mass, I):
     """
     Jacobian J matrix of the linearized dynamics specified in the function quad_dynamics. J[i, j] corresponds to
@@ -165,10 +168,10 @@ def linearized_dynamics(state, input, nx, nu, mass, I):
     :return: a CasADi symbolic function that calculates the nx x nx Jacobian matrix of the linearized simplified
     quadrotor dynamics
     """
-    if isinstance(state, ca.SX):
-        cs_type = ca.SX
-    elif isinstance(state, ca.SX):
-        cs_type = ca.SX
+    if isinstance(state, ca.MX):
+        cs_type = ca.MX
+    elif isinstance(state, ca.MX):
+        cs_type = ca.MX
 
     # TODO state is the casadi symbolic state vector from the NMPC object
     p = state[0:3]    # Position
@@ -201,12 +204,12 @@ def linearized_dynamics(state, input, nx, nu, mass, I):
     jac[11, 10:13] = (I[2] - I[0]) / I[1] * ca.horzcat(w[2], 0, w[0])
     jac[12, 10:13] = (I[0] - I[1]) / I[2] * ca.horzcat(w[1], w[0], 0)
 
-    return ca.Function('J', [state, u], [jac])
+    return ca.Function("J", [state, u], [jac])
 
 
 def full_dynamics(nmpc, state, u):
     """
-    Symbolic dynamics of the 3D quadrotor model. The state consists on: [p_xyz, a_wxyz, v_xyz, r_xyz]^T, where p
+    Symbolic dynamics of the 3D quadrotor model. The state consists of: [p_xyz, v_xyz, q_wxyz, w_xyz]^T, where p
     stands for position, a for angle (in quaternion form), v for velocity and r for body rate. The input of the
     system is: [u_1, u_2, u_3, u_4], i.e. the activation of the four thrusters.
 
@@ -220,10 +223,10 @@ def full_dynamics(nmpc, state, u):
     p = state[0:3]
     v = state[3:6]
     q = state[6:10]
-    qx = state[6]
-    qy = state[7]
-    qz = state[8]
-    qw = state[9]
+    qw = state[6]
+    qx = state[7]
+    qy = state[8]
+    qz = state[9]
     w = state[10:13]
     if nmpc.tilt and nmpc.include_servo_model:
         a_s = state[13:17]
@@ -231,7 +234,8 @@ def full_dynamics(nmpc, state, u):
         ft_s = state[17:21]
 
     ft_c = u[:4]
-    a_c = u[4:8]
+    if nmpc.tilt:
+        a_c = u[4:8]
 
     # Physical parameters
     mass = nmpc.phys.mass
@@ -243,33 +247,30 @@ def full_dynamics(nmpc, state, u):
     t_rotor = nmpc.phys.t_rotor  # Time constant of rotor dynamics
     t_servo = nmpc.phys.t_servo  # Time constant of servo dynamics
 
-    p_b = ca.horzcat(
-        nmpc.phys.p1_b,
-        nmpc.phys.p2_b,
-        nmpc.phys.p3_b,
-        nmpc.phys.p4_b
-    ).T
+    p_b = ca.horzcat(nmpc.phys.p1_b, nmpc.phys.p2_b, nmpc.phys.p3_b, nmpc.phys.p4_b).T
 
-    dr = ca.vertcat(
-        nmpc.phys.dr1,
-        nmpc.phys.dr2,
-        nmpc.phys.dr3,
-        nmpc.phys.dr4
-    )
+    dr = ca.vertcat(nmpc.phys.dr1, nmpc.phys.dr2, nmpc.phys.dr3, nmpc.phys.dr4)
     kq_d_kt = nmpc.phys.kq_d_kt
 
     # - Rotor to End-of-arm
-    if nmpc.include_servo_model:
-        a = a_s
+    if nmpc.tilt:
+        if nmpc.include_servo_model:
+            a = a_s
+        else:
+            a = a_c
+        cos_a = ca.cos(a)
+        sin_a = ca.sin(a)
     else:
-        a = a_c
-    cos_a = ca.cos(a)
-    sin_a = ca.sin(a)
+        cos_a = ca.MX.ones(4)
+        sin_a = ca.MX.zeros(4)
+
+    #     i < 3
+    # u @Dschodscho
 
     # - End-of-arm to Body
     # Vectorized rotation matrices rot_be (3x3x4)
     # We'll compute the rotated forces later directly without storing the full rotation matrices
-    norm_xy = ca.sqrt(p_b[:, 0] ** 2 + p_b[:, 1] ** 2)    # Avoid using norm_2()
+    norm_xy = ca.sqrt(p_b[:, 0] ** 2 + p_b[:, 1] ** 2)  # Avoid using norm_2()
     sin_theta = p_b[:, 1] / norm_xy
     cos_theta = p_b[:, 0] / norm_xy
 
@@ -362,11 +363,16 @@ def full_dynamics(nmpc, state, u):
 
     # Assemble dynamical model
     x_dot = ca.vertcat(
-        p_dynamics(v),
-        v_dynamics(fu_w, mass, g_w),
-        q_dynamics(q, w),
-        w_dynamics(tau_u_b, w, I, I_inv)
+        v,
+        fu_w / mass + g_w,
+        (-w[0] * q[1] - w[1] * q[2] - w[2] * q[3]) / 2,  # Convert angular velocity to rotation in World frame
+        (w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
+        (w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
+        (w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2,
+        ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b)),  # Stay in Body frame
     )
+
+    # - Extend model by servo angle first-order dynamics
     if nmpc.include_servo_model and not nmpc.include_servo_derivative:
         x_dot = ca.vertcat(x_dot,
                           (a_c - a_s) / t_servo  # Time constant of servo motor
@@ -379,31 +385,4 @@ def full_dynamics(nmpc, state, u):
                           (ft_c - ft_s) / t_rotor  # Time constant of rotor
                           )
 
-    if nmpc.include_cog_dist_model:
-        x_dot = ca.vertcat(x_dot,
-                        ca.vertcat(0.0, 0.0, 0.0),
-                        ca.vertcat(0.0, 0.0, 0.0),
-                        )
-            
-    return ca.Function('x_dot', [state, u], [x_dot], ['x', 'u'], ['x_dot'])
-
-def p_dynamics(v):
-    return v
-
-def v_dynamics(fu_w, mass, g_w):
-    """
-    TODO implement drag compensation rdrv_d
-    :param rdrv_d: a 3x3 diagonal matrix containing the D matrix coefficients for a linear drag model as proposed
-    by Faessler et al. None, if no linear compensation is to be used.
-    """
-    return fu_w / mass + g_w
-
-def q_dynamics(q, w):
-    return ca.vertcat(
-    (-w[0] * q[1] - w[1] * q[2] - w[2] * q[3]) / 2,   # Convert angular velocity to rotation in World frame
-    ( w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
-    ( w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
-    ( w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2)
-
-def w_dynamics(tau_u_b, w, I, I_inv):
-    return ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b))
+    return ca.Function("x_dot", [state, u], [x_dot], ["x", "u"], ["x_dot"])

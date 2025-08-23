@@ -126,6 +126,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer, factor=0.1, threshold=0.005, patience=20
             )
+        elif MLPConfig.lr_scheduler == "LambdaLR":
+            lr_func = lambda epoch: min(0.95**epoch, 1e-5)
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -165,9 +168,11 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         inference_times.append(inference_time)
 
         # === Schedule learning rate ===
-        if MLPConfig.lr_scheduler is not None:
+        if MLPConfig.lr_scheduler == "ReduceLROnPlateau":
             # lr_scheduler.step(train_losses)
             lr_scheduler.step(val_losses)
+        elif MLPConfig.lr_scheduler in ["LambdaLR", "LRScheduler"]:
+            lr_scheduler.step()
         learning_rates.append(optimizer.param_groups[0]["lr"])
         table["Learning Rate"] = learning_rates[-1]
         table.next_row()
