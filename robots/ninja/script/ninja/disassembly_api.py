@@ -30,7 +30,7 @@ class SwitchState(smach.State):
                  robot_id = 1,
                  male_servo_id = 8,
                  real_machine = False,
-                 unlock_servo_angle_male = 2250,
+                 unlock_servo_angle_male = 2300,
                  default_servo_angle_male = 4050,
                  neighboring = 'ninja2',
                  neighboring_id = 2,
