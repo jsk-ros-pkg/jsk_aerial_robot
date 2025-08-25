@@ -23,6 +23,7 @@ f:  force landing
 h:  halt (force stop motor)
 x:  motion start
 y:  motion interrupt
+z:  motion force transition
 
      q           w           e           [
 (turn left)  (forward)  (turn right)  (move up)
@@ -85,6 +86,7 @@ if __name__=="__main__":
 
                 motion_start_pub = rospy.Publisher('motion_start', Empty, queue_size=1)
                 motion_interrupt_pub = rospy.Publisher("/emergency_assembly_interuption",Empty,queue_size=1)
+                motion_force_trans_pub = rospy.Publisher('/force_switching', Empty, queue_size=1)
 
         try:
                 while(True):
@@ -122,7 +124,10 @@ if __name__=="__main__":
                                 msg = "send task-start command"
                         if key == 'y':
                                 motion_interrupt_pub.publish()
-                                msg = "send tast-interrupt command"                                
+                                msg = "send task-interrupt command"
+                        if key == 'z':
+                                motion_force_trans_pub.publish()
+                                msg = "send task-force-transition command"
                         if key == 'w':
                                 nav_msg.pos_xy_nav_mode = FlightNav.VEL_MODE
                                 nav_msg.target_vel_x = xy_vel

@@ -115,7 +115,7 @@ class StandbyState(smach.State):
         # publisher
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
-        self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
+        # self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         if(self.attach_dir < 0):
             self.follower_docking_pub = rospy.Publisher(self.robot_name+"/docking_cmd", Bool, queue_size=10)
             self.dynamixel_servo = DynamixelControl(self.robot_name,self.robot_id,self.male_servo_id,self.real_machine)
@@ -176,6 +176,7 @@ class StandbyState(smach.State):
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
 
         rospy.loginfo(pos_error)
+        rospy.loginfo(att_error)
 
         #check if pos and att error are within the torrelance
         if np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol)):
@@ -273,15 +274,18 @@ class ApproachState(smach.State):
                  contact_vel_x = 0.1,
                  contact_vel_y = 0,
                  contact_vel_z = 0,
-                 x_offset = 0,
-                 y_offset = 0,
-                 z_offset = 0,
-                 x_tol = 0.015,
-                 y_tol = 0.02,
-                 z_tol = 0.02,
+                 x_offset = 0.0,
+                 y_offset = 0.0,
+                 z_offset = 0.0,
+                 x_tol = 0.02,
+                 y_tol = 0.3,
+                 z_tol = 0.3,
+                 # x_tol = 1.0,
+                 # y_tol = 1.0,
+                 # z_tol = 1.0,
                  roll_tol = 0.08,
                  pitch_tol = 0.08,
-                 yaw_tol = 0.08,       
+                 yaw_tol = 0.5,
                  x_danger_thre = 0.02,
                  y_danger_thre = 0.1,
                  z_danger_thre = 0.1,
@@ -324,6 +328,8 @@ class ApproachState(smach.State):
         self.pitch_danger_thre = pitch_danger_thre
         self.yaw_danger_thre = yaw_danger_thre
         self.attach_dir = attach_dir
+        self.target_cog_pos = np.zeros(3)
+        self.target_att = np.zeros(3)
         self.approach_mode = approach_mode
         self.run_rate = rospy.Rate(run_rate)
         if attach_dir < 0:
@@ -335,6 +341,7 @@ class ApproachState(smach.State):
 
         # flags
         self.emergency_flag = False
+        self.force_switching_flag = False
 
         # tf listener and broadcaster
         self.listener = tf.TransformListener()
@@ -343,7 +350,7 @@ class ApproachState(smach.State):
         # publisher
         self.follower_nav_pub = rospy.Publisher(self.robot_name+"/uav/nav", FlightNav, queue_size=10)
         self.follower_traj_pub = rospy.Publisher(self.robot_name+"/target_pose", PoseStamped, queue_size=10)
-        self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
+        # self.follower_att_pub = rospy.Publisher(self.robot_name+"/final_target_baselink_rot", DesireCoord, queue_size=10)
         self.leader_nav_pub = rospy.Publisher(self.leader+"/uav/nav", FlightNav, queue_size=10)
         self.assembly_nav_pub = rospy.Publisher("/assembly/uav/nav", FlightNav, queue_size=10)
         self.follower_twist_pub = rospy.Publisher(self.robot_name+"/target_velocity_twist",TwistStamped,queue_size=1)
@@ -358,6 +365,7 @@ class ApproachState(smach.State):
 
         # subscriber
         self.emergency_stop_sub = rospy.Subscriber("/emergency_assembly_interuption",Empty,self.emergencyCb)
+        self.force_switching_sub = rospy.Subscriber("/force_switching",Empty,self.forceSwitchCb)
         self.leader_target_pose_sub = rospy.Subscriber(self.leader + "/debug/pose/pid" ,PoseControlPid, self.leaderTargetPoseCb)
 
         # utils
@@ -422,7 +430,8 @@ class ApproachState(smach.State):
         att_error = np.array([0,0,0])-tf.transformations.euler_from_quaternion(follower_from_leader[1])
 
         #check if pos and att error are within the torrelance
-        if np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol)):
+        if (np.all(np.less(np.abs(pos_error),self.pos_error_tol)) and np.all(np.less(np.abs(att_error),self.att_error_tol))) or self.force_switching_flag:
+        
             return 'done'
         elif self.emergency_flag:
             return 'emergency'
@@ -541,6 +550,9 @@ class ApproachState(smach.State):
         self.leader_nav_pub.publish(nav_msg_leader)
         self.emergency_flag = True
 
+    def forceSwitchCb(self,msg):
+        self.force_switching_flag = True
+
     def leaderTargetPoseCb(self, msg):
         leader_target_x = msg.x.target_p
         leader_target_y = msg.y.target_p
@@ -617,14 +629,14 @@ class AssemblyState(smach.State):
         self.follower_nav_pub.publish(self.nav_msg)
         self.leader_nav_pub.publish(self.nav_msg)
         self.assembly_nav_pub.publish(self.nav_msg)
-        rospy.sleep(1.0)
+        rospy.sleep(0.2)
         self.flag_msg.key = str(self.robot_id)
         self.flag_msg.value = '1'
         self.flag_pub.publish(self.flag_msg)
         self.flag_msg.key = str(self.leader_id)
         self.flag_msg.value = '1'
         self.flag_pub_leader.publish(self.flag_msg)
-        rospy.sleep(3.0)
+        rospy.sleep(1.0)
         return 'done'
 
     def emergencyCb(self,msg):
