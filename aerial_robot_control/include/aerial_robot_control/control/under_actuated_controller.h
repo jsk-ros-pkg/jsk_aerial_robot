@@ -34,10 +34,10 @@
  *********************************************************************/
 #pragma once
 
-#include <aerial_robot_control/control/base/pose_linear_controller.h>
-#include <spinal/FourAxisCommand.h>
-#include <spinal/RollPitchYawTerms.h>
-#include <spinal/TorqueAllocationMatrixInv.h>
+#include "aerial_robot_control/control/base/pose_linear_controller.h"
+#include "spinal/FourAxisCommand.h"
+#include "spinal/RollPitchYawTerms.h"
+#include "spinal/TorqueAllocationMatrixInv.h"
 
 using boost::algorithm::clamp;
 
@@ -58,15 +58,15 @@ namespace aerial_robot_control
     virtual void reset() override;
 
   protected:
-    ros::Publisher flight_cmd_pub_; //for spinal
-    ros::Publisher rpy_gain_pub_; //for spinal
-    ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
+    ros::Publisher rpy_gain_pub_;                       // For spinal
+    ros::Publisher flight_cmd_pub_;                     // For spinal
+    ros::Publisher torque_allocation_matrix_inv_pub_;   // For spinal
     double torque_allocation_matrix_inv_pub_stamp_;
 
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
 
-    double target_roll_, target_pitch_; // under-actuated
+    double target_roll_, target_pitch_;                 // Under-actuated
     double candidate_yaw_term_;
     std::vector<float> target_base_thrust_;
 
@@ -82,7 +82,5 @@ namespace aerial_robot_control
     virtual void sendCmd() override;
     virtual void sendFourAxisCommand();
     virtual void sendTorqueAllocationMatrixInv();
-
-
   };
-} //namespace aerial_robot_control
+};
