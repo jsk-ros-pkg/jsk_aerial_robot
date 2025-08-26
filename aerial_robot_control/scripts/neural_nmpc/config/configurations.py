@@ -37,7 +37,7 @@ class EnvConfig:
         "only_use_nominal": False,
         "end_to_end_mlp": False,
         "neural_model_name": "naive_residual_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
-        "neural_model_instance": "neuralmodel_029",
+        "neural_model_instance": "neuralmodel_031",  # 29
     }
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
@@ -54,14 +54,14 @@ class EnvConfig:
         "disturbances": {
             "cog_dist": True,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.2,
+            "cog_dist_factor": 0.3,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
         },
-        "max_sim_time": 1,
+        "max_sim_time": 30,
         "world_radius": 3,
-        "seed": 456,
+        "seed": 567,
     }
 
     # Trajectory options

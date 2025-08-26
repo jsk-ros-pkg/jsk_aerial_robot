@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from progress_table import ProgressTable
 from torchsummary import summary
+from decimal import Decimal
 
 import sys
 
@@ -127,8 +128,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
                 optimizer, factor=0.1, threshold=0.005, patience=20
             )
         elif MLPConfig.lr_scheduler == "LambdaLR":
-            lr_func = lambda epoch: min(0.95**epoch, 1e-5)
-            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
+            # Divide here since lambda func returns a multiplier for the base lr
+            lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=[lr_func, 1e-5])
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -153,7 +155,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Train Loss", color="red", width=25)
     table.add_column("Val Loss", color="BRIGHT green", width=25)
     table.add_column("Inference Time", width=19)
-    table.add_column("Learning Rate", width=25)
+    table.add_column("Learning Rate", width=13)
 
     for t in table(MLPConfig.num_epochs, show_throughput=False, show_eta=True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
@@ -174,7 +176,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         elif MLPConfig.lr_scheduler in ["LambdaLR", "LRScheduler"]:
             lr_scheduler.step()
         learning_rates.append(optimizer.param_groups[0]["lr"])
-        table["Learning Rate"] = learning_rates[-1]
+        table["Learning Rate"] = f"{Decimal(learning_rates[-1]):.0e}"
         table.next_row()
 
         # === Save model ===
@@ -216,7 +218,8 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
 
 
 def loss_function(y, y_pred):
-    return torch.square(y - y_pred).mean()
+    # TODO weight each dimension differently
+    return torch.square(y - y_pred).mean() * 1000
 
 
 def get_optimizer(model, learning_rate):

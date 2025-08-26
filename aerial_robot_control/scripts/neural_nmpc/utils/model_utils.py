@@ -154,11 +154,18 @@ def cross_check_options(model_options, sim_options, metadata):
             "NMPC type used in dataset for training the neural model doesn't match the simulation environment."
         )
 
-    if sim_options["disturbances"] != metadata["ds_disturbances"]:
-        raise ValueError(
-            "Disturbances used in dataset for training the neural model don't match the simulation environment."
-        )
-
+    for dist, value in sim_options["disturbances"].items():
+        if dist not in metadata["ds_disturbances"]:
+            raise ValueError(
+                f"Disturbance '{dist}' used in simulation environment is not present in the dataset for training the neural model."
+            )
+        if value != metadata["ds_disturbances"][dist]:
+            if dist == "cog_dist_factor":
+                pass
+            else:
+                raise ValueError(
+                    f"Disturbance '{dist}' used in dataset for training the neural model doesn't match the simulation environment."
+                )
     return metadata
 
 

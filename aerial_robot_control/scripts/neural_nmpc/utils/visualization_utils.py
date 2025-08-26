@@ -524,16 +524,16 @@ def plot_trajectory(rec_dict, rtnmpc):
             mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
             # Forward call MLP
             rtnmpc.neural_model.eval()
-            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
+            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()  # * dt[t]
             # Transform velocity back to world frame
             if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                 v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
-                v_b = mlp_out[v_idx : v_idx + 3] * dt[t]
+                v_b = mlp_out[v_idx : v_idx + 3]
                 v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
                 mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
             elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                 v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
-                v_b = np.append(0, mlp_out[v_idx : v_idx + 2]) * dt[t]
+                v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
                 v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
                 mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
             elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
@@ -541,19 +541,21 @@ def plot_trajectory(rec_dict, rtnmpc):
                 # The predicted v_z therefore also has influence on the x and y velocities in World frame
                 # Adjust mapping later on
                 v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
-                v_b = np.append(np.array([0, 0]), mlp_out[v_idx]) * dt[t]
+                v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
                 v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
                 mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
             y[t, :] = np.squeeze(mlp_out)
 
         # Plot true labels vs. actual regression
         y_true = state_out - state_prop
+        loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, y[:, i], label="y_regressed")
             plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
             plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
-            plt.ylabel(f"D{i}")
+            plt.plot
+            plt.ylabel(f"D{dim}")
             if i == 0:
                 plt.title("State Out - State Pred")
                 plt.legend()
@@ -580,6 +582,7 @@ def plot_trajectory(rec_dict, rtnmpc):
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
     # plt.show()
+    halt = 1
 
 
 def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=None, save_file_name=None):

@@ -215,7 +215,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             # --- Record time, target, current state and last optimized input ---
             if recording or plot:
                 rec_dict["timestamp"] = np.append(rec_dict["timestamp"], t_now)
-                rec_dict["dt"] = np.append(
+                rec_dict["dt"] = np.append(  # -2 since current timestamp is just added on index -1
                     rec_dict["dt"], t_now - rec_dict["timestamp"][-2] if len(rec_dict["timestamp"]) > 1 else T_samp
                 )
                 rec_dict["comp_time"] = np.append(rec_dict["comp_time"], comp_time)
@@ -409,6 +409,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         if rtnmpc.nmpc.include_cog_dist_parameter or rtnmpc.nmpc.include_motor_noise_parameter:
             plot_disturbances(dist_dict)
         plt.show()
+
     halt = 1
 
 
