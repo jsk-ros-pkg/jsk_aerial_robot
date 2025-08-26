@@ -44,6 +44,8 @@
     <gazebo_ros_control plugin="${prefix}/aerial_robot_hw_sim_plugins.xml"/>
     <controller_interface plugin="${prefix}/flight_controllers_plugins.xml"/>
     <mujoco_ros_control plugin="${prefix}/mujoco_robot_hw_sim_plugin.xml"/>
+    <gazebo_ros gazebo_model_path="${prefix}/gazebo_model/models"/>
+    <gazebo_ros gazebo_media_path="${prefix}/gazebo_model/world"/>
   </export>
 
 </package>
