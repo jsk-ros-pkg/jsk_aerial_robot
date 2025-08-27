@@ -1,5 +1,5 @@
 bat_info:
-        bat_cell: 4
+        bat_cell: 3 # 4->3 to deal with lack voltage error 
         bat_resistance: 0.04 # [m Ohm]
         hovering_current: 30 #[A]
         low_voltage_thre: 5 #[100%]
