@@ -44,8 +44,8 @@ class ServoMoveNode:
         # Subscribe and publish
         rospy.Subscriber(self.robot_ns + '/servo/states', ServoStates, self._callback_servo_states)
         self.pub_servo_target = rospy.Publisher(self.robot_ns + '/servo/target_states', ServoControlCmd, queue_size=10)
-        # Add joint control publisher for extendable joints
-        self.central_Servo_pub = rospy.Publisher(f'/{self.robot_ns}/extendable_joints_ctrl', 
+        # Add joint control publisher in rviz
+        self.rviz_urdf_pub = rospy.Publisher(f'/{self.robot_ns}/extendable_joints_ctrl', 
                                        JointState, queue_size=10)
         time.sleep(1.0)
 
@@ -72,7 +72,7 @@ class ServoMoveNode:
         self.servo_target_cmd(self.servo_target_index, self.servo_zero_position)
         time.sleep(0.5)
 
-    def joint_control(self, servo_angle):
+    def rviz_urdf_update(self, servo_angle):
         """
         Convert servo angle to extendable joint positions and publish
         
@@ -112,12 +112,12 @@ class ServoMoveNode:
         joint_cmd.velocity = [0.01] * len(joint_positions)  # Set reasonable velocities
         joint_cmd.effort = []
 
-        self.central_Servo_pub.publish(joint_cmd)
-        # central_Servo_pub = rospy.Publisher(f'/{self.robot_ns}/extendable_joints_ctrl', 
+        self.rviz_urdf_pub.publish(joint_cmd)
+        # rviz_urdf_pub = rospy.Publisher(f'/{self.robot_ns}/extendable_joints_ctrl', 
         #                         JointState, queue_size=10)
-        # central_Servo_pub.publish(joint_cmd)
+        # rviz_urdf_pub.publish(joint_cmd)
 
-        rospy.loginfo(f'Joint positions: j1,j3={joint_13_position:.4f}m, j2,j4={joint_24_position:.4f}m')
+        rospy.loginfo(f'TP14Joint positions: j1,j3={joint_13_position:.4f}m, j2,j4={joint_24_position:.4f}m')
         rospy.loginfo(f'Published to /{self.robot_ns}/extendable_joints_ctrl')
 
     def move_to_position(self, target_angle):
@@ -125,9 +125,9 @@ class ServoMoveNode:
         target_angle = max(self.servo_min_angles, min(self.servo_max_angles, target_angle))
         
         # 1. joint control, 2. servo control
-        self.joint_control(target_angle)
+        self.rviz_urdf_update(target_angle)
         rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
-        rospy.sleep(1.0)
+        # rospy.sleep(1.0)
          # Send servo command
         self.servo_target_cmd(self.servo_target_index, target_angle)
         rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
@@ -165,7 +165,7 @@ def main():
     
     node = ServoMoveNode()
     rospy.loginfo(f"Initialized ServoMoveNode")
-    time.sleep(2)
+    # time.sleep(2)
     node.move_to_position(target_angle)
     
     while not rospy.is_shutdown():
