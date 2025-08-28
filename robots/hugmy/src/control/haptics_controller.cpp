@@ -13,14 +13,6 @@ HapticsController::HapticsController(ros::NodeHandle& nh){
     output_ = 0.0;
 }
 
-spinal::PwmTest HapticsController::getHapticsPwm() const {
-    return last_published_pwm_;
-}
-
-void HapticsController::setJoy(const sensor_msgs::Joy& msg) {
-    joy_ = msg;
-}
-
 void HapticsController::publishHapticsPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms) {
     spinal::PwmTest msg;
     msg.motor_index = indices;
@@ -28,7 +20,6 @@ void HapticsController::publishHapticsPwm(const std::vector<uint8_t>& indices, c
     pwm_haptic_pub_.publish(msg);
     last_published_pwm_ = msg;
 }
-
 
 void HapticsController::odomCb(const nav_msgs::Odometry::ConstPtr& msg){
     pose_ = msg -> pose.pose;
@@ -129,14 +120,19 @@ void HapticsController::controlAuto() {
     // もしtrue→false　出力する
     //できればチェックの回数をもっと細かくして，最初の出力の挙動をもっとでかく
     // チェックはずっとしておく？　最初と，違うよーこっちだよーだけほしい
-    if ((ros::Time::now() - last_check_time_).toSec() > 1.0) {  // 5s
+    if ((ros::Time::now() - last_check_time_).toSec() > 2.0) {  // 5s
         isApproachingTarget(target_vec, target_norm);
         last_check_time_ = ros::Time::now();
     }
 
-    if (target_norm < 0.05) {
+    if (target_norm < 0.05 && haptics_finished_flag_ == false) {
         ROS_ERROR("target is close enough, stopping motors.");
         vibratePwms();
+        finished_cnt_ += 1;
+        if (finished_cnt_ > 20){
+            haptics_finished_flag_ = true;
+            publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.5, 0.5});
+        }
         return;
     }else{
         if (approaching_target_flag_) {

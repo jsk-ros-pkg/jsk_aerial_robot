@@ -21,8 +21,9 @@ public:
     void controlManual();
     virtual void controlAuto();
     void stopAllMotors();
-    void setJoy(const sensor_msgs::Joy& msg);
-    spinal::PwmTest getHapticsPwm() const;
+    void setJoy(const sensor_msgs::Joy& msg) { joy_ = msg; };
+    spinal::PwmTest getHapticsPwm() const {return last_published_pwm_; }
+    bool getHapticsFinished() const { return haptics_finished_flag_; }
     bool pos_flag_;
 
 protected:
@@ -33,7 +34,7 @@ protected:
     void outputPulsePattern(double target_force_norm, const std::vector<float>& motor_pwms);
     void vibratePwms();
     void isApproachingTarget(const Eigen::Vector2d& target_vec, double target_norm);
-    bool isArmRaised(); 
+    bool isArmRaised();
     void toggleSwitch();
 
     ros::Publisher pwm_haptic_pub_;
@@ -53,14 +54,16 @@ protected:
     int pulse_target_ = 2;
     std::vector<float> motor_pwms_ = {0.5, 0.5, 0.5, 0.5};
     bool first_haptics_done_ = false;
+    bool haptics_finished_flag_ = false;
     bool approaching_target_flag_ = true;
     ros::Time last_check_time_;
     double move_distance_threshold_ = 0.1;
-    double direction_threshold_ = 0.8; 
+    double direction_threshold_ = 0.8;
     double pitch_threshold_ = 0.8;
     double roll_threshold_ = 0.8;
     int vibrate_count_ = 0;
     bool vibrate_toggle_ = true;
+    int finished_cnt_ = 0;
     spinal::PwmTest last_published_pwm_;
 };
 
