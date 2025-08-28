@@ -4,10 +4,6 @@
 Pure servo control for beetle1 servo id:4
 Based on gripper_move.py pattern
 
-Usage: 
-  rosrun aerial_robot_planning combined_mpc.py joint=2048    # Zero position
-  rosrun aerial_robot_planning combined_mpc.py joint=7000    # Upper bound
-  rosrun aerial_robot_planning combined_mpc.py joint=-2100   # Lower bound
 
 Servo specifications:
   - Robot: beetle1
@@ -76,16 +72,6 @@ class ServoMoveNode:
         self.servo_target_cmd(self.servo_target_index, self.servo_zero_position)
         time.sleep(0.5)
 
-    def move_to_position(self, target_angle):
-        # Clamp to servo limits
-        target_angle = max(self.servo_min_angles, min(self.servo_max_angles, target_angle))
-        
-        # 1. joint control, 2. servo control
-        self.joint_control(target_angle)
-        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
-        self.servo_target_cmd(self.servo_target_index, target_angle)
-        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
-
     def joint_control(self, servo_angle):
         """
         Convert servo angle to extendable joint positions and publish
@@ -134,6 +120,18 @@ class ServoMoveNode:
         rospy.loginfo(f'Joint positions: j1,j3={joint_13_position:.4f}m, j2,j4={joint_24_position:.4f}m')
         rospy.loginfo(f'Published to /{self.robot_ns}/extendable_joints_ctrl')
 
+    def move_to_position(self, target_angle):
+        # Clamp to servo limits
+        target_angle = max(self.servo_min_angles, min(self.servo_max_angles, target_angle))
+        
+        # 1. joint control, 2. servo control
+        self.joint_control(target_angle)
+        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
+        rospy.sleep(1.0)
+         # Send servo command
+        self.servo_target_cmd(self.servo_target_index, target_angle)
+        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
+
 def parse_joint_argument(arg_string):
     """Parse joint argument - direct integer value"""
     try:
@@ -166,6 +164,8 @@ def main():
     rospy.loginfo(f"Servo control: target_angle={target_angle} (range: -4950 to 9048, zero: 2048)")
     
     node = ServoMoveNode()
+    rospy.loginfo(f"Initialized ServoMoveNode")
+    time.sleep(2)
     node.move_to_position(target_angle)
     
     while not rospy.is_shutdown():
