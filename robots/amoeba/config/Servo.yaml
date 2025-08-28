@@ -51,7 +51,7 @@ servo_controller:
     mechanical_coupling: true  # All joints driven by single servo id:4
     
     controller1:
-      id: 4  # Physical servo id:4 controls all joints
+      id: 5  # Physical servo id:4 controls all joints
       name: extendable_joint1
       mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
@@ -60,7 +60,7 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
     controller2:
-      id: 4  # Same physical servo id:4
+      id: 5  # Same physical servo id:4
       name: extendable_joint2
       mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
@@ -69,7 +69,7 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
     controller3:
-      id: 4  # Same physical servo id:4
+      id: 5  # Same physical servo id:4
       name: extendable_joint3
       mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
@@ -78,7 +78,7 @@ servo_controller:
         type: effort_controllers/JointPositionController
 
     controller4:
-      id: 4  # Same physical servo id:4
+      id: 5  # Same physical servo id:4
       name: extendable_joint4
       mechanical_ratio: 1.0  # Simplified: let trans_mpc.py handle direction
       simulation:
