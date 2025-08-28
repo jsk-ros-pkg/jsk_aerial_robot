@@ -5,10 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /PieChart1
+        - /TF1/Status1
         - /TFTrajectory1
-      Splitter Ratio: 0.4972222149372101
-    Tree Height: 748
+      Splitter Ratio: 0.49705880880355835
+    Tree Height: 824
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -26,7 +26,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: Image
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -52,6 +52,65 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        battery_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        battery_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fc:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        main_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        thrust1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        thrust4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: quadrotor
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
     - Class: rviz/TF
       Enabled: true
       Filter (blacklist): ""
@@ -68,10 +127,6 @@ Visualization Manager:
         quadrotor/fc:
           Value: true
         quadrotor/main_body:
-          Value: true
-        quadrotor/realsence_depth_frame:
-          Value: true
-        quadrotor/realsence_link:
           Value: true
         quadrotor/root:
           Value: true
@@ -103,9 +158,6 @@ Visualization Manager:
                 {}
               quadrotor/fc:
                 {}
-              quadrotor/realsence_link:
-                quadrotor/realsence_depth_frame:
-                  {}
               quadrotor/thrust1:
                 {}
               quadrotor/thrust2:
@@ -116,75 +168,8 @@ Visualization Manager:
                 {}
       Update Interval: 0
       Value: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: true
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-        battery_0:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        battery_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        fc:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        main_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        realsence_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        realsence_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        root:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        thrust1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        thrust4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-      Name: RobotModel
-      Robot Description: quadrotor/robot_description
-      TF Prefix: quadrotor
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /realsence/depth_camera/color/image_raw
       Max Value: 1
       Median window: 5
@@ -194,9 +179,9 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /realsence/depth_camera/depth/image_raw
       Max Value: 1
       Median window: 5
@@ -206,18 +191,21 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /debug/target_vector
       Name: MarkerArray
       Namespaces:
-        {}
+        current_position: true
+        last_vector: true
+        target_position: true
+        target_vector: true
       Queue Size: 100
       Value: true
     - Class: jsk_rviz_plugin/PieChart
       Enabled: true
-      Name: PieChart
+      Name: Thrust 0
       Topic: /debug/thrust_1
       Value: true
       auto color change: false
@@ -237,10 +225,10 @@ Visualization Manager:
       show caption: true
       size: 128
       text size: 14
-      top: 128
+      top: 28
     - Class: jsk_rviz_plugin/PieChart
       Enabled: true
-      Name: PieChart
+      Name: Thrust 1
       Topic: /debug/thrust_2
       Value: true
       auto color change: false
@@ -260,10 +248,10 @@ Visualization Manager:
       show caption: true
       size: 128
       text size: 14
-      top: 128
+      top: 28
     - Class: jsk_rviz_plugin/PieChart
       Enabled: true
-      Name: PieChart
+      Name: Thrust 2
       Topic: /debug/thrust_3
       Value: true
       auto color change: false
@@ -283,10 +271,10 @@ Visualization Manager:
       show caption: true
       size: 128
       text size: 14
-      top: 128
+      top: 28
     - Class: jsk_rviz_plugin/PieChart
       Enabled: true
-      Name: PieChart
+      Name: Thrust 3
       Topic: /debug/thrust_4
       Value: true
       auto color change: false
@@ -306,7 +294,7 @@ Visualization Manager:
       show caption: true
       size: 128
       text size: 14
-      top: 128
+      top: 28
     - Class: jsk_rviz_plugin/TFTrajectory
       Enabled: true
       Name: TFTrajectory
@@ -315,6 +303,33 @@ Visualization Manager:
       duration: 10
       frame: quadrotor/cog
       line_width: 0.009999999776482582
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: false
+      Name: Target vector norm
+      Show Value: true
+      Topic: /debug/target_vector_norm
+      Value: false
+      auto color change: false
+      auto scale: true
+      auto text size in plot: true
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 25; 255; 240
+      height: 128
+      left: 28
+      linewidth: 1
+      max color: 255; 0; 0
+      max value: 1
+      min value: -1
+      show caption: true
+      text size: 12
+      text size in plot: 12
+      top: 200
+      update interval: 0.03999999910593033
+      width: 128
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -343,7 +358,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.6093552112579346
+      Distance: 7.363499164581299
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -359,19 +374,19 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9797967076301575
+      Pitch: 0.7397961020469666
       Target Frame: <Fixed Frame>
-      Yaw: 2.9853992462158203
+      Yaw: 2.410397529602051
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1536
+  Height: 1043
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000015600000562fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000329000000c900fffffffb0000000a0049006d006100670065010000036c000002330000001600fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010000000562fc0200000004fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d00000347000000a400fffffffb0000000a0049006d006100670065010000038a000002150000001600fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000009b80000003efc0100000002fb0000000800540069006d00650100000000000009b8000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000007560000056200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000015600000375fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000375000000c900fffffffb0000000a0049006d0061006700650000000249000001690000001600fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010000000375fc0200000004fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d00000375000000a400fffffffb0000000a0049006d006100670065000000025d000001550000001600fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065010000000000000780000003bc00fffffffb0000000800540069006d006501000000000000045000000000000000000000051e0000037500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -380,6 +395,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 2488
-  X: 72
-  Y: 27
+  Width: 1920
+  X: 366
+  Y: 0

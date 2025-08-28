@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_id" default="1"/>
+  <arg name="robot_ns" value="quadrotor$(arg robot_id)"/>
+  <arg name="config_dir" default="$(find hugmy)/config"/>
+  <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch">
+    <arg name="headless" value="false" />
+    <arg name="robot_model" value="$(find hugmy)/urdf/robot.urdf.xacro"/>
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="rviz_config" value="$(arg config_dir)/rviz_config.rviz"/>
+    <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml"/>
+  </include>
+</launch>
