@@ -72,9 +72,8 @@ class NaiveMLP(TorchMLCasadiModule):
         # Forward pass
         for layer in self.fully_connected_stack:
             x = layer(x)
-        # # Output denormalization
-        # return (x * self.y_std) + self.y_mean
-        return x
+        # Output denormalization
+        return (x * self.y_std) + self.y_mean
 
     def cs_forward(self, x):
         # Input normalization
@@ -82,6 +81,5 @@ class NaiveMLP(TorchMLCasadiModule):
         # Forward pass
         for layer in self.fully_connected_stack:
             x = layer(x)
-        # # Output denormalization
-        # return (x * self.y_std.cpu().numpy()) + self.y_mean.cpu().numpy()
-        return x
+        # Output denormalization
+        return (x * self.y_std.cpu().numpy()) + self.y_mean.cpu().numpy()
