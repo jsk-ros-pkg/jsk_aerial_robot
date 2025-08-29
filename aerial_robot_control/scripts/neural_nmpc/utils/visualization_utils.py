@@ -29,6 +29,7 @@ import matplotlib.animation as animation
 # from config.configuration_parameters import DirectoryConfig as PathConfig
 from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q
 from utils.data_utils import safe_mkdir_recursive
+from sim_environment.forward_prop import init_forward_prop
 
 frames = []
 
@@ -370,7 +371,7 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
         )
 
 
-def plot_trajectory(rec_dict, rtnmpc):
+def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
     state_prop = rec_dict["state_prop"]
@@ -378,9 +379,8 @@ def plot_trajectory(rec_dict, rtnmpc):
     timestamp = rec_dict["timestamp"]
     # Plot state features
     plt.subplots(figsize=(20, 5))
-    n_plots = state_in.shape[1]
     for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.subplot(state_in.shape[1], 1, dim + 1)
         plt.plot(timestamp, state_in[:, dim], label="state_in")
         plt.plot(timestamp, state_out[:, dim], label="state_out")
         plt.plot(timestamp, state_prop[:, dim], label="state_prop")
@@ -395,8 +395,9 @@ def plot_trajectory(rec_dict, rtnmpc):
             ax.axes.xaxis.set_ticklabels([])
 
     # Plot control features
+    plt.subplots(figsize=(20, 5))
     for dim in range(control.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.subplot(control.shape[1], 1, dim + 1)
         plt.plot(timestamp, control[:, dim], label="control")
         if dim == 0:
             plt.title("Control")
@@ -452,7 +453,7 @@ def plot_trajectory(rec_dict, rtnmpc):
 
     plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
         plt.plot(timestamp, d1[:, dim])
         plt.ylabel(f"D{dim}")
         if dim == 0:
@@ -465,7 +466,7 @@ def plot_trajectory(rec_dict, rtnmpc):
             ax.axes.xaxis.set_ticklabels([])
 
     for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
         plt.plot(timestamp, d2[:, dim], color="red")
         if dim == 0:
             plt.title("(State Pred - State In) / dt")
@@ -478,12 +479,11 @@ def plot_trajectory(rec_dict, rtnmpc):
 
     # Plot labels for neural network regression
     diff3 = state_out - state_prop
-    diff4 = state_out - state_prop
-    d4 = diff4 / dt
+    d3 = diff3 / dt
 
     plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
         plt.plot(timestamp, diff3[:, dim])
         plt.ylabel(f"D{dim}")
         if dim == 0:
@@ -496,8 +496,8 @@ def plot_trajectory(rec_dict, rtnmpc):
             ax.axes.xaxis.set_ticklabels([])
 
     for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(timestamp, d4[:, dim], color="red")
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
+        plt.plot(timestamp, d3[:, dim], color="red")
         if dim == 0:
             plt.title("(State Out - State Pred) / dt")
             plt.legend()
@@ -524,7 +524,7 @@ def plot_trajectory(rec_dict, rtnmpc):
             mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
             # Forward call MLP
             rtnmpc.neural_model.eval()
-            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()  # * dt[t]
+            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
             # Transform velocity back to world frame
             if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                 v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
@@ -547,8 +547,7 @@ def plot_trajectory(rec_dict, rtnmpc):
             y[t, :] = np.squeeze(mlp_out)
 
         # Plot true labels vs. actual regression
-        y_true = state_out - state_prop
-        loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
+        y_true = d3
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, y[:, i], label="y_regressed")
@@ -565,6 +564,58 @@ def plot_trajectory(rec_dict, rtnmpc):
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
 
+        # Plot loss per dimension
+        loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
+        plt.subplots(figsize=(10, 5))
+        for i, dim in enumerate(rtnmpc.y_reg_dims):
+            plt.subplot(y.shape[1], 1, i + 1)
+            plt.plot(timestamp, loss[:, i], color="red")
+            plt.plot(
+                [timestamp[0], timestamp[-1]],
+                [np.mean(loss[:, i]), np.mean(loss[:, i])],
+                color="blue",
+                linestyle="--",
+                label=f"Mean = {np.mean(loss[:, i]):.6f}",
+            )
+            plt.legend()
+            plt.ylabel(f"Loss D{dim}")
+            if i == 0:
+                plt.title("Neural Model Loss per Dimension")
+            plt.grid("on")
+            plt.xlim(timestamp[0], timestamp[-1])
+            if i != y.shape[1] - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+
+        # Plot total loss and RMSE
+        plt.figure(figsize=(10, 5))
+        total_loss = np.sum(loss, axis=1)
+        rmse = np.sqrt(total_loss / y.shape[1])
+        plt.plot(timestamp, total_loss, label="Total Loss", color="red")
+        plt.plot(timestamp, rmse, label="RMSE", color="green")
+        plt.plot(
+            [timestamp[0], timestamp[-1]],
+            [np.mean(total_loss), np.mean(total_loss)],
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Mean Total Loss = {np.mean(total_loss):.6f}",
+        )
+        plt.plot(
+            [timestamp[0], timestamp[-1]],
+            [np.mean(rmse), np.mean(rmse)],
+            color="green",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Mean RMSE = {np.mean(rmse):.6f}",
+        )
+        plt.xlabel("Time [s]")
+        plt.ylabel("Loss / RMSE")
+        plt.title("Neural Model Total Loss and RMSE")
+        plt.legend()
+        plt.grid("on")
+        plt.xlim(timestamp[0], timestamp[-1])
+
         # Plot model output
         plt.subplots(figsize=(10, 5))
         for i, dim in enumerate(rtnmpc.y_reg_dims):
@@ -572,6 +623,31 @@ def plot_trajectory(rec_dict, rtnmpc):
             plt.plot(timestamp, state_out[:, dim], label="Sim Output")
             plt.plot(timestamp, state_out[:, dim] + y[:, i], label="Neural Compensation")
             plt.plot(timestamp, state_prop[:, dim], label="Undisturbed Output", color="orange")
+            plt.ylabel(f"D{dim}")
+            if i == 0:
+                plt.title("Model Output")
+                plt.legend()
+            plt.grid("on")
+            plt.xlim(timestamp[0], timestamp[-1])
+            if i != y.shape[1] - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+
+        # Simulate intermediate acceleration vector before integration
+        dynamics, _, _ = init_forward_prop(rtnmpc.nmpc)
+        x_dot = np.empty(state_in.shape)
+        for t in range(state_in.shape[0]):
+            x_dot[t, :] = dynamics(x=state_in[t, :], u=control[t, :])["x_dot"]
+        lin_acc = x_dot[:, 3:6]
+        if dist_dict is not None:
+            lin_acc_dist = lin_acc + dist_dict["cog_dist"] / rtnmpc.nmpc.phys.mass
+
+        plt.subplots(figsize=(10, 5))
+        for i, dim in enumerate(rtnmpc.y_reg_dims):
+            plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
+            plt.plot(timestamp, lin_acc_dist[:, i], label="Acceleration by disturbed model")
+            plt.plot(timestamp, lin_acc_dist[:, i] + y[:, i], label="Neural Compensation")
+            plt.plot(timestamp, lin_acc[:, i], label="Acceleration by undisturbed model", color="orange")
             plt.ylabel(f"D{dim}")
             if i == 0:
                 plt.title("Model Output")

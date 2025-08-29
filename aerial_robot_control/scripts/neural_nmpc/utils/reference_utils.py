@@ -60,7 +60,7 @@ def sample_random_target(current_pos, world_radius, aggressive=True, low_flight=
 
     if low_flight:
         if np.random.random() < 0.8:
-            target_pos[2] = target_pos[2] / world_radius / 2
+            target_pos[2] = target_pos[2] / world_radius / 2 / 2
 
     # Set fixed velocity, rotation and angular vel
     target_vel = np.array([0, 0, 0])

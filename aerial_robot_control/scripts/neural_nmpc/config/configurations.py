@@ -34,12 +34,23 @@ class EnvConfig:
         #    NMPCTiltBiServo
         #    NMPCTiltBi2OrdServo
         #    MHEWrenchEstAccMom
-        "only_use_nominal": False,
-        "end_to_end_mlp": False,
-        "neural_model_name": "naive_residual_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
-        "neural_model_instance": "neuralmodel_031",  # 29
     }
+
+    # MLP options
+    model_options.update(
+        {
+            "only_use_nominal": True,
+            "end_to_end_mlp": False,
+            "neural_model_name": "naive_residual_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
+            "neural_model_instance": "neuralmodel_032",  # 29, 31
+            "approximated_mlp": False,
+            "approx_order": 0,
+        }
+    )
+
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
+        raise ValueError("Conflict in options.")
+    if "approximated" in model_options["neural_model_name"] and not model_options["approximated_mlp"]:
         raise ValueError("Conflict in options.")
 
     solver_options = {
@@ -47,14 +58,14 @@ class EnvConfig:
         "terminal_cost": True,
     }
 
-    dataset_options = {"ds_name_suffix": "residual_dataset_02"}
+    dataset_options = {"ds_name_suffix": "residual_dataset_03"}
     sim_options = {
         # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
         "disturbances": {
             "cog_dist": True,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.3,
+            "cog_dist_factor": 0.2,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
@@ -144,7 +155,7 @@ class MLPConfig:
 
 class ModelFitConfig:
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_02"
+    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_03"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo

@@ -158,7 +158,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         global_comp_time = time.time()
         while not current_target_reached:
             # --- Emergency recovery --- (quad controller gone out of control lol)
-            if np.any(state_curr[7:10] > 14) or i > 1000:  # TODO why check quaternions to be > 14?
+            if np.any(state_curr[7:10] > 14) or i > 500:  # TODO why check quaternions to be > 14?
                 print("===== Emergency recovery triggered!!! =====")
                 print(f"Iteration: {i}")
                 print(f"Euclidean dist: {(current_target[:3] - state_curr_sim[:3]) ** 2}")
@@ -405,7 +405,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
     # --- Plot simple trajectory ---
     if plot and not recording:
-        plot_trajectory(rec_dict, rtnmpc)
+        plot_trajectory(rec_dict, rtnmpc, dist_dict=dist_dict)
         if rtnmpc.nmpc.include_cog_dist_parameter or rtnmpc.nmpc.include_motor_noise_parameter:
             plot_disturbances(dist_dict)
         plt.show()

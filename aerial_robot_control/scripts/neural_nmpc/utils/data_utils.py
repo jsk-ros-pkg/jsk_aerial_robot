@@ -136,7 +136,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
                 if ds_name.split("_")[-1].isdigit():
                     counter = int(ds_name.split("_")[-1])
                     ds_name = ds_name[:-2]
-                    ds_name += "_" + str(counter + 1).zfill(2)
+                    ds_name += str(counter + 1).zfill(2)
                 else:
                     ds_name += "_02"
                 metadata[ds_name] = outer_fields

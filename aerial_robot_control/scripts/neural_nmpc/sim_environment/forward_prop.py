@@ -366,9 +366,9 @@ def full_dynamics(nmpc, state, u):
         v,
         fu_w / mass + g_w,
         (-w[0] * q[1] - w[1] * q[2] - w[2] * q[3]) / 2,  # Convert angular velocity to rotation in World frame
-        (w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
-        (w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
-        (w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2,
+        ( w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
+        ( w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
+        ( w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2,
         ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b)),  # Stay in Body frame
     )
 

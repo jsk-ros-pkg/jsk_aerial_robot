@@ -130,7 +130,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         elif MLPConfig.lr_scheduler == "LambdaLR":
             # Divide here since lambda func returns a multiplier for the base lr
             lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
-            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=[lr_func, 1e-5])
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -218,8 +218,9 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
 
 
 def loss_function(y, y_pred):
-    # TODO weight each dimension differently
-    return torch.square(y - y_pred).mean() * 1000
+    # Weight each dimension differently
+    weight = torch.tensor([1.0, 1.0, 1000.0]).to(y.device)
+    return (torch.square(y - y_pred) * weight).mean()
 
 
 def get_optimizer(model, learning_rate):

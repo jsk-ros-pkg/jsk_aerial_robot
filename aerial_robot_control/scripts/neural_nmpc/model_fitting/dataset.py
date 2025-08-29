@@ -95,7 +95,7 @@ class TrajectoryDataset(Dataset):
         # Compute residual of predicted and disturbed state
         if self.mode == "residual":
             # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-            y_diff = (state_out - state_prop) # / np.expand_dims(dt, 1)
+            y_diff = (state_out - state_prop) / np.expand_dims(dt, 1)
         elif self.mode == "e2e":
             y_diff = (state_out - state_in) / np.expand_dims(dt, 1)
         # fmt: on
