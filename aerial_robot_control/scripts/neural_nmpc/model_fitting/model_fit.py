@@ -15,8 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import ml_casadi.torch as mc  # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
 
 from dataset import TrajectoryDataset
-from network_architecture.naive_mlp import NaiveMLP
-from network_architecture.normalized_mlp import NormalizedMLP
+from network_architecture.mlp import MLP
 from utils.data_utils import sanity_check_dataset, get_model_dir_and_file, read_dataset, log_metrics
 from utils.model_utils import sanity_check_features_and_reg_dims, get_device
 from utils.visualization_utils import plot_fitting
@@ -88,32 +87,18 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     )
 
     # === Neural Network ===
-    if "approximated" in MLPConfig.model_name:
-        # TODO implement batch normalization and dropout?
-        # TODO combine and call it "ApproximatedMLP"
-        base_mlp = mc.nn.MultiLayerPerceptron(
-            in_dim, MLPConfig.hidden_sizes[0], out_dim, len(MLPConfig.hidden_sizes), activation=MLPConfig.activation
-        )
-        model = NormalizedMLP(
-            base_mlp,
-            torch.tensor(dataset.x_mean),
-            torch.tensor(dataset.x_std),
-            torch.tensor(dataset.y_mean),
-            torch.tensor(dataset.y_std),
-        ).to(device)
-    else:
-        model = NaiveMLP(
-            in_dim,
-            MLPConfig.hidden_sizes,
-            out_dim,
-            activation=MLPConfig.activation,
-            use_batch_norm=MLPConfig.use_batch_norm,
-            dropout_p=MLPConfig.dropout_p,
-            x_mean=torch.tensor(dataset.x_mean),
-            x_std=torch.tensor(dataset.x_std),
-            y_mean=torch.tensor(dataset.y_mean),
-            y_std=torch.tensor(dataset.y_std),
-        ).to(device)
+    model = MLP(
+        in_dim,
+        MLPConfig.hidden_sizes,
+        out_dim,
+        activation=MLPConfig.activation,
+        use_batch_norm=MLPConfig.use_batch_norm,
+        dropout_p=MLPConfig.dropout_p,
+        x_mean=torch.tensor(dataset.x_mean),
+        x_std=torch.tensor(dataset.x_std),
+        y_mean=torch.tensor(dataset.y_mean),
+        y_std=torch.tensor(dataset.y_std),
+    ).to(device)
     print(model)
     summary(model, (in_dim,))
 

@@ -10,8 +10,7 @@ from config.configurations import DirectoryConfig
 import torch
 import numpy as np
 from ml_casadi import torch as mc
-from network_architecture.naive_mlp import NaiveMLP
-from network_architecture.normalized_mlp import NormalizedMLP
+from network_architecture.mlp import MLP
 
 
 def set_temporal_states(rtnmpc, ocp_solver, history_y, u_cmd):
@@ -100,42 +99,23 @@ def load_model(model_options, sim_options, run_options):
     # Cross-check simulation environment options with metadata
     metadata = cross_check_options(model_options, sim_options, metadata)
 
-    # Load trained MLP model
+    # Define trained MLP model
     file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
     saved_dict = torch.load(file_name)
 
     device = get_device()
-    if "approximated_mlp" in metadata["MLPConfig"]["model_name"]:
-        # Use RTNMPC library for approximated MLP
-        base_mlp = mc.nn.MultiLayerPerceptron(
-            saved_dict["input_size"],
-            saved_dict["hidden_sizes"][0],
-            saved_dict["output_size"],
-            len(saved_dict["hidden_sizes"]),
-            activation="Tanh",
-        )
-
-        neural_model = NormalizedMLP(
-            base_mlp,
-            torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-            torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-            torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-            torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-        ).to(device)
-
-    else:
-        neural_model = NaiveMLP(
-            saved_dict["input_size"],
-            saved_dict["hidden_sizes"],
-            saved_dict["output_size"],
-            activation=saved_dict["activation"],
-            use_batch_norm=saved_dict["use_batch_norm"],
-            dropout_p=saved_dict["dropout_p"],
-            x_mean=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-            x_std=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-            y_mean=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-            y_std=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-        ).to(device)
+    neural_model = MLP(
+        saved_dict["input_size"],
+        saved_dict["hidden_sizes"],
+        saved_dict["output_size"],
+        activation=saved_dict["activation"],
+        use_batch_norm=saved_dict["use_batch_norm"],
+        dropout_p=saved_dict["dropout_p"],
+        x_mean=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+        x_std=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+        y_mean=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+        y_std=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+    ).to(device)
 
     # Load weights and biases from saved model
     neural_model.load_state_dict(saved_dict["state_dict"])

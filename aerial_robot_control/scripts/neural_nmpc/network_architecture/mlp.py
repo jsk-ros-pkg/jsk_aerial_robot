@@ -6,7 +6,7 @@ from ml_casadi.torch.modules.nn.batch_norm import BatchNorm1D as mcBatchNorm1d
 from ml_casadi.torch.modules.nn.dropout import Dropout as mcDropout
 
 
-class NaiveMLP(TorchMLCasadiModule):
+class MLP(TorchMLCasadiModule):
     def __init__(
         self,
         in_size,

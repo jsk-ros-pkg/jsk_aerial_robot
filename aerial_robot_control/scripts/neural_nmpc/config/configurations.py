@@ -41,7 +41,7 @@ class EnvConfig:
         {
             "only_use_nominal": True,
             "end_to_end_mlp": False,
-            "neural_model_name": "naive_residual_mlp",  # "naive_e2e_mlp" or "naive_residual_mlp" or "naive_residual_temporal_mlp" or "approximated_mlp"
+            "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp" or "approximated_mlp"
             "neural_model_instance": "neuralmodel_032",  # 29, 31
             "approximated_mlp": False,
             "approx_order": 0,
@@ -102,13 +102,10 @@ class EnvConfig:
 
 
 class MLPConfig:
-    # Use naive implementation of MLP using torch
-    # model_name = "naive_residual_temporal_mlp"
-    model_name = "naive_residual_mlp"
-    # model_name = "naive_e2e_mlp"
-
-    # Use propietary RTNMPC library for approximated MLP
-    # model_name = "approximated_mlp"
+    # Define characteristics of the MLP model with its name
+    # model_name = "residual_temporal_mlp"
+    model_name = "residual_mlp"
+    # model_name = "e2e_mlp"
 
     # Delay horizon for temporal networks
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
@@ -120,7 +117,7 @@ class MLPConfig:
     activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
-    use_batch_norm = True
+    use_batch_norm = False
 
     # Use dropout after each layer
     dropout_p = 0.0  # To disable dropout, set to 0.0
