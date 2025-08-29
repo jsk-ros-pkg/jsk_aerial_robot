@@ -409,8 +409,11 @@ void ServoBridge::uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg)
       else if(servo_group.first == "gimbals"){
         joint_profile.type = spinal::JointProfile::GIMBAL;
       }
+      else if(servo_group.first == "extendable_joints"){
+        joint_profile.type = spinal::JointProfile::JOINT;  // Treat extendable joints as regular joints
+      }
       else{
-        ROS_ERROR("Invalid servo type. Please define 'joints' or 'gimbals'.");
+        ROS_ERROR("Invalid servo type. Please define 'joints', 'gimbals', or 'extendable_joints'.");
         continue;
       }
       joint_profile.servo_id = servo->getId();
