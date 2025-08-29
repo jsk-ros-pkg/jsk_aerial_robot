@@ -314,7 +314,7 @@ int main(void)
   /* start timers, add new ones, ... */
   osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
 
-#ifdef SERVO_FLAG    // possibily interfere with the DShot signal generation by TIM1
+#ifdef SERVO_FLAG
   osTimerStart(ServoTimerHandle, 5); // ms  Should be quicker than the minimumal period of the servo in dynamixel_serial.h, i.e.,10ms
 #endif
 
@@ -1298,7 +1298,7 @@ void coreTaskEvokeCb(void const * argument)
 }
 
 /* ServoCallback function */
-void ServoCallback(void const * argument) // use semaphore to avoid conflict with coreTask
+void ServoCallback(void const * argument)
 {
   /* USER CODE BEGIN ServoCallback */
   servo_.update();
