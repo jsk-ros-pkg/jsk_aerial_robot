@@ -9,9 +9,16 @@ from sim_environment.forward_prop import init_forward_prop
 from utils.model_utils import load_model
 
 
+class struct(object):
+    pass
+
+
 def main():
     RTNMPC = False
     OWN = True
+
+    if RTNMPC and OWN:
+        raise ValueError("Choose only one method to visualize.")
     if RTNMPC:
         df = pd.read_csv("/home/johannes/ros/neural-mpc/ros_dd_mpc/data/simplified_sim_dataset/train/dataset_001.csv")
         vz_idx = 9
@@ -27,6 +34,7 @@ def main():
         u_feats = np.array(range(8))
         y_reg_dims = np.array([3, 4, 5])
 
+    # Call data
     state_in = undo_jsonify(df["state_in"].to_numpy())
     state_out = undo_jsonify(df["state_out"].to_numpy())
     if RTNMPC:
@@ -38,12 +46,10 @@ def main():
     dt = df["dt"].to_numpy()[:, np.newaxis]
 
     diff = (state_out - state_prop) / dt
-    print(dt)
-    print(f"mean : {np.mean(dt)}")
 
     ##################################################################
+    # PRUNE
     if RTNMPC:
-        # PRUNE
         histogram_bins = 40  # Cluster data using histogram binning
         histogram_threshold = 0.001  # Remove bins where the total ratio of data is lower than this threshold
         velocity_cap = 16  # Also remove datasets point if abs(velocity) > x_cap
@@ -84,6 +90,14 @@ def main():
     state_prop_mlp_in = velocity_mapping(state_prop)
     diff_mlp_in = (state_out_mlp_in - state_prop_mlp_in) / dt
 
+    if RTNMPC:
+        device = "cpu"
+    elif OWN:
+        device = "cuda"
+    state_in_mlp_in_tensor = torch.from_numpy(state_in_mlp_in).type(torch.float32).to(torch.device(device))
+    control_tensor = torch.from_numpy(control).type(torch.float32).to(torch.device(device))
+    mlp_in = torch.cat((state_in_mlp_in_tensor[:, state_feats], control_tensor[:, u_feats]), axis=1)
+
     plt.figure(figsize=(20, 5))
     plt.title("State Out MLP In - State Pred MLP In")
     plt.subplot(2, 1, 1)
@@ -91,12 +105,12 @@ def main():
     plt.plot(state_prop_mlp_in[:, vz_idx], label="state_prop_mlp_in")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
     plt.subplot(2, 1, 2)
     plt.plot(diff_mlp_in[:, vz_idx], label="(state_out_mlp_in - state_pred_mlp_in) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
 
     plt.figure(figsize=(20, 5))
     plt.title("State Out MLP In - State Pred MLP In")
@@ -104,17 +118,18 @@ def main():
     plt.plot(state_in_mlp_in[:, 2], label="state_in_mlp_in")
     plt.ylabel("z")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
     plt.subplot(2, 1, 2)
     plt.plot(diff_mlp_in[:, vz_idx], label="(state_out_mlp_in - state_pred_mlp_in) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
     ##################################################################
 
     ##################################################################
     # MLP output
     if RTNMPC:
+        # Define model
         from ml_casadi.torch.modules.nn import MultiLayerPerceptron
         from ml_casadi.torch.modules.module import TorchMLCasadiModule
 
@@ -132,11 +147,6 @@ def main():
             def forward(self, x):
                 return (self.model((x - self.x_mean) / self.x_std) * self.y_std) + self.y_mean
 
-            def cs_forward(self, x):
-                return (
-                    self.model((x - self.x_mean.cpu().numpy()) / self.x_std.cpu().numpy()) * self.y_std.cpu().numpy()
-                ) + self.y_mean.cpu().numpy()
-
         directory, file_name = (
             "/home/johannes/ros/neural-mpc/ros_dd_mpc/results/model_fitting/5f15661/simple_sim_mlp",
             "drag__motor_noise__noisy__no_payload.pt",
@@ -149,33 +159,27 @@ def main():
             saved_dict["hidden_layers"],
             "Tanh",
         )
-        model = NormalizedMLP(
+        neural_model = NormalizedMLP(
             mlp_model,
             torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
             torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
             torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
             torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
         )
-        model.load_state_dict(saved_dict["state_dict"])
-        model.eval()
 
-        state_in_mlp_in_tensor = torch.from_numpy(state_in_mlp_in).type(torch.float32).to(torch.device("cpu"))
-        control_tensor = torch.from_numpy(control).type(torch.float32).to(torch.device("cpu"))
-        mlp_out = model(torch.cat((state_in_mlp_in_tensor, control_tensor), axis=1))
-        mlp_out = mlp_out.detach().cpu().numpy()[:, y_reg_dims]
-        # Unpack prediction outputs. Transform back to world reference frame
-        for t in range(state_in_mlp_in.shape[0]):
-            mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, 3:7])
-        y = mlp_out
-    elif OWN:
         # Load model
+        neural_model.load_state_dict(saved_dict["state_dict"])
+        neural_model.eval()
+
+    elif OWN:
+        # Define and load model
         model_options = EnvConfig.model_options
         sim_options = EnvConfig.sim_options
         run_options = EnvConfig.run_options
         neural_model, mlp_metadata = load_model(model_options, sim_options, run_options)
         neural_model.eval()
 
-        plt.subplots(figsize=(10, 5))
+        # ==============>
         # Transform velocity of state to Body frame
         state_b = np.zeros(state_in.shape)
         for t in range(state_in.shape[0]):
@@ -210,19 +214,42 @@ def main():
                 v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
                 mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
             y[t, :] = np.squeeze(mlp_out)
+    # ==============<
+
+    # Forward call
+    mlp_out = neural_model(mlp_in)
+    mlp_out = mlp_out.detach().cpu().numpy()
+    if RTNMPC:
+        mlp_out = mlp_out[:, y_reg_dims]
+    elif OWN:
+        # ==============>
+        pass
+        # mlp_out = mlp_out / dt
+    # ==============<
+
+    # Unpack prediction outputs. Transform back to world reference frame
+    if RTNMPC and (y_reg_dims != np.array([7, 8, 9])).all() or OWN and (y_reg_dims != np.array([3, 4, 5])).all():
+        raise NotImplementedError("Only implemented for vx, vy, vz output.")
+
+    # ==============>
+    # for t in range(state_in_mlp_in.shape[0]):
+    #     mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, 3:7])
+    # ==============<
 
     # Plot true labels vs. actual regression
+    # ==============>
+    # y = mlp_out
+    # ==============<
     y_true = diff
+    plt.subplots(figsize=(10, 5))
+    plt.title("Model output vs. label")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(y.shape[1], 1, i + 1)
         plt.plot(y[:, i], label="y_regressed")
         plt.plot(y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
         plt.plot(y_true[:, dim], label="y_true", color="orange")
-        plt.plot
         plt.ylabel(f"D{dim}")
-        if i == 0:
-            plt.title("State Out - State Pred")
-            plt.legend()
+        plt.legend()
         plt.grid("on")
         if i != y.shape[1] - 1:
             ax = plt.gca()
@@ -231,6 +258,7 @@ def main():
     # Plot loss per dimension
     loss = np.square(y_true[:, y_reg_dims] - y)
     plt.subplots(figsize=(10, 5))
+    plt.title("Neural Model Loss per Dimension")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(y.shape[1], 1, i + 1)
         plt.plot(loss[:, i], color="red")
@@ -243,8 +271,6 @@ def main():
         )
         plt.legend()
         plt.ylabel(f"Loss D{dim}")
-        if i == 0:
-            plt.title("Neural Model Loss per Dimension")
         plt.grid("on")
         if i != y.shape[1] - 1:
             ax = plt.gca()
@@ -278,19 +304,19 @@ def main():
     plt.legend()
     plt.grid("on")
 
-    # Simulate intermediate acceleration vector before integration
-    ########## RTNMPC ################
+    ##################################################################
+    # Simulate intermediate acceleration before integration
     if RTNMPC:
         motor_noise = True
         noisy = True
         drag = True
-        max_input_value = 1  # Motors at full thrust
-        min_input_value = 0  # Motors turned off
+        max_input_value = 1
+        min_input_value = 0
         max_thrust = 20
         mass = 1.0
         rotor_drag_xy = 0.3
         rotor_drag_z = 0.0  # No rotor drag in the z dimension
-        rotor_drag = np.array([rotor_drag_xy, rotor_drag_xy, rotor_drag_z])[:, np.newaxis]
+        rotor_drag = np.array([rotor_drag_xy, rotor_drag_xy, rotor_drag_z])
         aero_drag = 0.08
         g = np.array([0.0, 0.0, 9.81])
 
@@ -307,6 +333,8 @@ def main():
             q = state_in[t, 3:7]
             v_w = state_in[t, 7:10]
             u_raw = control[t, :]
+
+            # Motor noise disturbance (resimulate)
             if motor_noise:
                 u_dist = np.zeros((control.shape[1],))
                 for i, u_i in enumerate(u_raw):
@@ -316,68 +344,53 @@ def main():
             else:
                 u_dist = u_raw
 
-            # Generate disturbance forces / torques
+            # CoG disturbance (resimulate)
             if noisy:
-                f_d = np.random.normal(size=(3,), scale=10 * dt[0])
-                t_d = np.random.normal(size=(3,), scale=10 * dt[0])
+                f_d = np.random.normal(size=(3,), scale=10 * np.mean(dt))
             else:
                 f_d = np.zeros((3,))
-                t_d = np.zeros((3,))
 
+            # Drag disturbance (resimulate)
             if drag:
-                # Transform velocity to body frame
-                v_b = v_dot_q(v_w, quaternion_inverse(q))[:, np.newaxis]
-                # Compute aerodynamic drag acceleration in world frame
+                # Compute aerodynamic drag in body frame
+                v_b = v_dot_q(v_w, quaternion_inverse(q))
                 a_drag = -aero_drag * v_b**2 * np.sign(v_b) / mass
-                # Add rotor drag
                 a_drag -= rotor_drag * v_b / mass
                 # Transform drag acceleration to world frame
-                a_drag = v_dot_q(a_drag, q).squeeze()
+                a_drag = v_dot_q(a_drag, q)
             else:
                 a_drag = np.zeros((3,))
 
+            # Compute linear acceleration with nominal model
             lin_acc[t, :] = v_dynamics(u_raw, q, np.zeros((3,)))
             lin_acc_dist[t, :] = v_dynamics(u_dist, q, f_d) + a_drag
 
-    ########## Own ################
     if OWN:
-
-        class struct(object):
-            pass
-
+        # Replicate important properties for nominal model
         nmpc = struct()
         nmpc.tilt = True
-        nmpc.include_cog_dist_parameter = True
         nmpc.include_servo_model = True
         nmpc.include_thrust_model = False
         nmpc.include_servo_derivative = False
+        nmpc.include_cog_dist_parameter = True
         nmpc.phys = struct()
-        nmpc.phys.mass = 2.773
-        nmpc.phys.Ixx, nmpc.phys.Iyy, nmpc.phys.Izz = [0.04170, 0.03945, 0.07068]
-        nmpc.phys.gravity = 9.798
+        import sys, os
 
-        nmpc.phys.t_rotor = 0.0942
-        nmpc.phys.t_servo = 0.085883
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from nmpc.nmpc_tilt_mt.archive import phys_param_beetle_art as phys_art
 
-        nmpc.phys.p1_b = [0.137712, 0.137882, 0.0297217]
-        nmpc.phys.p2_b = [-0.137745, 0.137882, 0.0297217]
-        nmpc.phys.p3_b = [-0.137745, -0.138284, 0.0297217]
-        nmpc.phys.p4_b = [0.137712, -0.138284, 0.0297217]
+        nmpc.phys = phys_art
 
-        nmpc.phys.dr1 = 1
-        nmpc.phys.dr2 = -1
-        nmpc.phys.dr3 = 1
-        nmpc.phys.dr4 = -1
-
-        nmpc.phys.kq_d_kt = 0.0153
-
+        # Define nominal model
         dynamics, _, _ = init_forward_prop(nmpc)
+
+        # Compute linear acceleration with nominal model
         x_dot = np.empty(state_in.shape)
         for t in range(state_in.shape[0]):
             x_dot[t, :] = np.array(dynamics(x=state_in[t, :], u=control[t, :])["x_dot"]).squeeze()
         lin_acc = x_dot[:, 3:6]
 
-        # CoG disturbance
+        # CoG disturbance (resimulate)
         cog_dist = np.zeros((control.shape[0], 6))
         for t in range(control.shape[0]):
             u_cmd = control[t, :]
@@ -385,39 +398,32 @@ def main():
             # Ground effect increases lift the closer drone is to the ground
             # Force values behave in [-thrust_max, thrust_max]
             z = state_in[t, 2]
-            # force_mu_z = min(1 / (z+1)**2, 1) * 0.3 * max_thrust * 4
             cog_dist_factor = 0.4
             force_mu_z = 1 / (z + 1) ** 2 * cog_dist_factor * max_thrust * 4
-            force_std_z = 0  # 0.01 * max_thrust
 
-            force_mu_x = 0.0
-            force_mu_y = 0.0
-            force_std_x = 0  # 0.05 * max_thrust
-            force_std_y = 0  # 0.05 * max_thrust
-
-            # Torque values behave in [-2, 2], with thrust_max = 30
-            torque_mu = 0  # 0.5
-            torque_std = 0  # 0.05 * 1/15 * max_thrust
+            force_std_z = 0
+            force_mu_x = 0
+            force_mu_y = 0
+            force_std_x = 0
+            force_std_y = 0
+            torque_mu = 0
+            torque_std = 0
 
             mu = np.array([force_mu_x, force_mu_y, force_mu_z, torque_mu, torque_mu, torque_mu])
             std = np.array([force_std_x, force_std_y, force_std_z, torque_std, torque_std, torque_std])
             cog_dist[t, :] = mu  # np.random.normal(loc=mu, scale=std)
         lin_acc_dist = lin_acc + cog_dist[:, :3] / nmpc.phys.mass
 
-    ##############################
-
+    # Plot simulation results for acceleration and the effect of the neural model
     plt.subplots(figsize=(10, 5))
+    plt.title("Model Output")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(len(y_reg_dims), 1, i + 1)
-        plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="yellow")
-        if RTNMPC:
-            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="red")
-        elif OWN:
-            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="red")
         plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="blue")
+        plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="yellow")
+        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="red")
         plt.ylabel(f"D{dim}")
         if i == 0:
-            plt.title("Model Output")
             plt.legend()
         plt.grid("on")
         if i != y.shape[1] - 1:
@@ -428,6 +434,7 @@ def main():
 
     # Plot input state features
     plt.subplots(figsize=(20, 5))
+    plt.title("State In & State Out")
     for dim in range(state_in.shape[1]):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
         plt.plot(state_in[:, dim], label="state_in")
@@ -435,57 +442,62 @@ def main():
         plt.plot(state_prop[:, dim], label="state_prop")
         plt.ylabel(f"Feature {dim}")
         if dim == 0:
-            plt.title("State In & State Out")
             plt.legend()
         plt.grid("on")
 
+    # Plot residual dynamics
     for dim in range(state_in.shape[1]):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
         plt.plot(diff[:, dim], color="green")
         if dim == 0:
             plt.title("State Out - State Pred")
-        plt.grid()
+        plt.grid("on")
 
+    # Plot absolute velocity and its residual dynamics in z
     plt.figure(figsize=(20, 5))
-    plt.title("State Out - State Pred")
+    plt.title("State Out & State Pred")
     plt.subplot(2, 1, 1)
     plt.plot(state_out[:, vz_idx], label="state_out")
     plt.plot(state_prop[:, vz_idx], label="state_prop")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
     plt.subplot(2, 1, 2)
     plt.plot(diff[:, vz_idx], label="(state_out - state_pred) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
 
     plt.figure(figsize=(20, 5))
-    plt.title("State Out - State Pred")
+    plt.title("State In")
     plt.subplot(2, 1, 1)
     plt.plot(state_in[:, 2], label="state_in")
     plt.ylabel("z")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
     plt.subplot(2, 1, 2)
     plt.plot(diff[:, vz_idx], label="(state_out - state_pred) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
-    plt.grid()
+    plt.grid("on")
 
     # Plot control inputs
-    fig = plt.subplots(figsize=(20, 5))
+    plt.subplots(figsize=(20, 5))
+    plt.title("Control")
     for dim in range(control.shape[1]):
         plt.subplot(control.shape[1], 1, dim + 1)
         plt.plot(control[:, dim], label="control")
         if dim == 0:
-            plt.title("Control")
             plt.legend()
         plt.grid("on")
 
     plt.tight_layout()
     plt.show()
     halt = 1
+
+
+if __name__ == "__main__":
+    main()
 
 
 def prune_dataset(x, y, x_cap, bins, thresh, plot, labels=None):
@@ -565,7 +577,3 @@ def prune_dataset(x, y, x_cap, bins, thresh, plot, labels=None):
 
     kept_idx = np.delete(np.arange(0, original_length), pruned_idx_unique)
     return kept_idx
-
-
-if __name__ == "__main__":
-    main()
