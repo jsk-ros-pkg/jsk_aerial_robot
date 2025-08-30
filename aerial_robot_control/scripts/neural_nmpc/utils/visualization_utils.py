@@ -462,45 +462,42 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
 
     # Plot regression of neural network
     if rtnmpc.use_mlp:
-        plt.subplots(figsize=(10, 5))
         # Transform velocity of state to Body frame
         state_b = np.zeros(state_in.shape)
         for t in range(state_in.shape[0]):
             v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
-            state_b[t] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
-        # Compute forward pass
-        y = np.zeros((state_in.shape[0], 3)).astype(np.float32)
-        for t in range(state_in.shape[0]):
-            # Assemble input
-            s_b = torch.from_numpy(state_b[t, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cuda"))
-            u = torch.from_numpy(control[t, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cuda"))
-            mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
-            # Forward call MLP
-            rtnmpc.neural_model.eval()
-            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
-            if rtnmpc.mlp_metadata["ModelFitConfig"]["label_transform"]:
-                # Transform velocity back to world frame
+            state_b[t, :] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
+        state_b_torch = torch.from_numpy(state_b[:, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cuda"))
+        control_torch = torch.from_numpy(control[:, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cuda"))
+        mlp_in = torch.cat((state_b_torch, control_torch), dim=1)
+        # Forward call MLP
+        rtnmpc.neural_model.eval()
+        mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
+
+        # Transform velocity back to world frame
+        if rtnmpc.mlp_metadata["ModelFitConfig"]["label_transform"]:
+            for t in range(state_in.shape[0]):
                 if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                     v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutive
-                    v_b = mlp_out[v_idx : v_idx + 3]
+                    v_b = mlp_out[t, v_idx : v_idx + 3]
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                    mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 3 :]), axis=1)
                 elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                     v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutive
-                    v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
+                    v_b = np.append(0, mlp_out[t, v_idx : v_idx + 2])
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                    mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 2 :]), axis=1)
                 elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
                     # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
                     # The predicted v_z therefore also has influence on the x and y velocities in World frame
                     # Adjust mapping later on
                     v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
-                    v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
+                    v_b = np.append(np.array([0, 0]), mlp_out[t, v_idx])
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
-                    mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
-            y[t, :] = np.squeeze(mlp_out)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 1 :]), axis=1)
 
         # Plot true labels vs. actual regression
+        y = mlp_out
         plt.subplots(figsize=(10, 5))
         plt.title("Model Output vs. Labels")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
