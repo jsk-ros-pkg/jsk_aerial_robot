@@ -217,7 +217,7 @@ class NeuralNMPC:
                     mlp_in = ca.vertcat(mlp_in, state_prev_i[self.state_feats], controls_prev_i[self.u_feats])
 
             # === MLP forward pass ===
-            mlp_out = self.neural_model(mlp_in)
+            mlp_out = self.neural_model(mlp_in)  # / self.T_samp
 
             if self.mlp_metadata["ModelFitConfig"]["label_transform"]:
                 # Transform velocity back to world frame
@@ -255,7 +255,8 @@ class NeuralNMPC:
                 M = get_output_mapping(self.state.shape[0], self.y_reg_dims, only_vz=only_vz)
 
                 # Combine nominal dynamics with neural dynamics
-                f_total = nominal_dynamics + M @ mlp_out
+                # f_total = nominal_dynamics + M @ mlp_out
+                f_total = nominal_dynamics - M @ mlp_out
 
         # Implicit dynamics
         x_dot = ca.MX.sym("x_dot", self.state.size())
