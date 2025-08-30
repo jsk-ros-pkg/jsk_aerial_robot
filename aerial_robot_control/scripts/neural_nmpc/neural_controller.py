@@ -217,7 +217,18 @@ class NeuralNMPC:
                     mlp_in = ca.vertcat(mlp_in, state_prev_i[self.state_feats], controls_prev_i[self.u_feats])
 
             # === MLP forward pass ===
-            mlp_out = self.neural_model(mlp_in)  # / self.T_samp
+            if self.model_options["approximate_mlp"]:
+                # TODO investigate this function and parallel Flag!
+                # Parallel flag only active for order == 2
+                mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
+                self.approx_start_idx = self.parameters.size()[0]
+                self.parameters = ca.vertcat(
+                    self.parameters,
+                    self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True),
+                )
+                self.approx_end_idx = self.parameters.size()[0]
+            else:
+                mlp_out = self.neural_model(mlp_in)
 
             if self.mlp_metadata["ModelFitConfig"]["label_transform"]:
                 # Transform velocity back to world frame
@@ -323,16 +334,16 @@ class NeuralNMPC:
         u_ref[0:4] = self.nmpc.phys.mass * self.nmpc.phys.gravity / 4  # ft1c, ft2c, ft3c, ft4c
 
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
-        self.acados_parameters = np.zeros(_ocp.dims.np)
-        self.acados_parameters[0] = x_ref[6]  # qw
+        self.acados_parameters = np.zeros((_ocp.dims.N + 1, _ocp.dims.np))
+        self.acados_parameters[:, 0] = x_ref[6]  # qw
         if len(self.nmpc.phys.physical_param_list) != 24:
-            raise ValueError("Physical parameters are not in the correct order. Please check the physical model.")
-        self.acados_parameters[4:28] = np.array(self.nmpc.phys.physical_param_list)
+            raise ValueError("Physical parameters are not correct. Please check the physical model.")
+        self.acados_parameters[:, 4:28] = np.array(self.nmpc.phys.physical_param_list)
 
         _ocp.constraints.x0 = x_ref
         _ocp.cost.yref = np.concatenate((x_ref, u_ref))
         _ocp.cost.yref_e = x_ref
-        _ocp.parameter_values = self.acados_parameters
+        _ocp.parameter_values = self.acados_parameters[0, :]
         # =====================================================================
 
         # Build acados ocp into current working directory (which was created in super class)
@@ -360,11 +371,10 @@ class NeuralNMPC:
         n_param = self.acados_model.p.size()[0]
         # same order: phy_params = ca.vertcat(mass, gravity, inertia, kq_d_kt, dr, p1_b, p2_b, p3_b, p4_b, t_rotor, t_servo)
         # TODO set this elsewhere since its confusing where this gets modified/accessed
-        self.acados_parameters = np.zeros(n_param)
-        self.acados_parameters[0] = 1.0  # qw
-        self.acados_parameters[4:28] = np.array(self.nmpc.phys.physical_param_list)
-        acados_sim.parameter_values = self.acados_parameters
-        self.sim_acados_parameters = self.acados_parameters.copy()
+        self.sim_acados_parameters = np.zeros(n_param)
+        self.sim_acados_parameters[0] = 1.0  # qw
+        self.sim_acados_parameters[4:28] = np.array(self.nmpc.phys.physical_param_list)
+        acados_sim.parameter_values = self.sim_acados_parameters
         # =====================================================================
 
         # Set the horizon for the simulation
@@ -388,15 +398,13 @@ class NeuralNMPC:
             yr = np.concatenate((xr[j, :], ur[j, :]))
             self.ocp_solver.set(j, "yref", yr)
             quaternion_ref = xr[j, 6:10]
-            self.acados_parameters[0:4] = quaternion_ref
-            self.ocp_solver.set(j, "p", self.acados_parameters)  # For nonlinear quaternion error
+            self.acados_parameters[j, 0:4] = quaternion_ref  # For nonlinear quaternion error
 
         # N
         yr = xr[self.ocp_solver.N, :]
         self.ocp_solver.set(self.ocp_solver.N, "yref", yr)
         quaternion_ref = xr[self.ocp_solver.N, 6:10]
-        self.acados_parameters[0:4] = quaternion_ref
-        self.ocp_solver.set(self.ocp_solver.N, "p", self.acados_parameters)  # For nonlinear quaternion error
+        self.acados_parameters[self.ocp_solver.N, 0:4] = quaternion_ref  # For nonlinear quaternion error
 
     def append_delay(self, delay: int = 0):
         """
@@ -421,61 +429,6 @@ class NeuralNMPC:
             controls_prev = ca.horzcat(controls_prev, controls_prev_i)
         self.delay_end_idx = self.parameters.size()[0]
         return state_prev, controls_prev
-
-    # def set_optimization_parameters(self, initial_state=None, use_model=0, return_x=False):
-    #  ========= SET PARAMETERS FOR NOMINAL =========
-    # .....
-    # .....
-    #  ========= SET PARAMETERS FOR NETWORK =========
-    #     if self.with_mlp:
-    #         if self.x_opt_acados is None:
-    #             self.x_opt_acados = np.hstack(self.target)
-    #         if self.w_opt_acados is None:
-    #              self.w_opt_acados = self.u_target
-
-    #         if not self.mlp_conf['approximated']:
-    #             self.acados_ocp_solver[use_model].set(0, 'p', np.hstack([np.array(gp_state + [1])]))
-    #             for j in range(1, self.N):
-    #                 self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1))]))
-    #         else:
-    #             state = np.vstack([np.array([initial_state]), self.x_opt_acados[1:]])
-    #             a_list = []
-    #             for i in range(state.shape[0]):
-    #                 a_list.append(v_dot_q(np.array(state[i, 7:10]), quaternion_inverse(np.array(state[i, 3:7]))))
-    #             a = np.array(a_list)[:self.N]
-
-    #             if self.mlp_conf['torque_output']:
-    #                 a = np.concatenate([a, state[:self.N, 10:]], axis=-1)
-
-    #             if self.mlp_conf['u_inp']:
-    #                 a = np.concatenate([a, self.w_opt_acados], axis=-1)
-
-    #             if self.mlp_conf['ground_map_input']:
-    #                 ground_maps = []
-    #                 for i in range(state.shape[0]):
-    #                     pos = state[i][:3]
-    #                     x_idxs = np.floor((pos[0] - self._org_to_map_org[0]) / self._map_res).astype(int) - 1
-    #                     y_idxs = np.floor((pos[1] - self._org_to_map_org[1]) / self._map_res).astype(int) - 1
-    #                     ground_patch = self._static_ground_map[x_idxs:x_idxs + 3, y_idxs:y_idxs + 3]
-
-    #                     relative_ground_patch = 4 * (np.clip(pos[2] - ground_patch, 0, 0.5) - 0.25)
-
-    #                     flatten_relative_ground_patch = relative_ground_patch.flatten(order='F')
-
-    #                     ground_effect_in = np.hstack([flatten_relative_ground_patch,
-    #                                                   flatten_relative_ground_patch[..., :4] * 0])
-
-    #                     ground_maps.append(ground_effect_in)
-
-    #                 a = np.concatenate([a, np.array(ground_maps)[:self.N]], axis=-1)
-
-    #             mlp_params = self.mlp_regressor.approx_params(a, order=self.mlp_conf['approx_order'], flat=True)
-    #             mlp_params = np.vstack([mlp_params, mlp_params[[-1]]])
-    #             self.acados_ocp_solver[use_model].set(0, 'p',
-    #                                                   np.hstack([np.array(gp_state + [1]), mlp_params[0]]))
-    #             for j in range(1, self.N):
-    #                 self.acados_ocp_solver[use_model].set(j, 'p', np.hstack([np.array([0.0] * (len(gp_state) + 1)),
-    #                                                                          mlp_params[j]]))
 
     def simulate_trajectory(self, sim_solver, state_curr):
         """

@@ -13,16 +13,13 @@ from ml_casadi import torch as mc
 from network_architecture.mlp import MLP
 
 
-def set_temporal_states(rtnmpc, ocp_solver, history_y, u_cmd):
+def set_temporal_states_as_params(rtnmpc, ocp_solver, history_y, u_cmd):
     # Set previous state and control as parameters
     if u_cmd is None:
         # Take init values for all nodes at t=0
-        for j in range(ocp_solver.N):
-            rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = history_y.copy().flatten()
-            ocp_solver.set(j, "p", rtnmpc.acados_parameters)
-        ocp_solver.set(ocp_solver.N, "p", rtnmpc.acados_parameters)
+        rtnmpc.acados_parameters[:, rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = history_y.copy().flatten()
     else:
-        for j in range(ocp_solver.N):
+        for j in range(ocp_solver.N + 1):
             if j == 0:
                 # Use all available history steps from current node with size of the delay horizon
                 # Take all available history steps in order of actuality
@@ -36,20 +33,15 @@ def set_temporal_states(rtnmpc, ocp_solver, history_y, u_cmd):
                 # Note, this is an approximation since we are using the state prediction from the previous optimization scheme and
                 # not the best possible estimate for the previous states
                 predicted_x = ocp_solver.get(j, "x")
-                predicted_u = ocp_solver.get(j, "u")
+                if j < ocp_solver.N - 1:
+                    predicted_u = ocp_solver.get(j, "u")
+                else:
+                    # Terminal node
+                    predicted_u = [None] * rtnmpc.nu
                 running_y = np.append(np.append(predicted_x, predicted_u)[np.newaxis, :], running_y, axis=0)
 
             # Set acados parameters in OCP solver
-            rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
-            ocp_solver.set(j, "p", rtnmpc.acados_parameters)
-
-        # Add terminal node
-        running_y = running_y[:-1, :]
-        predicted_x = ocp_solver.get(ocp_solver.N, "x")
-        predicted_u = [None] * rtnmpc.nu
-        running_y = np.append(np.append(predicted_x, predicted_u)[np.newaxis, :], running_y, axis=0)
-        rtnmpc.acados_parameters[rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
-        ocp_solver.set(ocp_solver.N, "p", rtnmpc.acados_parameters)
+            rtnmpc.acados_parameters[j, rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
 
 
 def get_output_mapping(state_dim, y_reg_dims, only_vz=False):

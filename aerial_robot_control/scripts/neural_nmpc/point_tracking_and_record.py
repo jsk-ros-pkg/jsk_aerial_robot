@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sim_environment.forward_prop import init_forward_prop, forward_prop
 from sim_environment.disturbances import apply_cog_disturbance, apply_motor_noise
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, write_recording_data
-from utils.model_utils import set_temporal_states
+from utils.model_utils import set_temporal_states_as_params
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import unit_quaternion, euclidean_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory, plot_disturbances
@@ -186,7 +186,11 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
             # --- Prepare temporal neural network input ---
             if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
-                set_temporal_states(rtnmpc, ocp_solver, history, u_cmd)
+                set_temporal_states_as_params(rtnmpc, ocp_solver, history, u_cmd)
+
+            # --- Set parameters in OCP solver ---
+            for j in range(ocp_solver.N + 1):
+                ocp_solver.set(j, "p", rtnmpc.acados_parameters[j, :])
 
             ############################################################################################
             # --- Optimize control input ---
