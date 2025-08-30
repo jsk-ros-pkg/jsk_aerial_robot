@@ -58,6 +58,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         state_feats,
         u_feats,
         y_reg_dims,
+        ModelFitConfig.label_transform,
         histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
         histogram_pruning_thresh=MLPConfig.histogram_thresh,
         vel_cap=MLPConfig.vel_cap,
@@ -104,6 +105,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Loss function ===
     loss_fn = loss_function
+    weight = torch.tensor(MLPConfig.loss_weight).to(device)
 
     # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
@@ -146,11 +148,11 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
 
         # === Training ===
-        train_losses = train(train_dataloader, model, loss_fn, optimizer, device, table)
+        train_losses = train(train_dataloader, model, loss_fn, weight, optimizer, device, table)
         total_losses["train"].append(train_losses)
 
         # === Validation ===
-        val_losses, inference_time = inference(val_dataloader, model, loss_fn, device, table=table)
+        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, device, table=table)
         total_losses["val"].append(val_losses)
         inference_times.append(inference_time)
 
@@ -181,7 +183,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Testing ===
     if test:
-        test_losses, _ = inference(test_dataloader, model, loss_fn, device, validation=False)
+        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, device, validation=False)
         total_losses["test"] = test_losses
 
     # === Store metrics ===
@@ -202,9 +204,8 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def loss_function(y, y_pred):
+def loss_function(y, y_pred, weight):
     # Weight each dimension differently
-    weight = torch.tensor([1.0, 1.0, 1000.0]).to(y.device)
     return (torch.square(y - y_pred) * weight).mean()
 
 
@@ -213,7 +214,7 @@ def get_optimizer(model, learning_rate):
     return optimizer_class(model.parameters(), lr=learning_rate)
 
 
-def train(dataloader, model, loss_fn, optimizer, device, table):
+def train(dataloader, model, loss_fn, weight, optimizer, device, table):
     size = len(dataloader.dataset)
     model.train()
     loss_avg = 0.0
@@ -226,7 +227,7 @@ def train(dataloader, model, loss_fn, optimizer, device, table):
         y_pred = model(x)
 
         # === Loss ===
-        loss = loss_fn(y, y_pred)
+        loss = loss_fn(y, y_pred, weight)
 
         # === Backpropagation ===
         loss.backward()
@@ -243,7 +244,7 @@ def train(dataloader, model, loss_fn, optimizer, device, table):
     return loss_avg
 
 
-def inference(dataloader, model, loss_fn, device, table=None, validation=True):
+def inference(dataloader, model, loss_fn, weight, device, table=None, validation=True):
     model.eval()
     loss_avg = 0.0
     mov_size = 0
@@ -258,7 +259,7 @@ def inference(dataloader, model, loss_fn, device, table=None, validation=True):
             inference_times.append(time.time() - timer)
 
             # === Loss ===
-            loss = loss_fn(y, y_pred).cpu().numpy()
+            loss = loss_fn(y, y_pred, weight).cpu().numpy()
 
             # === Logging ===
             # Weighted moving average
@@ -278,4 +279,4 @@ def inference(dataloader, model, loss_fn, device, table=None, validation=True):
 
 
 if __name__ == "__main__":
-    main(test=True, plot=True, save=True)
+    main(test=False, plot=True, save=True)

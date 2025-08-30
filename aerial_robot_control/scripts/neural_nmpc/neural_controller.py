@@ -184,8 +184,13 @@ class NeuralNMPC:
             f_total = nominal_dynamics
         else:
             # === MLP input ===
-            self.state_feats = eval(self.mlp_metadata["state_feats"])
-            self.u_feats = eval(self.mlp_metadata["u_feats"])
+            self.state_feats = eval(self.mlp_metadata["ModelFitConfig"]["state_feats"])
+            self.u_feats = eval(self.mlp_metadata["ModelFitConfig"]["u_feats"])
+            self.y_reg_dims = np.array(eval(self.mlp_metadata["ModelFitConfig"]["y_reg_dims"]))
+            if np.array_equal(self.y_reg_dims, np.array([5])):
+                only_vz = True
+            else:
+                only_vz = False
 
             # MLP is trained to receive and predict the velocity in the body frame
             # Transform input velocity to body frame
@@ -214,29 +219,27 @@ class NeuralNMPC:
             # === MLP forward pass ===
             mlp_out = self.neural_model(mlp_in)
 
-            # Transform velocity back to world frame
-            self.y_reg_dims = np.array(eval(self.mlp_metadata["y_reg_dims"]))
-            only_vz = False
-            if set([3, 4, 5]).issubset(set(self.y_reg_dims)):
-                v_idx = np.where(self.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
-                v_b = mlp_out[v_idx : v_idx + 3]
-                v_w = v_dot_q(v_b, self.state[6:10])
-                mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 3 :, :])
-            elif set([4, 5]).issubset(set(self.y_reg_dims)):
-                raise NotImplementedError("Adjust mapping through M like for only vz")
-                v_idx = np.where(self.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
-                v_b = ca.vertcat(0, mlp_out[v_idx : v_idx + 2])
-                v_w = v_dot_q(v_b, self.state[6:10])
-                mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 2 :, :])
-            elif set([5]).issubset(set(self.y_reg_dims)):
-                # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
-                # The predicted v_z therefore also has influence on the x and y velocities in World frame
-                # Adjust mapping later on
-                v_idx = np.where(self.y_reg_dims == 5)[0][0]
-                v_b = ca.vertcat(0, 0, mlp_out[v_idx])
-                v_w = v_dot_q(v_b, self.state[6:10])
-                mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 1 :, :])
-                only_vz = True
+            if self.mlp_metadata["ModelFitConfig"]["label_transform"]:
+                # Transform velocity back to world frame
+                if set([3, 4, 5]).issubset(set(self.y_reg_dims)):
+                    v_idx = np.where(self.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutive
+                    v_b = mlp_out[v_idx : v_idx + 3]
+                    v_w = v_dot_q(v_b, self.state[6:10])
+                    mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 3 :, :])
+                elif set([4, 5]).issubset(set(self.y_reg_dims)):
+                    raise NotImplementedError("Adjust mapping through M like for only vz")
+                    v_idx = np.where(self.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutive
+                    v_b = ca.vertcat(0, mlp_out[v_idx : v_idx + 2])
+                    v_w = v_dot_q(v_b, self.state[6:10])
+                    mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 2 :, :])
+                elif set([5]).issubset(set(self.y_reg_dims)):
+                    # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
+                    # The predicted v_z therefore also has influence on the x and y velocities in World frame
+                    # Adjust mapping later on
+                    v_idx = np.where(self.y_reg_dims == 5)[0][0]
+                    v_b = ca.vertcat(0, 0, mlp_out[v_idx])
+                    v_w = v_dot_q(v_b, self.state[6:10])
+                    mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 1 :, :])
 
             # === Fuse dynamics ===
             if self.model_options["end_to_end_mlp"]:

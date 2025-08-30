@@ -26,6 +26,7 @@ class TrajectoryDataset(Dataset):
         state_feats,
         u_feats,
         y_reg_dims,
+        label_transform,
         histogram_pruning_n_bins=None,
         histogram_pruning_thresh=None,
         vel_cap=None,
@@ -35,7 +36,7 @@ class TrajectoryDataset(Dataset):
     ):
         self.df = dataframe
         self.mode = mode
-        self.prepare_data(state_feats, u_feats, y_reg_dims)
+        self.prepare_data(state_feats, u_feats, y_reg_dims, label_transform)
         if False and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
@@ -51,7 +52,7 @@ class TrajectoryDataset(Dataset):
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
-    def prepare_data(self, state_feats=None, u_feats=None, y_reg_dims=None):
+    def prepare_data(self, state_feats, u_feats, y_reg_dims, label_transform):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
         state_prop = undo_jsonify(self.df["state_prop"].to_numpy())
@@ -87,18 +88,20 @@ class TrajectoryDataset(Dataset):
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
 
         state_in = velocity_mapping(state_in)
-        state_prop = velocity_mapping(state_prop)
-        state_out = velocity_mapping(state_out)
+        if label_transform:
+            state_prop = velocity_mapping(state_prop)
+            state_out = velocity_mapping(state_out)
+        else:
+            # Don't transform labels but let network predict in world frame directly
+            pass
 
         # =============================================================
-        # fmt: off
         # Compute residual of predicted and disturbed state
         if self.mode == "residual":
             # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-            y_diff = (state_out - state_prop) / np.expand_dims(dt, 1)
+            y = (state_out - state_prop) / np.expand_dims(dt, 1)
         elif self.mode == "e2e":
-            y_diff = (state_out - state_in) / np.expand_dims(dt, 1)
-        # fmt: on
+            y = (state_out - state_in) / np.expand_dims(dt, 1)
         # =============================================================
 
         # Store features
@@ -106,11 +109,12 @@ class TrajectoryDataset(Dataset):
         self.state_out = state_out
         self.state_prop = state_prop
         self.control = control
-        self.y = y_diff.astype(np.float32)[:, y_reg_dims]
         self.dt = dt
 
         # Store network input
         self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
+        # Store labels
+        self.y = y.astype(np.float32)[:, y_reg_dims]
 
     def prune(self, state_feats, y_reg_dims, histogram_n_bins, histogram_thresh, vel_cap=None, plot=False):
         """

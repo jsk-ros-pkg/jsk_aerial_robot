@@ -165,7 +165,7 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
     return dataset_dir, ds_instance_name + ".csv"
 
 
-def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feats, y_reg_dims):
+def get_model_dir_and_file(ds_name, ds_instance, model_name):
     """
     Reads the metadata for datasets and appends the model information to it.
     Creates/appends the current model configuration to the model's metadata file.
@@ -213,19 +213,19 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name, state_feats, u_feat
             metadata_dataset[ds_name][ds_instance]["trained_models"].append(model_instance)
         json.dump(metadata_dataset, json_file, indent=4)
 
+    # fmt: off
     # Store new model configuration in metadata
     metadata[model_name][model_instance] = {
-        "ds_name": ds_name,
-        "ds_instance": ds_instance,
+        "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")
+                                                                                    and not key == "label_transform"},
         "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
         "ds_nmpc_type": metadata_dataset[ds_name]["nmpc_type"],
         "ds_nmpc_params": metadata_dataset[ds_name]["nmpc_params"],
         "ds_disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
-        "state_feats": str(state_feats),
-        "u_feats": str(u_feats),
-        "y_reg_dims": str(y_reg_dims),
         "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
     }
+    metadata[model_name][model_instance]["ModelFitConfig"].update({"label_transform": ModelFitConfig.label_transform})
+    # fmt: on
 
     # Write updated metadata to file
     with open(json_file_name, "w") as json_file:

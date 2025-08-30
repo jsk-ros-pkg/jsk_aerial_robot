@@ -227,14 +227,15 @@ def main():
     if RTNMPC:
         mlp_out = mlp_out[:, y_reg_dims]
     elif OWN:
-        mlp_out = mlp_out / dt
+        mlp_out = mlp_out  # / dt
 
     # Unpack prediction outputs. Transform back to world reference frame
     if RTNMPC and (y_reg_dims != np.array([7, 8, 9])).all() or OWN and (y_reg_dims != np.array([3, 4, 5])).all():
         raise NotImplementedError("Only implemented for vx, vy, vz output.")
 
-    for t in range(state_in_mlp_in.shape[0]):
-        mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, q_idx : q_idx + 4])
+    if RTNMPC or (OWN and mlp_metadata["ModelFitConfig"]["label_transform"]):
+        for t in range(state_in_mlp_in.shape[0]):
+            mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, q_idx : q_idx + 4])
 
     # Plot true labels vs. actual regression
     y = mlp_out
@@ -420,7 +421,8 @@ def main():
         plt.subplot(len(y_reg_dims), 1, i + 1)
         plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
         plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
-        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="tab:orange")
+        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
+        plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
         plt.ylabel(f"D{dim}")
         if i == 0:
             plt.legend()

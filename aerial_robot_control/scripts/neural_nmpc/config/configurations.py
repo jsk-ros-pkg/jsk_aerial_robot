@@ -39,10 +39,11 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": True,
+            "only_use_nominal": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp" or "approximated_mlp"
-            "neural_model_instance": "neuralmodel_032",  # 29, 31
+            "neural_model_instance": "neuralmodel_033",  # 29, 31
+            # 32: label transform, no output denormalization, no dt normalization
             "approximated_mlp": False,
             "approx_order": 0,
         }
@@ -65,7 +66,7 @@ class EnvConfig:
         "disturbances": {
             "cog_dist": True,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.2,
+            "cog_dist_factor": 0.4,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
@@ -130,6 +131,8 @@ class MLPConfig:
     # Batch size
     batch_size = 64
 
+    # Loss weighting of different predicted dimensions (default ones-vector)
+    loss_weight = [1.0, 1.0, 1000.0]  # weigh vz higher
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
@@ -151,6 +154,9 @@ class MLPConfig:
 
 
 class ModelFitConfig:
+    # ------- Coordinate Transform -------
+    label_transform = False
+
     # ------- Dataset loading -------
     ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_03"
     #    NMPCFixQdAngvelOut
@@ -213,23 +219,23 @@ class ModelFitConfig:
 
     # ## Visualization ## #
     # Training mode
-    visualize_training_result = True
-    visualize_data = False
+    # visualize_training_result = True
+    # visualize_data = False
 
-    # Visualization mode
-    grid_sampling_viz = True
-    x_viz = [7, 8, 9]
-    u_viz = []
-    y_viz = [7, 8, 9]
+    # # Visualization mode
+    # grid_sampling_viz = True
+    # x_viz = [7, 8, 9]
+    # u_viz = []
+    # y_viz = [7, 8, 9]
 
-    # ############# Experimental ############# #
+    # # ############# Experimental ############# #
 
-    # ## Use fit model to generate synthetic data ## #
-    use_dense_model = False
-    dense_model_version = ""
-    dense_model_name = ""
-    dense_training_points = 200
+    # # ## Use fit model to generate synthetic data ## #
+    # use_dense_model = False
+    # dense_model_version = ""
+    # dense_model_name = ""
+    # dense_training_points = 200
 
-    # ## Clustering for multidimensional models ## #
-    clusters = 1
-    load_clusters = False
+    # # ## Clustering for multidimensional models ## #
+    # clusters = 1
+    # load_clusters = False
