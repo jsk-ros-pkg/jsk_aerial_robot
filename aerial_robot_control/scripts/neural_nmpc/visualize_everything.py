@@ -22,16 +22,18 @@ def main():
     if RTNMPC:
         df = pd.read_csv("/home/johannes/ros/neural-mpc/ros_dd_mpc/data/simplified_sim_dataset/train/dataset_001.csv")
         vz_idx = 9
-        state_feats = np.array(np.arange(13))
-        u_feats = np.arange(4)
+        q_idx = 3
+        state_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        u_feats = np.array([0, 1, 2, 3])
         y_reg_dims = np.array([7, 8, 9])
     elif OWN:
         df = pd.read_csv(
             "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_residual_dataset_03/dataset_002.csv"
         )
-        vz_idx = 2
+        vz_idx = 5
+        q_idx = 6
         state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        u_feats = np.array(range(8))
+        u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
         y_reg_dims = np.array([3, 4, 5])
 
     # Call data
@@ -70,19 +72,22 @@ def main():
             p_traj = state_sequence[:, :3]
             v_w_traj = state_sequence[:, 7:10]
             q_traj = state_sequence[:, 3:7]
-            other_traj = state_sequence[:, 10:]  # w, a_s, f_s, etc.
+            other_traj = state_sequence[:, 10:]  # w
+
+            v_b_traj = np.empty_like(v_w_traj)
+            for t in range(len(v_w_traj)):
+                v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
+            return np.concatenate((p_traj, q_traj, v_b_traj, other_traj), axis=1)
+
         elif OWN:
             p_traj = state_sequence[:, :3]
             v_w_traj = state_sequence[:, 3:6]
             q_traj = state_sequence[:, 6:10]
             other_traj = state_sequence[:, 10:]  # w, a_s, f_s, etc.
 
-        v_b_traj = np.empty_like(v_w_traj)
-        for t in range(len(v_w_traj)):
-            v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
-        if RTNMPC:
-            return np.concatenate((p_traj, q_traj, v_b_traj, other_traj), axis=1)
-        elif OWN:
+            v_b_traj = np.empty_like(v_w_traj)
+            for t in range(len(v_w_traj)):
+                v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
 
     state_in_mlp_in = velocity_mapping(state_in)
@@ -180,40 +185,40 @@ def main():
         neural_model.eval()
 
         # ==============>
-        # Transform velocity of state to Body frame
-        state_b = np.zeros(state_in.shape)
-        for t in range(state_in.shape[0]):
-            v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
-            state_b[t] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
-        # Compute forward pass
-        y = np.zeros((state_in.shape[0], 3)).astype(np.float32)
-        for t in range(state_in.shape[0]):
-            # Assemble input
-            s_b = torch.from_numpy(state_b[t, state_feats]).type(torch.float32).to(torch.device("cuda"))
-            u = torch.from_numpy(control[t, u_feats]).type(torch.float32).to(torch.device("cuda"))
-            mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
-            # Forward call MLP
-            mlp_out = neural_model(mlp_in).cpu().detach().numpy() / dt[t]
-            # Transform velocity back to world frame
-            if set([3, 4, 5]).issubset(set(y_reg_dims)):
-                v_idx = np.where(y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
-                v_b = mlp_out[v_idx : v_idx + 3]
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
-            elif set([4, 5]).issubset(set(y_reg_dims)):
-                v_idx = np.where(y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
-                v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
-            elif set([5]).issubset(set(y_reg_dims)):
-                # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
-                # The predicted v_z therefore also has influence on the x and y velocities in World frame
-                # Adjust mapping later on
-                v_idx = np.where(y_reg_dims == 5)[0][0]
-                v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
-                mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
-            y[t, :] = np.squeeze(mlp_out)
+        # # Transform velocity of state to Body frame
+        # state_b = np.zeros(state_in.shape)
+        # for t in range(state_in.shape[0]):
+        #     v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
+        #     state_b[t] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
+        # # Compute forward pass
+        # y = np.zeros((state_in.shape[0], 3)).astype(np.float32)
+        # for t in range(state_in.shape[0]):
+        #     # Assemble input
+        #     s_b = torch.from_numpy(state_b[t, state_feats]).type(torch.float32).to(torch.device("cuda"))
+        #     u = torch.from_numpy(control[t, u_feats]).type(torch.float32).to(torch.device("cuda"))
+        #     mlp_in = torch.cat((s_b, u)).unsqueeze(0)  # Add batch dimension
+        #     # Forward call MLP
+        #     mlp_out = neural_model(mlp_in).cpu().detach().numpy() / dt[t]
+        #     # Transform velocity back to world frame
+        #     if set([3, 4, 5]).issubset(set(y_reg_dims)):
+        #         v_idx = np.where(y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
+        #         v_b = mlp_out[v_idx : v_idx + 3]
+        #         v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+        #         mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
+        #     elif set([4, 5]).issubset(set(y_reg_dims)):
+        #         v_idx = np.where(y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
+        #         v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
+        #         v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+        #         mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
+        #     elif set([5]).issubset(set(y_reg_dims)):
+        #         # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
+        #         # The predicted v_z therefore also has influence on the x and y velocities in World frame
+        #         # Adjust mapping later on
+        #         v_idx = np.where(y_reg_dims == 5)[0][0]
+        #         v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
+        #         v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
+        #         mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
+        #     y[t, :] = np.squeeze(mlp_out)
     # ==============<
 
     # Forward call
@@ -222,24 +227,17 @@ def main():
     if RTNMPC:
         mlp_out = mlp_out[:, y_reg_dims]
     elif OWN:
-        # ==============>
-        pass
-        # mlp_out = mlp_out / dt
-    # ==============<
+        mlp_out = mlp_out / dt
 
     # Unpack prediction outputs. Transform back to world reference frame
     if RTNMPC and (y_reg_dims != np.array([7, 8, 9])).all() or OWN and (y_reg_dims != np.array([3, 4, 5])).all():
         raise NotImplementedError("Only implemented for vx, vy, vz output.")
 
-    # ==============>
-    # for t in range(state_in_mlp_in.shape[0]):
-    #     mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, 3:7])
-    # ==============<
+    for t in range(state_in_mlp_in.shape[0]):
+        mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, q_idx : q_idx + 4])
 
     # Plot true labels vs. actual regression
-    # ==============>
-    # y = mlp_out
-    # ==============<
+    y = mlp_out
     y_true = diff
     plt.subplots(figsize=(10, 5))
     plt.title("Model output vs. label")
@@ -374,6 +372,7 @@ def main():
         nmpc.include_servo_derivative = False
         nmpc.include_cog_dist_parameter = True
         nmpc.phys = struct()
+
         import sys, os
 
         sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -419,9 +418,9 @@ def main():
     plt.title("Model Output")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(len(y_reg_dims), 1, i + 1)
-        plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="blue")
-        plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="yellow")
-        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="red")
+        plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
+        plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
+        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation", color="tab:orange")
         plt.ylabel(f"D{dim}")
         if i == 0:
             plt.legend()
