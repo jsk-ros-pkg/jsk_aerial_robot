@@ -377,6 +377,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     state_prop = rec_dict["state_prop"]
     control = rec_dict["control"]
     timestamp = rec_dict["timestamp"]
+
     # Plot state features
     plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
@@ -396,29 +397,17 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
 
     # Plot control features
     plt.subplots(figsize=(20, 5))
+    plt.title("Control input")
     for dim in range(control.shape[1] - 1, -1, -1):
         plt.subplot(control.shape[1], 1, dim + 1)
-        plt.plot(timestamp, control[:, dim], label="control")
-        if dim == 0:
-            plt.title("Control")
-            plt.legend()
+        plt.plot(timestamp, control[:, dim])
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
         if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
 
-    # Plot in single state feature
-    plt.figure(figsize=(20, 5))
-    plt.plot(timestamp, state_in[:, 0], label="state_in")
-    plt.plot(timestamp, state_out[:, 0], label="state_out")
-    plt.plot(timestamp, state_prop[:, 0], label="state_prop")
-    plt.grid("on")
-    plt.title("Dim 0 zoom in")
-    plt.legend()
-    plt.xlim(timestamp[0], timestamp[-1])
-
-    # Plot in single state feature
+    # Plot in vz feature
     plt.figure(figsize=(20, 5))
     plt.plot(timestamp, state_in[:, 5], label="state_in")
     plt.plot(timestamp, state_out[:, 5], label="state_out")
@@ -434,7 +423,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     plt.plot(
         [0, rec_dict["comp_time"].shape[0]],
         [np.mean(rec_dict["comp_time"]), np.mean(rec_dict["comp_time"])],
-        color="r",
+        color="tab:red",
         label=f"Avg = {np.mean(rec_dict['comp_time']):.4f} ms",
     )
     plt.xlabel("Simulation time [s]")
@@ -443,52 +432,17 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     plt.grid()
     plt.xlim(timestamp[0], timestamp[-1])
 
-    # Plot state differentiation, i.e., derivative
-    dt = np.expand_dims(rec_dict["dt"], 1)
-
-    diff1 = state_out - state_in
-    d1 = diff1 / dt
-    diff2 = state_prop - state_in
-    d2 = diff2 / dt
-
-    plt.subplots(figsize=(20, 5))
-    for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
-        plt.plot(timestamp, d1[:, dim])
-        plt.ylabel(f"D{dim}")
-        if dim == 0:
-            plt.title("(State Out - State In) / dt")
-            plt.legend()
-        plt.grid("on")
-        plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1] - 1:
-            ax = plt.gca()
-            ax.axes.xaxis.set_ticklabels([])
-
-    for dim in range(state_in.shape[1] - 1, -1, -1):
-        plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
-        plt.plot(timestamp, d2[:, dim], color="red")
-        if dim == 0:
-            plt.title("(State Pred - State In) / dt")
-            plt.legend()
-        plt.grid("on")
-        plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1] - 1:
-            ax = plt.gca()
-            ax.axes.xaxis.set_ticklabels([])
-
     # Plot labels for neural network regression
-    diff3 = state_out - state_prop
-    d3 = diff3 / dt
-
+    dt = np.expand_dims(rec_dict["dt"], 1)
+    diff = state_out - state_prop
+    y_true = diff / dt
     plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
-        plt.plot(timestamp, diff3[:, dim])
+        plt.plot(timestamp, diff[:, dim])
         plt.ylabel(f"D{dim}")
         if dim == 0:
             plt.title("State Out - State Pred")
-            plt.legend()
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
         if dim != state_in.shape[1] - 1:
@@ -497,10 +451,9 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
 
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
-        plt.plot(timestamp, d3[:, dim], color="red")
+        plt.plot(timestamp, y_true[:, dim], color="red")
         if dim == 0:
             plt.title("(State Out - State Pred) / dt")
-            plt.legend()
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
         if dim != state_in.shape[1] - 1:
@@ -525,38 +478,38 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
             # Forward call MLP
             rtnmpc.neural_model.eval()
             mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
-            # Transform velocity back to world frame
-            if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
-                v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutively in output
-                v_b = mlp_out[v_idx : v_idx + 3]
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
-            elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
-                v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutively in output
-                v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
-            elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
-                # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
-                # The predicted v_z therefore also has influence on the x and y velocities in World frame
-                # Adjust mapping later on
-                v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
-                v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
-                v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
-                mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
+            if rtnmpc.mlp_metadata["ModelFitConfig"]["label_transform"]:
+                # Transform velocity back to world frame
+                if set([3, 4, 5]).issubset(set(rtnmpc.y_reg_dims)):
+                    v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutive
+                    v_b = mlp_out[v_idx : v_idx + 3]
+                    v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+                    mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 3 :]), axis=1)
+                elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
+                    v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutive
+                    v_b = np.append(0, mlp_out[v_idx : v_idx + 2])
+                    v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
+                    mlp_out = np.concatenate((mlp_out[:, :v_idx], v_w, mlp_out[:, v_idx + 2 :]), axis=1)
+                elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
+                    # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
+                    # The predicted v_z therefore also has influence on the x and y velocities in World frame
+                    # Adjust mapping later on
+                    v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
+                    v_b = np.append(np.array([0, 0]), mlp_out[v_idx])
+                    v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
+                    mlp_out = np.concatenate((mlp_out[:v_idx], v_w, mlp_out[v_idx + 1 :]))
             y[t, :] = np.squeeze(mlp_out)
 
         # Plot true labels vs. actual regression
-        y_true = d3
+        plt.subplots(figsize=(10, 5))
+        plt.title("Model Output vs. Labels")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, y[:, i], label="y_regressed")
             plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
             plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
-            plt.plot
             plt.ylabel(f"D{dim}")
             if i == 0:
-                plt.title("State Out - State Pred")
                 plt.legend()
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
@@ -567,20 +520,19 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         # Plot loss per dimension
         loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
         plt.subplots(figsize=(10, 5))
+        plt.title("Neural Model Loss per Dimension")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, loss[:, i], color="red")
             plt.plot(
                 [timestamp[0], timestamp[-1]],
                 [np.mean(loss[:, i]), np.mean(loss[:, i])],
-                color="blue",
+                color="tab:blue",
                 linestyle="--",
                 label=f"Mean = {np.mean(loss[:, i]):.6f}",
             )
             plt.legend()
             plt.ylabel(f"Loss D{dim}")
-            if i == 0:
-                plt.title("Neural Model Loss per Dimension")
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
             if i != y.shape[1] - 1:
@@ -589,6 +541,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
 
         # Plot total loss and RMSE
         plt.figure(figsize=(10, 5))
+        plt.title("Neural Model Total Loss and RMSE")
         total_loss = np.sum(loss, axis=1)
         rmse = np.sqrt(total_loss / y.shape[1])
         plt.plot(timestamp, total_loss, label="Total Loss", color="red")
@@ -596,7 +549,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         plt.plot(
             [timestamp[0], timestamp[-1]],
             [np.mean(total_loss), np.mean(total_loss)],
-            color="red",
+            color="tab:red",
             linestyle="--",
             alpha=0.7,
             label=f"Mean Total Loss = {np.mean(total_loss):.6f}",
@@ -604,60 +557,41 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         plt.plot(
             [timestamp[0], timestamp[-1]],
             [np.mean(rmse), np.mean(rmse)],
-            color="green",
+            color="tab:green",
             linestyle="--",
             alpha=0.7,
             label=f"Mean RMSE = {np.mean(rmse):.6f}",
         )
         plt.xlabel("Time [s]")
         plt.ylabel("Loss / RMSE")
-        plt.title("Neural Model Total Loss and RMSE")
         plt.legend()
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-
-        # Plot model output
-        plt.subplots(figsize=(10, 5))
-        for i, dim in enumerate(rtnmpc.y_reg_dims):
-            plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
-            plt.plot(timestamp, state_out[:, dim], label="Sim Output")
-            plt.plot(timestamp, state_out[:, dim] + y[:, i], label="Neural Compensation")
-            plt.plot(timestamp, state_prop[:, dim], label="Undisturbed Output", color="orange")
-            plt.ylabel(f"D{dim}")
-            if i == 0:
-                plt.title("Model Output")
-                plt.legend()
-            plt.grid("on")
-            plt.xlim(timestamp[0], timestamp[-1])
-            if i != y.shape[1] - 1:
-                ax = plt.gca()
-                ax.axes.xaxis.set_ticklabels([])
 
         # Simulate intermediate acceleration vector before integration
         dynamics, _, _ = init_forward_prop(rtnmpc.nmpc)
         x_dot = np.empty(state_in.shape)
         for t in range(state_in.shape[0]):
-            x_dot[t, :] = dynamics(x=state_in[t, :], u=control[t, :])["x_dot"]
+            x_dot[t, :] = np.array(dynamics(x=state_in[t, :], u=control[t, :])["x_dot"]).squeeze()
         lin_acc = x_dot[:, 3:6]
-        if dist_dict is not None:
-            lin_acc_dist = lin_acc + dist_dict["cog_dist"] / rtnmpc.nmpc.phys.mass
+        lin_acc_dist = lin_acc + dist_dict["cog_dist"][1::2, :3] / rtnmpc.nmpc.phys.mass
 
         plt.subplots(figsize=(10, 5))
+        plt.title("Model Output")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
-            plt.plot(timestamp, lin_acc_dist[:, i], label="Acceleration by disturbed model")
-            plt.plot(timestamp, lin_acc_dist[:, i] + y[:, i], label="Neural Compensation")
-            plt.plot(timestamp, lin_acc[:, i], label="Acceleration by undisturbed model", color="orange")
+            plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
+            plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
+            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
+            plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
             plt.ylabel(f"D{dim}")
             if i == 0:
-                plt.title("Model Output")
                 plt.legend()
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
-    # plt.show()
     halt = 1
 
 
