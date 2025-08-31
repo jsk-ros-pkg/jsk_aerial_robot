@@ -67,14 +67,14 @@ private:
     int air_pressure_joint_ = 0;
     int air_pressure_bottom_ = 0;
     float output_ = 0.0;
-    int bottom_approaching_pressure_ = 10; // 20
-    int bottom_ready_pressure_ = 20; // 40
+    int bottom_approaching_pressure_ = 20; // 20
+    int bottom_ready_pressure_ = 40; // 40
     int joint_flex_pressure_ = 15; // 15
-    int joint_limit_pressure_ = 40; // 60
-    int bottom_limit_pressure_ = 30; // 50
-    int joint_max_pressure_ = 25; // 50
-    int joint_perching_pressure_ = 25; // 45
-    int bottom_perching_pressure_ = 10; // 20
+    int joint_limit_pressure_ = 60; // 60
+    int bottom_limit_pressure_ = 50; // 50
+    int joint_max_pressure_ = 50; // 50
+    int joint_perching_pressure_ = 50; // 45
+    int bottom_perching_pressure_ = 20; // 20
 
     spinal::PwmTest pwm_air_cmd_;
     spinal::PwmTest last_published_pwm_;
