@@ -96,8 +96,8 @@ void HapticsController::controlManual() {
 void HapticsController::controlAuto() {
     ROS_INFO("AUTO mode start");
     if (pos_flag_) {
-        target_x_ = pose_.position.x - 1.0;
-        target_y_ = pose_.position.y - 1.0;
+        target_x_ = pose_.position.x - 0.5;
+        target_y_ = pose_.position.y - 0.5;
         last_pos_ = pose_.position;
         pos_flag_ = false;
         ROS_INFO("Current position: (%.2f, %.2f)", pose_.position.x, pose_.position.y);
@@ -129,7 +129,7 @@ void HapticsController::controlAuto() {
         ROS_ERROR("target is close enough, stopping motors.");
         vibratePwms();
         finished_cnt_ += 1;
-        if (finished_cnt_ > 20){
+        if (finished_cnt_ > 100){
             haptics_finished_flag_ = true;
             publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.5, 0.5});
         }
