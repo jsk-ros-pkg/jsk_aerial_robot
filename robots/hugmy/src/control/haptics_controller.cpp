@@ -93,11 +93,24 @@ void HapticsController::controlManual() {
     alpha_pub_.publish(alpha_msg);
 }
 
+static thread_local std::mt19937 rng{std::random_device{}()};
+double HapticsController::rand_08_15() {
+  static thread_local std::uniform_real_distribution<double> dist(
+      0.8, std::nextafter(1.5, std::numeric_limits<double>::infinity()));
+  return dist(rng);
+}
+
+double HapticsController::rand_05_10() {
+  static thread_local std::uniform_real_distribution<double> dist(
+      0.5, std::nextafter(1.2, std::numeric_limits<double>::infinity()));
+  return dist(rng);
+}
+
 void HapticsController::controlAuto() {
     ROS_INFO("AUTO mode start");
     if (pos_flag_) {
-        target_x_ = pose_.position.x - 0.5;
-        target_y_ = pose_.position.y - 0.5;
+        target_x_ = pose_.position.x - rand_08_15();
+        target_y_ = pose_.position.y - rand_05_10();
         last_pos_ = pose_.position;
         pos_flag_ = false;
         ROS_INFO("Current position: (%.2f, %.2f)", pose_.position.x, pose_.position.y);
@@ -120,7 +133,7 @@ void HapticsController::controlAuto() {
     // もしtrue→false　出力する
     //できればチェックの回数をもっと細かくして，最初の出力の挙動をもっとでかく
     // チェックはずっとしておく？　最初と，違うよーこっちだよーだけほしい
-    if ((ros::Time::now() - last_check_time_).toSec() > 2.0) {  // 5s
+    if ((ros::Time::now() - last_check_time_).toSec() > 1.0) {  // 5s
         isApproachingTarget(target_vec, target_norm);
         last_check_time_ = ros::Time::now();
     }

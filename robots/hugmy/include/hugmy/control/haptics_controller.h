@@ -13,6 +13,10 @@
 #include <cmath>
 #include <Eigen/Dense>
 #include <sensor_msgs/Joy.h>
+#include <iostream>
+#include <iomanip>
+#include <random>
+#include <limits>
 
 class HapticsController{
 public:
@@ -65,6 +69,9 @@ protected:
     bool vibrate_toggle_ = true;
     int finished_cnt_ = 0;
     spinal::PwmTest last_published_pwm_;
+
+    double rand_08_15();  // [0.8, 1.5]
+    double rand_05_10();
 };
 
 #endif
