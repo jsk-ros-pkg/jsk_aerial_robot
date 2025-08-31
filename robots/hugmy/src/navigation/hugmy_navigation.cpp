@@ -27,18 +27,20 @@ void HugmyNavigator::motorArming()
     takeoff_height_ = init_height_ + 0.8;
     setTargetPosZ(takeoff_height_);
     perching_flag_ = false;
-    ROS_ERROR("second takeoff_height is %f", takeoff_height_);
+    ROS_ERROR_STREAM("second takeoff_height is " << takeoff_height_);
+    std::cout << "second takeoff_height is " << takeoff_height_ << std::endl;
   }
   BaseNavigator::motorArming();
 }
 
 void HugmyNavigator::perchingFlagCallback(const std_msgs::UInt8& msg)
 {
-  ROS_ERROR("Received perching_state: %d", msg.data);
-  if (msg.data == 2){
+  // ROS_ERROR("Received perching_state: %d", msg.data);
+  if(msg.data == 4){
     ROS_ERROR("perching");
+    std::cout << "4" << std::endl;
     perching_flag_ = true;
-    // ROS_ERROR("perching is %o", perching_flag_);
+    ROS_ERROR("perching is %o", perching_flag_);
   }
 }
 
