@@ -79,7 +79,7 @@ void spin() {
             air_.initializePneumatics();
             haptics_.stopAllMotors();
         } else {
-            //air_.bottomPressurePrepare();
+            air_.bottomPressurePrepare();
         }
         ros::spinOnce();
         rate.sleep();
@@ -108,6 +108,7 @@ private:
   int halt_flag_ = 0;
   int control_mode_; // 0: STOP, 1: MANUAL, 2: AUTO
   bool reach_flag_;
+  int deperching_cnt = 0;
   sensor_msgs::Joy joy_;
 
   void joyCb(const sensor_msgs::Joy::ConstPtr& msg) {
@@ -144,7 +145,7 @@ private:
 
   void flightStateCb(const std_msgs::UInt8::ConstPtr& msg){
     flight_state_msg_ = *msg;
-    flight_state_flag_ = (flight_state_msg_.data == 5); //arming
+    //flight_state_flag_ = (flight_state_msg_.data == 5); //arming
   }
     
   void reachHumanCb(const std_msgs::Bool::ConstPtr& msg){
@@ -177,23 +178,25 @@ private:
 
   void deperching(){
     ROS_WARN("==============deperching==================");
-    //ros::Duration(2.0).sleep();
+    // ros::Duration(2.0).sleep();
+    deperching_cnt++;
+    if (deperching_cnt >= 30){
+      std_msgs::Empty e;
+      ROS_WARN("Arming");
+      arming_on_pub_.publish(e);
+      ros::Duration(2.0).sleep();
+      air_.initializePneumatics();
 
-    std_msgs::Empty e;
-    ROS_WARN("Arming");
-    //arming_on_pub_.publish(e);
-    //ros::Duration(2.0).sleep();
-    air_.initializePneumatics();
-
-    if (!flight_state_flag_) {
+      if (!flight_state_flag_) {
         ros::Duration(1.0).sleep();
         air_.initializePneumatics();
         ROS_WARN("Takeoff");
-        // takeoff_pub_.publish(e);
+        takeoff_pub_.publish(e);
         ros::Duration(12.0).sleep();
         land_pub_.publish(e);
+      }
+      air_.setPerchingState(0);
     }
-    air_.setPerchingState(0);
   }
 };
 
