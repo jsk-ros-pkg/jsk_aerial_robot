@@ -227,7 +227,7 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
   msg.data = reach_to_human_flag_;
   pub_reach_human_.publish(msg);
 
-  if (reach_to_human_flag_ == false) {
+  if (reach_to_human_flag_ == true) {
     ROS_INFO("shutdown");
     timer_.stop();
     return;

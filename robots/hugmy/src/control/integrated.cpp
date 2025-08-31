@@ -26,7 +26,7 @@ public:
   halt_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/halt", 1);
   takeoff_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/takeoff", 1);
   land_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/land", 1);
-  deperching_pub_ = nh_.advertise<std_msgs::UInt8>("/perching_state", 1);
+  perching_state_pub_ = nh_.advertise<std_msgs::UInt8>("/perching_state", 1);
   flight_state_sub_ = nh_.subscribe<std_msgs::UInt8>("/quadrotor/flight_state", 1, &IntegratedController::flightStateCb, this);
   reach_to_human_sub_ = nh_.subscribe<std_msgs::Bool>("/reach_flag", 1, &IntegratedController::reachHumanCb, this);
 }
@@ -35,8 +35,10 @@ void spin() {
     ros::Rate rate(100);
     while (ros::ok()) {
         perching_state_ = air_.getPerchingState();
-        ROS_INFO_THROTTLE(1.0, "Perch flag: %d", perching_state_);
-        ROS_INFO_THROTTLE(1.0, "Joint Pressure: %d | Bottom Pressure: %d", air_.getAirPressureJoint(), air_.getAirPressureBottom());
+        perching_state_msg_.data = perching_state_;
+        perching_state_pub_.publish(perching_state_msg_);
+        ROS_INFO("Perch flag: %d", perching_state_);
+        ROS_INFO("Joint Pressure: %d | Bottom Pressure: %d", air_.getAirPressureJoint(), air_.getAirPressureBottom());
         if (perching_state_ == 1) {
             air_.readyPerching();
         } else if (perching_state_ == 2) {
@@ -75,8 +77,9 @@ void spin() {
             deperching();
         } else if (perching_state_ == 5 || air_.getAirPressureJoint() >= 60 || air_.getAirPressureBottom() >= 50) {
             air_.initializePneumatics();
+            haptics_.stopAllMotors();
         } else {
-            air_.bottomPressurePrepare();
+            //air_.bottomPressurePrepare();
         }
         ros::spinOnce();
         rate.sleep();
@@ -97,9 +100,9 @@ private:
   ros::Publisher arming_on_pub_;
   ros::Publisher takeoff_pub_;
   ros::Publisher land_pub_;
-  ros::Publisher deperching_pub_;
+  ros::Publisher perching_state_pub_;
   std_msgs::UInt8 flight_state_msg_{};
-  std_msgs::UInt8 deperching_msg_{};
+  std_msgs::UInt8 perching_state_msg_{};
   bool flight_state_flag_ = false; // true when data==5(arming)
   int perching_state_ = 0;
   int halt_flag_ = 0;
@@ -174,11 +177,12 @@ private:
 
   void deperching(){
     ROS_WARN("==============deperching==================");
-    ros::Duration(2.0).sleep();
+    //ros::Duration(2.0).sleep();
 
     std_msgs::Empty e;
-    arming_on_pub_.publish(e);
-    ros::Duration(2.0).sleep();
+    ROS_WARN("Arming");
+    //arming_on_pub_.publish(e);
+    //ros::Duration(2.0).sleep();
     air_.initializePneumatics();
 
     if (!flight_state_flag_) {
@@ -189,8 +193,6 @@ private:
         ros::Duration(12.0).sleep();
         land_pub_.publish(e);
     }
-    deperching_msg_.data = 0;
-    deperching_pub_.publish(deperching_msg_);
     air_.setPerchingState(0);
   }
 };
