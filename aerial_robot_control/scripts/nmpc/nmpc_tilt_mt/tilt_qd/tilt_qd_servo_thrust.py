@@ -35,7 +35,7 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off

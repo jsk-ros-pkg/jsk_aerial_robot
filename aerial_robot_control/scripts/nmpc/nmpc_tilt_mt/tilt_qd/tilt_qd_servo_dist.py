@@ -34,7 +34,7 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullDist.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
         # Necessary for EKF inside simulation environment
         self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], build=True)

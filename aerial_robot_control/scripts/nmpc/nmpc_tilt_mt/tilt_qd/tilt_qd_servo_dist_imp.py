@@ -36,7 +36,7 @@ class NMPCTiltQdServoImpedance(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoImp.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model, self.include_thrust_model, self.include_cog_dist_model)
