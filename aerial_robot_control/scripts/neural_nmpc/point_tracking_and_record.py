@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sim_environment.forward_prop import init_forward_prop, forward_prop
 from sim_environment.disturbances import apply_cog_disturbance, apply_motor_noise
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, write_recording_data
-from utils.model_utils import set_temporal_states_as_params
+from utils.model_utils import set_approximation_params, set_temporal_states_as_params
 from utils.reference_utils import sample_random_target
 from utils.geometry_utils import unit_quaternion, euclidean_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory, plot_disturbances
@@ -183,6 +183,19 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             # initial_guess = rtnmpc.reshape_input_sequence(u_cmd)
             # TODO understand: "Save initial guess for future optimization. It is a time-shift of the current optimized variables"
             # initial_guess = np.array(cs.vertcat(initial_guess[1:, :], cs.DM.zeros(4).T))
+
+            # --- Prepare neural model approximation ---
+            # Optimization cycle
+            # RTNMPC without model:    0.31 ms
+            # RTNMPC with their model: 0.53 ms (without approximation) -> + 71%
+            # Ours without model:      1.05 ms
+            # Ours with our model:     3.69 ms (without approximation) -> + 250% [min]
+            # Ours with their model:   1.56 ms (without approximation) -> + 48%  [min]
+            # Ours with our model:     27.1 ms (without approximation) [4x64+full in]
+            # Ours with their model:   17.1 ms (without approximation) [4x64+full in&out]
+
+            if rtnmpc.use_mlp and model_options["approximate_mlp"]:
+                set_approximation_params(rtnmpc, ocp_solver)
 
             # --- Prepare temporal neural network input ---
             if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
@@ -409,9 +422,9 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
     # --- Plot simple trajectory ---
     if plot and not recording:
-        plot_trajectory(rec_dict, rtnmpc, dist_dict=dist_dict)
+        plot_trajectory(rec_dict, rtnmpc, dist_dict=dist_dict, save=run_options["save_figures"])
         if rtnmpc.nmpc.include_cog_dist_parameter or rtnmpc.nmpc.include_motor_noise_parameter:
-            plot_disturbances(dist_dict)
+            plot_disturbances(dist_dict, save=run_options["save_figures"])
         plt.show()
 
     halt = 1

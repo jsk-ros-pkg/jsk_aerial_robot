@@ -81,4 +81,4 @@ class RecedingHorizonBase(ABC):
             rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", method, model_name
         )
         os.makedirs(folder_path, exist_ok=True)
-        os.chdir(folder_path)  # Change working directory to the model folder (also affects inherited classes)
+        os.chdir(folder_path)  # Change working directory to the model folder to save model in cwd

@@ -13,6 +13,15 @@ from ml_casadi import torch as mc
 from network_architecture.mlp import MLP
 
 
+def set_approximation_params(rtnmpc, ocp_solver):
+    # a = 1
+    # mlp_params = rtnmpc.neural_model.approx_params(a, order=rtnmpc.mlp_conf['approx_order'], flat=True)
+    # mlp_params = np.vstack([mlp_params, mlp_params[[-1]]])
+    # for j in range(ocp_solver.N + 1):
+    #     rtnmpc.acados_parameters[j, rtnmpc.approx_start_idx : rtnmpc.approx_end_idx] = 1
+    pass
+
+
 def set_temporal_states_as_params(rtnmpc, ocp_solver, history_y, u_cmd):
     # Set previous state and control as parameters
     if u_cmd is None:

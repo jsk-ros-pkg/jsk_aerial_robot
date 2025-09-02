@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
 import matplotlib.animation as animation
 
-# from config.configuration_parameters import DirectoryConfig as PathConfig
+from config.configurations import DirectoryConfig
 from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q
 from utils.data_utils import safe_mkdir_recursive
 from sim_environment.forward_prop import init_forward_prop
@@ -371,7 +371,8 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
         )
 
 
-def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
+def plot_trajectory(rec_dict, rtnmpc, dist_dict=None, save=False):
+    figures = []
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
     state_prop = rec_dict["state_prop"]
@@ -379,7 +380,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     timestamp = rec_dict["timestamp"]
 
     # Plot state features
-    plt.subplots(figsize=(20, 5))
+    fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 1, dim + 1)
         plt.plot(timestamp, state_in[:, dim], label="state_in")
@@ -394,9 +395,12 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
 
     # Plot control features
-    plt.subplots(figsize=(20, 5))
+    fig, _ = plt.subplots(figsize=(20, 5))
     plt.title("Control input")
     for dim in range(control.shape[1] - 1, -1, -1):
         plt.subplot(control.shape[1], 1, dim + 1)
@@ -406,9 +410,12 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
 
     # Plot in vz feature
-    plt.figure(figsize=(20, 5))
+    fig = plt.figure(figsize=(20, 5))
     plt.plot(timestamp, state_in[:, 5], label="state_in")
     plt.plot(timestamp, state_out[:, 5], label="state_out")
     plt.plot(timestamp, state_prop[:, 5], label="state_prop")
@@ -416,9 +423,12 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     plt.title("Dim 5 zoom in")
     plt.legend()
     plt.xlim(timestamp[0], timestamp[-1])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
 
     # Plot computation time
-    plt.figure(figsize=(20, 5))
+    fig = plt.figure(figsize=(20, 5))
     plt.plot(timestamp, rec_dict["comp_time"])
     plt.plot(
         [0, rec_dict["comp_time"].shape[0]],
@@ -431,12 +441,15 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
     plt.legend()
     plt.grid()
     plt.xlim(timestamp[0], timestamp[-1])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
 
     # Plot labels for neural network regression
     dt = np.expand_dims(rec_dict["dt"], 1)
     diff = state_out - state_prop
     y_true = diff / dt
-    plt.subplots(figsize=(20, 5))
+    fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
         plt.plot(timestamp, diff[:, dim])
@@ -459,6 +472,9 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         if dim != state_in.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
 
     # Plot regression of neural network
     if rtnmpc.use_mlp:
@@ -498,7 +514,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
 
         # Plot true labels vs. actual regression
         y = mlp_out
-        plt.subplots(figsize=(10, 5))
+        fig, _ = plt.subplots(figsize=(10, 5))
         plt.title("Model Output vs. Labels")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
@@ -513,10 +529,13 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
 
         # Plot loss per dimension
         loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
-        plt.subplots(figsize=(10, 5))
+        fig, _ = plt.subplots(figsize=(10, 5))
         plt.title("Neural Model Loss per Dimension")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
@@ -535,9 +554,12 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
 
         # Plot total loss and RMSE
-        plt.figure(figsize=(10, 5))
+        fig = plt.figure(figsize=(10, 5))
         plt.title("Neural Model Total Loss and RMSE")
         total_loss = np.sum(loss, axis=1)
         rmse = np.sqrt(total_loss / y.shape[1])
@@ -564,6 +586,9 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         plt.legend()
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
 
         # Simulate intermediate acceleration vector before integration
         dynamics, _, _ = init_forward_prop(rtnmpc.nmpc)
@@ -573,7 +598,7 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
         lin_acc = x_dot[:, 3:6]
         lin_acc_dist = lin_acc + dist_dict["cog_dist"][1::2, :3] / rtnmpc.nmpc.phys.mass
 
-        plt.subplots(figsize=(10, 5))
+        fig, _ = plt.subplots(figsize=(10, 5))
         plt.title("Model Output")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
@@ -589,6 +614,15 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None):
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
+
+    if save:
+        save_dir = DirectoryConfig.SIMULATION_DIR
+        safe_mkdir_recursive(save_dir)
+        for i, fig in enumerate(figures):
+            fig.savefig(os.path.join(save_dir, f"simulation_results_fig{i}.png"), dpi=500, bbox_inches="tight")
     halt = 1
 
 
@@ -638,10 +672,11 @@ def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=N
         fig.savefig(os.path.join(save_file_path + "/plot", f"{save_file_name}_plot.png"), dpi=300, bbox_inches="tight")
 
 
-def plot_disturbances(dist_dict):
+def plot_disturbances(dist_dict, save=False):
+    figures = []
     # CoG disturbance
     if "cog_dist" in dist_dict:
-        plt.subplots(2, 1, figsize=(20, 5))
+        fig, _ = plt.subplots(2, 1, figsize=(20, 5))
         plt.subplot(2, 1, 1)
         ax = plt.gca()
         ax.plot(dist_dict["timestamp"], dist_dict["cog_dist"][:, :3], alpha=0.7, label=["x", "y", "z"])
@@ -667,16 +702,27 @@ def plot_disturbances(dist_dict):
         ax_right.set_ylabel("Height z [m]")
         plt.legend()
         plt.tight_layout()
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
 
     # Motor noise
     if "motor_noise" in dist_dict:
-        plt.figure(figsize=(20, 5))
+        fig, _ = plt.subplots(figsize=(20, 5))
         plt.plot(dist_dict["timestamp"], dist_dict["motor_noise"])
         plt.ylabel("motor_noise [N]")
         plt.xlabel("Time [s]")
         plt.grid()
         plt.tight_layout()
-    # plt.show()
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        figures.append(fig)
+
+    if save:
+        save_dir = DirectoryConfig.SIMULATION_DIR
+        safe_mkdir_recursive(save_dir)
+        for i, fig in enumerate(figures):
+            fig.savefig(os.path.join(save_dir, f"disturbance_fig{i}.png"), dpi=500, bbox_inches="tight")
 
 
 def trajectory_tracking_results(

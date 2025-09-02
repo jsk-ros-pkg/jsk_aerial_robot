@@ -13,7 +13,7 @@ class QDNMPCBase(RecedingHorizonBase):
     Inherits from RecedingHorizonBase which also lays foundations for MHE classes.
     """
 
-    def __init__(self, build: bool = True):
+    def __init__(self, method: str = "nmpc", build: bool = True):
         #     The child classes only have specifications which define the controller specifications and need to set the following flags:
         # check if the model name is set
         # - model_name: Name of the model defined in controller file.
@@ -38,6 +38,10 @@ class QDNMPCBase(RecedingHorizonBase):
             raise AttributeError(
                 "Thrust model flag not set. Please set the include_thrust_model attribute in the child class."
             )
+
+        # Add height constraint to not go below ground level
+        if not hasattr(self, "include_floor_bounds"):
+            self.include_floor_bounds = False
 
         # Disturbance on each rotor individually was investigated into but didn't properly work, therefore only disturbance on CoG implemented.
         # include_cog_dist_parameter are for I term, which accounts for model error. include_cog_dist_model are for disturbances.
@@ -71,7 +75,7 @@ class QDNMPCBase(RecedingHorizonBase):
         self.acados_parameters = None  # initial value for parameters in acados. Mainly for physical parameters.
 
         # Call RecedingHorizon constructor coming as NMPC method
-        super().__init__("nmpc", build)
+        super().__init__(method, build)
 
         # Create Reference Generator object
         self._reference_generator = self._create_reference_generator()
@@ -593,8 +597,8 @@ class QDNMPCBase(RecedingHorizonBase):
         # Set constraints
         # TODO include fixed rotor arch
         # - State box constraints bx
-        # -- Index for z, vx, vy, vz, wx, wy, wz
-        ocp.constraints.idxbx = np.array([2, 3, 4, 5, 10, 11, 12])
+        # -- Index for vx, vy, vz, wx, wy, wz
+        ocp.constraints.idxbx = np.array([3, 4, 5, 10, 11, 12])
 
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
@@ -608,11 +612,14 @@ class QDNMPCBase(RecedingHorizonBase):
         elif self.include_thrust_model:
             ocp.constraints.idxbx = np.append(ocp.constraints.idxbx, [13, 14, 15, 16])
 
+        # -- Index for height z --
+        if self.include_floor_bounds:
+            ocp.constraints.idxbx = np.append([2], ocp.constraints.idxbx)
+
         # -- Lower State Bound
         # fmt: off
         ocp.constraints.lbx = np.array(
-            [0,
-             self.params["v_min"],
+            [self.params["v_min"],
              self.params["v_min"],
              self.params["v_min"],
              self.params["w_min"],
@@ -633,10 +640,15 @@ class QDNMPCBase(RecedingHorizonBase):
                                              self.params["thrust_min"],
                                              self.params["thrust_min"]])
 
+        if self.include_floor_bounds:
+            ocp.constraints.lbx = np.append(
+                [0],
+                ocp.constraints.lbx
+            )
+
         # -- Upper State Bound
         ocp.constraints.ubx = np.array(
-            [1e8,  # TODO there has to be a better way to implement one sided constraint
-             self.params["v_max"],
+            [self.params["v_max"],
              self.params["v_max"],
              self.params["v_max"],
              self.params["w_max"],
@@ -657,9 +669,15 @@ class QDNMPCBase(RecedingHorizonBase):
                                              self.params["thrust_max"],
                                              self.params["thrust_max"]])
 
+        if self.include_floor_bounds:
+            ocp.constraints.ubx = np.append(
+                [1e8],  # TODO there has to be a better way to implement one sided constraint
+                ocp.constraints.ubx
+            )
+
         # - Terminal state box constraints bx_e
         # -- Index for vx, vy, vz, wx, wy, wz
-        ocp.constraints.idxbx_e = np.array([2, 3, 4, 5, 10, 11, 12])
+        ocp.constraints.idxbx_e = np.array([3, 4, 5, 10, 11, 12])
 
         # -- Index for a1s, a2s, a3s, a4s
         if self.tilt and self.include_servo_model:
@@ -673,10 +691,13 @@ class QDNMPCBase(RecedingHorizonBase):
         elif self.include_thrust_model:
             ocp.constraints.idxbx_e = np.append(ocp.constraints.idxbx_e, [13, 14, 15, 16])
 
+        # -- Index for height z --
+        if self.include_floor_bounds:
+            ocp.constraints.idxbx_e = np.append([2], ocp.constraints.idxbx_e)
+
         # -- Lower Terminal State Bound
         ocp.constraints.lbx_e = np.array(
-            [0,
-             self.params["v_min"],
+            [self.params["v_min"],
              self.params["v_min"],
              self.params["v_min"],
              self.params["w_min"],
@@ -697,10 +718,15 @@ class QDNMPCBase(RecedingHorizonBase):
                  self.params["thrust_min"],
                  self.params["thrust_min"]])
 
+        if self.include_floor_bounds:
+            ocp.constraints.lbx_e = np.append(
+                [0],
+                ocp.constraints.lbx_e
+            )
+
         # -- Upper Terminal State Bound
         ocp.constraints.ubx_e = np.array(
-            [1e8,
-             self.params["v_max"],
+            [self.params["v_max"],
              self.params["v_max"],
              self.params["v_max"],
              self.params["w_max"],
@@ -720,6 +746,12 @@ class QDNMPCBase(RecedingHorizonBase):
                  self.params["thrust_max"],
                  self.params["thrust_max"],
                  self.params["thrust_max"]])
+
+        if self.include_floor_bounds:
+            ocp.constraints.ubx_e = np.append(
+                [1e8],
+                ocp.constraints.ubx_e
+            )
 
         # - Input box constraints bu
         # TODO Potentially a good idea to omit the input constraint when set the equivalent state
@@ -841,6 +873,9 @@ class QDNMPCBase(RecedingHorizonBase):
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + ocp.model.name + "_acados_ocp.json")
+        if not build and not os.path.isdir(os.path.join(os.getcwd(), "c_generated_code")):
+            print("No existing acados solver found. Need to generate a new one.")
+            build = True
         solver = AcadosOcpSolver(ocp, json_file=json_file_path, build=build)
         print("Generated C code for acados solver successfully to " + os.getcwd())
 

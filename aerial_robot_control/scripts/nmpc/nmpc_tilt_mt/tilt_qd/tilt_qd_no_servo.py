@@ -16,13 +16,13 @@ class NMPCTiltQdNoServo(QDNMPCBase):
     :param bool build: Flag to build a solver as c generated code. Default: True
     """
 
-    def __init__(self, build: bool = True, phys=phys_art, **kwargs):
-        raise NotImplementedError(
-            "When using this controller the simulation is unstable! \
-            The control input in init step is weirdly only 15N when \
-            given a 30N maximum... Need to investigate error, \
-            Check with using Servo yaml"
-        )
+    def __init__(self, build: bool = True, phys=phys_art, floor_bounds=False, **kwargs):
+        # raise NotImplementedError(
+        #     "When using this controller the simulation is unstable! \
+        #     The control input in init step is weirdly only 15N when \
+        #     given a 30N maximum... Need to investigate error, \
+        #     Check with using Servo yaml"
+        # )
 
         # Model name
         self.model_name = "tilt_qd_no_servo_mdl"
@@ -34,6 +34,9 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_impedance = False
+
+        # Height constraint
+        self.include_floor_bounds = floor_bounds
 
         # Optional disturbances
         if "cog_dist" in kwargs:

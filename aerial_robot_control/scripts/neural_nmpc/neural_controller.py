@@ -9,6 +9,8 @@ from utils.model_utils import cross_check_params
 
 # Quadrotor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import nmpc.nmpc_tilt_mt.tilt_qd.phys_param_beetle_omni as phys_omni
+
 # - Naive models
 from nmpc.nmpc_tilt_mt.archive.tilt_qd_no_servo_ac_cost import NMPCTiltQdNoServoAcCost
 from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_no_servo import NMPCTiltQdNoServo
@@ -64,53 +66,162 @@ class NeuralNMPC:
         self.nmpc_type = model_options["nmpc_type"]
         if self.arch_type == "qd":
             if self.nmpc_type == "NMPCTiltQdNoServo":
-                self.nmpc = NMPCTiltQdNoServo(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdNoServo(
+                    model_name="tilt_qd_neural_no_servo_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServo":
-                self.nmpc = NMPCTiltQdServo(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServo(
+                    model_name="tilt_qd_neural_servo_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdThrust":
-                self.nmpc = NMPCTiltQdThrust(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdThrust(
+                    model_name="tilt_qd_neural_thrust_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoThrust":
-                self.nmpc = NMPCTiltQdServoThrust(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoThrust(
+                    model_name="tilt_qd_neural_servo_thrust_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
 
             elif self.nmpc_type == "NMPCTiltQdServoDist":
-                self.nmpc = NMPCTiltQdServoDist(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoDist(
+                    model_name="tilt_qd_neural_servo_dist_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
-                self.nmpc = NMPCTiltQdServoThrustDist(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoThrustDist(
+                    model_name="tilt_qd_neural_servo_thrust_dist_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
 
             # Fixed rotor models
             elif self.nmpc_type == "NMPCFixQdAngvelOut":
-                self.nmpc = NMPCFixQdAngvelOut(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCFixQdAngvelOut(
+                    model_name="fix_qd_neural_angvel_out_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCFixQdThrustOut":
-                self.nmpc = NMPCFixQdThrustOut(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCFixQdThrustOut(
+                    model_name="fix_qd_neural_thrust_out_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
 
             # Archived methods
             elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
-                self.nmpc = NMPCTiltQdNoServoAcCost(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdNoServoAcCost(
+                    model_name="tilt_qd_neural_no_servo_ac_cost_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoOldCost":
-                self.nmpc = NMPCTiltQdServoOldCost(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoOldCost(
+                    model_name="tilt_qd_neural_servo_old_cost_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoDiff":
-                self.nmpc = NMPCTiltQdServoDiff(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoDiff(
+                    model_name="tilt_qd_neural_servo_diff_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
                 alpha_integ = np.zeros(4)  # TODO not implemented yet
             elif self.nmpc_type == "NMPCTiltQdServoDragDist":
-                self.nmpc = NMPCTiltQdServoDragDist(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoDragDist(
+                    model_name="tilt_qd_neural_servo_drag_dist_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
-                self.nmpc = NMPCTiltQdServoThrustDrag(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoThrustDrag(
+                    model_name="tilt_qd_neural_servo_thrust_drag_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
-                self.nmpc = NMPCTiltQdServoWCogEndDist(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltQdServoWCogEndDist(
+                    model_name="tilt_qd_neural_servo_thrust_drag_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         elif self.arch_type == "bi":
             if self.nmpc_type == "NMPCTiltBiServo":
-                self.nmpc = NMPCTiltBiServo(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltBiServo(
+                    model_name="tilt_bi_neural_servo_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltBi2OrdServo":
-                self.nmpc = NMPCTiltBi2OrdServo(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltBi2OrdServo(
+                    model_name="tilt_bi2_ord_neural_servo_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         elif self.arch_type == "tri":
             if self.nmpc_type == "NMPCTiltTriServo":
-                self.nmpc = NMPCTiltTriServo(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltTriServo(
+                    model_name="tilt_tri_neural_servo_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             elif self.nmpc_type == "NMPCTiltTriServoDist":
-                self.nmpc = NMPCTiltTriServoDist(build=False, **sim_options["disturbances"])
+                self.nmpc = NMPCTiltTriServoDist(
+                    model_name="tilt_tri_neural_servo_dist_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    floor_bounds=True,
+                    **sim_options["disturbances"],
+                )
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
         else:
@@ -118,9 +229,7 @@ class NeuralNMPC:
 
         # Get OCP object from NMPC
         self.ocp = self.nmpc.get_ocp()
-        self.T_samp = self.nmpc.params[
-            "T_samp"
-        ]  # Sampling time for the NMPC controller, i.e., time step between two successive optimizations
+        self.T_samp = self.nmpc.params["T_samp"]  # Sampling time for the NMPC controller, time step between two steps
         self.T_horizon = self.nmpc.params["T_horizon"]  # Time horizon for optimization loop in MPC controller
         self.N = self.nmpc.params["N_steps"]  # Number of MPC nodes
         self.T_step = self.nmpc.params["T_step"]  # Step size used in optimization loop in MPC controller
@@ -128,6 +237,7 @@ class NeuralNMPC:
 
         # Get OCP model from NMPC TODO implement drag correction with RDRv
         self.nominal_model = self.nmpc.get_acados_model()
+        self.model_name = self.nominal_model.name  # Already set at initialization of sub-controller
         self.state = self.nominal_model.x
         self.controls = self.nominal_model.u
 
@@ -137,15 +247,62 @@ class NeuralNMPC:
         self.nx = self.nominal_solver.acados_ocp.dims.nx
         self.nu = self.nominal_solver.acados_ocp.dims.nu
 
-        # Set name of the controller
-        self.model_name = "Neural_" + self.nominal_model.name
-
         if not model_options["only_use_nominal"]:
             self.use_mlp = True
             # Load pre-trained MLP
             self.neural_model, self.mlp_metadata = load_model(model_options, sim_options, run_options)
             # Cross-check weights and meta parameters used for MPC to train MLP
             cross_check_params(self.nmpc.params, self.mlp_metadata)
+
+            # ========================================================================================================
+            # import torch
+            # sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))))
+            # import ml_casadi_original.torch as mc_original
+
+            # class NormalizedMLP(mc_original.TorchMLCasadiModule):
+            #     def __init__(self, model, x_mean, x_std, y_mean, y_std):
+            #         super().__init__()
+            #         self.model = model
+            #         self.input_size = self.model.input_size
+            #         self.output_size = self.model.output_size
+            #         self.register_buffer('x_mean', x_mean)
+            #         self.register_buffer('x_std', x_std)
+            #         self.register_buffer('y_mean', y_mean)
+            #         self.register_buffer('y_std', y_std)
+
+            #     def forward(self, x):
+            #         return (self.model((x - self.x_mean) / self.x_std) * self.y_std) + self.y_mean
+
+            #     def cs_forward(self, x):
+            #         return (self.model((x - self.x_mean.cpu().numpy()) / self.x_std.cpu().numpy()) * self.y_std.cpu().numpy()) + self.y_mean.cpu().numpy()
+
+            # directory, file_name = (
+            #     "/home/johannes/ros/neural-mpc/ros_dd_mpc/results/model_fitting/5f15661/simple_sim_mlp",
+            #     "drag__motor_noise__noisy__no_payload.pt",
+            # )
+            # saved_dict = torch.load(os.path.join(directory, f"{file_name}"))
+            # mlp_model = mc_original.nn.MultiLayerPerceptron(saved_dict['input_size'], saved_dict['hidden_size'],
+            #                                        saved_dict['output_size'], saved_dict['hidden_layers'], 'Tanh')
+            # model = NormalizedMLP(mlp_model, torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
+            #                       torch.tensor(np.zeros((saved_dict['input_size'],))).float(),
+            #                       torch.tensor(np.zeros((saved_dict['output_size'],))).float(),
+            #                       torch.tensor(np.zeros((saved_dict['output_size'],))).float())
+            # model.load_state_dict(saved_dict['state_dict'])
+            # model.eval()
+            # self.neural_model = model
+            # self.mlp_metadata = {
+            #     "ModelFitConfig": {
+            #         "state_feats": str(list(range(13))),
+            #         "u_feats": str(list(range(4))),
+            #         "y_reg_dims": str(list(range(13))),
+            #         "label_transform": True
+            #     },
+            #     "MLPConfig": {
+            #         "model_name": "test",
+            #         "delay_horizon": 0
+            #     }
+            # }
+            # ========================================================================================================
         else:
             self.use_mlp = False
 
@@ -159,20 +316,6 @@ class NeuralNMPC:
         return self.nmpc.get_reference_generator()
 
     def extend_acados_model(self):
-        # TODO Important!!! Understand approximation --- Propietary library used here
-        # if not self.mlp_conf['approximated']:
-        #     params = ca.vertcat(self.gp_x, self.trigger_var)
-        # else:
-        #     params = ca.vertcat(self.gp_x, self.trigger_var,
-        #                         self.mlp_regressor.sym_approx_params(order=self.mlp_conf['approx_order'],
-        #                                                                 flat=True))
-
-        # TODO Important!!! Understand approximation --- Propietary library used here
-        # if not self.mlp_conf['approximated']:
-        #     mlp_out = self.mlp_regressor(mlp_in)
-        # else:
-        #     mlp_out = self.mlp_regressor.approx(mlp_in, order=self.mlp_conf['approx_order'], parallel=False)
-
         # -----------------------------------------------------
         # TODO Understand and implement correctly
         # state = self.gp_x * self.trigger_var + self.x * (1 - self.trigger_var)
@@ -221,11 +364,9 @@ class NeuralNMPC:
                 # TODO investigate this function and parallel Flag!
                 # Parallel flag only active for order == 2
                 mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
+                approx_params = self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True)
                 self.approx_start_idx = self.parameters.size()[0]
-                self.parameters = ca.vertcat(
-                    self.parameters,
-                    self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True),
-                )
+                self.parameters = ca.vertcat(self.parameters, approx_params)
                 self.approx_end_idx = self.parameters.size()[0]
             else:
                 mlp_out = self.neural_model(mlp_in)

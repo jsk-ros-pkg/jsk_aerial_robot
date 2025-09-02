@@ -14,9 +14,17 @@ class NMPCTiltQdServo(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     """
 
-    def __init__(self, build: bool = True, phys=phys_art, **kwargs):
+    def __init__(
+        self,
+        model_name: str = "tilt_qd_servo_mdl",
+        method: str = "nmpc",
+        build: bool = True,
+        phys=phys_art,
+        floor_bounds=False,
+        **kwargs
+    ):
         # Model name
-        self.model_name = "tilt_qd_servo_mdl"
+        self.model_name = model_name
         self.phys = phys
 
         self.tilt = True
@@ -25,6 +33,9 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
         self.include_impedance = False
+
+        # Height constraint
+        self.include_floor_bounds = floor_bounds
 
         # Optional disturbances
         if "cog_dist" in kwargs:
@@ -59,7 +70,7 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(method, build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off
