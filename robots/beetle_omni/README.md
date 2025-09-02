@@ -20,6 +20,13 @@ Then, follow the instructions below:
 cmake -DACADOS_WITH_QPOASES=ON -DACADOS_WITH_DAQP=ON -DACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
 ```
 
+### 2. Install l4casadi
+[l4casadi](https://github.com/Tim-Salzmann/l4casadi/tree/main)
+```bash
+sudo apt install nvidia-cuda-toolkit
+pip install l4casadi==2.0.0 --no-build-isolation
+```
+
 ### 2. Install the code base and the necessary ROS related packages ...
 
 Setup the folder architecture and clone the repo **with the specific branch**:
@@ -27,7 +34,7 @@ Setup the folder architecture and clone the repo **with the specific branch**:
 ```bash
 mkdir -p ~/<path_to_ws>/src
 cd ~/<path_to_ws>/src
-git clone https://github.com/Li-Jinjie/jsk_aerial_robot_dev.git -b develop/MPC_tilt_mt    # pay attention to the branch flag
+git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/RTNMPC    # pay attention to the branch flag
 ```
 
 ### 2.1 ... for Ubuntu 20.04 and ROS Noetic
