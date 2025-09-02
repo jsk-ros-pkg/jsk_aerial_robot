@@ -216,7 +216,7 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
     # fmt: off
     # Store new model configuration in metadata
     metadata[model_name][model_instance] = {
-        "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")
+        "ModelFitConfig": {key: str(value) for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")
                                                                                     and not key == "label_transform"},
         "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
         "ds_nmpc_type": metadata_dataset[ds_name]["nmpc_type"],

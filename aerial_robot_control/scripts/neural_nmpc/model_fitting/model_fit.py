@@ -36,9 +36,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Set save path and populate metadata ===
     if save or plot:
-        save_file_path, save_file_name = get_model_dir_and_file(
-            ds_name, ds_instance, MLPConfig.model_name, state_feats, u_feats, y_reg_dims
-        )
+        save_file_path, save_file_name = get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name)
 
     # === Raw data ===
     df = read_dataset(ds_name, ds_instance)

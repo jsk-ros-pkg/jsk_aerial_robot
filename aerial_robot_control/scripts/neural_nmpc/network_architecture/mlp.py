@@ -66,6 +66,10 @@ class MLP(TorchMLCasadiModule):
         self.register_buffer("y_mean", y_mean)
         self.register_buffer("y_std", y_std)
 
+        # For ML Casadi library
+        self.input_size = in_size
+        self.output_size = out_size
+
     def forward(self, x):
         # Input normalization
         x = (x - self.x_mean) / self.x_std

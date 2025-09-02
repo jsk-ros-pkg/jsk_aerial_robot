@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 
 class DirectoryConfig:
@@ -9,6 +10,7 @@ class DirectoryConfig:
     _dir_path = os.path.dirname(os.path.realpath(__file__))
     SAVE_DIR = _dir_path + "/../results/model_fitting"
     RESULTS_DIR = _dir_path + "/../results"
+    SIMULATION_DIR = _dir_path + "/../sim_plots/" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     CONFIG_DIR = _dir_path + ""
     DATA_DIR = _dir_path + "/../data"
 
@@ -41,17 +43,20 @@ class EnvConfig:
         {
             "only_use_nominal": False,
             "end_to_end_mlp": False,
-            "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp" or "approximated_mlp"
-            "neural_model_instance": "neuralmodel_033",  # 29, 31
+            "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
+            "neural_model_instance": "neuralmodel_035",  # 29, 31
             # 32: label transform, no output denormalization, no dt normalization
-            "approximated_mlp": False,
-            "approx_order": 0,
+            # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
+            # 34: same as 33 but minimal network size (with 4 times the val loss)
+            # 35: same as 34 but on dataset 04 (dist_factor=0.1)
+            "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
+            "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
     )
 
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
-    if "approximated" in model_options["neural_model_name"] and not model_options["approximated_mlp"]:
+    if model_options["approximate_mlp"] and model_options["approx_order"] == 0:
         raise ValueError("Conflict in options.")
 
     solver_options = {
@@ -59,19 +64,19 @@ class EnvConfig:
         "terminal_cost": True,
     }
 
-    dataset_options = {"ds_name_suffix": "residual_dataset_03"}
+    dataset_options = {"ds_name_suffix": "residual_dataset_04"}
     sim_options = {
         # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
         "disturbances": {
             "cog_dist": True,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.4,
+            "cog_dist_factor": 0.1,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
         },
-        "max_sim_time": 30,
+        "max_sim_time": 10,
         "world_radius": 3,
         "seed": 567,
     }
@@ -96,6 +101,7 @@ class EnvConfig:
     run_options.update(
         {
             "plot_trajectory": True,
+            "save_figures": False,
             "real_time_plot": False,
             "save_animation": False,
         }
@@ -112,7 +118,7 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64, 64, 64]  # In_features of each hidden layer
+    hidden_sizes = [32]  # [64, 64, 64, 64]  # In_features of each hidden layer
 
     # Activation function
     activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
@@ -158,7 +164,7 @@ class ModelFitConfig:
     label_transform = False
 
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_03"
+    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_04"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo
@@ -176,7 +182,7 @@ class ModelFitConfig:
     # ------- Features used for the model -------
     # State features
     # state_feats = [3, 4, 5]
-    state_feats = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    state_feats = [2, 3, 4, 5]  # , 6, 7, 8, 9]# , 10, 11, 12]
     # state_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
