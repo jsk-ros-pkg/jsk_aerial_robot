@@ -450,6 +450,33 @@ class PitchSetPtTraj(BaseTraj):
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
+class YawRotationRoll0dTraj(BaseTraj):
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.T = 30  # total time for one full rotation cycle
+        self.omega = 2 * np.pi / self.T  # angular velocity
+
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        # Calculate the yaw angle based on time
+
+        yaw = self.omega * t
+
+        roll = 0.0
+        pitch = 0.0
+
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw, axes='rxyz')
+
+        roll_rate = 0.0
+        pitch_rate = 0.0
+        yaw_rate = self.omega
+
+        roll_acc = 0.0
+        pitch_acc = 0.0
+        yaw_acc = 0.0
+
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
 class YawRotationRoll090dTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
@@ -504,6 +531,7 @@ class YawRotationRoll045dTraj(BaseTraj):
         yaw_acc = 0.0
 
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+
 
 
 class YawRotationRoll135dTraj(BaseTraj):

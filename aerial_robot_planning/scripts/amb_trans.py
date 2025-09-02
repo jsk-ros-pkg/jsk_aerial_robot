@@ -24,7 +24,7 @@ from sensor_msgs.msg import JointState
 class ServoMoveNode:
 
     def __init__(self):
-        print(f'amoeba_deform_initiate')
+        # print(f'amoeba_deform_initiate')
         rospy.init_node('servo_move', anonymous=True)
         self.servo_index = 0
         self.servo_angle = 0.0
@@ -32,7 +32,7 @@ class ServoMoveNode:
         self.servo_load = 0.0
         self.servo_error = 0
         self.servo_target_index = 4  # beetle1 servo id
-        self.servo_target_angles = 0
+        self.servo_cmd_lengths = 0
         self.robot_ns = rospy.get_param("~robot_ns", "beetle1")
         
         # Servo limits for beetle1 servo id:4
@@ -59,10 +59,10 @@ class ServoMoveNode:
                 self.servo_error = servo.error
                 break
 
-    def servo_target_cmd(self, target_index, target_angle):
+    def servo_target_cmd(self, target_index, cmd_length):
         servo_target_cmd = ServoControlCmd()
         servo_target_cmd.index = [target_index]
-        servo_target_cmd.angles = [target_angle]
+        servo_target_cmd.angles = [cmd_length]
         time.sleep(0.1)
         self.pub_servo_target.publish(servo_target_cmd)
         print(f'servo_target_cmd: {servo_target_cmd}')
@@ -89,19 +89,10 @@ class ServoMoveNode:
         # Joint names for extendable joints
         joint_names = ['extendable_joint1', 'extendable_joint2', 
                            'extendable_joint3', 'extendable_joint4']
-        
-        
-        # Normalize servo angle to [0, 1] range
         servo_normalized = (servo_angle - servo_min) / (servo_max - servo_min)
-        
-        # Map to joint positions
         # joints 1,3: linear mapping (0.1 to -0.1)
         joint_13_position = joint_max - servo_normalized * (joint_max - joint_min)
-        
-        # joints 2,4: negative linear mapping (-0.1 to 0.1)
         joint_24_position = joint_min + servo_normalized * (joint_max - joint_min)
-        
-        # Create joint positions array
         joint_positions = [joint_13_position, joint_24_position, joint_13_position, joint_24_position]
         
         # Create and publish JointState message
@@ -113,24 +104,26 @@ class ServoMoveNode:
         joint_cmd.effort = []
 
         self.rviz_urdf_pub.publish(joint_cmd)
-        # rviz_urdf_pub = rospy.Publisher(f'/{self.robot_ns}/extendable_joints_ctrl', 
-        #                         JointState, queue_size=10)
-        # rviz_urdf_pub.publish(joint_cmd)
 
-        rospy.loginfo(f'TP14Joint positions: j1,j3={joint_13_position:.4f}m, j2,j4={joint_24_position:.4f}m')
-        rospy.loginfo(f'Published to /{self.robot_ns}/extendable_joints_ctrl')
+        rospy.loginfo(f'URDF: j1,j3={joint_13_position:.4f}m, j2,j4={joint_24_position:.4f}m')
+        # rospy.loginfo(f'Published to /{self.robot_ns}/extendable_joints_ctrl')
 
-    def move_to_position(self, target_angle):
+    def move_to_position(self, cmd_length):
         # Clamp to servo limits
-        target_angle = max(self.servo_min_angles, min(self.servo_max_angles, target_angle))
-        
-        # 1. joint control, 2. servo control
-        self.rviz_urdf_update(target_angle)
-        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {target_angle}')
+        cmd_length = max(self.servo_min_angles, min(self.servo_max_angles, cmd_length))
+        '''
+        1. joint control, 2. servo control
+        the urdf update may make real servo re-initialize, so do it first 
+        however, after Aug 30th's update, it decouples the two, I will try to do servo first 
+        and make the urdf goes stepwise according to the real servo speed, 
+        use the same methond but separate the length with fixed length
+        i.e. when fixed is 17(calculated by real exp), current 20 target 50 then goes 20,37,50.
+        '''
+        self.rviz_urdf_update(cmd_length)
+        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {cmd_length}')
         # rospy.sleep(1.0)
-         # Send servo command
-        self.servo_target_cmd(self.servo_target_index, target_angle)
-        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {target_angle}!')
+        self.servo_target_cmd(self.servo_target_index, cmd_length)
+        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {cmd_length}!')
 
 def parse_joint_argument(arg_string):
     """Parse joint argument - direct integer value"""
@@ -143,33 +136,43 @@ def parse_joint_argument(arg_string):
             rospy.logerr(f"Failed to parse argument as integer: {arg_string}")
             return None
 
+def length2angle(length):
+    """Convert length in mm to servo angle command"""
+    # Limiting servo angle [-4900, 9000] smaller range for safety
+    length_min, length_max = 0, 100
+    servo_min, servo_max = -4900, 9000
+    length_clamped = max(length_min, min(length_max, length))
+    normalized = (length_clamped - length_min) / (length_max - length_min)
+    angle = servo_min + normalized * (servo_max - servo_min)
+    return int(angle)
+
 def main():
     # Parse arguments to handle joint= syntax
-    target_angle = None
+    cmd_length = None
     
     for arg in sys.argv[1:]:
-        if arg.startswith("joint="):
-            target_angle = parse_joint_argument(arg.split("=", 1)[1])
-    
+        if arg.startswith("len="):
+            cmd_length = parse_joint_argument(arg.split("=", 1)[1])
+            
     # Default to zero position if none provided
-    if target_angle is None:
-        target_angle = 2048  # Zero position
-        rospy.loginfo("No joint target specified, using default: joint=2048 (zero position)")
-    
+    if cmd_length is None:
+        cmd_length = 50  # Zero position
+        rospy.loginfo("No joint target specified, using default: joint=50 (equal position)")
+
     # Validate range
-    if target_angle < -4950 or target_angle > 9048:
-        rospy.logerr(f"Servo angle {target_angle} out of range [-4950, 9048]")
+    if cmd_length < 0 or cmd_length > 100:
+        rospy.logerr(f"Servo angle {cmd_length} out of range [0, 100]")
         return
-    
-    rospy.loginfo(f"Servo control: target_angle={target_angle} (range: -4950 to 9048, zero: 2048)")
+
+    rospy.loginfo(f"Servo control: length={cmd_length} (range: 0 to 100, equal: 50)")
     
     node = ServoMoveNode()
     rospy.loginfo(f"Initialized ServoMoveNode")
-    # time.sleep(2)
-    node.move_to_position(target_angle)
-    
-    while not rospy.is_shutdown():
-        rospy.spin()
+    # rospy.sleep(2)
+    extend_joint_angle = length2angle(cmd_length)
+    node.move_to_position(extend_joint_angle)
+    # while not rospy.is_shutdown():
+    #     rospy.spin()
 
 
 if __name__ == '__main__':
