@@ -33,4 +33,9 @@
     <class type="aerial_robot_control::mpc_solver::TiltBi2OrdServoMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Nonlinear Model Predictive Control with Tilt Bi 2nd Order Servo Model.</description>
     </class>
+
+    <!-- neural nmpc -->
+    <class type="aerial_robot_control::mpc_solver::TiltQdNeuralServoMdlNMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
+        <description>Neural Model Predictive Control with Tilt Qd Servo Model with Neural Dynamics.</description>
+    </class>
 </library>

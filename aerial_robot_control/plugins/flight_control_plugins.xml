@@ -57,4 +57,9 @@
     <description>NMPC controller for tilt bi considering 2-ord servo model </description>
   </class>
 
+<!-- neural nmpc -->
+  <class name="aerial_robot_control/neural_nmpc_controller/tilt_mt/neural_servo_nmpc" type="aerial_robot_control::nmpc::TiltMtNeuralServoNMPC" base_class_type="aerial_robot_control::ControlBase">
+    <description>Neural NMPC controller for tilt-multirotor with servo model and neural dynamics </description>
+  </class>
+
 </library>
