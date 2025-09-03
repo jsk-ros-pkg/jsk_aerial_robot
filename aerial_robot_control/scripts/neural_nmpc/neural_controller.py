@@ -70,7 +70,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_no_servo_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServo":
@@ -79,7 +79,7 @@ class NeuralNMPC:
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdThrust":
@@ -87,7 +87,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_thrust_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrust":
@@ -95,7 +95,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_thrust_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
 
@@ -104,7 +104,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_dist_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
@@ -112,7 +112,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_thrust_dist_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
 
@@ -122,7 +122,7 @@ class NeuralNMPC:
                     model_name="fix_qd_neural_angvel_out_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCFixQdThrustOut":
@@ -130,7 +130,7 @@ class NeuralNMPC:
                     model_name="fix_qd_neural_thrust_out_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
 
@@ -140,7 +140,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_no_servo_ac_cost_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoOldCost":
@@ -148,7 +148,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_old_cost_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoDiff":
@@ -156,7 +156,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_diff_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
                 alpha_integ = np.zeros(4)  # TODO not implemented yet
@@ -165,7 +165,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_drag_dist_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
@@ -173,7 +173,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_thrust_drag_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
@@ -181,7 +181,7 @@ class NeuralNMPC:
                     model_name="tilt_qd_neural_servo_thrust_drag_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             else:
@@ -192,7 +192,7 @@ class NeuralNMPC:
                     model_name="tilt_bi_neural_servo_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltBi2OrdServo":
@@ -200,7 +200,7 @@ class NeuralNMPC:
                     model_name="tilt_bi2_ord_neural_servo_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             else:
@@ -211,7 +211,7 @@ class NeuralNMPC:
                     model_name="tilt_tri_neural_servo_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             elif self.nmpc_type == "NMPCTiltTriServoDist":
@@ -219,7 +219,7 @@ class NeuralNMPC:
                     model_name="tilt_tri_neural_servo_dist_mdl",
                     method="neural_nmpc",
                     build=False,
-                    floor_bounds=True,
+                    floor_bounds=False,
                     **sim_options["disturbances"],
                 )
             else:
