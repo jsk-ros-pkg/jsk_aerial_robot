@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="module_ids" default=""/>
+  <arg name="valve_ns" default="valve"/>
+  <arg name="valve_id" default="1"/>
+  <arg name="valve_x" default="0"/>
+  <arg name="valve_y" default="0"/>
+  <arg name="valve_yaw" default="0"/>
+
+  <include file="$(find ninja)/launch/tasks/valve_spawn.launch">
+    <arg name="robot_ns" value="$(arg valve_ns)" />
+    <arg name="robot_id" value="$(arg valve_id)"/>
+    <arg name="valve_x" value="$(arg valve_x)" />
+    <arg name="valve_y" value="$(arg valve_y)" />
+    <arg name="valve_yaw" value="$(arg valve_yaw)" />
+  </include>
+
+  <include file="$(find ninja)/launch/assembly_tasks/two_module_test.launch">
+    <arg name="headless" value="false" />
+  </include>
+
+</launch>

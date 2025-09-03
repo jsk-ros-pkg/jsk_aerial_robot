@@ -1,0 +1,238 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="valve" >
+
+
+  <xacro:arg name="valve_pitch_angle" default="0" /> <!-- deg -->
+  <xacro:arg name="valve_friction" default="1.0" /> <!-- Nm -->
+  <xacro:arg name="no_collsion" default="false" />
+  <xacro:property name="valve_height" value="${0.43 + $(arg valve_pitch_angle) * 0.001}" />
+<!-- 2024/10/25 -->
+  <!-- <xacro:property name="pi" value="3.141592653589793" />  -->
+
+
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="grey">
+    <color rgba="0.3 0.3 0.3 1"/>
+  </material>
+
+
+  <xacro:property name="main_pipe_length" value="2.0" />
+  <xacro:property name="main_pipe_mass" value="10.0" />
+  <xacro:property name="pipe_radius" value="0.05" />
+
+  <xacro:macro name="pipe_model" params="name mass length radius height direction color:=grey">
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 ${height}" rpy="${direction} 0 0"/>
+        <geometry>
+          <cylinder length="${length}" radius="${radius}"/>
+        </geometry>
+        <material name="${color}"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${height}" rpy="${direction} 0 0"/>
+        <geometry>
+          <cylinder length="${length}" radius="${radius}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${height}" rpy="${direction} 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+            ixx="${0.25 * mass * radius * radius}" ixy="0.0" ixz="0.0"
+            iyy="${0.25 * mass * radius * radius}" iyz="0.0"
+            izz="${0.5 * mass * radius * radius}"/>
+      </inertial>
+    </link>alve_p
+    <origin xyz="0 ${main_pipe_length * 0.5 - pipe_radius} 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <joint name="pipe_joint2" type="fixed">
+    <parent link="main_pipe"/>
+    <child link="sub_pipe2"/>
+    <origin xyz="0 -${main_pipe_length * 0.5 - pipe_radius} 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+
+  <xacro:macro name="mount_model" params="parent">
+    <xacro:property name="height" value="0.05" />
+    <xacro:property name="radius" value="${valve_height * 0.2}" />
+    <xacro:property name="mass" value="20" />
+
+    <joint name="${parent}_mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${parent}_mount"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="${parent}_mount">
+      <visual>
+        <origin xyz="0 0 ${height * 0.5}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="${height}" radius="${radius}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${height * 0.5}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="${height}" radius="${radius}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${height * 0.5}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+            ixx="${0.25 * mass * radius * radius}" ixy="0.0" ixz="0.0"
+            iyy="${0.25 * mass * radius * radius}" iyz="0.0"
+            izz="${0.5 * mass * radius * radius}"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+  <xacro:mount_model parent = "sub_pipe1" />
+  <xacro:mount_model parent = "sub_pipe2" />
+
+
+  <!-- valve -->
+  <xacro:pipe_model name="valve" mass="5" length="${pipe_radius * 4}" radius="${pipe_radius * 1.5}" height="0" direction="0" color="red"/>
+  <joint name="valve_pipe_joint" type="fixed">
+    <parent link="main_pipe"/>
+    <child link="valve"/>
+    <origin xyz="0 0 ${valve_height}" rpy="0 ${ $(arg valve_pitch_angle) / 180 * pi} 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+
+  <xacro:property name="stem_length" value="0.3" />
+  <xacro:pipe_model name="stem" mass="0.5" length="${stem_length}" radius="0.03" height="0" direction="0" color="black"/>
+  <joint name="stem_joint" type="fixed">
+    <parent link="valve"/>
+    <child link="stem"/>
+    <origin xyz="0 0 ${pipe_radius * 2}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+
+  <joint name="valve_joint" type="continuous">
+    <dynamics damping="0.0" friction="$(arg valve_friction)"/>
+    <parent link="stem"/>
+    <child link="handle"/>
+    <origin xyz="0 0 ${stem_length * 0.5 + 0.02}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+
+  <link name="handle">
+    <visual>
+      <origin xyz="0 0 -0.04" rpy="0 0 ${-pi/2}"/>
+      <geometry>
+        <mesh filename="package://beetle/urdf/mesh/200mm_valve.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <xacro:unless value="$(arg no_collision)">
+      <collision>
+        <origin xyz="0 0 -0.04" rpy="0 0 ${-pi/2}"/>
+        <geometry>
+          <mesh filename="package://beetle/urdf/mesh/200mm_valve.STL" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </xacro:unless>
+    <inertial>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+      <mass value="5"/>
+      <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
+    </inertial>
+  </link>
+
+  
+  <gazebo reference="main_pipe">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="sub_pipe1">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="sub_pipe2">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="sub_pipe1_mount">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="sub_pipe2_mount">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="valve">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <gazebo reference="stem">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="handle">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <transmission name="valve_joint_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="valve_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="valve_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <gazebo>
+    <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>10.0</updateRate>
+      <bodyName>handle</bodyName>
+      <topicName>/valve/odom</topicName>
+      <gaussianNoise>0</gaussianNoise>
+      <frameName>world</frameName>
+      <xyzOffsets>0 0 0</xyzOffsets>
+      <rpyOffsets>0 0 0</rpyOffsets>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="valve_joint">
+    <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>valve/wrench</topicName>
+      <jointName>valve_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <!-- <gazebo>
+    <plugin name="valve_pose_publisher" filename="libgazebo_ros_p3d.so">
+      <robotNamespace>/valve</robotNamespace>
+      <frameName>world</frameName>
+      <topicName>valve/pose</topicName>
+      <updateRate>10</updateRate>
+    </plugin>
+  </gazebo> -->
+
+</robot>

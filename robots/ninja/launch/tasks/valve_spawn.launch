@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_ns" default="valve" />
+  <arg name="valve_id" default="85" />
+  <arg name="robot_id" default="1" />
+  <arg name="valve_x" default="3" />
+  <arg name="valve_y" default="0" />
+  <arg name="valve_z" default="0" />
+  <arg name="valve_yaw" default="0" />
+  <group ns="$(arg robot_ns)">
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find ninja)/models/valve.urdf no_collision:=false" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_valve" respawn="false" output="screen"
+          args="-urdf -model valve -x $(arg valve_x) -y $(arg valve_y) -z $(arg valve_z) -Y $(arg valve_yaw) -param robot_description" />
+  </group>
+</launch>
