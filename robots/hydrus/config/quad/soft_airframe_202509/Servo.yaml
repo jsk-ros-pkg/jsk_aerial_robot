@@ -31,4 +31,15 @@ servo_controller:
     controller3:
       id: 2
       name: joint3
+    
+    controller4:
+      id: 3
+      name: tail_joint2
+      simulation:
+        init_value: 0.0
 
+    controller5:
+      id: 4
+      name: tail_joint3
+      simulation:
+        init_value: 0.0

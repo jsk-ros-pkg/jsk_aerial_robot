@@ -110,9 +110,53 @@
   <!-- end: gps -->
 
   <!-- 3 soft_airframe -->
-  <link name="tail_link1"/>
-  <link name="tail_link2"/>
-  <link name="tail_link3"/>
+  <link name="tail_link1">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
+    </inertial>
+  </link>
+  <gazebo reference="tail_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="tail_link1"/>
+
+  <link name="tail_link2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
+    </inertial>
+  </link>
+  <gazebo reference="tail_link2">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="tail_link2"/>
+
+  <link name="tail_link3">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
+    </inertial>
+  </link>
+  <gazebo reference="tail_link3">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="tail_link3"/>
 
   <joint name="tail_joint1" type="fixed">
     <parent link="link4"/>
@@ -126,8 +170,8 @@
     <child link="tail_link2"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <dynamics damping="0.9" friction="0.05"/>
-  </joint>  
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
 
   <joint name="tail_joint3" type="revolute">
     <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
@@ -135,7 +179,29 @@
     <child link="tail_link3"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <dynamics damping="0.9" friction="0.05"/>
+    <dynamics damping="0.9" friction="0.1"/>
   </joint>
+
+  <transmission name="tail_joint_tran_2">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="tail_joint2">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="tail_joint_servo2">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="tail_joint_tran_3">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="tail_joint3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="tail_joint_servo3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
 
 </robot>
