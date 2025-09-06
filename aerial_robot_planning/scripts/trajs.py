@@ -453,7 +453,7 @@ class PitchSetPtTraj(BaseTraj):
 class YawRotationRoll0dTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
-        self.T = 30  # total time for one full rotation cycle
+        self.T = 60  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
 
     def get_3d_orientation(self, t: float) -> Tuple[

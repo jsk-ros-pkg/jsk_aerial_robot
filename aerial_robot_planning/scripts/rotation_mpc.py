@@ -48,30 +48,31 @@ def parse_arguments():
 
 def rotation_to_length(yaw_angle):
     """
-    Convert rotation angle to arm length using sin-like function
+    Convert rotation angle to arm length using array lookup
     
-    Mapping:
-    rot/deg  len
-    0        50
-    90       100
-    180      50
-    270      0
-    360      50
-    
-    This follows: length = 50 + 50 * sin(yaw + π/2)
+    Angle ranges: [0, 90, 180, 270, 360]
+    Lengths:      [50, 100, 50, 0, 50]
     """
-    # Convert angle to degrees for easier understanding
+    '''continous mapping (not used)'''
+    # # Convert angle to degrees for easier understanding
+    # yaw_deg = np.degrees(yaw_angle) % 360
+    # length = 50.0 + 50.0 * np.cos(yaw_angle)
+    # # Clamp to valid range [0, 100]
+    # length = max(0.0, min(100.0, length))
+
+
     yaw_deg = np.degrees(yaw_angle) % 360
+    angle_ranges = [0, 90, 180, 270, 360]
+    lengths = [50, 100, 50, 0, 50]
+    for i in range(len(angle_ranges) - 1):
+        if angle_ranges[i] <= yaw_deg < angle_ranges[i + 1]:
+            length = lengths[i]
+            break
+    else:
+        length = lengths[-1]
     
-    # Sin-like function: 50 + 50 * sin(yaw_rad + π/2)
-    # sin(x + π/2) = cos(x), so this becomes: 50 + 50 * cos(yaw_rad)
-    length = 50.0 + 50.0 * np.cos(yaw_angle)
-    
-    # Clamp to valid range [0, 100]
-    length = max(0.0, min(100.0, length))
-    
-    rospy.loginfo(f"Rotation: {yaw_deg:.1f}° -> Length: {length:.1f}mm")
-    return length
+    rospy.loginfo(f"---------------Rotation: {yaw_deg:.1f}° -> Length: {length:.1f}mm-------------")
+    return float(length)
 
 
 def length2angle(length):
@@ -174,15 +175,15 @@ class ArmController:
         cmd_length = max(self.servo_min_angles, min(self.servo_max_angles, cmd_length))
         # Follow the same pattern as amb_trans.py: URDF update first, then servo command
         self.rviz_urdf_update(cmd_length)
-        rospy.loginfo(f'Moving servo {self.servo_target_index} to position {cmd_length}')
+        # rospy.loginfo(f'---------Extend to position {cmd_length}--------------')
         self.servo_target_cmd(self.servo_target_index, cmd_length)
-        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {cmd_length}!')
+        # rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {cmd_length}!')
 
     def length2angle(self, length):
         """Convert length in mm to servo angle command"""
         # Limiting servo angle [-4900, 9000] smaller range for safety
         length_min, length_max = 0, 100
-        servo_min, servo_max = -4900, 9000
+        servo_min, servo_max = -4800, 9000
         length_clamped = max(length_min, min(length_max, length))
         normalized = (length_clamped - length_min) / (length_max - length_min)
         angle = servo_min + normalized * (servo_max - servo_min)
@@ -196,7 +197,7 @@ class ArmController:
         self.control_thread = threading.Thread(target=self._control_loop)
         self.control_thread.daemon = True
         self.control_thread.start()
-        rospy.loginfo("ArmController: Started arm control thread")
+        # rospy.loginfo("ArmController: Started arm control thread")
     
     def stop_control(self):
         """Stop arm length control"""
@@ -205,41 +206,40 @@ class ArmController:
             self.control_thread.join(timeout=2.0)
         
         # Return to neutral position
-        rospy.loginfo("ArmController: Returning to neutral position...")
+        # rospy.loginfo("ArmController: Returning to neutral position...")
         neutral_angle = length2angle(50.0)  # 50mm = neutral
         self.move_to_position(neutral_angle)
-        rospy.loginfo("ArmController: Returned to neutral position")
+        # rospy.loginfo("ArmController: Returned to neutral position")
     
     def _control_loop(self):
         """Main control loop running in separate thread"""
-        rate = rospy.Rate(10.0)  # 10 Hz
+        rate = rospy.Rate(1)  # 10 Hz
         
         while self.running and not rospy.is_shutdown():
             try:
-                # Calculate elapsed time
+                # Calculate elapsed time``
                 current_time = rospy.Time.now()
                 elapsed_time = (current_time - self.start_time).to_sec()
                 
                 # Get current orientation from trajectory
-                qw, qx, qy, qz, _, _, _, _, _, _ = self.traj.get_3d_orientation(elapsed_time)
+                qw, qx, qy, qz, _, _, _, _, _, _ = self.traj.get_3d_orientation(elapsed_time + 2)
                 
                 # Extract yaw angle from quaternion
                 yaw_angle = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy**2 + qz**2))
                 yaw_deg = np.degrees(yaw_angle) % 360
-                rospy.logdebug(f"ArmController: Current yaw: {yaw_deg:.1f}° (quat: {qw:.3f}, {qx:.3f}, {qy:.3f}, {qz:.3f})")
+
+                rospy.logdebug(f"ArmController: Current yaw: {yaw_deg:.1f}° ")
                 
                 # Calculate desired arm length based on rotation
                 cmd_length = rotation_to_length(yaw_angle)
                 
                 # Only send command if length changed significantly (reduced threshold)
-                if self.last_length is None or abs(cmd_length - self.last_length) > 0.5:
-                    extend_joint_angle = length2angle(cmd_length)
-                    rospy.loginfo(f"ArmController: Changing length from {self.last_length} to {cmd_length} (servo angle: {extend_joint_angle})")
-                    self.move_to_position(extend_joint_angle)
-                    self.last_length = cmd_length
-                else:
-                    rospy.logdebug(f"ArmController: Length unchanged: {cmd_length:.1f} (diff: {abs(cmd_length - (self.last_length or 0)):.1f})")
-                
+
+                extend_joint_angle = length2angle(cmd_length)
+                # rospy.loginfo(f"ArmController: {cmd_length} ")
+                self.move_to_position(extend_joint_angle)
+                self.last_length = cmd_length
+
                 rate.sleep()
                 
             except Exception as e:
