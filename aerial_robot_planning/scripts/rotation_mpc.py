@@ -19,7 +19,7 @@ import argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import local modules
-import amb_trans
+# import amb_trans
 from trajs import YawRotationRoll0dTraj
 from pub_mpc_joint_traj import MPCTrajPtPub
 from spinal.msg import ServoStates, ServoControlCmd
@@ -74,6 +74,17 @@ def rotation_to_length(yaw_angle):
     return length
 
 
+def length2angle(length):
+    """Convert length in mm to servo angle command (global function)"""
+    # Limiting servo angle [-4900, 9000] smaller range for safety
+    length_min, length_max = 0, 100
+    servo_min, servo_max = -4900, 9000
+    length_clamped = max(length_min, min(length_max, length))
+    normalized = (length_clamped - length_min) / (length_max - length_min)
+    angle = servo_min + normalized * (servo_max - servo_min)
+    return int(angle)
+
+
 class ArmController:
     """Separate class to handle arm length control based on trajectory"""
     
@@ -98,6 +109,7 @@ class ArmController:
         self.servo_zero_position = 2048
         self.servo_max_angles = 9048
         self.servo_min_angles = -4950
+        self.servo_max_load = rospy.get_param(f'{robot_name}/servo_info/max_load', 200)
         
     def initialize(self):
         """Initialize servo publishers and subscribers"""
@@ -118,7 +130,6 @@ class ArmController:
             return False
     
     def _callback_servo_states(self, msg):
-        """Callback for servo states"""
         for servo in msg.servos:
             if servo.index == self.servo_target_index:
                 self.servo_index = servo.index
@@ -129,7 +140,6 @@ class ArmController:
                 break
     
     def servo_target_cmd(self, target_index, cmd_length):
-        """Send servo target command"""
         servo_target_cmd = ServoControlCmd()
         servo_target_cmd.index = [target_index]
         servo_target_cmd.angles = [cmd_length]
@@ -162,10 +172,22 @@ class ArmController:
     def move_to_position(self, cmd_length):
         """Move servo to target position"""
         cmd_length = max(self.servo_min_angles, min(self.servo_max_angles, cmd_length))
+        # Follow the same pattern as amb_trans.py: URDF update first, then servo command
         self.rviz_urdf_update(cmd_length)
         rospy.loginfo(f'Moving servo {self.servo_target_index} to position {cmd_length}')
         self.servo_target_cmd(self.servo_target_index, cmd_length)
-        
+        rospy.loginfo(f'servo:{self.servo_target_index} command sent to target angle {cmd_length}!')
+
+    def length2angle(self, length):
+        """Convert length in mm to servo angle command"""
+        # Limiting servo angle [-4900, 9000] smaller range for safety
+        length_min, length_max = 0, 100
+        servo_min, servo_max = -4900, 9000
+        length_clamped = max(length_min, min(length_max, length))
+        normalized = (length_clamped - length_min) / (length_max - length_min)
+        angle = servo_min + normalized * (servo_max - servo_min)
+        return int(angle)
+
     def start_control(self, traj):
         """Start arm length control thread"""
         self.traj = traj
@@ -184,7 +206,7 @@ class ArmController:
         
         # Return to neutral position
         rospy.loginfo("ArmController: Returning to neutral position...")
-        neutral_angle = amb_trans.length2angle(50.0)  # 50mm = neutral
+        neutral_angle = length2angle(50.0)  # 50mm = neutral
         self.move_to_position(neutral_angle)
         rospy.loginfo("ArmController: Returned to neutral position")
     
@@ -203,15 +225,20 @@ class ArmController:
                 
                 # Extract yaw angle from quaternion
                 yaw_angle = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy**2 + qz**2))
+                yaw_deg = np.degrees(yaw_angle) % 360
+                rospy.logdebug(f"ArmController: Current yaw: {yaw_deg:.1f}° (quat: {qw:.3f}, {qx:.3f}, {qy:.3f}, {qz:.3f})")
                 
                 # Calculate desired arm length based on rotation
                 cmd_length = rotation_to_length(yaw_angle)
                 
-                # Only send command if length changed significantly
-                if self.last_length is None or abs(cmd_length - self.last_length) > 1.0:
-                    extend_joint_angle = amb_trans.length2angle(cmd_length)
+                # Only send command if length changed significantly (reduced threshold)
+                if self.last_length is None or abs(cmd_length - self.last_length) > 0.5:
+                    extend_joint_angle = length2angle(cmd_length)
+                    rospy.loginfo(f"ArmController: Changing length from {self.last_length} to {cmd_length} (servo angle: {extend_joint_angle})")
                     self.move_to_position(extend_joint_angle)
                     self.last_length = cmd_length
+                else:
+                    rospy.logdebug(f"ArmController: Length unchanged: {cmd_length:.1f} (diff: {abs(cmd_length - (self.last_length or 0)):.1f})")
                 
                 rate.sleep()
                 

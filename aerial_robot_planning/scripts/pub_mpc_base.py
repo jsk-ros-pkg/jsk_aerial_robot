@@ -34,7 +34,7 @@ class MPCPubBase(ABC):
             self.T_horizon = rospy.get_param(f"{robot_name}/controller/nmpc/T_horizon")
             self.T_step = rospy.get_param(f"{robot_name}/controller/nmpc/T_step")
             self.T_samp = rospy.get_param(f"{robot_name}/controller/nmpc/T_samp")
-            self.N_nmpc = rospy.get_param(f"{robot_name}/controller/nmpc/NN")
+            self.N_nmpc = rospy.get_param(f"{robot_name}/controller/nmpc/NN") # in tilt_mt_servo_nmpc_controller.cpp and acados_solver_tilt_qd_servo_dist_mdl.h
             self.nx = rospy.get_param(f"{robot_name}/controller/nmpc/NX")
             self.nu = rospy.get_param(f"{robot_name}/controller/nmpc/NU")
         except KeyError:
