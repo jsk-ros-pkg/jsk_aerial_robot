@@ -108,4 +108,34 @@
     </inertial>
   </xacro:extra_module>
   <!-- end: gps -->
+
+  <!-- 3 soft_airframe -->
+  <link name="tail_link1"/>
+  <link name="tail_link2"/>
+  <link name="tail_link3"/>
+
+  <joint name="tail_joint1" type="fixed">
+    <parent link="link4"/>
+    <child link="tail_link1"/>
+    <origin xyz="0 0 0.5" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="tail_joint2" type="revolute">
+    <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="tail_link1"/>
+    <child link="tail_link2"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.05"/>
+  </joint>  
+
+  <joint name="tail_joint3" type="revolute">
+    <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="tail_link2"/>
+    <child link="tail_link3"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.05"/>
+  </joint>
+
 </robot>
