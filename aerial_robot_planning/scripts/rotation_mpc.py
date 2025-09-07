@@ -62,8 +62,8 @@ def rotation_to_length(yaw_angle):
 
 
     yaw_deg = np.degrees(yaw_angle) % 360
-    angle_ranges = [0, 90, 180, 270, 360]
-    lengths = [50, 100, 50, 0, 50]
+    angle_ranges = [0,    5,     88,     95,    178,    185,    268,     275,     358,   360]
+    lengths =        [50,      0,    50,     100,    50,      0,     50,       100,      50]
     for i in range(len(angle_ranges) - 1):
         if angle_ranges[i] <= yaw_deg < angle_ranges[i + 1]:
             length = lengths[i]
@@ -146,7 +146,7 @@ class ArmController:
         servo_target_cmd.angles = [cmd_length]
         time.sleep(0.1)
         self.pub_servo_target.publish(servo_target_cmd)
-        rospy.loginfo(f'servo_target_cmd: {servo_target_cmd}')
+        # rospy.loginfo(f'servo_target_cmd: {servo_target_cmd}')
     
     def rviz_urdf_update(self, servo_angle):
         """Update RVIZ URDF display"""
@@ -213,7 +213,7 @@ class ArmController:
     
     def _control_loop(self):
         """Main control loop running in separate thread"""
-        rate = rospy.Rate(1)  # 10 Hz
+        rate = rospy.Rate(20)  # 10 Hz
         
         while self.running and not rospy.is_shutdown():
             try:

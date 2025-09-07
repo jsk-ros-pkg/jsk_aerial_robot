@@ -94,9 +94,9 @@ class MPCPubBase(ABC):
         if hasattr(self, "track_err_calc"):
             err_px, err_py, err_pz, err_roll, err_pitch, err_yaw = self.track_err_calc.update(self.uav_odom, traj_msg)
 
-            rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
-                                      f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
-                                      f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
+            # rospy.loginfo_throttle(1, f"{self.namespace}/{self.node_name}: Tracking error: "
+            #                           f"pos_err = {err_px:.3f} m, {err_py:.3f} m, {err_pz:.3f} m, "
+            #                           f"ang_err = {err_roll:.3f} deg, {err_pitch:.3f} deg, {err_yaw:.3f} deg")
 
         # 3) Publish
         self.pub_trajectory_points(traj_msg)
@@ -110,11 +110,11 @@ class MPCPubBase(ABC):
                 # Calculate RMSE of tracking error
                 pos_rmse_norm, pos_rmse, ang_rmse_norm, ang_rmse = self.track_err_calc.get_rmse_error()
 
-                rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: \n"
-                              f"pos_err_norm = {pos_rmse_norm:.3f} m, \n"
-                              f"pos_err = {pos_rmse[0]:.3f} m, {pos_rmse[1]:.3f} m, {pos_rmse[2]:.3f} m, \n"
-                              f"ang_err_norm = {ang_rmse_norm:.3f} deg, \n"
-                              f"ang_err = {ang_rmse[0]:.3f} deg, {ang_rmse[1]:.3f} deg, {ang_rmse[2]:.3f} deg\033[0m")  # cyan highlight
+                # rospy.loginfo(f"\033[1;36m{self.namespace}/{self.node_name}: RMSE of tracking error: \n"
+                #               f"pos_err_norm = {pos_rmse_norm:.3f} m, \n"
+                #               f"pos_err = {pos_rmse[0]:.3f} m, {pos_rmse[1]:.3f} m, {pos_rmse[2]:.3f} m, \n"
+                #               f"ang_err_norm = {ang_rmse_norm:.3f} deg, \n"
+                #               f"ang_err = {ang_rmse[0]:.3f} deg, {ang_rmse[1]:.3f} deg, {ang_rmse[2]:.3f} deg\033[0m")  # cyan highlight
 
                 self.track_err_calc.reset()
 
