@@ -110,7 +110,23 @@
   <!-- end: gps -->
 
   <!-- 3 soft_airframe -->
-  <link name="tail_link1">
+  <link name="soft_link1">
+    <inertial>
+      <origin xyz="${0.3 + 0.038190} 0.0 0.010950" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
+    </inertial>
+  </link>
+  <gazebo reference="soft_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="soft_link1"/>
+
+  <link name="soft_link2">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.001"/>
@@ -120,13 +136,13 @@
           izz="0.002"/>
     </inertial>
   </link>
-  <gazebo reference="tail_link1">
+  <gazebo reference="soft_link2">
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
   </gazebo>
-  <xacro:damping_factor link="tail_link1"/>
+  <xacro:damping_factor link="soft_link2"/>
 
-  <link name="tail_link2">
+  <link name="soft_link3">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.001"/>
@@ -136,69 +152,136 @@
           izz="0.002"/>
     </inertial>
   </link>
-  <gazebo reference="tail_link2">
+  <gazebo reference="soft_link3">
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
   </gazebo>
-  <xacro:damping_factor link="tail_link2"/>
+  <xacro:damping_factor link="soft_link3"/>
 
-  <link name="tail_link3">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.001"/>
-      <inertia
-          ixx="0.001" ixy="0.0" ixz="0.0"
-          iyy="0.001" iyz="0.0"
-          izz="0.002"/>
-    </inertial>
-  </link>
-  <gazebo reference="tail_link3">
-    <mu1>0.1</mu1>
-    <mu2>0.1</mu2>
-  </gazebo>
-  <xacro:damping_factor link="tail_link3"/>
-
-  <joint name="tail_joint1" type="fixed">
+  <joint name="soft_joint1" type="fixed">
     <parent link="link4"/>
-    <child link="tail_link1"/>
-    <origin xyz="0 0 0.5" rpy="0 0 0"/>
+    <child link="soft_link1"/>
+    <origin xyz="0.6 0 0.1" rpy="0 0 0"/>
   </joint>
 
-  <joint name="tail_joint2" type="revolute">
+  <joint name="soft_joint2" type="revolute">
     <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
-    <parent link="tail_link1"/>
-    <child link="tail_link2"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="soft_link1"/>
+    <child link="soft_link2"/>
+    <origin xyz="0.1175 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
 
-  <joint name="tail_joint3" type="revolute">
+  <joint name="soft_joint3" type="revolute">
     <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
-    <parent link="tail_link2"/>
-    <child link="tail_link3"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="soft_link2"/>
+    <child link="soft_link3"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
 
-  <transmission name="tail_joint_tran_2">
+  <transmission name="soft_joint_tran_2">
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="tail_joint2">
+    <joint name="soft_joint2">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
-    <actuator name="tail_joint_servo2">
+    <actuator name="soft_joint_servo2">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
 
-  <transmission name="tail_joint_tran_3">
+  <transmission name="soft_joint_tran_3">
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="tail_joint3">
+    <joint name="soft_joint3">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
-    <actuator name="tail_joint_servo3">
+    <actuator name="soft_joint_servo3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- gimbal -->
+  <joint name="gimbal_joint1" type="continuous">
+    <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/>
+    <parent link="soft_link3"/>
+    <child link="gimbal_link1"/>
+    <origin rpy="0 0 0" xyz="0.1595 0 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
+  <link name="gimbal_link1">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.11"/>
+      </geometry>
+    </collision>
+    <!-- <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.032"/>
+    </visual> -->
+  </link>
+  <xacro:damping_factor link ="gimbal_link1"/>
+
+  <transmission name="gimbal_tran1">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="gimbal_joint1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="gimbal_servo1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- rotor -->
+  <joint name="rotor5" type="continuous">
+    <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/>
+    <parent link="gimbal_link1"/>
+    <child link="thrust5"/>
+    <origin rpy="0 0 0" xyz="0.0735 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="thrust5">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.11"/>
+      </geometry>
+    </collision>
+    <!-- <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.032"/>
+    </visual> -->
+  </link>
+  <xacro:damping_factor link ="thrust5"/>
+
+  <transmission name="rotor_tran5">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor5">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>

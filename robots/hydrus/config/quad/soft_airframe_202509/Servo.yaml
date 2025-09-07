@@ -34,12 +34,24 @@ servo_controller:
     
     controller4:
       id: 3
-      name: tail_joint2
+      name: soft_joint2
       simulation:
         init_value: 0.0
 
     controller5:
       id: 4
-      name: tail_joint3
+      name: soft_joint3
+      simulation:
+        init_value: 0.0
+    
+    controller6:
+      id: 5
+      name: gimbal_joint1
+      simulation:
+        init_value: 0.0
+
+    controller7:
+      id: 6
+      name: rotor5
       simulation:
         init_value: 0.0
