@@ -17,13 +17,6 @@ class NMPCTiltQdNoServo(QDNMPCBase):
     """
 
     def __init__(self, build: bool = True, phys=phys_art, floor_bounds=False, **kwargs):
-        # raise NotImplementedError(
-        #     "When using this controller the simulation is unstable! \
-        #     The control input in init step is weirdly only 15N when \
-        #     given a 30N maximum... Need to investigate error, \
-        #     Check with using Servo yaml"
-        # )
-
         # Model name
         self.model_name = "tilt_qd_no_servo_mdl"
         self.phys = phys

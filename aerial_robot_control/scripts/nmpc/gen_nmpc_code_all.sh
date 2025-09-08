@@ -6,17 +6,17 @@ unset MAKEFLAGS
 # =====
 
 MODELS=(
-   NMPCFixQdAngvelOut
-   NMPCFixQdThrustOut
+#    NMPCFixQdAngvelOut
+#    NMPCFixQdThrustOut
    NMPCTiltQdNoServo
    NMPCTiltQdServo
    NMPCTiltQdServoDist
    NMPCTiltQdServoImpedance
    NMPCTiltQdServoThrustDist
    NMPCTiltQdServoThrustImpedance
-   NMPCTiltTriServo
-   NMPCTiltBiServo
-   NMPCTiltBi2OrdServo
+#    NMPCTiltTriServo
+#    NMPCTiltBiServo
+#    NMPCTiltBi2OrdServo
    MHEWrenchEstAccMom
 )
 
