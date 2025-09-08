@@ -16,7 +16,7 @@ class BaseTraj:
         return t > self.T * self.loop_num
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
