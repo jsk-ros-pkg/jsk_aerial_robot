@@ -112,12 +112,22 @@
   <!-- 3 soft_airframe -->
   <link name="soft_link1">
     <inertial>
-      <origin xyz="${0.3 + 0.038190} 0.0 0.010950" rpy="0 0 0"/>
-      <mass value="0.001"/>
+      <origin xyz="0.06875 0.000002 0.018960" rpy="0 0 0"/>
+      <mass value="${0.010*2 + 0.012}"/>
+      <!-- this is the original -->
+      <!-- <inertia
+          ixx="0.000064" ixy="0.0" ixz="0.000004"
+          iyy="0.0001555" iyz="0.0"
+          izz="0.000154"/> -->
       <inertia
-          ixx="0.001" ixy="0.0" ixz="0.0"
-          iyy="0.001" iyz="0.0"
-          izz="0.002"/>
+          ixx="${0.00007117961/2}" ixy="0.0" ixz="0.000004"
+          iyy="${0.00017932677/2}" iyz="0.0"
+          izz="${0.00045111519/2}"/>
+      <!-- this one works -->
+      <!-- <inertia
+          ixx="0.001804" ixy="0.000021" ixz="0.000372"
+          iyy="0.017972"  iyz="0.000000"
+          izz="0.019248"/> -->
     </inertial>
   </link>
   <gazebo reference="soft_link1">
@@ -128,12 +138,24 @@
 
   <link name="soft_link2">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.001"/>
+      <origin xyz="0.1175 0.000002 0.019998" rpy="0 0 0"/>
+      <mass value="${0.010*5 + 0.012*2}"/>
+      <!-- <inertia
+          ixx="0.000123" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.000758"
+          izz="0.000758"/> -->
       <inertia
-          ixx="0.001" ixy="0.0" ixz="0.0"
-          iyy="0.001" iyz="0.0"
-          izz="0.002"/>
+          ixx="${0.00012174242/2}" ixy="0.0" ixz="0.0"
+          iyy="${0.00083236110/2}" iyz="0.0"
+          izz="${0.00082463843/2}"/>
+      <!-- <inertia
+        ixx="${0.00007117961/2}" ixy="0.0" ixz="0.000004"
+        iyy="${0.00017932677/2}" iyz="0.0"
+        izz="${0.00045111519/2}"/> -->
+
+      <!-- <inertia
+          ixx="0.001804" iyy="0.017972" izz="0.019248"
+          ixy="0.000021" ixz="0.000372" iyz="0.000000"/> -->
     </inertial>
   </link>
   <gazebo reference="soft_link2">
@@ -144,12 +166,24 @@
 
   <link name="soft_link3">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.001"/>
+      <origin xyz="0.10740316 0.0 0.003" rpy="0 0 0"/>
+      <mass value="${0.010*2 + 0.012 + 0.070}"/>
+      <!-- <inertia
+          ixx="0.000080" ixy="0.0" ixz="0.000027"
+          iyy="0.000357" iyz="0.0"
+          izz="0.000347"/> -->
+      <!-- the latest -->
       <inertia
-          ixx="0.001" ixy="0.0" ixz="0.0"
-          iyy="0.001" iyz="0.0"
-          izz="0.002"/>
+          ixx="0.00005679" ixy="-0.000000031" ixz="-0.00002256"
+          iyy="0.00028149" iyz="0.000000005"
+          izz="0.00026759"/>
+      <!-- <inertia
+          ixx="${0.00012174242/2}" ixy="0.0" ixz="0.0"
+          iyy="${0.00083236110/2}" iyz="0.0"
+          izz="${0.00082463843/2}"/> -->
+      <!-- <inertia
+          ixx="0.001804" iyy="0.017972" izz="0.019248"
+          ixy="0.000021" ixz="0.000372" iyz="0.000000"/> -->
     </inertial>
   </link>
   <gazebo reference="soft_link3">
@@ -161,7 +195,7 @@
   <joint name="soft_joint1" type="fixed">
     <parent link="link4"/>
     <child link="soft_link1"/>
-    <origin xyz="0.6 0 0.1" rpy="0 0 0"/>
+    <origin xyz="0.6 0 0" rpy="0 0 0"/>
   </joint>
 
   <joint name="soft_joint2" type="revolute">
@@ -205,7 +239,7 @@
   </transmission>
 
   <!-- gimbal -->
-  <joint name="gimbal_joint1" type="continuous">
+  <!-- <joint name="gimbal_joint1" type="continuous">
     <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="gimbal_link1"/>
@@ -216,22 +250,25 @@
 
   <link name="gimbal_link1">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0001"/>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
+      <mass value="0.159380"/>
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.000171" ixy="0.0" ixz="0.0"
+          iyy="0.000244" iyz="0.0"
+          izz="0.000336"/>
     </inertial>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
       <geometry>
         <cylinder length="0.1" radius="0.11"/>
       </geometry>
     </collision>
-    <!-- <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.032"/>
-    </visual> -->
+    <visual>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hydrus/urdf/mesh/propeller/5inch_propeller_duct_right_v2.dae"/>
+      </geometry>
+    </visual>
   </link>
   <xacro:damping_factor link ="gimbal_link1"/>
 
@@ -244,10 +281,10 @@
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-  </transmission>
+  </transmission> -->
 
   <!-- rotor -->
-  <joint name="rotor5" type="continuous">
+  <!-- <joint name="rotor5" type="continuous">
     <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/>
     <parent link="gimbal_link1"/>
     <child link="thrust5"/>
@@ -270,9 +307,12 @@
         <cylinder length="0.1" radius="0.11"/>
       </geometry>
     </collision>
-    <!-- <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.032"/>
-    </visual> -->
+    <visual>
+      <origin rpy="${pi/2} 0 0" xyz="-0.045 0.055 0.06"/>
+      <geometry>
+        <mesh filename="package://hydrus/urdf/mesh/propeller/TriBlade_5045.dae"/>
+      </geometry>
+    </visual>
   </link>
   <xacro:damping_factor link ="thrust5"/>
 
@@ -285,6 +325,6 @@
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-  </transmission>
+  </transmission> -->
 
 </robot>
