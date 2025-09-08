@@ -23,7 +23,7 @@
   <arg name="wrench_est_mode" default="none" />
     <!-- none; mom for momentum; ma for hybrid mode ; acc for acceleration; mhe_ma for mhe with acc and momentum est. -->
 
-  <arg name="end_effector" default="fork"/>  <!-- "ball", "fork", "brush", "sensor_ball"   -->
+  <arg name="end_effector" default="none"/>  <!-- "none", "ball", "fork", "brush", "sensor_ball"   -->
 
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
