@@ -53,9 +53,9 @@ rosdep update
 
 Then, do the following:
 ```bash
-cd ~/<path_to_ws>
+cd ..  # cd ~/<path_to_ws>
 wstool init src
-wstool merge -t src src/jsk_aerial_robot_dev/aerial_robot_noetic.rosinstall
+wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall
 wstool update -t src    # install unofficial packages
 rosdep install -y -r --from-paths src --ignore-src --rosdistro noetic   # install the dependencies/packages stated in package.xml
 ```
