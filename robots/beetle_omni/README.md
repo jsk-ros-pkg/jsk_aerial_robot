@@ -41,7 +41,7 @@ git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/RTNMPC 
 Install ROS Noetic for Ubuntu 20.04 from https://wiki.ros.org/ROS/Installation and source the setup file:
 
 ```bash
-source /opt/ros/neotic/setup.bash
+source /opt/ros/noetic/setup.bash
 ```
 
 We use rosdep to manage the dependencies. So, if you have never done this in your computer before, do the following:
