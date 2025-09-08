@@ -76,7 +76,7 @@ def get_inverse_output_mapping(state_dim, y_reg_dims):
 
 
 def get_device():
-    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
     if torch.cuda.is_available():
         return torch.device("cuda")
@@ -101,10 +101,10 @@ def load_model(model_options, sim_options, run_options):
     metadata = cross_check_options(model_options, sim_options, metadata)
 
     # Define trained MLP model
-    file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
-    saved_dict = torch.load(file_name)
-
     device = get_device()
+    file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
+    saved_dict = torch.load(file_name, map_location=device)
+
     neural_model = MLP(
         saved_dict["input_size"],
         saved_dict["hidden_sizes"],
