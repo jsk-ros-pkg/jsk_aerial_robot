@@ -24,7 +24,7 @@ class NMPCTiltQdServo(QDNMPCBase):
         include_motor_noise_parameter=False,
         include_soft_constraints=False,
         include_quaternion_constraint=False,
-        floor_bounds=False,
+        include_floor_bounds=False,
     ):
         # Model name
         self.model_name = model_name
@@ -39,17 +39,10 @@ class NMPCTiltQdServo(QDNMPCBase):
 
         # Optional disturbances
         self.include_cog_dist_parameter = include_cog_dist_parameter
-        if self.include_cog_dist_parameter:
-            self.cog_dist_start_idx = len(self.phys.physical_param_list)
-
         self.include_motor_noise_parameter = include_motor_noise_parameter
-        if self.include_motor_noise_parameter:
-            self.motor_noise_start_idx = len(self.phys.physical_param_list)
-            if self.include_cog_dist_parameter:
-                self.motor_noise_start_idx += 6
 
         # Optional constraint settings
-        self.include_floor_bounds = floor_bounds  # Height constraint
+        self.include_floor_bounds = include_floor_bounds  # Height constraint
         self.include_soft_constraints = include_soft_constraints
         self.include_quaternion_constraint = include_quaternion_constraint
 

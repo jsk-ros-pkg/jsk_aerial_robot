@@ -200,7 +200,9 @@ class QDNMPCBase(RecedingHorizonBase):
             # Torque disturbance applied to CoG in Body frame
             self.tau_dp_b = ca.MX.sym("tau_dp_b", 3)
 
+            self.cog_dist_start_idx = parameters.size()[0]
             parameters = ca.vertcat(parameters, self.fdp_w, self.tau_dp_b)
+            self.cog_dist_end_idx = parameters.size()[0]
         else:
             self.fdp_w = ca.MX.zeros(3)
             self.tau_dp_b = ca.MX.zeros(3)
@@ -227,7 +229,12 @@ class QDNMPCBase(RecedingHorizonBase):
             self.fnp_b = ca.MX.sym("fnp_b", 4)
             if self.tilt:
                 self.anp_b = ca.MX.sym("anp_b", 4)
+            else:
+                self.anp_b = ca.MX.sym("anp_b", 0)
+
+            self.motor_noise_start_idx = parameters.size()[0]
             parameters = ca.vertcat(parameters, self.fnp_b, self.anp_b)
+            self.motor_noise_end_idx = parameters.size()[0]
         else:
             self.fnp_b = ca.MX.zeros(4)
             self.anp_b = ca.MX.zeros(4)

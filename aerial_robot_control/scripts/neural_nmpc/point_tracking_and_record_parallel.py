@@ -423,7 +423,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                             dist_dict["cog_dist_nominal"],
                             rtnmpc_nominal.sim_acados_parameters[
                                 np.newaxis,
-                                rtnmpc_nominal.nmpc.cog_dist_start_idx : rtnmpc_nominal.nmpc.cog_dist_start_idx + 6,
+                                rtnmpc_nominal.nmpc.cog_dist_start_idx : rtnmpc_nominal.nmpc.cog_dist_end_idx,
                             ],
                             axis=0,
                         )
@@ -431,8 +431,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                             dist_dict["cog_dist_minus_neural"],
                             rtnmpc_minus_neural.sim_acados_parameters[
                                 np.newaxis,
-                                rtnmpc_minus_neural.nmpc.cog_dist_start_idx : rtnmpc_minus_neural.nmpc.cog_dist_start_idx
-                                + 6,
+                                rtnmpc_minus_neural.nmpc.cog_dist_start_idx : rtnmpc_minus_neural.nmpc.cog_dist_end_idx,
                             ],
                             axis=0,
                         )
@@ -440,8 +439,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                             dist_dict["cog_dist_plus_neural"],
                             rtnmpc_plus_neural.sim_acados_parameters[
                                 np.newaxis,
-                                rtnmpc_plus_neural.nmpc.cog_dist_start_idx : rtnmpc_plus_neural.nmpc.cog_dist_start_idx
-                                + 6,
+                                rtnmpc_plus_neural.nmpc.cog_dist_start_idx : rtnmpc_plus_neural.nmpc.cog_dist_end_idx,
                             ],
                             axis=0,
                         )

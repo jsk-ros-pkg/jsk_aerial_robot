@@ -30,7 +30,8 @@ def apply_cog_disturbance(rtnmpc, cog_dist_factor, u_cmd, state):
     std = np.array([force_std_x, force_std_y, force_std_z, torque_std, torque_std, torque_std])
     cog_dist = mu  # np.random.normal(loc=mu, scale=std)
     start_idx = rtnmpc.nmpc.cog_dist_start_idx
-    rtnmpc.sim_acados_parameters[start_idx : start_idx + 6] = cog_dist
+    end_idx = rtnmpc.nmpc.cog_dist_end_idx
+    rtnmpc.sim_acados_parameters[start_idx:end_idx] = cog_dist
 
 
 def apply_motor_noise(rtnmpc, u_cmd):
@@ -47,6 +48,7 @@ def apply_motor_noise(rtnmpc, u_cmd):
     rotor_noise = np.random.normal(loc=mu, scale=std)
 
     start_idx = rtnmpc.nmpc.motor_noise_start_idx
+    end_idx = rtnmpc.nmpc.motor_noise_end_idx
     rtnmpc.sim_acados_parameters[start_idx : start_idx + 4] = rotor_noise
 
     # Servo angle noise
@@ -55,4 +57,4 @@ def apply_motor_noise(rtnmpc, u_cmd):
         std = 0.04  # Assume constant inaccuracy for servo angles since they have low frequency
         servo_noise = np.random.normal(loc=mu, scale=std)
 
-        rtnmpc.sim_acados_parameters[start_idx + 4 : start_idx + 8] = servo_noise
+        rtnmpc.sim_acados_parameters[start_idx + 4 : end_idx] = servo_noise

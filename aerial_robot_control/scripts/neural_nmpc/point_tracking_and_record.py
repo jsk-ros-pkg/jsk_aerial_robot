@@ -291,7 +291,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                         dist_dict["cog_dist"] = np.append(
                             dist_dict["cog_dist"],
                             rtnmpc.sim_acados_parameters[
-                                np.newaxis, rtnmpc.nmpc.cog_dist_start_idx : rtnmpc.nmpc.cog_dist_start_idx + 6
+                                np.newaxis, rtnmpc.nmpc.cog_dist_start_idx : rtnmpc.nmpc.cog_dist_end_idx
                             ],
                             axis=0,
                         )
@@ -303,9 +303,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                         dist_dict["motor_noise"] = np.append(
                             dist_dict["motor_noise"],
                             rtnmpc.sim_acados_parameters[
-                                np.newaxis,
-                                rtnmpc.nmpc.motor_noise_start_idx : rtnmpc.nmpc.motor_noise_start_idx
-                                + (8 if rtnmpc.nmpc.tilt else 4),
+                                np.newaxis, rtnmpc.nmpc.motor_noise_start_idx : rtnmpc.nmpc.motor_noise_end_idx
                             ],
                             axis=0,
                         )
