@@ -123,5 +123,5 @@ tags
 # Trained torch models
 **/results/
 
-# TEMPORARY skip ml_casadi -> TODO use as submodule
-**/ml_casadi/
+# Simulation results
+**/sim_plots/

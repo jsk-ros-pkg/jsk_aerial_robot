@@ -6,7 +6,7 @@ controller:
     T_horizon: 2.0  # seconds
     T_step: 0.1  # seconds
 
-    # constraint
+    # Hard constraints
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
@@ -19,7 +19,7 @@ controller:
     a_max: 1.5708  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
     a_min: -1.5708
 
-    # params for the cost function
+    # Cost function weights
     Qp_xy: 300  # 0
     Qp_z: 400  # 500
     Qv_xy: 10  # 0
@@ -30,6 +30,10 @@ controller:
     Qw_z: 5
     Rt: 1
     Rac_d: 250
+
+    # Slack constraint weights
+    linear_slack_weight: 10
+    quadratic_slack_weight: 100
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false

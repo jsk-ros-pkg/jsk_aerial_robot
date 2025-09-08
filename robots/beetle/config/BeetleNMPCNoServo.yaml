@@ -6,12 +6,12 @@ controller:
     T_horizon: 2.0  # seconds
     T_step: 0.1  # seconds
 
-    # constraint
+    # Hard constraints
     w_max: 6  # 1 rad/s ~ 57 deg/s
     w_min: -6
 
-    v_max: 1
-    v_min: -1
+    v_max: 1  # 15 (sim)
+    v_min: -1  # 15 (sim)
 
     thrust_max: 30  # N
     thrust_min: 0  # N
@@ -20,16 +20,32 @@ controller:
     a_min: -1.5708
 
     # params for the cost function
-    Qp_xy: 300  # 0
-    Qp_z: 400  # 500
-    Qv_xy: 10  # 0
-    Qv_z: 10  # 100
-    Qq_xy: 300  # 400
-    Qq_z: 600
+    # ==== Aggressive (overshooting) ====
+    # Qp_xy: 500
+    # Qp_z: 350
+    # Qv_xy: 0.01
+    # Qv_z: 0.01
+    # Qq_xy: 0.0001
+    # Qq_z: 0.0001
+    # Qw_xy: 0.1
+    # Qw_z: 10
+    # Rt: 0.001  # 1
+    # Rac: 1  # 250
+    # ==== Default ====
+    Qp_xy: 300  # 30 (sim) # 0
+    Qp_z: 400  # 40 (sim) # 500
+    Qv_xy: 10  # 1 (sim) # 0
+    Qv_z: 10  # 1 (sim) # 100
+    Qq_xy: 300  # 30 (sim) # 400
+    Qq_z: 600  # 60 (sim)
     Qw_xy: 5
     Qw_z: 5
     Rt: 1
     Rac: 5
+
+    # Slack constraint weights
+    linear_slack_weight: 10
+    quadratic_slack_weight: 100
 
     is_attitude_ctrl: false
     is_body_rate_ctrl: false
