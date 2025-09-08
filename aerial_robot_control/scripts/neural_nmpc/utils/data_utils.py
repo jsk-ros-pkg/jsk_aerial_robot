@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import rospkg
 from config.configurations import DirectoryConfig, MLPConfig, ModelFitConfig
 
 
@@ -38,6 +39,7 @@ def get_recording_dict_and_file(
     rec_file = os.path.join(rec_file_dir, rec_file_name)
 
     # Recursively create the storing directory path
+    # TODO rethink the overwrite/extend logic
     is_blank = safe_mkfile_recursive(rec_file_dir, rec_file_name, overwrite=overwrite)
 
     # Create empty recording dictionary
@@ -232,6 +234,30 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
         json.dump(metadata, json_file, indent=4)
 
     return model_dir, model_instance
+
+
+def delete_previous_solver_files(model_options, identifier):
+    if model_options["nmpc_type"] != "NMPCTiltQdServo":
+        raise NotImplementedError("Create more scalable way to delete previous solver files for different NMPC types.")
+
+    model_name = f"tilt_qd_{identifier}_servo_mdl"
+
+    rospack = rospkg.RosPack()
+    folder_path = os.path.join(
+        rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "neural_nmpc", model_name
+    )
+
+    c_generated_dir = os.path.join(folder_path, "c_generated_code")
+
+    if os.path.exists(c_generated_dir):
+        shutil.rmtree(c_generated_dir)
+        print("Deleted previous C generated files for solver.")
+
+    if os.path.isfile(os.path.join(folder_path, f"{model_name}_acados_ocp.json")):
+        os.remove(os.path.join(folder_path, f"{model_name}_acados_ocp.json"))
+
+    if os.path.isfile(os.path.join(folder_path, f"{model_name}_acados_sim.json")):
+        os.remove(os.path.join(folder_path, f"{model_name}_acados_sim.json"))
 
 
 def make_blank_dict(target_dim, state_dim, control_dim):
