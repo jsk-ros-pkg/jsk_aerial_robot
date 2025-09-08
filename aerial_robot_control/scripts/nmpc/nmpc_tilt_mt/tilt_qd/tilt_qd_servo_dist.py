@@ -25,12 +25,14 @@ class NMPCTiltQdServoDist(QDNMPCBase):
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True
         self.include_impedance = False
+        self.include_quaternion_constraint = False
+        self.include_soft_constraints = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullDist.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
         # Necessary for EKF inside simulation environment
         self.sim_solver = self.create_acados_sim_solver(self.params["T_samp"], build=True)

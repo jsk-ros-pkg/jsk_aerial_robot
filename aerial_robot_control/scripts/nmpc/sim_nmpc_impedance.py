@@ -217,10 +217,10 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                nmpc.acados_init_p[0:4] = quaternion_r
+                nmpc.acados_parameters[0:4] = quaternion_r
 
                 if nmpc.include_impedance:
-                    nmpc.acados_init_p[34:40] = np.array(
+                    nmpc.acados_parameters[34:40] = np.array(
                         [
                             nmpc.params["pMxy"],
                             nmpc.params["pMxy"],
@@ -232,16 +232,16 @@ def main(args):
                     )
                     # Note that we don't need to multiply the enlarge_factor here as it has been included in the cost mtx.
 
-                ocp_solver.set(j, "p", nmpc.acados_init_p)
+                ocp_solver.set(j, "p", nmpc.acados_parameters)
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            nmpc.acados_init_p[0:4] = quaternion_r
+            nmpc.acados_parameters[0:4] = quaternion_r
 
             if nmpc.include_impedance:
-                nmpc.acados_init_p[34:40] = np.array(
+                nmpc.acados_parameters[34:40] = np.array(
                     [
                         nmpc.params["pMxy"],
                         nmpc.params["pMxy"],
@@ -252,7 +252,7 @@ def main(args):
                     ]
                 )
 
-            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_parameters)
 
             # Compute control feedback and take the first action
             try:
@@ -522,12 +522,14 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # fmt: off
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different NMPC models with impedance control.")
     parser.add_argument(
         "model",
         type=int,
-        help="The NMPC model to be simulated. " "Options: 0 (disturbance), 1 (impedance).",
+        help="The NMPC model to be simulated. "
+             "Options: 0 (disturbance), 1 (impedance).",
     )
 
     parser.add_argument(
@@ -535,7 +537,8 @@ if __name__ == "__main__":
         "--sim_model",
         type=int,
         default=0,
-        help="The simulation model. " "Options: 0 (default: servo+thrust+dist).",
+        help="The simulation model. "
+             "Options: 0 (default: servo+thrust+dist).",
     )
 
     parser.add_argument(
@@ -543,7 +546,8 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
+        help="The type of plot. "
+             "Options: 0 (default: full), 1 (less), 2 (only rpy).",
     )
 
     parser.add_argument(
@@ -552,8 +556,8 @@ if __name__ == "__main__":
         type=int,
         default=3,
         help="The type of disturbance estimation. "
-        "Options: 0 (None), 1 (default: only use sensors), "
-        "2-5 (different MHE implementations).",
+             "Options: 0 (None), 1 (default: only use sensors), "
+             "2-5 (different MHE implementations).",
     )
 
     parser.add_argument(
@@ -565,8 +569,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-a", "--arch", type=str, default="qd", help="The robot's architecture. Options: bi, tri, qd (default)."
+        "-a",
+        "--arch",
+        type=str,
+        default='qd',
+        help="The robot's architecture. Options: bi, tri, qd (default)."
     )
-
     args = parser.parse_args()
     main(args)
+    # fmt: on

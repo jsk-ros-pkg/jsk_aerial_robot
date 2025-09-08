@@ -11,6 +11,7 @@ class RecedingHorizonBase(ABC):
     Base class for the receding horizon methods NMPC and MHE.
 
     :param string method: Sets correct path to save c generated code and is either "nmpc" or "wrench_est".
+    :param bool build: Flag to build a solver as c generated code. Default: True
     """
 
     def __init__(self, method, build: bool = True):
@@ -96,4 +97,4 @@ class RecedingHorizonBase(ABC):
             )
 
         os.makedirs(folder_path, exist_ok=True)
-        os.chdir(folder_path)  # Change working directory to the model folder (also affects inherited classes)
+        os.chdir(folder_path)  # Change working directory to the model folder to save model in cwd

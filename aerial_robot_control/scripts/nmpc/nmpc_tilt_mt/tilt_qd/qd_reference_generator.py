@@ -146,7 +146,7 @@ class QDNMPCReferenceGenerator:
         fg_b = rot_inv @ fg_w  # Body frame
         target_wrench = np.array([[fg_b.item(0), fg_b.item(1), fg_b.item(2), 0, 0, 0]]).T
 
-        # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None)
+        # A faster method if alloc_mat is dynamic:  x, _, _, _ = np.linalg.lstsq(alloc_mat, target_wrench, rcond=None) [same behaviour]
         target_force = self.alloc_mat_pinv @ target_wrench
 
         # Compute reference values for thrust

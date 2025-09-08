@@ -174,6 +174,9 @@ def main(args):
     # ---------- Reference ----------
     reference_generator = nmpc.get_reference_generator()
 
+    # Disturbance simulation
+    impulse_done = False
+
     # ---------- Visualization ----------
     viz = Visualizer(
         args.arch,
@@ -181,6 +184,18 @@ def main(args):
         nx_sim,
         nu,
         x_init_sim,
+        x_lower_constraints=dict(
+            list(zip(ocp_solver.acados_ocp.constraints.idxbx, ocp_solver.acados_ocp.constraints.lbx))
+        ),
+        x_upper_constraints=dict(
+            list(zip(ocp_solver.acados_ocp.constraints.idxbx, ocp_solver.acados_ocp.constraints.ubx))
+        ),
+        u_lower_constraints=(
+            [nmpc.params["thrust_min"], nmpc.params["a_min"]] if nmpc.tilt else [nmpc.params["thrust_min"]]
+        ),
+        u_upper_constraints=(
+            [nmpc.params["thrust_max"], nmpc.params["a_max"]] if nmpc.tilt else [nmpc.params["thrust_max"]]
+        ),
         tilt=nmpc.tilt,
         include_servo_model=sim_nmpc.include_servo_model,
         include_thrust_model=sim_nmpc.include_thrust_model,
@@ -223,7 +238,7 @@ def main(args):
             elif args.arch == "qd":
                 x_now[13:17] = deepcopy(x_now_sim[17:21])
 
-        # -------- Update control target --------
+        # --------- Update control target ---------
         target_xyz = np.array([[0.3, 0.6, 1.0]]).T
         target_rpy = np.array([[0.0, 0.0, 0.0]]).T
 
@@ -270,7 +285,7 @@ def main(args):
             elif args.arch == "qd":
                 ur[:, 4:] = 0.0
 
-        # -------- Set SQP mode --------
+        # --------- Set SQP mode ---------
         if is_sqp_change and t_sqp_start > t_sqp_end:
             if t_now >= t_sqp_start:
                 ocp_solver.solver_options["nlp_solver_type"] = "SQP"
@@ -278,7 +293,7 @@ def main(args):
             if t_now >= t_sqp_end:
                 ocp_solver.solver_options["nlp_solver_type"] = "SQP_RTI"
 
-        # -------- Update solver --------
+        # --------- Update solver ---------
         comp_time_start = time.time()
 
         if t_ctl >= ts_ctrl:
@@ -289,15 +304,15 @@ def main(args):
                 yr = np.concatenate((xr[j, :], ur[j, :]))
                 ocp_solver.set(j, "yref", yr)
                 quaternion_r = xr[j, 6:10]
-                nmpc.acados_init_p[0:4] = quaternion_r
-                ocp_solver.set(j, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+                nmpc.acados_parameters[0:4] = quaternion_r
+                ocp_solver.set(j, "p", nmpc.acados_parameters)  # For nonlinear quaternion error
 
             # N
             yr = xr[ocp_solver.N, :]
             ocp_solver.set(ocp_solver.N, "yref", yr)  # Final state of x, no u
             quaternion_r = xr[ocp_solver.N, 6:10]
-            nmpc.acados_init_p[0:4] = quaternion_r
-            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_init_p)  # For nonlinear quaternion error
+            nmpc.acados_parameters[0:4] = quaternion_r
+            ocp_solver.set(ocp_solver.N, "p", nmpc.acados_parameters)  # For nonlinear quaternion error
 
             # Compute control feedback and take the first action
             try:
@@ -307,7 +322,7 @@ def main(args):
                 break
 
         comp_time_end = time.time()
-        viz.comp_time[i] = comp_time_end - comp_time_start
+        viz.comp_time[i] = (comp_time_end - comp_time_start) * 1000.0  # in ms
 
         if args.arch == "qd":
             # Use previous servo angle as reference
@@ -319,7 +334,7 @@ def main(args):
                 alpha_integ += u_cmd[4:] * ts_ctrl
                 u_cmd[4:] = alpha_integ  # convert from delta input to real input
 
-        # --------- Update simulation ----------
+        # --------- Update simulation ---------
         sim_solver.set("x", x_now_sim)
         sim_solver.set("u", u_cmd)
 
@@ -329,11 +344,34 @@ def main(args):
 
         x_now_sim = sim_solver.get("x")
 
-        # Save current simulation data for later comparison
+        # --------- Check constraints ---------
+        # Boundary constraints
+        for idx in ocp_solver.acados_ocp.constraints.idxbx:
+            lbxi = np.where(ocp_solver.acados_ocp.constraints.idxbx == idx)[0][0]
+            if (
+                x_now_sim[idx] < ocp_solver.acados_ocp.constraints.lbx[lbxi]
+                or x_now_sim[idx] > ocp_solver.acados_ocp.constraints.ubx[lbxi]
+            ):
+                print(
+                    f"Warning: Constraint violation at index {idx} in simulation step {i}. "
+                    f"Value: {x_now_sim[idx]:.14f}, "
+                    f"Lower bound: {ocp_solver.acados_ocp.constraints.lbx[lbxi]}, "
+                    f"Upper bound: {ocp_solver.acados_ocp.constraints.ubx[lbxi]}"
+                )
+        # Nonlinear unit quaternion constraint
+        quat_norm = np.linalg.norm(x_now_sim[6:10])
+        if quat_norm < 0.999 or quat_norm > 1.001:
+            print(
+                f"Warning: Constraint violation for unit_q in simulation step {i}. "
+                f"Value: {quat_norm:.14f} != 1.0, "
+                f"Quaternion: {x_now_sim[6:10]}"
+            )
+
+        # --------- Log simulation data ---------
         x_history.append(x_now_sim.copy())
         u_history.append(u_cmd.copy())
 
-        # --------- Update visualizer ----------
+        # --------- Update visualizer ---------
         viz.update(i, x_now_sim, u_cmd)  # Note: The recording frequency of u_cmd is the same as ts_sim
 
     # ========== Visualize ==========
@@ -366,18 +404,21 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # fmt: off
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Run the simulation of different NMPC models.")
     parser.add_argument(
-        "model",
+        "-model",
+        "--model",
         type=int,
+        default=0,
         help="The NMPC model to be simulated. "
-        "Options: 0 (basic model), 1 (servo), "
-        "2 (thrust), 3(servo+thrust), "
-        "21 (servo+dist), 22 (servo+thrust+dist), "
-        "91(no_servo_new_cost), 92(servo_old_cost), "
-        "93(servo_diff), 94(servo+drag+dist), "
-        "95 (servo+thrust+drag), 96 (servo+drag_param+dist).",
+             "Options: 0 (basic model), 1 (servo), "
+             "2 (thrust), 3(servo+thrust), "
+             "21 (servo+dist), 22 (servo+thrust+dist), "
+             "91(no_servo_new_cost), 92(servo_old_cost), "
+             "93(servo_diff), 94(servo+drag+dist), "
+             "95 (servo+thrust+drag), 96 (servo+drag_param+dist).",
     )
 
     parser.add_argument(
@@ -385,7 +426,9 @@ if __name__ == "__main__":
         "--sim_model",
         type=int,
         default=0,
-        help="The simulation model. " "Options: 0 (default: servo+thrust), " "1 (servo+thrust+drag).",
+        help="The simulation model. "
+             "Options: 0 (default: servo+thrust), "
+             "1 (servo+thrust+drag).",
     )
 
     parser.add_argument(
@@ -393,11 +436,16 @@ if __name__ == "__main__":
         "--plot_type",
         type=int,
         default=0,
-        help="The type of plot. " "Options: 0 (default: full), 1 (less), 2 (only rpy).",
+        help="The type of plot. "
+             "Options: 0 (default: full), 1 (less), 2 (only rpy)."
     )
 
     parser.add_argument(
-        "-a", "--arch", type=str, default="qd", help="The robot's architecture. Options: bi, tri, qd (default)."
+        "-a",
+        "--arch",
+        type=str,
+        default='qd',
+        help="The robot's architecture. Options: bi, tri, qd (default)."
     )
 
     parser.add_argument(
@@ -407,9 +455,20 @@ if __name__ == "__main__":
         "because plot_type also decides the simulation parameters.",
     )
 
-    parser.add_argument("-s", "--save_data", action="store_true", help="Save simulation x and u data to file")
+    parser.add_argument(
+        "-s",
+        "--save_data",
+        action="store_true",
+        help="Save simulation x and u data to file"
+    )
 
-    parser.add_argument("--file_path", type=str, default=f"../../../../test/data/", help="Path to save the data file")
+    parser.add_argument(
+        "--file_path",
+        type=str,
+        default=f"../../../../test/data/",
+        help="Path to save the data file"
+    )
 
     args = parser.parse_args()
     main(args)
+    # fmt: on

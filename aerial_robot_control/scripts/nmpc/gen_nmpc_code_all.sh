@@ -8,16 +8,16 @@ unset MAKEFLAGS
 MODELS=(
 #    NMPCFixQdAngvelOut
 #    NMPCFixQdThrustOut
-#    NMPCTiltQdNoServo
-#    NMPCTiltQdServo
-#    NMPCTiltQdServoDist
-#    NMPCTiltQdServoImpedance
-#    NMPCTiltQdServoThrustDist
-#    NMPCTiltQdServoThrustImpedance
+   NMPCTiltQdNoServo
+   NMPCTiltQdServo
+   NMPCTiltQdServoDist
+   NMPCTiltQdServoImpedance
+   NMPCTiltQdServoThrustDist
+   NMPCTiltQdServoThrustImpedance
 #    NMPCTiltTriServo
 #    NMPCTiltBiServo
 #    NMPCTiltBi2OrdServo
-#    MHEWrenchEstAccMom
+   MHEWrenchEstAccMom
 )
 
 for model in "${MODELS[@]}"

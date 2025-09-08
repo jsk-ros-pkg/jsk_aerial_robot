@@ -1,7 +1,20 @@
+setuptools==68.1
+cmake==3.27
+ninja==1.13
+scikit-build==0.18.1
 scienceplots==2.1.1
-pandas==2.0.3
+pandas==1.3.5
 casadi==3.7.0
-numpy<=1.26.4 # Ensure compatibility with casadi
+# numpy<=1.26.4 # Ensure compatibility with casadi
+numpy==1.21.5 # Ensure compatibility with ROS-O
 transformations
 pyyaml
 rospkg
+torch==2.6.0
+torchsummary==1.5.1
+scipy==1.10.0
+scikit-learn==1.6.1
+matplotlib==3.5.1
+tikzplotlib==0.10.1
+progress-table==3.1.2
+cvxpy==1.7.2

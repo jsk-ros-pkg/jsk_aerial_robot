@@ -14,9 +14,20 @@ class NMPCTiltQdNoServo(QDNMPCBase):
     The output of the controller is the thrust and servo angle command for each rotor.
     """
 
-    def __init__(self, build: bool = True, phys=phys_art):
+    def __init__(
+        self,
+        model_name: str = "tilt_qd_no_servo_mdl",
+        method: str = "nmpc",
+        build: bool = True,
+        phys=phys_art,
+        include_cog_dist_parameter=False,
+        include_motor_noise_parameter=False,
+        include_soft_constraints=False,
+        include_quaternion_constraint=False,
+        floor_bounds=False,
+    ):
         # Model name
-        self.model_name = "tilt_qd_no_servo_mdl"
+        self.model_name = model_name
         self.phys = phys
 
         self.tilt = True
@@ -24,14 +35,29 @@ class NMPCTiltQdNoServo(QDNMPCBase):
         self.include_servo_derivative = False
         self.include_thrust_model = False  # TODO extend to include_thrust_derivative
         self.include_cog_dist_model = False
-        self.include_cog_dist_parameter = False
         self.include_impedance = False
+
+        # Optional disturbances
+        self.include_cog_dist_parameter = include_cog_dist_parameter
+        if self.include_cog_dist_parameter:
+            self.cog_dist_start_idx = len(self.phys.physical_param_list)
+
+        self.include_motor_noise_parameter = include_motor_noise_parameter
+        if self.include_motor_noise_parameter:
+            self.motor_noise_start_idx = len(self.phys.physical_param_list)
+            if self.include_cog_dist_parameter:
+                self.motor_noise_start_idx += 6
+
+        # Optional constraint settings
+        self.include_floor_bounds = floor_bounds  # Height constraint
+        self.include_soft_constraints = include_soft_constraints
+        self.include_quaternion_constraint = include_quaternion_constraint
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCNoServo.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(method=method, build=build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off

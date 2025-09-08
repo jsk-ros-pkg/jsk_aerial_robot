@@ -27,12 +27,14 @@ class NMPCTiltQdServoThrustImpedance(QDNMPCBase):
         self.include_cog_dist_model = True
         self.include_cog_dist_parameter = True  # TODO seperation between model and parameter necessary?
         self.include_impedance = True
+        self.include_quaternion_constraint = False
+        self.include_soft_constraints = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFullServoThrustImp.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
         # Necessary for simulation environment
         self.fake_sensor = FakeSensor(self.include_servo_model, self.include_thrust_model, self.include_cog_dist_model)

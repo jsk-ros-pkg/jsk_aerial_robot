@@ -26,12 +26,14 @@ class NMPCTiltQdServoThrust(QDNMPCBase):
         self.include_cog_dist_model = False
         self.include_cog_dist_parameter = False
         self.include_impedance = False
+        self.include_quaternion_constraint = False
+        self.include_soft_constraints = False
 
         # Read parameters from configuration file in the robot's package
         self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
 
         # Create acados model & solver and generate c code
-        super().__init__(build)
+        super().__init__(build=build)
 
     def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         # fmt: off

@@ -17,6 +17,10 @@ class Visualizer:
         nx,
         nu,
         x0,
+        x_lower_constraints=None,
+        x_upper_constraints=None,
+        u_lower_constraints=None,
+        u_upper_constraints=None,
         tilt=False,
         include_servo_model=False,
         include_thrust_model=False,
@@ -36,6 +40,12 @@ class Visualizer:
             pass
         else:
             raise ValueError("This robot architecture is not implemented yet!")
+
+        # Store constraints
+        self.x_lower_constraints = x_lower_constraints
+        self.x_upper_constraints = x_upper_constraints
+        self.u_lower_constraints = u_lower_constraints
+        self.u_upper_constraints = u_upper_constraints
 
         # Store model properties
         self.tilt = tilt
@@ -116,14 +126,27 @@ class Visualizer:
         time_data_x = np.arange(self.data_idx) * ts_sim
 
         # Plot Position
-        plt.subplot(ceil(n_plots / 2), 2, 1)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 0], label="x")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 1], label="y")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 2], label="z")
-        plt.legend(framealpha=legend_alpha)
+        # fmt: off
+        plt.subplot(ceil(n_plots/2), 2, 1)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 0], label="x")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 1], label="y")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 2], label="z")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Position (m)")
+        # Constraints
+        if 0 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[0] * np.ones(self.data_idx), "r--", label="xbl")
+        if 1 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[1] * np.ones(self.data_idx), "g--", label="ybl")
+        if 2 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[2] * np.ones(self.data_idx), "b--", label="zbl")
+        if 0 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[0] * np.ones(self.data_idx), "r--", label="xbu")
+        if 1 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[1] * np.ones(self.data_idx), "g--", label="ybu")
+        if 2 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[2] * np.ones(self.data_idx), "b--", label="zbu")
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
             plt.text(1.5, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
@@ -131,9 +154,9 @@ class Visualizer:
                 (t_sqp_start + t_sqp_end) / 2, 0.5, "SQP", horizontalalignment="center", verticalalignment="center"
             )
             plt.text(4.0, 0.5, "SQP_RTI", horizontalalignment="center", verticalalignment="center")
+        plt.legend(framealpha=legend_alpha)
         plt.grid(True)
 
-        # fmt: off
         # Plot Velocity
         plt.subplot(ceil(n_plots/2), 2, 3)
         plt.plot(time_data_x, x_sim_all[:self.data_idx, 3], label="vx")
@@ -143,9 +166,23 @@ class Visualizer:
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Velocity (m/s)")
-        plt.grid(True)
+        # Constraints
+        if 3 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[3] * np.ones(self.data_idx), 'r--', label="vbl")
+        if 4 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[4] * np.ones(self.data_idx), 'r--')
+        if 5 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[5] * np.ones(self.data_idx), 'r--')
+        if 3 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[3] * np.ones(self.data_idx), 'r--', label="vbu")
+        if 4 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[4] * np.ones(self.data_idx), 'r--')
+        if 5 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[5] * np.ones(self.data_idx), 'r--')
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+        plt.legend(framealpha=legend_alpha)
+        plt.grid(True)
 
         # Plot Quaternions
         plt.subplot(ceil(n_plots/2), 2, 5)
@@ -157,9 +194,27 @@ class Visualizer:
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Quaternion")
-        plt.grid(True)
+        # Constraints
+        if 6 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[6] * np.ones(self.data_idx), 'r--', label="lin qbl")
+        if 7 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[7] * np.ones(self.data_idx), 'g--', label="ang qbl")
+        if 8 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[8] * np.ones(self.data_idx), 'g--')
+        if 9 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[9] * np.ones(self.data_idx), 'g--')
+        if 6 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[6] * np.ones(self.data_idx), 'r--', label="lin qbu")
+        if 7 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[7] * np.ones(self.data_idx), 'g--', label="ang qbu")
+        if 8 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[8] * np.ones(self.data_idx), 'g--')
+        if 9 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[9] * np.ones(self.data_idx), 'g--')
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+        plt.legend(framealpha=legend_alpha)
+        plt.grid(True)
 
         # Convert x_sim_all[:, 6:10] to euler angle
         euler = np.zeros((x_sim_all.shape[0], 3))
@@ -168,38 +223,52 @@ class Visualizer:
             euler[i, :] = tf.euler_from_quaternion(qwxyz, axes="sxyz")
 
         # Plot Euler Angles
-        plt.subplot(ceil(n_plots / 2), 2, 2)
-        plt.plot(time_data_x, euler[: self.data_idx, 0], label="roll")
-        plt.plot(time_data_x, euler[: self.data_idx, 1], label="pitch")
-        plt.plot(time_data_x, euler[: self.data_idx, 2], label="yaw")
-        plt.legend(framealpha=legend_alpha)
+        plt.subplot(ceil(n_plots/2), 2, 2)
+        plt.plot(time_data_x, euler[:self.data_idx, 0], label="roll")
+        plt.plot(time_data_x, euler[:self.data_idx, 1], label="pitch")
+        plt.plot(time_data_x, euler[:self.data_idx, 2], label="yaw")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Euler Angle (rad)")
+        plt.legend(framealpha=legend_alpha)
         plt.grid(True)
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
 
         # Plot Angular Velocity
-        plt.subplot(ceil(n_plots / 2), 2, 4)
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 10], label="wx")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 11], label="wy")
-        plt.plot(time_data_x, x_sim_all[: self.data_idx, 12], label="wz")
-        plt.legend(framealpha=legend_alpha)
+        plt.subplot(ceil(n_plots/2), 2, 4)
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 10], label="wx")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 11], label="wy")
+        plt.plot(time_data_x, x_sim_all[:self.data_idx, 12], label="wz")
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
         plt.ylabel("Angular Velocity (rad/s)")
-        plt.grid(True)
+        # Constraints
+        if 10 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[10] * np.ones(self.data_idx), 'r--', label="wbl")
+        if 11 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[11] * np.ones(self.data_idx), 'r--')
+        if 12 in self.x_lower_constraints.keys():
+            plt.plot(time_data_x, self.x_lower_constraints[12] * np.ones(self.data_idx), 'r--')
+        if 10 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[10] * np.ones(self.data_idx), 'r--', label="wbu")
+        if 11 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[11] * np.ones(self.data_idx), 'r--')
+        if 12 in self.x_upper_constraints.keys():
+            plt.plot(time_data_x, self.x_upper_constraints[12] * np.ones(self.data_idx), 'r--')
         if is_plot_sqp:
             plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+        plt.legend(framealpha=legend_alpha)
+        plt.grid(True)
 
         # Plot Computation Time
-        print("Average computation time: ", np.mean(self.comp_time))
-        plt.subplot(ceil(n_plots / 2), 2, 6)
-        plt.plot(time_data_x, self.comp_time)
+        print(f"Average computation time: {np.mean(self.comp_time):.3f} ms")
+        plt.subplot(ceil(n_plots/2), 2, 6)
+        plt.plot(time_data_x, self.comp_time, label=f"Avg = {np.mean(self.comp_time):.3f} ms")
+        plt.legend(framealpha=legend_alpha)
         plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
-        plt.ylabel("Computation Time (s)")
+        plt.ylabel("Computation Time (ms)")
         plt.grid(True)
 
         # Plot Servo Angle as State
@@ -215,6 +284,9 @@ class Visualizer:
             if self.is_qd:
                 plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="a4s")
                 x_idx += 1
+            # Constraints
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_lower_constraints[1], self.u_lower_constraints[1]], 'r--')
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_upper_constraints[1], self.u_upper_constraints[1]], 'r--')
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
             plt.xlim([0, t_total_sim])
@@ -228,20 +300,21 @@ class Visualizer:
             plt.subplot(ceil(n_plots/2), 2, 8)
             plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft1s")
             plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+2], label="ft2s")
-            x_idx += 2
             if self.is_tri or self.is_qd:
-                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft3s")
-                x_idx += 1
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+3], label="ft3s")
             if self.is_qd:
-                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+1], label="ft4s")
-                x_idx += 1
+                plt.plot(time_data_x, x_sim_all[:self.data_idx, x_idx+4], label="ft4s")
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
             plt.xlim([0, t_total_sim])
             plt.ylabel("Thrust State (N)")
-            plt.grid(True)
+            # Constraints
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_lower_constraints[0], self.u_lower_constraints[0]], 'r--')
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_upper_constraints[0], self.u_upper_constraints[0]], 'r--')
             if is_plot_sqp:
                 plt.axvspan(t_sqp_start, t_sqp_end, facecolor="orange", alpha=0.2)
+            plt.legend(framealpha=legend_alpha)
+            plt.grid(True)
 
         # Plot Thrust as Control Input
         if self.include_thrust_model:
@@ -257,6 +330,9 @@ class Visualizer:
         if self.is_qd:
             plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, 3], label="ft4c")
             u_idx = 3
+        # Constraints
+        plt.plot([time_data_x[0], time_data_x[-1]], [self.u_lower_constraints[0], self.u_lower_constraints[0]], 'r--')
+        plt.plot([time_data_x[0], time_data_x[-1]], [self.u_upper_constraints[0], self.u_upper_constraints[0]], 'r--')
         plt.legend(framealpha=legend_alpha)
         # plt.xlabel("Time (s)")
         plt.xlim([0, t_total_sim])
@@ -277,6 +353,9 @@ class Visualizer:
                 plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+3], label="a3c")
             if self.is_qd:
                 plt.plot(time_data_x[1:], u_sim_all[:self.data_idx - 1, u_idx+4], label="a4c")
+            # Constraints
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_lower_constraints[1], self.u_lower_constraints[1]], 'r--')
+            plt.plot([time_data_x[0], time_data_x[-1]], [self.u_upper_constraints[1], self.u_upper_constraints[1]], 'r--')
             plt.legend(framealpha=legend_alpha)
             # plt.xlabel("Time (s)")
             plt.xlim([0, t_total_sim])
