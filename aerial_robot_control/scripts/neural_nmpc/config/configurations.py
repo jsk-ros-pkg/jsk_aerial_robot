@@ -41,7 +41,7 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": False,
+            "only_use_nominal": True,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
             "neural_model_instance": "neuralmodel_035",  # 29, 31
@@ -69,7 +69,7 @@ class EnvConfig:
         # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
         "disturbances": {
-            "cog_dist": True,  # Disturbance forces and torques on CoG
+            "cog_dist": False,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
             "cog_dist_factor": 0.1,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
@@ -81,14 +81,21 @@ class EnvConfig:
         "seed": 567,
     }
 
-    # Trajectory options
+    # Run options
     run_options = {
-        "preset_targets": None,
-        "low_flight_targets": True,
-        "initial_state": None,
-        "initial_guess": None,
-        "aggressive": True,
+        "real_machine": True,
     }
+
+    # Trajectory options
+    run_options.update(
+        {
+            "preset_targets": None,
+            "low_flight_targets": True,
+            "initial_state": None,
+            "initial_guess": None,
+            "aggressive": True,
+        }
+    )
 
     # Recording options
     run_options.update(
@@ -106,6 +113,11 @@ class EnvConfig:
             "save_animation": False,
         }
     )
+
+    if run_options["real_machine"]:
+        for key in sim_options["disturbances"]:
+            if sim_options["disturbances"][key] == True:
+                raise ValueError("No simulated disturbances allowed on real machine.")
 
 
 class MLPConfig:
@@ -138,7 +150,7 @@ class MLPConfig:
     batch_size = 64
 
     # Loss weighting of different predicted dimensions (default ones-vector)
-    loss_weight = [1.0, 1.0, 1000.0]  # weigh vz higher
+    loss_weight = [1.0, 1.0, 1.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
@@ -164,7 +176,7 @@ class ModelFitConfig:
     label_transform = False
 
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "residual" + "_dataset" + "_04"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset" + "_01"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo
@@ -182,7 +194,7 @@ class ModelFitConfig:
     # ------- Features used for the model -------
     # State features
     # state_feats = [3, 4, 5]
-    state_feats = [2, 3, 4, 5]  # , 6, 7, 8, 9]# , 10, 11, 12]
+    state_feats = [2, 3, 4, 5, 6, 7, 8, 9]  # , 10, 11, 12]
     # state_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
