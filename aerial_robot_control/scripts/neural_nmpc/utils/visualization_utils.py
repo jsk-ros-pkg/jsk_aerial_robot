@@ -306,7 +306,7 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
     """
     os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
 
-    fig = plt.subplots(figsize=(20, 5))
+    plt.subplots(figsize=(20, 5))
 
     n_plots = max(x.shape[1], y.shape[1], state_in.shape[1])
 
@@ -316,7 +316,6 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
         plt.plot(state_in[:, dim], label="state_in")
         plt.plot(state_out[:, dim], label="state_out")
         plt.plot(state_prop[:, dim], label="state_prop")
-        plt.plot(x[:, dim], color="r", label="x")
         plt.ylabel(f"Feature {dim}")
         if dim == 0:
             plt.title("State In & State Out")
@@ -335,7 +334,7 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
     diff1 = state_in - state_out
     diff2 = state_out - state_prop
 
-    fig = plt.subplots(figsize=(20, 5))
+    plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1]):
         plt.subplot(n_plots, 2, dim * 2 + 1)
         plt.plot(diff1[:, dim], color="red")
@@ -352,7 +351,7 @@ def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, sav
         plt.grid("on")
 
     # Plot control inputs
-    fig = plt.subplots(figsize=(20, 5))
+    plt.subplots(figsize=(20, 5))
     control = x[:, state_in.shape[1] :]
     for dim in range(control.shape[1]):
         plt.subplot(n_plots, 1, dim + 2)

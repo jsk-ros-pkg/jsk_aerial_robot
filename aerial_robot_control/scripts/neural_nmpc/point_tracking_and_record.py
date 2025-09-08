@@ -37,6 +37,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     # ------------------------
 
     # --- Initialize controller ---
+
     rtnmpc = NeuralNMPC(
         model_options=model_options, solver_options=solver_options, sim_options=sim_options, run_options=run_options
     )
