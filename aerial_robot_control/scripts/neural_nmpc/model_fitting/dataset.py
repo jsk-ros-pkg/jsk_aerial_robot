@@ -57,7 +57,7 @@ class TrajectoryDataset(Dataset):
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
         state_prop = undo_jsonify(self.df["state_prop"].to_numpy())
         control = undo_jsonify(self.df["control"].to_numpy())
-        dt = self.df["dt"].to_numpy()
+        dt = undo_jsonify(self.df["dt"].to_numpy())
 
         # Remove invalid entries (dt = 0)
         invalid = np.where(dt == 0)

@@ -60,7 +60,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
         histogram_pruning_thresh=MLPConfig.histogram_thresh,
         vel_cap=MLPConfig.vel_cap,
-        plot=False,
+        plot=True,
         save_file_path=save_file_path,
         save_file_name=save_file_name,
     )
