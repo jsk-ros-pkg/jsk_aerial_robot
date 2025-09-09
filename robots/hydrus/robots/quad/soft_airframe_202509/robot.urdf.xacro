@@ -314,10 +314,10 @@
   <transmission name="rotor_tran5">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="rotor5">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>RotorInterface</hardwareInterface>
     </joint>
     <actuator name="rotor5">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>RotorInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>

@@ -49,9 +49,3 @@ servo_controller:
       name: gimbal_joint1
       simulation:
         init_value: 0.0
-
-    controller7:
-      id: 6
-      name: rotor5
-      simulation:
-        init_value: 0.0
