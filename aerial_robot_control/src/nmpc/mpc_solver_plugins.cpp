@@ -25,7 +25,8 @@
 
 // Neural NMPC
 #include "aerial_robot_control/neural_nmpc/tilt_qd_nominal_servo_mdl/nmpc_solver.h"
-#include "aerial_robot_control/neural_nmpc/tilt_qd_neural_servo_mdl/nmpc_solver.h"
+#include "aerial_robot_control/neural_nmpc/tilt_qd_neural_servo_plus_mdl/nmpc_solver.h"
+#include "aerial_robot_control/neural_nmpc/tilt_qd_neural_servo_minus_mdl/nmpc_solver.h"
 
 // PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::FixQdMdlMPCSolver,
 //                        aerial_robot_control::mpc_solver::BaseMPCSolver)
@@ -51,5 +52,7 @@ PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdServoThrustDistIm
 
 PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdNominalServoMdlNMPCSolver,
                        aerial_robot_control::mpc_solver::BaseMPCSolver)
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdNeuralServoMdlNMPCSolver,
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdNeuralServoPlusMdlNMPCSolver,
+                       aerial_robot_control::mpc_solver::BaseMPCSolver)
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlNMPCSolver,
                        aerial_robot_control::mpc_solver::BaseMPCSolver)

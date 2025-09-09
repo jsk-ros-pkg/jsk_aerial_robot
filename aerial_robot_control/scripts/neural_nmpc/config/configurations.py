@@ -42,6 +42,8 @@ class EnvConfig:
     model_options.update(
         {
             "only_use_nominal": False,
+            "plus_neural": True,
+            "minus_neural": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
             "neural_model_instance": "neuralmodel_035",  # 29, 31
@@ -57,6 +59,8 @@ class EnvConfig:
     if model_options["only_use_nominal"] and model_options["end_to_end_mlp"]:
         raise ValueError("Conflict in options.")
     if model_options["approximate_mlp"] and model_options["approx_order"] == 0:
+        raise ValueError("Conflict in options.")
+    if model_options["minus_neural"] and model_options["plus_neural"]:
         raise ValueError("Conflict in options.")
 
     solver_options = {

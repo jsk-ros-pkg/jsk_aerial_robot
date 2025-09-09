@@ -69,11 +69,14 @@ class NeuralNMPC:
             identifier = "nominal"
         else:
             identifier = "neural"
-            if "minus" in model_options:
-                if model_options["minus"]:
-                    identifier += "_minus"
-                else:
-                    identifier += "_plus"
+            identifier2 = ""
+            if "minus_neural" in model_options:
+                if model_options["minus_neural"]:
+                    identifier2 = "_minus"
+
+            if "plus_neural" in model_options:
+                if model_options["plus_neural"]:
+                    identifier2 = "_plus"
 
         delete_previous_solver_files(model_options, identifier)
 
@@ -108,7 +111,7 @@ class NeuralNMPC:
                     Check with using Servo yaml"
                 )
                 self.nmpc = NMPCTiltQdNoServo(
-                    model_name=f"tilt_qd_{identifier}_no_servo_mdl",
+                    model_name=f"tilt_qd_{identifier}_no_servo{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     include_cog_dist_parameter=include_cog_dist_parameter,
@@ -119,7 +122,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServo":
                 self.nmpc = NMPCTiltQdServo(
-                    model_name=f"tilt_qd_{identifier}_servo_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -131,7 +134,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdThrust":
                 self.nmpc = NMPCTiltQdThrust(
-                    model_name=f"tilt_qd_{identifier}_thrust_mdl",
+                    model_name=f"tilt_qd_{identifier}_thrust{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -143,7 +146,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrust":
                 self.nmpc = NMPCTiltQdServoThrust(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -156,7 +159,7 @@ class NeuralNMPC:
 
             elif self.nmpc_type == "NMPCTiltQdServoDist":
                 self.nmpc = NMPCTiltQdServoDist(
-                    model_name=f"tilt_qd_{identifier}_servo_dist_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_dist{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -168,7 +171,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
                 self.nmpc = NMPCTiltQdServoThrustDist(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_dist_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_dist{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -208,7 +211,7 @@ class NeuralNMPC:
             # Archived methods
             elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
                 self.nmpc = NMPCTiltQdNoServoAcCost(
-                    model_name=f"tilt_qd_{identifier}_no_servo_ac_cost_mdl",
+                    model_name=f"tilt_qd_{identifier}_no_servo_ac_cost{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -220,7 +223,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoOldCost":
                 self.nmpc = NMPCTiltQdServoOldCost(
-                    model_name=f"tilt_qd_{identifier}_servo_old_cost_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_old_cost{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -232,7 +235,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoDiff":
                 self.nmpc = NMPCTiltQdServoDiff(
-                    model_name=f"tilt_qd_{identifier}_servo_diff_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_diff{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -245,7 +248,7 @@ class NeuralNMPC:
                 alpha_integ = np.zeros(4)  # TODO not implemented yet
             elif self.nmpc_type == "NMPCTiltQdServoDragDist":
                 self.nmpc = NMPCTiltQdServoDragDist(
-                    model_name=f"tilt_qd_{identifier}_servo_drag_dist_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_drag_dist{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -257,7 +260,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
                 self.nmpc = NMPCTiltQdServoThrustDrag(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -269,7 +272,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
                 self.nmpc = NMPCTiltQdServoWCogEndDist(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -516,14 +519,15 @@ class NeuralNMPC:
                 M = get_output_mapping(self.state.shape[0], self.y_reg_dims, only_vz=only_vz)
 
                 # Combine nominal dynamics with neural dynamics
-                if "minus" in self.model_options:
-                    if self.model_options["minus"]:
+                f_total = nominal_dynamics + M @ mlp_out
+                # f_total = nominal_dynamics - M @ mlp_out
+
+                if "minus_neural" in self.model_options:
+                    if self.model_options["minus_neural"]:
                         f_total = nominal_dynamics - M @ mlp_out
-                    else:
+                if "plus_neural" in self.model_options:
+                    if self.model_options["plus_neural"]:
                         f_total = nominal_dynamics + M @ mlp_out
-                else:
-                    f_total = nominal_dynamics + M @ mlp_out
-                    # f_total = nominal_dynamics - M @ mlp_out
 
         # Implicit dynamics
         x_dot = ca.MX.sym("x_dot", self.state.size())

@@ -2,15 +2,15 @@
 // Created by lijinjie on 23/11/29.
 //
 
-#include "aerial_robot_control/neural_nmpc/tilt_mt_neural_servo_nmpc_controller.h"
+#include "aerial_robot_control/neural_nmpc/tilt_mt_neural_servo_minus_nmpc_controller.h"
 
 using namespace aerial_robot_control;
 
-void nmpc::TiltMtNeuralServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
-                                             boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                                             boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                                             boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                                             double ctrl_loop_du)
+void nmpc::TiltMtNeuralServoMinusNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
+                                                  boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+                                                  boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+                                                  boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+                                                  double ctrl_loop_du)
 {
   BaseMPC::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_du);
 
@@ -30,7 +30,7 @@ void nmpc::TiltMtNeuralServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
   nmpc_reconf_servers_.push_back(boost::make_shared<NMPCControlDynamicConfig>(nmpc_nh));
-  nmpc_reconf_servers_.back()->setCallback(boost::bind(&TiltMtNeuralServoNMPC::cfgNMPCCallback, this, _1, _2));
+  nmpc_reconf_servers_.back()->setCallback(boost::bind(&TiltMtNeuralServoMinusNMPC::cfgNMPCCallback, this, _1, _2));
 
   /* set some ROS parameters */
   nmpc_nh.setParam("NN", mpc_solver_ptr_->NN_);
@@ -38,7 +38,7 @@ void nmpc::TiltMtNeuralServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle
   nmpc_nh.setParam("NU", mpc_solver_ptr_->NU_);
 
   /* timers */
-  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltMtNeuralServoNMPC::callbackViz, this);
+  tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltMtNeuralServoMinusNMPC::callbackViz, this);
 
   /* publishers */
   pub_viz_pred_ = nh_.advertise<geometry_msgs::PoseArray>("nmpc/viz_pred", 1);
@@ -51,11 +51,11 @@ void nmpc::TiltMtNeuralServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle
   srv_set_control_mode_ = nh_.serviceClient<spinal::SetControlMode>("set_control_mode");
 
   /* subscribers */
-  sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltMtNeuralServoNMPC::callbackJointStates, this);
-  sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltMtNeuralServoNMPC::callbackSetRPY, this);
-  sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltMtNeuralServoNMPC::callbackSetRefXU, this);
-  sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltMtNeuralServoNMPC::callbackSetRefTraj, this);
-  sub_set_fixed_rotor_ = nh_.subscribe("set_fixed_rotor", 5, &TiltMtNeuralServoNMPC::callbackSetFixedRotor, this);
+  sub_joint_states_ = nh_.subscribe("joint_states", 5, &TiltMtNeuralServoMinusNMPC::callbackJointStates, this);
+  sub_set_rpy_ = nh_.subscribe("set_rpy", 5, &TiltMtNeuralServoMinusNMPC::callbackSetRPY, this);
+  sub_set_ref_x_u_ = nh_.subscribe("set_ref_x_u", 5, &TiltMtNeuralServoMinusNMPC::callbackSetRefXU, this);
+  sub_set_traj_ = nh_.subscribe("set_ref_traj", 5, &TiltMtNeuralServoMinusNMPC::callbackSetRefTraj, this);
+  sub_set_fixed_rotor_ = nh_.subscribe("set_fixed_rotor", 5, &TiltMtNeuralServoMinusNMPC::callbackSetFixedRotor, this);
 
   /* init some values */
   setControlMode();
@@ -69,7 +69,7 @@ void nmpc::TiltMtNeuralServoNMPC::initialize(ros::NodeHandle nh, ros::NodeHandle
   ROS_INFO("MPC Controller initialized!");
 }
 
-void nmpc::TiltMtNeuralServoNMPC::activate()
+void nmpc::TiltMtNeuralServoMinusNMPC::activate()
 {
   ControlBase::activate();
 
@@ -91,7 +91,7 @@ void nmpc::TiltMtNeuralServoNMPC::activate()
   pub_flight_config_cmd_spinal_.publish(flight_config_cmd);
 }
 
-bool nmpc::TiltMtNeuralServoNMPC::update()
+bool nmpc::TiltMtNeuralServoMinusNMPC::update()
 {
   if (!ControlBase::update())
     return false;
@@ -102,7 +102,7 @@ bool nmpc::TiltMtNeuralServoNMPC::update()
   return true;
 }
 
-void nmpc::TiltMtNeuralServoNMPC::reset()
+void nmpc::TiltMtNeuralServoMinusNMPC::reset()
 {
   ControlBase::reset();
 
@@ -140,7 +140,7 @@ void nmpc::TiltMtNeuralServoNMPC::reset()
   pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::initGeneralParams()
+void nmpc::TiltMtNeuralServoMinusNMPC::initGeneralParams()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -171,7 +171,7 @@ void nmpc::TiltMtNeuralServoNMPC::initGeneralParams()
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::initNMPCCostW()
+void nmpc::TiltMtNeuralServoMinusNMPC::initNMPCCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -212,7 +212,7 @@ void nmpc::TiltMtNeuralServoNMPC::initNMPCCostW()
     mpc_solver_ptr_->setCostWDiagElement(i, Rac_d, false);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::initNMPCConstraints()
+void nmpc::TiltMtNeuralServoMinusNMPC::initNMPCConstraints()
 {
   ros::NodeHandle control_nh(nh_, "controller");
   ros::NodeHandle nmpc_nh(control_nh, "nmpc");
@@ -297,7 +297,7 @@ void nmpc::TiltMtNeuralServoNMPC::initNMPCConstraints()
   mpc_solver_ptr_->setConstraintsUbu(ubu);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::setControlMode()
+void nmpc::TiltMtNeuralServoMinusNMPC::setControlMode()
 {
   bool res = ros::service::waitForService("set_control_mode", ros::Duration(5));
   if (!res)
@@ -316,7 +316,7 @@ void nmpc::TiltMtNeuralServoNMPC::setControlMode()
            set_control_mode_srv.request.is_body_rate);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::initAllocMat()
+void nmpc::TiltMtNeuralServoMinusNMPC::initAllocMat()
 {
   /* get physical param */
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
@@ -356,7 +356,7 @@ void nmpc::TiltMtNeuralServoNMPC::initAllocMat()
   alloc_mat_pinv_ = aerial_robot_model::pseudoinverse(alloc_mat_);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::initNMPCParams()
+void nmpc::TiltMtNeuralServoMinusNMPC::initNMPCParams()
 {
   /* construct acados parameters */
   std::vector<double> acados_p(mpc_solver_ptr_->NP_, 0.0);
@@ -386,7 +386,7 @@ void nmpc::TiltMtNeuralServoNMPC::initNMPCParams()
   mpc_solver_ptr_->setParameters(acados_p);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::updateInertialParams()
+void nmpc::TiltMtNeuralServoMinusNMPC::updateInertialParams()
 {
   mass_ = robot_model_->getMass();
   gravity_const_ = robot_model_->getGravity()[2];
@@ -397,7 +397,7 @@ void nmpc::TiltMtNeuralServoNMPC::updateInertialParams()
   inertia_[2] = inertia_mtx(2, 2);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::modifyVelConstraints(double vel_min, double vel_max) const
+void nmpc::TiltMtNeuralServoMinusNMPC::modifyVelConstraints(double vel_min, double vel_max) const
 {
   // Hardcoded: the vel idx is 3,4,5, which are the first three elements. TODO: consider to make it more general
 
@@ -429,7 +429,7 @@ void nmpc::TiltMtNeuralServoNMPC::modifyVelConstraints(double vel_min, double ve
            ubx[0], ubx[1], ubx[2]);
 }
 
-std::vector<double> nmpc::TiltMtNeuralServoNMPC::PhysToNMPCParams() const
+std::vector<double> nmpc::TiltMtNeuralServoMinusNMPC::PhysToNMPCParams() const
 {
   int rotor_num = robot_model_->getRotorNum();  // For tilt-rotor, rotor_num = servo_num
   const auto& rotor_p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
@@ -474,7 +474,7 @@ std::vector<double> nmpc::TiltMtNeuralServoNMPC::PhysToNMPCParams() const
   return phys_p;
 }
 
-void nmpc::TiltMtNeuralServoNMPC::controlCore()
+void nmpc::TiltMtNeuralServoMinusNMPC::controlCore()
 {
   // restore velocity constraints after hovering
   if (navigator_->getNaviState() == aerial_robot_navigation::HOVER_STATE and has_restored_vel_ == false)
@@ -519,7 +519,7 @@ void nmpc::TiltMtNeuralServoNMPC::controlCore()
   }
 }
 
-void nmpc::TiltMtNeuralServoNMPC::sendCmd()
+void nmpc::TiltMtNeuralServoMinusNMPC::sendCmd()
 {
   /* publish */
   if (motor_num_ > 0)
@@ -528,7 +528,7 @@ void nmpc::TiltMtNeuralServoNMPC::sendCmd()
     pub_gimbal_control_.publish(gimbal_ctrl_cmd_);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::prepareNMPCRef()
+void nmpc::TiltMtNeuralServoMinusNMPC::prepareNMPCRef()
 {
   /* if in trajectory tracking mode, the ref is set by callbackSetRefXU.
    * So here we check if the traj info is still received. If not, we turn off the tracking mode */
@@ -603,7 +603,7 @@ void nmpc::TiltMtNeuralServoNMPC::prepareNMPCRef()
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::prepareNMPCParams()
+void nmpc::TiltMtNeuralServoMinusNMPC::prepareNMPCParams()
 {
   updateInertialParams();
 
@@ -630,10 +630,10 @@ void nmpc::TiltMtNeuralServoNMPC::prepareNMPCParams()
  * @param horizon_idx - set -1 for adding the target point to the end of the reference trajectory, 0 ~ NN for adding
  * the target point to the horizon_idx interval
  */
-void nmpc::TiltMtNeuralServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
-                                             const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
-                                             const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
-                                             const int& horizon_idx)
+void nmpc::TiltMtNeuralServoMinusNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                                  const tf::Vector3& ref_acc_i, const tf::Quaternion& ref_quat_ib,
+                                                  const tf::Vector3& ref_omega_b, const tf::Vector3& ref_ang_acc_b,
+                                                  const int& horizon_idx)
 {
   int& NX = mpc_solver_ptr_->NX_;
   int& NU = mpc_solver_ptr_->NU_;
@@ -698,9 +698,9 @@ void nmpc::TiltMtNeuralServoNMPC::setXrUrRef(const tf::Vector3& ref_pos_i, const
     std::copy(u.begin(), u.begin() + NU, x_u_ref_.u.data.begin() + NU * horizon_idx);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
-                                               const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
-                                               const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u)
+void nmpc::TiltMtNeuralServoMinusNMPC::allocateToXU(const tf::Vector3& ref_pos_i, const tf::Vector3& ref_vel_i,
+                                                    const tf::Quaternion& ref_quat_ib, const tf::Vector3& ref_omega_b,
+                                                    const VectorXd& ref_wrench_b, vector<double>& x, vector<double>& u)
 {
   x.at(0) = ref_pos_i.x();
   x.at(1) = ref_pos_i.y();
@@ -802,9 +802,9 @@ void nmpc::TiltMtNeuralServoNMPC::allocateToXU(const tf::Vector3& ref_pos_i, con
   allocateToXUwOneFixedRotor(rotor_idx, ft_stop_rotor, alpha_stop_rotor, ref_wrench_b, x, u);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha,
-                                                             const VectorXd& ref_wrench_b, vector<double>& x,
-                                                             vector<double>& u)
+void nmpc::TiltMtNeuralServoMinusNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, double fix_ft, double fix_alpha,
+                                                                  const VectorXd& ref_wrench_b, vector<double>& x,
+                                                                  vector<double>& u)
 {
   double fix_ft_x = fix_ft * sin(fix_alpha);
   double fix_ft_y = fix_ft * cos(fix_alpha);
@@ -866,7 +866,7 @@ void nmpc::TiltMtNeuralServoNMPC::allocateToXUwOneFixedRotor(int fix_rotor_idx, 
  * @brief callbackViz: publish the predicted trajectory and reference trajectory
  * @param [ros::TimerEvent&] event
  */
-void nmpc::TiltMtNeuralServoNMPC::callbackViz(const ros::TimerEvent& event)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackViz(const ros::TimerEvent& event)
 {
   // from mpc_solver_ptr_->x_u_out to PoseArray
   geometry_msgs::PoseArray pred_poses;
@@ -907,14 +907,14 @@ void nmpc::TiltMtNeuralServoNMPC::callbackViz(const ros::TimerEvent& event)
   pub_viz_ref_.publish(ref_poses);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackJointStates(const sensor_msgs::JointStateConstPtr& msg)
 {
   for (int i = 0; i < joint_num_; i++)
     joint_angles_[i] = msg->position[i];
 }
 
 /* TODO: this function is just for test. We may need a more general function to set all kinds of state */
-void nmpc::TiltMtNeuralServoNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackSetRPY(const spinal::DesireCoordConstPtr& msg)
 {
   // add a check to avoid the singular point for euler angle
   if (msg->pitch == M_PI / 2.0 or msg->pitch == -M_PI / 2.0)
@@ -931,7 +931,7 @@ void nmpc::TiltMtNeuralServoNMPC::callbackSetRPY(const spinal::DesireCoordConstP
 }
 
 /* TODO: this function should be combined with the inner planning framework */
-void nmpc::TiltMtNeuralServoNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg)
 {
   /* failsafe check */
   if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
@@ -955,7 +955,7 @@ void nmpc::TiltMtNeuralServoNMPC::callbackSetRefXU(const aerial_robot_msgs::Pred
   mpc_solver_ptr_->setReference(mpc_solver_ptr_->xr_, mpc_solver_ptr_->ur_, true);
 }
 
-void nmpc::TiltMtNeuralServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
 {
   if (msg->points.size() != mpc_solver_ptr_->NN_ + 1)
     ROS_WARN("The length of the trajectory is not equal to the prediction horizon! Cannot use the trajectory!");
@@ -1003,7 +1003,7 @@ void nmpc::TiltMtNeuralServoNMPC::callbackSetRefTraj(const trajectory_msgs::Mult
   last_traj_msg_ = *msg;
 }
 
-void nmpc::TiltMtNeuralServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
+void nmpc::TiltMtNeuralServoMinusNMPC::callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg)
 {
   // failsafe
   if (msg->rotor_id < 0 || msg->rotor_id >= motor_num_)
@@ -1032,7 +1032,7 @@ void nmpc::TiltMtNeuralServoNMPC::callbackSetFixedRotor(const aerial_robot_msgs:
   fix_rotor_msg_ = *msg;
 }
 
-void nmpc::TiltMtNeuralServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
+void nmpc::TiltMtNeuralServoMinusNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t level)
 {
   using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
   if (config.nmpc_flag)
@@ -1117,7 +1117,7 @@ void nmpc::TiltMtNeuralServoNMPC::cfgNMPCCallback(NMPCConfig& config, uint32_t l
   }
 }
 
-double nmpc::TiltMtNeuralServoNMPC::getCommand(int idx_u, double T_horizon) const
+double nmpc::TiltMtNeuralServoMinusNMPC::getCommand(int idx_u, double T_horizon) const
 {
   if (T_horizon == 0)
     return mpc_solver_ptr_->uo_.at(0).at(idx_u);
@@ -1126,7 +1126,7 @@ double nmpc::TiltMtNeuralServoNMPC::getCommand(int idx_u, double T_horizon) cons
          T_horizon / t_nmpc_step_ * (mpc_solver_ptr_->uo_.at(1).at(idx_u) - mpc_solver_ptr_->uo_.at(0).at(idx_u));
 }
 
-std::vector<double> nmpc::TiltMtNeuralServoNMPC::meas2VecX(bool is_ee_centric)
+std::vector<double> nmpc::TiltMtNeuralServoMinusNMPC::meas2VecX(bool is_ee_centric)
 {
   vector<double> bx0(mpc_solver_ptr_->NBX0_, 0);
 
@@ -1180,7 +1180,7 @@ std::vector<double> nmpc::TiltMtNeuralServoNMPC::meas2VecX(bool is_ee_centric)
   return bx0;
 }
 
-double nmpc::TiltMtNeuralServoNMPC::ensureOneServoContinuity(double a_ref, int idx) const
+double nmpc::TiltMtNeuralServoMinusNMPC::ensureOneServoContinuity(double a_ref, int idx) const
 {
   double a_now = gimbal_ctrl_cmd_.position[idx];
   // ensure the servo angle is continuous
@@ -1192,7 +1192,7 @@ double nmpc::TiltMtNeuralServoNMPC::ensureOneServoContinuity(double a_ref, int i
   return a_ref;
 }
 
-std::vector<double> nmpc::TiltMtNeuralServoNMPC::ensureAllServoContinuity(std::vector<double>& a_ref_vec) const
+std::vector<double> nmpc::TiltMtNeuralServoMinusNMPC::ensureAllServoContinuity(std::vector<double>& a_ref_vec) const
 {
   for (int i = 0; i < joint_num_; i++)
     a_ref_vec[i] = ensureOneServoContinuity(a_ref_vec[i], i);
@@ -1200,7 +1200,7 @@ std::vector<double> nmpc::TiltMtNeuralServoNMPC::ensureAllServoContinuity(std::v
   return a_ref_vec;
 }
 
-void nmpc::TiltMtNeuralServoNMPC::printPhysicalParams()
+void nmpc::TiltMtNeuralServoMinusNMPC::printPhysicalParams()
 {
   cout << "mass: " << robot_model_->getMass() << endl;
   cout << "gravity: " << robot_model_->getGravity() << endl;
@@ -1221,9 +1221,9 @@ void nmpc::TiltMtNeuralServoNMPC::printPhysicalParams()
   cout << "abs(kq_kt_rate)" << abs(robot_model_->getMFRate()) << endl;
 }
 
-bool nmpc::TiltMtNeuralServoNMPC::isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
-                                                           const trajectory_msgs::MultiDOFJointTrajectoryPoint& b,
-                                                           bool if_compare_time, double epsilon)
+bool nmpc::TiltMtNeuralServoMinusNMPC::isMulDOFJointTrajPtEqual(const trajectory_msgs::MultiDOFJointTrajectoryPoint& a,
+                                                                const trajectory_msgs::MultiDOFJointTrajectoryPoint& b,
+                                                                bool if_compare_time, double epsilon)
 {
   if (a.transforms.size() != b.transforms.size() || a.velocities.size() != b.velocities.size() ||
       a.accelerations.size() != b.accelerations.size())
@@ -1275,4 +1275,4 @@ bool nmpc::TiltMtNeuralServoNMPC::isMulDOFJointTrajPtEqual(const trajectory_msgs
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
 
-PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtNeuralServoNMPC, aerial_robot_control::ControlBase)
+PLUGINLIB_EXPORT_CLASS(aerial_robot_control::nmpc::TiltMtNeuralServoMinusNMPC, aerial_robot_control::ControlBase)

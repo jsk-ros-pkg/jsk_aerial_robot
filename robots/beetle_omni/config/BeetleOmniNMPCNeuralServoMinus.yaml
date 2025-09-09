@@ -1,0 +1,71 @@
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlNMPCSolver
+aerial_robot_control_name: aerial_robot_control/neural_nmpc_controller/tilt_mt/neural_servo_minus_nmpc
+
+controller:
+  nmpc:
+    T_samp: 0.01  # 100 Hz  TODO: should be adjusted by main_rate
+    T_horizon: 2.0  # seconds
+    T_step: 0.1  # seconds
+
+    # Hard constraints
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
+
+    v_max: 1
+    v_min: -1
+
+    thrust_max: 30  # N
+    thrust_min: 0  # N
+
+    a_max: 3.1416  # 30 degree ~ 0.5    1.5708 rad ~ 90 deg
+    a_min: -3.1416
+
+    # Weights for cost function
+    # How to improve controller performance (in order of effectiveness):
+    # 1. Change reference (e.g. aggressive csv)
+    # 2. Increase constraints (specifially, v_max)
+    # 3. Modify weights
+    # ==== From paper ====
+    # Qp_xy: 10
+    # Qp_z: 10
+    # Qv_xy: 0.05
+    # Qv_z: 0.05
+    # Qq_xy: 0.001
+    # Qq_z: 0.001
+    # Qw_xy: 0.005
+    # Qw_z: 0.005
+    # Rt: 0.1
+    # ==== Aggressive (overshooting) ====
+    # Qp_xy: 500
+    # Qp_z: 350
+    # Qv_xy: 0.01
+    # Qv_z: 0.01
+    # Qq_xy: 0.0001
+    # Qq_z: 0.0001
+    # Qw_xy: 0.1
+    # Qw_z: 10
+    # Qa: 0.01
+    # Rt: 0.001  # 1
+    # Rac_d: 1  # 250  # difference of ac
+    # ==== Default ====
+    Qp_xy: 300  # 500 (sim)
+    Qp_z: 400  # 500 (sim)
+    Qv_xy: 10
+    Qv_z: 10
+    Qq_xy: 300  # 0.1 (sim)
+    Qq_z: 600  # 0.1 (sim)
+    Qw_xy: 5
+    Qw_z: 5
+    Qa: 1
+    Rt: 1
+    Rac_d: 250  # difference of ac
+
+    # Slack constraint weights
+    linear_slack_weight: 10
+    quadratic_slack_weight: 100
+
+    is_attitude_ctrl: false
+    is_body_rate_ctrl: false
+
+    is_print_phys_params: false
+    is_debug: false
