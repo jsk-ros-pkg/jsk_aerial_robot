@@ -962,7 +962,7 @@ void nmpc::TiltMtServoNMPC::callbackSetRefTraj(const trajectory_msgs::MultiDOFJo
 
   if (navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
   {
-    ROS_WARN_THROTTLE(1, "The robot has not hovered, so the reference trajectory will be ignored!");
+    ROS_WARN("[!] The robot has not hovered, so the reference trajectory will be ignored!");
     return;
   }
 
