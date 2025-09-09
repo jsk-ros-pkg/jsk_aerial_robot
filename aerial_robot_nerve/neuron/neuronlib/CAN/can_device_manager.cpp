@@ -53,7 +53,7 @@ namespace CANDeviceManager
     can_timeout_count++;
     if (can_timeout_count <= CAN_MAX_TIMEOUT_COUNT) {
       internal_count++;
-      if (internal_count == (1000 / cycle) - 1) {
+      if (internal_count == 1000 / cycle) {
         internal_count = 0;
       }
       if (internal_count == 0) {
