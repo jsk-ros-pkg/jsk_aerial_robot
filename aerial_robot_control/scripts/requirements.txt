@@ -6,7 +6,8 @@ scienceplots==2.1.1
 pandas==1.3.5
 casadi==3.7.0
 # numpy<=1.26.4 # Ensure compatibility with casadi
-numpy==1.21.5 # Ensure compatibility with ROS-O
+# numpy==1.21.5 # Ensure compatibility with ROS-O
+numpy==1.24.4 # Compromise
 transformations
 pyyaml
 rospkg
