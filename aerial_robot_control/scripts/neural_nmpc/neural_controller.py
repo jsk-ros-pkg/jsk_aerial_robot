@@ -604,7 +604,6 @@ class NeuralNMPC:
             self.nmpc.phys.physical_param_list
         )
 
-        _ocp.dims.np = self.acados_model.p.size()[0]  # Number of parameters
         _ocp.parameter_values = self.acados_parameters[0, :]
         # =====================================================================
 
