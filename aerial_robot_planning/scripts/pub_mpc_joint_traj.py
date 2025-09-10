@@ -190,6 +190,12 @@ class MPCSinglePtPub(MPCPubJointTraj):
         """
         # Current pose
         cur_pos = self.uav_odom.pose.pose.position
+
+        ####################################################
+        # NOT CLEAR WHY BUT z has always an offset of 0.26
+        cur_pos.z -= 0.26
+        ####################################################
+
         dx = cur_pos.x - self.target_pose.position.x
         dy = cur_pos.y - self.target_pose.position.y
         dz = cur_pos.z - self.target_pose.position.z
@@ -219,4 +225,8 @@ class MPCSinglePtPub(MPCPubJointTraj):
             rospy.loginfo(f"{self.namespace}/{self.node_name}: Target reached!")
             return True
         else:
+            # rospy.loginfo(f"pos_err, ang_err, vel_err, rate_err: {pos_err}, {ang_err}, {vel_err}, {rate_err}")
+            rospy.loginfo(f"cur_pos.z = {cur_pos.z}")
+            # rospy.loginfo(f"self.target_pose.position.z = {self.target_pose.position.z}")
+            # rospy.loginfo(f"cur_pos.z - self.target_pose.position.z = {cur_pos.z - self.target_pose.position.z}")
             return False
