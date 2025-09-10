@@ -51,6 +51,8 @@ class EnvConfig:
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
             # 35: same as 34 but on dataset 04 (dist_factor=0.1)
+            # 39 & 40: on real data (but small set)
+            # 41: real data, large dataset (200k points)
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -137,7 +139,7 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [32]  # [64, 64, 64, 64]  # In_features of each hidden layer
+    hidden_sizes = [64]  # [64, 64, 64, 64]  # In_features of each hidden layer
 
     # Activation function
     activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
@@ -157,7 +159,7 @@ class MLPConfig:
     batch_size = 64
 
     # Loss weighting of different predicted dimensions (default ones-vector)
-    loss_weight = [1.0, 1.0, 1.0]
+    loss_weight = [1.0, 1.0, 10.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
@@ -174,7 +176,7 @@ class MLPConfig:
 
     # Histogram pruning parameters
     histogram_n_bins = 40
-    histogram_thresh = 0.005  # Remove bins where the total ratio of data is lower than threshold
+    histogram_thresh = 0.00025  # Remove bins where the total ratio of data is lower than threshold
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
 
@@ -196,7 +198,7 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_001"
+    ds_instance = "dataset_007"
 
     # ------- Features used for the model -------
     # State features
