@@ -67,6 +67,7 @@ class NeuralNMPC:
         self.nmpc_type = model_options["nmpc_type"]
         if model_options["only_use_nominal"]:
             identifier = "nominal"
+            identifier2 = ""
         else:
             identifier = "neural"
             identifier2 = ""
