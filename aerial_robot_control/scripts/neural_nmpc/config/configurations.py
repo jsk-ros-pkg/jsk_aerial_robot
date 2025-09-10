@@ -92,7 +92,7 @@ class EnvConfig:
 
     # Run options
     run_options = {
-        "real_machine": False,
+        "real_machine": True,
     }
 
     # Trajectory options
@@ -116,7 +116,7 @@ class EnvConfig:
     # Visualization options
     run_options.update(
         {
-            "plot_trajectory": True,
+            "plot_trajectory": False,
             "save_figures": False,
             "real_time_plot": False,
             "save_animation": False,
