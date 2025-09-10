@@ -28,11 +28,11 @@ def main():
         y_reg_dims = np.array([7, 8, 9])
     elif OWN:
         df = pd.read_csv(
-            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_residual_dataset_03/dataset_002.csv"
+            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_008.csv"
         )
         vz_idx = 5
         q_idx = 6
-        state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])  # , 10, 11, 12])
         u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
         y_reg_dims = np.array([3, 4, 5])
 

@@ -8,11 +8,11 @@ navigation:
   # Attitude Control Mode: 4
 
 
-  takeoff_height: 1.2  #1.0
+  takeoff_height: 1.0  #1.2  #1.0
   outdoor_takeoff_height: 1.5
   convergent_duration: 5.0
 
-  z_convergent_thresh: 0.3  # ONLY FOR MAKING SERVO WORK!!! Originally: 0.1
+  z_convergent_thresh: 0.4  # ONLY FOR MAKING SERVO WORK!!! Originally: 0.1
 
   # teleop operation
   max_target_vel: 0.5

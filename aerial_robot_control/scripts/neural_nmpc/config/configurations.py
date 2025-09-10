@@ -41,18 +41,20 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": True,
+            "only_use_nominal": False,
             "plus_neural": True,
             "minus_neural": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
-            "neural_model_instance": "neuralmodel_035",  # 29, 31
+            "neural_model_instance": "neuralmodel_043",  # 29, 31
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
             # 35: same as 34 but on dataset 04 (dist_factor=0.1)
             # 39 & 40: on real data (but small set)
             # 41: real data, large dataset (200k points)
+            # 42: on dataset 008 with mainly ground effect data
+            # 43: two hidden layers
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -139,7 +141,7 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64]  # [64, 64, 64, 64]  # In_features of each hidden layer
+    hidden_sizes = [64, 64]  # [64, 64, 64, 64]  # In_features of each hidden layer
 
     # Activation function
     activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
@@ -159,15 +161,16 @@ class MLPConfig:
     batch_size = 64
 
     # Loss weighting of different predicted dimensions (default ones-vector)
-    loss_weight = [1.0, 1.0, 10.0]
+    loss_weight = [1.0, 1.0, 1000.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
     # Learning rate
-    learning_rate = 1e-3  # for residual
+    # learning_rate = 1e-3  # for residual
+    learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5 # for temporal
     # learning_rate = 1e-3 # for LR scheduling
-    lr_scheduler = "LambdaLR"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
+    lr_scheduler = "ReduceLROnPlateau"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
@@ -198,7 +201,9 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_007"
+    ds_instance = "dataset_008"
+    # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
+    # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
 
     # ------- Features used for the model -------
     # State features
