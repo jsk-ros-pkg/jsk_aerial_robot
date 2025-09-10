@@ -298,76 +298,232 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
     )
 
 
-def plot_dataset(x, y, state_in, state_out, state_prop, save_file_path=None, save_file_name=None):
+def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_path=None, save_file_name=None):
     """
     Plot the dataset features and labels.
     :param x: Input features to the network.
     :param y: Labels of the dataset, i.e., ground truth values.
     """
-    os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
+    figures = []
+    # State features
+    # --- Position
+    fig = plt.figure()
+    plt.subplot(3, 1, 1)
+    plt.title("State In & Out & Prop (Position)")
+    plt.plot(state_in[:, 0], label="state_in")
+    plt.plot(state_out[:, 0], label="state_out")
+    plt.plot(state_prop[:, 0], label="state_prop")
+    plt.legend()
+    plt.ylabel("x [m]")
+    plt.grid("on")
+    plt.subplot(3, 1, 2)
+    plt.plot(state_in[:, 1])
+    plt.plot(state_out[:, 1])
+    plt.plot(state_prop[:, 1])
+    plt.ylabel("y [m]")
+    plt.grid("on")
+    plt.subplot(3, 1, 3)
+    plt.plot(state_in[:, 2])
+    plt.plot(state_out[:, 2])
+    plt.plot(state_prop[:, 2])
+    plt.ylabel("z [m]")
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
 
-    plt.subplots(figsize=(20, 5))
+    # --- Velocity
+    # NOTE: Velocity is transformed to Body frame already
+    fig = plt.figure()
+    plt.subplot(3, 1, 1)
+    plt.title("State In & Out & Prop (Velocity, transformed)")
+    plt.plot(state_in[:, 3], label="state_in")
+    plt.plot(state_out[:, 3], label="state_out")
+    plt.plot(state_prop[:, 3], label="state_prop")
+    plt.legend()
+    plt.ylabel("vx [m]")
+    plt.grid("on")
+    plt.subplot(3, 1, 2)
+    plt.plot(state_in[:, 4])
+    plt.plot(state_out[:, 4])
+    plt.plot(state_prop[:, 4])
+    plt.ylabel("vy [m]")
+    plt.grid("on")
+    plt.subplot(3, 1, 3)
+    plt.plot(state_in[:, 5])
+    plt.plot(state_out[:, 5])
+    plt.plot(state_prop[:, 5])
+    plt.ylabel("vz [m]")
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
 
-    n_plots = max(x.shape[1], y.shape[1], state_in.shape[1])
+    # --- Quaternion
+    fig = plt.figure()
+    plt.subplot(4, 1, 1)
+    plt.title("State In & Out & Prop (Quaternion)")
+    plt.plot(state_in[:, 6], label="state_in")
+    plt.plot(state_out[:, 6], label="state_out")
+    plt.plot(state_prop[:, 6], label="state_prop")
+    plt.legend()
+    plt.ylabel("qw")
+    plt.grid("on")
+    plt.subplot(4, 1, 2)
+    plt.plot(state_in[:, 7])
+    plt.plot(state_out[:, 7])
+    plt.plot(state_prop[:, 7])
+    plt.ylabel("qx")
+    plt.grid("on")
+    plt.subplot(4, 1, 3)
+    plt.plot(state_in[:, 8])
+    plt.plot(state_out[:, 8])
+    plt.plot(state_prop[:, 8])
+    plt.ylabel("qy")
+    plt.grid("on")
+    plt.subplot(4, 1, 4)
+    plt.plot(state_in[:, 9])
+    plt.plot(state_out[:, 9])
+    plt.plot(state_prop[:, 9])
+    plt.ylabel("qz")
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
 
-    # Plot input state features
-    for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(state_in[:, dim], label="state_in")
-        plt.plot(state_out[:, dim], label="state_out")
-        plt.plot(state_prop[:, dim], label="state_prop")
-        plt.ylabel(f"Feature {dim}")
+    # --- Angular Velocity
+    fig = plt.figure()
+    plt.subplot(3, 1, 1)
+    plt.title("State In & Out & Prop (Angular Velocity)")
+    plt.plot(state_in[:, 10], label="state_in")
+    plt.plot(state_out[:, 10], label="state_out")
+    plt.plot(state_prop[:, 10], label="state_prop")
+    plt.legend()
+    plt.ylabel("wx [rad/s]")
+    plt.grid("on")
+    plt.subplot(3, 1, 2)
+    plt.plot(state_in[:, 11])
+    plt.plot(state_out[:, 11])
+    plt.plot(state_prop[:, 11])
+    plt.ylabel("wy [rad/s]")
+    plt.grid("on")
+    plt.subplot(3, 1, 3)
+    plt.plot(state_in[:, 12])
+    plt.plot(state_out[:, 12])
+    plt.plot(state_prop[:, 12])
+    plt.ylabel("wz [rad/s]")
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
+
+    # --- Servo Angle State
+    fig = plt.figure()
+    plt.subplot(4, 1, 1)
+    plt.title("State In & Out & Prop (Servo Angle)")
+    plt.plot(state_in[:, 13], label="state_in")
+    plt.plot(state_out[:, 13], label="state_out")
+    plt.plot(state_prop[:, 13], label="state_prop")
+    plt.legend()
+    plt.ylabel("alpha 1 [rad]")
+    plt.grid("on")
+    plt.subplot(4, 1, 2)
+    plt.plot(state_in[:, 14])
+    plt.plot(state_out[:, 14])
+    plt.plot(state_prop[:, 14])
+    plt.ylabel("alpha 2 [rad]")
+    plt.grid("on")
+    plt.subplot(4, 1, 3)
+    plt.plot(state_in[:, 15])
+    plt.plot(state_out[:, 15])
+    plt.plot(state_prop[:, 15])
+    plt.ylabel("alpha 3 [rad]")
+    plt.grid("on")
+    plt.subplot(4, 1, 4)
+    plt.plot(state_in[:, 16])
+    plt.plot(state_out[:, 16])
+    plt.plot(state_prop[:, 16])
+    plt.ylabel("alpha 4 [rad]")
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
+
+    # Control inputs
+    # --- Thrust Command
+    fig = plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.title("Control Inputs")
+    plt.plot(control[:, 0], label="thrust_cmd_1")
+    plt.plot(control[:, 1], label="thrust_cmd_2")
+    plt.plot(control[:, 2], label="thrust_cmd_3")
+    plt.plot(control[:, 3], label="thrust_cmd_4")
+    plt.ylabel("Thrust Command [N]")
+    plt.legend()
+    plt.grid("on")
+    plt.tight_layout()
+
+    # --- Servo Angle Command
+    plt.subplot(2, 1, 2)
+    plt.plot(control[:, 4], label="servo_cmd_1")
+    plt.plot(control[:, 5], label="servo_cmd_2")
+    plt.plot(control[:, 6], label="servo_cmd_3")
+    plt.plot(control[:, 7], label="servo_cmd_4")
+    plt.ylabel("Servo Angle Command [rad]")
+    plt.legend()
+    plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
+
+    # Network Inputs
+    fig = plt.figure()
+    for dim in range(x.shape[1]):
+        plt.subplot(x.shape[1], 1, dim + 1)
+        plt.plot(x[:, dim])
         if dim == 0:
-            plt.title("State In & State Out")
-            plt.legend()
+            plt.title("Network Inputs (pruned & transformed)")
         plt.grid("on")
-
-    # Plot labels
-    for dim in range(y.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(y[:, dim], color="green", label="y")
-        if dim == 0:
-            plt.title("Labels")
-            plt.legend()
-        plt.grid("on")
-
-    diff1 = state_in - state_out
-    diff2 = state_out - state_prop
-
-    plt.subplots(figsize=(20, 5))
-    for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 1)
-        plt.plot(diff1[:, dim], color="red")
         plt.ylabel(f"D{dim}")
-        if dim == 0:
-            plt.title("State In - State Out")
-        plt.grid("on")
+    plt.tight_layout()
+    figures.append(fig)
 
+    # Labels
+    fig = plt.figure()
+    for dim in range(y.shape[1]):
+        plt.subplot(y.shape[1], 1, dim + 1)
+        plt.plot(y[:, dim], color="tab:red")
+        if dim == 0:
+            plt.title("Labels (pruned & possibly transformed)")
+        plt.grid("on")
+        plt.ylabel(f"D{dim}")
+    plt.tight_layout()
+    figures.append(fig)
+
+    diff = state_out - state_prop
+    y_all = diff / np.expand_dims(dt, 1)
+
+    fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1]):
-        plt.subplot(n_plots, 2, dim * 2 + 2)
-        plt.plot(diff2[:, dim], color="green")
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
+        plt.plot(diff[:, dim], color="red")
         if dim == 0:
             plt.title("State Out - State Pred")
         plt.grid("on")
 
-    # Plot control inputs
-    plt.subplots(figsize=(20, 5))
-    control = x[:, state_in.shape[1] :]
-    for dim in range(control.shape[1]):
-        plt.subplot(n_plots, 1, dim + 2)
-        plt.plot(control[:, dim], label="control")
+    for dim in range(state_in.shape[1]):
+        plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
+        plt.plot(y_all[:, dim], color="green")
         if dim == 0:
-            plt.title("Control")
-            plt.legend()
+            plt.title("(State Out - State Pred) / dt")
         plt.grid("on")
-
     plt.tight_layout()
+    figures.append(fig)
+
     plt.show()
 
     if save_file_path is not None and save_file_name is not None:
-        plt.savefig(
-            os.path.join(save_file_path + "/plot", f"{save_file_name}_dataset_plot.png"), dpi=300, bbox_inches="tight"
-        )
+        os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
+        for i, fig in enumerate(figures):
+            fig.savefig(
+                os.path.join(save_file_path + "/plot", f"{save_file_name}_dataset_plot_{i}.png"),
+                dpi=600,
+                bbox_inches="tight",
+            )
 
 
 def plot_trajectory(rec_dict, rtnmpc, dist_dict=None, save=False):

@@ -37,14 +37,24 @@ class TrajectoryDataset(Dataset):
         self.df = dataframe
         self.mode = mode
         self.prepare_data(state_feats, u_feats, y_reg_dims, label_transform)
-        if False and delay == 0:
+        if delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
         if delay > 0:
             self.append_history(delay, state_feats, u_feats)
         self.calculate_statistics()
         if plot:
-            plot_dataset(self.x, self.y, self.state_in, self.state_out, self.state_prop, save_file_path, save_file_name)
+            plot_dataset(
+                self.x,
+                self.y,
+                self.dt,
+                self.state_in,
+                self.state_out,
+                self.state_prop,
+                self.control,
+                save_file_path,
+                save_file_name,
+            )
 
     def __len__(self):
         return len(self.x)
@@ -54,10 +64,11 @@ class TrajectoryDataset(Dataset):
 
     def prepare_data(self, state_feats, u_feats, y_reg_dims, label_transform):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
+        state_raw = state_in.copy()
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
         state_prop = undo_jsonify(self.df["state_prop"].to_numpy())
         control = undo_jsonify(self.df["control"].to_numpy())
-        dt = undo_jsonify(self.df["dt"].to_numpy())
+        dt = self.df["dt"].to_numpy()
 
         # Remove invalid entries (dt = 0)
         invalid = np.where(dt == 0)
@@ -105,6 +116,7 @@ class TrajectoryDataset(Dataset):
         # =============================================================
 
         # Store features
+        self.state_raw = state_raw
         self.state_in = state_in
         self.state_out = state_out
         self.state_prop = state_prop
@@ -126,6 +138,7 @@ class TrajectoryDataset(Dataset):
             x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
             y_vel_idx_real = np.where(np.in1d(y_reg_dims, y_vel_idx))[0]
         else:
+            print("Velocity features not part of input and output, skipping pruning.")
             # Pruning only works right now if the velocity features are part of the input and output
             return
 

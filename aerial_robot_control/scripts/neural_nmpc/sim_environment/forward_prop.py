@@ -58,13 +58,20 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd, T_horizon, T_step, 
     covariance matrices.
     """
     if T_horizon % T_step != 0:
-        print(f"Warning: In forward propagation, T_horizon {T_horizon} is not a multiple of T_step {T_step}.")
+        # print(f"[Warning] In forward propagation, T_horizon {T_horizon} is not a multiple of T_step {T_step}.")
+        # print(f"Matching T_step to be a multiple of T_horizon.")
+        T_step = T_horizon / 2
 
     # Initialize parameters
     # N = u_cmd.shape[0]    # Number of steps in the integration horizon
     # T_step = T_horizon / N
     # nx = state_0.shape[0]
     N = int(T_horizon / T_step)  # Number of integration steps
+    if N != 2:
+        print(f"[Warning] In forward propagation, the number of integration steps N={N} is not 2.")
+        raise NotImplementedError(
+            "Currently, only N=2 is expected. Please be only move on when you know what you are doing."
+        )
 
     # if cov_0 is None:
     #     cov_0 = np.zeros((nx, nx))

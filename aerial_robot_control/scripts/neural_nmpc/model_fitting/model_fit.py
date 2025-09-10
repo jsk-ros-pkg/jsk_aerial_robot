@@ -49,6 +49,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         mode = "e2e"
     else:
         raise ValueError(f"Unsupported model name: {MLPConfig.model_name}")
+    print("Loading dataset...")
     dataset = TrajectoryDataset(
         df,
         mode,
@@ -64,6 +65,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         save_file_path=save_file_path,
         save_file_name=save_file_name,
     )
+    print("Finished loading dataset!")
     in_dim = dataset.x.shape[1]
     out_dim = dataset.y.shape[1]
     sanity_check_features_and_reg_dims(
