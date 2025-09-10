@@ -41,7 +41,7 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": False,
+            "only_use_nominal": True,
             "plus_neural": True,
             "minus_neural": False,
             "end_to_end_mlp": False,
@@ -78,7 +78,7 @@ class EnvConfig:
         # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
         "disturbances": {
-            "cog_dist": True,  # Disturbance forces and torques on CoG
+            "cog_dist": False,  # Disturbance forces and torques on CoG
             "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
             "cog_dist_factor": 0.1,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
