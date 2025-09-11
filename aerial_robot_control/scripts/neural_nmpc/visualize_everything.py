@@ -38,6 +38,13 @@ def main():
         u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
         y_reg_dims = np.array([5])  # np.array([3, 4, 5])
 
+        # Define and load model
+        model_options = EnvConfig.model_options
+        sim_options = EnvConfig.sim_options
+        run_options = EnvConfig.run_options
+        neural_model, mlp_metadata = load_model(model_options, sim_options, run_options)
+        neural_model.eval()
+
     # Call data
     state_in = undo_jsonify(df["state_in"].to_numpy())
     state_out = undo_jsonify(df["state_out"].to_numpy())
@@ -93,9 +100,19 @@ def main():
                 v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
 
-    state_in_mlp_in = velocity_mapping(state_in)
-    state_out_mlp_in = velocity_mapping(state_out)
-    state_prop_mlp_in = velocity_mapping(state_prop)
+    if OWN and mlp_metadata["ModelFitConfig"]["input_transform"]:
+        state_in_mlp_in = velocity_mapping(state_in)
+    else:
+        # Don't transform input but let network learn in world frame directly
+        state_in_mlp_in = state_in.copy()
+
+    if OWN and mlp_metadata["ModelFitConfig"]["label_transform"]:
+        state_out_mlp_in = velocity_mapping(state_out)
+        state_prop_mlp_in = velocity_mapping(state_prop)
+    else:
+        state_out_mlp_in = state_out.copy()
+        state_prop_mlp_in = state_prop.copy()
+
     diff_mlp_in = (state_out_mlp_in - state_prop_mlp_in) / dt
 
     if RTNMPC:
@@ -180,13 +197,8 @@ def main():
         neural_model.eval()
 
     elif OWN:
-        # Define and load model
-        model_options = EnvConfig.model_options
-        sim_options = EnvConfig.sim_options
-        run_options = EnvConfig.run_options
-        neural_model, mlp_metadata = load_model(model_options, sim_options, run_options)
-        neural_model.eval()
-
+        # Alread defined above
+        pass
         # ==============>
         # # Transform velocity of state to Body frame
         # state_b = np.zeros(state_in.shape)

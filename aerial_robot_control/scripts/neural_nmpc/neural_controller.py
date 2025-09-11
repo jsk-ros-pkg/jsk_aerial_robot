@@ -366,6 +366,9 @@ class NeuralNMPC:
             self.neural_model, self.mlp_metadata = load_model(model_options, sim_options, run_options)
             # Cross-check weights and meta parameters used for MPC to train MLP
             cross_check_params(self.nmpc.params, self.mlp_metadata)
+            print(
+                f"Successfully loaded MLP model {model_options['neural_model_name']}, {model_options['neural_model_instance']}."
+            )
 
             # ========================================================================================================
             # import torch
@@ -448,10 +451,13 @@ class NeuralNMPC:
             else:
                 only_vz = False
 
-            # MLP is trained to receive and predict the velocity in the body frame
-            # Transform input velocity to body frame
-            v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
-            state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
+            if self.mlp_metadata["ModelFitConfig"]["input_transform"]:
+                # MLP is trained to receive and predict the velocity in the body frame
+                # Transform input velocity to body frame
+                v_b = v_dot_q(self.state[3:6], quaternion_inverse(self.state[6:10]))
+                state_b = ca.vertcat(self.state[:3], v_b, self.state[6:])
+            else:
+                state_b = self.state
 
             mlp_in = ca.vertcat(state_b[self.state_feats], self.controls[self.u_feats])
 

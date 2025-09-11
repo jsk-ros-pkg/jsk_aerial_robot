@@ -57,6 +57,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         state_feats,
         u_feats,
         y_reg_dims,
+        ModelFitConfig.input_transform,
         ModelFitConfig.label_transform,
         prune=ModelFitConfig.prune,
         histogram_pruning_n_bins=ModelFitConfig.histogram_n_bins,
@@ -119,7 +120,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             )
         elif MLPConfig.lr_scheduler == "LambdaLR":
             # Divide here since lambda func returns a multiplier for the base lr
-            lr_func = lambda epoch: max(0.975**epoch, 1e-5 / 1e-3)
+            lr_func = lambda epoch: max(0.99**epoch, 1e-5 / 1e-3)
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)

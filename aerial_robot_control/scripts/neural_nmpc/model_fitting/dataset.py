@@ -26,6 +26,7 @@ class TrajectoryDataset(Dataset):
         state_feats,
         u_feats,
         y_reg_dims,
+        input_transform,
         label_transform,
         prune=True,
         histogram_pruning_n_bins=None,
@@ -37,7 +38,7 @@ class TrajectoryDataset(Dataset):
     ):
         self.df = dataframe
         self.mode = mode
-        self.prepare_data(state_feats, u_feats, y_reg_dims, label_transform)
+        self.prepare_data(state_feats, u_feats, y_reg_dims, input_transform, label_transform)
         if prune and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
@@ -63,7 +64,7 @@ class TrajectoryDataset(Dataset):
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
-    def prepare_data(self, state_feats, u_feats, y_reg_dims, label_transform):
+    def prepare_data(self, state_feats, u_feats, y_reg_dims, input_transform, label_transform):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_raw = state_in.copy()
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
@@ -99,7 +100,11 @@ class TrajectoryDataset(Dataset):
                 v_b_traj[t, :] = v_dot_q(v_w_traj[t, :], quaternion_inverse(q_traj[t, :]))
             return np.concatenate((p_traj, v_b_traj, q_traj, other_traj), axis=1)
 
-        state_in = velocity_mapping(state_in)
+        if input_transform:
+            state_in = velocity_mapping(state_in)
+        else:
+            # Don't transform input but let network learn in world frame directly
+            pass
         if label_transform:
             state_prop = velocity_mapping(state_prop)
             state_out = velocity_mapping(state_out)
@@ -135,11 +140,15 @@ class TrajectoryDataset(Dataset):
         """
         x_vel_idx = np.array([3, 4, 5])
         y_vel_idx = np.array([3, 4, 5])
+        v_z_idx = np.array([5])
         if set(x_vel_idx).issubset(set(state_feats)) and set(y_vel_idx).issubset(set(y_reg_dims)):
             x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
             y_vel_idx_real = np.where(np.in1d(y_reg_dims, y_vel_idx))[0]
+        elif set(x_vel_idx).issubset(set(state_feats)) and set(v_z_idx).issubset(set(y_reg_dims)):
+            x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
+            y_vel_idx_real = np.where(np.in1d(y_reg_dims, v_z_idx))[0]
         else:
-            print("Velocity features not part of input and output, skipping pruning.")
+            print("[PRUNING] Velocity features not part of input and output, skipping pruning.")
             # Pruning only works right now if the velocity features are part of the input and output
             return
 

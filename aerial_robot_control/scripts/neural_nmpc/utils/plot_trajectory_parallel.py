@@ -132,9 +132,12 @@ def plot_trajectory_parallel(
         state_in_minus_neural = state_in_nominal.copy()
         # Transform velocity of state to Body frame
         state_b_nominal = np.zeros(state_in_nominal.shape)
-        for t in range(state_in_nominal.shape[0]):
-            v_b = v_dot_q(state_in_nominal[t, 3:6], quaternion_inverse(state_in_nominal[t, 6:10]))
-            state_b_nominal[t, :] = np.concatenate((state_in_nominal[t, :3], v_b, state_in_nominal[t, 6:]), axis=0)
+
+        if rtnmpc_minus_neural.mlp_metadata["ModelFitConfig"]["input_transform"]:
+            for t in range(state_in_nominal.shape[0]):
+                v_b = v_dot_q(state_in_nominal[t, 3:6], quaternion_inverse(state_in_nominal[t, 6:10]))
+                state_b_nominal[t, :] = np.concatenate((state_in_nominal[t, :3], v_b, state_in_nominal[t, 6:]), axis=0)
+
         state_b_torch_nominal = (
             torch.from_numpy(state_b_nominal[:, rtnmpc_minus_neural.state_feats])
             .type(torch.float32)
