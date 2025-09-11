@@ -29,7 +29,8 @@ def main():
     elif OWN:
         df = pd.read_csv(
             # "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_residual_dataset_04/dataset_001.csv"
-            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_013.csv"
+            # "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_013.csv"
+            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_020.csv"
         )
         vz_idx = 5
         q_idx = 6
@@ -62,17 +63,31 @@ def main():
     ##################################################################
     # PRUNE
     if RTNMPC or (OWN and ModelFitConfig.prune):
-        histogram_bins = 40  # Cluster data using histogram binning
-        histogram_threshold = 0.001  # Remove bins where the total ratio of data is lower than this threshold
-        velocity_cap = 16  # Also remove datasets point if abs(velocity) > x_cap
+        x_vel_idx = np.array([vz_idx - 2, vz_idx - 1, vz_idx])
+        y_vel_idx = np.array([vz_idx - 2, vz_idx - 1, vz_idx])
 
-        prune_idx = prune_dataset(state_in, diff, velocity_cap, histogram_bins, histogram_threshold, plot=False)
+        if set(np.array(y_vel_idx)).issubset(set(y_reg_dims)):
+            y_vel_idx_real = np.where(np.in1d(y_reg_dims, y_vel_idx))[0]
+        elif set([vz_idx]).issubset(set(y_reg_dims)):
+            y_vel_idx_real = np.where(np.in1d(y_reg_dims, vz_idx))[0]
+
+        x = state_in[:, x_vel_idx]
+        y = diff[:, y_vel_idx_real]
+
+        histogram_bins = ModelFitConfig.histogram_n_bins  # Number of bins to use for histogram
+        histogram_threshold = (
+            ModelFitConfig.histogram_thresh
+        )  # Remove bins where the total ratio of data is lower than this threshold
+        velocity_cap = ModelFitConfig.vel_cap  # Also remove datasets point if abs(velocity) > x_cap
+
+        prune_idx = prune_dataset(x, y, velocity_cap, histogram_bins, histogram_threshold, plot=False)
         state_in = state_in[prune_idx, :]
         state_out = state_out[prune_idx, :]
         state_prop = state_prop[prune_idx, :]
         control = control[prune_idx, :]
         dt = dt[prune_idx, :]
         diff = diff[prune_idx, :]
+        diff_const = diff_const[prune_idx, :]
     ##################################################################
 
     ##################################################################
@@ -569,10 +584,6 @@ def main():
     halt = 1
 
 
-if __name__ == "__main__":
-    main()
-
-
 def prune_dataset(x, y, x_cap, bins, thresh, plot, labels=None):
     """
     Prunes the collected model error dataset with two filters. First, remove values where the input values (velocities)
@@ -650,3 +661,7 @@ def prune_dataset(x, y, x_cap, bins, thresh, plot, labels=None):
 
     kept_idx = np.delete(np.arange(0, original_length), pruned_idx_unique)
     return kept_idx
+
+
+if __name__ == "__main__":
+    main()

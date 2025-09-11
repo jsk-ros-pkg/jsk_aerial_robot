@@ -46,7 +46,7 @@ class EnvConfig:
             "minus_neural": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
-            "neural_model_instance": "neuralmodel_051",  # 29, 31
+            "neural_model_instance": "neuralmodel_055",  # 29, 31
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -62,6 +62,8 @@ class EnvConfig:
             # 49: only vz with larger network (not much better than 48)
             # 50: only vz with larger network and LambdaLR (slightly worse than 49)
             # 51: only vz with small network and constant LR (slightly better than all)
+            # 54: vz, prune, no input transform and no takeoff
+            # 55: same as 54 but longer and LambdaLR
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -162,7 +164,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 150
+    num_epochs = 250
 
     # Batch size
     batch_size = 64
@@ -173,11 +175,11 @@ class MLPConfig:
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
     # Learning rate
-    learning_rate = 1e-4  # for residual
+    learning_rate = 1e-3  # for residual
     # learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5 # for temporal
     # learning_rate = 1e-3 # for LR scheduling
-    lr_scheduler = None  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
+    lr_scheduler = "LambdaLR"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
@@ -186,6 +188,7 @@ class MLPConfig:
 class ModelFitConfig:
     # ------- Coordinate Transform -------
     label_transform = False
+    input_transform = False
 
     # ------- Dataset loading -------
     ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset" + "_01"
@@ -201,7 +204,7 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_013"
+    ds_instance = "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
     # real machine 01, dataset 013: same as 007 but with fixed prop and dt
@@ -229,11 +232,11 @@ class ModelFitConfig:
     # y_reg_dims.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
 
     # ------------------------------- PRUNING -------------------------------
-    prune = False
+    prune = True
 
     # Histogram pruning parameters
-    histogram_n_bins = 40
-    histogram_thresh = 0.0001  # Remove bins where the total ratio of data is lower than threshold
+    histogram_n_bins = 10
+    histogram_thresh = 0.001  # Remove bins where the total ratio of data is lower than threshold
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ds_disturbances = {
