@@ -27,6 +27,7 @@ class TrajectoryDataset(Dataset):
         u_feats,
         y_reg_dims,
         label_transform,
+        prune=True,
         histogram_pruning_n_bins=None,
         histogram_pruning_thresh=None,
         vel_cap=None,
@@ -37,7 +38,7 @@ class TrajectoryDataset(Dataset):
         self.df = dataframe
         self.mode = mode
         self.prepare_data(state_feats, u_feats, y_reg_dims, label_transform)
-        if delay == 0:
+        if prune and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
         if delay > 0:

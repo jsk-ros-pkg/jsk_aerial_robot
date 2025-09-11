@@ -53,12 +53,12 @@ def set_temporal_states_as_params(rtnmpc, ocp_solver, history_y, u_cmd):
             rtnmpc.acados_parameters[j, rtnmpc.delay_start_idx : rtnmpc.delay_end_idx] = running_y.flatten()
 
 
-def get_output_mapping(state_dim, y_reg_dims, only_vz=False):
+def get_output_mapping(state_dim, y_reg_dims, label_transform=False, only_vz=False):
     M = np.zeros((state_dim, len(y_reg_dims)))
     for i in range(len(y_reg_dims)):
         M[y_reg_dims[i], i] = 1
 
-    if only_vz:
+    if label_transform and only_vz:
         # Special case: MLP only predicts v_z
         # Set mapping for v_x and v_y to 1 to account for their influence from v_z
         M_v_xy = np.zeros((state_dim, 2))

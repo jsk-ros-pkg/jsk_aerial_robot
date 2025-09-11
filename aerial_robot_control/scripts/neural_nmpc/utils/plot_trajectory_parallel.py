@@ -35,9 +35,9 @@ def plot_trajectory_parallel(
         plt.plot(timestamp, state_in_nominal[:, dim], label="state_in_nominal", alpha=0.5)
         plt.plot(timestamp, state_out_nominal[:, dim], label="state_out_nominal")
         plt.plot(timestamp, state_prop_nominal[:, dim], label="state_prop_nominal", alpha=0.5)
-        plt.plot(timestamp, state_in_minus_neural[:, dim], label="state_in_minus_neural", alpha=0.5)
-        plt.plot(timestamp, state_out_minus_neural[:, dim], label="state_out_minus_neural")
-        plt.plot(timestamp, state_prop_minus_neural[:, dim], label="state_prop_minus_neural", alpha=0.5)
+        # plt.plot(timestamp, state_in_minus_neural[:, dim], label="state_in_minus_neural", alpha=0.5)
+        # plt.plot(timestamp, state_out_minus_neural[:, dim], label="state_out_minus_neural")
+        # plt.plot(timestamp, state_prop_minus_neural[:, dim], label="state_prop_minus_neural", alpha=0.5)
         plt.plot(timestamp, state_in_plus_neural[:, dim], label="state_in_plus_neural", alpha=0.5)
         plt.plot(timestamp, state_out_plus_neural[:, dim], label="state_out_plus_neural")
         plt.plot(timestamp, state_prop_plus_neural[:, dim], label="state_prop_plus_neural", alpha=0.5)
@@ -60,7 +60,7 @@ def plot_trajectory_parallel(
     for dim in range(control_nominal.shape[1] - 1, -1, -1):
         plt.subplot(control_nominal.shape[1], 1, dim + 1)
         plt.plot(timestamp, control_nominal[:, dim], label="control_nominal")
-        plt.plot(timestamp, control_minus_neural[:, dim], label="control_minus_neural")
+        # plt.plot(timestamp, control_minus_neural[:, dim], label="control_minus_neural")
         plt.plot(timestamp, control_plus_neural[:, dim], label="control_plus_neural")
         if dim == 0:
             plt.legend()
@@ -78,9 +78,9 @@ def plot_trajectory_parallel(
     plt.plot(timestamp, state_in_nominal[:, 5], label="state_in_nominal")
     plt.plot(timestamp, state_out_nominal[:, 5], label="state_out_nominal")
     plt.plot(timestamp, state_prop_nominal[:, 5], label="state_prop_nominal")
-    plt.plot(timestamp, state_in_minus_neural[:, 5], label="state_in_minus_neural")
-    plt.plot(timestamp, state_out_minus_neural[:, 5], label="state_out_minus_neural")
-    plt.plot(timestamp, state_prop_minus_neural[:, 5], label="state_prop_minus_neural")
+    # plt.plot(timestamp, state_in_minus_neural[:, 5], label="state_in_minus_neural")
+    # plt.plot(timestamp, state_out_minus_neural[:, 5], label="state_out_minus_neural")
+    # plt.plot(timestamp, state_prop_minus_neural[:, 5], label="state_prop_minus_neural")
     plt.plot(timestamp, state_in_plus_neural[:, 5], label="state_in_plus_neural")
     plt.plot(timestamp, state_out_plus_neural[:, 5], label="state_out_plus_neural")
     plt.plot(timestamp, state_prop_plus_neural[:, 5], label="state_prop_plus_neural")
@@ -95,7 +95,7 @@ def plot_trajectory_parallel(
     # Plot labels for neural network regression
     dt = np.expand_dims(rec_dict["dt"], 1)
     y_true_nominal = (state_out_nominal - state_prop_nominal) / dt
-    y_true_minus_neural = (state_out_minus_neural - state_prop_minus_neural) / dt
+    # y_true_minus_neural = (state_out_minus_neural - state_prop_minus_neural) / dt
     y_true_plus_neural = (state_out_plus_neural - state_prop_plus_neural) / dt
 
     fig, _ = plt.subplots(figsize=(20, 5))
@@ -103,7 +103,7 @@ def plot_trajectory_parallel(
     for dim in range(state_in_nominal.shape[1] - 1, -1, -1):
         plt.subplot(state_in_nominal.shape[1], 1, dim + 1)
         plt.plot(timestamp, y_true_nominal[:, dim], color="tab:red", label="nominal")
-        plt.plot(timestamp, y_true_minus_neural[:, dim], color="tab:blue", label="minus")
+        # plt.plot(timestamp, y_true_minus_neural[:, dim], color="tab:blue", label="minus")
         plt.plot(timestamp, y_true_plus_neural[:, dim], color="tab:green", label="plus")
         if dim == 0:
             plt.legend()
@@ -123,7 +123,8 @@ def plot_trajectory_parallel(
     for t in range(state_in_nominal.shape[0]):
         x_dot[t, :] = np.array(dynamics(x=state_in_nominal[t, :], u=control_nominal[t, :])["x_dot"]).squeeze()
     lin_acc_nominal = x_dot[:, 3:6]
-    lin_acc_dist_nominal = lin_acc_nominal + dist_dict["cog_dist_nominal"][1::2, :3] / rtnmpc_nominal.nmpc.phys.mass
+    if rtnmpc_nominal.nmpc.include_cog_dist_parameter:
+        lin_acc_dist_nominal = lin_acc_nominal + dist_dict["cog_dist_nominal"][1::2, :3] / rtnmpc_nominal.nmpc.phys.mass
 
     #######################################################################
     # Plot regression of neural network
@@ -164,7 +165,7 @@ def plot_trajectory_parallel(
         # Plot true labels vs. actual regression
         y = mlp_out
         fig, _ = plt.subplots(figsize=(10, 5))
-        plt.title("Model Output vs. Labels (Minus Neural)")
+        plt.title("Model Output vs. Labels")
         for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, y[:, i], label="y_regressed", color="tab:blue")
@@ -240,16 +241,16 @@ def plot_trajectory_parallel(
         # figures.append(fig)
 
         # Simulate intermediate acceleration vector before integration
-        dynamics, _, _ = init_forward_prop(rtnmpc_minus_neural.nmpc)
-        x_dot = np.empty(state_in_minus_neural.shape)
-        for t in range(state_in_minus_neural.shape[0]):
-            x_dot[t, :] = np.array(
-                dynamics(x=state_in_minus_neural[t, :], u=control_minus_neural[t, :])["x_dot"]
-            ).squeeze()
-        lin_acc_minus_neural = x_dot[:, 3:6]
-        lin_acc_dist_minus_neural = (
-            lin_acc_minus_neural + dist_dict["cog_dist_minus_neural"][1::2, :3] / rtnmpc_minus_neural.nmpc.phys.mass
-        )
+        # dynamics, _, _ = init_forward_prop(rtnmpc_minus_neural.nmpc)
+        # x_dot = np.empty(state_in_minus_neural.shape)
+        # for t in range(state_in_minus_neural.shape[0]):
+        #     x_dot[t, :] = np.array(
+        #         dynamics(x=state_in_minus_neural[t, :], u=control_minus_neural[t, :])["x_dot"]
+        #     ).squeeze()
+        # lin_acc_neural = x_dot[:, 3:6]
+        # lin_acc_dist_neural = (
+        #     lin_acc_neural + dist_dict["cog_dist_neural"][1::2, :3] / rtnmpc_minus_neural.nmpc.phys.mass
+        # )
 
         # Simulate intermediate acceleration vector before integration
         dynamics, _, _ = init_forward_prop(rtnmpc_plus_neural.nmpc)
@@ -259,37 +260,41 @@ def plot_trajectory_parallel(
                 dynamics(x=state_in_plus_neural[t, :], u=control_plus_neural[t, :])["x_dot"]
             ).squeeze()
         lin_acc_plus_neural = x_dot[:, 3:6]
-        lin_acc_dist_plus_neural = (
-            lin_acc_plus_neural + dist_dict["cog_dist_plus_neural"][1::2, :3] / rtnmpc_plus_neural.nmpc.phys.mass
-        )
-
-        fig, _ = plt.subplots(figsize=(10, 5))
-        plt.title("Model Output (minus)")
-        for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
-            plt.subplot(len(rtnmpc_minus_neural.y_reg_dims), 1, i + 1)
-            plt.plot(lin_acc_minus_neural[:, i], label="Acceleration by undisturbed model (minus)", color="tab:blue")
-            plt.plot(
-                lin_acc_dist_minus_neural[:, i], label="Acceleration by disturbed model (minus)", color="tab:olive"
+        if rtnmpc_nominal.nmpc.include_cog_dist_parameter:
+            lin_acc_dist_plus_neural = (
+                lin_acc_plus_neural + dist_dict["cog_dist_plus_neural"][1::2, :3] / rtnmpc_plus_neural.nmpc.phys.mass
             )
-            # plt.plot(lin_acc_dist_minus_neural[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
-            plt.ylabel(f"D{dim}")
-            if i == 0:
-                plt.legend()
-            plt.grid("on")
-            plt.xlim(timestamp[0], timestamp[-1])
-            if i != y.shape[1] - 1:
-                ax = plt.gca()
-                ax.axes.xaxis.set_ticklabels([])
-        mng = plt.get_current_fig_manager()
-        mng.resize(*mng.window.maxsize())
-        figures.append(fig)
+
+        # fig, _ = plt.subplots(figsize=(10, 5))
+        # plt.title("Model Output (minus)")
+        # for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
+        #     plt.subplot(len(rtnmpc_minus_neural.y_reg_dims), 1, i + 1)
+        #     # plt.plot(lin_acc_minus_neural[:, i], label="Acceleration by undisturbed model (minus)", color="tab:blue")
+        #     # plt.plot(
+        #     #     lin_acc_dist_minus_neural[:, i], label="Acceleration by disturbed model (minus)", color="tab:olive"
+        #     # )
+        #     # plt.plot(lin_acc_dist_minus_neural[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
+        #     plt.ylabel(f"D{dim}")
+        #     if i == 0:
+        #         plt.legend()
+        #     plt.grid("on")
+        #     plt.xlim(timestamp[0], timestamp[-1])
+        #     if i != y.shape[1] - 1:
+        #         ax = plt.gca()
+        #         ax.axes.xaxis.set_ticklabels([])
+        # mng = plt.get_current_fig_manager()
+        # mng.resize(*mng.window.maxsize())
+        # figures.append(fig)
 
         fig, _ = plt.subplots(figsize=(10, 5))
         plt.title("Model Output (plus)")
         for i, dim in enumerate(rtnmpc_plus_neural.y_reg_dims):
             plt.subplot(len(rtnmpc_plus_neural.y_reg_dims), 1, i + 1)
             plt.plot(lin_acc_plus_neural[:, i], label="Acceleration by undisturbed model (plus)", color="tab:blue")
-            plt.plot(lin_acc_dist_plus_neural[:, i], label="Acceleration by disturbed model (plus)", color="tab:olive")
+            if rtnmpc_nominal.nmpc.include_cog_dist_parameter:
+                plt.plot(
+                    lin_acc_dist_plus_neural[:, i], label="Acceleration by disturbed model (plus)", color="tab:olive"
+                )
             # plt.plot(lin_acc_dist_plus_neural[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:brown")
             plt.ylabel(f"D{dim}")
             if i == 0:
@@ -309,13 +314,46 @@ def plot_trajectory_parallel(
     for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
         plt.subplot(len(rtnmpc_minus_neural.y_reg_dims), 1, i + 1)
         plt.plot(lin_acc_nominal[:, i], label="Acceleration by undisturbed model (nominal)", color="tab:blue")
-        plt.plot(lin_acc_dist_nominal[:, i], label="Acceleration by disturbed model (nominal)", color="tab:olive")
-        plt.plot(lin_acc_minus_neural[:, i], label="Acceleration by undisturbed model (minus)", color="tab:green")
+        if rtnmpc_nominal.nmpc.include_cog_dist_parameter:
+            plt.plot(lin_acc_dist_nominal[:, i], label="Acceleration by disturbed model (nominal)", color="tab:olive")
+            # plt.plot(lin_acc_minus_neural[:, i], label="Acceleration by undisturbed model (minus)", color="tab:green")
+            # plt.plot(lin_acc_dist_minus_neural[:, i], label="Acceleration by disturbed model (minus)", color="tab:green")
+            # plt.plot(lin_acc_dist_plus_neural[:, i], label="Acceleration by disturbed model (plus)", color="tab:red")
+            plt.plot(lin_acc_dist_nominal[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:orange")
+            plt.plot(lin_acc_dist_nominal[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:brown")
         plt.plot(lin_acc_plus_neural[:, i], label="Acceleration by undisturbed model (plus)", color="tab:red")
-        # plt.plot(lin_acc_dist_minus_neural[:, i], label="Acceleration by disturbed model (minus)", color="tab:green")
-        # plt.plot(lin_acc_dist_plus_neural[:, i], label="Acceleration by disturbed model (plus)", color="tab:red")
-        plt.plot(lin_acc_dist_nominal[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:orange")
-        plt.plot(lin_acc_dist_nominal[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:brown")
+        plt.ylabel(f"D{dim}")
+        if i == 0:
+            plt.legend()
+        plt.grid("on")
+        plt.xlim(timestamp[0], timestamp[-1])
+        if i != y.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
+
+    for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
+        plt.subplot(len(rtnmpc_minus_neural.y_reg_dims), 1, i + 1)
+        if rtnmpc_nominal.nmpc.include_cog_dist_parameter:
+            plt.plot(lin_acc_dist_plus_neural[:, i], label="Acceleration by disturbed model (plus)", color="tab:olive")
+        plt.plot(lin_acc_plus_neural[:, i], label="Acceleration by undisturbed model (plus)", color="tab:red")
+        plt.ylabel(f"D{dim}")
+        if i == 0:
+            plt.legend()
+        plt.grid("on")
+        plt.xlim(timestamp[0], timestamp[-1])
+        if i != y.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
+
+    for i, dim in enumerate(rtnmpc_minus_neural.y_reg_dims):
+        plt.subplot(len(rtnmpc_minus_neural.y_reg_dims), 1, i + 1)
+        plt.plot(lin_acc_plus_neural[:, i], label="Acceleration by undisturbed model (plus)", color="tab:red")
         plt.ylabel(f"D{dim}")
         if i == 0:
             plt.legend()

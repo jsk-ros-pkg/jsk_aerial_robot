@@ -46,7 +46,7 @@ class EnvConfig:
             "minus_neural": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
-            "neural_model_instance": "neuralmodel_043",  # 29, 31
+            "neural_model_instance": "neuralmodel_051",  # 29, 31
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -55,6 +55,13 @@ class EnvConfig:
             # 41: real data, large dataset (200k points)
             # 42: on dataset 008 with mainly ground effect data
             # 43: two hidden layers
+            # 45: real data with rotation (115k datapoints)
+            # 46: same as 45 but no pruning (better results)
+            # 47: same as 46 but on dataset 013 (fixed prop and dt)
+            # 48: only vz
+            # 49: only vz with larger network (not much better than 48)
+            # 50: only vz with larger network and LambdaLR (slightly worse than 49)
+            # 51: only vz with small network and constant LR (slightly better than all)
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -118,7 +125,7 @@ class EnvConfig:
     # Visualization options
     run_options.update(
         {
-            "plot_trajectory": False,
+            "plot_trajectory": True,
             "save_figures": False,
             "real_time_plot": False,
             "save_animation": False,
@@ -141,7 +148,7 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64]  # [64, 64, 64, 64]  # In_features of each hidden layer
+    hidden_sizes = [64, 64]  # In_features of each hidden layer
 
     # Activation function
     activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
@@ -155,32 +162,25 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 250
+    num_epochs = 150
 
     # Batch size
     batch_size = 64
 
     # Loss weighting of different predicted dimensions (default ones-vector)
-    loss_weight = [1.0, 1.0, 1000.0]
+    loss_weight = [1.0]  # [1.0, 1.0, 1.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
 
     # Learning rate
-    # learning_rate = 1e-3  # for residual
-    learning_rate = 1e-2  # for residual
+    learning_rate = 1e-4  # for residual
+    # learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5 # for temporal
     # learning_rate = 1e-3 # for LR scheduling
-    lr_scheduler = "ReduceLROnPlateau"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
+    lr_scheduler = None  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
-
-    # ------------------------------------------------------------------------------------------
-
-    # Histogram pruning parameters
-    histogram_n_bins = 40
-    histogram_thresh = 0.00025  # Remove bins where the total ratio of data is lower than threshold
-    vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
 
 class ModelFitConfig:
@@ -201,9 +201,10 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_008"
+    ds_instance = "dataset_013"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
+    # real machine 01, dataset 013: same as 007 but with fixed prop and dt
 
     # ------- Features used for the model -------
     # State features
@@ -221,11 +222,19 @@ class ModelFitConfig:
 
     # Variables to be regressed
     # y_reg_dims = [5]  # [vz]
-    y_reg_dims = [3, 4, 5]  # [vx, vy, vz]
+    y_reg_dims = [5]  # [3, 4, 5]  # [vx, vy, vz]
     # y_reg_dims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # y_reg_dims.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # y_reg_dims.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
+
+    # ------------------------------- PRUNING -------------------------------
+    prune = False
+
+    # Histogram pruning parameters
+    histogram_n_bins = 40
+    histogram_thresh = 0.0001  # Remove bins where the total ratio of data is lower than threshold
+    vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ds_disturbances = {
     #     "noisy": True,

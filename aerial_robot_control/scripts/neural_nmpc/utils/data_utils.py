@@ -218,15 +218,21 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
     # fmt: off
     # Store new model configuration in metadata
     metadata[model_name][model_instance] = {
-        "ModelFitConfig": {key: str(value) for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")
-                                                                                    and not key == "label_transform"},
+        "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")
+                                                            and not key in ["state_feats", "u_feats", "y_reg_dims"]},
         "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
         "ds_nmpc_type": metadata_dataset[ds_name]["nmpc_type"],
         "ds_nmpc_params": metadata_dataset[ds_name]["nmpc_params"],
         "ds_disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
         "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
     }
-    metadata[model_name][model_instance]["ModelFitConfig"].update({"label_transform": ModelFitConfig.label_transform})
+    metadata[model_name][model_instance]["ModelFitConfig"].update(
+        {
+            "state_feats": str(ModelFitConfig.state_feats),
+            "u_feats": str(ModelFitConfig.u_feats),
+            "y_reg_dims": str(ModelFitConfig.y_reg_dims),
+        }
+    )
     # fmt: on
 
     # Write updated metadata to file

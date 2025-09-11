@@ -1,7 +1,7 @@
 import os, torch
 import numpy as np
 import pandas as pd
-from config.configurations import EnvConfig
+from config.configurations import EnvConfig, ModelFitConfig
 from utils.data_utils import undo_jsonify
 import matplotlib.pyplot as plt
 from utils.geometry_utils import v_dot_q, quaternion_inverse
@@ -28,13 +28,15 @@ def main():
         y_reg_dims = np.array([7, 8, 9])
     elif OWN:
         df = pd.read_csv(
-            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_008.csv"
+            # "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_residual_dataset_04/dataset_001.csv"
+            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_013.csv"
         )
         vz_idx = 5
         q_idx = 6
         state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])  # , 10, 11, 12])
+        # state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])  # , 10, 11, 12])
         u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
-        y_reg_dims = np.array([3, 4, 5])
+        y_reg_dims = np.array([5])  # np.array([3, 4, 5])
 
     # Call data
     state_in = undo_jsonify(df["state_in"].to_numpy())
@@ -48,10 +50,11 @@ def main():
     dt = df["dt"].to_numpy()[:, np.newaxis]
 
     diff = (state_out - state_prop) / dt
+    diff_const = (state_out - state_prop) / 0.01
 
     ##################################################################
     # PRUNE
-    if RTNMPC:
+    if RTNMPC or (OWN and ModelFitConfig.prune):
         histogram_bins = 40  # Cluster data using histogram binning
         histogram_threshold = 0.001  # Remove bins where the total ratio of data is lower than this threshold
         velocity_cap = 16  # Also remove datasets point if abs(velocity) > x_cap
@@ -234,19 +237,36 @@ def main():
         raise NotImplementedError("Only implemented for vx, vy, vz output.")
 
     if RTNMPC or (OWN and mlp_metadata["ModelFitConfig"]["label_transform"]):
+        if mlp_out.shape[1] != 3:
+            raise ValueError("Need to adapt output transform.")
         for t in range(state_in_mlp_in.shape[0]):
             mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, q_idx : q_idx + 4])
 
     # Plot true labels vs. actual regression
     y = mlp_out
     y_true = diff
+    y_true_const = diff_const
     plt.subplots(figsize=(10, 5))
     plt.title("Model output vs. label")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(y.shape[1], 1, i + 1)
-        plt.plot(y[:, i], label="y_regressed")
         plt.plot(y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
+        plt.plot(y[:, i] - y_true_const[:, dim], label="error_const", color="tab:blue", linestyle="--", alpha=0.5)
         plt.plot(y_true[:, dim], label="y_true", color="orange")
+        plt.plot(y_true_const[:, dim], label="y_true_const", color="tab:brown")
+        plt.plot(y[:, i], label="y_regressed")
+        plt.ylabel(f"D{dim}")
+        plt.legend()
+        plt.grid("on")
+        if i != y.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
+
+    plt.subplots(figsize=(10, 5))
+    plt.title("Model output")
+    for i, dim in enumerate(y_reg_dims):
+        plt.subplot(y.shape[1], 1, i + 1)
+        plt.plot(y[:, i], label="y_regressed")
         plt.ylabel(f"D{dim}")
         plt.legend()
         plt.grid("on")
@@ -256,17 +276,26 @@ def main():
 
     # Plot loss per dimension
     loss = np.square(y_true[:, y_reg_dims] - y)
+    loss_const = np.square(y_true_const[:, y_reg_dims] - y)
     plt.subplots(figsize=(10, 5))
     plt.title("Neural Model Loss per Dimension")
     for i, dim in enumerate(y_reg_dims):
         plt.subplot(y.shape[1], 1, i + 1)
-        plt.plot(loss[:, i], color="red")
+        plt.plot(loss_const[:, i], color="tab:blue")
+        plt.plot(loss[:, i], color="tab:cyan")
         plt.plot(
             [0, loss.shape[0]],
             [np.mean(loss[:, i]), np.mean(loss[:, i])],
             color="blue",
             linestyle="--",
             label=f"Mean = {np.mean(loss[:, i]):.6f}",
+        )
+        plt.plot(
+            [0, loss_const.shape[0]],
+            [np.mean(loss_const[:, i]), np.mean(loss_const[:, i])],
+            color="tab:green",
+            linestyle="--",
+            label=f"Mean = {np.mean(loss_const[:, i]):.6f}",
         )
         plt.legend()
         plt.ylabel(f"Loss D{dim}")
@@ -417,19 +446,49 @@ def main():
     # Plot simulation results for acceleration and the effect of the neural model
     plt.subplots(figsize=(10, 5))
     plt.title("Model Output")
-    for i, dim in enumerate(y_reg_dims):
-        plt.subplot(len(y_reg_dims), 1, i + 1)
-        plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
-        plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
-        plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
-        plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
-        plt.ylabel(f"D{dim}")
-        if i == 0:
-            plt.legend()
+    if y_reg_dims == np.array([5]):
+        # Only vz
+        plt.figure()
+        plt.plot(lin_acc[:, 2], label="Acceleration by undisturbed model", color="tab:blue")
+        plt.plot(lin_acc_dist[:, 2], label="Acceleration by disturbed model", color="tab:olive")
+        plt.plot(lin_acc_dist[:, 2] + y[:, 0], label="Neural Compensation (+)", color="tab:orange")
+        plt.plot(lin_acc_dist[:, 2] - y[:, 0], label="Neural Compensation (-)", color="tab:brown")
+        plt.ylabel(f"D5")
+        plt.legend()
         plt.grid("on")
-        if i != y.shape[1] - 1:
-            ax = plt.gca()
-            ax.axes.xaxis.set_ticklabels([])
+
+        plt.figure()
+        plt.plot(lin_acc_dist[:, 2] + y[:, 0], label="Neural Compensation (+)", color="tab:orange")
+        plt.ylabel(f"D5")
+        plt.legend()
+        plt.grid("on")
+    else:
+        for i, dim in enumerate(y_reg_dims):
+            plt.subplot(len(y_reg_dims), 1, i + 1)
+            plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
+            plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
+            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
+            plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
+            plt.ylabel(f"D{dim}")
+            if i == 0:
+                plt.legend()
+            plt.grid("on")
+            if i != y.shape[1] - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+
+        plt.subplots(figsize=(10, 5))
+        plt.title("Model Output")
+        for i, dim in enumerate(y_reg_dims):
+            plt.subplot(len(y_reg_dims), 1, i + 1)
+            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
+            plt.ylabel(f"D{dim}")
+            if i == 0:
+                plt.legend()
+            plt.grid("on")
+            if i != y.shape[1] - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
 
     ##################################################################
 
@@ -458,6 +517,7 @@ def main():
     plt.figure(figsize=(20, 5))
     plt.title("State Out & State Pred")
     plt.subplot(2, 1, 1)
+    plt.plot(state_in[:, vz_idx], label="state_in")
     plt.plot(state_out[:, vz_idx], label="state_out")
     plt.plot(state_prop[:, vz_idx], label="state_prop")
     plt.ylabel("vz")

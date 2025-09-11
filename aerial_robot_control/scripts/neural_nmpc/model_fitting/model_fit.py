@@ -49,7 +49,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         mode = "e2e"
     else:
         raise ValueError(f"Unsupported model name: {MLPConfig.model_name}")
-    print("Loading dataset...")
+    print("Loading the dataset...")
     dataset = TrajectoryDataset(
         df,
         mode,
@@ -58,14 +58,15 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         u_feats,
         y_reg_dims,
         ModelFitConfig.label_transform,
-        histogram_pruning_n_bins=MLPConfig.histogram_n_bins,
-        histogram_pruning_thresh=MLPConfig.histogram_thresh,
-        vel_cap=MLPConfig.vel_cap,
+        prune=ModelFitConfig.prune,
+        histogram_pruning_n_bins=ModelFitConfig.histogram_n_bins,
+        histogram_pruning_thresh=ModelFitConfig.histogram_thresh,
+        vel_cap=ModelFitConfig.vel_cap,
         plot=False,
         save_file_path=save_file_path,
         save_file_name=save_file_name,
     )
-    print("Finished loading dataset!")
+    print("Finished loading the dataset!")
     in_dim = dataset.x.shape[1]
     out_dim = dataset.y.shape[1]
     sanity_check_features_and_reg_dims(
@@ -105,6 +106,8 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Loss function ===
     loss_fn = loss_function
+    if len(MLPConfig.loss_weight) != out_dim:
+        raise ValueError("Loss weight doesn't match output dimension!")
     weight = torch.tensor(MLPConfig.loss_weight).to(device)
 
     # === Optimizer ===
@@ -116,7 +119,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             )
         elif MLPConfig.lr_scheduler == "LambdaLR":
             # Divide here since lambda func returns a multiplier for the base lr
-            lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
+            lr_func = lambda epoch: max(0.975**epoch, 1e-5 / 1e-3)
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)

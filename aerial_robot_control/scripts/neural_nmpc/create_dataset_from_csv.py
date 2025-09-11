@@ -3,127 +3,13 @@ import numpy as np
 import pandas as pd
 import json
 import time
-from pathlib import Path
 from config.configurations import DirectoryConfig
 from utils.data_utils import safe_mkdir_recursive, jsonify, safe_mkfile_recursive
-from utils.visualization_utils import plot_dataset
 from sim_environment.forward_prop import init_forward_prop, forward_prop
-
-from rosbags.highlevel import AnyReader
-from rosbags.typesys import Stores, get_typestore
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
 from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
-
-# def read_rosbag(file_path: str):
-#     """
-#     Load and read rosbags from file.
-#     Returns a dictionary with keys as the topic names and messages as values.
-#     """
-#     bagpath = Path(file_path)
-
-#     # Create a type store to use if the bag has no message definitions.
-#     typestore = get_typestore(Stores.ROS2_FOXY)
-
-#     topic_list = [
-#         "/beetle1/uav/cog/odom",
-#         "/beetle1/four_axes/command",
-#         "/beetle1/gimbals_ctrl",
-#     ]
-#     data = {
-#         "timestamp": np.zeros((0, 1)),
-#         "dt": np.zeros((0, 1)),
-#         "position": np.zeros((0, 3)),
-#         "velocity": np.zeros((0, 3)),
-#         "quaternion": np.zeros((0, 4)),
-#         "angular_velocity": np.zeros((0, 3)),
-#         "thrust_cmd": np.zeros((0, 4)),
-#         "servo_angle_cmd": np.zeros((0, 4)),
-#     }
-
-#     # Create reader instance and open for reading
-#     with AnyReader([bagpath], default_typestore=typestore) as reader:
-#         connections = [x for x in reader.connections if x.topic in topic_list]
-#         for connection, timestamp, rawdata in reader.messages(connections=connections):
-#             msg = reader.deserialize(rawdata, connection.msgtype)
-#             if connection.topic == "/beetle1/uav/cog/odom":
-#                 data["position"] = np.vstack((data["position"], position))
-
-#                 # --- Quaternion
-#                 # From first node in MPC prediction horizon
-#                 # Convert geometry_msgs/msg/PoseArray to geometry_msgs/msg/Pose to geometry_msgs/msg/Quaternion to x y z w
-#                 qw = msg.pose.pose.orientation.w
-#                 qx = msg.pose.pose.orientation.x
-#                 qy = msg.pose.pose.orientation.y
-#                 qz = msg.pose.pose.orientation.z
-#                 quaternion = np.array([qw, qx, qy, qz])
-
-#                 # === check the sign of the quaternion, avoid the flip of the quaternion ===
-#                 # This is quite important because of the continuity of the quaternion
-#                 qe_c_w = qw * quat_prev[0] + qx * quat_prev[1] + qy * quat_prev[2] + qz * quat_prev[3]
-#                 if qe_c_w < 0:
-#                     quaternion = -quaternion
-
-#                 quat_prev = quaternion
-
-#                 data["quaternion"] = np.vstack((data["quaternion"], quaternion))
-
-#                 # TODO odom data has noise at the end of the flight -> record better
-#                 # --- Velocity
-#                 # Convert geometry_msgs/msg/TwistWithCovariance to geometry_msgs/msg/Twist to geometry_msgs/msg/Vector3 to x y z
-#                 vx = msg.twist.twist.linear.x
-#                 vy = msg.twist.twist.linear.y
-#                 vz = msg.twist.twist.linear.z
-#                 velocity = np.array([vx, vy, vz])
-#                 data["velocity"] = np.vstack((data["velocity"], velocity))
-
-#                 # --- Angular velocity
-#                 # Convert geometry_msgs/msg/TwistWithCovariance to geometry_msgs/msg/Twist to geometry_msgs/msg/Vector3 to x y z
-#                 roll_rate = msg.twist.twist.angular.x
-#                 pitch_rate = msg.twist.twist.angular.y
-#                 yaw_rate = msg.twist.twist.angular.z
-#                 angular_velocity = np.array([roll_rate, pitch_rate, yaw_rate])
-#                 data["angular_velocity"] = np.vstack((data["angular_velocity"], angular_velocity))
-
-#             elif connection.topic == "/beetle1/four_axes/command" and not stored_from_thrust:
-#                 stored_from_thrust = True
-#                 # --- Thrust command
-#                 # Convert std_msgs/msg/Float32MultiArray to numpy array
-#                 thrust_cmd = msg.base_thrust
-#                 data["thrust_cmd"] = np.vstack((data["thrust_cmd"], thrust_cmd))
-
-#             elif connection.topic == "/beetle1/gimbals_ctrl" and not stored_from_servo:
-#                 stored_from_servo = True
-#                 # --- Servo angle command
-#                 # Convert std_msgs/msg/Float32MultiArray to numpy array
-#                 servo_angle_cmd = msg.position
-#                 data["servo_angle_cmd"] = np.vstack((data["servo_angle_cmd"], servo_angle_cmd))
-
-#             if stored_from_odom and stored_from_thrust and stored_from_servo:
-#                 # --- Time step
-#                 # NOTE: Use time stamp from thrust command to get real T_samp of NMPC
-#                 # Compute time step from timestamp difference
-#                 dt = (timestamp - last_timestamp) / 1000 / 1000 / 1000  # in seconds
-#                 last_timestamp = timestamp
-#                 data["dt"] = np.vstack((data["dt"], dt))
-
-#                 trigger = True
-#                 stored_from_odom = False
-#                 stored_from_thrust = False
-#                 stored_from_servo = False
-
-#     # Ignore first entry since it is from initialization
-#     data["timestamp"] = data["timestamp"][1:, :]
-#     data["dt"] = data["dt"][1:, :]
-#     data["position"] = data["position"][1:, :]
-#     data["velocity"] = data["velocity"][1:, :]
-#     data["quaternion"] = data["quaternion"][1:, :]
-#     data["angular_velocity"] = data["angular_velocity"][1:, :]
-#     data["thrust_cmd"] = data["thrust_cmd"][1:, :]
-#     data["servo_angle_cmd"] = data["servo_angle_cmd"][1:, :]
-
-#     return data
 
 
 def get_synched_data_from_rosbag(file_path: str):
@@ -323,8 +209,8 @@ def get_synched_data_from_rosbag(file_path: str):
 
     ############## Export data to dictionary ##############
     data = dict()
-    data["timestamp"] = t_ref
-    data["dt"] = np.diff(data["timestamp"])
+    data["timestamp"] = t_ref[:, np.newaxis]
+    data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
     if np.any(data["dt"] == 0.0):
         raise ValueError("There are duplicate timestamps in the thrust command data.")
 
@@ -377,6 +263,36 @@ def get_synched_data_from_rosbag(file_path: str):
         ]
     ].to_numpy()
 
+    # Filter for inconsistent timesteps in dt
+    # This is very important for training neural networks since outliers influence the training significantly
+    # 0.009s < dt < 0.011s, for T_samp = 0.01s
+    valid_indices = np.zeros(data["dt"].shape[0], dtype=bool)
+    mean_dt = 0.01  # np.mean(data["dt"])
+    while np.any(~valid_indices):
+        # Loop until no invalid indices are left
+        valid_indices = np.zeros(data["dt"].shape[0], dtype=bool)
+        lower_bound = 0.9 * mean_dt
+        upper_bound = 1.1 * mean_dt
+        for i in range(len(data["dt"])):
+            if i % 2:  # Skip every second index since dt measures the time between two timestamps
+                if (
+                    data["dt"][i] < lower_bound
+                ):  # or data["dt"][i] > upper_bound:  # Skip upper bound to allow for longer dt due to occasional computation delays
+                    valid_indices[i] = False
+                else:
+                    valid_indices[i] = True
+            else:
+                valid_indices[i] = True
+
+        print(f"[INFO] Filtered out {np.sum(~valid_indices)} invalid timesteps from data.")
+
+        for key in data.keys():
+            if key not in ["dt", "duration"]:
+                data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt
+                data[key] = data[key][valid_indices, :]
+
+        # Recompute dt
+        data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
     return data
 
 
@@ -461,11 +377,12 @@ if __name__ == "__main__":
         "2025-09-08-23-20-40_hovering_mode_10_success.csv",
         "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
         "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success.csv",
+        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10.csv",
     ]
     csv_files = [os.path.join(rosbag_dir, file) for file in csv_files]
 
     data_dicts = dict()
-    print(f"Started loading {len(csv_files)} csvs.")
+    print(f"Started loading {len(csv_files)} csvs:")
     for i, csv_file in enumerate(csv_files):
         print(f"Loading {csv_file}...")
         data_dicts[i] = get_synched_data_from_rosbag(csv_file)
@@ -586,7 +503,8 @@ if __name__ == "__main__":
     # Propagate state_in and control input through nominal model to get state_prop
     state_prop = np.zeros((0, state_in.shape[1]))
 
-    # === Simulate the inside of the NMPC which only assumes the nominal model without disturbances ===
+    # ================================== FORWARD PROPAGATION ==================================
+    # Simulate the inside of the NMPC which only assumes the nominal model without disturbances
     # - Initialize forward propagation
     # Define nominal model
     dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(nmpc)
@@ -615,8 +533,22 @@ if __name__ == "__main__":
         )
         state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
         state_prop = np.append(state_prop, state_prop_curr[np.newaxis, :], axis=0)
-    # =================================================================================================
+
+    # Shift state_prop by one timestep to match timestamps of state_out
+    state_prop = state_prop[1:, :]
+    # NOTE: state_prop is now the propagated state after dt seconds, meaning the state of the system
+    # after T_samp (= dt) seconds. By this time the last input command has been applied for dt seconds
+    # and the state has changed according to the dynamics. This means state_prop now has the same
+    # timestamps as state_out.
+
+    # Truncate all states except for state_prop to make them equal length
+    timestamp = timestamp[:-1]
+    dt = dt[:-1]
+    state_in = state_in[:-1, :]
+    state_out = state_out[:-1, :]
+    control = control[:-1, :]
     print("Forward propagation finished!")
+    # =========================================================================================
 
     # Create dictionary that will become dataset
     dataset_dict = {
