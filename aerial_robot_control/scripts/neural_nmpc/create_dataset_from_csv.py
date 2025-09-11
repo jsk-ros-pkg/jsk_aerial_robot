@@ -309,15 +309,21 @@ def combine_dicts(data_dicts: dict, T_samp: float):
     # List durations
     combined_data["duration"] = [data["duration"] for data in data_dicts.values()]
 
+    # Start time of each recording
+    combined_data["recording_start_idx"] = []
+
     # Append timestamps
     first = True
     for data in data_dicts.values():
         if first:
+            # Mark liftoff
+            combined_data["recording_start_idx"].append(0)
             combined_data["timestamp"] = data["timestamp"]
             combined_data["dt"] = data["dt"]
             last_time = data["timestamp"][-1]
             first = False
         else:
+            combined_data["recording_start_idx"].append(combined_data["timestamp"].shape[0])
             combined_data["timestamp"] = np.append(
                 combined_data["timestamp"],
                 # Connect new timestamps to last timestamp + T_samp
@@ -373,7 +379,7 @@ if __name__ == "__main__":
         # "2025-09-03-14-38-30_jojo_ws_hovering_success_mode_0.csv",
         # "2025-09-07-17-54-58_jinjie_ws_hovering_success_mode_0.csv",
         # "2025-09-08-23-06-18_nominal_hovering_mode_0_success.csv",
-        "2025-09-08-23-12-12_hovering_mode_3_success.csv",
+        # "2025-09-08-23-12-12_hovering_mode_3_success.csv",
         "2025-09-08-23-20-40_hovering_mode_10_success.csv",
         "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
         "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success.csv",
@@ -394,6 +400,8 @@ if __name__ == "__main__":
         data = combine_dicts(data_dicts, T_samp)
     else:
         data = data_dicts[0]
+        data["timestamp"] = data["timestamp"][:-1]
+        data["recording_start_idx"] = [0]
     print("Dictionaries successfully combined!")
 
     # TODO move file naming and creation into data_utils and generalize
@@ -515,7 +523,18 @@ if __name__ == "__main__":
     print("Average time step dt in dataset: ", np.mean(dt))
     print("Running forward prop...")
     # - Run forward propagation with nominal model based with state_in and control
+    takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
+    skip = False
     for t in range(state_in.shape[0]):
+        for t_rec_start in data["recording_start_idx"]:
+            if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
+                # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
+                state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
+                skip = True
+                break
+        if skip:
+            skip = False
+            continue
         # Get current state and control
         state_curr = state_in[t, :]
         u_cmd = control[t, :]
