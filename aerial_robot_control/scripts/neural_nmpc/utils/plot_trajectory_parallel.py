@@ -11,7 +11,7 @@ from sim_environment.forward_prop import init_forward_prop
 
 
 def plot_trajectory_parallel(
-    rec_dict, rtnmpc_nominal, rtnmpc_minus_neural, rtnmpc_plus_neural, dist_dict=None, save=False
+    model_options, rec_dict, rtnmpc_nominal, rtnmpc_minus_neural, rtnmpc_plus_neural, dist_dict=None, save=False
 ):
     figures = []
     state_in_nominal = rec_dict["state_in_nominal"]
@@ -164,6 +164,10 @@ def plot_trajectory_parallel(
                     v_b = mlp_out[t, v_idx : v_idx + 3]
                     v_w = v_dot_q(v_b.T, state_in_nominal[t, 6:10]).T
                     mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 3 :]), axis=1)
+
+        # Scale by weight
+        if model_options["scale_by_weight"]:
+            mlp_out /= rtnmpc_minus_neural.nmpc.phys.mass
 
         # Plot true labels vs. actual regression
         y = mlp_out

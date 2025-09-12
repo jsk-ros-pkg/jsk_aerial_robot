@@ -610,6 +610,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         from utils.plot_trajectory_parallel import plot_trajectory_parallel
 
         plot_trajectory_parallel(
+            model_options,
             rec_dict,
             rtnmpc_nominal,
             rtnmpc_minus_neural,

@@ -3,6 +3,9 @@ from torch.utils.data import Dataset
 
 import os, sys
 
+import rospkg
+import yaml
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.statistic_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
@@ -28,6 +31,8 @@ class TrajectoryDataset(Dataset):
         y_reg_dims,
         input_transform,
         label_transform,
+        normalize_by_T_step,
+        T_step_controller,
         prune=True,
         histogram_pruning_n_bins=None,
         histogram_pruning_thresh=None,
@@ -38,7 +43,15 @@ class TrajectoryDataset(Dataset):
     ):
         self.df = dataframe
         self.mode = mode
-        self.prepare_data(state_feats, u_feats, y_reg_dims, input_transform, label_transform)
+
+        ############ Read params for T_step_controller ############
+        params = read_params("control", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
+        T_step_controller = params["T_step"]
+        ###########################################################
+
+        self.prepare_data(
+            state_feats, u_feats, y_reg_dims, input_transform, label_transform, normalize_by_T_step, T_step_controller
+        )
         if prune and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuity
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
@@ -64,7 +77,9 @@ class TrajectoryDataset(Dataset):
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
-    def prepare_data(self, state_feats, u_feats, y_reg_dims, input_transform, label_transform):
+    def prepare_data(
+        self, state_feats, u_feats, y_reg_dims, input_transform, label_transform, normalize_by_T_step, T_step_controller
+    ):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_raw = state_in.copy()
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
@@ -113,12 +128,22 @@ class TrajectoryDataset(Dataset):
             pass
 
         # =============================================================
-        # Compute residual of predicted and disturbed state
-        if self.mode == "residual":
-            # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-            y = (state_out - state_prop) / np.expand_dims(dt, 1)
-        elif self.mode == "e2e":
-            y = (state_out - state_in) / np.expand_dims(dt, 1)
+        # Compute residual dynamics of predicted and disturbed state
+        if normalize_by_T_step:
+            # Normalize by time step to get accelerations
+            if self.mode == "residual":
+                # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
+                y = (state_out - state_prop) / T_step_controller
+            elif self.mode == "e2e":
+                y = (state_out - state_in) / T_step_controller
+        else:
+            if self.mode == "residual":
+                # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
+                y = (state_out - state_prop) / np.expand_dims(
+                    dt, 1
+                )  # TODO check that dt actually repesents time between in and out
+            elif self.mode == "e2e":
+                y = (state_out - state_in) / np.expand_dims(dt, 1)
         # =============================================================
 
         # Store features
@@ -217,3 +242,26 @@ class TrajectoryDataset(Dataset):
         # Sanity check since we divide by x_std in normalization
         if np.any(self.x_std == 0):
             raise ValueError("Input features have zero standard deviation, cannot normalize.")
+
+
+def read_params(mode, method, robot_package, file_name):
+    # Read parameters from configuration file in the robot's package
+    # 'mode' is either "control" or "estimation"
+    # 'method' is either "nmpc" or "mhe"
+
+    rospack = rospkg.RosPack()
+    param_path = os.path.join(rospack.get_path(robot_package), "config", file_name)
+
+    try:
+        with open(param_path, "r") as f:
+            param_dict = yaml.load(f, Loader=yaml.FullLoader)
+        params = param_dict[mode][method]
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Configuration file {param_path} not found.")
+    except KeyError:
+        raise KeyError(f"Mode or method not found in configuration file {param_path}.")
+
+    # Compute number of shooting intervals or "steps" (or "nodes") along the horizon
+    params["N_steps"] = int(params["T_horizon"] / params["T_step"])
+
+    return params

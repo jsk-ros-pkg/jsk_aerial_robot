@@ -513,6 +513,12 @@ class NeuralNMPC:
                     v_w = v_dot_q(v_b, self.state[6:10])
                     mlp_out = ca.vertcat(mlp_out[:v_idx, :], v_w, mlp_out[v_idx + 1 :, :])
 
+            # Normalize the MLP output by weight of the robot if specified
+            # Idea: Model predicts acceleration so to predict the forces we need to scale by mass of the robot
+            # TODO doesnt really make sense
+            if self.model_options["scale_by_weight"]:
+                mlp_out /= self.nmpc.phys.mass
+
             # === Fuse dynamics ===
             if self.model_options["end_to_end_mlp"]:
                 # MLP is trained to predict the state end-to-end without adding to the nominal dynamics
@@ -538,7 +544,6 @@ class NeuralNMPC:
                 if "plus_neural" in self.model_options:
                     if self.model_options["plus_neural"]:
                         f_total = nominal_dynamics + M @ mlp_out
-
         # Implicit dynamics
         x_dot = ca.MX.sym("x_dot", self.state.size())
         f_impl = x_dot - f_total

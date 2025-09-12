@@ -133,7 +133,7 @@ def main():
     if RTNMPC:
         device = "cpu"
     elif OWN:
-        device = "cuda"
+        device = "cpu"  # "cuda"
     state_in_mlp_in_tensor = torch.from_numpy(state_in_mlp_in).type(torch.float32).to(torch.device(device))
     control_tensor = torch.from_numpy(control).type(torch.float32).to(torch.device(device))
     mlp_in = torch.cat((state_in_mlp_in_tensor[:, state_feats], control_tensor[:, u_feats]), axis=1)
@@ -268,6 +268,10 @@ def main():
             raise ValueError("Need to adapt output transform.")
         for t in range(state_in_mlp_in.shape[0]):
             mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp_in[t, q_idx : q_idx + 4])
+
+    # Scale by weight
+    if model_options["scale_by_weight"]:
+        mlp_out /= nmpc.phys.mass
 
     # Plot true labels vs. actual regression
     y = mlp_out
@@ -508,6 +512,7 @@ def main():
         plt.title("Model Output")
         for i, dim in enumerate(y_reg_dims):
             plt.subplot(len(y_reg_dims), 1, i + 1)
+            plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
             plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
             plt.ylabel(f"D{dim}")
             if i == 0:

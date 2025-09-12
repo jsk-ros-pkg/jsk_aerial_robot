@@ -421,7 +421,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
     # --- Plot simple trajectory ---
     if plot and not recording:
-        plot_trajectory(rec_dict, rtnmpc, dist_dict=dist_dict, save=run_options["save_figures"])
+        plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=dist_dict, save=run_options["save_figures"])
         if rtnmpc.nmpc.include_cog_dist_parameter or rtnmpc.nmpc.include_motor_noise_parameter:
             plot_disturbances(dist_dict, save=run_options["save_figures"])
         plt.show()

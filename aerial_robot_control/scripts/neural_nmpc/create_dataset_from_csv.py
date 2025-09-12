@@ -509,7 +509,7 @@ if __name__ == "__main__":
 
     # --- State prop
     # Propagate state_in and control input through nominal model to get state_prop
-    state_prop = np.zeros((0, state_in.shape[1]))
+    state_prop = np.zeros((0, state_in.shape[1]))  # TODO call it state_nominal
 
     # ================================== FORWARD PROPAGATION ==================================
     # Simulate the inside of the NMPC which only assumes the nominal model without disturbances

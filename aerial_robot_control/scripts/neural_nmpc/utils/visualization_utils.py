@@ -526,7 +526,7 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
             )
 
 
-def plot_trajectory(rec_dict, rtnmpc, dist_dict=None, save=False):
+def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False):
     figures = []
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
@@ -603,7 +603,10 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None, save=False):
     # Plot labels for neural network regression
     dt = np.expand_dims(rec_dict["dt"], 1)
     diff = state_out - state_prop
-    y_true = diff / dt
+    if rtnmpc.mlp_metadata["ModelFitConfig"]["normalize_by_T_step"]:
+        y_true = diff / rtnmpc.T_step
+    else:
+        y_true = diff / dt
     fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
@@ -667,6 +670,10 @@ def plot_trajectory(rec_dict, rtnmpc, dist_dict=None, save=False):
                     v_b = np.append(np.array([0, 0]), mlp_out[t, v_idx])
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
                     mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 1 :]), axis=1)
+
+        # Scale by weight
+        if model_options["scale_by_weight"]:
+            mlp_out /= rtnmpc.nmpc.phys.mass
 
         # Plot true labels vs. actual regression
         y = mlp_out

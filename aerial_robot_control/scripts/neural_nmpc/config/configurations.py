@@ -66,6 +66,7 @@ class EnvConfig:
             # 55: same as 54 but longer and LambdaLR
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
+            "scale_by_weight": False,  # Scale MLP output by robot's weight
         }
     )
 
@@ -189,6 +190,9 @@ class ModelFitConfig:
     # ------- Coordinate Transform -------
     label_transform = False
     input_transform = False
+
+    # ------- Time Normalization -------
+    normalize_by_T_step = False
 
     # ------- Dataset loading -------
     ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset" + "_01"

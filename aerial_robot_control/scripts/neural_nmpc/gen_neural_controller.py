@@ -12,6 +12,7 @@ model_options = EnvConfig.model_options
 #     run_options=EnvConfig.run_options,
 # )
 # print("Successfully generated nominal controller!")
+# print("========================================")
 
 
 print("Generating neural plus controller...")
@@ -25,6 +26,7 @@ rtnmpc = NeuralNMPC(
     run_options=EnvConfig.run_options,
 )
 print("Successfully generated neural plus controller!")
+print("========================================")
 
 print("Generating neural minus controller...")
 model_options["only_use_nominal"] = False

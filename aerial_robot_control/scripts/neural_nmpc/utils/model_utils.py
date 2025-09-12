@@ -101,7 +101,7 @@ def load_model(model_options, sim_options, run_options):
     metadata = cross_check_options(model_options, sim_options, run_options, metadata)
 
     # Define trained MLP model
-    device = get_device()
+    device = "cpu"  # get_device()  # TODO Make use of GPU later
     file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
     saved_dict = torch.load(file_name, map_location=device)
 

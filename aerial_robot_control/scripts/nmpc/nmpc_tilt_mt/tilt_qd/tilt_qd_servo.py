@@ -47,7 +47,7 @@ class NMPCTiltQdServo(QDNMPCBase):
         self.include_quaternion_constraint = include_quaternion_constraint
 
         # Read parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "beetle", "BeetleNMPCFull.yaml")
+        self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
 
         # Create acados model & solver and generate c code
         super().__init__(method, build)
