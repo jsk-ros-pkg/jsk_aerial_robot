@@ -541,9 +541,39 @@ class NeuralNMPC:
                 if "minus_neural" in self.model_options:
                     if self.model_options["minus_neural"]:
                         f_total = nominal_dynamics - M @ mlp_out
+
+                        # Use CasADi's if_else for switching
+                        height_limit = 0.3  # m
+                        k = 20.0  # steepness, increase if you want faster switching
+                        alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
+                        f_total = nominal_dynamics - alpha * (M @ mlp_out)
+
                 if "plus_neural" in self.model_options:
                     if self.model_options["plus_neural"]:
                         f_total = nominal_dynamics + M @ mlp_out
+
+                        # === Time-dependent control law ===
+                        # Add a symbolic counter to the state vector
+                        # Assume last state entry is reserved for step_count
+                        # step_count = ca.MX.sym("step_count", 1)
+                        # self.state = ca.vertcat(self.state, step_count)
+                        # Adjust nominal_dynamics and mlp_out to match new state size
+                        # nominal_dynamics = self.nominal_model.f_expl_expr[:-1]  # exclude counter from nominal dynamics
+                        # Define switching time in steps (e.g., 2 seconds / T_samp)
+                        # switch_steps = int(2.0 / self.T_samp)
+
+                        # Use CasADi's if_else for switching
+                        height_limit = 0.3  # m
+                        k = 20.0  # steepness, increase if you want faster switching
+                        alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
+                        f_total = nominal_dynamics + alpha * (M @ mlp_out)
+                        # f_total = ca.if_else(
+                        #     height_limit < self.state[2],
+                        #     nominal_dynamics,
+                        #     f_total
+                        # )
+                        # ===================================
+
         # Implicit dynamics
         x_dot = ca.MX.sym("x_dot", self.state.size())
         f_impl = x_dot - f_total
