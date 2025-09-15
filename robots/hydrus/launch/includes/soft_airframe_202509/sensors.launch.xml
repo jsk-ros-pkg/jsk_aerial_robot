@@ -19,19 +19,12 @@
         <!-- mocap -->
         <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
-        <!-- leddar one -->
-        <include file="$(find leddar_one)/launch/leddar_one.launch" >
-          <arg name="port" value="/dev/leddarone" />
-        </include>
-
       </group>
     </group>
 
     <!-- basic configuration for sensors (e.g. noise sigma) -->
     <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
-    <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-    <rosparam file="$(find aerial_robot_base)/config/sensors/altimeter/leddar_one.yaml" command="load" />
 
   </group>
 

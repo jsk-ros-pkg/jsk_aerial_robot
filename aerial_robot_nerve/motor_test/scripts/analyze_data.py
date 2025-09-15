@@ -62,7 +62,9 @@ def analyze_data(folder_path, file_name, has_telemetry, set_voltage, order, if_r
         kRPM = average_values['RPM'].to_numpy() / 1000
 
     fz = average_values['fz'].to_numpy()
+    fz = fz * 9.798 / 1000
     mz = average_values['mz'].to_numpy()
+    mz = mz * 9.798 / 1000 / 1000
     currency = average_values['currency'].to_numpy()
     PWM_ratio = average_values['PWM_Ratio_%'].to_numpy()
 
