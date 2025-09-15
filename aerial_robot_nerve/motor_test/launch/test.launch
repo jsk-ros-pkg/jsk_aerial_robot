@@ -9,7 +9,8 @@
   <!-- parameters for oneshot -->
   <arg name="raise_duration" default="2.0" />
   <arg name="brake_duration" default="4.0" />
-  <arg name="force_sensor" default="CFS034CA301U" /> <!-- other sensor: PFS055YA501U6 -->
+  <!-- <arg name="force_sensor" default="CFS034CA301U" /> <!-\- other sensor: PFS055YA501U6 -\-> -->
+  <arg name="force_sensor" default="PFS055YA501U6" />
 
   <node name="power_node"  pkg="takasako_sps" type="scpi_tcp_client_node" output="screen" />
 
@@ -18,7 +19,7 @@
   </node>
 
   <include file="$(find rosserial_server)/launch/serial.launch" >
-    <arg name="port" value="/dev/ttyUSB0" />
+    <arg name="port" value="/dev/ttyACM0" />
     <arg name="baud" value="921600" />
   </include>
 
