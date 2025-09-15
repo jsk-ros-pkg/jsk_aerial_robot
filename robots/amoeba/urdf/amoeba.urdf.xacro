@@ -129,6 +129,38 @@
           </xacro:if>
         </actuator>
       </transmission>
+
+      ## percher link (only for chain_link 1 and 3)
+      <xacro:if value="${id == 1 or id == 3}">
+        <link name="percher${id}">
+          <inertial>
+            <origin xyz="0.07203636 -0.00070189 0.00924944" rpy="0 0 0"/>
+            <mass value="0.23213"/>
+            <inertia
+                ixx="0.00093823" ixy="-0.00002851" ixz="0.00044947"
+                iyy="0.00455027" iyz="-0.00000728"
+                izz="0.00451444"/>
+          </inertial>
+          <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <mesh filename="package://amoeba/urdf/mesh/percher.dae"/>
+            </geometry>
+          </visual>
+          <collision>
+            <origin xyz="0.2 0 0.1" rpy="0 0 0"/>
+            <geometry>
+              <box size="0.1 0.35 0.05"/>
+            </geometry>
+          </collision>
+        </link>
+
+        <joint name="percher_install${id}" type="fixed">
+          <parent link="chain_link${id}"/>
+          <child link="percher${id}"/>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+        </joint>
+      </xacro:if>
     </xacro:macro>
 
     ## dummy rotor arms
