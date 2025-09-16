@@ -130,8 +130,7 @@
         </actuator>
       </transmission>
 
-      ## percher link (only for chain_link 1 and 3)
-      <xacro:if value="${id == 1 or id == 3}">
+      <!-- <xacro:if value="${id == 1 or id == 3}">
         <link name="percher${id}">
           <inertial>
             <origin xyz="0.07203636 -0.00070189 0.00924944" rpy="0 0 0"/>
@@ -160,7 +159,7 @@
           <child link="percher${id}"/>
           <origin rpy="0 0 0" xyz="0 0 0"/>
         </joint>
-      </xacro:if>
+      </xacro:if> -->
     </xacro:macro>
 
     ## dummy rotor arms
