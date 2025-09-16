@@ -11,6 +11,7 @@ from spinal.msg import ServoControlCmd
 import numpy as np
 import math
 from aerial_robot_base.robot_interface import RobotInterface
+from calc_pwm import force_to_pwm
 
 s = 230
 d = 5
@@ -190,11 +191,12 @@ def get_angle_diff(wire_diff):
 
 
 if __name__ == "__main__":
-    alpha_1 = math.radians(1)
-    alpha_3 = math.radians(1)
+    # alpha_1 = math.radians(1)
+    # alpha_3 = math.radians(1)
 
     rospy.init_node("tail_ik")
     tail_pub = rospy.Publisher("servo/target_states", ServoControlCmd, queue_size=1)
+    # rotor_pub = rospy.Publisher("pwm_test", PwmTest, queue_size=1)
 
     rate = rospy.Rate(10)
 
@@ -208,7 +210,7 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [7, 6, 4]
+            tail_msg.index = [4, 3, 5, 6]
 
             # x = float(input("x (default 0)   "))
             # z = float(input("z"))
@@ -232,10 +234,11 @@ if __name__ == "__main__":
                 x_plus_short_wire,      
             ) = get_wire_diff(dest_alpha_1, dest_alpha_3)
 
-            rotor_x = 16.9 * alpha_3 # N
-            rotor_z = # (234g分) N
+            rotor_x = 16.9 * dest_alpha_3 # N
+            rotor_z = 0.234*9.80665# (234g分) N
             rotor_angle = math.atan2(rotor_x, rotor_z)
             rotor_force = math.sqrt(rotor_x**2 + rotor_z**2)
+            rotor_pwm = force_to_pwm(rotor_force)
             # todo: publish these values
 
             print("dest_alpha_1: ", math.degrees(dest_alpha_1), "deg")
@@ -243,15 +246,18 @@ if __name__ == "__main__":
             print("x_plus_long_wire: ", x_plus_long_wire)
             print("x_minus_long_wire: ", x_minus_long_wire)
             print("x_plus_short_wire: ", x_plus_short_wire)
+            print("rotor_x: ", rotor_x, "N")
+            print("rotor_z: ", rotor_z, "N")
             print("rotor_angle: ", math.degrees(rotor_angle), "deg")
             print("rotor_force: ", rotor_force, "N")
+            print("rotor_pwm: ", rotor_pwm)
             print()
-            init_servo_angles = [2047, 2047, 2047]
             dest_servo_angles = [
-                2047 + 1 * get_angle_diff(x_plus_long_wire),
-                2047 - 1 * get_angle_diff(x_minus_long_wire),
-                2047 + 1 * get_angle_diff(x_plus_short_wire),
-                2047 + int(rotor_angle / (2 * math.pi) * 4096),
+                # 2047 + 1 * get_angle_diff(x_plus_long_wire),
+                # 2047 - 1 * get_angle_diff(x_minus_long_wire),
+                # 2047 + 1 * get_angle_diff(x_plus_short_wire),
+                2047, 2047, 2047,
+                2047 - int(rotor_angle / (2 * math.pi) * 4096),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
