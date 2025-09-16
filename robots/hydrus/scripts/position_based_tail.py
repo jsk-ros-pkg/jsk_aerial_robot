@@ -19,7 +19,6 @@ r_joint_2 = 85 / 2
 r_wheel = 20
 
 
-# def solve_ik(alpha_1, alpha_2, alpha_3, alpha_4, p_des):
 def solve_ik(alpha_1, alpha_3, p_des):
     for i in range(500):
         print("num of iteration: ", i)
@@ -29,26 +28,12 @@ def solve_ik(alpha_1, alpha_3, p_des):
                 [-math.sin(alpha_1), math.cos(alpha_1)],
             ]
         )
-        # R_1_to_2 = np.array(
-        #     [
-        #         [1, 0, 0],
-        #         [0, math.cos(alpha_2), math.sin(alpha_2)],
-        #         [0, -math.sin(alpha_2), math.cos(alpha_2)],
-        #     ]
-        # )
         R_2_to_3 = np.array(
             [
                 [math.cos(alpha_3), math.sin(alpha_3)],
                 [-math.sin(alpha_3), math.cos(alpha_3)],
             ]
         )
-        # R_3_to_4 = np.array(
-        #     [
-        #         [1, 0, 0],
-        #         [0, math.cos(alpha_4), math.sin(alpha_4)],
-        #         [0, -math.sin(alpha_4), math.cos(alpha_4)],
-        #     ]
-        # )
 
         R_0_to_1_prime = np.array(
             [
@@ -56,26 +41,12 @@ def solve_ik(alpha_1, alpha_3, p_des):
                 [-math.cos(alpha_1), -math.sin(alpha_1)],
             ]
         )
-        # R_1_to_2_prime = np.array(
-        #     [
-        #         [0, 0, 0],
-        #         [0, -math.sin(alpha_2), math.cos(alpha_2)],
-        #         [0, -math.cos(alpha_2), -math.sin(alpha_2)],
-        #     ]
-        # )
         R_2_to_3_prime = np.array(
             [
                 [-math.sin(alpha_3), math.cos(alpha_3)],
                 [-math.cos(alpha_3), -math.sin(alpha_3)],
             ]
         )
-        # R_3_to_4_prime = np.array(
-        #     [
-        #         [0, 0, 0],
-        #         [0, -math.sin(alpha_4), math.cos(alpha_4)],
-        #         [0, -math.cos(alpha_4), -math.sin(alpha_4)],
-        #     ]
-        # )
 
         if alpha_1 == 0:
             p_0_to_1 = np.array(
@@ -112,45 +83,6 @@ def solve_ik(alpha_1, alpha_3, p_des):
                     ],
                 ]
             )
-        # if alpha_2 == 0:
-        #     p_1_to_2 = np.array(
-        #         [
-        #             [0],
-        #             [0],
-        #             [s + d],
-        #         ]
-        #     )
-        #     p_1_to_2_prime = np.array(
-        #         [
-        #             [0],
-        #             [s / 2 + d],
-        #             [0],
-        #         ]
-        #     )
-        # else:
-        #     r_2 = s / alpha_2
-        #     p_1_to_2 = np.array(
-        #         [
-        #             [0],
-        #             [r_2 * (1 - math.cos(alpha_2)) + d * math.sin(alpha_2)],
-        #             [r_2 * math.sin(alpha_2) + d * math.cos(alpha_2)],
-        #         ]
-        #     )
-        #     p_1_to_2_prime = np.array(
-        #         [
-        #             [0],
-        #             [
-        #                 -s / alpha_2 / alpha_2 * (1 - math.cos(alpha_2))
-        #                 + r_2 * math.sin(alpha_2)
-        #                 + d * math.cos(alpha_2)
-        #             ],
-        #             [
-        #                 -s / alpha_2 / alpha_2 * math.sin(alpha_2)
-        #                 + r_2 * math.cos(alpha_2)
-        #                 - d * math.sin(alpha_2)
-        #             ],
-        #         ]
-        #     )
         if alpha_3 == 0:
             p_2_to_3 = np.array(
                 [
@@ -186,58 +118,14 @@ def solve_ik(alpha_1, alpha_3, p_des):
                     ],
                 ]
             )
-        # if alpha_4 == 0:
-        #     p_3_to_4 = np.array(
-        #         [
-        #             [0],
-        #             [0],
-        #             [s + d],
-        #         ]
-        #     )
-        #     p_3_to_4_prime = np.array(
-        #         [
-        #             [0],
-        #             [s / 2 + d],
-        #             [0],
-        #         ]
-        #     )
-        # else:
-        #     r_4 = s / alpha_4
-        #     p_3_to_4 = np.array(
-        #         [
-        #             [0],
-        #             [r_4 * (1 - math.cos(alpha_4)) + d * math.sin(alpha_4)],
-        #             [r_4 * math.sin(alpha_4) + d * math.cos(alpha_4)],
-        #         ]
-        #     )
-        #     p_3_to_4_prime = np.array(
-        #         [
-        #             [0],
-        #             [
-        #                 -s / alpha_4 / alpha_4 * (1 - math.cos(alpha_4))
-        #                 + r_4 * math.sin(alpha_4)
-        #                 + d * math.cos(alpha_4)
-        #             ],
-        #             [
-        #                 -s / alpha_4 / alpha_4 * math.sin(alpha_4)
-        #                 + r_4 * math.cos(alpha_4)
-        #                 - d * math.sin(alpha_4)
-        #             ],
-        #         ]
-        #     )
 
         p = (
             p_0_to_1
             + R_0_to_1 @ p_2_to_3
         )
-        # print("p: ")
-        # print(p)
 
-        # if np.linalg.norm(p_des - p[:2, :]) < 13:
         print("alpha_1: ", math.degrees(alpha_1), "deg")
-        # print("alpha_2: ", math.degrees(alpha_2), "deg")
         print("alpha_3: ", math.degrees(alpha_3), "deg")
-        # print("alpha_4: ", math.degrees(alpha_4), "deg")
         if np.linalg.norm(p_des - p[:1, :]) < 13:
             print("p_des: ")
             print(p_des)
@@ -316,57 +204,27 @@ if __name__ == "__main__":
     # ri.trajectoryNavigate(pos=[0,0,0.6], rot=None)
     # rospy.sleep(5)
     
-    # dest_poses = [
-    #     [0.0, 0.0],
-    #     [200.0, 0.0],
-    #     [-200.0, 0.0],
-    #     [0.0, 0.0],
-    #     [0.0, 200.0],
-    #     [0.0, -200.0],
-    # ]
-    # pos_index = 0
-    dest_pos_x = 350
-    dest_pos_y = 0
-    max_x = 300
-    min_x = -300
-
-
     try:
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            # tail_msg.index = [0, 1, 2, 3, 4]
             tail_msg.index = [7, 6, 4]
 
-            # dest_pos_x -= 50
-            # if dest_pos_x < min_x:
-            #     dest_pos_x = max_x
-            #     dest_pos_y -= 50
-            # if dest_pos_x < min_x:
-            #     exit()
-            x = float(input("x (default 0)   "))
-            # z = float(input("z (default 475) "))
+            # x = float(input("x (default 0)   "))
             # z = float(input("z"))
-            # x, y = dest_poses[pos_index]
-            # pos_index += 1
-            # if pos_index >= len(dest_poses):
-            #     pos_index = 0
-            # print("x: ", x, " y: ", y)
 
-            p_des = np.array(
-                [
-                    # [dest_pos_x],
-                    # [dest_pos_y],
-                    # [dest_pos_z],
-                    [x],
-                    # [z],
-                    # [z],
-                ]
-            )
+            # p_des = np.array(
+            #     [
+            #         [x],
+            #         # [z],
+            #     ]
+            # )
 
-            dest_alpha_1, dest_alpha_3 = solve_ik(
-                alpha_1, alpha_3, p_des
-            )
+            # dest_alpha_1, dest_alpha_3 = solve_ik(
+            #     alpha_1, alpha_3, p_des
+            # )
+            dest_alpha_1 = math.radians(float(input("alpha_1 (deg): ")))
+            dest_alpha_3 = math.radians(float(input("alpha_3 (deg): ")))
 
             (
                 x_plus_long_wire,
@@ -374,17 +232,26 @@ if __name__ == "__main__":
                 x_plus_short_wire,      
             ) = get_wire_diff(dest_alpha_1, dest_alpha_3)
 
+            rotor_x = 16.9 * alpha_3 # N
+            rotor_z = # (234g分) N
+            rotor_angle = math.atan2(rotor_x, rotor_z)
+            rotor_force = math.sqrt(rotor_x**2 + rotor_z**2)
+            # todo: publish these values
+
             print("dest_alpha_1: ", math.degrees(dest_alpha_1), "deg")
             print("dest_alpha_3: ", math.degrees(dest_alpha_3), "deg")
             print("x_plus_long_wire: ", x_plus_long_wire)
             print("x_minus_long_wire: ", x_minus_long_wire)
             print("x_plus_short_wire: ", x_plus_short_wire)
+            print("rotor_angle: ", math.degrees(rotor_angle), "deg")
+            print("rotor_force: ", rotor_force, "N")
             print()
             init_servo_angles = [2047, 2047, 2047]
             dest_servo_angles = [
                 2047 + 1 * get_angle_diff(x_plus_long_wire),
                 2047 - 1 * get_angle_diff(x_minus_long_wire),
                 2047 + 1 * get_angle_diff(x_plus_short_wire),
+                2047 + int(rotor_angle / (2 * math.pi) * 4096),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
