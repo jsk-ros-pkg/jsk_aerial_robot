@@ -35,7 +35,7 @@
 #         polynominal0: 53.05390106  # x10^0
 
 voltage = 24.2
-min_pwm = 0.56
+min_pwm = 0.57
 # max_pwm = 0.925
 max_pwm = 0.7
 
