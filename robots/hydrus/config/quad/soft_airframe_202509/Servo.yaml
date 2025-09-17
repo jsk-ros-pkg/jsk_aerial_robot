@@ -36,23 +36,27 @@ servo_controller:
     controller4:
       id: 3
       name: soft_joint2
+      angle_sgn: 0
       simulation:
         init_value: 0.0
 
     controller5:
       id: 4
       name: soft_joint3
+      angle_sgn: 0
       simulation:
         init_value: 0.0
 
     controller6:
       id: 5
       name: soft_joint4
+      angle_sgn: 0
       simulation:
         init_value: 0.0
     
     controller7:
       id: 6
       name: gimbal_joint1
+      angle_sgn: 0
       simulation:
         init_value: 0.0
