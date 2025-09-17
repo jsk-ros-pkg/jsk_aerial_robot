@@ -20,6 +20,50 @@ r_joint_1 = 85 / 2 / math.sqrt(2)
 r_joint_2 = 85 / 2
 r_wheel = 20
 
+def fk(alpha_1, alpha_3):
+    R_0_to_1 = np.array(
+        [
+            [math.cos(alpha_1), math.sin(alpha_1)],
+            [-math.sin(alpha_1), math.cos(alpha_1)],
+        ]
+    )
+    R_2_to_3 = np.array(
+        [
+            [math.cos(alpha_3), math.sin(alpha_3)],
+            [-math.sin(alpha_3), math.cos(alpha_3)],
+        ]
+    )
+    if alpha_1 == 0:
+        p_0_to_1 = np.array(
+            [
+                [0],
+                [s + d*2],
+            ]
+        )
+    else:
+        r_1 = s / alpha_1
+        p_0_to_1 = np.array(
+            [
+                [r_1 * (1 - math.cos(alpha_1)) + d * math.sin(alpha_1) * 2],
+                [r_1 * math.sin(alpha_1) + d * math.cos(alpha_1) * 2],
+            ]
+        )
+    if alpha_3 == 0:
+        p_2_to_3 = np.array(
+            [
+                [0],
+                [s + d],
+            ]
+        )
+    else:
+        r_3 = s / alpha_3
+        p_2_to_3 = np.array(
+            [
+                [r_3 * (1 - math.cos(alpha_3)) + d * math.sin(alpha_3)],
+                [r_3 * math.sin(alpha_3) + d * math.cos(alpha_3)],
+            ]
+        )
+    return (p_0_to_1 + R_0_to_1 @ p_2_to_3)
 
 def solve_ik(alpha_1, alpha_3, p_des):
     for i in range(500):
@@ -157,24 +201,24 @@ def solve_ik(alpha_1, alpha_3, p_des):
 
 
 def get_wire_diff(alpha_1, alpha_3):
-    divide_num = 4
+    divide_num = 8
     def get_plus_pos_wire_length(alpha, r_joint):  # xまたはyが正のワイヤーの長さ
         if alpha == 0:
             return s + d
-        r = s / abs(alpha)
+        r = (s-d*(divide_num/2-1)) / abs(alpha)
         if alpha > 0:
-            return divide_num * (r - r_joint - 1.5) * math.sin(abs(alpha) / divide_num) + d
+            return divide_num * (r - r_joint - 1.5) * math.sin(abs(alpha) / divide_num) + divide_num/2*d
         else:
-            return divide_num * (r + r_joint + 1.5) * math.sin(abs(alpha) / divide_num) + d
+            return divide_num * (r + r_joint + 1.5) * math.sin(abs(alpha) / divide_num) + divide_num/2*d
 
     def get_minus_pos_wire_length(alpha, r_joint):  # xまたはyが負のワイヤーの長さ
         if alpha == 0:
             return s + d
-        r = s / abs(alpha)
+        r = (s-d*(divide_num/2-1)) / abs(alpha)
         if alpha > 0:
-            return divide_num * (r + r_joint + 1.5) * math.sin(abs(alpha) / divide_num) + d
+            return divide_num * (r + r_joint + 1.5) * math.sin(abs(alpha) / divide_num) + divide_num/2*d
         else:
-            return divide_num * (r - r_joint - 1.5) * math.sin(abs(alpha) / divide_num) + d
+            return divide_num * (r - r_joint - 1.5) * math.sin(abs(alpha) / divide_num) + divide_num/2*d
 
     x_plus_long_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d + get_plus_pos_wire_length(alpha_3, r_joint_2)
     x_minus_long_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d +get_minus_pos_wire_length(alpha_3, r_joint_2)
@@ -250,8 +294,12 @@ if __name__ == "__main__":
                 x_plus_short_wire,      
             ) = get_wire_diff(dest_alpha_1, dest_alpha_3)
 
-            rotor_x = 16.9 * dest_alpha_3 # N
-            rotor_z = 0.4*9.80665# (234g分) N
+            if dest_alpha_1 * dest_alpha_3 < 0:
+                rotor_x = 0.0
+            else:
+                selected_alpha = dest_alpha_1 if abs(dest_alpha_1) <= abs(dest_alpha_3) else dest_alpha_3
+                rotor_x = 16.9 * selected_alpha
+            rotor_z = 0.4*9.80665# (234g+138g分) N
             rotor_angle = math.atan2(rotor_x, rotor_z)
             rotor_force = math.sqrt(rotor_x**2 + rotor_z**2)
             rotor_pwm = force_to_pwm(rotor_force)
@@ -259,6 +307,7 @@ if __name__ == "__main__":
 
             print("dest_alpha_1: ", math.degrees(dest_alpha_1), "deg")
             print("dest_alpha_3: ", math.degrees(dest_alpha_3), "deg")
+            print("p: ", fk(dest_alpha_1, dest_alpha_3))
             print("x_plus_long_wire: ", x_plus_long_wire)
             print("x_minus_long_wire: ", x_minus_long_wire)
             print("x_plus_short_wire: ", x_plus_short_wire)
