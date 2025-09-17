@@ -299,7 +299,7 @@ if __name__ == "__main__":
             else:
                 selected_alpha = dest_alpha_1 if abs(dest_alpha_1) <= abs(dest_alpha_3) else dest_alpha_3
                 rotor_x = 16.9 * selected_alpha
-            rotor_z = 0.4*9.80665# (234g+138g分) N
+            rotor_z = 0.5*9.80665# (234g+138g分) N
             rotor_angle = math.atan2(rotor_x, rotor_z)
             rotor_force = math.sqrt(rotor_x**2 + rotor_z**2)
             rotor_pwm = force_to_pwm(rotor_force)
