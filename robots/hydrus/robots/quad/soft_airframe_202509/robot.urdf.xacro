@@ -39,7 +39,7 @@
   <!-- onboard -->
   <!-- 1.  processor -->
   <!-- 1.1 flight controller -->
-  <xacro:extra_module name = "fc" parent = "link2" visible = "1"
+  <xacro:extra_module name = "fc" parent = "link3" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/ver2/flight_controller/spinal.dae"> <!-- same with intel euclid -->
     <origin xyz="${link_length / 2 + 0.2221} ${-4.4*0.001} 0.02135" rpy="0 0 0"/>
     <inertial>
