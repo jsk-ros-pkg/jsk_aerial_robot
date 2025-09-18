@@ -454,10 +454,19 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr& joy_msg)
   /* this is the yaw_angle control */
   if (fabs(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]) > joy_yaw_deadzone_)
   {
+    double rotation_cmd = joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS];
+    // if the rotation_cmd is lager than 0, then the biased_yaw_rate_ is 2* max_target_yaw_rate_
+    double biased_yaw_rate_;
+    if (rotation_cmd > 0)
+      biased_yaw_rate_ = 2 * max_target_yaw_rate_;
+    else
+      biased_yaw_rate_ = max_target_yaw_rate_;
+
     double target_yaw = estimator_->getEuler(Frame::COG, estimate_mode_).z() +
-                        joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_;
+                        rotation_cmd * biased_yaw_rate_;
+
     setTargetYaw(angles::normalize_angle(target_yaw));
-    setTargetOmegaZ(joy_cmd.axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS] * max_target_yaw_rate_);
+    setTargetOmegaZ(rotation_cmd * biased_yaw_rate_);
 
     yaw_control_flag_ = true;
   }

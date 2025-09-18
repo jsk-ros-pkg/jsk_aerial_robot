@@ -138,9 +138,9 @@ def parse_joint_argument(arg_string):
 
 def length2angle(length):
     """Convert length in mm to servo angle command"""
-    # Limiting servo angle [-4900, 9000] smaller range for safety
+    # Limiting servo angle [-4500, 8600] smaller range for safety
     length_min, length_max = 0, 100
-    servo_min, servo_max = -4900, 9000
+    servo_min, servo_max = -4500, 8600
     length_clamped = max(length_min, min(length_max, length))
     normalized = (length_clamped - length_min) / (length_max - length_min)
     angle = servo_min + normalized * (servo_max - servo_min)
