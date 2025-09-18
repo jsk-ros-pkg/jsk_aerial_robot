@@ -119,6 +119,12 @@
           iyy="0.00010606" iyz="0.0"
           izz="0.00010185"/>
     </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1175 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.05875 0 0.02" rpy="0 0 0"/>
+    </visual>
   </link>
   <gazebo reference="soft_link1">
     <mu1>0.1</mu1>
@@ -135,6 +141,12 @@
           iyy="0.00049831" iyz="0.0"
           izz="0.00048990"/>
     </inertial>
+    <visual>
+      <geometry>
+        <box size="0.235 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.1175 0.000002 0.019998" rpy="0 0 0"/>
+    </visual>
   </link>
   <gazebo reference="soft_link2">
     <mu1>0.1</mu1>
@@ -151,6 +163,12 @@
           iyy="0.00028149" iyz="0.000000005"
           izz="0.00026759"/>
     </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1175 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.05875 0 0.02" rpy="0 0 0"/>
+    </visual>
   </link>
   <gazebo reference="soft_link3">
     <mu1>0.1</mu1>
@@ -160,13 +178,19 @@
 
   <link name="dummy_link">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0001"/>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+      <mass value="0.01"/>
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/>
     </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+    </visual>
   </link>
   <gazebo reference="dummy_link">
     <mu1>0.1</mu1>
@@ -181,7 +205,7 @@
   </joint>
 
   <joint name="soft_joint2" type="revolute">
-    <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
     <parent link="soft_link1"/>
     <child link="soft_link2"/>
     <origin xyz="0.1175 0 0" rpy="0 0 0"/>
@@ -190,7 +214,7 @@
   </joint>
 
   <joint name="soft_joint3" type="revolute">
-    <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
     <parent link="soft_link2"/>
     <child link="soft_link3"/>
     <origin xyz="0.235 0 0" rpy="0 0 0"/>
@@ -202,10 +226,10 @@
   </gazebo> -->
 
   <joint name="soft_joint4" type="revolute">
-    <limit effort="10.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="dummy_link"/>
-    <origin xyz="0.235 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.02" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
@@ -269,7 +293,7 @@
 
   <!-- gimbal -->
   <joint name="gimbal_joint1" type="continuous">
-    <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/>
+    <limit effort="5.0" lower="1.0" upper="20.0" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="gimbal_link1"/>
     <origin rpy="0 0 0" xyz="0.1595 0 0"/>
@@ -283,18 +307,17 @@
       <mass value="0.173"/>
       <!-- this inertia value is 10 times bigger than the real one -->
       <!-- to avoid the instability in gazebo -->
-      <!-- this is the original now -->
       <inertia
-          ixx="0.00022661" ixy="0.0" ixz="0.0"
-          iyy="0.00015451" iyz="0.0"
-          izz="0.000032533"/>
+          ixx="0.0022661" ixy="0.0" ixz="0.0"
+          iyy="0.0015451" iyz="0.0"
+          izz="0.00032533"/>
     </inertial>
-    <collision>
+    <!-- <collision>
       <origin xyz="0.0815 0 0" rpy="0 0 0"/>
       <geometry>
         <cylinder length="0.1" radius="0.05"/>
       </geometry>
-    </collision>
+    </collision> -->
     <visual>
       <origin xyz="0.0815 0 0" rpy="0 0 0"/>
       <geometry>
@@ -316,15 +339,15 @@
   </transmission>
 
   <!-- rotor -->
-  <joint name="rt5" type="fixed">
-    <!-- <limit effort="100.0" lower="1.0" upper="20.0" velocity="0.5"/> -->
+  <joint name="rotor5" type="continuous">
+    <limit effort="5.0" lower="1.0" upper="20.0" velocity="0.5"/>
     <parent link="gimbal_link1"/>
-    <child link="th5"/>
+    <child link="thrust5"/>
     <origin rpy="0 0 0" xyz="0.0735 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
-  <link name="th5">
+  <link name="thrust5">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.0001"/>
@@ -333,12 +356,12 @@
           iyy="0.00001" iyz="0.0"
           izz="0.00002"/>
     </inertial>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <cylinder length="0.1" radius="0.11"/>
       </geometry>
-    </collision>
+    </collision> -->
     <visual>
       <origin rpy="${pi/2} 0 0" xyz="-0.045 0.055 0.06"/>
       <geometry>
@@ -346,17 +369,17 @@
       </geometry>
     </visual>
   </link>
-  <xacro:damping_factor link ="th5"/>
+  <xacro:damping_factor link ="thrust5"/>
 
-  <!-- <transmission name="rotor_tran5"> -->
-  <!--   <type>transmission_interface/SimpleTransmission</type> -->
-  <!--   <joint name="rotor5"> -->
-  <!--     <hardwareInterface>RotorInterface</hardwareInterface> -->
-  <!--   </joint> -->
-  <!--   <actuator name="rotor5"> -->
-  <!--     <hardwareInterface>RotorInterface</hardwareInterface> -->
-  <!--     <mechanicalReduction>1</mechanicalReduction> -->
-  <!--   </actuator> -->
-  <!-- </transmission> -->
+  <transmission name="rotor_tran5">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor5">
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor5">
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
 
 </robot>
