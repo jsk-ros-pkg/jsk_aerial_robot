@@ -202,7 +202,8 @@ private:
   float target_pwm_[MAX_MOTOR_NUMBER];
   float min_duty_[MAX_MOTOR_NUMBER];
   float max_duty_[MAX_MOTOR_NUMBER];
-  float min_thrust_[MAX_MOTOR_NUMBER]; // max thrust is variant according to the voltage
+  float min_thrust_[MAX_MOTOR_NUMBER];
+  float max_thrust_[MAX_MOTOR_NUMBER];
   float force_landing_thrust_[MAX_MOTOR_NUMBER];
   int8_t rotor_devider_;
   int8_t pwm_conversion_mode_[MAX_MOTOR_NUMBER];

@@ -425,15 +425,23 @@ void AttitudeController::update(void)
       if(force_landing_flag_)
         {
           float total_thrust = 0;
+          float total_thrust_limit = 0;
           /* sum */
-          for(int i = 0; i < motor_number_; i++) total_thrust += base_thrust_term_[i];
-          /* average */
-          float average_thrust = total_thrust / motor_number_;
-
-          if(average_thrust > force_landing_thrust_)
+          for(int i = 0; i < motor_number_; i++)
             {
-              for(int i = 0; i < motor_number_; i++)
-                base_thrust_term_[i] -= (base_thrust_term_[i] / average_thrust * FORCE_LANDING_INTEGRAL);
+              total_thrust += base_thrust_term_[i];
+              total_thrust_limit += max_thrust_[i];
+            }
+
+          /* weighted average */
+          for(int i = 0; i < motor_number_; i++)
+            {
+              float average_thrust = total_thrust / total_thrust_limit * max_thrust_[i];
+
+              if(average_thrust > force_landing_thrust_[i])
+                {
+                  base_thrust_term_[i] -= (base_thrust_term_[i] - average_thrust) * FORCE_LANDING_INTEGRAL;
+                }
             }
         }
     }
@@ -522,9 +530,17 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
   if(force_landing_flag_)
     {
       float total_thrust = 0;
-      for(int i = 0; i < motor_number_; i++) total_thrust += cmd_msg.base_thrust[i];
-      float average_thrust = total_thrust / motor_number_;
-      if(average_thrust < force_landing_thrust_) return;
+      float total_thrust_limit = 0;
+      for(int i = 0; i < motor_number_; i++)
+        {
+          total_thrust += cmd_msg.base_thrust[i];
+          total_thrust_limit += max_thrust_[i];
+        }
+      for(int i = 0; i < motor_number_; i++)
+        {
+          float average_thrust = total_thrust / total_thrust_limit * max_thrust_[i];
+          if(average_thrust < force_landing_thrust_[i]) return;
+        }
     }
 
 
@@ -966,7 +982,7 @@ void AttitudeController::pwmConversion()
       return;
     }
 
-  if(motor_info_.size() == 0) return;
+  if(motor_info_.at(0).size() == 0) return; // not yet received motor info
 
   /* update the factor regarding the robot voltage */
   if(HAL_GetTick() - voltage_update_last_time_ > 500) //[500ms = 0.5s]
@@ -1019,83 +1035,54 @@ void AttitudeController::pwmConversion()
 
           voltage_update_last_time_ = HAL_GetTick();
         }
+    }
 
   /* pwm saturation avoidance */
   /* get the decreasing rate for the thrust to avoid the divergence because of the pwm saturation */
   float base_thrust_decreasing_rate = 0;
   float yaw_decreasing_rate = 0;
-  float thrust_limit = motor_info_[motor_ref_index_].max_thrust / v_factor_;
-
-  /* check saturation level 2: z control saturation */
-  float max_thrust = 0;
-  int max_thrust_index = 0;
-  for(int i = 0; i < motor_number_; i++)
-    {
-      float thrust = base_thrust_term_[i] + roll_pitch_term_[i];
-      if(max_thrust < thrust)
-        {
-          max_thrust = thrust;
-          max_thrust_index = i;
-        }
-    }
-
   if(start_control_flag_)
     {
-      float residual_term = thrust_limit - max_thrust / rotor_devider_;
+      for(int i = 0; i < motor_number_; i++) // only for controlled motors
+        {
+          /* check saturation level 2: z control saturation */
+          float thrust_limit = motor_info_[i][motor_ref_index_[i]].max_thrust / v_factor_[i];
+          max_thrust_[i] = thrust_limit;
 
-      if(residual_term < 0 && base_thrust_term_[max_thrust_index] > 0)
-        {
-          base_thrust_decreasing_rate = residual_term / (base_thrust_term_[max_thrust_index] / rotor_devider_);
-          yaw_decreasing_rate = -1; // also, we have to ignore the yaw control
-        }
-      else
-        {
-          if(max_yaw_term_index_ != -1 && base_thrust_term_[0] > 0 )
+          float residual_term = thrust_limit - (base_thrust_term_[i] + roll_pitch_term_[i]) /rotor_devider_;
+
+          if(residual_term < 0 && base_thrust_term_[i] > 0) // z term is saturated
             {
-              /* check saturation level1: yaw control saturation */
-              max_thrust = 0;
-              float min_thrust = 10000;
-              int min_thrust_index = 0;
-              for(int i = 0; i < motor_number_; i++)
-                {
-                  float thrust = base_thrust_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
-                  if(max_thrust < thrust)
-                    {
-                      max_thrust = thrust;
-                      max_thrust_index = i;
-                    }
-                  if(min_thrust > thrust)
-                    {
-                      min_thrust = thrust;
-                      min_thrust_index = i;
-                    }
-                }
+              float base_thrust_decreasing_rate_i = residual_term / (base_thrust_term_[i] / rotor_devider_);
 
-              float residual_term_max =  thrust_limit - max_thrust / rotor_devider_;
-              float residual_term_min =  min_thrust / rotor_devider_ - min_thrust_;
-              int thrust_index = 0;
-              if (residual_term_min < residual_term_max)
-                {
-                  residual_term = residual_term_min;
-                  thrust_index = min_thrust_index;
-                }
-              else
-                {
-                  residual_term = residual_term_max;
-                  thrust_index = max_thrust_index;
-                }
+              if(base_thrust_decreasing_rate_i < base_thrust_decreasing_rate)
+                base_thrust_decreasing_rate = base_thrust_decreasing_rate_i;
 
-              if(residual_term < 0)
-                {
-                  yaw_decreasing_rate = residual_term / (fabs(yaw_term_[thrust_index]) / rotor_devider_);
-                }
-
-              if(yaw_decreasing_rate < -1) yaw_decreasing_rate = -1;
-              if(yaw_decreasing_rate > 0) yaw_decreasing_rate = 0;
+              yaw_decreasing_rate = -1; // also, we have to ignore the yaw control
             }
           else
             {
-              yaw_decreasing_rate = -1;
+              /* check saturation level1: yaw control saturation */
+              if(max_yaw_term_index_ != -1 && base_thrust_term_[0] > 0) // already received yaw gains and started control
+                {
+                  float thrust = base_thrust_term_[i] + roll_pitch_term_[i] + yaw_term_[i];
+                  float residual_term_max = thrust_limit - thrust / rotor_devider_;
+                  float residual_term_min = thrust / rotor_devider_ - min_thrust_[i];
+                  if(residual_term_min < residual_term_max)
+                    residual_term = residual_term_min;
+                  else
+                    residual_term = residual_term_max;
+
+                  if(residual_term < 0)
+                    {
+                      float yaw_decreasing_rate_i = residual_term / (fabs(yaw_term_[i]) / rotor_devider_);
+                      if(yaw_decreasing_rate_i < yaw_decreasing_rate) yaw_decreasing_rate = yaw_decreasing_rate_i;
+                    }
+                }
+              else
+                {
+                  yaw_decreasing_rate = -1;
+                }
             }
         }
     }
