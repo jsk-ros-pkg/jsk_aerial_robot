@@ -40,7 +40,7 @@
 #include <aerial_robot_estimation/state_estimation.h>
 #include <aerial_robot_model/model/aerial_robot_model.h>
 #include <ros/ros.h>
-#include <spinal/PwmInfo.h>
+#include <spinal/PwmInfos.h>
 #include <spinal/UavInfo.h>
 
 namespace aerial_robot_control
@@ -61,7 +61,7 @@ namespace aerial_robot_control
     {
       nh_ = nh;
       nhp_ = nhp;
-      motor_info_pub_ = nh_.advertise<spinal::PwmInfo>("motor_info", 10);
+      motor_info_pub_ = nh_.advertise<spinal::PwmInfos>("motor_info", 10);
       uav_info_pub_ = nh_.advertise<spinal::UavInfo>("uav_info", 10);
 
       robot_model_ = robot_model;
@@ -80,34 +80,57 @@ namespace aerial_robot_control
       getParam<bool>(control_nh, "control_verbose", control_verbose_, false);
 
       ros::NodeHandle motor_nh(nh_, "motor_info");
-      getParam<double>(motor_nh, "max_pwm", max_pwm_, 0.0);
-      getParam<double>(motor_nh, "min_pwm", min_pwm_, 0.0);
-      getParam<double>(motor_nh, "min_thrust", min_thrust_, 0.0);
-      getParam<double>(motor_nh, "force_landing_thrust", force_landing_thrust_, 0.0);
-      getParam<double>(motor_nh, "m_f_rate", m_f_rate_, 0.0);
-      getParam<int>(motor_nh, "pwm_conversion_mode", pwm_conversion_mode_, -1);
-
-      int vel_ref_num;
-      getParam<int>(motor_nh, "vel_ref_num", vel_ref_num, 0);
-      motor_info_.resize(vel_ref_num);
-      for(int i = 0; i < vel_ref_num; i++)
+      motor_types_.resize(0);
+      int motor_type_max = 0;
+      if(motor_nh.hasParam("motor_types"))
         {
-          std::stringstream ss;
-          ss << i + 1;
-          double val;
-          ros::NodeHandle nh(motor_nh, "ref" + ss.str());
-          getParam<double>(nh, "voltage", val, 0);
-          motor_info_[i].voltage = val;
-          nh.param("max_thrust", val, 0.0);
-          motor_info_[i].max_thrust = val;
+          motor_nh.getParam("motor_types", motor_types_);
+          for(int i = 0; i < motor_types_.size(); i++)
+            if(motor_types_[i] > motor_type_max) motor_type_max = motor_types_[i]; // assume motor type is started from 0 and continuous
+        }
 
-          /* hardcode: up to 4 dimension */
-          for(int j = 0; j < 5; j++)
+      max_pwm_.resize(motor_type_max + 1, 0.0);
+      min_pwm_.resize(motor_type_max + 1, 0.0);
+      min_thrust_.resize(motor_type_max + 1, 0.0);
+      motor_info_.resize(motor_type_max + 1);
+      force_landing_thrust_.resize(motor_type_max + 1, 0.0);
+      pwm_conversion_mode_.resize(motor_type_max + 1, spinal::MotorInfo::POLYNOMINAL_MODE);
+
+      for(int i = 0; i < motor_type_max + 1; i++)
+        {
+          std::stringstream ss1;
+          if(i != 0) ss1 << i; // use "motor_info" for type 0, "motor_info1" for type 1, etc.
+          ros::NodeHandle motor_type_nh(nh_, "motor_info" + ss1.str());
+
+          getParam<double>(motor_type_nh, "max_pwm", max_pwm_[i], 0.0);
+          getParam<double>(motor_type_nh, "min_pwm", min_pwm_[i], 0.0);
+          getParam<double>(motor_type_nh, "min_thrust", min_thrust_[i], 0.0);
+          getParam<double>(motor_type_nh, "force_landing_thrust", force_landing_thrust_[i], 0.0);
+          getParam<int>(motor_type_nh, "pwm_conversion_mode", pwm_conversion_mode_[i], -1);
+
+          int vel_ref_num;
+          getParam<int>(motor_type_nh, "vel_ref_num", vel_ref_num, 0);
+          motor_info_.at(i).resize(vel_ref_num);
+
+          for(int j = 0; j < vel_ref_num; j++)
             {
               std::stringstream ss2;
-              ss2 << j;
-              getParam<double>(nh, "polynominal" + ss2.str(), val, 0);
-              motor_info_[i].polynominal[j] = val;
+              ss2 << j + 1; // use "ref1", "ref2", etc.
+              double val;
+              ros::NodeHandle nh(motor_type_nh, "ref" + ss2.str());
+              getParam<double>(nh, "voltage", val, 0);
+              motor_info_[i][j].voltage = val;
+              nh.param("max_thrust", val, 0.0);
+              motor_info_[i][j].max_thrust = val;
+
+              /* hardcode: up to 4 dimension */
+              for(int k = 0; k < 5; k++)
+                {
+                  std::stringstream ss3;
+                  ss3 << k;
+                  getParam<double>(nh, "polynominal" + ss3.str(), val, 0);
+                  motor_info_[i][j].polynominal[k] = val;
+                }
             }
         }
     }
@@ -141,16 +164,23 @@ namespace aerial_robot_control
       if(ros::Time::now().toSec() - activate_timestamp_  > 0.1)
         {
           /* send motor and uav info to uav, about 10Hz */
-          spinal::PwmInfo motor_info_msg;
-          motor_info_msg.max_pwm = max_pwm_;
-          motor_info_msg.min_pwm = min_pwm_;
-          motor_info_msg.min_thrust = min_thrust_;
-          motor_info_msg.force_landing_thrust = force_landing_thrust_;
-          motor_info_msg.pwm_conversion_mode = pwm_conversion_mode_;
-          motor_info_msg.motor_info.resize(0);
+          spinal::PwmInfos pwm_infos;
+          for(int i = 0; i < motor_types_.size(); i++)
+            pwm_infos.motor_types.push_back(motor_types_[i]);
           for(int i = 0; i < motor_info_.size(); i++)
-            motor_info_msg.motor_info.push_back(motor_info_[i]);
-          motor_info_pub_.publish(motor_info_msg);
+            {
+              spinal::PwmInfo motor_info_msg;
+              motor_info_msg.max_pwm = max_pwm_[i];
+              motor_info_msg.min_pwm = min_pwm_[i];
+              motor_info_msg.min_thrust = min_thrust_[i];
+              motor_info_msg.force_landing_thrust = force_landing_thrust_[i];
+              motor_info_msg.pwm_conversion_mode = pwm_conversion_mode_[i];
+              motor_info_msg.motor_info.resize(0);
+              for(int j = 0; j < motor_info_.at(i).size(); j++)
+                motor_info_msg.motor_info.push_back(motor_info_[i][j]);
+              pwm_infos.pwm_infos.push_back(motor_info_msg);
+            }
+          motor_info_pub_.publish(pwm_infos);
 
           spinal::UavInfo uav_info_msg;
           uav_info_msg.motor_num = motor_num_;
@@ -186,12 +216,12 @@ namespace aerial_robot_control
     int uav_model_;
 
     double m_f_rate_;
-    double max_pwm_, min_pwm_;
-    double min_thrust_;
-    std::vector<spinal::MotorInfo> motor_info_;
-
-    double force_landing_thrust_; //pwm
-    int pwm_conversion_mode_;
+    std::vector<int> motor_types_;
+    std::vector<double> max_pwm_, min_pwm_;
+    std::vector<double> min_thrust_;
+    std::vector<std::vector<spinal::MotorInfo>> motor_info_;
+    std::vector<double> force_landing_thrust_; //pwm
+    std::vector<int> pwm_conversion_mode_;
 
     int estimate_mode_;
     bool param_verbose_;

@@ -37,6 +37,7 @@ add_message_files(
   RollPitchYawTerms.msg
   MotorInfo.msg
   PwmInfo.msg
+  PwmInfos.msg
   Pwms.msg
   PwmTest.msg
   UavInfo.msg
