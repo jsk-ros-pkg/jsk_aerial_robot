@@ -46,6 +46,7 @@
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/PwmInfo.h>
+#include <spinal/PwmInfos.h>
 #include <spinal/UavInfo.h>
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
@@ -136,7 +137,7 @@ private:
 
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
-  ros::Subscriber<spinal::PwmInfo, AttitudeController> pwm_info_sub_;
+  ros::Subscriber<spinal::PwmInfos, AttitudeController> pwm_info_sub_;
   ros::Subscriber<spinal::RollPitchYawTerms, AttitudeController> rpy_gain_sub_;
   ros::Subscriber<spinal::PwmTest, AttitudeController> pwm_test_sub_;
   ros::Subscriber<spinal::PMatrixPseudoInverseWithInertia, AttitudeController> p_matrix_pseudo_inverse_inertia_sub_;
@@ -199,22 +200,22 @@ private:
   // Thrust PWM Conversion
   float target_thrust_[MAX_MOTOR_NUMBER];
   float target_pwm_[MAX_MOTOR_NUMBER];
-  float min_duty_;
-  float max_duty_;
-  float min_thrust_; // max thrust is variant according to the voltage
-  float force_landing_thrust_;
+  float min_duty_[MAX_MOTOR_NUMBER];
+  float max_duty_[MAX_MOTOR_NUMBER];
+  float min_thrust_[MAX_MOTOR_NUMBER]; // max thrust is variant according to the voltage
+  float force_landing_thrust_[MAX_MOTOR_NUMBER];
   int8_t rotor_devider_;
-  int8_t pwm_conversion_mode_;
-  std::vector<spinal::MotorInfo> motor_info_;
-  uint8_t motor_ref_index_;
-  float v_factor_;
+  int8_t pwm_conversion_mode_[MAX_MOTOR_NUMBER];
+  std::vector<std::vector<spinal::MotorInfo>> motor_info_;
+  uint8_t motor_ref_index_[MAX_MOTOR_NUMBER];
+  float v_factor_[MAX_MOTOR_NUMBER];
   uint32_t voltage_update_last_time_;
   uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
   void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);
-  void pwmInfoCallback( const spinal::PwmInfo &info_msg);
+  void pwmInfoCallback( const spinal::PwmInfos &info_msg);
   void rpyGainCallback( const spinal::RollPitchYawTerms &gain_msg);
   void pMatrixInertiaCallback(const spinal::PMatrixPseudoInverseWithInertia& msg);
   void torqueAllocationMatrixInvCallback(const spinal::TorqueAllocationMatrixInv& msg);
