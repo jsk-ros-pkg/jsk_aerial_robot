@@ -60,9 +60,3 @@ servo_controller:
       angle_sgn: 0
       simulation:
         init_value: 0.0
-
-    controller8:
-      id: 7
-      name: rotor5
-      simulation:
-        init_value: 0.0

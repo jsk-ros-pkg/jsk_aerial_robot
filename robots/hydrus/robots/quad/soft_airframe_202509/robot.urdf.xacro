@@ -292,8 +292,8 @@
 
 
   <!-- gimbal -->
-  <joint name="gimbal_joint1" type="continuous">
-    <limit effort="5.0" lower="1.0" upper="20.0" velocity="0.5"/>
+  <joint name="gimbal_joint1" type="revolute">
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="gimbal_link1"/>
     <origin rpy="0 0 0" xyz="0.1595 0 0"/>
@@ -325,6 +325,10 @@
       </geometry>
     </visual>
   </link>
+  <gazebo reference="gimbal_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
   <xacro:damping_factor link ="gimbal_link1"/>
 
   <transmission name="gimbal_tran1">
