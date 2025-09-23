@@ -5,5 +5,7 @@
   <class name="aerial_robot_control/hydrus_tilted_lqi_controller" type="aerial_robot_control::HydrusTiltedLQIController" base_class_type="aerial_robot_control::ControlBase">
     <description>LQI based controller for under-actuated tilted hydrus</description>
   </class>
+  <class name="aerial_robot_control/soft_airframe_controller" type="aerial_robot_control::SoftAirframeController" base_class_type="aerial_robot_control::ControlBase">
+  </class>
 
 </library>

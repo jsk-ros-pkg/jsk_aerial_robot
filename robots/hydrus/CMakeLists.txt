@@ -54,7 +54,8 @@ target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 ### flight control plugin
 add_library(hydrus_controller_pluginlib
   src/hydrus_lqi_controller.cpp
-  src/hydrus_tilted_lqi_controller.cpp)
+  src/hydrus_tilted_lqi_controller.cpp
+  src/soft_airframe_controller.cpp)
 target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
 
