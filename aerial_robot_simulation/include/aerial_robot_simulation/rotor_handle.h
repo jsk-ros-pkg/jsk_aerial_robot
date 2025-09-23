@@ -60,6 +60,8 @@ namespace hardware_interface
           m_f_rate_attr->Attribute("value", &m_f_rate_);
           ROS_DEBUG_STREAM("m_f_rate: " <<  m_f_rate_);
         }
+      if(urdf_joint->limits->effort != 0)
+        m_f_rate_ = -std::abs(urdf_joint->limits->effort); // sign should be resolved by rotor direction
 
 
       ros::NodeHandle motor_nh(nh, "motor_info");
