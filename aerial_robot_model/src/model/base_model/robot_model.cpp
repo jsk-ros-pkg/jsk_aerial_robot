@@ -458,13 +458,12 @@ namespace aerial_robot_model {
     const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
     const int rotor_num = getRotorNum();
-    const double m_f_rate = getMFRate();
 
     //Q : WrenchAllocationMatrix
     Eigen::MatrixXd Q(6, rotor_num);
     for (unsigned int i = 0; i < rotor_num; ++i) {
       Q.block(0, i, 3, 1) = u.at(i);
-      Q.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
+      Q.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate_.at(i) * sigma.at(i + 1) * u.at(i);
     }
     return Q;
   }
@@ -475,7 +474,6 @@ namespace aerial_robot_model {
     const std::vector<Eigen::Vector3d>& u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
     const int rotor_num = getRotorNum();
-    const double m_f_rate = getMFRate();
 
     Eigen::MatrixXd root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(baselink_).M.Inverse());
 
@@ -488,7 +486,7 @@ namespace aerial_robot_model {
 
       Eigen::VectorXd wrench_unit = Eigen::VectorXd::Zero(6);
       wrench_unit.head(3) = u.at(i);
-      wrench_unit.tail(3) = m_f_rate * sigma.at(i + 1) * u.at(i);
+      wrench_unit.tail(3) = m_f_rate_.at(i) * sigma.at(i + 1) * u.at(i);
 
       thrust_wrench_units_.at(i) = wrench_unit;
       thrust_wrench_allocations_.at(i) = q_i;
@@ -548,11 +546,10 @@ namespace aerial_robot_model {
     const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
     const auto& sigma = getRotorDirection();
     const int rotor_num = getRotorNum();
-    const double m_f_rate = getMFRate();
     std::vector<Eigen::Vector3d> v(rotor_num);
 
     for (int i = 0; i < rotor_num; ++i)
-      v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
+      v.at(i) = p.at(i).cross(u.at(i)) + m_f_rate_.at(i) * sigma.at(i + 1) * u.at(i);
     return v;
   }
 
