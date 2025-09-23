@@ -110,22 +110,36 @@ namespace aerial_robot_model {
 
     /* set rotor property */
     TiXmlElement* m_f_rate_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("m_f_rate");
+    double m_f_rate;
     if(!m_f_rate_attr)
       ROS_ERROR("Can not get m_f_rate attribute from urdf model");
     else
-      m_f_rate_attr->Attribute("value", &m_f_rate_);
+      m_f_rate_attr->Attribute("value", &m_f_rate);
+    m_f_rate_.resize(rotor_num_, m_f_rate);
 
     std::vector<urdf::LinkSharedPtr> urdf_links;
     model_.getLinks(urdf_links);
-    for(const auto& link: urdf_links)
+    thrust_max_.resize(rotor_num_, 0);
+    thrust_min_.resize(rotor_num_, 0);
+    for(int i = 0; i < rotor_num_; i++)
       {
-        if(link->parent_joint)
+        std::string rotor_name = "rotor" + std::to_string(i + 1);
+        for(const auto& link: urdf_links)
           {
-            if(link->parent_joint->name == "rotor1")
+            if(link->parent_joint)
               {
-                thrust_max_ = link->parent_joint->limits->upper;
-                thrust_min_ = link->parent_joint->limits->lower;
-                break;
+                if(link->parent_joint->name == rotor_name)
+                  {
+                    double thrust_max = link->parent_joint->limits->upper;
+                    double thrust_min = link->parent_joint->limits->lower;
+                    thrust_max_.at(i) = thrust_max;
+                    thrust_min_.at(i) = thrust_min;
+
+                    double m_f_rate = link->parent_joint->limits->effort;
+                    if(m_f_rate != 0) // use the value from urdf if it is set as 0
+                      m_f_rate_.at(i) = -std::abs(m_f_rate); // sign should be resolved by rotor direction
+                    break;
+                  }
               }
           }
       }
@@ -506,11 +520,14 @@ namespace aerial_robot_model {
         return false;
       }
 
-    if(static_thrust_.maxCoeff() > thrust_max_ || static_thrust_.minCoeff() < thrust_min_)
+    for(int i = 0; i < rotor_num_; i++)
       {
-        if(verbose)
-          ROS_ERROR("Invalid static thrust, max: %f, min: %f", static_thrust_.maxCoeff(), static_thrust_.minCoeff());
-        return false;
+        if(static_thrust_(i) > thrust_max_.at(i) || static_thrust_(i) < thrust_min_.at(i))
+          {
+            if(verbose)
+              ROS_ERROR("the static thrust of rotor %d is invalid, thrust: %f, min: %f, max: %f", i + 1, static_thrust_(i), thrust_min_.at(i), thrust_max_.at(i));
+            return false;
+          }
       }
 
     return true;
