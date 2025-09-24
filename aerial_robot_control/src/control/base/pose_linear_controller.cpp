@@ -33,8 +33,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-
-#include <aerial_robot_control/control/base/pose_linear_controller.h>
+#include "aerial_robot_control/control/base/pose_linear_controller.h"
 
 namespace aerial_robot_control
 {
@@ -76,14 +75,15 @@ namespace aerial_robot_control
   }
 
   void PoseLinearController::initialize(ros::NodeHandle nh,
-                               ros::NodeHandle nhp,
-                               boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
-                               boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
-                               boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
-                               double ctrl_loop_rate)
+    ros::NodeHandle nhp,
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
+    boost::shared_ptr<aerial_robot_estimation::StateEstimator> estimator,
+    boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
+    double ctrl_loop_rate)
   {
     ControlBase::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
 
+    // Initialization of controller node handles
     ros::NodeHandle control_nh(nh_, "controller");
 
     ros::NodeHandle xy_nh(control_nh, "xy");
@@ -96,89 +96,105 @@ namespace aerial_robot_control
     ros::NodeHandle pitch_nh(control_nh, "pitch");
     ros::NodeHandle yaw_nh(control_nh, "yaw");
 
+    // Load PID parameters from config used in node initialization and store in vectors
     double limit_sum, limit_p, limit_i, limit_d;
     double limit_err_p, limit_err_i, limit_err_d;
     double p_gain, i_gain, d_gain;
 
     auto loadParam = [&, this](ros::NodeHandle nh)
-      {
-        getParam<double>(nh, "limit_sum", limit_sum, 1.0e6);
-        getParam<double>(nh, "limit_p", limit_p, 1.0e6);
-        getParam<double>(nh, "limit_i", limit_i, 1.0e6);
-        getParam<double>(nh, "limit_d", limit_d, 1.0e6);
-        getParam<double>(nh, "limit_err_p", limit_err_p, 1.0e6);
-        getParam<double>(nh, "limit_err_i", limit_err_i, 1.0e6);
-        getParam<double>(nh, "limit_err_d", limit_err_d, 1.0e6);
+    {
+      getParam<double>(nh, "limit_sum", limit_sum, 1.0e6);
+      getParam<double>(nh, "limit_p", limit_p, 1.0e6);
+      getParam<double>(nh, "limit_i", limit_i, 1.0e6);
+      getParam<double>(nh, "limit_d", limit_d, 1.0e6);
+      getParam<double>(nh, "limit_err_p", limit_err_p, 1.0e6);
+      getParam<double>(nh, "limit_err_i", limit_err_i, 1.0e6);
+      getParam<double>(nh, "limit_err_d", limit_err_d, 1.0e6);
 
-        getParam<double>(nh, "p_gain", p_gain, 0.0);
-        getParam<double>(nh, "i_gain", i_gain, 0.0);
-        getParam<double>(nh, "d_gain", d_gain, 0.0);
-      };
+      getParam<double>(nh, "p_gain", p_gain, 0.0);
+      getParam<double>(nh, "i_gain", i_gain, 0.0);
+      getParam<double>(nh, "d_gain", d_gain, 0.0);
+    };
 
-    /* xy */
+    /* x-, y-coordinate */
     if(xy_nh.hasParam("p_gain"))
-      {
-        loadParam(xy_nh);
-        pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+    {
+      // Try to load parameters from combined(!) xy node handle
+      loadParam(xy_nh);
+      pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
 
-        std::vector<int> indices = {X, Y};
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(xy_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, indices));
-      }
+      std::vector<int> indices = {X, Y};
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(xy_nh));    // Add dynamic reconfigure server to adapt parameters at runtime
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, indices));   // Bind cfgPidCallback() to PidControlDynamicConfig object to modify controller parameters when callback is triggered
+    }
     else
-      {
-        loadParam(x_nh);
-        pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(x_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, X)));
+    {
+      // Parameters from separate x and y node handles
+      loadParam(x_nh);
+      pid_controllers_.push_back(PID("x", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(x_nh));
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, X)));
 
-        loadParam(y_nh);
-        pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(y_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Y)));
-      }
+      loadParam(y_nh);
+      pid_controllers_.push_back(PID("y", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(y_nh));
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Y)));
+    }
 
-    /* z */
-    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.1);
-    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.1;
+    /* z-coordinate */
+    // Basic parameters
     loadParam(z_nh);
+    // Additional parameter
+    getParam<double>(z_nh, "force_landing_descending_rate",  force_landing_descending_rate_, -0.1);
+    if(force_landing_descending_rate_ >= 0) force_landing_descending_rate_ = -0.1;    // Fail safe the descending rate
+    
     pid_controllers_.push_back(PID("z", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
     pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(z_nh));
     pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, Z)));
 
-    /* roll pitch */
+    /* roll-, pitch-coordinate */
+    // Additional parameter
     getParam<double>(roll_pitch_nh, "start_integration_height", start_rp_integration_height_, 0.01);
     if(roll_pitch_nh.hasParam("p_gain"))
-      {
-        loadParam(roll_pitch_nh);
-        pid_controllers_.push_back(PID("roll", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_controllers_.push_back(PID("pitch", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        std::vector<int> indices = {ROLL, PITCH};
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(roll_pitch_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, indices));
-      }
+    {
+      // Try to load parameters from combined(!) roll-pitch node handle
+      // Basic parameters
+      loadParam(roll_pitch_nh);
+      pid_controllers_.push_back(PID("roll", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_controllers_.push_back(PID("pitch", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      
+      std::vector<int> indices = {ROLL, PITCH};
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(roll_pitch_nh));
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, indices));
+    }
     else
-      {
-        loadParam(roll_nh);
-        pid_controllers_.push_back(PID("roll", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(roll_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, ROLL)));
+    {
+      // Parameters from separate roll and pitch node handles
+      // Basic parameters
+      loadParam(roll_nh);
+      pid_controllers_.push_back(PID("roll", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(roll_nh));
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, ROLL)));
 
-        loadParam(pitch_nh);
-        pid_controllers_.push_back(PID("pitch", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
-        pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(pitch_nh));
-        pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, PITCH)));
-      }
+      // Basic parameters
+      loadParam(pitch_nh);
+      pid_controllers_.push_back(PID("pitch", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
+      pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(pitch_nh));
+      pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, PITCH)));
+    }
 
-    /* yaw */
+    /* yaw-coordinate */
+    // Basic parameters
     loadParam(yaw_nh);
+    // Additional parameter
     getParam<bool>(yaw_nh, "need_d_control", need_yaw_d_control_, false);
+    
     pid_controllers_.push_back(PID("yaw", p_gain, i_gain, d_gain, limit_sum, limit_p, limit_i, limit_d, limit_err_p, limit_err_i, limit_err_d));
     pid_reconf_servers_.push_back(boost::make_shared<PidControlDynamicConfig>(yaw_nh));
     pid_reconf_servers_.back()->setCallback(boost::bind(&PoseLinearController::cfgPidCallback, this, _1, _2, std::vector<int>(1, YAW)));
 
-
+    // Register debug publisher for combined PID parameters with queue size of 10 for delivery to subscribers
     pid_pub_ = nh_.advertise<aerial_robot_msgs::PoseControlPid>("debug/pose/pid", 10);
   }
 
@@ -200,53 +216,62 @@ namespace aerial_robot_control
   {
     if(!ControlBase::update()) return false;
 
+    // Execute the control core and send the control command
     controlCore();
     sendCmd();
 
     return true;
   }
 
+  // Actual implementation of controller logic
   void PoseLinearController::controlCore()
   {
+    /* Current and target state */
+    // Get current state from the estimator (except rpy)
     pos_ = estimator_->getPos(Frame::COG, estimate_mode_);
     vel_ = estimator_->getVel(Frame::COG, estimate_mode_);
-    target_pos_ = navigator_->getTargetPos();
-    target_vel_ = navigator_->getTargetVel();
-    target_acc_ = navigator_->getTargetAcc();
-
-    // rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);
+    omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+    
+    // Compute roll, pitch, yaw from rotation matrix using quaternions to finalize state (TODO move to estimator)
     tf::Quaternion cog2baselink_rot;
     tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
     tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) * tf::Matrix3x3(cog2baselink_rot).inverse();
-    double r, p, y; cog_rot.getRPY(r, p, y);
+    double r, p, y; cog_rot.getRPY(r, p, y);  // Get roll, pitch, yaw from rotation matrix
     rpy_.setValue(r, p, y);
-
-    omega_ = estimator_->getAngularVel(Frame::COG, estimate_mode_);
+    // rpy_ = estimator_->getEuler(Frame::COG, estimate_mode_);   // Old version: Get roll, pitch, yaw from euler angles
+    
+    // Get target state from the navigator (except for omega)
+    target_pos_ = navigator_->getTargetPos();
     target_rpy_ = navigator_->getTargetRPY();
+    target_vel_ = navigator_->getTargetVel();
+    target_acc_ = navigator_->getTargetAcc();
+
+    // Compute target angular velocity and acceleration from target rotation matrix using quaternions to finalize target state (TODO move to navigator)
     tf::Matrix3x3 target_rot; target_rot.setRPY(target_rpy_.x(), target_rpy_.y(), target_rpy_.z());
-    tf::Vector3 target_omega = navigator_->getTargetOmega(); // w.r.t. target cog frame
-    target_omega_ = cog_rot.inverse() * target_rot * target_omega; // w.r.t. current cog frame
+    tf::Vector3 target_omega = navigator_->getTargetOmega();    // w.r.t. target CoG frame
+    target_omega_ = cog_rot.inverse() * target_rot * target_omega;  // w.r.t. current CoG frame
     target_ang_acc_ = navigator_->getTargetAngAcc();
 
-    // time diff
-    double du = ros::Time::now().toSec() - control_timestamp_;
+    // Compute time delta for control loop
+    double dt = ros::Time::now().toSec() - control_timestamp_;
 
-    // x & y
+     /* x-, y-coordinate control */
     switch(navigator_->getXyControlMode())
       {
       case aerial_robot_navigation::POS_CONTROL_MODE:
-        pid_controllers_.at(X).update(target_pos_.x() - pos_.x(), du, target_vel_.x() - vel_.x(), target_acc_.x());
-        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), du, target_vel_.y() - vel_.y(), target_acc_.y());
+        pid_controllers_.at(X).update(target_pos_.x() - pos_.x(), dt, target_vel_.x() - vel_.x(), target_acc_.x());  // Target acceleration is fed-forward
+        pid_controllers_.at(Y).update(target_pos_.y() - pos_.y(), dt, target_vel_.y() - vel_.y(), target_acc_.y());
         break;
       case aerial_robot_navigation::VEL_CONTROL_MODE:
-        pid_controllers_.at(X).update(0, du, target_vel_.x() - vel_.x(), target_acc_.x());
-        pid_controllers_.at(Y).update(0, du, target_vel_.y() - vel_.y(), target_acc_.y());
+        pid_controllers_.at(X).update(0, dt, target_vel_.x() - vel_.x(), target_acc_.x());  // Target acceleration is fed-forward
+        pid_controllers_.at(Y).update(0, dt, target_vel_.y() - vel_.y(), target_acc_.y());
         break;
       case aerial_robot_navigation::ACC_CONTROL_MODE:
-        pid_controllers_.at(X).update(0, du, 0, target_acc_.x());
-        pid_controllers_.at(Y).update(0, du, 0, target_acc_.y());
+        pid_controllers_.at(X).update(0, dt, 0, target_acc_.x());  // Target acceleration is fed-forward
+        pid_controllers_.at(Y).update(0, dt, 0, target_acc_.y());
         break;
       default:
+        ROS_ERROR("There is no existing control logic for this navigation mode: %d", navigator_->getXyControlMode());
         break;
       }
 
@@ -256,60 +281,62 @@ namespace aerial_robot_control
         pid_controllers_.at(Y).reset();
       }
 
-    // z
+    /* z-coordinate control */
     double err_z = target_pos_.z() - pos_.z();
     double err_v_z = target_vel_.z() - vel_.z();
-    double du_z = du;
-    double z_p_limit = pid_controllers_.at(Z).getLimitP();
+    double dt_z = dt;
+    double z_p_limit = pid_controllers_.at(Z).getLimitP();  // Store limit
 
     if(navigator_->getForceLandingFlag())
       {
-        pid_controllers_.at(Z).setLimitP(0); // no p control in force landing phase
+        // Robot is forced to land
+        pid_controllers_.at(Z).setLimitP(0);      // Suppress p-term
         err_z = force_landing_descending_rate_;
-        err_v_z = 0;
-        target_acc_.setZ(0);
+        err_v_z = 0;                  // Suppress d-term
+        target_acc_.setZ(0);              // Suppress feedforward-term
       }
 
-    pid_controllers_.at(Z).update(err_z, du_z, err_v_z, target_acc_.z());
+    pid_controllers_.at(Z).update(err_z, dt_z, err_v_z, target_acc_.z());
 
     if(pid_controllers_.at(Z).getErrI() < 0) pid_controllers_.at(Z).setErrI(0);
 
     if(navigator_->getForceLandingFlag())
       {
-        pid_controllers_.at(Z).setLimitP(z_p_limit); // revert z p limit
-        pid_controllers_.at(Z).setErrP(0); // for derived controller which use err_p in feedback control (e.g., LQI)
+        pid_controllers_.at(Z).setLimitP(z_p_limit);  // Restore limit to original value 
+        pid_controllers_.at(Z).setErrP(0);        // For derived controller which use err_p in feedback control (e.g., LQI)
       }
 
-    // roll pitch
-    double du_rp = du;
-    if(!start_rp_integration_)
+    /* roll-, pitch-coordinate control */
+    double dt_rp = dt;
+    // Don't start integrating error if robot has not yet reached a certain height
+    if(!start_rp_integration_)  // If not yet started, check if height is high enough to start-up
       {
         if(pos_.z() - navigator_->getInitHeight () > start_rp_integration_height_)
           {
             start_rp_integration_ = true;
             spinal::FlightConfigCmd flight_config_cmd;
             flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
+            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);  // Publish command to spinal to start roll-pitch integration control
             ROS_WARN_ONCE("start roll/pitch I control");
           }
-        du_rp = 0;
+        dt_rp = 0;  // If not yet started integration control, freeze i-term
       }
-    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
-    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
+    pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), dt_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
+    pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), dt_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
 
-    // yaw
+    /* yaw-coordinate control */
     double err_yaw = angles::shortest_angular_distance(rpy_.z(), target_rpy_.z());
     double err_omega_z = target_omega_.z() - omega_.z();
     if(!need_yaw_d_control_)
       {
-        err_omega_z = target_omega_.z(); // part of the control in spinal
+        err_omega_z = target_omega_.z();  // Necessary part of the control in spinal
       }
-    pid_controllers_.at(YAW).update(err_yaw, du, err_omega_z, target_ang_acc_.z());
+    pid_controllers_.at(YAW).update(err_yaw, dt, err_omega_z, target_ang_acc_.z());
 
-    // update
+    /* Update control timestamp */
     control_timestamp_ = ros::Time::now().toSec();
 
-    /* ros pub */
+    /* ROS publishing */
     pid_msg_.header.stamp.fromSec(estimator_->getImuLatestTimeStamp());
     pid_msg_.x.total.at(0) = pid_controllers_.at(X).result();
     pid_msg_.x.p_term.at(0) = pid_controllers_.at(X).getPTerm();
@@ -338,7 +365,7 @@ namespace aerial_robot_control
     pid_msg_.z.target_d = target_vel_.z();
     pid_msg_.z.err_d = target_vel_.z() - vel_.z();
 
-    // omit roll, pitch here
+    // roll & pitch omitted here
 
     pid_msg_.yaw.total.at(0) = pid_controllers_.at(YAW).result();
     pid_msg_.yaw.p_term.at(0) = pid_controllers_.at(YAW).getPTerm();
@@ -352,41 +379,42 @@ namespace aerial_robot_control
 
   void PoseLinearController::sendCmd()
   {
-    /* ros publish */
+    /* Publish result of control core */
     pid_pub_.publish(pid_msg_);
   }
 
+  // Function to modify PID gains at runtime
   void PoseLinearController::cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices)
   {
     using Levels = aerial_robot_msgs::DynamicReconfigureLevels;
     if(config.pid_control_flag)
+    {
+      switch(level)
       {
-        switch(level)
-          {
-          case Levels::RECONFIGURE_P_GAIN:
-            for(const auto& index: controller_indices)
-              {
-                pid_controllers_.at(index).setPGain(config.p_gain);
-                ROS_INFO_STREAM("change p gain for controller '" << pid_controllers_.at(index).getName() << "'");
-              }
-            break;
-          case Levels::RECONFIGURE_I_GAIN:
-            for(const auto& index: controller_indices)
-              {
-                pid_controllers_.at(index).setIGain(config.i_gain);
-                ROS_INFO_STREAM("change i gain for controller '" << pid_controllers_.at(index).getName() << "'");
-              }
-            break;
-          case Levels::RECONFIGURE_D_GAIN:
-            for(const auto& index: controller_indices)
-              {
-                pid_controllers_.at(index).setDGain(config.d_gain);
-                ROS_INFO_STREAM("change d gain for controller '" << pid_controllers_.at(index).getName() << "'");
-              }
-            break;
-          default :
-            break;
-          }
+      case Levels::RECONFIGURE_P_GAIN:
+        for(const auto& index: controller_indices)
+        {
+          pid_controllers_.at(index).setPGain(config.p_gain);
+          ROS_INFO_STREAM("change p gain for controller '" << pid_controllers_.at(index).getName() << "'");
+        }
+        break;
+      case Levels::RECONFIGURE_I_GAIN:
+        for(const auto& index: controller_indices)
+        {
+          pid_controllers_.at(index).setIGain(config.i_gain);
+          ROS_INFO_STREAM("change i gain for controller '" << pid_controllers_.at(index).getName() << "'");
+        }
+        break;
+      case Levels::RECONFIGURE_D_GAIN:
+        for(const auto& index: controller_indices)
+        {
+          pid_controllers_.at(index).setDGain(config.d_gain);
+          ROS_INFO_STREAM("change d gain for controller '" << pid_controllers_.at(index).getName() << "'");
+        }
+        break;
+      default :
+        break;
       }
+    }
   }
 };
