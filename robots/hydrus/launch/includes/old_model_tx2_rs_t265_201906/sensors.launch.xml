@@ -9,7 +9,7 @@
 
     <group if="$(arg real_machine)">
       <group unless="$(arg simulation)">
-        <!-- fc & IMU & GPS -->
+        <!-- FC & IMU & GPS -->
         <include file="$(find spinal)/launch/bridge.launch" >
           <arg name="mode" value="serial" />
           <arg name="serial_port" value="/dev/flight_controller" />
@@ -23,10 +23,10 @@
           <arg name="module_list_file" value="$(find hydrus)/config/quad/old_model_tx2_rs_t265_201906/T265ModuleList.yaml" />
           <arg name="reset_duration" value = "0.5" />
         </include>
-        <!-- mocap -->
+        <!-- MoCap -->
         <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
-        <!-- leddar one -->
+        <!-- Leddar one -->
         <include file="$(find leddar_one)/launch/leddar_one.launch" >
           <arg name="port" value="/dev/leddarone" />
         </include>
@@ -37,7 +37,7 @@
       </group>
     </group>
 
-    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <!-- Basic configuration for sensors (e.g. noise sigma) -->
     <rosparam file="$(find hydrus)/config/sensors/imu/spinal.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/gps/ublox_m8n.yaml" command="load" />
     <rosparam file="$(find hydrus)/config/sensors/vo/realsense_t265.yaml" command="load" />
