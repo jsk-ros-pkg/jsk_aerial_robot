@@ -217,8 +217,8 @@ int main(void)
 
   /* Create the queue(s) */
   /* definition and creation of J6vectorqueue */
-  osMessageQDef(J6vectorqueue, 1, pvector);
-  J6vectorqueueHandle = osMessageCreate(osMessageQ(J6vectorqueue), NULL);
+  //osMessageQDef(J6vectorqueue, 1, pvector);
+  //J6vectorqueueHandle = osMessageCreate(osMessageQ(J6vectorqueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
