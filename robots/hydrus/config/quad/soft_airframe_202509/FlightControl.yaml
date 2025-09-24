@@ -1,4 +1,4 @@
-aerial_robot_control_name: aerial_robot_control/hydrus_tilted_lqi_controller
+aerial_robot_control_name: aerial_robot_control/soft_airframe_controller
 
 controller:
   xy:

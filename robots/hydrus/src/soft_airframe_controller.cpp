@@ -13,20 +13,219 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                                         double ctrl_loop_rate)
 {
   PoseLinearController::initialize(nh, nhp, robot_model, estimator, navigator, ctrl_loop_rate);
+  
+  rosParamInit();
+  target_base_thrust_.resize(motor_num_);
+
+  //publisher
+  rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
+  flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  gimbal_cmd_pub_ = nh_.advertise<spinal::ServoControlCmd>("servo/target_states", 1);
+  flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+  
+  // subscriber
+  servo_state_sub_ = nh_.subscribe("servo/states", 1, &SoftAirframeController::servoStateCallback, this);
+  
+  int virtual_motor_num_ = 6;
 }
 
 void SoftAirframeController::controlCore()
 {
   PoseLinearController::controlCore();
 
+  tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
+                           pid_controllers_.at(Y).result(),
+                           pid_controllers_.at(Z).result());
+  tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
+
+  if(navigator_->getForceLandingFlag())
+  {
+    target_pitch_ = 0;
+    target_roll_ = 0;
+  }
+
+  // allocation of thrust
+  Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
+  Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+  Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
+  if(hovering_approximate_)
+    {
+      target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
+      target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
+      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z(); // todo: add some kind of constraints
+    }
+  else
+    {
+      target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
+      target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
+      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
+    }
+  ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
+
+  for(int i = 0; i < motor_num_; i++)
+  {
+    // when using gimbal
+    if (i == 3){
+      target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(3), target_vectoring_f_(4)).norm();
+      double gimbal_angle_diff_ = atan2(target_vectoring_f_(4), target_vectoring_f_(3));
+      gimbal_angle_diff_ = clamp(gimbal_angle_diff_, -M_PI/4, M_PI/4); // limit gimbal angle
+    }
+    target_base_thrust_.at(i) = target_vectoring_f_(i);
+  }
+
+
+  q_mat_ = getQMat();
+  q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
+
+  // special process for yaw since the bandwidth between PC and spinal
+  double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
+  for (unsigned int i = 0; i < motor_num_; i++)
+    {
+      if(q_mat_inv_(i, YAW - 2) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW - 2);
+    }
+
+  candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
+
   ROS_INFO_STREAM_THROTTLE(0.5, "[SoftAirframeController] controlCore");
+}
+
+Eigen::MatrixXd SoftAirframeController::getFullQMat()
+{
+  // wrench allocation matrix
+  std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  auto rotor_direction = robot_model_->getRotorDirection();
+  double m_f_rate = robot_model_->getMFRate(); // todo: this hould be vector
+
+  // todo: get pos and rot from mocap
+
+  // expand for virtual motors
+  rotors_origin.push_back(rotors_origin.at(3));
+  Eigen::Vector3d v = rotors_normal.at(3);
+  rotors_normal.push_back(Eigen::Vector3d(v.x(), -v.z(), v.y()));; // rotate 90 deg around x axis
+  // rotor_direction.at(5) = rotor_direction.at(4);
+  rotor_direction.insert(std::make_pair(5, rotor_direction.at(4)));
+
+  Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, virtual_motor_num_);
+  for (unsigned int i = 0; i < virtual_motor_num_; ++i) {
+    q_mat(0, i) = rotors_normal.at(i).z();
+    q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
+  }
+  double mass_inv = 1.0 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+  q_mat.topRows(1) =  mass_inv * q_mat.topRows(1) ;
+  q_mat.bottomRows(3) =  inertia_inv * q_mat.bottomRows(3);
+  return q_mat;
+}
+
+Eigen::MatrixXd SoftAirframeController::getQMat()
+{
+  // wrench allocation matrix
+  const std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  auto& rotor_direction = robot_model_->getRotorDirection();
+  double m_f_rate = robot_model_->getMFRate(); // todo: this hould be vector
+
+  // todo: get pos and rot from mocap
+
+  Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
+  for (unsigned int i = 0; i < motor_num_; ++i) {
+    q_mat(0, i) = rotors_normal.at(i).z();
+    q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
+  }
+  double mass_inv = 1.0 / robot_model_->getMass();
+  Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
+  q_mat.topRows(1) =  mass_inv * q_mat.topRows(1) ;
+  q_mat.bottomRows(3) =  inertia_inv * q_mat.bottomRows(3);
+  return q_mat;
 }
 
 void SoftAirframeController::sendCmd()
 {
   PoseLinearController::sendCmd();
 
+  sendFourAxisCommand();
+  sendTorqueAllocationMatrixInv();
   ROS_INFO_STREAM_THROTTLE(0.5, "[SoftAirframeController] sendCmd");
+}
+
+void SoftAirframeController::reset()
+{
+  PoseLinearController::reset();
+
+  setAttitudeGains();
+}
+
+void SoftAirframeController::sendFourAxisCommand()
+{
+  spinal::FourAxisCommand flight_command_data;
+  flight_command_data.angles[0] = target_roll_;
+  flight_command_data.angles[1] = target_pitch_;
+  flight_command_data.angles[2] = candidate_yaw_term_;
+  flight_command_data.base_thrust = target_base_thrust_;
+  flight_cmd_pub_.publish(flight_command_data);
+}
+
+void SoftAirframeController::servoStateCallback(const spinal::ServoStates::ConstPtr& msg)
+{
+  gimbal_current_angle = msg->servos.at(6).angle;
+  gimbal_update_time = ros::Time::now();
+}
+
+void SoftAirframeController::sendGimbalCommand()
+{
+  if (ros::Time::now().toSec() - gimbal_update_time.toSec() > 1.0) return;
+
+  spinal::ServoControlCmd gimbal_command_data;
+  gimbal_command_data.index.resize(1);
+  gimbal_command_data.angles.resize(1);
+  gimbal_command_data.index.at(0) = 6; // gimbal servo index
+  gimbal_command_data.angles.at(0) = gimbal_current_angle - static_cast<int>(gimbal_angle_diff_) / 2 / M_PI * 4096;
+  gimbal_cmd_pub_.publish(gimbal_command_data);
+}
+
+void SoftAirframeController::sendTorqueAllocationMatrixInv()
+{
+  if (ros::Time::now().toSec() - torque_allocation_matrix_inv_pub_stamp_ > torque_allocation_matrix_inv_pub_interval_)
+    {
+      torque_allocation_matrix_inv_pub_stamp_ = ros::Time::now().toSec();
+
+      spinal::TorqueAllocationMatrixInv torque_allocation_matrix_inv_msg;
+      torque_allocation_matrix_inv_msg.rows.resize(motor_num_);
+      Eigen::MatrixXd torque_allocation_matrix_inv = q_mat_inv_.rightCols(3);
+      if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
+        ROS_ERROR("Torque Allocation Matrix overflow");
+      for (unsigned int i = 0; i < motor_num_; i++)
+        {
+          torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i,0) * 1000;
+          torque_allocation_matrix_inv_msg.rows.at(i).y = torque_allocation_matrix_inv(i,1) * 1000;
+          torque_allocation_matrix_inv_msg.rows.at(i).z = torque_allocation_matrix_inv(i,2) * 1000;
+        }
+      torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
+    }
+}
+
+void SoftAirframeController::rosParamInit()
+{
+  ros::NodeHandle control_nh(nh_, "controller");
+  getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
+  getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
+}
+
+void SoftAirframeController::setAttitudeGains()
+{
+  spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
+  /* to flight controller via rosserial scaling by 1000 */
+  rpy_gain_msg.motors.resize(1);
+  rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
+  rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
+  rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
+  rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
+  rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
 /* plugin registration */
