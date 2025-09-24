@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>spinal</name>
+	<name>stack_spinal</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -33,9 +33,9 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>spinal.ioc</name>
+			<name>stack_spinal.ioc</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/spinal.ioc</locationURI>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/stack_spinal.ioc</locationURI>
 		</link>
 		<link>
 			<name>Application/Hydrus_Lib</name>
