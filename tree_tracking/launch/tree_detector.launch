@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_ns" default="" />
+  <arg name="show_rviz" default="False"/>
+
+  <!-- 2D scan filter & clustering -->
+  <include file="$(find hokuyo_estimation)/launch/laser_process.launch">
+  </include>
+
+  <!-- tree detector -->
+  <node pkg="hokuyo_estimation" type="tree_tracking_node" output="screen" name="tree_tracking_node">
+    <param name="laser_scan_topic_name" value="scan_clustered" />
+    <remap from="/multirotor/odom" to="/multirotor/uav/cog/odom" />
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hokuyo_estimation)/config/rviz_config.rviz" if="$(arg show_rviz)"/>
+
+</launch>
