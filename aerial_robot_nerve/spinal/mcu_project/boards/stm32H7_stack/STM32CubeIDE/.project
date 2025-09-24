@@ -48,6 +48,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/lib/Jsk_Lib</locationURI>
 		</link>
 		<link>
+			<name>Middlewares/LWIP</name>
+			<type>2</type>
+			<location>/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Middlewares/Third_Party/LwIP</location>
+		</link>
+		<link>
 			<name>Application/User/main.cpp</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/main.cpp</locationURI>
