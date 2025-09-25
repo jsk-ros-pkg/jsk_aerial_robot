@@ -7,8 +7,31 @@ HeaderPath=Middlewares/Third_Party/LwIP/src/include;Middlewares/Third_Party/LwIP
 CDefines=USE_HAL_DRIVER;STM32H753xx;USE_HAL_DRIVER;USE_HAL_DRIVER;
 
 [PreviousGenFiles]
-HeaderPath=../Inc
-HeaderFiles=FreeRTOSConfig.h;lwip.h;lwipopts.h;ethernetif.h;stm32h7xx_it.h;stm32h7xx_hal_conf.h;main.h;
-SourcePath=../Src
-SourceFiles=freertos.c;lwip.c;ethernetif.c;stm32h7xx_it.c;stm32h7xx_hal_msp.c;stm32h7xx_hal_timebase_tim.c;main.c;
+AdvancedFolderStructure=true
+HeaderFileListSize=7
+HeaderFiles#0=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Inc/FreeRTOSConfig.h
+HeaderFiles#1=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/App/lwip.h
+HeaderFiles#2=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/Target/lwipopts.h
+HeaderFiles#3=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/Target/ethernetif.h
+HeaderFiles#4=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Inc/stm32h7xx_it.h
+HeaderFiles#5=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Inc/stm32h7xx_hal_conf.h
+HeaderFiles#6=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Inc/main.h
+HeaderFolderListSize=3
+HeaderPath#0=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Inc
+HeaderPath#1=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/App
+HeaderPath#2=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/Target
+HeaderFiles=;
+SourceFileListSize=7
+SourceFiles#0=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src/freertos.c
+SourceFiles#1=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/App/lwip.c
+SourceFiles#2=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/Target/ethernetif.c
+SourceFiles#3=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src/stm32h7xx_it.c
+SourceFiles#4=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src/stm32h7xx_hal_msp.c
+SourceFiles#5=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src/stm32h7xx_hal_timebase_tim.c
+SourceFiles#6=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src/main.c
+SourceFolderListSize=3
+SourcePath#0=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/Core/Src
+SourcePath#1=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/App
+SourcePath#2=/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/LWIP/Target
+SourceFiles=;
 

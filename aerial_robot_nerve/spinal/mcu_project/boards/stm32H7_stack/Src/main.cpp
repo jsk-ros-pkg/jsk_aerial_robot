@@ -1,1 +1,1 @@
-main.c
+../Core/Src/main.c

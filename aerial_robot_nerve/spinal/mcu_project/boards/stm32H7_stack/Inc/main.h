@@ -42,7 +42,15 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+typedef struct Portvector
+{
+  uint16_t angle[18]; // 7500 +/-3500 (3000 - 12000)
+  uint16_t rangle[18]; // read angle
+  uint8_t active[18]; // active or not
+  uint8_t servonum;
+  uint8_t scan_all;
+}
+pvector;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
