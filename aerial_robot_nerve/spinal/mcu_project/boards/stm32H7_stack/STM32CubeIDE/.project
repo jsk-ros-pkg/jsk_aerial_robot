@@ -50,7 +50,7 @@
 		<link>
 			<name>Application/User/main.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Src/main.cpp</locationURI>
+			<location>/home/leus/aerial_ws/src/jsk_aerial_robot/aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_stack/STM32CubeIDE/Application/User/main.cpp</location>
 		</link>
 		<link>
 			<name>Drivers/CMSIS/system_stm32h7xx.c</name>
