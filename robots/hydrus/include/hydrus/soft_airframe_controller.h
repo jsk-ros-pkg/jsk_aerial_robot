@@ -46,14 +46,13 @@ protected:
   int gimbal_current_angle;
   ros::Time gimbal_update_time;
 
-  int virtual_motor_num_ = 6;
+  int virtual_motor_num_ = 5;
 
   void setAttitudeGains();
   virtual void rosParamInit();
   virtual void controlCore() override;
   virtual Eigen::MatrixXd getFullQMat();
   virtual Eigen::MatrixXd getQMat();
-  virtual void allocateYawTerm();
   virtual void sendCmd() override;
   virtual void sendFourAxisCommand();
   virtual void servoStateCallback(const spinal::ServoStates::ConstPtr& msg);

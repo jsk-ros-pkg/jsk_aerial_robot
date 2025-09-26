@@ -26,8 +26,6 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   
   // subscriber
   servo_state_sub_ = nh_.subscribe("servo/states", 1, &SoftAirframeController::servoStateCallback, this);
-  
-  int virtual_motor_num_ = 6;
 }
 
 void SoftAirframeController::controlCore()
@@ -104,12 +102,12 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
   rotors_origin.push_back(rotors_origin.at(3));
   Eigen::Vector3d v = rotors_normal.at(3);
   rotors_normal.push_back(Eigen::Vector3d(v.x(), -v.z(), v.y()));; // rotate 90 deg around x axis
-  // rotor_direction.at(5) = rotor_direction.at(4);
   rotor_direction.insert(std::make_pair(5, rotor_direction.at(4)));
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, virtual_motor_num_);
   for (unsigned int i = 0; i < virtual_motor_num_; ++i) {
     q_mat(0, i) = rotors_normal.at(i).z();
+    // q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * rotors_normal.at(i));
     q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
   }
   double mass_inv = 1.0 / robot_model_->getMass();
