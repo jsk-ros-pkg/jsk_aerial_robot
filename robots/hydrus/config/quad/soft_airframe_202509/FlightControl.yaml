@@ -23,6 +23,9 @@ controller:
     force_landing_descending_rate: -0.6
 
   yaw:
+    p_gain: 8.0
+    i_gain: 1.0
+    d_gain: 4.0
     limit_sum: 6.0 # N for clamping thrust force
     limit_p: 4.0
     limit_i: 4.0

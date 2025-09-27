@@ -20,12 +20,11 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   //publisher
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
-  gimbal_cmd_pub_ = nh_.advertise<spinal::ServoControlCmd>("servo/target_states", 1);
-  flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
+  gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
   torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
   
   // subscriber
-  servo_state_sub_ = nh_.subscribe("servo/states", 1, &SoftAirframeController::servoStateCallback, this);
+  joint_state_sub_ = nh_.subscribe("joint_states", 1, &SoftAirframeController::jointStateCallback, this);
 }
 
 void SoftAirframeController::controlCore()
@@ -45,6 +44,7 @@ void SoftAirframeController::controlCore()
 
   // allocation of thrust
   Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
+  std::cout << "full_q_mat_:\n" << full_q_mat_ << std::endl;
   Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   if(hovering_approximate_)
@@ -52,26 +52,31 @@ void SoftAirframeController::controlCore()
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
       target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
       target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z(); // todo: add some kind of constraints
+      ROS_INFO_STREAM("hovering approximate");
+      ROS_INFO_STREAM("target_pitch_: " << target_pitch_ << ", target_roll_: " << target_roll_);
     }
   else
     {
       target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
       target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
       target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
+      ROS_INFO_STREAM("not hovering approximate");
+      ROS_INFO_STREAM("target_pitch_: " << target_pitch_ << ", target_roll_: " << target_roll_);
     }
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
   for(int i = 0; i < motor_num_; i++)
   {
     // when using gimbal
-    if (i == 3){
-      target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(3), target_vectoring_f_(4)).norm();
-      double gimbal_angle_diff_ = atan2(target_vectoring_f_(4), target_vectoring_f_(3));
+    if (i == 4){
+      target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(4), target_vectoring_f_(5)).norm();
+      double gimbal_angle_diff_ = atan2(target_vectoring_f_(4), target_vectoring_f_(5));
       gimbal_angle_diff_ = clamp(gimbal_angle_diff_, -M_PI/4, M_PI/4); // limit gimbal angle
     }
-    target_base_thrust_.at(i) = target_vectoring_f_(i);
+    else {
+      target_base_thrust_.at(i) = target_vectoring_f_(i);
+    }
   }
-
 
   q_mat_ = getQMat();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
@@ -82,7 +87,6 @@ void SoftAirframeController::controlCore()
     {
       if(q_mat_inv_(i, YAW - 2) > max_yaw_scale) max_yaw_scale = q_mat_inv_(i, YAW - 2);
     }
-
   candidate_yaw_term_ = pid_controllers_.at(YAW).result() * max_yaw_scale;
 
   ROS_INFO_STREAM_THROTTLE(0.5, "[SoftAirframeController] controlCore");
@@ -99,10 +103,10 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
   // todo: get pos and rot from mocap
 
   // expand for virtual motors
-  rotors_origin.push_back(rotors_origin.at(3));
-  Eigen::Vector3d v = rotors_normal.at(3);
+  rotors_origin.push_back(rotors_origin.at(4));
+  Eigen::Vector3d v = rotors_normal.at(4);
   rotors_normal.push_back(Eigen::Vector3d(v.x(), -v.z(), v.y()));; // rotate 90 deg around x axis
-  rotor_direction.insert(std::make_pair(5, rotor_direction.at(4)));
+  rotor_direction.insert(std::make_pair(6, rotor_direction.at(5)));
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, virtual_motor_num_);
   for (unsigned int i = 0; i < virtual_motor_num_; ++i) {
@@ -144,6 +148,7 @@ void SoftAirframeController::sendCmd()
   PoseLinearController::sendCmd();
 
   sendFourAxisCommand();
+  sendGimbalCommand();
   sendTorqueAllocationMatrixInv();
   ROS_INFO_STREAM_THROTTLE(0.5, "[SoftAirframeController] sendCmd");
 }
@@ -165,9 +170,9 @@ void SoftAirframeController::sendFourAxisCommand()
   flight_cmd_pub_.publish(flight_command_data);
 }
 
-void SoftAirframeController::servoStateCallback(const spinal::ServoStates::ConstPtr& msg)
+void SoftAirframeController::jointStateCallback(const sensor_msgs::JointState& msg)
 {
-  gimbal_current_angle = msg->servos.at(6).angle;
+  gimbal_current_angle = msg.position.at(0); // todo: think a robust implementation
   gimbal_update_time = ros::Time::now();
 }
 
@@ -175,12 +180,14 @@ void SoftAirframeController::sendGimbalCommand()
 {
   if (ros::Time::now().toSec() - gimbal_update_time.toSec() > 1.0) return;
 
-  spinal::ServoControlCmd gimbal_command_data;
-  gimbal_command_data.index.resize(1);
-  gimbal_command_data.angles.resize(1);
-  gimbal_command_data.index.at(0) = 6; // gimbal servo index
-  gimbal_command_data.angles.at(0) = gimbal_current_angle - static_cast<int>(gimbal_angle_diff_) / 2 / M_PI * 4096;
-  gimbal_cmd_pub_.publish(gimbal_command_data);
+  sensor_msgs::JointState gimbal_control_msg;
+  // gimbal_control_msg.header.stamp = ros::Time::now();
+  gimbal_control_msg.name.resize(1);
+  gimbal_control_msg.name.at(0) = "gimbal_joint1";
+  gimbal_control_msg.position.resize(1);
+  gimbal_control_msg.position.at(0) = gimbal_current_angle + gimbal_angle_diff_; // gimbal joint positive direction is opposite
+
+  gimbal_control_pub_.publish(gimbal_control_msg);
 }
 
 void SoftAirframeController::sendTorqueAllocationMatrixInv()

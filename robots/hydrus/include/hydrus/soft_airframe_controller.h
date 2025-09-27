@@ -26,8 +26,8 @@ protected:
   ros::Publisher flight_cmd_pub_; //for spinal
   ros::Publisher rpy_gain_pub_; //for spinal
   ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
-  ros::Publisher gimbal_cmd_pub_;
-  ros::Subscriber servo_state_sub_;
+  ros::Publisher gimbal_control_pub_;
+  ros::Subscriber joint_state_sub_;
   double torque_allocation_matrix_inv_pub_stamp_;
 
   Eigen::MatrixXd q_mat_;
@@ -46,7 +46,7 @@ protected:
   int gimbal_current_angle;
   ros::Time gimbal_update_time;
 
-  int virtual_motor_num_ = 5;
+  int virtual_motor_num_ = 6;
 
   void setAttitudeGains();
   virtual void rosParamInit();
@@ -55,7 +55,7 @@ protected:
   virtual Eigen::MatrixXd getQMat();
   virtual void sendCmd() override;
   virtual void sendFourAxisCommand();
-  virtual void servoStateCallback(const spinal::ServoStates::ConstPtr& msg);
+  virtual void jointStateCallback(const sensor_msgs::JointState& msg);
   virtual void sendGimbalCommand();
   virtual void sendTorqueAllocationMatrixInv();
 
