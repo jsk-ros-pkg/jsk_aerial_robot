@@ -106,6 +106,12 @@ protected:
 
   std::map<std::string, ros::Publisher> additional_frame_odom_pubs_;
   std::map<std::string, ros::Time> additional_frame_last_pub_times_;
+  std::map<std::string, ros::Publisher> additional_frame_mocap_pubs_;
+  std::map<std::string, ros::Time> additional_frame_last_mocap_pub_times_;
+  std::map<std::string, ignition::math::Vector3d> additional_frame_rot_curr_drift_, additional_frame_vel_curr_drift_, additional_frame_angular_curr_drift_;
+  // std::map<std::string, double> additional_frame_rot_drift_, additional_frame_vel_drift_, additional_frame_angular_drift_;
+  // std::map<std::string, double> additional_frame_rot_drift_frequency_, additional_frame_vel_drift_frequency_, additional_frame_angular_drift_frequency_;
+
 
   double start_t_;
   double spinal_init_wait_time_;

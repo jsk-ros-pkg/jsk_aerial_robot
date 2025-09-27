@@ -226,6 +226,8 @@ namespace gazebo_ros_control
       {
         additional_frame_odom_pubs_[additional_frame] = model_nh.advertise<nav_msgs::Odometry>(additional_frame + "/ground_truth", 1);
         additional_frame_last_pub_times_[additional_frame] = ros::Time::now();
+        additional_frame_mocap_pubs_[additional_frame] = model_nh.advertise<geometry_msgs::PoseStamped>(additional_frame + "/mocap/pose", 1);
+        additional_frame_last_mocap_pub_times_[additional_frame] = ros::Time::now();
       }
 
     simulation_nh.param("spinal_init_wait_time", spinal_init_wait_time_, 5.0); // [sec]
@@ -263,6 +265,12 @@ namespace gazebo_ros_control
         odom_msg.pose.pose.position.x = additional_frame_pos.X();
         odom_msg.pose.pose.position.y = additional_frame_pos.Y();
         odom_msg.pose.pose.position.z = additional_frame_pos.Z();
+        // todo: This hiperparameter should be set in the yaml file
+        ignition::math::Vector3d delta_euler(gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].X(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].Y(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].Z(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()));
+
+        ignition::math::Quaterniond q_noise = q * ignition::math::Quaterniond(delta_euler);
         odom_msg.pose.pose.orientation.x = q.X();
         odom_msg.pose.pose.orientation.y = q.Y();
         odom_msg.pose.pose.orientation.z = q.Z();
@@ -270,16 +278,37 @@ namespace gazebo_ros_control
         odom_msg.twist.twist.linear.x = additional_frame_vel.X();
         odom_msg.twist.twist.linear.y = additional_frame_vel.Y();
         odom_msg.twist.twist.linear.z = additional_frame_vel.Z();
-        odom_msg.twist.twist.angular.x = w.X();
-        odom_msg.twist.twist.angular.y = w.Y();
-        odom_msg.twist.twist.angular.z = w.Z();
+        odom_msg.twist.twist.angular.x = w.X() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].X(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+        odom_msg.twist.twist.angular.y = w.Y() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].Y(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+        odom_msg.twist.twist.angular.z = w.Z() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].Z(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
 
         if(time.toSec() - additional_frame_last_pub_times_.at(additional_frame).toSec() > ground_truth_pub_rate_)
           {
             additional_frame_odom_pubs_.at(additional_frame).publish(odom_msg);
           }
+        if(time.toSec() - additional_frame_last_mocap_pub_times_[additional_frame].toSec() > mocap_pub_rate_)
+          {
+            geometry_msgs::PoseStamped pose_msg;
+            pose_msg.header = odom_msg.header;
+    
+            pose_msg.pose.position.x = odom_msg.pose.pose.position.x + gazebo::gaussianKernel(mocap_pos_noise_);
+            pose_msg.pose.position.y = odom_msg.pose.pose.position.y + gazebo::gaussianKernel(mocap_pos_noise_);
+            pose_msg.pose.position.z = odom_msg.pose.pose.position.z + gazebo::gaussianKernel(mocap_pos_noise_);
+    
+            delta_euler = ignition::math::Vector3d(gazebo::gaussianKernel(mocap_rot_noise_),
+                                                    gazebo::gaussianKernel(mocap_rot_noise_),
+                                                    gazebo::gaussianKernel(mocap_rot_noise_));
+            q_noise = q * ignition::math::Quaterniond(delta_euler);
+            pose_msg.pose.orientation.x = q_noise.X();
+            pose_msg.pose.orientation.y = q_noise.Y();
+            pose_msg.pose.orientation.z = q_noise.Z();
+            pose_msg.pose.orientation.w = q_noise.W();
+    
+            additional_frame_mocap_pubs_[additional_frame].publish(pose_msg);
+            additional_frame_last_mocap_pub_times_[additional_frame] = time;
+          }
       }
-
+    
     /* set ground truth value to spinal interface */
     const gazebo::physics::LinkPtr baselink_parent = parent_model_->GetLink(baselink_parent_);
 #if GAZEBO_MAJOR_VERSION >= 8
