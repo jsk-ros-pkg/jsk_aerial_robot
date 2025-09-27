@@ -140,13 +140,13 @@ namespace aerial_robot_model {
 
     const Eigen::VectorXd& getGravity() const {return gravity_;}
     const Eigen::VectorXd& getGravity3d() const {return gravity_3d_;}
-    const double getMFRate() const  {return m_f_rate_;}
+    const double getMFRate(int index = 0) const  {return m_f_rate_.at(index);}
     const Eigen::VectorXd& getStaticThrust() const {return static_thrust_;}
     const std::vector<Eigen::MatrixXd>& getThrustWrenchAllocations() const {return thrust_wrench_allocations_;}
     const Eigen::MatrixXd& getThrustWrenchMatrix() const {return q_mat_;}
     const std::vector<Eigen::VectorXd>& getThrustWrenchUnits() const {return thrust_wrench_units_;}
-    const double getThrustUpperLimit() const {return thrust_max_;}
-    const double getThrustLowerLimit() const {return thrust_min_;}
+    const double getThrustUpperLimit(int index = 0) const {return thrust_max_.at(index);}
+    const double getThrustLowerLimit(int index = 0) const {return thrust_min_.at(index);}
 
     // control stability
     virtual void calcFeasibleControlFDists();
@@ -203,12 +203,12 @@ namespace aerial_robot_model {
     // statics (static thrust, joint torque)
     Eigen::VectorXd gravity_;
     Eigen::VectorXd gravity_3d_;
-    double m_f_rate_; //moment / force rate
+    std::vector<double> m_f_rate_; //moment / force rate
     Eigen::MatrixXd q_mat_;
     std::map<int, int> rotor_direction_;
     Eigen::VectorXd static_thrust_;
-    double thrust_max_;
-    double thrust_min_;
+    std::vector<double> thrust_max_;
+    std::vector<double> thrust_min_;
     std::vector<Eigen::VectorXd> thrust_wrench_units_;
     std::vector<Eigen::MatrixXd> thrust_wrench_allocations_;
 
