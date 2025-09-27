@@ -44,7 +44,6 @@ void SoftAirframeController::controlCore()
 
   // allocation of thrust
   Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
-  std::cout << "full_q_mat_:\n" << full_q_mat_ << std::endl;
   Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   if(hovering_approximate_)
@@ -52,16 +51,12 @@ void SoftAirframeController::controlCore()
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
       target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
       target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z(); // todo: add some kind of constraints
-      ROS_INFO_STREAM("hovering approximate");
-      ROS_INFO_STREAM("target_pitch_: " << target_pitch_ << ", target_roll_: " << target_roll_);
     }
   else
     {
       target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
       target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
       target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
-      ROS_INFO_STREAM("not hovering approximate");
-      ROS_INFO_STREAM("target_pitch_: " << target_pitch_ << ", target_roll_: " << target_roll_);
     }
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
