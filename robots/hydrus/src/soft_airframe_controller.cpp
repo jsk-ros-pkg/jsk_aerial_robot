@@ -66,7 +66,6 @@ void SoftAirframeController::controlCore()
     if (i == 4){
       target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(4), target_vectoring_f_(5)).norm();
       gimbal_angle_diff_ = atan2(target_vectoring_f_(5), target_vectoring_f_(4));
-      gimbal_angle_diff_ = clamp(gimbal_angle_diff_, -M_PI/4, M_PI/4); // limit gimbal angle
     }
     else {
       target_base_thrust_.at(i) = target_vectoring_f_(i);
@@ -93,7 +92,6 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
   std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto rotor_direction = robot_model_->getRotorDirection();
-  double m_f_rate = robot_model_->getMFRate(); // todo: this hould be vector
 
   // todo: get pos and rot from mocap
 
@@ -105,8 +103,8 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, virtual_motor_num_);
   for (unsigned int i = 0; i < virtual_motor_num_; ++i) {
+    double m_f_rate = robot_model_->getMFRate(std::min(i, 4u)); // 5th motor is virtual motor
     q_mat(0, i) = rotors_normal.at(i).z();
-    // q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + rotor_direction.at(i + 1) * rotors_normal.at(i));
     q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
   }
   double mass_inv = 1.0 / robot_model_->getMass();
@@ -122,12 +120,12 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
   const std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   const std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto& rotor_direction = robot_model_->getRotorDirection();
-  double m_f_rate = robot_model_->getMFRate(); // todo: this hould be vector
 
   // todo: get pos and rot from mocap
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
   for (unsigned int i = 0; i < motor_num_; ++i) {
+    double m_f_rate = robot_model_->getMFRate(i);
     q_mat(0, i) = rotors_normal.at(i).z();
     q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
   }
@@ -176,11 +174,13 @@ void SoftAirframeController::sendGimbalCommand()
   if (ros::Time::now().toSec() - gimbal_update_time.toSec() > 1.0) return;
 
   sensor_msgs::JointState gimbal_control_msg;
-  // gimbal_control_msg.header.stamp = ros::Time::now();
   gimbal_control_msg.name.resize(1);
   gimbal_control_msg.name.at(0) = "gimbal_joint1";
   gimbal_control_msg.position.resize(1);
-  gimbal_control_msg.position.at(0) = gimbal_current_angle + gimbal_angle_diff_; // gimbal joint positive direction is opposite
+  double dest_pos = gimbal_current_angle + gimbal_angle_diff_;
+  if (dest_pos > M_PI/4) dest_pos = M_PI/4;
+  if (dest_pos < -M_PI/4) dest_pos = -M_PI/4;
+  gimbal_control_msg.position.at(0) = dest_pos; // gimbal joint positive direction is opposite
 
   gimbal_control_pub_.publish(gimbal_control_msg);
 }
