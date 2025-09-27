@@ -70,7 +70,7 @@ void SoftAirframeController::controlCore()
     // when using gimbal
     if (i == 4){
       target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(4), target_vectoring_f_(5)).norm();
-      double gimbal_angle_diff_ = atan2(target_vectoring_f_(4), target_vectoring_f_(5));
+      gimbal_angle_diff_ = atan2(target_vectoring_f_(5), target_vectoring_f_(4));
       gimbal_angle_diff_ = clamp(gimbal_angle_diff_, -M_PI/4, M_PI/4); // limit gimbal angle
     }
     else {

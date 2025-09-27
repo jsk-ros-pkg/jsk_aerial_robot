@@ -43,7 +43,7 @@ protected:
   bool hovering_approximate_;
 
   double gimbal_angle_diff_ = 0.0;
-  int gimbal_current_angle;
+  double gimbal_current_angle;
   ros::Time gimbal_update_time;
 
   int virtual_motor_num_ = 6;
