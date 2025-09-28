@@ -27,4 +27,4 @@ simulation:
   ground_truth_rot_drift_frequency: 0
   ground_truth_angular_drift_frequency: 0
 
-  additional_frames: [gimbal_link1]
+  additional_frames: [thrust5]

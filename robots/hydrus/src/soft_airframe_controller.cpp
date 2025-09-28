@@ -1,5 +1,4 @@
 #include <hydrus/soft_airframe_controller.h>
-
 using namespace aerial_robot_control;
 
 SoftAirframeController::SoftAirframeController() : PoseLinearController()
@@ -25,6 +24,10 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   
   // subscriber
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &SoftAirframeController::jointStateCallback, this);
+  
+  // note: it might be better to use gimbal_link1
+  rotor5_pose_sub_ = nh_.subscribe("thrust5/mocap/pose", 1, &SoftAirframeController::Rotor5MocapCallback, this);
+  body_pose_sub_ = nh_.subscribe("mocap/pose", 1, &SoftAirframeController::BodyMocapCallback, this);
 }
 
 void SoftAirframeController::controlCore()
@@ -93,7 +96,14 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
   std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto rotor_direction = robot_model_->getRotorDirection();
 
-  // todo: get pos and rot from mocap
+  if (ros::Time::now().toSec() - rotor5_pose_update_time_.toSec() < 1.0 && 
+      ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
+    KDL::Frame body_pose_from_root_ = robot_model_ -> getSegmentsTf().at("fc");
+    KDL::Frame rotor5_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor5_pose_from_world_;
+    KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+    rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
+    rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
+  }
 
   // expand for virtual motors
   rotors_origin.push_back(rotors_origin.at(4));
@@ -117,11 +127,18 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
 Eigen::MatrixXd SoftAirframeController::getQMat()
 {
   // wrench allocation matrix
-  const std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  const std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto& rotor_direction = robot_model_->getRotorDirection();
 
-  // todo: get pos and rot from mocap
+  if (ros::Time::now().toSec() - rotor5_pose_update_time_.toSec() < 1.0 && 
+      ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
+    KDL::Frame body_pose_from_root_ = robot_model_ -> getSegmentsTf().at("fc");
+    KDL::Frame rotor5_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor5_pose_from_world_;
+    KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
+    rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
+    rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
+  }
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
   for (unsigned int i = 0; i < motor_num_; ++i) {
@@ -167,6 +184,18 @@ void SoftAirframeController::jointStateCallback(const sensor_msgs::JointState& m
 {
   gimbal_current_angle = msg.position.at(0); // todo: think a robust implementation
   gimbal_update_time = ros::Time::now();
+}
+
+void SoftAirframeController::Rotor5MocapCallback(const geometry_msgs::PoseStamped& msg)
+{
+  tf2::fromMsg(msg.pose, rotor5_pose_from_world_);
+  rotor5_pose_update_time_ = ros::Time::now();
+}
+
+void SoftAirframeController::BodyMocapCallback(const geometry_msgs::PoseStamped& msg)
+{
+  tf2::fromMsg(msg.pose, body_pose_from_world_);
+  body_pose_update_time_ = ros::Time::now();
 }
 
 void SoftAirframeController::sendGimbalCommand()

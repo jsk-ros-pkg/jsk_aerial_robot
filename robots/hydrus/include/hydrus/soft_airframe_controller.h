@@ -28,6 +28,8 @@ protected:
   ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
   ros::Publisher gimbal_control_pub_;
   ros::Subscriber joint_state_sub_;
+  ros::Subscriber rotor5_pose_sub_;
+  ros::Subscriber body_pose_sub_;
   double torque_allocation_matrix_inv_pub_stamp_;
 
   Eigen::MatrixXd q_mat_;
@@ -48,6 +50,12 @@ protected:
 
   int virtual_motor_num_ = 6;
 
+  // mocap of rotor5
+  KDL::Frame rotor5_pose_from_world_;
+  KDL::Frame body_pose_from_world_;
+  ros::Time rotor5_pose_update_time_;
+  ros::Time body_pose_update_time_;
+
   void setAttitudeGains();
   virtual void rosParamInit();
   virtual void controlCore() override;
@@ -56,6 +64,8 @@ protected:
   virtual void sendCmd() override;
   virtual void sendFourAxisCommand();
   virtual void jointStateCallback(const sensor_msgs::JointState& msg);
+  virtual void Rotor5MocapCallback(const geometry_msgs::PoseStamped& msg);
+  virtual void BodyMocapCallback(const geometry_msgs::PoseStamped& msg);
   virtual void sendGimbalCommand();
   virtual void sendTorqueAllocationMatrixInv();
 
