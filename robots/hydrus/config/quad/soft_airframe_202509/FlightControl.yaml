@@ -2,7 +2,7 @@ aerial_robot_control_name: aerial_robot_control/soft_airframe_controller
 
 controller:
   xy:
-    p_gain: 2.3
+    p_gain: 3.0
     i_gain: 0.02
     d_gain: 4.0
     limit_sum: 3

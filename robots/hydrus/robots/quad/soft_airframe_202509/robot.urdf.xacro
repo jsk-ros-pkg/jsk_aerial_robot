@@ -178,8 +178,8 @@
 
   <link name="dummy_link">
     <inertial>
-      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
-      <mass value="0.01"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
       <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
           iyy="0.001" iyz="0.0"
@@ -229,7 +229,7 @@
     <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="dummy_link"/>
-    <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
