@@ -41,7 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
-
+#include "extra_servo/extra_servo.h"
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
@@ -127,6 +127,7 @@ BatteryStatus battery_status_;
 /* servo instance */
 DirectServo servo_;
 DShot dshot_;
+ExtraServo extra_servo_;
 
 
 StateEstimate estimator_;
@@ -266,11 +267,19 @@ int main(void)
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   dshot_.init(DSHOT600, &htim1,TIM_CHANNEL_1, &htim1,TIM_CHANNEL_2, &htim1,TIM_CHANNEL_3, &htim1, TIM_CHANNEL_4);
   dshot_.initTelemetry(&huart6);
+#if PWM_SERVO_FLAG
+  controller_.init(&htim1, NULL, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
+#else
   controller_.init(&htim1, &htim4, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
+#endif
 #else
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+#if PWM_SERVO_FLAG  
+  controller_.init(&htim1, NULL, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+#else
   controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+#endif
 #endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
@@ -280,6 +289,7 @@ int main(void)
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
+  extra_servo_.init(NULL, &htim4, &nh_);
   
   /* USER CODE END 2 */
 

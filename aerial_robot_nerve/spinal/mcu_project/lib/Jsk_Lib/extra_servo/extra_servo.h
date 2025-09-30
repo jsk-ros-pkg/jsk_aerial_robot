@@ -23,6 +23,7 @@
 #define MAX_PWM  54000
 #define MAX_DUTY 20000.0f //conversion to [ms]
 
+#define ANGLE_RANGE 180.0f
 
 class ExtraServo
 {
@@ -48,26 +49,63 @@ public:
     pwm_htim1_ = t1;
     pwm_htim2_ = t2;
 
-    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_3);
+    if(pwm_htim1_)
+      {
+	HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(pwm_htim1_,TIM_CHANNEL_3);
+      }
 
-    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_3);
+    if(pwm_htim2_)
+      {
+	HAL_TIM_PWM_Stop(pwm_htim2_, TIM_CHANNEL_1);
+	HAL_TIM_Base_Stop(pwm_htim2_);
+	HAL_TIM_Base_DeInit(pwm_htim2_);
 
+	pwm_htim2_->Init.Prescaler = 3;
+	pwm_htim2_->Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+	pwm_htim2_->Init.Period = 50000;
+
+	TIM_OC_InitTypeDef sConfigOC = {0};
+	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	sConfigOC.Pulse = 1000;
+	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+
+	while(HAL_TIM_Base_Init(pwm_htim2_) != HAL_OK);
+	while(HAL_TIM_PWM_Init(pwm_htim2_) != HAL_OK);
+	while(HAL_TIM_PWM_ConfigChannel(pwm_htim2_, &sConfigOC, TIM_CHANNEL_1) != HAL_OK);
+
+	if (pwm_htim2_->hdma[TIM_DMA_ID_UPDATE] != NULL) {
+	  HAL_DMA_DeInit(pwm_htim2_->hdma[TIM_DMA_ID_UPDATE]);
+	  pwm_htim2_->hdma[TIM_DMA_ID_UPDATE] = NULL;
+	}
+
+	HAL_TIM_Base_Start(pwm_htim2_);
+
+	HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(pwm_htim2_, TIM_CHANNEL_4);
+      }
 
     for (int i = 0; i < 6; i++) {
 		FlashMemory::addValue(&(init_duty_[i]), sizeof(float));
 	}
 
-	FlashMemory::read();
+    FlashMemory::read();
+    if(pwm_htim1_)
+      {
 	pwm_htim1_->Instance->CCR1 = (uint32_t)(init_duty_[0] / MAX_DUTY * MAX_PWM);
-    pwm_htim1_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
-    pwm_htim1_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
-    pwm_htim2_->Instance->CCR1 = (uint32_t)(init_duty_[3] / MAX_DUTY * MAX_PWM);
-    pwm_htim2_->Instance->CCR2 = (uint32_t)(init_duty_[4] / MAX_DUTY * MAX_PWM);
-    pwm_htim2_->Instance->CCR3 = (uint32_t)(init_duty_[5] / MAX_DUTY * MAX_PWM);
+	pwm_htim1_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
+	pwm_htim1_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
+      }
+    if(pwm_htim2_)
+      {
+	pwm_htim2_->Instance->CCR1 = (uint32_t)(init_duty_[0] / MAX_DUTY * MAX_PWM);
+	pwm_htim2_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
+	pwm_htim2_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
+      }
 
   }
 
@@ -92,32 +130,38 @@ private:
           {
           case 0:
             {
-              pwm_htim1_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim1_->Init.Period);
               break;
             }
           case 1:
             {
-              pwm_htim1_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim1_->Init.Period);
               break;
             }
           case 2:
             {
-              pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim1_->Init.Period);
               break;
             }
           case 3:
             {
-              pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
               break;
             }
           case 4:
             {
-              pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
               break;
             }
           case 5:
             {
-              pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
               break;
             }
           default:
@@ -143,32 +187,38 @@ private:
           {
           case 0:
             {
-              pwm_htim1_->Instance->CCR1 = 0;
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR1 = 0;
               break;
             }
           case 1:
             {
-              pwm_htim1_->Instance->CCR2 = 0;
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR2 = 0;
               break;
             }
           case 2:
             {
-              pwm_htim1_->Instance->CCR3 = 0;
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR3 = 0;
               break;
             }
           case 3:
             {
-              pwm_htim2_->Instance->CCR1 = 0;
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR1 = 0;
               break;
             }
           case 4:
             {
-              pwm_htim2_->Instance->CCR2 = 0;
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR2 = 0;
               break;
             }
           case 5:
             {
-              pwm_htim2_->Instance->CCR3 = 0;
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR3 = 0;
               break;
             }
           default:

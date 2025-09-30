@@ -99,11 +99,13 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
       HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
     }
-
-  HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_4);
+  if(pwm_htim2_)
+    {
+      HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
+      HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
+      HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_3);
+      HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_4);
+    }
 
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
@@ -270,10 +272,13 @@ void AttitudeController::pwmsControl(void)
       pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
     }
 
-  pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
-  pwm_htim2_->Instance->CCR4 = (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
+  if(pwm_htim2_)
+    {
+      pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
+      pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
+      pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
+      pwm_htim2_->Instance->CCR4 = (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
+    }
 
 #endif
 }
