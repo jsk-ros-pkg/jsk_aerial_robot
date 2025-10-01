@@ -36,6 +36,8 @@ void SoftAirframeController::controlCore()
 {
   PoseLinearController::controlCore();
 
+  navigator_->setTargetAccZ(8.0);
+
   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                            pid_controllers_.at(Y).result(),
                            pid_controllers_.at(Z).result());
@@ -51,10 +53,6 @@ void SoftAirframeController::controlCore()
   Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
   Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
-  std::cout << "full_q_mat_ :" << full_q_mat_ << std::endl;
-  std::cout << "full_q_mat_inv_ :" << full_q_mat_inv_ << std::endl;
-
-  std::cout << std::endl;
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   if(hovering_approximate_)
     {
@@ -85,10 +83,6 @@ void SoftAirframeController::controlCore()
   q_mat_ = getQMat();
   q_mat_inv_ = aerial_robot_model::pseudoinverse(q_mat_);
 
-  std::cout << "q_mat_ :" << q_mat_ << std::endl;
-  std::cout << "q_mat_inv_ :" << q_mat_inv_ << std::endl;
-  std::cout << std::endl;
-
   // special process for yaw since the bandwidth between PC and spinal
   double max_yaw_scale = 0; // for reconstruct yaw control term in spinal
   for (unsigned int i = 0; i < motor_num_; i++)
@@ -117,31 +111,6 @@ void SoftAirframeController::controlCore()
   pid_msg_.pitch.target_d = target_omega_.y();
   pid_msg_.pitch.err_d = pid_controllers_.at(PITCH).getErrD();
 
-  Eigen::Vector3d tau_rpy;
-  tau_rpy << pid_controllers_.at(ROLL).result(),
-            pid_controllers_.at(PITCH).result(),
-            candidate_yaw_term_;
-  Eigen::VectorXd thrust_for_rpy = q_mat_inv_.rightCols(3) * tau_rpy;
-
-  std::cout << "target_base_thrust_: " << std::endl;
-  for (unsigned int i = 0; i < motor_num_; ++i) {
-    std::cout << " motor" << (i + 1) << " thrust: " << target_base_thrust_.at(i) << ",";
-  }
-  std::cout << std::endl;
-
-  std::cout << "thrust_for_rpy: " << std::endl;
-  for (unsigned int i = 0; i < motor_num_; ++i) {
-    std::cout << " motor" << (i + 1) << " thrust: " << thrust_for_rpy(i)<< ",";
-  }
-  std::cout << std::endl;
-  
-  std::cout << "total thrust: " << std::endl;
-  for (unsigned int i = 0; i < motor_num_; ++i) {
-    std::cout << " motor" << (i + 1) << " thrust: " << target_base_thrust_.at(i) + thrust_for_rpy(i)<< ",";
-  }
-  std::cout << std::endl;
-  std::cout << std::endl;
-
   ROS_INFO_STREAM_THROTTLE(0.5, "[SoftAirframeController] controlCore");
 }
 
@@ -151,26 +120,24 @@ Eigen::MatrixXd SoftAirframeController::getFullQMat()
   std::vector<Eigen::Vector3d> rotors_origin = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto rotor_direction = robot_model_->getRotorDirection();
+  KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
 
   // if (ros::Time::now().toSec() - rotor5_pose_update_time_.toSec() < 1.0 && 
   //     ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
   //   KDL::Frame body_pose_from_root_ = robot_model_ -> getSegmentsTf().at("fc");
   //   KDL::Frame rotor5_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor5_pose_from_world_;
-  //   KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
   //   rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
   //   rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
   // }
 
   // expand for virtual motors
   rotors_origin.push_back(rotors_origin.at(4));
-  Eigen::Vector3d v = rotors_normal.at(4);
-  rotors_normal.push_back(Eigen::Vector3d(v.x(), -v.z(), v.y()));; // rotate 90 deg around x axis
+  KDL::Frame f = robot_model_->getSegmentsTf().at("thrust5");
+  rotors_normal.push_back(aerial_robot_model::kdlToEigen((cog.Inverse() * f).M * KDL::Vector(0,-1,0)));
   rotor_direction.insert(std::make_pair(6, rotor_direction.at(5)));
 
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, virtual_motor_num_);
   for (unsigned int i = 0; i < virtual_motor_num_; ++i) {
-    std::cout << i << "-th rotor origin: " << rotors_origin.at(i).transpose() << std::endl;
-    std::cout << i << "-th rotor normla: " <<  rotors_normal.at(i).transpose() << std::endl;
     double m_f_rate = robot_model_->getMFRate(std::min(i, 4u)); // 5th motor is virtual motor
     q_mat(0, i) = rotors_normal.at(i).z();
     q_mat.block(1, i, 3, 1) = (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
