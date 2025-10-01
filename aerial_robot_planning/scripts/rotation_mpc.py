@@ -24,6 +24,7 @@ from trajs import YawRotationRoll0dTraj
 from pub_mpc_joint_traj import MPCTrajPtPub
 from spinal.msg import ServoStates, ServoControlCmd
 from sensor_msgs.msg import JointState
+from nav_msgs.msg import Odometry
 
 
 def parse_arguments():
@@ -62,8 +63,10 @@ def rotation_to_length(yaw_angle):
 
 
     yaw_deg = np.degrees(yaw_angle) % 360
-    angle_ranges = [0,    5,     88,     95,    178,    185,    268,     275,     358,   360]
-    lengths =        [50,      0,    50,     100,    50,      0,     50,       100,      50]
+    es_bias = 5.0 # extend start bias
+    ee_bias = -0.0 # extend end bias
+    angle_ranges =[0,    es_bias,   90+ee_bias,    90+es_bias,      180+ee_bias,    180+es_bias,    270+ee_bias,   270+es_bias,    360+ee_bias,   360]
+    lengths =        [50,         0,           50,             100,              50,              0,            50,            100,            50]
     for i in range(len(angle_ranges) - 1):
         if angle_ranges[i] <= yaw_deg < angle_ranges[i + 1]:
             length = lengths[i]
@@ -77,9 +80,9 @@ def rotation_to_length(yaw_angle):
 
 def length2angle(length):
     """Convert length in mm to servo angle command (global function)"""
-    # Limiting servo angle [-4900, 9000] smaller range for safety
+    # Limiting servo angle [-4600, 8700] smaller range for safety
     length_min, length_max = 0, 100
-    servo_min, servo_max = -4900, 9000
+    servo_min, servo_max = -4600, 8700
     length_clamped = max(length_min, min(length_max, length))
     normalized = (length_clamped - length_min) / (length_max - length_min)
     angle = servo_min + normalized * (servo_max - servo_min)
@@ -261,9 +264,33 @@ def main():
     
     rospy.loginfo(f"Starting rotation MPC for robot: {robot_name} with {loop_num} loops")
     
-    # Create trajectory
+    # Wait for current robot position to be available
+    current_position = None
+    rospy.loginfo("Waiting for robot odometry...")
+    
+    def odom_callback(msg):
+        nonlocal current_position
+        current_position = msg.pose.pose.position
+    
+    odom_sub = rospy.Subscriber(f"/{robot_name}/uav/cog/odom", Odometry, odom_callback)
+    
+    # Wait until we receive the current position
+    while current_position is None and not rospy.is_shutdown():
+        rospy.sleep(0.1)
+    
+    odom_sub.unregister()  # Stop listening to odometry
+    
+    if current_position is None:
+        rospy.logerr("Could not get current robot position!")
+        return
+    
+    rospy.loginfo(f"Current robot position: x={current_position.x:.2f}, y={current_position.y:.2f}, z={current_position.z:.2f}")
+    
+    # Create trajectory with current position
     traj = YawRotationRoll0dTraj(loop_num)
-    rospy.loginfo("Created YawRotationRoll0dTraj trajectory")
+    # Set the current position in the trajectory
+    traj.set_position(current_position.x, current_position.y, current_position.z)
+    rospy.loginfo("Created YawRotationRoll0dTraj trajectory at current position")
     
     # Initialize arm controller
     arm_controller = ArmController(robot_name)

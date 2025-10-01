@@ -455,6 +455,24 @@ class YawRotationRoll0dTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
+        
+        # Position variables that can be set from outside
+        self.position_x = 0.0
+        self.position_y = 0.0
+        self.position_z = 0.8
+    
+    def set_position(self, x, y, z):
+        """Set the position where the rotation should be performed"""
+        self.position_x = x
+        self.position_y = y
+        self.position_z = z
+    
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        """Override base class to return the custom position"""
+        x, y, z = self.position_x, self.position_y, self.position_z
+        vx, vy, vz = 0.0, 0.0, 0.0
+        ax, ay, az = 0.0, 0.0, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -482,6 +500,24 @@ class YawRotationRoll090dTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
+        
+        # Position variables that can be set from outside
+        self.position_x = 0.0
+        self.position_y = 0.0
+        self.position_z = 0.8
+    
+    def set_position(self, x, y, z):
+        """Set the position where the rotation should be performed"""
+        self.position_x = x
+        self.position_y = y
+        self.position_z = z
+    
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        """Override base class to return the custom position"""
+        x, y, z = self.position_x, self.position_y, self.position_z
+        vx, vy, vz = 0.0, 0.0, 0.0
+        ax, ay, az = 0.0, 0.0, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -510,6 +546,24 @@ class YawRotationRoll045dTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
+        
+        # Position variables that can be set from outside
+        self.position_x = 0.0
+        self.position_y = 0.0
+        self.position_z = 0.8
+    
+    def set_position(self, x, y, z):
+        """Set the position where the rotation should be performed"""
+        self.position_x = x
+        self.position_y = y
+        self.position_z = z
+    
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        """Override base class to return the custom position"""
+        x, y, z = self.position_x, self.position_y, self.position_z
+        vx, vy, vz = 0.0, 0.0, 0.0
+        ax, ay, az = 0.0, 0.0, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
@@ -539,6 +593,24 @@ class YawRotationRoll135dTraj(BaseTraj):
         super().__init__(loop_num)
         self.T = 30  # total time for one full rotation cycle
         self.omega = 2 * np.pi / self.T  # angular velocity
+        
+        # Position variables that can be set from outside
+        self.position_x = 0.0
+        self.position_y = 0.0
+        self.position_z = 0.8
+    
+    def set_position(self, x, y, z):
+        """Set the position where the rotation should be performed"""
+        self.position_x = x
+        self.position_y = y
+        self.position_z = z
+    
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        """Override base class to return the custom position"""
+        x, y, z = self.position_x, self.position_y, self.position_z
+        vx, vy, vz = 0.0, 0.0, 0.0
+        ax, ay, az = 0.0, 0.0, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
     def get_3d_orientation(self, t: float) -> Tuple[
         float, float, float, float, float, float, float, float, float, float]:
