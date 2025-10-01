@@ -21,7 +21,7 @@ controller:
     limit_d: 10 # m / s^2
     landing_err_z: -0.55
     force_landing_descending_rate: -0.6
-
+    compensate_gravity: true
   yaw:
     p_gain: 8.0
     i_gain: 1.0

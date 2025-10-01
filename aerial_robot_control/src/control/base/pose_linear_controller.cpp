@@ -272,6 +272,7 @@ namespace aerial_robot_control
       }
 
     double gravity_term = compensate_gravity_?robot_model_->getGravity3d().z():0;
+    gravity_term *= 0.8; // note: this is added for SoftAirframeController
 
     pid_controllers_.at(Z).update(err_z, du_z, err_v_z, target_acc_.z() + gravity_term);
 

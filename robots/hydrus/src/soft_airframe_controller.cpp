@@ -36,8 +36,6 @@ void SoftAirframeController::controlCore()
 {
   PoseLinearController::controlCore();
 
-  navigator_->setTargetAccZ(8.0);
-
   tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                            pid_controllers_.at(Y).result(),
                            pid_controllers_.at(Z).result());
