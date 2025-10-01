@@ -75,8 +75,16 @@ HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
 osThreadId LED1TaskHandle;
 osThreadId LED2TaskHandle;
-osThreadId J6uartportHandle;
-osMessageQId J6vectorqueueHandle;
+osThreadId coreTaskHandle;
+osThreadId rosSpinTaskHandle;
+osThreadId idleTaskHandle;
+osThreadId rosPublishHandle;
+osThreadId voltageHandle;
+osTimerId coreTaskTimerHandle;
+osMutexId rosPubMutexHandle;
+osMutexId flightControlMutexHandle;
+osSemaphoreId coreTaskSemHandle;
+osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -110,9 +118,15 @@ static void MX_TIM13_Init(void);
 static void MX_ADC3_Init(void);
 void StartLED1Task(void const * argument);
 void StartLED2Task(void const * argument);
-void StartJ6uartport(void const * argument);
+void coretaskFunc(void const * argument);
+void rosSpinTaskFunc(void const * argument);
+void idleTaskFunc(void const * argument);
+void rosPubliushTask(void const * argument);
+void voltageTask(void const * argument);
+void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
+void app_main();
 
 /* USER CODE END PFP */
 
@@ -185,22 +199,40 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Create the mutex(es) */
+  /* definition and creation of rosPubMutex */
+  osMutexDef(rosPubMutex);
+  rosPubMutexHandle = osMutexCreate(osMutex(rosPubMutex));
+
+  /* definition and creation of flightControlMutex */
+  osMutexDef(flightControlMutex);
+  flightControlMutexHandle = osMutexCreate(osMutex(flightControlMutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* definition and creation of coreTaskSem */
+  osSemaphoreDef(coreTaskSem);
+  coreTaskSemHandle = osSemaphoreCreate(osSemaphore(coreTaskSem), 1);
+
+  /* definition and creation of uartTxSem */
+  osSemaphoreDef(uartTxSem);
+  uartTxSemHandle = osSemaphoreCreate(osSemaphore(uartTxSem), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of coreTaskTimer */
+  osTimerDef(coreTaskTimer, coreTaskEvokeCb);
+  coreTaskTimerHandle = osTimerCreate(osTimer(coreTaskTimer), osTimerPeriodic, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
-
-  /* Create the queue(s) */
-  /* definition and creation of J6vectorqueue */
-  osMessageQDef(J6vectorqueue, 1, pvector);
-  J6vectorqueueHandle = osMessageCreate(osMessageQ(J6vectorqueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -215,20 +247,42 @@ int main(void)
   osThreadDef(LED2Task, StartLED2Task, osPriorityIdle, 0, 192);
   LED2TaskHandle = osThreadCreate(osThread(LED2Task), NULL);
 
-  /* definition and creation of J6uartport */
-  osThreadDef(J6uartport, StartJ6uartport, osPriorityIdle, 0, 384);
-  J6uartportHandle = osThreadCreate(osThread(J6uartport), NULL);
+  /* definition and creation of coreTask */
+  osThreadDef(coreTask, coretaskFunc, osPriorityRealtime, 0, 1024);
+  coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
+
+  /* definition and creation of rosSpinTask */
+  osThreadDef(rosSpinTask, rosSpinTaskFunc, osPriorityNormal, 0, 256);
+  rosSpinTaskHandle = osThreadCreate(osThread(rosSpinTask), NULL);
+
+  /* definition and creation of idleTask */
+  osThreadDef(idleTask, idleTaskFunc, osPriorityIdle, 0, 128);
+  idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
+
+  /* definition and creation of rosPublish */
+  osThreadDef(rosPublish, rosPubliushTask, osPriorityBelowNormal, 0, 128);
+  rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
+
+  /* definition and creation of voltage */
+  osThreadDef(voltage, voltageTask, osPriorityLow, 0, 256);
+  voltageHandle = osThreadCreate(osThread(voltage), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
+  app_main();
+
+  app_main();
+
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  //app_main();
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -1507,7 +1561,7 @@ static void MX_GPIO_Init(void)
 __weak void StartLED1Task(void const * argument)
 {
   /* init code for LWIP */
-  MX_LWIP_Init();
+  //MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
@@ -1535,22 +1589,102 @@ __weak void StartLED2Task(void const * argument)
   /* USER CODE END StartLED2Task */
 }
 
-/* USER CODE BEGIN Header_StartJ6uartport */
+/* USER CODE BEGIN Header_coretaskFunc */
 /**
-* @brief Function implementing the J6uartport thread.
+* @brief Function implementing the coreTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartJ6uartport */
-__weak void StartJ6uartport(void const * argument)
+/* USER CODE END Header_coretaskFunc */
+__weak void coretaskFunc(void const * argument)
 {
-  /* USER CODE BEGIN StartJ6uartport */
+  /* USER CODE BEGIN coretaskFunc */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartJ6uartport */
+  /* USER CODE END coretaskFunc */
+}
+
+/* USER CODE BEGIN Header_rosSpinTaskFunc */
+/**
+* @brief Function implementing the rosSpinTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosSpinTaskFunc */
+__weak void rosSpinTaskFunc(void const * argument)
+{
+  /* USER CODE BEGIN rosSpinTaskFunc */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END rosSpinTaskFunc */
+}
+
+/* USER CODE BEGIN Header_idleTaskFunc */
+/**
+* @brief Function implementing the idleTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_idleTaskFunc */
+__weak void idleTaskFunc(void const * argument)
+{
+  /* USER CODE BEGIN idleTaskFunc */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END idleTaskFunc */
+}
+
+/* USER CODE BEGIN Header_rosPubliushTask */
+/**
+* @brief Function implementing the rosPublish thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_rosPubliushTask */
+__weak void rosPubliushTask(void const * argument)
+{
+  /* USER CODE BEGIN rosPubliushTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END rosPubliushTask */
+}
+
+/* USER CODE BEGIN Header_voltageTask */
+/**
+* @brief Function implementing the voltage thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_voltageTask */
+void voltageTask(void const * argument)
+{
+  /* USER CODE BEGIN voltageTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END voltageTask */
+}
+
+/* coreTaskEvokeCb function */
+void coreTaskEvokeCb(void const * argument)
+{
+  /* USER CODE BEGIN coreTaskEvokeCb */
+
+  /* USER CODE END coreTaskEvokeCb */
 }
 
 /* MPU Configuration */
