@@ -165,12 +165,13 @@ static void MX_SPI1_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_DMA_Init(void);
-void coretaskFunc(void const * argument);
+void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
-void rosPubliushTask(void const * argument);
+void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
 void coreTaskEvokeCb(void const * argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -355,7 +356,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of coreTask */
-  osThreadDef(coreTask, coretaskFunc, osPriorityRealtime, 0, 1024);
+  osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 1024);
   coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
 
   /* definition and creation of rosSpinTask */
@@ -367,7 +368,7 @@ int main(void)
   idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
 
   /* definition and creation of rosPublish */
-  osThreadDef(rosPublish, rosPubliushTask, osPriorityBelowNormal, 0, 128);
+  osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
   rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* definition and creation of voltage */
@@ -1641,14 +1642,14 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_coretaskFunc */
+/* USER CODE BEGIN Header_coreTaskFunc */
 /**
   * @brief  Function implementing the coreTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_coretaskFunc */
-__weak void coretaskFunc(void const * argument)
+/* USER CODE END Header_coreTaskFunc */
+void coreTaskFunc(void const * argument)
 {
   /* init code for LWIP */
   MX_LWIP_Init();
@@ -1723,7 +1724,7 @@ __weak void coretaskFunc(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_rosSpinTaskFunc */
-__weak void rosSpinTaskFunc(void const * argument)
+void rosSpinTaskFunc(void const * argument)
 {
   /* USER CODE BEGIN rosSpinTaskFunc */
   for(;;)
@@ -1745,7 +1746,7 @@ __weak void rosSpinTaskFunc(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_idleTaskFunc */
-__weak void idleTaskFunc(void const * argument)
+void idleTaskFunc(void const * argument)
 {
   /* USER CODE BEGIN idleTaskFunc */
   for(;;)
@@ -1756,22 +1757,27 @@ __weak void idleTaskFunc(void const * argument)
   /* USER CODE END idleTaskFunc */
 }
 
-/* USER CODE BEGIN Header_rosPubliushTask */
+/* USER CODE BEGIN Header_rosPublishTask */
 /**
 * @brief Function implementing the rosPublish thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_rosPubliushTask */
-__weak void rosPubliushTask(void const * argument)
+/* USER CODE END Header_rosPublishTask */
+void rosPublishTask(void const * argument)
 {
-  /* USER CODE BEGIN rosPubliushTask */
+  /* USER CODE BEGIN rosPublishTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	  /* publish one message from ring buffer */
+	  if(nh_.publish() == BUFFER_EMPTY)
+	  {
+	  /* if no messages in ring buffer, we kindly sleep for 1ms */
+	  osDelay(1);
+	  }
   }
-  /* USER CODE END rosPubliushTask */
+  /* USER CODE END rosPublishTask */
 }
 
 /* USER CODE BEGIN Header_voltageTask */
@@ -2020,7 +2026,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -2048,4 +2053,5 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
