@@ -248,7 +248,7 @@ int main(void)
   HAL_NVIC_DisableIRQ(DMA1_Stream2_IRQn); // we do not need DMA Interrupt for USART3 RX, circular mode
 
   /* Flash Memory */
-  FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
+  //FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
   // Bank2, Sector7: 0x081E 0000 (128KB); https://www.stmcu.jp/download/?dlid=51599_jp
   // BANK1 (with Sector7) cuases the flash failure by STLink from the second time. So we use BANK_2, which is tested OK
 
@@ -258,7 +258,7 @@ int main(void)
   // So, we introduce following dummy data for a workaround to avoid the vanishment of stored data in flash memory.
   uint8_t dummy_data[64];
   memset(dummy_data, 1, 64);
-  FlashMemory::addValue(dummy_data, 64);
+  //FlashMemory::addValue(dummy_data, 64);
 
 #if 0 // test flash memory
 
@@ -280,12 +280,11 @@ int main(void)
   FlashMemory::read();
 #endif
 
-  #if 0
-  imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
-  IMU_ROS_CMD::init(&nh_);
-  IMU_ROS_CMD::addImu(&imu_);
-  baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+  //imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
+  //IMU_ROS_CMD::init(&nh_);
+  //IMU_ROS_CMD::addImu(&imu_);
+  //baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
+  //gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
 #if DSHOT
   battery_status_.init(&hadc1, &nh_, false);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
@@ -293,20 +292,19 @@ int main(void)
   dshot_.initTelemetry(&huart6);
   controller_.init(&htim1, &htim4, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 #else
-  battery_status_.init(&hadc1, &nh_);
-  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+  battery_status_.init(&hadc3, &nh_);
+  //estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+  //controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
 
-  FlashMemory::read(); //IMU calib data (including IMU in neurons)
+  //FlashMemory::read(); //IMU calib data (including IMU in neurons)
 #if SERVO_FLAG
-  servo_.init(&huart2, &nh_, NULL);
+  //servo_.init(&huart2, &nh_, NULL);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
 
-  #endif
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -432,7 +430,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 1;
   RCC_OscInitStruct.PLL.PLLN = 100;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -467,16 +465,16 @@ void SystemClock_Config(void)
                               |RCC_PERIPHCLK_I2C3|RCC_PERIPHCLK_ADC
                               |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_USB;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
-  PeriphClkInitStruct.PLL2.PLL2N = 19;
-  PeriphClkInitStruct.PLL2.PLL2P = 1;
-  PeriphClkInitStruct.PLL2.PLL2Q = 2;
+  PeriphClkInitStruct.PLL2.PLL2N = 100;
+  PeriphClkInitStruct.PLL2.PLL2P = 2;
+  PeriphClkInitStruct.PLL2.PLL2Q = 10;
   PeriphClkInitStruct.PLL2.PLL2R = 2;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
-  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOMEDIUM;
+  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL;
   PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_D2PCLK1;
-  PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_HSE;
+  PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL2;
   PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
   PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
   PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
@@ -511,7 +509,7 @@ static void MX_ADC3_Init(void)
   /** Common config
   */
   hadc3.Instance = ADC3;
-  hadc3.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV6;
+  hadc3.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV12;
   hadc3.Init.Resolution = ADC_RESOLUTION_16B;
   hadc3.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
@@ -1652,7 +1650,7 @@ static void MX_GPIO_Init(void)
 void coreTaskFunc(void const * argument)
 {
   /* init code for LWIP */
-  MX_LWIP_Init();
+  //MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
@@ -1689,11 +1687,11 @@ void coreTaskFunc(void const * argument)
 #if NERVE_COMM
       Spine::send();
 #endif
-      imu_.update();
-      baro_.update();
-      gps_.update();
-      estimator_.update();
-      controller_.update();
+      //imu_.update();
+      //baro_.update();
+      //gps_.update();
+      //estimator_.update();
+      //controller_.update();
 
 #if !SERVO_FLAG && NERVE_COMM      
       Spine::update();
@@ -1751,7 +1749,7 @@ void idleTaskFunc(void const * argument)
   /* USER CODE BEGIN idleTaskFunc */
   for(;;)
   {
-    // HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     osDelay(1000);
   }
   /* USER CODE END idleTaskFunc */
