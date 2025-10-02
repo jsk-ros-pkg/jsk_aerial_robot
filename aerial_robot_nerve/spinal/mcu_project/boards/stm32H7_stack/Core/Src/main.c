@@ -69,12 +69,11 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart6;
+DMA_HandleTypeDef hdma_usart6_rx;
+DMA_HandleTypeDef hdma_usart6_tx;
 
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
 HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
-osThreadId LED1TaskHandle;
-osThreadId LED2TaskHandle;
 osThreadId coreTaskHandle;
 osThreadId rosSpinTaskHandle;
 osThreadId idleTaskHandle;
@@ -94,7 +93,6 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART6_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_FDCAN2_Init(void);
 static void MX_I2C1_Init(void);
@@ -116,8 +114,7 @@ static void MX_TIM4_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC3_Init(void);
-void StartLED1Task(void const * argument);
-void StartLED2Task(void const * argument);
+static void MX_DMA_Init(void);
 void coretaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
@@ -173,7 +170,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART6_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
   MX_FDCAN1_Init();
   MX_FDCAN2_Init();
   MX_I2C1_Init();
@@ -195,7 +191,10 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM13_Init();
   MX_ADC3_Init();
+  MX_DMA_Init();
   /* USER CODE BEGIN 2 */
+
+  HAL_NVIC_DisableIRQ(DMA1_Stream0_IRQn); // we do not need DMA Interrupt for USART1 RX, circular mode
 
   /* USER CODE END 2 */
 
@@ -232,6 +231,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+  osTimerStart(coreTaskTimerHandle, 1); // 1 ms (1kHz)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -239,14 +239,6 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of LED1Task */
-  osThreadDef(LED1Task, StartLED1Task, osPriorityIdle, 0, 192);
-  LED1TaskHandle = osThreadCreate(osThread(LED1Task), NULL);
-
-  /* definition and creation of LED2Task */
-  osThreadDef(LED2Task, StartLED2Task, osPriorityIdle, 0, 192);
-  LED2TaskHandle = osThreadCreate(osThread(LED2Task), NULL);
-
   /* definition and creation of coreTask */
   osThreadDef(coreTask, coretaskFunc, osPriorityRealtime, 0, 1024);
   coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
@@ -272,10 +264,6 @@ int main(void)
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
-  app_main();
-
-  app_main();
-
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
@@ -1385,7 +1373,7 @@ static void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 1 */
   huart6.Instance = USART6;
-  huart6.Init.BaudRate = 115200;
+  huart6.Init.BaudRate = 921600;
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;
@@ -1414,42 +1402,6 @@ static void MX_USART6_UART_Init(void)
   /* USER CODE BEGIN USART6_Init 2 */
 
   /* USER CODE END USART6_Init 2 */
-
-}
-
-/**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 9;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
 
 }
 
@@ -1483,6 +1435,25 @@ static void MX_USB_OTG_HS_HCD_Init(void)
   /* USER CODE BEGIN USB_OTG_HS_Init 2 */
 
   /* USER CODE END USB_OTG_HS_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
 
 }
 
@@ -1551,14 +1522,14 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartLED1Task */
+/* USER CODE BEGIN Header_coretaskFunc */
 /**
-  * @brief  Function implementing the LED1Task thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartLED1Task */
-__weak void StartLED1Task(void const * argument)
+* @brief Function implementing the coreTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_coretaskFunc */
+__weak void coretaskFunc(void const * argument)
 {
   /* init code for LWIP */
   //MX_LWIP_Init();
@@ -1569,42 +1540,6 @@ __weak void StartLED1Task(void const * argument)
     osDelay(1);
   }
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_StartLED2Task */
-/**
-* @brief Function implementing the LED2Task thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartLED2Task */
-__weak void StartLED2Task(void const * argument)
-{
-  /* USER CODE BEGIN StartLED2Task */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartLED2Task */
-}
-
-/* USER CODE BEGIN Header_coretaskFunc */
-/**
-* @brief Function implementing the coreTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_coretaskFunc */
-__weak void coretaskFunc(void const * argument)
-{
-  /* USER CODE BEGIN coretaskFunc */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END coretaskFunc */
 }
 
 /* USER CODE BEGIN Header_rosSpinTaskFunc */

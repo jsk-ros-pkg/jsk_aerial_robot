@@ -94,8 +94,6 @@ void Error_Handler(void);
 #define IFI2S_WSC11_GPIO_Port GPIOC
 #define IFI2S_CK_Pin GPIO_PIN_10
 #define IFI2S_CK_GPIO_Port GPIOC
-#define BOARDUSB_DP_Pin GPIO_PIN_12
-#define BOARDUSB_DP_GPIO_Port GPIOA
 #define IFUART7_TX_Pin GPIO_PIN_1
 #define IFUART7_TX_GPIO_Port GPIOE
 #define IFCAN2_RX_Pin GPIO_PIN_5
@@ -108,8 +106,6 @@ void Error_Handler(void);
 #define IFUART4_TX_GPIO_Port GPIOC
 #define IFUART1_TX_Pin GPIO_PIN_9
 #define IFUART1_TX_GPIO_Port GPIOA
-#define BOARDUSB_DM_Pin GPIO_PIN_11
-#define BOARDUSB_DM_GPIO_Port GPIOA
 #define IMU_MISO_Pin GPIO_PIN_5
 #define IMU_MISO_GPIO_Port GPIOE
 #define IFUART7_RX_Pin GPIO_PIN_0
