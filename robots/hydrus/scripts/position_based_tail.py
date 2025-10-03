@@ -255,7 +255,7 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [4, 3, 5, 6]
+            tail_msg.index = [5, 4, 6]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
@@ -277,14 +277,14 @@ if __name__ == "__main__":
             if dest_alpha_1 > math.radians(99):
                 print("stop!!!!")
                 rotor_msg.pwms = [0.5]
-                rotor_pub.publish(rotor_msg)
+                # rotor_pub.publish(rotor_msg)
                 rospy.sleep(0.5)
                 exit()
             dest_alpha_3 = math.radians(float(input("alpha_3 (deg): ")))
             if dest_alpha_3 > math.radians(99):
                 print("stop!!!!")
                 rotor_msg.pwms = [0.5]
-                rotor_pub.publish(rotor_msg)
+                # rotor_pub.publish(rotor_msg)
                 rospy.sleep(0.5)
                 exit()
 
@@ -321,7 +321,7 @@ if __name__ == "__main__":
                 2047 + 1 * get_angle_diff(x_plus_long_wire),
                 2047 - 1 * get_angle_diff(x_minus_long_wire),
                 2047 + 1 * get_angle_diff(x_plus_short_wire),
-                2047 - int(rotor_angle / (2 * math.pi) * 4096),
+                # 2047 - int(rotor_angle / (2 * math.pi) * 4096),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
@@ -330,7 +330,7 @@ if __name__ == "__main__":
             tail_pub.publish(tail_msg)
 
             rotor_msg.pwms = [rotor_pwm]
-            rotor_pub.publish(rotor_msg)
+            # rotor_pub.publish(rotor_msg)
 
             rospy.sleep(0.001)
 
