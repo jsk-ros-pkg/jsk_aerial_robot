@@ -213,11 +213,10 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  MX_DMA_Init();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_DMA_Init();
   MX_GPIO_Init();
   MX_USART6_UART_Init();
   MX_FDCAN1_Init();
@@ -241,6 +240,7 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM13_Init();
   MX_ADC3_Init();
+  //MX_DMA_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
@@ -1491,7 +1491,7 @@ static void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 1 */
   huart6.Instance = USART6;
-  huart6.Init.BaudRate = 115200;
+  huart6.Init.BaudRate = 921600;
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;
@@ -1561,11 +1561,6 @@ static void MX_USB_OTG_HS_HCD_Init(void)
   */
 static void MX_DMA_Init(void)
 {
-
-  /* DMA controller clock enable */
-	//__HAL_RCC_DMAMUX1_CLK_ENABLE();
-
-	__HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
