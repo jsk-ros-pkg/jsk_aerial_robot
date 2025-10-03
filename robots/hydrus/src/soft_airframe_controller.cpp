@@ -48,10 +48,12 @@ void SoftAirframeController::controlCore()
   }
 
   // allocation of thrust
-  Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
+  // Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
+  Eigen::MatrixXd full_q_mat_ = getQMat(); // 4 x virtual_motor_num_
   Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
 
-  Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
+  // Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
+  Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(_motor_num_); // virtual motor number
   if(hovering_approximate_)
     {
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
@@ -69,13 +71,13 @@ void SoftAirframeController::controlCore()
   for(int i = 0; i < motor_num_; i++)
   {
     // when using gimbal
-    if (i == 4){
-      target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(4), target_vectoring_f_(5)).norm();
-      gimbal_angle_diff_ = atan2(target_vectoring_f_(5), target_vectoring_f_(4));
-    }
-    else {
+    // if (i == 4){
+    //   target_base_thrust_.at(i) = Eigen::Vector2d(target_vectoring_f_(4), target_vectoring_f_(5)).norm();
+    //   gimbal_angle_diff_ = atan2(target_vectoring_f_(5), target_vectoring_f_(4));
+    // }
+    // else {
       target_base_thrust_.at(i) = target_vectoring_f_(i);
-    }
+    // }
   }
 
   q_mat_ = getQMat();
@@ -237,7 +239,8 @@ void SoftAirframeController::sendGimbalCommand()
   double dest_pos = gimbal_current_angle + gimbal_angle_diff_;
   if (dest_pos > M_PI/4) dest_pos = M_PI/4;
   if (dest_pos < -M_PI/4) dest_pos = -M_PI/4;
-  gimbal_control_msg.position.at(0) = dest_pos; // gimbal joint positive direction is opposite
+  // gimbal_control_msg.position.at(0) = dest_pos; // gimbal joint positive direction is opposite
+  gimbal_control_msg.position.at(0) = 0; // gimbal joint positive direction is opposite
 
   gimbal_control_pub_.publish(gimbal_control_msg);
 }
