@@ -217,6 +217,7 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  MX_DMA_Init();
   MX_GPIO_Init();
   MX_USART6_UART_Init();
   MX_FDCAN1_Init();
@@ -240,7 +241,6 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM13_Init();
   MX_ADC3_Init();
-  MX_DMA_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
@@ -1491,7 +1491,7 @@ static void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 1 */
   huart6.Instance = USART6;
-  huart6.Init.BaudRate = 921600;
+  huart6.Init.BaudRate = 115200;
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;
@@ -1561,6 +1561,11 @@ static void MX_USB_OTG_HS_HCD_Init(void)
   */
 static void MX_DMA_Init(void)
 {
+
+  /* DMA controller clock enable */
+	//__HAL_RCC_DMAMUX1_CLK_ENABLE();
+
+	__HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -1747,10 +1752,27 @@ void rosSpinTaskFunc(void const * argument)
 void idleTaskFunc(void const * argument)
 {
   /* USER CODE BEGIN idleTaskFunc */
+	//uint8_t b;
+	uint8_t b[8];
   for(;;)
   {
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    osDelay(1000);
+    //HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    //osDelay(1000);
+
+	  //HAL_StatusTypeDef s = HAL_UART_Receive(&huart6, &b, 1, 1000);
+
+#if 0
+	  HAL_StatusTypeDef s = HAL_UART_Receive(&huart6, b, sizeof(b), 1000);
+	  if (s == HAL_OK) {
+      // UART物理層OK → DMA/DMAMUX/リンクの問題
+    	HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    } else {
+      // UARTにそもそも入ってない → ピン/AF/ボーレート/配線
+    	HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    }
+#endif
+	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    osDelay(100);
   }
   /* USER CODE END idleTaskFunc */
 }
