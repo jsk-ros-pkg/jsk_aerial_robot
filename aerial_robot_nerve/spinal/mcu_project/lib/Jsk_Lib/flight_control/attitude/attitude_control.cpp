@@ -1078,6 +1078,8 @@ void AttitudeController::pwmConversion()
                       float yaw_decreasing_rate_i = residual_term / (fabs(yaw_term_[i]) / rotor_devider_);
                       if(yaw_decreasing_rate_i < yaw_decreasing_rate) yaw_decreasing_rate = yaw_decreasing_rate_i;
                     }
+                  if(yaw_decreasing_rate < -1) yaw_decreasing_rate = -1; // the maximum decreasing rate is -1 (100% decrease)
+                  if(yaw_decreasing_rate > 0) yaw_decreasing_rate = 0; // do not decrease yaw term
                 }
               else
                 {
