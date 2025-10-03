@@ -55,8 +55,8 @@ servo_controller:
         init_value: 0.0
     
   gimbals:
-    angle_sgn: 1
-    angle_scale: 0.00076699
+    angle_sgn: -1
+    angle_scale: 0.001534
     zero_point_offset: 2047
 
     simulation:
@@ -67,6 +67,5 @@ servo_controller:
     controller1:
       id: 6
       name: gimbal_joint1
-      angle_sgn: 0
       simulation:
         init_value: 0.0
