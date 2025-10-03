@@ -240,7 +240,7 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM13_Init();
   MX_ADC3_Init();
-  //MX_DMA_Init();
+  MX_DMA_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
