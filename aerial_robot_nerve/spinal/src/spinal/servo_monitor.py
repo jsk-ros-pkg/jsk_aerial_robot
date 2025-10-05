@@ -79,6 +79,9 @@ class ServoMonitor(Plugin):
         jointCalibAction = QAction("joint calib", self._widget.servoTableWidget)
         jointCalibAction.triggered.connect(self.jointCalib)
         self._widget.servoTableWidget.addAction(jointCalibAction)
+        dynamixeljointCalibAction = QAction("dynamixel joint calib", self._widget.servoTableWidget)
+        dynamixeljointCalibAction.triggered.connect(self.DynamixeljointCalib)
+        self._widget.servoTableWidget.addAction(dynamixeljointCalibAction)
         boardRebootAction = QAction("board reboot", self._widget.servoTableWidget)
         boardRebootAction.triggered.connect(self.boardReboot)
         self._widget.servoTableWidget.addAction(boardRebootAction)
@@ -168,30 +171,29 @@ class ServoMonitor(Plugin):
     def allServoOffButtonCallback(self):
         self.allServoTorqueControl(0)
 
-    def jointCalib(self):
-        servo_index = self._widget.servoTableWidget.currentIndex().row()
+    def _doHomingOffset(self, servo_index, homing_value):  # NEW
         if servo_index == -1:
             rospy.logerr("No servo exists")
             return
-        
-        board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
-        servo_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
-        req = None
-        if(board_id == 0):
+
+        board_col = self._headers.index("board")
+        idx_col   = self._headers.index("index")
+        board_id = int(self._widget.servoTableWidget.item(servo_index, board_col).text())
+        servo_id = int(self._widget.servoTableWidget.item(servo_index, idx_col).text())
+
+        if board_id == 0:
             req = SetDirectServoConfigRequest()
             req.data.append(servo_id)
         else:
             req = SetBoardConfigRequest()
             req.data.append(board_id)
             req.data.append(servo_id)
-        try:
-            req.data.append(int(self._widget.homingOffsetLineEdit.text()))
-        except ValueError as e:
-            print(e)
-            return
+
+        # offset value
+        req.data.append(int(homing_value))
         req.command = req.SET_SERVO_HOMING_OFFSET
 
-        #need to disable servo torque
+        # servo disable
         servo_trq_msg = ServoTorqueCmd()
         servo_trq_msg.index = [servo_index]
         servo_trq_msg.torque_enable = [0]
@@ -202,13 +204,30 @@ class ServoMonitor(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            if(board_id == 0):
+            if board_id == 0:
                 res = self.set_direct_servo_config_client_(req)
             else:
                 res = self.set_board_config_client_(req)
-            rospy.loginfo(bool(res.success))
+                rospy.loginfo(bool(res.success))
         except rospy.ServiceException as e:
-            print("/set_board_config service call failed: %s"%e)
+            print("/set_board_config service call failed: %s" % e)
+
+    def jointCalib(self):
+        servo_index = self._widget.servoTableWidget.currentIndex().row()
+        try:
+            val = int(self._widget.homingOffsetLineEdit.text())
+        except ValueError as e:
+            print(e)
+            return
+        self._doHomingOffset(servo_index, val)
+
+    def DynamixeljointCalib(self):
+        servo_index = self._widget.servoTableWidget.currentIndex().row()
+        self._doHomingOffset(servo_index, 2047)
+        try:
+            self._widget.homingOffsetLineEdit.setText("2047")
+        except Exception:
+            pass
 
     def boardReboot(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
