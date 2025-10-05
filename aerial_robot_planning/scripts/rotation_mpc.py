@@ -63,10 +63,10 @@ def rotation_to_length(yaw_angle):
 
 
     yaw_deg = np.degrees(yaw_angle) % 360
-    es_bias = 5.0 # extend start bias
+    es_bias = 10.0 # extend start bias
     ee_bias = -0.0 # extend end bias
     angle_ranges =[0,    es_bias,   90+ee_bias,    90+es_bias,      180+ee_bias,    180+es_bias,    270+ee_bias,   270+es_bias,    360+ee_bias,   360]
-    lengths =        [50,         0,           50,             100,              50,              0,            50,            100,            50]
+    lengths =        [50,         100,           50,             0,              50,              100,            50,            0,            50]
     for i in range(len(angle_ranges) - 1):
         if angle_ranges[i] <= yaw_deg < angle_ranges[i + 1]:
             length = lengths[i]
