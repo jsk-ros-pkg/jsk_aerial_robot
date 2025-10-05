@@ -53,6 +53,13 @@ servo_controller:
       angle_sgn: 0
       simulation:
         init_value: 0.0
+
+    controller7:
+      id: 7
+      name: soft_joint4
+      angle_sgn: 0
+      simulation:
+        init_value: 0.0
     
   gimbals:
     angle_sgn: 1

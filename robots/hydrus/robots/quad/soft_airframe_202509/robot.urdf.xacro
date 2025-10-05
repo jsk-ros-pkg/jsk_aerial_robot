@@ -157,7 +157,7 @@
   <link name="soft_link3">
     <inertial>
       <origin xyz="0.10740316 0.0 0.003" rpy="0 0 0"/>
-      <mass value="${0.010*2 + 0.012 + 0.070}"/>
+      <mass value="${0.010*2 + 0.012 + 0.070 + 0.016}"/>
       <inertia
           ixx="0.00005679" ixy="-0.000000031" ixz="-0.00002256"
           iyy="0.00028149" iyz="0.000000005"
@@ -203,6 +203,33 @@
   </gazebo>
   <xacro:damping_factor link="dummy_link"/>
 
+    <link name="dummy_link1">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <!-- this is for avoiding error in gazebo -->
+      <!-- <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/> -->
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="dummy_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="dummy_link1"/>
+
   <joint name="soft_joint1" type="fixed">
     <parent link="link4"/>
     <child link="soft_link1"/>
@@ -239,6 +266,15 @@
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
 
+  <joint name="soft_joint5" type="revolute">
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="soft_link3"/>
+    <child link="dummy_link1"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
   <transmission name="soft_joint_tran_2">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="soft_joint2">
@@ -267,6 +303,17 @@
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
     <actuator name="soft_joint_servo4">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="soft_joint_tran_5">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="soft_joint5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="soft_joint_servo5">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
