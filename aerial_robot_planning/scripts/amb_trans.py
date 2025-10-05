@@ -91,8 +91,8 @@ class ServoMoveNode:
                            'extendable_joint3', 'extendable_joint4']
         servo_normalized = (servo_angle - servo_min) / (servo_max - servo_min)
         # joints 1,3: linear mapping (0.1 to -0.1)
-        joint_13_position = joint_max - servo_normalized * (joint_max - joint_min)
-        joint_24_position = joint_min + servo_normalized * (joint_max - joint_min)
+        joint_13_position = joint_min + servo_normalized * (joint_max - joint_min)
+        joint_24_position = joint_max - servo_normalized * (joint_max - joint_min)
         joint_positions = [joint_13_position, joint_24_position, joint_13_position, joint_24_position]
         
         # Create and publish JointState message
