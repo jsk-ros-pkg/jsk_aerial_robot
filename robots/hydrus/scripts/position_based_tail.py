@@ -223,11 +223,13 @@ def get_wire_diff(alpha_1, alpha_3):
     x_plus_long_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d + get_plus_pos_wire_length(alpha_3, r_joint_2)
     x_minus_long_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d +get_minus_pos_wire_length(alpha_3, r_joint_2)
     x_plus_short_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d
+    x_minus_short_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d
 
     return (
         x_plus_long_wire - (s + d) * 2 - d,
         x_minus_long_wire - (s + d) * 2- d,
         x_plus_short_wire - (s + d) - d,
+        x_minus_short_wire - (s + d) - d,
     )
 
 
@@ -255,7 +257,7 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [5, 4, 6]
+            tail_msg.index = [5, 4, 6, 7]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
@@ -291,7 +293,8 @@ if __name__ == "__main__":
             (
                 x_plus_long_wire,
                 x_minus_long_wire,
-                x_plus_short_wire,      
+                x_plus_short_wire,
+                x_minus_short_wire,   
             ) = get_wire_diff(dest_alpha_1, dest_alpha_3)
 
             if dest_alpha_1 * dest_alpha_3 < 0:
@@ -311,6 +314,7 @@ if __name__ == "__main__":
             print("x_plus_long_wire: ", x_plus_long_wire)
             print("x_minus_long_wire: ", x_minus_long_wire)
             print("x_plus_short_wire: ", x_plus_short_wire)
+            print("x_minus_short_wire: ", x_minus_short_wire)
             print("rotor_x: ", rotor_x, "N")
             print("rotor_z: ", rotor_z, "N")
             print("rotor_angle: ", math.degrees(rotor_angle), "deg")
@@ -321,6 +325,7 @@ if __name__ == "__main__":
                 2047 + 1 * get_angle_diff(x_plus_long_wire),
                 2047 - 1 * get_angle_diff(x_minus_long_wire),
                 2047 + 1 * get_angle_diff(x_plus_short_wire),
+                2047 - 1 * get_angle_diff(x_minus_short_wire),
                 # 2047 - int(rotor_angle / (2 * math.pi) * 4096),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
