@@ -107,6 +107,8 @@ osThreadId rosSpinTaskHandle;
 osThreadId idleTaskHandle;
 osThreadId rosPublishHandle;
 osThreadId voltageHandle;
+osThreadId canRxHandle;
+osThreadId servoTaskHandle;
 osTimerId coreTaskTimerHandle;
 osMutexId rosPubMutexHandle;
 osMutexId flightControlMutexHandle;
@@ -170,6 +172,8 @@ void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
 void rosPublishTask(void const * argument);
 void voltageTask(void const * argument);
+void canRxTask(void const * argument);
+void ServoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -248,7 +252,7 @@ int main(void)
   HAL_NVIC_DisableIRQ(DMA1_Stream2_IRQn); // we do not need DMA Interrupt for USART3 RX, circular mode
 
   /* Flash Memory */
-  //FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
+  FlashMemory::init(0x081E0000, FLASH_SECTOR_7);
   // Bank2, Sector7: 0x081E 0000 (128KB); https://www.stmcu.jp/download/?dlid=51599_jp
   // BANK1 (with Sector7) cuases the flash failure by STLink from the second time. So we use BANK_2, which is tested OK
 
@@ -258,7 +262,7 @@ int main(void)
   // So, we introduce following dummy data for a workaround to avoid the vanishment of stored data in flash memory.
   uint8_t dummy_data[64];
   memset(dummy_data, 1, 64);
-  //FlashMemory::addValue(dummy_data, 64);
+  FlashMemory::addValue(dummy_data, 64);
 
 #if 0 // test flash memory
 
@@ -280,11 +284,15 @@ int main(void)
   FlashMemory::read();
 #endif
 
+  //LED1: imu initialize LED
+  //LED2: idle blink LED
+  imu_.init(&hspi4, &hi2c3, &nh_, IMU_nCS_GPIO_Port, IMU_nCS_Pin, LED1_GPIO_Port, LED1_Pin);
   //imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
-  //IMU_ROS_CMD::init(&nh_);
-  //IMU_ROS_CMD::addImu(&imu_);
+  IMU_ROS_CMD::init(&nh_);
+  IMU_ROS_CMD::addImu(&imu_);
   //baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
-  //gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+  baro_.init(&hi2c1, &nh_, BARO_CS_GPIO_Port, BARO_CS_Pin);
+  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);//todo change port num
 #if DSHOT
   battery_status_.init(&hadc1, &nh_, false);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
@@ -293,13 +301,13 @@ int main(void)
   controller_.init(&htim1, &htim4, &estimator_, &dshot_, &battery_status_, &nh_, &flightControlMutexHandle);
 #else
   battery_status_.init(&hadc3, &nh_);
-  //estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
+  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
 
-  //FlashMemory::read(); //IMU calib data (including IMU in neurons)
+  FlashMemory::read(); //IMU calib data (including IMU in neurons)
 #if SERVO_FLAG
-  //servo_.init(&huart2, &nh_, NULL);
+  servo_.init(&huart2, &nh_, NULL);//todo change port num
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -372,6 +380,14 @@ int main(void)
   /* definition and creation of voltage */
   osThreadDef(voltage, voltageTask, osPriorityLow, 0, 256);
   voltageHandle = osThreadCreate(osThread(voltage), NULL);
+
+  /* definition and creation of canRx */
+  osThreadDef(canRx, canRxTask, osPriorityRealtime, 0, 256);
+  canRxHandle = osThreadCreate(osThread(canRx), NULL);
+
+  /* definition and creation of servoTask */
+  osThreadDef(servoTask, ServoTaskCallback, osPriorityRealtime, 0, 256);
+  servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -799,11 +815,11 @@ static void MX_SPI1_Init(void)
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1708,7 +1724,7 @@ void coreTaskFunc(void const * argument)
   nh_.initNode(dst_addr, 12345,12345);
 #endif
 
-  //imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
+  imu_.gyroCalib(true, IMU::GYRO_DEFAULT_CALIB_DURATION); // re-calibrate gyroscope because of the HAL_Delay in spine init
 
   osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
@@ -1719,10 +1735,10 @@ void coreTaskFunc(void const * argument)
 #if NERVE_COMM
       Spine::send();
 #endif
-      //imu_.update();
+      imu_.update();
       //baro_.update();
       //gps_.update();
-      //estimator_.update();
+      estimator_.update();
       controller_.update();
 
 #if !SERVO_FLAG && NERVE_COMM      
@@ -1798,7 +1814,7 @@ void idleTaskFunc(void const * argument)
     	HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
     }
 #endif
-	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+	  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     osDelay(100);
   }
   /* USER CODE END idleTaskFunc */
@@ -1844,6 +1860,46 @@ void voltageTask(void const * argument)
     osDelay(VOLTAGE_CHECK_INTERVAL);
   }
   /* USER CODE END voltageTask */
+}
+
+/* USER CODE BEGIN Header_canRxTask */
+/**
+* @brief Function implementing the canRx thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canRxTask */
+__weak void canRxTask(void const * argument)
+{
+  /* USER CODE BEGIN canRxTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    osDelay(1000);
+  }
+  /* USER CODE END canRxTask */
+}
+
+/* USER CODE BEGIN Header_ServoTaskCallback */
+/**
+* @brief Function implementing the servoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ServoTaskCallback */
+__weak void ServoTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN ServoTaskCallback */
+  /* Infinite loop */
+  for(;;)
+  {
+#if SERVO_FLAG
+    servo_.update();
+#endif
+    osDelay(1);
+  }
+  /* USER CODE END ServoTaskCallback */
 }
 
 /* coreTaskEvokeCb function */
