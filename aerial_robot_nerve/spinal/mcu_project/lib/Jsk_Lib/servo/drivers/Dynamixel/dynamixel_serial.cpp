@@ -142,11 +142,13 @@ void DynamixelSerial::pinReconfig()
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 #if STM32H7_V2
   HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5);
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  //GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  //GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 #else
 #ifdef STM32H7

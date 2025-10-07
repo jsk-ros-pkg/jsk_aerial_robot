@@ -369,20 +369,20 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of coreTask */
-  osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 1024);
-  coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
+  //osThreadDef(coreTask, coreTaskFunc, osPriorityRealtime, 0, 1024);
+  //coreTaskHandle = osThreadCreate(osThread(coreTask), NULL);
 
   /* definition and creation of rosSpinTask */
-  osThreadDef(rosSpinTask, rosSpinTaskFunc, osPriorityNormal, 0, 256);
-  rosSpinTaskHandle = osThreadCreate(osThread(rosSpinTask), NULL);
+  //osThreadDef(rosSpinTask, rosSpinTaskFunc, osPriorityNormal, 0, 256);
+  //rosSpinTaskHandle = osThreadCreate(osThread(rosSpinTask), NULL);
 
   /* definition and creation of idleTask */
   osThreadDef(idleTask, idleTaskFunc, osPriorityIdle, 0, 128);
   idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
 
   /* definition and creation of rosPublish */
-  osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
-  rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
+  //osThreadDef(rosPublish, rosPublishTask, osPriorityBelowNormal, 0, 128);
+  //rosPublishHandle = osThreadCreate(osThread(rosPublish), NULL);
 
   /* definition and creation of voltage */
   osThreadDef(voltage, voltageTask, osPriorityLow, 0, 256);
