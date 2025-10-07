@@ -97,6 +97,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart6;
+DMA_HandleTypeDef hdma_usart3_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 DMA_HandleTypeDef hdma_usart6_tx;
 
@@ -286,13 +287,19 @@ int main(void)
 
   //LED1: imu initialize LED
   //LED2: idle blink LED
+
+  //IC1: baro
+  //SPI4: IMU
+  //UART3: servo
+  //UART4: gps (temporary)
+
   imu_.init(&hspi4, &hi2c3, &nh_, IMU_nCS_GPIO_Port, IMU_nCS_Pin, LED1_GPIO_Port, LED1_Pin);
   //imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
   //baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   baro_.init(&hi2c1, &nh_, BARO_CS_GPIO_Port, BARO_CS_Pin);
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);//todo change port num
+  gps_.init(&huart4, &nh_, LED2_GPIO_Port, LED2_Pin);
 #if DSHOT
   battery_status_.init(&hadc1, &nh_, false);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
@@ -307,7 +314,7 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 #if SERVO_FLAG
-  servo_.init(&huart2, &nh_, NULL);//todo change port num
+  servo_.init(&huart3, &nh_, NULL);
 #elif NERVE_COMM
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -1509,7 +1516,7 @@ static void MX_USART3_UART_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_8_8) != HAL_OK)
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1620,6 +1627,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
 
 }
 
@@ -1698,7 +1708,7 @@ static void MX_GPIO_Init(void)
 void coreTaskFunc(void const * argument)
 {
   /* init code for LWIP */
-  MX_LWIP_Init();
+  //MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
 #ifdef USE_ETH
   /* init code for LWIP */
@@ -1736,8 +1746,8 @@ void coreTaskFunc(void const * argument)
       Spine::send();
 #endif
       imu_.update();
-      //baro_.update();
-      //gps_.update();
+      baro_.update();
+      gps_.update();
       estimator_.update();
       controller_.update();
 
