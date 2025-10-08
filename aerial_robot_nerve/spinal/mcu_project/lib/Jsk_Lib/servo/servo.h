@@ -36,7 +36,8 @@ class DirectServo
 {
 public:
   DirectServo():
-    servo_ctrl_sub_("servo/target_states", &DirectServo::servoControlCallback,this),
+    servo_position_sub_("servo/target_states", &DirectServo::servoPositionCallback,this),
+    servo_current_sub_("servo/target_current", &DirectServo::servoCurrentCallback, this),
     servo_torque_ctrl_sub_("servo/torque_enable", &DirectServo::servoTorqueControlCallback,this),
     joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
     servo_state_pub_("servo/states", &servo_state_msg_),
@@ -65,7 +66,8 @@ public:
 private:
   /* ROS */
   ros::NodeHandle* nh_;
-  ros::Subscriber<spinal::ServoControlCmd, DirectServo> servo_ctrl_sub_;
+  ros::Subscriber<spinal::ServoControlCmd, DirectServo> servo_position_sub_;
+  ros::Subscriber<spinal::ServoControlCmd, DirectServo> servo_current_sub_;
   ros::Subscriber<spinal::ServoTorqueCmd, DirectServo> servo_torque_ctrl_sub_;
   ros::Subscriber<spinal::JointProfiles, DirectServo> joint_profiles_sub_;
   ros::Publisher servo_state_pub_;
@@ -81,7 +83,8 @@ private:
   uint32_t servo_last_pub_time_;
   uint32_t servo_torque_last_pub_time_;
 
-  void servoControlCallback(const spinal::ServoControlCmd& control_msg);
+  void servoPositionCallback(const spinal::ServoControlCmd& control_msg);
+  void servoCurrentCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg);
   
