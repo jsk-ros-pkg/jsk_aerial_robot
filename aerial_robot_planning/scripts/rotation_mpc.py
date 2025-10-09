@@ -288,7 +288,6 @@ def main():
     
     # Create trajectory with current position
     traj = YawRotationRoll0dTraj(loop_num)
-    # Set the current position in the trajectory
     traj.set_position(current_position.x, current_position.y, current_position.z)
     rospy.loginfo("Created YawRotationRoll0dTraj trajectory at current position")
     

@@ -38,16 +38,24 @@ class BaseTrajwFixedRotor(BaseTraj):
         alpha_fixed = 0.0
         return rotor_id, ft_fixed, alpha_fixed
 
+class ReturnToDefaultTraj(BaseTraj):
+    def __init__(self, loop_num: int = np.inf) -> None:
+        super().__init__(loop_num)
+        self.T = 1.0  # Simple trajectory with 1 second period
+        
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        x, y, z, vx, vy, vz, ax, ay, az = 0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return x, y, z, vx, vy, vz, ax, ay, az
 
 class CircleTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
-        self.r = 1  # radius in meters
-        self.T = 10  # period in seconds
+        self.r = 0.5  # radius in meters
+        self.T = 20  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
 
     def get_2d_pt(self, t: float) -> Tuple[float, float, float, float, float, float]:
-        x = self.r * np.cos(self.omega * t) - 1.0
+        x = self.r * np.cos(self.omega * t)
         y = self.r * np.sin(self.omega * t)
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
@@ -56,9 +64,9 @@ class CircleTraj(BaseTraj):
         return x, y, vx, vy, ax, ay
 
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
-        x = self.r * np.cos(self.omega * t) - 1.0
+        x = self.r * np.cos(self.omega * t)
         y = self.r * np.sin(self.omega * t)
-        z = 0.5
+        z = 0.8
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
         vz = 0.0
@@ -71,8 +79,8 @@ class CircleTraj(BaseTraj):
 class LemniscateTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
-        self.a = 1.0  # parameter determining the size of the Lemniscate
-        self.z_range = 0.3  # range of z
+        self.a = 0.8  # parameter determining the size of the Lemniscate
+        self.z_range = 0.2  # range of z
         self.T = 20  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
 
@@ -108,6 +116,31 @@ class LemniscateTraj(BaseTraj):
         return x, y, z, vx, vy, vz, ax, ay, az
 
 
+class LemniscateTrajYaw(LemniscateTraj):
+
+    def __init__(self, loop_num) -> None:
+        super().__init__(loop_num)
+        self.a_orientation = 0.5
+
+    def get_3d_orientation(self, t: float) -> Tuple[
+        float, float, float, float, float, float, float, float, float, float]:
+        t = t + self.T * 1 / 4
+
+        roll = 0.0
+        pitch = 0.0
+        yaw = np.pi / 2 * np.sin(self.omega * t + np.pi) + np.pi / 2
+        (qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+
+        roll_rate = 0.0
+        pitch_rate = 0.0
+        yaw_rate = np.pi / 2 * self.omega * np.cos(self.omega * t + np.pi / 2)
+
+        roll_acc = 0.0
+        pitch_acc = 0.0
+        yaw_acc = -np.pi / 2 * self.omega ** 2 * np.sin(self.omega * t + np.pi / 2)
+
+        return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
+    
 class LemniscateTrajOmni(LemniscateTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
