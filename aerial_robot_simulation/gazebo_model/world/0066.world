@@ -20,7 +20,10 @@
 
 
     <!-- A global light source -->
-   <scene>
+    <scene>
+        <ambient>0.4 0.4 0.4 1</ambient>
+        <background>0.8 0.8 0.8 1</background>
+        <shadows>false</shadows>
       <sky>
         <clouds>
           <speed>12</speed>
