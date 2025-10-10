@@ -115,8 +115,10 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
+#if 0
   TIM_HandleTypeDef* pwm_htim3_;
   TIM_HandleTypeDef* pwm_htim4_;
+#endif
 #endif
 
   ros::NodeHandle* nh_;
