@@ -32,7 +32,7 @@
 #define NERVE_COMM 1
 
 //1. Specials board options
-#define STM32H7_V2 0
+#define STM32H7_KASANE 1
 
 //2. Enable Flags
 //* Please set/reset follwing flags according to your utility.
