@@ -55,6 +55,7 @@ AttitudeController::AttitudeController():
 {
 }
 
+#if 0
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator,
                               DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
@@ -182,6 +183,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   baseInit();
 }
+#endif
 
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
                               DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)

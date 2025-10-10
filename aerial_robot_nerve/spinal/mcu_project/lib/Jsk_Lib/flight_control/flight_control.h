@@ -67,6 +67,7 @@ public:
   {
   }
 
+#if 0
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
   {
     nh_ = nh;
@@ -100,6 +101,7 @@ public:
   {
     init(htim1, htim2, htim3, htim4, estimator, NULL, bat, nh, mutex);
   }
+#endif
 
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
   {
