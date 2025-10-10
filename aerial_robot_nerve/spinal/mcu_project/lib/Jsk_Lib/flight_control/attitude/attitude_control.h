@@ -82,10 +82,10 @@ public:
   void init(ros::NodeHandle* nh, StateEstimate* estimator);
 #else
 
-#if 0
+//#ifdef STM32H7_KASANE
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator,
             DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
-#endif
+//#endif
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
             DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL);
 #endif
@@ -115,10 +115,10 @@ private:
 #ifndef SIMULATION
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
-#if 0
+//#ifdef STM32H7_KASANE
   TIM_HandleTypeDef* pwm_htim3_;
   TIM_HandleTypeDef* pwm_htim4_;
-#endif
+//#endif
 #endif
 
   ros::NodeHandle* nh_;

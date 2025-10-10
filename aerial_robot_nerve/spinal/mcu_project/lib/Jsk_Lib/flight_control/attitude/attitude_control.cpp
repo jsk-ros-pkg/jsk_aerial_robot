@@ -55,7 +55,7 @@ AttitudeController::AttitudeController():
 {
 }
 
-#if 0
+//#ifdef STM32H7_KASANE
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator,
                               DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
@@ -183,7 +183,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
 
   baseInit();
 }
-#endif
+//#endif
 
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
                               DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
@@ -394,20 +394,25 @@ void AttitudeController::pwmsControl(void)
     }
   else
     {
+#if STM32H7_KASANE
+      pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+      pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[1] * pwm_htim2_->Init.Period);
+      pwm_htim3_->Instance->CCR4 = (uint32_t)(target_pwm_[2] * pwm_htim3_->Init.Period);
+      pwm_htim4_->Instance->CCR1 = (uint32_t)(target_pwm_[3] * pwm_htim4_->Init.Period);
+#else
       pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
       pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
       pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
       pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
-      //pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
-      //pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[1] * pwm_htim2_->Init.Period);
-      //pwm_htim3_->Instance->CCR4 = (uint32_t)(target_pwm_[2] * pwm_htim3_->Init.Period);
-      //pwm_htim4_->Instance->CCR1 = (uint32_t)(target_pwm_[3] * pwm_htim4_->Init.Period);
+#endif
     }
 
+#if !STM32H7_KASANE
   pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR4 = (uint32_t)(target_pwm_[7] * pwm_htim2_->Init.Period);
+#endif
 
 #endif
 }
