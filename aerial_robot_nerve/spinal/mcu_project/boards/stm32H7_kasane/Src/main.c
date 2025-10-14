@@ -299,10 +299,8 @@ int main(void)
   //UART4: gps (temporary)
 
   imu_.init(&hspi4, &hi2c3, &nh_, IMU_nCS_GPIO_Port, IMU_nCS_Pin, LED1_GPIO_Port, LED1_Pin);
-  //imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
-  //baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   baro_.init(&hi2c1, &nh_, BARO_CS_GPIO_Port, BARO_CS_Pin);
   gps_.init(&huart4, &nh_, LED2_GPIO_Port, LED2_Pin);
 #if DSHOT

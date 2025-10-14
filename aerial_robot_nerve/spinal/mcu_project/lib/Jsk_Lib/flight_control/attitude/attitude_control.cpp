@@ -55,6 +55,7 @@ AttitudeController::AttitudeController():
 {
 }
 
+//#ifdef STM32H7_KASANE
 void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator,
                               DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
 {
@@ -163,14 +164,76 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
       HAL_TIM_Base_Start(pwm_htim4_);
 
       HAL_TIM_PWM_Start(pwm_htim4_, TIM_CHANNEL_1);
-}
+    }
 
-#if 0
+  nh_->advertise(pwms_pub_);
+  nh_->advertise(control_term_pub_);
+  nh_->advertise(control_feedback_state_pub_);
+  nh_->advertise(esc_telem_pub_);
+
+  nh_->subscribe(four_axis_cmd_sub_);
+  nh_->subscribe(pwm_info_sub_);
+  nh_->subscribe(rpy_gain_sub_);
+  nh_->subscribe(pwm_test_sub_);
+  nh_->subscribe(p_matrix_pseudo_inverse_inertia_sub_);
+  nh_->subscribe(torque_allocation_matrix_inv_sub_);
+  nh_->subscribe(offset_rot_sub_);
+
+  nh_->advertiseService(att_control_srv_);
+
+  baseInit();
+}
+//#endif
+
+void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator,
+                              DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex)
+{
+
+  pwm_htim1_ = htim1;
+  pwm_htim2_ = htim2;
+  nh_ = nh;
+  estimator_ = estimator;
+  dshot_ = dshot;
+  bat_ = bat;
+  mutex_ = mutex;
+
+  if(!dshot_)
+    {
+      HAL_TIM_PWM_Stop(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_Base_Stop(pwm_htim1_);
+      HAL_TIM_Base_DeInit(pwm_htim1_);
+
+      pwm_htim1_->Init.Prescaler = 3;
+      pwm_htim1_->Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+      pwm_htim1_->Init.Period = 50000;
+
+      TIM_OC_InitTypeDef sConfigOC = {0};
+      sConfigOC.OCMode = TIM_OCMODE_PWM1;
+      sConfigOC.Pulse = 1000;
+      sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+      sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+
+      while(HAL_TIM_Base_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_Init(pwm_htim1_) != HAL_OK);
+      while(HAL_TIM_PWM_ConfigChannel(pwm_htim1_, &sConfigOC, TIM_CHANNEL_1) != HAL_OK);
+
+      if (pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] != NULL) {
+        HAL_DMA_DeInit(pwm_htim1_->hdma[TIM_DMA_ID_UPDATE]);
+        pwm_htim1_->hdma[TIM_DMA_ID_UPDATE] = NULL;
+      }
+
+      HAL_TIM_Base_Start(pwm_htim1_);
+
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_1);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_2);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_3);
+      HAL_TIM_PWM_Start(pwm_htim1_, TIM_CHANNEL_4);
+    }
+
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_4);
-#endif
 
   nh_->advertise(pwms_pub_);
   nh_->advertise(control_term_pub_);
@@ -331,17 +394,20 @@ void AttitudeController::pwmsControl(void)
     }
   else
     {
-      //pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
-      //pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
-      //pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
-      //pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+#if STM32H7_KASANE
       pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
       pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[1] * pwm_htim2_->Init.Period);
       pwm_htim3_->Instance->CCR4 = (uint32_t)(target_pwm_[2] * pwm_htim3_->Init.Period);
       pwm_htim4_->Instance->CCR1 = (uint32_t)(target_pwm_[3] * pwm_htim4_->Init.Period);
+#else
+      pwm_htim1_->Instance->CCR1 = (uint32_t)(target_pwm_[0] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR2 = (uint32_t)(target_pwm_[1] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR3 = (uint32_t)(target_pwm_[2] * pwm_htim1_->Init.Period);
+      pwm_htim1_->Instance->CCR4 = (uint32_t)(target_pwm_[3] * pwm_htim1_->Init.Period);
+#endif
     }
 
-#if 0
+#if !STM32H7_KASANE
   pwm_htim2_->Instance->CCR1 = (uint32_t)(target_pwm_[4] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR2 = (uint32_t)(target_pwm_[5] * pwm_htim2_->Init.Period);
   pwm_htim2_->Instance->CCR3 = (uint32_t)(target_pwm_[6] * pwm_htim2_->Init.Period);
