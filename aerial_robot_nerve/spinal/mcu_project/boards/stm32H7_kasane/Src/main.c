@@ -46,6 +46,8 @@
 
 #include "servo/servo.h"
 
+#include "buzzer/buzzer.h"
+
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
 
@@ -303,6 +305,8 @@ int main(void)
   IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BARO_CS_GPIO_Port, BARO_CS_Pin);
   gps_.init(&huart4, &nh_, LED2_GPIO_Port, LED2_Pin);
+  buzzer_init();
+
 #if DSHOT
   battery_status_.init(&hadc1, &nh_, false);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
@@ -402,6 +406,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  buzzer_init_sound();
+  HAL_Delay(500);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
