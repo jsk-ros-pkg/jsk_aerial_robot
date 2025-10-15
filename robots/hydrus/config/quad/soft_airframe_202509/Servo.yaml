@@ -56,7 +56,7 @@ servo_controller:
 
     controller7:
       id: 7
-      name: soft_joint4
+      name: soft_joint5
       angle_sgn: 0
       simulation:
         init_value: 0.0
