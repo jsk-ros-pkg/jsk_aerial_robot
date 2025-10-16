@@ -108,6 +108,7 @@ DMA_HandleTypeDef hdma_usart3_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 DMA_HandleTypeDef hdma_usart6_tx;
 
+PCD_HandleTypeDef hpcd_USB_OTG_FS;
 HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
 osThreadId coreTaskHandle;
@@ -137,6 +138,7 @@ ICM20948 imu_;
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
+Buzzer buzzer_;
 
 /* servo instance */
 DirectServo servo_;
@@ -175,6 +177,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_DMA_Init(void);
+static void MX_USB_OTG_FS_PCD_Init(void);
 void coreTaskFunc(void const * argument);
 void rosSpinTaskFunc(void const * argument);
 void idleTaskFunc(void const * argument);
@@ -253,6 +256,7 @@ int main(void)
   MX_TIM13_Init();
   MX_ADC3_Init();
   MX_DMA_Init();
+  MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
   // workaround for the wired generation of STMCubeMX
@@ -305,8 +309,7 @@ int main(void)
   IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BARO_CS_GPIO_Port, BARO_CS_Pin);
   gps_.init(&huart4, &nh_, LED2_GPIO_Port, LED2_Pin);
-  buzzer_init();
-
+  buzzer_.init(&htim13, TIM_CHANNEL_1);
 #if DSHOT
   battery_status_.init(&hadc1, &nh_, false);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
@@ -317,7 +320,7 @@ int main(void)
   battery_status_.init(&hadc3, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
   //controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
-  controller_.init(&htim1, &htim2, &htim3, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
+  controller_.init(&htim1, &htim2, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle, &htim3, &htim4);
 #endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
@@ -406,8 +409,10 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  buzzer_init_sound();
+
+  buzzer_.init_sound();
   HAL_Delay(500);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -1593,6 +1598,42 @@ static void MX_USART6_UART_Init(void)
   /* USER CODE BEGIN USART6_Init 2 */
 
   /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
+  * @brief USB_OTG_FS Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USB_OTG_FS_PCD_Init(void)
+{
+
+  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
+
+  /* USER CODE END USB_OTG_FS_Init 0 */
+
+  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
+
+  /* USER CODE END USB_OTG_FS_Init 1 */
+  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
+  hpcd_USB_OTG_FS.Init.dev_endpoints = 9;
+  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
+  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
+  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
+  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
+
+  /* USER CODE END USB_OTG_FS_Init 2 */
 
 }
 
