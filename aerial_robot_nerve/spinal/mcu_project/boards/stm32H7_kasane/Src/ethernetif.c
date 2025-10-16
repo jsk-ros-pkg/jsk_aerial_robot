@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2025 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under Ultimate Liberty license
@@ -153,40 +153,33 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /**ETH GPIO Configuration
     PC1     ------> ETH_MDC
-    PA1     ------> ETH_REF_CLK
-    PA2     ------> ETH_MDIO
-    PA7     ------> ETH_CRS_DV
     PC4     ------> ETH_RXD0
+    PA1     ------> ETH_REF_CLK
     PC5     ------> ETH_RXD1
+    PA2     ------> ETH_MDIO
+    PB13     ------> ETH_TXD1
+    PA7     ------> ETH_CRS_DV
     PB11     ------> ETH_TX_EN
     PB12     ------> ETH_TXD0
-    PB13     ------> ETH_TXD1
     */
-    GPIO_InitStruct.Pin = RMII_MDC_Pin;
+    GPIO_InitStruct.Pin = IFETH_MDC_Pin|IFETH_RCD0_Pin|IFETH_RCD1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-    HAL_GPIO_Init(RMII_MDC_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin;
+    GPIO_InitStruct.Pin = IFETH_REF_CLK_Pin|IFETH_MDIO_Pin|IFETH_CRS_DV_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = RMII_RXD0_Pin|RMII_RXD1_Pin;
+    GPIO_InitStruct.Pin = IFETH_TXD1_Pin|IFETH_TX_EN_Pin|IFETH_TXD0_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = RMII_TX_EN_Pin|RMII_TXD0_Pin|RMII_TXD1_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -215,20 +208,20 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 
     /**ETH GPIO Configuration
     PC1     ------> ETH_MDC
-    PA1     ------> ETH_REF_CLK
-    PA2     ------> ETH_MDIO
-    PA7     ------> ETH_CRS_DV
     PC4     ------> ETH_RXD0
+    PA1     ------> ETH_REF_CLK
     PC5     ------> ETH_RXD1
+    PA2     ------> ETH_MDIO
+    PB13     ------> ETH_TXD1
+    PA7     ------> ETH_CRS_DV
     PB11     ------> ETH_TX_EN
     PB12     ------> ETH_TXD0
-    PB13     ------> ETH_TXD1
     */
-    HAL_GPIO_DeInit(GPIOC, RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin);
+    HAL_GPIO_DeInit(GPIOC, IFETH_MDC_Pin|IFETH_RCD0_Pin|IFETH_RCD1_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin);
+    HAL_GPIO_DeInit(GPIOA, IFETH_REF_CLK_Pin|IFETH_MDIO_Pin|IFETH_CRS_DV_Pin);
 
-    HAL_GPIO_DeInit(GPIOB, RMII_TX_EN_Pin|RMII_TXD0_Pin|RMII_TXD1_Pin);
+    HAL_GPIO_DeInit(GPIOB, IFETH_TXD1_Pin|IFETH_TX_EN_Pin|IFETH_TXD0_Pin);
 
     /* Peripheral interrupt Deinit*/
     HAL_NVIC_DisableIRQ(ETH_IRQn);
