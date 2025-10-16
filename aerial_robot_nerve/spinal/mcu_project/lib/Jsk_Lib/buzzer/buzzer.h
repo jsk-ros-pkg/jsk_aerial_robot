@@ -1,18 +1,26 @@
-/*
- * buzzer.h
- *
- *  Created on: Mar 26, 2021
- *      Author: T. Anzai
- */
-
 #ifndef INC_BUZZER_H_
 #define INC_BUZZER_H_
 
-void buzzer_init();
-void buzzer_on(float hz);
-void buzzer_mute();
-void buzzer_alert();
-void buzzer_init_sound();
+#include "stdbool.h"
+#include "main.h"
+#ifndef SIMULATION
+#include "config.h"
+#endif
+
+class Buzzer
+{
+public:
+  Buzzer();
+  ~Buzzer(){}
+  void init(TIM_HandleTypeDef* htim, int ch);
+  void on(float hz);
+  void mute();
+  void alert();
+  void init_sound();
+private:
+  TIM_HandleTypeDef* pwm_htim_;
+  int pwm_ch_;
+};
 
 
 #endif /* INC_BUZZER_H_ */
