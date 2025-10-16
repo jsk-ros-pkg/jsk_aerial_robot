@@ -174,7 +174,7 @@ private:
   float roll_pitch_term_[MAX_MOTOR_NUMBER]; //[N]
   float yaw_term_[MAX_MOTOR_NUMBER]; //[N]
   float extra_yaw_pi_term_[MAX_MOTOR_NUMBER]; //[N]
-  int max_yaw_term_index_;
+  int max_yaw_term_index_{-1};
 
   // Gyro Moment Compensation
   float p_matrix_pseudo_inverse_[MAX_MOTOR_NUMBER][4];
