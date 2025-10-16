@@ -83,6 +83,6 @@ namespace aerial_robot_control
     virtual void sendFourAxisCommand();
     virtual void sendTorqueAllocationMatrixInv();
 
-
+    void onPidGainsChanged(const std::vector<int>& indices) override;
   };
 } //namespace aerial_robot_control

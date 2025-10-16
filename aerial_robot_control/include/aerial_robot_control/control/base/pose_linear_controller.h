@@ -91,6 +91,7 @@ namespace aerial_robot_control
 
     virtual void controlCore();
     virtual void sendCmd();
+    virtual void onPidGainsChanged(const std::vector<int>& /*indices*/) {}
 
 
     void cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices);

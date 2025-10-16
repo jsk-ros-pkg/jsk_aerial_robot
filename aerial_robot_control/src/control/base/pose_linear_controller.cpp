@@ -374,5 +374,6 @@ namespace aerial_robot_control
             break;
           }
       }
+      onPidGainsChanged(controller_indices);
   }
 };

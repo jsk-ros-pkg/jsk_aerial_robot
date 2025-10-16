@@ -35,6 +35,7 @@
 
 #include <aerial_robot_control/control/under_actuated_controller.h>
 
+
 namespace aerial_robot_control
 {
   UnderActuatedController::UnderActuatedController():
@@ -65,6 +66,8 @@ namespace aerial_robot_control
     rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
     flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
     torque_allocation_matrix_inv_pub_ = nh_.advertise<spinal::TorqueAllocationMatrixInv>("torque_allocation_matrix_inv", 1);
+
+    setAttitudeGains();
   }
 
   void UnderActuatedController::reset()
@@ -198,8 +201,18 @@ namespace aerial_robot_control
     rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
     rpy_gain_pub_.publish(rpy_gain_msg);
   }
+  
+  void UnderActuatedController::onPidGainsChanged(const std::vector<int>& indices)
+  {
+    bool attitude_changed = false;
+    for (int idx : indices)
+    {
+      if (idx == ROLL || idx == PITCH || idx == YAW) { attitude_changed = true; break; }
+    }
+    if (attitude_changed) setAttitudeGains();  // 既存の publisher を使用（*1000 スケーリング）
+  }
 
-} //namespace aerial_robot_control
+}
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>
