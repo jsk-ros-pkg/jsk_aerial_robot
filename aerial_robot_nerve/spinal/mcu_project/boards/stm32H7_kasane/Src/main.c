@@ -319,7 +319,6 @@ int main(void)
 #else
   battery_status_.init(&hadc3, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-  //controller_.init(&htim1, &htim4, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle);
   controller_.init(&htim1, &htim2, &estimator_, NULL, &battery_status_, &nh_, &flightControlMutexHandle, &htim3, &htim4);
 #endif
 
