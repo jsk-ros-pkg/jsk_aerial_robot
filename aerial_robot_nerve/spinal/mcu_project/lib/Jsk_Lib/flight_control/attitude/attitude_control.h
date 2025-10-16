@@ -66,8 +66,10 @@
 
 #define MOTOR_TEST 0
 
-#define PWM_SEND_TYPE_H7V2 0
-#define PWM_SEND_TYPE_H7KASANE 1
+enum PWM_SEND_TYPE {
+	H7V2 = 0,
+	H7KASANE = 1,
+};
 
 enum AXIS {
   X = 0,
