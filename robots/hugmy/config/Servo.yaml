@@ -1,0 +1,37 @@
+servo_controller:
+  state_sub_topic: servo/states
+  ctrl_pub_topic: servo/target_states
+  # torque_pub_topic: servo/torque_enable
+
+  joints:
+    # for simulation
+    simulation:
+      pid: {p: 2.0, i: 0.0, d: 0.0}
+      init_value: 0.0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      name: joint_1_1
+    controller2:
+      name: joint_2_1
+    controller3:
+      name: joint_3_1
+    controller4:
+      name: joint_1_2
+    controller5:
+      name: joint_2_2   
+    controller6:         
+      name: joint_3_2
+    controller7:
+      name: joint_1_3
+    controller8:
+      name: joint_2_3
+    controller9:
+      name: joint_3_3
+    controller10:
+      name: joint_1_4
+    controller11:
+      name: joint_2_4
+    controller12:
+      name: joint_3_4
+

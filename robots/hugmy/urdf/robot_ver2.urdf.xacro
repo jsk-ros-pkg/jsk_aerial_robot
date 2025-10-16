@@ -260,7 +260,61 @@
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+      <!-- <dynamics damping="0.0005" friction="0.8"/> -->
+      <dynamics damping="0.002" friction="0.2"/>
     </joint>
+
+    <transmission name="joint_1_${id}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_1_${id}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="joint_1_${id}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    <transmission name="joint_2_${id}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_2_${id}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="joint_2_${id}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    <transmission name="joint_3_${id}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_3_${id}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="joint_3_${id}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+        <transmission name="joint_4_${id}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_4_${id}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="joint_4_${id}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    <transmission name="joint_5_${id}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="joint_5_${id}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="joint_5_${id}_servo">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
   </xacro:macro>
 
   <!-- Main body links and repeated arms -->
