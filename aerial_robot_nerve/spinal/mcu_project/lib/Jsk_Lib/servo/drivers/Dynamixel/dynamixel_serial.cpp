@@ -4,7 +4,7 @@
 namespace
 {
 
-#if STM32H7_V2
+#if STM32H7_V2 || STM32H7_KASANE
   uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
 #else
 #ifdef STM32H7
@@ -149,6 +149,15 @@ void DynamixelSerial::pinReconfig()
   GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 #else
+#if STM32H7_KASANE
+  HAL_GPIO_DeInit(GPIOC, GPIO_PIN_9);
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#else
 #ifdef STM32H7
   HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8);
   GPIO_InitStruct.Pin = GPIO_PIN_8;
@@ -157,6 +166,7 @@ void DynamixelSerial::pinReconfig()
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#endif
 #endif
 #endif
 
@@ -183,6 +193,15 @@ void DynamixelSerial::pinReconfig()
   GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 #else
+#if STM32H7_KASANE
+  HAL_GPIO_DeInit(GPIOC, GPIO_PIN_9);
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#else
 #ifdef STM32H7
   HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8);
   GPIO_InitStruct.Pin = GPIO_PIN_8;
@@ -191,6 +210,7 @@ void DynamixelSerial::pinReconfig()
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#endif
 #endif
 #endif
 }
