@@ -67,7 +67,7 @@ public:
   {
   }
 
-//#ifdef STM32H7_KASANE
+#if 0
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
   {
     nh_ = nh;
@@ -101,9 +101,9 @@ public:
   {
     init(htim1, htim2, htim3, htim4, estimator, NULL, bat, nh, mutex);
   }
-//#endif
+#endif
 
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL, TIM_HandleTypeDef* htim3 = NULL, TIM_HandleTypeDef* htim4 = NULL)
   {
     nh_ = nh;
 
@@ -120,19 +120,21 @@ public:
 
     pwm_htim1_ = htim1;
     pwm_htim2_ = htim2;
+    pwm_htim3_ = htim3;
+    pwm_htim4_ = htim4;
 
     mutex_ = mutex;
 
-    att_controller_.init(htim1, htim2, estimator, dshot, bat, nh, mutex);
+    att_controller_.init(htim1, htim2, estimator, dshot, bat, nh, mutex, htim3, htim4);
     //pos_controller_.init(estimator_, &att_controller_, nh_);
 
     start_control_flag_ = false;
     pwm_test_flag_ = false;
     integrate_flag_ = false;
   }
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
+  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL, TIM_HandleTypeDef* htim3 = NULL, TIM_HandleTypeDef* htim4 = NULL)
   {
-    init(htim1, htim2, estimator, NULL, bat, nh, mutex);
+    init(htim1, htim2, estimator, NULL, bat, nh, mutex, htim3, htim4);
   }
 #endif
 
@@ -192,10 +194,8 @@ private:
   BatteryStatus* bat_;
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
-//#if STM32H7_KASANE
   TIM_HandleTypeDef* pwm_htim3_;
   TIM_HandleTypeDef* pwm_htim4_;
-//#endif
   osMutexId* mutex_;
 #endif
 
