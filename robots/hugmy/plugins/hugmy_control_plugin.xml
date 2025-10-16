@@ -1,0 +1,5 @@
+<library path="lib/libhugmy_morphing_arm_controller">
+  <class name="aerial_robot_control/morphing_arm_controller" type="aerial_robot_control::MorphingController" base_class_type="aerial_robot_control::ControlBase">
+    <description>hugmy morphing arm controller</description>
+  </class>
+</library>

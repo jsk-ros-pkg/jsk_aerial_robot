@@ -22,6 +22,7 @@
 
   <export>
     <aerial_robot_control plugin="${prefix}/plugins/navigation_plugin.xml" />
+    <aerial_robot_control plugin="${prefix}/plugins/hugmy_control_plugin.xml" />
   </export>
 
 </package>
