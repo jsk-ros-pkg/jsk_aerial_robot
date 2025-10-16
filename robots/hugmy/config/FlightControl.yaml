@@ -1,4 +1,6 @@
-aerial_robot_control_name: aerial_robot_control/under_actuated_tilted_lqi_controller
+aerial_robot_control_name: aerial_robot_control/morphing_arm_controller
+# aerial_robot_control_name: aerial_robot_control/under_actuated_lqi_controller
+# aerial_robot_control_name: aerial_robot_control/under_actuated_controller
 
 controller:
   xy:
@@ -21,16 +23,29 @@ controller:
     limit_d: 20 # m / s^2
     landing_err_z: -0.2
     force_landing_descending_rate: -0.6
-    compensate_gravity: false # for stable flight in expreriment of face expression
-    # compensate_gravity: true
+    # compensate_gravity: false # for stable flight in expreriment of face expression
+    compensate_gravity: true
 
   yaw:
+    p_gain: 10.0 # 4.0
+    i_gain: 0.01
+    d_gain: 4.0 # 0.2
     limit_sum: 6.0 # N for clamping thrust force
-    limit_p: 4.0
-    limit_i: 4.0
-    limit_d: 4.0
+    limit_p: 10.0
+    limit_i: 10.0
+    limit_d: 10.0
     limit_err_p: 0.4
     need_d_control: false
+
+  roll_pitch:
+    p_gain: 28.0
+    i_gain: 1.0
+    d_gain: 18.0
+    limit_sum: 0.0
+    limit_p: 40.0
+    limit_i: 40
+    limit_d: 20
+    limit_err_p: 0.5
 
   # LQI gain generator
   lqi:
