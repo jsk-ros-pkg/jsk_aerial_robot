@@ -129,7 +129,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <box size="0.28 0.28 0.072" />
+        <box size="0.1 0.1 0.1" />
       </geometry>
     </collision>
   </link>
@@ -228,6 +228,8 @@
       <origin rpy="0 0 ${pi/2 * (id+3)}" xyz="${base_offset}"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="0.8727" effort="10" velocity="1.0"/>
+      <!-- <dynamics damping="0.0005" friction="0.8"/> -->
+      <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
     <joint name="joint_2_${id}" type="revolute">
@@ -236,6 +238,8 @@
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+      <!-- <dynamics damping="0.0005" friction="0.8"/> -->
+      <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
     <joint name="joint_3_${id}" type="revolute">
@@ -244,14 +248,18 @@
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+      <!-- <dynamics damping="0.0005" friction="0.8"/> -->
+      <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
     <joint name="joint_4_${id}" type="revolute">
       <parent link="link_rotor_${id}"/>
       <child link="link_4_${id}"/>
-    <origin rpy="0 0 0" xyz="${link_length_r} 0.00 0.00"/>
-    <axis xyz="0 1 0"/>
-    <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+      <origin rpy="0 0 0" xyz="${link_length_r} 0.00 0.00"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
+      <!-- <dynamics damping="0.0005" friction="0.8"/> -->
+      <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
     <joint name="joint_5_${id}" type="revolute">

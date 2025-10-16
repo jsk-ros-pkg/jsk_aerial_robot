@@ -12,9 +12,20 @@
   <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
 
   <gazebo reference="main_body">
-    <mu1>0.1</mu1>
-    <mu2>0.1</mu2>
+    <mu1>3.0</mu1>
+    <mu2>3.0</mu2>
   </gazebo>
+
+  <!-- <gazebo> -->
+  <!--   <plugin name="arm_thrust" filename="$(find hugmy)/devel/lib/libarm_thrust_plugin.so"> -->
+  <!--     <rotor_links> -->
+  <!--       <link>thrust1</link> -->
+  <!--       <link>thrust2</link> -->
+  <!--       <link>thrust3</link> -->
+  <!--       <link>thrust4</link> -->
+  <!--     </rotor_links> -->
+  <!--   </plugin> -->
+  <!-- </gazebo> -->
 
   <!-- link for cameras -->
   <joint name="realsence_link_joint" type="fixed">
