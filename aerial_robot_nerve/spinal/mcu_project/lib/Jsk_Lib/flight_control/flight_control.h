@@ -67,42 +67,6 @@ public:
   {
   }
 
-#if 0
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
-  {
-    nh_ = nh;
-
-    /* config ack to ROS */
-    nh_->advertise(config_ack_pub_);
-    /* uav & motor type */
-    nh_->subscribe(uav_info_sub_);
-    /* flight control base config */
-    nh_->subscribe(flight_config_sub_);
-
-    estimator_ = estimator;
-
-    bat_ = bat;
-
-    pwm_htim1_ = htim1;
-    pwm_htim2_ = htim2;
-    pwm_htim3_ = htim3;
-    pwm_htim4_ = htim4;
-
-    mutex_ = mutex;
-
-    att_controller_.init(htim1, htim2, htim3, htim4, estimator, dshot, bat, nh, mutex);
-    //pos_controller_.init(estimator_, &att_controller_, nh_);
-
-    start_control_flag_ = false;
-    pwm_test_flag_ = false;
-    integrate_flag_ = false;
-  }
-  void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, TIM_HandleTypeDef* htim4, StateEstimate* estimator, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL)
-  {
-    init(htim1, htim2, htim3, htim4, estimator, NULL, bat, nh, mutex);
-  }
-#endif
-
   void init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, StateEstimate* estimator, DShot* dshot, BatteryStatus* bat, ros::NodeHandle* nh, osMutexId* mutex = NULL, TIM_HandleTypeDef* htim3 = NULL, TIM_HandleTypeDef* htim4 = NULL)
   {
     nh_ = nh;
