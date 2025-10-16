@@ -12,17 +12,13 @@
 #include "servo/drivers/kondo_servo/kondo_servo.h"
 
 
-#ifdef STM32H7_V2
-uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
-#else
-#ifdef STM32H7_KASANE
+#if STM32H7_V2 || STM32H7_KASANE
 uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
 #else
 #ifdef STM32H7
 uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE] __attribute__((section(".GpsRxBufferSection")));
 #else
 uint8_t dma_rx_buf_[KONDO_BUFFER_SIZE];
-#endif
 #endif
 #endif
 
