@@ -30,6 +30,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   body_pose_sub_ = nh_.subscribe("mocap/pose", 1, &SoftAirframeController::BodyMocapCallback, this);
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
+  prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
 }
 
 void SoftAirframeController::controlCore()
@@ -58,7 +59,7 @@ void SoftAirframeController::controlCore()
     {
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
       target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
-      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z(); // todo: add some kind of constraints
+      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z();
     }
   else
     {
@@ -66,6 +67,9 @@ void SoftAirframeController::controlCore()
       target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
       target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
     }
+  target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+  target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+  prev_target_vectoring_f_ = target_vectoring_f_;
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
   for(int i = 0; i < motor_num_; i++)

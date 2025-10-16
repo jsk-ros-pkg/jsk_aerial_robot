@@ -60,6 +60,8 @@ protected:
   std::deque<Eigen::Vector3d> rotor5_origin_hist;
   std::deque<Eigen::Vector3d> rotor5_normal_hist;
 
+  Eigen::VectorXd prev_target_vectoring_f_;
+
   void setAttitudeGains();
   virtual void rosParamInit();
   virtual void controlCore() override;
