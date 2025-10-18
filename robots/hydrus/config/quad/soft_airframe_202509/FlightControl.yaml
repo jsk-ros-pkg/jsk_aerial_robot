@@ -33,15 +33,23 @@ controller:
     limit_err_p: 0.4
     need_d_control: false
 
+  # roll_pitch:
+  #   p_gain: 25.0
+  #   i_gain: 1.0
+  #   d_gain: 8.0
+  #   limit_sum: 20.0
+  #   limit_p: 20.0
+  #   limit_i: 20.0
+  #   limit_d: 20.0
   roll_pitch:
-    p_gain: 25.0
-    i_gain: 1.0
-    d_gain: 8.0
-    limit_sum: 20.0
-    limit_p: 20.0
-    limit_i: 20.0
-    limit_d: 20.0
-
+    p_gain: 15
+    i_gain: 0.3
+    d_gain: 5 # 5: good, 7: deverge in the takeoff phase
+    limit_sum: 10
+    limit_p: 10
+    limit_i: 10
+    limit_d: 10
+  
   # LQI gain generator
   lqi:
     gain_generate_rate: 20.0

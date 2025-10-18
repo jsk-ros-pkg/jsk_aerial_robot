@@ -55,10 +55,10 @@ protected:
   KDL::Frame body_pose_from_world_;
   ros::Time rotor5_pose_update_time_;
   ros::Time body_pose_update_time_;
-  // Eigen::Vector3d prev_rotor5_origin = Eigen::Vector3d(0,0,0);
-  // Eigen::Vector3d prev_rotor5_normal = Eigen::Vector3d(0,0,0);
-  std::deque<Eigen::Vector3d> rotor5_origin_hist;
-  std::deque<Eigen::Vector3d> rotor5_normal_hist;
+  Eigen::Vector3d prev_rotor5_origin = Eigen::Vector3d(0,0,0);
+  Eigen::Vector3d prev_rotor5_normal = Eigen::Vector3d(0,0,0);
+  // std::deque<Eigen::Vector3d> rotor5_origin_hist;
+  // std::deque<Eigen::Vector3d> rotor5_normal_hist;
 
   Eigen::VectorXd prev_target_vectoring_f_;
 

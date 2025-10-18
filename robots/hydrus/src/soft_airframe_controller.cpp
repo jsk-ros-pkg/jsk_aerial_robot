@@ -183,29 +183,32 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
   std::cout << rotors_normal.at(4) << std::endl;
   std::cout << std::endl;
 
-  // if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
-  //   double alpha = 0.5;
-  //   rotors_origin.at(4) = alpha * prev_rotor5_origin + (1 - alpha) * rotors_origin.at(4);
-  //   rotors_normal.at(4) = alpha * prev_rotor5_normal + (1 - alpha) * rotors_normal.at(4);
-  //   rotors_normal.at(4).normalize();
-  // }
+  if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
+    double alpha = 0.5;
+    rotors_origin.at(4) = alpha * prev_rotor5_origin + (1 - alpha) * rotors_origin.at(4);
+    rotors_normal.at(4) = alpha * prev_rotor5_normal + (1 - alpha) * rotors_normal.at(4);
+    rotors_normal.at(4).normalize();
+  }
+
+  prev_rotor5_origin = rotors_origin.at(4);
+  prev_rotor5_normal = rotors_normal.at(4);
 
 
-  rotor5_origin_hist.push_back(rotors_origin.at(4));
-  rotor5_normal_hist.push_back(rotors_normal.at(4));
-  const int kWin = 5;
-  if ((int)rotor5_origin_hist.size() > kWin) rotor5_origin_hist.pop_front();
-  if ((int)rotor5_normal_hist.size() > kWin) rotor5_normal_hist.pop_front();
+  // rotor5_origin_hist.push_back(rotors_origin.at(4));
+  // rotor5_normal_hist.push_back(rotors_normal.at(4));
+  // const int kWin = 5;
+  // if ((int)rotor5_origin_hist.size() > kWin) rotor5_origin_hist.pop_front();
+  // if ((int)rotor5_normal_hist.size() > kWin) rotor5_normal_hist.pop_front();
   
-  Eigen::Vector3d origin_sum = Eigen::Vector3d::Zero();
-  for (const auto& v : rotor5_origin_hist) origin_sum += v;
-  const Eigen::Vector3d origin_avg = origin_sum / double(rotor5_origin_hist.size());
+  // Eigen::Vector3d origin_sum = Eigen::Vector3d::Zero();
+  // for (const auto& v : rotor5_origin_hist) origin_sum += v;
+  // const Eigen::Vector3d origin_avg = origin_sum / double(rotor5_origin_hist.size());
 
-  Eigen::Vector3d normal_sum = Eigen::Vector3d::Zero();
-  for (const auto& v : rotor5_normal_hist) normal_sum += v;
-  const Eigen::Vector3d normal_avg = normal_sum / double(rotor5_normal_hist.size());
-  rotors_origin.at(4) = origin_avg;
-  rotors_normal.at(4) = normal_avg.normalized();
+  // Eigen::Vector3d normal_sum = Eigen::Vector3d::Zero();
+  // for (const auto& v : rotor5_normal_hist) normal_sum += v;
+  // const Eigen::Vector3d normal_avg = normal_sum / double(rotor5_normal_hist.size());
+  // rotors_origin.at(4) = origin_avg;
+  // rotors_normal.at(4) = normal_avg.normalized();
   
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
   for (unsigned int i = 0; i < motor_num_; ++i) {
