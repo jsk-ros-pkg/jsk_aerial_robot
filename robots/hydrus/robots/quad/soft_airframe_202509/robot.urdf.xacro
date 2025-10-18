@@ -320,14 +320,20 @@
   </transmission>
 
   <!-- leg -->
-  <!-- <link name="leg6">
+  <link name="leg6">
     <inertial>
       <origin xyz="0.0 0.0 -0.093" rpy="0 0 0"/>
-      <mass value="0.047000"/>
+      <mass value="0.051000"/>
       <inertia
-          ixx="0.000259" iyy="0.000281" izz="0.000010"
+          ixx="0.000122" iyy="0.000133" izz="0.000012"
           ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
     </inertial>
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 -0.15"/>
+      </geometry>
+      <origin xyz="0.01 0.01 -0.075" rpy="0 0 0"/>
+    </visual>
   </link>
   <gazebo reference="leg6">
     <mu1>0.1</mu1>
@@ -340,7 +346,6 @@
     <child link="leg6"/>
     <origin xyz="0.1 0 0" rpy="0 0 0"/>
   </joint>
- -->
 
 
   <!-- gimbal -->
