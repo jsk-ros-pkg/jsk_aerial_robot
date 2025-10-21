@@ -6,6 +6,7 @@
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
+#include <std_msgs/Float32MultiArray.h>
 
 namespace aerial_robot_control
 {
@@ -27,9 +28,12 @@ protected:
   ros::Publisher rpy_gain_pub_; //for spinal
   ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
   ros::Publisher gimbal_control_pub_;
+  ros::Publisher q_mat_pub_;
+  ros::Publisher rotor_attitude_contributions_pub_;
   ros::Subscriber joint_state_sub_;
   ros::Subscriber rotor5_pose_sub_;
   ros::Subscriber body_pose_sub_;
+  ros::Subscriber rpy_pid_sub_;
   double torque_allocation_matrix_inv_pub_stamp_;
 
   Eigen::MatrixXd q_mat_;
@@ -74,6 +78,8 @@ protected:
   virtual void BodyMocapCallback(const geometry_msgs::PoseStamped& msg);
   virtual void sendGimbalCommand();
   virtual void sendTorqueAllocationMatrixInv();
+  virtual void publishQMat();
+  virtual void publishRotorAttitudeContributions(const spinal::RollPitchYawTerms &control_term_msg_);
 
 };
 }  // namespace aerial_robot_control
