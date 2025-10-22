@@ -9,6 +9,7 @@ from aerial_robot_msgs.msg import FlightNav
 import rosgraph
 from spinal.msg import ServoControlCmd
 from spinal.msg import PwmTest
+from spinal.msg import ServoStates
 import numpy as np
 import math
 from aerial_robot_base.robot_interface import RobotInterface
@@ -236,6 +237,14 @@ def get_wire_diff(alpha_1, alpha_3):
 def get_angle_diff(wire_diff):
     return int(wire_diff / r_wheel / math.pi * 4096)
 
+def initializeCallback(msg):
+    global dest_servo_angles
+    dest_servo_angles = [
+        msg.angles[5],
+        msg.angles[4],
+        msg.angles[6],
+        msg.angles[7],
+    ]
 
 if __name__ == "__main__":
     # alpha_1 = math.radians(1)
@@ -244,8 +253,10 @@ if __name__ == "__main__":
     rospy.init_node("tail_ik")
     tail_pub = rospy.Publisher("servo/target_states", ServoControlCmd, queue_size=1)
     rotor_pub = rospy.Publisher("pwm_test", PwmTest, queue_size=1)
+    tail_state_sub = rospy.Subscriber("servo/states", ServoStates, initializeCallback)
 
     rate = rospy.Rate(10)
+    servo_index = [5, 4, 6, 7]
 
     # ri = RobotInterface()
     # rospy.sleep(1.0)
@@ -257,7 +268,23 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [5, 4, 6, 7]
+            tail_msg.index = servo_index
+
+            tail_msg.angles = dest_servo_angles
+            tail_pub.publish(tail_msg)
+
+            rospy.sleep(0.001)
+
+    except Exception as e:
+        print(repr(e))
+        pass
+
+
+    try:
+        while True:
+            rospy.sleep(0.5)
+            tail_msg = ServoControlCmd()
+            tail_msg.index = servo_index
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]

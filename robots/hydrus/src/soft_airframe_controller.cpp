@@ -258,6 +258,9 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
     KDL::Frame cog = robot_model_->getCog<KDL::Frame>();
     rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
     rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
+  } else {
+    rotors_origin.at(4) = prev_rotor5_origin;
+    rotors_normal.at(4) = prev_rotor5_normal;
   }
 
   // fail safe for mocap update
