@@ -7,6 +7,7 @@
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <OsqpEigen/OsqpEigen.h>
 
 namespace aerial_robot_control
 {
@@ -65,7 +66,9 @@ protected:
   // std::deque<Eigen::Vector3d> rotor5_normal_hist;
 
   Eigen::VectorXd prev_target_vectoring_f_;
-
+  OsqpEigen::Solver target_vectoring_qp_solver_;
+  int n_constraints;
+  
   void setAttitudeGains();
   virtual void rosParamInit();
   virtual void controlCore() override;

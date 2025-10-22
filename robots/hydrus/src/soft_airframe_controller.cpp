@@ -34,6 +34,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
   prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
+  n_constraints = motor_num_ + 1;
 }
 
 void SoftAirframeController::controlCore()
@@ -58,20 +59,94 @@ void SoftAirframeController::controlCore()
 
   // Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_); // virtual motor number
+  double target_z;
   if(hovering_approximate_)
     {
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
       target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
-      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z();
+      // target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z();
+      std::cout << "original_target_vectoring_f: " << full_q_mat_inv_.col(0) * target_acc_w.z() << std::endl;
+      target_z = target_acc_w.z();
     }
   else
     {
       target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
       target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
-      target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
+      // target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
+      std::cout << "original_target_vectoring_f: " << full_q_mat_inv_.col(0) * target_acc_w.length() << std::endl;
+      target_z = target_acc_w.length();
     }
-  target_vectoring_f_.noalias() += prev_target_vectoring_f_;
-  target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+
+  // solve the thrust allocation with QP
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
+  H.diagonal().setConstant(2.0);
+  H.setIdentity();
+  H.bottomRightCorner(motor_num_, motor_num_) *= 0.1;
+
+  Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+  // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
+
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
+  A.row(0) = full_q_mat_.row(0);
+  for (int i = 0; i < motor_num_; i++)
+  {
+    A(i + 1, i) = 1.0;
+  }
+
+  Eigen::VectorXd lb(n_constraints);
+  Eigen::VectorXd ub(n_constraints);
+
+  std::cout << target_z << std::endl;
+  lb(0) = target_z;
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lb(i + 1) = robot_model_->getThrustLowerLimit(i);
+  }
+
+  ub(0) = target_z;
+  for (int i = 0; i < motor_num_; i++)
+  {
+    ub(i + 1) = robot_model_->getThrustUpperLimit(i);
+  }
+
+  // print lb and up
+  std::cout << "lb: " << lb.transpose() << std::endl;
+  std::cout << "ub: " << ub.transpose() << std::endl;
+  
+  Eigen::SparseMatrix<double> H_s = H.sparseView();
+  Eigen::SparseMatrix<double> A_s = A.sparseView();
+  if(!target_vectoring_qp_solver_.isInitialized())
+  {
+      target_vectoring_qp_solver_.settings()->setVerbosity(false);
+      target_vectoring_qp_solver_.settings()->setWarmStart(true);
+      target_vectoring_qp_solver_.settings()->setPolish(false);
+      target_vectoring_qp_solver_.settings()->setMaxIteraction(1000);
+      target_vectoring_qp_solver_.settings()->setAbsoluteTolerance(1e-4);
+      target_vectoring_qp_solver_.settings()->setRelativeTolerance(1e-4);
+
+      target_vectoring_qp_solver_.data()->setNumberOfVariables(motor_num_);
+      target_vectoring_qp_solver_.data()->setNumberOfConstraints(n_constraints);
+      target_vectoring_qp_solver_.data()->setHessianMatrix(H_s);
+      target_vectoring_qp_solver_.data()->setGradient(g);
+      target_vectoring_qp_solver_.data()->setLinearConstraintsMatrix(A_s);
+      target_vectoring_qp_solver_.data()->setLowerBound(lb);
+      target_vectoring_qp_solver_.data()->setUpperBound(ub);
+      target_vectoring_qp_solver_.initSolver();
+  }
+  else
+  {
+      target_vectoring_qp_solver_.updateHessianMatrix(H_s);
+      target_vectoring_qp_solver_.updateGradient(g);
+      target_vectoring_qp_solver_.updateLinearConstraintsMatrix(A_s);
+      target_vectoring_qp_solver_.updateBounds(lb, ub);
+  }
+
+  target_vectoring_qp_solver_.solve();
+  target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+  std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;
+
+  // target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+  // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
   prev_target_vectoring_f_ = target_vectoring_f_;
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
