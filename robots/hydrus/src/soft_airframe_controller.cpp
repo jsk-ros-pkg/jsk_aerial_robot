@@ -34,7 +34,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
   prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
-  n_constraints = motor_num_ + 1;
+  n_constraints = motor_num_ + 4;
 }
 
 void SoftAirframeController::controlCore()
@@ -59,23 +59,27 @@ void SoftAirframeController::controlCore()
 
   // Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_); // virtual motor number
-  double target_z;
+  Eigen::VectorXd z_rpy_ddot(4);
+  // Eigen::VectorXd target_vectoring_from_pseudo_inv(motor_num_);
   if(hovering_approximate_)
     {
       target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
       target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
-      // target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.z();
-      std::cout << "original_target_vectoring_f: " << full_q_mat_inv_.col(0) * target_acc_w.z() << std::endl;
-      target_z = target_acc_w.z();
+      // target_vectoring_from_pseudo_inv = full_q_mat_inv_.col(0) * target_acc_w.z();
+      std::cout << "original_target_vectoring_f: " << (full_q_mat_inv_.col(0) * target_acc_w.z()).transpose() << std::endl;
+      z_rpy_ddot(0) = target_acc_w.z();
     }
   else
     {
       target_pitch_ = atan2(target_acc_dash.x(), target_acc_dash.z());
       target_roll_ = atan2(-target_acc_dash.y(), sqrt(target_acc_dash.x() * target_acc_dash.x() + target_acc_dash.z() * target_acc_dash.z()));
-      // target_vectoring_f_ = full_q_mat_inv_.col(0) * target_acc_w.length();
-      std::cout << "original_target_vectoring_f: " << full_q_mat_inv_.col(0) * target_acc_w.length() << std::endl;
-      target_z = target_acc_w.length();
+      // target_vectoring_from_pseudo_inv = full_q_mat_inv_.col(0) * target_acc_w.length();
+      std::cout << "original_target_vectoring_f: " << (full_q_mat_inv_.col(0) * target_acc_w.length()).transpose() << std::endl;
+      z_rpy_ddot(0) = target_acc_w.length();
     }
+  z_rpy_ddot(1) = pid_controllers_.at(ROLL).result();
+  z_rpy_ddot(2) = pid_controllers_.at(PITCH).result();
+  z_rpy_ddot(3) = pid_controllers_.at(YAW).result();
 
   // solve the thrust allocation with QP
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
@@ -87,26 +91,26 @@ void SoftAirframeController::controlCore()
   // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
-  A.row(0) = full_q_mat_.row(0);
+  A.topRows(4) = full_q_mat_;
   for (int i = 0; i < motor_num_; i++)
   {
-    A(i + 1, i) = 1.0;
+    A(i + 4, i) = 1.0;
   }
 
   Eigen::VectorXd lb(n_constraints);
   Eigen::VectorXd ub(n_constraints);
 
-  std::cout << target_z << std::endl;
-  lb(0) = target_z;
+  std::cout << "z_rpy_dot: " << z_rpy_ddot.transpose() << std::endl;
+  lb.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
   {
-    lb(i + 1) = robot_model_->getThrustLowerLimit(i);
+    lb(i + 4) = robot_model_->getThrustLowerLimit(i);
   }
 
-  ub(0) = target_z;
+  ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
   {
-    ub(i + 1) = robot_model_->getThrustUpperLimit(i);
+    ub(i + 4) = robot_model_->getThrustUpperLimit(i);
   }
 
   // print lb and up
@@ -141,12 +145,16 @@ void SoftAirframeController::controlCore()
       target_vectoring_qp_solver_.updateBounds(lb, ub);
   }
 
-  target_vectoring_qp_solver_.solve();
-  target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+  bool solved = target_vectoring_qp_solver_.solve();
+  if(solved){
+    target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+  } else {
+    std::cout << "QP not solved!" << std::endl;
+    target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
+    target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+  }
   std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;
-
-  // target_vectoring_f_.noalias() += prev_target_vectoring_f_;
-  // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
   prev_target_vectoring_f_ = target_vectoring_f_;
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
@@ -397,13 +405,20 @@ void SoftAirframeController::setAttitudeGains()
   spinal::RollPitchYawTerms rpy_gain_msg; //for rosserial
   /* to flight controller via rosserial scaling by 1000 */
   rpy_gain_msg.motors.resize(1);
-  rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
-  rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
-  rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
-  rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  // rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
+  // rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
+  // rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
+  // rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
+  // rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
+  // rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
+  // rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  rpy_gain_msg.motors.at(0).roll_p = 0;
+  rpy_gain_msg.motors.at(0).roll_i = 0;
+  rpy_gain_msg.motors.at(0).roll_d = 0;
+  rpy_gain_msg.motors.at(0).pitch_p = 0;
+  rpy_gain_msg.motors.at(0).pitch_i = 0;
+  rpy_gain_msg.motors.at(0).pitch_d = 0;
+  rpy_gain_msg.motors.at(0).yaw_d = 0;
   rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
