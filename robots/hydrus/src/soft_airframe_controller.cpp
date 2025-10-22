@@ -251,10 +251,6 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
   std::vector<Eigen::Vector3d> rotors_normal = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   auto& rotor_direction = robot_model_->getRotorDirection();
 
-  // std::cout << "before mocap update" << std::endl;
-  // std::cout << rotors_origin.at(4) << std::endl;
-  // std::cout << rotors_normal.at(4) << std::endl;
-
   if (ros::Time::now().toSec() - rotor5_pose_update_time_.toSec() < 1.0 && 
       ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
     KDL::Frame body_pose_from_root_ = robot_model_ -> getSegmentsTf().at("fc");
@@ -263,12 +259,18 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
     rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
     rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
   }
-  
-  // std::cout << "after mocap update" << std::endl;
-  // std::cout << rotors_origin.at(4) << std::endl;
-  // std::cout << rotors_normal.at(4) << std::endl;
-  // std::cout << std::endl;
 
+  // fail safe for mocap update
+  if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
+      for (unsigned int i = 0; i < 3; ++i) {
+      if (abs(rotors_origin.at(4)(i) - prev_rotor5_origin(i)) > 0.5 || abs(rotors_normal.at(4)(i) - prev_rotor5_normal(i)) > 0.5){
+        rotors_origin.at(4) = prev_rotor5_origin;
+        rotors_normal.at(4) = prev_rotor5_normal;
+      }
+    }
+  }
+
+  // low pass filter for rotor5 pose and orientation
   if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
     double alpha = 0.5;
     rotors_origin.at(4) = alpha * prev_rotor5_origin + (1 - alpha) * rotors_origin.at(4);
@@ -278,23 +280,6 @@ Eigen::MatrixXd SoftAirframeController::getQMat()
 
   prev_rotor5_origin = rotors_origin.at(4);
   prev_rotor5_normal = rotors_normal.at(4);
-
-
-  // rotor5_origin_hist.push_back(rotors_origin.at(4));
-  // rotor5_normal_hist.push_back(rotors_normal.at(4));
-  // const int kWin = 5;
-  // if ((int)rotor5_origin_hist.size() > kWin) rotor5_origin_hist.pop_front();
-  // if ((int)rotor5_normal_hist.size() > kWin) rotor5_normal_hist.pop_front();
-  
-  // Eigen::Vector3d origin_sum = Eigen::Vector3d::Zero();
-  // for (const auto& v : rotor5_origin_hist) origin_sum += v;
-  // const Eigen::Vector3d origin_avg = origin_sum / double(rotor5_origin_hist.size());
-
-  // Eigen::Vector3d normal_sum = Eigen::Vector3d::Zero();
-  // for (const auto& v : rotor5_normal_hist) normal_sum += v;
-  // const Eigen::Vector3d normal_avg = normal_sum / double(rotor5_normal_hist.size());
-  // rotors_origin.at(4) = origin_avg;
-  // rotors_normal.at(4) = normal_avg.normalized();
   
   Eigen::MatrixXd q_mat = Eigen::MatrixXd::Zero(4, motor_num_);
   for (unsigned int i = 0; i < motor_num_; ++i) {
