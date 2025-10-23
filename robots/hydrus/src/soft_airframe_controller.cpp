@@ -84,10 +84,14 @@ void SoftAirframeController::controlCore()
   // solve the thrust allocation with QP
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
   H.diagonal().setConstant(2.0);
+  H(4,4) = 20.0;
   H.setIdentity();
   H.bottomRightCorner(motor_num_, motor_num_) *= 0.1;
 
-  Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+  Eigen::MatrixXd weight = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
+  weight.diagonal().setConstant(1.0);
+  weight(4,4) = 10.0;
+  Eigen::VectorXd g = weight * prev_target_vectoring_f_ * -2.0;
   // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
