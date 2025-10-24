@@ -1,0 +1,7 @@
+<library path="lib/liblqi_null_controller">
+  <class name="aerial_robot_control/lqi_null_controller"
+         type="aerial_robot_control::LQINullController"
+         base_class_type="aerial_robot_control::ControlBase">
+    <description>LQI Null controller for Hugmy</description>
+  </class>
+</library>

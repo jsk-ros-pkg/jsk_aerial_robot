@@ -1,0 +1,7 @@
+<library path="lib/liblpv_lqi_qp_controller">
+  <class name="aerial_robot_control/lpv_lqi_qp_controller"
+         type="aerial_robot_control::LpvLqiQpController"
+         base_class_type="aerial_robot_control::ControlBase">
+    <description>LPV-LQI + QP thrust allocator for Hugmy</description>
+  </class>
+</library>
