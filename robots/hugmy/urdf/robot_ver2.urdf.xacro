@@ -51,7 +51,7 @@
   <xacro:macro name="propeller_module" params="id x y z direction">
     <joint name="rotor${id}" type="continuous">
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
-      <parent link="link_rotor_${id}"/>
+      <parent link="link_${id}_rotor"/>
       <child link="thrust${id}"/>
       <origin rpy="0 0 0" xyz="0.020 0.0175 0.0369"/>
       <!-- <origin rpy="0 0 0" xyz="${x} ${y} ${z}"/> -->
@@ -136,7 +136,7 @@
 
   <xacro:macro name="arm_module" params="id base_offset">
     <!--link-->
-    <link name="link_1_${id}">
+    <link name="link_${id}_1">
       <inertial>
         <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
         <mass value="0.00752930"/>
@@ -153,7 +153,7 @@
       </visual>
     </link>
 
-    <link name="link_2_${id}">
+    <link name="link_${id}_2">
       <inertial>
         <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
         <mass value="0.00752930"/>
@@ -170,7 +170,7 @@
       </visual>
     </link>
 
-    <link name="link_rotor_${id}">
+    <link name="link_${id}_rotor">
       <inertial>
         <origin xyz="0.02005067 0.01755833 0.04034797" rpy="0 0 0"/>
         <mass value="0.11565729"/>
@@ -187,7 +187,7 @@
       </visual>
     </link>
 
-    <link name="link_4_${id}">
+    <link name="link_${id}_4">
       <inertial>
         <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
         <mass value="0.00752930"/>
@@ -204,7 +204,7 @@
       </visual>
     </link>
 
-    <link name="link_end_${id}">
+    <link name="link_${id}_end">
       <inertial>
         <origin xyz="0.00910088 0.01750002 0.00845133" rpy="0 0 0"/>
         <mass value="0.00505969"/>
@@ -222,9 +222,9 @@
     </link>
 
     <!-- joint -->
-    <joint name="joint_1_${id}" type="revolute">
+    <joint name="joint_${id}_1" type="revolute">
       <parent link="main_body"/>
-      <child link="link_1_${id}"/>
+      <child link="link_${id}_1"/>
       <origin rpy="0 0 ${pi/2 * (id+3)}" xyz="${base_offset}"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="0.8727" effort="10" velocity="1.0"/>
@@ -232,9 +232,9 @@
       <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
-    <joint name="joint_2_${id}" type="revolute">
-      <parent link="link_1_${id}"/>
-      <child link="link_2_${id}"/>
+    <joint name="joint_${id}_2" type="revolute">
+      <parent link="link_${id}_1"/>
+      <child link="link_${id}_2"/>
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
@@ -242,9 +242,9 @@
       <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
-    <joint name="joint_3_${id}" type="revolute">
-      <parent link="link_2_${id}"/>
-      <child link="link_rotor_${id}"/>
+    <joint name="joint_${id}_3" type="revolute">
+      <parent link="link_${id}_2"/>
+      <child link="link_${id}_rotor"/>
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
@@ -252,9 +252,9 @@
       <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
-    <joint name="joint_4_${id}" type="revolute">
-      <parent link="link_rotor_${id}"/>
-      <child link="link_4_${id}"/>
+    <joint name="joint_${id}_4" type="revolute">
+      <parent link="link_${id}_rotor"/>
+      <child link="link_${id}_4"/>
       <origin rpy="0 0 0" xyz="${link_length_r} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
@@ -262,9 +262,9 @@
       <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
-    <joint name="joint_5_${id}" type="revolute">
-      <parent link="link_4_${id}"/>
-      <child link="link_end_${id}"/>
+    <joint name="joint_${id}_5" type="revolute">
+      <parent link="link_${id}_4"/>
+      <child link="link_${id}_end"/>
       <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
@@ -272,52 +272,52 @@
       <dynamics damping="0.002" friction="0.2"/>
     </joint>
 
-    <transmission name="joint_1_${id}_tran">
+    <transmission name="joint_${id}_1_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint_1_${id}">
+      <joint name="joint_${id}_1">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="joint_1_${id}_servo">
+      <actuator name="joint_${id}_servo_1">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-    <transmission name="joint_2_${id}_tran">
+    <transmission name="joint_${id}_2_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint_2_${id}">
+      <joint name="joint_${id}_2">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="joint_2_${id}_servo">
+      <actuator name="joint_${id}_2_servo">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-    <transmission name="joint_3_${id}_tran">
+    <transmission name="joint_${id}_3_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint_3_${id}">
+      <joint name="joint_${id}_3">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="joint_3_${id}_servo">
+      <actuator name="joint_${id}_3_servo">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-        <transmission name="joint_4_${id}_tran">
+        <transmission name="joint_${id}_4_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint_4_${id}">
+      <joint name="joint_${id}_4">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="joint_4_${id}_servo">
+      <actuator name="joint_${id}_4_servo">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
-    <transmission name="joint_5_${id}_tran">
+    <transmission name="joint_${id}_5_tran">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="joint_5_${id}">
+      <joint name="joint_${id}_5">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
-      <actuator name="joint_5_${id}_servo">
+      <actuator name="joint_${id}_5_servo">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
