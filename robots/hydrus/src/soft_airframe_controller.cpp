@@ -33,7 +33,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   body_pose_sub_ = nh_.subscribe("mocap/pose", 1, &SoftAirframeController::BodyMocapCallback, this);
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
-  prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
+  // prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
   n_constraints = motor_num_ + 4;
 }
 
@@ -84,14 +84,21 @@ void SoftAirframeController::controlCore()
   // solve the thrust allocation with QP
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
   H.diagonal().setConstant(2.0);
-  H(4,4) = 20.0;
-  H.setIdentity();
-  H.bottomRightCorner(motor_num_, motor_num_) *= 0.1;
+  // H(4,4) = 20.0;
 
-  Eigen::MatrixXd weight = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
-  weight.diagonal().setConstant(1.0);
-  weight(4,4) = 10.0;
-  Eigen::VectorXd g = weight * prev_target_vectoring_f_ * -2.0;
+  // Eigen::MatrixXd weight = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
+  // weight.diagonal().setConstant(1.0);
+  // weight(4,4) = 10.0;
+  // Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+  Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
+  Eigen::VectorXd ave_target_vectoring_f = Eigen::VectorXd::Zero(motor_num_);
+  for (const auto& f : target_vectoring_f_hist_){
+    ave_target_vectoring_f.noalias() += f;
+  }
+  if (!target_vectoring_f_hist_.empty()){
+    ave_target_vectoring_f /= target_vectoring_f_hist_.size();
+    g = ave_target_vectoring_f * -2.0;
+  }
   // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
@@ -155,11 +162,17 @@ void SoftAirframeController::controlCore()
   } else {
     std::cout << "QP not solved!" << std::endl;
     target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
-    target_vectoring_f_.noalias() += prev_target_vectoring_f_;
-    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+    // target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+    target_vectoring_f_.noalias() += ave_target_vectoring_f;
+    // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * ave_target_vectoring_f);
   }
   std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;
-  prev_target_vectoring_f_ = target_vectoring_f_;
+  // prev_target_vectoring_f_ = target_vectoring_f_;
+  target_vectoring_f_hist_.push_back(target_vectoring_f_);
+  if (target_vectoring_f_hist_.size() > 5){
+    target_vectoring_f_hist_.pop_front();
+  }
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
   for(int i = 0; i < motor_num_; i++)

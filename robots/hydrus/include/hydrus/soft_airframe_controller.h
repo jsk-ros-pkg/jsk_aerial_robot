@@ -66,6 +66,7 @@ protected:
   // std::deque<Eigen::Vector3d> rotor5_normal_hist;
 
   Eigen::VectorXd prev_target_vectoring_f_;
+  std::deque<Eigen::VectorXd> target_vectoring_f_hist_;
   OsqpEigen::Solver target_vectoring_qp_solver_;
   int n_constraints;
   
