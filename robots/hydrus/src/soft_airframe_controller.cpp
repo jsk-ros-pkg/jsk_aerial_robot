@@ -33,8 +33,9 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   body_pose_sub_ = nh_.subscribe("mocap/pose", 1, &SoftAirframeController::BodyMocapCallback, this);
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
-  // prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
-  n_constraints = motor_num_ + 4;
+  prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
+  // n_constraints = motor_num_ + 4;
+  n_constraints = 4;
 }
 
 void SoftAirframeController::controlCore()
@@ -56,6 +57,10 @@ void SoftAirframeController::controlCore()
   // Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
   Eigen::MatrixXd full_q_mat_ = getQMat(); // 4 x virtual_motor_num_
   Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+
+  std::cout << "===================================" << std::endl;
+  std::cout << "full_q_mat_: " << std::endl << full_q_mat_ << std::endl;
+  std::cout << "full_q_mat_inv_: " << std::endl << full_q_mat_inv_ << std::endl;
 
   // Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_); // virtual motor number
@@ -89,40 +94,40 @@ void SoftAirframeController::controlCore()
   // Eigen::MatrixXd weight = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
   // weight.diagonal().setConstant(1.0);
   // weight(4,4) = 10.0;
-  // Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
-  Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
-  Eigen::VectorXd ave_target_vectoring_f = Eigen::VectorXd::Zero(motor_num_);
-  for (const auto& f : target_vectoring_f_hist_){
-    ave_target_vectoring_f.noalias() += f;
-  }
-  if (!target_vectoring_f_hist_.empty()){
-    ave_target_vectoring_f /= target_vectoring_f_hist_.size();
-    g = ave_target_vectoring_f * -2.0;
-  }
+  Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+  // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
+  // Eigen::VectorXd ave_target_vectoring_f = Eigen::VectorXd::Zero(motor_num_);
+  // for (const auto& f : target_vectoring_f_hist_){
+  //   ave_target_vectoring_f.noalias() += f;
+  // }
+  // if (!target_vectoring_f_hist_.empty()){
+  //   ave_target_vectoring_f /= target_vectoring_f_hist_.size();
+  //   g = ave_target_vectoring_f * -2.0;
+  // }
   // Eigen::VectorXd g = Eigen::VectorXd::Zero(motor_num_);
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
   A.topRows(4) = full_q_mat_;
-  for (int i = 0; i < motor_num_; i++)
-  {
-    A(i + 4, i) = 1.0;
-  }
+  // for (int i = 0; i < motor_num_; i++)
+  // {
+  //   A(i + 4, i) = 1.0;
+  // }
 
   Eigen::VectorXd lb(n_constraints);
   Eigen::VectorXd ub(n_constraints);
 
   std::cout << "z_rpy_dot: " << z_rpy_ddot.transpose() << std::endl;
   lb.head(4) = z_rpy_ddot;
-  for (int i = 0; i < motor_num_; i++)
-  {
-    lb(i + 4) = robot_model_->getThrustLowerLimit(i);
-  }
+  // for (int i = 0; i < motor_num_; i++)
+  // {
+  //   lb(i + 4) = robot_model_->getThrustLowerLimit(i);
+  // }
 
   ub.head(4) = z_rpy_ddot;
-  for (int i = 0; i < motor_num_; i++)
-  {
-    ub(i + 4) = robot_model_->getThrustUpperLimit(i);
-  }
+  // for (int i = 0; i < motor_num_; i++)
+  // {
+  //   ub(i + 4) = robot_model_->getThrustUpperLimit(i);
+  // }
 
   // print lb and up
   std::cout << "lb: " << lb.transpose() << std::endl;
@@ -162,17 +167,19 @@ void SoftAirframeController::controlCore()
   } else {
     std::cout << "QP not solved!" << std::endl;
     target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
-    // target_vectoring_f_.noalias() += prev_target_vectoring_f_;
-    target_vectoring_f_.noalias() += ave_target_vectoring_f;
-    // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
-    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * ave_target_vectoring_f);
+    target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+    // target_vectoring_f_.noalias() += ave_target_vectoring_f;
+    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+    // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * ave_target_vectoring_f);
   }
+  std::cout << "answer from psuedo inverse(1): " << ((full_q_mat_inv_.col(0) * z_rpy_ddot(0)) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
+  std::cout << "answer from psuedo inverse(4): " << ((full_q_mat_inv_ * z_rpy_ddot) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;
-  // prev_target_vectoring_f_ = target_vectoring_f_;
-  target_vectoring_f_hist_.push_back(target_vectoring_f_);
-  if (target_vectoring_f_hist_.size() > 5){
-    target_vectoring_f_hist_.pop_front();
-  }
+  prev_target_vectoring_f_ = target_vectoring_f_;
+  // target_vectoring_f_hist_.push_back(target_vectoring_f_);
+  // if (target_vectoring_f_hist_.size() > 5){
+  //   target_vectoring_f_hist_.pop_front();
+  // }
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
 
   for(int i = 0; i < motor_num_; i++)
