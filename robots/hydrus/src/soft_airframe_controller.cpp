@@ -34,8 +34,8 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
   prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
-  // n_constraints = motor_num_ + 4;
-  n_constraints = 4;
+  n_constraints = motor_num_ + 4;
+  // n_constraints = 4;
 }
 
 void SoftAirframeController::controlCore()
@@ -108,26 +108,26 @@ void SoftAirframeController::controlCore()
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, motor_num_);
   A.topRows(4) = full_q_mat_;
-  // for (int i = 0; i < motor_num_; i++)
-  // {
-  //   A(i + 4, i) = 1.0;
-  // }
+  for (int i = 0; i < motor_num_; i++)
+  {
+    A(i + 4, i) = 1.0;
+  }
 
   Eigen::VectorXd lb(n_constraints);
   Eigen::VectorXd ub(n_constraints);
 
   std::cout << "z_rpy_dot: " << z_rpy_ddot.transpose() << std::endl;
   lb.head(4) = z_rpy_ddot;
-  // for (int i = 0; i < motor_num_; i++)
-  // {
-  //   lb(i + 4) = robot_model_->getThrustLowerLimit(i);
-  // }
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lb(i + 4) = -5.0;
+  }
 
   ub.head(4) = z_rpy_ddot;
-  // for (int i = 0; i < motor_num_; i++)
-  // {
-  //   ub(i + 4) = robot_model_->getThrustUpperLimit(i);
-  // }
+  for (int i = 0; i < motor_num_; i++)
+  {
+    ub(i + 4) = robot_model_->getThrustUpperLimit(i);
+  }
 
   // print lb and up
   std::cout << "lb: " << lb.transpose() << std::endl;
