@@ -84,7 +84,7 @@ void SoftAirframeController::controlCore()
     }
   z_rpy_ddot(1) = pid_controllers_.at(ROLL).result();
   z_rpy_ddot(2) = pid_controllers_.at(PITCH).result();
-  z_rpy_ddot(3) = pid_controllers_.at(YAW).result();
+  z_rpy_ddot(3) = pid_controllers_.at(YAW).result() + pid_controllers_.at(YAW).getErrD() * pid_controllers_.at(YAW).getDGain();
 
   // solve the thrust allocation with QP
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(motor_num_, motor_num_);
