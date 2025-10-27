@@ -177,12 +177,9 @@ def main(file_path, type):
         t_bias = data_xyz["__time"].iloc[0]  # Start from actual data time
         
         # RGB color scheme
-        color_x_real = "r"  # red for X
-        color_y_real = "g"  # green for Y
-        color_z_real = "b"  # blue for Z
-        color_x_ref = "r"   # red for X reference
-        color_y_ref = "g"   # green for Y reference
-        color_z_ref = "b"   # blue for Z reference
+        color_x = "r"  # red for X
+        color_y = "g"  # green for Y
+        color_z = "b"  # blue for Z
 
         # --------------------------------
         # Subplot (1,1): XYZ positions
@@ -191,29 +188,32 @@ def main(file_path, type):
         # X position
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x"])
-        plt.plot(t_ref, x_ref, label="X ref", linestyle="--", color=color_x_ref)
-
+        # virtual legend for ref
+        plt.plot(t_ref, x_ref, label="ref", linestyle="--", color="k")
+        # actual data cover the virtual legend
+        plt.plot(t_ref, x_ref, label="", linestyle="--", color=color_x)
+        
         t = np.array(data_xyz["__time"]) - t_bias
         x = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/x"])
-        plt.plot(t, x, label="X", color=color_x_real)
+        plt.plot(t, x, label="X", color=color_x)
 
         # Y position
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y"])
-        plt.plot(t_ref, y_ref, label="Y ref", linestyle="--", color=color_y_ref)
+        plt.plot(t_ref, y_ref, label="", linestyle="--", color=color_y)
 
         t = np.array(data_xyz["__time"]) - t_bias
         y = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/y"])
-        plt.plot(t, y, label="Y", color=color_y_real)
+        plt.plot(t, y, label="Y", color=color_y)
 
         # Z position
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"])
-        plt.plot(t_ref, z_ref, label="Z ref", linestyle="--", color=color_z_ref)
+        plt.plot(t_ref, z_ref, label="", linestyle="--", color=color_z)
 
         t = np.array(data_xyz["__time"]) - t_bias
         z = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/z"])
-        plt.plot(t, z, label="Z", color=color_z_real)
+        plt.plot(t, z, label="Z", color=color_z)
 
         plt.legend(framealpha=legend_alpha)
         plt.ylabel("Position (m)", fontsize=label_size)
@@ -233,20 +233,23 @@ def main(file_path, type):
         # Roll
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
         roll_ref = np.array(data_euler_ref["roll"])
-        plt.plot(t_ref, roll_ref * 180 / np.pi, label="Roll ref", linestyle="--", color=color_x_ref)
+        # virtual legend for ref
+        plt.plot(t_ref, roll_ref * 180 / np.pi, label="ref", linestyle="--", color="k")
+        # actual data cover the virtual legend
+        plt.plot(t_ref, roll_ref * 180 / np.pi, label="", linestyle="--", color=color_x)
 
         t = np.array(data_euler["__time"]) - t_bias
         roll = np.array(data_euler["roll"])
-        plt.plot(t, roll * 180 / np.pi, label="Roll", color=color_x_real)
+        plt.plot(t, roll * 180 / np.pi, label="Roll", color=color_x)
 
         # Pitch
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
         pitch_ref = np.array(data_euler_ref["pitch"])
-        plt.plot(t_ref, pitch_ref * 180 / np.pi, label="Pitch ref", linestyle="--", color=color_y_ref)
+        plt.plot(t_ref, pitch_ref * 180 / np.pi, label="", linestyle="--", color=color_y)
 
         t = np.array(data_euler["__time"]) - t_bias
         pitch = np.array(data_euler["pitch"])
-        plt.plot(t, pitch * 180 / np.pi, label="Pitch", color=color_y_real)
+        plt.plot(t, pitch * 180 / np.pi, label="Pitch", color=color_y)
 
         # Yaw
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
@@ -257,7 +260,7 @@ def main(file_path, type):
                 yaw_ref[i:] -= 2 * np.pi
             elif yaw_ref[i] - yaw_ref[i - 1] < -np.pi:
                 yaw_ref[i:] += 2 * np.pi
-        plt.plot(t_ref, yaw_ref * 180 / np.pi, label="Yaw ref", linestyle="--", color=color_z_ref)
+        plt.plot(t_ref, yaw_ref * 180 / np.pi, label="", linestyle="--", color=color_z)
 
         t = np.array(data_euler["__time"]) - t_bias
         yaw = np.array(data_euler["yaw"])
@@ -267,7 +270,7 @@ def main(file_path, type):
                 yaw[i:] -= 2 * np.pi
             elif yaw[i] - yaw[i - 1] < -np.pi:
                 yaw[i:] += 2 * np.pi
-        plt.plot(t, yaw * 180 / np.pi, label="Yaw", color=color_z_real)
+        plt.plot(t, yaw * 180 / np.pi, label="Yaw", color=color_z)
 
         plt.ylabel("Attitude ($^\\circ$)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha)
@@ -473,7 +476,7 @@ def main(file_path, type):
         # ------
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"])
-        plt.plot(t_ref, z_ref, label="Z$_r$", linestyle="--")
+        # plt.plot(t_ref, z_ref, label="Z$_r$", linestyle="--")
 
         t = np.array(data_xyz["__time"]) - t_bias
         z = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/z"])
