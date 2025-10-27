@@ -44,18 +44,18 @@ def main(file_path, type):
         data_xyz_ref = data[
             [
                 "__time",
-                "/beetle1/set_ref_traj/x/data[0]",
-                "/beetle1/set_ref_traj/x/data[1]",
-                "/beetle1/set_ref_traj/x/data[2]",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z",
             ]
         ]
     except KeyError:
         # assign the reference trajectory to zero
         data_xyz_ref = pd.DataFrame()
         data_xyz_ref["__time"] = data_xyz["__time"]
-        data_xyz_ref["/beetle1/set_ref_traj/x/data[0]"] = -0.095
-        data_xyz_ref["/beetle1/set_ref_traj/x/data[1]"] = -0.015
-        data_xyz_ref["/beetle1/set_ref_traj/x/data[2]"] = 0.6
+        data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x"] = -0.095
+        data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y"] = -0.015
+        data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"] = 0.6
 
     data_xyz = data_xyz.dropna()
     data_xyz_ref = data_xyz_ref.dropna()
@@ -75,20 +75,20 @@ def main(file_path, type):
         data_qwxyz_ref = data[
             [
                 "__time",
-                "/beetle1/set_ref_traj/x/data[6]",
-                "/beetle1/set_ref_traj/x/data[7]",
-                "/beetle1/set_ref_traj/x/data[8]",
-                "/beetle1/set_ref_traj/x/data[9]",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y",
+                "/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z",
             ]
         ]
     except KeyError:
         # assign the reference trajectory to zero
         data_qwxyz_ref = pd.DataFrame()
         data_qwxyz_ref["__time"] = data_qwxyz["__time"]
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[6]"] = 0
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[7]"] = 0
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[8]"] = 0
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[9]"] = 0
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w"] = 0
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x"] = 0
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y"] = 0
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z"] = 0
 
     data_qwxyz_ref = data_qwxyz_ref.dropna()
     data_qwxyz = data_qwxyz.dropna()
@@ -97,10 +97,10 @@ def main(file_path, type):
     data_euler_ref = pd.DataFrame()
     data_euler_ref["__time"] = data_qwxyz_ref["__time"]
     data_euler_ref["roll"], data_euler_ref["pitch"], data_euler_ref["yaw"] = quat2euler(
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[6]"],
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[7]"],
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[8]"],
-        data_qwxyz_ref["/beetle1/set_ref_traj/x/data[9]"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/w"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/x"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/y"],
+        data_qwxyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/rotation/z"],
     )
 
     data_euler = pd.DataFrame()
@@ -138,6 +138,27 @@ def main(file_path, type):
     ]
     data_servo_angle_cmd = data_servo_angle_cmd.dropna()
 
+    # extendable links length
+    data_extendable_links_len = data[
+        [
+            "__time",
+            "/beetle1/joint_states/extendable_joint1/position",
+            "/beetle1/joint_states/extendable_joint2/position",
+            "/beetle1/joint_states/extendable_joint3/position",
+            "/beetle1/joint_states/extendable_joint4/position",
+        ]
+    ]
+    data_extendable_links_len = data_extendable_links_len.dropna()
+
+    # extend torque length
+    data_extend_torque = data[
+        [
+            "__time",
+            "/beetle1/servo/states/servos[4]/load",
+        ]
+    ]
+    data_extend_torque = data_extend_torque.dropna()
+
     # # real servo angle
     # data_servo_angle = data[
     #     ['__time', '/beetle1/joint_states/gimbal1/position', '/beetle1/joint_states/gimbal2/position',
@@ -160,7 +181,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 1)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[0]"])
+        x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x"])
         plt.plot(t_ref, x_ref, label="ref", linestyle="--", color=color_ref)
 
         t = np.array(data_xyz["__time"]) - t_bias
@@ -194,7 +215,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 3)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[1]"])
+        y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y"])
         plt.plot(t_ref, y_ref, label="ref", linestyle="--", color=color_ref)
 
         t = np.array(data_xyz["__time"]) - t_bias
@@ -225,7 +246,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(4, 2, 5)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[2]"])
+        z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"])
         plt.plot(t_ref, z_ref, label="ref", linestyle="--", color=color_ref)
 
         t = np.array(data_xyz["__time"]) - t_bias
@@ -414,7 +435,7 @@ def main(file_path, type):
         # --------------------------------
         plt.subplot(2, 2, 1)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[0]"])
+        x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x"])
         # plt.plot(t_ref, x_ref, label='X$_r$', linestyle="--")
 
         t = np.array(data_xyz["__time"]) - t_bias
@@ -427,7 +448,7 @@ def main(file_path, type):
 
         # ------
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[1]"])
+        y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y"])
         # plt.plot(t_ref, y_ref, label='Y$_r$', linestyle="--")
 
         t = np.array(data_xyz["__time"]) - t_bias
@@ -440,7 +461,7 @@ def main(file_path, type):
 
         # ------
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
-        z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/x/data[2]"])
+        z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"])
         plt.plot(t_ref, z_ref, label="Z$_r$", linestyle="--")
 
         t = np.array(data_xyz["__time"]) - t_bias

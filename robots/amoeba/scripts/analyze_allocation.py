@@ -1,6 +1,7 @@
-'''
- Created by li-jinjie on 25-4-23.
-'''
+"""
+Created by li-jinjie on 25-4-23.
+"""
+
 import time
 import yaml
 import os
@@ -47,8 +48,9 @@ In this demo, we use rxyz to rotate the robot (intrinsic rotation). The roll=90,
 is tilted upwards. And for the trirotor, the shutdown rotor is rotor 3.
 """
 
-ROTOR_UP_IDX = 0 # rotor 1
-ROTOR_DOWN_IDX = 2 # rotor 3
+ROTOR_UP_IDX = 0  # rotor 1
+ROTOR_DOWN_IDX = 2  # rotor 3
+
 
 def get_alloc_mtx_tilt_qd():
     # Define Allocation Matrix
@@ -152,7 +154,7 @@ def full_force_to_cmd(tgt_force):
     for i in range(num_forces):
         fx = tgt_force[2 * i, 0]
         fy = tgt_force[2 * i + 1, 0]
-        ft = np.sqrt(fx ** 2 + fy ** 2)
+        ft = np.sqrt(fx**2 + fy**2)
         angle = np.arctan2(fx, fy)
         ft_ref_local.append(ft)
         a_ref_local.append(angle)
@@ -197,8 +199,10 @@ def get_cmd_solve_qp(alloc_mtx, tgt_wrench, shutdown_rotor_idx=None, shutdown_ro
         constraints += [x[2 * ROTOR_UP_IDX + 1] >= 0]
     else:
         # rotor shutdown
-        constraints += [x[2 * shutdown_rotor_idx] == shutdown_rotor_fx,
-                        x[2 * shutdown_rotor_idx + 1] == shutdown_rotor_fy]
+        constraints += [
+            x[2 * shutdown_rotor_idx] == shutdown_rotor_fx,
+            x[2 * shutdown_rotor_idx + 1] == shutdown_rotor_fy,
+        ]
 
     # ---------- solve ----------
     prob = cp.Problem(objective, constraints)
@@ -230,7 +234,7 @@ if __name__ == "__main__":
     fg_w = np.array([0, 0, mass * gravity])  # the direction of supporting force is Z Up
     # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
     # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
-    rot_wb = R.from_euler('XYZ', [90, 0, 45], degrees=True).as_matrix()
+    rot_wb = R.from_euler("XYZ", [90, 0, 45], degrees=True).as_matrix()
     fg_b = rot_wb.T @ fg_w  # Body frame
     print("fg_b", fg_b)
     print("The rotor 2 (index is 1 if counting from 0) should be pointing up")
@@ -290,7 +294,7 @@ if __name__ == "__main__":
         "WtPInv(Single)": inv_weighted_single,
         "ConstrainedQP": None,
         "PInv(SVD)+QP": None,
-        "PInv(SVD)+Alloc": None,
+        "\\textbf{PInv(SVD)+Alloc}": None,
         "PInv(SVD): Tri": alloc_mat_inv_svd_tri,
     }
 
@@ -315,7 +319,7 @@ if __name__ == "__main__":
         for idx, yaw in enumerate(yaw_deg):
             # Note: XYZ (intrinsic) rotation == zyx (extrinsic) rotation
             # in trajs.py, I use "rxyz", meaning XYZ (intrinsic). This can make R1 tilting upwards
-            R_wb = R.from_euler('XYZ', [90.0, 0.0, yaw], degrees=True).as_matrix()
+            R_wb = R.from_euler("XYZ", [90.0, 0.0, yaw], degrees=True).as_matrix()
             R_bw = R_wb.T
             fg_b = R_bw @ fg_w
             tgt_w = np.array([[fg_b[0], fg_b[1], fg_b[2], 0.0, 0.0, 0.0]]).T
@@ -339,7 +343,15 @@ if __name__ == "__main__":
                 rotor_idx = np.intersect1d(rotor_idx_ft_cond[0], rotor_idx_alpha_cond[0])
 
                 if len(rotor_idx) > 1:
-                    raise RuntimeError("More than one rotor is below threshold and flip backwards!")
+                    max_ft = 0.0
+                    max_rotor_idx = -1
+                    for i in rotor_idx:
+                        if ft_ref[i] > max_ft:
+                            max_ft = ft_ref[i]
+                            max_rotor_idx = i
+
+                    rotor_idx = max_rotor_idx
+                    print(f"Multiple rotors below threshold, using rotor {rotor_idx + 1} with thrust {max_ft:.2f} N")
                 elif len(rotor_idx) == 0:
                     rotor_idx = -1
                 elif len(rotor_idx) == 1:
@@ -354,8 +366,7 @@ if __name__ == "__main__":
 
                     if "+QP" in key:
                         # 4) do a QP with this rotor shutdown
-                        ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx,
-                                                         ft_stop_rotor_x, ft_stop_rotor_y)
+                        ft_ref, a_ref = get_cmd_solve_qp(alloc_mat, tgt_w, rotor_idx, ft_stop_rotor_x, ft_stop_rotor_y)
                     elif "+Alloc" in key:
                         # 4.1) construct tgt_wrench from z_from_rotor
                         z_from_rotor = np.zeros((8, 1))
@@ -375,8 +386,9 @@ if __name__ == "__main__":
                         z_except_rotor = alloc_mat_del_rotor_inv @ tgt_wrench_modified
 
                         # 4.5) at the place of 2*rotor_idx, insert 2 numbers to z_except_rotor
-                        z_final = np.insert(z_except_rotor, 2 * rotor_idx,
-                                            [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0)
+                        z_final = np.insert(
+                            z_except_rotor, 2 * rotor_idx, [[ft_stop_rotor_x], [ft_stop_rotor_y]], axis=0
+                        )
 
                         # 4.6) reconstruct the thrust and servo angle
                         ft_ref, a_ref = full_force_to_cmd(z_final)
@@ -396,29 +408,33 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # 6)  PLOTTING  (4×2 grid)
     # ---------------------------------------------------------------
-    method_colors = {"PInv(SVD)": "#A2142F",
-                     "np.pinv": "tab:blue",
-                     "PInv(RtIn)": "#4DBEEE",
-                     "LSTSQ": "tab:gray",
-                     "Weighted_all": "tab:green",
-                     "WtPInv(Single)": "#7E2F8E",
-                     "ConstrainedQP": "#0072BD",
-                     "PInv(SVD)+QP": "#77AC30",
-                     "PInv(SVD)+Alloc": "#D95319",
-                     "PInv(SVD): Tri": "#EDB120"}
-    method_linestyles = {"PInv(SVD)": "-",
-                         "PInv(RtIn)": "-.",
-                         "LSTSQ": ":",
-                         "WtPInv(Single)": "-.",
-                         "ConstrainedQP": "--",
-                         "PInv(SVD)+QP": "-.",
-                         "PInv(SVD)+Alloc": "-",
-                         "PInv(SVD): Tri": "-"}
+    method_colors = {
+        "PInv(SVD)": "#A2142F",
+        "np.pinv": "tab:blue",
+        "PInv(RtIn)": "#4DBEEE",
+        "LSTSQ": "tab:gray",
+        "Weighted_all": "tab:green",
+        "WtPInv(Single)": "#7E2F8E",
+        "ConstrainedQP": "#0072BD",
+        "PInv(SVD)+QP": "#77AC30",
+        "\\textbf{PInv(SVD)+Alloc}": "#D95319",
+        "PInv(SVD): Tri": "#EDB120",
+    }
+    method_linestyles = {
+        "PInv(SVD)": "-",
+        "PInv(RtIn)": "-.",
+        "LSTSQ": ":",
+        "WtPInv(Single)": "-.",
+        "ConstrainedQP": "--",
+        "PInv(SVD)+QP": "-.",
+        "\\textbf{PInv(SVD)+Alloc}": "-",
+        "PInv(SVD): Tri": "-",
+    }
     rotor_names = [f"Rotor {i + 1}" for i in range(4)]
 
     legend_alpha = 0.5
     plt.style.use(["science", "grid"])
-    plt.rcParams.update({'font.size': 11})  # default is 10
+    plt.rcParams.update({"font.size": 11})  # default is 10
     label_size = 14
 
     fig, axs = plt.subplots(4, 2, figsize=(7, 8), sharex=True)
@@ -430,8 +446,13 @@ if __name__ == "__main__":
         # ---- thrust subplot (left) ----
         ax_t = axs[r, 0]
         for m in inv_methods:
-            ax_t.plot(yaw_deg, ft_all[m][:, r], label=m if r == 0 else "", linestyle=method_linestyles[m],
-                      color=method_colors[m])
+            ax_t.plot(
+                yaw_deg,
+                ft_all[m][:, r],
+                label=m if r == 0 else "",
+                linestyle=method_linestyles[m],
+                color=method_colors[m],
+            )
 
         title_tmp = "$f_{" + str(r + 1) + "r}$"
         ax_t.set_ylabel(title_tmp + " [N]", fontsize=label_size)
@@ -441,8 +462,13 @@ if __name__ == "__main__":
         # ---- servo-angle subplot (right) ----
         ax_a = axs[r, 1]
         for m in inv_methods:
-            ax_a.plot(yaw_deg, ang_all[m][:, r] * 180 / np.pi, label=m if r == 0 else "",
-                      linestyle=method_linestyles[m], color=method_colors[m])
+            ax_a.plot(
+                yaw_deg,
+                ang_all[m][:, r] * 180 / np.pi,
+                label=m if r == 0 else "",
+                linestyle=method_linestyles[m],
+                color=method_colors[m],
+            )
 
         title_tmp = "$\\alpha_{" + str(r + 1) + "r}$"
         ax_a.set_ylabel(title_tmp + " [$^{\circ}$]", fontsize=label_size)
@@ -455,8 +481,9 @@ if __name__ == "__main__":
         ax.set_xlim([int(yaw_deg[0]), int(yaw_deg[-1])])
     # one legend outside the grid
     handles, labels = axs[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4,
-               frameon=False)
+    fig.legend(
+        handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.00), framealpha=legend_alpha, ncol=4, frameon=False
+    )
 
     plt.tight_layout(rect=[0, 0, 1.0, 0.93])
     plt.show()
