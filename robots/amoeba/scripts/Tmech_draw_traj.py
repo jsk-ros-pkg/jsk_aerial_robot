@@ -174,7 +174,7 @@ def main(file_path, type):
 
         fig = plt.figure(figsize=(7, 7))
 
-        t_bias = max(data_xyz["__time"].iloc[0], data_xyz_ref["__time"].iloc[0])
+        t_bias = data_xyz["__time"].iloc[0]  # Start from actual data time
         color_ref = "#0C5DA5"
         color_real = "#FF2C00"
 
@@ -428,7 +428,7 @@ def main(file_path, type):
 
         fig = plt.figure(figsize=(7, 4))
 
-        t_bias = max(data_xyz["__time"].iloc[0], data_xyz_ref["__time"].iloc[0])
+        t_bias = data_xyz["__time"].iloc[0]  # Start from actual data time
         color_ref = "#0C5DA5"
         color_real = "#FF2C00"
 
