@@ -31,12 +31,12 @@ controller:
     limit_i: 4.0
     limit_d: 4.0
     limit_err_p: 0.4
-    need_d_control: true
+    need_d_control: false
 
   roll_pitch:
     p_gain: 25.0
     i_gain: 1.0
-    d_gain: 12.0
+    d_gain: 17.0
     limit_sum: 20.0
     limit_p: 20.0
     limit_i: 20.0
