@@ -215,6 +215,12 @@ def main(file_path, type):
         z = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/z"])
         plt.plot(t, z, label="Z", color=color_z)
 
+        # Add translucent orange rectangle covering the reference time range
+        t_ref_start = t_ref[0]
+        t_ref_end = t_ref[-1]
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
+
         plt.legend(framealpha=legend_alpha)
         plt.ylabel("Position (m)", fontsize=label_size)
 
@@ -272,8 +278,10 @@ def main(file_path, type):
                 yaw[i:] += 2 * np.pi
         plt.plot(t, yaw * 180 / np.pi, label="Yaw", color=color_z)
 
-        plt.ylabel("Attitude ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Attitude (deg)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
@@ -297,6 +305,8 @@ def main(file_path, type):
         thrust3 = np.array(data_thrust_cmd["/beetle1/four_axes/command/base_thrust[2]"])
         plt.plot(t, thrust3, label="$f_{c3}$")
         thrust4 = np.array(data_thrust_cmd["/beetle1/four_axes/command/base_thrust[3]"])
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
         plt.plot(t, thrust4, label="$f_{c4}$")
         plt.ylabel("Thrust Cmd (N)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="upper left")
@@ -313,22 +323,26 @@ def main(file_path, type):
         plt.plot(t, servo3, label="$\\alpha_{c3}$")
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$")
-        plt.ylabel("Servo Cmd ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Servo Cmd (deg)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="upper left")
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # --------------------------------
         # Subplot (3,1): Extendable joint lengths
         plt.subplot(3, 2, 5)
         t = np.array(data_extendable_links_len["__time"]) - t_bias
-        joint1 = np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint1/position"])
-        plt.plot(t, joint1, label="extendable_joint1")
-        joint2 = np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint2/position"])
-        plt.plot(t, joint2, label="extendable_joint2")
-        joint3 = np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint3/position"])
-        plt.plot(t, joint3, label="extendable_joint3")
-        joint4 = np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint4/position"])
-        plt.plot(t, joint4, label="extendable_joint4")
-        plt.ylabel("Joint Length (m)", fontsize=label_size)
+        joint1 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint1/position"])
+        plt.plot(t, joint1, label="$a_1$")
+        joint2 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint2/position"])
+        plt.plot(t, joint2, label="$a_2$")
+        joint3 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint3/position"])
+        plt.plot(t, joint3, label="$a_3$")
+        joint4 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint4/position"])
+        plt.plot(t, joint4, label="$a_4$")
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
+        plt.ylabel("Rotor pos(m)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="upper left")
 
@@ -338,7 +352,9 @@ def main(file_path, type):
         t = np.array(data_extend_torque["__time"]) - t_bias
         torque = np.array(data_extend_torque["/beetle1/servo/states/servos[4]/load"])
         plt.plot(t, torque, label="Extend Torque")
-        plt.ylabel("Torque", fontsize=label_size)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
+        plt.ylabel("Torque $(N\cdot m)$", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha)
 
@@ -549,7 +565,7 @@ def main(file_path, type):
         print(f"RMSE Yaw (rad): {rmse_yaw}")
         print(f"RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}")
 
-        plt.ylabel("Attitude ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Attitude (deg)", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=3)
 
@@ -583,7 +599,7 @@ def main(file_path, type):
         plt.plot(t, servo3, label="$\\alpha_{c3}$")
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$")
-        plt.ylabel("Servo Cmd ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Servo Cmd (deg)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=2)

@@ -179,7 +179,7 @@ def main(file_path, type):
         color_real = "#FF2C00"
 
         # --------------------------------
-        plt.subplot(4, 2, 1)
+        plt.subplot(5, 2, 1)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         x_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/x"])
         plt.plot(t_ref, x_ref, label="ref", linestyle="--", color=color_ref)
@@ -190,13 +190,17 @@ def main(file_path, type):
 
         plt.legend(framealpha=legend_alpha)
         plt.ylabel("X (m)", fontsize=label_size)
+        t_ref_start = t_ref[0]
+        t_ref_end = t_ref[-1]
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_x = calculate_rmse(t, x, t_ref, x_ref)
         print(f"RMSE X (m): {rmse_x}")
 
         # --------------------------------
-        plt.subplot(4, 2, 2)
+        plt.subplot(5, 2, 2)
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
         roll_ref = np.array(data_euler_ref["roll"])
         plt.plot(t_ref, roll_ref * 180 / np.pi, label="ref", linestyle="--", color=color_ref)
@@ -204,8 +208,10 @@ def main(file_path, type):
         t = np.array(data_euler["__time"]) - t_bias
         roll = np.array(data_euler["roll"])
         plt.plot(t, roll * 180 / np.pi, label="real", color=color_real)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
-        plt.ylabel("Roll ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Roll (deg)", fontsize=label_size)
 
         # calculate RMSE
         rmse_roll = calculate_rmse(t, roll, t_ref, roll_ref)
@@ -213,7 +219,7 @@ def main(file_path, type):
         print(f"RMSE Roll (deg): {rmse_roll * 180 / np.pi}")
 
         # --------------------------------
-        plt.subplot(4, 2, 3)
+        plt.subplot(5, 2, 3)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         y_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/y"])
         plt.plot(t_ref, y_ref, label="ref", linestyle="--", color=color_ref)
@@ -222,13 +228,15 @@ def main(file_path, type):
         y = np.array(data_xyz["/beetle1/uav/cog/odom/pose/pose/position/y"])
         plt.plot(t, y, label="Y", color=color_real)
         plt.ylabel("Y (m)", fontsize=label_size)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_y = calculate_rmse(t, y, t_ref, y_ref)
         print(f"RMSE Y (m): {rmse_y}")
 
         # --------------------------------
-        plt.subplot(4, 2, 4)
+        plt.subplot(5, 2, 4)
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
         pitch_ref = np.array(data_euler_ref["pitch"])
         plt.plot(t_ref, pitch_ref * 180 / np.pi, label="ref", linestyle="--", color=color_ref)
@@ -236,7 +244,9 @@ def main(file_path, type):
         t = np.array(data_euler["__time"]) - t_bias
         pitch = np.array(data_euler["pitch"])
         plt.plot(t, pitch * 180 / np.pi, label="real", color=color_real)
-        plt.ylabel("Pitch ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Pitch (deg)", fontsize=label_size)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_pitch = calculate_rmse(t, pitch, t_ref, pitch_ref)
@@ -244,7 +254,7 @@ def main(file_path, type):
         print(f"RMSE Pitch (deg): {rmse_pitch * 180 / np.pi}")
 
         # --------------------------------
-        plt.subplot(4, 2, 5)
+        plt.subplot(5, 2, 5)
         t_ref = np.array(data_xyz_ref["__time"]) - t_bias
         z_ref = np.array(data_xyz_ref["/beetle1/set_ref_traj/points[0]/transforms[0]/translation/z"])
         plt.plot(t_ref, z_ref, label="ref", linestyle="--", color=color_ref)
@@ -254,13 +264,15 @@ def main(file_path, type):
 
         plt.plot(t, z, label="Z", color=color_real)
         plt.ylabel("Z (m)", fontsize=label_size)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_z = calculate_rmse(t, z, t_ref, z_ref)
         print(f"RMSE Z (m): {rmse_z}")
 
         # --------------------------------
-        plt.subplot(4, 2, 6)
+        plt.subplot(5, 2, 6)
         t_ref = np.array(data_euler_ref["__time"]) - t_bias
         yaw_ref = np.array(data_euler_ref["yaw"])
         # if yaw_ref has a jump, we need to fix it
@@ -280,7 +292,9 @@ def main(file_path, type):
             elif yaw[i] - yaw[i - 1] < -np.pi:
                 yaw[i:] += 2 * np.pi
         plt.plot(t, yaw * 180 / np.pi, label="real", color=color_real)
-        plt.ylabel("Yaw ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Yaw (deg)", fontsize=label_size)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # calculate RMSE
         rmse_yaw = calculate_rmse(t, yaw, t_ref, yaw_ref, is_yaw=True)
@@ -288,7 +302,7 @@ def main(file_path, type):
         print(f"RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}")
 
         # --------------------------------
-        plt.subplot(4, 2, 7)
+        plt.subplot(5, 2, 7)
         t = np.array(data_thrust_cmd["__time"]) - t_bias
         thrust1 = np.array(data_thrust_cmd["/beetle1/four_axes/command/base_thrust[0]"])
         plt.plot(t, thrust1, label="$f_{c1}$")
@@ -301,9 +315,11 @@ def main(file_path, type):
         plt.ylabel("Thrust Cmd (N)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="upper left")
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # --------------------------------
-        plt.subplot(4, 2, 8)
+        plt.subplot(5, 2, 8)
         t = np.array(data_servo_angle_cmd["__time"]) - t_bias
         servo1 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal1/position"]) * 180 / np.pi
         plt.plot(t, servo1, label="$\\alpha_{c1}$")
@@ -313,20 +329,42 @@ def main(file_path, type):
         plt.plot(t, servo3, label="$\\alpha_{c3}$")
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$")
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
-        # t = np.array(data_servo_angle['__time']) - t_bias
-        # servo1_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal1/position']) * 180 / np.pi
-        # plt.plot(t, servo1_real, label='$\\alpha_{1}$', linestyle='--')
-        # servo2_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal2/position']) * 180 / np.pi
-        # plt.plot(t, servo2_real, label='$\\alpha_{2}$', linestyle='--')
-        # servo3_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal3/position']) * 180 / np.pi
-        # plt.plot(t, servo3_real, label='$\\alpha_{3}$', linestyle='--')
-        # servo4_real = np.array(data_servo_angle['/beetle1/joint_states/gimbal4/position']) * 180 / np.pi
-        # plt.plot(t, servo4_real, label='$\\alpha_{4}$', linestyle='--')
-
-        plt.ylabel("Servo Cmd ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Servo Cmd (deg)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="upper left")
+
+        # --------------------------------
+        # Subplot (5,1): Extendable joint lengths
+        plt.subplot(5, 2, 9)
+        t = np.array(data_extendable_links_len["__time"]) - t_bias
+        joint1 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint1/position"])
+        plt.plot(t, joint1, label="$a_1$")
+        joint2 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint2/position"])
+        plt.plot(t, joint2, label="$a_2$")
+        joint3 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint3/position"])
+        plt.plot(t, joint3, label="$a_3$")
+        joint4 = 0.2 + np.array(data_extendable_links_len["/beetle1/joint_states/extendable_joint4/position"])
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
+        plt.plot(t, joint4, label="$a_4$")
+        plt.ylabel("Rotor pos(m)", fontsize=label_size)
+        plt.xlabel("Time (s)", fontsize=label_size)
+        plt.legend(framealpha=legend_alpha, loc="upper left")
+
+        # --------------------------------
+        # Subplot (5,2): Extend torque
+        plt.subplot(5, 2, 10)
+        t = np.array(data_extend_torque["__time"]) - t_bias
+        torque = np.array(data_extend_torque["/beetle1/servo/states/servos[4]/load"])
+        plt.plot(t, torque, label="Extend Torque")
+        plt.ylabel("Torque $(N\cdot m)$", fontsize=label_size)
+        plt.xlabel("Time (s)", fontsize=label_size)
+        plt.legend(framealpha=legend_alpha)
+        # ref_traj duration shaded area
+        plt.axvspan(t_ref_start, t_ref_end, alpha=0.2, color='orange', zorder=0)
 
         # --------------------------------
         plt.tight_layout()
@@ -535,7 +573,7 @@ def main(file_path, type):
         print(f"RMSE Yaw (rad): {rmse_yaw}")
         print(f"RMSE Yaw (deg): {rmse_yaw * 180 / np.pi}")
 
-        plt.ylabel("Attitude ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Attitude (deg)", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=3)
 
@@ -569,7 +607,7 @@ def main(file_path, type):
         plt.plot(t, servo3, label="$\\alpha_{c3}$")
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$")
-        plt.ylabel("Servo Cmd ($^\\circ$)", fontsize=label_size)
+        plt.ylabel("Servo Cmd (deg)", fontsize=label_size)
         plt.xlabel("Time (s)", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=2)

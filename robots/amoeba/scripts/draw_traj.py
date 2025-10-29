@@ -301,7 +301,7 @@ def main(file_path, type, if_hand_teleop):
         roll = np.array(data_euler["roll"])
         plt.plot(t, roll * 180 / np.pi, label="real", color=color_real)
 
-        plt.ylabel("Roll [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Roll [deg]", fontsize=label_size)
 
         if if_hand_teleop:
             plt.axvspan(con_rot_t_start, con_rot_t_stop, facecolor=matlab_green, alpha=0.2)
@@ -351,7 +351,7 @@ def main(file_path, type, if_hand_teleop):
         t = np.array(data_euler["__time"]) - t_bias
         pitch = np.array(data_euler["pitch"])
         plt.plot(t, pitch * 180 / np.pi, label="real", color=color_real)
-        plt.ylabel("Pitch [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Pitch [deg]", fontsize=label_size)
 
         if if_hand_teleop:
             plt.axvspan(con_rot_t_start, con_rot_t_stop, facecolor=matlab_green, alpha=0.2)
@@ -400,7 +400,7 @@ def main(file_path, type, if_hand_teleop):
         t = np.array(data_euler["__time"]) - t_bias
         yaw = np.array(data_euler["yaw"])
         plt.plot(t, yaw * 180 / np.pi, label="real", color=color_real)
-        plt.ylabel("Yaw [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Yaw [deg]", fontsize=label_size)
 
         if if_hand_teleop:
             plt.axvspan(con_rot_t_start, con_rot_t_stop, facecolor=matlab_green, alpha=0.2)
@@ -440,7 +440,7 @@ def main(file_path, type, if_hand_teleop):
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$", linestyle=":")
 
-        plt.ylabel("Servo Cmd [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Servo Cmd [deg]", fontsize=label_size)
         plt.xlabel("Time [s]", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="center left", ncol=2)
 
@@ -651,7 +651,7 @@ def main(file_path, type, if_hand_teleop):
         print(f"RMSE Yaw [rad]: {rmse_yaw}")
         print(f"RMSE Yaw [deg]: {rmse_yaw * 180 / np.pi}")
 
-        plt.ylabel("Attitude [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Attitude [deg]", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=3)
 
@@ -685,7 +685,7 @@ def main(file_path, type, if_hand_teleop):
         plt.plot(t, servo3, label="$\\alpha_{c3}$")
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$")
-        plt.ylabel("Servo Cmd [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Servo Cmd [deg]", fontsize=label_size)
         plt.xlabel("Time [s]", fontsize=label_size)
         plt.xlim(0, 28)
         plt.legend(framealpha=legend_alpha, loc="upper left", ncol=2)
@@ -822,7 +822,7 @@ def main(file_path, type, if_hand_teleop):
         servo4 = np.array(data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]) * 180 / np.pi
         plt.plot(t, servo4, label="$\\alpha_{c4}$", linestyle=":")
 
-        plt.ylabel("Servo Cmd [$^\\circ$]", fontsize=label_size)
+        plt.ylabel("Servo Cmd [deg]", fontsize=label_size)
         plt.xlabel("Time [s]", fontsize=label_size)
         plt.legend(framealpha=legend_alpha, loc="center", ncol=2)
 
