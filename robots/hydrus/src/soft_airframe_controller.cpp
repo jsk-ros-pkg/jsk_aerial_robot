@@ -127,6 +127,7 @@ void SoftAirframeController::controlCore()
   {
     ub(i + 4) = robot_model_->getThrustUpperLimit(i);
   }
+  ub(7) = 10.0;
 
   // print lb and up
   // std::cout << "lb: " << lb.transpose() << std::endl;
@@ -164,22 +165,32 @@ void SoftAirframeController::controlCore()
   if(solved){
     target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
   } else {
-    std::cout << "QP not solved!" << std::endl;
     target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
     target_vectoring_f_.noalias() += prev_target_vectoring_f_;
     // target_vectoring_f_.noalias() += ave_target_vectoring_f;
     target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+    std::cout << "QP not solved!: " << target_vectoring_f_.transpose() << std::endl;
     // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * ave_target_vectoring_f);
   }
   // std::cout << "answer from psuedo inverse(1): " << ((full_q_mat_inv_.col(0) * z_rpy_ddot(0)) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   // std::cout << "answer from psuedo inverse(4): " << ((full_q_mat_inv_ * z_rpy_ddot) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   // std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;
-  prev_target_vectoring_f_ = target_vectoring_f_;
   // target_vectoring_f_hist_.push_back(target_vectoring_f_);
   // if (target_vectoring_f_hist_.size() > 5){
   //   target_vectoring_f_hist_.pop_front();
   // }
   ROS_DEBUG_STREAM("target vectoring f: \n" << target_vectoring_f_.transpose());
+
+  for (int i = 0; i < motor_num_; i++)
+  {
+    if (target_vectoring_f_(i) < lb(i + 4)){
+      target_vectoring_f_(i) = lb(i + 4);
+    }
+    if (target_vectoring_f_(i) > ub(i + 4)){
+      target_vectoring_f_(i) = ub(i + 4);
+    }
+  }
+  prev_target_vectoring_f_ = target_vectoring_f_;
 
   for(int i = 0; i < motor_num_; i++)
   {
