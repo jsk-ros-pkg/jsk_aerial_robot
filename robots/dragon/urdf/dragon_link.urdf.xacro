@@ -157,8 +157,8 @@
     </link>
 
     <!-- rotor -->
-    <joint name="rotor${self}" type="fixed">
-      <!-- <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/> -->
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="gimbal${self}_pitch_module"/>
       <child link="thrust${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -345,17 +345,17 @@
       </actuator>
     </transmission>
 
-    <!-- <transmission name="rotor${self}_tran"> -->
-    <!--   <type>transmission_interface/SimpleTransmission</type> -->
-    <!--   <joint name="rotor${self}"> -->
-    <!--     <hardwareInterface>RotorInterface</hardwareInterface> -->
-    <!--   </joint> -->
-    <!--   <actuator name="rotor${self}"> -->
-    <!--     <hardwareInterface>RotorInterface</hardwareInterface> -->
-    <!--     <mechanicalReduction>1</mechanicalReduction> -->
-    <!--   </actuator> -->
-    <!--   </transmission> -->
-    <!-- <xacro:friction self ="${self}"/> -->
+    <transmission name="rotor${self}_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+      </transmission>
+    <xacro:friction self ="${self}"/>
 
   </xacro:macro>
 
