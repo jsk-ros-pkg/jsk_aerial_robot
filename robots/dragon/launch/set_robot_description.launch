@@ -1,7 +1,0 @@
-<launch>
-  <arg name="type" default="quad" />
-  <arg name="onboards_model" default="euclid_201709" />
-
-  <param name="robot_description" command="$(find xacro)/xacro '$(find dragon)/robots/$(arg type)/$(arg onboards_model).urdf.xacro'" />
-
-</launch>
