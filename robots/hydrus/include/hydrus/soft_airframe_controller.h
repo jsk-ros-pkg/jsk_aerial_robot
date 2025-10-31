@@ -35,6 +35,7 @@ protected:
   ros::Subscriber rotor5_pose_sub_;
   ros::Subscriber body_pose_sub_;
   ros::Subscriber rpy_pid_sub_;
+  ros::Subscriber joint_angle_sub_;
   double torque_allocation_matrix_inv_pub_stamp_;
 
   Eigen::MatrixXd q_mat_;
@@ -69,6 +70,8 @@ protected:
   // std::deque<Eigen::VectorXd> target_vectoring_f_hist_;
   OsqpEigen::Solver target_vectoring_qp_solver_;
   int n_constraints;
+  double max_rotor5 = -5.0;
+  std::vector<double> joint_angles_;
   
   void setAttitudeGains();
   virtual void rosParamInit();
@@ -84,6 +87,6 @@ protected:
   virtual void sendTorqueAllocationMatrixInv();
   virtual void publishQMat();
   virtual void publishRotorAttitudeContributions(const spinal::RollPitchYawTerms &control_term_msg_);
-
+  virtual void jointAngleCallback(const std_msgs::Float32MultiArray& msg);
 };
 }  // namespace aerial_robot_control

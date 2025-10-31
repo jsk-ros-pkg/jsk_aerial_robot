@@ -27,6 +27,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   // subscriber
   joint_state_sub_ = nh_.subscribe("joint_states", 1, &SoftAirframeController::jointStateCallback, this);
   rpy_pid_sub_ = nh_.subscribe("rpy/pid", 1, &SoftAirframeController::publishRotorAttitudeContributions, this);
+  joint_angle_sub_ = nh_.subscribe("soft_airframe_joint_angles", 1, &SoftAirframeController::jointAngleCallback, this);
   
   // note: it might be better to use gimbal_link1
   rotor5_pose_sub_ = nh_.subscribe("thrust5/mocap/pose", 1, &SoftAirframeController::Rotor5MocapCallback, this);
@@ -121,13 +122,20 @@ void SoftAirframeController::controlCore()
   {
     lb(i + 4) = -5.0;
   }
+  // if(max_rotor5 > 3.0) {
+  //   if(joint_angles_.size() < 2){
+  //     lb(8) = -5.0;
+  //   } else {
+  //     lb(8) = 1.0 + 2.0 / 20.0 * abs(joint_angles_.at(0) * 180.0 / M_PI - 0.0);
+  //   }
+  // }
 
   ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
   {
     ub(i + 4) = robot_model_->getThrustUpperLimit(i);
   }
-  ub(7) = 10.0;
+  // ub(7) = 10.0;
 
   // print lb and up
   // std::cout << "lb: " << lb.transpose() << std::endl;
@@ -171,6 +179,9 @@ void SoftAirframeController::controlCore()
     target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
     std::cout << "QP not solved!: " << target_vectoring_f_.transpose() << std::endl;
     // target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * ave_target_vectoring_f);
+  }
+  if (target_vectoring_f_(4) > max_rotor5){
+    max_rotor5 = target_vectoring_f_(4);
   }
   // std::cout << "answer from psuedo inverse(1): " << ((full_q_mat_inv_.col(0) * z_rpy_ddot(0)) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   // std::cout << "answer from psuedo inverse(4): " << ((full_q_mat_inv_ * z_rpy_ddot) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
@@ -493,6 +504,16 @@ void SoftAirframeController::publishRotorAttitudeContributions(const spinal::Rol
       }
 
   rotor_attitude_contributions_pub_.publish(rotor_attitude_contributions_msg);
+}
+
+void SoftAirframeController::jointAngleCallback(const std_msgs::Float32MultiArray& msg)
+{
+  // joint_angles_ = msg.data;
+  std::cout << "Received joint angles: ";
+  joint_angles_.clear();
+  for (const auto& angle : msg.data){
+    joint_angles_.push_back(angle);
+  }
 }
 
 /* plugin registration */
