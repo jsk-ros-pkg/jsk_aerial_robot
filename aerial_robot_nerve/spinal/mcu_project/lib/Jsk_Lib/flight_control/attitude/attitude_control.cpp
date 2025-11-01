@@ -211,16 +211,18 @@ void AttitudeController::pwmsControl(void)
 
   /* nerve comm type */
 #if NERVE_COMM
+  motor_number_ = Spine::getSlaveNum();
   for(int i = 0; i < motor_number_; i++) {
-#if MOTOR_TEST
+// #if MOTOR_TEST
 
-    if (i == (HAL_GetTick() / 2000) % motor_number_)
-      Spine::setMotorPwm(200, i);
-    else
-      Spine::setMotorPwm(0, i);
-#else
+//     if (i == (HAL_GetTick() / 2000) % motor_number_)
+//       Spine::setMotorPwm(200, i);
+//     else
+//       Spine::setMotorPwm(0, i);
+// #else
+//     Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
+// #endif
     Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
-#endif
   }
 #endif
 
@@ -726,21 +728,14 @@ void AttitudeController::maxYawGainIndex()
 
 void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
 {
-#ifndef SIMULATION  
-  if(pwm_msg.pwms_length && !pwm_test_flag_)
-    {
-      pwm_test_flag_ = true;
-      nh_->logwarn("Enter pwm test mode");
-    }
-  else if(!pwm_msg.pwms_length && pwm_test_flag_)
-    {
-      pwm_test_flag_ = false;
-      nh_->logwarn("Escape from pwm test mode");
-      return;
-    }
-
+#ifndef SIMULATION
   if(pwm_msg.motor_index_length)
     {
+	  if (motor_number_== 0)
+		{
+		  motor_number_ = 4;
+		  nh_->logwarn("Motor number set to 4 for test. If you want to test more motors, please perform motor arming before running the PWM test.");
+	    }
       /*Individual test mode*/
       if(pwm_msg.motor_index_length != pwm_msg.pwms_length)
         {
@@ -749,33 +744,59 @@ void AttitudeController::pwmTestCallback(const spinal::PwmTest& pwm_msg)
         }
       for(int i = 0; i < pwm_msg.motor_index_length; i++){
         int motor_index = pwm_msg.motor_index[i];
-                /*fail safe*/
-        if (pwm_msg.pwms[i] >= IDLE_DUTY && pwm_msg.pwms[i] <= MAX_PWM)
+
+        /*fail safe*/
+        if (motor_index < motor_number_)
           {
-            pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+            if (IDLE_DUTY <= pwm_msg.pwms[i] && pwm_msg.pwms[i] <= MAX_PWM)
+              {
+                pwm_test_value_[motor_index] = pwm_msg.pwms[i];
+              }
+            else
+              {
+                nh_->logwarn("The value of pwm is invalid for motors");
+                pwm_test_value_[motor_index] = IDLE_DUTY;
+              }
           }
         else
           {
-            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motor");
-            pwm_test_value_[motor_index] = IDLE_DUTY;
+        	pwm_test_value_[motor_index] = std::max(IDLE_DUTY, std::min(pwm_msg.pwms[i], MAX_PWM));
+          }
+
+        if (!pwm_test_flag_)
+          {
+            target_pwm_[motor_index] = pwm_test_value_[motor_index];
           }
       }
     }
   else
     {
-      /*Simultaneous test mode*/
-      for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
-        /*fail safe*/
-        if (pwm_msg.pwms[0] >= IDLE_DUTY && pwm_msg.pwms[0] <= MAX_PWM)
-          {
-            pwm_test_value_[i] = pwm_msg.pwms[0];
+      if(pwm_msg.pwms_length)
+        {
+          if(!pwm_test_flag_)
+            {
+            pwm_test_flag_ = true;
+            nh_->logwarn("Enter pwm test mode for all motors");
+            }
+          /*Simultaneous test mode*/
+          for(int i = 0; i < MAX_MOTOR_NUMBER; i++){
+            /*fail safe*/
+              if (IDLE_DUTY <= pwm_msg.pwms[0] && pwm_msg.pwms[0] <= MAX_PWM)
+                {
+                  pwm_test_value_[i] = pwm_msg.pwms[0];
+                }
+              else
+                {
+                  nh_->logwarn("The value of pwm is invalid for motors");
+                  pwm_test_value_[i] = IDLE_DUTY;
+                }
           }
-        else
-          {
-            nh_->logwarn("FAIL SAFE!  Invaild PWM value for motors");
-            pwm_test_value_[i] = IDLE_DUTY;
-          }
-      }
+        }
+      else if(!pwm_msg.pwms_length && pwm_test_flag_)
+        {
+    	  pwm_test_flag_ = false;
+    	  nh_->logwarn("Escape from pwm test mode");
+        }
     }
 #endif
 }
