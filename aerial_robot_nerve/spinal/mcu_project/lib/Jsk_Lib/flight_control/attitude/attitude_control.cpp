@@ -211,8 +211,8 @@ void AttitudeController::pwmsControl(void)
 
   /* nerve comm type */
 #if NERVE_COMM
-  motor_number_ = Spine::getSlaveNum();
-  for(int i = 0; i < motor_number_; i++) {
+  // motor_number_ = Spine::getSlaveNum();
+  for(int i = 0; i < Spine::getSlaveNum(); i++) {
 // #if MOTOR_TEST
 
 //     if (i == (HAL_GetTick() / 2000) % motor_number_)
