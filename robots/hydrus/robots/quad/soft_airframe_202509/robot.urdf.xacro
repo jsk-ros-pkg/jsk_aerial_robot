@@ -41,7 +41,7 @@
   <!-- 1.1 flight controller -->
   <xacro:extra_module name = "fc" parent = "link3" visible = "1"
                       model_url = "package://hydrus/urdf/mesh/ver2/flight_controller/spinal.dae"> <!-- same with intel euclid -->
-    <origin xyz="${link_length / 2 - 0.2221} ${-4.4*0.001} 0.02135" rpy="0 0 0"/>
+    <origin xyz="${link_length / 2 - 0.2221} ${-4.4*0.001} -0.02135" rpy="0 0 0"/>
     <inertial>
       <mass value = "0.05" />
       <origin xyz="${13*0.001} ${4.4*0.001} ${-9*0.001}" rpy="0 0 0"/>
@@ -176,19 +176,19 @@
   </gazebo>
   <xacro:damping_factor link="soft_link3"/>
 
-  <link name="dummy_link">
+  <link name="servo_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0001"/>
+      <mass value="0.064"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
           iyy="0.001" iyz="0.0"
           izz="0.002"/> -->
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.000017" ixy="0.000003" ixz="-0.0000001"
+          iyy="0.000023" iyz="0.000000"
+          izz="0.000025"/>
     </inertial>
     <visual>
       <geometry>
@@ -197,25 +197,25 @@
       <origin xyz="0 0 -0.02" rpy="0 0 0"/>
     </visual>
   </link>
-  <gazebo reference="dummy_link">
+  <gazebo reference="servo_link">
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
   </gazebo>
-  <xacro:damping_factor link="dummy_link"/>
+  <xacro:damping_factor link="servo_link"/>
 
-    <link name="dummy_link1">
+  <link name="servo_link1">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0001"/>
+      <mass value="0.059"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
           iyy="0.001" iyz="0.0"
           izz="0.002"/> -->
       <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
+          ixx="0.000016" ixy="-0.000003" ixz="0.000001"
+          iyy="0.000019" iyz="0.000000"
+          izz="0.000022"/>
     </inertial>
     <visual>
       <geometry>
@@ -224,11 +224,11 @@
       <origin xyz="0 0 -0.02" rpy="0 0 0"/>
     </visual>
   </link>
-  <gazebo reference="dummy_link1">
+  <gazebo reference="servo_link1">
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
   </gazebo>
-  <xacro:damping_factor link="dummy_link1"/>
+  <xacro:damping_factor link="servo_link1"/>
 
   <joint name="soft_joint1" type="fixed">
     <parent link="link4"/>
@@ -259,18 +259,18 @@
 
   <joint name="soft_joint4" type="revolute">
     <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
-    <parent link="soft_link3"/>
-    <child link="dummy_link"/>
-    <origin xyz="0.235 0 0" rpy="0 0 0"/>
+    <parent link="link4"/>
+    <child link="servo_link"/>
+    <origin xyz="0.5 0 0.01" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
 
   <joint name="soft_joint5" type="revolute">
     <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
-    <parent link="soft_link3"/>
-    <child link="dummy_link1"/>
-    <origin xyz="0.235 0 0" rpy="0 0 0"/>
+    <parent link="link4"/>
+    <child link="servo_link1"/>
+    <origin xyz="0.5 0 -0.01" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.9" friction="0.1"/>
   </joint>
