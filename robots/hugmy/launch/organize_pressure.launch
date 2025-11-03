@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="hugmy" type="air_pressure_control_node" name="air_pressure_control_node" output="screen">
+    <param name="external_mode" value="true"/>
+    <param name="control_rate_hz" value="50"/>
+    </node>
+</launch>
