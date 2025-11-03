@@ -62,6 +62,7 @@ void UnderActuatedLQIController::initialize(ros::NodeHandle nh,
   flight_cmd_pub_ = nh_.advertise<spinal::FourAxisCommand>("four_axes/command", 1);
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("debug/four_axes/gain", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
+  q_mat_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("debug/q_matrix", 1);
 
   //dynamic reconfigure server
   ros::NodeHandle control_nh(nh_, "controller");
@@ -183,6 +184,15 @@ void UnderActuatedLQIController::controlCore()
       pid_msg_.z.i_term.at(i) = i_term;
       pid_msg_.z.d_term.at(i) = d_term;
     }
+  std::vector<Eigen::Vector3d> r = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> n = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  // for (int i = 0; i < r.size(); ++i){
+  //   std::cout<< "r " << i << ": " << r.at(i).transpose() << "\n";
+  // }
+  // for (int i = 0; i < n.size(); ++i){
+  // std::cout<< "n " << i << ": " << n.at(i).transpose() << "\n";
+  // }
+  
   // feed-forward term for z
   Eigen::MatrixXd q_mat_inv = getQInv();
   double ff_acc_z = navigator_->getTargetAcc().z();
@@ -224,6 +234,21 @@ Eigen::MatrixXd UnderActuatedLQIController::getQInv()
     q_mat.block(1, i, 3, 1) = inertia_inv * (rotors_origin.at(i).cross(rotors_normal.at(i)) + m_f_rate * rotor_direction.at(i + 1) * rotors_normal.at(i));
   }
   Eigen::MatrixXd q_mat_inv = aerial_robot_model::pseudoinverse(q_mat);
+
+
+  std_msgs::Float64MultiArray msg;
+  msg.layout.dim.resize(2);
+  msg.layout.dim[0].label = "rows";
+  msg.layout.dim[0].size  = 4;
+  msg.layout.dim[0].stride= 4 * motor_num_;
+  msg.layout.dim[1].label = "cols";
+  msg.layout.dim[1].size  = motor_num_;
+  msg.layout.dim[1].stride= motor_num_;
+  msg.data.resize(4 * motor_num_);
+  for (int r=0; r<4; ++r)
+    for (int c=0; c<motor_num_; ++c)
+      msg.data[r*motor_num_ + c] = q_mat(r,c);
+  q_mat_pub_.publish(msg);
   return q_mat_inv;
 }
 
@@ -281,7 +306,13 @@ bool UnderActuatedLQIController::optimalGain()
   Eigen::MatrixXd P_dash = Eigen::MatrixXd::Zero(lqi_mode_, motor_num_);
   Eigen::MatrixXd inertia = robot_model_->getInertia<Eigen::Matrix3d>();
   P_dash.row(0) = P.row(2) / robot_model_->getMass(); // z
+  // for (int i = 0; i < 3; i++){
+  //   ROS_INFO_STREAM("LQI gain generator: P row " << i << ": " << P.row(i));
+  // }
   P_dash.bottomRows(lqi_mode_ - 1) = (inertia.inverse() * P.bottomRows(3)).topRows(lqi_mode_ - 1); // roll, pitch, yaw
+  // for (int i = 0; i < lqi_mode_; i++){
+  //   ROS_INFO_STREAM("LQI gain generator: P_dash row " << i << ": " << P_dash.row(i));
+  // }
 
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(lqi_mode_ * 3, lqi_mode_ * 3);
   Eigen::MatrixXd B = Eigen::MatrixXd::Zero(lqi_mode_ * 3, motor_num_);
@@ -331,8 +362,9 @@ bool UnderActuatedLQIController::optimalGain()
     }
 
   ROS_DEBUG_STREAM_NAMED("LQI gain generator",  "LQI gain generator: CARE: %f sec" << ros::Time::now().toSec() - t);
-  ROS_DEBUG_STREAM_NAMED("LQI gain generator",  "LQI gain generator:  K \n" <<  K_);
-
+  // ROS_DEBUGSTREAM_NAMED("LQI gain generator",  "LQI gain generator:  K \n" <<  K_);
+  // ROS_INFO_STREAM_NAMED("LQI gain generator",
+  //                     "LQI gain generator: K =\n" << K_);
 
   for(int i = 0; i < motor_num_; ++i)
     {

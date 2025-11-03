@@ -44,6 +44,8 @@
 #include <spinal/PMatrixPseudoInverseWithInertia.h>
 #include <ros/ros.h>
 #include <thread>
+#include <std_msgs/Float64MultiArray.h>
+
 
 namespace aerial_robot_control
 {
@@ -68,6 +70,7 @@ namespace aerial_robot_control
     ros::Publisher rpy_gain_pub_; // for spinal
     ros::Publisher four_axis_gain_pub_;
     ros::Publisher p_matrix_pseudo_inverse_inertia_pub_;
+    ros::Publisher q_mat_pub_;
 
     bool verbose_;
     boost::shared_ptr<dynamic_reconfigure::Server<aerial_robot_control::LQIConfig> > lqi_server_;
