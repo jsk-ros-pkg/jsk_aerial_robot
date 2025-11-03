@@ -1,0 +1,28 @@
+<launch>
+  <arg name="pkg"              default="hugmy"/>
+  <arg name="node_name"        default="thrust_and_pressure_cal"/>
+  <arg name="respawn"          default="true"/>
+  <arg name="output"           default="screen"/>
+
+  <arg name="theta_target"     default="0.0"/>
+  <arg name="current_pressure" default="2.0"/> 
+  <arg name="tau_limit"        default="2.0"/>
+  <arg name="lpf_alpha"        default="1.0"/>  
+
+  <arg name="k0"               default="0.2206"/>
+  <arg name="k1"               default="0.1745"/>
+  <arg name="k2"               default="-1.457"/>
+
+  <!-- ===== Node ===== -->
+  <node pkg="hugmy" type="thrust_and_pressure_cal" name="thrust_pressure_cal" output="screen">
+    <param name="theta_target"     value="$(arg theta_target)"/>
+    <param name="current_pressure" value="$(arg current_pressure)"/>
+    <param name="tau_limit"        value="$(arg tau_limit)"/>
+    <param name="lpf_alpha"        value="$(arg lpf_alpha)"/>
+
+    <param name="k0" value="$(arg k0)"/>
+    <param name="k1" value="$(arg k1)"/>
+    <param name="k2" value="$(arg k2)"/>
+  </node>
+
+</launch>
