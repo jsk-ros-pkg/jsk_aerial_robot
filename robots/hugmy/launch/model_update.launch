@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="hugmy" type="joint_model" name="joint_model" output="screen">
+  </node>
+</launch>
