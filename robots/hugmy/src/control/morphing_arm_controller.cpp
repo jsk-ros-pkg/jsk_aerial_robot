@@ -72,58 +72,32 @@ void MorphingController::controlCore()
   }
 
   Eigen::MatrixXd Q = buildQWithTheta();
-  last_Q_ = Q;
 
-  // // ヌル空間を計算
-  // Eigen::MatrixXd N;
-  // int rank = 0; double tol = 0.0;
-  // Eigen::VectorXd S;
-  // computeNullspaceSVD(Q, N, rank, tol, &S);
-  
-  // const int nullity = N.cols(); // ヌル空間次元
-  // ROS_INFO_STREAM_THROTTLE(0.5,
-  //                          "[Q SVD] rank=" << rank
-  //                          << "  nullity=" << nullity
-  //                          << "  tol=" << tol
-  //                          << "  S(0..)=" << S.transpose());
-  
-  // // Publish: 次元
-  // {
-  //   std_msgs::Int32 msg;
-  //   msg.data = nullity;
-  //   nullspace_dim_pub_.publish(msg);
-  // }
-
-  // // Publish: 特異値（デバッグや安定度の指標に便利）
-  // {
-  //   std_msgs::Float32MultiArray m;
-  //   m.data.resize(S.size());
-  //   for (int i = 0; i < S.size(); ++i) m.data[i] = static_cast<float>(S(i));
-  //   svd_singvals_pub_.publish(m);
-  // }
-
-  // --- ここを変更：Fz は目的へ、等式は Tx,Ty,Tz のみ ---
-  const Eigen::RowVectorXd qz = Q.row(0);        // Fz 行
+  const Eigen::RowVectorXd qz = Q.row(0);        // Fz
   const Eigen::MatrixXd    Qeq = Q.bottomRows(3); // Tx,Ty,Tz
   const Eigen::Vector3d    beq = Eigen::Vector3d::Zero();
-  
-  // 目標 Fz （重力+z PID）
-  const double Fz_des = a_w.z() + az_des_bias_;  // 必要なら +9.81 でもOK
-  
-  // ヌル空間目的の重み
-  const double w_fz = 1.0;        // Fz を合わせる重み（0.5〜5で調整）
-  const double eps_reg = 1e-6;    // 正則化（数値安定用）
 
-  // f_ref（設計推力）に寄せるなら Wf_diag_ をそのまま渡す
-  Eigen::VectorXd f = allocSoftFz(Qeq, beq, qz, Fz_des,
+  const double az_des = a_w.z() + az_des_bias_;
+
+  const double w_fz = 1.0;        // Fz 0.5〜5
+  const double eps_reg = 1e-6;    // 正則化
+
+  
+  ROS_ERROR_STREAM_THROTTLE(0.5, "az_des" << az_des);
+  ROS_ERROR_STREAM_THROTTLE(0.5, "eps_reg" << eps_reg);
+  ROS_ERROR_STREAM_THROTTLE(0.5, "w_fz" << w_fz);
+
+
+  // // f_refに寄せるなら Wf_diag_ をそのまま渡す
+  Eigen::VectorXd f = allocSoftFz(Qeq, beq, qz, az_des,
                                   f_ref_, Wf_diag_, f_max_,
                                   w_fz, eps_reg);
 
-  // /* 等式制約: 鉛直加速度 + 姿勢維持（角加速度0） */
+  /* 等式制約: 鉛直加速度 + 姿勢維持（角加速度0） */
   // Eigen::Vector4d b; b.setZero();
   // b(0) = a_w.z() + az_des_bias_;
 
-  // /* ヌル空間で f_ref に寄せつつ、非負＆上限を守り、等式制約を再投影 */
+  /* ヌル空間で f_ref に寄せつつ、非負＆上限を守り、等式制約を再投影 */
   // Eigen::VectorXd f = allocConstrained(Q, b, f_ref_, Wf_diag_, f_max_);
 
   for (int i = 0; i < motor_num_; ++i) target_base_thrust_.at(i) = f(i);
@@ -187,7 +161,7 @@ void MorphingController::zeroDragTorque(std::vector<double>& thrust)
   double sum = 0.0, sum_abs = 0.0;
   for (int i = 0; i < motor_num_; ++i)
   {
-    // ★ 注意：dirの添字規約。iかi+1かは環境に依存。必要なら両方試してログ確認
+    // dirの添字規約
     const double w = dir.at(i + 1);
     sum     += w * thrust[i];
     sum_abs += std::abs(w);
@@ -207,8 +181,15 @@ void MorphingController::zeroDragTorque(std::vector<double>& thrust)
 
 Eigen::MatrixXd MorphingController::buildQWithTheta()
 {
-  std::vector<Eigen::Vector3d> r = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
-  std::vector<Eigen::Vector3d> n = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  // 
+  std::vector<Eigen::Vector3d> p = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
+  std::vector<Eigen::Vector3d> u = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
+  for (int i = 0; i < p.size(); ++i){
+    std::cout<< "p " << i << ": " << p.at(i).transpose() << "\n";
+  }
+  for (int i = 0; i < u.size(); ++i){
+  std::cout<< "u " << i << ": " << u.at(i).transpose() << "\n";
+  }
 
   /* update n_i by theta */
   // if (use_theta_allocation_)
@@ -223,13 +204,11 @@ Eigen::MatrixXd MorphingController::buildQWithTheta()
   for (unsigned int i = 0; i < motor_num_; ++i)
   {
     double m_f_rate = robot_model_->getMFRate();
-    Q(0, i) = n[i].z(); /* Z加速度寄与 */
+    Q(0, i) = u[i].z();
 
-    /* 角加速度寄与: r×n + m_f_rate * dir * n */
-    Q.block<3,1>(1, i) = r[i].cross(n[i]) + m_f_rate * rotor_direction.at(i + 1) * n[i];
+    Q.block<3,1>(1, i) = p[i].cross(u[i]) + m_f_rate * rotor_direction.at(i + 1) * u[i];
   }
 
-  /* 質量・慣性でスケール */
   double mass_inv = 1.0 / robot_model_->getMass();
   Eigen::Matrix3d inertia_inv = robot_model_->getInertia<Eigen::Matrix3d>().inverse();
   Q.topRows(1)    = mass_inv    * Q.topRows(1);
@@ -237,39 +216,6 @@ Eigen::MatrixXd MorphingController::buildQWithTheta()
   return Q;
 }
 
-Eigen::VectorXd MorphingController::allocConstrained(const Eigen::MatrixXd& Q, const Eigen::Vector4d& b,
-                                                    const Eigen::VectorXd& f_ref,
-                                                    const Eigen::VectorXd& Wf_diag,
-                                                    const Eigen::VectorXd& f_max)
-{
-  /* 基本解（最小ノルム）： f0 = Q^T (Q Q^T)^{-1} b */
-  Eigen::MatrixXd QQT = Q * Q.transpose();
-  Eigen::VectorXd f0  = Q.transpose() * QQT.ldlt().solve(b);
-
-  /* ヌル空間で f_ref に寄せる： min ||W (f0 + Ny - f_ref)||^2 */
-  Eigen::VectorXd f = f0;
-  Eigen::MatrixXd N = nullspace(Q);
-  if (N.cols() > 0 && Wf_diag.maxCoeff() > 0.0)
-  {
-    Eigen::MatrixXd W2 = Wf_diag.asDiagonal();
-    Eigen::MatrixXd A  = N.transpose() * W2 * N;
-    Eigen::VectorXd c  = N.transpose() * W2 * (f_ref - f0);
-    Eigen::VectorXd y  = A.ldlt().solve(c);
-    f = f0 + N * y;
-  }
-
-  /* clip */
-  Eigen::VectorXd f_clip = f;
-  clip(f_clip, f_max);
-
-  /* 等式制約を最小補正で再投影： Δf = Q^T (QQ^T)^{-1} (b - Q f_clip) */
-  Eigen::VectorXd df = Q.transpose() * QQT.ldlt().solve(b - Q * f_clip);
-  f = f_clip + df;
-
-  /* clip */
-  clip(f, f_max);
-  return f;
-}
 
 void MorphingController::sendCmd()
 {
@@ -293,10 +239,8 @@ void MorphingController::reset()
 
   torque_allocation_matrix_inv_pub_stamp_ = -1.0;
 
-  //  いまの機体向きをそのまま目標Yaw
   navigator_->setTargetYaw(rpy_.z());
 
-  // 必要なら X,Y の PID も一度クリア（風見回り抑制に効く）
   pid_controllers_.at(X).reset();
   pid_controllers_.at(Y).reset();
 }
@@ -380,24 +324,36 @@ void MorphingController::thrustRefCallback(const std_msgs::Float32ConstPtr& msg)
 
 void MorphingController::publishCurrentJointStatus()
 {
-  KDL::JntArray q = robot_model_->getJointPositions();
+  const KDL::JntArray& q = robot_model_->getJointPositions();
   const auto& idx = robot_model_->getJointIndexMap();
+
+  // std::array<double, 5> sum{};
+  std::vector<double> sum(5, 0.0);
+
+  for (int i = 1; i <= 4; ++i) {
+    for (int j = 1; j <= 3; ++j) {
+      const std::string name = "joint_" + std::to_string(i) + "_" + std::to_string(j);
+      auto it = idx.find(name);
+      if (it == idx.end()) continue;
+      const size_t k = it->second;
+      sum.at(i) += q(k);
+    }
+  }
 
   sensor_msgs::JointState js;
   js.header.stamp = ros::Time::now();
+  js.name.reserve(4);
+  js.position.reserve(4);
 
-  js.name.resize(q.rows());
-  js.position.resize(q.rows());
-  for (const auto& kv : idx){
-    const std::string& name = kv.first;
-    size_t index = kv.second;
-    if (index < (size_t)q.rows()){
-      js.name[index] = name;
-      js.position[index] = q(index);
-    }
+  for (int i = 1; i <= 4; ++i) {
+    const double total_deg = sum.at(i) * 180.0 / M_PI;
+    js.name.push_back("joint_" + std::to_string(i) + "_sum");
+    js.position.push_back(total_deg);
   }
+
   debug_joint_state_pub_.publish(js);
 }
+
 
 void MorphingController::applyThetaToModel(float theta)
 {
@@ -411,9 +367,9 @@ void MorphingController::applyThetaToModel(float theta)
 
   for (int id = 1; id <= 4; ++id)
   {
-    std::string j1 = "joint_1_" + std::to_string(id);
-    std::string j2 = "joint_2_" + std::to_string(id);
-    std::string j3 = "joint_3_" + std::to_string(id);
+    std::string j1 = "joint_" + std::to_string(id) + "_1";
+    std::string j2 = "joint_" + std::to_string(id) + "_2";
+    std::string j3 = "joint_" + std::to_string(id) + "_3";
 
     auto clamp = [](double v, double lo, double hi){ return std::max(lo, std::min(hi, v)); };
     const double lim1 = 0.8727, limN = 1.047;
@@ -476,8 +432,8 @@ void MorphingController::nullspaceTimerCb(const ros::TimerEvent&)
 Eigen::VectorXd MorphingController::allocSoftFz(
     const Eigen::MatrixXd& Qeq,          // 3xN : [Tx;Ty;Tz]
     const Eigen::Vector3d& beq,          // = 0
-    const Eigen::RowVectorXd& qz,        // 1xN : Fz 行
-    double Fz_des,
+    const Eigen::RowVectorXd& qz,        // Fz 行
+    double az_des,
     const Eigen::VectorXd& f_ref,
     const Eigen::VectorXd& Wf_diag,
     const Eigen::VectorXd& f_max,
@@ -486,15 +442,16 @@ Eigen::VectorXd MorphingController::allocSoftFz(
 {
   const int N = Qeq.cols();
 
-  // 1) 等式の最小ノルム解：f_p = Qeq^T (Qeq Qeq^T)^(-1) beq
+  // f_p = Qeq^T (Qeq Qeq^T)^(-1) beq
   Eigen::MatrixXd QeqQeqT = Qeq * Qeq.transpose();
-  Eigen::VectorXd f_p = Qeq.transpose() * QeqQeqT.ldlt().solve(beq); // beq=0 -> 通常は 0
+  Eigen::VectorXd f_p = Qeq.transpose() * QeqQeqT.ldlt().solve(beq);
 
-  // 2) ヌル空間 N を取る（Qeq * N = 0）
+  // Qeq * N
   Eigen::MatrixXd Nns = nullspace(Qeq);
 
-  // ヌルがない（=完全拘束）なら、クリップ→再投影で帰す
+  // ヌルがないならクリップ
   if (Nns.cols() == 0) {
+    ROS_INFO("No null space");
     Eigen::VectorXd f = f_p;
     Eigen::VectorXd f_clip = f;
     clip(f_clip, f_max);
@@ -505,41 +462,38 @@ Eigen::VectorXd MorphingController::allocSoftFz(
     return f;
   }
 
-  // 3) y に関する二次目的を解く
-  //    J(y) = ½ w_fz ( (qz N) y + (qz f_p - Fz_des) )^2
-  //         + ½ (N y + (f_p - f_ref))^T W (N y + (f_p - f_ref))
-  //         + ½ eps ||N y + f_p||^2
-  Eigen::VectorXd qp = qz.transpose();                // Nx1
-  double r  = qp.dot(f_p) - Fz_des;          // スカラー
+  // J(y) = 1/2 * w_fz ( (qz N) y + (qz f_p - az_des) )^2
+  //         + 1/2 (N y + (f_p - f_ref))^T W (N y + (f_p - f_ref))
+  //         + 1/2 eps ||N y + f_p||^2
+  Eigen::VectorXd qp = qz.transpose();
+  double r  = qp.dot(f_p) - az_des;
   Eigen::MatrixXd W  = Wf_diag.asDiagonal();
 
-  Eigen::MatrixXd A  = w_fz * (Nns.transpose() * qp * qp.transpose() * Nns)
+  Eigen::MatrixXd A  = w_fz * (Nns.transpose() * qz.transpose() * qz * Nns)
                      + (Nns.transpose() * W * Nns)
                      + eps_reg * (Nns.transpose() * Nns);
 
-  Eigen::VectorXd g  = w_fz * Nns.transpose() * qp * r
+  Eigen::VectorXd g  = w_fz * Nns.transpose() * qz.transpose() * r
                      + Nns.transpose() * W * (f_p - f_ref)
                      + eps_reg * (Nns.transpose() * f_p);
 
-  // 解く： A y = -g
+  // A y = -g
   Eigen::VectorXd y = - A.ldlt().solve(g);
 
   Eigen::VectorXd f = f_p + Nns * y;
 
-  // 4) クリップ
+  // クリップ
   Eigen::VectorXd f_clip = f;
   clip(f_clip, f_max);
 
-  // 5) 等式再投影で Tx,Ty,Tz を厳密化
+  //等式再投影
   Eigen::VectorXd df = Qeq.transpose() * QeqQeqT.ldlt().solve(beq - Qeq * f_clip);
   f = f_clip + df;
 
-  // 6) 最後にもう一度クリップ（数値誤差対策）
   clip(f, f_max);
 
   return f;
 }
-
 
 /* plugin registration */
 #include <pluginlib/class_list_macros.h>

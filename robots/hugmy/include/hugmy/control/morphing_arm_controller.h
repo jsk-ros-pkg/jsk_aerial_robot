@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <cmath>
+#include <array>
 #include <spinal/TorqueAllocationMatrixInv.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
@@ -45,7 +46,7 @@ namespace aerial_robot_control
     ros::Publisher nullspace_dim_pub_;
     ros::Publisher svd_singvals_pub_;
     ros::Timer ns_timer_;
-    Eigen::MatrixXd last_Q_; // 最新Qのコピー
+    Eigen::MatrixXd last_Q_;
       
     /* ---------- subscribers (new) ---------- */
     ros::Subscriber theta_sub_;       // /arm/theta : 各ロータ傾きθ[rad]
@@ -103,8 +104,8 @@ namespace aerial_robot_control
     void nullspaceTimerCb(const ros::TimerEvent&);
       Eigen::VectorXd allocSoftFz(const Eigen::MatrixXd& Qeq,          // 3xN : [Tx;Ty;Tz]
                                   const Eigen::Vector3d& beq,          // = 0
-                                  const Eigen::RowVectorXd& qz,        // 1xN : Fz 行
-                                  double Fz_des,
+                                  const Eigen::RowVectorXd& qz,
+                                  double az_des,
                                   const Eigen::VectorXd& f_ref,
                                   const Eigen::VectorXd& Wf_diag,
                                   const Eigen::VectorXd& f_max,
@@ -112,13 +113,6 @@ namespace aerial_robot_control
                                   double eps_reg);
 
     Eigen::MatrixXd buildQWithTheta();
-
-    /* ヌル空間＋参照追従付きの等式制約配分 */
-    Eigen::VectorXd allocConstrained(const Eigen::MatrixXd& Q, const Eigen::Vector4d& b,
-                                    const Eigen::VectorXd& f_ref,
-                                    const Eigen::VectorXd& Wf_diag,
-                                    const Eigen::VectorXd& f_max);
-
     static inline Eigen::Vector3d rotateArm(const Eigen::Vector3d& v, double theta)
     {
         Eigen::AngleAxisd R(theta, Eigen::Vector3d::UnitY());
