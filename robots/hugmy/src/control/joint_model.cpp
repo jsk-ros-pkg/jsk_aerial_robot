@@ -6,10 +6,11 @@
 #include <stdexcept>
 #include <algorithm>
 #include <std_msgs/Float32.h>
-#include <spinal/Thrust.h>
+// #include <spinal/Thrust.h>
 #include <spinal/FourAxisCommand.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/Empty.h>
 
 class ThetaModel{
 public:
@@ -103,6 +104,8 @@ public:
     apply_to_joint_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joint_states", 1);
     pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1, &JointModel::pressureCb, this);
     thrust_sub_   = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &JointModel::thrustCb, this);
+    mode_sub_   = nh_.subscribe<std_msgs::Empty>("/quadrotor/arm/joint_estimate_enable", 1, &JointModel::modeCb, this);
+
 
     // nh_.param("pressure", latest_pressure_, 0.0f); // kPa
     // nh_.param("thrust",   latest_thrust_,   f);  // N
@@ -173,14 +176,14 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher  theta_pub_;
   ros::Publisher apply_to_joint_pub_;
-  ros::Subscriber pressure_sub_, thrust_sub_;
+  ros::Subscriber pressure_sub_, thrust_sub_, mode_sub_;
   ThetaModel model_;
 
   float latest_pressure_{0.0f};
   std::vector<float> latest_thrust_;
   std::vector<float> theta_deg_;
   std::vector<float> theta_rad_;
-
+  bool apply_estimate_mode_ = false;
 
   void pressureCb(const std_msgs::Float32::ConstPtr& msg){
     if (!msg) return;
@@ -196,6 +199,16 @@ private:
     const size_t n = std::min<size_t>(4, msg->base_thrust.size());
     for(int i = 0; i < n; i++){
       latest_thrust_[i] = std::abs(msg->base_thrust[i]) + 1.8;
+    }
+  }
+
+  void modeCb(const std_msgs::Empty::ConstPtr& msg){
+    if (msg && apply_estimate_mode_){
+      apply_estimate_mode_ = false;
+    }else if (msg && !apply_estimate_mode_){
+      apply_estimate_mode_ = true;
+    }else{
+      return;
     }
   }
 
@@ -240,13 +253,26 @@ private:
       std::string j1 = "joint_" + std::to_string(id) + "_1";
       std::string j2 = "joint_" + std::to_string(id) + "_2";
       std::string j3 = "joint_" + std::to_string(id) + "_3";
+      std::string j4 = "joint_" + std::to_string(id) + "_4";
+      std::string j5 = "joint_" + std::to_string(id) + "_5";
 
-      double v1 = clamp(d,0.0,lim1);
-      double v2 = clamp(d,0.0,limN);
-      double v3 = clamp(d,0.0,limN);
+      double v1,v2,v3;
+      if (apply_estimate_mode_){
+        v1 = clamp(d,0.0,lim1);
+        v2 = clamp(d,0.0,limN);
+        v3 = clamp(d,0.0,limN);
+      }else{
+        v1 = 0.0;
+        v2 = 0.0;
+        v3 = 0.0;  
+      }
+      double v4 = 0.0;
+      double v5 = 0.0;
       js.name.push_back(j1);  js.position.push_back(v1);
       js.name.push_back(j2); js.position.push_back(v2);
       js.name.push_back(j3); js.position.push_back(v3);
+      js.name.push_back(j4); js.position.push_back(v4);
+      js.name.push_back(j5); js.position.push_back(v5);
       }
     // robot_model->updateRobotModel(q);
     apply_to_joint_pub_.publish(js);
