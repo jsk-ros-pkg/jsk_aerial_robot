@@ -1,5 +1,7 @@
-aerial_robot_control_name: aerial_robot_control/morphing_arm_controller
-# aerial_robot_control_name: aerial_robot_control/under_actuated_lqi_controller
+# aerial_robot_control_name: aerial_robot_control/morphing_arm_controller
+aerial_robot_control_name: aerial_robot_control/under_actuated_lqi_controller
+# aerial_robot_control_name: aerial_robot_control/lpv_lqi_qp_controller
+# aerial_robot_control_name: aerial_robot_control/lqi_null_controller
 # aerial_robot_control_name: aerial_robot_control/under_actuated_controller
 
 controller:
@@ -23,8 +25,8 @@ controller:
     limit_d: 20 # m / s^2
     landing_err_z: -0.2
     force_landing_descending_rate: -0.6
-    # compensate_gravity: false # for stable flight in expreriment of face expression
-    compensate_gravity: true
+    compensate_gravity: false # for stable flight in expreriment of face expression
+    # compensate_gravity: true
 
   yaw:
     p_gain: 10.0 # 4.0
