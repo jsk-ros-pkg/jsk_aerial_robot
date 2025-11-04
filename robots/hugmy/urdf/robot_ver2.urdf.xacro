@@ -225,7 +225,7 @@
     <joint name="joint_${id}_1" type="revolute">
       <parent link="main_body"/>
       <child link="link_${id}_1"/>
-      <origin rpy="0 0 ${pi/2 * (id+3)}" xyz="${base_offset}"/>
+      <origin rpy="0 0 ${-pi/4 -pi/2*(id-1)}" xyz="${base_offset}"/>
       <axis xyz="0 1 0"/>
       <limit lower="0" upper="0.8727" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
@@ -326,11 +326,14 @@
   </xacro:macro>
 
   <!-- Main body links and repeated arms -->
-  <xacro:arm_module id="1" base_offset="0.05391 -0.0175 -0.039"/>
-  <xacro:arm_module id="2" base_offset="0.0175 0.05391 -0.039"/>
-  <xacro:arm_module id="3" base_offset="-0.05391 0.0175 -0.039"/>
-  <xacro:arm_module id="4" base_offset="-0.0175 -0.05391 -0.039"/>
-
+  <!-- <xacro:arm_module id="1" base_offset="0.05391 -0.0175 -0.039"/> -->
+  <!-- <xacro:arm_module id="2" base_offset="0.0175 0.05391 -0.039"/> -->
+  <!-- <xacro:arm_module id="3" base_offset="-0.05391 0.0175 -0.039"/> -->
+  <!-- <xacro:arm_module id="4" base_offset="-0.0175 -0.05391 -0.039"/> -->
+  <xacro:arm_module id="1" base_offset=" 0.05391 -0.05391 -0.039"/>
+  <xacro:arm_module id="2" base_offset="-0.05391 -0.05391 -0.039"/>
+  <xacro:arm_module id="3" base_offset="-0.05391  0.05391 -0.039"/>
+  <xacro:arm_module id="4" base_offset=" 0.05391  0.05391 -0.039"/>
 
   <!-- spinal -->
   <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >
