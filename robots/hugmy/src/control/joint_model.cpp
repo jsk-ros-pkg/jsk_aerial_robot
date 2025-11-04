@@ -116,6 +116,12 @@ public:
     theta_deg_.assign(4, 0.0f);
     theta_rad_.assign(4, 0.0f);
 
+    theta_rad_filt_.assign(4, 0.0f);
+    nh_.param("theta_lpf_tau", lpf_tau_sec_, 0.20);
+    nh_.param("theta_max_slew", max_delta_rad_per_sec_, 2.0);
+    last_update_ = ros::Time::now();
+
+
     ROS_INFO_STREAM("ThrustPressureToTheta: pressure=" << latest_pressure_
                     << ", thrust=" << latest_thrust_.at(0)
                     << ", theta_out=" << theta_deg_.at(0) );
@@ -147,6 +153,32 @@ public:
         theta_rad_[i] = static_cast<float>(theta_est_deg * (M_PI / 180.0));
       }
 
+      ros::Time now = ros::Time::now();
+      double dt = (now - last_update_).toSec();
+      if (dt <= 0.0) dt =1e-3;
+      last_update_ = now;
+
+      const double tau = std::max(1e-3, lpf_tau_sec_);
+      const double alpha = dt / (tau + dt);
+
+      if (!filt_inited_) {
+        for (int i = 0; i < 4; ++i) theta_rad_filt_[i] = theta_rad_[i];
+        filt_inited_ = true;
+      } else {
+        for (int i = 0; i < 4; ++i) {
+          double target = theta_rad_[i];
+          double prev   = theta_rad_filt_[i];
+          double lpf_out = prev + alpha * (target - prev);
+
+          double max_step = max_delta_rad_per_sec_ * dt;
+          double delta = lpf_out - prev;
+          if (delta >  max_step) lpf_out = prev + max_step;
+          if (delta < -max_step) lpf_out = prev - max_step;
+
+          theta_rad_filt_[i] = static_cast<float>(lpf_out);
+        }
+      }
+
       applyThetaToModel(theta_rad_);
 
       // publish
@@ -161,10 +193,10 @@ public:
       << latest_thrust_[1] << ", "
       << latest_thrust_[2] << ", "
       << latest_thrust_[3] << "] N -> theta_deg=["
-      << theta_deg_[0] << ", "
-      << theta_deg_[1] << ", "
-      << theta_deg_[2] << ", "
-      << theta_deg_[3] << "]");
+      << theta_rad_filt_[0] << ", "
+      << theta_rad_filt_[1] << ", "
+      << theta_rad_filt_[2] << ", "
+      << theta_rad_filt_[3] << "]");
 
 
       ros::spinOnce();
@@ -184,6 +216,14 @@ private:
   std::vector<float> theta_deg_;
   std::vector<float> theta_rad_;
   bool apply_estimate_mode_ = false;
+
+
+  std::vector<float> theta_rad_filt_;
+  bool filt_inited_ = false;
+  ros::Time last_update_;
+  double lpf_tau_sec_ = 0.20; //時定数
+  double max_delta_rad_per_sec_ = 2.0;
+
 
   void pressureCb(const std_msgs::Float32::ConstPtr& msg){
     if (!msg) return;
@@ -211,6 +251,7 @@ private:
       return;
     }
   }
+
 
   void initModel() {
     model_.P_grid = {0,5,10,15,20,25,30,35,40,45,50};
@@ -264,11 +305,11 @@ private:
       }else{
         v1 = 0.0;
         v2 = 0.0;
-        v3 = 0.0;  
+        v3 = 0.0;
       }
       double v4 = 0.0;
       double v5 = 0.0;
-      js.name.push_back(j1);  js.position.push_back(v1);
+      js.name.push_back(j1); js.position.push_back(v1);
       js.name.push_back(j2); js.position.push_back(v2);
       js.name.push_back(j3); js.position.push_back(v3);
       js.name.push_back(j4); js.position.push_back(v4);
