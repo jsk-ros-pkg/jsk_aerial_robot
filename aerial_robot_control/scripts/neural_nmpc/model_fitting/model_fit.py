@@ -59,6 +59,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         y_reg_dims,
         ModelFitConfig.input_transform,
         ModelFitConfig.label_transform,
+        ModelFitConfig.normalize_by_T_step,
         prune=ModelFitConfig.prune,
         histogram_pruning_n_bins=ModelFitConfig.histogram_n_bins,
         histogram_pruning_thresh=ModelFitConfig.histogram_thresh,
@@ -106,10 +107,14 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     summary(model, (in_dim,))
 
     # === Loss function ===
-    loss_fn = loss_function
+    if MLPConfig.l1_lambda > 0.0:
+        loss_fn = loss_function_l1
+    else:
+        loss_fn = loss_function
     if len(MLPConfig.loss_weight) != out_dim:
         raise ValueError("Loss weight doesn't match output dimension!")
     weight = torch.tensor(MLPConfig.loss_weight).to(device)
+    l1_lambda = torch.tensor(MLPConfig.l1_lambda).to(device)
 
     # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
@@ -120,7 +125,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             )
         elif MLPConfig.lr_scheduler == "LambdaLR":
             # Divide here since lambda func returns a multiplier for the base lr
-            lr_func = lambda epoch: max(0.99**epoch, 1e-5 / 1e-3)
+            lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
@@ -152,11 +157,11 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
 
         # === Training ===
-        train_losses = train(train_dataloader, model, loss_fn, weight, optimizer, device, table)
+        train_losses = train(train_dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table)
         total_losses["train"].append(train_losses)
 
         # === Validation ===
-        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, device, table=table)
+        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, l1_lambda, device, table=table)
         total_losses["val"].append(val_losses)
         inference_times.append(inference_time)
 
@@ -187,7 +192,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Testing ===
     if test:
-        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, device, validation=False)
+        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, l1_lambda, device, validation=False)
         total_losses["test"] = test_losses
 
     # === Store metrics ===
@@ -208,17 +213,25 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def loss_function(y, y_pred, weight):
-    # Weight each dimension differently
+def loss_function(y, y_pred, weight, l1_lambda, model):
+    # Weight each dimension
     return (torch.square(y - y_pred) * weight).mean()
+
+
+def loss_function_l1(y, y_pred, weight, l1_lambda, model):
+    # Weight each dimension
+    ls_loss = (torch.square(y - y_pred) * weight).mean()
+    # L1 regularization
+    l1_loss = l1_lambda * sum(p.abs().sum() for p in model.parameters())
+    return ls_loss + l1_loss
 
 
 def get_optimizer(model, learning_rate):
     optimizer_class = getattr(torch.optim, MLPConfig.optimizer)
-    return optimizer_class(model.parameters(), lr=learning_rate)
+    return optimizer_class(model.parameters(), lr=learning_rate, weight_decay=MLPConfig.weight_decay)
 
 
-def train(dataloader, model, loss_fn, weight, optimizer, device, table):
+def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table):
     size = len(dataloader.dataset)
     model.train()
     loss_avg = 0.0
@@ -231,7 +244,7 @@ def train(dataloader, model, loss_fn, weight, optimizer, device, table):
         y_pred = model(x)
 
         # === Loss ===
-        loss = loss_fn(y, y_pred, weight)
+        loss = loss_fn(y, y_pred, weight, l1_lambda, model)
 
         # === Backpropagation ===
         loss.backward()
@@ -248,7 +261,7 @@ def train(dataloader, model, loss_fn, weight, optimizer, device, table):
     return loss_avg
 
 
-def inference(dataloader, model, loss_fn, weight, device, table=None, validation=True):
+def inference(dataloader, model, loss_fn, weight, l1_lambda, device, table=None, validation=True):
     model.eval()
     loss_avg = 0.0
     mov_size = 0
@@ -263,7 +276,7 @@ def inference(dataloader, model, loss_fn, weight, device, table=None, validation
             inference_times.append(time.time() - timer)
 
             # === Loss ===
-            loss = loss_fn(y, y_pred, weight).cpu().numpy()
+            loss = loss_fn(y, y_pred, weight, l1_lambda, model).cpu().numpy()
 
             # === Logging ===
             # Weighted moving average

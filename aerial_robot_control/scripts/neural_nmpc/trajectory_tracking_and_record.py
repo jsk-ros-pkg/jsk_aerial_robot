@@ -14,6 +14,7 @@ from utils.geometry_utils import unit_quaternion, euclidean_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory, plot_disturbances
 from config.configurations import EnvConfig
 from neural_controller_standalone import NeuralNMPC
+import random
 
 
 def main(model_options, solver_options, dataset_options, sim_options, run_options):
@@ -74,7 +75,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         model_options["only_use_nominal"] = False
         model_options["plus_neural"] = True
         model_options["minus_neural"] = False
-        model_options["neural_model_instance"] = "neuralmodel_058"
+        model_options["neural_model_instance"] = "neuralmodel_082"  # 72"  #58"
         rtnmpc_sim = NeuralNMPC(
             model_options=model_options,
             solver_options=solver_options,
@@ -118,22 +119,13 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         state_curr = run_options["initial_state"]
     state_curr_sim = state_curr.copy()
 
+    # --- Reference trajectories ---
+    traj_list = run_options["trajectories"]
+
     # --- Set up running history for temporal neural networks ---
     if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
         delay = rtnmpc.mlp_metadata["MLPConfig"]["delay_horizon"]  # Delay as number of time steps into the past
         history = np.tile(np.append(state_curr, np.zeros((nu,))), (delay, 1))
-
-    # --- Set target states ---
-    if run_options["preset_targets"] is not None:
-        targets = run_options["preset_targets"]
-    else:
-        targets = sample_random_target(
-            np.array(state_curr[:3]),
-            sim_options["world_radius"],
-            aggressive=run_options["aggressive"],
-            low_flight=run_options["low_flight_targets"],
-        )
-    targets_reached = np.array([False for _ in targets])
 
     # --- Prepare recording ---
     recording = run_options["recording"]
@@ -150,9 +142,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         else:
             model_options["delay_horizon"] = 0
         ds_name = model_options["nmpc_type"] + "_" + dataset_options["ds_name_suffix"]
-        rec_dict, rec_file = get_recording_dict_and_file(
-            ds_name, model_options, sim_options, solver_options, targets[0].size
-        )
+        rec_dict, rec_file = get_recording_dict_and_file(ds_name, model_options, sim_options, solver_options, nx)
 
         if run_options["real_time_plot"]:
             run_options["real_time_plot"] = False
@@ -161,13 +151,14 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     # --- Real time plot ---
     # Generate necessary art pack for real time plot
     if run_options["real_time_plot"]:
+        # TODO fix reference trajectory plotting
         art_pack = initialize_plotter(world_rad=sim_options["world_radius"], n_properties=N)
         trajectory_history = state_curr[np.newaxis, :]
         rotor_positions = get_rotor_positions(rtnmpc)
 
     plot = run_options["plot_trajectory"]
     if plot:
-        rec_dict = make_blank_dict(targets[0].size, nx, nu)
+        rec_dict = make_blank_dict(nx, nx, nu)
         dist_dict = {"timestamp": np.zeros((0, 1))}
         if rtnmpc.include_cog_dist_parameter:
             dist_dict["z"] = np.zeros((0, 1))
@@ -183,45 +174,92 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     j = 0
     t_now = 0.0  # Total virtual time in seconds
 
-    # ---------- Targets loop ----------
-    print("Targets reached:")
-    while False in targets_reached:
-        # --- Target ---
-        current_target_idx = np.where(targets_reached == False)[0][0]
-        current_target = targets[current_target_idx]
-        current_target_reached = False
+    # ---------- Trajectory loop ----------
+    T_takeoff = 5.0
+    t_last = T_takeoff
+    global_comp_time = time.time()
+    print_trakeoff = True
+    while t_now < sim_options["max_sim_time"]:
+        # Get next reference
+        traj = np.random.choice(traj_list)  # , p=[0.1, 0.3, 0.2, 0.1, 0.3])
+        print("-----------------------------------")
+        print(f"Tracking trajectory: {traj}")
+        reached_init = False
+        finished = False
+        print_init = True
+        print_track = True
+        k = 0
 
-        # --- Reference ---
-        # Compute reference for Input u with an allocation matrix - TODO still makes sense if we don't know model in the first place?
-        # Alternative is setting the modular trajectory yref dynamically in control loop
-        state_ref, control_ref = reference_generator.compute_trajectory(
-            target_xyz=current_target[:3], target_rpy=current_target[6:9]
-        )
-        # Track reference in solver over horizon
-        rtnmpc.track(ocp_solver, state_ref, control_ref)
+        while not finished:
+            # --- Reference ---
+            state_ref = np.zeros((N + 1, nx))
+            state_ref[:, 6] = 1.0
+            control_ref = np.zeros((N, nu))
+            for n in range(N + 1):
+                # Pose reference
+                # First takeoff, then selected trajectory
+                if t_now < T_takeoff:
+                    if print_trakeoff:
+                        print("Taking off...")
+                        print_trakeoff = False
+                    pose_ref = reference_generator.get_pose_from_trajectory("smooth_takeoff", t_now, T_takeoff)
+                    last_ref = pose_ref
+                else:
+                    if not reached_init:
+                        if print_init:
+                            print("Going to init pose...")
+                            print_init = False
+                        # Get init pose to fly from current position
+                        pose_init = reference_generator.get_pose_from_trajectory(
+                            traj, 0, run_options["trajectory_length"]
+                        )
+                        # Smooth transition to init pose of next trajectory
+                        pose_ref = np.array(last_ref) + (np.array(pose_init) - np.array(last_ref)) / (
+                            1 + 100 * np.exp(-(t_now - t_last) * 4)
+                        )
 
-        # --------- NMPC loop ---------
-        global_comp_time = time.time()
-        while not current_target_reached:
-            # --- Emergency recovery --- (quad controller gone out of control lol)
-            if np.any(state_curr[7:10] > 14) or i > 500:  # TODO why check quaternions to be > 14?
-                print("===== Emergency recovery triggered!!! =====")
-                print(f"Iteration: {i}")
-                print(f"Euclidean dist: {(current_target[:3] - state_curr_sim[:3]) ** 2}")
-                print(f"Current state: {state_curr}")
-                i = 0
-                ocp_solver.set(0, "x", state_ref[-1, :])
-                sim_solver.set("x", state_ref[-1, :])
-                u_cmd = None
-                state_curr = state_ref[-1, :]
+                        if euclidean_dist(state_curr[0:3], pose_init[0:3]) < 0.1 or k > 5000:
+                            reached_init = True
+                            t_init = t_now
+                            k = 0
+                        else:
+                            k += 1
+                    else:
+                        if print_track:
+                            print("Init pose reached. Now tracking trajectory...")
+                            print_track = False
+                        pose_ref = reference_generator.get_pose_from_trajectory(
+                            traj, t_now - t_init + n * T_step, run_options["trajectory_length"]
+                        )
+                        if n == 0 and pose_ref is not None:
+                            # Store last reference to smoothly go to init pose of next trajectory
+                            last_ref = pose_ref
+
+                if pose_ref is None:
+                    finished = True
+                    reached_init = False
+                    t_last = t_now
+                    print(f"Tracking finished for {traj}!")
+                    state_ref[n, :] = state_ref_const[0, :]
+                    if n < N:
+                        control_ref[n, :] = control_ref_const[0, :]
+                    continue
+
+                # Compute reference for Input u with an allocation matrix - TODO still makes sense if we don't know model in the first place?
+                # Alternative is setting the modular trajectory yref dynamically in control loop
+                state_ref_const, control_ref_const = reference_generator.compute_trajectory(
+                    target_xyz=pose_ref[0:3], target_rpy=pose_ref[3:6]
+                )
+
+                # Append reference
+                state_ref[n, :] = state_ref_const[0, :]
+                if n < N:
+                    control_ref[n, :] = control_ref_const[0, :]
+            # Track reference in solver over horizon
+            rtnmpc.track(ocp_solver, state_ref, control_ref)
 
             # --- Get current state ---
-            if u_cmd is None:
-                # If no command is available, use initial/last state
-                sim_solver.set("x", state_curr)
-            else:
-                state_curr = sim_solver.get("x")
-                check_state_constraints(ocp_solver, state_curr, i)
+            state_curr = state_curr_sim.copy()
 
             # --- Initial guess ---
             # TODO set initial guess to prev iteration?
@@ -239,7 +277,6 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             # Ours with their model:   1.56 ms (without approximation) -> + 48%  [min]
             # Ours with our model:     27.1 ms (without approximation) [4x64+full in]
             # Ours with their model:   17.1 ms (without approximation) [4x64+full in&out]
-
             if rtnmpc.use_mlp and model_options["approximate_mlp"]:
                 set_approximation_params(rtnmpc, ocp_solver)
 
@@ -282,7 +319,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                     rec_dict["dt"], t_now - rec_dict["timestamp"][-2] if len(rec_dict["timestamp"]) > 1 else T_samp
                 )
                 rec_dict["comp_time"] = np.append(rec_dict["comp_time"], comp_time)
-                rec_dict["target"] = np.append(rec_dict["target"], current_target[np.newaxis, :], axis=0)
+                rec_dict["target"] = np.append(rec_dict["target"], state_ref[0:1, :], axis=0)
                 rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
                 rec_dict["control"] = np.append(rec_dict["control"], u_cmd[np.newaxis, :], axis=0)
 
@@ -295,8 +332,8 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 #########################################
                 draw_robot(
                     art_pack,
-                    targets,
-                    targets_reached,
+                    None,  # TODO also display reference trajectory
+                    None,
                     state_curr,
                     state_traj,
                     trajectory_history,
@@ -316,8 +353,8 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             while simulation_time < T_samp:
                 # Simulation runtime (inner loop)
                 simulation_time += T_sim
-                # --- Increment virutal time ---
-                # ASSUMPTION: Simulation time is exactly euqal to real time
+                # --- Increment virtual time ---
+                # ASSUMPTION: Simulation time is exactly equal to real time
                 # i.e., the simulation has a zero runtime
                 # This is somewhat realistic since in the real machine
                 # the simulation (i.e. measurement + estimation) is run
@@ -353,7 +390,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                             axis=0,
                         )
 
-                # Simulate
+                # --- Simulate ---
                 try:
                     if sim_options["use_real_world_simulator"] or sim_options["use_nominal_simulator"]:
                         state_curr_sim = sim_solver.simulate(
@@ -366,42 +403,16 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                     # TODO try to recover from this
                     raise e
 
-                # Ensure unit quaternion
+                # --- Ensure unit quaternion ---
                 state_curr_sim[6:10] = unit_quaternion(state_curr_sim[6:10])
 
-                # Target check
-                if euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.075):
-                    # Target reached!
-                    current_target_reached = True
-                    targets_reached[current_target_idx] = True
-
-                    # NOTE: Break condition turned off to allow for complete simulation
-                    # and therefore smooth trajectory
-                    # Also, it makes no physical sense to jump to next control step immediately
-                    # break
                 # --- Increment simulation step ---
                 j += 1
             # --- Increment control step ---
-            if current_target_reached:
-                i = 0
-                j = 0
-                simulation_time = 0.0
+            i += 1
 
-                # Remove initial guess
-                # initial_guess = None
-
-                # Generate new target
-                if run_options["preset_targets"] is None:
-                    new_target = sample_random_target(
-                        state_curr_sim[:3],
-                        sim_options["world_radius"],
-                        aggressive=run_options["aggressive"],
-                        low_flight=run_options["low_flight_targets"],
-                    )
-                    targets = np.append(targets, new_target, axis=0)
-                    targets_reached = np.append(targets_reached, False)
-            else:
-                i += 1
+            # --- Sanity check constraints ---
+            check_state_constraints(ocp_solver, state_curr_sim, i)
 
             # --- Record out data ---
             if recording or plot:
@@ -435,23 +446,19 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 if len(trajectory_history) > 300:
                     trajectory_history = np.delete(trajectory_history, obj=0, axis=0)
 
-            # --- Break condition for the inner loop ---
+            # Current target was reached!
+            # --- Save data ---
+            if recording and (i % 100 == 0 or t_now >= sim_options["max_sim_time"] or finished):
+                write_recording_data(rec_dict, rec_file)
+                rec_dict = make_blank_dict(nx, nx, nu)
+
+            # --- Break condition for the outer loop ---
             if t_now >= sim_options["max_sim_time"]:
                 break
 
-        # Current target was reached!
-        # --- Save data ---
-        if recording:
-            write_recording_data(rec_dict, rec_file)
-            rec_dict = make_blank_dict(targets[0].size, nx, nu)
-
-        # --- Break condition for the outer loop ---
-        if t_now >= sim_options["max_sim_time"]:
-            break
-
-        print(f"Computation time for target {current_target_idx}: {time.time() - global_comp_time}")
-
-    # End of simulation
+    # --- End of simulation ---
+    global_comp_time = time.time() - global_comp_time
+    print(f"Trajectory tracking finished in {global_comp_time:.2f} seconds!")
     if recording:
         print(f"Recording finished. Data saved to {rec_file}")
 

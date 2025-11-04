@@ -136,11 +136,28 @@ def get_data_dir_and_file(ds_name, model_options, sim_options, solver_options):
             else:
                 # Dataset name exists but current controller configuration is new
                 if ds_name.split("_")[-1].isdigit():
-                    counter = int(ds_name.split("_")[-1])
+                    base_name = ds_name[:-3]  # strip "_XX"
+                    max_counter = int(ds_name.split("_")[-1])
                     ds_name = ds_name[:-2]
-                    ds_name += str(counter + 1).zfill(2)
                 else:
-                    ds_name += "_02"
+                    base_name = ds_name
+                    max_counter = 1
+                    ds_name += "_"  # prepare for counter
+                for _, dirs, _ in os.walk(DirectoryConfig.DATA_DIR):
+                    for dir_name in dirs:
+                        if dir_name.startswith(base_name):
+                            if dir_name.split("_")[-1].isdigit():
+                                # Similar dataset name exists
+                                counter = int(dir_name.split("_")[-1])
+                                if counter >= max_counter:
+                                    max_counter = counter
+                            else:
+                                # Similar dataset name exists without counter
+                                if max_counter == 1:
+                                    max_counter = 2
+                    break  # only need to check the top-level directory
+                # Increment counter for dataset name
+                ds_name += str(max_counter + 1).zfill(2)
                 metadata[ds_name] = outer_fields
                 ds_instance_name = "dataset_001"
                 metadata[ds_name][ds_instance_name] = inner_fields
@@ -242,16 +259,14 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
     return model_dir, model_instance
 
 
-def delete_previous_solver_files(model_options, identifier):
-    if model_options["nmpc_type"] != "NMPCTiltQdServo":
-        raise NotImplementedError("Create more scalable way to delete previous solver files for different NMPC types.")
-
-    model_name = f"tilt_qd_{identifier}_servo_mdl"
-
+def delete_previous_solver_files(model_name):
     rospack = rospkg.RosPack()
     folder_path = os.path.join(
         rospack.get_path("aerial_robot_control"), "include", "aerial_robot_control", "neural_nmpc", model_name
     )
+
+    if not os.path.exists(folder_path):
+        return
 
     c_generated_dir = os.path.join(folder_path, "c_generated_code")
 

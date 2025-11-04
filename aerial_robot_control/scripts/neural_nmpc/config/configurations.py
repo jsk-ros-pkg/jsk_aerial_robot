@@ -22,7 +22,7 @@ class EnvConfig:
 
     model_options = {
         "model_name": "standard_nmpc",
-        "arch_type": "qd",  # or "bi" or "tri"
+        "arch_type": "tilt_qd",  # or "fix_qd" or "tilt_bi" or "tilt_tri"
         "nmpc_type": "NMPCTiltQdServo",
         #    NMPCFixQdAngvelOut
         #    NMPCFixQdThrustOut
@@ -46,7 +46,7 @@ class EnvConfig:
             "minus_neural": False,
             "end_to_end_mlp": False,
             "neural_model_name": "residual_mlp",  # "e2e_mlp" or "residual_mlp" or "residual_temporal_mlp"
-            "neural_model_instance": "neuralmodel_055",  # 29, 31
+            "neural_model_instance": "neuralmodel_087",  # 63, 58, 60, 29, 31, 35
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -64,6 +64,32 @@ class EnvConfig:
             # 51: only vz with small network and constant LR (slightly better than all)
             # 54: vz, prune, no input transform and no takeoff
             # 55: same as 54 but longer and LambdaLR
+            # 57: With vx, vy, vz, With input and label transform, and weight 1,1,10 -> used for training network for paper
+            # 58: same as 57 but no input and label transform -> NEURAL SIMULATOR FOR PAPER TRAINED ON REAL WORLD DATA
+            # 59: only vz, no input/label transform, on sim with neural and nominal control dataset
+            # 60: same as 59 but with vx, vy, vz -> NEURAL CONTROLLER FOR PAPER TRAINED ON SIMULATED LABELS
+            # (61): same as 60 but longer training (250 epochs) -> somehow worse
+            # ---- all before dont have standalone solver ----
+            # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
+            # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
+            # 64: small network trained on real hovering & ground effect data -> for CONTROLLER
+            # 65: large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 66: really large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 67: A LOT OF OVERFITTING really, really large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 68: BN & L1 REGULARIZATION really large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 71: (good) L1 REGULARIZATION really large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 72: L2 REGULARIZATION really large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 73: (VERY GOOD) L1 REGULARIZATION small network trained on simulated labels with 72 -> for CONTROLLER
+            # 74: same as 73 but only 50 epochs to avoid oscillations
+            # 75: same as 74 but without regularization
+            # ---- all before have high oscillations ----
+            # 76: (only 50 epochs) small network trained on real hovering & ground effect data -> for CONTROLLER
+            # 79: (only 50 epochs) very large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 80: (only 25 epochs) large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 81: (only 75 epochs, lower lr) large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 82: (same as 81 but full state input and input & label transform) large network trained on real hovering & ground effect data -> for SIMULATOR
+            # 83: small network trained on simulated labels with 82 -> for CONTROLLER
+            # 84: same as 83 but one more layer
             "approximate_mlp": False,  # Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -85,7 +111,7 @@ class EnvConfig:
         "include_quaternion_constraint": False,
     }
 
-    dataset_options = {"ds_name_suffix": "residual_dataset_04"}
+    dataset_options = {"ds_name_suffix": "residual_dataset_neural_sim_nominal_control"}  # "compare_nominal_neural_sim"}
     sim_options = {
         # Choice of disturbances modeled in our Simplified Simulator
         # TODO actually implement the disturbances in NMPC and network
@@ -97,17 +123,33 @@ class EnvConfig:
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
         },
-        "max_sim_time": 10,
+        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
+        "use_nominal_simulator": True,  # Use nominal model as simulator
+        "max_sim_time": 50,
         "world_radius": 3,
-        "seed": 567,
+        "seed": 897,
     }
 
     # Run options
     run_options = {
-        "real_machine": True,
+        "real_machine": False,
     }
 
-    # Trajectory options
+    # Trajectory tracking options
+    run_options.update(
+        {
+            "trajectories": [
+                "line",
+                "circle",
+                "helix",
+                "lemniscate_I",
+                "lemniscate_II",
+            ],  # "step", "hover", "takeoff", "smooth_takeoff", "circle"
+            "trajectory_length": 20.0,
+        }
+    )
+
+    # Point tracking options
     run_options.update(
         {
             "preset_targets": None,
@@ -136,9 +178,16 @@ class EnvConfig:
     )
 
     if run_options["real_machine"]:
-        for key in sim_options["disturbances"]:
-            if sim_options["disturbances"][key] == True:
+        for value in sim_options["disturbances"].values():
+            if value == True:
                 raise ValueError("No simulated disturbances allowed on real machine.")
+
+    if sim_options["use_real_world_simulator"] and sim_options["use_nominal_simulator"]:
+        raise ValueError("Conflict in options.")
+    if sim_options["use_real_world_simulator"]:
+        for value in sim_options["disturbances"].values():
+            if value == True:
+                raise ValueError("No simulated disturbances allowed when using real world simulator.")
 
 
 class MLPConfig:
@@ -151,10 +200,10 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64]  # In_features of each hidden layer
+    hidden_sizes = [64, 64]  # , 64, 64, 64]
 
     # Activation function
-    activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
+    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
     use_batch_norm = False
@@ -165,15 +214,20 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 250
+    num_epochs = 50
 
     # Batch size
     batch_size = 64
 
     # Loss weighting of different predicted dimensions (default ones-vector)
-    loss_weight = [1.0]  # [1.0, 1.0, 1.0]
+    # loss_weight = [1.0]
+    loss_weight = [1.0, 1.0, 10.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
+    # Weight decay (L2 regularization)
+    weight_decay = 0.0  # 1e-3  # Set to 0.0 to disable
+    # L1 regularization
+    l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
 
     # Learning rate
     learning_rate = 1e-3  # for residual
@@ -185,17 +239,23 @@ class MLPConfig:
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
 
+    if weight_decay != 0.0 and l1_lambda != 0.0:
+        raise ValueError("Don't use both L1 and L2 regularization at the same time.")
+
 
 class ModelFitConfig:
     # ------- Coordinate Transform -------
-    label_transform = False
-    input_transform = False
+    label_transform = True
+    input_transform = True
 
     # ------- Time Normalization -------
     normalize_by_T_step = False
 
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset" + "_01"
+    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"# + "_01"
+    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
+    ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
+    # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
     #    NMPCFixQdAngvelOut
     #    NMPCFixQdThrustOut
     #    NMPCTiltQdNoServo
@@ -208,16 +268,32 @@ class ModelFitConfig:
     #    NMPCTiltBiServo
     #    NMPCTiltBi2OrdServo
     #    MHEWrenchEstAccMom
-    ds_instance = "dataset_020"
+    ds_instance = "dataset_001"  # "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
     # real machine 01, dataset 013: same as 007 but with fixed prop and dt
-
+    # residual 06, dataset 001 on neural standalone
+    # residual neural sim nominal control 03, dataset 001: first with correct solver building
+    # residual neural sim nominal control 05, dataset 001: on simulator as large network trained with L1 regularization
+    # residual neural sim nominal control 07, dataset 001: on simulator as large network trained with full state and transforms and L1 regularization
+    # real machine GROUND_EFFECT_ONLY: hovering and ground effect data only (48k datapoints)
     # ------- Features used for the model -------
     # State features
-    # state_feats = [3, 4, 5]
-    state_feats = [2, 3, 4, 5, 6, 7, 8, 9]  # , 10, 11, 12]
-    # state_feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
+    # state_feats = [2, 3, 4, 5]
+    # state_feats = [2, 3, 4, 5, 6, 7, 8, 9]  # , 10, 11, 12]
+    state_feats = [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+    ]  # [z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # state_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
@@ -229,7 +305,7 @@ class ModelFitConfig:
 
     # Variables to be regressed
     # y_reg_dims = [5]  # [vz]
-    y_reg_dims = [5]  # [3, 4, 5]  # [vx, vy, vz]
+    y_reg_dims = [3, 4, 5]  # [vx, vy, vz]
     # y_reg_dims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
     # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # y_reg_dims.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]

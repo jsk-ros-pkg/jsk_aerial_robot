@@ -5,9 +5,10 @@ import os, sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.geometry_utils import skew_symmetric
+from neural_controller_standalone import NeuralNMPC
 
 
-def init_forward_prop(nmpc):
+def init_forward_prop(mpc: NeuralNMPC):
     p = ca.MX.sym("p", 3)  # Position
     v = ca.MX.sym("v", 3)  # Linear velocity in World frame (inertial reference for Newton's laws)
     q = ca.MX.sym("q", 4)  # Quaternion (representing orientation of the Body frame relative to the World frame)
@@ -18,13 +19,13 @@ def init_forward_prop(nmpc):
     # Differentiate between actual angles and control angles
     # Note: If servo angle is not used as control input the model for omnidirectional Quadrotor
     # has been observed to be unstable (see https://arxiv.org/abs/2405.09871).
-    if nmpc.tilt and nmpc.include_servo_model:
+    if mpc.tilt and mpc.include_servo_model:
         a_s = ca.MX.sym("a_s", 4)
         state = ca.vertcat(state, a_s)
 
     # - Extend state-space by dynamics of rotor (actual)
     # Differentiate between actual thrust and control thrust
-    if nmpc.include_thrust_model:
+    if mpc.include_thrust_model:
         ft_s = ca.MX.sym("ft_s", 4)
         state = ca.vertcat(state, ft_s)
 
@@ -33,7 +34,7 @@ def init_forward_prop(nmpc):
     u = ca.vertcat(ft_c, a_c)
 
     # Generate symbolic CasADi function
-    dynamics = full_dynamics(nmpc, state, u)
+    dynamics = full_dynamics(mpc, state, u)
     return dynamics, state, u
 
 
@@ -180,7 +181,7 @@ def linearized_dynamics(state, input, nx, nu, mass, I):
     elif isinstance(state, ca.MX):
         cs_type = ca.MX
 
-    # TODO state is the casadi symbolic state vector from the NMPC object
+    # TODO state is the casadi symbolic state vector from the mpc object
     p = state[0:3]    # Position
     v = state[3:6]    # Linear velocity
     q = state[6:10]   # Quaternion
@@ -214,7 +215,7 @@ def linearized_dynamics(state, input, nx, nu, mass, I):
     return ca.Function("J", [state, u], [jac])
 
 
-def full_dynamics(nmpc, state, u):
+def full_dynamics(mpc: NeuralNMPC, state, u):
     """
     Symbolic dynamics of the 3D quadrotor model. The state consists of: [p_xyz, v_xyz, q_wxyz, w_xyz]^T, where p
     stands for position, a for angle (in quaternion form), v for velocity and r for body rate. The input of the
@@ -235,33 +236,36 @@ def full_dynamics(nmpc, state, u):
     qy = state[8]
     qz = state[9]
     w = state[10:13]
-    if nmpc.tilt and nmpc.include_servo_model:
+    if mpc.tilt and mpc.include_servo_model:
         a_s = state[13:17]
-    if nmpc.include_thrust_model:
+    if mpc.include_thrust_model:
         ft_s = state[17:21]
 
     ft_c = u[:4]
-    if nmpc.tilt:
+    if mpc.tilt:
         a_c = u[4:8]
 
     # Physical parameters
-    mass = nmpc.phys.mass
-    [Ixx, Iyy, Izz] = [nmpc.phys.Ixx, nmpc.phys.Iyy, nmpc.phys.Izz]
+    mass = mpc.phys.mass
+    [Ixx, Iyy, Izz] = [mpc.phys.Ixx, mpc.phys.Iyy, mpc.phys.Izz]
     I = ca.diag(ca.vertcat(Ixx, Iyy, Izz))
     I_inv = ca.diag(ca.vertcat(1 / Ixx, 1 / Iyy, 1 / Izz))
-    g_w = ca.vertcat(0, 0, -nmpc.phys.gravity)
+    g_w = ca.vertcat(0, 0, -mpc.phys.gravity)
 
-    t_rotor = nmpc.phys.t_rotor  # Time constant of rotor dynamics
-    t_servo = nmpc.phys.t_servo  # Time constant of servo dynamics
+    t_rotor = mpc.phys.t_rotor  # Time constant of rotor dynamics
+    t_servo = mpc.phys.t_servo  # Time constant of servo dynamics
 
-    p_b = ca.horzcat(nmpc.phys.p1_b, nmpc.phys.p2_b, nmpc.phys.p3_b, nmpc.phys.p4_b).T
+    p_b = ca.horzcat(mpc.phys.p1_b, mpc.phys.p2_b, mpc.phys.p3_b, mpc.phys.p4_b).T
 
-    dr = ca.vertcat(nmpc.phys.dr1, nmpc.phys.dr2, nmpc.phys.dr3, nmpc.phys.dr4)
-    kq_d_kt = nmpc.phys.kq_d_kt
+    dr = ca.vertcat(mpc.phys.dr1, mpc.phys.dr2, mpc.phys.dr3, mpc.phys.dr4)
+    kq_d_kt = mpc.phys.kq_d_kt
+
+    ee_pos = mpc.phys.ball_effector_p
+    ee_q = mpc.phys.ball_effector_q
 
     # - Rotor to End-of-arm
-    if nmpc.tilt:
-        if nmpc.include_servo_model:
+    if mpc.tilt:
+        if mpc.include_servo_model:
             a = a_s
         else:
             a = a_c
@@ -302,7 +306,7 @@ def full_dynamics(nmpc, state, u):
     # 0. Wrench in Rotor frame
     # If rotor dynamics are modeled, explicitly use thrust state as force.
     # Else use thrust control which is then assumed to be equal to the thrust state at all times.
-    if nmpc.include_thrust_model:
+    if mpc.include_thrust_model:
         ft_r_z = ft_s
     else:
         ft_r_z = ft_c
@@ -380,14 +384,14 @@ def full_dynamics(nmpc, state, u):
     )
 
     # - Extend model by servo angle first-order dynamics
-    if nmpc.include_servo_model and not nmpc.include_servo_derivative:
+    if mpc.include_servo_model:
         x_dot = ca.vertcat(x_dot,
                           (a_c - a_s) / t_servo  # Time constant of servo motor
                           )
 
     # - Extend model by thrust first-order dynamics
     # Assumption if not included: f_tc = f_ts
-    if nmpc.include_thrust_model:
+    if mpc.include_thrust_model:
         x_dot = ca.vertcat(x_dot,
                           (ft_c - ft_s) / t_rotor  # Time constant of rotor
                           )

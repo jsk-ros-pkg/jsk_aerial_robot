@@ -1,5 +1,5 @@
 from config.configurations import EnvConfig
-from neural_controller import NeuralNMPC
+from neural_controller_standalone import NeuralNMPC
 
 model_options = EnvConfig.model_options
 

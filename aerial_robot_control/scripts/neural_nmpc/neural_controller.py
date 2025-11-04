@@ -50,7 +50,9 @@ from nmpc.nmpc_tilt_mt.archive.tilt_qd_servo_thrust_drag import NMPCTiltQdServoT
 
 
 class NeuralNMPC:
-    def __init__(self, model_options, solver_options, sim_options, run_options, rdrv_d_mat=None):
+    def __init__(
+        self, model_options, solver_options, sim_options, run_options, rdrv_d_mat=None, use_as_simulator=False
+    ):
         # TODO implement solver options flexibly
         # TODO run options should be removed, if possible
         """
@@ -79,7 +81,10 @@ class NeuralNMPC:
                 if model_options["plus_neural"]:
                     identifier2 = "_plus"
 
-        delete_previous_solver_files(model_options, identifier)
+        if use_as_simulator:
+            identifier3 = "_sim"
+        else:
+            identifier3 = ""
 
         # Include disturbance parameters in model
         if sim_options["disturbances"]["cog_dist"]:
@@ -103,7 +108,7 @@ class NeuralNMPC:
         else:
             include_quaternion_constraint = False
 
-        if self.arch_type == "qd":
+        if self.arch_type == "tilt_qd":
             if self.nmpc_type == "NMPCTiltQdNoServo":
                 raise NotImplementedError(
                     "When using this controller the simulation is unstable! \
@@ -112,7 +117,7 @@ class NeuralNMPC:
                     Check with using Servo yaml"
                 )
                 self.nmpc = NMPCTiltQdNoServo(
-                    model_name=f"tilt_qd_{identifier}_no_servo{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_no_servo{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     include_cog_dist_parameter=include_cog_dist_parameter,
@@ -122,8 +127,10 @@ class NeuralNMPC:
                     include_floor_bounds=include_floor_bounds,
                 )
             elif self.nmpc_type == "NMPCTiltQdServo":
+                delete_previous_solver_files(model_options, identifier + "_servo" + identifier2 + identifier3)
+
                 self.nmpc = NMPCTiltQdServo(
-                    model_name=f"tilt_qd_{identifier}_servo{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -135,7 +142,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdThrust":
                 self.nmpc = NMPCTiltQdThrust(
-                    model_name=f"tilt_qd_{identifier}_thrust{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_thrust{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -147,7 +154,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrust":
                 self.nmpc = NMPCTiltQdServoThrust(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -160,7 +167,7 @@ class NeuralNMPC:
 
             elif self.nmpc_type == "NMPCTiltQdServoDist":
                 self.nmpc = NMPCTiltQdServoDist(
-                    model_name=f"tilt_qd_{identifier}_servo_dist{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_dist{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -172,7 +179,7 @@ class NeuralNMPC:
                 )
             elif self.nmpc_type == "NMPCTiltQdServoThrustDist":
                 self.nmpc = NMPCTiltQdServoThrustDist(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_dist{identifier2}_mdl",
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_dist{identifier2}{identifier3}_mdl",
                     method="neural_nmpc",
                     build=False,
                     phys=phys_omni,
@@ -183,8 +190,86 @@ class NeuralNMPC:
                     include_floor_bounds=include_floor_bounds,
                 )
 
+            # Archived methods
+            elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
+                self.nmpc = NMPCTiltQdNoServoAcCost(
+                    model_name=f"tilt_qd_{identifier}_no_servo_ac_cost{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+            elif self.nmpc_type == "NMPCTiltQdServoOldCost":
+                self.nmpc = NMPCTiltQdServoOldCost(
+                    model_name=f"tilt_qd_{identifier}_servo_old_cost{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+            elif self.nmpc_type == "NMPCTiltQdServoDiff":
+                self.nmpc = NMPCTiltQdServoDiff(
+                    model_name=f"tilt_qd_{identifier}_servo_diff{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+                alpha_integ = np.zeros(4)  # TODO not implemented yet
+            elif self.nmpc_type == "NMPCTiltQdServoDragDist":
+                self.nmpc = NMPCTiltQdServoDragDist(
+                    model_name=f"tilt_qd_{identifier}_servo_drag_dist{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+            elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
+                self.nmpc = NMPCTiltQdServoThrustDrag(
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+            elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
+                self.nmpc = NMPCTiltQdServoWCogEndDist(
+                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}{identifier3}_mdl",
+                    method="neural_nmpc",
+                    build=False,
+                    phys=phys_omni,
+                    include_cog_dist_parameter=include_cog_dist_parameter,
+                    include_motor_noise_parameter=include_motor_noise_parameter,
+                    include_soft_constraints=include_soft_constraints,
+                    include_quaternion_constraint=include_quaternion_constraint,
+                    include_floor_bounds=include_floor_bounds,
+                )
+            else:
+                raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
+
+        elif self.arch_type == "fix_qd":
             # Fixed rotor models
-            elif self.nmpc_type == "NMPCFixQdAngvelOut":
+            if self.nmpc_type == "NMPCFixQdAngvelOut":
                 raise NotImplementedError("Not implemented yet.")
                 self.nmpc = NMPCFixQdAngvelOut(
                     model_name="fix_qd_neural_angvel_out_mdl",
@@ -208,84 +293,10 @@ class NeuralNMPC:
                     include_quaternion_constraint=include_quaternion_constraint,
                     include_floor_bounds=include_floor_bounds,
                 )
-
-            # Archived methods
-            elif self.nmpc_type == "NMPCTiltQdNoServoAcCost":
-                self.nmpc = NMPCTiltQdNoServoAcCost(
-                    model_name=f"tilt_qd_{identifier}_no_servo_ac_cost{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
-            elif self.nmpc_type == "NMPCTiltQdServoOldCost":
-                self.nmpc = NMPCTiltQdServoOldCost(
-                    model_name=f"tilt_qd_{identifier}_servo_old_cost{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
-            elif self.nmpc_type == "NMPCTiltQdServoDiff":
-                self.nmpc = NMPCTiltQdServoDiff(
-                    model_name=f"tilt_qd_{identifier}_servo_diff{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
-                alpha_integ = np.zeros(4)  # TODO not implemented yet
-            elif self.nmpc_type == "NMPCTiltQdServoDragDist":
-                self.nmpc = NMPCTiltQdServoDragDist(
-                    model_name=f"tilt_qd_{identifier}_servo_drag_dist{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
-            elif self.nmpc_type == "NMPCTiltQdServoThrustDrag":
-                self.nmpc = NMPCTiltQdServoThrustDrag(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
-            elif self.nmpc_type == "NMPCTiltQdServoWCogEndDist":
-                self.nmpc = NMPCTiltQdServoWCogEndDist(
-                    model_name=f"tilt_qd_{identifier}_servo_thrust_drag{identifier2}_mdl",
-                    method="neural_nmpc",
-                    build=False,
-                    phys=phys_omni,
-                    include_cog_dist_parameter=include_cog_dist_parameter,
-                    include_motor_noise_parameter=include_motor_noise_parameter,
-                    include_soft_constraints=include_soft_constraints,
-                    include_quaternion_constraint=include_quaternion_constraint,
-                    include_floor_bounds=include_floor_bounds,
-                )
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
-        elif self.arch_type == "bi":
+
+        elif self.arch_type == "tilt_bi":
             raise NotImplementedError("Not implemented yet.")
             if self.nmpc_type == "NMPCTiltBiServo":
                 self.nmpc = NMPCTiltBiServo(
@@ -311,7 +322,7 @@ class NeuralNMPC:
                 )
             else:
                 raise ValueError(f"Invalid control NMPC model {self.nmpc_type}.")
-        elif self.arch_type == "tri":
+        elif self.arch_type == "tilt_tri":
             raise NotImplementedError("Not implemented yet.")
             if self.nmpc_type == "NMPCTiltTriServo":
                 self.nmpc = NMPCTiltTriServo(
@@ -542,15 +553,16 @@ class NeuralNMPC:
                     if self.model_options["minus_neural"]:
                         f_total = nominal_dynamics - M @ mlp_out
 
-                        # Use CasADi's if_else for switching
-                        height_limit = 0.3  # m
-                        k = 20.0  # steepness, increase if you want faster switching
-                        alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
-                        f_total = nominal_dynamics - alpha * (M @ mlp_out)
+                        # # Use CasADi's if_else for switching
+                        # height_limit = 0.3  # m
+                        # k = 20.0  # steepness, increase if you want faster switching
+                        # alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
+                        # f_total = nominal_dynamics - alpha * (M @ mlp_out)
 
                 if "plus_neural" in self.model_options:
                     if self.model_options["plus_neural"]:
-                        f_total = nominal_dynamics + M @ mlp_out
+                        # f_total = nominal_dynamics + M @ mlp_out
+                        f_total = nominal_dynamics + M @ ca.MX.ones(mlp_out.shape) * 10
 
                         # === Time-dependent control law ===
                         # Add a symbolic counter to the state vector
@@ -563,10 +575,10 @@ class NeuralNMPC:
                         # switch_steps = int(2.0 / self.T_samp)
 
                         # Use CasADi's if_else for switching
-                        height_limit = 0.3  # m
-                        k = 20.0  # steepness, increase if you want faster switching
-                        alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
-                        f_total = nominal_dynamics + alpha * (M @ mlp_out)
+                        # height_limit = 5.0  # m
+                        # k = 1.0  # steepness, increase if you want faster switching
+                        # alpha = 0.5 * (ca.tanh(k * (self.state[2] - height_limit)) + 1)  # ~0 when z<0.1, ~1 when z>0.1
+                        # f_total = nominal_dynamics + alpha * (M @ mlp_out)
                         # f_total = ca.if_else(
                         #     height_limit < self.state[2],
                         #     nominal_dynamics,
@@ -650,6 +662,7 @@ class NeuralNMPC:
 
         _ocp.parameter_values = self.acados_parameters[0, :]
         # =====================================================================
+        _ocp.solver_options.print_level = 0
 
         # Build acados ocp into current working directory (which was created in super class)
         json_file_path = os.path.join("./" + _ocp.model.name + "_acados_ocp.json")
@@ -762,8 +775,8 @@ class NeuralNMPC:
         for idx in self.ocp_solver.acados_ocp.constraints.idxbx:
             lbxi = np.where(self.ocp_solver.acados_ocp.constraints.idxbx == idx)[0][0]
             if (
-                state_curr[idx] < self.ocp_solver.acados_ocp.constraints.lbx[lbxi] * 1.01
-                or state_curr[idx] > self.ocp_solver.acados_ocp.constraints.ubx[lbxi] * 1.01
+                state_curr[idx] < self.ocp_solver.acados_ocp.constraints.lbx[lbxi] * 1.2
+                or state_curr[idx] > self.ocp_solver.acados_ocp.constraints.ubx[lbxi] * 1.2
             ):
                 print(
                     f"Warning: Constraint violation at index {idx} in simulation step {i}. "

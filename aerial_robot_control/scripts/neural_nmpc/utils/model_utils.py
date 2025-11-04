@@ -135,7 +135,9 @@ def cross_check_options(model_options, sim_options, run_options, metadata):
             "NMPC type used in dataset for training the neural model doesn't match the simulation environment."
         )
 
-    if not run_options["real_machine"]:
+    if not run_options["real_machine"] and not (
+        sim_options["use_nominal_simulator"] or sim_options["use_real_world_simulator"]
+    ):
         for dist, value in sim_options["disturbances"].items():
             if dist not in metadata["ds_disturbances"]:
                 raise ValueError(

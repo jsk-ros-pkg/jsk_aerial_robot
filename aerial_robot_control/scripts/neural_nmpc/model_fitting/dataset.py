@@ -32,7 +32,6 @@ class TrajectoryDataset(Dataset):
         input_transform,
         label_transform,
         normalize_by_T_step,
-        T_step_controller,
         prune=True,
         histogram_pruning_n_bins=None,
         histogram_pruning_thresh=None,
@@ -45,7 +44,7 @@ class TrajectoryDataset(Dataset):
         self.mode = mode
 
         ############ Read params for T_step_controller ############
-        params = read_params("control", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
+        params = read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
         T_step_controller = params["T_step"]
         ###########################################################
 
@@ -246,7 +245,7 @@ class TrajectoryDataset(Dataset):
 
 def read_params(mode, method, robot_package, file_name):
     # Read parameters from configuration file in the robot's package
-    # 'mode' is either "control" or "estimation"
+    # 'mode' is either "controller" or "estimation"
     # 'method' is either "nmpc" or "mhe"
 
     rospack = rospkg.RosPack()

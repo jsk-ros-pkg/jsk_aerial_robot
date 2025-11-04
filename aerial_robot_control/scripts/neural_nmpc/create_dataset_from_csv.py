@@ -119,6 +119,57 @@ def get_synched_data_from_rosbag(file_path: str):
     ]
     data_servo_angle_cmd = data_servo_angle_cmd.dropna()
 
+    # --- Reference position
+    data_xyz_ref = df[
+        [
+            "__time",
+            "/beetle1/nmpc/viz_ref/poses[0]/position/x",
+            "/beetle1/nmpc/viz_ref/poses[0]/position/y",
+            "/beetle1/nmpc/viz_ref/poses[0]/position/z",
+        ]
+    ]
+    data_xyz_ref = data_xyz_ref.dropna()
+
+    # --- Reference quaternion
+    data_qwxyz_ref = df[
+        [
+            "__time",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/w",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/x",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/y",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/z",
+        ]
+    ]
+    data_qwxyz_ref = data_qwxyz_ref.dropna()
+
+    # === check the sign of the quaternion, avoid the flip of the quaternion ===
+    # This is quite important because of the continuity of the quaternion
+    qwr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/w"].to_numpy()
+    qxr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/x"].to_numpy()
+    qyr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"].to_numpy()
+    qzr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/z"].to_numpy()
+    qwr_prev = 1.0
+    qxr_prev = 0.0
+    qyr_prev = 0.0
+    qzr_prev = 0.0
+    for i in range(len(qwr)):
+        qe_c_w = qwr[i] * qwr_prev + qxr[i] * qxr_prev + qyr[i] * qyr_prev + qzr[i] * qzr_prev
+        if qe_c_w < 0:
+            # Negate sign of quaternion at i
+            qwr[i] = -qwr[i]
+            qxr[i] = -qxr[i]
+            qyr[i] = -qyr[i]
+            qzr[i] = -qzr[i]
+
+        qwr_prev = qwr[i]
+        qxr_prev = qxr[i]
+        qyr_prev = qyr[i]
+        qzr_prev = qzr[i]
+    data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/w"] = qwr
+    data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/x"] = qxr
+    data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"] = qyr
+    data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/z"] = qzr
+
     ############## SYNCHRONIZE ##############
     # Interpolate all data to the time series of the thrust command
     # Using np.interp() [from numpy documentation]:
@@ -207,6 +258,37 @@ def get_synched_data_from_rosbag(file_path: str):
         t_ref, t, data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]
     )
 
+    # --- Reference position
+    t = np.array(data_xyz_ref["__time"])
+    data_xyz_ref_interp = pd.DataFrame()
+    data_xyz_ref_interp["__time"] = t_ref
+    data_xyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/position/x"] = np.interp(
+        t_ref, t, data_xyz_ref["/beetle1/nmpc/viz_ref/poses[0]/position/x"]
+    )
+    data_xyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/position/y"] = np.interp(
+        t_ref, t, data_xyz_ref["/beetle1/nmpc/viz_ref/poses[0]/position/y"]
+    )
+    data_xyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/position/z"] = np.interp(
+        t_ref, t, data_xyz_ref["/beetle1/nmpc/viz_ref/poses[0]/position/z"]
+    )
+
+    # --- Reference quaternion
+    t = np.array(data_qwxyz_ref["__time"])
+    data_qwxyz_ref_interp = pd.DataFrame()
+    data_qwxyz_ref_interp["__time"] = t_ref
+    data_qwxyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/orientation/w"] = np.interp(
+        t_ref, t, data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/w"]
+    )
+    data_qwxyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/orientation/x"] = np.interp(
+        t_ref, t, data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/x"]
+    )
+    data_qwxyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"] = np.interp(
+        t_ref, t, data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"]
+    )
+    data_qwxyz_ref_interp["/beetle1/nmpc/viz_ref/poses[0]/orientation/z"] = np.interp(
+        t_ref, t, data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/z"]
+    )
+
     ############## Export data to dictionary ##############
     data = dict()
     data["timestamp"] = t_ref[:, np.newaxis]
@@ -214,7 +296,7 @@ def get_synched_data_from_rosbag(file_path: str):
     if np.any(data["dt"] == 0.0):
         raise ValueError("There are duplicate timestamps in the thrust command data.")
 
-    data["duration"] = data["timestamp"][-1] - data["timestamp"][0]
+    data["duration"] = float(data["timestamp"][-1] - data["timestamp"][0])
 
     data["position"] = data_xyz_interp[
         [
@@ -260,6 +342,22 @@ def get_synched_data_from_rosbag(file_path: str):
             "/beetle1/gimbals_ctrl/gimbal2/position",
             "/beetle1/gimbals_ctrl/gimbal3/position",
             "/beetle1/gimbals_ctrl/gimbal4/position",
+        ]
+    ].to_numpy()
+
+    data["position_ref"] = data_xyz_ref_interp[
+        [
+            "/beetle1/nmpc/viz_ref/poses[0]/position/x",
+            "/beetle1/nmpc/viz_ref/poses[0]/position/y",
+            "/beetle1/nmpc/viz_ref/poses[0]/position/z",
+        ]
+    ].to_numpy()
+    data["quaternion_ref"] = data_qwxyz_ref_interp[
+        [
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/w",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/x",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/y",
+            "/beetle1/nmpc/viz_ref/poses[0]/orientation/z",
         ]
     ].to_numpy()
 
@@ -380,10 +478,21 @@ if __name__ == "__main__":
         # "2025-09-07-17-54-58_jinjie_ws_hovering_success_mode_0.csv",
         # "2025-09-08-23-06-18_nominal_hovering_mode_0_success.csv",
         # "2025-09-08-23-12-12_hovering_mode_3_success.csv",
-        "2025-09-08-23-20-40_hovering_mode_10_success.csv",
-        "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
-        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success.csv",
-        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10.csv",
+        # "2025-09-08-23-20-40_hovering_mode_10_success.csv",
+        # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
+        ### TRAINING ###
+        # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN.csv",
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN.csv",
+        ### VALIDATION ###
+        # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL.csv",
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_VAL.csv",
+        ### VALIDATION WITH REF ###
+        # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL_WITH_REF.csv",
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_VAL_WITH_REF.csv",
+        ### HOVERING & GROUND EFFECT TRAIN ###
+        # NOT THIS SINCE TOO AGGRESSIVE: "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_GROUND_EFFECT_ONLY.csv",
+        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",
+        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_GROUND_EFFECT_ONLY.csv",  # TRUNCATED FOR LESS AGGRESSIVE
     ]
     csv_files = [os.path.join(rosbag_dir, file) for file in csv_files]
 
@@ -405,7 +514,7 @@ if __name__ == "__main__":
     print("Dictionaries successfully combined!")
 
     # TODO move file naming and creation into data_utils and generalize
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset" + "_01"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"  # + "_01"
     ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
     # TODO make smarter!
@@ -526,15 +635,15 @@ if __name__ == "__main__":
     takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
     skip = False
     for t in range(state_in.shape[0]):
-        for t_rec_start in data["recording_start_idx"]:
-            if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
-                # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
-                state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
-                skip = True
-                break
-        if skip:
-            skip = False
-            continue
+        # for t_rec_start in data["recording_start_idx"]:
+        #     if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
+        #         # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
+        #         state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
+        #         skip = True
+        #         break
+        # if skip:
+        #     skip = False
+        #     continue
         # Get current state and control
         state_curr = state_in[t, :]
         u_cmd = control[t, :]
@@ -569,6 +678,9 @@ if __name__ == "__main__":
     print("Forward propagation finished!")
     # =========================================================================================
 
+    pos_ref = data["position_ref"][:-2, :]
+    quat_ref = data["quaternion_ref"][:-2, :]
+
     # Create dictionary that will become dataset
     dataset_dict = {
         "timestamp": timestamp,
@@ -579,6 +691,8 @@ if __name__ == "__main__":
         "state_out": state_out,
         "state_prop": state_prop,
         "control": control,
+        "position_ref": pos_ref,
+        "quaternion_ref": quat_ref,
     }
     if len(dataset_dict["state_in"]) > len(dataset_dict["state_out"]):
         raise ValueError("Recording dictionary is not consistent.")
