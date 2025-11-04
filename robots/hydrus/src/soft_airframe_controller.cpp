@@ -125,10 +125,22 @@ void SoftAirframeController::controlCore()
   // if(max_rotor5 > 3.0) {
   //   if(joint_angles_.size() < 2){
   //     lb(8) = -5.0;
+  //   } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
+  //     lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
   //   } else {
-  //     lb(8) = 1.0 + 2.0 / 20.0 * abs(joint_angles_.at(0) * 180.0 / M_PI - 0.0);
+  //     lb(8) = 5.0;
   //   }
   // }
+  if(max_rotor5 > 3.0) {
+    if(joint_angles_.size() >= 2){
+      if (joint_angles_.at(1) * 180.0 / M_PI > 9.0){
+        offset_thrust += 0.002;
+      }
+    }
+  }
+  if (offset_thrust > 5.0) {
+    offset_thrust = 5.0;
+  }
 
   ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
@@ -183,6 +195,7 @@ void SoftAirframeController::controlCore()
   if (target_vectoring_f_(4) > max_rotor5){
     max_rotor5 = target_vectoring_f_(4);
   }
+  target_vectoring_f_(4) += offset_thrust;
   // std::cout << "answer from psuedo inverse(1): " << ((full_q_mat_inv_.col(0) * z_rpy_ddot(0)) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   // std::cout << "answer from psuedo inverse(4): " << ((full_q_mat_inv_ * z_rpy_ddot) + prev_target_vectoring_f_ - (full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_))).transpose() << std::endl;
   // std::cout << "target vectoring f: " << target_vectoring_f_.transpose() << std::endl;

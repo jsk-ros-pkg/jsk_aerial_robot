@@ -72,6 +72,7 @@ protected:
   int n_constraints;
   double max_rotor5 = -5.0;
   std::vector<double> joint_angles_;
+  double offset_thrust = 0.0;
   
   void setAttitudeGains();
   virtual void rosParamInit();
