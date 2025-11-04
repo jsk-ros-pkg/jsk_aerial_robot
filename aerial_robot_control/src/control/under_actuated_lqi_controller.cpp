@@ -63,6 +63,8 @@ void UnderActuatedLQIController::initialize(ros::NodeHandle nh,
   four_axis_gain_pub_ = nh_.advertise<aerial_robot_msgs::FourAxisGain>("debug/four_axes/gain", 1);
   p_matrix_pseudo_inverse_inertia_pub_ = nh_.advertise<spinal::PMatrixPseudoInverseWithInertia>("p_matrix_pseudo_inverse_inertia", 1);
   q_mat_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("debug/q_matrix", 1);
+  r_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("debug/r", 1);
+  n_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("debug/n", 1);
 
   //dynamic reconfigure server
   ros::NodeHandle control_nh(nh_, "controller");
@@ -187,12 +189,17 @@ void UnderActuatedLQIController::controlCore()
   std::vector<Eigen::Vector3d> r = robot_model_->getRotorsOriginFromCog<Eigen::Vector3d>();
   std::vector<Eigen::Vector3d> n = robot_model_->getRotorsNormalFromCog<Eigen::Vector3d>();
   // for (int i = 0; i < r.size(); ++i){
-  //   std::cout<< "r " << i << ": " << r.at(i).transpose() << "\n";
+  //   // std::cout<< "r " << i << ": " << r.at(i).transpose() << "\n";
   // }
   // for (int i = 0; i < n.size(); ++i){
-  // std::cout<< "n " << i << ": " << n.at(i).transpose() << "\n";
+  // // std::cout<< "n " << i << ": " << n.at(i).transpose() << "\n";
   // }
-  
+  std_msgs::Float64MultiArray r_msg = packVec3Array(r);
+  std_msgs::Float64MultiArray n_msg = packVec3Array(n);
+
+  r_pub_.publish(r_msg);
+  n_pub_.publish(n_msg);
+
   // feed-forward term for z
   Eigen::MatrixXd q_mat_inv = getQInv();
   double ff_acc_z = navigator_->getTargetAcc().z();
@@ -217,6 +224,18 @@ void UnderActuatedLQIController::controlCore()
     }
 
   allocateYawTerm();
+}
+
+std_msgs::Float64MultiArray UnderActuatedLQIController::packVec3Array(const std::vector<Eigen::Vector3d>& vecs)
+{
+  std_msgs::Float64MultiArray msg;
+  msg.data.reserve(vecs.size() * 3);
+  for (const auto& v : vecs) {
+    msg.data.push_back(v.x());
+    msg.data.push_back(v.y());
+    msg.data.push_back(v.z());
+  }
+  return msg;
 }
 
 Eigen::MatrixXd UnderActuatedLQIController::getQInv()
