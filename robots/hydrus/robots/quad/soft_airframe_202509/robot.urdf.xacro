@@ -179,7 +179,7 @@
   <link name="servo_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.064"/>
+      <mass value="0.073"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
@@ -206,7 +206,7 @@
   <link name="servo_link1">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.059"/>
+      <mass value="0.068"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
