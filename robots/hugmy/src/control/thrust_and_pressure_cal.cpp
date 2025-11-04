@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <numeric>
+#include <std_msgs/Int8.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -330,7 +331,7 @@ public:
     thrust_cur_sub_ = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &ThrustPressureCal::targetThrustCallback, this);
     // effort_pub_  = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joints_ctrl",1);
     // effort_cur_sub_ = nh_.subscribe<sensor_msgs::JointState>("/quadrotor/joint_states", 1, &ThrustPressureCal::servoEffortCallback, this);
-    pressure_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1);
+    pressure_pub_ = nh_.advertise<std_msgs::Int8>("/air/target_joint", 1);
 
     nh_.param("theta_target", theta_target_, 0.0);
     nh_.param("tau_limit", tau_limit_, 2.0);
@@ -385,7 +386,7 @@ public:
       std_msgs::Float32 msg_theta, msg_thrust, msg_pressure;
       msg_theta.data = theta_est;
       msg_thrust.data = thrust_cur_avr_;
-      msg_pressure.data = static_cast<float>(P_cmd);
+      msg_pressure.data = static_cast<int>(P_cmd);
       theta_pub_.publish(msg_theta);
       // thrust_pub_.publish(msg_thrust);
       pressure_pub_.publish(msg_pressure);
