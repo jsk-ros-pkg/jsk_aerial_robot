@@ -81,6 +81,7 @@ void DeltaController::rosParamInit()
   getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_,
                    0.05);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
+  getParam<bool>(control_nh, "use_fc_for_att_control", use_fc_for_att_control_, true);
 
   /* get tilt angle of each thruster */
   auto urdf_model = robot_model_->getUrdfModel();
@@ -256,13 +257,26 @@ void DeltaController::setAttitudeGains()
   spinal::RollPitchYawTerms rpy_gain_msg;  // for rosserial
   /* to flight controller via rosserial scaling by 1000 */
   rpy_gain_msg.motors.resize(1);
-  rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
-  rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
-  rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
-  rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
-  rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  if (use_fc_for_att_control_)
+  {
+    rpy_gain_msg.motors.at(0).roll_p = pid_controllers_.at(ROLL).getPGain() * 1000;
+    rpy_gain_msg.motors.at(0).roll_i = pid_controllers_.at(ROLL).getIGain() * 1000;
+    rpy_gain_msg.motors.at(0).roll_d = pid_controllers_.at(ROLL).getDGain() * 1000;
+    rpy_gain_msg.motors.at(0).pitch_p = pid_controllers_.at(PITCH).getPGain() * 1000;
+    rpy_gain_msg.motors.at(0).pitch_i = pid_controllers_.at(PITCH).getIGain() * 1000;
+    rpy_gain_msg.motors.at(0).pitch_d = pid_controllers_.at(PITCH).getDGain() * 1000;
+    rpy_gain_msg.motors.at(0).yaw_d = pid_controllers_.at(YAW).getDGain() * 1000;
+  }
+  else
+  {
+    rpy_gain_msg.motors.at(0).roll_p = 0;
+    rpy_gain_msg.motors.at(0).roll_i = 0;
+    rpy_gain_msg.motors.at(0).roll_d = 0;
+    rpy_gain_msg.motors.at(0).pitch_p = 0;
+    rpy_gain_msg.motors.at(0).pitch_i = 0;
+    rpy_gain_msg.motors.at(0).pitch_d = 0;
+    rpy_gain_msg.motors.at(0).yaw_d = 0;
+  }
   rpy_gain_pub_.publish(rpy_gain_msg);
 }
 
