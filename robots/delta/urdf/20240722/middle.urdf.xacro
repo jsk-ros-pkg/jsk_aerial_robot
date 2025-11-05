@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link2" >
+
+  <xacro:macro name="middle" params="self">
+
+    <!-- link -->
+    <link name="link${self}">
+      <inertial>
+        <origin xyz="0.29984170 -0.04053992 0.00751982" rpy="0 0 0"/>
+        <mass value="0.81525662"/>
+        <inertia
+             ixx="0.00398803" iyy="0.02991643" izz="0.03256914"
+            ixy="-0.00033115" ixz="0.00077590" iyz="0.00024828" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_base.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_base_opt.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <xacro:large_friction link="link${self}"/>
+
+    <!-- leg -->
+    <link name="link${self}_leg">
+      <inertial>
+        <mass value="${leg_mass}"/>
+        <inertia
+            ixx="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" ixy="0.0" ixz="0.0"
+            iyy="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" iyz="0.0"
+            izz="${(leg_radius * leg_radius / 2.0) * leg_mass}"/>
+      </inertial>
+      <collision>
+        <geometry>
+          <cylinder radius="${leg_radius}" length="${leg_length}"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="link${self}_leg_joint" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_leg"/>
+      <origin rpy="0 0 0" xyz="0.056 0 ${-0.012-leg_length/2.0}"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- gimbal -->
+    <link name="gimbal_link${self}">
+      <inertial>
+        <origin xyz="0.01035776 -0.00000204 0.01055007" rpy="0 0 0"/>
+        <mass value="0.30812645"/>
+        <inertia
+            ixx="0.00077363"  iyy="0.00083923" izz="0.00018147"
+            ixy="0.00000000" ixz="-0.00014207" iyz="0.00000005"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link2_gimbal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+  </xacro:macro>
+</robot>

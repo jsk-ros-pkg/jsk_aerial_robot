@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta_link3" >
+
+  <xacro:macro name="tail" params="self">
+
+    <!-- link -->
+    <link name="link${self}">
+      <inertial>
+        <origin xyz="0.26112729 -0.04939508 0.00100978" rpy="0 0 0"/>
+        <mass value="0.66898892"/>
+        <inertia
+             ixx="0.00346166"  iyy="0.02400775"  izz="0.02657264"
+            ixy="-0.00160932" ixz="-0.00014653"  iyz="0.00003337" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link3_base.dae" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link3_base_opt.stl" />
+        </geometry>
+      </collision>
+    </link>
+    <xacro:large_friction link="link${self}"/>
+
+    <!-- link end frame -->
+    <link name="link${self}_end">
+      <xacro:virtual_inertial/>
+    </link>
+    <joint name="link${self}_end_joint" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_end"/>
+      <origin xyz="0.5335 0  0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- leg -->
+    <link name="link${self}_leg1">
+      <inertial>
+        <mass value="${leg_mass}"/>
+        <inertia
+            ixx="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" ixy="0.0" ixz="0.0"
+            iyy="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" iyz="0.0"
+            izz="${(leg_radius * leg_radius / 2.0) * leg_mass}"/>
+      </inertial>
+      <collision>
+        <geometry>
+          <cylinder radius="${leg_radius}" length="${leg_length}"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="link${self}_leg1_joint" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_leg1"/>
+      <origin rpy="0 0 0" xyz="0.056 0 ${-0.012-leg_length/2.0}"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="link${self}_leg2">
+      <inertial>
+        <mass value="${leg_mass}"/>
+        <inertia
+            ixx="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" ixy="0.0" ixz="0.0"
+            iyy="${(leg_radius * leg_radius / 4.0 + leg_length * leg_length / 12.0) * leg_mass}" iyz="0.0"
+            izz="${(leg_radius * leg_radius / 2.0) * leg_mass}"/>
+      </inertial>
+      <collision>
+        <geometry>
+          <cylinder radius="0.012" length="${leg_length}"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="link${self}_leg2_joint" type="fixed">
+      <parent link="link${self}"/>
+      <child link="link${self}_leg2"/>
+      <origin rpy="0 0 0" xyz="0.51114 0 ${-0.012-leg_length/2.0}"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- gimbal -->
+    <link name="gimbal_link${self}">
+      <inertial>
+        <origin xyz="0.00779810 -0.00000202 0.01075117" rpy="0 0 0"/>
+        <mass value="0.30974142"/>
+        <inertia
+            ixx="0.00077756"  iyy="0.00085638"  izz="0.00019513"
+            ixy="0.00000000" ixz="-0.00017744"  iyz="0.00000005" />
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/link3_gimbal.dae" />
+        </geometry>
+      </visual>
+    </link>
+
+  </xacro:macro>
+</robot>

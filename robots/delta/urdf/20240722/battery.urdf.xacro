@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="battery" >
+
+  <!-- 6S Turningy high lipo 1300 (silver) x1 -->
+  <xacro:macro name="battery" params="index">
+    <link name="battery${index}">
+      <inertial>
+        <origin xyz="0.04390043 0.00000000 0.01150000 " rpy="0 0 0"/>
+        <mass value="0.22649093"/>
+        <inertia
+            ixx="0.00005005" iyy="0.00016934"  izz="0.00017334"
+            ixy="0.00000000" ixz="0.00000034" iyz="-0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://delta/urdf/mesh/20240722/battery.dae" />
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
+</robot>
