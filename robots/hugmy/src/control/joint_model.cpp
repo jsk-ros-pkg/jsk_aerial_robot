@@ -105,7 +105,7 @@ public:
     pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1, &JointModel::pressureCb, this);
     thrust_sub_   = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &JointModel::thrustCb, this);
     mode_sub_   = nh_.subscribe<std_msgs::Empty>("/quadrotor/arm/joint_estimate_enable", 1, &JointModel::modeCb, this);
-
+    apply_to_joint_sim_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joints_ctrl", 1);
 
     // nh_.param("pressure", latest_pressure_, 0.0f); // kPa
     // nh_.param("thrust",   latest_thrust_,   f);  // N
@@ -130,10 +130,35 @@ public:
   void spin(){
     ros::Rate rate(100);
     while(ros::ok()){
-    //   nh_.getParam("pressure", latest_pressure_);
-    //   nh_.getParam("thrust",   latest_thrust_);
 
-      double P = static_cast<double>(latest_pressure_);
+      ros::Time now = ros::Time::now();
+      double dt = (now - last_update_).toSec();
+      if (dt <= 0.0) dt =1e-3;
+      last_update_ = now;
+      //   nh_.getParam("pressure", latest_pressure_);
+      //   nh_.getParam("thrust",   latest_thrust_);
+
+      const double tau_p = std::max(1e-3, pressure_lpf_sec_);
+      const double alpha_p = dt / (tau_p + dt);
+
+      if (!pressure_filt_inited_) {
+        latest_pressure_filt_ = latest_pressure_;
+        pressure_filt_inited_ = true;
+      } else {
+        double prev_p = static_cast<double>(latest_pressure_filt_);
+        double raw_p = static_cast<double>(latest_pressure_);
+        double lpf_out_p = prev_p + alpha_p * (raw_p - prev_p);
+
+        double max_step_p = max_pressure_per_sec_ * dt;
+        double delta_p = lpf_out_p - prev_p;
+        if (delta_p >  max_step_p) lpf_out_p = prev_p + max_step_p;
+        if (delta_p < -max_step_p) lpf_out_p = prev_p - max_step_p;
+        latest_pressure_filt_ = static_cast<float>(lpf_out_p);
+      }
+
+      int P_int = static_cast<int>(latest_pressure_filt_);
+      double P = static_cast<double>(P_int);
+
       // ROS_WARN_STREAM_THROTTLE(1.0, "latest_pressure_ :" << latest_pressure_);
       for(int i = 0; i < 4; ++i){
         double T = static_cast<double>(latest_thrust_.at(i));
@@ -152,11 +177,6 @@ public:
         theta_deg_[i] = static_cast<float>(theta_est_deg);
         theta_rad_[i] = static_cast<float>(theta_est_deg * (M_PI / 180.0));
       }
-
-      ros::Time now = ros::Time::now();
-      double dt = (now - last_update_).toSec();
-      if (dt <= 0.0) dt =1e-3;
-      last_update_ = now;
 
       const double tau = std::max(1e-3, lpf_tau_sec_);
       const double alpha = dt / (tau + dt);
@@ -179,7 +199,7 @@ public:
         }
       }
 
-      applyThetaToModel(theta_rad_);
+      applyThetaToModel(theta_rad_filt_);
 
       // publish
       std_msgs::Float32MultiArray msg;
@@ -207,7 +227,7 @@ public:
 private:
   ros::NodeHandle nh_;
   ros::Publisher  theta_pub_;
-  ros::Publisher apply_to_joint_pub_;
+  ros::Publisher apply_to_joint_pub_, apply_to_joint_sim_pub_;
   ros::Subscriber pressure_sub_, thrust_sub_, mode_sub_;
   ThetaModel model_;
 
@@ -222,7 +242,12 @@ private:
   bool filt_inited_ = false;
   ros::Time last_update_;
   double lpf_tau_sec_ = 0.20; //時定数
-  double max_delta_rad_per_sec_ = 2.0;
+  double max_delta_rad_per_sec_ = 0.1;
+
+  float latest_pressure_filt_;
+  bool pressure_filt_inited_ = false;
+  double pressure_lpf_sec_ = 1.00; //時定数
+  double max_pressure_per_sec_ = 5;
 
 
   void pressureCb(const std_msgs::Float32::ConstPtr& msg){
@@ -289,6 +314,7 @@ private:
     for (int id = 1; id <= arms; ++id)
     {
       double theta = static_cast<double>(theta_rad.at(id-1));
+      // double theta = static_cast<double>(theta_rad.at(0));
       double d = theta / 3.0;
 
       std::string j1 = "joint_" + std::to_string(id) + "_1";
@@ -317,6 +343,7 @@ private:
       }
     // robot_model->updateRobotModel(q);
     apply_to_joint_pub_.publish(js);
+    apply_to_joint_sim_pub_.publish(js);
   }
 };
 
