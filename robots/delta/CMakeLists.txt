@@ -58,3 +58,8 @@ install(TARGETS delta_controller delta_robot_model
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 
 catkin_add_env_hooks(99.delta SHELLS bash sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_subdirectory(test)
+endif()
