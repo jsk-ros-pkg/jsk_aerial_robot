@@ -339,6 +339,8 @@ public:
     nh_.param("lpf_alpha", lpf_alpha_, 1.0); // 1.0 で LPFなし
 
 
+    last_update_ = ros::Time::now();
+
     // 係数
     nh_.param("k2", k2_, -1.457);
     nh_.param("k1", k1_, 0.1745);
@@ -381,12 +383,35 @@ public:
       //   P_cmd = std::accumulate(P_each.begin(), P_each.end(), 0.0) / P_each.size();
       // }
 
-      double theta_est = model_.f_theta_bicubic(P_cmd, T_nom);
+
+      ros::Time now = ros::Time::now();
+      double dt = (now - last_update_).toSec();
+      if (dt <= 0.0) dt = 1e-3;
+      last_update_ = now;
+
+      const double tau_p = std::max(1e-3, lpf_pressure_tau_sec_);
+      const double alpha_p = dt / (tau_p + dt);
+
+      if (!pressure_filt_inited_){
+        pressure_filt_ = P_cmd;
+        pressure_filt_inited_ = true;
+      }else {
+        double prev_p = pressure_filt_;
+        double raw_p = P_cmd;
+        double lpf_out_p = prev_p + alpha_p * (raw_p - prev_p);
+        double max_step_p = max_pressure_per_sec_ * dt;
+        double delta_p = lpf_out_p - prev_p;
+        if (delta_p > max_step_p) lpf_out_p = prev_p + max_step_p;
+        if (delta_p < max_step_p) lpf_out_p = prev_p - max_step_p;
+        pressure_filt_ = lpf_out_p;
+      }
+
+      double theta_est = model_.f_theta_bicubic(pressure_filt_, T_nom);
 
       std_msgs::Float32 msg_theta, msg_thrust, msg_pressure;
       msg_theta.data = theta_est;
       msg_thrust.data = thrust_cur_avr_;
-      msg_pressure.data = static_cast<int>(P_cmd);
+      msg_pressure.data = static_cast<int>(pressure_filt_);
       theta_pub_.publish(msg_theta);
       // thrust_pub_.publish(msg_thrust);
       pressure_pub_.publish(msg_pressure);
@@ -459,6 +484,13 @@ private:
   std::vector<float> thrust_cur_;
   // std::vector<double> effort_cur_;
   sensor_msgs::JointState pub_msg_;
+
+  ros::Time last_update_;
+  float pressure_filt_;
+  bool pressure_filt_inited_ = false;
+  double lpf_pressure_tau_sec_ = 0.20; //時定数
+  double max_pressure_per_sec_ = 5;
+
 
   void initModel() {
     model_.P_grid = {0,5,10,15,20,25,30,35,40,45,50};
