@@ -30,18 +30,18 @@ controller:
     start_rp_integration_height: 0.01
 
   roll:
-    p_gain: 15.0
-    i_gain: 1.0
-    d_gain: 2.0
+    p_gain: 20.0
+    i_gain: 0.5
+    d_gain: 5.0
     limit_sum: 50.0
     limit_p: 50.0
     limit_i: 50.0
     limit_d: 50.0
 
   pitch:
-    p_gain: 15.0
-    i_gain: 1.0
-    d_gain: 2.0
+    p_gain: 20.0
+    i_gain: 0.5
+    d_gain: 5.0
     limit_sum: 50.0
     limit_p: 50.0
     limit_i: 50.0
