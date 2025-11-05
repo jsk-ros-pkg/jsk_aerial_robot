@@ -35,3 +35,5 @@ include_directories(
   ${NLOPT_INCLUDE_DIRS}
   ${OsqpEigen_INCLUDE_DIRS}
   )
+
+catkin_add_env_hooks(99.delta SHELLS bash sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
