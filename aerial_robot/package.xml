@@ -17,6 +17,7 @@
   <exec_depend>aerial_robot_model</exec_depend>
   <exec_depend>aerial_robot_msgs</exec_depend>
   <exec_depend>aerial_robot_simulation</exec_depend>
+  <exec_depend>delta</exec_depend>
   <exec_depend>dragon</exec_depend>
   <exec_depend>hydrus</exec_depend>
   <exec_depend>hydrus_xi</exec_depend>
