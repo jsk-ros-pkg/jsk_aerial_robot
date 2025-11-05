@@ -1,0 +1,5 @@
+<library path="lib/libdelta_controller">
+  <class name="aerial_robot_control/delta_controller" type="aerial_robot_control::DeltaController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for rolling control </description>
+  </class>
+</library>
