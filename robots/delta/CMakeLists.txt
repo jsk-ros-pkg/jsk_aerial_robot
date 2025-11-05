@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   geometry_msgs
-  hydrus
   pluginlib
   roscpp
   std_msgs
@@ -26,7 +25,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -DN
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs geometry_msgs hydrus pluginlib roscpp std_msgs
+  CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs geometry_msgs pluginlib roscpp std_msgs
   LIBRARIES delta_controller delta_robot_model
   )
 
