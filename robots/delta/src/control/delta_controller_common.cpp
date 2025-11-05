@@ -224,7 +224,8 @@ void DeltaController::sendGimbalAngles()
 void DeltaController::sendFourAxisCommand()
 {
   spinal::FourAxisCommand flight_command_data;
-  flight_command_data.angles[2] = candidate_yaw_term_;
+  if (use_fc_for_att_control_)
+    flight_command_data.angles[2] = candidate_yaw_term_;
   flight_command_data.base_thrust = lambda_all_;
   flight_cmd_pub_.publish(flight_command_data);
 }
