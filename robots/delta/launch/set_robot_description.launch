@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="type" default="tri"/>
+  <arg name="version" default="20240722"/>
+  <arg name="robot_id" default="" />
+  <arg name="robot_ns" value="delta$(arg robot_id)" />
+
+  <group ns="$(arg robot_ns)">
+    <param name="robot_description" command="$(find xacro)/xacro '$(find delta)/robots/$(arg type)/$(arg version)/delta.gazebo.xacro'" />
+  </group>
+</launch>
