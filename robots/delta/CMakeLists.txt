@@ -36,4 +36,9 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
+
+install(DIRECTORY bin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS)
+
 catkin_add_env_hooks(99.delta SHELLS bash sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
