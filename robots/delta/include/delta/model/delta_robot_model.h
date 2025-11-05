@@ -41,10 +41,6 @@ private:
   std::mutex current_gimbal_angles_mutex_;
 
   std::vector<KDL::Rotation> links_rotation_from_cog_;
-  std::vector<KDL::Rotation> links_rotation_from_control_frame_;
-  std::vector<KDL::Vector> rotors_origin_from_control_frame_;
-  std::vector<KDL::Vector> rotors_normal_from_control_frame_;
-  std::vector<KDL::Frame> links_center_frame_from_cog_;
   std::vector<double> current_joint_angles_;
   std::vector<double> current_gimbal_angles_;
 
