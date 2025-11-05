@@ -27,6 +27,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -DN
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS aerial_robot_control aerial_robot_estimation aerial_robot_model aerial_robot_msgs geometry_msgs hydrus pluginlib roscpp std_msgs
+  LIBRARIES delta_robot_model
   )
 
 include_directories(
@@ -36,9 +37,15 @@ include_directories(
   ${OsqpEigen_INCLUDE_DIRS}
   )
 
+add_library(delta_robot_model src/model/delta_robot_model.cpp)
+target_link_libraries(delta_robot_model ${catkin_LIBRARIES})
+
 
 install(DIRECTORY bin
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   USE_SOURCE_PERMISSIONS)
+
+install(TARGETS delta_robot_model
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 
 catkin_add_env_hooks(99.delta SHELLS bash sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
