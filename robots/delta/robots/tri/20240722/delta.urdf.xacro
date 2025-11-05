@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="delta" >
+
+  <xacro:include filename="$(find delta)/urdf/20240722/delta_link.urdf.xacro" />
+  <xacro:include filename="$(find delta)/urdf/common.xacro" />
+
+  <xacro:delta_module self="1" child="2" rotor_direction="1" rotor_tilt="-0.0727822" battery="0"/>
+  <xacro:delta_module self="2" child="3" rotor_direction="-1" rotor_tilt="0.178982" battery="0"/>
+  <xacro:delta_module self="3" child="3" rotor_direction="1" rotor_tilt="-0.0802372"  battery="0"/>
+
+  <!-- dummy root link for KDL -->
+  <link name="root">
+    <xacro:virtual_inertial/>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="link1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- flight controller -->
+  <xacro:extra_module name="fc_link" parent="link2" visible="1" model_url="package://delta/urdf/mesh/20240722/spinal.dae">
+    <origin xyz="0.0735 0 0" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0.02700000 0.00000000 0.01130642" rpy="0 0 0"/>
+      <mass value="0.02687673"/>
+      <inertia
+          ixx="0.00001064" ixy="0.00000000" ixz="0.00000000"
+          iyy="0.00001198" iyz="0.00000000"
+          izz="0.00001584"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <xacro:extra_module name="fc" parent="fc_link">
+    <origin xyz="0.0099 -0.0012 0.019" rpy="0 0 0"/>
+    <xacro:virtual_inertial/>
+  </xacro:extra_module>
+
+  <!-- onboard computer -->
+  <xacro:extra_module name="vim4" parent="link2" visible="1" model_url="package://delta/urdf/mesh/20240722/vim4.dae">
+    <origin xyz="0.3635 0.01 0" rpy="${-pi/2} 0 0"/>
+    <inertial>
+      <origin xyz="0.00146548 0.00262274 0.01119251" rpy="0 0 0"/>
+      <mass value="0.06613440"/>
+      <inertia
+          ixx="0.00001715" ixy="-0.00000087" ixz="0.00000023"
+          iyy="0.00003523" iyz="0.00000039"
+          izz="0.00004879"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- vio sensor -->
+  <xacro:extra_module name="lidar_imu_link" parent="link2" visible="1" model_url="package://delta/urdf/mesh/20240722/livox.dae" active="1">
+    <origin xyz="0.3635 -0.01 0" rpy="0 ${pi/2} ${-pi/2}"/>
+    <inertial>
+      <mass value="0.27636213"/>
+      <origin xyz="-0.00018920 -0.00000603 0.02463791" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00014336" ixy="0.00000001" ixz="-0.00000005"
+          iyy="0.00014607" iyz="0.00000003"  izz="0.00014571"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <xacro:extra_module name="lidar_imu" parent="lidar_imu_link">
+    <origin xyz="0 0 0.03905" rpy="0 0 0"/>
+    <xacro:virtual_inertial/>
+  </xacro:extra_module>
+
+</robot>
