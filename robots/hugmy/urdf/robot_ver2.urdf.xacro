@@ -53,7 +53,7 @@
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="link_${id}_rotor"/>
       <child link="thrust${id}"/>
-      <origin rpy="0 0 0" xyz="0.020 0.0175 0.0369"/>
+      <origin rpy="0 0 0" xyz="-0.020 0.000 0.0369"/>
       <!-- <origin rpy="0 0 0" xyz="${x} ${y} ${z}"/> -->
       <axis xyz="0 0 ${direction}"/>
     </joint>
@@ -138,46 +138,46 @@
     <!--link-->
     <link name="link_${id}_1">
       <inertial>
-        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
-        <mass value="0.00752930"/>
+        <origin xyz="-0.01174501 0.0000000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00639991"/>
         <inertia
-            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
-            iyy="0.00000214" iyz="0.00000080"
-            izz="0.00000483"/>
+            ixx="0.00000153" ixy="0.00000000" ixz="-0.00000044"
+            iyy="0.00000182" iyz="0.00000000"
+            izz="0.00000214"/>
       </inertial>
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_2.STL" />
         </geometry>
       </visual>
     </link>
 
     <link name="link_${id}_2">
       <inertial>
-        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
-        <mass value="0.00752930"/>
+        <origin xyz="-0.01174501 0.0000000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00639991"/>
         <inertia
-            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
-            iyy="0.00000214" iyz="0.00000080"
-            izz="0.00000483"/>
+            ixx="0.00000153" ixy="0.00000000" ixz="-0.00000044"
+            iyy="0.00000182" iyz="0.00000000"
+            izz="0.00000214"/>
       </inertial>
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_2.STL" />
         </geometry>
       </visual>
     </link>
 
     <link name="link_${id}_rotor">
       <inertial>
-        <origin xyz="0.02005067 0.01755833 0.04034797" rpy="0 0 0"/>
-        <mass value="0.11565729"/>
+        <origin xyz="-0.01937864 -0.00057405 0.04048424" rpy="0 0 0"/>
+        <mass value="0.07114866"/>
         <inertia
-            ixx="0.00042229" ixy="0.00004075" ixz="0.00009327"
-            iyy="0.00043336" iyz="0.00008185"
-            izz="0.00034957"/>
+            ixx="0.00026540" ixy="0.00000193" ixz="-0.00005391"
+            iyy="0.00029155" iyz="-0.00000277"
+            izz="0.00022726"/>
       </inertial>
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -189,34 +189,34 @@
 
     <link name="link_${id}_4">
       <inertial>
-        <origin xyz="0.01174501 0.01750000 0.00608468" rpy="0 0 0"/>
-        <mass value="0.00752930"/>
+        <origin xyz="-0.01174501 0.0000000 0.00608468" rpy="0 0 0"/>
+        <mass value="0.00639991"/>
         <inertia
-            ixx="0.00000411" ixy="0.00000155" ixz="0.00000051"
-            iyy="0.00000214" iyz="0.00000080"
-            izz="0.00000483"/>
+            ixx="0.00000153" ixy="0.00000000" ixz="-0.00000044"
+            iyy="0.00000182" iyz="0.00000000"
+            izz="0.00000214"/>
       </inertial>
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_normal.dae" />
+          <mesh filename="package://hugmy/urdf/mesh/cable_carrier_2.STL" />
         </geometry>
       </visual>
     </link>
 
     <link name="link_${id}_end">
       <inertial>
-        <origin xyz="0.00910088 0.01750002 0.00845133" rpy="0 0 0"/>
-        <mass value="0.00505969"/>
+        <origin xyz="-0.00910082 0.000000 0.00845129" rpy="0 0 0"/>
+        <mass value="0.00430071"/>
         <inertia
-            ixx="0.00000287" ixy="0.00000081" ixz="0.00000044"
-            iyy="0.00000126" iyz="0.00000075"
-          izz="0.00000283"/>
+            ixx="0.00000112" ixy="0.00000000" ixz="-0.00000037"
+            iyy="0.00000107" iyz="0.00000000"
+            izz="0.00000109"/>
       </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_end.dae" />
+        <mesh filename="package://hugmy/urdf/mesh/cable_carrier_arm_end.STL" />
       </geometry>
     </visual>
     </link>
@@ -225,8 +225,8 @@
     <joint name="joint_${id}_1" type="revolute">
       <parent link="main_body"/>
       <child link="link_${id}_1"/>
-      <origin rpy="0 0 ${-pi/4 -pi/2*(id-1)}" xyz="${base_offset}"/>
-      <axis xyz="0 1 0"/>
+      <origin rpy="0 0 ${3*pi/4 - pi/2*(id-1)}" xyz="${base_offset}"/>
+      <axis xyz="0 -1 0"/>
       <limit lower="0" upper="0.8727" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
       <dynamics damping="0.002" friction="0.2"/>
@@ -235,8 +235,8 @@
     <joint name="joint_${id}_2" type="revolute">
       <parent link="link_${id}_1"/>
       <child link="link_${id}_2"/>
-      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
-      <axis xyz="0 1 0"/>
+      <origin rpy="0 0 0" xyz="-${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 -1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
       <dynamics damping="0.002" friction="0.2"/>
@@ -245,8 +245,8 @@
     <joint name="joint_${id}_3" type="revolute">
       <parent link="link_${id}_2"/>
       <child link="link_${id}_rotor"/>
-      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
-      <axis xyz="0 1 0"/>
+      <origin rpy="0 0 0" xyz="-${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 -1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
       <dynamics damping="0.002" friction="0.2"/>
@@ -255,8 +255,8 @@
     <joint name="joint_${id}_4" type="revolute">
       <parent link="link_${id}_rotor"/>
       <child link="link_${id}_4"/>
-      <origin rpy="0 0 0" xyz="${link_length_r} 0.00 0.00"/>
-      <axis xyz="0 1 0"/>
+      <origin rpy="0 0 0" xyz="-${link_length_r} 0.00 0.00"/>
+      <axis xyz="0 -1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
       <dynamics damping="0.002" friction="0.2"/>
@@ -265,8 +265,8 @@
     <joint name="joint_${id}_5" type="revolute">
       <parent link="link_${id}_4"/>
       <child link="link_${id}_end"/>
-      <origin rpy="0 0 0" xyz="${link_length_n} 0.00 0.00"/>
-      <axis xyz="0 1 0"/>
+      <origin rpy="0 0 0" xyz="-${link_length_n} 0.00 0.00"/>
+      <axis xyz="0 -1 0"/>
       <limit lower="0" upper="1.047" effort="10" velocity="1.0"/>
       <!-- <dynamics damping="0.0005" friction="0.8"/> -->
       <dynamics damping="0.002" friction="0.2"/>
@@ -330,10 +330,10 @@
   <!-- <xacro:arm_module id="2" base_offset="0.0175 0.05391 -0.039"/> -->
   <!-- <xacro:arm_module id="3" base_offset="-0.05391 0.0175 -0.039"/> -->
   <!-- <xacro:arm_module id="4" base_offset="-0.0175 -0.05391 -0.039"/> -->
-  <xacro:arm_module id="1" base_offset=" 0.05391 -0.05391 -0.039"/>
-  <xacro:arm_module id="2" base_offset="-0.05391 -0.05391 -0.039"/>
-  <xacro:arm_module id="3" base_offset="-0.05391  0.05391 -0.039"/>
-  <xacro:arm_module id="4" base_offset=" 0.05391  0.05391 -0.039"/>
+  <xacro:arm_module id="1" base_offset=" 0.03812 -0.03812 -0.039"/>
+  <xacro:arm_module id="2" base_offset="-0.03812 -0.03812 -0.039"/>
+  <xacro:arm_module id="3" base_offset="-0.03812  0.03812 -0.039"/>
+  <xacro:arm_module id="4" base_offset=" 0.03812  0.03812 -0.039"/>
 
   <!-- spinal -->
   <xacro:extra_module name = "fc" parent = "main_body" visible = "0" >
