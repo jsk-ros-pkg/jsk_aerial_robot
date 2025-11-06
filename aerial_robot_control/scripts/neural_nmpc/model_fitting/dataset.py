@@ -1,13 +1,9 @@
+import os
+import yaml
+import rospkg
 import numpy as np
 from torch.utils.data import Dataset
-
-import os, sys
-
-import rospkg
-import yaml
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.statistic_utils import prune_dataset
+from utils.statistics_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.data_utils import undo_jsonify
 from utils.visualization_utils import plot_dataset
@@ -16,23 +12,18 @@ from utils.visualization_utils import plot_dataset
 class TrajectoryDataset(Dataset):
     """
     Dataset for training neural networks on trajectory data.
-    :param mode: 'residual' for residual networks, 'e2e' for end-to-end networks.
     """
 
-    # TODO dataset pruning based on samples with velocity outliers (idea from RTNMPC)
-    # TODO Normalization
     def __init__(
         self,
         dataframe,
-        mode,
-        delay,
         state_feats,
         u_feats,
         y_reg_dims,
         input_transform,
         label_transform,
+        delay,
         normalize_by_T_step,
-        T_step_controller,
         prune=True,
         histogram_pruning_n_bins=None,
         histogram_pruning_thresh=None,
@@ -42,10 +33,10 @@ class TrajectoryDataset(Dataset):
         save_file_name=None,
     ):
         self.df = dataframe
-        self.mode = mode
 
         ############ Read params for T_step_controller ############
-        params = read_params("control", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
+        # TODO adjust for different controllers
+        params = read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
         T_step_controller = params["T_step"]
         ###########################################################
 
@@ -53,7 +44,7 @@ class TrajectoryDataset(Dataset):
             state_feats, u_feats, y_reg_dims, input_transform, label_transform, normalize_by_T_step, T_step_controller
         )
         if prune and delay == 0:
-            # Don't prune when using temporal networks with history since pruning causes incontinuity
+            # Don't prune when using temporal networks with history since pruning causes incontinuities
             self.prune(state_feats, y_reg_dims, histogram_pruning_n_bins, histogram_pruning_thresh, vel_cap, plot)
         if delay > 0:
             self.append_history(delay, state_feats, u_feats)
@@ -128,25 +119,16 @@ class TrajectoryDataset(Dataset):
             pass
 
         # =============================================================
-        # Compute residual dynamics of predicted and disturbed state
+        # Compute residual dynamics of actual state and predicted (or "propagated") state
+        # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
         if normalize_by_T_step:
-            # Normalize by time step to get accelerations
-            if self.mode == "residual":
-                # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-                y = (state_out - state_prop) / T_step_controller
-            elif self.mode == "e2e":
-                y = (state_out - state_in) / T_step_controller
+            # Normalize by constant controller time step
+            y = (state_out - state_prop) / T_step_controller
         else:
-            if self.mode == "residual":
-                # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
-                y = (state_out - state_prop) / np.expand_dims(
-                    dt, 1
-                )  # TODO check that dt actually repesents time between in and out
-            elif self.mode == "e2e":
-                y = (state_out - state_in) / np.expand_dims(dt, 1)
+            y = (state_out - state_prop) / np.expand_dims(dt, 1)
         # =============================================================
 
-        # Store features
+        # Store data
         self.state_raw = state_raw
         self.state_in = state_in
         self.state_out = state_out
@@ -157,23 +139,23 @@ class TrajectoryDataset(Dataset):
         # Store network input
         self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
         # Store labels
-        self.y = y.astype(np.float32)[:, y_reg_dims]
+        self.y = y[:, y_reg_dims].astype(np.float32)
 
     def prune(self, state_feats, y_reg_dims, histogram_n_bins, histogram_thresh, vel_cap=None, plot=False):
         """
         Prune the dataset to remove samples with outliers in velocity.
         """
-        x_vel_idx = np.array([3, 4, 5])
-        y_vel_idx = np.array([3, 4, 5])
+        vel_idx = np.array([3, 4, 5])
         v_z_idx = np.array([5])
-        if set(x_vel_idx).issubset(set(state_feats)) and set(y_vel_idx).issubset(set(y_reg_dims)):
-            x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
-            y_vel_idx_real = np.where(np.in1d(y_reg_dims, y_vel_idx))[0]
-        elif set(x_vel_idx).issubset(set(state_feats)) and set(v_z_idx).issubset(set(y_reg_dims)):
-            x_vel_idx_real = np.where(np.in1d(state_feats, x_vel_idx))[0]
+        if set(vel_idx).issubset(set(state_feats)) and set(vel_idx).issubset(set(y_reg_dims)):
+            x_vel_idx_real = np.where(np.in1d(state_feats, vel_idx))[0]
+            y_vel_idx_real = np.where(np.in1d(y_reg_dims, vel_idx))[0]
+        elif set(vel_idx).issubset(set(state_feats)) and set(v_z_idx).issubset(set(y_reg_dims)):
+            # Only vz in labels
+            x_vel_idx_real = np.where(np.in1d(state_feats, vel_idx))[0]
             y_vel_idx_real = np.where(np.in1d(y_reg_dims, v_z_idx))[0]
         else:
-            print("[PRUNING] Velocity features not part of input and output, skipping pruning.")
+            print("[PRUNING] Velocity features not part of input AND output, skipping pruning.")
             # Pruning only works right now if the velocity features are part of the input and output
             return
 
@@ -246,7 +228,7 @@ class TrajectoryDataset(Dataset):
 
 def read_params(mode, method, robot_package, file_name):
     # Read parameters from configuration file in the robot's package
-    # 'mode' is either "control" or "estimation"
+    # 'mode' is either "controller" or "estimation"
     # 'method' is either "nmpc" or "mhe"
 
     rospack = rospkg.RosPack()

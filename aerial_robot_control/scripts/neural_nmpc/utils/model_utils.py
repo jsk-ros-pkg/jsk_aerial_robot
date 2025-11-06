@@ -1,15 +1,10 @@
-import os
+import os, sys
 import json
-
-import sys
+import numpy as np
+import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config.configurations import DirectoryConfig
-
-import torch
-import numpy as np
-from ml_casadi import torch as mc
 from network_architecture.mlp import MLP
 
 
@@ -76,19 +71,19 @@ def get_inverse_output_mapping(state_dim, y_reg_dims):
 
 
 def get_device():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
     if torch.cuda.is_available():
-        return torch.device("cuda")
+        device = "cuda"
     elif torch.backends.mps.is_available():
-        return torch.device("mps")
+        device = "mps"
     else:
-        return torch.device("cpu")
+        device = "cpu"
+    print(f"Using {device} device")
+    return torch.device(device)
 
 
 def load_model(model_options, sim_options, run_options):
     """
-    Load a pre-trained neural network for the NMPC controller.
+    Load a pre-trained neural network for the MPC controller.
     """
     # Load metadata from trained model
     neural_model_name = model_options["neural_model_name"]
@@ -98,7 +93,7 @@ def load_model(model_options, sim_options, run_options):
         metadata = json.load(json_file)[neural_model_name][neural_model_instance]
 
     # Cross-check simulation environment options with metadata
-    metadata = cross_check_options(model_options, sim_options, run_options, metadata)
+    cross_check_options(model_options, sim_options, run_options, metadata)
 
     # Define trained MLP model
     device = "cpu"  # get_device()  # TODO Make use of GPU later
@@ -135,7 +130,9 @@ def cross_check_options(model_options, sim_options, run_options, metadata):
             "NMPC type used in dataset for training the neural model doesn't match the simulation environment."
         )
 
-    if not run_options["real_machine"]:
+    if not run_options["real_machine"] and not (
+        sim_options["use_nominal_simulator"] or sim_options["use_real_world_simulator"]
+    ):
         for dist, value in sim_options["disturbances"].items():
             if dist not in metadata["ds_disturbances"]:
                 raise ValueError(
@@ -148,7 +145,6 @@ def cross_check_options(model_options, sim_options, run_options, metadata):
                     raise ValueError(
                         f"Disturbance '{dist}' used in dataset for training the neural model doesn't match the simulation environment."
                     )
-    return metadata
 
 
 def cross_check_params(nmpc_params, mlp_metadata):
@@ -167,69 +163,6 @@ def cross_check_params(nmpc_params, mlp_metadata):
 
     if nmpc_params["T_step"] != mlp_metadata["ds_nmpc_params"]["T_step"]:
         raise ValueError("Step time used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["w_max"] != mlp_metadata["ds_nmpc_params"]["w_max"]:
-    #     raise ValueError("Maximum angular velocity used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["w_min"] != mlp_metadata["ds_nmpc_params"]["w_min"]:
-    #     raise ValueError("Minimum angular velocity used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["v_max"] != mlp_metadata["ds_nmpc_params"]["v_max"]:
-    #     raise ValueError("Maximum linear velocity used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["v_min"] != mlp_metadata["ds_nmpc_params"]["v_min"]:
-    #     raise ValueError("Minimum linear velocity used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["thrust_max"] != mlp_metadata["ds_nmpc_params"]["thrust_max"]:
-    #     raise ValueError("Maximum thrust used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["thrust_min"] != mlp_metadata["ds_nmpc_params"]["thrust_min"]:
-    #     raise ValueError("Minimum thrust used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["a_max"] != mlp_metadata["ds_nmpc_params"]["a_max"]:
-    #     raise ValueError("Maximum linear acceleration used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["a_min"] != mlp_metadata["ds_nmpc_params"]["a_min"]:
-    #     raise ValueError("Minimum linear acceleration used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qp_xy"] != mlp_metadata["ds_nmpc_params"]["Qp_xy"]:
-    #     raise ValueError("Qp_xy used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qp_z"] != mlp_metadata["ds_nmpc_params"]["Qp_z"]:
-    #     raise ValueError("Qp_z used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qv_xy"] != mlp_metadata["ds_nmpc_params"]["Qv_xy"]:
-    #     raise ValueError("Qv_xy used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qv_z"] != mlp_metadata["ds_nmpc_params"]["Qv_z"]:
-    #     raise ValueError("Qv_z used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qq_xy"] != mlp_metadata["ds_nmpc_params"]["Qq_xy"]:
-    #     raise ValueError("Qq_xy used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qq_z"] != mlp_metadata["ds_nmpc_params"]["Qq_z"]:
-    #     raise ValueError("Qq_z used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qw_xy"] != mlp_metadata["ds_nmpc_params"]["Qw_xy"]:
-    #     raise ValueError("Qw_xy used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qw_z"] != mlp_metadata["ds_nmpc_params"]["Qw_z"]:
-    #     raise ValueError("Qw_z used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Qa"] != mlp_metadata["ds_nmpc_params"]["Qa"]:
-    #     raise ValueError("Qa used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Rt"] != mlp_metadata["ds_nmpc_params"]["Rt"]:
-    #     raise ValueError("Rt used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["Rac_d"] != mlp_metadata["ds_nmpc_params"]["Rac_d"]:
-    #     raise ValueError("Rac_d used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["linear_slack_weight"] != mlp_metadata["ds_nmpc_params"]["linear_slack_weight"]:
-    #     raise ValueError("linear_slack_weight used in dataset for training the neural model doesn't match the NMPC parameters.")
-
-    # if nmpc_params["quadratic_slack_weight"] != mlp_metadata["ds_nmpc_params"]["quadratic_slack_weight"]:
-    #     raise ValueError("quadratic_slack_weight used in dataset for training the neural model doesn't match the NMPC parameters.")
 
 
 def sanity_check_features_and_reg_dims(model_name, state_feats, u_feats, y_reg_dims, in_dim, out_dim, delay):

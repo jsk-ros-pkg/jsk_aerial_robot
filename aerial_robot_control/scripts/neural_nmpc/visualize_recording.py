@@ -8,9 +8,12 @@ from config.configurations import DirectoryConfig
 
 
 def plot_trajectory():
+    ###################################################
+    # Load recording
     recfile = os.path.join(DirectoryConfig.DATA_DIR, "NMPCTiltQdServo_residual_dataset", "dataset_003.csv")
     # recfile = '/home/johannes/ros/raw_neural_mpc/neural-mpc/ros_dd_mpc/data/simplified_sim_dataset/train/dataset_001.csv'
     rec_dict = pd.read_csv(recfile)
+    ###################################################
 
     state_in = undo_jsonify(rec_dict["state_in"].to_numpy())
     state_out = undo_jsonify(rec_dict["state_out"].to_numpy())

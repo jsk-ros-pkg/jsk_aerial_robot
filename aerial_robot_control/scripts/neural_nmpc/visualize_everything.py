@@ -1,12 +1,14 @@
-import os, torch
+import time
 import numpy as np
 import pandas as pd
+import torch
+import matplotlib.pyplot as plt
 from config.configurations import EnvConfig, ModelFitConfig
 from utils.data_utils import undo_jsonify
-import matplotlib.pyplot as plt
 from utils.geometry_utils import v_dot_q, quaternion_inverse
-from sim_environment.forward_prop import init_forward_prop
 from utils.model_utils import load_model
+from sim_environment.forward_prop import init_forward_prop
+from neural_controller_standalone import NeuralNMPC
 
 
 class struct(object):
@@ -30,23 +32,27 @@ def main():
         df = pd.read_csv(
             # "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_residual_dataset_04/dataset_001.csv"
             # "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_013.csv"
-            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_01/dataset_020.csv"
+            "/home/johannes/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/aerial_robot_control/scripts/neural_nmpc/data/NMPCTiltQdServo_real_machine_dataset_VAL_FOR_PAPER/dataset_003.csv"
+            # VAL: 1 (base), 3 (with ref)
         )
         vz_idx = 5
         q_idx = 6
         state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])  # , 10, 11, 12])
         # state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])  # , 10, 11, 12])
         u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
-        y_reg_dims = np.array([5])  # np.array([3, 4, 5])
+        # y_reg_dims = np.array([5])
+        y_reg_dims = np.array([3, 4, 5])
 
         # Define and load model
         model_options = EnvConfig.model_options
+        solver_options = EnvConfig.solver_options
         sim_options = EnvConfig.sim_options
         run_options = EnvConfig.run_options
         neural_model, mlp_metadata = load_model(model_options, sim_options, run_options)
         neural_model.eval()
 
     # Call data
+    timestamp = df["timestamp"].to_numpy()
     state_in = undo_jsonify(df["state_in"].to_numpy())
     state_out = undo_jsonify(df["state_out"].to_numpy())
     if RTNMPC:
@@ -56,6 +62,10 @@ def main():
         state_prop = undo_jsonify(df["state_prop"].to_numpy())
         control = undo_jsonify(df["control"].to_numpy())
     dt = df["dt"].to_numpy()[:, np.newaxis]
+    if "position_ref" in df.columns and "quaternion_ref" in df.columns:
+        has_ref = True
+        pos_ref = undo_jsonify(df["position_ref"].to_numpy())
+        quat_ref = undo_jsonify(df["quaternion_ref"].to_numpy())
 
     diff = (state_out - state_prop) / dt
     diff_const = (state_out - state_prop) / 0.01
@@ -81,6 +91,7 @@ def main():
         velocity_cap = ModelFitConfig.vel_cap  # Also remove datasets point if abs(velocity) > x_cap
 
         prune_idx = prune_dataset(x, y, velocity_cap, histogram_bins, histogram_threshold, plot=False)
+        timestamp = timestamp[prune_idx]
         state_in = state_in[prune_idx, :]
         state_out = state_out[prune_idx, :]
         state_prop = state_prop[prune_idx, :]
@@ -122,13 +133,14 @@ def main():
         state_in_mlp_in = state_in.copy()
 
     if OWN and mlp_metadata["ModelFitConfig"]["label_transform"]:
-        state_out_mlp_in = velocity_mapping(state_out)
-        state_prop_mlp_in = velocity_mapping(state_prop)
+        state_out_mlp_out = velocity_mapping(state_out)
+        state_prop_mlp_out = velocity_mapping(state_prop)
     else:
-        state_out_mlp_in = state_out.copy()
-        state_prop_mlp_in = state_prop.copy()
+        state_out_mlp_out = state_out.copy()
+        state_prop_mlp_out = state_prop.copy()
 
-    diff_mlp_in = (state_out_mlp_in - state_prop_mlp_in) / dt
+    diff_mlp_out = (state_out_mlp_out - state_prop_mlp_out) / dt
+    diff_const_mlp_out = (state_out_mlp_out - state_prop_mlp_out) / 0.01
 
     if RTNMPC:
         device = "cpu"
@@ -139,28 +151,28 @@ def main():
     mlp_in = torch.cat((state_in_mlp_in_tensor[:, state_feats], control_tensor[:, u_feats]), axis=1)
 
     plt.figure(figsize=(20, 5))
-    plt.title("State Out MLP In - State Pred MLP In")
+    plt.title("State Out MLP Out - State Pred MLP Out")
     plt.subplot(2, 1, 1)
-    plt.plot(state_out_mlp_in[:, vz_idx], label="state_out_mlp_in")
-    plt.plot(state_prop_mlp_in[:, vz_idx], label="state_prop_mlp_in")
+    plt.plot(state_out_mlp_out[:, vz_idx], label="state_out_mlp_out")
+    plt.plot(state_prop_mlp_out[:, vz_idx], label="state_prop_mlp_out")
     plt.ylabel("vz")
     plt.legend()
     plt.grid("on")
     plt.subplot(2, 1, 2)
-    plt.plot(diff_mlp_in[:, vz_idx], label="(state_out_mlp_in - state_pred_mlp_in) / dt", color="green")
+    plt.plot(diff_mlp_out[:, vz_idx], label="(state_out_mlp_out - state_pred_mlp_out) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
     plt.grid("on")
 
     plt.figure(figsize=(20, 5))
-    plt.title("State Out MLP In - State Pred MLP In")
+    plt.title("State Out MLP Out - State Pred MLP Out")
     plt.subplot(2, 1, 1)
     plt.plot(state_in_mlp_in[:, 2], label="state_in_mlp_in")
     plt.ylabel("z")
     plt.legend()
     plt.grid("on")
     plt.subplot(2, 1, 2)
-    plt.plot(diff_mlp_in[:, vz_idx], label="(state_out_mlp_in - state_pred_mlp_in) / dt", color="green")
+    plt.plot(diff_mlp_out[:, vz_idx], label="(state_out_mlp_out - state_pred_mlp_out) / dt", color="green")
     plt.ylabel("vz")
     plt.legend()
     plt.grid("on")
@@ -275,8 +287,8 @@ def main():
 
     # Plot true labels vs. actual regression
     y = mlp_out
-    y_true = diff
-    y_true_const = diff_const
+    y_true = diff_mlp_out
+    y_true_const = diff_const_mlp_out
     plt.subplots(figsize=(10, 5))
     plt.title("Model output vs. label")
     for i, dim in enumerate(y_reg_dims):
@@ -477,7 +489,7 @@ def main():
     # Plot simulation results for acceleration and the effect of the neural model
     plt.subplots(figsize=(10, 5))
     plt.title("Model Output")
-    if y_reg_dims == np.array([5]):
+    if set(y_reg_dims).issubset({5}):
         # Only vz
         plt.figure()
         plt.plot(lin_acc[:, 2], label="Acceleration by undisturbed model", color="tab:blue")
@@ -584,7 +596,93 @@ def main():
             plt.legend()
         plt.grid("on")
 
-    plt.tight_layout()
+    #########################################################
+    # Simulate state trajectory with real data
+    if OWN and has_ref:  # TODO look into why so much oscillation in neural
+        # --- Initialize controller ---
+        print("Start control comparison based on state_in with NMPC...")
+        model_options["only_use_nominal"] = True
+        rtnmpc_nominal = NeuralNMPC(
+            model_options=model_options, solver_options=solver_options, sim_options=sim_options, run_options=run_options
+        )
+        ocp_solver_nominal = rtnmpc_nominal.ocp_solver
+
+        model_options["only_use_nominal"] = False
+        model_options["minus_neural"] = False
+        model_options["plus_neural"] = True
+        rtnmpc_neural = NeuralNMPC(
+            model_options=model_options, solver_options=solver_options, sim_options=sim_options, run_options=run_options
+        )
+        ocp_solver_neural = rtnmpc_neural.ocp_solver
+
+        reference_generator = rtnmpc_nominal.get_reference_generator()
+
+        nx = rtnmpc_nominal.acados_model.x.shape[0]
+        nu = rtnmpc_nominal.acados_model.u.shape[0]
+        rec_dict = {
+            "timestamp": np.zeros((0, 1)),
+            "comp_time_nominal": np.zeros((0, 1)),
+            "comp_time_neural": np.zeros((0, 1)),
+            "state_ref": np.zeros((0, nx)),
+            "control_ref": np.zeros((0, nu)),
+            "control_nominal": np.zeros((0, nu)),
+            "control_neural": np.zeros((0, nu)),
+        }
+
+        # --- Simulate ---
+        # Initialize state
+        for t in range(state_in.shape[0]):
+            rec_dict["timestamp"] = np.vstack((rec_dict["timestamp"], timestamp[t]))
+
+            # Track current reference
+            pos_ref_curr = pos_ref[t, :]
+            quat_ref_curr = quat_ref[t, :]
+
+            state_ref, control_ref = reference_generator.compute_trajectory(
+                target_xyz=list(pos_ref_curr), target_qwxyz=list(quat_ref_curr)
+            )
+
+            rtnmpc_nominal.track(state_ref, control_ref)
+            rtnmpc_neural.track(state_ref, control_ref)
+
+            # Set parameters
+            for j in range(ocp_solver_nominal.N + 1):
+                ocp_solver_nominal.set(j, "p", rtnmpc_nominal.acados_parameters[j, :])
+                ocp_solver_neural.set(j, "p", rtnmpc_neural.acados_parameters[j, :])
+
+            # Solve OCP with neural model
+            comp_time_nominal_start = time.time()
+            u_cmd_nominal = ocp_solver_nominal.solve_for_x0(state_in[t, :])
+            rec_dict["comp_time_nominal"] = time.time() - comp_time_nominal_start
+
+            comp_time_neural_start = time.time()
+            u_cmd_neural = ocp_solver_neural.solve_for_x0(state_in[t, :])
+            rec_dict["comp_time_neural"] = time.time() - comp_time_neural_start
+
+            rec_dict["control_ref"] = np.append(
+                rec_dict["control_ref"], control_ref[np.newaxis, 0], axis=0  # TODO assume constant input
+            )
+            rec_dict["control_nominal"] = np.append(rec_dict["control_nominal"], u_cmd_nominal[np.newaxis, :], axis=0)
+            rec_dict["control_neural"] = np.append(rec_dict["control_neural"], u_cmd_neural[np.newaxis, :], axis=0)
+
+        # Plot control features
+        fig, _ = plt.subplots(figsize=(20, 5))
+        plt.title("Control input (Reference vs. Nominal vs. Neural)")
+        for dim in range(rec_dict["control_nominal"].shape[1] - 1, -1, -1):
+            plt.subplot(rec_dict["control_nominal"].shape[1], 1, dim + 1)
+            plt.plot(
+                timestamp, rec_dict["control_ref"][:, dim], label="Reference", color="black", linestyle="--", alpha=0.5
+            )
+            plt.plot(timestamp, rec_dict["control_nominal"][:, dim], label="Nominal")
+            plt.plot(timestamp, rec_dict["control_neural"][:, dim], label="Neural")
+            if dim == 0:
+                plt.legend()
+            plt.grid("on")
+            plt.xlim(timestamp[0], timestamp[-1])
+            if dim != state_in.shape[1] - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_ticklabels([])
+
     plt.show()
     halt = 1
 
