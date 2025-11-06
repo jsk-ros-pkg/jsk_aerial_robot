@@ -30,6 +30,7 @@ from config.configurations import DirectoryConfig
 from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q
 from utils.data_utils import safe_mkdir_recursive
 from sim_environment.forward_prop import init_forward_prop
+from neural_controller_standalone import NeuralNMPC
 
 frames = []
 
@@ -190,13 +191,19 @@ def draw_robot(
 
     # Draw previous trajectory projections
     projected_traj_artists[0].set_data_3d(
-        ax.get_xlim()[0], trajectory_history[trajectory_start_pt:, 1], trajectory_history[trajectory_start_pt:, 2]
+        np.full_like(trajectory_history[trajectory_start_pt:, 1], ax.get_xlim()[0]),
+        trajectory_history[trajectory_start_pt:, 1],
+        trajectory_history[trajectory_start_pt:, 2],
     )
     projected_traj_artists[1].set_data_3d(
-        trajectory_history[trajectory_start_pt:, 0], ax.get_ylim()[1], trajectory_history[trajectory_start_pt:, 2]
+        trajectory_history[trajectory_start_pt:, 0],
+        np.full_like(trajectory_history[trajectory_start_pt:, 2], ax.get_ylim()[1]),
+        trajectory_history[trajectory_start_pt:, 2],
     )
     projected_traj_artists[2].set_data_3d(
-        trajectory_history[trajectory_start_pt:, 0], trajectory_history[trajectory_start_pt:, 1], ax.get_zlim()[0]
+        trajectory_history[trajectory_start_pt:, 0],
+        trajectory_history[trajectory_start_pt:, 1],
+        np.full_like(trajectory_history[trajectory_start_pt:, 0], ax.get_zlim()[0]),
     )
     [ax.draw_artist(projected_traj_artist) for projected_traj_artist in projected_traj_artists]
 
@@ -479,6 +486,9 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
             plt.title("Network Inputs (pruned & transformed)")
         plt.grid("on")
         plt.ylabel(f"D{dim}")
+        if dim != x.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
     plt.tight_layout()
     figures.append(fig)
 
@@ -491,6 +501,9 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
             plt.title("Labels (pruned & possibly transformed)")
         plt.grid("on")
         plt.ylabel(f"D{dim}")
+        if dim != y.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
     plt.tight_layout()
     figures.append(fig)
 
@@ -504,6 +517,9 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
         if dim == 0:
             plt.title("State Out - State Pred")
         plt.grid("on")
+        if dim != state_in.shape[1] - 1:
+            ax = plt.gca()
+            ax.axes.xaxis.set_ticklabels([])
 
     for dim in range(state_in.shape[1]):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 2)
@@ -526,11 +542,12 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
             )
 
 
-def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False):
+def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralNMPC, dist_dict=None, save=False):
     figures = []
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
     state_prop = rec_dict["state_prop"]
+    state_ref = rec_dict["target"]
     control = rec_dict["control"]
     timestamp = rec_dict["timestamp"]
 
@@ -538,6 +555,7 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
     fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 1, dim + 1)
+        plt.plot(timestamp, state_ref[:, dim], label="state_ref", color="r", linestyle="--", alpha=0.8)
         plt.plot(timestamp, state_in[:, dim], label="state_in")
         plt.plot(timestamp, state_out[:, dim], label="state_out")
         plt.plot(timestamp, state_prop[:, dim], label="state_prop")
@@ -560,17 +578,36 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
     for dim in range(control.shape[1] - 1, -1, -1):
         plt.subplot(control.shape[1], 1, dim + 1)
         plt.plot(timestamp, control[:, dim])
+        if dim < 4:
+            plt.ylabel(f"Thrust {dim}")
+        else:
+            plt.ylabel(f"Servo {dim - 4}")
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
-        if dim != state_in.shape[1] - 1:
+        if dim != control.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
     mng = plt.get_current_fig_manager()
     mng.resize(*mng.window.maxsize())
     figures.append(fig)
 
+    # Plot in z feature
+    fig = plt.figure(figsize=(20, 5))
+    plt.plot(timestamp, state_ref[:, 2], label="state_ref", color="r", linestyle="--", alpha=0.8)
+    plt.plot(timestamp, state_in[:, 2], label="state_in")
+    plt.plot(timestamp, state_out[:, 2], label="state_out")
+    plt.plot(timestamp, state_prop[:, 2], label="state_prop")
+    plt.grid("on")
+    plt.title("Dim 2 zoom in")
+    plt.legend()
+    plt.xlim(timestamp[0], timestamp[-1])
+    mng = plt.get_current_fig_manager()
+    mng.resize(*mng.window.maxsize())
+    figures.append(fig)
+
     # Plot in vz feature
     fig = plt.figure(figsize=(20, 5))
+    plt.plot(timestamp, state_ref[:, 5], label="state_ref", color="r", linestyle="--", alpha=0.8)
     plt.plot(timestamp, state_in[:, 5], label="state_in")
     plt.plot(timestamp, state_out[:, 5], label="state_out")
     plt.plot(timestamp, state_prop[:, 5], label="state_prop")
@@ -603,7 +640,7 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
     # Plot labels for neural network regression
     dt = np.expand_dims(rec_dict["dt"], 1)
     diff = state_out - state_prop
-    if rtnmpc.mlp_metadata["ModelFitConfig"]["normalize_by_T_step"]:
+    if rtnmpc.use_mlp and rtnmpc.mlp_metadata["ModelFitConfig"]["normalize_by_T_step"]:
         y_true = diff / rtnmpc.T_step
     else:
         y_true = diff / dt
@@ -642,8 +679,8 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
             for t in range(state_in.shape[0]):
                 v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
                 state_b[t, :] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
-        state_b_torch = torch.from_numpy(state_b[:, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cuda"))
-        control_torch = torch.from_numpy(control[:, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cuda"))
+        state_b_torch = torch.from_numpy(state_b[:, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cpu"))
+        control_torch = torch.from_numpy(control[:, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cpu"))
         mlp_in = torch.cat((state_b_torch, control_torch), dim=1)
         # Forward call MLP
         rtnmpc.neural_model.eval()
@@ -656,12 +693,12 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
                     v_idx = np.where(rtnmpc.y_reg_dims == 3)[0][0]  # Assumed that v_x, v_y, v_z are consecutive
                     v_b = mlp_out[t, v_idx : v_idx + 3]
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 3 :]), axis=1)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 3 :]), axis=0)
                 elif set([4, 5]).issubset(set(rtnmpc.y_reg_dims)):
                     v_idx = np.where(rtnmpc.y_reg_dims == 4)[0][0]  # Assumed that v_y, v_z are consecutive
                     v_b = np.append(0, mlp_out[t, v_idx : v_idx + 2])
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10]).T
-                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 2 :]), axis=1)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 2 :]), axis=0)
                 elif set([5]).issubset(set(rtnmpc.y_reg_dims)):
                     # Predict only v_z so set v_x and v_y to 0 in Body frame and then transform to World frame
                     # The predicted v_z therefore also has influence on the x and y velocities in World frame
@@ -669,11 +706,11 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
                     v_idx = np.where(rtnmpc.y_reg_dims == 5)[0][0]
                     v_b = np.append(np.array([0, 0]), mlp_out[t, v_idx])
                     v_w = v_dot_q(v_b.T, state_in[t, 6:10])[:, np.newaxis]
-                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 1 :]), axis=1)
+                    mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 1 :]), axis=0)
 
         # Scale by weight
         if model_options["scale_by_weight"]:
-            mlp_out /= rtnmpc.nmpc.phys.mass
+            mlp_out /= rtnmpc.phys.mass
 
         # Plot true labels vs. actual regression
         y = mlp_out
@@ -754,21 +791,25 @@ def plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=None, save=False)
         figures.append(fig)
 
         # Simulate intermediate acceleration vector before integration
-        dynamics, _, _ = init_forward_prop(rtnmpc.nmpc)
+        dynamics, _, _ = init_forward_prop(rtnmpc)
         x_dot = np.empty(state_in.shape)
         for t in range(state_in.shape[0]):
             x_dot[t, :] = np.array(dynamics(x=state_in[t, :], u=control[t, :])["x_dot"]).squeeze()
         lin_acc = x_dot[:, 3:6]
-        lin_acc_dist = lin_acc + dist_dict["cog_dist"][1::2, :3] / rtnmpc.nmpc.phys.mass
+        if sim_options["disturbances"]["cog_dist"]:
+            lin_acc_dist = lin_acc + dist_dict["cog_dist"][1::2, :3] / rtnmpc.phys.mass
 
         fig, _ = plt.subplots(figsize=(10, 5))
         plt.title("Model Output")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(len(rtnmpc.y_reg_dims), 1, i + 1)
-            plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model", color="tab:blue")
-            plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="tab:olive")
-            plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="tab:orange")
-            plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="tab:brown")
+            plt.plot(lin_acc[:, i], label="Acceleration by undisturbed model")
+            if sim_options["disturbances"]["cog_dist"]:
+                plt.plot(lin_acc_dist[:, i], label="Acceleration by disturbed model", color="olive")
+                plt.plot(lin_acc_dist[:, i] + y[:, i], label="Neural Compensation (+)", color="orange")
+                plt.plot(lin_acc_dist[:, i] - y[:, i], label="Neural Compensation (-)", color="brown")
+            else:
+                plt.plot(lin_acc[:, i] + y[:, i], label="Neural Compensation (+)", color="orange")
             plt.ylabel(f"D{dim}")
             if i == 0:
                 plt.legend()
@@ -830,9 +871,9 @@ def plot_fitting(total_losses, inference_times, learning_rates, save_file_path=N
     ax2.legend()
     # Adjust layout and display
     plt.tight_layout()
-    plt.show()
     if save_file_path is not None and save_file_name is not None:
         fig.savefig(os.path.join(save_file_path + "/plot", f"{save_file_name}_plot.png"), dpi=300, bbox_inches="tight")
+    plt.show()
 
 
 def plot_disturbances(dist_dict, save=False):
