@@ -204,7 +204,7 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def loss_function(y, y_pred, weight, *args):
+def loss_function(y, y_pred, weight, *_):
     # Weight each dimension
     return (torch.square(y - y_pred) * weight).mean()
 
