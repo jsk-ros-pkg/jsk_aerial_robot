@@ -13,7 +13,7 @@ from utils.reference_utils import sample_random_target
 from utils.geometry_utils import unit_quaternion, euclidean_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory, plot_disturbances
 from config.configurations import EnvConfig
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def main(model_options, solver_options, dataset_options, sim_options, run_options):

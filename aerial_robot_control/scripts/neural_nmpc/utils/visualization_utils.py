@@ -30,7 +30,7 @@ from config.configurations import DirectoryConfig
 from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_inverse, q_dot_q
 from utils.data_utils import safe_mkdir_recursive
 from sim_environment.forward_prop import init_forward_prop
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 frames = []
 

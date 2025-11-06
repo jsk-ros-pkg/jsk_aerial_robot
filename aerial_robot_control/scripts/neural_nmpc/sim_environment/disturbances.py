@@ -1,6 +1,6 @@
 import numpy as np
 from acados_template import AcadosSimSolver
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def apply_cog_disturbance(sim_solver: AcadosSimSolver, rtnmpc: NeuralNMPC, cog_dist_factor, u_cmd, state):

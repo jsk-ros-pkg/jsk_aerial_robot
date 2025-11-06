@@ -8,7 +8,7 @@ from utils.data_utils import undo_jsonify
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.model_utils import load_model
 from sim_environment.forward_prop import init_forward_prop
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 class struct(object):

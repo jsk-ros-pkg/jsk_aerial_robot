@@ -4,7 +4,7 @@ import casadi as ca
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.geometry_utils import skew_symmetric
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def init_forward_prop(mpc: NeuralNMPC):

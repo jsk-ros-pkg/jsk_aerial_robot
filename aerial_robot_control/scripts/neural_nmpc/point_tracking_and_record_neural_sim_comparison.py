@@ -9,7 +9,7 @@ from utils.reference_utils import sample_random_target
 from utils.geometry_utils import unit_quaternion, euclidean_dist
 from visualize_comparison_icra_2026 import plot_comparison
 from config.configurations import EnvConfig
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def main(model_options, solver_options, dataset_options, sim_options, run_options):

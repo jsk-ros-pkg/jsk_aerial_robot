@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from sim_environment.forward_prop import init_forward_prop
 from utils.model_utils import load_model
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))

@@ -1,6 +1,6 @@
 import numpy as np
 from acados_template import AcadosOcpSolver
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def check_state_constraints(ocp_solver: AcadosOcpSolver, state_curr, i):

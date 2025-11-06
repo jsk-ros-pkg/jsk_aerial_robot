@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from acados_template import AcadosModel, AcadosOcpSolver, AcadosSim, AcadosSimSolver
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 
 def create_acados_sim_solver(mpc: NeuralNMPC, acados_model: AcadosModel, T_sim) -> AcadosSimSolver:

@@ -10,7 +10,7 @@ from config.configurations import DirectoryConfig, EnvConfig, ModelFitConfig
 from utils.data_utils import safe_mkdir_recursive, undo_jsonify, read_dataset
 from sim_environment.forward_prop import init_forward_prop
 from utils.model_utils import load_model
-from neural_controller_standalone import NeuralNMPC
+from neural_controller import NeuralNMPC
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
