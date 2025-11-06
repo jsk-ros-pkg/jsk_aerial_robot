@@ -119,7 +119,7 @@ class QDNMPCReferenceGenerator:
                 a_ref[i] += 2 * np.pi
         return a_ref
 
-    def compute_trajectory(self, target_xyz, target_rpy):
+    def compute_trajectory(self, target_xyz, target_rpy=None, target_qwxyz=None):
         """
         Convert current target pose to a reference trajectory over the entire horizon.
         Compute target quaternions and control reference from a target rotation and then
@@ -130,17 +130,19 @@ class QDNMPCReferenceGenerator:
         :return xr: Reference for the state x
         :return ur: Reference for the input u
         """
-        if len(target_xyz) != 3 or len(target_rpy) != 3:
+        if len(target_xyz) != 3 and target_rpy is not None and len(target_rpy) != 3:
             raise ValueError("Target state should be given in xyz and rpy.")
-        roll = target_rpy[0]
-        pitch = target_rpy[1]
-        yaw = target_rpy[2]
 
-        qwxyz = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
-        target_qwxyz = np.array([qwxyz]).T
+        if target_qwxyz is None:
+            roll = target_rpy[0]
+            pitch = target_rpy[1]
+            yaw = target_rpy[2]
+
+            qwxyz = tf.quaternion_from_euler(roll, pitch, yaw, axes="sxyz")
+            target_qwxyz = np.array([qwxyz]).squeeze()
 
         # Convert [0,0,gravity] to Body frame
-        q_inv = tf.quaternion_conjugate(qwxyz)
+        q_inv = tf.quaternion_conjugate(target_qwxyz)
         rot_inv = tf.quaternion_matrix(q_inv)
         fg_w = np.array([0, 0, self.mass * self.gravity, 0])  # World frame
         fg_b = rot_inv @ fg_w  # Body frame
@@ -174,3 +176,109 @@ class QDNMPCReferenceGenerator:
         xr, ur = self.nmpc.get_reference(target_xyz, target_qwxyz, ft_ref, a_ref)
 
         return xr, ur
+
+    def get_pose_from_trajectory(self, traj: str, t: float, T: float = 10.0):
+        """
+        Get the reference pose at time t from the trajectory.
+
+        :param traj: Name of the trajectory
+        :param t: Current time
+        :return: Reference position and orientation (xyz, qwxyz)
+        """
+        if traj == "hover":
+            x, y, z = 0.0, 0.0, 0.5
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "takeoff":
+            x, y = 0.0, 0.0
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+            z_final = 0.5
+            z = z_final * t / T
+
+        elif traj == "smooth_takeoff":
+            x, y = 0.0, 0.0
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+            z_final = 0.5
+            z = z_final / (1 + 100 * np.exp(-t * 10 / T))
+
+        elif traj == "circle":
+            radius = 1.0
+            omega = 4 * np.pi / T
+
+            x = radius * np.cos(omega * t)
+            y = radius * np.sin(omega * t)
+            z = 0.2 + 0.05 * np.sin(omega * t)
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "line":
+            v = 0.2  # m/s
+
+            x = -1.0 + v * t
+            y = 0.0
+            z = 0.3
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "helix":
+            radius = 0.5
+            omega = 4 * np.pi / T
+            vz = 0.1  # m/s
+
+            x = radius * np.cos(omega * t)
+            y = radius * np.sin(omega * t)
+            z = 0.3 + vz * t
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "step":
+            if t < T / 3:
+                x = 1.0
+                y = 0.0
+                z = 0.5
+            elif T / 3 <= t < 2 * T / 3:
+                x = 0.0
+                y = 1.0
+                z = 1.0
+            else:
+                x = 0.0
+                y = -1.0
+                z = 0.5
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "lemniscate_I":
+            a = 1.0
+            omega = 2 * np.pi / T  # one lemniscate in T seconds
+            z_range = 0.1
+
+            t = t + T / 4  # shift the phase to make the trajectory start at the origin
+
+            x = a * np.sin(omega * t) / (1 + np.cos(omega * t) ** 2)
+            y = a * np.sin(omega * t) * np.cos(omega * t) / (1 + np.cos(omega * t) ** 2)
+            z = 0.4 + z_range * np.sin(omega * t)
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        elif traj == "lemniscate_II":
+            a = 1.0
+            omega = 2 * np.pi / T  # one lemniscate in T seconds
+            z_range = 0.3
+
+            t = t + T / 4  # shift the phase to make the trajectory start at the origin
+
+            x = a * np.cos(omega * t)
+            y = a * np.sin(2 * omega * t) / 2
+            z = z_range * np.sin(2 * omega * t + np.pi / 2) + 0.6  # + 1.0
+
+            roll, pitch, yaw = 0.0, 0.0, 0.0
+
+        else:
+            raise ValueError(f"Trajectory {traj} not valid.")
+
+        if t <= T:
+            return x, y, z, roll, pitch, yaw
+        else:
+            return None
