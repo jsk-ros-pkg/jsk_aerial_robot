@@ -33,6 +33,26 @@ class BaseTraj:
         return qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate, roll_acc, pitch_acc, yaw_acc
 
 
+class SmoothTakeoffTraj(BaseTraj):
+    def __init__(self, loop_num: int = 1) -> None:
+        super().__init__(loop_num)
+        self.T = 10.0  # total time for takeoff
+        self.z_final = 0.8 + 0.5  # final height after takeoff
+
+        self.t_total = self.T * self.loop_num
+
+    def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
+        x, y = 0.0, 0.0
+        vx, vy = 0.0, 0.0
+        ax, ay = 0.0, 0.0
+
+        z = self.z_final * t / self.T
+        vz = self.z_final / self.T
+        az = 0.0
+
+        return x, y, z, vx, vy, vz, ax, ay, az
+
+
 class BaseTrajwFixedRotor(BaseTraj):
     def __init__(self, loop_num: int = np.inf) -> None:
         super().__init__(loop_num)
@@ -64,7 +84,7 @@ class CircleTraj(BaseTraj):
     def get_3d_pt(self, t: float) -> Tuple[float, float, float, float, float, float, float, float, float]:
         x = self.r * np.cos(self.omega * t)  # - 1
         y = self.r * np.sin(self.omega * t)
-        z = 0.01 + 0.3  # ~0.2 is height of legs to offset coordinate system origin
+        z = 0.1 + 0.3  # ~0.2 is height of legs to offset coordinate system origin
         vx = -self.r * self.omega * np.sin(self.omega * t)
         vy = self.r * self.omega * np.cos(self.omega * t)
         vz = 0.0
