@@ -1,6 +1,5 @@
-import os
+import os, sys
 import time
-import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
@@ -8,11 +7,7 @@ from progress_table import ProgressTable
 from torchsummary import summary
 from decimal import Decimal
 
-import sys
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import ml_casadi.torch as mc  # Propietary library for approximated MLP [https://ieeexplore.ieee.org/document/10049101/]
 
 from dataset import TrajectoryDataset
 from network_architecture.mlp import MLP
@@ -29,36 +24,30 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     ds_instance = ModelFitConfig.ds_instance
     sanity_check_dataset(ds_name, ds_instance)
 
-    # === Define model input and output features ===
+    # Define model input and output features
     state_feats = ModelFitConfig.state_feats
     u_feats = ModelFitConfig.u_feats
     y_reg_dims = ModelFitConfig.y_reg_dims
 
-    # === Set save path and populate metadata ===
+    # Set save path and populate metadata
     if save or plot:
         save_file_path, save_file_name = get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name)
 
-    # === Raw data ===
+    # Raw data
     df = read_dataset(ds_name, ds_instance)
 
     # === Datasets ===
-    # TODO prune wrt angular velocity as well
-    if "residual" in MLPConfig.model_name:
-        mode = "residual"
-    elif "e2e" in MLPConfig.model_name:
-        mode = "e2e"
-    else:
-        raise ValueError(f"Unsupported model name: {MLPConfig.model_name}")
-    print("Loading the dataset...")
+    # TODO prune w.r.t. angular velocity as well
+    print("Loading dataset...")
     dataset = TrajectoryDataset(
         df,
-        mode,
-        MLPConfig.delay_horizon,
         state_feats,
         u_feats,
         y_reg_dims,
         ModelFitConfig.input_transform,
         ModelFitConfig.label_transform,
+        MLPConfig.delay_horizon,
+        ModelFitConfig.normalize_by_T_step,
         prune=ModelFitConfig.prune,
         histogram_pruning_n_bins=ModelFitConfig.histogram_n_bins,
         histogram_pruning_thresh=ModelFitConfig.histogram_thresh,
@@ -106,10 +95,14 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     summary(model, (in_dim,))
 
     # === Loss function ===
-    loss_fn = loss_function
+    if MLPConfig.l1_lambda > 0.0:
+        loss_fn = loss_function_l1
+    else:
+        loss_fn = loss_function
     if len(MLPConfig.loss_weight) != out_dim:
         raise ValueError("Loss weight doesn't match output dimension!")
     weight = torch.tensor(MLPConfig.loss_weight).to(device)
+    l1_lambda = torch.tensor(MLPConfig.l1_lambda).to(device)
 
     # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
@@ -120,7 +113,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             )
         elif MLPConfig.lr_scheduler == "LambdaLR":
             # Divide here since lambda func returns a multiplier for the base lr
-            lr_func = lambda epoch: max(0.99**epoch, 1e-5 / 1e-3)
+            lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
@@ -128,9 +121,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             raise ValueError(f"Unsupported learning rate scheduler: {MLPConfig.lr_scheduler}")
     learning_rates = []
 
-    # === Training Loop ===
-    print("==========================================")
-    print("Starting training...")
+    # === Logging ===
     total_losses = {"train": [], "val": []}
     inference_times = []
     table = ProgressTable(
@@ -140,7 +131,6 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         # pbar_style="angled alt red blue",
         num_decimal_places=6,
     )
-
     table.add_column("Epoch", color="white", width=13)
     table.add_column("Step", color="DIM", width=13)
     table.add_column("Train Loss", color="red", width=25)
@@ -148,15 +138,20 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Inference Time", width=19)
     table.add_column("Learning Rate", width=13)
 
+    # === Training Loop ===
+    print("==========================================")
+    print("Starting training...")
     for t in table(MLPConfig.num_epochs, show_throughput=False, show_eta=True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
 
-        # === Training ===
-        train_losses = train(train_dataloader, model, loss_fn, weight, optimizer, device, table)
+        # === Train Step ===
+        train_losses = train(train_dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table)
         total_losses["train"].append(train_losses)
 
         # === Validation ===
-        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, device, table=table)
+        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, l1_lambda, device)
+        table["Val Loss"] = val_losses
+        table["Inference Time"] = f"{inference_time:.2f} ms"
         total_losses["val"].append(val_losses)
         inference_times.append(inference_time)
 
@@ -187,8 +182,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Testing ===
     if test:
-        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, device, validation=False)
+        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, l1_lambda, device)
         total_losses["test"] = test_losses
+        print(f"Test avg loss: {test_losses:>8f}")
 
     # === Store metrics ===
     log_metrics(total_losses, inference_times, learning_rates, save_file_path, save_file_name)
@@ -208,17 +204,25 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def loss_function(y, y_pred, weight):
-    # Weight each dimension differently
+def loss_function(y, y_pred, weight, *args):
+    # Weight each dimension
     return (torch.square(y - y_pred) * weight).mean()
+
+
+def loss_function_l1(y, y_pred, weight, l1_lambda, model):
+    # Weight each dimension
+    ls_loss = (torch.square(y - y_pred) * weight).mean()
+    # L1 regularization
+    l1_loss = l1_lambda * sum(p.abs().sum() for p in model.parameters())
+    return ls_loss + l1_loss
 
 
 def get_optimizer(model, learning_rate):
     optimizer_class = getattr(torch.optim, MLPConfig.optimizer)
-    return optimizer_class(model.parameters(), lr=learning_rate)
+    return optimizer_class(model.parameters(), lr=learning_rate, weight_decay=MLPConfig.weight_decay)
 
 
-def train(dataloader, model, loss_fn, weight, optimizer, device, table):
+def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table):
     size = len(dataloader.dataset)
     model.train()
     loss_avg = 0.0
@@ -231,7 +235,7 @@ def train(dataloader, model, loss_fn, weight, optimizer, device, table):
         y_pred = model(x)
 
         # === Loss ===
-        loss = loss_fn(y, y_pred, weight)
+        loss = loss_fn(y, y_pred, weight, l1_lambda, model)
 
         # === Backpropagation ===
         loss.backward()
@@ -248,7 +252,10 @@ def train(dataloader, model, loss_fn, weight, optimizer, device, table):
     return loss_avg
 
 
-def inference(dataloader, model, loss_fn, weight, device, table=None, validation=True):
+def inference(dataloader, model, loss_fn, weight, l1_lambda, device):
+    """
+    Combined inference function for validation and testing.
+    """
     model.eval()
     loss_avg = 0.0
     mov_size = 0
@@ -263,7 +270,7 @@ def inference(dataloader, model, loss_fn, weight, device, table=None, validation
             inference_times.append(time.time() - timer)
 
             # === Loss ===
-            loss = loss_fn(y, y_pred, weight).cpu().numpy()
+            loss = loss_fn(y, y_pred, weight, l1_lambda, model).cpu().numpy()
 
             # === Logging ===
             # Weighted moving average
@@ -271,14 +278,8 @@ def inference(dataloader, model, loss_fn, weight, device, table=None, validation
             prev_mov_size = mov_size
             mov_size += batch_size
             loss_avg = (loss_avg * prev_mov_size + loss * batch_size) / mov_size
-            if validation:
-                table["Val Loss"] = loss_avg
             # TODO implement some form of accuracy metric
     time_avg = np.mean(inference_times) * 1000  # in ms
-    if validation:
-        table["Inference Time"] = f"{time_avg:.2f} ms"
-    else:
-        print(f"Test avg loss: {loss_avg:>8f}")
     return loss_avg, time_avg
 
 
