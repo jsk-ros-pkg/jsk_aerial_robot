@@ -58,7 +58,6 @@ public:
 
     if(pwm_htim2_)
       {
-	HAL_TIM_PWM_Stop(pwm_htim2_, TIM_CHANNEL_1);
 	HAL_TIM_Base_Stop(pwm_htim2_);
 	HAL_TIM_Base_DeInit(pwm_htim2_);
 
@@ -74,7 +73,6 @@ public:
 
 	while(HAL_TIM_Base_Init(pwm_htim2_) != HAL_OK);
 	while(HAL_TIM_PWM_Init(pwm_htim2_) != HAL_OK);
-	while(HAL_TIM_PWM_ConfigChannel(pwm_htim2_, &sConfigOC, TIM_CHANNEL_1) != HAL_OK);
 
 	if (pwm_htim2_->hdma[TIM_DMA_ID_UPDATE] != NULL) {
 	  HAL_DMA_DeInit(pwm_htim2_->hdma[TIM_DMA_ID_UPDATE]);
@@ -102,11 +100,11 @@ public:
       }
     if(pwm_htim2_)
       {
-	pwm_htim2_->Instance->CCR1 = (uint32_t)(init_duty_[0] / MAX_DUTY * MAX_PWM);
-	pwm_htim2_->Instance->CCR2 = (uint32_t)(init_duty_[1] / MAX_DUTY * MAX_PWM);
-	pwm_htim2_->Instance->CCR3 = (uint32_t)(init_duty_[2] / MAX_DUTY * MAX_PWM);
+	pwm_htim2_->Instance->CCR1 = (uint32_t)(init_angle_[0] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+	pwm_htim2_->Instance->CCR2 = (uint32_t)(init_angle_[1] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+	pwm_htim2_->Instance->CCR3 = (uint32_t)(init_angle_[2] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+	pwm_htim2_->Instance->CCR4 = (uint32_t)(init_angle_[3] / ANGLE_RANGE * pwm_htim2_->Init.Period);
       }
-
   }
 
 private:
@@ -117,7 +115,7 @@ private:
   ros::Subscriber<spinal::ServoControlCmd, ExtraServo> extra_servo_init_duty_sub_;
 
   float init_duty_[6] = {}; //[ms]
-
+  float init_angle_[4] = {90, 90, 90, 90}; //[degree]
   TIM_HandleTypeDef* pwm_htim1_;
   TIM_HandleTypeDef* pwm_htim2_;
 
@@ -146,22 +144,34 @@ private:
 		pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim1_->Init.Period);
               break;
             }
-          case 3:
+	  case 3:
             {
-	      if(pwm_htim2_)
-		pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR4 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim1_->Init.Period);
               break;
             }
           case 4:
             {
 	      if(pwm_htim2_)
-		pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+		pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
               break;
             }
           case 5:
             {
 	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+              break;
+            }
+          case 6:
+            {
+	      if(pwm_htim2_)
 		pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
+              break;
+            }
+	   case 7:
+            {
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR4 = (uint32_t)(cmd_msg.angles[i] / ANGLE_RANGE * pwm_htim2_->Init.Period);
               break;
             }
           default:
@@ -203,22 +213,34 @@ private:
 		pwm_htim1_->Instance->CCR3 = 0;
               break;
             }
-          case 3:
+	  case 3:
             {
-	      if(pwm_htim2_)
-		pwm_htim2_->Instance->CCR1 = 0;
+	      if(pwm_htim1_)
+		pwm_htim1_->Instance->CCR4 = 0;
               break;
             }
           case 4:
             {
 	      if(pwm_htim2_)
-		pwm_htim2_->Instance->CCR2 = 0;
+		pwm_htim2_->Instance->CCR1 = 0;
               break;
             }
           case 5:
             {
 	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR2 = 0;
+              break;
+            }
+          case 6:
+            {
+	      if(pwm_htim2_)
 		pwm_htim2_->Instance->CCR3 = 0;
+              break;
+            }
+	  case 7:
+            {
+	      if(pwm_htim2_)
+		pwm_htim2_->Instance->CCR4 = 0;
               break;
             }
           default:
