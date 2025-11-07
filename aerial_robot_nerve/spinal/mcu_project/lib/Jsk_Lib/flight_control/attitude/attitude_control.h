@@ -40,6 +40,7 @@
 #include <std_srvs/SetBool.h>
 #include <spinal/Pwms.h>
 #include <spinal/PwmTest.h>
+#include <spinal/Thrust.h>
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerms.h>
 #include <spinal/PwmInfo.h>
@@ -60,6 +61,7 @@
 #define CONTROL_TERM_PUB_INTERVAL 100
 #define CONTROL_FEEDBACK_STATE_PUB_INTERVAL 25
 #define PWM_PUB_INTERVAL 100 //100ms
+#define THRUST_PUB_INTERVAL 100 //100ms
 
 #define MOTOR_TEST 0
 
@@ -110,9 +112,11 @@ private:
   ros::NodeHandle* nh_;
 
   ros::Publisher pwms_pub_;
+  ros::Publisher thrust_pub_;
   ros::Publisher control_term_pub_;
   ros::Publisher control_feedback_state_pub_;
   spinal::Pwms pwms_msg_;
+  spinal::Thrust thrust_msg_;
   spinal::RollPitchYawTerms control_term_msg_;
   spinal::RollPitchYawTerm control_feedback_state_msg_;
 
@@ -199,6 +203,7 @@ private:
   uint32_t voltage_update_last_time_;
   uint32_t control_term_pub_last_time_, control_feedback_state_pub_last_time_;
   uint32_t pwm_pub_last_time_;
+  uint32_t thrust_pub_last_time_;
   float pwm_test_value_[MAX_MOTOR_NUMBER]; // PWM Test
 
   void fourAxisCommandCallback( const spinal::FourAxisCommand &cmd_msg);

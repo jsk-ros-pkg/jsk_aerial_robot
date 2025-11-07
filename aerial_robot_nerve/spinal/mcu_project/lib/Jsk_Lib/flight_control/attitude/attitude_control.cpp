@@ -20,6 +20,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
   estimator_ = estimator;
 
   pwms_pub_ = nh_->advertise<spinal::Pwms>("motor_pwms", 1);
+  thrust_pub_ = nh_->advertise<spinal::Thrust>("target_thrust", 1);
   control_term_pub_ = nh_->advertise<spinal::RollPitchYawTerms>("rpy/pid", 1);
   control_feedback_state_pub_ = nh_->advertise<spinal::RollPitchYawTerm>("rpy/feedback_state", 1);
   anti_gyro_pub_ = nh_->advertise<std_msgs::Float32MultiArray>("gyro_moment_compensation", 1);
@@ -38,6 +39,7 @@ void AttitudeController::init(ros::NodeHandle* nh, StateEstimate* estimator)
 
 AttitudeController::AttitudeController():
   pwms_pub_("motor_pwms", &pwms_msg_),
+  thrust_pub_("target_thrust", &thrust_msg_),
   control_term_pub_("rpy/pid", &control_term_msg_),
   control_feedback_state_pub_("rpy/feedback_state", &control_feedback_state_msg_),
   four_axis_cmd_sub_("four_axes/command", &AttitudeController::fourAxisCommandCallback, this ),
@@ -71,6 +73,7 @@ void AttitudeController::init(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2
   HAL_TIM_PWM_Start(pwm_htim2_,TIM_CHANNEL_4);
 
   nh_->advertise(pwms_pub_);
+  nh_->advertise(thrust_pub_);
   nh_->advertise(control_term_pub_);
   nh_->advertise(control_feedback_state_pub_);
 
@@ -144,6 +147,12 @@ void AttitudeController::pwmsControl(void)
       pwms_pub_.publish(pwms_msg_);
     }
 
+  if(HAL_GetTick() - thrust_pub_last_time_ > THRUST_PUB_INTERVAL)
+    {
+      thrust_pub_last_time_ = HAL_GetTick();
+      thrust_pub_.publish(thrust_msg_);
+    }
+
 #else
   /* control result publish */
   if(uav_model_ == spinal::UavInfo::DRAGON)
@@ -167,6 +176,12 @@ void AttitudeController::pwmsControl(void)
     {
       pwm_pub_last_time_ = HAL_GetTick();
       pwms_pub_.publish(&pwms_msg_);
+    }
+
+  if(HAL_GetTick() - thrust_pub_last_time_ > THRUST_PUB_INTERVAL)
+    {
+      thrust_pub_last_time_ = HAL_GetTick();
+      thrust_pub_.publish(&thrust_msg_);
     }
 
   /* nerve comm type */
@@ -775,11 +790,14 @@ void AttitudeController::setMotorNumber(uint8_t motor_number)
 
 #ifdef SIMULATION
       pwms_msg_.motor_value.resize(motor_number);
+      thrust_msg_.thrust.resize(motor_number);
       control_term_msg_.motors.resize(control_term_msg_size);
 #else
       pwms_msg_.motor_value_length = motor_number;
+      thrust_msg_.thrust_length = motor_number;
       control_term_msg_.motors_length = control_term_msg_size;
       pwms_msg_.motor_value = new uint16_t[motor_number];
+      thrust_msg_.thrust = new float[motor_number];
       control_term_msg_.motors = new spinal::RollPitchYawTerm[control_term_msg_size];
 #endif
       for(int i = 0; i < motor_number; i++) pwms_msg_.motor_value[i] = 0;
@@ -1021,8 +1039,11 @@ void AttitudeController::pwmConversion()
     }
 
   for(int i = 0; i < motor_number_; i++)
+  {
     target_thrust_[i] = roll_pitch_term_[i] + (1 + base_thrust_decreasing_rate) * base_thrust_term_[i] + (1 + yaw_decreasing_rate) * yaw_term_[i];
-
+    /* for ros */
+    thrust_msg_.thrust[i] = target_thrust_[i];
+  }
   /* convert to target pwm */
   for(int i = 0; i < motor_number_; i++)
     {
