@@ -949,6 +949,14 @@ class NeuralNMPC(RecedingHorizonBase):
         ocp.parameter_values = self.acados_parameters[0, :]
         # =====================================================================
 
+        # Reference values
+        # Note, these are placeholders and will be updated online during tracking
+        x_ref = np.zeros((nx,))
+        u_ref = np.zeros((nu,))
+        ocp.cost.yref = np.concatenate((x_ref, u_ref))
+        ocp.cost.yref_e = x_ref
+        ocp.constraints.x0 = x_ref
+
         # Solver options
         ocp.solver_options.tf = self.params["T_horizon"]
         ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"  # "IPOPT", "FULL_CONDENSING_HPIPM"

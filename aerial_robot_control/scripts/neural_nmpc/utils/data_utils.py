@@ -287,6 +287,7 @@ def make_blank_dict(target_dim, state_dim, control_dim):
         "dt": np.zeros((0, 1)),
         "comp_time": np.zeros((0, 1)),
         "target": np.zeros((0, target_dim)),
+        "state_ref": np.zeros((0, state_dim)),
         "state_in": np.zeros((0, state_dim)),
         "state_out": np.zeros((0, state_dim)),
         "state_prop": np.zeros((0, state_dim)),

@@ -92,7 +92,7 @@ def discretize_dynamics_and_cost(dynamics, x, u, T_step, num_stages):
     :return: CasADi function that computes the next state x_k+1 based from previous state x_k and
     control input u_k over time T_step
     """
-    x0 = x.copy()
+    x0 = x  # SX/MX datatypes are immutable
     dt = T_step / num_stages
 
     # Fixed step Runge-Kutta 4 integrator

@@ -39,7 +39,6 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     # ------------------------
 
     # --- Initialize controller ---
-
     rtnmpc = NeuralNMPC(
         model_options=model_options, solver_options=solver_options, sim_options=sim_options, run_options=run_options
     )
@@ -270,6 +269,9 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 )
                 rec_dict["comp_time"] = np.append(rec_dict["comp_time"], comp_time)
                 rec_dict["target"] = np.append(rec_dict["target"], current_target[np.newaxis, :], axis=0)
+                rec_dict["state_ref"] = np.append(
+                    rec_dict["state_ref"], state_ref[0:1, :], axis=0
+                )  # Assuming constant ref
                 rec_dict["state_in"] = np.append(rec_dict["state_in"], state_curr[np.newaxis, :], axis=0)
                 rec_dict["control"] = np.append(rec_dict["control"], u_cmd[np.newaxis, :], axis=0)
 
@@ -452,7 +454,9 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
     # --- Plot simple trajectory ---
     if plot and not recording:
-        plot_trajectory(model_options, rec_dict, rtnmpc, dist_dict=dist_dict, save=run_options["save_figures"])
+        plot_trajectory(
+            model_options, sim_options, rec_dict, rtnmpc, dist_dict=dist_dict, save=run_options["save_figures"]
+        )
         if sim_options["disturbances"]["cog_dist"] or sim_options["disturbances"]["motor_noise"]:
             plot_disturbances(dist_dict, save=run_options["save_figures"])
         plt.show()

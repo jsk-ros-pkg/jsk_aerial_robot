@@ -115,8 +115,8 @@ class EnvConfig:
             "payload": False,  # Payload force in the Z axis
         },
         "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
-        "use_nominal_simulator": True,  # Use nominal model as simulator
-        "max_sim_time": 50,
+        "use_nominal_simulator": False,  # Use nominal model as simulator
+        "max_sim_time": 10,
         "world_radius": 3,
         "seed": 897,
     }

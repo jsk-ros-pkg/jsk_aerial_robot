@@ -10,19 +10,11 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program. If not, see <http://www.gnu.org/licenses/>.
 """
-
 import os
-
-# import json
-import tikzplotlib
 import numpy as np
 import torch
-
+import tikzplotlib
 import matplotlib.pyplot as plt
-
-# from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
-# from matplotlib.colorbar import ColorbarBase
-# from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D  # DON'T REMOVE THIS LINE, IT IS NEEDED FOR 3D PLOTTING
 import matplotlib.animation as animation
 
@@ -31,6 +23,7 @@ from utils.geometry_utils import v_dot_q, quaternion_to_euler, quaternion_invers
 from utils.data_utils import safe_mkdir_recursive
 from sim_environment.forward_prop import init_forward_prop
 from neural_controller import NeuralNMPC
+
 
 frames = []
 
@@ -149,7 +142,6 @@ def draw_robot(
     sim_traj_artists = artists["sim_trajectory"] if "sim_trajectory" in artists.keys() else []
     # int_traj_artists = artists["int_trajectory"] if "int_trajectory" in artists.keys() else []
     # pred_traj_artists = artists["prop_trajectory"] if "prop_trajectory" in artists.keys() else []
-    # cov_artists = artists["prop_covariance"] if "prop_covariance" in artists.keys() else []
 
     # Restore background
     fig.canvas.restore_region(background)
@@ -222,21 +214,6 @@ def draw_robot(
     #     draw_fading_traj(pred_traj, pred_traj_artists)
     #     for pred_traj_artist in pred_traj_artists:
     #         ax.draw_artist(pred_traj_artist)
-
-    # if x_pred_cov is not None:
-    #     n_std = 3
-    #     x_std = np.sqrt(x_pred_cov[:, 0, 0]) * n_std
-    #     y_std = np.sqrt(x_pred_cov[:, 1, 1]) * n_std
-    #     z_std = np.sqrt(x_pred_cov[:, 2, 2]) * n_std
-    #     for i, cov_artist in enumerate(cov_artists):
-    #         center = pred_traj[i+1, 0:3]
-    #         radii = np.diag(np.array([x_std[i], y_std[i], z_std[i]]))
-    #         x, y, z = draw_covariance_ellipsoid(center, radii)
-    #         cov_artist.set_data_3d(x, y, z)
-    #         # cov_artist.set_data(x, y)
-    #         # cov_artist.set_3d_properties(z)
-    #     for cov_artist in cov_artists:
-    #         ax.draw_artist(cov_artist)
 
     if follow_robot:
         # Center view on robot
@@ -547,7 +524,7 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralNMPC, di
     state_in = rec_dict["state_in"]
     state_out = rec_dict["state_out"]
     state_prop = rec_dict["state_prop"]
-    state_ref = rec_dict["target"]
+    state_ref = rec_dict["state_ref"]
     control = rec_dict["control"]
     timestamp = rec_dict["timestamp"]
 
