@@ -35,6 +35,8 @@ void DeltaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   target_acc_cog_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/target_acc_cog", 1);
   nlopt_log_pub_ = nh.advertise<std_msgs::Float32MultiArray>("debug/nlopt_log", 1);
+  nlopt_iterations_pub_ = nh.advertise<std_msgs::Int16>("debug/nlopt_iterations", 1);
+  nlopt_result_pub_ = nh.advertise<std_msgs::Int16>("debug/nlopt_result", 1);
   rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
 
@@ -179,6 +181,14 @@ void DeltaController::sendCmd()
   std_msgs::Float32MultiArray nlopt_log_msg;
   nlopt_log_msg.data = nlopt_log_;
   nlopt_log_pub_.publish(nlopt_log_msg);
+
+  std_msgs::Int16 nlopt_iterations_msg;
+  nlopt_iterations_msg.data = nlopt_iterations_;
+  nlopt_iterations_pub_.publish(nlopt_iterations_msg);
+
+  std_msgs::Int16 nlopt_result_msg;
+  nlopt_result_msg.data = nlopt_result_;
+  nlopt_result_pub_.publish(nlopt_result_msg);
 
   /* publish origin and normal for debug */
   geometry_msgs::PoseArray rotor_origin_msg;

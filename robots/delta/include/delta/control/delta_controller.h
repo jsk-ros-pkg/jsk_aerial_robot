@@ -88,6 +88,8 @@ private:
   ros::Publisher full_q_mat_pub_;                    // for debug
   ros::Publisher exerted_wrench_cog_pub_;            // for debug
   ros::Publisher nlopt_log_pub_;                     // for debug
+  ros::Publisher nlopt_iterations_pub_;              // for debug
+  ros::Publisher nlopt_result_pub_;                  // for debug
   ros::Publisher rotor_origin_pub_;                  // for debug
   ros::Publisher rotor_normal_pub_;                  // for debug
 
