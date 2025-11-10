@@ -115,7 +115,7 @@ tags
 *model.json
 
 # Datasets
-**/neural_nmpc/data/
+**/neural_mpc/data/
 
 # Videos
 *.mp4
