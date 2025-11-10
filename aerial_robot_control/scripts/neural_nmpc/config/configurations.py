@@ -41,7 +41,7 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": False,
+            "only_use_nominal": True,
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
@@ -89,6 +89,9 @@ class EnvConfig:
             # 82: (same as 81 but full state input and input & label transform) large network trained on real hovering & ground effect data -> for SIMULATOR
             # 83: small network trained on simulated labels with 82 -> for CONTROLLER
             # 84: same as 83 but one more layer
+            # 85: same as 84
+            # 86: same as 85 but without L1 regularization
+            # 87: same as 86 but with angular velocities in input and 100 epochs (instead of 50) -> GOOD!
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -114,8 +117,9 @@ class EnvConfig:
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
         },
-        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
         "use_nominal_simulator": False,  # Use nominal model as simulator
+        "use_real_world_simulator": True,  # Use neural model trained on real world data as simulator
+        "sim_neural_model_instance": "neuralmodel_087",  # 58  # Used when use_real_world_simulator = True
         "max_sim_time": 10,
         "world_radius": 3,
         "seed": 897,

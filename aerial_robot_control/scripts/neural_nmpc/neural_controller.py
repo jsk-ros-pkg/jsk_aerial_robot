@@ -5,7 +5,7 @@ from acados_template import AcadosModel, AcadosOcpSolver
 
 from utils.data_utils import delete_previous_solver_files
 from utils.geometry_utils import quaternion_inverse, v_dot_q
-from utils.model_utils import load_model, get_output_mapping, get_inverse_output_mapping
+from utils.model_utils import load_model, get_output_mapping
 from utils.model_utils import cross_check_params
 
 # Tiltable-Quadrotor

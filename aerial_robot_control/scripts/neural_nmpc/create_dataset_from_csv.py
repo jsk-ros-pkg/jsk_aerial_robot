@@ -698,6 +698,7 @@ if __name__ == "__main__":
     print("Forward propagation finished!")
     # =========================================================================================
 
+    # TODO Get full state reference from rosbag and then fix visualize_everything.py
     pos_ref = data["position_ref"][:-2, :]
     quat_ref = data["quaternion_ref"][:-2, :]
 

@@ -68,7 +68,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         model_options["only_use_nominal"] = False
         model_options["plus_neural"] = True
         model_options["minus_neural"] = False
-        model_options["neural_model_instance"] = "neuralmodel_058"
+        model_options["neural_model_instance"] = sim_options["sim_neural_model_instance"]
         rtnmpc_sim = NeuralNMPC(
             model_options=model_options,
             solver_options=solver_options,
@@ -353,7 +353,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 state_curr_sim[6:10] = unit_quaternion(state_curr_sim[6:10])
 
                 # Target check
-                if euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.075):
+                if euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.025):
                     # Target reached!
                     current_target_reached = True
                     targets_reached[current_target_idx] = True
