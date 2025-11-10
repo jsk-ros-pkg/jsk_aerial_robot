@@ -60,27 +60,37 @@ void DeltaController::forceLandingProcess()
 
 void DeltaController::wrenchAllocation()
 {
-  // calculate linear approximated thrusts and gimbal angles
   if (linear_mode_ || first_run_)
   {
-    Eigen::MatrixXd full_q_mat = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
-    Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-
-    Eigen::VectorXd target_wrench_cog = target_acc_cog_;
-    target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
-    target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
-    Eigen::VectorXd full_lambda = full_q_mat_inv * target_wrench_cog;
-    for (int i = 0; i < motor_num_; i++)
-    {
-      lambda_all_.at(i) =
-          std::clamp((float)full_lambda.segment(2 * i, 2).norm(), (float)robot_model_->getThrustLowerLimit(),
-                     (float)robot_model_->getThrustUpperLimit());
-      target_gimbal_angles_.at(i) = angles::normalize_angle(atan2(-full_lambda(2 * i + 0), full_lambda(2 * i + 1)));
-    }
+    linearWrenchAllocation();
   }
   else
   {
     nonlinearWrenchAllocation();
+
+    if (nlopt_result_ < nlopt::SUCCESS || nlopt::MAXEVAL_REACHED <= nlopt_result_)
+    {
+      ROS_WARN_THROTTLE(1.0, "[DeltaController] nlopt failed to solve, use linear allocation result");
+      linearWrenchAllocation();
+    }
+  }
+}
+
+void DeltaController::linearWrenchAllocation()
+{
+  Eigen::MatrixXd full_q_mat = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
+  Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
+
+  Eigen::VectorXd target_wrench_cog = target_acc_cog_;
+  target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
+  target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
+  Eigen::VectorXd full_lambda = full_q_mat_inv * target_wrench_cog;
+  for (int i = 0; i < motor_num_; i++)
+  {
+    lambda_all_.at(i) =
+        std::clamp((float)full_lambda.segment(2 * i, 2).norm(), (float)robot_model_->getThrustLowerLimit(),
+                   (float)robot_model_->getThrustUpperLimit());
+    target_gimbal_angles_.at(i) = angles::normalize_angle(atan2(-full_lambda(2 * i + 0), full_lambda(2 * i + 1)));
   }
 }
 

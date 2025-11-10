@@ -130,6 +130,7 @@ private:
   void forceLandingProcess();
   void calcFlightFullLambda();
   void wrenchAllocation();
+  void linearWrenchAllocation();
   void nonlinearWrenchAllocation();
 
   /* send command */
