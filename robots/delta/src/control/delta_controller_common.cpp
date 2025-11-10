@@ -82,6 +82,7 @@ void DeltaController::rosParamInit()
                    0.05);
   getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
   getParam<bool>(control_nh, "use_fc_for_att_control", use_fc_for_att_control_, true);
+  getParam<bool>(control_nh, "linear_mode", linear_mode_, false);
 
   /* get tilt angle of each thruster */
   auto urdf_model = robot_model_->getUrdfModel();

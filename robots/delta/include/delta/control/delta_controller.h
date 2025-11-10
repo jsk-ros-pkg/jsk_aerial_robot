@@ -96,6 +96,7 @@ private:
 
   /* common part */
   bool use_fc_for_att_control_ = true;
+  bool linear_mode_ = true;
   bool first_run_;
   int nlopt_result_;
   int nlopt_iterations_ = 0;
