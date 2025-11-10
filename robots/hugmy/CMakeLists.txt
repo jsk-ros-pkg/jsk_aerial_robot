@@ -47,6 +47,11 @@ add_library(lqi_null_controller src/control/lqi_null_controller.cpp)
 target_link_libraries(lqi_null_controller ${catkin_LIBRARIES})
 add_dependencies(lqi_null_controller ${catkin_EXPORTED_TARGETS})
 
+add_executable(random_haptics_threshold_node src/control/test/haptics_thre_test.cpp)
+target_link_libraries(random_haptics_threshold_node ${catkin_LIBRARIES})
+
+add_executable(random_haptics_feeling_node src/control/test/haptics_feeling_test.cpp)
+target_link_libraries(random_haptics_feeling_node ${catkin_LIBRARIES})
 
 add_executable(haptics_integrated_controller src/control/integrated.cpp
   src/control/air_pressure_controller.cpp
