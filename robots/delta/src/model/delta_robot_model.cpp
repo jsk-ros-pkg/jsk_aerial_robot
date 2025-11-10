@@ -76,7 +76,7 @@ Eigen::MatrixXd DeltaRobotModel::getFullWrenchAllocationMatrixFromCog()
   mask << 0, 0, 1, 0, 0, 1;
   for (int i = 0; i < rotor_num; i++)
   {
-    integrated_rot.block(3 * i, 2 * i, 3, 2) = kdlToEigen(cog.M * links_rotation_from_cog_.at(i)) * mask;
+    integrated_rot.block(3 * i, 2 * i, 3, 2) = kdlToEigen(links_rotation_from_cog_.at(i)) * mask;
   }
 
   /* calculate integarated allocation */
