@@ -1,0 +1,11 @@
+<launch>
+  <node pkg="hugmy" type="random_haptics_feeling_node"
+        name="random_haptics_feeling" output="screen">
+    <param name="thrust_strength" value="5.0" />
+    <param name="min_total_thrust" value="0.5" />
+    <param name="max_total_thrust" value="1.0" />
+    <param name="inter_trial_interval" value="1.0" />
+    <param name="rate_hz" value="50" />
+    <param name="log_file" value="~/log/haptics_threshold_feeling_log.csv" />
+  </node>
+</launch>
