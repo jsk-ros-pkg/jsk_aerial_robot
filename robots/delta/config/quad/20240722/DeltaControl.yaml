@@ -5,6 +5,7 @@ controller:
   hovering_approximate: false
   aerial_mode_add_joint_torque_constraint: false
   use_fc_for_att_control: false
+  linear_mode: true
 
   xy:
     p_gain: 5.0
