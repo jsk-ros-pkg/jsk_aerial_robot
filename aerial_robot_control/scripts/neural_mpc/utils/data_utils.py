@@ -359,7 +359,7 @@ def log_metrics(total_losses, inference_times, learning_rates, save_file_path, s
         json.dump(metrics, f, indent=4)
 
 
-def jsonify(array):
+def jsonify(array) -> list:
     if isinstance(array, np.ndarray):
         return array.tolist()
     if isinstance(array, list):
@@ -367,7 +367,7 @@ def jsonify(array):
     return array
 
 
-def undo_jsonify(array):
+def undo_jsonify(array) -> np.ndarray:
     x = []
     for elem in array:
         a = elem.split("[")[1].split("]")[0].split(",")

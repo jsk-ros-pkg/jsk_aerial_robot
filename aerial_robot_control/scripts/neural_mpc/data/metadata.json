@@ -939,7 +939,8 @@
       },
       "trained_models": [
         "neuralmodel_057",
-        "neuralmodel_058"
+        "neuralmodel_058",
+        "neuralmodel_090"
       ]
     }
   },
@@ -2115,8 +2116,21 @@
         "neuralmodel_080",
         "neuralmodel_081",
         "neuralmodel_082",
-        "neuralmodel_082"
+        "neuralmodel_082",
+        "neuralmodel_088",
+        "neuralmodel_088",
+        "neuralmodel_089"
       ]
+    },
+    "dataset_002": {
+      "disturbances": {
+        "cog_dist": false,
+        "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
+        "cog_dist_factor": 0.1,
+        "motor_noise": false,
+        "drag": false,
+        "payload": false
+      }
     }
   },
   "NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_04": {

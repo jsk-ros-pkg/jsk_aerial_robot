@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from config.configurations import DirectoryConfig
 from utils.data_utils import safe_mkdir_recursive, jsonify, safe_mkfile_recursive
+from utils.moving_average_filter import moving_average_filter
 from sim_environment.forward_prop import init_forward_prop, forward_prop
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -12,7 +13,7 @@ from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
 from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
 
 
-def get_synched_data_from_rosbag(file_path: str):
+def get_synched_data_from_rosbag(file_path: str, smooth_data: bool = True) -> dict:
     """
     Load and read rosbags from csv file.
     Remove NaN values and synchronize topics based on timestamp. The guiding time series is the thrust command.
@@ -399,18 +400,12 @@ def get_synched_data_from_rosbag(file_path: str):
 
     ################ Moving average filter ##############
     # Smoothen data with moving average filter
-    window_size = 5  # Must be odd
-    for key in data.keys():
-        if key in ["timestamp", "dt", "duration"]:
-            continue
-        data_array = data[key]
-        filtered_data = np.zeros_like(data_array)
-        pad_size = window_size // 2
-        padded_data = np.pad(data_array, ((pad_size / 2, pad_size / 2), (pad_size / 2, pad_size / 2)), mode="edge")
-        for i in range(data_array.shape[0]):
-            filtered_data[i, :] = np.mean(padded_data[i - window_size // 2 : i + window_size // 2 + 1, :], axis=0)
-        data[key] = filtered_data
-
+    if smooth_data:
+        print("[INFO] Applying moving average filter to data.")
+        for key in data.keys():
+            if key in ["timestamp", "dt", "duration"]:
+                continue
+            data[key] = moving_average_filter(data[key], window_size=5)
     return data
 
 
@@ -467,10 +462,13 @@ if __name__ == "__main__":
     """
     Create dataset from rosbag
     """
-    mpc = NMPCTiltQdServo(phys=phys_omni, build=False)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
+    # Apply moving average filter to data
+    smooth_data = False
+
+    mpc = NMPCTiltQdServo(phys=phys_omni, build=True)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
     T_samp = mpc.params["T_samp"]
 
-    rosbag_dir = "/home/johannes/ros/rosbag_files/csv"
+    rosbag_dir = "~/ros/rosbag_files/csv"
     csv_files = [
         # "2024-09-30-15-58-10_hover.csv",
         # "2024-10-01-15-19-19_new_motor_coeff_hover.csv",
@@ -520,7 +518,7 @@ if __name__ == "__main__":
     print(f"Started loading {len(csv_files)} csvs:")
     for i, csv_file in enumerate(csv_files):
         print(f"Loading {csv_file}...")
-        data_dicts[i] = get_synched_data_from_rosbag(csv_file)
+        data_dicts[i] = get_synched_data_from_rosbag(csv_file, smooth_data=smooth_data)
 
     print(f"Finished loading all csvs!")
     if len(csv_files) > 1:
@@ -549,6 +547,7 @@ if __name__ == "__main__":
         "include_quaternion_constraint": mpc.include_quaternion_constraint,
         "include_soft_constraints": mpc.include_soft_constraints,
         "mpc_params": mpc.params,
+        "filtering": {" moving_average_filter": smooth_data},
     }
     inner_fields = {
         "disturbances": {

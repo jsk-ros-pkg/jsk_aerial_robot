@@ -41,11 +41,11 @@ class EnvConfig:
     # MLP options
     model_options.update(
         {
-            "only_use_nominal": True,
+            "only_use_nominal": False,
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_087",  # 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_088",  # 87, 63, 58, 60, 29, 31, 35
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -92,6 +92,10 @@ class EnvConfig:
             # 85: same as 84
             # 86: same as 85 but without L1 regularization
             # 87: same as 86 but with angular velocities in input and 100 epochs (instead of 50) -> GOOD!
+            # ---- all before have no moving average filter ----
+            # 88: [GOOD!] WITH LABELS & INPUT DATA FILTERED, trained on GROUND_EFFECT_ONLY, middle size, normal settings -> for CONTROLLER
+            # 89: (NO DIFFERENCE to 88) same as 88 but large size -> for SIMULATOR
+            # 90: [GOOD!] same as 88 but large size and on TRAIN_FOR_PAPER -> for SIMULATOR
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -118,9 +122,9 @@ class EnvConfig:
             "payload": False,  # Payload force in the Z axis
         },
         "use_nominal_simulator": False,  # Use nominal model as simulator
-        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
-        "sim_neural_model_instance": "neuralmodel_087",  # 58  # Used when use_real_world_simulator = True
-        "max_sim_time": 10,
+        "use_real_world_simulator": True,  # Use neural model trained on real world data as simulator
+        "sim_neural_model_instance": "neuralmodel_090",  # 87, 58  # Used when use_real_world_simulator = True
+        "max_sim_time": 30,
         "world_radius": 3,
         "seed": 897,
     }
@@ -197,10 +201,11 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64]  # , 64, 64, 64]
+    hidden_sizes = [64, 64]
+    # hidden_sizes = [128, 256, 128, 64]
 
     # Activation function
-    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
+    activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
     use_batch_norm = False
@@ -211,7 +216,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 50
+    num_epochs = 150
 
     # Batch size
     batch_size = 64
@@ -241,6 +246,10 @@ class MLPConfig:
 
 
 class ModelFitConfig:
+    # ------- Moving Average Filter -------
+    smoothen = True
+    window_size = 5  # Must be odd
+
     # ------- Coordinate Transform -------
     label_transform = True
     input_transform = True
@@ -248,10 +257,21 @@ class ModelFitConfig:
     # ------- Time Normalization -------
     normalize_by_T_step = False
 
+    # ------- Pruning -------
+    prune = False
+
+    # Histogram pruning parameters
+    histogram_n_bins = 10
+    histogram_thresh = 0.001  # Remove bins where the total ratio of data is lower than threshold
+    vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
+
+    # ------- Plotting -------
+    plot_dataset = False
+
     # ------- Dataset loading -------
-    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"# + "_01"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
     # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
-    ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
+    # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
     ds_instance = "dataset_001"  # "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
@@ -262,12 +282,13 @@ class ModelFitConfig:
     # residual neural sim nominal control 05, dataset 001: on simulator as large network trained with L1 regularization
     # residual neural sim nominal control 07, dataset 001: on simulator as large network trained with full state and transforms and L1 regularization
     # real machine GROUND_EFFECT_ONLY: hovering and ground effect data only (48k datapoints)
-
+    # === FROM HERE WITH MOVING AVERAGE FILTER APPLIED ===
+    # NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY,  dataset_002
     # ------- Features used for the model -------
     # State features
     state_feats = [2, 3, 4, 5]  # [z, vx, vy, vz]
     state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
-    state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
+    # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # state_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
@@ -283,11 +304,3 @@ class ModelFitConfig:
     # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # y_reg_dims.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # y_reg_dims.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
-
-    # ------------------------------- PRUNING -------------------------------
-    prune = True
-
-    # Histogram pruning parameters
-    histogram_n_bins = 10
-    histogram_thresh = 0.001  # Remove bins where the total ratio of data is lower than threshold
-    vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap

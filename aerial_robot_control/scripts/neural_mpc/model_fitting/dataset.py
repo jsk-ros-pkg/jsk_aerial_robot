@@ -3,10 +3,12 @@ import yaml
 import rospkg
 import numpy as np
 from torch.utils.data import Dataset
+from config.configurations import ModelFitConfig
 from utils.statistics_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.data_utils import undo_jsonify
 from utils.visualization_utils import plot_dataset
+from utils.moving_average_filter import moving_average_filter
 
 
 class TrajectoryDataset(Dataset):
@@ -20,6 +22,7 @@ class TrajectoryDataset(Dataset):
         state_feats,
         u_feats,
         y_reg_dims,
+        smoothen,
         input_transform,
         label_transform,
         delay,
@@ -41,7 +44,14 @@ class TrajectoryDataset(Dataset):
         ###########################################################
 
         self.prepare_data(
-            state_feats, u_feats, y_reg_dims, input_transform, label_transform, normalize_by_T_step, T_step_controller
+            state_feats,
+            u_feats,
+            y_reg_dims,
+            smoothen,
+            input_transform,
+            label_transform,
+            normalize_by_T_step,
+            T_step_controller,
         )
         if prune and delay == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuities
@@ -69,7 +79,15 @@ class TrajectoryDataset(Dataset):
         return self.x[idx], self.y[idx]
 
     def prepare_data(
-        self, state_feats, u_feats, y_reg_dims, input_transform, label_transform, normalize_by_T_step, T_step_controller
+        self,
+        state_feats,
+        u_feats,
+        y_reg_dims,
+        smoothen,
+        input_transform,
+        label_transform,
+        normalize_by_T_step,
+        T_step_controller,
     ):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_raw = state_in.copy()
@@ -140,6 +158,14 @@ class TrajectoryDataset(Dataset):
         self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
         # Store labels
         self.y = y[:, y_reg_dims].astype(np.float32)
+
+        # Moving average filter
+        # Note: Apply after computing residual dynamics to have more significant smoothing effect
+        # If applied before, the effectiveness of the smoothing is drastically reduced
+        if smoothen:
+            print("[DATASET] Applying moving average filter to network input and labels.")
+            self.x = moving_average_filter(self.x, window_size=ModelFitConfig.window_size)
+            self.y = moving_average_filter(self.y, window_size=ModelFitConfig.window_size)
 
     def prune(self, state_feats, y_reg_dims, histogram_n_bins, histogram_thresh, vel_cap=None, plot=False):
         """

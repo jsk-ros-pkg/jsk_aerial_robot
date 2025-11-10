@@ -24,7 +24,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     :param sim_options: Options for the simulation.
     :param run_options: Additional parameters for the simulation.
     """
-    np.random.seed(sim_options["seed"])  # Set seed for reproducibility
+    np.random.seed(sim_options["seed"])
 
     # ------------------------
     # TODO set these somewhere else
