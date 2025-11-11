@@ -122,7 +122,7 @@ class EnvConfig:
             "payload": False,  # Payload force in the Z axis
         },
         "use_nominal_simulator": False,  # Use nominal model as simulator
-        "use_real_world_simulator": True,  # Use neural model trained on real world data as simulator
+        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
         "sim_neural_model_instance": "neuralmodel_090",  # 87, 58  # Used when use_real_world_simulator = True
         "max_sim_time": 30,
         "world_radius": 3,

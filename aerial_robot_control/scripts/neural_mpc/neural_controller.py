@@ -1,5 +1,6 @@
 import os, sys
 import numpy as np
+import torch
 import casadi as ca
 from acados_template import AcadosModel, AcadosOcpSolver
 
@@ -447,16 +448,17 @@ class NeuralMPC(RecedingHorizonBase):
                     mlp_in = ca.vertcat(mlp_in, state_prev_i[self.state_feats], controls_prev_i[self.u_feats])
 
             # === MLP forward pass ===
-            if self.model_options["approximate_mlp"]:
-                # TODO investigate this function and parallel Flag!
-                # Parallel flag only active for order == 2
-                mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
-                approx_params = self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True)
-                self.approx_start_idx = parameters.size()[0]
-                parameters = ca.vertcat(parameters, approx_params)
-                self.approx_end_idx = parameters.size()[0]
-            else:
-                mlp_out = self.neural_model(mlp_in)
+            with torch.no_grad():
+                if self.model_options["approximate_mlp"]:
+                    # TODO investigate this function and parallel Flag!
+                    # Parallel flag only active for order == 2
+                    mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
+                    approx_params = self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True)
+                    self.approx_start_idx = parameters.size()[0]
+                    parameters = ca.vertcat(parameters, approx_params)
+                    self.approx_end_idx = parameters.size()[0]
+                else:
+                    mlp_out = self.neural_model(mlp_in)
 
             if label_transform:
                 # Network is trained to predict the velocity in Body frame

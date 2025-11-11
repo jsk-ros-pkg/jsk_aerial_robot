@@ -20,3 +20,5 @@ matplotlib==3.5.1
 tikzplotlib==0.10.1
 progress-table==3.1.2
 cvxpy==1.7.2
+# For network output visualization
+seaborn==0.13.2
