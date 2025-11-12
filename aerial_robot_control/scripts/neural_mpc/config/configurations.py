@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_088",  # 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_096",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -96,6 +96,11 @@ class EnvConfig:
             # 88: [GOOD!] WITH LABELS & INPUT DATA FILTERED, trained on GROUND_EFFECT_ONLY, middle size, normal settings -> for CONTROLLER
             # 89: (NO DIFFERENCE to 88) same as 88 but large size -> for SIMULATOR
             # 90: [GOOD!] same as 88 but large size and on TRAIN_FOR_PAPER -> for SIMULATOR
+            # 92: Only z and cmd inputs (w/o transforms), on GROUND_EFFECT_ONLY -> for CONTROLLER
+            # 93: Only z and cmd inputs (w/o transforms), on TRAIN_FOR_PAPER -> for CONTROLLER
+            # ---- all before have no low pass filter ----
+            # 96: Only z and cmd inputs (w/o transforms), with LPF on TRAIN_FOR_PAPER -> for CONTROLLER
+            # 97: [very good] Regular state in and large network (w/o transforms), with LPF on TRAIN_FOR_PAPER -> for SIMULATOR
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -122,8 +127,8 @@ class EnvConfig:
             "payload": False,  # Payload force in the Z axis
         },
         "use_nominal_simulator": False,  # Use nominal model as simulator
-        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
-        "sim_neural_model_instance": "neuralmodel_090",  # 87, 58  # Used when use_real_world_simulator = True
+        "use_real_world_simulator": True,  # Use neural model trained on real world data as simulator
+        "sim_neural_model_instance": "neuralmodel_097",  # 90, 87, 58  # Used when use_real_world_simulator = True
         "max_sim_time": 30,
         "world_radius": 3,
         "seed": 897,
@@ -246,16 +251,20 @@ class MLPConfig:
 
 
 class ModelFitConfig:
+    # ------- Control Averaging -------
+    control_averaging = True
+
+    # ------- Low-Pass Filter -------
+    use_low_pass_filter = True
+    low_pass_filter_cutoff = 0.1  # Cutoff frequency for the low-pass filter
+
     # ------- Moving Average Filter -------
-    smoothen = True
-    window_size = 5  # Must be odd
+    use_moving_average_filter = False
+    window_size = 21  # Must be odd
 
     # ------- Coordinate Transform -------
-    label_transform = True
-    input_transform = True
-
-    # ------- Time Normalization -------
-    normalize_by_T_step = False
+    label_transform = False
+    input_transform = False
 
     # ------- Pruning -------
     prune = False
@@ -266,7 +275,8 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = False
+    plot_dataset = True
+    save_plots = False
 
     # ------- Dataset loading -------
     ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
@@ -286,7 +296,8 @@ class ModelFitConfig:
     # NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY,  dataset_002
     # ------- Features used for the model -------
     # State features
-    state_feats = [2, 3, 4, 5]  # [z, vx, vy, vz]
+    state_feats = [2]  # [z]
+    state_feats.extend([3, 4, 5])  # [z, vx, vy, vz]
     state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
     # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
@@ -298,9 +309,8 @@ class ModelFitConfig:
     u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
 
     # Variables to be regressed
-    # y_reg_dims = [5]  # [vz]
-    y_reg_dims = [3, 4, 5]  # [vx, vy, vz]
-    # y_reg_dims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # [x, y, z, vx, vy, vz, qw, qx, qy, qz, roll_rate, pitch_rate, yaw_rate]
-    # y_reg_dims.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
-    # y_reg_dims.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
-    # y_reg_dims.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
+    # y_reg_dims = [5]  # [az]
+    y_reg_dims = [3, 4, 5]  # [ax, ay, az]
+    # y_reg_dims.extend([0, 1, 2])  # [vx, vy, vz]
+    # y_reg_dims.extend([6, 7, 8, 9])  # [qw_dot, qx_dot, qy_dot, qz_dot]
+    # y_reg_dims.extend([10, 11, 12])  # [roll_acc, pitch_acc, yaw_acc]

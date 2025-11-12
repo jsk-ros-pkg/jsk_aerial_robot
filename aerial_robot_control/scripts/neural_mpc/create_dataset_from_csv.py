@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from config.configurations import DirectoryConfig
 from utils.data_utils import safe_mkdir_recursive, jsonify, safe_mkfile_recursive
-from utils.moving_average_filter import moving_average_filter
+from utils.filter_utils import moving_average_filter
 from sim_environment.forward_prop import init_forward_prop, forward_prop
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))

@@ -940,7 +940,23 @@
       "trained_models": [
         "neuralmodel_057",
         "neuralmodel_058",
-        "neuralmodel_090"
+        "neuralmodel_090",
+        "neuralmodel_093",
+        "neuralmodel_094",
+        "neuralmodel_094",
+        "neuralmodel_094",
+        "neuralmodel_094",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_095",
+        "neuralmodel_096",
+        "neuralmodel_097",
+        "neuralmodel_097"
       ]
     }
   },
@@ -2119,7 +2135,9 @@
         "neuralmodel_082",
         "neuralmodel_088",
         "neuralmodel_088",
-        "neuralmodel_089"
+        "neuralmodel_089",
+        "neuralmodel_091",
+        "neuralmodel_092"
       ]
     },
     "dataset_002": {

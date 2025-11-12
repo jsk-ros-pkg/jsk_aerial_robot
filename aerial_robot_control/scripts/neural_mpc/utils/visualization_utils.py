@@ -492,7 +492,6 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
         if dim != x.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
-    plt.tight_layout()
     figures.append(fig)
 
     # Labels
@@ -507,7 +506,6 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
         if dim != y.shape[1] - 1:
             ax = plt.gca()
             ax.axes.xaxis.set_ticklabels([])
-    plt.tight_layout()
     figures.append(fig)
 
     diff = state_out - state_prop
@@ -530,7 +528,6 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
         if dim == 0:
             plt.title("(State Out - State Pred) / dt")
         plt.grid("on")
-    plt.tight_layout()
     figures.append(fig)
 
     plt.show()
@@ -643,10 +640,7 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
     # Plot labels for neural network regression
     dt = np.expand_dims(rec_dict["dt"], 1)
     diff = state_out - state_prop
-    if rtnmpc.use_mlp and rtnmpc.mlp_metadata["ModelFitConfig"]["normalize_by_T_step"]:
-        y_true = diff / rtnmpc.T_step
-    else:
-        y_true = diff / dt
+    y_true = diff / dt
     fig, _ = plt.subplots(figsize=(20, 5))
     for dim in range(state_in.shape[1] - 1, -1, -1):
         plt.subplot(state_in.shape[1], 2, dim * 2 + 1)
@@ -683,7 +677,18 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
                 v_b = v_dot_q(state_in[t, 3:6], quaternion_inverse(state_in[t, 6:10]))
                 state_b[t, :] = np.concatenate((state_in[t, :3], v_b, state_in[t, 6:]), axis=0)
         state_b_torch = torch.from_numpy(state_b[:, rtnmpc.state_feats]).type(torch.float32).to(torch.device("cpu"))
-        control_torch = torch.from_numpy(control[:, rtnmpc.u_feats]).type(torch.float32).to(torch.device("cpu"))
+
+        if rtnmpc.mlp_metadata["ModelFitConfig"]["control_averaging"]:
+            if {0, 1, 2, 3}.issubset(rtnmpc.u_feats):
+                control_in = np.sum(control[:, 0:4], axis=1) / 4.0
+            if {4, 5, 6, 7}.issubset(rtnmpc.u_feats):
+                control_in = np.concatenate(
+                    (control_in[:, np.newaxis], np.sum(control[:, 4:8], axis=1)[:, np.newaxis] / 4.0), axis=1
+                )
+        else:
+            control_in = control[rtnmpc.u_feats]
+        control_torch = torch.from_numpy(control_in).type(torch.float32).to(torch.device("cpu"))
+
         mlp_in = torch.cat((state_b_torch, control_torch), dim=1)
         # Forward call MLP
         rtnmpc.neural_model.eval()

@@ -30,7 +30,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     y_reg_dims = ModelFitConfig.y_reg_dims
 
     # Set save path and populate metadata
-    if save or plot:
+    if save or ModelFitConfig.save_plots:
         save_file_path, save_file_name = get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name)
 
     # Raw data
@@ -44,16 +44,6 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         state_feats,
         u_feats,
         y_reg_dims,
-        ModelFitConfig.smoothen,
-        ModelFitConfig.input_transform,
-        ModelFitConfig.label_transform,
-        MLPConfig.delay_horizon,
-        ModelFitConfig.normalize_by_T_step,
-        prune=ModelFitConfig.prune,
-        histogram_pruning_n_bins=ModelFitConfig.histogram_n_bins,
-        histogram_pruning_thresh=ModelFitConfig.histogram_thresh,
-        vel_cap=ModelFitConfig.vel_cap,
-        plot=ModelFitConfig.plot_dataset,
         save_file_path=save_file_path,
         save_file_name=save_file_name,
     )

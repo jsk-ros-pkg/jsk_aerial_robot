@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from config.configurations import DirectoryConfig
 from utils.data_utils import undo_jsonify
-from utils.moving_average_filter import moving_average_filter
+from utils.filter_utils import moving_average_filter
 
 
 def plot_trajectory():

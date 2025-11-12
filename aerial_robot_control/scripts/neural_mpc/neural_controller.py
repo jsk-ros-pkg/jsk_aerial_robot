@@ -428,7 +428,14 @@ class NeuralMPC(RecedingHorizonBase):
                 state_in = state
 
             # Assemble MLP input from selected state and control features
-            mlp_in = ca.vertcat(state_in[self.state_feats], controls[self.u_feats])
+            if self.mlp_metadata["ModelFitConfig"]["control_averaging"]:
+                if {0, 1, 2, 3}.issubset(self.u_feats):
+                    controls_in = ca.sum(controls[0:4]) / 4.0
+                if {4, 5, 6, 7}.issubset(self.u_feats):
+                    controls_in = ca.vertcat(controls_in, ca.sum(controls[4:8]) / 4.0)
+            else:
+                controls_in = controls[self.u_feats]
+            mlp_in = ca.vertcat(state_in[self.state_feats], controls_in)
 
             if "temporal" in self.mlp_metadata["MLPConfig"]["model_name"]:
                 # Use previous (i.e. delayed) states and controls time steps as input to the MLP

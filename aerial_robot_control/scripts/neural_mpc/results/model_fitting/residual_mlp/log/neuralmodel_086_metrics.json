@@ -237,7 +237,6 @@
     "ModelFitConfig": {
       "label_transform": true,
       "input_transform": true,
-      "normalize_by_T_step": false,
       "ds_name": "NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_07",
       "ds_instance": "dataset_001",
       "state_feats": [

@@ -641,7 +641,6 @@
       "window_size": 5,
       "label_transform": true,
       "input_transform": true,
-      "normalize_by_T_step": false,
       "prune": false,
       "histogram_n_bins": 10,
       "histogram_thresh": 0.001,

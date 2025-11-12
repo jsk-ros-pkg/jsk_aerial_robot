@@ -1035,7 +1035,6 @@
     "ModelFitConfig": {
       "label_transform": true,
       "input_transform": true,
-      "normalize_by_T_step": false,
       "ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER",
       "ds_instance": "dataset_003",
       "state_feats": [

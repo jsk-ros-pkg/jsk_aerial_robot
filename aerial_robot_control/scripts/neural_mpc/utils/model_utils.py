@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.configurations import DirectoryConfig
+from config.configurations import DirectoryConfig, ModelFitConfig
 from network_architecture.mlp import MLP
 
 
@@ -175,14 +175,18 @@ def sanity_check_features_and_reg_dims(model_name, state_feats, u_feats, y_reg_d
     if len(state_feats) == 0 or len(y_reg_dims) == 0:
         raise ValueError("state_feats and y_reg_dims cannot be empty lists.")
 
-    for y_reg in y_reg_dims:
-        if y_reg not in state_feats:
-            raise ValueError(f"Feature {y_reg} in y_reg_dims is not present in state_feats.")
-
     if (len(state_feats) + len(u_feats)) * (delay + 1) != in_dim:
-        raise ValueError(
-            f"Total number of features {len(state_feats) + len(u_feats)} does not match input dimension {in_dim}."
-        )
+        if ModelFitConfig.control_averaging:
+            # Special case: control averaging is used, so 4 rotor/servo inputs are combined into one
+            if (len(state_feats) + len(u_feats) // 4) * (delay + 1) != in_dim:
+                raise ValueError(
+                    f"Total number of features {len(state_feats) + len(u_feats) // 4} does not match input dimension {in_dim}."
+                )
+
+        else:
+            raise ValueError(
+                f"Total number of features {len(state_feats) + len(u_feats)} does not match input dimension {in_dim}."
+            )
 
     if len(y_reg_dims) != out_dim:
         raise ValueError(
