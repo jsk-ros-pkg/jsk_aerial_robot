@@ -5,10 +5,10 @@
   <xacro:include filename="$(find delta)/urdf/20240722/delta_link.urdf.xacro" />
   <xacro:include filename="$(find delta)/urdf/common.xacro" />
 
-  <xacro:delta_module self="1" child="2" rotor_direction="1" rotor_tilt="-0.0727822" battery="0"/>
-  <xacro:delta_module self="2" child="3" rotor_direction="-1" rotor_tilt="0.178982" battery="0"/>
-  <xacro:delta_module self="3" child="4" rotor_direction="1" rotor_tilt="-0.0802372"  battery="0"/>
-  <xacro:delta_module self="4" child="4" rotor_direction="-1" rotor_tilt="0.178982" battery="0"/>
+  <xacro:delta_module self="1" child="2" rotor_direction="1" rotor_tilt="0" battery="0"/>
+  <xacro:delta_module self="2" child="3" rotor_direction="-1" rotor_tilt="0" battery="0"/>
+  <xacro:delta_module self="3" child="4" rotor_direction="1" rotor_tilt="0"  battery="0"/>
+  <xacro:delta_module self="4" child="4" rotor_direction="-1" rotor_tilt="0" battery="0"/>
 
   <!-- dummy root link for KDL -->
   <link name="root">
@@ -53,7 +53,7 @@
   </xacro:extra_module>
 
   <!-- vio sensor -->
-  <xacro:extra_module name="lidar_imu_link" parent="link2" visible="1" model_url="package://delta/urdf/mesh/20240722/livox.dae" active="1">
+  <xacro:extra_module name="lidar_imu_link" parent="link2" visible="1" model_url="package://delta/urdf/mesh/20240722/livox.dae" active="0">
     <origin xyz="0.3635 -0.01 0" rpy="0 ${pi/2} ${-pi/2}"/>
     <inertial>
       <mass value="0.27636213"/>
@@ -64,9 +64,9 @@
     </inertial>
   </xacro:extra_module>
 
-  <xacro:extra_module name="lidar_imu" parent="lidar_imu_link">
-    <origin xyz="0 0 0.03905" rpy="0 0 0"/>
-    <xacro:virtual_inertial/>
-  </xacro:extra_module>
+  <!-- <xacro:extra_module name="lidar_imu" parent="lidar_imu_link"> -->
+  <!--   <origin xyz="0 0 0.03905" rpy="0 0 0"/> -->
+  <!--   <xacro:virtual_inertial/> -->
+  <!-- </xacro:extra_module> -->
 
 </robot>
