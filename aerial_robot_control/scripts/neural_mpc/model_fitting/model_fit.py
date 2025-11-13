@@ -127,9 +127,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Step", color="DIM", width=13)
     table.add_column("Train Loss", color="red", width=25)
     if MLPConfig.gradient_lambda > 0.0:
-        table.add_column("Gradient Loss", color="magenta", width=15)
+        table.add_column("Gradient Loss", color="magenta", width=21)
     if MLPConfig.consistency_epsilon > 0.0:
-        table.add_column("Consist. Loss", color="cyan", width=15)
+        table.add_column("Consistency Loss", color="cyan", width=21)
     table.add_column("Val Loss", color="BRIGHT green", width=25)
     table.add_column("Inference Time", width=19)
     table.add_column("Learning Rate", width=13)

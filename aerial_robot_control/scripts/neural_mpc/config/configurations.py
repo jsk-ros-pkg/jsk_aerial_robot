@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_101",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_102",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -105,6 +105,7 @@ class EnvConfig:
             # [BAD LEARNING] 99: Same as 98 but without control averaging and with homogenous weight and weight decay (L2) -> for CONTROLLER
             # 100: Same as 99 but without weight decay -> for CONTROLLER
             # 101: Same as 97 but with grad penalty and consistency regularization -> for SIMULATOR
+            # 102: Same as 101 but without LPF but with moving average
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -264,13 +265,13 @@ class ModelFitConfig:
     control_averaging = False
 
     # ------- Low-Pass Filter -------
-    use_low_pass_filter = True
+    use_low_pass_filter = False
     low_pass_filter_cutoff_input = 1.0
     low_pass_filter_cutoff_label = 0.1
 
     # ------- Moving Average Filter -------
-    use_moving_average_filter = False
-    window_size = 21  # Must be odd
+    use_moving_average_filter = True
+    window_size = 5  # Must be odd
 
     # ------- Coordinate Transform -------
     label_transform = False
@@ -285,7 +286,7 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = True
+    plot_dataset = False
     save_plots = False
 
     # ------- Dataset loading -------
