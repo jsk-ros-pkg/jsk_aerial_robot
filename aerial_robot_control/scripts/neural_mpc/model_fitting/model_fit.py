@@ -3,6 +3,7 @@ import time
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
+from torch.nn import MSELoss
 from progress_table import ProgressTable
 from torchsummary import summary
 from decimal import Decimal
@@ -125,13 +126,17 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Epoch", color="white", width=13)
     table.add_column("Step", color="DIM", width=13)
     table.add_column("Train Loss", color="red", width=25)
+    if MLPConfig.gradient_lambda > 0.0:
+        table.add_column("Gradient Loss", color="magenta", width=15)
+    if MLPConfig.consistency_epsilon > 0.0:
+        table.add_column("Consist. Loss", color="cyan", width=15)
     table.add_column("Val Loss", color="BRIGHT green", width=25)
     table.add_column("Inference Time", width=19)
     table.add_column("Learning Rate", width=13)
 
     # === Training Loop ===
     print("==========================================")
-    print("Starting training...")
+    print(f"Starting training model {save_file_name}...")
     for t in table(MLPConfig.num_epochs, show_throughput=False, show_eta=True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
 
@@ -221,12 +226,36 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
     for x, y in dataloader:
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
+        if MLPConfig.gradient_lambda > 0.0:
+            x.requires_grad = True
 
         # === Forward pass ===
         y_pred = model(x)
 
+        # === Gradient penalty ===
+        if MLPConfig.gradient_lambda > 0.0:
+            x.requires_grad = True
+            gradients = torch.autograd.grad(
+                outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True
+            )[0]
+            gradient_penalty = torch.mean(gradients**2)
+            loss_gradient = MLPConfig.gradient_lambda * gradient_penalty
+
+        # === Output consistency ===
+        if MLPConfig.consistency_epsilon > 0.0:
+            # Add relative noise based on input magnitude with standard normal distribution
+            x_std = torch.std(x, dim=0, keepdim=True)
+            noise = torch.randn_like(x) * torch.abs(x)
+            noisy_input = x + MLPConfig.consistency_epsilon * x_std * noise
+            y_pred_noise = model(noisy_input)
+            loss_consistency = (torch.square(y_pred - y_pred_noise) * weight).mean()
+
         # === Loss ===
         loss = loss_fn(y, y_pred, weight, l1_lambda, model)
+        if MLPConfig.gradient_lambda > 0.0:
+            loss += loss_gradient
+        if MLPConfig.consistency_epsilon > 0.0:
+            loss += loss_consistency
 
         # === Backpropagation ===
         loss.backward()
@@ -240,6 +269,10 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
         loss_avg = (loss_avg * prev_mov_size + loss.item() * curr_batch_size) / mov_size
         table["Step"] = f"{mov_size}/{size}"
         table["Train Loss"] = loss_avg
+        if MLPConfig.gradient_lambda > 0.0:
+            table["Gradient Loss"] = loss_gradient
+        if MLPConfig.consistency_epsilon > 0.0:
+            table["Consistency Loss"] = loss_consistency
     return loss_avg
 
 

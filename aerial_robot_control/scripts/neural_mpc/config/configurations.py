@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_096",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_101",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
             # 32: label transform, no output denormalization, no dt normalization
             # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
             # 34: same as 33 but minimal network size (with 4 times the val loss)
@@ -99,8 +99,12 @@ class EnvConfig:
             # 92: Only z and cmd inputs (w/o transforms), on GROUND_EFFECT_ONLY -> for CONTROLLER
             # 93: Only z and cmd inputs (w/o transforms), on TRAIN_FOR_PAPER -> for CONTROLLER
             # ---- all before have no low pass filter ----
-            # 96: Only z and cmd inputs (w/o transforms), with LPF on TRAIN_FOR_PAPER -> for CONTROLLER
-            # 97: [very good] Regular state in and large network (w/o transforms), with LPF on TRAIN_FOR_PAPER -> for SIMULATOR
+            # 96: [very good] Only z and avg cmd inputs (w/o transforms) & az as label, with LPF (1.0 ctf) on TRAIN_FOR_PAPER -> for CONTROLLER
+            # 97: [a bit too good] Regular state in and large network (w/o transforms), with LPF (1.0 ctf) on TRAIN_FOR_PAPER -> for SIMULATOR
+            # 98: Only z and avg cmd inputs (w/o transforms) but full labels, with LPF (0.1 ctf) on TRAIN_FOR_PAPER -> for CONTROLLER
+            # [BAD LEARNING] 99: Same as 98 but without control averaging and with homogenous weight and weight decay (L2) -> for CONTROLLER
+            # 100: Same as 99 but without weight decay -> for CONTROLLER
+            # 101: Same as 97 but with grad penalty and consistency regularization -> for SIMULATOR
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -127,7 +131,7 @@ class EnvConfig:
             "payload": False,  # Payload force in the Z axis
         },
         "use_nominal_simulator": False,  # Use nominal model as simulator
-        "use_real_world_simulator": True,  # Use neural model trained on real world data as simulator
+        "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
         "sim_neural_model_instance": "neuralmodel_097",  # 90, 87, 58  # Used when use_real_world_simulator = True
         "max_sim_time": 30,
         "world_radius": 3,
@@ -228,13 +232,18 @@ class MLPConfig:
 
     # Loss weighting of different predicted dimensions (default ones-vector)
     # loss_weight = [1.0]
-    loss_weight = [1.0, 1.0, 10.0]
+    loss_weight = [1.0, 1.0, 1.0]
+    # loss_weight = [1.0, 1.0, 10.0]
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 0.0  # 1e-3  # Set to 0.0 to disable
+    weight_decay = 0.0  # 1e-4  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
+    # Penalize gradients
+    gradient_lambda = 1e-6
+    # Output consistency regularization epsilon
+    consistency_epsilon = 0.1  # Relative noise to input; Set to 0.0 to disable
 
     # Learning rate
     learning_rate = 1e-3  # for residual
@@ -252,11 +261,12 @@ class MLPConfig:
 
 class ModelFitConfig:
     # ------- Control Averaging -------
-    control_averaging = True
+    control_averaging = False
 
     # ------- Low-Pass Filter -------
     use_low_pass_filter = True
-    low_pass_filter_cutoff = 0.1  # Cutoff frequency for the low-pass filter
+    low_pass_filter_cutoff_input = 1.0
+    low_pass_filter_cutoff_label = 0.1
 
     # ------- Moving Average Filter -------
     use_moving_average_filter = False
@@ -297,8 +307,8 @@ class ModelFitConfig:
     # ------- Features used for the model -------
     # State features
     state_feats = [2]  # [z]
-    state_feats.extend([3, 4, 5])  # [z, vx, vy, vz]
-    state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
+    # state_feats.extend([3, 4, 5])  # [z, vx, vy, vz]
+    # state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
     # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]

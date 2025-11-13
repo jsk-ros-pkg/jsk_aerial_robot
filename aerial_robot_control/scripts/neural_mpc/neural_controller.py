@@ -974,7 +974,7 @@ class NeuralMPC(RecedingHorizonBase):
         # 0: no warm start; 1: warm start; 2: hot start. Default: 0
         # ocp.solver_options.qp_solver_warm_start = 1
         ocp.solver_options.hessian_approx = "GAUSS_NEWTON"  # "EXACT", "GAUSS_NEWTON"
-        ocp.solver_options.integrator_type = "ERK"  # explicit Runge-Kutta integrator
+        ocp.solver_options.integrator_type = "IRK" # "ERK"  # explicit Runge-Kutta integrator
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = "SQP_RTI"
         ocp.solver_options.qp_solver_cond_N = self.params["N_steps"]

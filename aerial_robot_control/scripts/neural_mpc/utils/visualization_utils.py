@@ -686,7 +686,7 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
                     (control_in[:, np.newaxis], np.sum(control[:, 4:8], axis=1)[:, np.newaxis] / 4.0), axis=1
                 )
         else:
-            control_in = control[rtnmpc.u_feats]
+            control_in = control[:, rtnmpc.u_feats]
         control_torch = torch.from_numpy(control_in).type(torch.float32).to(torch.device("cpu"))
 
         mlp_in = torch.cat((state_b_torch, control_torch), dim=1)

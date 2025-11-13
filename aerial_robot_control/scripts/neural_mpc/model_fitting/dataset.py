@@ -155,13 +155,14 @@ class TrajectoryDataset(Dataset):
             fs = 1.0 / np.mean(dt)
 
             # Cutoff frequencies for different features
-            cutoff_pos = 1.0  # 0.8
-            cutoff_vel = 1.0  # 0.8
-            cutoff_quat = 1.0  # 0.8
-            cutoff_angular_vel = 1.0  # 0.8
-            cutoff_thrust = 1.0
-            cutoff_servo = 1.0  # 0.3
-            cutoff_acc = 0.1  # 0.8  # Labels
+            cutoff_pos = ModelFitConfig.low_pass_filter_cutoff_input  # 0.8
+            cutoff_vel = ModelFitConfig.low_pass_filter_cutoff_input  #  0.8
+            cutoff_quat = ModelFitConfig.low_pass_filter_cutoff_input  #  0.8
+            cutoff_angular_vel = ModelFitConfig.low_pass_filter_cutoff_input  # 0.8
+            cutoff_thrust = ModelFitConfig.low_pass_filter_cutoff_input  # 1.0
+            cutoff_servo = ModelFitConfig.low_pass_filter_cutoff_input  # 0.3
+
+            cutoff_acc = ModelFitConfig.low_pass_filter_cutoff_label
 
             # State features
             if {2}.issubset(set(state_feats)):

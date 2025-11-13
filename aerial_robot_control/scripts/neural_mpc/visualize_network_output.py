@@ -7,6 +7,10 @@ from config.configurations import EnvConfig
 from utils.model_utils import load_model
 
 
+def draw_network_weights(neural_model, save_path=None):
+    pass
+
+
 def visualize_network_output_per_dimension(
     neural_model, input_configs, output_dim, output_names, num_points=500, save_path=None
 ):
