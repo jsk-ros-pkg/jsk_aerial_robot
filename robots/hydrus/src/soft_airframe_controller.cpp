@@ -152,7 +152,7 @@ void SoftAirframeController::controlCore()
   ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
   {
-    ub(i + 4) = robot_model_->getThrustUpperLimit(i);
+    ub(i + 4) = 30.0;
   }
   // ub(7) = 10.0;
 
