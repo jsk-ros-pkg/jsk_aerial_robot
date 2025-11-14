@@ -67,16 +67,12 @@ protected:
   ros::Time body_pose_update_time_;
   Eigen::Vector3d prev_rotor5_origin = Eigen::Vector3d(0,0,0);
   Eigen::Vector3d prev_rotor5_normal = Eigen::Vector3d(0,0,0);
-  // std::deque<Eigen::Vector3d> rotor5_origin_hist;
-  // std::deque<Eigen::Vector3d> rotor5_normal_hist;
 
   Eigen::VectorXd prev_target_vectoring_f_;
-  // std::deque<Eigen::VectorXd> target_vectoring_f_hist_;
   OsqpEigen::Solver target_vectoring_qp_solver_;
   int n_constraints;
-  double max_rotor5 = -5.0;
+  double max_rotor5 = -10.0;
   std::vector<double> joint_angles_;
-  double offset_thrust = 0.0;
   
   void setAttitudeGains();
   virtual void rosParamInit();
