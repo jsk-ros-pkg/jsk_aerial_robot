@@ -15,7 +15,8 @@ def plot_trajectory():
         # "NMPCTiltQdServo_residual_dataset_04", "dataset_001.csv"
         # "NMPCTiltQdServo_residual_dataset_06", "dataset_001.csv"
         # "NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY", "dataset_002.csv"
-        "NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER",
+        # "NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER", "dataset_001.csv"
+        "NMPCTiltQdServo_real_machine_dataset_FULL",
         "dataset_001.csv"
         # "NMPCTiltQdServo_real_machine_dataset_VAL_FOR_PAPER", "dataset_003.csv"
         # "NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_07", "dataset_001.csv"

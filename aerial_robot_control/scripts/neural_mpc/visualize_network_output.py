@@ -91,7 +91,7 @@ def visualize_network_output_per_dimension(
         )
 
     fig.suptitle(
-        f"Network Output {output_dim} vs. Each Input Dimension\n"
+        f"Network Output {output_names[output_dim]} vs. Each Input Dimension\n"
         + "Red dashed lines indicate high gradients (potential discontinuities)\n"
         + "Defaults: "
         + ", ".join([f"{cfg['name']}={cfg['default']:.2f}" for cfg in input_configs]),
@@ -125,48 +125,56 @@ def visualize_2d_output_heatmap(neural_model, input_configs, output_dim, output_
     ranges = [cfg["range"] for cfg in input_configs]
     defaults = [cfg["default"] for cfg in input_configs]
 
-    # Create figure with n_dims x n_dims subplots
+    # Only plot unique pairs (dim1_idx < dim2_idx), omit mirrored and same-dimension plots
     n_dims = len(input_configs)
-    fig, axes = plt.subplots(n_dims, n_dims)
+    pairs = [(i, j) for i in range(n_dims) for j in range(i + 1, n_dims)]
+    n_plots = len(pairs)
+    n_cols = int(np.ceil(np.sqrt(n_plots)))
+    n_rows = int(np.ceil(n_plots / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows))
+    axes = np.array(axes).reshape(-1)
 
-    for dim1_idx in range(n_dims):
-        for dim2_idx in range(n_dims):
-            ax = axes[dim1_idx, dim2_idx]
+    for idx, (dim1_idx, dim2_idx) in enumerate(pairs):
+        ax = axes[idx]
 
-            # Create grid
-            dim1_vals = np.linspace(ranges[dim1_idx][0], ranges[dim1_idx][1], num_points)
-            dim2_vals = np.linspace(ranges[dim2_idx][0], ranges[dim2_idx][1], num_points)
+        # Create grid
+        dim1_vals = np.linspace(ranges[dim1_idx][0], ranges[dim1_idx][1], num_points)
+        dim2_vals = np.linspace(ranges[dim2_idx][0], ranges[dim2_idx][1], num_points)
 
-            output_grid = np.zeros((num_points, num_points))
+        output_grid = np.zeros((num_points, num_points))
 
-            for i, val1 in enumerate(dim1_vals):
-                for j, val2 in enumerate(dim2_vals):
-                    current_input = np.array(defaults.copy())
-                    current_input[dim1_idx] = val1
-                    current_input[dim2_idx] = val2
+        for i, val1 in enumerate(dim1_vals):
+            for j, val2 in enumerate(dim2_vals):
+                current_input = np.array(defaults.copy())
+                current_input[dim1_idx] = val1
+                current_input[dim2_idx] = val2
 
-                    with torch.no_grad():
-                        input_tensor = torch.tensor(current_input, dtype=torch.float32)
-                        output_tensor = neural_model(input_tensor)
-                        output_grid[j, i] = output_tensor.numpy()[output_dim]
+                with torch.no_grad():
+                    input_tensor = torch.tensor(current_input, dtype=torch.float32)
+                    output_tensor = neural_model(input_tensor)
+                    output_grid[j, i] = output_tensor.numpy()[output_dim]
 
-            # Create heatmap
-            im = ax.imshow(
-                output_grid,
-                extent=[ranges[dim1_idx][0], ranges[dim1_idx][1], ranges[dim2_idx][0], ranges[dim2_idx][1]],
-                origin="lower",
-                aspect="auto",
-                cmap="RdYlBu_r",
-                interpolation="bilinear",
-            )
+        # Create heatmap
+        ax.grid(False)
+        im = ax.imshow(
+            output_grid,
+            extent=[ranges[dim1_idx][0], ranges[dim1_idx][1], ranges[dim2_idx][0], ranges[dim2_idx][1]],
+            origin="lower",
+            aspect="auto",
+            cmap="RdYlBu_r",
+            interpolation="bilinear",
+        )
+        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label(f"{output_names[output_dim]}", fontsize=8)
 
-            cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            cbar.set_label(f"{output_names[output_dim]}", fontsize=8)
+        ax.set_xlabel(names[dim1_idx], fontsize=9)
+        ax.set_ylabel(names[dim2_idx], fontsize=9)
+        ax.set_title(f"{names[dim1_idx]} vs. {names[dim2_idx]}", fontsize=10)
+        ax.axes.xaxis.set_ticklabels([])
 
-            ax.set_xlabel(names[dim1_idx], fontsize=9)
-            ax.set_ylabel(names[dim2_idx], fontsize=9)
-            ax.set_title(f"{names[dim1_idx]} vs. {names[dim2_idx]}", fontsize=10)
-            ax.tick_params(labelsize=8)
+    # Hide unused axes
+    for ax in axes[n_plots:]:
+        ax.axis("off")
 
     fig.suptitle(
         f"Network Output {output_names[output_dim]} - All Input Dimension Pairs",
@@ -177,6 +185,7 @@ def visualize_2d_output_heatmap(neural_model, input_configs, output_dim, output_
 
     figManager = plt.get_current_fig_manager()
     figManager.resize(*figManager.window.maxsize())
+    plt.tight_layout()
 
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches="tight")

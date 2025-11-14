@@ -967,7 +967,25 @@
         "neuralmodel_101",
         "neuralmodel_102",
         "neuralmodel_102",
-        "neuralmodel_103"
+        "neuralmodel_103",
+        "neuralmodel_103",
+        "neuralmodel_104",
+        "neuralmodel_105",
+        "neuralmodel_106",
+        "neuralmodel_107",
+        "neuralmodel_108",
+        "neuralmodel_109",
+        "neuralmodel_109",
+        "neuralmodel_109",
+        "neuralmodel_110",
+        "neuralmodel_111",
+        "neuralmodel_112",
+        "neuralmodel_113",
+        "neuralmodel_114",
+        "neuralmodel_115",
+        "neuralmodel_116",
+        "neuralmodel_117",
+        "neuralmodel_118"
       ]
     }
   },
@@ -2464,6 +2482,72 @@
         "neuralmodel_085",
         "neuralmodel_086",
         "neuralmodel_087"
+      ]
+    }
+  },
+  "NMPCTiltQdServo_real_machine_dataset_FULL": {
+    "date": "2025-11-14 18:12:27",
+    "real_machine": true,
+    "rosbag_file": "~/ros/rosbag_files/csv/2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv",
+    "duration": [
+      331.4860088825226,
+      484.0976810455322,
+      79.00931096076965,
+      92.76117205619812
+    ],
+    "mpc_type": "NMPCTiltQdServo",
+    "state_dim": 17,
+    "control_dim": 8,
+    "include_quaternion_constraint": false,
+    "include_soft_constraints": false,
+    "mpc_params": {
+      "T_samp": 0.01,
+      "T_horizon": 2.0,
+      "T_step": 0.1,
+      "w_max": 6,
+      "w_min": -6,
+      "v_max": 1,
+      "v_min": -1,
+      "thrust_max": 30,
+      "thrust_min": 0,
+      "a_max": 3.1416,
+      "a_min": -3.1416,
+      "Qp_xy": 300,
+      "Qp_z": 400,
+      "Qv_xy": 10,
+      "Qv_z": 10,
+      "Qq_xy": 300,
+      "Qq_z": 600,
+      "Qw_xy": 5,
+      "Qw_z": 5,
+      "Qa": 1,
+      "Rt": 1,
+      "Rac_d": 250,
+      "linear_slack_weight": 10,
+      "quadratic_slack_weight": 100,
+      "is_attitude_ctrl": false,
+      "is_body_rate_ctrl": false,
+      "is_print_phys_params": false,
+      "is_debug": false,
+      "N_steps": 20
+    },
+    "filtering": {
+      "temporal_filtering": false,
+      "moving_average_filter": false
+    },
+    "dataset_001": {
+      "disturbances": {
+        "cog_dist": false,
+        "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
+        "cog_dist_factor": 0.1,
+        "motor_noise": false,
+        "drag": false,
+        "payload": false
+      },
+      "trained_models": [
+        "neuralmodel_119",
+        "neuralmodel_119",
+        "neuralmodel_119"
       ]
     }
   }

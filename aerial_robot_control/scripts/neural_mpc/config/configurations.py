@@ -45,29 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_102",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
-            # 32: label transform, no output denormalization, no dt normalization
-            # 33: 0.4 dist, no label transform, output denormalization, dt normalization (VERY SUCCESSFUL) but large network and thus slow
-            # 34: same as 33 but minimal network size (with 4 times the val loss)
-            # 35: same as 34 but on dataset 04 (dist_factor=0.1)
-            # 39 & 40: on real data (but small set)
-            # 41: real data, large dataset (200k points)
-            # 42: on dataset 008 with mainly ground effect data
-            # 43: two hidden layers
-            # 45: real data with rotation (115k datapoints)
-            # 46: same as 45 but no pruning (better results)
-            # 47: same as 46 but on dataset 013 (fixed prop and dt)
-            # 48: only vz
-            # 49: only vz with larger network (not much better than 48)
-            # 50: only vz with larger network and LambdaLR (slightly worse than 49)
-            # 51: only vz with small network and constant LR (slightly better than all)
-            # 54: vz, prune, no input transform and no takeoff
-            # 55: same as 54 but longer and LambdaLR
-            # 57: With vx, vy, vz, With input and label transform, and weight 1,1,10 -> used for training network for paper
-            # 58: same as 57 but no input and label transform -> NEURAL SIMULATOR FOR PAPER TRAINED ON REAL WORLD DATA
-            # 59: only vz, no input/label transform, on sim with neural and nominal control dataset
-            # 60: same as 59 but with vx, vy, vz -> NEURAL CONTROLLER FOR PAPER TRAINED ON SIMULATED LABELS
-            # (61): same as 60 but longer training (250 epochs) -> somehow worse
+            "neural_model_instance": "neuralmodel_119",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -106,6 +84,15 @@ class EnvConfig:
             # 100: Same as 99 but without weight decay -> for CONTROLLER
             # 101: Same as 97 but with grad penalty and consistency regularization -> for SIMULATOR
             # 102: Same as 101 but without LPF but with moving average
+            # 103: Same as 96 but without extra losses and WITH L2 regularization
+            # 104, 105, 106, 107: Same as 103 but slightly larger L2 factor
+            # 108 (good), 109, 110 (VERY GOOD): Same as 107 but with consistency loss
+            # 113 (BEST SO FAR), 114, 115 (Cant find solution when too high lambda): Same as 110 but with gradient penalty
+            # 116 (bad): No mov avg (raw data), no grad pen, low consistency with L2
+            # 117 (not as good as 113): Same as 116 but with mov avg
+            # 118 (not as good as 113): Same as 113 but regular state
+            # ---- all before not on FULL dataset ----
+            # 119 (not good): Same as 113 but trained on FULL dataset
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
             "scale_by_weight": False,  # Scale MLP output by robot's weight
@@ -133,8 +120,8 @@ class EnvConfig:
         },
         "use_nominal_simulator": False,  # Use nominal model as simulator
         "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
-        "sim_neural_model_instance": "neuralmodel_097",  # 90, 87, 58  # Used when use_real_world_simulator = True
-        "max_sim_time": 30,
+        "sim_neural_model_instance": "neuralmodel_113",  # 90, 87, 58  # Used when use_real_world_simulator = True
+        "max_sim_time": 15,
         "world_radius": 3,
         "seed": 897,
     }
@@ -238,13 +225,14 @@ class MLPConfig:
     # Optimizer
     optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 0.0  # 1e-4  # Set to 0.0 to disable
+    weight_decay = 1e-3  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
     # Penalize gradients
-    gradient_lambda = 1e-6
+    gradient_lambda = 1e4  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_epsilon = 0.1  # Relative noise to input; Set to 0.0 to disable
+    consistency_lambda = 5.0  # Set to 0.0 to disable
+    consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
 
     # Learning rate
     learning_rate = 1e-3  # for residual
@@ -290,7 +278,8 @@ class ModelFitConfig:
     save_plots = False
 
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
+    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
     # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"

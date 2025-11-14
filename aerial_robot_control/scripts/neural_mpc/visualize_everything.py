@@ -27,15 +27,17 @@ def main():
         # "/NMPCTiltQdServo_residual_dataset_04/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_01/dataset_013.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY/dataset_001.csv"
-        "/NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER/dataset_001.csv"
+        # "/NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_VAL_FOR_PAPER/dataset_003.csv"
+        "/NMPCTiltQdServo_real_machine_dataset_FULL/dataset_001.csv"
         # "/NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_07/dataset_001.csv"
         # VAL: 1 (base), 3 (with ref)
     ]
     df = pd.read_csv(DirectoryConfig.DATA_DIR + file_name[0])
     vz_idx = 5
     q_idx = 6
-    state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])
+    state_feats = np.array([2])
+    # state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9])
     # state_feats = np.array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     u_feats = np.array([0, 1, 2, 3, 4, 5, 6, 7])
     # y_reg_dims = np.array([5])

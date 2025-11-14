@@ -194,9 +194,12 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
 
 def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_workers=0):
-    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=False, num_workers=num_workers)
-    val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=False, num_workers=num_workers)
-    test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=False, num_workers=num_workers)
+    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=True, num_workers=num_workers)
+    if len(test_data) == 0:
+        test_dataloader = None
+    else:
+        test_dataloader = DataLoader(test_data, batch_size=4096, shuffle=True, num_workers=num_workers)
     return train_dataloader, val_dataloader, test_dataloader
 
 
@@ -234,7 +237,6 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
 
         # === Gradient penalty ===
         if MLPConfig.gradient_lambda > 0.0:
-            x.requires_grad = True
             gradients = torch.autograd.grad(
                 outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True
             )[0]
@@ -242,19 +244,18 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             loss_gradient = MLPConfig.gradient_lambda * gradient_penalty
 
         # === Output consistency ===
-        if MLPConfig.consistency_epsilon > 0.0:
+        if MLPConfig.consistency_lambda > 0.0:
             # Add relative noise based on input magnitude with standard normal distribution
-            x_std = torch.std(x, dim=0, keepdim=True)
             noise = torch.randn_like(x) * torch.abs(x)
-            noisy_input = x + MLPConfig.consistency_epsilon * x_std * noise
+            noisy_input = x + MLPConfig.consistency_epsilon * model.x_std * noise
             y_pred_noise = model(noisy_input)
-            loss_consistency = (torch.square(y_pred - y_pred_noise) * weight).mean()
+            loss_consistency = MLPConfig.consistency_lambda * (torch.square(y_pred - y_pred_noise) * weight).mean()
 
         # === Loss ===
         loss = loss_fn(y, y_pred, weight, l1_lambda, model)
         if MLPConfig.gradient_lambda > 0.0:
             loss += loss_gradient
-        if MLPConfig.consistency_epsilon > 0.0:
+        if MLPConfig.consistency_lambda > 0.0:
             loss += loss_consistency
 
         # === Backpropagation ===

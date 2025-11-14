@@ -13,7 +13,9 @@ from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
 from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
 
 
-def get_synched_data_from_rosbag(file_path: str, smooth_data: bool = True) -> dict:
+def get_synched_data_from_rosbag(
+    file_path: str, apply_temporal_filter: bool, apply_moving_average_filter: bool
+) -> dict:
     """
     Load and read rosbags from csv file.
     Remove NaN values and synchronize topics based on timestamp. The guiding time series is the thrust command.
@@ -368,39 +370,40 @@ def get_synched_data_from_rosbag(file_path: str, smooth_data: bool = True) -> di
     # Filter for inconsistent timesteps in dt
     # This is very important for training neural networks since outliers influence the training significantly
     # Enforce 0.009s < dt < 0.011s, for T_samp = 0.01s
-    mean_dt = 0.01  # np.mean(data["dt"])
-    while True:
-        # Loop until no invalid indices are left
-        valid_indices = np.zeros(data["dt"].shape[0], dtype=bool)
-        lower_bound = 0.9 * mean_dt
-        upper_bound = 1.1 * mean_dt
-        for i in range(len(data["dt"])):
-            if i % 2:  # Skip every second index since dt measures the time between two timestamps
-                if data["dt"][i] < lower_bound:
-                    # or data["dt"][i] > upper_bound:  # Skip upper bound to allow for longer dt due to occasional computation delays
-                    valid_indices[i] = False
+    if apply_temporal_filter:
+        mean_dt = 0.01  # np.mean(data["dt"])
+        while True:
+            # Loop until no invalid indices are left
+            valid_indices = np.zeros(data["dt"].shape[0], dtype=bool)
+            lower_bound = 0.9 * mean_dt
+            upper_bound = 1.1 * mean_dt
+            for i in range(len(data["dt"])):
+                if i % 2:  # Skip every second index since dt measures the time between two timestamps
+                    if data["dt"][i] < lower_bound:
+                        # or data["dt"][i] > upper_bound:  # Skip upper bound to allow for longer dt due to occasional computation delays
+                        valid_indices[i] = False
+                    else:
+                        valid_indices[i] = True
                 else:
                     valid_indices[i] = True
-            else:
-                valid_indices[i] = True
 
-        print(f"[INFO] Filtered out {np.sum(~valid_indices)} invalid timesteps from data.")
+            print(f"[INFO] Filtered out {np.sum(~valid_indices)} invalid timesteps from data.")
 
-        for key in data.keys():
-            if key not in ["dt", "duration"]:
-                data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt
-                data[key] = data[key][valid_indices, :]
+            for key in data.keys():
+                if key not in ["dt", "duration"]:
+                    data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt
+                    data[key] = data[key][valid_indices, :]
 
-        # Recompute dt
-        data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
+            # Recompute dt
+            data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
 
-        # Break condition
-        if np.all(valid_indices):
-            break
+            # Break condition
+            if np.all(valid_indices):
+                break
 
     ################ Moving average filter ##############
     # Smoothen data with moving average filter
-    if smooth_data:
+    if apply_moving_average_filter:
         print("[INFO] Applying moving average filter to data.")
         for key in data.keys():
             if key in ["timestamp", "dt", "duration"]:
@@ -442,6 +445,7 @@ def combine_dicts(data_dicts: dict, T_samp: float):
                 # Connect new timestamps to last timestamp + T_samp
                 last_time + T_samp + (data["timestamp"] - data["timestamp"][0]),
             )
+            last_time = combined_data["timestamp"][-1]
             combined_data["dt"] = np.concatenate((combined_data["dt"], np.array([T_samp]), data["dt"]))
 
     # Append other fields
@@ -462,8 +466,13 @@ if __name__ == "__main__":
     """
     Create dataset from rosbag
     """
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"  # + "_01"
+    ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
+
+    # Apply temporal filter to data
+    apply_temporal_filter = False
     # Apply moving average filter to data
-    smooth_data = False
+    apply_moving_average_filter = False
 
     mpc = NMPCTiltQdServo(phys=phys_omni, build=True)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
     T_samp = mpc.params["T_samp"]
@@ -509,8 +518,13 @@ if __name__ == "__main__":
         # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_VAL_WITH_REF.csv",
         ### HOVERING & GROUND EFFECT TRAIN ###
         # NOT THIS SINCE TOO AGGRESSIVE: "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_GROUND_EFFECT_ONLY.csv",
-        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",
-        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_GROUND_EFFECT_ONLY.csv",  # TRUNCATED FOR LESS AGGRESSIVE
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",
+        # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_GROUND_EFFECT_ONLY.csv",  # TRUNCATED FOR LESS AGGRESSIVE
+        ### FULL DATASET ###
+        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_FULL.csv",
+        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_FULL.csv",
+        "2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
+        "2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv",
     ]
     csv_files = [os.path.join(rosbag_dir, file) for file in csv_files]
 
@@ -518,7 +532,7 @@ if __name__ == "__main__":
     print(f"Started loading {len(csv_files)} csvs:")
     for i, csv_file in enumerate(csv_files):
         print(f"Loading {csv_file}...")
-        data_dicts[i] = get_synched_data_from_rosbag(csv_file, smooth_data=smooth_data)
+        data_dicts[i] = get_synched_data_from_rosbag(csv_file, apply_temporal_filter, apply_moving_average_filter)
 
     print(f"Finished loading all csvs!")
     if len(csv_files) > 1:
@@ -532,14 +546,11 @@ if __name__ == "__main__":
         data["recording_start_idx"] = [0]
 
     # TODO move file naming and creation into data_utils and generalize
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"  # + "_01"
-    ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
-
     # TODO make smarter!
     outer_fields = {
         "date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
         "real_machine": True,
-        "rosbag_file": csv_file,
+        "rosbag_file": csv_files,
         "duration": data["duration"],
         "mpc_type": "NMPCTiltQdServo",
         "state_dim": mpc.get_ocp().dims.nx,
@@ -547,7 +558,10 @@ if __name__ == "__main__":
         "include_quaternion_constraint": mpc.include_quaternion_constraint,
         "include_soft_constraints": mpc.include_soft_constraints,
         "mpc_params": mpc.params,
-        "filtering": {" moving_average_filter": smooth_data},
+        "filtering": {
+            "temporal_filtering": apply_temporal_filter,
+            "moving_average_filter": apply_moving_average_filter,
+        },
     }
     inner_fields = {
         "disturbances": {
@@ -651,8 +665,8 @@ if __name__ == "__main__":
     print("Average time step dt in dataset: ", np.mean(dt))
     print("Running forward prop...")
     # - Run forward propagation with nominal model based with state_in and control
-    takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
-    skip = False
+    # takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
+    # skip = False
     for t in range(state_in.shape[0]):
         # for t_rec_start in data["recording_start_idx"]:
         #     if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
