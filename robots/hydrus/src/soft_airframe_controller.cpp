@@ -101,15 +101,17 @@ void SoftAirframeController::controlCore()
   {
     lb(i + 4) = -10.0;
   }
-  // if(max_rotor5 > 3.0) {
-  //   if(joint_angles_.size() < 2){
-  //     lb(8) = -5.0;
-  //   } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
-  //     lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
-  //   } else {
-  //     lb(8) = 5.0;
-  //   }
-  // }
+  
+  if(max_rotor5 > 3.0) {
+    // if(joint_angles_.size() < 2){
+    //   lb(8) = -5.0;
+    // } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
+    //   lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
+    // } else {
+    //   lb(8) = 5.0;
+    // }
+    lb(8) = 3.0;
+  }
 
   ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
