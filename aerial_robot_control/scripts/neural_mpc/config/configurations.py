@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_119",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_120",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -93,9 +93,9 @@ class EnvConfig:
             # 118 (not as good as 113): Same as 113 but regular state
             # ---- all before not on FULL dataset ----
             # 119 (not good): Same as 113 but trained on FULL dataset
+            # 120 (BEST SO FAR [similar to 113]): Same as 113 on fixed FULL dataset
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
-            "scale_by_weight": False,  # Scale MLP output by robot's weight
         }
     )
 
@@ -121,7 +121,7 @@ class EnvConfig:
         "use_nominal_simulator": False,  # Use nominal model as simulator
         "use_real_world_simulator": False,  # Use neural model trained on real world data as simulator
         "sim_neural_model_instance": "neuralmodel_113",  # 90, 87, 58  # Used when use_real_world_simulator = True
-        "max_sim_time": 15,
+        "max_sim_time": 25,
         "world_radius": 3,
         "seed": 897,
     }
@@ -274,7 +274,7 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = False
+    plot_dataset = True
     save_plots = False
 
     # ------- Dataset loading -------
@@ -283,7 +283,7 @@ class ModelFitConfig:
     # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
-    ds_instance = "dataset_001"  # "dataset_020"
+    ds_instance = "dataset_002"  # "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
     # real machine 01, dataset 013: same as 007 but with fixed prop and dt

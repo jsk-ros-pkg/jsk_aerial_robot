@@ -132,11 +132,6 @@ def main():
         for t in range(state_in.shape[0]):
             mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in[t, q_idx : q_idx + 4])
 
-    # Scale by weight
-    if model_options["scale_by_weight"]:
-        raise NotImplementedError
-        mlp_out /= mpc.phys.mass
-
     # ================ Model output vs. label plot ================
     plt.style.use(["science", "grid"])
     plt.rcParams.update({"font.size": 11})

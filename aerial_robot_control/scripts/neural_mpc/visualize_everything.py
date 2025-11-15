@@ -166,10 +166,6 @@ def main():
         for t in range(mlp_out.shape[0]):
             mlp_out[t, :] = v_dot_q(mlp_out[t, :], state_in_mlp[t, q_idx : q_idx + 4])
 
-    # Scale by weight
-    if model_options["scale_by_weight"]:
-        mlp_out /= mpc.phys.mass
-
     # Plot true labels vs. actual regression
     y = mlp_out
     y_true = diff_mlp

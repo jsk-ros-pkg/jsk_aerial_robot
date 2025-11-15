@@ -165,10 +165,6 @@ def plot_trajectory_parallel(
                     v_w = v_dot_q(v_b.T, state_in_nominal[t, 6:10]).T
                     mlp_out[t, :] = np.concatenate((mlp_out[t, :v_idx], v_w, mlp_out[t, v_idx + 3 :]), axis=1)
 
-        # Scale by weight
-        if model_options["scale_by_weight"]:
-            mlp_out /= rtnmpc_minus_neural.phys.mass
-
         # Plot true labels vs. actual regression
         y = mlp_out
         fig, _ = plt.subplots(figsize=(10, 5))

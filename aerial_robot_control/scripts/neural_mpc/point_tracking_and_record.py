@@ -9,8 +9,8 @@ from sim_environment.disturbances import apply_cog_disturbance, apply_motor_nois
 from utils.controller_utils import check_state_constraints, check_input_constraints, get_rotor_positions
 from utils.data_utils import get_recording_dict_and_file, make_blank_dict, write_recording_data
 from utils.model_utils import set_approximation_params, set_temporal_states_as_params
-from utils.reference_utils import sample_random_target
-from utils.geometry_utils import unit_quaternion, euclidean_dist
+from utils.reference_utils import sample_random_position_target, sample_random_orientation_target
+from utils.geometry_utils import unit_quaternion, euclidean_dist, quaternion_dist
 from utils.visualization_utils import initialize_plotter, draw_robot, animate_robot, plot_trajectory, plot_disturbances
 from config.configurations import EnvConfig
 from neural_controller import NeuralMPC
@@ -118,12 +118,13 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     if run_options["preset_targets"] is not None:
         targets = run_options["preset_targets"]
     else:
-        targets = sample_random_target(
+        targets = sample_random_position_target(
             np.array(state_curr[:3]),
             sim_options["world_radius"],
             aggressive=run_options["aggressive"],
             low_flight=run_options["low_flight_targets"],
         )
+    tracking_mode = "position"
     targets_reached = np.array([False for _ in targets])
 
     # --- Prepare recording ---
@@ -353,7 +354,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 state_curr_sim[6:10] = unit_quaternion(state_curr_sim[6:10])
 
                 # Target check
-                if euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.025):
+                if tracking_mode == "position" and euclidean_dist(current_target[:3], state_curr_sim[:3], thresh=0.025):
                     # Target reached!
                     current_target_reached = True
                     targets_reached[current_target_idx] = True
@@ -362,6 +363,12 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                     # and therefore smooth trajectory
                     # Also, it makes no physical sense to jump to next control step immediately
                     # break
+                elif tracking_mode == "orientation" and quaternion_dist(
+                    state_ref[6:10], state_curr_sim[6:10], thresh=0.05
+                ):
+                    # Rotation target reached!
+                    current_target_reached = True
+                    targets_reached[current_target_idx] = True
                 # --- Increment simulation step ---
                 j += 1
             # --- Increment control step ---
@@ -375,12 +382,23 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
                 # Generate new target
                 if run_options["preset_targets"] is None:
-                    new_target = sample_random_target(
-                        state_curr_sim[:3],
-                        sim_options["world_radius"],
-                        aggressive=run_options["aggressive"],
-                        low_flight=run_options["low_flight_targets"],
-                    )
+                    if t_now < 5:
+                        new_target = sample_random_position_target(
+                            state_curr_sim[:3],
+                            sim_options["world_radius"],
+                            aggressive=run_options["aggressive"],
+                            low_flight=run_options["low_flight_targets"],
+                        )
+                    elif t_now < 10 and not euclidean_dist(np.array([0, 0, 1.0]), state_curr_sim[:3], thresh=0.025):
+                        new_target = np.array([0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[np.newaxis, :]
+                    else:
+                        tracking_mode = "orientation"
+                        new_target = sample_random_orientation_target(
+                            state_curr_sim[:3],
+                            aggressive=False,  # run_options["aggressive"],
+                            low_flight=False,  # run_options["low_flight_targets"],
+                        )
+
                     targets = np.append(targets, new_target, axis=0)
                     targets_reached = np.append(targets_reached, False)
             else:

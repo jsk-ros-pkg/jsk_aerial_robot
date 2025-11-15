@@ -371,35 +371,24 @@ def get_synched_data_from_rosbag(
     # This is very important for training neural networks since outliers influence the training significantly
     # Enforce 0.009s < dt < 0.011s, for T_samp = 0.01s
     if apply_temporal_filter:
-        mean_dt = 0.01  # np.mean(data["dt"])
-        while True:
-            # Loop until no invalid indices are left
-            valid_indices = np.zeros(data["dt"].shape[0], dtype=bool)
-            lower_bound = 0.9 * mean_dt
-            upper_bound = 1.1 * mean_dt
-            for i in range(len(data["dt"])):
-                if i % 2:  # Skip every second index since dt measures the time between two timestamps
-                    if data["dt"][i] < lower_bound:
-                        # or data["dt"][i] > upper_bound:  # Skip upper bound to allow for longer dt due to occasional computation delays
-                        valid_indices[i] = False
-                    else:
-                        valid_indices[i] = True
-                else:
-                    valid_indices[i] = True
+        mean_dt = np.mean(data["dt"])
+        std_dt = np.std(data["dt"])
+        print(
+            f"[INFO] Applying temporal filter to data with mean dt = {mean_dt:.6f}s and std dt = {std_dt:.6f}s. ",
+            f"Removing all dt under {mean_dt - std_dt * 2:.6f}s.",
+        )
 
-            print(f"[INFO] Filtered out {np.sum(~valid_indices)} invalid timesteps from data.")
+        # Note: We do not filter upper bound here to avoid making gaps in the data even larger
+        valid_indices = np.where((data["dt"] >= (mean_dt - std_dt * 2)))[0]
+        print(f"[INFO] Filtered out {len(data['dt']) - len(valid_indices)} invalid timesteps from data.")
 
-            for key in data.keys():
-                if key not in ["dt", "duration"]:
-                    data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt
-                    data[key] = data[key][valid_indices, :]
+        for key in data.keys():
+            if key not in ["dt", "duration"]:
+                data[key] = data[key][valid_indices, :]
+                data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt since we recompute it later
 
-            # Recompute dt
-            data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
-
-            # Break condition
-            if np.all(valid_indices):
-                break
+        # Recompute dt
+        data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
 
     ################ Moving average filter ##############
     # Smoothen data with moving average filter
@@ -470,7 +459,7 @@ if __name__ == "__main__":
     ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
     # Apply temporal filter to data
-    apply_temporal_filter = False
+    apply_temporal_filter = True
     # Apply moving average filter to data
     apply_moving_average_filter = False
 

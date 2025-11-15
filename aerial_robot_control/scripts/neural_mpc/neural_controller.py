@@ -486,12 +486,6 @@ class NeuralMPC(RecedingHorizonBase):
                 else:
                     raise KeyError("Selected regression dimensions not expected.")
 
-            # Normalize the MLP output by weight of the robot if specified
-            # Idea: Model predicts acceleration so to predict the forces we need to scale by mass of the robot
-            # TODO doesnt really make sense
-            if self.model_options["scale_by_weight"]:
-                mlp_out /= self.phys.mass
-
             # === Fuse dynamics ===
             # Map output of MLP to the state space
             M = get_output_mapping(
