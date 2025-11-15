@@ -562,7 +562,7 @@ class NeuralMPC(RecedingHorizonBase):
 
         return model
 
-    def get_cost_function(self, lin_acc_w=None, ang_acc_b=None) -> tuple[ca.MX, ca.MX, ca.MX]:
+    def get_cost_function(self, lin_acc_w=None, ang_acc_b=None):
         #### ONLY FOR NMPCServo() FOR NOW ####
         # Cost function
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
@@ -593,7 +593,7 @@ class NeuralMPC(RecedingHorizonBase):
 
         return state_y, state_y_e, control_y
 
-    def get_weights(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_weights(self):
         # Define Weights
         Q = np.diag(
             [
@@ -1000,7 +1000,7 @@ class NeuralMPC(RecedingHorizonBase):
         quaternion_ref = xr[ocp_solver.N, 6:10]
         self.acados_parameters[ocp_solver.N, 0:4] = quaternion_ref  # For nonlinear quaternion error
 
-    def append_delay(self, delay: int = 0) -> tuple[ca.MX, ca.MX]:
+    def append_delay(self, delay: int = 0):
         """
         Append delay of the state and control as parameters to the acados model and solver.
         The additional states and controls are used as input to the neural network to account for temporal dependencies.
@@ -1036,7 +1036,7 @@ class NeuralMPC(RecedingHorizonBase):
     def get_reference_generator(self) -> QDNMPCReferenceGenerator:
         return self._reference_generator
 
-    def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref) -> tuple[np.ndarray, np.ndarray]:
+    def get_reference(self, target_xyz, target_qwxyz, ft_ref, a_ref):
         """
         Assemble reference trajectory from target pose and reference control values.
         Gets called from reference generator class.

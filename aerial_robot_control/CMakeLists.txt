@@ -95,9 +95,9 @@ target_link_libraries(mpc_solver_plugins ${catkin_LIBRARIES} acados
         # ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_servo_mdl.so
         # ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/nmpc/tilt_bi_2_ord_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_bi_2_ord_servo_mdl.so
         # Neural controllers
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_nmpc/tilt_qd_nominal_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_nominal_servo_mdl.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_nmpc/tilt_qd_neural_servo_plus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_plus_mdl.so
-        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_nmpc/tilt_qd_neural_servo_minus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_minus_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_mpc/tilt_qd_nominal_servo_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_nominal_servo_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_mpc/tilt_qd_neural_servo_plus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_plus_mdl.so
+        ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_mpc/tilt_qd_neural_servo_minus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_minus_mdl.so
 )
 add_dependencies(mpc_solver_plugins gen_acados_code)
 
@@ -120,9 +120,9 @@ add_library(flight_control_pluginlib
   src/nmpc/tilt_mt_servo_thrust_imp_nmpc_controller.cpp
   # src/nmpc/tilt_bi_2_ord_servo_mdl/nmpc_controller.cpp
   # Neural controllers
-  src/neural_nmpc/tilt_mt_nominal_servo_nmpc_controller.cpp
-  src/neural_nmpc/tilt_mt_neural_servo_plus_nmpc_controller.cpp
-  src/neural_nmpc/tilt_mt_neural_servo_minus_nmpc_controller.cpp
+  src/neural_mpc/tilt_mt_nominal_servo_mpc_controller.cpp
+  src/neural_mpc/tilt_mt_neural_servo_plus_mpc_controller.cpp
+  src/neural_mpc/tilt_mt_neural_servo_minus_mpc_controller.cpp
   )
 target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils mpc_solver_plugins wrench_est_plugins)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg mpc_solver_plugins wrench_est_plugins)

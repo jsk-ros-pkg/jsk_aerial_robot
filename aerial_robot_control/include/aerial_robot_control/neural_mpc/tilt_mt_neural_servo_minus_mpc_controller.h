@@ -13,7 +13,7 @@
 
 /* dynamic reconfigure */
 #include "aerial_robot_msgs/DynamicReconfigureLevels.h"
-#include "aerial_robot_control/MPCConfig.h"
+#include "aerial_robot_control/NMPCConfig.h"
 #include <dynamic_reconfigure/server.h>
 
 /* protocol */
@@ -35,19 +35,18 @@
 #include "aerial_robot_msgs/TrackTrajGoal.h"
 #include "aerial_robot_msgs/TrackTrajResult.h"
 
-using MPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::MPCConfig>;
+using MPCControlDynamicConfig = dynamic_reconfigure::Server<aerial_robot_control::NMPCConfig>;
 
 namespace aerial_robot_control
 {
 
-namespace mpc
+namespace nmpc
 {
 
 class TiltMtNeuralServoMinusMPC : public BaseMPC
 {
 public:
-  TiltMtNeuralServoMinusMPC() = default;  // note that constructor should not have arguments as the rule of
-                                          // rospluginlib
+  TiltMtNeuralServoMinusMPC() = default;  // note that constructor shouldn't have arguments as the rule of rospluginlib
   ~TiltMtNeuralServoMinusMPC() override = default;
   void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                   boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -170,7 +169,7 @@ protected:
   void callbackSetRefXU(const aerial_robot_msgs::PredXUConstPtr& msg) override;
   void callbackSetRefTraj(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
   void callbackSetFixedRotor(const aerial_robot_msgs::FixRotorConstPtr& msg);
-  virtual void cfgMPCCallback(MPCConfig& config, uint32_t level);
+  virtual void cfgMPCCallback(NMPCConfig& config, uint32_t level);
 
   /* utils */
   // get functions
@@ -205,7 +204,7 @@ private:
   tf::Quaternion quat_prev_;  // To deal with the discontinuity of the quaternion.
 };
 
-}  // namespace mpc
+}  // namespace nmpc
 
 }  // namespace aerial_robot_control
 
