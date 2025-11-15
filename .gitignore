@@ -121,8 +121,8 @@ tags
 *.mp4
 
 # Trained torch models
-**/results/model_fitting/archive/
-**/results/model_fitting/plot/
+**/results/model_fitting/residual_mlp/archive/
+**/results/model_fitting/residual_mlp/plot/
 
 # Simulation results
 **/sim_plots/
