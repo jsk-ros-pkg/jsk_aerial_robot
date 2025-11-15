@@ -35,15 +35,15 @@
     </class>
 
     <!-- nominal nmpc -->
-    <class type="aerial_robot_control::mpc_solver::TiltQdNominalServoMdlNMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
+    <class type="aerial_robot_control::mpc_solver::TiltQdNominalServoMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Model Predictive Control with only nominal Tilt Qd Servo Model.</description>
     </class>
 
     <!-- neural nmpc -->
-    <class type="aerial_robot_control::mpc_solver::TiltQdNeuralServoPlusMdlNMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
+    <class type="aerial_robot_control::mpc_solver::TiltQdNeuralServoPlusMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Neural Model Predictive Control with Tilt Qd Servo Model with Neural Dynamics.</description>
     </class>
-    <class type="aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlNMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
+    <class type="aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlMPCSolver" base_class_type="aerial_robot_control::mpc_solver::BaseMPCSolver">
         <description>Neural Model Predictive Control with Tilt Qd Servo Model with Neural Dynamics.</description>
     </class>
 </library>

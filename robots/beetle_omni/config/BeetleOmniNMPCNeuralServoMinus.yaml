@@ -1,5 +1,5 @@
-mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlNMPCSolver
-aerial_robot_control_name: aerial_robot_control/neural_nmpc_controller/tilt_mt/neural_servo_minus_nmpc
+mpc_solver_name: aerial_robot_control::mpc_solver::TiltQdNeuralServoMinusMdlMPCSolver
+aerial_robot_control_name: aerial_robot_control/neural_mpc_controller/tilt_mt/neural_servo_minus_mpc
 
 controller:
   nmpc:
