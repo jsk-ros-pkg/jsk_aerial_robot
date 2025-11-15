@@ -36,7 +36,7 @@ public:
     void keepPerching();
     int perching_flag_ = 0;
 
-    bool test_mode_ = true;
+    bool test_mode_ = false;
     bool external_mode_ = false;
     int calib_sensor_index_ = 0;
 

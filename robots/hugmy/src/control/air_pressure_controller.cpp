@@ -4,8 +4,8 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     sensor_joint_sub_ = nh.subscribe("/sensor", 1, &AirPressureController::sensorCb, this);
     sensor_bottom_sub_ = nh.subscribe("/sensor_1", 1, &AirPressureController::sensor1Cb, this);
     pwm_air_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/air", 1);
-    pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
-    // pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
+    // pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
+    pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
     joint_filtered_pub_  = nh.advertise<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1);
 
     pwm_air_cmd_.motor_index.clear();
@@ -14,7 +14,7 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
 
     ros::NodeHandle pnh("~");
 
-    pnh.param("test_mode", test_mode_, true);
+    pnh.param("test_mode", test_mode_, false);
     pnh.param("kp_joint",  kp_joint_,  0.04);
     pnh.param("ki_joint",  ki_joint_,  0.005);
     pnh.param("kd_joint",  kd_joint_,  0.001);
@@ -330,10 +330,8 @@ void AirPressureController::publishAirPwm(const std::vector<uint8_t>& indices, c
     pwm_air_cmd_.pwms        = pwms;
 
     if (to_air_bus) {
-        pwm_air_pub_.publish(pwm_air_cmd_);
-        // ROS_INFO("false");
+        pwm_air_pub_.publish(pwm_air_cmd_); //testmode=false
     } else {
-      //  ROS_INFO("publishpwm");
       // for (size_t i = 0; i < indices.size(); ++i) {
       //   ROS_INFO("pwm_air_cmd_.motor_index: %d",pwm_air_cmd_.motor_index.at(i));
       // }
@@ -341,7 +339,6 @@ void AirPressureController::publishAirPwm(const std::vector<uint8_t>& indices, c
       //   ROS_INFO("pwm_air_cmd_.pwms: %f",pwm_air_cmd_.pwms.at(i));
       // }
       pwm_pub_.publish(pwm_air_cmd_); //test
-      // ROS_INFO("publishpwmdone");
     }
     last_published_pwm_ = pwm_air_cmd_;
 }

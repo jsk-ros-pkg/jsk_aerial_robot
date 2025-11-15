@@ -4,6 +4,7 @@ HapticsController::HapticsController(ros::NodeHandle& nh){
     pwm_haptic_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/haptic", 1);
     marker_pub_ = nh.advertise<visualization_msgs::Marker>("/target_marker", 1);
     alpha_pub_ = nh.advertise<spinal::PwmTest>("/motor_alpha", 1);
+    thrust_pub_ = nh.advertise<spinal::Thrust>("/motor_haptics_thrust", 1);
 
     odom_sub_ = nh.subscribe("/quadrotor/uav/cog/odom", 1, &HapticsController::odomCb, this);
 
@@ -11,6 +12,10 @@ HapticsController::HapticsController(ros::NodeHandle& nh){
     target_y_ = 0.0;
     pos_flag_ = true;
     output_ = 0.0;
+    motor_pwms_.assign(4,0.5f);
+    ros::NodeHandle pnh("~");
+
+    pnh.param("thrust_strength", thrust_strength_, 1.0);
 }
 
 void HapticsController::publishHapticsPwm(const std::vector<uint8_t>& indices, const std::vector<float>& pwms) {
@@ -38,59 +43,44 @@ void HapticsController::odomCb(const nav_msgs::Odometry::ConstPtr& msg){
     euler_.z = yaw;
 }
 
-double HapticsController::calThrustPower(double strength) {
-    double thrust = 5.0 * std::abs(strength);
-    double pwm = -0.000679 * thrust * thrust + 0.044878 * thrust + 0.5;
-    return std::min(pwm, 0.7);
+//thrust_strength_をわからなさに応じて変更できるようにする
+double HapticsController::calThrustPower(double alpha) {
+    thrust_ = std::min(4.0, base_thrust_ * thrust_strength_ * std::abs(alpha));
+    double pwm = -0.000679 * thrust_ * thrust_ + 0.044878 * thrust_ + 0.5;
+    return std::min(pwm, 0.6);
 }
 
 void HapticsController::controlManual() {
     ROS_INFO("Manual mode start");
-    double x = -joy_.axes[0];
+
+    if (joy_.axes.size() < 2) {
+      ROS_WARN_THROTTLE(1.0, "Joy axes not received yet, skipping manual haptics.");
+      return;
+    }
+    double x = joy_.axes[0];
     double y = joy_.axes[1];
 
     double deadzone = 0.05;
     x = (std::abs(x) > deadzone) ? x : 0.0;
     y = (std::abs(y) > deadzone) ? y : 0.0;
 
-    Eigen::Vector2d target_force(x,y);
-    ROS_ERROR("Target force: (%.2f, %.2f)", target_force.x(), target_force.y());
-    double target_force_norm = target_force.norm();
-    std::vector<float> motor_pwms(4, 0.5);
+    Eigen::Vector2d target_vec(y,x);
+    ROS_ERROR("Target force: (%.2f, %.2f)", target_vec.y(), target_vec.x());
+    double target_norm = target_vec.norm();
 
-    Eigen::Matrix<double, 2, 4> motor_dirs;
-    motor_dirs <<  1, -1, -1,  1,
-                 -1, -1,  1,  1;
-    Eigen::Vector4d alpha =  Eigen::Vector4d::Zero();
-    Eigen::Vector2d target_force_dir = target_force.normalized();
-    const int max_iter = 100;
-    const double lr = 0.1;
-
-    for (int i = 0; i < max_iter; ++i) {
-        Eigen::Vector2d residual = motor_dirs * alpha - target_force_dir;
-        Eigen::Vector4d gradient = motor_dirs.transpose() * residual;
-        alpha -= lr * gradient;
-        alpha = alpha.cwiseMax(0.0); // Ensure non-negative thrust
-    }
-    alpha *= target_force_norm;
-
-    if (target_force_norm < 1e-6) {
-        publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.5, 0.5});
-        return;
+    if (norm_mode_switch_ == 0){
+      outputStrength(target_norm);
+      motor_pwms_ = computeMotorPwmFixedTotal(target_vec, total_thrust_c_);
+      int on_interval_default = 50;
+      outputPulse(motor_pwms_, on_interval_default);
     }else{
-        for (size_t i = 0; i < 4; ++i) {
-        motor_pwms[i] = calThrustPower(alpha[i]);
-        }   
-        publishHapticsPwm({0,1,2,3}, motor_pwms);
+      motor_pwms_ = computeMotorPwmFixedTotal(target_vec, total_thrust_c_);
+      if (norm_mode_switch_ == 1){
+        outputPulseLengthPattern(target_norm, motor_pwms_);
+      }else if(norm_mode_switch_ == 2){
+        outputPulsePattern(target_norm, motor_pwms_);
+      }
     }
-
-    //debug
-    spinal::PwmTest alpha_msg;
-    alpha_msg.motor_index = {0, 1, 2, 3};
-    for (size_t i = 0; i < 4; ++i) {
-        alpha_msg.pwms.push_back(static_cast<float>(alpha[i]));
-    }
-    alpha_pub_.publish(alpha_msg);
 }
 
 void HapticsController::controlAuto() {
@@ -108,9 +98,12 @@ void HapticsController::controlAuto() {
     double target_norm = target_vec.norm();
     ROS_INFO("Target vector: (%.2f, %.2f), norm: %.2f", target_vec.x(), target_vec.y(), target_norm);
     if (!first_haptics_done_) {
-        std::vector<float> motor_pwms = computeMotorPwm(target_vec);
+        motor_pwms_ = computeMotorPwmFixedTotal(target_vec, total_thrust_c_);
+
+        // std::vector<float> motor_pwms = computeMotorPwm(target_vec);
         ROS_INFO("Outputting initial haptics PWM pattern.");
-        outputPulsePattern(target_norm, motor_pwms);
+        // outputPulsePattern(target_norm, motor_pwms);
+        outputPulseLengthPattern(target_norm, motor_pwms_);
         first_haptics_done_ = true;
     }
     //チェックはずっとやっていて，この状態がくるときは挙動を変えるようにする
@@ -150,10 +143,9 @@ void HapticsController::controlAuto() {
                 ROS_INFO("Arm is raised, outputting haptics PWM pattern.");
                 motor_pwms_ = computeMotorPwm(target_vec);
                 outputPulsePattern(target_norm, motor_pwms_);
-                
             }
         }
-    }   
+    }
 }
 
 std::vector<float> HapticsController::computeMotorPwm(const Eigen::Vector2d& target_vec){
@@ -210,15 +202,109 @@ std::vector<float> HapticsController::computeMotorPwm(const Eigen::Vector2d& tar
     return motor_pwms_;
 }
 
+
+Eigen::Vector4d HapticsController::computeAlphaFixedTotal(const Eigen::Vector2d& dir, double total_thrust_c)
+{
+    Eigen::Vector4d alpha = Eigen::Vector4d::Zero();
+
+    const double E = std::max(0.0, total_thrust_c);
+    const double eps = 1e-9;
+
+    double n = dir.norm();
+    if (n < eps || E < eps) return alpha;
+    Eigen::Vector2d d = dir / n;
+
+    Eigen::Matrix<double,2,4> M;
+    M <<  1, -1, -1,  1,
+         -1, -1,  1,  1;
+
+    int best_idx = -1;
+    double best_cos = -1.0;
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector2d ui = M.col(i).normalized();
+        double c = ui.dot(d);
+        if (c > best_cos) { best_cos = c; best_idx = i; }
+    }
+
+    bool found_pair = false;
+    double best_err = 1e9;
+    int bi=-1, bj=-1; Eigen::Vector2d bsol(0,0);
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = i+1; j < 4; ++j) {
+            Eigen::Matrix2d P;
+            P.col(0) = M.col(i);
+            P.col(1) = M.col(j);
+            double det = P.determinant();
+            if (std::abs(det) < eps) continue;
+
+            Eigen::Vector2d beta = P.inverse() * d;
+            if (beta[0] < -1e-9 || beta[1] < -1e-9) continue;
+
+            Eigen::Vector2d errv = P * beta - d;
+            double err = errv.norm();
+            if (err < best_err) {
+                best_err = err; bi=i; bj=j; bsol = beta; found_pair = true;
+            }
+        }
+    }
+
+    if (found_pair) {
+        double norm_b = std::sqrt(std::max(0.0, bsol.squaredNorm()));
+        if (norm_b < eps) return alpha;
+        alpha[bi] = (bsol[0] / norm_b) * E;
+        alpha[bj] = (bsol[1] / norm_b) * E;
+        for (int k=0;k<4;++k) if (alpha[k] < 0 && alpha[k] > -1e-9) alpha[k] = 0.0;
+        return alpha;
+    }
+
+    Eigen::Matrix2d MMt = M * M.transpose();
+    Eigen::Vector2d x = MMt.ldlt().solve(d);
+    alpha = M.transpose() * x;
+
+    for (int k=0;k<4;++k) if (alpha[k] < 0 && alpha[k] > -1e-9) alpha[k] = 0.0;
+
+    double na = std::sqrt(std::max(0.0, alpha.squaredNorm()));
+    if (na >= eps) alpha *= (E / na); else alpha.setZero();
+
+    return alpha;
+}
+
+
+std::vector<float> HapticsController::computeMotorPwmFixedTotal(const Eigen::Vector2d& target_vec, double total_thrust_c)
+{
+    Eigen::Vector4d alpha = computeAlphaFixedTotal(target_vec, total_thrust_c);
+    spinal::Thrust thrust_msg;
+
+    for (int i = 0; i < 4; ++i) if (alpha[i] < 0 && alpha[i] > -1e-6) alpha[i] = 0;
+
+    for (int i = 0; i < 4; ++i) {
+        motor_pwms_[i] = calThrustPower(alpha[i]);
+        thrust_msg.thrust.push_back(static_cast<float>(thrust_));
+    }
+
+    // debug publish
+    spinal::PwmTest alpha_msg;
+    alpha_msg.motor_index = {0,1,2,3};
+    for (int i = 0; i < 4; ++i) alpha_msg.pwms.push_back(static_cast<float>(alpha[i]));
+    alpha_pub_.publish(alpha_msg);
+
+    thrust_pub_.publish(thrust_msg);
+
+    return motor_pwms_;
+}
+
+
+
 void HapticsController::vibratePwms(){
     if (vibrate_count_ > 5) {
         vibrate_toggle_ = !vibrate_toggle_;
         vibrate_count_ = 0;
     }
     if (vibrate_toggle_) {
-        publishHapticsPwm({0,1,2,3}, {0.65, 0.65, 0.5, 0.5});
+        publishHapticsPwm({0,1,2,3}, {0.6, 0.6, 0.5, 0.5});
     } else {
-        publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.65, 0.65});
+        publishHapticsPwm({0,1,2,3}, {0.5, 0.5, 0.6, 0.6});
         //ros::Duration(0.5).sleep();
     }
     vibrate_count_ += 1;
@@ -232,9 +318,9 @@ void HapticsController::outputPulsePattern(double target_norm, const std::vector
         if (target_norm < 0.1) {
             pulse_target_ = 1*2;
         } else if (target_norm < 0.3) {
-            pulse_target_ = 2*2; 
+            pulse_target_ = 2*2;
         } else {
-            pulse_target_ = 3*2; 
+            pulse_target_ = 3*2;
         }
     }
 
@@ -253,12 +339,54 @@ void HapticsController::outputPulsePattern(double target_norm, const std::vector
         }
         ROS_INFO("Pulse pattern %d/%d, rest_toggle: %s", pulse_count_ + 1, pulse_target_, rest_toggle_ ? "ON" : "OFF");
     }else{
-        pulse_count_ = 0; 
-        rest_count_ = 0; 
-        rest_toggle_ = false; 
+        pulse_count_ = 0;
+        rest_count_ = 0;
+        rest_toggle_ = false;
         ROS_ERROR("Pulse pattern completed, resetting.");
     }
 }
+
+void HapticsController::outputPulseLengthPattern(double target_norm, const std::vector<float>& motor_pwms){
+    static const int min_on_interval = 10;
+    static const int max_on_interval = 90;
+
+    double normalized = std::min(1.0, std::max(0.0, target_norm / 0.5));
+    int on_interval = min_on_interval + normalized * (max_on_interval - min_on_interval);
+
+    outputPulse(motor_pwms, on_interval);
+}
+
+void HapticsController::outputPulse(const std::vector<float>& motor_pwms, int on_interval){
+    static const int base_interval = 50;
+    static const int rest_toggle_interval = 50;
+
+    rest_count_ += 1;
+    if (rest_toggle_) {
+      publishHapticsPwm({0,1,2,3}, motor_pwms_);
+      if (rest_count_ > on_interval) {
+        rest_toggle_ = false;
+        rest_count_ = 0;
+      }
+    } else {
+      publishHapticsPwm({0,1,2,3}, {0.5,0.5,0.5,0.5});
+      if (rest_count_ > base_interval) {
+        rest_toggle_ = true;
+        rest_count_ = 0;
+      }
+    }
+    ROS_INFO("Pulse pattern: ON for %d, OFF for %d" ,on_interval, base_interval);
+}
+
+void HapticsController::outputStrength(double target_norm){
+  if (target_norm < 0.1) {
+    thrust_strength_ = 0.6;
+  } else if (target_norm < 0.3) {
+    thrust_strength_ = 0.83;
+  } else {
+    thrust_strength_ = 1.0;
+  }
+}
+
 
 void HapticsController::isApproachingTarget(const Eigen::Vector2d& target_vec, double target_norm) {
     Eigen::Vector2d last_vec_ = Eigen::Vector2d(target_x_, target_y_) - Eigen::Vector2d(last_pos_.x, last_pos_.y);
