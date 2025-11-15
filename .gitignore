@@ -122,6 +122,7 @@ tags
 
 # Trained torch models
 # **/results/
+**/results/model_fitting/plot/
 
 # Simulation results
 **/sim_plots/
