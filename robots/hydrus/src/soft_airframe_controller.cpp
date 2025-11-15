@@ -112,17 +112,16 @@ void SoftAirframeController::controlCore()
     ub(i + 4) = 30.0;
   }
 
-  if(max_rotor5 > 3.0) {
-    // if(joint_angles_.size() < 2){
-    //   lb(8) = -5.0;
-    // } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
-    //   lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
-    // } else {
-    //   lb(8) = 5.0;
-    // }
-    ub(4) = 12.0;
-    ub(7) = 12.0;
-  }
+  // if(max_rotor5 > 3.0) {
+  //   // if(joint_angles_.size() < 2){
+  //   //   lb(8) = -5.0;
+  //   // } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
+  //   //   lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
+  //   // } else {
+  //   //   lb(8) = 5.0;
+  //   // }
+  ub(7) = 13.0;
+  // }
 
   
   Eigen::SparseMatrix<double> H_s = H.sparseView();
@@ -157,22 +156,12 @@ void SoftAirframeController::controlCore()
   if(solved){
     target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
   } else {
-    ub(4) = 12.5;
-    ub(7) = 12.5;
+    ub(7) = 13.5;
     target_vectoring_qp_solver_.updateBounds(lb, ub);
     solved = target_vectoring_qp_solver_.solve();
     target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
-    
-    if (!solved) {
-      ub(4) = 13.0;
-      ub(7) = 13.0;
-      target_vectoring_qp_solver_.updateBounds(lb, ub);
-      solved = target_vectoring_qp_solver_.solve();
-      target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
-    }
 
     if (!solved) {
-      ub(4) = 14.0;
       ub(7) = 14.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
@@ -180,7 +169,6 @@ void SoftAirframeController::controlCore()
     }
 
     if (!solved) {
-      ub(4) = 15.0;
       ub(7) = 15.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
@@ -188,7 +176,6 @@ void SoftAirframeController::controlCore()
     }
 
     if (!solved) {
-      ub(4) = 16.0;
       ub(7) = 16.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
@@ -196,7 +183,6 @@ void SoftAirframeController::controlCore()
     }
 
     if (!solved) {
-      ub(4) = 17.0;
       ub(7) = 17.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
@@ -204,7 +190,6 @@ void SoftAirframeController::controlCore()
     }
 
     if (!solved) {
-      ub(4) = 18.0;
       ub(7) = 18.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
@@ -212,7 +197,6 @@ void SoftAirframeController::controlCore()
     }
 
     if (!solved) {
-      ub(4) = 19.0;
       ub(7) = 19.0;
       target_vectoring_qp_solver_.updateBounds(lb, ub);
       solved = target_vectoring_qp_solver_.solve();
