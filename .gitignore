@@ -121,7 +121,7 @@ tags
 *.mp4
 
 # Trained torch models
-# **/results/
+**/results/model_fitting/archive/
 **/results/model_fitting/plot/
 
 # Simulation results
