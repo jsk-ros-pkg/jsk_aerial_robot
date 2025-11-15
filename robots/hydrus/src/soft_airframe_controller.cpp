@@ -102,21 +102,23 @@ void SoftAirframeController::controlCore()
     lb(i + 4) = -10.0;
   }
   
-  if(max_rotor5 > 3.0) {
-    // if(joint_angles_.size() < 2){
-    //   lb(8) = -5.0;
-    // } else if (joint_angles_.at(0) * 180.0 / M_PI < 10.0) {
-    //   lb(8) = 1.0 + 4.0 / 10.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI);
-    // } else {
-    //   lb(8) = 5.0;
-    // }
-    lb(8) = 3.0;
-  }
+  // if(max_rotor5 > 3.0 && joint_angles_.size() == 2) {
+  //   if (joint_angles_.at(0) * 180.0 / M_PI > 15.0) {
+  //     lb(8) = 2.0 + 3.0 / 15.0 * std::abs(joint_angles_.at(0) * 180.0 / M_PI - 15.0);
+  //     ROS_INFO_STREAM_THROTTLE(0.5, "lb is updated");
+  //   if (joint_angles_.at(0) * 180.0 / M_PI > 15.0) {
+  //   }
+  // }
 
   ub.head(4) = z_rpy_ddot;
   for (int i = 0; i < motor_num_; i++)
   {
     ub(i + 4) = 30.0;
+  }  
+  if(max_rotor5 > 3.0 && joint_angles_.size() == 2) {
+    if (joint_angles_.at(0) * 180.0 / M_PI > 6.0) {
+      ub(7) = 15.0;
+    }
   }
   
   Eigen::SparseMatrix<double> H_s = H.sparseView();
@@ -151,10 +153,32 @@ void SoftAirframeController::controlCore()
   if(solved){
     target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
   } else {
-    target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
-    target_vectoring_f_.noalias() += prev_target_vectoring_f_;
-    target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
-    std::cout << "QP not solved!: " << target_vectoring_f_.transpose() << std::endl;
+    ub(7) = 16.0;
+    target_vectoring_qp_solver_.updateBounds(lb, ub);
+    solved = target_vectoring_qp_solver_.solve();
+    target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+    
+    if (!solved) {
+      ub(7) = 17.0;
+      target_vectoring_qp_solver_.updateBounds(lb, ub);
+      solved = target_vectoring_qp_solver_.solve();
+      target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+    }
+
+    if (!solved) {
+      ub(7) = 18.0;
+      target_vectoring_qp_solver_.updateBounds(lb, ub);
+      solved = target_vectoring_qp_solver_.solve();
+      target_vectoring_f_ = target_vectoring_qp_solver_.getSolution();
+    }
+
+    if (!solved) {
+      target_vectoring_f_ = full_q_mat_inv_ * z_rpy_ddot;
+      target_vectoring_f_.noalias() += prev_target_vectoring_f_;
+      target_vectoring_f_.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+      std::cout << "QP not solved!: " << target_vectoring_f_.transpose() << std::endl;
+    }
+    std::cout << "ub(7) = " << ub(7) << std::endl;
   }
   if (target_vectoring_f_(4) > max_rotor5){
     max_rotor5 = target_vectoring_f_(4);
