@@ -171,8 +171,8 @@ private:
 
   int8_t uav_model_;
   uint16_t motor_number_;
-  uint8_t gimbal_dof_;
-  uint8_t rotor_coef_;
+  uint8_t gimbal_dof_ {0};
+  uint8_t rotor_coef_ {1};
   bool start_control_flag_;
   bool pwm_test_flag_;
   bool integrate_flag_;

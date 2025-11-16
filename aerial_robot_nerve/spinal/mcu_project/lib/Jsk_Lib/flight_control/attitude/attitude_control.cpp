@@ -13,7 +13,7 @@
 
 #ifdef SIMULATION
 #include <sensor_msgs/JointState.h>
-AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0), gimbal_dof_(0), rotor_coef_(1)
+AttitudeController::AttitudeController(): DELTA_T(0), prev_time_(-1), sim_voltage_(0)
 {
 }
 
