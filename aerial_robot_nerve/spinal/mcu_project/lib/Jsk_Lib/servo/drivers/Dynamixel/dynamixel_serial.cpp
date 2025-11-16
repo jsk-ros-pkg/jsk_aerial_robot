@@ -40,14 +40,12 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
+        // scan to decide the comm (UART/ Half-duplex) mode
+        pinReconfig();
+
 	//initialize servo motors
-	HAL_Delay(500);
-	ping();
-	HAL_Delay(500);
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		reboot(i);
-	}
-	HAL_Delay(2000);
+        cmdReboot(DX_BROADCAST_ID);
+	HAL_Delay(3000);
 
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
@@ -260,6 +258,9 @@ uint8_t DynamixelSerial::getServoIndex(uint8_t id)
 
 void DynamixelSerial::update()
 {
+  /* skip if no servo is detected */
+  if (servo_num_ == 0) return;
+
   /* receive data process */
   /* For one round, change from "send -> receive" to " receive -> send" */
   /* This setting can accelerate the receiving process */
@@ -282,13 +283,7 @@ void DynamixelSerial::update()
     if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
     else set_pos_tick_ = current_time;
 
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, i));
-      }
-    } else {
-      instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
-    }
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
   }
 
   /* read servo position(angle) */
@@ -590,6 +585,12 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	bool read_end_flag = false;
 	int loop_count = 0;
 	uint8_t servo_id;
+
+        if(direct_ttl_mode_) {
+          while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
+          // After transmitting, enable the receiver
+          HAL_HalfDuplex_EnableReceiver(huart_);
+        }
 
 	while(!read_end_flag) {
 		HAL_StatusTypeDef receive_status = read(&rx_data, 1);

@@ -41,7 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
-
+#include "extra_servo/extra_servo.h"
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
@@ -127,6 +127,7 @@ BatteryStatus battery_status_;
 /* servo instance */
 DirectServo servo_;
 DShot dshot_;
+ExtraServo extra_servo_;
 
 
 StateEstimate estimator_;
@@ -273,6 +274,7 @@ int main(void)
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 #endif
+#endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
@@ -285,8 +287,12 @@ int main(void)
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
   &servo_ = NULL;
 #endif
-
+  
+#if PWM_SERVO_FLAG
+  controller_.init(&htim1, NULL, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
+#else
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
+#endif
 
   /* USER CODE END 2 */
 

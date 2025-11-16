@@ -1,4 +1,4 @@
-#MicroXplorer Configuration settings - do not modify
+e#MicroXplorer Configuration settings - do not modify
 ADC1.Channel-3\#ChannelRegularConversion=ADC_CHANNEL_15
 ADC1.IPParameters=Rank-3\#ChannelRegularConversion,Channel-3\#ChannelRegularConversion,SamplingTime-3\#ChannelRegularConversion,OffsetNumber-3\#ChannelRegularConversion,OffsetSignedSaturation-3\#ChannelRegularConversion,NbrOfConversionFlag,Resolution,master
 ADC1.NbrOfConversionFlag=1
@@ -533,9 +533,7 @@ PC9.Signal=I2C3_SDA
 PD12.Locked=true
 PD12.Signal=S_TIM4_CH1
 PD13.Locked=true
-PD13.Signal=S_TIM4_CH2
-PD14.Locked=true
-PD14.Signal=S_TIM4_CH3
+PD13.Signal=S_TIM4_CH24_CH3
 PD15.Locked=true
 PD15.Signal=S_TIM4_CH4
 PD5.GPIOParameters=GPIO_Speed,GPIO_PuPd,GPIO_ModeDefaultOD
