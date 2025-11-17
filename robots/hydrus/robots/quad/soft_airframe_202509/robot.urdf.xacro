@@ -1,0 +1,451 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus" >
+
+  <!-- basic kinematics model -->
+  <xacro:include filename="$(find hydrus)/urdf/common.xacro" />
+  <xacro:include filename="$(find hydrus)/urdf/link.urdf.xacro" />
+
+  <xacro:hydrus_link links="4" self="1" rotor_direction="-1" with_battery = "0" tilt_mode="1" tilt_angle="20" max_force="20.0"/>
+  <xacro:hydrus_link links="4" self="2" rotor_direction="1"  with_battery = "0" tilt_mode="1" tilt_angle="20" max_force="20.0"/>
+  <xacro:hydrus_link links="4" self="3" rotor_direction="-1" with_battery = "0" tilt_mode="1" tilt_angle="20" max_force="20.0"/>
+  <xacro:hydrus_link links="4" self="4" rotor_direction="1"  with_battery = "0" tilt_mode="1" tilt_angle="20" max_force="20.0"/>
+
+  <!-- special battery arrangement -->
+  <xacro:extra_module name = "bat1" parent = "link1" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
+    <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.4108"/>
+      <inertia
+          ixx="0.0001" iyy="0.0006" izz="0.0006"
+          ixy="0.0" ixz="0.0"  iyz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <xacro:extra_module name = "bat2" parent = "link4" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/battery/Kypom-3000-6s.dae" >
+    <origin xyz="${link_length/2} 0.0 -0.048" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.4108"/>
+      <inertia
+          ixx="0.0001" iyy="0.0006" izz="0.0006"
+          ixy="0.0" ixz="0.0"  iyz="0.0"/>
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- onboard -->
+  <!-- 1.  processor -->
+  <!-- 1.1 flight controller -->
+  <xacro:extra_module name = "fc" parent = "link3" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/ver2/flight_controller/spinal.dae"> <!-- same with intel euclid -->
+    <origin xyz="${link_length / 2 - 0.2221} ${-4.4*0.001} 0.02135" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.05" />
+      <origin xyz="${13*0.001} ${4.4*0.001} ${-9*0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: flight controller -->
+
+  <!-- 1.2 processor: jetson tx2 -->
+  <!-- confirm the inertial parameter with real machine -->
+  <xacro:extra_module name = "pc" parent = "link3" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/ver2/processor/jetson_tx2_unit.dae" >
+    <origin xyz="${link_length / 2 - 0.23775} 0.0 ${-0.01}" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.181" />
+      <origin xyz="${18 * 0.001} ${4 * 0.001} ${-18 * 0.001}" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00007" ixy="0.0" ixz="0.0"
+          iyy="0.00003" iyz="0.0"
+          izz="0.00009"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: processor: jetson tx2 -->
+
+  <!-- 2.  sensor -->
+  <!-- 2.1 leddar one -->
+  <xacro:extra_module name = "leddarone" parent = "link3" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/sensor/leddar_one_tx2_attached_mode.dae">
+    <origin xyz="${link_length/2 - 0.1855} 0.0 -0.0626" rpy="${pi} 0 0"/>
+    <inertial>
+      <origin xyz="-0.008 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.025"/>
+      <inertia
+          ixx="0.00001" iyy="0.000006" izz="0.00001"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: leddar one -->
+
+  <!-- 2.2 gps -->
+  <xacro:extra_module name = "gps" parent = "link2" visible = "1"
+                      model_url = "package://hydrus/urdf/mesh/sensor/gps_ublox_m8n.dae">
+    <origin xyz="${link_length/2 + 0.1925} 0.0 0.152" rpy="0 0 0"/>
+    <inertial>
+      <origin xyz="0.000000 0.000000 -0.013" rpy="0 0 0"/>
+      <mass value="0.042"/>
+      <inertia
+          ixx="0.00006" iyy="0.00006" izz="0.000007"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+  </xacro:extra_module>
+  <xacro:extra_module name = "magnet" parent = "gps">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value = "0.00001" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </xacro:extra_module>
+  <!-- end: gps -->
+
+  <!-- 3 soft_airframe -->
+  <link name="soft_link1">
+    <inertial>
+      <origin xyz="0.06875 0.000002 0.018960" rpy="0 0 0"/>
+      <mass value="${0.010*2 + 0.012}"/>
+      <inertia
+          ixx="0.00003988" ixy="0.0" ixz="0.0"
+          iyy="0.00010606" iyz="0.0"
+          izz="0.00010185"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1175 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.05875 0 0.02" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="soft_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="soft_link1"/>
+
+  <link name="soft_link2">
+    <inertial>
+      <origin xyz="0.1175 0.000002 0.019998" rpy="0 0 0"/>
+      <mass value="${0.010*5 + 0.012*2}"/>
+      <inertia
+          ixx="0.00006787" ixy="0.0" ixz="0.0"
+          iyy="0.00049831" iyz="0.0"
+          izz="0.00048990"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.235 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.1175 0.000002 0.019998" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="soft_link2">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="soft_link2"/>
+
+  <link name="soft_link3">
+    <inertial>
+      <origin xyz="0.10740316 0.0 0.003" rpy="0 0 0"/>
+      <mass value="${0.010*2 + 0.012 + 0.070 + 0.016}"/>
+      <inertia
+          ixx="0.00005679" ixy="-0.000000031" ixz="-0.00002256"
+          iyy="0.00028149" iyz="0.000000005"
+          izz="0.00026759"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1175 0.03 0.04"/>
+      </geometry>
+      <origin xyz="0.05875 0 0.02" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="soft_link3">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="soft_link3"/>
+
+  <link name="servo_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.073"/>
+      <!-- this is for avoiding error in gazebo -->
+      <!-- <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/> -->
+      <inertia
+          ixx="0.000017" ixy="0.000003" ixz="-0.0000001"
+          iyy="0.000023" iyz="0.000000"
+          izz="0.000025"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="servo_link">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="servo_link"/>
+
+  <link name="servo_link1">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.068"/>
+      <!-- this is for avoiding error in gazebo -->
+      <!-- <inertia
+          ixx="0.001" ixy="0.0" ixz="0.0"
+          iyy="0.001" iyz="0.0"
+          izz="0.002"/> -->
+      <inertia
+          ixx="0.000016" ixy="-0.000003" ixz="0.000001"
+          iyy="0.000019" iyz="0.000000"
+          izz="0.000022"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="servo_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="servo_link1"/>
+
+  <joint name="soft_joint1" type="fixed">
+    <parent link="link4"/>
+    <child link="soft_link1"/>
+    <origin xyz="0.6 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="soft_joint2" type="revolute">
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="soft_link1"/>
+    <child link="soft_link2"/>
+    <origin xyz="0.1175 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
+  <joint name="soft_joint3" type="revolute">
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="soft_link2"/>
+    <child link="soft_link3"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+  <!-- <gazebo reference="soft_link3">
+    <stopCfm>1000</stopCfm>
+  </gazebo> -->
+
+  <joint name="soft_joint4" type="revolute">
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="link4"/>
+    <child link="servo_link"/>
+    <origin xyz="0.5 0 0.01" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
+  <joint name="soft_joint5" type="revolute">
+    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <parent link="link4"/>
+    <child link="servo_link1"/>
+    <origin xyz="0.5 0 -0.01" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
+  <transmission name="soft_joint_tran_2">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="soft_joint2">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="soft_joint_servo2">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="soft_joint_tran_3">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="soft_joint3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="soft_joint_servo3">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="soft_joint_tran_4">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="soft_joint4">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="soft_joint_servo4">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="soft_joint_tran_5">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="soft_joint5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="soft_joint_servo5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- leg -->
+  <link name="leg6">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.093" rpy="0 0 0"/>
+      <mass value="0.051000"/>
+      <inertia
+          ixx="0.000122" iyy="0.000133" izz="0.000012"
+          ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 -0.15"/>
+      </geometry>
+      <origin xyz="0.01 0.01 -0.075" rpy="0 0 0"/>
+    </visual>
+  </link>
+  <gazebo reference="leg6">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link="leg6"/>
+
+  <joint name="leg_joint_soft1" type="fixed">
+    <parent link="soft_link3"/>
+    <child link="leg6"/>
+    <origin xyz="0.1 0 0" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- gimbal -->
+  <joint name="gimbal_joint1" type="revolute">
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
+    <parent link="soft_link3"/>
+    <child link="gimbal_link1"/>
+    <origin rpy="0 0 0" xyz="0.1595 0 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0.9" friction="0.1"/>
+  </joint>
+
+  <link name="gimbal_link1">
+    <inertial>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
+      <mass value="0.173"/>
+      <!-- this inertia value is 10 times bigger than the real one -->
+      <!-- to avoid the instability in gazebo -->
+      <!-- <inertia
+          ixx="0.0022661" ixy="0.0" ixz="0.0"
+          iyy="0.0015451" iyz="0.0"
+          izz="0.00032533"/> -->
+      <!-- original one -->
+      <inertia
+          ixx="0.00022661" ixy="0.0" ixz="0.0"
+          iyy="0.00015451" iyz="0.0"
+          izz="0.000032533"/>
+    </inertial>
+    <!-- <collision>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+    </collision> -->
+    <visual>
+      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hydrus/urdf/mesh/propeller/5inch_propeller_duct_right_v2.dae"/>
+      </geometry>
+    </visual>
+  </link>
+  <gazebo reference="gimbal_link1">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+  <xacro:damping_factor link ="gimbal_link1"/>
+
+  <transmission name="gimbal_tran1">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="gimbal_joint1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="gimbal_servo1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- rotor -->
+  <joint name="rotor5" type="continuous">
+    <limit effort="0.0064" lower="1.0" upper="20.0" velocity="0.5"/>
+    <parent link="gimbal_link1"/>
+    <child link="thrust5"/>
+    <origin rpy="0 0 0" xyz="0.0735 0 0"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+
+  <link name="thrust5">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <inertia
+          ixx="0.00001" ixy="0.0" ixz="0.0"
+          iyy="0.00001" iyz="0.0"
+          izz="0.00002"/>
+    </inertial>
+    <!-- <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.1" radius="0.11"/>
+      </geometry>
+    </collision> -->
+    <visual>
+      <origin rpy="${pi/2} 0 0" xyz="-0.045 0.055 0.06"/>
+      <geometry>
+        <mesh filename="package://hydrus/urdf/mesh/propeller/TriBlade_5045.dae"/>
+      </geometry>
+    </visual>
+  </link>
+  <xacro:damping_factor link ="thrust5"/>
+
+  <transmission name="rotor_tran5">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor5">
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor5">
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+</robot>

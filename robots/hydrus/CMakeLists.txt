@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   )
 
 find_package(Eigen3 REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include test
@@ -44,6 +45,7 @@ include_directories(
   ${Boost_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
 )
 
 add_library(hydrus_robot_model
@@ -54,8 +56,9 @@ target_link_libraries(hydrus_robot_model ${catkin_LIBRARIES})
 ### flight control plugin
 add_library(hydrus_controller_pluginlib
   src/hydrus_lqi_controller.cpp
-  src/hydrus_tilted_lqi_controller.cpp)
-target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+  src/hydrus_tilted_lqi_controller.cpp
+  src/soft_airframe_controller.cpp)
+target_link_libraries(hydrus_controller_pluginlib hydrus_robot_model ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${OsqpEigen_LIBRARIES})
 add_dependencies(hydrus_controller_pluginlib aerial_robot_msgs_generate_messages_cpp spinal_generate_messages_cpp)
 
 # test

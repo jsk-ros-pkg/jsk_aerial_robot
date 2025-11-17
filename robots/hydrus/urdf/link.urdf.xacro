@@ -3,7 +3,7 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="hydrus_link" >
 
   <!-- D-H kai description(different from prof.nakamura) -->
-  <xacro:macro name="hydrus_link" params="links self rotor_direction with_leg:=1 with_battery:=1 old_version:=0 tilt_mode:=0 tilt_angle:=0 prop_15inch:=0">
+  <xacro:macro name="hydrus_link" params="links self rotor_direction with_leg:=1 with_battery:=1 old_version:=0 tilt_mode:=0 tilt_angle:=0 prop_15inch:=0 max_force:=20.0">
 
     <xacro:if value="${old_version == 1}">
       <!-- link -->
@@ -200,7 +200,7 @@
 
     <!-- rotor -->
     <joint name="rotor${self}" type="continuous">
-      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <limit effort="0.0172" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
       <parent link="link${self}"/>
       <child link="thrust${self}"/>
       <xacro:if value="${tilt_mode == 1}">

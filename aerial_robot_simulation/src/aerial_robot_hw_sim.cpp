@@ -90,6 +90,32 @@ namespace gazebo_ros_control
           }
       };
 
+    /* additional frames to publish ground truth */
+    ros::NodeHandle simulation_nh = ros::NodeHandle(model_nh, "simulation");
+
+    if(simulation_nh.getParam("additional_frames", additional_frames_))
+      {
+        for(const auto& additional_frame : additional_frames_)
+          {
+            ROS_INFO_STREAM("[simulation] publish odometry of " << additional_frame);
+            KDL::SegmentMap::const_iterator it = tree.getSegment(additional_frame);
+            auto additional_frame_offset = recursiveFindParent(it);
+            additional_frame_parents_[additional_frame] = baselink_parent_; // parent of additional frame contained in baselink parent
+#if GAZEBO_MAJOR_VERSION >= 8
+            ignition::math::Quaterniond q;
+            additional_frame_offset.M.GetQuaternion(q.X(), q.Y(), q.Z(), q.W());
+            additional_frame_offsets_[additional_frame] = ignition::math::Pose3d();
+            additional_frame_offsets_.at(additional_frame).Set(ignition::math::Vector3d(additional_frame_offset.p.x(), additional_frame_offset.p.y(), additional_frame_offset.p.z()), q);
+#else
+            gazebo::math::Quaternion q;
+            additional_frame_offset.M.GetQuaternion(q.x, q.y, q.z, q.w);
+            additional_frame_offsets_[additional_frame] = gazebo::math::Pose();
+            additional_frame_offsets_.at(additional_frame).Set(gazebo::math::Vector3(additional_frame_offset.p.x(), additional_frame_offset.p.y(), additional_frame_offset.p.z()), q);
+#endif
+          }
+      }
+
+    /* baselink. order is important because baselink_parent_ is updated in lambda function */
     auto baselink_offset = recursiveFindParent(it);
 #if GAZEBO_MAJOR_VERSION >= 8
     ignition::math::Quaterniond q;
@@ -177,7 +203,6 @@ namespace gazebo_ros_control
     sim_vel_sub_ = model_nh.subscribe("sim_cmd_vel", 1, &AerialRobotHWSim::cmdVelCallback, this);
     sim_pos_sub_ = model_nh.subscribe("sim_cmd_pos", 1, &AerialRobotHWSim::cmdPosCallback, this);
 
-    ros::NodeHandle simulation_nh = ros::NodeHandle(model_nh, "simulation");
     simulation_nh.param("ground_truth_pub_rate", ground_truth_pub_rate_, 0.01); // [sec]
     simulation_nh.param("ground_truth_pos_noise", ground_truth_pos_noise_, 0.0); // m
     simulation_nh.param("ground_truth_vel_noise", ground_truth_vel_noise_, 0.0); // m/s
@@ -196,6 +221,15 @@ namespace gazebo_ros_control
     ground_truth_pub_ = model_nh.advertise<nav_msgs::Odometry>("ground_truth", 1);
     mocap_pub_ = model_nh.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
 
+    additional_frame_odom_pubs_.clear();
+    for(std::string additional_frame : additional_frames_)
+      {
+        additional_frame_odom_pubs_[additional_frame] = model_nh.advertise<nav_msgs::Odometry>(additional_frame + "/ground_truth", 1);
+        additional_frame_last_pub_times_[additional_frame] = ros::Time::now();
+        additional_frame_mocap_pubs_[additional_frame] = model_nh.advertise<geometry_msgs::PoseStamped>(additional_frame + "/mocap/pose", 1);
+        additional_frame_last_mocap_pub_times_[additional_frame] = ros::Time::now();
+      }
+
     simulation_nh.param("spinal_init_wait_time", spinal_init_wait_time_, 5.0); // [sec]
     start_t_ = ros::Time::now().toSec();
 
@@ -206,6 +240,75 @@ namespace gazebo_ros_control
   {
     DefaultRobotHWSim::readSim(time, period);
 
+    for(std::string additional_frame : additional_frames_)
+      {
+        const gazebo::physics::LinkPtr additional_frame_parent = parent_model_->GetLink(additional_frame_parents_.at(additional_frame));
+#if GAZEBO_MAJOR_VERSION >= 8
+        ignition::math::Vector3d additional_frame_pos = additional_frame_parent->WorldPose().Pos() + additional_frame_parent->WorldPose().Rot() * additional_frame_offsets_.at(additional_frame).Pos();
+        ignition::math::Vector3d additional_frame_vel = additional_frame_parent->WorldLinearVel(additional_frame_offsets_.at(additional_frame).Pos());
+
+        ignition::math::Quaterniond q = additional_frame_parent->WorldPose().Rot() * additional_frame_offsets_.at(additional_frame).Rot();
+        ignition::math::Vector3d w = additional_frame_offsets_.at(additional_frame).Rot().Inverse() * additional_frame_parent->RelativeAngularVel();
+#else
+        gazebo::math::Vector3 gazebo_pos = additional_frame_parent->GetWorldPose().pos + additional_frame_parent->GetWorldPose().rot * additional_frame_offsets_.at(additional_frame).pos;
+        gazebo::math::Vector3 gazebo_vel = additional_frame_parent->GetWorldLinearVel(additional_frame_offsets_.at(additional_frame).pos);
+        ignition::math::Vector3d additional_frame_pos(gazebo_pos.x, gazebo_pos.y, gazebo_pos.z);
+        ignition::math::Vector3d additional_frame_vel(gazebo_vel.x, gazebo_vel.y, gazebo_vel.z);
+
+        gazebo::math::Quaternion gazebo_q = additional_frame_parent->GetWorldPose().rot * additional_frame_offsets_.at(additional_frame).rot;
+        gazebo::math::Vector3 gazebo_w = additional_frame_offsets_.at(additional_frame).rot.GetInverse() * additional_frame_parent->GetRelativeAngularVel();
+        ignition::math::Quaterniond q(gazebo_q.w, gazebo_q.x, gazebo_q.y, gazebo_q.z);
+        ignition::math::Vector3d w(gazebo_w.x, gazebo_w.y, gazebo_w.z);
+#endif
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header.stamp = time;
+        odom_msg.pose.pose.position.x = additional_frame_pos.X();
+        odom_msg.pose.pose.position.y = additional_frame_pos.Y();
+        odom_msg.pose.pose.position.z = additional_frame_pos.Z();
+        // todo: This hiperparameter should be set in the yaml file
+        ignition::math::Vector3d delta_euler(gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].X(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].Y(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()),
+                gazebo::addNoise(additional_frame_rot_curr_drift_[additional_frame].Z(), ground_truth_rot_drift_, ground_truth_rot_drift_frequency_, 0, ground_truth_rot_noise_, period.toSec()));
+
+        ignition::math::Quaterniond q_noise = q * ignition::math::Quaterniond(delta_euler);
+        odom_msg.pose.pose.orientation.x = q.X();
+        odom_msg.pose.pose.orientation.y = q.Y();
+        odom_msg.pose.pose.orientation.z = q.Z();
+        odom_msg.pose.pose.orientation.w = q.W();
+        odom_msg.twist.twist.linear.x = additional_frame_vel.X();
+        odom_msg.twist.twist.linear.y = additional_frame_vel.Y();
+        odom_msg.twist.twist.linear.z = additional_frame_vel.Z();
+        odom_msg.twist.twist.angular.x = w.X() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].X(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+        odom_msg.twist.twist.angular.y = w.Y() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].Y(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+        odom_msg.twist.twist.angular.z = w.Z() + gazebo::addNoise(additional_frame_angular_curr_drift_[additional_frame].Z(), ground_truth_angular_drift_, ground_truth_angular_drift_frequency_, 0, ground_truth_angular_noise_, period.toSec());
+
+        if(time.toSec() - additional_frame_last_pub_times_.at(additional_frame).toSec() > ground_truth_pub_rate_)
+          {
+            additional_frame_odom_pubs_.at(additional_frame).publish(odom_msg);
+          }
+        if(time.toSec() - additional_frame_last_mocap_pub_times_[additional_frame].toSec() > mocap_pub_rate_)
+          {
+            geometry_msgs::PoseStamped pose_msg;
+            pose_msg.header = odom_msg.header;
+    
+            pose_msg.pose.position.x = odom_msg.pose.pose.position.x + gazebo::gaussianKernel(mocap_pos_noise_);
+            pose_msg.pose.position.y = odom_msg.pose.pose.position.y + gazebo::gaussianKernel(mocap_pos_noise_);
+            pose_msg.pose.position.z = odom_msg.pose.pose.position.z + gazebo::gaussianKernel(mocap_pos_noise_);
+    
+            delta_euler = ignition::math::Vector3d(gazebo::gaussianKernel(mocap_rot_noise_),
+                                                    gazebo::gaussianKernel(mocap_rot_noise_),
+                                                    gazebo::gaussianKernel(mocap_rot_noise_));
+            q_noise = q * ignition::math::Quaterniond(delta_euler);
+            pose_msg.pose.orientation.x = q_noise.X();
+            pose_msg.pose.orientation.y = q_noise.Y();
+            pose_msg.pose.orientation.z = q_noise.Z();
+            pose_msg.pose.orientation.w = q_noise.W();
+    
+            additional_frame_mocap_pubs_[additional_frame].publish(pose_msg);
+            additional_frame_last_mocap_pub_times_[additional_frame] = time;
+          }
+      }
+    
     /* set ground truth value to spinal interface */
     const gazebo::physics::LinkPtr baselink_parent = parent_model_->GetLink(baselink_parent_);
 #if GAZEBO_MAJOR_VERSION >= 8

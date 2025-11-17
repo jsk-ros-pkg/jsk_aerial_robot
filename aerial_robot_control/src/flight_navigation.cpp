@@ -1100,7 +1100,7 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "takeoff_xy_pos_tolerance", takeoff_xy_pos_tolerance_, 0.3);
   getParam<double>(nh, "takeoff_z_pos_tolerance", takeoff_z_pos_tolerance_, 0.3);
   getParam<double>(nh, "hover_convergent_duration", hover_convergent_duration_, 1.0);
-  getParam<double>(nh, "land_check_duration", land_check_duration_, 0.5);
+  getParam<double>(nh, "land_check_duration", land_check_duration_, 1.0);
   if (land_check_duration_ < 0.5) {
     ROS_WARN("land_check_duration_ (current value: %f) should be not smaller than 0.5", land_check_duration_);
     land_check_duration_ = 0.5;
@@ -1110,7 +1110,7 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "teleop_reset_duration", teleop_reset_duration_, 0.5);
   getParam<double>(nh, "z_convergent_thresh", z_convergent_thresh_, 0.05);
   getParam<double>(nh, "xy_convergent_thresh", xy_convergent_thresh_, 0.15);
-  getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.02);
+  getParam<double>(nh, "land_pos_convergent_thresh", land_pos_convergent_thresh_, 0.01);
   getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.05);
 
   //*** trajectory
