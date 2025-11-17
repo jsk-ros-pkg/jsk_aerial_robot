@@ -721,13 +721,6 @@ void BaseNavigator::update()
         if (fabs(delta.z()) > z_convergent_thresh_ || fabs(delta.x()) > xy_convergent_thresh_ ||
             fabs(delta.y()) > xy_convergent_thresh_)
         {
-          ROS_WARN("==== IN POS_CONTROL_MODE and not in threshold so resetting time!");
-          ROS_WARN("-- z: %s", std::to_string(delta.z()).c_str());
-          ROS_WARN("-- z_thresh: %s", std::to_string(z_convergent_thresh_).c_str());
-          ROS_WARN("-- x: %s", std::to_string(delta.x()).c_str());
-          ROS_WARN("-- x_thresh: %s", std::to_string(xy_convergent_thresh_).c_str());
-          ROS_WARN("-- y: %s", std::to_string(delta.y()).c_str());
-          ROS_WARN("-- y_thresh: %s", std::to_string(xy_convergent_thresh_).c_str());
           convergent_start_time_ = ros::Time::now().toSec();
         }
       }
@@ -741,14 +734,6 @@ void BaseNavigator::update()
         convergent_start_time_ = ros::Time::now().toSec();
         setNaviState(HOVER_STATE);
         ROS_WARN("Hovering!");
-      }
-      else
-      {
-        ROS_WARN("[!!!] Not converged to target so not hovering!!");
-        ROS_WARN("Timer since converging is %s: ",
-                 std::to_string(ros::Time::now().toSec() - convergent_start_time_).c_str());
-        ROS_WARN("Duration baseline: %s: ", std::to_string(convergent_duration_).c_str());
-        ROS_WARN("----------------------------------------------------");
       }
       break;
     }

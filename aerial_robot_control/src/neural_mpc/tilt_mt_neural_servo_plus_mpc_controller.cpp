@@ -28,14 +28,14 @@ void nmpc::TiltMtNeuralServoPlusMPC::initialize(ros::NodeHandle nh, ros::NodeHan
 
   /* init dynamic reconfigure */
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
-  mpc_reconf_servers_.push_back(boost::make_shared<MPCControlDynamicConfig>(nmpc_nh));
+  ros::NodeHandle mpc_nh(control_nh, "nmpc");
+  mpc_reconf_servers_.push_back(boost::make_shared<MPCControlDynamicConfig>(mpc_nh));
   mpc_reconf_servers_.back()->setCallback(boost::bind(&TiltMtNeuralServoPlusMPC::cfgMPCCallback, this, _1, _2));
 
   /* set some ROS parameters */
-  nmpc_nh.setParam("NN", mpc_solver_ptr_->NN_);
-  nmpc_nh.setParam("NX", mpc_solver_ptr_->NX_);
-  nmpc_nh.setParam("NU", mpc_solver_ptr_->NU_);
+  mpc_nh.setParam("NN", mpc_solver_ptr_->NN_);
+  mpc_nh.setParam("NX", mpc_solver_ptr_->NX_);
+  mpc_nh.setParam("NU", mpc_solver_ptr_->NU_);
 
   /* timers */
   tmr_viz_ = nh_.createTimer(ros::Duration(0.05), &TiltMtNeuralServoPlusMPC::callbackViz, this);
@@ -103,19 +103,20 @@ bool nmpc::TiltMtNeuralServoPlusMPC::update()
   {
     if (first_iteration_)
     {
+      ROS_WARN_THROTTLE(1, "[CONTROLLER] Waiting for neural network to stabilize during takeoff...");
       start_time_ = ros::Time::now().toSec();
       first_iteration_ = false;
+      return false;
     }
     else
     {
       if (ros::Time::now().toSec() - start_time_ < 5.0)
       {
-        ROS_WARN("Waiting for neural network to stabilize during takeoff...");
-        return true;
+        return false;
       }
       else
       {
-        ROS_WARN_THROTTLE(1, "Neural network stabilized, start NMPC control!");
+        ROS_WARN_THROTTLE(1, "[CONTROLLER] Neural network stabilized, start NMPC control!");
       }
     }
   }
@@ -166,7 +167,7 @@ void nmpc::TiltMtNeuralServoPlusMPC::reset()
 void nmpc::TiltMtNeuralServoPlusMPC::initGeneralParams()
 {
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle mpc_nh(control_nh, "nmpc");
   ros::NodeHandle physical_nh(nh_, "physical");
   ros::NodeHandle alloc_nh(control_nh, "alloc");
 
@@ -181,14 +182,14 @@ void nmpc::TiltMtNeuralServoPlusMPC::initGeneralParams()
   getParam<int>(physical_nh, "num_rotors", motor_num_, 0);
   getParam<double>(physical_nh, "t_rotor", t_rotor_, 0.01);
 
-  getParam<double>(nmpc_nh, "T_samp", t_mpc_samp_, 0.025);
-  getParam<double>(nmpc_nh, "T_step", t_mpc_step_, 0.1);
-  getParam<double>(nmpc_nh, "T_horizon", t_mpc_horizon_, 2.0);
+  getParam<double>(mpc_nh, "T_samp", t_mpc_samp_, 0.025);
+  getParam<double>(mpc_nh, "T_step", t_mpc_step_, 0.1);
+  getParam<double>(mpc_nh, "T_horizon", t_mpc_horizon_, 2.0);
 
-  getParam<bool>(nmpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
-  getParam<bool>(nmpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
-  getParam<bool>(nmpc_nh, "is_print_phys_params", is_print_phys_params_, false);
-  getParam<bool>(nmpc_nh, "is_debug", is_debug_, false);
+  getParam<bool>(mpc_nh, "is_attitude_ctrl", is_attitude_ctrl_, true);
+  getParam<bool>(mpc_nh, "is_body_rate_ctrl", is_body_rate_ctrl_, false);
+  getParam<bool>(mpc_nh, "is_print_phys_params", is_print_phys_params_, false);
+  getParam<bool>(mpc_nh, "is_debug", is_debug_, false);
 
   if (is_debug_)
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
@@ -197,21 +198,21 @@ void nmpc::TiltMtNeuralServoPlusMPC::initGeneralParams()
 void nmpc::TiltMtNeuralServoPlusMPC::initMPCCostW()
 {
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle mpc_nh(control_nh, "nmpc");
 
   /* control parameters with dynamic reconfigure */
   double Qp_xy, Qp_z, Qv_xy, Qv_z, Qq_xy, Qq_z, Qw_xy, Qw_z, Qa, Rt, Rac_d;
-  getParam<double>(nmpc_nh, "Qp_xy", Qp_xy, 300);
-  getParam<double>(nmpc_nh, "Qp_z", Qp_z, 400);
-  getParam<double>(nmpc_nh, "Qv_xy", Qv_xy, 10);
-  getParam<double>(nmpc_nh, "Qv_z", Qv_z, 10);
-  getParam<double>(nmpc_nh, "Qq_xy", Qq_xy, 300);
-  getParam<double>(nmpc_nh, "Qq_z", Qq_z, 300);
-  getParam<double>(nmpc_nh, "Qw_xy", Qw_xy, 5);
-  getParam<double>(nmpc_nh, "Qw_z", Qw_z, 5);
-  getParam<double>(nmpc_nh, "Qa", Qa, 1);
-  getParam<double>(nmpc_nh, "Rt", Rt, 1);
-  getParam<double>(nmpc_nh, "Rac_d", Rac_d, 250);
+  getParam<double>(mpc_nh, "Qp_xy", Qp_xy, 300);
+  getParam<double>(mpc_nh, "Qp_z", Qp_z, 400);
+  getParam<double>(mpc_nh, "Qv_xy", Qv_xy, 10);
+  getParam<double>(mpc_nh, "Qv_z", Qv_z, 10);
+  getParam<double>(mpc_nh, "Qq_xy", Qq_xy, 300);
+  getParam<double>(mpc_nh, "Qq_z", Qq_z, 300);
+  getParam<double>(mpc_nh, "Qw_xy", Qw_xy, 5);
+  getParam<double>(mpc_nh, "Qw_z", Qw_z, 5);
+  getParam<double>(mpc_nh, "Qa", Qa, 1);
+  getParam<double>(mpc_nh, "Rt", Rt, 1);
+  getParam<double>(mpc_nh, "Rac_d", Rac_d, 250);
 
   // diagonal matrix
   mpc_solver_ptr_->setCostWDiagElement(0, Qp_xy);
@@ -238,17 +239,17 @@ void nmpc::TiltMtNeuralServoPlusMPC::initMPCCostW()
 void nmpc::TiltMtNeuralServoPlusMPC::initMPCConstraints()
 {
   ros::NodeHandle control_nh(nh_, "controller");
-  ros::NodeHandle nmpc_nh(control_nh, "nmpc");
+  ros::NodeHandle mpc_nh(control_nh, "nmpc");
 
   double body_rate_max, body_rate_min;
-  getParam<double>(nmpc_nh, "w_max", body_rate_max, 6.0);
-  getParam<double>(nmpc_nh, "w_min", body_rate_min, -6.0);
-  getParam<double>(nmpc_nh, "v_max", vel_max_, 1.0);
-  getParam<double>(nmpc_nh, "v_min", vel_min_, -1.0);
-  getParam<double>(nmpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
-  getParam<double>(nmpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
-  getParam<double>(nmpc_nh, "a_max", servo_angle_max_, 3.1416);
-  getParam<double>(nmpc_nh, "a_min", servo_angle_min_, -3.1416);
+  getParam<double>(mpc_nh, "w_max", body_rate_max, 6.0);
+  getParam<double>(mpc_nh, "w_min", body_rate_min, -6.0);
+  getParam<double>(mpc_nh, "v_max", vel_max_, 1.0);
+  getParam<double>(mpc_nh, "v_min", vel_min_, -1.0);
+  getParam<double>(mpc_nh, "thrust_max", thrust_ctrl_max_, 0.0);
+  getParam<double>(mpc_nh, "thrust_min", thrust_ctrl_min_, 0.0);
+  getParam<double>(mpc_nh, "a_max", servo_angle_max_, 3.1416);
+  getParam<double>(mpc_nh, "a_min", servo_angle_min_, -3.1416);
 
   //  TODO: this should be set in flight_navigation; don't know why set 0.2 results solver failure
   getParam<double>(control_nh, "vel_limit_takeoff", vel_limit_takeoff_, 1.0);  // m/s

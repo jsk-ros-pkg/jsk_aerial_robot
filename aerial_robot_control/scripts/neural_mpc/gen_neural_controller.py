@@ -3,12 +3,12 @@ from neural_controller import NeuralMPC
 
 model_options = EnvConfig.model_options
 
-# controller_list = ["nominal"]
-controller_list = ["neural_plus"]
-# controller_list = ["nominal", "neural_plus"]
+controller_list = []
+# controller_list.append("nominal")
+controller_list.append("neural_plus")
 # controller_list.append("neural_minus")
 
-if ["nominal"] in controller_list:
+if "nominal" in controller_list:
     print("Generating nominal controller...")
     model_options["only_use_nominal"] = True
     rtnmpc = NeuralMPC(
@@ -20,7 +20,7 @@ if ["nominal"] in controller_list:
     print("Successfully generated nominal controller!")
     print("========================================")
 
-if ["neural_plus"] in controller_list:
+if "neural_plus" in controller_list:
     print("Generating neural plus controller...")
     model_options["only_use_nominal"] = False
     model_options["plus_neural"] = True
@@ -34,7 +34,7 @@ if ["neural_plus"] in controller_list:
     print("Successfully generated neural plus controller!")
     print("========================================")
 
-if ["neural_minus"] in controller_list:
+if "neural_minus" in controller_list:
     print("Generating neural minus controller...")
     model_options["only_use_nominal"] = False
     model_options["plus_neural"] = False
