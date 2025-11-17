@@ -97,6 +97,29 @@ bool nmpc::TiltMtNeuralServoPlusMPC::update()
     return false;
 
   this->controlCore();
+
+  // Wait for neural network to stabilize (heuristically about 1 sec of strong oscillations in the servo angle cmd)
+  if (navigator_->getNaviState() == aerial_robot_navigation::TAKEOFF_STATE)
+  {
+    if (first_iteration_)
+    {
+      start_time_ = ros::Time::now().toSec();
+      first_iteration_ = false;
+    }
+    else
+    {
+      if (ros::Time::now().toSec() - start_time_ < 5.0)
+      {
+        ROS_WARN("Waiting for neural network to stabilize during takeoff...");
+        return true;
+      }
+      else
+      {
+        ROS_WARN_THROTTLE(1, "Neural network stabilized, start NMPC control!");
+      }
+    }
+  }
+
   this->sendCmd();
 
   return true;

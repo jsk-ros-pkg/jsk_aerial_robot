@@ -189,6 +189,8 @@ protected:
 
   // debug functions
   void printPhysicalParams();
+  bool first_iteration_ = true;
+  double start_time_ = 0.0;
 
   // check functions
   static bool isAlmostEqual(const double a, const double b, const double epsilon = 1e-6)

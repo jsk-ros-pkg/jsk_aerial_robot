@@ -8,11 +8,11 @@ controller:
     T_step: 0.1  # seconds
 
     # Hard constraints
-    w_max: 1  #6  # 1 rad/s ~ 57 deg/s
-    w_min: -1  #6
+    w_max: 6  # 1 rad/s ~ 57 deg/s
+    w_min: -6
 
-    v_max: 0.1  # 1
-    v_min: -0.1  # 1
+    v_max: 1
+    v_min: -1
 
     thrust_max: 30  # N
     thrust_min: 0  # N
