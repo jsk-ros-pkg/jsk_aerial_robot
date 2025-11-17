@@ -2527,13 +2527,166 @@
         "payload": false
       },
       "trained_models": [
-        "neuralmodel_119",
-        "neuralmodel_119",
-        "neuralmodel_119",
         "neuralmodel_120"
       ]
+    }
+  },
+  "NMPCTiltQdServo_real_machine_dataset_14_RECORDINGS": {
+    "date": "2025-11-17 13:59:38",
+    "real_machine": true,
+    "rosbag_file": [
+      "~/ros/rosbag_files/csv/2024-10-11-17-34-15_success_omni_pitch_rolling.csv",
+      "~/ros/rosbag_files/csv/2024-10-12-10-45-20_success_omni_roll_rolling.csv",
+      "~/ros/rosbag_files/csv/2024-10-15-18-32-17_-pitch_rolling_success.csv",
+      "~/ros/rosbag_files/csv/2025-03-21-21-40-15_Roll90degYawRotate_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-05-02-16-02-46_roll_pitch_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-03-14-31-58_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-03-14-38-30_jojo_ws_hovering_success_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-07-17-54-58_jinjie_ws_hovering_success_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-06-18_nominal_hovering_mode_0_success.csv",
+      "~/ros/rosbag_files/csv/2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv"
+    ],
+    "duration": [
+      47.24360203742981,
+      38.34291911125183,
+      90.4469199180603,
+      76.88776707649231,
+      102.92163491249084,
+      57.88332390785217,
+      104.30961489677429,
+      24.95193099975586,
+      77.41123390197754,
+      331.4860088825226,
+      484.0976810455322,
+      79.00931096076965,
+      92.76117205619812
+    ],
+    "mpc_type": "NMPCTiltQdServo",
+    "state_dim": 17,
+    "control_dim": 8,
+    "include_quaternion_constraint": false,
+    "include_soft_constraints": false,
+    "mpc_params": {
+      "T_samp": 0.01,
+      "T_horizon": 2.0,
+      "T_step": 0.1,
+      "w_max": 6,
+      "w_min": -6,
+      "v_max": 1,
+      "v_min": -1,
+      "thrust_max": 30,
+      "thrust_min": 0,
+      "a_max": 3.1416,
+      "a_min": -3.1416,
+      "Qp_xy": 300,
+      "Qp_z": 400,
+      "Qv_xy": 10,
+      "Qv_z": 10,
+      "Qq_xy": 300,
+      "Qq_z": 600,
+      "Qw_xy": 5,
+      "Qw_z": 5,
+      "Qa": 1,
+      "Rt": 1,
+      "Rac_d": 250,
+      "linear_slack_weight": 10,
+      "quadratic_slack_weight": 100,
+      "is_attitude_ctrl": false,
+      "is_body_rate_ctrl": false,
+      "is_print_phys_params": false,
+      "is_debug": false,
+      "N_steps": 20
     },
-    "dataset_002": {
+    "filtering": {
+      "temporal_filtering": true,
+      "moving_average_filter": false
+    },
+    "dataset_001": {
+      "disturbances": {
+        "cog_dist": false,
+        "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
+        "cog_dist_factor": 0.1,
+        "motor_noise": false,
+        "drag": false,
+        "payload": false
+      }
+    }
+  },
+  "NMPCTiltQdServo_real_machine_dataset_13_RECORDINGS": {
+    "date": "2025-11-17 14:26:06",
+    "real_machine": true,
+    "rosbag_file": [
+      "~/ros/rosbag_files/csv/2024-10-11-17-34-15_success_omni_pitch_rolling.csv",
+      "~/ros/rosbag_files/csv/2024-10-12-10-45-20_success_omni_roll_rolling.csv",
+      "~/ros/rosbag_files/csv/2024-10-15-18-32-17_-pitch_rolling_success.csv",
+      "~/ros/rosbag_files/csv/2025-03-21-21-40-15_Roll90degYawRotate_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-05-02-16-02-46_roll_pitch_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-03-14-31-58_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-07-17-54-58_jinjie_ws_hovering_success_mode_0.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-06-18_nominal_hovering_mode_0_success.csv",
+      "~/ros/rosbag_files/csv/2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
+      "~/ros/rosbag_files/csv/2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv"
+    ],
+    "duration": [
+      47.24360203742981,
+      38.34291911125183,
+      90.4469199180603,
+      76.88776707649231,
+      102.92163491249084,
+      46.039588928222656,
+      24.95193099975586,
+      77.41123390197754,
+      331.4860088825226,
+      484.0976810455322,
+      79.00931096076965,
+      92.76117205619812
+    ],
+    "mpc_type": "NMPCTiltQdServo",
+    "state_dim": 17,
+    "control_dim": 8,
+    "include_quaternion_constraint": false,
+    "include_soft_constraints": false,
+    "mpc_params": {
+      "T_samp": 0.01,
+      "T_horizon": 2.0,
+      "T_step": 0.1,
+      "w_max": 6,
+      "w_min": -6,
+      "v_max": 1,
+      "v_min": -1,
+      "thrust_max": 30,
+      "thrust_min": 0,
+      "a_max": 3.1416,
+      "a_min": -3.1416,
+      "Qp_xy": 300,
+      "Qp_z": 400,
+      "Qv_xy": 10,
+      "Qv_z": 10,
+      "Qq_xy": 300,
+      "Qq_z": 600,
+      "Qw_xy": 5,
+      "Qw_z": 5,
+      "Qa": 1,
+      "Rt": 1,
+      "Rac_d": 250,
+      "linear_slack_weight": 10,
+      "quadratic_slack_weight": 100,
+      "is_attitude_ctrl": false,
+      "is_body_rate_ctrl": false,
+      "is_print_phys_params": false,
+      "is_debug": false,
+      "N_steps": 20
+    },
+    "filtering": {
+      "temporal_filtering": true,
+      "moving_average_filter": false
+    },
+    "dataset_001": {
       "disturbances": {
         "cog_dist": false,
         "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
@@ -2543,7 +2696,7 @@
         "payload": false
       },
       "trained_models": [
-        "neuralmodel_120"
+        "neuralmodel_121"
       ]
     }
   }

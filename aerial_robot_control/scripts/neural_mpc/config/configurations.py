@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_120",  # 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_121",  # 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -94,6 +94,7 @@ class EnvConfig:
             # ---- all before not on FULL dataset ----
             # 119 (not good): Same as 113 but trained on FULL dataset
             # 120 (BEST SO FAR [similar to 113]): Same as 113 on fixed FULL dataset
+            # 121: Same as 113 but on 13_RECORDINGS dataset
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -283,7 +284,7 @@ class ModelFitConfig:
     # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
-    ds_instance = "dataset_002"  # "dataset_020"
+    ds_instance = "dataset_001"  # "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
     # real machine 01, dataset 013: same as 007 but with fixed prop and dt
