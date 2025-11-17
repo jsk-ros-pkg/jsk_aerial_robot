@@ -719,15 +719,15 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
         # Plot true labels vs. actual regression
         y = mlp_out
         fig, _ = plt.subplots(figsize=(10, 5))
-        plt.title("Model Output vs. Labels")
+        plt.title("Model Output")  # vs. Labels")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
-            plt.plot(timestamp, y[:, i], label="y_regressed")
-            plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
-            plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
+            plt.plot(timestamp, y[:, i])  # , label="y_regressed")
+            # plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
+            # plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
             plt.ylabel(f"D{dim}")
-            if i == 0:
-                plt.legend()
+            # if i == 0:
+            #     plt.legend()
             plt.grid("on")
             plt.xlim(timestamp[0], timestamp[-1])
             if i != y.shape[1] - 1:
