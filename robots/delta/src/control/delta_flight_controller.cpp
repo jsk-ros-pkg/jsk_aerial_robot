@@ -79,14 +79,16 @@ void DeltaController::wrenchAllocation()
 void DeltaController::linearWrenchAllocation()
 {
   Eigen::MatrixXd full_q_mat = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
-  std::cout << "Full Q matrix:\n" << full_q_mat << std::endl;
   Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
 
   Eigen::VectorXd target_wrench_cog = target_acc_cog_;
   target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
   target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
   Eigen::VectorXd full_lambda = full_q_mat_inv * target_wrench_cog;
-  std::cout << "Full lambda:\n" << full_lambda.transpose() << std::endl;
+  full_lambda.noalias() += prev_target_vectoring_f_;
+  full_lambda.noalias() -= full_q_mat_inv * (full_q_mat * prev_target_vectoring_f_);
+  prev_target_vectoring_f_ = full_lambda;
+
   for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
     lambda_all_.at(i) =

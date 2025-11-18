@@ -44,6 +44,7 @@ void DeltaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   q_mat_.resize(6, motor_num_);
   q_mat_inv_.resize(motor_num_, 6);
+  prev_target_vectoring_f_ = Eigen::VectorXd::Zero(2 * motor_on_rigid_frame_num_ + motor_on_soft_frame_num_);
 }
 
 void DeltaController::reset()
@@ -240,12 +241,6 @@ void DeltaController::sendFourAxisCommand()
   spinal::FourAxisCommand flight_command_data;
   if (use_fc_for_att_control_)
     flight_command_data.angles[2] = candidate_yaw_term_;
-  std::cout << "Thrusts: ";
-  for (int i = 0; i < motor_num_; i++)
-  {
-    std::cout << lambda_all_.at(i) << " ";
-  }
-  std::cout << std::endl;
   flight_command_data.base_thrust = lambda_all_;
   flight_cmd_pub_.publish(flight_command_data);
 }

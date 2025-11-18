@@ -116,6 +116,7 @@ private:
   /* for soft airframe */
   int motor_on_rigid_frame_num_;
   int motor_on_soft_frame_num_;
+  Eigen::VectorXd prev_target_vectoring_f_;
 
   /* flight mode */
   Eigen::VectorXd target_acc_cog_;
