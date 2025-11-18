@@ -48,7 +48,6 @@
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
-
 #include <Spine/spine.h>
 
 #include "dshot_esc/dshot.h"
@@ -274,7 +273,6 @@ int main(void)
   battery_status_.init(&hadc1, &nh_);
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 #endif
-#endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
@@ -290,6 +288,7 @@ int main(void)
   
 #if PWM_SERVO_FLAG
   controller_.init(&htim1, NULL, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
+  extra_servo_.init(NULL, &htim4, &nh_);
 #else
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 #endif
