@@ -189,6 +189,8 @@ protected:
 
   // debug functions
   void printPhysicalParams();
+
+  // Warm-up
   bool first_iteration_ = true;
   double start_time_ = 0.0;
 
