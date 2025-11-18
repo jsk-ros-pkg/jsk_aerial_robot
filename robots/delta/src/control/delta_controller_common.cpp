@@ -20,10 +20,12 @@ void DeltaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   first_run_ = true;
 
-  rotor_tilt_.resize(motor_num_);
-  lambda_all_.resize(motor_num_, 0.0);
-  target_gimbal_angles_.resize(motor_num_, 0.0);
+  motor_on_rigid_frame_num_ = delta_robot_model_->getRotorOnRigidFrameNum();
+  motor_on_soft_frame_num_ = delta_robot_model_->getRotorOnSoftFrameNum();
 
+  rotor_tilt_.resize(motor_on_rigid_frame_num_);
+  lambda_all_.resize(motor_num_, 0.0);
+  target_gimbal_angles_.resize(motor_on_rigid_frame_num_, 0.0);
   rosParamInit();
 
   rpy_gain_pub_ = nh_.advertise<spinal::RollPitchYawTerms>("rpy/gain", 1);
@@ -69,7 +71,7 @@ void DeltaController::activate()
   servo_torque_command_pub_.publish(servo_torque_command);
 
   // set gimbal angles to zero
-  for (int i = 0; i < motor_num_; i++)
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
     target_gimbal_angles_.at(i) = 0.0;
   }
@@ -89,7 +91,8 @@ void DeltaController::rosParamInit()
   /* get tilt angle of each thruster */
   auto urdf_model = robot_model_->getUrdfModel();
   auto robot_model_xml = robot_model_->getRobotModelXml("robot_description");
-  for (int i = 0; i < motor_num_; i++)
+  std::cout << "motor_on_rigid_frame_num_: " << motor_on_rigid_frame_num_ << std::endl;
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
     std::string rotor_parent_joint_name = std::string("gimbal_link") + std::to_string(i + 1) + std::string("2") +
                                           std::string("rotor_parent") +
@@ -146,7 +149,7 @@ void DeltaController::processGimbalAngles()
   KDL::Rotation cog_desire_orientation = robot_model_->getCogDesireOrientation<KDL::Rotation>();
   robot_model_for_control_->setCogDesireOrientation(cog_desire_orientation);
   KDL::JntArray gimbal_processed_joint = robot_model_->getJointPositions();
-  for (int i = 0; i < motor_num_; i++)
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
     std::string s = std::to_string(i + 1);
     gimbal_processed_joint(joint_index_map.find(std::string("gimbal") + s)->second) = current_gimbal_angles.at(i);
@@ -224,7 +227,7 @@ void DeltaController::sendGimbalAngles()
 {
   sensor_msgs::JointState gimbal_control_msg;
   gimbal_control_msg.header.stamp = ros::Time::now();
-  for (int i = 0; i < motor_num_; i++)
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
     gimbal_control_msg.position.push_back(target_gimbal_angles_.at(i));
     gimbal_control_msg.name.push_back(std::string("gimbal") + std::to_string(i + 1));
@@ -237,6 +240,12 @@ void DeltaController::sendFourAxisCommand()
   spinal::FourAxisCommand flight_command_data;
   if (use_fc_for_att_control_)
     flight_command_data.angles[2] = candidate_yaw_term_;
+  std::cout << "Thrusts: ";
+  for (int i = 0; i < motor_num_; i++)
+  {
+    std::cout << lambda_all_.at(i) << " ";
+  }
+  std::cout << std::endl;
   flight_command_data.base_thrust = lambda_all_;
   flight_cmd_pub_.publish(flight_command_data);
 }

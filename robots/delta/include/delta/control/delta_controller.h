@@ -113,6 +113,10 @@ private:
   double torque_allocation_matrix_inv_pub_stamp_;
   double torque_allocation_matrix_inv_pub_interval_;
 
+  /* for soft airframe */
+  int motor_on_rigid_frame_num_;
+  int motor_on_soft_frame_num_;
+
   /* flight mode */
   Eigen::VectorXd target_acc_cog_;
 

@@ -21,6 +21,34 @@ servo_controller:
       id: 5
       name: joint3
 
+    controller4:
+      id: 8
+      name: soft_joint2
+      angle_sgn: 0
+      simulation:
+        init_value: 0.0
+
+    controller5:
+      id: 9
+      name: soft_joint3
+      angle_sgn: 0
+      simulation:
+        init_value: 0.0
+
+    controller6:
+      id: 10
+      name: soft_joint4
+      angle_sgn: 0
+      simulation:
+        init_value: 0.0
+
+    controller7:
+      id: 11
+      name: soft_joint5
+      angle_sgn: 0
+      simulation:
+        init_value: 0.0
+    
   gimbals:
     no_real_state: false # true if there is no servo state from real machine
     angle_sgn: -1
@@ -48,3 +76,9 @@ servo_controller:
     controller4:
       id: 6
       name: gimbal4
+
+    controller5:
+      id: 7
+      name: gimbal_joint5
+      simulation:
+        init_value: 0.0

@@ -25,6 +25,15 @@
       <!--   <arg name="rviz" value="false" /> -->
       <!-- </include> -->
 
+      <group ns="thrust5">
+        <include file="$(find timed_roslaunch)/launch/timed_roslaunch.launch">
+          <arg name="time" value="2" />
+          <arg name="pkg" value="aerial_robot_base"/>
+          <arg name="file" value="mocap.launch"/>
+          <arg name="value" value="robot_id:=2"/>
+        </include>
+      </group>
+
     </group>
 
     <!-- basic configuration for sensors (e.g. noise sigma) -->
