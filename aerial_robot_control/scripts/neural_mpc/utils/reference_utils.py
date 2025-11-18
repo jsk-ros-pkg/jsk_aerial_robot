@@ -73,28 +73,26 @@ def sample_random_position_target(current_pos, world_radius, aggressive=True, lo
     return np.concatenate((target_pos, target_vel, target_rot, target_omega))[np.newaxis, :]
 
 
-def sample_random_orientation_target(current_pos, aggressive=True, low_flight=False):
+def sample_random_orientation_target(aggressive=True, low_flight=False):
     """
     Generates a target pose for the robot to reach.
 
-    :param current_pos: Current 3D position of the robot. Only used if 'aggressive' is set to True.
     :param world_radius: Radius in meters of the area in which target points are sampled from.
     :param aggressive: Flag to enable aggressive target points, which are sampled far from the current robot position.
                        If set to False, target points are sampled uniformly in the world.
     :return: List of a single randomly sampled target point as a 3-dimensional numpy array.
     """
     if low_flight:
-        target_pos = current_pos.copy()
-        target_pos[2] = 0.3
+        target_pos = np.array([0, 0, 0.3])
     else:
-        target_pos = current_pos.copy()
+        target_pos = np.array([0, 0, 1.0])
     target_vel = np.array([0, 0, 0])
 
     # Sample random target orientation (Euler angles)
     if aggressive:
-        target_rot = np.random.uniform(-np.pi, np.pi, (3,))
+        target_rot = np.random.uniform(-np.pi / 1.5, np.pi / 1.5, (3,))
     else:
-        target_rot = np.random.uniform(-np.pi / 3, np.pi / 3, (3,))
+        target_rot = np.random.uniform(-np.pi / 4, np.pi / 4, (3,))
     target_omega = np.array([0, 0, 0])
 
     return np.concatenate((target_pos, target_vel, target_rot, target_omega))[np.newaxis, :]

@@ -123,16 +123,18 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         # pbar_style="angled alt red blue",
         num_decimal_places=6,
     )
-    table.add_column("Epoch", color="white", width=13)
+    table.add_column("Epoch", color="white", width=9)
     table.add_column("Step", color="DIM", width=13)
-    table.add_column("Train Loss", color="red", width=25)
+    table.add_column("Train Loss", color="BRIGHT red", width=19)
     if MLPConfig.gradient_lambda > 0.0:
-        table.add_column("Gradient Loss", color="magenta", width=21)
+        table.add_column("Gradient", color="magenta", width=15)
     if MLPConfig.consistency_epsilon > 0.0:
-        table.add_column("Consistency Loss", color="cyan", width=21)
-    table.add_column("Val Loss", color="BRIGHT green", width=25)
-    table.add_column("Inference Time", width=19)
-    table.add_column("Learning Rate", width=13)
+        table.add_column("Consistency", color="cyan", width=15)
+    if MLPConfig.symmetry_lambda > 0.0:
+        table.add_column("Symmetry", color="yellow", width=15)
+    table.add_column("Val Loss", color="BRIGHT green", width=19)
+    table.add_column("Inference Time", width=17)
+    table.add_column("LR", width=7)
 
     # === Training Loop ===
     print("==========================================")
@@ -205,12 +207,12 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
 
 def loss_function(y, y_pred, weight, *_):
     # Weight each dimension
-    return (torch.square(y - y_pred) * weight).mean()
+    return torch.mean(torch.square(y - y_pred) * weight)
 
 
 def loss_function_l1(y, y_pred, weight, l1_lambda, model):
     # Weight each dimension
-    ls_loss = (torch.square(y - y_pred) * weight).mean()
+    ls_loss = torch.mean(torch.square(y - y_pred) * weight)
     # L1 regularization
     l1_loss = l1_lambda * sum(p.abs().sum() for p in model.parameters())
     return ls_loss + l1_loss
@@ -240,7 +242,7 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             gradients = torch.autograd.grad(
                 outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True
             )[0]
-            gradient_penalty = torch.mean(gradients**2)
+            gradient_penalty = torch.mean(torch.square(gradients))
             loss_gradient = MLPConfig.gradient_lambda * gradient_penalty
 
         # === Output consistency ===
@@ -249,7 +251,34 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             noise = torch.randn_like(x) * torch.abs(x)
             noisy_input = x + MLPConfig.consistency_epsilon * model.x_std * noise
             y_pred_noise = model(noisy_input)
-            loss_consistency = MLPConfig.consistency_lambda * (torch.square(y_pred - y_pred_noise) * weight).mean()
+            loss_consistency = MLPConfig.consistency_lambda * torch.mean(torch.square(y_pred - y_pred_noise) * weight)
+
+        # === Output symmetry ===
+        if MLPConfig.symmetry_lambda > 0.0:
+            # Permutate inputs and outputs to enforce symmetry
+            if x.shape[1] == 9:
+                x_permuted = x.clone()
+                # Swap thrusts (same arms)
+                # x_permuted[:, 1], x_permuted[:, 2] = x[:, 2], x[:, 1]
+                # x_permuted[:, 3], x_permuted[:, 4] = x[:, 4], x[:, 3]
+                # Swap thrusts (opposite arms)
+                x_permuted[:, 1], x_permuted[:, 3] = x[:, 3], x[:, 1]
+                x_permuted[:, 2], x_permuted[:, 4] = x[:, 4], x[:, 2]
+                # Swap servo angles (same arms)
+                x_permuted[:, 5], x_permuted[:, 6] = x[:, 6], x[:, 5]
+                x_permuted[:, 7], x_permuted[:, 8] = x[:, 8], x[:, 7]
+                # Swap servo angles (opposite arms)
+                # x_permuted[:, 5], x_permuted[:, 7] = x[:, 7], x[:, 5]
+                # x_permuted[:, 6], x_permuted[:, 8] = x[:, 8], x[:, 6]
+                # Permutated forward pass
+                y_pred_permuted = model(x_permuted)
+                # Permute output accordingly (swap accelerations in x & y)
+                y_pred_permuted[:, 0], y_pred_permuted[:, 1] = y_pred_permuted[:, 1], y_pred_permuted[:, 0]
+            else:
+                raise NotImplementedError("Symmetry loss is only implemented for input dimension 9.")
+
+            # Symmetry loss
+            loss_symmetry = MLPConfig.symmetry_lambda * torch.mean(torch.square(y_pred - y_pred_permuted) * weight)
 
         # === Loss ===
         loss = loss_fn(y, y_pred, weight, l1_lambda, model)
@@ -257,6 +286,8 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             loss += loss_gradient
         if MLPConfig.consistency_lambda > 0.0:
             loss += loss_consistency
+        if MLPConfig.symmetry_lambda > 0.0:
+            loss += loss_symmetry
 
         # === Backpropagation ===
         loss.backward()
@@ -271,9 +302,11 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
         table["Step"] = f"{mov_size}/{size}"
         table["Train Loss"] = loss_avg
         if MLPConfig.gradient_lambda > 0.0:
-            table["Gradient Loss"] = loss_gradient
+            table["Gradient"] = loss_gradient
         if MLPConfig.consistency_epsilon > 0.0:
-            table["Consistency Loss"] = loss_consistency
+            table["Consistency"] = loss_consistency
+        if MLPConfig.symmetry_lambda > 0.0:
+            table["Symmetry"] = loss_symmetry
     return loss_avg
 
 

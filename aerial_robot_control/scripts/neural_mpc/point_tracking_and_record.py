@@ -364,7 +364,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                     # Also, it makes no physical sense to jump to next control step immediately
                     # break
                 elif tracking_mode == "orientation" and quaternion_dist(
-                    state_ref[6:10], state_curr_sim[6:10], thresh=0.05
+                    state_ref[0, 6:10], state_curr_sim[6:10], thresh=0.01
                 ):
                     # Rotation target reached!
                     current_target_reached = True
@@ -382,29 +382,28 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
                 # Generate new target
                 if run_options["preset_targets"] is None:
-                    new_target = sample_random_position_target(
-                        state_curr_sim[:3],
-                        sim_options["world_radius"],
-                        aggressive=run_options["aggressive"],
-                        low_flight=run_options["low_flight_targets"],
-                    )
+                    # new_target = sample_random_position_target(
+                    #     state_curr_sim[:3],
+                    #     sim_options["world_radius"],
+                    #     aggressive=run_options["aggressive"],
+                    #     low_flight=run_options["low_flight_targets"],
+                    # )
 
-                    # if t_now < 5:
-                    #     new_target = sample_random_position_target(
-                    #         state_curr_sim[:3],
-                    #         sim_options["world_radius"],
-                    #         aggressive=run_options["aggressive"],
-                    #         low_flight=run_options["low_flight_targets"],
-                    #     )
-                    # elif t_now < 10 and not euclidean_dist(np.array([0, 0, 1.0]), state_curr_sim[:3], thresh=0.025):
-                    #     new_target = np.array([0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[np.newaxis, :]
-                    # else:
-                    #     tracking_mode = "orientation"
-                    #     new_target = sample_random_orientation_target(
-                    #         state_curr_sim[:3],
-                    #         aggressive=False,  # run_options["aggressive"],
-                    #         low_flight=False,  # run_options["low_flight_targets"],
-                    #     )
+                    if t_now < 5:
+                        new_target = sample_random_position_target(
+                            state_curr_sim[:3],
+                            sim_options["world_radius"],
+                            aggressive=run_options["aggressive"],
+                            low_flight=run_options["low_flight_targets"],
+                        )
+                    elif t_now < 10 and not euclidean_dist(np.array([0, 0, 1.0]), state_curr_sim[:3], thresh=0.025):
+                        new_target = np.array([0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[np.newaxis, :]
+                    else:
+                        tracking_mode = "orientation"
+                        new_target = sample_random_orientation_target(
+                            aggressive=True,  # run_options["aggressive"],
+                            low_flight=False,  # run_options["low_flight_targets"],
+                        )
 
                     targets = np.append(targets, new_target, axis=0)
                     targets_reached = np.append(targets_reached, False)

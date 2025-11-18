@@ -122,15 +122,32 @@ def quaternion_dist(q1, q2, thresh=None):
     :param q2: 4-length numpy array or CasADi MX. Second quaternion
     :return: The quaternion difference q1 - q2, with the same format as in the input.
     """
+    # q2_inv = quaternion_inverse(q2)
+    # q_diff = q_dot_q(q1, q2_inv)
+    # dist = np.sqrt(np.sum(q_diff**2))
 
-    q2_inv = quaternion_inverse(q2)
-    q_diff = q_dot_q(q1, q2_inv)
-    dist = np.sqrt(np.sum(q_diff**2))
+    # Source: https://math.stackexchange.com/questions/90081/quaternion-distance
+    dist = 1 - np.dot(q1, q2) ** 2
 
     if thresh is None:
         return dist
 
     return dist < thresh
+
+
+def scalar_product_quaternion(q1, q2):
+    """
+    Computes the scalar product between two quaternions q1 and q2 (PAMPC version)
+
+    :param q1: 4-length numpy array or CasADi MX. First quaternion
+    :param q2: 4-length numpy array or CasADi MX. Second quaternion
+    :return: The scalar product between q1 and q2, with the same format as in the input.
+    """
+
+    if isinstance(q1, np.ndarray) and isinstance(q2, np.ndarray):
+        return np.dot(q1, q2)
+
+    return cs.dot(q1, q2)
 
 
 # fmt: off
