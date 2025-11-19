@@ -103,6 +103,8 @@ void KondoServo::update()
   //         writePosCmd(servo_[i].id_, 0);  //freed
   //       }
   //   }
+  /* skip if no servo is detected */
+  if (servo_num_ == 0) return;
 
   if(servo_[read_servo_index_].torque_enable_)
     {
