@@ -116,8 +116,8 @@ private:
     int joint_limit_pressure_ = 60; // 60
     int bottom_limit_pressure_ = 50; // 50
     int joint_max_pressure_ = 25; // 50
-    int joint_perching_pressure_ = 25; // 45
-    int bottom_perching_pressure_ = 10; // 20
+    int joint_perching_pressure_ = 45; // 45
+    int bottom_perching_pressure_ = 20; // 20
 
     spinal::PwmTest pwm_air_cmd_;
     spinal::PwmTest last_published_pwm_;

@@ -1,11 +1,22 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="norm_control_switch" default="0" />
+  <arg name="waypoint_reached_thresh" default="1.0" />
+  <arg name="base_thrust" default="3.0" />
+    <arg name="emotion_on" default="false" />
   <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen">
     <param name="port" value="/dev/ttyUSB1" />
     <param name="baud" value="57600" />
   </node>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_camera_init" args="0 0 0 0 0 0 world camera_init" />
   <node pkg="hugmy" type="guidance_manual_controller" name="guidance_manual_controller" output="screen">
+    <remap from="/odom" to="/Odometry"/>
+    # <remap from="/odom" to="/quadrotor/uav/cog/odom"/>
     <param name="norm_control_switch" value="$(arg norm_control_switch)" />
+    <param name="waypoint_reached_thresh" value="$(arg waypoint_reached_thresh)" />
+    <param name="base_thrust" value="$(arg base_thrust)" />
+    <param name="emotion_on" value="$(arg emotion_on)" />
+    <rosparam command="load" file="$(find hugmy)/config/waypoint.yaml" />
   </node>
   <!-- <node pkg="joy" type="joy_node" name="joy_node" output="screen" /> -->
 

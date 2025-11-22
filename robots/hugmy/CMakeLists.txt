@@ -55,7 +55,9 @@ target_link_libraries(random_haptics_feeling_node ${catkin_LIBRARIES})
 
 add_executable(guidance_manual_controller src/control/test/haptics_guidance_manual_test.cpp
   src/control/air_pressure_controller.cpp
-  src/control/haptics_controller.cpp)
+  src/control/haptics_controller.cpp
+  src/control/rviz_visualizer.cpp
+  )
 target_link_libraries(guidance_manual_controller ${catkin_LIBRARIES})
 
 add_executable(haptics_integrated_controller src/control/integrated.cpp
