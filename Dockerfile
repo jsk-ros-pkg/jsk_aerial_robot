@@ -23,20 +23,26 @@ RUN apt-get update && \
 
 # Install Python packages
 RUN pip3 install \
-    numpy==1.21.5 \
-    torch==2.4.1 \
-    # TODO get stable version (==2.6.0 not compatible)
-    scienceplots==2.1.1 \
-    scipy==1.10 \
-    scikit-learn==1.3.2 \
-    #TODO get stable version (==1.6.1) \
-    matplotlib==3.5.1 \
+    # Avoid warning with 68.1.0
+    setuptools==45.2.0 \
+    cmake==3.27 \
+    ninja==1.13 \
+    numpy==1.24.4 \
     pandas==1.3.5 \
-    casadi==3.7.0 \
-    tikzplotlib==0.10.1 \
-    progress-table==3.1.2 \
+    rospkg==1.3.0 \
+    # Get stable version (==2.6.0 not compatible with Ubuntu 20.04)
+    torch==2.4.1 \
     torchsummary==1.5.1 \
-    transformations==2022.9.26
+    # Get stable version (==1.15.3 not compatible with Ubuntu 20.04)
+    scipy==1.10.0 \
+    scikit-build==0.18.1 \
+    # Get stable version (==1.6.1 not compatible with Ubuntu 20.04)
+    scikit-learn==1.3.2 \
+    casadi==3.7.0 \
+    # Get stable version (==2025.1.1 not compatible with Ubuntu 20.04)
+    transformations==2022.9.26 \
+    pyquaternion==0.9.9 \
+    pyyaml==5.4.1 \
     # For real-time inference
     # tensorrt \
     # pycuda
@@ -71,7 +77,7 @@ RUN apt-get update && \
 
 RUN mkdir -p /root/ros/jsk_aerial_robot_ws/src && \
     cd /root/ros/jsk_aerial_robot_ws/src && \
-    git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/RTNMPC && \
+    git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/neural_MPC && \
     cd /root/ros/jsk_aerial_robot_ws && \
     wstool init src && \
     # wstool set -u -t src jsk_aerial_robot http://github.com/johanneskbl/jsk_aerial_robot --git -y && \
