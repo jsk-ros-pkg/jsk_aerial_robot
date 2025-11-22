@@ -1,6 +1,9 @@
 # For use on Jetson Orin NX with ARM64 architecture
 FROM arm64v8/ros:noetic
 
+# Use bash as default shell
+SHELL ["/bin/bash", "-c"]
+
 # Use NVIDIA L4T base image for Jetson compatibility
 # FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3
 
@@ -42,7 +45,7 @@ RUN pip3 install \
     # Get stable version (==2025.1.1 not compatible with Ubuntu 20.04)
     transformations==2022.9.26 \
     pyquaternion==0.9.9 \
-    pyyaml==5.4.1 \
+    pyyaml==5.4.1
     # For real-time inference
     # tensorrt \
     # pycuda
@@ -63,11 +66,12 @@ RUN echo 'ACADOS_SOURCE_DIR=/root/acados' >> /root/.bashrc
 RUN source /root/.bashrc
 # Download and install t_renderer binary for acados
 # Install rust (and cargo) for building from source
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN git clone https://github.com/acados/tera_renderer.git --branch v0.0.35
-RUN cd /root/acados/tera_renderer
-RUN /root/.cargo/bin/cargo build --verbose --release
-RUN cp /root/acados/tera_renderer/target/release/t_renderer /root/acados/bin
+RUN cd /root/acados && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    git clone https://github.com/acados/tera_renderer.git --branch v0.0.35 && \
+    cd /root/acados/tera_renderer && \
+    /root/.cargo/bin/cargo build --verbose --release && \
+    cp /root/acados/tera_renderer/target/release/t_renderer /root/acados/bin
 
 # Set up workspace, install ROS and its dependencies
 RUN apt-get update && \
