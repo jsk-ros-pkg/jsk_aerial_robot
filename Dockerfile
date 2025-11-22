@@ -73,29 +73,29 @@ RUN cd /root/acados && \
     /root/.cargo/bin/cargo build --verbose --release && \
     cp /root/acados/tera_renderer/target/release/t_renderer /root/acados/bin
 
-# Set up workspace, install ROS and its dependencies
+# Set up workspace, install ROS and its dependencies (workaround for rospkg OS import issue)
 RUN apt-get update && \
     apt-get install -y python3-rosdep && \
+    apt purge -y python3-rospkg && \
+    pip uninstall -y rospkg && \
+    apt-get install -y python3-rospkg && \
     rosdep init || true && \
     rosdep update --include-eol-distros
 
-RUN mkdir -p /root/ros/jsk_aerial_robot_ws/src && \
-    cd /root/ros/jsk_aerial_robot_ws/src && \
+RUN mkdir -p /root/ros/jojo_ws/src && \
+    cd /root/ros/jojo_ws/src && \
     git clone https://github.com/johanneskbl/jsk_aerial_robot.git -b develop/neural_MPC && \
-    cd /root/ros/jsk_aerial_robot_ws && \
+    cd /root/ros/jojo_ws && \
     wstool init src && \
-    # wstool set -u -t src jsk_aerial_robot http://github.com/johanneskbl/jsk_aerial_robot --git -y && \
     wstool merge -t src src/jsk_aerial_robot/aerial_robot_noetic.rosinstall && \
     wstool update -t src && \
     rosdep install -y -r --from-paths src --ignore-src --rosdistro ${ROS_DISTRO}
 
-# RUN cd /root/ros/jsk_aerial_robot_ws && \
+# RUN cd /root/ros/jojo_ws && \
 #     catkin config --extend /opt/ros/${ROS_DISTRO} && \
 #     catkin build
 
-# RUN echo "source /root/ros/jsk_aerial_robot_ws/devel/setup.bash" >> /root/.bashrc
+RUN echo "source /root/ros/jojo_ws/devel/setup.bash" >> /root/.bashrc
 
-RUN echo "Please build the workspace 'catkin build' and 'source /root/ros/jsk_aerial_robot_ws/devel/setup.bash'"
-
-WORKDIR /root/ros/jsk_aerial_robot_ws
+WORKDIR /root/ros/jojo_ws
 CMD ["bash"]
