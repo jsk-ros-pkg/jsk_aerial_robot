@@ -257,7 +257,7 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [5, 4, 6, 7]
+            tail_msg.index = [4, 3, 5, 6]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
