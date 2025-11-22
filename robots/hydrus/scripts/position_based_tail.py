@@ -13,6 +13,7 @@ import numpy as np
 import math
 from aerial_robot_base.robot_interface import RobotInterface
 from calc_pwm import force_to_pwm
+from std_msgs.msg import Float32MultiArray
 
 s = 230
 d = 5
@@ -236,6 +237,13 @@ def get_wire_diff(alpha_1, alpha_3):
 def get_angle_diff(wire_diff):
     return int(wire_diff / r_wheel / math.pi * 4096)
 
+def need_next_input(dest, last_published_target):
+    if dest is None:
+        return True
+    if abs(dest[0] - last_published_target[0]) < math.radians(1.0) and abs(dest[1] - last_published_target[1]) < math.radians(1.0):
+        return True
+    return False
+
 
 if __name__ == "__main__":
     # alpha_1 = math.radians(1)
@@ -244,7 +252,10 @@ if __name__ == "__main__":
     rospy.init_node("tail_ik")
     tail_pub = rospy.Publisher("servo/target_states", ServoControlCmd, queue_size=1)
     rotor_pub = rospy.Publisher("pwm_test", PwmTest, queue_size=1)
+    joint_angle_pub = rospy.Publisher("soft_airframe_joint_angles", Float32MultiArray, queue_size=1)
 
+    dest = None
+    last_published_target = None
     rate = rospy.Rate(10)
 
     # ri = RobotInterface()
@@ -275,20 +286,38 @@ if __name__ == "__main__":
             # dest_alpha_1, dest_alpha_3 = solve_ik(
             #     alpha_1, alpha_3, p_des
             # )
-            dest_alpha_1 = math.radians(float(input("alpha_1 (deg): ")))
-            if dest_alpha_1 > math.radians(99):
-                print("stop!!!!")
-                rotor_msg.pwms = [0.5]
-                # rotor_pub.publish(rotor_msg)
-                rospy.sleep(0.5)
-                exit()
-            dest_alpha_3 = math.radians(float(input("alpha_3 (deg): ")))
-            if dest_alpha_3 > math.radians(99):
-                print("stop!!!!")
-                rotor_msg.pwms = [0.5]
-                # rotor_pub.publish(rotor_msg)
-                rospy.sleep(0.5)
-                exit()
+
+            if last_published_target is None:
+                last_published_target = [0.0, 0.0]
+                last_published_target[0] = math.radians(float(input("last_published alpha_1 (deg): ")))
+                last_published_target[1] = math.radians(float(input("last_published alpha_3 (deg): ")))
+
+            if need_next_input(dest, last_published_target):
+                dest_alpha_1 = math.radians(float(input("alpha_1 (deg): ")))
+                if abs(dest_alpha_1) > math.radians(99):
+                    print("stop!!!!")
+                    rotor_msg.pwms = [0.5]
+                    # rotor_pub.publish(rotor_msg)
+                    rospy.sleep(0.5)
+                    exit()
+                dest_alpha_3 = math.radians(float(input("alpha_3 (deg): ")))
+                if abs(dest_alpha_3) > math.radians(99):
+                    print("stop!!!!")
+                    rotor_msg.pwms = [0.5]
+                    # rotor_pub.publish(rotor_msg)
+                    rospy.sleep(0.5)
+                    exit()
+                dest = [dest_alpha_1, dest_alpha_3]
+
+            if dest[0] - last_published_target[0] > 0:
+                dest_alpha_1 = last_published_target[0] + math.radians(1.0)
+            else:
+                dest_alpha_1 = last_published_target[0] - math.radians(1.0)
+            if dest[1] - last_published_target[1] > 0:
+                dest_alpha_3 = last_published_target[1] + math.radians(1.0)
+            else:
+                dest_alpha_3 = last_published_target[1] - math.radians(1.0)
+            last_published_target = [dest_alpha_1, dest_alpha_3]
 
             (
                 x_plus_long_wire,
@@ -337,7 +366,8 @@ if __name__ == "__main__":
             rotor_msg.pwms = [rotor_pwm]
             # rotor_pub.publish(rotor_msg)
 
-            rospy.sleep(0.001)
+            joint_angle_pub.publish(Float32MultiArray(data=[dest_alpha_1, dest_alpha_3]))
+            rospy.sleep(0.01)
 
     except Exception as e:
         print(repr(e))
