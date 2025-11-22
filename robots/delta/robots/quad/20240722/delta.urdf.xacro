@@ -73,7 +73,7 @@
   <link name="soft_link1">
     <inertial>
       <origin xyz="0.06875 0.000002 0.018960" rpy="0 0 0"/>
-      <mass value="${0.010*2 + 0.012}"/>
+      <mass value="0.059"/>
       <inertia
           ixx="0.00003988" ixy="0.0" ixz="0.0"
           iyy="0.00010606" iyz="0.0"
@@ -95,7 +95,7 @@
   <link name="soft_link2">
     <inertial>
       <origin xyz="0.1175 0.000002 0.019998" rpy="0 0 0"/>
-      <mass value="${0.010*5 + 0.012*2}"/>
+      <mass value="0.118"/>
       <inertia
           ixx="0.00006787" ixy="0.0" ixz="0.0"
           iyy="0.00049831" iyz="0.0"
@@ -117,7 +117,7 @@
   <link name="soft_link3">
     <inertial>
       <origin xyz="0.10740316 0.0 0.003" rpy="0 0 0"/>
-      <mass value="${0.010*2 + 0.012 + 0.070 + 0.016}"/>
+      <mass value="${0.059 + 0.053}"/>
       <inertia
           ixx="0.00005679" ixy="-0.000000031" ixz="-0.00002256"
           iyy="0.00028149" iyz="0.000000005"
@@ -139,7 +139,7 @@
   <link name="servo_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.073"/>
+      <mass value="0.064"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
@@ -166,7 +166,7 @@
   <link name="servo_link1">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.068"/>
+      <mass value="0.059"/>
       <!-- this is for avoiding error in gazebo -->
       <!-- <inertia
           ixx="0.001" ixy="0.0" ixz="0.0"
@@ -309,7 +309,7 @@
 
 
   <!-- gimbal -->
-  <joint name="gimbal_joint5" type="revolute">
+  <joint name="gimbal_joint5" type="fixed">
     <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="gimbal_link5"/>
@@ -321,7 +321,7 @@
   <link name="gimbal_link5">
     <inertial>
       <origin xyz="0.0815 0 0" rpy="0 0 0"/>
-      <mass value="0.173"/>
+      <mass value="0.222"/>
       <!-- this inertia value is 10 times bigger than the real one -->
       <!-- to avoid the instability in gazebo -->
       <!-- <inertia
@@ -353,16 +353,6 @@
   </gazebo>
   <xacro:damping_factor link ="gimbal_link5"/>
 
-  <transmission name="gimbal_tran5">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="gimbal_joint5">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="gimbal_servo1">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
 
   <!-- rotor -->
   <joint name="rotor5" type="continuous">

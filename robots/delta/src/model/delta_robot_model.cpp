@@ -11,7 +11,7 @@ DeltaRobotModel::DeltaRobotModel(bool init_with_rosparam, bool verbose, double f
   // current_joint_angles_.resize(getJointNum() - rotor_num);
   current_gimbal_angles_.resize(rotor_on_rigid_frame_num_);
 
-  // note: it might be better to use gimbal_link1
+  // note: it might be better to use gimbal_link5
   ros::NodeHandle nh;
   rotor5_pose_sub_ = nh.subscribe("thrust5/mocap/pose", 1, &DeltaRobotModel::Rotor5MocapCallback, this);
   body_pose_sub_ = nh.subscribe("mocap/pose", 1, &DeltaRobotModel::BodyMocapCallback, this);
