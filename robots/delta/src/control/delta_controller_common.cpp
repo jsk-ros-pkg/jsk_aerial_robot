@@ -256,8 +256,16 @@ void DeltaController::sendTorqueAllocationMatrixInv()
     int torque_allocation_matrix_inv_msg_rows = motor_num_;
     torque_allocation_matrix_inv_msg.rows.resize(torque_allocation_matrix_inv_msg_rows);
 
-    if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f)
+    if (torque_allocation_matrix_inv.cwiseAbs().maxCoeff() > INT16_MAX * 0.001f){
       ROS_ERROR("Torque Allocation Matrix overflow");
+      for (unsigned int i = 0; i < torque_allocation_matrix_inv_msg_rows; i++)
+      {
+        torque_allocation_matrix_inv(i,0) = std::clamp(static_cast<float>(torque_allocation_matrix_inv(i,0)), -INT16_MAX * 0.001f, INT16_MAX * 0.001f);
+        torque_allocation_matrix_inv(i,1) = std::clamp(static_cast<float>(torque_allocation_matrix_inv(i,1)), -INT16_MAX * 0.001f, INT16_MAX * 0.001f);
+        torque_allocation_matrix_inv(i,2) = std::clamp(static_cast<float>(torque_allocation_matrix_inv(i,2)), -INT16_MAX * 0.001f, INT16_MAX * 0.001f);
+      }
+    }
+
     for (unsigned int i = 0; i < torque_allocation_matrix_inv_msg_rows; i++)
     {
       torque_allocation_matrix_inv_msg.rows.at(i).x = torque_allocation_matrix_inv(i, 0) * 1000;
