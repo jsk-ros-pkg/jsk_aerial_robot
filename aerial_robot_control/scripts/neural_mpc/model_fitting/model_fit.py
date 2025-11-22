@@ -258,18 +258,23 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             # Permutate inputs and outputs to enforce symmetry
             if x.shape[1] == 9:
                 x_permuted = x.clone()
+                # if np.random.rand() > 0.5:
+                #     # Swap thrusts (same arms)
+                #     x_permuted[:, 1], x_permuted[:, 2] = x[:, 2], x[:, 1]
+                #     x_permuted[:, 3], x_permuted[:, 4] = x[:, 4], x[:, 3]
+                # else:
+                #     # Swap thrusts (opposite arms)
+                #     x_permuted[:, 1], x_permuted[:, 3] = x[:, 3], x[:, 1]
+                #     x_permuted[:, 2], x_permuted[:, 4] = x[:, 4], x[:, 2]
                 # Swap thrusts (same arms)
-                # x_permuted[:, 1], x_permuted[:, 2] = x[:, 2], x[:, 1]
-                # x_permuted[:, 3], x_permuted[:, 4] = x[:, 4], x[:, 3]
-                # Swap thrusts (opposite arms)
-                x_permuted[:, 1], x_permuted[:, 3] = x[:, 3], x[:, 1]
-                x_permuted[:, 2], x_permuted[:, 4] = x[:, 4], x[:, 2]
+                x_permuted[:, 1], x_permuted[:, 2] = x[:, 2], x[:, 1]
+                x_permuted[:, 3], x_permuted[:, 4] = x[:, 4], x[:, 3]
                 # Swap servo angles (same arms)
-                x_permuted[:, 5], x_permuted[:, 6] = x[:, 6], x[:, 5]
-                x_permuted[:, 7], x_permuted[:, 8] = x[:, 8], x[:, 7]
+                # x_permuted[:, 5], x_permuted[:, 6] = x[:, 6], x[:, 5]
+                # x_permuted[:, 7], x_permuted[:, 8] = x[:, 8], x[:, 7]
                 # Swap servo angles (opposite arms)
-                # x_permuted[:, 5], x_permuted[:, 7] = x[:, 7], x[:, 5]
-                # x_permuted[:, 6], x_permuted[:, 8] = x[:, 8], x[:, 6]
+                x_permuted[:, 5], x_permuted[:, 7] = x[:, 7], x[:, 5]
+                x_permuted[:, 6], x_permuted[:, 8] = x[:, 8], x[:, 6]
                 # Permutated forward pass
                 y_pred_permuted = model(x_permuted)
                 # Permute output accordingly (swap accelerations in x & y)

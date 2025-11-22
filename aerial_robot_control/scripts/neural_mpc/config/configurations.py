@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_128",  # 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_129",  # 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -99,6 +99,7 @@ class EnvConfig:
             # 125 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t3, t2&t4, a1&a3, a2&a4)
             # 127 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t2, t3&t4, a1&a2, a3&a4)
             # 128 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t3, t2&t4, a1&a2, a3&a4)
+            # 129 (very simple functions due not much learning): Same as 120 but with permutation symmetry loss (and on TRAIN ds) (symmetry thrust change 50% which two to swap, a1&a3, a2&a4)
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -239,7 +240,7 @@ class MLPConfig:
     consistency_lambda = 5.0  # Set to 0.0 to disable
     consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
-    symmetry_lambda = 1.0  # Set to 0.0 to disable
+    symmetry_lambda = 100.0  # Set to 0.0 to disable
 
     # Learning rate
     learning_rate = 1e-3  # for residual
