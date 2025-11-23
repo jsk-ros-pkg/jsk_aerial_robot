@@ -33,6 +33,7 @@ void SoftAirframeController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   body_pose_sub_ = nh_.subscribe("mocap/pose", 1, &SoftAirframeController::BodyMocapCallback, this);
 
   torque_allocation_matrix_inv_pub_stamp_ = 0.0;
+  q_mat_update_stamp_ = 0.0;
   prev_target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_);
 }
 
@@ -51,11 +52,13 @@ void SoftAirframeController::controlCore()
     target_roll_ = 0;
   }
 
-  // allocation of thrust
-  // Eigen::MatrixXd full_q_mat_ = getFullQMat(); // 4 x virtual_motor_num_
-  Eigen::MatrixXd full_q_mat_ = getQMat(); // 4 x virtual_motor_num_
-  Eigen::MatrixXd full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
-
+  if (ros::Time::now().toSec() - q_mat_update_stamp_ > torque_allocation_matrix_inv_pub_interval_)
+    {
+      q_mat_update_stamp_ = ros::Time::now().toSec();  
+      full_q_mat_ = getQMat(); // 4 x virtual_motor_num_
+      full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+    }
+    
   // Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(virtual_motor_num_); // virtual motor number
   Eigen::VectorXd target_vectoring_f_ = Eigen::VectorXd::Zero(motor_num_); // virtual motor number
   if(hovering_approximate_)

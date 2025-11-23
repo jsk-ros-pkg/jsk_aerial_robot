@@ -38,12 +38,15 @@ protected:
 
   Eigen::MatrixXd q_mat_;
   Eigen::MatrixXd q_mat_inv_;
+  Eigen::MatrixXd full_q_mat_;
+  Eigen::MatrixXd full_q_mat_inv_;
 
   double target_roll_, target_pitch_; // under-actuated
   double candidate_yaw_term_;
   std::vector<float> target_base_thrust_;
 
   double torque_allocation_matrix_inv_pub_interval_;
+  double q_mat_update_stamp_;
 
   // double z_limit_;
   bool hovering_approximate_;
