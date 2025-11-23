@@ -45,6 +45,10 @@ void DeltaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   q_mat_.resize(6, motor_num_);
   q_mat_inv_.resize(motor_num_, 6);
   prev_target_vectoring_f_ = Eigen::VectorXd::Zero(2 * motor_on_rigid_frame_num_ + motor_on_soft_frame_num_);
+
+  full_q_mat_.resize(6, motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_);
+  full_q_mat_inv_.resize(motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_, 6);
+  full_q_mat_update_stamp_ = 0.0;
 }
 
 void DeltaController::reset()

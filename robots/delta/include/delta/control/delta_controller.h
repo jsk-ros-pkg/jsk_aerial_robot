@@ -97,7 +97,7 @@ private:
   boost::shared_ptr<DeltaRobotModel> robot_model_for_control_;
 
   /* common part */
-  bool use_fc_for_att_control_ = true;
+  bool use_fc_for_att_control_ = false;
   bool linear_mode_ = true;
   bool first_run_;
   int nlopt_result_;
@@ -120,6 +120,9 @@ private:
 
   /* flight mode */
   Eigen::VectorXd target_acc_cog_;
+  Eigen::MatrixXd full_q_mat_;
+  Eigen::MatrixXd full_q_mat_inv_;
+  double full_q_mat_update_stamp_;
 
   /* common part */
   bool update() override;

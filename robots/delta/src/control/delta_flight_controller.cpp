@@ -60,6 +60,13 @@ void DeltaController::forceLandingProcess()
 
 void DeltaController::wrenchAllocation()
 {
+  if (ros::Time::now().toSec() - full_q_mat_update_stamp_ > torque_allocation_matrix_inv_pub_interval_)
+  {
+    full_q_mat_update_stamp_ = ros::Time::now().toSec();
+    full_q_mat_ = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
+    full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
+  }
+
   if (linear_mode_ || first_run_)
   {
     linearWrenchAllocation();
@@ -78,15 +85,12 @@ void DeltaController::wrenchAllocation()
 
 void DeltaController::linearWrenchAllocation()
 {
-  Eigen::MatrixXd full_q_mat = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
-  Eigen::MatrixXd full_q_mat_inv = aerial_robot_model::pseudoinverse(full_q_mat);
-
   Eigen::VectorXd target_wrench_cog = target_acc_cog_;
   target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
   target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
-  Eigen::VectorXd full_lambda = full_q_mat_inv * target_wrench_cog;
+  Eigen::VectorXd full_lambda = full_q_mat_inv_ * target_wrench_cog;
   full_lambda.noalias() += prev_target_vectoring_f_;
-  full_lambda.noalias() -= full_q_mat_inv * (full_q_mat * prev_target_vectoring_f_);
+  full_lambda.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
   prev_target_vectoring_f_ = full_lambda;
 
   for (int i = 0; i < motor_on_rigid_frame_num_; i++)
