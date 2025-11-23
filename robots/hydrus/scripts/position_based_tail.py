@@ -14,6 +14,8 @@ import math
 from aerial_robot_base.robot_interface import RobotInterface
 from calc_pwm import force_to_pwm
 from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import Joy, JointState
+
 
 s = 230
 d = 5
@@ -237,6 +239,18 @@ def get_wire_diff(alpha_1, alpha_3):
 def get_angle_diff(wire_diff):
     return int(wire_diff / r_wheel / math.pi * 4096)
 
+def is_simulation() -> bool:
+    if rospy.get_param('/use_sim_time', False):
+        return True
+    try:
+        m = rosgraph.Master('probe')
+        pubs, subs, srvs = m.getSystemState()
+        pub_topics = {t for t, _ in pubs}
+        return ('/gazebo/model_states' in pub_topics) or ('/clock' in pub_topics)
+    except Exception:
+        return False
+
+
 def need_next_input(dest, last_published_target):
     if dest is None:
         return True
@@ -252,7 +266,12 @@ if __name__ == "__main__":
     rospy.init_node("tail_ik")
     tail_pub = rospy.Publisher("servo/target_states", ServoControlCmd, queue_size=1)
     rotor_pub = rospy.Publisher("pwm_test", PwmTest, queue_size=1)
+    soft_joint_pub = rospy.Publisher("joint_states", JointState, queue_size=1)
+    servo_controller_pub = rospy.Publisher("joints_ctrl", JointState, queue_size=1)
     joint_angle_pub = rospy.Publisher("soft_airframe_joint_angles", Float32MultiArray, queue_size=1)
+
+    is_simulation = is_simulation()
+    print("simulation mode" if is_simulation else "real robot mode")
 
     dest = None
     last_published_target = None
@@ -272,6 +291,10 @@ if __name__ == "__main__":
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
+
+            soft_joint_msg = JointState()
+            soft_joint_msg.name = ["soft_joint2", "soft_joint3"]
+            soft_joint_msg.effort = [0.3, 0.3]
 
             # x = float(input("x (default 0)   "))
             # z = float(input("z"))
@@ -365,6 +388,14 @@ if __name__ == "__main__":
 
             rotor_msg.pwms = [rotor_pwm]
             # rotor_pub.publish(rotor_msg)
+
+            soft_joint_msg.position = [dest_alpha_1, dest_alpha_3]
+            soft_joint_msg.header.stamp = rospy.Time.now()
+            if is_simulation:
+                servo_controller_pub.publish(soft_joint_msg)
+            else:
+                soft_joint_pub.publish(soft_joint_msg)
+
 
             joint_angle_pub.publish(Float32MultiArray(data=[dest_alpha_1, dest_alpha_3]))
             rospy.sleep(0.01)
