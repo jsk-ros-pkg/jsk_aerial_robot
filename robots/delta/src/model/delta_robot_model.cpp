@@ -53,6 +53,27 @@ void DeltaRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 }
 
+Eigen::MatrixXd DeltaRobotModel::calcWrenchMatrixOnCoG()
+{
+  const std::vector<Eigen::Vector3d> p = getRotorsOriginFromCog<Eigen::Vector3d>();
+  const std::vector<Eigen::Vector3d> u = getRotorsNormalFromCog<Eigen::Vector3d>();
+  const auto& sigma = getRotorDirection();
+  const int rotor_num = getRotorNum();
+
+  //Q : WrenchAllocationMatrix
+  Eigen::MatrixXd Q(6, rotor_num);
+  for (unsigned int i = 0; i < rotor_on_rigid_frame_num_; ++i) {
+    double m_f_rate = getMFRate(i);
+    Q.block(0, i, 3, 1) = u.at(i);
+    Q.block(3, i, 3, 1) = p.at(i).cross(u.at(i)) + m_f_rate * sigma.at(i + 1) * u.at(i);
+  }
+
+  Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = getQMatForRotorsOnSoftFrame();
+  Q.block(0, rotor_on_rigid_frame_num_, 6, rotor_on_soft_frame_num_) = q_mat_for_rotors_on_soft_frame;
+
+  return Q;
+}
+
 Eigen::MatrixXd DeltaRobotModel::getFullWrenchAllocationMatrixFromCog()
 {
   /* calculate normal allocation */

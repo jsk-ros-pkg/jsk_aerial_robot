@@ -25,6 +25,7 @@ public:
   template <class T>
   std::vector<T> getLinksRotationFromCog();
 
+  Eigen::MatrixXd calcWrenchMatrixOnCoG();
   Eigen::MatrixXd getFullWrenchAllocationMatrixFromCog();
   // const std::vector<double>& getCurrentJointAngles()
   // {
