@@ -34,45 +34,45 @@ servo_controller:
       name: joint3
     
     controller4:
-      id: 4
+      id: 3
       name: soft_joint2
       angle_sgn: 0
       simulation:
         init_value: 0.0
 
     controller5:
-      id: 5
+      id: 4
       name: soft_joint3
       angle_sgn: 0
       simulation:
         init_value: 0.0
 
     controller6:
-      id: 6
+      id: 5
       name: soft_joint4
       angle_sgn: 0
       simulation:
         init_value: 0.0
 
     controller7:
-      id: 7
+      id: 6
       name: soft_joint5
       angle_sgn: 0
       simulation:
         init_value: 0.0
     
-  gimbals:
-    angle_sgn: 1
-    angle_scale: 0.001534
-    zero_point_offset: 2047
+  # gimbals:
+  #   angle_sgn: 1
+  #   angle_scale: 0.001534
+  #   zero_point_offset: 2047
 
-    simulation:
-      pid: {p: 50.0, i: 0.01, d: 0.0}
-      init_value: 0.0
-      type: effort_controllers/JointPositionController
+  #   simulation:
+  #     pid: {p: 50.0, i: 0.01, d: 0.0}
+  #     init_value: 0.0
+  #     type: effort_controllers/JointPositionController
 
-    controller1:
-      id: 3
-      name: gimbal_joint1
-      simulation:
-        init_value: 0.0
+  #   controller1:
+  #     id: 3
+  #     name: gimbal_joint1
+  #     simulation:
+  #       init_value: 0.0

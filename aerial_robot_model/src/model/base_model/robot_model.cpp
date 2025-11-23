@@ -57,6 +57,9 @@ namespace aerial_robot_model {
         ROS_ERROR("Failed to extract kdl tree from xml robot description");
         return;
       }
+    joint_positions_ = KDL::JntArray(tree_.getNrOfJoints());
+    KDL::SetToZero(joint_positions_);
+
     /* get baselink and thrust_link from robot model */
     auto robot_model_xml = getRobotModelXml("robot_description");
     TiXmlElement* baselink_attr = robot_model_xml.FirstChildElement("robot")->FirstChildElement("baselink");
@@ -636,11 +639,16 @@ namespace aerial_robot_model {
 
   KDL::JntArray RobotModel::jointMsgToKdl(const sensor_msgs::JointState& state) const
   {
-    KDL::JntArray joint_positions(tree_.getNrOfJoints());
+    KDL::JntArray joint_positions = joint_positions_;
     for(unsigned int i = 0; i < state.position.size(); ++i)
       {
         auto itr = joint_index_map_.find(state.name[i]);
-        if(itr != joint_index_map_.end()) joint_positions(itr->second) = state.position[i];
+        if(itr != joint_index_map_.end()) {
+          if (state.name[i] == "soft_joint2" || state.name[i] == "soft_joint3") {
+            if (state.effort[i] != 0.3) continue;
+          }
+          joint_positions(itr->second) = state.position[i];
+        }
       }
     return joint_positions;
   }
