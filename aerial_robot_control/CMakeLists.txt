@@ -67,6 +67,11 @@ add_custom_target(gen_acados_code ALL
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/scripts/nmpc/
   COMMENT "Generating acados code for NMPC models"
 )
+add_custom_target(gen_acados_code_neural ALL
+  COMMAND python3 ${PROJECT_SOURCE_DIR}/scripts/neural_mpc/gen_neural_controller.py
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/scripts/neural_mpc/
+  COMMENT "Generating acados code for NMPC models"
+)
 
 ### wrench estimation plugin
 add_library(wrench_est_plugins src/wrench_est/wrench_est_actuator_meas.cpp)

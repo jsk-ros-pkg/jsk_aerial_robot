@@ -333,7 +333,7 @@ private:
       }
     }
 
-    ROS_INFO("Wrench Estimator: Entering state %d", state_);
+    ROS_INFO("Wrench Estimator: Entering state %d", static_cast<int>(state_));
     ros::NodeHandle wrench_est_nh(nh_, "controller/wrench_est");
     wrench_est_nh.setParam("state", static_cast<int>(state_));
   }
