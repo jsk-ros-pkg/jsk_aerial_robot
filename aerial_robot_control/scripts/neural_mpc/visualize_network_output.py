@@ -243,7 +243,11 @@ def main():
         {"name": "alpha_cmd4", "range": (-3.2, 3.2), "default": 0.0},
     ]
 
-    input_configs = list(np.array(state_configs)[state_feats]) + list(np.array(control_configs)[u_feats])
+    input_configs = list(np.array(state_configs)[state_feats])
+    if mlp_metadata["ModelFitConfig"]["control_averaging"]:
+        input_configs += [np.array(control_configs)[0]] + [np.array(control_configs)[4]]
+    else:
+        input_configs += list(np.array(control_configs)[u_feats])
 
     if len(y_reg_dims) == 1:
         output_names = ["az"]
@@ -277,6 +281,7 @@ def main():
         )
 
     plt.show()
+    halt = 1
 
 
 if __name__ == "__main__":

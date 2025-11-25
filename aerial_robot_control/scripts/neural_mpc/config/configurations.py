@@ -78,7 +78,7 @@ class EnvConfig:
             # 93: Only z and cmd inputs (w/o transforms), on TRAIN_FOR_PAPER -> for CONTROLLER
             # ---- all before have no low pass filter ----
             # 96: [very good] Only z and avg cmd inputs (w/o transforms) & az as label, with LPF (1.0 ctf) on TRAIN_FOR_PAPER -> for CONTROLLER
-            # 97: [a bit too good] Regular state in and large network (w/o transforms), with LPF (1.0 ctf) on TRAIN_FOR_PAPER -> for SIMULATOR
+            # 97: [a bit too good] Regular state in, avg input and large network (w/o transforms), with LPF (1.0 ctf) on TRAIN_FOR_PAPER -> for SIMULATOR
             # 98: Only z and avg cmd inputs (w/o transforms) but full labels, with LPF (0.1 ctf) on TRAIN_FOR_PAPER -> for CONTROLLER
             # [BAD LEARNING] 99: Same as 98 but without control averaging and with homogenous weight and weight decay (L2) -> for CONTROLLER
             # 100: Same as 99 but without weight decay -> for CONTROLLER
