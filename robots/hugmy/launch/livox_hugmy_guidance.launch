@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
+  <include file="$(find fast_lio)/launch/mapping_mid360.launch">
+    <arg name="rviz" value="false"/>
+  </include>
+  <node pkg="tf" type="static_transform_publisher" name="hugmy_body_broadcaster" args="0.4 0.2 -0.3 0 0 0 body hugmy_body 100" />
+</launch>
