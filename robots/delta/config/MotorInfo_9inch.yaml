@@ -52,7 +52,7 @@ motor_info:
 motor_info1:
         min_pwm: 0.56
         max_pwm: 0.925
-        min_thrust: 2.5 #  [N]
+        min_thrust: 0.0 #  [N]
         force_landing_thrust: 2.0 #[N]
         m_f_rate: -0.0064
         pwm_conversion_mode: 1 # Polynomial Mode

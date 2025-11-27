@@ -88,9 +88,84 @@ void DeltaController::linearWrenchAllocation()
   Eigen::VectorXd target_wrench_cog = target_acc_cog_;
   target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
   target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
-  Eigen::VectorXd full_lambda = full_q_mat_inv_ * target_wrench_cog;
-  full_lambda.noalias() += prev_target_vectoring_f_;
-  full_lambda.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+
+  int dof = motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_;
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(dof, dof);
+  H.diagonal().setConstant(2.0);
+  Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+
+  int n_constraints = 6 + motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_;
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, dof);
+  A.block(0, 0, 6, dof) = full_q_mat_;
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
+  {
+    A(6 + 2 * i + 0, 2 * i + 0) = 1.0;
+    A(6 + 2 * i + 1, 2 * i + 1) = 1.0;
+  } 
+
+  for (int i = 0; i < motor_on_soft_frame_num_; i++)
+  {
+    A(6 + 2 * motor_on_rigid_frame_num_ + i, 2 * motor_on_rigid_frame_num_ + i) = 1.0;
+  }
+
+  Eigen::VectorXd lb(n_constraints);
+  Eigen::VectorXd ub(n_constraints);
+
+  lb.head(6) = target_wrench_cog;
+  ub.head(6) = target_wrench_cog;
+
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
+  {
+    lb(6 + 2 * i + 0) = -robot_model_->getThrustUpperLimit(i);
+    ub(6 + 2 * i + 0) = robot_model_->getThrustUpperLimit(i);
+    lb(6 + 2 * i + 1) = robot_model_->getThrustLowerLimit(i);
+    ub(6 + 2 * i + 1) = robot_model_->getThrustUpperLimit(i);
+  }
+
+  for (int i = 0; i < motor_on_soft_frame_num_; i++)
+  {
+    lb(6 + 2 * motor_on_rigid_frame_num_ + i) = robot_model_->getThrustLowerLimit(motor_on_rigid_frame_num_ + i);
+    ub(6 + 2 * motor_on_rigid_frame_num_ + i) = robot_model_->getThrustUpperLimit(motor_on_rigid_frame_num_ + i);
+  }
+
+  Eigen::SparseMatrix<double> H_s = H.sparseView();
+  Eigen::SparseMatrix<double> A_s = A.sparseView();
+  if(!target_vectoring_qp_solver_.isInitialized())
+  {
+      target_vectoring_qp_solver_.settings()->setVerbosity(false);
+      target_vectoring_qp_solver_.settings()->setWarmStart(true);
+      target_vectoring_qp_solver_.settings()->setPolish(false);
+      target_vectoring_qp_solver_.settings()->setMaxIteraction(1000);
+      target_vectoring_qp_solver_.settings()->setAbsoluteTolerance(1e-4);
+      target_vectoring_qp_solver_.settings()->setRelativeTolerance(1e-4);
+
+      target_vectoring_qp_solver_.data()->setNumberOfVariables(dof);
+      target_vectoring_qp_solver_.data()->setNumberOfConstraints(n_constraints);
+      target_vectoring_qp_solver_.data()->setHessianMatrix(H_s);
+      target_vectoring_qp_solver_.data()->setGradient(g);
+      target_vectoring_qp_solver_.data()->setLinearConstraintsMatrix(A_s);
+      target_vectoring_qp_solver_.data()->setLowerBound(lb);
+      target_vectoring_qp_solver_.data()->setUpperBound(ub);
+      target_vectoring_qp_solver_.initSolver();
+  }
+  else
+  {
+      target_vectoring_qp_solver_.updateHessianMatrix(H_s);
+      target_vectoring_qp_solver_.updateGradient(g);
+      target_vectoring_qp_solver_.updateLinearConstraintsMatrix(A_s);
+      target_vectoring_qp_solver_.updateBounds(lb, ub);
+  }
+
+  Eigen::VectorXd full_lambda = Eigen::VectorXd::Zero(dof);
+  bool solved = target_vectoring_qp_solver_.solve();
+  if(solved){
+    full_lambda = target_vectoring_qp_solver_.getSolution();
+  } else {
+    std::cout << "Warning: QP solver failed to solve!" << std::endl;
+    full_lambda = full_q_mat_inv_ * target_wrench_cog;
+    full_lambda.noalias() += prev_target_vectoring_f_;
+    full_lambda.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
+  }
   prev_target_vectoring_f_ = full_lambda;
 
   for (int i = 0; i < motor_on_rigid_frame_num_; i++)

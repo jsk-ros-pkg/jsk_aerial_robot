@@ -21,6 +21,7 @@
 #include <std_msgs/UInt8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <OsqpEigen/OsqpEigen.h>
 
 namespace aerial_robot_control
 {
@@ -117,6 +118,7 @@ private:
   int motor_on_rigid_frame_num_;
   int motor_on_soft_frame_num_;
   Eigen::VectorXd prev_target_vectoring_f_;
+  OsqpEigen::Solver target_vectoring_qp_solver_;
 
   /* flight mode */
   Eigen::VectorXd target_acc_cog_;
