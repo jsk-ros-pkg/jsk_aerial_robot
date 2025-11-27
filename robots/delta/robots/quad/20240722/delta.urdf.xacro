@@ -35,7 +35,7 @@
   </xacro:extra_module>
 
   <xacro:extra_module name="fc" parent="fc_link">
-    <origin xyz="0.0099 -0.0012 0.019" rpy="0 0 0"/>
+    <origin xyz="0.0099 -0.0012 -0.019" rpy="0 0 0"/>
     <xacro:virtual_inertial/>
   </xacro:extra_module>
 
