@@ -7,8 +7,20 @@ motor_info:
         pwm_conversion_mode: 0 # SQRT Mode
         vel_ref_num: 1
         ref1:
-                voltage: 7.4
+                voltage: 8.4
+                max_thrust: 0.7 # N 
+                polynominal2: -0.0026998260695767183 # x10
+                polynominal1: 0.5895661464197593 # x10
+                polynominal0: -2.467776363598049 # x1
+        ref2:
+                voltage: 7.8
                 max_thrust: 0.625 # N 
-                polynominal2: 0.0011267951572944492 # x10
-                polynominal1: 0.03014770434836789 # x10
-                polynominal0: -0.5392380505716552 # x1
+                polynominal2: -0.0020943449646866022 # x10
+                polynominal1: 0.47783340669380725 # x10
+                polynominal0: -2.0176697211197783 # x1
+        ref3:
+                voltage: 7.4
+                max_thrust: 0.5 # N 
+                polynominal2: -0.005210157730975333 # x10
+                polynominal1: 0.9131373731007753 # x10
+                polynominal0: -3.507431551753451 # x1

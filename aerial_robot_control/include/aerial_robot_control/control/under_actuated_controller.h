@@ -61,7 +61,7 @@ namespace aerial_robot_control
     ros::Publisher flight_cmd_pub_; //for spinal
     ros::Publisher rpy_gain_pub_; //for spinal
     ros::Publisher torque_allocation_matrix_inv_pub_; //for spinal
-    double torque_allocation_matrix_inv_pub_stamp_;
+    double torque_allocation_matrix_inv_pub_stamp_, send_rpy_gain_pub_stamp_;
 
     Eigen::MatrixXd q_mat_;
     Eigen::MatrixXd q_mat_inv_;
@@ -70,7 +70,7 @@ namespace aerial_robot_control
     double candidate_yaw_term_;
     std::vector<float> target_base_thrust_;
 
-    double torque_allocation_matrix_inv_pub_interval_;
+    double torque_allocation_matrix_inv_pub_interval_, send_rpy_gain_interval_;
 
     double z_limit_;
 

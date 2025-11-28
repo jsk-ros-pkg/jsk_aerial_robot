@@ -124,7 +124,8 @@ namespace aerial_robot_control
 
     for(int i = 0; i < motor_num_; i++)
       {
-        target_base_thrust_.at(i) = target_thrust_z_term(i);
+	// target_base_thrust_.at(i) = target_thrust_z_term(i);
+	target_base_thrust_.at(i) = target_thrust_z_term(i) + robot_model_->getMass() * 9.8/ motor_num_;
         pid_msg_.z.total.at(i) =  target_thrust_z_term(i);
       }
 
@@ -144,6 +145,9 @@ namespace aerial_robot_control
 
     sendFourAxisCommand();
     sendTorqueAllocationMatrixInv();
+
+    // Hard-coding: continusly send attitude (rpy) gains to spinal
+    setAttitudeGains();
   }
 
   void UnderActuatedController::sendFourAxisCommand()
@@ -182,6 +186,7 @@ namespace aerial_robot_control
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
     getParam<double>(control_nh, "torque_allocation_matrix_inv_pub_interval", torque_allocation_matrix_inv_pub_interval_, 0.05);
+    getParam<double>(control_nh, "send_rpy_gain_interval_", send_rpy_gain_interval_, 0.05);
   }
 
   void UnderActuatedController::setAttitudeGains()
