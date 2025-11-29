@@ -14,8 +14,11 @@ DeltaRobotModel::DeltaRobotModel(bool init_with_rosparam, bool verbose, double f
   // note: it might be better to use gimbal_link5
   ros::NodeHandle nh;
   rotor5_pose_sub_ = nh.subscribe("thrust5/mocap/pose", 1, &DeltaRobotModel::Rotor5MocapCallback, this);
+  rotor6_pose_sub_ = nh.subscribe("thrust6/mocap/pose", 1, &DeltaRobotModel::Rotor6MocapCallback, this);
   body_pose_sub_ = nh.subscribe("mocap/pose", 1, &DeltaRobotModel::BodyMocapCallback, this);
 
+  rotor_on_soft_frame_pose_from_world_.resize(rotor_on_soft_frame_num_);
+  rotor_on_soft_frame_pose_update_time_.resize(rotor_on_soft_frame_num_);
 }
 
 void DeltaRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -123,41 +126,47 @@ Eigen::MatrixXd DeltaRobotModel::getQMatForRotorsOnSoftFrame()
   std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
   auto& rotor_direction = getRotorDirection();
 
-  if (ros::Time::now().toSec() - rotor5_pose_update_time_.toSec() < 1.0 && 
-      ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
-    KDL::Frame body_pose_from_root_ = getSegmentsTf().at("fc");
-    KDL::Frame rotor5_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor5_pose_from_world_;
-    KDL::Frame cog = getCog<KDL::Frame>();
-    rotors_origin.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).p);
-    rotors_normal.at(4) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor5_pose_from_root).M * KDL::Vector(0,0,1));
-  } else {
-    std::cout << "Warning: lost mocap for rotor5" << std::endl;
-    rotors_origin.at(4) = prev_rotor5_origin;
-    rotors_normal.at(4) = prev_rotor5_normal;
-  }
-
-  // fail safe for mocap update
-  if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
-      for (unsigned int i = 0; i < 3; ++i) {
-      if (abs(rotors_origin.at(4)(i) - prev_rotor5_origin(i)) > 0.5 || abs(rotors_normal.at(4)(i) - prev_rotor5_normal(i)) > 0.5){
-        rotors_origin.at(4) = prev_rotor5_origin;
-        rotors_normal.at(4) = prev_rotor5_normal;
-        std::cout << "fail safe for mocap update!!!!" << std::endl;
-        break;
-      }
+  for (int i = rotor_on_rigid_frame_num_; i < getRotorNum(); i++)
+  {
+    if(ros::Time::now().toSec() - rotor_on_soft_frame_pose_update_time_.at(i - rotor_on_rigid_frame_num_).toSec() < 1.0 && 
+        ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
+      KDL::Frame body_pose_from_root_ = getSegmentsTf().at("fc");
+      KDL::Frame rotor_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor_on_soft_frame_pose_from_world_.at(i - rotor_on_rigid_frame_num_);
+      KDL::Frame cog = getCog<KDL::Frame>();
+      rotors_origin.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).p);
+      rotors_normal.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).M * KDL::Vector(0,0,1));
+    } else {
+      std::cout << "Warning: lost mocap for rotor" << i + 1 << std::endl;
+      rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
+      rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
     }
-  }
 
-  // low pass filter for rotor5 pose and orientation
-  if (prev_rotor5_origin != Eigen::Vector3d(0,0,0) && prev_rotor5_normal != Eigen::Vector3d(0,0,0)){
-    double alpha = 0.5;
-    rotors_origin.at(4) = alpha * prev_rotor5_origin + (1 - alpha) * rotors_origin.at(4);
-    rotors_normal.at(4) = alpha * prev_rotor5_normal + (1 - alpha) * rotors_normal.at(4);
-    rotors_normal.at(4).normalize();
-  }
+    // fail safe for mocap update
+    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
+        for (unsigned int j = 0; j < 3; ++j) {
+        if (abs(rotors_origin.at(i)(j) - prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5 || 
+            abs(rotors_normal.at(i)(j) - prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5){
+          rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
+          rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
+          std::cout << "fail safe for mocap update!!!!" << std::endl;
+          break;
+            }
+          }
+        }
 
-  prev_rotor5_origin = rotors_origin.at(4);
-  prev_rotor5_normal = rotors_normal.at(4);
+    // low pass filter for rotor on soft frame pose and orientation
+    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
+      double alpha = 0.5;
+      rotors_origin.at(i) = alpha * prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_) + (1 - alpha) * rotors_origin.at(i);
+      rotors_normal.at(i) = alpha * prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) + (1 - alpha) * rotors_normal.at(i);
+      rotors_normal.at(i).normalize();
+        }
+
+    prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_) = rotors_origin.at(i);
+    prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) = rotors_normal.at(i);
+  }
   
   Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = Eigen::MatrixXd::Zero(6, rotor_on_soft_frame_num_);
   for (int i = rotor_on_rigid_frame_num_; i < getRotorNum(); i++)
@@ -173,8 +182,14 @@ Eigen::MatrixXd DeltaRobotModel::getQMatForRotorsOnSoftFrame()
 
 void DeltaRobotModel::Rotor5MocapCallback(const geometry_msgs::PoseStamped& msg)
 {
-  tf2::fromMsg(msg.pose, rotor5_pose_from_world_);
-  rotor5_pose_update_time_ = ros::Time::now();
+  tf2::fromMsg(msg.pose, rotor_on_soft_frame_pose_from_world_.at(0));
+  rotor_on_soft_frame_pose_update_time_.at(0) = ros::Time::now();
+}
+
+void DeltaRobotModel::Rotor6MocapCallback(const geometry_msgs::PoseStamped& msg)
+{
+  tf2::fromMsg(msg.pose, rotor_on_soft_frame_pose_from_world_.at(1));
+  rotor_on_soft_frame_pose_update_time_.at(1) = ros::Time::now();
 }
 
 void DeltaRobotModel::BodyMocapCallback(const geometry_msgs::PoseStamped& msg)

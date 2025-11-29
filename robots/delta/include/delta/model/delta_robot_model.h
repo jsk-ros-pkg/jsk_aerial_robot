@@ -47,15 +47,16 @@ public:
 
 private:
   ros::Subscriber rotor5_pose_sub_;
+  ros::Subscriber rotor6_pose_sub_;
   ros::Subscriber body_pose_sub_;
 
   // mocap of rotor5
-  KDL::Frame rotor5_pose_from_world_;
+  std::vector<KDL::Frame> rotor_on_soft_frame_pose_from_world_;
   KDL::Frame body_pose_from_world_;
-  ros::Time rotor5_pose_update_time_;
+  std::vector<ros::Time> rotor_on_soft_frame_pose_update_time_;
   ros::Time body_pose_update_time_;
-  Eigen::Vector3d prev_rotor5_origin = Eigen::Vector3d(0,0,0);
-  Eigen::Vector3d prev_rotor5_normal = Eigen::Vector3d(0,0,0);
+  std::vector<Eigen::Vector3d> prev_rotor_on_soft_frame_origin = {Eigen::Vector3d(0,0,0), Eigen::Vector3d(0,0,0)};
+  std::vector<Eigen::Vector3d> prev_rotor_on_soft_frame_normal = {Eigen::Vector3d(0,0,0), Eigen::Vector3d(0,0,0)};
 
   std::mutex links_rotation_mutex_;
   std::mutex current_joint_angles_mutex_;
@@ -70,6 +71,7 @@ private:
 
   Eigen::MatrixXd getQMatForRotorsOnSoftFrame();
   void Rotor5MocapCallback(const geometry_msgs::PoseStamped& msg);
+  void Rotor6MocapCallback(const geometry_msgs::PoseStamped& msg);
   void BodyMocapCallback(const geometry_msgs::PoseStamped& msg);
 
 protected:
