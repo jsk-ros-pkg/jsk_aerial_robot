@@ -9,5 +9,9 @@ zeros:
   joint3: 1.57
   soft_joint2: 0.0
   soft_joint3: 0.0
-  soft_joint4: 0.0
+  servo_joint1: 0.0
+  servo_joint2: 0.0
   soft_joint5: 0.0
+  soft_joint6: 0.0
+  dummy_joint1: 0.0
+  dummy_joint2: 0.0
