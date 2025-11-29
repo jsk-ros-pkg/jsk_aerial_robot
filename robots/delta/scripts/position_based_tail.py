@@ -287,7 +287,7 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [8, 7, 9, 10]
+            tail_msg.index = [8, 7, 9, 10, 11, 12, 13, 14]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
@@ -379,6 +379,10 @@ if __name__ == "__main__":
                 2047 + 1 * get_angle_diff(x_plus_short_wire),
                 2047 - 1 * get_angle_diff(x_minus_short_wire),
                 # 2047 - int(rotor_angle / (2 * math.pi) * 4096),
+                2047,
+                2047,
+                2047,
+                2047,
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
