@@ -45,45 +45,96 @@ bool PinocchioRobotModelTest::forwardDynamicsDerivativesTest(bool verbose)
     std::cout << "v: " << v.transpose() << std::endl;
     std::cout << "tau: " << tau.transpose() << std::endl;
     std::cout << "thrust: " << thrust.transpose() << std::endl;
-
-    std::cout << "aba_partial_dq: " << std::endl;
-    std::cout << aba_partial_dq << std::endl;
-    std::cout << "aba_thrust_partial_dq: " << std::endl;
-    std::cout << aba_thrust_partial_dq << std::endl;
-    std::cout << "aba_partial_dv: " << std::endl;
-    std::cout << aba_partial_dv << std::endl;
-    std::cout << "aba_partial_dtau: " << std::endl;
-    std::cout << aba_partial_dtau << std::endl;
-    std::cout << "aba_thrust_partial_dthrust: " << std::endl;
-    std::cout << aba_thrust_partial_dthrust << std::endl;
-
-    std::cout << "aba_partial_dq is changed by thrust: ";
-    std::cout << !(aba_partial_dq.isApprox(aba_thrust_partial_dq, 1e-6)) << std::endl;
-    std::cout << "aba_partial_dv is changed by thrust: ";
-    std::cout << !(aba_partial_dv.isApprox(aba_thrust_partial_dv, 1e-6)) << std::endl;
-    std::cout << "aba_partial_dtau is changed by thrust: ";
-    std::cout << !(aba_partial_dtau.isApprox(aba_thrust_partial_dtau, 1e-6)) << std::endl;
   }
 
   // compare with numerical derivative
   double epsilon = 1e-6;
+  Eigen::VectorXd original_q = q;
   Eigen::VectorXd original_thrust = thrust;
-  Eigen::VectorXd original_a = robot_model_->forwardDynamics(q, v, tau, original_thrust);
+  Eigen::VectorXd original_a = robot_model_->forwardDynamics(original_q, v, tau, original_thrust);
+
+  // check partial_dq
+  Eigen::MatrixXd aba_thrust_partial_dq_num =
+      Eigen::MatrixXd::Zero(robot_model_->getModel()->nv, robot_model_->getModel()->nv);
+  for (int i = 0; i < robot_model_->getModel()->nv; i++)
+  {
+    q = original_q;
+    Eigen::VectorXd delta_v = Eigen::VectorXd::Zero(robot_model_->getModel()->nv);
+    delta_v(i) = 1.0;
+    q = pinocchio::integrate(*(robot_model_->getModel()), original_q, delta_v * epsilon);
+    Eigen::VectorXd a_plus = robot_model_->forwardDynamics(q, v, tau, original_thrust);
+    aba_thrust_partial_dq_num.col(i) = (a_plus - original_a) / epsilon;
+  }
+
+  // check partial_dthrust
   Eigen::MatrixXd aba_thrust_partial_dthrust_num =
       Eigen::MatrixXd::Zero(robot_model_->getModel()->nv, robot_model_->getRotorNum());
   for (int i = 0; i < robot_model_->getRotorNum(); i++)
   {
     thrust = original_thrust;
     thrust(i) += epsilon;
-    Eigen::VectorXd a_plus = robot_model_->forwardDynamics(q, v, tau, thrust);
+    Eigen::VectorXd a_plus = robot_model_->forwardDynamics(original_q, v, tau, thrust);
     aba_thrust_partial_dthrust_num.col(i) = (a_plus - original_a) / epsilon;
   }
 
   if (verbose)
   {
+    std::cout << "aba_partial_dq is changed by thrust: ";
+    std::cout << !(aba_partial_dq.isApprox(aba_thrust_partial_dq, 1e-6)) << std::endl;
+    if (!(aba_partial_dq.isApprox(aba_thrust_partial_dq, 1e-6)))
+    {
+      std::cout << "aba_partial_dq: " << std::endl;
+      std::cout << aba_partial_dq << std::endl;
+      std::cout << "aba_thrust_partial_dq: " << std::endl;
+      std::cout << aba_thrust_partial_dq << std::endl;
+    }
+    else
+    {
+      std::cout << "aba_partial_dq: " << std::endl;
+      std::cout << aba_partial_dq << std::endl;
+    }
+    std::cout << "aba_thrust_partial_dq numerical: " << std::endl;
+    std::cout << aba_thrust_partial_dq_num << std::endl;
+    std::cout << std::endl;
+
+    std::cout << "aba_partial_dv is changed by thrust: ";
+    std::cout << !(aba_partial_dv.isApprox(aba_thrust_partial_dv, 1e-6)) << std::endl;
+    if (!(aba_partial_dv.isApprox(aba_thrust_partial_dv, 1e-6)))
+    {
+      std::cout << "aba_partial_dv: " << std::endl;
+      std::cout << aba_partial_dv << std::endl;
+      std::cout << "aba_thrust_partial_dv: " << std::endl;
+      std::cout << aba_thrust_partial_dv << std::endl;
+    }
+    else
+    {
+      std::cout << "aba_partial_dv: " << std::endl;
+      std::cout << aba_partial_dv << std::endl;
+    }
+    std::cout << std::endl;
+
+    std::cout << "aba_partial_dtau is changed by thrust: ";
+    std::cout << !(aba_partial_dtau.isApprox(aba_thrust_partial_dtau, 1e-6)) << std::endl;
+    if (!(aba_partial_dtau.isApprox(aba_thrust_partial_dtau, 1e-6)))
+    {
+      std::cout << "aba_partial_dtau: " << std::endl;
+      std::cout << aba_partial_dtau << std::endl;
+      std::cout << "aba_thrust_partial_dtau: " << std::endl;
+      std::cout << aba_thrust_partial_dtau << std::endl;
+    }
+    else
+    {
+      std::cout << "aba_partial_dtau: " << std::endl;
+      std::cout << aba_partial_dtau << std::endl;
+    }
+    std::cout << std::endl;
+
+    std::cout << "aba_thrust_partial_dthrust: " << std::endl;
+    std::cout << aba_thrust_partial_dthrust << std::endl;
     std::cout << "aba_thrust_partial_dthrust numerical: " << std::endl;
     std::cout << aba_thrust_partial_dthrust_num << std::endl;
   }
 
-  return (aba_thrust_partial_dthrust.isApprox(aba_thrust_partial_dthrust_num, 1e-6));
+  return (aba_thrust_partial_dq.isApprox(aba_thrust_partial_dq_num, 1e-6)) &&
+         (aba_thrust_partial_dthrust.isApprox(aba_thrust_partial_dthrust_num, 1e-6));
 }
