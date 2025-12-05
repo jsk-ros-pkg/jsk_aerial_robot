@@ -180,6 +180,14 @@ void DeltaController::linearWrenchAllocation()
     lambda_all_.at(motor_on_rigid_frame_num_+i) = std::clamp((float)full_lambda(2*motor_on_rigid_frame_num_+i), (float)robot_model_->getThrustLowerLimit(),
                                        (float)robot_model_->getThrustUpperLimit());
   }
+
+  std_msgs::Float64MultiArray msg;
+  msg.data.resize(full_lambda.size());
+  for (unsigned int i = 0; i < full_lambda.size(); i++)
+  {
+    msg.data[i] = full_lambda(i);
+  }
+  full_lambda_pub_.publish(msg);
 }
 
 void DeltaController::nonlinearWrenchAllocation()

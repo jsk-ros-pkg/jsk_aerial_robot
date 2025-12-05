@@ -41,6 +41,10 @@ void DeltaController::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   nlopt_result_pub_ = nh.advertise<std_msgs::Int16>("debug/nlopt_result", 1);
   rotor_origin_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_origin", 1);
   rotor_normal_pub_ = nh.advertise<geometry_msgs::PoseArray>("debug/rotor_normal", 1);
+  full_q_mat_pub_ = nh.advertise<std_msgs::Float64MultiArray>("debug/full_torque_allocation_matrix", 1);
+  q_mat_pub_ = nh.advertise<std_msgs::Float64MultiArray>("debug/torque_allocation_matrix", 1);
+  full_lambda_pub_ = nh.advertise<std_msgs::Float64MultiArray>("debug/full_lambda", 1);
+  target_wrench_cog_pub_ = nh.advertise<std_msgs::Float32MultiArray>("debug/target_wrench_cog", 1);
 
   q_mat_.resize(6, motor_num_);
   q_mat_inv_.resize(motor_num_, 6);
@@ -226,6 +230,10 @@ void DeltaController::sendCmd()
   setAttitudeGains();
 
   sendTorqueAllocationMatrixInv();
+
+  sendTorqueAllocationMatrix();
+  sendFullTorqueAllocationMatrix();
+  sendTargetWrenchCog();
 }
 
 void DeltaController::sendGimbalAngles()
@@ -278,6 +286,63 @@ void DeltaController::sendTorqueAllocationMatrixInv()
     }
     torque_allocation_matrix_inv_pub_.publish(torque_allocation_matrix_inv_msg);
   }
+}
+
+void DeltaController::sendTorqueAllocationMatrix()
+{
+  std_msgs::Float64MultiArray msg;
+  msg.layout.dim.resize(2);
+  msg.layout.dim[0].label = "rows";
+  msg.layout.dim[0].size = q_mat_.rows();
+  msg.layout.dim[0].stride = q_mat_.rows() * q_mat_.cols();
+  msg.layout.dim[1].label = "cols";
+  msg.layout.dim[1].size = q_mat_.cols();
+  msg.layout.dim[1].stride = q_mat_.cols();
+  msg.data.resize(q_mat_.rows() * q_mat_.cols());
+  for (unsigned int i = 0; i < q_mat_.rows(); i++)
+  {
+    for (unsigned int j = 0; j < q_mat_.cols(); j++)
+    {
+      msg.data[i * q_mat_.cols() + j] = q_mat_(i, j);
+    }
+  }
+  q_mat_pub_.publish(msg);
+}
+
+void DeltaController::sendFullTorqueAllocationMatrix()
+{
+  std_msgs::Float64MultiArray msg;
+  msg.layout.dim.resize(2);
+  msg.layout.dim[0].label = "rows";
+  msg.layout.dim[0].size = full_q_mat_.rows();
+  msg.layout.dim[0].stride = full_q_mat_.rows() * full_q_mat_.cols();
+  msg.layout.dim[1].label = "cols";
+  msg.layout.dim[1].size = full_q_mat_.cols();
+  msg.layout.dim[1].stride = full_q_mat_.cols();
+  msg.data.resize(full_q_mat_.rows() * full_q_mat_.cols());
+  for (unsigned int i = 0; i < full_q_mat_.rows(); i++)
+  {
+    for (unsigned int j = 0; j < full_q_mat_.cols(); j++)
+    {
+      msg.data[i * full_q_mat_.cols() + j] = full_q_mat_(i, j);
+    }
+  }
+  full_q_mat_pub_.publish(msg);
+}
+
+void DeltaController::sendTargetWrenchCog()
+{
+  std_msgs::Float32MultiArray msg;
+  Eigen::VectorXd target_wrench_cog = Eigen::VectorXd::Zero(6);
+  target_wrench_cog = target_acc_cog_;
+  target_wrench_cog.head(3) = robot_model_->getMass() * target_wrench_cog.head(3);
+  target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
+  msg.data.resize(6);
+  for (unsigned int i = 0; i < 6; i++)
+  {
+    msg.data[i] = static_cast<float>(target_wrench_cog(i));
+  }
+  target_wrench_cog_pub_.publish(msg);
 }
 
 void DeltaController::setAttitudeGains()
