@@ -36,6 +36,10 @@ include_directories(
 add_library(hugmy_navigation src/navigation/hugmy_navigation.cpp)
 target_link_libraries(hugmy_navigation ${catkin_LIBRARIES})
 
+add_library(hugmy_deformation_planning src/control/deformation_planning.cpp)
+target_link_libraries(hugmy_deformation_planning ${catkin_LIBRARIES})
+add_dependencies(hugmy_deformation_planning ${catkin_EXPORTED_TARGETS})
+
 add_library(hugmy_morphing_arm_controller src/control/morphing_arm_controller.cpp)
 target_link_libraries(hugmy_morphing_arm_controller ${catkin_LIBRARIES})
 
@@ -53,16 +57,19 @@ target_link_libraries(random_haptics_threshold_node ${catkin_LIBRARIES})
 add_executable(random_haptics_feeling_node src/control/test/haptics_feeling_test.cpp)
 target_link_libraries(random_haptics_feeling_node ${catkin_LIBRARIES})
 
-add_executable(guidance_manual_controller src/control/test/haptics_guidance_manual_test.cpp
-  src/control/air_pressure_controller.cpp
-  src/control/haptics_controller.cpp)
-target_link_libraries(guidance_manual_controller ${catkin_LIBRARIES})
+# add_executable(guidance_manual_controller src/control/test/haptics_guidance_manual_test.cpp
+#   src/control/air_pressure_controller.cpp
+#   src/control/haptics_controller.cpp)
+# target_link_libraries(guidance_manual_controller ${catkin_LIBRARIES})
 
-add_executable(haptics_integrated_controller src/control/integrated.cpp
-  src/control/air_pressure_controller.cpp
-  src/control/haptics_controller.cpp
-  src/control/rviz_visualizer.cpp
-  )
+# add_executable(haptics_integrated_controller src/control/integrated.cpp
+#   src/control/air_pressure_controller.cpp
+#   src/control/haptics_controller.cpp
+#   src/control/rviz_visualizer.cpp
+#   )
+# target_link_libraries(haptics_integrated_controller ${catkin_LIBRARIES})
+# add_dependencies(haptics_integrated_controller ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(thrust_and_pressure_cal src/control/thrust_and_pressure_cal.cpp)
 target_link_libraries(thrust_and_pressure_cal ${catkin_LIBRARIES})
@@ -77,14 +84,14 @@ add_executable(air_pressure_control_node src/nodes/organize_air_pressure.cpp)
 target_link_libraries(air_pressure_control_node  hugmy_air_pressure ${catkin_LIBRARIES})
 add_dependencies(air_pressure_control_node ${catkin_EXPORTED_TARGETS})
 
+add_executable(deformation_planning_node src/nodes/deformation_planning_node.cpp)
+target_link_libraries(deformation_planning_node  hugmy_deformation_planning ${catkin_LIBRARIES})
+add_dependencies(deformation_planning_node ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(joint_model src/control/joint_model.cpp)
 target_link_libraries(joint_model ${catkin_LIBRARIES})
 target_include_directories(joint_model PRIVATE ${EIGEN3_INCLUDE_DIRS})
-
-
-target_link_libraries(haptics_integrated_controller ${catkin_LIBRARIES})
-add_dependencies(haptics_integrated_controller ${catkin_EXPORTED_TARGETS})
 
 add_executable(perching_node src/control/perching.cpp)
 target_link_libraries(perching_node ${catkin_LIBRARIES})
