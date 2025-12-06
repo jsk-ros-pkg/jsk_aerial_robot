@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <spinal/PwmTest.h>
 #include <algorithm>
 #include <vector>
@@ -58,6 +59,7 @@ public:
 private:
     void sensorCb(const std_msgs::Int8::ConstPtr& msg);
     void sensor1Cb(const std_msgs::Int8::ConstPtr& msg);
+    void stopCb(const std_msgs::Bool::ConstPtr& msg);
 
     void calPressure(int target_pressure, int sensor_index);
     void setAirPwm(uint8_t index, float pwm_value);
