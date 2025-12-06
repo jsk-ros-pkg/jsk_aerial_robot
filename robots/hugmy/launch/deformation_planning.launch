@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="z_perch_start" default="0.5" />
+  <arg name="z_perch_touch" default="0.2" />
+  <arg name="P_perch_hold" default="50.0" />
+  <arg name="P_preperch_max" default="30.0" />
+  <node pkg="hugmy" type="deformation_planning_node" name="deformation_planning_node" output="screen">
+    <param name="z_perch_start" value="$(arg z_perch_start)" />
+    <param name="z_perch_touch" value="$(arg z_perch_touch)" />
+    <param name="P_perch_hold"  value="$(arg P_perch_hold)" />
+    <param name="P_preperch_max"  value="$(arg P_preperch_max)" />
+  </node>
+</launch>
