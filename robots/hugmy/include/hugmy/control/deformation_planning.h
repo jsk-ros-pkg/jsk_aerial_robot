@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
-
+#include <aerial_robot_msgs/FlightNav.h>
 
 class ThetaModel
 {
@@ -68,6 +68,8 @@ private:
   ros::Subscriber pressure_cur_sub_;
 
   ros::Publisher pressure_cmd_pub_;
+  ros::Publisher pressure_sim_pub_;
+  ros::Publisher move_cmd_pub_;
   ros::Publisher theta_est_pub_;
   ros::Publisher halt_pub_;
   ros::Publisher phase_pub_;        // 現在の状態を 0,1,2 で出す
@@ -82,6 +84,11 @@ private:
   double z_meas_  = std::numeric_limits<double>::quiet_NaN();
   double z_lpf_   = std::numeric_limits<double>::quiet_NaN();
   bool   z_inited_ = false;
+
+  double z_cmd_ = 0.0;
+  bool   z_cmd_inited_ =false;
+  double v_down_approach_ = -0.1;
+  double v_down_preperch_ = -0.05;
 
   // pressure
   double P_cur_meas_ = 0.0;
@@ -117,6 +124,8 @@ private:
 
   void updateZ(double dt);
   void updateThrustavr();
+  void updateZCommand(double dt);
+  void publishNavCommand();
 
   void updatePhase();         // 状態遷移
   double computePRef() const; // 現在の phase_ と z_lpf_ から P_ref を決める
