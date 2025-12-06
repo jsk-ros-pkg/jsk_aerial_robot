@@ -142,11 +142,11 @@ DeformationPlanning::DeformationPlanning(ros::NodeHandle& nh)
   // thrust_sub_ = nh_.subscribe<spinal::Thrust>("/quadrotor/target_thrust", 1, &DeformationPlanning::thrustCallback, this);
   thrust_sub_ = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &DeformationPlanning::thrustCallback, this);
   pressure_cur_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1, &DeformationPlanning::pressureCurCallback, this);
-  pressure_cur_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &DeformationPlanning::pressureCurCallback, this);
+  // pressure_cur_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &DeformationPlanning::pressureCurCallback, this);
   halt_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/halt", 1);
   pressure_cmd_pub_ = nh_.advertise<std_msgs::Int8>("/air/target_joint", 1);
   //simulation
-  pressure_sim_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1);
+  // pressure_sim_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1);
   theta_est_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/debug/arm/theta_est", 1);
   phase_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/debug/arm/phase", 1); // 0:APPROACH,1:PRE_PERCH,2:PERCH
   move_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FlightNav>("/quadrotor/uav/nav", 1);
