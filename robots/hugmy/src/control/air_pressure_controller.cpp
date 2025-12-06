@@ -6,7 +6,7 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     pwm_air_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/air", 1);
     // pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
     pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
-    joint_filtered_pub_  = nh.advertise<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1);
+    joint_filtered_pub_  = nh.advertise<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1);
 
     pwm_air_cmd_.motor_index.clear();
     pwm_air_cmd_.pwms.clear();
@@ -83,6 +83,14 @@ void AirPressureController::sensorCb(const std_msgs::Int8::ConstPtr& msg) {
 
 void AirPressureController::sensor1Cb(const std_msgs::Int8::ConstPtr& msg) {
     air_pressure_bottom_ = msg->data;
+}
+
+void AirPressureController::stopCb(const std_msgs::Bool::ConstPtr& msg)
+{
+  if (msg->data) {
+    initializePneumatics();
+    ROS_WARN("[Air] received STOP, all pneumatics off");
+  }
 }
 
 
