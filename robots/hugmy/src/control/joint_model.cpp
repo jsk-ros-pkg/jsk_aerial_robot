@@ -102,7 +102,9 @@ public:
   {
     theta_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/quadrotor/debug/theta", 1);
     apply_to_joint_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joint_states", 1);
-    pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/pressure_cmd", 1, &JointModel::pressureCb, this);
+    // pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1, &JointModel::pressureCb, this);
+    //sim
+    pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &JointModel::pressureCb, this);
     thrust_sub_   = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &JointModel::thrustCb, this);
     mode_sub_   = nh_.subscribe<std_msgs::Empty>("/quadrotor/arm/joint_estimate_enable", 1, &JointModel::modeCb, this);
     apply_to_joint_sim_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joints_ctrl", 1);
@@ -302,11 +304,15 @@ private:
     // KDL::JntArray q = robot_model->getJointPositions();
     // const auto& idx = robot_model->getJointIndexMap();
 
-    sensor_msgs::JointState js;
+    sensor_msgs::JointState js, js_sim;
     js.header.stamp = ros::Time::now();
     js.name.reserve(12);
     js.position.reserve(12);
 
+    js_sim.header.stamp = ros::Time::now();
+    js_sim.name.reserve(12);
+    js_sim.position.reserve(12);
+ 
     auto clamp = [](double v, double lo, double hi){ return std::max(lo, std::min(hi, v)); };
     const double lim1 = 0.8727, limN = 1.047;
 
@@ -340,10 +346,14 @@ private:
       js.name.push_back(j3); js.position.push_back(v3);
       js.name.push_back(j4); js.position.push_back(v4);
       js.name.push_back(j5); js.position.push_back(v5);
+
+      js_sim.name.push_back(j1); js_sim.position.push_back(v1);
+      js_sim.name.push_back(j2); js_sim.position.push_back(v2);
+      js_sim.name.push_back(j3); js_sim.position.push_back(v3);
       }
     // robot_model->updateRobotModel(q);
     apply_to_joint_pub_.publish(js);
-    apply_to_joint_sim_pub_.publish(js);
+    apply_to_joint_sim_pub_.publish(js_sim);
   }
 };
 
