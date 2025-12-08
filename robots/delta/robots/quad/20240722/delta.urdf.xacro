@@ -273,7 +273,7 @@
   <link name="leg6">
     <inertial>
       <origin xyz="0.0 0.0 -0.093" rpy="0 0 0"/>
-      <mass value="0.051000"/>
+      <mass value="0.016000"/>
       <inertia
           ixx="0.000122" iyy="0.000133" izz="0.000012"
           ixy="0.000000" ixz="0.000000" iyz="0.000000"/>
@@ -587,12 +587,6 @@
       </geometry>
       <origin xyz="0.01 0.01 -0.075" rpy="0 0 0"/>
     </visual>
-    <collision>
-      <geometry>
-        <box size="0.02 0.02 -0.15"/>
-      </geometry>
-      <origin xyz="0.01 0.01 -0.075" rpy="0 0 0"/>
-    </collision>
   </link>
   <gazebo reference="leg7">
     <mu1>0.1</mu1>
@@ -605,85 +599,4 @@
     <child link="leg7"/>
     <origin xyz="0.1 0 0" rpy="0 0 0"/>
   </joint>
-
-
-  <!-- gimbal -->
-  <joint name="gimbal_joint6" type="fixed">
-    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
-    <parent link="soft_link6"/>
-    <child link="gimbal_link6"/>
-    <origin rpy="0 0 0" xyz="0.128 0 0"/>
-    <axis xyz="1 0 0"/>
-    <dynamics damping="0.9" friction="0.1"/>
-  </joint>
-
-  <link name="gimbal_link6">
-    <inertial>
-      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
-      <mass value="0.222"/>
-      <!-- this inertia value is 10 times bigger than the real one -->
-      <!-- to avoid the instability in gazebo -->
-      <!-- <inertia
-          ixx="0.0022661" ixy="0.0" ixz="0.0"
-          iyy="0.0015451" iyz="0.0"
-          izz="0.00032533"/> -->
-      <!-- original one -->
-      <inertia
-          ixx="0.00022661" ixy="0.0" ixz="0.0"
-          iyy="0.00015451" iyz="0.0"
-          izz="0.000032533"/>
-    </inertial>
-    <visual>
-      <origin xyz="0.0815 0 0" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://delta/urdf/mesh/20240722/5inch_propeller_duct_right_v2.dae"/>
-      </geometry>
-    </visual>
-  </link>
-  <gazebo reference="gimbal_link6">
-    <mu1>0.1</mu1>
-    <mu2>0.1</mu2>
-  </gazebo>
-  <xacro:damping_factor link ="gimbal_link6"/>
-
-
-  <!-- rotor -->
-  <joint name="rotor6" type="continuous">
-    <limit effort="0.0064" lower="0.0" upper="20.0" velocity="0.5"/>
-    <parent link="gimbal_link6"/>
-    <child link="thrust6"/>
-    <origin rpy="0 0 0" xyz="0.0735 0 0"/>
-    <axis xyz="0 0 -1"/>
-  </joint>
-
-  <link name="thrust6">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0001"/>
-      <inertia
-          ixx="0.00001" ixy="0.0" ixz="0.0"
-          iyy="0.00001" iyz="0.0"
-          izz="0.00002"/>
-    </inertial>
-    <visual>
-      <origin rpy="${pi/2} 0 0" xyz="-0.045 0.055 0.06"/>
-      <geometry>
-        <mesh filename="package://delta/urdf/mesh/20240722/TriBlade_5045.dae"/>
-      </geometry>
-    </visual>
-  </link>
-  <xacro:damping_factor link ="thrust6"/>
-
-  <transmission name="rotor_tran6">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="rotor6">
-      <hardwareInterface>RotorInterface</hardwareInterface>
-    </joint>
-    <actuator name="rotor6">
-      <hardwareInterface>RotorInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-
-
 </robot>
