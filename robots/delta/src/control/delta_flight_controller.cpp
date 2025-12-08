@@ -90,9 +90,23 @@ void DeltaController::linearWrenchAllocation()
   target_wrench_cog.tail(3) = robot_model_->getInertia<Eigen::Matrix3d>() * target_wrench_cog.tail(3);
 
   int dof = motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_;
+  Eigen::MatrixXd weight = Eigen::MatrixXd::Identity(dof, dof);
+  for (int i = 0; i < motor_on_rigid_frame_num_; i++)
+  {
+    weight(2 * i + 0, 2 * i + 0) = 1.0;
+    weight(2 * i + 1, 2 * i + 1) = 0.1;
+  }
+  for (int i = 0; i < motor_on_soft_frame_num_; i++)
+  {
+    weight(2 * motor_on_rigid_frame_num_ + i, 2 * motor_on_rigid_frame_num_ + i) = 1.0;
+  }
+
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(dof, dof);
-  H.diagonal().setConstant(2.0);
-  Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
+  H.diagonal() = 2.0 * weight.diagonal();
+  Eigen::VectorXd g = -2.0 * weight * prev_target_vectoring_f_;
+
+  // H.diagonal().setConstant(2.0);
+  // Eigen::VectorXd g = prev_target_vectoring_f_ * -2.0;
 
   int n_constraints = 6 + motor_on_rigid_frame_num_ * 2 + motor_on_soft_frame_num_;
   Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_constraints, dof);
@@ -113,6 +127,10 @@ void DeltaController::linearWrenchAllocation()
 
   lb.head(6) = target_wrench_cog;
   ub.head(6) = target_wrench_cog;
+
+  double yaw_margin = 0.1;
+  lb(5) = target_wrench_cog(5) - yaw_margin;
+  ub(5) = target_wrench_cog(5) + yaw_margin;
 
   for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {
