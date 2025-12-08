@@ -23,7 +23,7 @@ r_joint_1 = 85 / 2 / math.sqrt(2)
 r_joint_2 = 85 / 2
 r_wheel = 20
 
-def fk(alpha_1, alpha_3):
+def fk(alpha_1, alpha_2):
     R_0_to_1 = np.array(
         [
             [math.cos(alpha_1), math.sin(alpha_1)],
@@ -32,8 +32,8 @@ def fk(alpha_1, alpha_3):
     )
     R_2_to_3 = np.array(
         [
-            [math.cos(alpha_3), math.sin(alpha_3)],
-            [-math.sin(alpha_3), math.cos(alpha_3)],
+            [math.cos(alpha_2), math.sin(alpha_2)],
+            [-math.sin(alpha_2), math.cos(alpha_2)],
         ]
     )
     if alpha_1 == 0:
@@ -51,7 +51,7 @@ def fk(alpha_1, alpha_3):
                 [r_1 * math.sin(alpha_1) + d * math.cos(alpha_1) * 2],
             ]
         )
-    if alpha_3 == 0:
+    if alpha_2 == 0:
         p_2_to_3 = np.array(
             [
                 [0],
@@ -59,16 +59,16 @@ def fk(alpha_1, alpha_3):
             ]
         )
     else:
-        r_3 = s / alpha_3
+        r_3 = s / alpha_2
         p_2_to_3 = np.array(
             [
-                [r_3 * (1 - math.cos(alpha_3)) + d * math.sin(alpha_3)],
-                [r_3 * math.sin(alpha_3) + d * math.cos(alpha_3)],
+                [r_3 * (1 - math.cos(alpha_2)) + d * math.sin(alpha_2)],
+                [r_3 * math.sin(alpha_2) + d * math.cos(alpha_2)],
             ]
         )
     return (p_0_to_1 + R_0_to_1 @ p_2_to_3)
 
-def solve_ik(alpha_1, alpha_3, p_des):
+def solve_ik(alpha_1, alpha_2, p_des):
     for i in range(500):
         print("num of iteration: ", i)
         R_0_to_1 = np.array(
@@ -79,8 +79,8 @@ def solve_ik(alpha_1, alpha_3, p_des):
         )
         R_2_to_3 = np.array(
             [
-                [math.cos(alpha_3), math.sin(alpha_3)],
-                [-math.sin(alpha_3), math.cos(alpha_3)],
+                [math.cos(alpha_2), math.sin(alpha_2)],
+                [-math.sin(alpha_2), math.cos(alpha_2)],
             ]
         )
 
@@ -92,8 +92,8 @@ def solve_ik(alpha_1, alpha_3, p_des):
         )
         R_2_to_3_prime = np.array(
             [
-                [-math.sin(alpha_3), math.cos(alpha_3)],
-                [-math.cos(alpha_3), -math.sin(alpha_3)],
+                [-math.sin(alpha_2), math.cos(alpha_2)],
+                [-math.cos(alpha_2), -math.sin(alpha_2)],
             ]
         )
 
@@ -132,7 +132,7 @@ def solve_ik(alpha_1, alpha_3, p_des):
                     ],
                 ]
             )
-        if alpha_3 == 0:
+        if alpha_2 == 0:
             p_2_to_3 = np.array(
                 [
                     [0],
@@ -146,24 +146,24 @@ def solve_ik(alpha_1, alpha_3, p_des):
                 ]
             )
         else:
-            r_3 = s / alpha_3
+            r_3 = s / alpha_2
             p_2_to_3 = np.array(
                 [
-                    [r_3 * (1 - math.cos(alpha_3)) + d * math.sin(alpha_3)],
-                    [r_3 * math.sin(alpha_3) + d * math.cos(alpha_3)],
+                    [r_3 * (1 - math.cos(alpha_2)) + d * math.sin(alpha_2)],
+                    [r_3 * math.sin(alpha_2) + d * math.cos(alpha_2)],
                 ]
             )
             p_2_to_3_prime = np.array(
                 [
                     [
-                        -s / alpha_3 / alpha_3 * (1 - math.cos(alpha_3))
-                        + r_3 * math.sin(alpha_3)
-                        + d * math.cos(alpha_3)
+                        -s / alpha_2 / alpha_2 * (1 - math.cos(alpha_2))
+                        + r_3 * math.sin(alpha_2)
+                        + d * math.cos(alpha_2)
                     ],
                     [
-                        -s / alpha_3 / alpha_3 * math.sin(alpha_3)
-                        + r_3 * math.cos(alpha_3)
-                        - d * math.sin(alpha_3)
+                        -s / alpha_2 / alpha_2 * math.sin(alpha_2)
+                        + r_3 * math.cos(alpha_2)
+                        - d * math.sin(alpha_2)
                     ],
                 ]
             )
@@ -174,36 +174,36 @@ def solve_ik(alpha_1, alpha_3, p_des):
         )
 
         print("alpha_1: ", math.degrees(alpha_1), "deg")
-        print("alpha_3: ", math.degrees(alpha_3), "deg")
+        print("alpha_2: ", math.degrees(alpha_2), "deg")
         if np.linalg.norm(p_des - p[:1, :]) < 13:
             print("p_des: ")
             print(p_des)
             print("p: ")
             print(p)
-            return (alpha_1, alpha_3)
+            return (alpha_1, alpha_2)
 
         dp_dalpha_1 = (
             p_0_to_1_prime
             + R_0_to_1_prime @ p_2_to_3
             + R_0_to_1 @ p_2_to_3_prime
         )
-        dp_dalpha_3 = (
+        dp_dalpha_2 = (
             R_0_to_1 @ p_2_to_3_prime
         )
 
-        dp_dalpha = np.concatenate((dp_dalpha_1, dp_dalpha_3), axis=1)
+        dp_dalpha = np.concatenate((dp_dalpha_1, dp_dalpha_2), axis=1)
         dp_dalpha = dp_dalpha[:1, :] 
         dq = np.dot(np.linalg.pinv(dp_dalpha), (p_des - p[:1, :]) * 0.05)
         # dq = np.dot(np.linalg.pinv(dp_dalpha), (p_des - p)*0.05)
 
         alpha_1 += dq[0, 0]
-        alpha_3 += dq[1, 0]
+        alpha_2 += dq[1, 0]
 
         if i == 499:
             raise Exception("IK was not solved")
 
 
-def get_wire_diff(alpha_1, alpha_3):
+def get_wire_diff(alpha_1, alpha_2):
     divide_num = 8
     def get_plus_pos_wire_length(alpha, r_joint):  # xまたはyが正のワイヤーの長さ
         if alpha == 0:
@@ -223,8 +223,8 @@ def get_wire_diff(alpha_1, alpha_3):
         else:
             return divide_num * (r - r_joint - 1.5) * math.sin(abs(alpha) / divide_num) + divide_num/2*d
 
-    x_plus_long_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d + get_plus_pos_wire_length(alpha_3, r_joint_2)
-    x_minus_long_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d +get_minus_pos_wire_length(alpha_3, r_joint_2)
+    x_plus_long_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d + get_plus_pos_wire_length(alpha_2, r_joint_2)
+    x_minus_long_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d +get_minus_pos_wire_length(alpha_2, r_joint_2)
     x_plus_short_wire = get_plus_pos_wire_length(alpha_1, r_joint_2) + d
     x_minus_short_wire = get_minus_pos_wire_length(alpha_1, r_joint_2) + d
 
@@ -260,9 +260,6 @@ def need_next_input(dest, last_published_target):
 
 
 if __name__ == "__main__":
-    # alpha_1 = math.radians(1)
-    # alpha_3 = math.radians(1)
-
     rospy.init_node("tail_ik")
     tail_pub = rospy.Publisher("servo/target_states", ServoControlCmd, queue_size=1)
     rotor_pub = rospy.Publisher("pwm_test", PwmTest, queue_size=1)
@@ -276,48 +273,37 @@ if __name__ == "__main__":
     dest = None
     last_published_target = None
     rate = rospy.Rate(10)
-
-    # ri = RobotInterface()
-    # rospy.sleep(1.0)
-    # print(ri.getCogPos())
-    # ri.trajectoryNavigate(pos=[0,0,0.6], rot=None)
-    # rospy.sleep(5)
     
     try:
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [8, 7, 9, 10, 11, 12, 13, 14]
+            tail_msg.index = [8, 7, 9, 10, 12, 11, 13, 14]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
 
             soft_joint_msg = JointState()
-            soft_joint_msg.name = ["soft_joint2", "soft_joint3"]
-            soft_joint_msg.effort = [0.3, 0.3]
-
-            # x = float(input("x (default 0)   "))
-            # z = float(input("z"))
-
-            # p_des = np.array(
-            #     [
-            #         [x],
-            #         # [z],
-            #     ]
-            # )
-
-            # dest_alpha_1, dest_alpha_3 = solve_ik(
-            #     alpha_1, alpha_3, p_des
-            # )
+            soft_joint_msg.name = ["soft_joint2", "soft_joint3", "soft_joint4", "soft_joint5"]
+            soft_joint_msg.effort = [0.3, 0.3, 0.3, 0.3]
 
             if last_published_target is None:
-                last_published_target = [0.0, 0.0]
+                last_published_target = [0.0, 0.0, 0.0, 0.0]
                 last_published_target[0] = math.radians(float(input("last_published alpha_1 (deg): ")))
-                last_published_target[1] = math.radians(float(input("last_published alpha_3 (deg): ")))
+                last_published_target[1] = math.radians(float(input("last_published alpha_2 (deg): ")))
+                last_published_target[2] = math.radians(float(input("last_published alpha_3 (deg): ")))
+                last_published_target[3] = math.radians(float(input("last_published alpha_4 (deg): ")))
 
             if need_next_input(dest, last_published_target):
                 dest_alpha_1 = math.radians(float(input("alpha_1 (deg): ")))
                 if abs(dest_alpha_1) > math.radians(99):
+                    print("stop!!!!")
+                    rotor_msg.pwms = [0.5]
+                    # rotor_pub.publish(rotor_msg)
+                    rospy.sleep(0.5)
+                    exit()
+                dest_alpha_2 = math.radians(float(input("alpha_2 (deg): ")))
+                if abs(dest_alpha_2) > math.radians(99):
                     print("stop!!!!")
                     rotor_msg.pwms = [0.5]
                     # rotor_pub.publish(rotor_msg)
@@ -330,59 +316,69 @@ if __name__ == "__main__":
                     # rotor_pub.publish(rotor_msg)
                     rospy.sleep(0.5)
                     exit()
-                dest = [dest_alpha_1, dest_alpha_3]
+                dest_alpha_4 = math.radians(float(input("alpha_4 (deg): ")))
+                if abs(dest_alpha_4) > math.radians(99):
+                    print("stop!!!!")
+                    rotor_msg.pwms = [0.5]
+                    # rotor_pub.publish(rotor_msg)
+                    rospy.sleep(0.5)
+                    exit()
+                dest = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
 
             if dest[0] - last_published_target[0] > 0:
                 dest_alpha_1 = last_published_target[0] + math.radians(1.0)
             else:
                 dest_alpha_1 = last_published_target[0] - math.radians(1.0)
             if dest[1] - last_published_target[1] > 0:
-                dest_alpha_3 = last_published_target[1] + math.radians(1.0)
+                dest_alpha_2 = last_published_target[1] + math.radians(1.0)
             else:
-                dest_alpha_3 = last_published_target[1] - math.radians(1.0)
-            last_published_target = [dest_alpha_1, dest_alpha_3]
+                dest_alpha_2 = last_published_target[1] - math.radians(1.0)
+            if dest[2] - last_published_target[2] > 0:
+                dest_alpha_3 = last_published_target[2] + math.radians(1.0)
+            else:
+                dest_alpha_3 = last_published_target[2] - math.radians(1.0)
+            if dest[3] - last_published_target[3] > 0:
+                dest_alpha_4 = last_published_target[3] + math.radians(1.0)
+            else:
+                dest_alpha_4 = last_published_target[3] - math.radians(1.0)
+            last_published_target = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
 
             (
-                x_plus_long_wire,
-                x_minus_long_wire,
-                x_plus_short_wire,
-                x_minus_short_wire,   
-            ) = get_wire_diff(dest_alpha_1, dest_alpha_3)
+                x_plus_long_wire_soft_link_1,
+                x_minus_long_wire_soft_link_1,
+                x_plus_short_wire_soft_link_1,
+                x_minus_short_wire_soft_link_1,   
+            ) = get_wire_diff(dest_alpha_1, dest_alpha_2)
 
-            if dest_alpha_1 * dest_alpha_3 < 0:
-                rotor_x = 0.0
-            else:
-                selected_alpha = dest_alpha_1 if abs(dest_alpha_1) <= abs(dest_alpha_3) else dest_alpha_3
-                rotor_x = 16.9 * selected_alpha
-            rotor_z = 0.5*9.80665# (234g+138g分) N
-            rotor_angle = math.atan2(rotor_x, rotor_z)
-            rotor_force = math.sqrt(rotor_x**2 + rotor_z**2)
-            rotor_pwm = force_to_pwm(rotor_force)
-            # todo: publish these values
+            (
+                x_plus_long_wire_soft_link_2,
+                x_minus_long_wire_soft_link_2,
+                x_plus_short_wire_soft_link_2,
+                x_minus_short_wire_soft_link_2,
+            ) = get_wire_diff(dest_alpha_3, dest_alpha_4)
 
             print("dest_alpha_1: ", math.degrees(dest_alpha_1), "deg")
-            print("dest_alpha_3: ", math.degrees(dest_alpha_3), "deg")
-            print("p: ", fk(dest_alpha_1, dest_alpha_3))
-            print("x_plus_long_wire: ", x_plus_long_wire)
-            print("x_minus_long_wire: ", x_minus_long_wire)
-            print("x_plus_short_wire: ", x_plus_short_wire)
-            print("x_minus_short_wire: ", x_minus_short_wire)
-            print("rotor_x: ", rotor_x, "N")
-            print("rotor_z: ", rotor_z, "N")
-            print("rotor_angle: ", math.degrees(rotor_angle), "deg")
-            print("rotor_force: ", rotor_force, "N")
-            print("rotor_pwm: ", rotor_pwm)
+            print("dest_alpha_2: ", math.degrees(dest_alpha_2), "deg")
+            print("p: ", fk(dest_alpha_1, dest_alpha_2))
+            print("x_plus_long_wire: ", x_plus_long_wire_soft_link_1)
+            print("x_minus_long_wire: ", x_minus_long_wire_soft_link_1)
+            print("x_plus_short_wire: ", x_plus_short_wire_soft_link_1)
+            print("x_minus_short_wire: ", x_minus_short_wire_soft_link_1)
+            print("x_plus_long_wire_2: ", x_plus_long_wire_soft_link_2)
+            print("x_minus_long_wire_2: ", x_minus_long_wire_soft_link_2)
+            print("x_plus_short_wire_2: ", x_plus_short_wire_soft_link_2)
+            print("x_minus_short_wire_2: ", x_minus_short_wire_soft_link_2)
             print()
+
             dest_servo_angles = [
-                2047 + 1 * get_angle_diff(x_plus_long_wire),
-                2047 - 1 * get_angle_diff(x_minus_long_wire),
-                2047 + 1 * get_angle_diff(x_plus_short_wire),
-                2047 - 1 * get_angle_diff(x_minus_short_wire),
-                # 2047 - int(rotor_angle / (2 * math.pi) * 4096),
-                2047,
-                2047,
-                2047,
-                2047,
+                2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_1),
+                2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_1),
+                2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_1),
+                2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_1),
+                2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_2),
+                2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_2),
+                2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_2),
+                2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_2),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
@@ -390,10 +386,7 @@ if __name__ == "__main__":
             tail_msg.angles = dest_servo_angles
             tail_pub.publish(tail_msg)
 
-            rotor_msg.pwms = [rotor_pwm]
-            # rotor_pub.publish(rotor_msg)
-
-            soft_joint_msg.position = [dest_alpha_1, dest_alpha_3]
+            soft_joint_msg.position = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
             soft_joint_msg.header.stamp = rospy.Time.now()
             if is_simulation:
                 servo_controller_pub.publish(soft_joint_msg)
@@ -401,7 +394,7 @@ if __name__ == "__main__":
                 soft_joint_pub.publish(soft_joint_msg)
 
 
-            joint_angle_pub.publish(Float32MultiArray(data=[dest_alpha_1, dest_alpha_3]))
+            joint_angle_pub.publish(Float32MultiArray(data=[dest_alpha_1, dest_alpha_2]))
             rospy.sleep(0.01)
 
     except Exception as e:
