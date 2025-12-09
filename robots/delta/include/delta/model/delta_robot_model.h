@@ -55,8 +55,8 @@ private:
   KDL::Frame body_pose_from_world_;
   std::vector<ros::Time> rotor_on_soft_frame_pose_update_time_;
   ros::Time body_pose_update_time_;
-  std::vector<Eigen::Vector3d> prev_rotor_on_soft_frame_origin = {Eigen::Vector3d(0,0,0), Eigen::Vector3d(0,0,0)};
-  std::vector<Eigen::Vector3d> prev_rotor_on_soft_frame_normal = {Eigen::Vector3d(0,0,0), Eigen::Vector3d(0,0,0)};
+  std::vector<std::queue<Eigen::Vector3d>> prev_rotor_on_soft_frame_origin;
+  std::vector<std::queue<Eigen::Vector3d>> prev_rotor_on_soft_frame_normal;
 
   std::mutex links_rotation_mutex_;
   std::mutex current_joint_angles_mutex_;

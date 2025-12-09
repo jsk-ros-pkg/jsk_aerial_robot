@@ -19,6 +19,9 @@ DeltaRobotModel::DeltaRobotModel(bool init_with_rosparam, bool verbose, double f
 
   rotor_on_soft_frame_pose_from_world_.resize(rotor_on_soft_frame_num_);
   rotor_on_soft_frame_pose_update_time_.resize(rotor_on_soft_frame_num_);
+
+  prev_rotor_on_soft_frame_origin.resize(rotor_on_soft_frame_num_);
+  prev_rotor_on_soft_frame_normal.resize(rotor_on_soft_frame_num_);
 }
 
 void DeltaRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_positions)
@@ -137,35 +140,62 @@ Eigen::MatrixXd DeltaRobotModel::getQMatForRotorsOnSoftFrame()
       rotors_normal.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).M * KDL::Vector(0,0,1));
     } else {
       std::cout << "Warning: lost mocap for rotor" << i + 1 << std::endl;
-      rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
-      rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
+      int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
+      int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
+      for (int j = 0; j < origin_queue_size; j++){
+        rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
+        prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
+        prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+      }
+      rotors_origin.at(i) /= origin_queue_size;
+      for (int j = 0; j < normal_queue_size; j++){
+        rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+      }
     }
 
     // fail safe for mocap update
-    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
-        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
-        for (unsigned int j = 0; j < 3; ++j) {
-        if (abs(rotors_origin.at(i)(j) - prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5 || 
-            abs(rotors_normal.at(i)(j) - prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5){
-          rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
-          rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
-          std::cout << "fail safe for mocap update!!!!" << std::endl;
-          break;
-            }
-          }
-        }
+    // if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
+    //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
+    //     for (unsigned int j = 0; j < 3; ++j) {
+    //     if (abs(rotors_origin.at(i)(j) - prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5 || 
+    //         abs(rotors_normal.at(i)(j) - prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5){
+    //       rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
+    //       rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
+    //       std::cout << "fail safe for mocap update!!!!" << std::endl;
+    //       break;
+    //         }
+    //       }
+    //     }
 
-    // low pass filter for rotor on soft frame pose and orientation
-    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
-        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
-      double alpha = 0.5;
-      rotors_origin.at(i) = alpha * prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_) + (1 - alpha) * rotors_origin.at(i);
-      rotors_normal.at(i) = alpha * prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) + (1 - alpha) * rotors_normal.at(i);
-      rotors_normal.at(i).normalize();
-        }
+    prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(rotors_origin.at(i));
+    prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(rotors_normal.at(i));
+    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size() > 10){
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    if (prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size() > 10){
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+    }
 
-    prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_) = rotors_origin.at(i);
-    prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) = rotors_normal.at(i);
+    // low pass filter using moving average
+    rotors_origin.at(i) = Eigen::Vector3d(0,0,0);
+    rotors_normal.at(i) = Eigen::Vector3d(0,0,0);
+    int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
+    int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
+    for (int j = 0; j < origin_queue_size; j++){
+      rotors_origin.at(i) += prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    rotors_origin.at(i) /= origin_queue_size;
+    for (int j = 0; j < normal_queue_size; j++){
+      rotors_normal.at(i) += prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    rotors_normal.at(i) /= normal_queue_size;
+    rotors_normal.at(i).normalize();
   }
   
   Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = Eigen::MatrixXd::Zero(6, rotor_on_soft_frame_num_);
