@@ -1,0 +1,5 @@
+<library path="lib/libcrobat_robot_model">
+  <class name="crobat_robot_model" type="CrobatRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for crobat robot model </description>
+  </class>
+</library>

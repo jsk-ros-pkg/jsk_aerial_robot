@@ -1,0 +1,5 @@
+<library path="lib/libcrobat_navigation">
+  <class name="aerial_robot_navigation/crobat_navigation" type="aerial_robot_navigation::CrobatNavigator" base_class_type="aerial_robot_navigation::BaseNavigator">
+    <description>plugin for crobat navigation </description>
+  </class>
+</library>

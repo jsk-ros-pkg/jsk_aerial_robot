@@ -1,0 +1,49 @@
+aerial_robot_control_name: aerial_robot_control/crobat_controller
+
+controller:
+  torque_allocation_matrix_inv_pub_interval: 0.05
+  wrench_allocation_matrix_pub_interval: 0.1
+  gimbal_calc_in_fc : false
+  gravity_comp_flag_: true
+
+  xy:
+    p_gain: 1.0 #5.0
+    i_gain: 0.0025 #0.05
+    d_gain: 0.25 #5.0
+    limit_sum: 10 #3
+    limit_p: 20 #3
+    limit_i: 20 #1.5
+    limit_d: 20 #3
+
+  z:
+    p_gain: 4.0 #5.0
+    i_gain: 0.125 #2.5
+    d_gain: 0.25 #5.0
+    limit_err_p: 0.05 #1.0
+    limit_sum: 10 #10
+    limit_p: 20 #20
+    limit_i: 20 #40
+    limit_d: 20 #20
+    landing_err_z: -0.01 #-0.2
+    force_landing_descending_rate: -0.03 #-0.6
+
+  yaw:
+    p_gain: 2.0 #6.0
+    i_gain: 0.05 #1.0
+    d_gain: 0.5 #4.0
+    limit_err_p: 0.02 #0.4
+    limit_sum: 10 #20.0
+    limit_p: 20 #20.0
+    limit_i: 20 #20.0
+    limit_d: 20 #20.0
+    need_d_control: true
+
+  roll_pitch:
+    p_gain: 5.0 #18.0
+    i_gain: 0.05 #1.0
+    d_gain: 1.0 #8.0
+    limit_sum: 20 #20.0
+    limit_p: 20 #20.0
+    limit_i: 20 #20.0
+    limit_d: 20 #20.0
+

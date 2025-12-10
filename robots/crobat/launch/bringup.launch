@@ -21,7 +21,8 @@
   <arg name="config_dir" default="$(find crobat)/config" />
   <arg name="mujoco" default="False" />
   <arg name="demo" default="True" />
-
+  <arg name="full_actuated" default="True" />
+  
   ###########  Parameters  ###########
   <group ns="$(arg robot_ns)">
 
@@ -33,25 +34,32 @@
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
     <param name="uav_model" value= "0" />
-    <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/full_actuated/RobotModel.yaml" command="load" if="$(arg full_actuated)"/>
+    <rosparam file="$(arg config_dir)/under_actuated/RobotModel.yaml" command="load" unless="$(arg full_actuated)"/>
 
     ###########  Motor Config  ###########
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
+    ###########  Servo Config  ###########
+    <rosparam file="$(arg config_dir)/full_actuated/Servo.yaml" command="load" if="$(arg full_actuated)"/>
+    
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
-
+    <rosparam file="$(arg config_dir)/full_actuated/FlightControl.yaml" command="load" if="$(eval arg('full_actuated') and arg('real_machine'))"/>
+    <rosparam file="$(arg config_dir)/full_actuated/FlightControl_sim.yaml" command="load" if="$(eval arg('full_actuated') and arg('simulation'))" />
+    <rosparam file="$(arg config_dir)/under_actuated/FlightControl.yaml" command="load" unless="$(arg full_actuated)" />
+    
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
     ###########  Navigation  ###########
+    <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/crobat_navigation" />
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
   </group>
-
+  
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
@@ -64,20 +72,27 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find crobat)/urdf/robot.$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find crobat)/urdf/robot.$(arg description_mode).xacro" if="$(eval not arg('direct_model') and not arg('full_actuated'))"/>
+    <arg name="robot_model" value="$(find crobat)/urdf/full_actuated.$(arg description_mode).xacro" if="$(eval not arg('direct_model') and arg('full_actuated'))"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
+    <arg name="rviz_config" value="$(arg config_dir)/full_actuated/rviz_config" if="$(arg full_actuated)" />
+    <arg name="rviz_config" value="$(arg config_dir)/under_actuated/rviz_config" unless="$(arg full_actuated)"/>
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
     <arg name="need_joint_state" value="false" if ="$(eval arg('simulation') or arg('real_machine'))"/>
   </include>
 
   ###########  Sensors ###########
   <include file="$(find crobat)/launch/includes/sensors.launch.xml" >
+    <arg name="full_actuated" value="$(arg full_actuated)" />
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
   </include >
+
+  ###########  Servo Bridge  ###########
+  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge" ns="$(arg robot_ns)" output="screen" if="$(arg full_actuated)"/>
+
 
   ########## Simulation in Gazebo #########
   <include file="$(find aerial_robot_simulation)/launch/gazebo.launch" if = "$(eval arg('simulation') and not arg('real_machine') and not arg('mujoco'))" >
@@ -100,7 +115,7 @@
   </include>
 
   ########## Simple Demo #########
-  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
+  <node pkg="aerial_robot_base" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(eval arg('demo') and not arg('full_actuated'))"/>
 
 
 </launch>

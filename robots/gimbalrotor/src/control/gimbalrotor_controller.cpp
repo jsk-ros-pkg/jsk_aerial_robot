@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include <gimbalrotor/control/gimbalrotor_controller.h>
 
 using namespace std;
@@ -47,6 +48,7 @@ namespace aerial_robot_control
   {
     ros::NodeHandle control_nh(nh_, "controller");
     getParam<int>(control_nh, "gimbal_dof", gimbal_dof_, 1);
+    getParam<bool>(control_nh, "gravity_comp_flag_", gravity_comp_flag_, true);
     getParam<bool>(control_nh, "gimbal_calc_in_fc", gimbal_calc_in_fc_, true);
     getParam<bool>(control_nh, "hovering_approximate", hovering_approximate_, false);
     getParam<bool>(control_nh, "underactuate", underactuate_, false);
@@ -71,6 +73,8 @@ namespace aerial_robot_control
     tf::Vector3 target_acc_w(pid_controllers_.at(X).result(),
                              pid_controllers_.at(Y).result(),
                              pid_controllers_.at(Z).result());
+    if(gravity_comp_flag_)
+      target_acc_w += tf::Vector3(0, 0, 9.8);
     tf::Vector3 target_acc_dash = (tf::Matrix3x3(tf::createQuaternionFromYaw(rpy_.z()))).inverse() * target_acc_w;
     tf::Vector3 target_acc_cog = uav_rot.inverse() * target_acc_w;
     Eigen::VectorXd target_wrench_acc_cog = Eigen::VectorXd::Zero(6);
@@ -85,7 +89,6 @@ namespace aerial_robot_control
     Eigen::Vector3d omega;
     tf::vectorTFToEigen(omega_, omega);
     Eigen::Vector3d gyro = omega.cross(inertia * omega);
-
     if(gimbal_calc_in_fc_)
       target_wrench_acc_cog.tail(3) = Eigen::Vector3d(target_ang_acc_x, target_ang_acc_y, target_ang_acc_z);
     else
@@ -185,7 +188,7 @@ namespace aerial_robot_control
             target_roll_ = -target_acc_dash.y() / aerial_robot_estimation::G;
             target_pitch_ = target_acc_dash.x() / aerial_robot_estimation::G;
             navigator_->setTargetRoll(target_roll_);
-            navigator_->setTargetPitch(target_pitch_);
+	    navigator_->setTargetPitch(target_pitch_);
           }
         else
           {

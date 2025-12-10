@@ -3,7 +3,8 @@
 
   <arg name="real_machine" default="false" />
   <arg name="simulation" default="false" />
-  <arg name="robot_ns" default="quadrotor" />
+  <arg name="robot_ns" default="crobat" />
+  <arg name="full_actuated" default="true" />
 
   <group ns="$(arg robot_ns)">
     <group if="$(arg real_machine)">
@@ -12,14 +13,15 @@
         <include file="$(find spinal)/launch/bridge.launch" >
           <arg name="mode" value="serial" />
           <arg name="serial_port" value="/dev/flight_controller" />
+	  <arg name="serial_baud" value="921600" if="$(arg full_actuated)"/>
         </include>
 
         <!-- mocap -->
         <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
         <!-- livox mid360 & fast lio -->
-        <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
-        <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
+        <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" unless="$(arg full_actuated)"/>
+        <include file="$(find fast_lio)/launch/mapping_mid360.launch" unless="$(arg full_actuated)">
           <arg name="rviz" value="false" />
         </include>
 
@@ -27,9 +29,10 @@
     </group>
 
     <!-- basic configuration for sensors (e.g. noise sigma) -->
-    <rosparam file="$(find aerial_robot_base)/config/sensors/imu/spinal.yaml" command="load" />
+    <rosparam file="$(find crobat)/config/sensors/imu/spinal.yaml" command="load" if="$(arg full_actuated)"/>
+    <rosparam file="$(find aerial_robot_base)/config/sensors/imu/spinal.yaml" command="load" unless="$(arg full_actuated)"/>
     <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-    <rosparam file="$(find aerial_robot_base)/config/sensors/lio/livox_mid360.yaml" command="load" />
+    <rosparam file="$(find aerial_robot_base)/config/sensors/lio/livox_mid360.yaml" command="load" unless="$(arg full_actuated)"/>
   </group>
 
 </launch>

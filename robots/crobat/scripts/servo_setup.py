@@ -7,12 +7,15 @@ import time
 def publish_servo_commands():
     # 1. ROSノードの初期化
     # ノード名はユニークである必要があります。
+    param = 'crobat'
     rospy.init_node('servo_command_publisher', anonymous=True)
     
     # 2. パブリッシャーの作成
     # トピック名とメッセージ型を指定します。
     # queue_size=1 は、メッセージのキューのサイズを制限します。
-    pub = rospy.Publisher('/crobat/extra_servo_cmd', ServoControlCmd, queue_size=1)
+    servo_topic = "/" + param +"/extra_servo_cmd"
+    print(servo_topic)
+    pub = rospy.Publisher(servo_topic, ServoControlCmd, queue_size=1)
     
     # 3. ノードがROSマスタとパブリッシャーの準備ができるのを待つ
     # 必須ではありませんが、確実にメッセージを送信するために推奨されます。
@@ -21,7 +24,7 @@ def publish_servo_commands():
     # 4. 送信するサーボコマンドのリストを定義
     # 各要素は (index, angle) のタプルです。
     commands = [
-        (4, 86),
+        (4, 95),
         (5, 83),
         (6, 81),
         (7, 88)

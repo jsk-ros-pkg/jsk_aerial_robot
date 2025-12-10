@@ -1,0 +1,5 @@
+<library path="lib/libcrobat_controller">
+  <class name="aerial_robot_control/crobat_controller" type="aerial_robot_control::CrobatController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for crobat control </description>
+  </class>
+</library>
