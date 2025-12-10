@@ -254,7 +254,11 @@ def is_simulation() -> bool:
 def need_next_input(dest, last_published_target):
     if dest is None:
         return True
-    if abs(dest[0] - last_published_target[0]) < math.radians(1.0) and abs(dest[1] - last_published_target[1]) < math.radians(1.0):
+    if (
+        abs(dest[0] - last_published_target[0]) < math.radians(1.0) 
+        and abs(dest[1] - last_published_target[1]) < math.radians(1.0)
+        and abs(dest[2] - last_published_target[2]) < math.radians(1.0)
+        and abs(dest[3] - last_published_target[3]) < math.radians(1.0)):
         return True
     return False
 
@@ -359,6 +363,8 @@ if __name__ == "__main__":
 
             print("dest_alpha_1: ", math.degrees(dest_alpha_1), "deg")
             print("dest_alpha_2: ", math.degrees(dest_alpha_2), "deg")
+            print("dest_alpha_3: ", math.degrees(dest_alpha_3), "deg")
+            print("dest_alpha_4: ", math.degrees(dest_alpha_4), "deg")
             print("p: ", fk(dest_alpha_1, dest_alpha_2))
             print("x_plus_long_wire: ", x_plus_long_wire_soft_link_1)
             print("x_minus_long_wire: ", x_minus_long_wire_soft_link_1)
@@ -371,10 +377,10 @@ if __name__ == "__main__":
             print()
 
             dest_servo_angles = [
-                2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_1),
-                2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_1),
-                2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_1),
-                2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_1),
+                2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_1) - 200 ,
+                2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_1) + 200,
+                2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_1) - 200,
+                2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_1) + 200,
                 2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_2),
                 2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_2),
                 2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_2),
