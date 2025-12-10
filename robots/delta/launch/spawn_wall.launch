@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="block_x" default="0.0"/>
+  <arg name="block_y" default="3.0"/>
+  <arg name="block_z" default="3.0"/>
+  <arg name="block_yaw" default="0.0"/>
+
+  <!-- spawn brick -->
+  <param name="block/robot_description" command="$(find xacro)/xacro $(find aerial_robot_simulation)/xacro/block.xacro"/>
+  <node pkg="gazebo_ros" type="spawn_model" name="block_spawn" args="-param block/robot_description -urdf -x $(arg block_x) -y $(arg block_y) -z $(arg block_z) -Y $(arg block_yaw) -model block_model" />
+
+</launch>

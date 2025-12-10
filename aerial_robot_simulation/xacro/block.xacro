@@ -2,9 +2,9 @@
 <robot
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="block" >
 
-  <xacro:property name="block_x" value="0.5"/>
+  <xacro:property name="block_x" value="1.0"/>
   <xacro:property name="block_y" value="0.3"/>
-  <xacro:property name="block_z" value="0.2"/>
+  <xacro:property name="block_z" value="2.0"/>
   <xacro:property name="mass" value="0.4"/>
 
   <link name="block">

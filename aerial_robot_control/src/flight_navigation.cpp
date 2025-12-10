@@ -1114,8 +1114,8 @@ void BaseNavigator::rosParamInit()
   getParam<double>(nh, "land_vel_convergent_thresh", land_vel_convergent_thresh_, 0.05);
 
   //*** trajectory
-  getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.5);
-  getParam<double>(nh, "trajectory_mean_yaw_rate", trajectory_mean_yaw_rate_, 0.3);
+  getParam<double>(nh, "trajectory_mean_vel", trajectory_mean_vel_, 0.1);
+  getParam<double>(nh, "trajectory_mean_yaw_rate", trajectory_mean_yaw_rate_, 0.1);
   getParam<double>(nh, "trajectory_min_du", trajectory_min_du_, 2.0);
   getParam<bool>(nh, "enable_latch_yaw_trajectory", enable_latch_yaw_trajectory_, false);
 

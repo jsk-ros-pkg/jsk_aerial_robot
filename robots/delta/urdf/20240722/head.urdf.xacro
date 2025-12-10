@@ -8,7 +8,9 @@
     <link name="link${self}">
       <inertial>
         <origin xyz="0.27442477 -0.04145571 0.00766623" rpy="0 0 0"/>
-        <mass value="0.80165566"/>
+        <!-- <mass value="0.80165566"/> -->
+        <!-- Styrofoam is removed -->
+        <mass value="${0.80165566 - 0.216}"/>
         <inertia
              ixx="0.00393460" iyy="0.02769902" izz="0.03031993"
             ixy="-0.00001765" ixz="0.00072820" iyz="0.00025451" />

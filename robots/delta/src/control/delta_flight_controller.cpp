@@ -128,17 +128,17 @@ void DeltaController::linearWrenchAllocation()
   lb.head(6) = target_wrench_cog;
   ub.head(6) = target_wrench_cog;
 
-  double yaw_margin = 0.1;
-  lb(5) = target_wrench_cog(5) - yaw_margin;
-  ub(5) = target_wrench_cog(5) + yaw_margin;
+  // double yaw_margin = 0.1;
+  // lb(5) = target_wrench_cog(5) - yaw_margin;
+  // ub(5) = target_wrench_cog(5) + yaw_margin;
 
-  double x_margin = 0.1;
-  lb(0) = target_wrench_cog(0) - x_margin;
-  ub(0) = target_wrench_cog(0) + x_margin;
+  // double x_margin = 0.1;
+  // lb(0) = target_wrench_cog(0) - x_margin;
+  // ub(0) = target_wrench_cog(0) + x_margin;
 
-  double y_margin = 0.1;
-  lb(1) = target_wrench_cog(1) - y_margin;
-  ub(1) = target_wrench_cog(1) + y_margin;
+  // double y_margin = 0.1;
+  // lb(1) = target_wrench_cog(1) - y_margin;
+  // ub(1) = target_wrench_cog(1) + y_margin;
 
   for (int i = 0; i < motor_on_rigid_frame_num_; i++)
   {

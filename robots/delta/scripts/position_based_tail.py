@@ -276,11 +276,10 @@ if __name__ == "__main__":
 
     dest = None
     last_published_target = None
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(100)
     
     try:
         while True:
-            rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
             tail_msg.index = [8, 7, 9, 10, 12, 11, 13, 14]
 
@@ -329,22 +328,23 @@ if __name__ == "__main__":
                     exit()
                 dest = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
 
+            diff = 0.05
             if dest[0] - last_published_target[0] > 0:
-                dest_alpha_1 = last_published_target[0] + math.radians(1.0)
+                dest_alpha_1 = last_published_target[0] + math.radians(diff)
             else:
-                dest_alpha_1 = last_published_target[0] - math.radians(1.0)
+                dest_alpha_1 = last_published_target[0] - math.radians(diff)
             if dest[1] - last_published_target[1] > 0:
-                dest_alpha_2 = last_published_target[1] + math.radians(1.0)
+                dest_alpha_2 = last_published_target[1] + math.radians(diff)
             else:
-                dest_alpha_2 = last_published_target[1] - math.radians(1.0)
+                dest_alpha_2 = last_published_target[1] - math.radians(diff)
             if dest[2] - last_published_target[2] > 0:
-                dest_alpha_3 = last_published_target[2] + math.radians(1.0)
+                dest_alpha_3 = last_published_target[2] + math.radians(diff)
             else:
-                dest_alpha_3 = last_published_target[2] - math.radians(1.0)
+                dest_alpha_3 = last_published_target[2] - math.radians(diff)
             if dest[3] - last_published_target[3] > 0:
-                dest_alpha_4 = last_published_target[3] + math.radians(1.0)
+                dest_alpha_4 = last_published_target[3] + math.radians(diff)
             else:
-                dest_alpha_4 = last_published_target[3] - math.radians(1.0)
+                dest_alpha_4 = last_published_target[3] - math.radians(diff)
             last_published_target = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
 
             (
@@ -401,7 +401,7 @@ if __name__ == "__main__":
 
 
             joint_angle_pub.publish(Float32MultiArray(data=[dest_alpha_1, dest_alpha_2]))
-            rospy.sleep(0.01)
+            rospy.sleep(0.05)
 
     except Exception as e:
         print(repr(e))
