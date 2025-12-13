@@ -19,6 +19,10 @@ ApproachingHuman::ApproachingHuman()
   move_msg_.pos_xy_nav_mode = 1;
   move_msg_.yaw_nav_mode = 2;
 
+  //face exression
+  pub_vad_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
+  pub_gaze_ = nh_.advertise<std_msgs::Float32>("/look_at", 1);
+
   timer_ = nh_.createTimer(ros::Duration(0.05), &ApproachingHuman::timerCb, this); // 20Hz
 
   ROS_INFO("ApproachingHuman node constructed");
@@ -255,6 +259,31 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
         ROS_INFO("go!");
         land_cnt_ = 0;
         fail_safe_stop_cnt_ = 0;
+        /////////////// face expression change the iris movement
+        float w = static_cast<float>(camera_width_);
+        float x_px = static_cast<float>(max_rect_pixel_pos_.x)  - w * 0.5 ;
+        float x_norm = - (x_px / w )*2.0f;
+        gaze_x_.data = std::clamp(x_norm, -1.0f, 1.0f);
+        pub_gaze_.publish(gaze_x_);
+        if (depth_ <= 0.7f){
+          /////////////// face expression change v
+          float v = (0.7f- static_cast<float>(depth_)) / 0.7f;
+          float a = (0.7f- static_cast<float>(depth_)) / 0.7f;
+          v = std::clamp(v, a, 1.0f);
+          vad_array_.data = {v, 0.0f, 0.0f};
+          pub_vad_.publish(vad_array_);
+          if (v >= 0.5f){
+            gaze_x_.data = 0.0;
+            pub_gaze_.publish(gaze_x_);
+          }
+          face_first_change_flag_ == true;
+        }else{
+          if (face_first_change_flag_){
+            vad_array_.data = {0.0f, 0.0f, 0.0f};
+            pub_vad_.publish(vad_array_);
+          }
+          face_first_change_flag_ == false;
+        }
       } else {
         // invalid/zero depth
         if (raw_depth_ == 0.0) {
@@ -274,6 +303,9 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
       if (land_cnt_ >= 10) {
         for (int i = 0; i < 10; ++i) {
           reach_to_human_flag_ = true;
+          /////////////// face expression max v(smile)
+          vad_array_.data = {1.0f, 0.8f, 0.0f};
+          pub_vad_.publish(vad_array_);
           std_msgs::Bool msg2;
           msg2.data = reach_to_human_flag_;
           pub_reach_human_.publish(msg2);
@@ -282,10 +314,20 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
       }
       rotate_cnt_++;
     } else {
-      ROS_INFO("don't see people");
       move_msg_.target_vel_x = 0.0;
       pub_move_.publish(move_msg_);
       ROS_INFO("stop! because the robot can't see people");
+      /////////////// face expression disgust
+      vad_array_.data = {-0.5f, -0.3f, -0.8f};
+      pub_vad_.publish(vad_array_);
+      face_first_change_flag_ == true;
+      if (dont_see_cnt_ % 2 ==0){
+        gaze_x_.data = -0.8;
+      }else{
+        gaze_x_.data = 0.8;
+      }
+      pub_gaze_.publish(gaze_x_);
+      dont_see_cnt_++;
       if (min_depth_ > 2.0) {
         move_msg_.target_yaw = euler_.z + 0.01;
         pub_move_.publish(move_msg_);

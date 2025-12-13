@@ -5,6 +5,10 @@
 #include <math.h>
 #include <random>
 #include <algorithm>
+#include <limits>
+#include <cmath>
+#include <string>
+#include <vector>
 
 #include <std_msgs/Empty.h>
 #include <std_msgs/UInt8.h>
@@ -12,10 +16,15 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Point.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <jsk_recognition_msgs/RectArray.h>
+#include <jsk_recognition_msgs/HumanSkeletonArray.h>
+#include <jsk_recognition_msgs/HumanSkeleton.h>
+#include <jsk_recognition_msgs/Segment.h>
+
 #include <aerial_robot_msgs/FlightNav.h>
 
 #include <cv_bridge/cv_bridge.h>
@@ -35,15 +44,26 @@ private:
   void flightStateCb(const std_msgs::UInt8::ConstPtr& msg);
   void depthCb(const sensor_msgs::Image::ConstPtr& msg);
   void odomCb(const nav_msgs::Odometry::ConstPtr& msg);
+  void humanSkeletonCb(const jsk_recognition_msgs::HumanSkeletonArray::ConstPtr& msg);
   void timerCb(const ros::TimerEvent& ev);
+  
 
   // ===== Sub-routines =====
   void flightRotateState();
   void findMaxRect();
+  void findBones();
   void posCalc();
   void rotateYaw();
   void relativePos();
   void pdControl();
+  void updateGazeAndExpressionWhileApproaching();
+  void handleValidDepth();
+  void handleInvalidDepth();
+  void handleRectDetected();
+  void handleReachedHuman();
+  void stopWithIdleExpression();
+  void handleNoRectDetected();
+  
 
 private:
   // ===== ROS =====
@@ -53,6 +73,7 @@ private:
   ros::Subscriber sub_rect_;
   ros::Subscriber sub_depth_;
   ros::Subscriber sub_odom_;
+  ros::Subscriber sub_human_skeleton_;
 
   ros::Publisher pub_target_pos_;
   ros::Publisher pub_reach_human_;
@@ -120,7 +141,24 @@ private:
   aerial_robot_msgs::FlightNav move_msg_;
   geometry_msgs::Vector3 target_pos_;
 
-  // RNG for neighborhood sampling
+
+   std::vector<std::vector<std::string>> bone_names_;
+  std::vector<std::vector<jsk_recognition_msgs::Segment>> bones_;
+  std::vector<std::string> target_shoulder_bones_ = {"left_shoulder", "right_shoulder"};
+  std::vector<std::string> target_wrist_bones_ = {"left_wrist", "right_wrist"};
+
+  geometry_msgs::Point wrist_bone_;
+  geometry_msgs::Point shoulder_bone_;
+  bool handup_flag_;
+  bool wrist_find_ = false;
+  bool shoulder_find_ = false;
+
+  ros::Time wrist_detect_time_;
+  ros::Time shoulder_detect_time_;
+
+
+  double depth_trend_prev_ = std::numeric_limits<double>::quiet_NaN();
+
   std::mt19937 rng_;
 };
 

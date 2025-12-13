@@ -10,6 +10,7 @@
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32MultiArray.h>
 
 class IntegratedController {
 public:
@@ -29,6 +30,9 @@ public:
   perching_state_pub_ = nh_.advertise<std_msgs::UInt8>("/perching_state", 1);
   flight_state_sub_ = nh_.subscribe<std_msgs::UInt8>("/quadrotor/flight_state", 1, &IntegratedController::flightStateCb, this);
   reach_to_human_sub_ = nh_.subscribe<std_msgs::Bool>("/reach_flag", 1, &IntegratedController::reachHumanCb, this);
+
+  //face exression
+  vad_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
 }
 
 void spin() {
@@ -54,23 +58,29 @@ void spin() {
             }
         } else if (perching_state_ == 3) {
             if (control_mode_ == 0) {
-                air_.stopAllPneumatics();
+                air_.initializePneumatics();
                 haptics_.stopAllMotors();
                 haptics_.pos_flag_ = true;
+            // } else if (control_mode_ == 1) {
+                // haptics_.pos_flag_ = true;
+            //     air_.keepPerching();
+            //     // haptics_.controlManual();
+            //     publishMergedPwm();
             } else {
                 air_.keepPerching();
                 haptics_.controlAuto();
+                if (first_expression_flag_){
+                  vad_array_.data = {0.0f, 0.0f, 0.0f};
+                  vad_pub_.publish(vad_array_);
+                  first_expression_flag_ = false;
+                }
                 if (haptics_.getHapticsFinished()){
                     air_.setPerchingState(4);
+                    vad_array_.data = {1.0f, 0.6f, 0.0f};
+                    vad_pub_.publish(vad_array_);
                     ros::Duration(1.0).sleep();
                     ROS_INFO("deperch ready");
                 }
-                // if (control_mode_ == 1) {
-                //     haptics_.controlManual();
-                //     haptics_.pos_flag_ = true;
-                // } else if (control_mode_ == 2) {
-                //     haptics_.controlAuto();
-                // }
             publishMergedPwm();
             }
         } else if (perching_state_ == 4) {
@@ -78,8 +88,9 @@ void spin() {
         } else if (perching_state_ == 5 || air_.getAirPressureJoint() >= 60 || air_.getAirPressureBottom() >= 50) {
             air_.initializePneumatics();
             haptics_.stopAllMotors();
+            publishMergedPwm();
         } else {
-            //air_.bottomPressurePrepare();
+            air_.bottomPressurePrepare();
         }
         ros::spinOnce();
         rate.sleep();
@@ -95,6 +106,8 @@ private:
   ros::Subscriber joy_sub_;
   ros::Publisher halt_pub_;
 
+  ros::Publisher vad_pub_;
+
   ros::Subscriber flight_state_sub_;
   ros::Subscriber reach_to_human_sub_;
   ros::Publisher arming_on_pub_;
@@ -108,7 +121,9 @@ private:
   int halt_flag_ = 0;
   int control_mode_; // 0: STOP, 1: MANUAL, 2: AUTO
   bool reach_flag_;
+  bool first_expression_flag_ = true;
   sensor_msgs::Joy joy_;
+  std_msgs::Float32MultiArray vad_array_;
 
   void joyCb(const sensor_msgs::Joy::ConstPtr& msg) {
     joy_ = *msg;
@@ -159,7 +174,6 @@ private:
   void publishMergedPwm() {
     spinal::PwmTest air_pwm_msg = air_.getAirPwm();
     spinal::PwmTest haptics_pwm_msg = haptics_.getHapticsPwm();
-
     std::map<uint8_t, float> merged_pwm;
     for (size_t i = 0; i < haptics_pwm_msg.motor_index.size(); ++i) {
         merged_pwm[haptics_pwm_msg.motor_index[i]] = haptics_pwm_msg.pwms[i];
@@ -184,13 +198,20 @@ private:
     //arming_on_pub_.publish(e);
     //ros::Duration(2.0).sleep();
     air_.initializePneumatics();
+    //face expression
+    vad_array_.data = {-0.5f, -0.3f, -1.0f};
+    vad_pub_.publish(vad_array_);
 
     if (!flight_state_flag_) {
         ros::Duration(1.0).sleep();
         air_.initializePneumatics();
         ROS_WARN("Takeoff");
         // takeoff_pub_.publish(e);
-        ros::Duration(12.0).sleep();
+        ros::Duration(3.0).sleep();
+        //face expression
+        vad_array_.data = {0.0f, 0.0f, 0.0f};
+        vad_pub_.publish(vad_array_);
+        ros::Duration(9.0).sleep();
         land_pub_.publish(e);
     }
     air_.setPerchingState(0);

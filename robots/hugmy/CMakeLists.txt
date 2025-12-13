@@ -40,6 +40,10 @@ add_library(hugmy_deformation_planning src/control/deformation_planning.cpp)
 target_link_libraries(hugmy_deformation_planning ${catkin_LIBRARIES})
 add_dependencies(hugmy_deformation_planning ${catkin_EXPORTED_TARGETS})
 
+add_library(hugmy_approaching_planning src/control/approaching_with_interaction.cpp)
+target_link_libraries(hugmy_approaching_planning ${catkin_LIBRARIES})
+add_dependencies(hugmy_approaching_planning ${catkin_EXPORTED_TARGETS})
+
 add_library(hugmy_morphing_arm_controller src/control/morphing_arm_controller.cpp)
 target_link_libraries(hugmy_morphing_arm_controller ${catkin_LIBRARIES})
 
@@ -56,11 +60,6 @@ target_link_libraries(random_haptics_threshold_node ${catkin_LIBRARIES})
 
 add_executable(random_haptics_feeling_node src/control/test/haptics_feeling_test.cpp)
 target_link_libraries(random_haptics_feeling_node ${catkin_LIBRARIES})
-
-add_executable(guidance_manual_controller src/control/test/haptics_guidance_manual_test.cpp
-  src/control/air_pressure_controller.cpp
-  src/control/haptics_controller.cpp)
-target_link_libraries(guidance_manual_controller ${catkin_LIBRARIES})
 
 add_executable(haptics_integrated_controller src/control/integrated.cpp
   src/control/air_pressure_controller.cpp
