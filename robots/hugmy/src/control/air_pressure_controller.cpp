@@ -15,16 +15,16 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     ros::NodeHandle pnh("~");
 
     pnh.param("test_mode", test_mode_, true); //if test_mode = false, merge haptics
-    pnh.param("kp_joint",  kp_joint_,  0.04);
-    pnh.param("ki_joint",  ki_joint_,  0.005);
-    pnh.param("kd_joint",  kd_joint_,  0.001);
+    pnh.param("kp_joint",  kp_joint_,  0.38);
+    pnh.param("ki_joint",  ki_joint_,  0.03);
+    pnh.param("kd_joint",  kd_joint_,  0.003);
     pnh.param("kp_bottom", kp_bottom_, 0.04);
     pnh.param("ki_bottom", ki_bottom_, 0.005);
     pnh.param("kd_bottom", kd_bottom_, 0.001);
     pnh.param("u_limit",   u_limit_,   0.8);
 
 
-    pnh.param("leak_calib_enable",   leak_calib_enable_,   false);
+    pnh.param("leak_calib_enable",   leak_calib_enable_,   true);
     pnh.param("calib_sensor_index",  calib_sensor_index_,  0);
     pnh.param("calib_target_pressure", calib_target_pressure_, 20);
     pnh.param("calib_duration",      calib_duration_,      8.0);
@@ -41,7 +41,7 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     pnh.param("control_rate_hz",     control_rate_hz_,     50.0);
 
     pnh.param("lpf_tau",  lpf_tau_,  0.05);
-    ros::Duration(2.0).sleep();
+    ros::Duration(5.0).sleep();
     ROS_INFO("SLEEP");
     if (!leak_calib_finished_){
       leak_timer_ = nh.createTimer(ros::Duration(0.01), &AirPressureController::leakTimerCb, this, /*oneshot=*/false, /*autostart=*/false);
@@ -97,13 +97,12 @@ void AirPressureController::stopCb(const std_msgs::Bool::ConstPtr& msg)
 void AirPressureController::startLeakCalibration(int sensor_index)
 {
   if (leak_calib_running_) return;
-  ROS_INFO("aaaaaaaaaaaaaaa");
   calib_sensor_index_ = sensor_index;
   t_log_.clear();
   pg_log_.clear();
 
   if (calib_sensor_index_ == 0){
-    startAllSV();
+    stopAllSV();
     ros::Duration(0.3).sleep();
     // initializePneumatics();
   }else{
@@ -117,20 +116,20 @@ void AirPressureController::startLeakCalibration(int sensor_index)
   press_start_ = ros::Time::now();
   ros::NodeHandle nh;
   press_timer_ = nh.createTimer(ros::Duration(press_check_period_),&AirPressureController::pressTimerCb, this, false,true);
-  // const int sensor_now = (calib_sensor_index_ == 0) ? air_pressure_joint_ : air_pressure_bottom_;
-  // if (sensor_now < calib_target_pressure_ - 1){
-  //   ROS_INFO("[LeakCalib] done sensor=%d, sensor now=%d", calib_target_pressure_, sensor_now);
-  //   calPressure(calib_target_pressure_, calib_sensor_index_);
-  //   inicialPump();
-  //   ROS_INFO("adjust pump done");
-  //   return;
-  // }
-  // stopPump();
-  // ROS_INFO("stop pump done");
-  // calib_start_ = ros::Time::now();
-  // leak_calib_running_ = true;
-  // leak_timer_.start();
-  // ROS_WARN("[LeakCalib] started on sensor=%d target= %d kPa", calib_sensor_index_, calib_target_pressure_);
+  const int sensor_now = (calib_sensor_index_ == 0) ? air_pressure_joint_ : air_pressure_bottom_;
+  if (sensor_now < calib_target_pressure_ - 1){
+    ROS_ERROR("[LeakCalib] done sensor=%d, sensor now=%d", calib_target_pressure_, sensor_now);
+    calPressure(calib_target_pressure_, calib_sensor_index_);
+    inicialPump();
+    ROS_ERROR("adjust pump done");
+    return;
+  }
+  stopPump();
+  ROS_INFO("stop pump done");
+  calib_start_ = ros::Time::now();
+  leak_calib_running_ = true;
+  leak_timer_.start();
+  ROS_WARN("[LeakCalib] started on sensor=%d target= %d kPa", calib_sensor_index_, calib_target_pressure_);
 }
 
 void AirPressureController::pressTimerCb(const ros::TimerEvent&)
@@ -173,36 +172,47 @@ void AirPressureController::leakTimerCb(const ros::TimerEvent& ev)
 {
   if (!leak_calib_running_) return;
 
-  const ros::Time now = ros::Time::now();
-  const double t = (now - calib_start_).toSec();
-  const int sensor_now = (calib_sensor_index_ == 0) ? air_pressure_joint_ : air_pressure_bottom_;
-  const double Pg = static_cast<double>(sensor_now);
+  ros::Time now = ros::Time::now();
+  double t = (now - calib_start_).toSec();
+  int sensor_now = (calib_sensor_index_ == 0) ? air_pressure_joint_ : air_pressure_bottom_;
+  double Pg = static_cast<double>(sensor_now);
   ROS_WARN("[LeakCalib] calibed on sensor=%f target= %d kPa", Pg, calib_target_pressure_);
 
   t_log_.push_back(t);
   pg_log_.push_back(Pg);
+  ROS_WARN("[LeakCalib] t_log_.size() = %zu, pg_log_.size() = %zu", t_log_.size(), pg_log_.size());
+
 
   if (t >= calib_duration_) {
     leak_timer_.stop();
     leak_calib_running_ = false;
     leak_calib_finished_ = true;
+    ROS_INFO("[LeakCalib] t >= calib_duration_ (t=%.3f)", t);
 
-    std::vector<double> t_fit, pg_fit;
-    for (size_t i=0;i<t_log_.size();++i) if (pg_log_[i] >= calib_min_pg_) {
-        t_fit.push_back(t_log_[i]);
-        pg_fit.push_back(pg_log_[i]);
-      }
-    const double g = estimateLeak(t_fit, pg_fit);
+    // std::vector<double> t_fit, pg_fit;
+    // for (size_t i = 0; i < t_log_.size(); ++i) {
+    //   // if (i >= pg_log_.size()) {
+    //   //   break;
+    //   // }else{
+    //   // if (pg_log_[i] >= calib_min_pg_) {
+    //   t_fit.push_back(t_log_[i]);
+    //   pg_fit.push_back(pg_log_[i]);
+    //   ROS_INFO("forfor");
+    // }
+      // }
 
+    // ROS_WARN("[LeakCalib] before estimateLeak: samples=%zu (>=%.1f kPa)", t_fit.size(), calib_min_pg_);
+    // const double g = estimateLeak(t_fit, pg_fit);
+    double g = estimateLeak(t_log_, pg_log_);
+    ROS_INFO("[LeakCalib] estimateLeak returned: g=%.4f", g);
     if (calib_sensor_index_ == 0){
       g_leak_joint_ = std::max(0.0, g);
     }else{
       g_leak_bottom_ = std::max(0.0, g);
     }
-
+    
+    ROS_INFO("[LeakCalib] done sensor=%d -> g_leak=%.4f 1/s (samples=%zu)", calib_sensor_index_, g, t_log_.size());
     initializePneumatics();
-    ROS_INFO("[LeakCalib] done sensor=%d -> g_leak=%.4f 1/s (samples=%zu)",
-             calib_sensor_index_, g, t_fit.size());
     return;
   }
 }
@@ -459,8 +469,9 @@ void AirPressureController::controlLoopCb(const ros::TimerEvent& e)
     return;
   }
 
-  if(has_target_bottom_){
-    startAllSV();
+  if(target_bottom_cmd_ > 0){
+    startSVSwitch();
+    stopSVExhaust();
     int error = target_bottom_cmd_ - air_pressure_bottom_;
     calPressure(target_bottom_cmd_, 1);
     adjustPump();
