@@ -19,7 +19,7 @@ ApproachingHuman::ApproachingHuman()
   move_msg_.pos_xy_nav_mode = 1;
   move_msg_.yaw_nav_mode = 2;
 
-  //face exression
+  //face expression
   pub_vad_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
   pub_gaze_ = nh_.advertise<std_msgs::Float32>("/look_at", 1);
 
@@ -68,7 +68,6 @@ void ApproachingHuman::depthCb(const sensor_msgs::Image::ConstPtr& msg)
       depth_img_ = cvp->image.clone();
       depth_ready_ = true;
     } else if (cvp->image.type() == CV_32FC1) {
-      // Convert meters->mm to mimic python logic that expects millimeters
       cv::Mat mm;
       cvp->image.convertTo(mm, CV_32FC1, 1000.0); // meters to mm
       mm.convertTo(depth_img_, CV_16UC1);  // clamp/convert
@@ -343,7 +342,6 @@ void ApproachingHuman::spin()
   ros::spin();
 }
 
-// ===== main wrapper (optional) =====
 int main_approaching_human(int argc, char** argv)
 {
   ros::init(argc, argv, "Approaching_human");
