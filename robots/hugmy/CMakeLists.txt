@@ -40,7 +40,7 @@ add_library(hugmy_deformation_planning src/control/deformation_planning.cpp)
 target_link_libraries(hugmy_deformation_planning ${catkin_LIBRARIES})
 add_dependencies(hugmy_deformation_planning ${catkin_EXPORTED_TARGETS})
 
-add_library(hugmy_approaching_planning src/control/approaching_with_interaction.cpp)
+add_executable(hugmy_approaching_planning src/control/approaching_with_interaction.cpp)
 target_link_libraries(hugmy_approaching_planning ${catkin_LIBRARIES})
 add_dependencies(hugmy_approaching_planning ${catkin_EXPORTED_TARGETS})
 
