@@ -98,7 +98,7 @@ void DeltaController::linearWrenchAllocation()
   }
   for (int i = 0; i < motor_on_soft_frame_num_; i++)
   {
-    weight(2 * motor_on_rigid_frame_num_ + i, 2 * motor_on_rigid_frame_num_ + i) = 0.5;
+    weight(2 * motor_on_rigid_frame_num_ + i, 2 * motor_on_rigid_frame_num_ + i) = 0.1;
   }
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(dof, dof);
