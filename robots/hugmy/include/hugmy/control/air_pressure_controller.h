@@ -138,7 +138,7 @@ private:
     bool leak_calib_finished_ = false;
 
     int calib_target_pressure_ = 30;
-    double calib_duration_ = 8.0;
+    double calib_duration_ = 5.0;
     double calib_min_pg_ = 5.0;
     bool enable_leak_ff_ = true;
     double k_ff_ = 1.0;
