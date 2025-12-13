@@ -4,8 +4,8 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     sensor_joint_sub_ = nh.subscribe("/sensor", 1, &AirPressureController::sensorCb, this);
     sensor_bottom_sub_ = nh.subscribe("/sensor_1", 1, &AirPressureController::sensor1Cb, this);
     pwm_air_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/air", 1);
-    // pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
-    pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
+    pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
+    // pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
     joint_filtered_pub_  = nh.advertise<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1);
 
     pwm_air_cmd_.motor_index.clear();
@@ -14,7 +14,7 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
 
     ros::NodeHandle pnh("~");
 
-    pnh.param("test_mode", test_mode_, false);
+    pnh.param("test_mode", test_mode_, true); //if test_mode = false, merge haptics
     pnh.param("kp_joint",  kp_joint_,  0.04);
     pnh.param("ki_joint",  ki_joint_,  0.005);
     pnh.param("kd_joint",  kd_joint_,  0.001);
@@ -37,7 +37,7 @@ AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     pnh.param("alpha_sched",         alpha_sched_,         0.1);
     pnh.param("kp_leak_scale",       kp_leak_scale_,       0.0);
     pnh.param("ki_leak_scale",       ki_leak_scale_,       0.02);
-    pnh.param("external_mode",       external_mode_,       false);
+    pnh.param("external_mode",       external_mode_,       false); //if external_mode = true, control_loop is turning on  
     pnh.param("control_rate_hz",     control_rate_hz_,     50.0);
 
     pnh.param("lpf_tau",  lpf_tau_,  0.05);

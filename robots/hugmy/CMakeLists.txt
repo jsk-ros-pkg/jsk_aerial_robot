@@ -68,13 +68,13 @@ add_executable(haptics_integrated_controller src/control/integrated.cpp
   )
 target_link_libraries(haptics_integrated_controller ${catkin_LIBRARIES})
 add_dependencies(haptics_integrated_controller ${catkin_EXPORTED_TARGETS})
+
 add_executable(guidance_manual_controller src/control/test/haptics_guidance_manual_test.cpp
   src/control/air_pressure_controller.cpp
   src/control/haptics_controller.cpp
   src/control/rviz_visualizer.cpp
   )
 target_link_libraries(guidance_manual_controller ${catkin_LIBRARIES})
-
 
 add_executable(thrust_and_pressure_cal src/control/thrust_and_pressure_cal.cpp)
 target_link_libraries(thrust_and_pressure_cal ${catkin_LIBRARIES})
