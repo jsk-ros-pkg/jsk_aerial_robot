@@ -31,7 +31,7 @@ public:
   flight_state_sub_ = nh_.subscribe<std_msgs::UInt8>("/quadrotor/flight_state", 1, &IntegratedController::flightStateCb, this);
   reach_to_human_sub_ = nh_.subscribe<std_msgs::Bool>("/reach_flag", 1, &IntegratedController::reachHumanCb, this);
 
-  //face exression
+  //face expression
   vad_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
 }
 
