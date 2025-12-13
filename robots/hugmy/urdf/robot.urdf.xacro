@@ -110,32 +110,27 @@
   <link name="main_body">
     <inertial>
       <!-- with eye module -->
-      <mass value = "1.238" />
-      <!-- <origin xyz="0.0001458 -0.00117927 0.00925351" rpy="0 0 0"/> -->
-      <origin xyz="0.00014259 -0.00116305 0.00198970" rpy="0 0 0"/>
+      <!-- <mass value = "1.238" /> -->
+      <!-- <origin xyz="0.00014259 -0.00116305 0.00198970" rpy="0 0 0"/> -->
       <!-- <inertia -->
-      <!--     ixx="0.00915711" ixy="0.00000019" ixz="-0.00001262" -->
-      <!--     iyy="0.00910525" iyz="0.00004832" -->
-      <!--     izz="0.01525601"/> -->
-      <inertia
-          ixx="0.00601282" ixy="0.00000325" ixz="-0.00001709"
-          iyy="0.00596220" iyz="0.00002248"
-          izz="0.00952003"/>
+      <!--     ixx="0.00601282" ixy="0.00000325" ixz="-0.00001709" -->
+      <!--     iyy="0.00596220" iyz="0.00002248" -->
+      <!--     izz="0.00952003"/> -->
       <!-- without eye module -->
-      <!-- <mass value = "1.176" /> -->
-      <!-- <origin xyz="-0.00187886 -0.00015416 0.00165752" rpy="0 0 0"/> -->
-      <!-- <inertia -->
-      <!--     ixx="0.00659595" ixy="-0.00000357" ixz="-0.00010985" -->
-      <!--     iyy="0.00674188" iyz="-0.00000027" -->
-      <!--     izz="0.01039566"/> -->
+      <mass value = "1.176" />
+      <origin xyz="-0.00187886 -0.00015416 0.00165752" rpy="0 0 0"/>
+      <inertia
+          ixx="0.00659595" ixy="-0.00000357" ixz="-0.00010985"
+          iyy="0.00674188" iyz="-0.00000027"
+          izz="0.01039566"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <!-- with eye module -->
-        <mesh filename="package://hugmy/urdf/mesh/hugmy.dae" />
+        <!-- <mesh filename="package://hugmy/urdf/mesh/hugmy.dae" /> -->
         <!-- without eye module -->
-        <!-- <mesh filename="package://hugmy/urdf/mesh/hugmy_2.dae" /> -->
+        <mesh filename="package://hugmy/urdf/mesh/hugmy_2.dae" />
       </geometry>
     </visual>
     <collision>

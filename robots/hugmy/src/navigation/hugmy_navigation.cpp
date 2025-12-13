@@ -24,7 +24,8 @@ void HugmyNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 void HugmyNavigator::motorArming()
 {
   if(perching_flag_){
-    takeoff_height_ = init_height_ + 0.8;
+    // takeoff_height_ = init_height_ + 0.8;
+    takeoff_height_ = estimator_->getPos(Frame::COG, estimate_mode_).z() + 0.1;
     setTargetPosZ(takeoff_height_);
     perching_flag_ = false;
     ROS_ERROR_STREAM("second takeoff_height is " << takeoff_height_);

@@ -25,8 +25,8 @@ controller:
     limit_d: 20 # m / s^2
     landing_err_z: -0.2
     force_landing_descending_rate: -0.6
-    compensate_gravity: false # for stable flight in expreriment of face expression
-    # compensate_gravity: true
+    # compensate_gravity: false # for stable flight in expreriment of face expression
+    compensate_gravity: true
 
   yaw:
     p_gain: 10.0 # 4.0

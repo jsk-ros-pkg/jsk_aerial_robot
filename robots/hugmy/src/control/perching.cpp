@@ -47,13 +47,13 @@ void ApproachingHuman::flightStateCb(const std_msgs::UInt8::ConstPtr& msg)
   flight_state_msg_ = *msg;
   // demo/test: force true (as in python "####test")
   //test
-  flight_state_flag_ = true;
+  // flight_state_flag_ = true;
   //demo
-//   if (flight_state_msg_.data == 5) {
-//     flight_state_flag_ = true;
-//   } else {
-//     flight_state_flag_ = false;
-//   }
+  if (flight_state_msg_.data == 5) {
+    flight_state_flag_ = true;
+  } else {
+    flight_state_flag_ = false;
+  }
   if (rotate_cnt_ >= 20) {
     rotate_flag_ = true;
     rotate_cnt_ = 0;
@@ -99,7 +99,7 @@ void ApproachingHuman::odomCb(const nav_msgs::Odometry::ConstPtr& msg)
 void ApproachingHuman::flightRotateState()
 {
   //flight_state_flag sets True in test mode
-  flight_state_flag_ = true;
+  // flight_state_flag_ = true;
 
   if (rotate_cnt_ >= 20) {
     rotate_flag_ = true;
