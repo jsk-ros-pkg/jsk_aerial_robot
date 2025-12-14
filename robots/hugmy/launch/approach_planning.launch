@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="hugmy" type="hugmy_approaching_planning" name="approaching_with_interaction" output="screen" />
+  <!-- <node pkg="joy" type="joy_node" name="joy_node" output="screen" /> -->
+</launch>
