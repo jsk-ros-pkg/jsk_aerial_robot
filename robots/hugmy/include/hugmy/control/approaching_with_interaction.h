@@ -63,6 +63,7 @@ private:
   void handleReachedHuman();
   void stopWithIdleExpression();
   void handleNoRectDetected();
+  void updateLandCounter();
   
 
 private:
@@ -147,11 +148,18 @@ private:
   std::vector<std::string> target_shoulder_bones_ = {"left_shoulder", "right_shoulder"};
   std::vector<std::string> target_wrist_bones_ = {"left_wrist", "right_wrist"};
 
-  geometry_msgs::Point wrist_bone_;
+  geometry_msgs::Point left_wrist_bone_;
+  geometry_msgs::Point right_wrist_bone_;
   geometry_msgs::Point shoulder_bone_;
   bool handup_flag_;
-  bool wrist_find_ = false;
+  bool left_wrist_find_ = false;
+  bool right_wrist_find_ = false;
+  bool both_handup_flag_ = false;
+  bool both_wrist_find_ = false;
   bool shoulder_find_ = false;
+  double shoulder_dist_ = 0.0;
+  int shoulder_u_ = -1;
+  int shoulder_v_ = -1;
 
   ros::Time wrist_detect_time_;
   ros::Time shoulder_detect_time_;
