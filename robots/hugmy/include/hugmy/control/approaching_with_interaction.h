@@ -46,7 +46,7 @@ private:
   void odomCb(const nav_msgs::Odometry::ConstPtr& msg);
   void humanSkeletonCb(const jsk_recognition_msgs::HumanSkeletonArray::ConstPtr& msg);
   void timerCb(const ros::TimerEvent& ev);
-  
+
 
   // ===== Sub-routines =====
   void flightRotateState();
@@ -64,7 +64,8 @@ private:
   void stopWithIdleExpression();
   void handleNoRectDetected();
   void updateLandCounter();
-  
+  void updateFaceMode();
+  void updateAltitudeCommand();
 
 private:
   // ===== ROS =====
@@ -118,6 +119,12 @@ private:
   int dont_see_cnt_ = 0;
   bool face_first_change_flag_{true};
 
+  ros::Time last_face_update_;
+  bool near_face_mode_ = false;
+  int no_detect_cnt_ = 0;
+  bool no_detect_latched_ = false;
+
+
   nav_msgs::Odometry::ConstPtr odom_raw_;
   geometry_msgs::Vector3 euler_;
   double height_{0.0};
@@ -143,7 +150,7 @@ private:
   geometry_msgs::Vector3 target_pos_;
 
 
-   std::vector<std::vector<std::string>> bone_names_;
+  std::vector<std::vector<std::string>> bone_names_;
   std::vector<std::vector<jsk_recognition_msgs::Segment>> bones_;
   std::vector<std::string> target_shoulder_bones_ = {"left_shoulder", "right_shoulder"};
   std::vector<std::string> target_wrist_bones_ = {"left_wrist", "right_wrist"};

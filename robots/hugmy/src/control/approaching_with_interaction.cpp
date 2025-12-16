@@ -19,6 +19,7 @@ ApproachingHuman::ApproachingHuman()
   move_msg_.target = 1;
   move_msg_.pos_xy_nav_mode = 1;
   move_msg_.yaw_nav_mode = 2;
+  move_msg_.pos_z_nav_mode = 2;
 
   //face expression
   pub_vad_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
@@ -432,8 +433,8 @@ void ApproachingHuman::findBones(){
 
 void ApproachingHuman::posCalc()
 {
-  max_rect_pos_.x = static_cast<double>(shoulder_u_) + (static_cast<double>(max_rect_.width) / 2.0) - (static_cast<double>(camera_width_) / 2.0);
-  max_rect_pos_.y = - (static_cast<double>(shoulder_v_) + (static_cast<double>(max_rect_.height) / 2.0)) + (static_cast<double>(camera_height_) / 2.0);
+  max_rect_pos_.x = static_cast<double>(shoulder_u_) - static_cast<double>(camera_width_)  * 0.5;
+  max_rect_pos_.y = -(static_cast<double>(shoulder_v_) - static_cast<double>(camera_height_) * 0.5);
   ROS_INFO("max_rect_pos.x: %.3f", max_rect_pos_.x);
 }
 
@@ -545,81 +546,157 @@ void ApproachingHuman::pdControl()
 }
 
 
+void ApproachingHuman::updateAltitudeCommand()
+{
+  if (!shoulder_find_ || !depth_ready_ || depth_img_.empty()) {
+    return;
+  }
+
+  if (raw_depth_ == 0) {
+    ROS_WARN_THROTTLE(1.0, "updateAltitudeCommand: invalid depth at shoulder pixel");
+    return;
+  }
+
+  double Z_s = depth_;
+
+  double fy = camera_info_.K[4];
+  double cy = camera_info_.K[5];
+
+  double v_off = static_cast<double>(shoulder_v_) - cy;
+  double Y_s = -(v_off / fy) * Z_s;
+
+  const double Y_target = -0.15;
+  const double MAX_DH = 0.05;
+  double e = Y_target - Y_s;
+  double dh = std::clamp(e, -MAX_DH, MAX_DH);
+  double h_target_raw = height_ + dh;
+
+  const double Z_MIN = 0.8;
+  const double Z_MAX = 1.6;
+  double target_height = std::clamp(h_target_raw, Z_MIN, Z_MAX);
+
+  if (depth_ > 0.7){
+    move_msg_.target_pos_z = target_height;
+  }else{
+    move_msg_.target_pos_z = 1.2;
+  }
+
+  ROS_INFO("Altitude ctrl: Y_s=%.3f, e=%.3f, h_now=%.3f -> h_target=%.3f", Y_s, e, h_target_raw, target_height);
+}
+
+// void ApproachingHuman::updateGazeAndExpressionWhileApproaching()
+// {
+  
+//   float w    = static_cast<float>(camera_width_);
+//   float x_px = static_cast<float>(max_rect_pixel_pos_.x) - w * 0.5f;
+//   float x_norm = -(x_px / w) * 2.0f;
+//   gaze_x_.data = std::clamp(x_norm, -1.0f, 1.0f);
+//   pub_gaze_.publish(gaze_x_);
+
+//   float v = 0.0f;
+//   float a = 0.0f;
+  
+//   // face expression change v
+//   if (depth_ <= 0.5f) {
+//     v = (0.5f - static_cast<float>(depth_)) / 0.5f * 0.5f + 0.4f;
+//     a = (0.5f - static_cast<float>(depth_)) / 0.5f * 0.5f + 0.4f;
+//       if (handup_flag_) {
+//       // 手を上げているなら、もう少し嬉しそうに
+// 	v = std::min(1.0f, v + 0.2f);
+// 	a = std::min(1.0f, a + 0.1f);
+//       }
+
+//     v = std::clamp(v, a, 1.0f);
+
+//     vad_array_.data = {v, 0.0f, 0.0f};
+
+//     if (v >= 0.5f) {
+//       gaze_x_.data = 0.0f;
+//       pub_gaze_.publish(gaze_x_);
+//     }
+
+//     face_first_change_flag_ = true;
+//   } else {
+//     v = 0.0f;
+//     a = 0.0f;
+//     float d = 0.0f;
+//     if (face_first_change_flag_) {
+//       v = -0.3f;
+//       a = 0.6f;
+//       d = 0.0f;
+//     }else{
+//       v = 0.0f;
+//       a = 0.0f;
+//       d = 0.0f;
+//     }
+//     if (handup_flag_) {
+//       v = 0.8f;
+//       a = 0.5f;
+//       d = 0.0f;
+//     }
+//     vad_array_.data = {v, a, d};
+//     face_first_change_flag_ = false;
+//   }
+// }
+
+
+void ApproachingHuman::updateFaceMode()
+{
+  if (std::isnan(depth_)) return;
+
+  const double ENTER = 0.45; // 近距離モードに入る
+  const double EXIT  = 0.55; // 近距離モードを抜ける
+
+  if (!near_face_mode_ && depth_ < ENTER) near_face_mode_ = true;
+  if ( near_face_mode_ && depth_ > EXIT ) near_face_mode_ = false;
+}
+
 void ApproachingHuman::updateGazeAndExpressionWhileApproaching()
 {
   // face expression change the iris movement
-  float w    = static_cast<float>(camera_width_);
+  float w = static_cast<float>(camera_width_);
   float x_px = static_cast<float>(max_rect_pixel_pos_.x) - w * 0.5f;
   float x_norm = -(x_px / w) * 2.0f;
   gaze_x_.data = std::clamp(x_norm, -1.0f, 1.0f);
   pub_gaze_.publish(gaze_x_);
 
+  updateFaceMode();
+
+  const ros::Time now = ros::Time::now();
+
+  if (!near_face_mode_) {
+    const double UPDATE_PERIOD = 0.5; // 0.5秒に1回だけ更新
+    if (!last_face_update_.isZero() && (now - last_face_update_).toSec() < UPDATE_PERIOD) {
+      pub_vad_.publish(vad_array_);
+      return;
+    }
+    last_face_update_ = now;
+
+    float v = handup_flag_ ? 0.8f : 0.0f;
+    float a = handup_flag_ ? 0.3f : 0.0f;
+    float d = 0.0f;
+    vad_array_.data = {v, a, d};
+    pub_vad_.publish(vad_array_);
+    return;
+  }
+
   float v = 0.0f;
   float a = 0.0f;
-  
-  // face expression change v
-  if (depth_ <= 0.5f) {
-    v = (0.5f - static_cast<float>(depth_)) / 0.5f * 0.5f + 0.4f;
-    a = (0.5f - static_cast<float>(depth_)) / 0.5f * 0.5f + 0.4f;
-      if (handup_flag_) {
-      // 手を上げているなら、もう少し嬉しそうに
-	v = std::min(1.0f, v + 0.2f);
-	a = std::min(1.0f, a + 0.1f);
-      }
-
+  if (depth_ <= 0.7f) {
+    v = (0.7f - static_cast<float>(depth_)) / 0.7f * 0.5f + 0.3f;
+    a = (0.7f - static_cast<float>(depth_)) / 0.7f * 0.5f + 0.3f;
+    if (handup_flag_) { v = std::min(1.0f, v + 0.2f); a = std::min(1.0f, a + 0.1f); }
     v = std::clamp(v, a, 1.0f);
-
     vad_array_.data = {v, 0.0f, 0.0f};
-
-    if (v >= 0.5f) {
-      gaze_x_.data = 0.0f;
-      pub_gaze_.publish(gaze_x_);
-    }
-
-    face_first_change_flag_ = true;
+    // face_first_change_flag_ = true;
   } else {
-    v = 0.0f;
-    a = 0.0f;
-    float d = 0.0f;
-    if (face_first_change_flag_) {
-      v = -0.3f;
-      a = 0.6f;
-      d = 0.0f;
-    }else{
-      v = 0.0f;
-      a = 0.0f;
-      d = 0.0f;
-    }
-    if (handup_flag_) {
-      v = 0.8f;
-      a = 0.5f;
-      d = 0.0f;
-    }
-    vad_array_.data = {v, a, d};
-    face_first_change_flag_ = false;
+    vad_array_.data = {0.0f, 0.0f, 0.0f};
+    // face_first_change_flag_ = false;
   }
+  
+
+  pub_vad_.publish(vad_array_);
 }
-
-// void ApproachingHuman::updateAltitudeCommand()
-// {
-//   if (shoulder_find_) {
-//     double target_h = shoulder_bone_.y;
-//     move_msg_.target_pos_z = target_h;
-//     move_msg_.pos_z_nav_mode = 1;
-//     return;
-//   }
-
-//   double desired_y = 50.0;
-//   double err_y = desired_y - max_rect_pos_.y;
-
-//   double k_z = 0.002;
-//   double dz = k_z * err_y;
-
-//   double target_h = height_ + dz;
-//   move_msg_.target_pos_z = target_h;
-//   move_msg_.pos_z_nav_mode = 1;
-// }
-
 
 
 void ApproachingHuman::handleValidDepth()
@@ -742,18 +819,20 @@ void ApproachingHuman::handleNoRectDetected()
   pub_move_.publish(move_msg_);
   ROS_INFO("stop! because the robot can't see people");
 
-  // face expression disgust
-  vad_array_.data = {-0.5f, -0.3f, -0.8f};
-  pub_vad_.publish(vad_array_);
-  face_first_change_flag_ = true;
+  if (!no_detect_latched_) {
+    return;
+  }else{
+    // face expression disgust
+    vad_array_.data = {-0.5f, -0.3f, -0.8f};
+    pub_vad_.publish(vad_array_);
+    face_first_change_flag_ = true;
 
-  // gaze movement
-  if (dont_see_cnt_ % 2 == 0) {
-    gaze_x_.data = -0.8f;
-  } else {
-    gaze_x_.data = 0.8f;
+    // gaze movement
+    if (dont_see_cnt_ % 2 == 0) gaze_x_.data = -0.8f;
+    else gaze_x_.data = 0.8f;
+    pub_gaze_.publish(gaze_x_);
   }
-  pub_gaze_.publish(gaze_x_);
+
   dont_see_cnt_++;
 
   // ある程度離れているなら少し yaw を回して探す
@@ -786,12 +865,19 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
 
   flight_state_flag_ = true;
   if (!flight_state_flag_) {
+    updateAltitudeCommand();
     stopWithIdleExpression();
     return;
   }else{
     if (n_ >= 1 && !rects_.rects.empty()) {
+      no_detect_cnt_ = 0;
+      no_detect_latched_ = false;
       handleRectDetected();
     }else{
+      no_detect_cnt_++;
+      if (no_detect_cnt_ >= 10){
+        no_detect_latched_ = true;
+      }
       handleNoRectDetected();
     }
   }
