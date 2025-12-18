@@ -30,10 +30,11 @@ class PaintDemo():
         self.body_mocap_sub = rospy.Subscriber('mocap/pose', PoseStamped, self.body_mocap_cb)
         self.rotor5_mocap_sub = rospy.Subscriber('thrust5/mocap/pose', PoseStamped, self.rotor5_mocap_cb)
 
-        self.state = 0
+        self.state = 2
 
         self.update_hz = 50
         self.close_count = 0
+        self.paint_count = 0
         self.body_mocap_update_stamp = 0
         self.rotor5_mocap_update_stamp = 0
         self.start_pos = None
@@ -60,16 +61,17 @@ class PaintDemo():
 
     def run(self):
         r = rospy.Rate(self.update_hz)
-        self.start_pos = self.robot.getCogPos()
+        # self.start_pos = self.robot.getCogPos()
+        # print("start_pos: ", self.start_pos)
 
-        dest_yaw = -1.57
+        dest_yaw = math.radians(0)
 
         while not rospy.is_shutdown():
 
             if self.state == 0:
                 ## step1: go to the starting point
                 input("Press Enter to go to the starting point...")
-                self.robot.goPosYaw(pos = np.array([0.0, 0.0, 0.6]), yaw = dest_yaw, vel_thresh = 0.05, yaw_thresh = 0.05)
+                # self.robot.goPosYaw(pos = np.array([-0.7, 0.5, 0.6]), yaw = dest_yaw, vel_thresh = 0.05, yaw_thresh = 0.05)
                 
                 user_input = input("Press Enter to proceed to next step...")
                 if user_input == '':
@@ -86,15 +88,17 @@ class PaintDemo():
                     continue
 
                 while not rospy.is_shutdown():
-                    self.robot.goVel(vel = np.array([0.0, 0.2, 0.0]))
+                    vel = 0.1
+                    self.robot.goVel(vel = np.array([vel/(2**0.5), vel/(2**0.5), 0.0]))
                     # if self.body_pos[1] - self.rotor5_pos[1] < 0.15:
                     self.close_count += 1
                     rospy.sleep(0.1)
                     # else:
                         # self.close_count = 0
                 
-                    if self.close_count > 50:
+                    if self.close_count > 30:
                         self.robot.goVel(vel = np.array([0.0, 0.0, 0.0]))
+                        self.close_count = 0
                         print("Reached the wall")
 
                         user_input = input("Press Enter to proceed to next step...")
@@ -113,19 +117,19 @@ class PaintDemo():
 
                 while not rospy.is_shutdown():
 
-                    if self.body_mocap_update_stamp + 1.0 < rospy.Time.now().to_sec() or \
-                    self.rotor5_mocap_update_stamp + 1.0 < rospy.Time.now().to_sec():
-                        print("mocap data timeout")
-                        self.robot.goVel(vel = np.array([0.0, 0.0, 0.0]))
-                        continue
+                    # if self.body_mocap_update_stamp + 1.0 < rospy.Time.now().to_sec() or \
+                    # self.rotor5_mocap_update_stamp + 1.0 < rospy.Time.now().to_sec():
+                    #     print("mocap data timeout")
+                    #     self.robot.goVel(vel = np.array([0.0, 0.0, 0.0]))
+                    #     continue
 
-                    angle = euler_from_quaternion(self.body_ori, axes='sxyz')
-                    yaw = angle[2]
-                    if abs(yaw - dest_yaw) > math.radians(10):
-                        yaw_rate = -0.1 if yaw > 0 else 0.1
-                        self.robot.rotateYaw(yaw = yaw_rate)
-                        print("adjusting yaw")
-                        continue
+                    # angle = euler_from_quaternion(self.body_ori, axes='sxyz')
+                    # yaw = angle[2]
+                    # if abs(yaw - dest_yaw) > math.radians(10):
+                    #     yaw_rate = -0.1 if yaw > 0 else 0.1
+                    #     self.robot.rotateYaw(yaw = yaw_rate)
+                    #     print("adjusting yaw")
+                    #     continue
                     
                     # if self.rotor5_pos[1] - self.body_pos[1] > 0.1:
                     #     y_vel = 0.05
@@ -133,22 +137,25 @@ class PaintDemo():
                     #     print("adjusting y position")
                     #     continue
 
-                    x_vel = 0.05
-                    self.robot.goVel(vel = np.array([x_vel, 0.0, 0.0]))
+                    vel = 0.1
+                    self.robot.goVel(vel = np.array([vel/(2**0.5), -vel/(2**0.5), 0.0]))
                     print("painting...")
+                    self.paint_count += 1
+                    rospy.sleep(0.1)
 
-                    if self.body_pos[0] > 0.6:
+                    if self.paint_count > 50:
                         self.robot.goVel(vel = np.array([0.0, 0.0, 0.0]))
+                        self.paint_count = 0
                         print("Finished painting")
 
                         user_input = input("Press Enter to proceed to next step...")
-                        if user_input == '':
-                            self.state = 3
-                            break
+                        # if user_input == '':
+                        #     self.state = 3
+                        #     break
             
-            elif self.state == 3:
+            # elif self.state == 3:
                 ## step4: return to the starting point and land
-                self.robot.goPos(pos = self.start_pos, vel_thresh = 0.05)
+                # self.robot.goPos(pos = self.start_pos, vel_thresh = 0.05)
 
             rospy.sleep(0.1)
             r.sleep()
