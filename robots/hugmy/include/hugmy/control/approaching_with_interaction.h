@@ -167,10 +167,15 @@ private:
   double shoulder_dist_ = 0.0;
   int shoulder_u_ = -1;
   int shoulder_v_ = -1;
-
+  int handup_cnt_{0};
+  int bothup_cnt_{0};
+  bool handup_latched_{false};
+  bool bothup_latched_{false};
+  static constexpr int HANDUP_LATCH_N = 8;
+  static constexpr int BOTHUP_LATCH_N = 8;
   ros::Time wrist_detect_time_;
   ros::Time shoulder_detect_time_;
-
+  
 
   double depth_trend_prev_ = std::numeric_limits<double>::quiet_NaN();
 

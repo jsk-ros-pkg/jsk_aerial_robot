@@ -279,6 +279,7 @@ void ApproachingHuman::findBones(){
     shoulder_find_ = false;
     left_wrist_find_ = false;
     right_wrist_find_ = false;
+    both_wrist_find_ = false;
 
     geometry_msgs::Point left_shoulder_pt;
     geometry_msgs::Point right_shoulder_pt;
@@ -383,7 +384,7 @@ void ApproachingHuman::findBones(){
 	    right_wrist_find_ = true;
 	    wrist_detect_time_ = now;
 	  }
-	  if (has_right_wrist && has_right_wrist){
+	  if (has_left_wrist && has_right_wrist){
 	    both_wrist_find_ = true;
 	  }
 	}
@@ -409,6 +410,7 @@ void ApproachingHuman::findBones(){
       handup_flag_ = true;
       if (left_wrist_find_ && left_wrist_bone_.y <= shoulder_bone_.y){
 	both_handup_flag_ = true;
+        handup_flag_ = false;
       }else{
 	both_handup_flag_ = false;
       }
@@ -418,6 +420,7 @@ void ApproachingHuman::findBones(){
     }
   }else{
     handup_flag_ = false;
+    both_handup_flag_ = false;
   }
   ROS_INFO("shoulder:%d, wrist:%d, handup: %d", shoulder_find_, both_wrist_find_, handup_flag_);
 }
@@ -629,12 +632,26 @@ void ApproachingHuman::updateGazeAndExpressionWhileApproaching()
       a = 0.0f;
       d = 0.0f;
     }
-    if (handup_flag_) {
-      v = 0.8f;
-      a = 0.5f;
-      d = 0.0f;
+    if (!handup_latched_ && !bothup_latched_) {
+      vad_array_.data = {v, a, d};
+      pub_vad_.publish(vad_array_);
+      return;
+    }else{
+      if (handup_latched_) {
+        v = 0.8f;
+        a = 0.5f;
+        d = 0.0f;
+      }
+      if (bothup_latched_) {
+        float sad_v = - (static_cast<float>(depth_) - 0.5f) /1.0f;
+        sad_v = std::clamp(sad_v, -1.0f, -0.2f);
+        v = sad_v;
+        a = 0.3f;
+        d = -0.5f;
+      }
+      vad_array_.data = {v, a, d};
+      pub_vad_.publish(vad_array_);
     }
-    vad_array_.data = {v, a, d};
     face_first_change_flag_ = false;
   }
 }
@@ -713,14 +730,9 @@ void ApproachingHuman::handleValidDepth()
   const double TREND_THRESH = 0.15;
   updateGazeAndExpressionWhileApproaching();
   if (both_handup_flag_){
-    float sad_v = - (static_cast<float>(depth_) - 0.5f) /1.0f;
-    sad_v = std::clamp(sad_v, -1.0f, -0.2f);
-    vad_array_.data = {sad_v, 0.3f, -0.5f};  // V<0, Aも少しマイナス寄り
     move_msg_.target_vel_x = -0.2;
     ROS_INFO("Human is going away... sad & back off");
   }
-
-  pub_vad_.publish(vad_array_);
   // if (!std::isnan(depth_trend_prev_)) {
   //   bool going_forward = (move_msg_.target_vel_x > 0.05);
   //   bool getting_farther = (depth_ > depth_trend_prev_ + TREND_THRESH);
@@ -865,6 +877,12 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
 
   flightRotateState();
   findBones();
+
+  if (handup_flag_) handup_cnt_++; else handup_cnt_ = 0;
+  if (both_handup_flag_) bothup_cnt_++; else bothup_cnt_ = 0;
+
+  handup_latched_ = (handup_cnt_ >= HANDUP_LATCH_N);
+  bothup_latched_ = (bothup_cnt_ >= BOTHUP_LATCH_N);
 
   flight_state_flag_ = true;
   if (!flight_state_flag_) {
