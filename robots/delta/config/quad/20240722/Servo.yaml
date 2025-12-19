@@ -8,7 +8,7 @@ servo_controller:
     # for simulation
     simulation:
       pid: {p: 50.0, i: 0.4, d: 2.0}
-      init_value: 1.57
+      init_value: 1.04 # about 60 degrees
       type: effort_controllers/JointPositionController
 
     controller1:
@@ -26,28 +26,56 @@ servo_controller:
       name: soft_joint2
       angle_sgn: 0
       simulation:
-        init_value: 0.0
+        init_value: 0.78 # about 45 degrees
 
     controller5:
       id: 8
       name: soft_joint3
       angle_sgn: 0
       simulation:
-        init_value: 0.0
+        init_value: 0.78
 
     controller6:
       id: 9
       name: servo_joint1
       angle_sgn: 0
       simulation:
-        init_value: 0.0
+        init_value: 0
 
     controller7:
       id: 10
       name: servo_joint2
       angle_sgn: 0
       simulation:
-        init_value: 0.0
+        init_value: 0
+    
+    controller8:
+      id: 11
+      name: soft_joint5
+      angle_sgn: 0
+      simulation:
+        init_value: 0.78
+
+    controller9:
+      id: 12
+      name: soft_joint6
+      angle_sgn: 0
+      simulation:
+        init_value: 0.78
+
+    controller10:
+      id: 13
+      name: servo_joint3
+      angle_sgn: 0
+      simulation:
+        init_value: 0
+
+    controller11:
+      id: 14
+      name: servo_joint4
+      angle_sgn: 0
+      simulation:
+        init_value: 0
 
   gimbals:
     no_real_state: false # true if there is no servo state from real machine
