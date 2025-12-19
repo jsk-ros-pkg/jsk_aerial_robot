@@ -17,9 +17,7 @@
         </include>
 
         <!-- mocap -->
-        <!--
-            <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
-        -->
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
         <!-- joint rough calib -->
         <node pkg="spinal" type="servo_rough_calib.py" name="servo_rough_calib" output="screen">
