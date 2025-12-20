@@ -26,14 +26,14 @@ servo_controller:
       name: soft_joint2
       angle_sgn: 0
       simulation:
-        init_value: 0.78 # about 45 degrees
+        init_value: 0
 
     controller5:
       id: 8
       name: soft_joint3
       angle_sgn: 0
       simulation:
-        init_value: 0.78
+        init_value: 0
 
     controller6:
       id: 9
@@ -54,14 +54,14 @@ servo_controller:
       name: soft_joint5
       angle_sgn: 0
       simulation:
-        init_value: 0.78
+        init_value: 0
 
     controller9:
       id: 12
       name: soft_joint6
       angle_sgn: 0
       simulation:
-        init_value: 0.78
+        init_value: 0
 
     controller10:
       id: 13
