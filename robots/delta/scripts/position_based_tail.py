@@ -282,14 +282,14 @@ if __name__ == "__main__":
         while True:
             rospy.sleep(0.5)
             tail_msg = ServoControlCmd()
-            tail_msg.index = [8, 7, 9, 10]
+            tail_msg.index = [8, 7, 9, 10, 12, 11, 13, 14]
 
             rotor_msg = PwmTest()
             rotor_msg.motor_index = [5]
 
             soft_joint_msg = JointState()
-            soft_joint_msg.name = ["soft_joint2", "soft_joint3"]
-            soft_joint_msg.effort = [0.3, 0.3]
+            soft_joint_msg.name = ["soft_joint2", "soft_joint3", "soft_joint5", "soft_joint6"]
+            soft_joint_msg.effort = [0.3, 0.3, 0.3, 0.3]
 
             if last_published_target is None:
                 last_published_target = [0.0, 0.0, 0.0, 0.0]
@@ -382,10 +382,10 @@ if __name__ == "__main__":
                 2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_1),
                 2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_1),
                 2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_1),
-                # 2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_2),
-                # 2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_2),
-                # 2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_2),
-                # 2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_2),
+                2047 + 1 * get_angle_diff(x_plus_long_wire_soft_link_2),
+                2047 - 1 * get_angle_diff(x_minus_long_wire_soft_link_2),
+                2047 + 1 * get_angle_diff(x_plus_short_wire_soft_link_2),
+                2047 - 1 * get_angle_diff(x_minus_short_wire_soft_link_2),
             ]
             print("dest_servo_angles: ", dest_servo_angles)
             print()
@@ -393,7 +393,7 @@ if __name__ == "__main__":
             tail_msg.angles = dest_servo_angles
             tail_pub.publish(tail_msg)
 
-            soft_joint_msg.position = [dest_alpha_1, dest_alpha_2]
+            soft_joint_msg.position = [dest_alpha_1, dest_alpha_2, dest_alpha_3, dest_alpha_4]
             soft_joint_msg.header.stamp = rospy.Time.now()
             if is_simulation:
                 servo_controller_pub.publish(soft_joint_msg)
