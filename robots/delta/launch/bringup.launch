@@ -41,7 +41,8 @@
     <rosparam file="$(arg config_dir)/MotorInfo_$(arg prop)inch.yaml" command="load" />
 
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/$(arg type)/$(arg version)/Servo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/$(arg type)/$(arg version)/Servo.yaml" command="load" if="$(arg real_machine)" />
+    <rosparam file="$(arg config_dir)/$(arg type)/$(arg version)/Servo_sim.yaml" command="load" if="$(arg simulation)" />
 
    ###########  Battery Config  ###########
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
