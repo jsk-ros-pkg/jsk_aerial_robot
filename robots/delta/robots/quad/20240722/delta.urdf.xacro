@@ -78,19 +78,19 @@
   </joint>
 
   <joint name="soft_joint2" type="revolute">
-    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link1"/>
     <child link="soft_link2"/>
-    <origin xyz="0.1175 0 0" rpy="0 0 0.78"/>
+    <origin xyz="0.1175 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.2" friction="0.1"/>
   </joint>
 
   <joint name="soft_joint3" type="revolute">
-    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link2"/>
     <child link="soft_link3"/>
-    <origin xyz="0.235 0 0" rpy="0 0 0.78"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.2" friction="0.1"/>
   </joint>
@@ -371,19 +371,19 @@
   </joint>
 
   <joint name="soft_joint5" type="revolute">
-    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link4"/>
     <child link="soft_link5"/>
-    <origin xyz="0.1175 0 0" rpy="0 0 0.78"/>
+    <origin xyz="0.1175 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.2" friction="0.1"/>
   </joint>
 
   <joint name="soft_joint6" type="revolute">
-    <limit effort="5.0" lower="${-pi/2}" upper="${pi/2}" velocity="0.5"/>
+    <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link5"/>
     <child link="soft_link6"/>
-    <origin xyz="0.235 0 0" rpy="0 0 0.78"/>
+    <origin xyz="0.235 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.2" friction="0.1"/>
   </joint>
