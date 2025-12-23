@@ -18,15 +18,15 @@
 class Motor : public CANDevice
 {
 private:
-	  TIM_HandleTypeDef* pwm_htim_;
-	  void setPwm(uint16_t pwm);
+  TIM_HandleTypeDef* pwm_htim_;
+  void setSyncPwm(uint16_t pwm);
 public:
-	Motor(){}
-	Motor(uint8_t slave_id):CANDevice(CAN::DEVICEID_MOTOR, slave_id){}
-	void init(TIM_HandleTypeDef* htim);
-	void update();
-	void sendData() override;
-	void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
+  Motor(){}
+  Motor(uint8_t slave_id):CANDevice(CAN::DEVICEID_MOTOR, slave_id){}
+  void init(TIM_HandleTypeDef* htim);
+  void update();
+  void sendData() override;
+  void receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data) override;
 };
 
 #endif /* APPLICATION_MOTOR_H_ */
