@@ -24,9 +24,7 @@
 
 #ifndef SIMULATION
 /* state estimate  */
-#if NERVE_COMM
 #include <Spine/spine.h>
-#endif
 /* battery status */
 #include "battery_status/battery_status.h"
 /* RTOS */

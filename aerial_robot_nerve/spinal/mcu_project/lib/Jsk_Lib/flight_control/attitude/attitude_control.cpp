@@ -210,19 +210,12 @@ void AttitudeController::pwmsControl(void)
     }
 
   /* nerve comm type */
-#if NERVE_COMM
-  for(int i = 0; i < motor_number_; i++) {
-#if MOTOR_TEST
-
-    if (i == (HAL_GetTick() / 2000) % motor_number_)
-      Spine::setMotorPwm(200, i);
-    else
-      Spine::setMotorPwm(0, i);
-#else
-    Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
-#endif
-  }
-#endif
+  if(Spine::connected())
+    {
+      for(int i = 0; i < motor_number_; i++) {
+        Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
+      }
+    }
 
   if(dshot_)
     {
