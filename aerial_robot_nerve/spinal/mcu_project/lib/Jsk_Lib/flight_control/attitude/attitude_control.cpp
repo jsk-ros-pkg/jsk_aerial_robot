@@ -209,14 +209,6 @@ void AttitudeController::pwmsControl(void)
       pwms_pub_.publish(&pwms_msg_);
     }
 
-  /* nerve comm type */
-  if(Spine::connected())
-    {
-      for(int i = 0; i < motor_number_; i++) {
-        Spine::setMotorPwm(target_pwm_[i] * 2000 - 1000, i);
-      }
-    }
-
   if(dshot_)
     {
       /* direct pwm type */

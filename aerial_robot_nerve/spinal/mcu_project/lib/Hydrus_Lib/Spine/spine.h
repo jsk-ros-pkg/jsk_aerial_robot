@@ -13,8 +13,8 @@
 #include <sensors/imu/imu_ros_cmd.h>
 #include <Neuron/neuron.h>
 
-/* state estimate  */
 #include <state_estimate/state_estimate.h>
+#include "flight_control/flight_control.h"
 
 #include "math/AP_Math.h"
 
@@ -50,7 +50,7 @@ namespace Spine
 {
   void send(void);
   void update(void);
-  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, FlightControl* controller, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   bool connected();

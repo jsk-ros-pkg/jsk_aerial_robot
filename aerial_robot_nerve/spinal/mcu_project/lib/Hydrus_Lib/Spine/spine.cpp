@@ -27,6 +27,9 @@ namespace Spine
     /* sensor fusion */
     StateEstimate* estimator_;
 
+    /* flight controller */
+    FlightControl* controller_;
+
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
     constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
@@ -131,13 +134,16 @@ namespace Spine
     res.success = true;
   }
 
-  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
+  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, FlightControl* controller, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
   {
     /* CAN */
     CANDeviceManager::init(hcan, GPIOx, GPIO_Pin);
 
     /* Estimation */
     estimator_ = estimator;
+
+    /* Control */
+    controller_ = controller;
 
     HAL_Delay(5000); //wait neuron initialization
     CANDeviceManager::addDevice(can_initializer_);
@@ -194,6 +200,10 @@ namespace Spine
       {
         uav_model_ = spinal::UavInfo::DRAGON;
       }
+
+    /* update controller */
+    controller_->setUavModel(uav_model_);
+    controller_->setMotorNumber(slave_num_);
 
     servo_state_msg_.servos_length = servo_with_send_flag_.size();
     servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
@@ -254,6 +264,14 @@ namespace Spine
   {
     if (slave_num_ == 0) return;
 
+    /* update the motor PWM command */
+    for(int i = 0; i < slave_num_; i++) {
+      float pwm_rate = controller_->getTargetPwm(i);
+      uint16_t pwm_bit = pwm_rate * 2000 - 1000;
+      neuron_.at(i).can_motor_.setPwm(pwm_bit);
+    }
+
+    /* uodate IMU */
     for (int i = 0; i < slave_num_; i++)
       neuron_.at(i).can_imu_.update();
 
