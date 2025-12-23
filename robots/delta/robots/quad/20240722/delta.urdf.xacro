@@ -295,8 +295,7 @@
   <link name="gimbal_link5">
     <inertial>
       <origin xyz="0.0815 0 0" rpy="0 0 0"/>
-      <!-- mass is thrust link + painter -->
-      <mass value="${0.222 + 0.081}"/>
+      <mass value="${0.222}"/>
       <!-- this inertia value is 10 times bigger than the real one -->
       <!-- to avoid the instability in gazebo -->
       <!-- <inertia
