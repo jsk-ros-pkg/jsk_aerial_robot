@@ -274,9 +274,8 @@ int main(void)
 #endif
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
-#if SERVO_FLAG
-  servo_.init(&huart2, &nh_, NULL);
-#endif
+
+  bool servo_connect = servo_.init(&huart2, &nh_, NULL);
 
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
   if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -1354,12 +1353,14 @@ __weak void canRxTask(void const * argument)
 __weak void ServoTaskCallback(void const * argument)
 {
   /* USER CODE BEGIN ServoTaskCallback */
+  if (!servo_.connected()) {
+    osThreadTerminate(NULL);  // remove
+    return;
+  }
   /* Infinite loop */
   for(;;)
   {
-#if SERVO_FLAG
     servo_.update();
-#endif
     osDelay(1);
   }
   /* USER CODE END ServoTaskCallback */
