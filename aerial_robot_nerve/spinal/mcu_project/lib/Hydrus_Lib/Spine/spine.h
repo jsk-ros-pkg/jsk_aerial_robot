@@ -45,21 +45,20 @@ using CAN_GeranlHandleTypeDef = CAN_HandleTypeDef;
 using CAN_GeranlHandleTypeDef = FDCAN_HandleTypeDef;
 #endif
 
-
-#define SEND_GYRO 0
-
 // main subrutine for update enach instance
 namespace Spine
 {
   void send(void);
   void update(void);
-  void init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
+  bool connected();
   uint8_t getSlaveNum();
   int8_t getUavModel();
   void useRTOS(osMailQId* handle);
   void setServoControlFlag(bool flag);
+  void servoPublish();
   void servoPositionCallback(const spinal::ServoControlCmd& control_msg);
   void servoCurrentCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);

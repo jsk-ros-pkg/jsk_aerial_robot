@@ -166,9 +166,7 @@ static void MX_NVIC_Init(void);
 
         if(!start_processing_flag_) return;
 
-#if NERVE_COMM
         Spine::send();
-#endif
 
         /* sensors */
 #if IMU_FLAG
@@ -194,9 +192,7 @@ static void MX_NVIC_Init(void);
         controller_.update();
 #endif
 
-#if NERVE_COMM
         Spine::update();
-#endif
       }
   }
 
@@ -362,21 +358,15 @@ int main(void)
   /* Magnetic Encoder */
   encoder_.init(&hi2c2, &nh_);
 
-#if NERVE_COMM
   /* NERVE */
-  Spine::init(&hcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
-#endif
+  bool nerve_connect = Spine::init(&hcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
+  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
 #if FLIGHT_CONTROL_FLAG
   /* BATTERY_STATUS */
   battery_status_.init(&hadc2, &nh_);
   /* Start Attitude Control */
   controller_.init(&htim4, &htim8, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
-
-#if NERVE_COMM
-  controller_.setUavModel(Spine::getUavModel());
-  controller_.setMotorNumber(Spine::getSlaveNum());
-#endif
 
 #if GPS_FLAG
   gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
@@ -389,7 +379,6 @@ int main(void)
   start_processing_flag_ = true;
   uint32_t now_time = HAL_GetTick();
 
-  Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
