@@ -359,7 +359,7 @@ int main(void)
   encoder_.init(&hi2c2, &nh_);
 
   /* NERVE */
-  bool nerve_connect = Spine::init(&hcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
+  bool nerve_connect = Spine::init(&hcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
   if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
 #if FLIGHT_CONTROL_FLAG

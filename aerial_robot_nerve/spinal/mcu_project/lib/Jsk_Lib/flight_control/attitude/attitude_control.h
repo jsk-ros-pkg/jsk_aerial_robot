@@ -23,8 +23,6 @@
 #include <vector>
 
 #ifndef SIMULATION
-/* state estimate  */
-#include <Spine/spine.h>
 /* battery status */
 #include "battery_status/battery_status.h"
 /* RTOS */
@@ -98,7 +96,7 @@ public:
   bool getForceLandingFlag() {return force_landing_flag_;}
 
   void setForceLandingFlag(bool force_landing_flag) { force_landing_flag_ = force_landing_flag; }
-  float getPwm(uint8_t index) {return target_pwm_[index];}
+  float getTargetPwm(uint8_t index) {return target_pwm_[index];}
   float getForce(uint8_t index) {return target_thrust_[index];}
 
   bool activated();
