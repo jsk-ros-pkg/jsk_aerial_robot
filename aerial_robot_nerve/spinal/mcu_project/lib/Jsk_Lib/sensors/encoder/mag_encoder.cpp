@@ -10,9 +10,15 @@
 #endif
 
 #include "sensors/encoder/mag_encoder.h"
+#include <string>
 
 MagEncoder::MagEncoder():
   angle_pub_("encoder_angle", &angle_msg_)
+{
+}
+
+MagEncoder::MagEncoder(const char * topic_name):
+  angle_pub_(topic_name, &angle_msg_)
 {
 }
 

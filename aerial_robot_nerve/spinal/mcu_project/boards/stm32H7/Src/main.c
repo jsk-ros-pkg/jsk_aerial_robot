@@ -41,6 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
+#include "sensors/i2c_multiplexer/switcher.h"
 
 #include "battery_status/battery_status.h"
 
@@ -101,6 +102,11 @@ osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
 osMailQId canMsgMailHandle;
 
+osThreadId multiEncoderHandle;
+MagEncoder encoder1_("encoder_angle1");
+MagEncoder encoder2_("encoder_angle2");
+std::array<MagEncoder, 2> encoders_ = {encoder1_, encoder2_};
+
 ros::NodeHandle nh_;
 
 /* sensor instances */
@@ -148,7 +154,7 @@ void servoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void encoderTaskCallback(void const * argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -262,7 +268,11 @@ int main(void)
   Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
   Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 #endif
-  
+
+  I2C_MultiPlexer::init(&hi2c3);
+  for (int i = 0; i < encoders_.size(); i++) {
+    encoders_.at(i).init(&hi2c3, &nh_);
+  }
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -341,6 +351,11 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+  /* definition and creation of task to read from multiple encoders  */
+  osThreadDef(multiEncoder, encoderTaskCallback, osPriorityLow, 0, 256);
+  multiEncoderHandle = osThreadCreate(osThread(multiEncoder), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -1037,6 +1052,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void encoderTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  for(;;)
+    {
+      for (int i = 0; i < encoders_.size(); i++) {
+        int i2c_status = I2C_MultiPlexer::changeChannel(i);
+        if(i2c_status == HAL_OK) encoders_.at(i).update();
+      }
+
+      osDelay(1); // timer is controlled inside each `update` function
+
+  }
+  /* USER CODE END rosPublishTask */
+}
 
 /* USER CODE END 4 */
 
