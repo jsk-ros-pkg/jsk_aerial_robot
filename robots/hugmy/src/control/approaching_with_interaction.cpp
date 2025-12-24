@@ -578,12 +578,16 @@ void ApproachingHuman::updateAltitudeCommand()
   const double Z_MAX = 1.6;
   double target_height = std::clamp(h_target_raw, Z_MIN, Z_MAX);
 
-  if (depth_ > 0.7){
-    move_msg_.target_pos_z = target_height;
+  if (z_cnt_ > 10){
+    if (depth_ > 0.7){
+      move_msg_.target_pos_z = target_height;
+    }else{
+      move_msg_.target_pos_z = 1.2;
+    }
+    z_cnt_ = 0;
   }else{
-    move_msg_.target_pos_z = 1.2;
-  }
-
+    z_cnt_++;
+  }    
   ROS_INFO("Altitude ctrl: Y_s=%.3f, e=%.3f, h_now=%.3f, current_height = %.3f -> h_target=%.3f", Y_s, e, h_target_raw, height_, target_height);
 }
 
@@ -617,7 +621,7 @@ void ApproachingHuman::updateGazeAndExpressionWhileApproaching()
       gaze_x_.data = 0.0f;
       pub_gaze_.publish(gaze_x_);
     }
-
+    pub_vad_.publish(vad_array_);
     face_first_change_flag_ = true;
   } else {
     v = 0.0f;
@@ -638,13 +642,13 @@ void ApproachingHuman::updateGazeAndExpressionWhileApproaching()
       return;
     }else{
       if (handup_latched_) {
-        v = 0.8f;
-        a = 0.5f;
+        v = 0.85f;
+        a = 0.3f;
         d = 0.0f;
       }
       if (bothup_latched_) {
-        float sad_v = - (static_cast<float>(depth_) - 0.5f) /1.0f;
-        sad_v = std::clamp(sad_v, -1.0f, -0.2f);
+        float sad_v = - (static_cast<float>(depth_) - 1.0f) /2.0f;
+        sad_v = std::clamp(sad_v, -1.0f, -0.5f);
         v = sad_v;
         a = 0.3f;
         d = -0.5f;
@@ -730,7 +734,7 @@ void ApproachingHuman::handleValidDepth()
   const double TREND_THRESH = 0.15;
   updateGazeAndExpressionWhileApproaching();
   if (both_handup_flag_){
-    move_msg_.target_vel_x = -0.2;
+    move_msg_.target_vel_x = -0.5;
     ROS_INFO("Human is going away... sad & back off");
   }
   // if (!std::isnan(depth_trend_prev_)) {
@@ -878,11 +882,22 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
   flightRotateState();
   findBones();
 
-  if (handup_flag_) handup_cnt_++; else handup_cnt_ = 0;
-  if (both_handup_flag_) bothup_cnt_++; else bothup_cnt_ = 0;
-
-  handup_latched_ = (handup_cnt_ >= HANDUP_LATCH_N);
-  bothup_latched_ = (bothup_cnt_ >= BOTHUP_LATCH_N);
+  if (handup_flag_) {
+    handup_latched_ = true;
+    nothandup_cnt_ = 0;
+  }
+  if (both_handup_flag_) {
+    bothup_latched_ = true;
+    notbothup_cnt_ = 0;
+  }
+  if (!handup_flag_) nothandup_cnt_++;
+  if (!both_handup_flag_) notbothup_cnt_++;
+  if (nothandup_cnt_ >= 10){
+    handup_latched_ = false;
+  }
+  if (notbothup_cnt_ >= 10){
+    bothup_latched_ = false;
+  }
 
   flight_state_flag_ = true;
   if (!flight_state_flag_) {
