@@ -22,11 +22,9 @@ public:
   std::vector<std::vector<double>> theta_grid;
 
   ThetaModel() = default;
-
-  /// グリッドから数値微分を計算して bicubic 用の導関数テーブルを構築
   void buildSurface();
 
-  /// Bicubic Hermite 補間で θ を評価（範囲外は端にクランプ）
+  /// Bicubic Hermite 補間
   double f_theta_bicubic(double P, double T) const;
 
 private:
@@ -67,11 +65,13 @@ private:
   ros::Subscriber thrust_sub_;
   ros::Subscriber pressure_cur_sub_;
 
-  ros::Publisher pressure_cmd_pub_;
+  ros::Publisher pressure_cmd_joint_pub_;
+  ros::Publisher pressure_cmd_bottom_pub_;
   ros::Publisher pressure_sim_pub_;
   ros::Publisher move_cmd_pub_;
   ros::Publisher theta_est_pub_;
   ros::Publisher halt_pub_;
+  ros::Publisher land_pub_;
   ros::Publisher phase_pub_;        // 現在の状態を 0,1,2 で出す
 
 
@@ -87,14 +87,18 @@ private:
 
   double z_cmd_ = 0.0;
   bool   z_cmd_inited_ =false;
-  double v_down_approach_ = -0.1;
-  double v_down_preperch_ = -0.05;
+  double v_down_approach_ = -0.5;
+  double v_down_preperch_ = -0.02;
+  double z_vel_est_ = 0.0;
+  double z_prev_ = 0.0;
+  double Kp_vel_z_ = 0.1;
 
   // pressure
   double P_cur_meas_ = 0.0;
   double P_cmd_filt_ = 0.0;
   bool   P_cmd_inited_ = false;
-
+  double P_cmd_bottom_ = 0.0;
+  
   // thrust
   std::vector<float> thrust_cur_; // 現在の4モータ推力
   double thrust_avr_ = 0.0;            // 代表推力（平均値）
@@ -125,10 +129,11 @@ private:
   void updateZ(double dt);
   void updateThrustavr();
   void updateZCommand(double dt);
+  void updateZVelocity(double dt);
   void publishNavCommand();
 
   void updatePhase();         // 状態遷移
-  double computePRef() const; // 現在の phase_ と z_lpf_ から P_ref を決める
+  double computePRef(); // 現在の phase_ と z_lpf_ から P_ref を決める
 
   void updatePressureCmd(double P_ref, double dt);
 

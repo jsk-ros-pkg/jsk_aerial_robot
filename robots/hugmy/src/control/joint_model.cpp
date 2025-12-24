@@ -102,9 +102,9 @@ public:
   {
     theta_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("/quadrotor/debug/theta", 1);
     apply_to_joint_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joint_states", 1);
-    // pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1, &JointModel::pressureCb, this);
+    pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1, &JointModel::pressureCb, this);
     //sim
-    pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &JointModel::pressureCb, this);
+    // pressure_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &JointModel::pressureCb, this);
     thrust_sub_   = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &JointModel::thrustCb, this);
     mode_sub_   = nh_.subscribe<std_msgs::Empty>("/quadrotor/arm/joint_estimate_enable", 1, &JointModel::modeCb, this);
     apply_to_joint_sim_pub_ = nh_.advertise<sensor_msgs::JointState>("/quadrotor/joints_ctrl", 1);
