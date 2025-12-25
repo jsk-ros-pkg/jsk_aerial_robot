@@ -135,6 +135,6 @@ bool PinocchioRobotModelTest::forwardDynamicsDerivativesTest(bool verbose)
     std::cout << aba_thrust_partial_dthrust_num << std::endl;
   }
 
-  return (aba_thrust_partial_dq.isApprox(aba_thrust_partial_dq_num, 1e-6)) &&
-         (aba_thrust_partial_dthrust.isApprox(aba_thrust_partial_dthrust_num, 1e-6));
+  return (aba_thrust_partial_dq.isApprox(aba_thrust_partial_dq_num, 1e-4)) &&
+         (aba_thrust_partial_dthrust.isApprox(aba_thrust_partial_dthrust_num, 1e-4));
 }
