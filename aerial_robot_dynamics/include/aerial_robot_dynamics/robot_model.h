@@ -78,11 +78,14 @@ public:
   {
     return latest_id_solve_time_;
   }
+  const std::vector<pinocchio::SE3>& getJointMRotors() const
+  {
+    return joint_M_rotors_;
+  }
   const int& getRotorDirection(int index) const
   {
     return rotor_direction_.at(index);
   }
-
   const std::vector<int>& getRotorFrameIndices() const
   {
     return rotor_frame_indices_;
