@@ -455,6 +455,11 @@ PinocchioRobotModel::computeTauExtByThrustDerivativeQDerivativesNum(const Eigen:
   return tauext_partial_thrust_partial_q;
 }
 
+Eigen::VectorXd PinocchioRobotModel::computeTauExtByThrust(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust)
+{
+  return computeTauExtByThrustDerivative(q) * thrust;
+}
+
 Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen::VectorXd& q)
 {
   Eigen::MatrixXd tauext_partial_thrust = Eigen::MatrixXd::Zero(model_->nv, rotor_num_);
@@ -478,6 +483,21 @@ Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustDerivative(const Eigen
   }
 
   return tauext_partial_thrust;
+}
+
+Eigen::MatrixXd PinocchioRobotModel::computeTauExtByThrustQDerivative(const Eigen::VectorXd& q,
+                                                                      const Eigen::VectorXd& thrust)
+{
+  // Generalized gravity derivative w.r.t q
+  Eigen::MatrixXd gravity_partial_q = Eigen::MatrixXd::Zero(model_->nv, model_->nv);
+  pinocchio::computeGeneralizedGravityDerivatives(*model_, *data_, q, gravity_partial_q);
+
+  // Compute RNEA derivatives with external forces
+  pinocchio::container::aligned_vector<pinocchio::Force> fext = computeFExtByThrust(thrust);
+  pinocchio::computeRNEADerivatives(*model_, *data_, q, Eigen::VectorXd::Zero(model_->nv),
+                                    Eigen::VectorXd::Zero(model_->nv), fext);
+
+  return gravity_partial_q - data_->dtau_dq;
 }
 
 pinocchio::container::aligned_vector<pinocchio::Force>

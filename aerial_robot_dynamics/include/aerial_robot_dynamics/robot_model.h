@@ -58,7 +58,9 @@ public:
   computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in the LOCAL frame
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivatives(const Eigen::VectorXd& q);
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
+  Eigen::VectorXd computeTauExtByThrust(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
   Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
+  Eigen::MatrixXd computeTauExtByThrustQDerivative(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
 
   const bool& getIsFloatingBase() const
   {
