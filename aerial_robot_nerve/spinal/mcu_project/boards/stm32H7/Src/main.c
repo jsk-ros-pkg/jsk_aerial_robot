@@ -115,9 +115,7 @@ GPS gps_;
 BatteryStatus battery_status_;
 
 /* servo instance */
-#if SERVO_FLAG
 DirectServo servo_;
-#endif
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -242,23 +240,25 @@ int main(void)
   FlashMemory::read();
 #endif
 
+  /* direct servo initialization */
+  bool servo_connect = servo_.init(&huart3, &nh_, NULL);
+
   imu_.init(&hspi1, &hi2c3, &nh_, IMUCS_GPIO_Port, IMUCS_Pin, LED0_GPIO_Port, LED0_Pin);
   IMU_ROS_CMD::init(&nh_);
   IMU_ROS_CMD::addImu(&imu_);
   baro_.init(&hi2c1, &nh_, BAROCS_GPIO_Port, BAROCS_Pin);
   battery_status_.init(&hadc1, &nh_);
-#if GPS_FLAG
-  gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
-  estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
-#else 
-  estimator_.init(&imu_, &baro_, NULL, &nh_);
-#endif
+
+  // GPS and DirectServo share the same UART3.
+  if (servo_connect) { // no gps initialization
+    estimator_.init(&imu_, &baro_, NULL, &nh_);
+  } else { // try to connect gps if direct servo is valid
+    gps_.init(&huart3, &nh_, LED2_GPIO_Port, LED2_Pin);
+    estimator_.init(&imu_, &baro_, &gps_, &nh_); 
+  }
+
   controller_.init(&htim1, &htim4, &estimator_, &battery_status_, &nh_, &flightControlMutexHandle);
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
-
-#if SERVO_FLAG
-  servo_.init(&huart3, &nh_, NULL);
-#endif
 
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
   if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
@@ -1086,9 +1086,7 @@ void coreTaskFunc(void const * argument)
 
       imu_.update();
       baro_.update();
-#if GPS_FLAG      
-      gps_.update();
-#endif      
+      if (!servo_.connected()) gps_.update();
       estimator_.update();
       controller_.update();
 
@@ -1223,12 +1221,14 @@ __weak void canRxTask(void const * argument)
 __weak void servoTaskCallback(void const * argument)
 {
   /* USER CODE BEGIN servoTaskCallback */
+  if (!servo_.connected()) {
+    osThreadTerminate(NULL);  // remove
+    return;
+  }
   /* Infinite loop */
   for(;;)
   {
-#if SERVO_FLAG
     servo_.update();
-#endif
     osDelay(1);
   }
   /* USER CODE END servoTaskCallback */
