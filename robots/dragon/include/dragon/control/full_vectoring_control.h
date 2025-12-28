@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include <aerial_robot_msgs/ApplyWrench.h>
+#include <aerial_robot_msgs/ForceList.h>
 #include <aerial_robot_control/control/base/pose_linear_controller.h>
 #include <dragon/model/full_vectoring_robot_model.h>
 #include <dragon/dragon_navigation.h>
@@ -42,10 +44,11 @@
 #include <spinal/FourAxisCommand.h>
 #include <spinal/RollPitchYawTerm.h>
 #include <spinal/TorqueAllocationMatrixInv.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/String.h>
 #include <tf_conversions/tf_eigen.h>
 #include <dragon/sensor/imu.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nlopt.hpp>
 
 namespace aerial_robot_control
 {
@@ -65,6 +68,24 @@ namespace aerial_robot_control
                     boost::shared_ptr<aerial_robot_navigation::BaseNavigator> navigator,
                     double ctrl_loop_rate) override;
 
+    const boost::shared_ptr<Dragon::FullVectoringRobotModel> getDragonRobotModel() const { return dragon_robot_model_;}
+    const boost::shared_ptr<aerial_robot_model::RobotModel> getRobotModelForControl() const { return robot_model_for_control_;}
+
+    const Eigen::VectorXd getTargetWrench()
+    {
+      std::lock_guard<std::mutex> lock(wrench_mutex_);
+      return target_wrench_cog_;
+    }
+
+    const Eigen::VectorXd getTargetAcc() { return target_acc_cog_; }
+
+    void reset() override;
+
+    // only for read
+    const std::vector<int>& getRollLockedGimbal() const { return roll_locked_gimbal_; }
+    const std::vector<double>& getGimbalNominalAngles() const { return gimbal_nominal_angles_; }
+
+
   private:
 
     ros::Publisher flight_cmd_pub_; //for spinal
@@ -75,15 +96,48 @@ namespace aerial_robot_control
     ros::Publisher interfrence_marker_pub_;
 
     boost::shared_ptr<Dragon::FullVectoringRobotModel> dragon_robot_model_;
-    boost::shared_ptr<aerial_robot_model::transformable::RobotModel> robot_model_for_control_;
-    std::vector<float> target_base_thrust_;
+    boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_for_control_;
+    std::vector<double> target_base_thrust_;
     std::vector<double> target_gimbal_angles_;
     Eigen::VectorXd target_vectoring_f_;
-    bool decoupling_;
+
     bool gimbal_vectoring_check_flag_;
+    Eigen::VectorXd target_acc_cog_; // 6DoF acc (only represent the dynamic motion)
+    Eigen::VectorXd target_wrench_cog_; // 6DoF wrench (target_acc (DoF) * inertia + external wrench compensate term)
+
+    /* control method */
+    bool integral_vectoring_allocation_; // use gimbal roll and ptich for all control terms.
+
+    /* allocation method */
+    bool enable_static_allocation_method_;
+    bool enable_nonlinear_allocation_method_;
+    bool enable_gradient_allocation_method_;
+
+    /* static iterative allocation */
     double allocation_refine_threshold_;
     int allocation_refine_max_iteration_;
-    Eigen::VectorXd target_wrench_acc_cog_;
+
+
+    /* SR inverse for allocation */
+    double sr_inverse_sigma_;
+    double sr_inverse_acc_diff_thresh_;
+    double sr_inverse_thrust_diff_thresh_;
+
+    /* modification of gimbal roll method to enhance FC Tmin */
+    double gimbal_roll_target_lin_vel_thresh_, gimbal_roll_target_ang_vel_thresh_; // threshold to decide whether uses gimbal roll angles to handle velocity control term.
+    bool low_fctmin_;
+    double fctmin_thresh_; //, fctmin_hard_thresh_;
+    int low_fctmin_cnt_, normal_fctmin_cnt_;
+    int fctmin_status_change_thresh_;
+    double fixed_gimbal_roll_offset_; // heuristic
+    bool smooth_change_;
+    double gimbal_roll_change_thresh_;
+    double gimbal_roll_offset_;
+
+    /* nonlinear allocation for full vectoring  */
+    std::vector<double> prev_target_gimbal_angles_;
+    std::vector<double> gimbal_nominal_angles_;
+    std::vector<int> roll_locked_gimbal_;
 
     /* external wrench */
     std::mutex wrench_mutex_;
@@ -94,7 +148,9 @@ namespace aerial_robot_control
     Eigen::VectorXd integrate_term_;
     double prev_est_wrench_timestamp_;
 
+    /* rotor aerodynamic interference */
     bool rotor_interfere_compensate_;
+    bool disable_torque_compensate_;
     double fz_bias_;
     double tx_bias_;
     double ty_bias_;
@@ -115,17 +171,32 @@ namespace aerial_robot_control
     double overlap_dist_link_relax_thresh_;
     double overlap_dist_inter_joint_thresh_;
 
+    /* external (static) wrench compensation */
+    ros::Subscriber add_external_wrench_sub_, clear_external_wrench_sub_;
+    void addExternalWrenchCallback(const aerial_robot_msgs::ApplyWrench::ConstPtr& msg);
+    void clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg);
+
+    /* extra vectoring force (i.e., for grasping) */
+    ros::Subscriber extra_vectoring_force_sub_;
+    std::vector<Eigen::Vector3d> extra_vectoring_forces_;
+    void extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg);
 
     void externalWrenchEstimate();
-    const Eigen::VectorXd getTargetWrenchAccCog()
+
+    /* allocation method */
+    bool staticIterativeAllocation(const int iterative_cnt, const double iterative_threshold, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles, Eigen::VectorXd& vectoring_forces);
+    bool strictNonlinearAllocation(const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog);
+    bool gradientDescentAllocation(const int iterative_cnt, const Eigen::VectorXd target_acc, const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map, const std::vector<Eigen::Vector3d>& extra_vectoring_forces, KDL::JntArray& gimbal_processed_joint, const std::vector<Eigen::Matrix3d>& links_rotation_from_cog, std::vector<double>& thrust_forces, std::vector<double>& gimbal_angles);
+
+    bool srInverseAllocation(const Eigen::MatrixXd& q_wrench, const Eigen::VectorXd& nominal_f, const Eigen::VectorXd& target_wrench, const Eigen::VectorXd& nominal_thrust_force, std::vector<double>& thrust_force, std::vector<double>& gimbal_angles);
+
+    Eigen::VectorXd calcExternalWrenchSum(const std::map<std::string, Dragon::ExternalWrench>& external_wrench_map);
+
+    void setTargetAcc(const Eigen::VectorXd target_acc_cog) { target_acc_cog_ = target_acc_cog;}
+    void setTargetWrench(const Eigen::VectorXd target_wrench_cog)
     {
       std::lock_guard<std::mutex> lock(wrench_mutex_);
-      return target_wrench_acc_cog_;
-    }
-    void setTargetWrenchAccCog(const Eigen::VectorXd target_wrench_acc_cog)
-    {
-      std::lock_guard<std::mutex> lock(wrench_mutex_);
-      target_wrench_acc_cog_ = target_wrench_acc_cog;
+      target_wrench_cog_ = target_wrench_cog;
     }
 
     void controlCore() override;
