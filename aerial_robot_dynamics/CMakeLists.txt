@@ -47,7 +47,8 @@ if(BUILD_TEST)
     src/test/fd_derivative_test.cpp
     src/test/id_test.cpp
     src/test/id_derivative_test.cpp
-    src/test/tauext_by_thrust_derivative_test.cpp
+    src/test/tauext_by_thrust_q_derivative_test.cpp
+    src/test/tauext_by_thrust_derivative_q_derivative_test.cpp
     )
   target_link_libraries(robot_model_test
     robot_model
