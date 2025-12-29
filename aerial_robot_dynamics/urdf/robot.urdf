@@ -1,0 +1,132 @@
+<robot name="test_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <link name="root">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.00001"/>
+      <inertia
+          ixx="0.000001" ixy="0.0" ixz="0.0"
+          iyy="0.000001" iyz="0.0"
+          izz="0.000002"/>
+    </inertial>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root"/>
+    <child link="link1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <xacro:macro name="link" params="self child">
+    <xacro:property name="link_length" value="0.5"/>
+    <xacro:property name="link_width" value="0.05"/>
+    <xacro:property name="link_mass" value="0.5"/>
+    <xacro:property name="min_force" value="0.0"/>
+    <xacro:property name="max_force" value="30.0"/>
+
+    <link name="link${self}">
+      <inertial>
+        <origin xyz="${link_length / 2} 0 0" rpy="0 0 0"/>
+        <mass value="${link_mass}"/>
+        <inertia
+            ixx="${1/12 * link_mass * (link_width * link_width + link_width * link_width)}" ixy="0.0" ixz="0.0"
+            iyy="${1/12 * link_mass * (link_length * link_length + link_width * link_width)}" iyz="0.0"
+            izz="${1/12 * link_mass * (link_length * link_length + link_width * link_width)}"/>
+      </inertial>
+    </link>
+
+    <link name="gimbal${self}_roll_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+
+    <joint name="gimbal${self}_roll" type="revolute">
+      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <parent link="link${self}"/>
+      <child link="gimbal${self}_roll_link"/>
+      <origin rpy="0 0 0" xyz="${link_length/2} 0 0"/>
+      <axis xyz="1 0 0"/>
+    </joint>
+
+    <link name="gimbal${self}_pitch_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000002"/>
+      </inertial>
+    </link>
+
+    <joint name="gimbal${self}_pitch" type="revolute">
+      <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+      <parent link="gimbal${self}_roll_link"/>
+      <child link="gimbal${self}_pitch_link"/>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+
+    <link name="thrust${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia
+            ixx="0.00001" ixy="0.0" ixz="0.0"
+            iyy="0.00001" iyz="0.0"
+            izz="0.00002"/>
+      </inertial>
+    </link>
+
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="0" lower="${min_force}" upper="${max_force}" velocity="0"/>
+      <parent link="gimbal${self}_pitch_link"/>
+      <child link="thrust${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 ${(self % 2) * 2 - 1}"/>
+    </joint>
+
+    <xacro:unless value="${self == child}">
+      <link name="joint${self}_link">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.00001" ixy="0.0" ixz="0.0"
+              iyy="0.00001" iyz="0.0"
+              izz="0.00002"/>
+        </inertial>
+      </link>
+
+      <joint name="joint${self}_pitch" type="revolute">
+        <limit effort="20.0" lower="-1.57" upper="1.57" velocity="6"/>
+        <parent link="link${self}"/>
+        <child link="joint${self}_link"/>
+        <origin rpy="0 0 0" xyz="${link_length} 0 0"/>
+        <axis xyz="0 1 0"/>
+      </joint>
+
+      <joint name="joint${self}_yaw"  type="revolute">
+        <limit effort="20.0" lower="-1.57" upper="1.57" velocity="6"/>
+        <parent link="joint${self}_link"/>
+        <child link="link${child}"/>
+        <origin rpy="0 0 0" xyz="0.1 0 0"/>
+        <axis xyz="0 0 1"/>
+      </joint>
+
+    </xacro:unless>
+
+  </xacro:macro>
+
+  <xacro:link self="1" child="2"/>
+  <xacro:link self="2" child="3"/>
+  <xacro:link self="3" child="4"/>
+  <xacro:link self="4" child="4"/>
+
+</robot>
