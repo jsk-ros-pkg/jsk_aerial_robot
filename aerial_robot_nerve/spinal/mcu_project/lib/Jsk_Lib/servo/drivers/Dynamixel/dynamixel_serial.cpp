@@ -26,28 +26,20 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	get_move_tick_ = 0;
 	get_error_tick_ = 0;
 
-  pinReconfig();
+  direct_ttl_mode_ = false;
 
         /* rx */
-  __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
-  __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
-  #if DYNAMIXEL_BOARDLESS_CONTROL
-    HAL_HalfDuplex_EnableReceiver(huart_);
-  #endif
-  HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
   rd_ptr_ = 0;
   memset(rx_buf_, 0, sizeof(rx_buf_));
 
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
+        // scan to decide the comm (UART/ Half-duplex) mode
+        pinReconfig();
+
 	//initialize servo motors
-	HAL_Delay(500);
-	ping();
-	HAL_Delay(500);
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		reboot(i);
-	}
-	HAL_Delay(2000);
+        cmdReboot(DX_BROADCAST_ID);
+	HAL_Delay(3000);
 
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
@@ -118,17 +110,88 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 
 void DynamixelSerial::pinReconfig()
 {
+  // scan uart mode
   while(HAL_UART_DeInit(huart_) != HAL_OK);
   /*Change baud rate*/
   huart_->Init.BaudRate = 1000000;
   huart_->Init.WordLength = UART_WORDLENGTH_8B;
   huart_->Init.Parity = UART_PARITY_NONE;
   huart_->Init.Mode = UART_MODE_TX_RX;
-  /*Initialize as halfduplex mode*/
-#if DYNAMIXEL_BOARDLESS_CONTROL
-  while(HAL_HalfDuplex_Init(huart_) != HAL_OK);  
-#else 
   while(HAL_UART_Init(huart_) != HAL_OK);
+
+  __HAL_UART_DISABLE_IT(huart_, UART_IT_PE);
+  __HAL_UART_DISABLE_IT(huart_, UART_IT_ERR);
+  HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+
+  HAL_Delay(500);
+
+  ping();
+
+  // find more than one servo
+  if (servo_num_ > 0) return;
+
+
+  direct_ttl_mode_ = true;
+
+  // scan with TTL mode
+  while(HAL_UART_DeInit(huart_) != HAL_OK);
+  /*Initialize as halfduplex mode*/
+  while(HAL_HalfDuplex_Init(huart_) != HAL_OK);
+
+  // change the pull mode for gpio
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+#if STM32H7_V2
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5);
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#else
+#ifdef STM32H7
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8);
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#endif
+#endif
+
+  __HAL_UART_DISABLE_IT(huart_, UART_IT_PE);
+  __HAL_UART_DISABLE_IT(huart_, UART_IT_ERR);
+  HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+
+  HAL_Delay(500);
+
+  ping();
+
+  // find more than one servo
+  if (servo_num_ > 0) return;
+
+  direct_ttl_mode_ = false;
+
+  // change back to the no-push-pull mode for gpio
+#if STM32H7_V2
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5);
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#else
+#ifdef STM32H7
+  HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8);
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+#endif
 #endif
 }
 
@@ -260,6 +323,9 @@ uint8_t DynamixelSerial::getServoIndex(uint8_t id)
 
 void DynamixelSerial::update()
 {
+  /* skip if no servo is detected */
+  if (servo_num_ == 0) return;
+
   /* receive data process */
   /* For one round, change from "send -> receive" to " receive -> send" */
   /* This setting can accelerate the receiving process */
@@ -282,13 +348,7 @@ void DynamixelSerial::update()
     if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
     else set_pos_tick_ = current_time;
 
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, i));
-      }
-    } else {
-      instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
-    }
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
   }
 
   /* read servo position(angle) */
@@ -558,22 +618,9 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   transmit_data_index++;
 
   /* send data */
+  if(direct_ttl_mode_)  HAL_HalfDuplex_EnableTransmitter(huart_);
 
-#if DYNAMIXEL_BOARDLESS_CONTROL
-  HAL_HalfDuplex_EnableTransmitter(huart_);
-  uint8_t ret;
-  ret = HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
-  if(ret == HAL_OK)
-  {
-    while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
-    // After transmitting, enable the receiver
-    HAL_HalfDuplex_EnableReceiver(huart_);
-  }
-#else
-// WE; 
   HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
-// RE;
-#endif
 }
 /* Receive status packet to Dynamixel */
 int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
@@ -590,6 +637,12 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	bool read_end_flag = false;
 	int loop_count = 0;
 	uint8_t servo_id;
+
+        if(direct_ttl_mode_) {
+          while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
+          // After transmitting, enable the receiver
+          HAL_HalfDuplex_EnableReceiver(huart_);
+        }
 
 	while(!read_end_flag) {
 		HAL_StatusTypeDef receive_status = read(&rx_data, 1);

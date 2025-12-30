@@ -25,12 +25,10 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 
 	//initialize servo motors
 	HAL_Delay(500);
+        cmdReboot(BROADCAST_ID);
+	HAL_Delay(2000);
 	ping();
 	HAL_Delay(500);
-	for (unsigned int i = 0; i < servo_num_; i++) {
-		reboot(i);
-	}
-	HAL_Delay(2000);
 
 	setStatusReturnLevel();
 	//Successfully detected servo's led will be turned on 1 seconds
@@ -524,9 +522,7 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   transmit_data[transmit_data_index] = (chksum >> 8) & 0xFF; //CRC_H
   transmit_data_index++;
   /* send data */
-  WE;
   HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS. 
-  RE;
 }
 
 /* Receive status packet to Dynamixel */
@@ -1297,7 +1293,14 @@ HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
 
   while (true)
     {
+#if defined(STM32F413xx)
       uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
+#elif defined(STM32G473xx)
+      uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->CNDTR) % (RX_BUFFER_SIZE);
+#else
+#error "please specify the STM32 series"
+#endif
+
       if(rd_ptr_ != dma_write_ptr)
         {
           *data = (int)rx_buf_[rd_ptr_++];

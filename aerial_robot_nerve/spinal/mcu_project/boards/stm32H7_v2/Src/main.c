@@ -276,17 +276,16 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
-  DirectServo* servoptr = nullptr;
-#if SERVO_FLAG
-  servo_.init(&huart2, &nh_, NULL);
-  servoptr = &servo_;
-#elif NERVE_COMM
-  Spine::init(&hfdcan1, &nh_, &estimator_, LED1_GPIO_Port, LED1_Pin);
-  Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
-  &servo_ = NULL;
-#endif
+  bool servo_connect = servo_.init(&huart2, &nh_, NULL);
 
+  DirectServo* servoptr = nullptr;
+  if(servo_connect) servoptr = &servo_;
+  
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
+
+  bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
+
+  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
   /* USER CODE END 2 */
 
@@ -1222,18 +1221,15 @@ void coreTaskFunc(void const * argument)
     {
       osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
-#if NERVE_COMM
       Spine::send();
-#endif
+
       imu_.update();
       baro_.update();
       gps_.update();
       estimator_.update();
       controller_.update();
 
-#if !SERVO_FLAG && NERVE_COMM      
       Spine::update();
-#endif
 
       // Workaround to handle the BUSY->TIMEOUT Error problem of ETH handler in STM32H7
       // We observe this is occasionally occur, but the ETH DMA is valid.
@@ -1364,12 +1360,14 @@ __weak void canRxTask(void const * argument)
 __weak void ServoTaskCallback(void const * argument)
 {
   /* USER CODE BEGIN ServoTaskCallback */
+  if (!servo_.connected()) {
+    osThreadTerminate(NULL);  // remove
+    return;
+  }
   /* Infinite loop */
   for(;;)
   {
-#if SERVO_FLAG
     servo_.update();
-#endif
     osDelay(1);
   }
   /* USER CODE END ServoTaskCallback */
