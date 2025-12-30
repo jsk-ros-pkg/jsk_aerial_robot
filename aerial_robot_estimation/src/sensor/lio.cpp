@@ -31,8 +31,8 @@ namespace sensor_plugin
 
     for(int i = 0; i < 3; i++)
       {
-        acc_b[i] = imu_msg->acc[i];
-        gyro_b[i] = imu_msg->gyro[i];
+        acc_b[i] = imu_msg->acc_data[i];
+        gyro_b[i] = imu_msg->gyro_data[i];
       }
 
     tf::Transform lidar2baselink_tf;
