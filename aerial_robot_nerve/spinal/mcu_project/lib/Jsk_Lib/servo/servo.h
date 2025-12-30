@@ -44,11 +44,13 @@ public:
     servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this),
     board_info_srv_("get_board_info", &DirectServo::boardInfoCallback,this)
   {
+    connected_ = false;
   }
   ~DirectServo(){}
 
-  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
+  bool init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
   void update();
+  bool connected() {return connected_;}
   void sendData(bool flag_send_asap);
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
@@ -113,6 +115,9 @@ private:
 #else DYNAMIXEL
   DynamixelSerial servo_handler_;
 #endif
+
+  bool connected_;
+
   friend class Initializer;
 };
 

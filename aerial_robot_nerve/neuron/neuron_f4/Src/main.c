@@ -31,12 +31,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
-#include "can_device_manager.h"
-#include "imu_mpu9250.h"
-#include "servo.h"
-#include "motor.h"
-#include "flashmemory.h"
-#include "initializer.h"
+#include "CAN/can_device_manager.h"
+#include "IMU/imu_mpu9250.h"
+#include "Servo/servo.h"
+#include "Motor/motor.h"
+#include "Flashmemory/flashmemory.h"
+#include "Initializer/initializer.h"
 
 /* USER CODE END Includes */
 
