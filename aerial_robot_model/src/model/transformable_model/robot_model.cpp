@@ -30,8 +30,6 @@ RobotModel::RobotModel(bool init_with_rosparam, bool verbose, double fc_f_min_th
     link_joint_upper_limits_.push_back(joint_ptr->limits->upper);
   }
 
-  resolveLinkLength();
-
   // jacobian
   const int rotor_num = getRotorNum();
   const int joint_num = getJointNum();
