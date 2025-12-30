@@ -330,12 +330,6 @@ void StateEstimator::rosParamInit()
               sensor_index.back() = plane_detection_handlers_.size();
             }
 
-          if(name.find("lio") != std::string::npos)
-            {
-              lio_handlers_.push_back(sensors_.back());
-              sensor_index.back() = lio_handlers_.size();
-            }
-
 
           sensors_.back()->initialize(nh_, robot_model_, shared_from_this(), name, sensor_index.back());
           break;
