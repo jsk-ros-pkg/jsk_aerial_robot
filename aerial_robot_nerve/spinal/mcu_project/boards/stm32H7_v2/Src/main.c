@@ -280,8 +280,6 @@ int main(void)
   bool servo_connect = servo_.init(&huart2, &nh_, NULL);
   if(servo_connect)
     servoptr = &servo_;
-  else
-    &servo_ = NULL;
 
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 
