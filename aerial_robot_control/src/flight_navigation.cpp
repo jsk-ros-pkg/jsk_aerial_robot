@@ -45,8 +45,9 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   estimator_ = estimator;
   loop_du_ = loop_du;
 
-  pose_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::poseCallback, this, ros::TransportHints().tcpNoDelay());
+  single_goal_sub_ = nh_.subscribe("target_pose", 1, &BaseNavigator::singleGoalCallback, this, ros::TransportHints().tcpNoDelay());
   simple_move_base_goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &BaseNavigator::simpleMoveBaseGoalCallback, this, ros::TransportHints().tcpNoDelay());
+  path_sub_ = nh_.subscribe("target_path", 1, &BaseNavigator::pathCallback, this, ros::TransportHints().tcpNoDelay());
   navi_sub_ = nh_.subscribe("uav/nav", 1, &BaseNavigator::naviCallback, this, ros::TransportHints().tcpNoDelay());
 
   battery_sub_ = nh_.subscribe("battery_voltage_status", 1, &BaseNavigator::batteryCheckCallback, this);
@@ -74,6 +75,7 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
   power_info_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>("uav_power", 10);
   flight_state_pub_ = nh_.advertise<std_msgs::UInt8>("flight_state", 1);
   path_pub_ = nh_.advertise<nav_msgs::Path>("trajectory", 1);
+  waypoint_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("waypoints", 1);
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
@@ -144,7 +146,15 @@ void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
 
 }
 
-void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
+void BaseNavigator::pathCallback(const nav_msgs::PathConstPtr & msg)
+{
+  if(getNaviState() != HOVER_STATE) return;
+
+  generateNewTrajectory(msg->poses);
+}
+
+
+void BaseNavigator::singleGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
 {
   if(getNaviState() != HOVER_STATE) return;
 
@@ -153,7 +163,10 @@ void BaseNavigator::poseCallback(const geometry_msgs::PoseStampedConstPtr & msg)
       ROS_DEBUG("traj_generator_ptr_ is null");
     }
 
-  generateNewTrajectory(*msg);
+  std::vector<geometry_msgs::PoseStamped> path;
+  path.push_back(*msg);
+
+  generateNewTrajectory(path);
 }
 
 void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg)
@@ -166,7 +179,9 @@ void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedC
     }
   geometry_msgs::PoseStamped target_pose = *msg;
   target_pose.pose.position.z = getTargetPos().z();
-  generateNewTrajectory(target_pose);
+  std::vector<geometry_msgs::PoseStamped> path;
+  path.push_back(target_pose);
+  generateNewTrajectory(path);
 }
 
 
@@ -862,7 +877,7 @@ void BaseNavigator::updateLandCommand()
 }
 
 
-void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
+void BaseNavigator::generateNewTrajectory(std::vector<geometry_msgs::PoseStamped> path)
 {
   if (traj_generator_ptr_.get() != nullptr)
     {
@@ -870,64 +885,79 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
       traj_generator_ptr_.reset();
     }
 
+  std::vector<agi::QuadState> states;
+
   agi::QuadState start_state;
   start_state.setZero();
-  tf::Vector3 last_target_pos = getTargetPos();
-  start_state.p = agi::Vector<3>(last_target_pos.x(), last_target_pos.y(), last_target_pos.z());
-  tf::Vector3 last_target_vel = getTargetVel();
-  start_state.v = agi::Vector<3>(last_target_vel.x(), last_target_vel.y(), last_target_vel.z());
-  tf::Vector3 last_target_acc = getTargetAcc();
-  start_state.a = agi::Vector<3>(last_target_acc.x(), last_target_acc.y(), last_target_acc.z());
+  tf::Vector3 current_pos = estimator_->getPos(Frame::COG, estimate_mode_);
+  start_state.p = agi::Vector<3>(current_pos.x(), current_pos.y(), current_pos.z());
+  tf::Vector3 current_vel = estimator_->getVel(Frame::COG, estimate_mode_);
+  start_state.v = agi::Vector<3>(current_vel.x(), current_vel.y(), current_vel.z());
 
-  double last_target_yaw_angle = getTargetRPY().z();
-  start_state.setYaw(last_target_yaw_angle);
+  double yaw_angle = estimator_->getEuler(Frame::COG, estimate_mode_).z();
+  start_state.setYaw(yaw_angle);
   double last_target_omega_z = getTargetOmega().z();
-  start_state.w(2) = last_target_omega_z;
+  start_state.w(2) = last_target_omega_z; // use target omega z instead of the real omega to avoid the noise
   start_state.t = ros::Time::now().toSec();
+  states.push_back(start_state);
 
-  agi::QuadState end_state;
-  end_state.setZero();
-  Eigen::Vector3d p;
-  tf::pointMsgToEigen(pose.pose.position, p);
-  end_state.p = p;
-  agi::Quaternion q;
-  tf::quaternionMsgToEigen(pose.pose.orientation, q);
-  if (std::fabs(1 - q.squaredNorm())  < 1e-6)
+  // set waypoints
+  for(auto& pose: path)
     {
-      end_state.q(q);
+      agi::QuadState state;
+      state.setZero();
+      Eigen::Vector3d p;
+      tf::pointMsgToEigen(pose.pose.position, p);
+      state.p = p;
+      agi::Quaternion q;
+      tf::quaternionMsgToEigen(pose.pose.orientation, q);
+      if (std::fabs(1 - q.squaredNorm())  < 1e-6)
+        {
+          state.q(q);
+        }
+      else
+        {
+          ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f], reset as the start state", q.x(), q.y(), q.z(), q.w());
+          state.q(start_state.q());
+        }
+
+      double du = pose.header.stamp.toSec() - start_state.t;
+      if (du < 0.01) // if the target time is older or closer to the current time, reset the du by using an average velocity
+        {
+          ROS_INFO("recalcualte the du");
+          double du_tran = (state.p - start_state.p).norm() / trajectory_mean_vel_;
+          double delta_yaw = state.getYaw() - start_state.getYaw();
+          if (delta_yaw > M_PI) delta_yaw -= 2 * M_PI;
+          if (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
+          double du_rot = fabs(delta_yaw) / trajectory_mean_yaw_rate_;
+          du = std::max(du_tran, trajectory_min_du_);
+          if (!enable_latch_yaw_trajectory_)
+            {
+              du = std::max(du_rot, du);
+            }
+        }
+      state.t = start_state.t + du;
+
+      states.push_back(state);
     }
-  else
-    {
-      ROS_WARN("[Nav] the target quaternion is invalid [%f, %f, %f, %f], reset as the start state", q.x(), q.y(), q.z(), q.w());
-      end_state.q(start_state.q());
 
-    }
-
-  double du_tran = (end_state.p - start_state.p).norm() / trajectory_mean_vel_;
-  double delta_yaw = end_state.getYaw() - start_state.getYaw();
-  if (delta_yaw > M_PI) delta_yaw -= 2 * M_PI;
-  if (delta_yaw < -M_PI) delta_yaw += 2 * M_PI;
-  double du_rot = fabs(delta_yaw) / trajectory_mean_yaw_rate_;
-  double du = std::max(du_tran, trajectory_min_du_);
-  if (!enable_latch_yaw_trajectory_)
-    {
-      du = std::max(du_rot, du);
-    }
-
-  end_state.t = start_state.t + du;
-
+  agi::QuadState end_state = states.back();
+  double du = end_state.t - start_state.t;
   ROS_INFO_STREAM("[Nav] revceive the new target pose of " << end_state.p.transpose()
                   << " (yaw: " << end_state.getYaw() << ")"
                   << " which starts with the last target pose: " << start_state.p.transpose()
                   << " (yaw: " << start_state.getYaw() << ")"
                   << " and target vel: " << start_state.v.transpose()
                   << " (omega z: " << start_state.w(2) << ")"
-                  << " and target acc: " << start_state.a.transpose());
+                  << " and target acc: " << start_state.a.transpose()
+                  << " and flight duration: " << du);
 
-  traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(start_state, end_state);
+  traj_generator_ptr_ = std::make_shared<agi::MinJerkTrajectory>(states);
 
   trajectory_mode_ = true;
 
+
+  // visualize
   double dt = 0.02;
   nav_msgs::Path msg;
   msg.header.stamp.fromSec(start_state.t);
@@ -946,6 +976,29 @@ void BaseNavigator::generateNewTrajectory(geometry_msgs::PoseStamped pose)
   }
   path_pub_.publish(msg);
 
+  visualization_msgs::MarkerArray marker_array_msg;
+  visualization_msgs::Marker marker_msg;
+  marker_msg.header.stamp.fromSec(start_state.t);
+  marker_msg.header.frame_id = "world";
+  marker_msg.action = visualization_msgs::Marker::ADD;
+  marker_msg.type = visualization_msgs::Marker::SPHERE;
+  for (int i = 0; i < states.size(); i++)
+    {
+      agi::QuadState state = states.at(i);
+      marker_msg.id = i;
+      marker_msg.pose.position.x = state.p(0);
+      marker_msg.pose.position.y = state.p(1);
+      marker_msg.pose.position.z = state.p(2);
+      marker_msg.pose.orientation.w = 1;
+      double r = 0.2;
+      marker_msg.scale.x = r;
+      marker_msg.scale.y = r;
+      marker_msg.scale.z = r;
+      marker_msg.color.r = 1.0;
+      marker_msg.color.a = 1.0;
+      marker_array_msg.markers.push_back(marker_msg);
+    }
+  waypoint_pub_.publish(marker_array_msg);
 }
 
 void BaseNavigator::updatePoseFromTrajectory()

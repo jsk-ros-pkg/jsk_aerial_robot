@@ -8,8 +8,8 @@
 #ifndef APPLICATION_SERVO_TEMP_SERVO_H_
 #define APPLICATION_SERVO_TEMP_SERVO_H_
 
-#include "can_device.h"
-#include "Dynamixel/dynamixel_serial.h"
+#include "CAN/can_device.h"
+#include "Servo/Dynamixel/dynamixel_serial.h"
 #include <algorithm>
 
 class Initializer;

@@ -299,8 +299,5 @@ private:
 
   void readSingleAk09916(uint8_t reg);
   void writeSingleAk09916(uint8_t reg, uint8_t val);
-
-  void readMultipleAk09916(uint8_t reg);
-
 };
 #endif

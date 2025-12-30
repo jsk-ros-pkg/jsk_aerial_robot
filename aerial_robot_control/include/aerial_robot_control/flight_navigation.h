@@ -15,6 +15,7 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
 
 namespace aerial_robot_navigation
@@ -131,7 +132,7 @@ namespace aerial_robot_navigation
     uint8_t getEstimateMode(){ return estimate_mode_;}
     void setEstimateMode(uint8_t estimate_mode){ estimate_mode_ = estimate_mode;}
 
-    void generateNewTrajectory(geometry_msgs::PoseStamped pose);
+    void generateNewTrajectory(std::vector<geometry_msgs::PoseStamped> path);
 
     static constexpr uint8_t POS_CONTROL_COMMAND = 0;
     static constexpr uint8_t VEL_CONTROL_COMMAND = 1;
@@ -237,9 +238,11 @@ namespace aerial_robot_navigation
     ros::Publisher  power_info_pub_;
     ros::Publisher  flight_state_pub_;
     ros::Publisher  path_pub_;
+    ros::Publisher  waypoint_pub_;
     ros::Subscriber navi_sub_;
-    ros::Subscriber pose_sub_;
+    ros::Subscriber single_goal_sub_;
     ros::Subscriber simple_move_base_goal_sub_;
+    ros::Subscriber path_sub_;
     ros::Subscriber battery_sub_;
     ros::Subscriber flight_status_ack_sub_;
     ros::Subscriber takeoff_sub_;
@@ -347,8 +350,9 @@ namespace aerial_robot_navigation
     double hovering_current_;
 
     virtual void rosParamInit();
-    void poseCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
+    void singleGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
+    void pathCallback(const nav_msgs::PathConstPtr & msg);
     void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);

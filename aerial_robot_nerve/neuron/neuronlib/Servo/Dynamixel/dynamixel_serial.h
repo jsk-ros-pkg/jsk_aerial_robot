@@ -10,13 +10,14 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <array>
 #include <algorithm>
 #include <utility>
 #include <cmath>
-#include "flashmemory.h"
-#include "can_core.h"
-#include "Encoder/mag_encoder.h"
+#include "Flashmemory/flashmemory.h"
+#include "CAN/can_core.h"
+#include "Servo/Encoder/mag_encoder.h"
 #include "cmsis_os.h"
 
 
@@ -245,9 +246,6 @@
 #define SHUTDOWN_BIT				1 << OVERHEATING_ERROR | 1 << ELECTRICAL_SHOCK_ERROR
 
 
-/* please define the gpio which control the IO direction */
-#define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
-#define RE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_RESET);
 
 /* DMA circular rx buffer size */
 #define RX_BUFFER_SIZE 512
