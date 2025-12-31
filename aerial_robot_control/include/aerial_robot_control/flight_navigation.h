@@ -10,6 +10,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <spinal/FlightConfigCmd.h>
+#include <spinal/ServoControlCmd.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int8.h>
@@ -239,6 +240,7 @@ namespace aerial_robot_navigation
     ros::Publisher  flight_state_pub_;
     ros::Publisher  path_pub_;
     ros::Publisher  waypoint_pub_;
+    ros::Publisher  servo_control_pub;
     ros::Subscriber navi_sub_;
     ros::Subscriber single_goal_sub_;
     ros::Subscriber simple_move_base_goal_sub_;
@@ -288,6 +290,11 @@ namespace aerial_robot_navigation
     double xy_convergent_thresh_;
     double land_pos_convergent_thresh_;
     double land_vel_convergent_thresh_;
+
+    int servo_angle_1;
+    int servo_angle_2;
+    int servo_angle_3;
+    int servo_angle_4;
 
     /* target value */
     tf::Vector3 target_pos_, target_vel_, target_acc_;
@@ -480,6 +487,10 @@ namespace aerial_robot_navigation
 
     void startCallback(const std_msgs::EmptyConstPtr & msg)
     {
+      spinal::ServoControlCmd initial_servo_cmd;
+      initial_servo_cmd.index = {4, 5, 6, 7};
+      initial_servo_cmd.angles = {static_cast<short>(servo_angle_1), static_cast<short>(servo_angle_2), static_cast<short>(servo_angle_3), static_cast<short>(servo_angle_4)};
+      servo_control_pub.publish(initial_servo_cmd);
       motorArming();
     }
 

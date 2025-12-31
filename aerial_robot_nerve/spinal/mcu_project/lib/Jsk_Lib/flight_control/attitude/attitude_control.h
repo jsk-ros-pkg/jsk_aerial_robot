@@ -60,7 +60,7 @@
 
 /* fail safe */
 #define FLIGHT_COMMAND_TIMEOUT 500 //500ms
-#define MAX_TILT_ANGLE 1.0f // rad
+#define MAX_TILT_ANGLE 6.28f // rad
 #define MAX_PWM 1.0f // duty
 
 #define CONTROL_TERM_PUB_INTERVAL 100

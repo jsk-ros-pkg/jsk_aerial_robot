@@ -7,31 +7,31 @@ controller:
   gravity_comp_flag_: true
 
   xy:
-    p_gain: 2.5 #5.0
-    i_gain: 0.2 #0.05
-    d_gain: 1.5 #5.0
+    p_gain: 5.0 #5.0
+    i_gain: 1.0 #0.05
+    d_gain: 0.5 #5.0
     limit_sum: 1000 #10
     limit_p: 1000 #20
     limit_i: 1000 #40
     limit_d: 1000 #20
 
   z:
-    p_gain: 5.0 #5.0
+    p_gain: 10.0 #5.0
     i_gain: 1.0 #2.5
-    d_gain: 3.0 #5.0
-    limit_err_p: 0.05 #1.0
+    d_gain: 2.0 #5.0
+    limit_err_p: 1000 #1.0
     limit_sum: 1000 #10
     limit_p: 1000 #20
     limit_i: 1000 #40
     limit_d: 1000 #20
-    landing_err_z: -0.01 #-0.2
+    landing_err_z: -0.2 #-0.2
     force_landing_descending_rate: -0.03 #-0.6
 
   yaw:
-    p_gain: 2.0 #6.0
-    i_gain: 0.05 #1.0
-    d_gain: 0.5 #4.0
-    limit_err_p: 0.02 #0.4
+    p_gain: 10.0 #6.0
+    i_gain: 1.0 #1.0
+    d_gain: 2.0 #4.0
+    limit_err_p: 1000 #0.4
     limit_sum: 1000 #10
     limit_p: 1000 #20
     limit_i: 1000 #40
@@ -39,9 +39,9 @@ controller:
     need_d_control: true
 
   roll_pitch:
-    p_gain: 5.0 #18.0
-    i_gain: 0.2 #1.0
-    d_gain: 2.0 #8.0
+    p_gain: 30.0 #18.0
+    i_gain: 1.0 #1.0
+    d_gain: 4.0 #8.0
     limit_sum: 1000 #10
     limit_p: 1000 #20
     limit_i: 1000 #40

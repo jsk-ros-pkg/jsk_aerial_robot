@@ -7,7 +7,7 @@ import time
 def publish_servo_commands():
     # 1. ROSノードの初期化
     # ノード名はユニークである必要があります。
-    param = 'crobat'
+    param = 'crobat20'
     rospy.init_node('servo_command_publisher', anonymous=True)
     
     # 2. パブリッシャーの作成
@@ -24,8 +24,8 @@ def publish_servo_commands():
     # 4. 送信するサーボコマンドのリストを定義
     # 各要素は (index, angle) のタプルです。
     commands = [
-        (4, 95),
-        (5, 83),
+        (4, 85),
+        (5, 96),
         (6, 81),
         (7, 88)
     ]

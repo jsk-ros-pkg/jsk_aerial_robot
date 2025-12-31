@@ -342,7 +342,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           }
 
           (*servo_handler)->setTargetAngleVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
-          target_angle_msg.index.push_back((*servo_handler)->getId());
+          target_angle_msg.index.push_back((*servo_handler)->getId() + 3);
           target_angle_msg.angles.push_back((*servo_handler)->getTargetAngleVal(ValueType::BIT));
 
           // process torque command if necessary
@@ -377,7 +377,7 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
           /*  use the kinematics order (e.g. joint1 ~ joint N, gimbal_roll -> gimbal_pitch) */
           SingleServoHandlePtr servo_handler = servos_handler_[servo_group_name].at(i);
           servo_handler->setTargetAngleVal(servo_ctrl_msg->position[i], ValueType::RADIAN);
-          target_angle_msg.index.push_back(servo_handler->getId());
+          target_angle_msg.index.push_back(servo_handler->getId() + 3);
           target_angle_msg.angles.push_back(servo_handler->getTargetAngleVal(ValueType::BIT));
 
           // process torque command if necessary

@@ -5,6 +5,7 @@
   <arg name="simulation" default="false" />
   <arg name="robot_ns" default="crobat" />
   <arg name="full_actuated" default="true" />
+  <arg name="robot_id" default="" />
 
   <group ns="$(arg robot_ns)">
     <group if="$(arg real_machine)">
@@ -17,7 +18,9 @@
         </include>
 
         <!-- mocap -->
-        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch">
+	  <arg name="robot_id" value="$(arg robot_id)" unless="$(eval arg('robot_id') == '')"/>
+	</include>
 
         <!-- livox mid360 & fast lio -->
         <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" unless="$(arg full_actuated)"/>
