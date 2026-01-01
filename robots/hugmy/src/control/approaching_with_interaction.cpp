@@ -14,6 +14,7 @@ ApproachingHuman::ApproachingHuman()
   pub_reach_human_ = nh_.advertise<std_msgs::Bool>("/reach_flag", 1);
   pub_move_ = nh_.advertise<aerial_robot_msgs::FlightNav>("/quadrotor/uav/nav", 1);
   pub_land_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/land", 1);
+  pub_interaction_ = nh_.advertise<std_msgs::Int8>("/interaction/state", 1);
 
   move_msg_.control_frame = 1;
   move_msg_.target = 1;
@@ -25,9 +26,10 @@ ApproachingHuman::ApproachingHuman()
   pub_vad_ = nh_.advertise<std_msgs::Float32MultiArray>("/vad", 1);
   pub_gaze_ = nh_.advertise<std_msgs::Float32>("/look_at", 1);
 
-  timer_ = nh_.createTimer(ros::Duration(0.05), &ApproachingHuman::timerCb, this); // 20Hz
+  interaction_msg_.data = interaction_state_;
+  pub_interaction_.publish(interaction_msg_);
 
-  ROS_INFO("ApproachingHuman node constructed");
+  timer_ = nh_.createTimer(ros::Duration(0.05), &ApproachingHuman::timerCb, this); // 20Hz
 }
 
 void ApproachingHuman::cameraInfoCb(const sensor_msgs::CameraInfo::ConstPtr& msg)
@@ -816,6 +818,10 @@ void ApproachingHuman::handleReachedHuman()
     // face expression max v(smile)
     vad_array_.data = {1.0f, 0.8f, 0.0f};
     pub_vad_.publish(vad_array_);
+
+    interaction_state_ = 2;
+    interaction_msg_.data = interaction_state_;
+    pub_interaction_.publish(interaction_msg_);
 
     std_msgs::Bool msg;
     msg.data = reach_to_human_flag_;

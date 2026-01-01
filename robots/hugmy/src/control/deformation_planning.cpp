@@ -123,8 +123,11 @@ double ThetaModel::f_theta_bicubic(double P, double T) const
 DeformationPlanning::DeformationPlanning(ros::NodeHandle& nh)
   : nh_(nh)
 {
-  nh_.param("z_perch_start",  z_perch_start_,  0.8);   // [m]
-  nh_.param("z_perch_touch",  z_perch_touch_,  0.5);   // [m]
+  // absolute length
+  // nh_.param("z_perch_start",  z_perch_start_,  0.8);   // [m]
+  // nh_.param("z_perch_touch",  z_perch_touch_,  0.5);   // [m]
+  nh_.param("z_perch_start",  z_perch_start_,  0.5);   // [m]
+  nh_.param("z_perch_touch",  z_perch_touch_,  0.2);   // [m]
   nh_.param("P_preperch_max", P_preperch_max_prs_, 50.0);  // [kPa]
   nh_.param("P_approach",     P_approach_prs_, 0.0); // [kPa]
   nh_.param("P_perch_hold",   P_perch_hold_,   50.0);  // [kPa]
@@ -137,11 +140,14 @@ DeformationPlanning::DeformationPlanning(ros::NodeHandle& nh)
   nh_.param("v_down_preperch",  v_down_preperch_,  -0.01);
 
 
-  // dist_sub_ = nh_.subscribe<std_msgs::Float32>("/perch/target_distance_z", 1, &DeformationPlanning::distanceCallback, this);
-  dist_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/quadrotor/mocap/pose", 1, &DeformationPlanning::distanceCallback, this);
+  dist_sub_ = nh_.subscribe<std_msgs::Int16>("/tof", 1, &DeformationPlanning::distanceCallback, this);
+  //dist_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/quadrotor/mocap/pose", 1, &DeformationPlanning::distanceCallback, this);
   // thrust_sub_ = nh_.subscribe<spinal::Thrust>("/quadrotor/target_thrust", 1, &DeformationPlanning::thrustCallback, this);
   thrust_sub_ = nh_.subscribe<spinal::FourAxisCommand>("/quadrotor/four_axes/command", 1, &DeformationPlanning::thrustCallback, this);
   pressure_cur_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/filterd_joint_cur_pressure", 1, &DeformationPlanning::pressureCurCallback, this);
+
+  interaction_state_sub_ = nh_.subscribe<std_msgs::Int8>("/interaction/state", 1, &DeformationPlanning::interactionStateCallback, this);
+  
   // pressure_cur_sub_ = nh_.subscribe<std_msgs::Float32>("/quadrotor/arm/sim_pressure", 1, &DeformationPlanning::pressureCurCallback, this);
   land_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/land", 1);
   halt_pub_ = nh_.advertise<std_msgs::Empty>("/quadrotor/teleop_command/halt", 1);
@@ -152,6 +158,7 @@ DeformationPlanning::DeformationPlanning(ros::NodeHandle& nh)
   theta_est_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/debug/arm/theta_est", 1);
   phase_pub_ = nh_.advertise<std_msgs::Float32>("/quadrotor/debug/arm/phase", 1); // 0:APPROACH,1:PRE_PERCH,2:PERCH
   move_cmd_pub_ = nh_.advertise<aerial_robot_msgs::FlightNav>("/quadrotor/uav/nav", 1);
+  interaction_pub_ = nh_.advertise<std_msgs::Int8>("/interaction/state", 1);
   
   last_update_ = ros::Time::now();
 
@@ -179,9 +186,15 @@ void DeformationPlanning::initThetaModel()
   theta_model_.buildSurface();
 }
 
-void DeformationPlanning::distanceCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+// void DeformationPlanning::distanceCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+// {
+//   z_meas_ = msg->pose.position.z;
+// }
+
+void DeformationPlanning::distanceCallback(const std_msgs::Int16::ConstPtr& msg)
 {
-  z_meas_ = msg->pose.position.z;
+  const float tof_mm = static_cast<float>(msg->data);
+  z_meas_ = tof_mm / 1000.0f;
 }
 
 void DeformationPlanning::thrustCallback(const spinal::FourAxisCommand::ConstPtr& msg)
@@ -192,6 +205,12 @@ void DeformationPlanning::thrustCallback(const spinal::FourAxisCommand::ConstPtr
 void DeformationPlanning::pressureCurCallback(const std_msgs::Float32::ConstPtr& msg)
 {
   P_cur_meas_ = msg->data;
+}
+
+void DeformationPlanning::interactionStateCallback(const std_msgs::Int8::ConstPtr& msg)
+{
+  if (finished_) return;
+  interaction_state_ = msg->data;
 }
 
 void DeformationPlanning::updateZ(double dt)
@@ -220,8 +239,8 @@ void DeformationPlanning::updateZVelocity(double dt)
 {
     if (!z_inited_) return;
 
-    double vz_raw = (z_meas_ - z_prev_) / dt;
-    z_prev_ = z_meas_;
+    double vz_raw = (z_lpf_ - z_prev_) / dt;
+    z_prev_ = z_lpf_;
     
     z_vel_est_ = vz_raw;
 }
@@ -255,6 +274,11 @@ void DeformationPlanning::updateZCommand(double dt)
     v_down = 0.0;
     z_floor = z_perch_touch_;
     break;
+  }
+
+  if (z_lpf_ <= z_floor) {
+    z_cmd_ = 0.0;
+    return;
   }
 
   double err = v_down - z_vel_est_;
@@ -312,9 +336,14 @@ void DeformationPlanning::updatePhase()
     // }else
     if (halt_cnt_ >= 30){
       halt_pub_.publish(e);
+      interaction_state_ = 3;
+      std_msgs::Int8 msg;
+      msg.data = interaction_state_;
+      interaction_pub_.publish(msg);
+      finished_ = true;
     }
     // 離脱条件を書く（z がまた大きくなりすぎたらAPPROACHに戻す, roll,pitchおかしい，小さくなりすぎたら復帰（Approachに戻す））
-    if (z_lpf_ > z_perch_start_ + 0.1) {
+    if (!finished_ && dz_lpf_ > z_perch_start_ + 0.1) {
       phase_ = Phase::APPROACH;
       ROS_WARN("[Deformationplanning] Phase PERCH aborted -> APPROACH");
     }
@@ -394,48 +423,56 @@ void DeformationPlanning::spin()
     double dt = (now - last_update_).toSec();
     if (dt <= 0.0) dt = 1e-3;
     last_update_ = now;
+    
+    if (finished_) {
+      ros::shutdown();
+      return;
+    }
 
-    updateZ(dt);
-    updateThrustavr();
+    if (interaction_state_ != 2){
+      updateZ(dt);
+      updateThrustavr();
 
-    updateZVelocity(dt);
-    updateZCommand(dt);
-    updatePhase();
+      updateZVelocity(dt);
+      updateZCommand(dt);
+      updatePhase();
 
-    double P_ref = computePRef();
-    updatePressureCmd(P_ref, dt);
+      double P_ref = computePRef();
+      updatePressureCmd(P_ref, dt);
 
-    double theta_est_deg = theta_model_.f_theta_bicubic(P_cmd_filt_, thrust_avr_);
+      double theta_est_deg = theta_model_.f_theta_bicubic(P_cmd_filt_, thrust_avr_);
 
-    // publish
-    std_msgs::Float32 msg_simP, msgTheta, msgPhase;
-    std_msgs::Int8 msg_joint_P, msg_bottom_P;
-    msg_bottom_P.data = static_cast<int>(P_cmd_bottom_);
-    msg_simP.data = static_cast<float>(P_cmd_filt_);
-    msg_joint_P.data = static_cast<int>(P_cmd_filt_);
-    msgTheta.data = static_cast<float>(theta_est_deg);
-    msgPhase.data = static_cast<float>(
-      (phase_ == Phase::APPROACH) ? 0.0f :
-      (phase_ == Phase::PRE_PERCH) ? 1.0f : 2.0f
-    );
+      // publish
+      std_msgs::Float32 msg_simP, msgTheta, msgPhase;
+      std_msgs::Int8 msg_joint_P, msg_bottom_P;
+      msg_bottom_P.data = static_cast<int>(P_cmd_bottom_);
+      msg_simP.data = static_cast<float>(P_cmd_filt_);
+      msg_joint_P.data = static_cast<int>(P_cmd_filt_);
+      msgTheta.data = static_cast<float>(theta_est_deg);
+      msgPhase.data = static_cast<float>(
+        (phase_ == Phase::APPROACH) ? 0.0f :
+        (phase_ == Phase::PRE_PERCH) ? 1.0f : 2.0f
+      );
 
-    // pressure_sim_pub_.publish(msg_simP);
-    pressure_cmd_bottom_pub_.publish(msg_bottom_P);
-    pressure_cmd_joint_pub_.publish(msg_joint_P);
-    theta_est_pub_.publish(msgTheta);
-    phase_pub_.publish(msgPhase);
-    publishNavCommand();
+      // pressure_sim_pub_.publish(msg_simP);
+      pressure_cmd_bottom_pub_.publish(msg_bottom_P);
+      pressure_cmd_joint_pub_.publish(msg_joint_P);
+      theta_est_pub_.publish(msgTheta);
+      phase_pub_.publish(msgPhase);
+      publishNavCommand();
 
-    ROS_INFO_STREAM_THROTTLE(0.5,
-      "[Deformationplanning] phase=" << static_cast<int>(msgPhase.data)
-			     << " z_lpf=" << (z_inited_ ? z_lpf_ : -1.0)
-			     << " z_start=" << (z_inited_ ? z_lpf_ : -1.0)
-      << " P_ref=" << P_ref
-      << " P_cmd=" << P_cmd_filt_
-      << " T_avr=" << thrust_avr_
-      << " theta_est=" << theta_est_deg
-    );
-
+      ROS_INFO_STREAM_THROTTLE(0.5,
+        "[Deformationplanning] phase=" << static_cast<int>(msgPhase.data)
+            << " z_lpf=" << (z_inited_ ? z_lpf_ : -1.0)
+            << " z_start=" << (z_inited_ ? z_lpf_ : -1.0)
+        << " P_ref=" << P_ref
+        << " P_cmd=" << P_cmd_filt_
+        << " T_avr=" << thrust_avr_
+        << " theta_est=" << theta_est_deg
+      );
+    }else{
+      continue;
+    }
     ros::spinOnce();
     rate.sleep();
   }

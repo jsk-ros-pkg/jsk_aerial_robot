@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <Eigen/Dense>
 #include <std_msgs/Int8.h>
+#include <std_msgs/Int16.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Empty.h>
 #include <spinal/FourAxisCommand.h>
@@ -64,6 +65,7 @@ private:
   ros::Subscriber dist_sub_;
   ros::Subscriber thrust_sub_;
   ros::Subscriber pressure_cur_sub_;
+  ros::Subscriber interaction_state_sub_;
 
   ros::Publisher pressure_cmd_joint_pub_;
   ros::Publisher pressure_cmd_bottom_pub_;
@@ -73,6 +75,7 @@ private:
   ros::Publisher halt_pub_;
   ros::Publisher land_pub_;
   ros::Publisher phase_pub_;        // 現在の状態を 0,1,2 で出す
+  ros::Publisher interaction_pub_;
 
 
   ThetaModel theta_model_;
@@ -123,8 +126,10 @@ private:
   void initThetaModel();
 
   void distanceCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  void distanceCallback(const std_msgs::Int16::ConstPtr& msg);
   void thrustCallback(const spinal::FourAxisCommand::ConstPtr& msg);
   void pressureCurCallback(const std_msgs::Float32::ConstPtr& msg);
+  void interactionStateCallback(const std_msgs::Int8::ConstPtr& msg);
 
   void updateZ(double dt);
   void updateThrustavr();
@@ -136,6 +141,10 @@ private:
   double computePRef(); // 現在の phase_ と z_lpf_ から P_ref を決める
 
   void updatePressureCmd(double P_ref, double dt);
+
+  int interaction_state_;
+  bool finished_ = false;
+  bool finish_published_ = false;
 
   static inline double clampDouble(double v, double lo, double hi)
   {

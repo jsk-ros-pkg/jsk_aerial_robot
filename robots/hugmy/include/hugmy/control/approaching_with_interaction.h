@@ -12,6 +12,7 @@
 
 #include <std_msgs/Empty.h>
 #include <std_msgs/UInt8.h>
+#include <std_msgs/Int8.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Bool.h>
@@ -81,6 +82,7 @@ private:
   ros::Publisher pub_reach_human_;
   ros::Publisher pub_move_;
   ros::Publisher pub_land_;
+  ros::Publisher pub_interaction_;
 
   //face expression
   ros::Publisher pub_vad_;
@@ -180,6 +182,9 @@ private:
   double depth_trend_prev_ = std::numeric_limits<double>::quiet_NaN();
 
   std::mt19937 rng_;
+
+  std_msgs::Int8 interaction_msg_;
+  int interaction_state_ = 1;
 };
 
 int main_approaching_human(int argc, char** argv);
