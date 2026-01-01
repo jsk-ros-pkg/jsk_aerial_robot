@@ -323,6 +323,9 @@ void AttitudeController::update(void)
           target_angle_[X] = 0;
           target_angle_[Y] = 0;
           target_angle_[Z] = 0;
+          target_vel_[X] = 0;
+          target_vel_[Y] = 0;
+          target_vel_[Z] = 0;
 
           for(int i = 0; i < motor_number_; i++) extra_yaw_pi_term_[i] = 0;
         }
@@ -336,27 +339,29 @@ void AttitudeController::update(void)
 #endif
 
         float error_angle[3];
+        float error_vel[3];
         for(int axis = 0; axis < 3; axis++)
           {
             error_angle[axis] = target_angle_[axis] - angles[axis];
+            error_vel[axis] = target_vel_[axis] - vel[axis];
             if(integrate_flag_) error_angle_i_[axis] += error_angle[axis] * DELTA_T;
 
             if(axis == X)
               {
                 control_feedback_state_msg_.roll_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.roll_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.roll_d = vel[axis]  * 1000;
+                control_feedback_state_msg_.roll_d = error_vel[axis]  * 1000;
               }
             if(axis == Y)
               {
                 control_feedback_state_msg_.pitch_p = error_angle[axis] * 1000;
                 control_feedback_state_msg_.pitch_i = error_angle_i_[axis] * 1000;
-                control_feedback_state_msg_.pitch_d = vel[axis]  * 1000;
+                control_feedback_state_msg_.pitch_d = error_vel[axis]  * 1000;
 
               }
             if(axis == Z)
               {
-                control_feedback_state_msg_.yaw_d = vel[axis] * 1000;
+                control_feedback_state_msg_.yaw_d = error_vel[axis] * 1000;
               }
           }
 
@@ -369,7 +374,7 @@ void AttitudeController::update(void)
               {
                 p_term = error_angle[axis] * thrust_p_gain_[i][axis];
                 i_term = error_angle_i_[axis] * thrust_i_gain_[i][axis];
-                d_term = -vel[axis] * thrust_d_gain_[i][axis];
+                d_term = error_vel[axis] * thrust_d_gain_[i][axis];
                 if(axis == X)
                   {
                     roll_pitch_term_[i] = p_term + i_term + d_term; // [N]
@@ -454,6 +459,7 @@ void AttitudeController::reset(void)
   for(int i = 0; i < 3; i++)
     {
       target_angle_[i] = 0;
+      target_vel_[i] = 0;
       error_angle_i_[i] = 0;
 
       torque_p_gain_[i] = 0;
@@ -525,6 +531,10 @@ void AttitudeController::fourAxisCommandCallback( const spinal::FourAxisCommand 
 
   target_angle_[X] = cmd_msg.angles[0];
   target_angle_[Y] = cmd_msg.angles[1];
+
+  target_vel_[X] = cmd_msg.omegas[0];
+  target_vel_[Y] = cmd_msg.omegas[1];
+  target_vel_[Z] = cmd_msg.omegas[2];
 
   for(int i = 0; i < motor_number_; i++)
     {
