@@ -17,6 +17,7 @@
 #include <Eigen/Dense>
 #include <sensor_msgs/Joy.h>
 #include <XmlRpcValue.h>
+#include <std_msgs/Int8.h>
 // #include <tf/transform_listener.h>
 
 class HapticsController{
@@ -67,6 +68,7 @@ protected:
     ros::Publisher marker_pub_;
     ros::Publisher alpha_pub_;
     ros::Publisher thrust_pub_;
+    ros::Publisher interaction_pub_;
     ros::Subscriber odom_sub_;
     ros::Subscriber imu_sub_;
 
@@ -88,8 +90,8 @@ protected:
     bool haptics_finished_flag_ = false;
     bool approaching_target_flag_ = true;
     ros::Time last_check_time_;
-    double move_distance_threshold_ = 0.1;
-    double direction_threshold_ = 0.8;
+    // double move_distance_threshold_ = 0.1;
+    // double direction_threshold_ = 0.8;
     double pitch_threshold_ = 0.8;
     double roll_threshold_ = 0.8;
     int vibrate_count_ = 0;
@@ -108,11 +110,35 @@ protected:
     double thrust_strength_ = 1.0;
     double total_thrust_c_ = 1.0;
 
-    double base_thrust_ = 3.0;
+    double base_thrust_ = 4.0;
     bool emotion_switch_ = false;
     double v_ = 0.0;
     double a_ = 0.0;
     double d_ = 0.0;
+
+
+    enum class NavState { APPROACHING, WRONG_DIR, STUCK };
+
+    NavState nav_state_ = NavState::APPROACHING;
+  
+    ros::Time last_nav_check_time_;
+    geometry_msgs::Point last_nav_pos_;
+
+    double check_dt_sec_ = 0.2;          // チェック周期（細かくする）
+    double stuck_time_sec_ = 0.0;        // 動いてない時間の蓄積
+    double stuck_time_to_max_ = 3.0;     // これ以上で最大パルスに到達
+
+    // 判定しきい値
+    double move_distance_threshold_ = 0.03; // 0.2秒で3cm未満なら「動いてない」等（要調整）
+    double direction_threshold_ = 0.2;      // cos閾値（0.2なら約78度以内）
+    double dot_ = 0.0;
+
+    int stuckAwareOnInterval();
+    int dotAwareOnInterval(double dot);
+    void warnWrongDirectionPattern();
+    int emotion_cnt_ = 0;
+
+    int interaction_state_;
 };
 
 #endif
