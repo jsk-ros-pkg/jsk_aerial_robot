@@ -581,10 +581,10 @@ void ApproachingHuman::updateAltitudeCommand()
   double target_height = std::clamp(h_target_raw, Z_MIN, Z_MAX);
 
   if (z_cnt_ > 10){
-    if (depth_ > 0.7){
+    if (depth_ > 0.3){
       move_msg_.target_pos_z = target_height;
     }else{
-      move_msg_.target_pos_z = 1.2;
+      move_msg_.target_pos_z = 1.4;
     }
     z_cnt_ = 0;
   }else{
@@ -877,8 +877,8 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
 
   if (reach_to_human_flag_ == true) {
     /////////////test//////////////////
-    std_msgs::Empty e;
-    pub_land_.publish(e);
+    // std_msgs::Empty e;
+    // pub_land_.publish(e);
     ///////////////////////////////////
     ROS_INFO("shutdown");
     timer_.stop();
@@ -888,6 +888,9 @@ void ApproachingHuman::timerCb(const ros::TimerEvent&)
   flightRotateState();
   findBones();
 
+  interaction_msg_.data = interaction_state_;
+  pub_interaction_.publish(interaction_msg_);
+  
   if (handup_flag_) {
     handup_latched_ = true;
     nothandup_cnt_ = 0;
