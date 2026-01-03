@@ -124,9 +124,9 @@ public:
     last_update_ = ros::Time::now();
 
 
-    ROS_INFO_STREAM("ThrustPressureToTheta: pressure=" << latest_pressure_
-                    << ", thrust=" << latest_thrust_.at(0)
-                    << ", theta_out=" << theta_deg_.at(0) );
+    // ROS_INFO_STREAM("ThrustPressureToTheta: pressure=" << latest_pressure_
+    //                 << ", thrust=" << latest_thrust_.at(0)
+    //                 << ", theta_out=" << theta_deg_.at(0) );
   }
 
   void spin(){
@@ -209,16 +209,16 @@ public:
       for(int i = 0; i < 4; i++) msg.data[i] = theta_deg_[i];
       theta_pub_.publish(msg);
 
-      ROS_INFO_STREAM_THROTTLE(0.5,
-      "[ThetaEst] P=" << P << " kPa, T=["
-      << latest_thrust_[0] << ", "
-      << latest_thrust_[1] << ", "
-      << latest_thrust_[2] << ", "
-      << latest_thrust_[3] << "] N -> theta_deg=["
-      << theta_rad_filt_[0] << ", "
-      << theta_rad_filt_[1] << ", "
-      << theta_rad_filt_[2] << ", "
-      << theta_rad_filt_[3] << "]");
+      // ROS_INFO_STREAM_THROTTLE(0.5,
+      // "[ThetaEst] P=" << P << " kPa, T=["
+      // << latest_thrust_[0] << ", "
+      // << latest_thrust_[1] << ", "
+      // << latest_thrust_[2] << ", "
+      // << latest_thrust_[3] << "] N -> theta_deg=["
+      // << theta_rad_filt_[0] << ", "
+      // << theta_rad_filt_[1] << ", "
+      // << theta_rad_filt_[2] << ", "
+      // << theta_rad_filt_[3] << "]");
 
 
       ros::spinOnce();

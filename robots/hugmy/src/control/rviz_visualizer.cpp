@@ -26,7 +26,7 @@ void HapticsVisualizer::updateRviz() {
 
   // target_vec
   Eigen::Vector2d target_vec = Eigen::Vector2d(target_x_, target_y_) - Eigen::Vector2d(current_pos.x, current_pos.y);
-  ROS_ERROR("Target vector: (%.2f, %.2f)", target_vec.x(), target_vec.y());
+  // ROS_ERROR("Target vector: (%.2f, %.2f)", target_vec.x(), target_vec.y());
   publishVectorArrow(target_vec, current_pos, "target_vector", 0, 1.0, 0.0, 0.0);
 
   // last_vec
