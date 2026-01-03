@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="z_perch_start" default="1.25" />
-  <arg name="z_perch_touch" default="0.65" />
+  <arg name="z_perch_start" default="0.4" />
+  <arg name="z_perch_touch" default="0.15" />
   <arg name="P_perch_hold" default="50.0" />
   <arg name="P_preperch_max" default="40.0" />
   <node pkg="hugmy" type="deformation_planning_node" name="deformation_planning_node" output="screen">

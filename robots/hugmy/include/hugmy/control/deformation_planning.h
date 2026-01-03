@@ -51,9 +51,10 @@ class DeformationPlanning
 public:
   enum class Phase
   {
-    APPROACH = 0,
-    PRE_PERCH,
-    PERCH
+   IDLE = 0,
+   APPROACH,
+   PRE_PERCH,
+   PERCH
   };
 
   DeformationPlanning(ros::NodeHandle& nh);
@@ -65,6 +66,7 @@ private:
   ros::Subscriber dist_sub_;
   ros::Subscriber thrust_sub_;
   ros::Subscriber pressure_cur_sub_;
+  ros::Subscriber abs_dist_sub_;
   ros::Subscriber interaction_state_sub_;
 
   ros::Publisher pressure_cmd_joint_pub_;
@@ -81,8 +83,9 @@ private:
   ThetaModel theta_model_;
 
 
-  Phase phase_ = Phase::APPROACH;
-
+  // Phase phase_ = Phase::APPROACH;
+  Phase phase_ = Phase::IDLE;
+  
   // z [m]
   double z_meas_  = std::numeric_limits<double>::quiet_NaN();
   double z_lpf_   = std::numeric_limits<double>::quiet_NaN();
@@ -123,9 +126,22 @@ private:
 
   int halt_cnt_;
 
+  // mocap absolute z
+  double z_mocap_ = std::numeric_limits<double>::quiet_NaN();
+  bool mocap_inited_ = false;
+
+  // tof-vs-mocap baseline
+  double tof_offset_ = 0.0;
+  bool tof_offset_inited_ = false;
+
+  // detection
+  double detect_delta_thresh_ = 0.1;   // [m] 例: 8cm 近づいたら「腕」
+  int detect_count_ = 0;
+  int detect_count_needed_ = 10;
+
   void initThetaModel();
 
-  void distanceCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  void absdistanceCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void distanceCallback(const std_msgs::Int16::ConstPtr& msg);
   void thrustCallback(const spinal::FourAxisCommand::ConstPtr& msg);
   void pressureCurCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -145,6 +161,9 @@ private:
   int interaction_state_;
   bool finished_ = false;
   bool finish_published_ = false;
+  bool detectArmLikeObject();
+  void updateTofBaseline();
+  int touch_cnt_ = 0;
 
   static inline double clampDouble(double v, double lo, double hi)
   {
