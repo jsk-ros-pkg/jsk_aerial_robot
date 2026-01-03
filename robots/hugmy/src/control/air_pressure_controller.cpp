@@ -3,6 +3,7 @@
 AirPressureController::AirPressureController(ros::NodeHandle& nh) {
     sensor_joint_sub_ = nh.subscribe("/sensor", 1, &AirPressureController::sensorCb, this);
     sensor_bottom_sub_ = nh.subscribe("/sensor_1", 1, &AirPressureController::sensor1Cb, this);
+    stop_sub_ = nh.subscribe("/air/stop", 1, &AirPressureController::stopCb, this);
     pwm_air_pub_ = nh.advertise<spinal::PwmTest>("/pwm_cmd/air", 1);
     pwm_pub_ = nh.advertise<spinal::PwmTest>("/quadrotor/pwm_test", 1);
     // pwm_pub_ = nh.advertise<spinal::PwmTest>("/pwm_test", 1);
@@ -87,9 +88,13 @@ void AirPressureController::sensor1Cb(const std_msgs::Int8::ConstPtr& msg) {
 
 void AirPressureController::stopCb(const std_msgs::Bool::ConstPtr& msg)
 {
-  if (msg->data) {
-    initializePneumatics();
+  bool stop_flag = msg->data;
+  if (stop_flag && !emergency_stop_) {
+    emergency_stop_ = true;
     ROS_WARN("[Air] received STOP, all pneumatics off");
+  }
+  if (!stop_flag && emergency_stop_) {
+    emergency_stop_ = false;
   }
 }
 
@@ -463,15 +468,19 @@ void AirPressureController::controlLoopCb(const ros::TimerEvent& e)
   if(!external_mode_) return;
 
   failsafe();
-  // ROS_INFO("emergency %d", static_cast<int>(emergency_stop_.load()));
+  ROS_INFO("emergency %d", static_cast<int>(emergency_stop_));
   if (emergency_stop_) {
-    stopAllPneumatics();
+    initializePneumatics();
     return;
   }
 
   if(target_bottom_cmd_ > 0){
     startSVSwitch();
-    stopSVExhaust();
+    if (has_target_joint_ && target_joint_cmd_ > 0){
+      stopSVExhaust();
+    }else{
+      startSVExhaust();
+    }
     int error = target_bottom_cmd_ - air_pressure_bottom_;
     calPressure(target_bottom_cmd_, 1);
     adjustPump();

@@ -41,7 +41,7 @@ public:
     bool external_mode_ = false;
     int calib_sensor_index_ = 0;
 
-    std::atomic<bool> emergency_stop_{false};
+    bool emergency_stop_ = false;
 
 
     void engageEmergencyStop() {
@@ -54,8 +54,8 @@ public:
       emergency_stop_ = false;
       ROS_WARN("[Air] Emergency stop cleared.");
     }
-    bool isEmergencyStop() const { return emergency_stop_.load(); }
-
+    bool isEmergencyStop() const { return emergency_stop_; }
+  
 private:
     void sensorCb(const std_msgs::Int8::ConstPtr& msg);
     void sensor1Cb(const std_msgs::Int8::ConstPtr& msg);
@@ -101,6 +101,7 @@ private:
 
     ros::Subscriber sensor_joint_sub_;
     ros::Subscriber sensor_bottom_sub_;
+    ros::Subscriber stop_sub_;
     ros::Publisher pwm_air_pub_;
     ros::Publisher pwm_pub_;
     ros::Subscriber target_joint_sub_, target_bottom_sub_;
