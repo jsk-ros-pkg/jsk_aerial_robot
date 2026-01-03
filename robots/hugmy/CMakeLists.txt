@@ -61,8 +61,7 @@ target_link_libraries(random_haptics_threshold_node ${catkin_LIBRARIES})
 add_executable(random_haptics_feeling_node src/control/test/haptics_feeling_test.cpp)
 target_link_libraries(random_haptics_feeling_node ${catkin_LIBRARIES})
 
-add_executable(haptics_integrated_controller src/control/integrated.cpp
-  src/control/air_pressure_controller.cpp
+add_executable(haptics_integrated_controller src/control/integrated_all.cpp
   src/control/haptics_controller.cpp
   src/control/rviz_visualizer.cpp
   )
