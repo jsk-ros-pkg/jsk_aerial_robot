@@ -33,17 +33,17 @@ int main(int argc, char** argv){
   while (ros::ok()){
     ros::spinOnce();
 
-    if (joy_received && !emergency_sent){
-      if (!latest_joy.buttons.empty() && latest_joy.buttons[4] == 1){
-        ROS_ERROR("[Main] Emergency button pressed. Engaging AirPressureController emergency stop.");
-        ctrl.engageEmergencyStop();
-        emergency_sent = true;
-      }
-    }
+    // if (joy_received && !emergency_sent){
+    //   if (!latest_joy.buttons.empty() && latest_joy.buttons[5] == 1){
+    //     ROS_ERROR("[Main] Emergency button pressed. Engaging AirPressureController emergency stop.");
+    //     ctrl.engageEmergencyStop();
+    //     emergency_sent = true;
+    //   }
+    // }
 
-    if (ctrl.isEmergencyStop()){
-    }
-
+    // if (ctrl.isEmergencyStop()){
+    // }
+    
     rate.sleep();
   }
 
