@@ -7,14 +7,23 @@ controller:
   # gimbal vectoring function check
   gimbal_vectoring_check_flag: false
 
-  allocation_refine_max_iteration: 5
-  allocation_refine_threshold: 0.0001
+  # use integral (old) or separated (new) vectoring control method
+  integral_vectoring_allocation: false
+
+  # choose a method for thrust, gimbal allocation, defualt please choose gradient (gradient descent) method
+  enable_static_allocation_method: true
+  enable_nonlinear_allocation_method: false
+  enable_gradient_allocation_method: false
+
+  allocation_refine_max_iteration: 5 # for both
+  allocation_refine_threshold: 0.0001 # for static allocation
 
   wrench_estimate_update_rate: 100
   momentum_observer_force_weight: 3 # heavy delay, less noise, 2, 2.5, 3, light delay, more noise. The old parameter 5 has bug
   momentum_observer_torque_weight: 2.5
 
-  rotor_interfere_compensate: true
+  rotor_interfere_compensate: true # enable compensation
+  disable_torque_compensate: false # force disable torque compensation, only compensate force if true
   overlap_dist_link_thresh: 0.12
   overlap_dist_link_relax_thresh: 0.14
   overlap_dist_rotor_thresh: 0.1
@@ -25,6 +34,22 @@ controller:
   rotor_interfere_force_dev_weight: 0.1
   external_wrench_lpf_rate: 0.2
   external_fz_bias_thresh: 1.0
+
+
+  # allocation strategy
+
+  ## sr inverse for thrust+gimbal_pitch allocation
+  sr_inverse_sigma: 0.5 # 1.0
+  sr_inverse_thrust_diff_thresh: 1.5
+  sr_inverse_acc_diff_thresh: 0.05 # 0.01 is better
+
+  ## fix gimbal roll
+  fctmin_thresh: 0.15 #0.15
+  fctmin_hard_thresh: 0.1 #0.15
+  fixed_gimbal_roll_offset: 0.5 # 0.4 is not bad
+  gimbal_roll_change_thresh: 0.02 # 0.01 is more stable for current rotation change
+  gimbal_roll_target_ang_vel_thresh_: 0.1 # rad/s
+  gimbal_roll_target_lin_vel_thresh_: 0.2 # m/s
 
   xy:
     p_gain: 3.6
@@ -59,7 +84,7 @@ controller:
 
   yaw:
     p_gain: 10
-    i_gain: 0.1
+    i_gain: 0.3
     d_gain: 5
     limit_sum: 10 # N for clamping thrust force
     limit_p: 10
