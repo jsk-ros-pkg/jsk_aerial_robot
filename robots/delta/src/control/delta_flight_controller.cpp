@@ -201,6 +201,10 @@ void DeltaController::linearWrenchAllocation()
                    (float)robot_model_->getThrustUpperLimit());
     target_gimbal_angles_.at(i) = angles::normalize_angle(atan2(-full_lambda(2 * i + 0), full_lambda(2 * i + 1)));
   }
+
+  // fail_safe
+  target_gimbal_angles_.at(1) = std::clamp(target_gimbal_angles_.at(1), -1.0, 3.14);
+
   for (int i = 0; i < motor_on_soft_frame_num_; i++)
   {
     lambda_all_.at(motor_on_rigid_frame_num_+i) = std::clamp((float)full_lambda(2*motor_on_rigid_frame_num_+i), (float)robot_model_->getThrustLowerLimit(),
