@@ -10,17 +10,16 @@
   <!-- general attribute -->
   <baselink name="fc" />
   <thrust_link name="thrust" />
-
-  <xacro:property name="pi" value="3.1415926535897931" />
+  
   <!-- kinematics [m] -->
-  <xacro:property name="link_length" value=".424" />
+  <xacro:property name="link_length" value=".474" />
   <xacro:property name="inter_joint_x_offset" value=".02575" />
-  <xacro:property name="gimbal_roll_x_offset" value="-0.01" />
-  <xacro:property name="gimbal_pitch_z_offset" value="0.037" />
+  <xacro:property name="gimbal_roll_x_offset" value="-0.0065" />
+  <xacro:property name="gimbal_pitch_z_offset" value="0.0265" />
 
   <!-- dynamics -->
   <m_f_rate value="0" /> <!-- drug torque rate -->
-  <xacro:property name="max_force" value="36" /> <!-- [N] -->
+  <xacro:property name="max_force" value="30" /> <!-- [N] -->
   <xacro:property name="min_force" value="2" /> <!-- [N] -->
 
   <xacro:macro name="link_model" params="type">
@@ -33,18 +32,10 @@
     </geometry>
     </collision>
 
-    <!-- cylinder collision geometry works well for FCL
-    <collision>
-      <origin rpy="0 ${pi/2} 0" xyz="${link_length* 0.5} 0 0"/>
-      <geometry>
-        <cylinder length="${link_length}" radius="0.06" />
-      </geometry>
-    </collision>
-    -->
     <visual>
       <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
       <geometry>
-        <mesh filename="package://dragon/urdf/mesh/ducted_fan_${type}.dae"/>
+        <mesh filename="package://dragon/urdf/v1_5/mesh/${type}.stl"/>
       </geometry>
     </visual>
   </xacro:macro>
@@ -71,8 +62,8 @@
   <!-- friction -->
   <xacro:macro name="friction" params="self">
     <gazebo reference="link${self}">
-      <mu1>0.4</mu1>
-      <mu2>0.4</mu2>
+      <mu1>0.8</mu1>
+      <mu2>0.8</mu2>
     </gazebo>
   </xacro:macro>
 
