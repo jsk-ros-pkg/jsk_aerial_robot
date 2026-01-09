@@ -108,7 +108,7 @@
       <visual>
         <origin xyz="${gimbal_roll_x_offset} 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_roll.dae"/>
+          <mesh filename="package://dragon/urdf/v1/mesh/ducted_fan_gimbal_roll.dae"/>
         </geometry>
       </visual>
 
@@ -151,7 +151,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://dragon/urdf/mesh/ducted_fan_gimbal_pitch.dae"/>
+          <mesh filename="package://dragon/urdf/v1/mesh/ducted_fan_gimbal_pitch.dae"/>
         </geometry>
       </visual>
     </link>
@@ -235,7 +235,7 @@
         <visual>
           <origin rpy="0 0 0" xyz="${inter_joint_x_offset} 0 0"/>
           <geometry>
-            <mesh filename="package://dragon/urdf/mesh/inter_joint_junction.dae"/>
+            <mesh filename="package://dragon/urdf/v1/mesh/inter_joint_junction.dae"/>
           </geometry>
         </visual>
       </link>

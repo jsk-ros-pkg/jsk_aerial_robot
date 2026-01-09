@@ -3,8 +3,8 @@
     xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon" >
 
   <!-- temporary -->
-  <xacro:include filename="$(find dragon)/urdf/dragon_common.xacro" />
-  <xacro:include filename="$(find dragon)/urdf/dragon_link.urdf.xacro" />
+  <xacro:include filename="$(find dragon)/urdf/v1/dragon_common.xacro" />
+  <xacro:include filename="$(find dragon)/urdf/v1/dragon_link.urdf.xacro" />
 
   <xacro:dragon_module self="1" child="2" baselink="false" />
   <xacro:dragon_module self="2" child="3" baselink="true" />
@@ -13,7 +13,7 @@
 
   <!-- Livox MID360 -->
   <xacro:extra_module name = "livox_mid360" parent = "link3" visible = "1"
-                      model_url = "package://dragon/urdf/mesh/sensor/livox_mid360.dae" >
+                      model_url = "package://dragon/urdf/v1/mesh/sensor/livox_mid360.dae" >
     <origin xyz="${link_length/2 - 0.109} 0.0 0.06592" rpy="0 0 ${-pi/2}"/>
     <inertial>
       <origin xyz="${-3.43 * 0.001} ${2.47 * 0.001} ${-10.27 * 0.001}" rpy="0 0 0"/>
