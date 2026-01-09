@@ -47,8 +47,8 @@ class PubSoftLinkJointStatesNode:
         soft_joint_msg.name = ["soft_joint2", "soft_joint3", "soft_joint5", "soft_joint6"]
 
         soft_joint_msg.position = [0.0] * 4
-        soft_joint_msg.position[0] = -2.48 * rigid_joints[1] + 3.8
-        soft_joint_msg.position[3] = -2.48 * rigid_joints[1] + 3.8
+        soft_joint_msg.position[0] = -4.067 * rigid_joints[0] - 2.2925 * rigid_joints[1] + 7.8351
+        soft_joint_msg.position[3] = -4.067 * rigid_joints[0] - 2.2925 * rigid_joints[1] + 7.8351
         soft_joint_angle = (3.14*2 - (rigid_joints[0] + rigid_joints[1] + rigid_joints[2] + soft_joint_msg.position[0] + soft_joint_msg.position[3])) / 2
         soft_joint_msg.position[1] = soft_joint_angle
         soft_joint_msg.position[2] = soft_joint_angle
