@@ -30,7 +30,7 @@ class PaintDemo():
         self.body_mocap_sub = rospy.Subscriber('mocap/pose', PoseStamped, self.body_mocap_cb)
         self.rotor5_mocap_sub = rospy.Subscriber('thrust5/mocap/pose', PoseStamped, self.rotor5_mocap_cb)
 
-        self.state = 2
+        self.state = 0
 
         self.update_hz = 50
         self.close_count = 0
@@ -71,11 +71,13 @@ class PaintDemo():
             if self.state == 0:
                 ## step1: go to the starting point
                 input("Press Enter to go to the starting point...")
-                # self.robot.goPosYaw(pos = np.array([-0.7, 0.5, 0.6]), yaw = dest_yaw, vel_thresh = 0.05, yaw_thresh = 0.05)
+                # self.robot.goPosYaw(pos = np.array([0.0, 0.0, 0.6]), yaw = dest_yaw, vel_thresh = 0.05, yaw_thresh = 0.05)
+                self.robot.goPos(pos = np.array([0.0, 0.0, 0.6]))
                 
                 user_input = input("Press Enter to proceed to next step...")
                 if user_input == '':
                     self.state = 1
+                    return
 
             elif self.state == 1:
                 ## step2: slowly goes forward and reach for the wall
