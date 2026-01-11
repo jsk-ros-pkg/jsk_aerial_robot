@@ -11,7 +11,7 @@ controller:
     p_gain: 3.0
     i_gain: 1.0
     d_gain: 2.0
-    limit_sum: 1.5
+    limit_sum: 4.0
     limit_p: 12.0
     limit_i: 12.0
     limit_d: 1.0

@@ -9,8 +9,17 @@ void DeltaController::calcAccFromCog()
   tf::quaternionKDLToTF(robot_model_->getCogDesireOrientation<KDL::Rotation>(), cog2baselink_rot);
   tf::Matrix3x3 cog_rot = estimator_->getOrientation(Frame::BASELINK, estimate_mode_) *
                           tf::Matrix3x3(cog2baselink_rot).inverse();  // w_R_b * cog_R_b.inverse() = w_R_cog
+                        
+  double x_term = pid_controllers_.at(X).result();
+  double y_term = pid_controllers_.at(Y).result();
+  double xy_term = std::sqrt((x_term * x_term + y_term * y_term));
+  if (xy_term > 4.0){
+    x_term = x_term * 4.0 / xy_term;
+    y_term = y_term * 4.0 / xy_term;
+    std::cout << x_term << ", " << y_term << std::endl;
+  }
 
-  tf::Vector3 target_linear_acc_w(pid_controllers_.at(X).result(), pid_controllers_.at(Y).result(),
+  tf::Vector3 target_linear_acc_w(x_term, y_term,
                                   pid_controllers_.at(Z).result());
   tf::Vector3 target_linear_acc_cog = cog_rot.inverse() * target_linear_acc_w;
 
