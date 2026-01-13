@@ -61,12 +61,12 @@ void DeltaController::forceLandingProcess()
 
 void DeltaController::wrenchAllocation()
 {
-  // if (ros::Time::now().toSec() - full_q_mat_update_stamp_ > torque_allocation_matrix_inv_pub_interval_)
-  // {
+  if (ros::Time::now().toSec() - full_q_mat_update_stamp_ > torque_allocation_matrix_inv_pub_interval_)
+  {
     full_q_mat_update_stamp_ = ros::Time::now().toSec();
     full_q_mat_ = robot_model_for_control_->getFullWrenchAllocationMatrixFromCog();
     full_q_mat_inv_ = aerial_robot_model::pseudoinverse(full_q_mat_);
-  // }
+  }
 
   if (linear_mode_ || first_run_)
   {
