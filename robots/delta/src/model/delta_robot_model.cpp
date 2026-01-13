@@ -129,74 +129,74 @@ Eigen::MatrixXd DeltaRobotModel::getQMatForRotorsOnSoftFrame()
   std::vector<Eigen::Vector3d> rotors_normal = getRotorsNormalFromCog<Eigen::Vector3d>();
   auto& rotor_direction = getRotorDirection();
 
-  // for (int i = rotor_on_rigid_frame_num_; i < getRotorNum(); i++)
-  // {
-  //   if(ros::Time::now().toSec() - rotor_on_soft_frame_pose_update_time_.at(i - rotor_on_rigid_frame_num_).toSec() < 1.0 && 
-  //       ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
-  //     KDL::Frame body_pose_from_root_ = getSegmentsTf().at("fc");
-  //     KDL::Frame rotor_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor_on_soft_frame_pose_from_world_.at(i - rotor_on_rigid_frame_num_);
-  //     KDL::Frame cog = getCog<KDL::Frame>();
-  //     rotors_origin.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).p);
-  //     rotors_normal.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).M * KDL::Vector(0,0,1));
-  //   } else {
-  //     std::cout << "Warning: lost mocap for rotor" << i + 1 << std::endl;
-  //     int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
-  //     int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
-  //     for (int j = 0; j < origin_queue_size; j++){
-  //       rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
-  //       prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
-  //       prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
-  //     }
-  //     rotors_origin.at(i) /= origin_queue_size;
-  //     for (int j = 0; j < normal_queue_size; j++){
-  //       rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
-  //       prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
-  //       prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
-  //     }
-  //   }
+  for (int i = rotor_on_rigid_frame_num_; i < getRotorNum(); i++)
+  {
+    if(ros::Time::now().toSec() - rotor_on_soft_frame_pose_update_time_.at(i - rotor_on_rigid_frame_num_).toSec() < 1.0 && 
+        ros::Time::now().toSec() - body_pose_update_time_.toSec() < 1.0){
+      KDL::Frame body_pose_from_root_ = getSegmentsTf().at("fc");
+      KDL::Frame rotor_pose_from_root = body_pose_from_root_ * body_pose_from_world_.Inverse() * rotor_on_soft_frame_pose_from_world_.at(i - rotor_on_rigid_frame_num_);
+      KDL::Frame cog = getCog<KDL::Frame>();
+      rotors_origin.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).p);
+      rotors_normal.at(i) = aerial_robot_model::kdlToEigen((cog.Inverse() * rotor_pose_from_root).M * KDL::Vector(0,0,1));
+    } else {
+      std::cout << "Warning: lost mocap for rotor" << i + 1 << std::endl;
+      int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
+      int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
+      for (int j = 0; j < origin_queue_size; j++){
+        rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
+        prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
+        prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+      }
+      rotors_origin.at(i) /= origin_queue_size;
+      for (int j = 0; j < normal_queue_size; j++){
+        rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
+        prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+      }
+    }
 
-  //   // fail safe for mocap update
-  //   // if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
-  //   //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
-  //   //     for (unsigned int j = 0; j < 3; ++j) {
-  //   //     if (abs(rotors_origin.at(i)(j) - prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5 || 
-  //   //         abs(rotors_normal.at(i)(j) - prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5){
-  //   //       rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
-  //   //       rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
-  //   //       std::cout << "fail safe for mocap update!!!!" << std::endl;
-  //   //       break;
-  //   //         }
-  //   //       }
-  //   //     }
+    // fail safe for mocap update
+    // if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_ ) != Eigen::Vector3d(0,0,0) && 
+    //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_) != Eigen::Vector3d(0,0,0)){
+    //     for (unsigned int j = 0; j < 3; ++j) {
+    //     if (abs(rotors_origin.at(i)(j) - prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5 || 
+    //         abs(rotors_normal.at(i)(j) - prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_)(j)) > 0.5){
+    //       rotors_origin.at(i) = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_);
+    //       rotors_normal.at(i) = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_);
+    //       std::cout << "fail safe for mocap update!!!!" << std::endl;
+    //       break;
+    //         }
+    //       }
+    //     }
 
-  //   prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(rotors_origin.at(i));
-  //   prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(rotors_normal.at(i));
-  //   if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size() > 10){
-  //     prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
-  //   }
-  //   if (prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size() > 10){
-  //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
-  //   }
+    prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(rotors_origin.at(i));
+    prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(rotors_normal.at(i));
+    if (prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size() > 10){
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    if (prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size() > 10){
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+    }
 
-  //   // low pass filter using moving average
-  //   rotors_origin.at(i) = Eigen::Vector3d(0,0,0);
-  //   rotors_normal.at(i) = Eigen::Vector3d(0,0,0);
-  //   int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
-  //   int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
-  //   for (int j = 0; j < origin_queue_size; j++){
-  //     rotors_origin.at(i) += prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
-  //     prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
-  //     prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
-  //   }
-  //   rotors_origin.at(i) /= origin_queue_size;
-  //   for (int j = 0; j < normal_queue_size; j++){
-  //     rotors_normal.at(i) += prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
-  //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
-  //     prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
-  //   }
-  //   rotors_normal.at(i) /= normal_queue_size;
-  //   rotors_normal.at(i).normalize();
-  // }
+    // low pass filter using moving average
+    rotors_origin.at(i) = Eigen::Vector3d(0,0,0);
+    rotors_normal.at(i) = Eigen::Vector3d(0,0,0);
+    int origin_queue_size = prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).size();
+    int normal_queue_size = prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).size();
+    for (int j = 0; j < origin_queue_size; j++){
+      rotors_origin.at(i) += prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front();
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).front());
+      prev_rotor_on_soft_frame_origin.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    rotors_origin.at(i) /= origin_queue_size;
+    for (int j = 0; j < normal_queue_size; j++){
+      rotors_normal.at(i) += prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front();
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).push(prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).front());
+      prev_rotor_on_soft_frame_normal.at(i - rotor_on_rigid_frame_num_).pop();
+    }
+    rotors_normal.at(i) /= normal_queue_size;
+    rotors_normal.at(i).normalize();
+  }
   
   Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = Eigen::MatrixXd::Zero(6, rotor_on_soft_frame_num_);
   for (int i = rotor_on_rigid_frame_num_; i < getRotorNum(); i++)
