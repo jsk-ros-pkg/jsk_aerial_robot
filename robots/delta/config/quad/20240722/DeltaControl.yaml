@@ -4,6 +4,7 @@ controller:
   control_verbose: false
   hovering_approximate: false
   aerial_mode_add_joint_torque_constraint: false
+  torque_allocation_matrix_inv_pub_interval: 0.05
   use_fc_for_att_control: false
   linear_mode: true
 

@@ -97,6 +97,8 @@ void DeltaController::rosParamInit()
   getParam<bool>(control_nh, "use_fc_for_att_control", use_fc_for_att_control_, true);
   getParam<bool>(control_nh, "linear_mode", linear_mode_, false);
 
+  std::cout << "torque_allocation_matrix_inv_pub_interval: " << torque_allocation_matrix_inv_pub_interval_ << std::endl;
+
   /* get tilt angle of each thruster */
   auto urdf_model = robot_model_->getUrdfModel();
   auto robot_model_xml = robot_model_->getRobotModelXml("robot_description");
