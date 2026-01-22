@@ -16,6 +16,7 @@ navigation:
   joy_target_z_interval: 0.005
   max_target_yaw_rate: 0.1 #  0.05
   cmd_vel_lev2_gain : 2.0
+  teleop_local_frame: fc
 
   gain_tunning_mode: 0
   nav_vel_limit: 0.2
