@@ -62,7 +62,8 @@ RUN cd /root && \
     make install -j4
 # acados Python interface
 RUN pip3 install -e /root/acados/interfaces/acados_template
-RUN echo '\n# acados' >> /root/.bashrc
+RUN echo '' >> /root/.bashrc
+RUN echo '# acados' >> /root/.bashrc
 RUN echo 'export ACADOS_SOURCE_DIR=/root/acados' >> /root/.bashrc
 RUN echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/acados/lib' >> /root/.bashrc
 RUN source /root/.bashrc
@@ -93,16 +94,22 @@ RUN mkdir -p /root/ros/jojo_ws/src && \
     wstool update -t src && \
     rosdep install -y -r --from-paths src --ignore-src --rosdistro ${ROS_DISTRO}
 
+# Install additional dependencies not covered by rosdep
+RUN apt-get install -y \
+    ros-noetic-smach-ros
+
 # RUN cd /root/ros/jojo_ws && \
 #     catkin config --extend /opt/ros/${ROS_DISTRO} && \
 #     catkin build
 
-RUN echo '\n# ROS' >> /root/.bashrc
+RUN echo '' >> /root/.bashrc
+RUN echo '# ROS' >> /root/.bashrc
 RUN echo 'source /root/ros/jojo_ws/devel/setup.bash' >> /root/.bashrc
 RUN echo "alias roslaunch='roslaunch 2> >(grep -v TF_REPEATED_DATA >&2)' # avoid annoying warning messages" >> /root/.bashrc
 RUN echo "alias rosrun='rosrun 2> >(grep -v TF_REPEATED_DATA >&2) 2> >(grep -v buffer_core >&2) 2> >(grep -v TF_OLD >&2)' # avoid annoying warning messages" >> /root/.bashrc
 
-RUN echo '\n# Workspace' >> /root/.bashrc
+RUN echo '' >> /root/.bashrc
+RUN echo '# Workspace' >> /root/.bashrc
 RUN echo "alias jsk_aerial_robot='cd /root/ros/jojo_ws/src/jsk_aerial_robot'" >> /root/.bashrc
 
 WORKDIR /root/ros/jojo_ws

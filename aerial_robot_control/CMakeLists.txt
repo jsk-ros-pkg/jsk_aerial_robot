@@ -104,7 +104,7 @@ target_link_libraries(mpc_solver_plugins ${catkin_LIBRARIES} acados
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_mpc/tilt_qd_neural_servo_plus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_plus_mdl.so
         ${PROJECT_SOURCE_DIR}/include/aerial_robot_control/neural_mpc/tilt_qd_neural_servo_minus_mdl/c_generated_code/libacados_ocp_solver_tilt_qd_neural_servo_minus_mdl.so
 )
-add_dependencies(mpc_solver_plugins gen_acados_code)
+add_dependencies(mpc_solver_plugins gen_acados_code gen_acados_code_neural)
 
 ### flight control plugin
 add_library(flight_control_pluginlib
