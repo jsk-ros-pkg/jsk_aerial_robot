@@ -13,8 +13,8 @@ DeltaRobotModel::DeltaRobotModel(bool init_with_rosparam, bool verbose, double f
 
   // note: it might be better to use gimbal_link5
   ros::NodeHandle nh;
-  rotor5_pose_sub_ = nh.subscribe("thrust5/mocap/pose", 1, &DeltaRobotModel::Rotor5MocapCallback, this);
-  rotor6_pose_sub_ = nh.subscribe("thrust6/mocap/pose", 1, &DeltaRobotModel::Rotor6MocapCallback, this);
+  // rotor5_pose_sub_ = nh.subscribe("thrust5/mocap/pose", 1, &DeltaRobotModel::Rotor5MocapCallback, this);
+  // rotor6_pose_sub_ = nh.subscribe("thrust6/mocap/pose", 1, &DeltaRobotModel::Rotor6MocapCallback, this);
   body_pose_sub_ = nh.subscribe("mocap/pose", 1, &DeltaRobotModel::BodyMocapCallback, this);
 
   rotor_on_soft_frame_pose_from_world_.resize(rotor_on_soft_frame_num_);
@@ -114,11 +114,11 @@ Eigen::MatrixXd DeltaRobotModel::getFullWrenchAllocationMatrixFromCog()
 
   /* calculate integarated allocation */
   Eigen::MatrixXd full_q_mat_for_rotors_on_rigid_frame = wrench_matrix * integrated_rot;
-  Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = getQMatForRotorsOnSoftFrame();
+  // Eigen::MatrixXd q_mat_for_rotors_on_soft_frame = getQMatForRotorsOnSoftFrame();
 
   Eigen::MatrixXd full_q_mat = Eigen::MatrixXd::Zero(6, 2 * rotor_on_rigid_frame_num_ + rotor_on_soft_frame_num_);
   full_q_mat.block(0, 0, 6, 2 * rotor_on_rigid_frame_num_) = full_q_mat_for_rotors_on_rigid_frame;
-  full_q_mat.block(0, 2 * rotor_on_rigid_frame_num_, 6, rotor_on_soft_frame_num_) = q_mat_for_rotors_on_soft_frame;
+  // full_q_mat.block(0, 2 * rotor_on_rigid_frame_num_, 6, rotor_on_soft_frame_num_) = q_mat_for_rotors_on_soft_frame;
   return full_q_mat;
 }
 
