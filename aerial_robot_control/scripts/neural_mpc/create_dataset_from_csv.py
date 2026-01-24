@@ -510,10 +510,12 @@ if __name__ == "__main__":
         # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",
         # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_GROUND_EFFECT_ONLY.csv",  # TRUNCATED FOR LESS AGGRESSIVE
         ### FULL DATASET ###
-        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_FULL.csv",
-        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_FULL.csv",
-        "2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
-        "2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv",
+        # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_FULL.csv",
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_FULL.csv",
+        # "2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
+        # "2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv",
+        ### Debug Recording
+        "2026-01-23-11-37-54_mode_11_circle_crash_instability_from_quick_movement.csv",
     ]
     csv_files = [os.path.join(rosbag_dir, file) for file in csv_files]
 

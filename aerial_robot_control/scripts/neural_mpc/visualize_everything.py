@@ -29,8 +29,9 @@ def main():
         # "/NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_VAL_FOR_PAPER/dataset_003.csv"
-        "/NMPCTiltQdServo_real_machine_dataset_FULL/dataset_001.csv"
+        # "/NMPCTiltQdServo_real_machine_dataset_FULL/dataset_001.csv"
         # "/NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_07/dataset_001.csv"
+        "/NMPCTiltQdServo_debug_dataset/dataset_001.csv"
         # VAL: 1 (base), 3 (with ref)
     ]
     df = pd.read_csv(DirectoryConfig.DATA_DIR + file_name[0])
@@ -175,7 +176,7 @@ def main():
         plt.subplot(y.shape[1], 1, i + 1)
         plt.plot(timestamp, y[:, i] - y_true[:, dim], label="error", color="r", linestyle="--", alpha=0.5)
         plt.plot(timestamp, y_true[:, dim], label="y_true", color="orange")
-        plt.plot(timestamp, y_true_const[:, dim], label="y_true_const", color="tab:brown", alpha=0.5)
+        # plt.plot(timestamp, y_true_const[:, dim], label="y_true_const", color="tab:brown", alpha=0.5)
         plt.plot(timestamp, y[:, i], label="y_regressed")
         plt.xlim(timestamp[0], timestamp[-1])
         plt.ylabel(f"D{dim}")

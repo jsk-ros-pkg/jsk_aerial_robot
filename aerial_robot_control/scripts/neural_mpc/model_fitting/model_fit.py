@@ -87,14 +87,9 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     summary(model, (in_dim,))
 
     # === Loss function ===
-    if MLPConfig.l1_lambda > 0.0:
-        loss_fn = loss_function_l1
-    else:
-        loss_fn = loss_function
+    weight = torch.tensor(MLPConfig.loss_weight).to(device)
     if len(MLPConfig.loss_weight) != out_dim:
         raise ValueError("Loss weight doesn't match output dimension!")
-    weight = torch.tensor(MLPConfig.loss_weight).to(device)
-    l1_lambda = torch.tensor(MLPConfig.l1_lambda).to(device)
 
     # === Optimizer ===
     optimizer = get_optimizer(model, MLPConfig.learning_rate)
@@ -126,9 +121,13 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
     table.add_column("Epoch", color="white", width=9)
     table.add_column("Step", color="DIM", width=13)
     table.add_column("Train Loss", color="BRIGHT red", width=19)
+    if MLPConfig.zero_out_lambda > 0.0:
+        table.add_column("Zero-Out Reg", color="blue", width=15)
+    if MLPConfig.l1_lambda > 0.0:
+        table.add_column("L1 Reg", color="green", width=15)
     if MLPConfig.gradient_lambda > 0.0:
         table.add_column("Gradient", color="magenta", width=15)
-    if MLPConfig.consistency_epsilon > 0.0:
+    if MLPConfig.consistency_lambda > 0.0:
         table.add_column("Consistency", color="cyan", width=15)
     if MLPConfig.symmetry_lambda > 0.0:
         table.add_column("Symmetry", color="yellow", width=15)
@@ -143,11 +142,11 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         table["Epoch"] = f"{t+1}/{MLPConfig.num_epochs}"
 
         # === Train Step ===
-        train_losses = train(train_dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table)
+        train_losses = train(train_dataloader, model, weight, optimizer, device, table)
         total_losses["train"].append(train_losses)
 
         # === Validation ===
-        val_losses, inference_time = inference(val_dataloader, model, loss_fn, weight, l1_lambda, device)
+        val_losses, inference_time = inference(val_dataloader, model, weight, device)
         table["Val Loss"] = val_losses
         table["Inference Time"] = f"{inference_time:.2f} ms"
         total_losses["val"].append(val_losses)
@@ -160,7 +159,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         elif MLPConfig.lr_scheduler in ["LambdaLR", "LRScheduler"]:
             lr_scheduler.step()
         learning_rates.append(optimizer.param_groups[0]["lr"])
-        table["Learning Rate"] = f"{Decimal(learning_rates[-1]):.0e}"
+        table["LR"] = f"{Decimal(learning_rates[-1]):.0e}"
         table.next_row()
 
         # === Save model ===
@@ -180,7 +179,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # === Testing ===
     if test:
-        test_losses, _ = inference(test_dataloader, model, loss_fn, weight, l1_lambda, device)
+        test_losses, _ = inference(test_dataloader, model, weight, device)
         total_losses["test"] = test_losses
         print(f"Test avg loss: {test_losses:>8f}")
 
@@ -205,17 +204,9 @@ def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_worke
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def loss_function(y, y_pred, weight, *_):
+def loss_function(y, y_pred, weight):
     # Weight each dimension
     return torch.mean(torch.square(y - y_pred) * weight)
-
-
-def loss_function_l1(y, y_pred, weight, l1_lambda, model):
-    # Weight each dimension
-    ls_loss = torch.mean(torch.square(y - y_pred) * weight)
-    # L1 regularization
-    l1_loss = l1_lambda * sum(p.abs().sum() for p in model.parameters())
-    return ls_loss + l1_loss
 
 
 def get_optimizer(model, learning_rate):
@@ -223,7 +214,7 @@ def get_optimizer(model, learning_rate):
     return optimizer_class(model.parameters(), lr=learning_rate, weight_decay=MLPConfig.weight_decay)
 
 
-def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, table):
+def train(dataloader, model, weight, optimizer, device, table):
     size = len(dataloader.dataset)
     model.train()
     loss_avg = 0.0
@@ -236,6 +227,15 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
 
         # === Forward pass ===
         y_pred = model(x)
+
+        # === Regularizations ===
+        # Zero-output regularization
+        if MLPConfig.zero_out_lambda > 0.0:
+            loss_reg = MLPConfig.zero_out_lambda * loss_function(torch.zeros_like(y_pred), y_pred, weight)
+        # L1 regularization
+        if MLPConfig.l1_lambda > 0.0:
+            loss_l1 = MLPConfig.l1_lambda * sum(p.abs().sum() for p in model.parameters())
+        # L2 regularization (weight decay) is handled by the optimizer
 
         # === Gradient penalty ===
         if MLPConfig.gradient_lambda > 0.0:
@@ -286,7 +286,11 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
             loss_symmetry = MLPConfig.symmetry_lambda * torch.mean(torch.square(y_pred - y_pred_permuted) * weight)
 
         # === Loss ===
-        loss = loss_fn(y, y_pred, weight, l1_lambda, model)
+        loss = loss_function(y, y_pred, weight)
+        if MLPConfig.zero_out_lambda > 0.0:
+            loss += loss_reg
+        if MLPConfig.l1_lambda > 0.0:
+            loss += loss_l1
         if MLPConfig.gradient_lambda > 0.0:
             loss += loss_gradient
         if MLPConfig.consistency_lambda > 0.0:
@@ -306,16 +310,20 @@ def train(dataloader, model, loss_fn, weight, l1_lambda, optimizer, device, tabl
         loss_avg = (loss_avg * prev_mov_size + loss.item() * curr_batch_size) / mov_size
         table["Step"] = f"{mov_size}/{size}"
         table["Train Loss"] = loss_avg
+        if MLPConfig.zero_out_lambda > 0.0:
+            table["Zero-Out Reg"] = loss_reg
+        if MLPConfig.l1_lambda > 0.0:
+            table["L1 Reg"] = loss_l1
         if MLPConfig.gradient_lambda > 0.0:
             table["Gradient"] = loss_gradient
-        if MLPConfig.consistency_epsilon > 0.0:
+        if MLPConfig.consistency_lambda > 0.0:
             table["Consistency"] = loss_consistency
         if MLPConfig.symmetry_lambda > 0.0:
             table["Symmetry"] = loss_symmetry
     return loss_avg
 
 
-def inference(dataloader, model, loss_fn, weight, l1_lambda, device):
+def inference(dataloader, model, weight, device):
     """
     Combined inference function for validation and testing.
     """
@@ -333,7 +341,7 @@ def inference(dataloader, model, loss_fn, weight, l1_lambda, device):
             inference_times.append(time.time() - timer)
 
             # === Loss ===
-            loss = loss_fn(y, y_pred, weight, l1_lambda, model).cpu().numpy()
+            loss = loss_function(y, y_pred, weight).cpu().numpy()
 
             # === Logging ===
             # Weighted moving average

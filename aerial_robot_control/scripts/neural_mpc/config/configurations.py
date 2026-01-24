@@ -45,7 +45,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_129",  # 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_136",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -100,6 +100,10 @@ class EnvConfig:
             # 127 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t2, t3&t4, a1&a2, a3&a4)
             # 128 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t3, t2&t4, a1&a2, a3&a4)
             # 129 (very simple functions due not much learning): Same as 120 but with permutation symmetry loss (and on TRAIN ds) (symmetry thrust change 50% which two to swap, a1&a3, a2&a4)
+            # 133 (no learning): Same as 120 but with label transform ON TRAIN
+            # 134 (): Same as 120 / with consistency loss and weight decay L2 on TRAIN (no symmetry loss, no grad loss)
+            # 135 (): Same as 134 but with lower consistency weight and way lower epsilon
+            # 136 (): Same as 135 but with FULL state input and no servo cmd (no transform) && only normal loss + zero-out regularization loss
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -204,7 +208,8 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [64, 64]
+    hidden_sizes = [32, 32]
+    # hidden_sizes = [64, 64]
     # hidden_sizes = [128, 256, 128, 64]
 
     # Activation function
@@ -229,18 +234,20 @@ class MLPConfig:
     loss_weight = [1.0, 1.0, 1.0]
     # loss_weight = [1.0, 1.0, 10.0]
     # Optimizer
-    optimizer = "Adam"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
+    optimizer = "AdamW"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 1e-3  # Set to 0.0 to disable
+    weight_decay = 1e-2  # Set to 0.0 to disable
+    # Zero-output regularization
+    zero_out_lambda = 1e-4  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
     # Penalize gradients
-    gradient_lambda = 1e4  # Set to 0.0 to disable
+    gradient_lambda = 0.0  # 1e4  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 5.0  # Set to 0.0 to disable
-    consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
+    consistency_lambda = 0.0  # 5.0  # Set to 0.0 to disable
+    consistency_epsilon = 0.01  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
-    symmetry_lambda = 100.0  # Set to 0.0 to disable
+    symmetry_lambda = 0.0  # Set to 0.0 to disable
 
     # Learning rate
     learning_rate = 1e-3  # for residual
@@ -270,8 +277,8 @@ class ModelFitConfig:
     window_size = 5  # Must be odd
 
     # ------- Coordinate Transform -------
-    label_transform = False
     input_transform = False
+    label_transform = False
 
     # ------- Pruning -------
     prune = False
@@ -286,8 +293,8 @@ class ModelFitConfig:
     save_plots = False
 
     # ------- Dataset loading -------
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
-    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
+    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
     # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
@@ -305,16 +312,16 @@ class ModelFitConfig:
     # ------- Features used for the model -------
     # State features
     state_feats = [2]  # [z]
-    # state_feats.extend([3, 4, 5])  # [z, vx, vy, vz]
-    # state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
-    # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
-    # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
+    state_feats.extend([3, 4, 5])  # [vx, vy, vz]
+    state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
+    state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
+    state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # state_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
 
     # Control input features
     u_feats = [0, 1, 2, 3]  # [thrust_cmd_1, thrust_cmd_2, thrust_cmd_3, thrust_cmd_4]
-    u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
+    # u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
 
     # Variables to be regressed
     # y_reg_dims = [5]  # [az]

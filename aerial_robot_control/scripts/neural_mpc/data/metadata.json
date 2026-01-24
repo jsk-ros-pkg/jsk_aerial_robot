@@ -989,7 +989,11 @@
         "neuralmodel_129",
         "neuralmodel_130",
         "neuralmodel_131",
-        "neuralmodel_132"
+        "neuralmodel_132",
+        "neuralmodel_133",
+        "neuralmodel_134",
+        "neuralmodel_135",
+        "neuralmodel_136"
       ]
     }
   },
@@ -2529,19 +2533,7 @@
         "motor_noise": false,
         "drag": false,
         "payload": false
-      },
-      "trained_models": [
-        "neuralmodel_120",
-        "neuralmodel_122",
-        "neuralmodel_122",
-        "neuralmodel_123",
-        "neuralmodel_124",
-        "neuralmodel_124",
-        "neuralmodel_125",
-        "neuralmodel_126",
-        "neuralmodel_127",
-        "neuralmodel_128"
-      ]
+      }
     }
   },
   "NMPCTiltQdServo_real_machine_dataset_14_RECORDINGS": {
