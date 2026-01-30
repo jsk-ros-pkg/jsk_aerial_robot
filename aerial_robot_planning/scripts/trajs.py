@@ -100,6 +100,7 @@ class LemniscateTraj(BaseTraj):
     def __init__(self, loop_num) -> None:
         super().__init__(loop_num)
         self.a = 1.0  # parameter determining the size of the Lemniscate
+        self.z_base = 1.0  # Height in meters
         self.z_range = 0.3  # range of z
         self.T = 20  # period in seconds
         self.omega = 2 * np.pi / self.T  # angular velocity
@@ -123,7 +124,7 @@ class LemniscateTraj(BaseTraj):
 
         x = self.a * np.cos(self.omega * t)
         y = self.a * np.sin(2 * self.omega * t) / 2
-        z = self.z_range * np.sin(2 * self.omega * t + np.pi / 2) + 0.6  # + 1.0
+        z = self.z_range * np.sin(2 * self.omega * t + np.pi / 2) + self.z_base
 
         vx = -self.a * self.omega * np.sin(self.omega * t)
         vy = 2 * self.a * self.omega * np.cos(2 * self.omega * t) / 2

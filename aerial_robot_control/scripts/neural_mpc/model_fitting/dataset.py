@@ -4,6 +4,7 @@ import rospkg
 import numpy as np
 from torch.utils.data import Dataset
 from config.configurations import ModelFitConfig, MLPConfig
+from sim_environment.forward_prop import init_forward_prop, forward_prop
 from utils.statistics_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.data_utils import undo_jsonify
@@ -24,6 +25,7 @@ class TrajectoryDataset(Dataset):
         y_reg_dims,
         save_file_path=None,
         save_file_name=None,
+        mode=None,
     ):
         self.df = dataframe
 
@@ -53,8 +55,14 @@ class TrajectoryDataset(Dataset):
                 self.state_out,
                 self.state_prop,
                 self.control,
+                ModelFitConfig.use_moving_average_filter,
+                self.state_in_filtered if ModelFitConfig.use_moving_average_filter else None,
+                self.control_filtered if ModelFitConfig.use_moving_average_filter else None,
+                self.y_raw if ModelFitConfig.use_moving_average_filter else None,
+                self.y_filtered if ModelFitConfig.use_moving_average_filter else None,
                 save_file_path,
                 save_file_name,
+                mode,
             )
 
     def __len__(self):
@@ -86,6 +94,127 @@ class TrajectoryDataset(Dataset):
             or state_in.shape[0] != control.shape[0]
         ):
             raise ValueError("Inconsistent shapes in the dataset.")
+        
+        ########## DEBUG ##########
+        #### Filtering
+        # NOTE: Filter before generating state_prop
+        if ModelFitConfig.use_moving_average_filter:
+            print(f"[DATASET] Applying moving average filter with window size {ModelFitConfig.window_size} to network input and labels.")
+            state_in = moving_average_filter(state_in, window_size=ModelFitConfig.window_size)
+            if ModelFitConfig.control_filtering:
+                control = moving_average_filter(control, window_size=ModelFitConfig.window_size)
+            if ModelFitConfig.plot_dataset:
+                # For plotting only
+                self.state_in_filtered = state_in.copy()
+                self.control_filtered = control.copy()
+
+        #### Run forward propagation again        
+        # Prepare mathematical model for forward propagation
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
+        from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+        mpc = NMPCTiltQdServo(phys=phys_omni, build=True)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
+        
+        # Define nominal model
+        dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(mpc)
+
+        # - Simulation parameters
+        # Technically can be chosen arbitrary but it makes a lot of sense to choose it as the frequency of the controller (i.e., T_step)
+        # since we want to replicate how the model performs inside the MPC prediction scheme. In acados the solver is set up with total horion time
+        # solver_options.tf and the number of steps solver_options.N, leading to a step size of T_step = tf / N. But we define the step size and
+        # the prediction horizon in the robots ROS package under config and compute the corresponding number of steps. 
+        # With T_step = 0.1s and T_horizon = 2.0s, we have N = 20 steps.
+        # The propagation time step (meaning how fine we discretize the continuous dynamics) can be chosen independently but it also makes 
+        # sense to choose T_samp ≈ dt (= 0.01s)
+        T_step = mpc.params["T_step"]  # 0.1s
+        T_prop = mpc.params["T_samp"]  # 0.01s
+        print("Forward propagation step size: ", T_prop)
+        print("Average time step dt in dataset: ", np.mean(dt))
+        print("Running forward prop...")
+        # - Run forward propagation with nominal model based with state_in and control
+        # takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
+        # skip = False
+        for t in range(state_in.shape[0]):
+            # for t_rec_start in data["recording_start_idx"]:
+            #     if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
+            #         # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
+            #         state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
+            #         skip = True
+            #         break
+            # if skip:
+            #     skip = False
+            #     continue
+            # Get current state and control
+            state_curr = state_in[t, :]
+            u_cmd = control[t, :]
+
+            # Propagate forward
+            state_prop_curr = forward_prop(
+                dynamics_forward_prop,
+                state_forward_prop,
+                u_forward_prop,
+                state_curr[np.newaxis, :],
+                u_cmd[np.newaxis, :],
+                T_horizon=T_step,
+                T_step=T_prop,
+                num_stages=4,
+            )
+            state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
+            state_prop = np.append(state_prop, state_prop_curr[np.newaxis, :], axis=0)
+
+        # Shift state_prop by one timestep to match timestamps of state_out
+        state_prop = state_prop[1:, :]
+        # NOTE: state_prop is now the propagated state after dt seconds, meaning the state of the system
+        # after T_samp (= dt) seconds. By this time the last input command has been applied for dt seconds
+        # and the state has changed according to the dynamics. This means state_prop now has the same
+        # timestamps as state_out.
+
+
+        #### Choose which state to use to compare with propagated state
+        # This should be the state at time t+T_step, meaning the actual state after applying the last input command for T_step seconds.
+        # Find time index corresponding to t+T_step for each sample
+        timestamps = self.df["timestamp"].to_numpy()
+        next_timestamps = timestamps + T_step
+        next_idx = []
+        for t_next in next_timestamps:
+            idx_closest = (np.abs(timestamps - t_next)).argmin()
+            next_idx.append(idx_closest)
+        next_idx = np.array(next_idx)
+        state_out_new = state_out[next_idx, :]
+        state_out = state_out_new
+
+
+
+        # 1. Compensate for delay in measurements by
+        # cutoff_dt = 0.014
+        # invalid_idx = np.where(dt>cutoff_dt)
+        # timestamps_comp = timestamps.copy()
+        # timestamps_comp[invalid_idx[0] + 1] = timestamps_comp[invalid_idx] + 0.01  (desired dt)
+
+        # recompute dt and iterate?! -> not really necessary since the corrected timestamps will be finely spaced anyway
+
+        # plot:
+            # state_idx = 4
+            # plt.figure()
+            # plt.plot(timestamps_comp, state_in[:,state_idx], marker="x")
+            # plt.plot(timestamps[..., np.where(dt>cutoff_dt)], state_in[np.where(dt>cutoff_dt),state_idx], marker="x", color="red")
+
+
+        # 2. Get correct index for state_out! -> should all be 1 apart from each other! Check with assert
+        # next_idx[1:] - next_idx[:-1]
+
+        # plot:
+            # plt.figure()
+            # plt.scatter(next_idx[1:] - next_idx[:-1])
+            # plt.hist(next_idx[1:] - next_idx[:-1])
+
+
+        # 3. warum hat label am anfang so einen offset in ax ay
+        # 4. Make sure that the restructuring of forward prop method is used correctly everywhere
+        # 4. Sichergehen dass state_prop und state_out richtig sind -> es kann ja nicht sein dass das label basically only noise ist!!
+        ##########################
+
 
         # Transform velocity to body frame
         def velocity_mapping(state_sequence):
@@ -113,8 +242,34 @@ class TrajectoryDataset(Dataset):
 
         # =============================================================
         # Compute residual dynamics of actual state and predicted (or "propagated") state
-        # TODO CAREFUL: This error is not always linear -> q_err = q_1 * q_2
         y = (state_out - state_prop) / np.expand_dims(dt, 1)
+
+        # Nonlinear quaternion error computation
+        # NOTE: The difference between two quaternions can be computed by q_diff = q2 quaternion-multiply inverse(q1)
+        # where: inverse(q1) = conjugate(q1) / abs(q1)
+        # and:   conjugate( quaternion(re, i, j, k) ) = quaternion(re, -i, -j, -k)
+        # and:   abs(q1) = 1 for unit quaternions.
+        # therefore: q_diff =   w1*w2 - x1*x2 - y1*y2 - z1*z2
+        #                     i(w1*x2 + x1*w2 + y1*z2 - z1*y2)
+        #                     j(w1*y2 - x1*z2 + y1*w2 + z1*x2)
+        #                     k(w1*z2 + x1*y2 - y1*x2 + z1*w2)
+        # NOTE: Here q1 is state_prop and q2 is state_out because we want to compute the error from propagated to actual
+        qw_prop = state_prop[:, 6]
+        qx_prop = state_prop[:, 7]
+        qy_prop = state_prop[:, 8]
+        qz_prop = state_prop[:, 9]
+        qw_out = state_out[:, 6]
+        qx_out = state_out[:, 7]
+        qy_out = state_out[:, 8]
+        qz_out = state_out[:, 9]
+
+        qe_w = qw_out * qw_prop - qx_out * qx_prop - qy_out * qy_prop - qz_out * qz_prop
+        qe_x = qw_out * qx_prop + qx_out * qw_prop + qy_out * qz_prop - qz_out * qy_prop
+        qe_y = qw_out * qy_prop - qx_out * qz_prop + qy_out * qw_prop + qz_out * qx_prop
+        qe_z = qw_out * qz_prop + qx_out * qy_prop - qy_out * qx_prop + qz_out * qw_prop
+        q_e = np.stack((qe_w, qe_x, qe_y, qe_z), axis=1)
+        y[:, 6:10] = q_e / np.expand_dims(dt, 1)
+        self.y_raw = y[:, y_reg_dims].copy()
         # =============================================================
 
         # Store data
@@ -125,31 +280,15 @@ class TrajectoryDataset(Dataset):
         self.control = control
         self.dt = dt
 
-        # Apply control averaging if specified
-        if ModelFitConfig.control_averaging:
-            print("[DATASET] Averaging input control inputs to a single dimension.")
-            if [0, 1, 2, 3] == u_feats:
-                thrust_cmd_avg = np.mean(control[:, u_feats], axis=1, keepdims=True)
-                control_in = thrust_cmd_avg
-            elif [0, 1, 2, 3, 4, 5, 6, 7] == u_feats:
-                thrust_cmd_avg = np.mean(control[:, [0, 1, 2, 3]], axis=1, keepdims=True)
-                alpha_cmd_avg = np.mean(control[:, [4, 5, 6, 7]], axis=1, keepdims=True)
-                control_in = np.concatenate((thrust_cmd_avg, alpha_cmd_avg), axis=1)
-            else:
-                raise ValueError("Control averaging only implemented for full 4 or 8 motor commands.")
-        else:
-            control_in = control[:, u_feats]
-
         # Moving average filter
-        # Note: Apply after computing residual dynamics to have more significant smoothing effect
+        # NOTE: Apply after computing residual dynamics to have more significant smoothing effect
         # If applied before, the effectiveness of the smoothing is drastically reduced
         if ModelFitConfig.use_moving_average_filter:
-            print("[DATASET] Applying moving average filter to network input and labels.")
-            state_in = moving_average_filter(state_in, window_size=ModelFitConfig.window_size)
-            control_in = moving_average_filter(control_in, window_size=ModelFitConfig.window_size)
             y = moving_average_filter(y, window_size=ModelFitConfig.window_size)
+            if ModelFitConfig.plot_dataset:
+                self.y_filtered = y[:, y_reg_dims].copy()
         if ModelFitConfig.use_low_pass_filter:
-            print("[DATASET] Applying low-pass filter to network input and labels.")
+            print(f"[DATASET] Applying low-pass filter with cutoff frequency {ModelFitConfig.low_pass_filter_cutoff_input} to network input and labels.")
 
             # Sampling frequency
             fs = 1.0 / np.mean(dt)
@@ -186,19 +325,19 @@ class TrajectoryDataset(Dataset):
                 # 4 rotor/servo signals are combined into one
                 if {0, 1, 2, 3}.issubset(set(u_feats)):
                     # Thrust
-                    control_in[:, 0] = low_pass_filter(control_in[:, 0], cutoff=cutoff_thrust, fs=fs)
+                    control[:, 0] = low_pass_filter(control[:, 0], cutoff=cutoff_thrust, fs=fs)
                 if {4, 5, 6, 7}.issubset(set(u_feats)):
                     # Servo angle
-                    control_in[:, 1] = low_pass_filter(control_in[:, 1], cutoff=cutoff_servo, fs=fs)
+                    control[:, 1] = low_pass_filter(control[:, 1], cutoff=cutoff_servo, fs=fs)
             else:
                 if {0, 1, 2, 3}.issubset(set(u_feats)):
                     # Thrust
                     for dim in [0, 1, 2, 3]:
-                        control_in[:, dim] = low_pass_filter(control_in[:, dim], cutoff=cutoff_thrust, fs=fs)
+                        control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_thrust, fs=fs)
                 if {4, 5, 6, 7}.issubset(set(u_feats)):
                     # Servo angle
                     for dim in [4, 5, 6, 7]:
-                        control_in[:, dim] = low_pass_filter(control_in[:, dim], cutoff=cutoff_servo, fs=fs)
+                        control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_servo, fs=fs)
 
             # Labels
             if {3}.issubset(set(y_reg_dims)):
@@ -212,7 +351,7 @@ class TrajectoryDataset(Dataset):
                 y[:, 5] = low_pass_filter(y[:, 5], cutoff=cutoff_acc, fs=fs)
 
         # Store network input
-        self.x = np.concatenate((state_in[:, state_feats], control_in), axis=1, dtype=np.float32)
+        self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)
         # Store labels
         self.y = y[:, y_reg_dims].astype(np.float32)
 

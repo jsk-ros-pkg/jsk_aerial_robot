@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import numpy as np
 
 
 class DirectoryConfig:
@@ -45,7 +46,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_136",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_145",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -101,9 +102,18 @@ class EnvConfig:
             # 128 (worse than 124): Same as 120 but with permutation symmetry loss (symmetry t1&t3, t2&t4, a1&a2, a3&a4)
             # 129 (very simple functions due not much learning): Same as 120 but with permutation symmetry loss (and on TRAIN ds) (symmetry thrust change 50% which two to swap, a1&a3, a2&a4)
             # 133 (no learning): Same as 120 but with label transform ON TRAIN
-            # 134 (): Same as 120 / with consistency loss and weight decay L2 on TRAIN (no symmetry loss, no grad loss)
-            # 135 (): Same as 134 but with lower consistency weight and way lower epsilon
-            # 136 (): Same as 135 but with FULL state input and no servo cmd (no transform) && only normal loss + zero-out regularization loss
+            # ---- No symmetry loss and grad loss from here ----
+            # 134 (symmetry doesnt make sense! UNSTABLE EVEN IN SIM FOR CIRC TRAJ!): Same as 120 / with consistency loss and weight decay L2 on TRAIN (no symmetry loss, no grad loss) ON TRAIN
+            # 135 (better learning behavior for normal L2 loss): Same as 134 but with lower consistency weight and way lower epsilon ON TRAIN
+            # 136 (good learning but unstable flight EVEN IN SIM): Same as 135 but with FULL state input and no servo cmd (no transform) && only normal loss + zero-out regularization loss ON TRAIN
+            # 137 (decent learning UNSTABLE IN SIM): Same as 136 (full state in) but with input and label transform & consistency + reg loss (& no moving average filter) ON FULL DATASET
+            # 138 (decent learning): Same as 137 but with higher consist and reg losses
+            # 140 (decent learning): Same as 138 but with higher consist epsilon
+            # 141: Same as 140 but with grad loss and higher epsilon & zero-out lambda
+            # 142: Same as 141 but without ang vel in input and servo only in cmd (not as state)
+            # 143: Same as 142 but no reg loss and higher grad loss & consist
+            # 144: Same as 143 but without vel in input (only label transform) and only with reg (no grad, no consist) and with seperate val dataset
+            # 145: Same as 144 but with mov avg filter (33 window size) and on vx, vy, vz as labels(!!)
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -208,8 +218,8 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [32, 32]
-    # hidden_sizes = [64, 64]
+    # hidden_sizes = [32, 32]
+    hidden_sizes = [64, 64]
     # hidden_sizes = [128, 256, 128, 64]
 
     # Activation function
@@ -224,7 +234,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 150
+    num_epochs = 100
 
     # Batch size
     batch_size = 64
@@ -236,16 +246,16 @@ class MLPConfig:
     # Optimizer
     optimizer = "AdamW"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 1e-2  # Set to 0.0 to disable
+    weight_decay = 1e-3  # Set to 0.0 to disable
     # Zero-output regularization
-    zero_out_lambda = 1e-4  # Set to 0.0 to disable
+    zero_out_lambda = 1e-2  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
     # Penalize gradients
-    gradient_lambda = 0.0  # 1e4  # Set to 0.0 to disable
+    gradient_lambda = 0.0  # 1e3  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 0.0  # 5.0  # Set to 0.0 to disable
-    consistency_epsilon = 0.01  # Relative noise to input; Set to 0.0 to disable
+    consistency_lambda = 0.0  #1e4 # 5.0  # Set to 0.0 to disable
+    consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
     symmetry_lambda = 0.0  # Set to 0.0 to disable
 
@@ -264,9 +274,6 @@ class MLPConfig:
 
 
 class ModelFitConfig:
-    # ------- Control Averaging -------
-    control_averaging = False
-
     # ------- Low-Pass Filter -------
     use_low_pass_filter = False
     low_pass_filter_cutoff_input = 1.0
@@ -274,7 +281,8 @@ class ModelFitConfig:
 
     # ------- Moving Average Filter -------
     use_moving_average_filter = True
-    window_size = 5  # Must be odd
+    control_filtering = False  # USE WAY SMALLER WINDOW SIZE IF TRUE!
+    window_size = 33  # Must be odd
 
     # ------- Coordinate Transform -------
     input_transform = False
@@ -289,16 +297,16 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = False
+    plot_dataset = True
     save_plots = False
 
     # ------- Dataset loading -------
-    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
-    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
-    # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
-    # ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
-    ds_instance = "dataset_001"  # "dataset_020"
+    # train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
+    train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
+    # train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
+    # train_ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
+    # train_ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
+    train_ds_instance = "dataset_001"  # "dataset_020"
     # real machine 01, dataset 007: Large dataset from many old flights with mode 0 and other discrepancies (200k datapoints)
     # real machine 01, dataset 007: Large dataset from mode 10 with focus on ground effect (66k datapoints)
     # real machine 01, dataset 013: same as 007 but with fixed prop and dt
@@ -307,25 +315,28 @@ class ModelFitConfig:
     # residual neural sim nominal control 05, dataset 001: on simulator as large network trained with L1 regularization
     # residual neural sim nominal control 07, dataset 001: on simulator as large network trained with full state and transforms and L1 regularization
     # real machine GROUND_EFFECT_ONLY: hovering and ground effect data only (48k datapoints)
+    val_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_FOR_PAPER"
+    val_ds_instance = "dataset_003"
     # === FROM HERE WITH MOVING AVERAGE FILTER APPLIED ===
     # NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY,  dataset_002
     # ------- Features used for the model -------
     # State features
     state_feats = [2]  # [z]
-    state_feats.extend([3, 4, 5])  # [vx, vy, vz]
+    # state_feats.extend([3, 4, 5])  # [vx, vy, vz]
     state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
-    state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
-    state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
+    # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
+    # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]
     # state_feats.extend([17, 18, 19, 20, 21, 22])  # [fds_1, fds_2, fds_3, tau_ds_1, tau_ds_2, tau_ds_3]
     # state_feats.extend([17, 18, 19, 20])  # [thrust_1, thrust_2, thrust_3, thrust_4]
 
     # Control input features
     u_feats = [0, 1, 2, 3]  # [thrust_cmd_1, thrust_cmd_2, thrust_cmd_3, thrust_cmd_4]
-    # u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
+    u_feats.extend([4, 5, 6, 7])  # [servo_angle_cmd_1, servo_angle_cmd_2, servo_angle_cmd_3, servo_angle_cmd_4]
 
     # Variables to be regressed
+    y_reg_dims = []
     # y_reg_dims = [5]  # [az]
-    y_reg_dims = [3, 4, 5]  # [ax, ay, az]
     # y_reg_dims.extend([0, 1, 2])  # [vx, vy, vz]
+    y_reg_dims.extend([3, 4, 5])  # [ax, ay, az]
     # y_reg_dims.extend([6, 7, 8, 9])  # [qw_dot, qx_dot, qy_dot, qz_dot]
     # y_reg_dims.extend([10, 11, 12])  # [roll_acc, pitch_acc, yaw_acc]

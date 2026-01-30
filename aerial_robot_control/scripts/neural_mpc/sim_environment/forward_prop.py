@@ -33,19 +33,12 @@ def init_forward_prop(mpc: NeuralMPC):
     return dynamics, state, u
 
 
-def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd, T_horizon, T_step, num_stages=1):
+def forward_prop(discretized_dynamics, state_0, u_cmd, T_horizon, T_step):
     """
     Propagates the state forward given sequence of inputs for the system u_sym. These inputs can either be numerical or symbolic.
-    :param dynamics: CasADi function representing the continuous system dynamics
-    :param state_sym: CasADi symbolic variable representing the state
-    :param u_sym: CasADi symbolic variable representing the control inputs
-    :param state_0: Initial nx state vector
     :param u_cmd: Optimized N x nu sequence of control inputs from MPC scheme
     :param T_horizon: Time span between first and last control input in u_cmd (default is the time horizon of the MPC)
     :param T_step: Integration time for in between every control input in u_cmd. The number of integration steps N is
-    computed as T_horizon / T_step.
-    :param num_stages: Number of stages in the Runge-Kutta integrator. Default is 1, i.e., the control inputs are
-    applied once at the beginning of each integration step.
     :return: An m x n array of propagated state estimates
     """
     if T_horizon % T_step != 0:
@@ -65,34 +58,33 @@ def forward_prop(dynamics, state_sym, u_sym, state_0, u_cmd, T_horizon, T_step, 
     state_k = state_0.copy()
     state_prop = state_k.copy()
 
-    # Assume constant input over the time horizon
+    # Assume constant input over the propagation time horizon
     u_cmd = np.tile(u_cmd, (N, 1))  # Repeat the control input for each time step
-
-    # Symbollically discretize dynamics
-    f = discretize_dynamics_and_cost(dynamics, state_sym, u_sym, T_step, num_stages)
 
     # Propagate forward
     for k in range(N):
         u_k = u_cmd[k, :]
-        f_k = f(state_k, u_k)
-        state_k = np.array(f_k)
+        state_k = np.array(discretized_dynamics(state_k, u_k))
         state_prop = np.append(state_prop, state_k.T, axis=0)
 
     return state_prop
 
 
-def discretize_dynamics_and_cost(dynamics, x, u, T_step, num_stages):
+def discretize_dynamics(dynamics, x, u, T_step, num_stages):
     """
-    Integrates the symbolic dynamics and cost equations until the time horizon using a RK4 method.
+    Integrates the symbolic dynamics until the time horizon using a RK4 method.
     :param dynamics: CasADi function representing the continuous system dynamics
-    :param x: Symbolic vector for state, with length nx
-    :param u: Symbolic vector for control input, with length nu
+    :param x: CasADi symbolic variable representing the state
+    :param u: CasADi symbolic variable representing the control inputs
     :param T_step: Single step size of forward integration in seconds
     :param num_stages: Number of stages in the Runge-Kutta integrator
+    computed as T_horizon / T_step.
+    :param num_stages: Number of stages in the Runge-Kutta integrator. Default is 1, i.e., the control inputs are
+    applied once at the beginning of each integration step.
     :return: CasADi function that computes the next state x_k+1 based from previous state x_k and
     control input u_k over time T_step
     """
-    x0 = x  # SX/MX datatypes are immutable
+    x0 = x  # NOTE: SX/MX datatypes are immutable
     dt = T_step / num_stages
 
     # Fixed step Runge-Kutta 4 integrator
@@ -117,8 +109,8 @@ def linearized_dynamics(state, input, nx, nu, mass, I):
     """
     if isinstance(state, ca.MX):
         cs_type = ca.MX
-    elif isinstance(state, ca.MX):
-        cs_type = ca.MX
+    elif isinstance(state, ca.SX):
+        cs_type = ca.SX
 
     # TODO state is the casadi symbolic state vector from the mpc object
     p = state[0:3]  # Position

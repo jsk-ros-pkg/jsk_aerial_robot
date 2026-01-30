@@ -21,9 +21,12 @@ from config.configurations import MLPConfig, ModelFitConfig
 def main(test: bool = False, plot: bool = False, save: bool = True):
     device = get_device()
 
-    ds_name = ModelFitConfig.ds_name
-    ds_instance = ModelFitConfig.ds_instance
-    sanity_check_dataset(ds_name, ds_instance)
+    train_ds_name = ModelFitConfig.train_ds_name
+    train_ds_instance = ModelFitConfig.train_ds_instance
+    sanity_check_dataset(train_ds_name, train_ds_instance)
+    val_ds_name = ModelFitConfig.val_ds_name
+    val_ds_instance = ModelFitConfig.val_ds_instance
+    sanity_check_dataset(val_ds_name, val_ds_instance)
 
     # Define model input and output features
     state_feats = ModelFitConfig.state_feats
@@ -32,38 +35,45 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
 
     # Set save path and populate metadata
     if save or ModelFitConfig.save_plots:
-        save_file_path, save_file_name = get_model_dir_and_file(ds_name, ds_instance, MLPConfig.model_name)
-
+        save_file_path, save_file_name = get_model_dir_and_file(train_ds_name, train_ds_instance, MLPConfig.model_name)
     # Raw data
-    df = read_dataset(ds_name, ds_instance)
+    train_df = read_dataset(train_ds_name, train_ds_instance)
+    val_df = read_dataset(val_ds_name, val_ds_instance)
 
     # === Datasets ===
     # TODO prune w.r.t. angular velocity as well
     print("Loading dataset...")
-    dataset = TrajectoryDataset(
-        df,
+    train_dataset = TrajectoryDataset(
+        train_df,
         state_feats,
         u_feats,
         y_reg_dims,
         save_file_path=save_file_path,
         save_file_name=save_file_name,
+        mode="train",
+    )
+    val_dataset = TrajectoryDataset(
+        val_df,
+        state_feats,
+        u_feats,
+        y_reg_dims,
+        save_file_path=save_file_path,
+        save_file_name=save_file_name,
+        mode="val",
     )
     print("Finished loading the dataset!")
-    in_dim = dataset.x.shape[1]
-    out_dim = dataset.y.shape[1]
+    in_dim = train_dataset.x.shape[1]
+    out_dim = train_dataset.y.shape[1]
     sanity_check_features_and_reg_dims(
         MLPConfig.model_name, state_feats, u_feats, y_reg_dims, in_dim, out_dim, MLPConfig.delay_horizon
     )
 
-    train_size = int(0.8 * len(dataset))
     if test:
-        val_size = int(0.1 * len(dataset))
-        test_size = len(dataset) - train_size - val_size
+        val_size = int(0.5 * len(val_dataset))
+        test_size = len(val_dataset) - val_size
+        val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
     else:
-        val_size = len(dataset) - train_size
-        test_size = 0
-
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+        test_dataset = []
 
     # === Dataloaders ===
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
@@ -78,10 +88,10 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         activation=MLPConfig.activation,
         use_batch_norm=MLPConfig.use_batch_norm,
         dropout_p=MLPConfig.dropout_p,
-        x_mean=torch.tensor(dataset.x_mean),
-        x_std=torch.tensor(dataset.x_std),
-        y_mean=torch.tensor(dataset.y_mean),
-        y_std=torch.tensor(dataset.y_std),
+        x_mean=torch.tensor(train_dataset.x_mean),
+        x_std=torch.tensor(train_dataset.x_std),
+        y_mean=torch.tensor(train_dataset.y_mean),
+        y_std=torch.tensor(train_dataset.y_std),
     ).to(device)
     print(model)
     summary(model, (in_dim,))
@@ -194,8 +204,8 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         halt = 1
 
 
-def get_dataloaders(training_data, val_data, test_data, batch_size=64, num_workers=0):
-    train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+def get_dataloaders(train_data, val_data, test_data, batch_size=64, num_workers=0):
+    train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_dataloader = DataLoader(val_data, batch_size=4096, shuffle=True, num_workers=num_workers)
     if len(test_data) == 0:
         test_dataloader = None
@@ -248,13 +258,15 @@ def train(dataloader, model, weight, optimizer, device, table):
         # === Output consistency ===
         if MLPConfig.consistency_lambda > 0.0:
             # Add relative noise based on input magnitude with standard normal distribution
-            noise = torch.randn_like(x) * torch.abs(x)
-            noisy_input = x + MLPConfig.consistency_epsilon * model.x_std * noise
+            noise = torch.rand_like(x) * 2.0 - 1.0  # Uniform noise in [-1, 1]
+            noisy_input = x + MLPConfig.consistency_epsilon * model.x_std * noise  # element-wise noise scaling by standard variation
             y_pred_noise = model(noisy_input)
             loss_consistency = MLPConfig.consistency_lambda * torch.mean(torch.square(y_pred - y_pred_noise) * weight)
 
         # === Output symmetry ===
         if MLPConfig.symmetry_lambda > 0.0:
+            if not ModelFitConfig.label_transform:
+                raise ValueError("Symmetry loss only makes sense for transformed labels.")
             # Permutate inputs and outputs to enforce symmetry
             if x.shape[1] == 9:
                 x_permuted = x.clone()

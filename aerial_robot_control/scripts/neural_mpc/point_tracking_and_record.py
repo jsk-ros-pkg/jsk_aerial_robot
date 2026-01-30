@@ -109,6 +109,11 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         state_curr = run_options["initial_state"]
     state_curr_sim = state_curr.copy()
 
+    # --- Warm up network ---
+    for _ in range(20):
+        u_temp = ocp_solver.solve_for_x0(state_curr)
+        sim_solver.simulate(x=state_curr_sim, u=u_temp, p=sim_solver.acados_sim.parameter_values)
+
     # --- Set up running history for temporal neural networks ---
     if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
         delay = rtnmpc.mlp_metadata["MLPConfig"]["delay_horizon"]  # Delay as number of time steps into the past
@@ -118,12 +123,13 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     if run_options["preset_targets"] is not None:
         targets = run_options["preset_targets"]
     else:
-        targets = sample_random_position_target(
-            np.array(state_curr[:3]),
-            sim_options["world_radius"],
-            aggressive=run_options["aggressive"],
-            low_flight=run_options["low_flight_targets"],
-        )
+        targets = np.array([0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[np.newaxis, :]
+        # targets = sample_random_position_target(
+        #     np.array(state_curr[:3]),
+        #     sim_options["world_radius"],
+        #     aggressive=run_options["aggressive"],
+        #     low_flight=run_options["low_flight_targets"],
+        # )
     tracking_mode = "position"
     targets_reached = np.array([False for _ in targets])
 

@@ -568,15 +568,36 @@ class NeuralMPC(RecedingHorizonBase):
         # see https://docs.acados.org/python_interface/#acados_template.acados_ocp_cost.AcadosOcpCost for details
         # error = y - y_ref
         # NONLINEAR_LS = error^T @ Q @ error
-        # qe = qr^* quaternion-multiply q
-        qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
-        qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
-        qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
+        # 
+        # NOTE: The state_y we define here is used inside the acados framework to compute the the difference y_e = y - y_ref
+        # and then using this y_e in the cost function y_e^T @ [Q, 0; 0, R] @ y_e. The reference y_ref is set at each time step in the
+        # track() method of this class. But since the quaternion error needs to be computed differently than q - q_ref (!= q_e), we compute
+        # it outside the acados framework to be the correct difference between the current and reference quaternion, and then set y_ref = 0 for the quaternion part.
+        # q_e = q_ref quaternion-multiply q^*. Then we define y to be equal to state_y[5:9] = q_e + q_ref such that
+        # inside the acados framework the error for the quaternion component is computed as (q_e + q_ref) - q_ref = q_e.
+        # NOTE: The difference between two quaternions can be computed by q_diff = q2 * inverse(q1)
+        # where: inverse(q1) = conjugate(q1) / abs(q1)
+        # and:   conjugate( quaternion(re, i, j, k) ) = quaternion(re, -i, -j, -k)
+        # and:   abs(q1) = 1 for unit quaternions.
+        # therefore: q_diff =   w1*w2 - x1*x2 - y1*y2 - z1*z2
+        #                     i(w1*x2 + x1*w2 + y1*z2 - z1*y2)
+        #                     j(w1*y2 - x1*z2 + y1*w2 + z1*x2)
+        #                     k(w1*z2 + x1*y2 - y1*x2 + z1*w2)
+        # NOTE: Here q1 is q_curr and q2 is q_ref because we want to compute the error from the current to desired orientation.
+        qe_w = self.qwr * self.qw - self.qxr * self.qx - self.qyr * self.qy - self.qzr * self.qz
+        qe_x = self.qwr * self.qx + self.qxr * self.qw + self.qyr * self.qz - self.qzr * self.qy
+        qe_y = self.qwr * self.qy - self.qxr * self.qz + self.qyr * self.qw + self.qzr * self.qx
+        qe_z = self.qwr * self.qz + self.qxr * self.qy - self.qyr * self.qx + self.qzr * self.qw
+
+        # Old solution from Jinjie
+        # qe_x =  self.qwr * self.qx - self.qw * self.qxr - self.qyr * self.qz + self.qy * self.qzr
+        # qe_y =  self.qwr * self.qy - self.qw * self.qyr + self.qxr * self.qz - self.qx * self.qzr
+        # qe_z = -self.qxr * self.qy + self.qx * self.qyr + self.qwr * self.qz - self.qw * self.qzr
 
         state_y = ca.vertcat(
             self.p,
             self.v,
-            self.qwr,
+            qe_w + self.qwr,
             qe_x + self.qxr,
             qe_y + self.qyr,
             qe_z + self.qzr,

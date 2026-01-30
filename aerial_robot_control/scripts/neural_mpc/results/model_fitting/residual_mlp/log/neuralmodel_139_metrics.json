@@ -1,0 +1,93 @@
+{
+    "total_losses": {
+        "train": [
+            0.06556645788950968
+        ],
+        "val": [
+            0.0493478613398771
+        ]
+    },
+    "inference_times": [
+        0.2056121826171875
+    ],
+    "learning_rates": [
+        0.00095
+    ],
+    "model_config": {
+        "MLPConfig": {
+            "model_name": "residual_mlp",
+            "delay_horizon": 0,
+            "hidden_sizes": [
+                64,
+                64
+            ],
+            "activation": "GELU",
+            "use_batch_norm": false,
+            "dropout_p": 0.0,
+            "num_epochs": 1,
+            "batch_size": 64,
+            "loss_weight": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "optimizer": "AdamW",
+            "weight_decay": 0.01,
+            "zero_out_lambda": 0.01,
+            "l1_lambda": 0.0,
+            "gradient_lambda": 0.0,
+            "consistency_lambda": 10.0,
+            "consistency_epsilon": 0.3,
+            "symmetry_lambda": 0.0,
+            "learning_rate": 0.001,
+            "lr_scheduler": "LambdaLR",
+            "num_workers": 0
+        },
+        "ModelFitConfig": {
+            "control_averaging": false,
+            "use_low_pass_filter": false,
+            "low_pass_filter_cutoff_input": 1.0,
+            "low_pass_filter_cutoff_label": 0.1,
+            "use_moving_average_filter": false,
+            "window_size": 5,
+            "input_transform": true,
+            "label_transform": true,
+            "prune": false,
+            "histogram_n_bins": 10,
+            "histogram_thresh": 0.001,
+            "vel_cap": 16,
+            "plot_dataset": false,
+            "save_plots": false,
+            "ds_name": "NMPCTiltQdServo_real_machine_dataset_FULL",
+            "ds_instance": "dataset_001",
+            "state_feats": [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16
+            ],
+            "u_feats": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "y_reg_dims": [
+                3,
+                4,
+                5
+            ]
+        }
+    }
+}

@@ -29,9 +29,9 @@ def main():
         # "/NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_TRAIN_FOR_PAPER/dataset_001.csv"
         # "/NMPCTiltQdServo_real_machine_dataset_VAL_FOR_PAPER/dataset_003.csv"
-        # "/NMPCTiltQdServo_real_machine_dataset_FULL/dataset_001.csv"
+        "/NMPCTiltQdServo_real_machine_dataset_FULL/dataset_001.csv"
         # "/NMPCTiltQdServo_residual_dataset_neural_sim_nominal_control_07/dataset_001.csv"
-        "/NMPCTiltQdServo_debug_dataset/dataset_001.csv"
+        # "/NMPCTiltQdServo_debug_dataset/dataset_001.csv"
         # VAL: 1 (base), 3 (with ref)
     ]
     df = pd.read_csv(DirectoryConfig.DATA_DIR + file_name[0])

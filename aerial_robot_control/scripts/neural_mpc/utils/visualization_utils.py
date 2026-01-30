@@ -282,7 +282,10 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
     )
 
 
-def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_path=None, save_file_name=None):
+def plot_dataset(
+        x,
+        y,
+        dt, state_in, state_out, state_prop, control, use_moving_average_filter=False, state_in_filtered=None, control_in_filtered=None, y_raw=None, y_filtered=None, save_file_path=None, save_file_name=None, mode=None):
     """
     Plot the dataset features and labels.
     :param x: Input features to the network.
@@ -319,6 +322,35 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.tight_layout()
     figures.append(fig)
 
+    if use_moving_average_filter:
+        fig = plt.figure()
+        plt.subplot(3, 1, 1)
+        plt.title("State In Filtered vs. Unfiltered (Position)")
+        plt.plot(state_in[:, 0], label="state_in")
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 0], label="state_in_filtered")
+        plt.legend()
+        plt.ylabel("x [m]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(3, 1, 2)
+        plt.plot(state_in[:, 1])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 1])
+        plt.ylabel("y [m]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(3, 1, 3)
+        plt.plot(state_in[:, 2])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 2])
+        plt.ylabel("z [m]")
+        plt.grid("on")
+        plt.tight_layout()
+        figures.append(fig)
+
     # --- Velocity
     # NOTE: Velocity is transformed to Body frame already
     fig = plt.figure()
@@ -348,6 +380,35 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.grid("on")
     plt.tight_layout()
     figures.append(fig)
+
+    if use_moving_average_filter:
+        fig = plt.figure()
+        plt.subplot(3, 1, 1)
+        plt.title("State In Filtered vs. Unfiltered (Velocity)")
+        plt.plot(state_in[:, 3], label="state_in")
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 3], label="state_in_filtered")
+        plt.legend()
+        plt.ylabel("vx [m]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(3, 1, 2)
+        plt.plot(state_in[:, 4])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 4])
+        plt.ylabel("vy [m]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(3, 1, 3)
+        plt.plot(state_in[:, 5])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 5])
+        plt.ylabel("vz [m]")
+        plt.grid("on")
+        plt.tight_layout()
+        figures.append(fig)
 
     # --- Quaternion
     fig = plt.figure()
@@ -415,6 +476,43 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.tight_layout()
     figures.append(fig)
 
+    if use_moving_average_filter:
+        fig = plt.figure()
+        plt.subplot(4, 1, 1)
+        plt.title("State In Filtered vs. Unfiltered (Quaternion)")
+        plt.plot(state_in[:, 6], label="state_in")
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 6], label="state_in_filtered")
+        plt.legend()
+        plt.ylabel("qw")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 2)
+        plt.plot(state_in[:, 7])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 7])
+        plt.ylabel("qx")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 3)
+        plt.plot(state_in[:, 8])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 8])
+        plt.ylabel("qy")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 4)
+        plt.plot(state_in[:, 9])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 9])
+        plt.ylabel("qz")
+        plt.grid("on")
+        plt.tight_layout()
+        figures.append(fig)
+
     # --- Servo Angle State
     fig = plt.figure()
     plt.subplot(4, 1, 1)
@@ -452,6 +550,43 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.tight_layout()
     figures.append(fig)
 
+    if use_moving_average_filter:
+        fig = plt.figure()
+        plt.subplot(4, 1, 1)
+        plt.title("State In Filtered vs. Unfiltered (Servo Angle)")
+        plt.plot(state_in[:, 13], label="state_in")
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 13], label="state_in_filtered")
+        plt.legend()
+        plt.ylabel("alpha 1 [rad]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 2)
+        plt.plot(state_in[:, 14])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 14])
+        plt.ylabel("alpha 2 [rad]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 3)
+        plt.plot(state_in[:, 15])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 15])
+        plt.ylabel("alpha 3 [rad]")
+        plt.grid("on")
+        ax = plt.gca()
+        ax.axes.xaxis.set_ticklabels([])
+        plt.subplot(4, 1, 4)
+        plt.plot(state_in[:, 16])
+        if use_moving_average_filter:
+            plt.plot(state_in_filtered[:, 16])
+        plt.ylabel("alpha 4 [rad]")
+        plt.grid("on")
+        plt.tight_layout()
+        figures.append(fig)
+
     # Control inputs
     # --- Thrust Command
     fig = plt.figure()
@@ -461,6 +596,11 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.plot(control[:, 1], label="thrust_cmd_2")
     plt.plot(control[:, 2], label="thrust_cmd_3")
     plt.plot(control[:, 3], label="thrust_cmd_4")
+    if use_moving_average_filter:
+        plt.plot(control_in_filtered[:, 0], label="thrust_cmd_1_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 1], label="thrust_cmd_2_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 2], label="thrust_cmd_3_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 3], label="thrust_cmd_4_filtered", linestyle="--")
     plt.ylabel("Thrust Command [N]")
     plt.legend()
     plt.grid("on")
@@ -474,6 +614,11 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     plt.plot(control[:, 5], label="servo_cmd_2")
     plt.plot(control[:, 6], label="servo_cmd_3")
     plt.plot(control[:, 7], label="servo_cmd_4")
+    if use_moving_average_filter:
+        plt.plot(control_in_filtered[:, 4], label="servo_cmd_1_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 5], label="servo_cmd_2_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 6], label="servo_cmd_3_filtered", linestyle="--")
+        plt.plot(control_in_filtered[:, 7], label="servo_cmd_4_filtered", linestyle="--")
     plt.ylabel("Servo Angle Command [rad]")
     plt.legend()
     plt.grid("on")
@@ -498,7 +643,11 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
     fig = plt.figure()
     for dim in range(y.shape[1]):
         plt.subplot(y.shape[1], 1, dim + 1)
-        plt.plot(y[:, dim], color="tab:red")
+        if use_moving_average_filter:
+            plt.plot(y_raw[:, dim], color="tab:red")
+            plt.plot(y_filtered[:, dim], label="filtered", color="tab:blue")
+        else:
+            plt.plot(y[:, dim], color="tab:red")
         if dim == 0:
             plt.title("Labels (filtered & pruned & possibly transformed)")
         plt.grid("on")
@@ -536,7 +685,7 @@ def plot_dataset(x, y, dt, state_in, state_out, state_prop, control, save_file_p
         os.makedirs(os.path.join(save_file_path, "plot"), exist_ok=True)
         for i, fig in enumerate(figures):
             fig.savefig(
-                os.path.join(save_file_path + "/plot", f"{save_file_name}_dataset_plot_{i}.png"),
+                os.path.join(save_file_path + "/plot", f"{save_file_name}_{mode}_dataset_plot_{i}.png"),
                 dpi=600,
                 bbox_inches="tight",
             )
@@ -575,13 +724,13 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
     # Plot control features
     fig, _ = plt.subplots(figsize=(20, 5))
     plt.title("Control input")
-    for dim in range(control.shape[1] - 1, -1, -1):
-        plt.subplot(control.shape[1], 1, dim + 1)
+    for dim in range(control.shape[1]):
+        plt.subplot(control.shape[1], 1, dim+1)
         plt.plot(timestamp, control[:, dim])
         if dim < 4:
-            plt.ylabel(f"Thrust {dim}")
+            plt.ylabel(f"Thrust {dim+1}")
         else:
-            plt.ylabel(f"Servo {dim - 4}")
+            plt.ylabel(f"Servo {dim+1 - 4}")
         plt.grid("on")
         plt.xlim(timestamp[0], timestamp[-1])
         if dim != control.shape[1] - 1:
@@ -719,7 +868,6 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
         # Plot true labels vs. actual regression
         y = mlp_out
         fig, _ = plt.subplots(figsize=(10, 5))
-        plt.title("Model Output")  # vs. Labels")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, y[:, i])  # , label="y_regressed")
@@ -733,6 +881,7 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
+        plt.title("Model Output")  # vs. Labels")
         mng = plt.get_current_fig_manager()
         mng.resize(*mng.window.maxsize())
         figures.append(fig)
@@ -740,7 +889,6 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
         # Plot loss per dimension
         loss = np.square(y_true[:, rtnmpc.y_reg_dims] - y)
         fig, _ = plt.subplots(figsize=(10, 5))
-        plt.title("Neural Model Loss per Dimension")
         for i, dim in enumerate(rtnmpc.y_reg_dims):
             plt.subplot(y.shape[1], 1, i + 1)
             plt.plot(timestamp, loss[:, i], color="red")
@@ -758,6 +906,7 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
             if i != y.shape[1] - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_ticklabels([])
+        plt.title("Neural Model Loss per Dimension")
         mng = plt.get_current_fig_manager()
         mng.resize(*mng.window.maxsize())
         figures.append(fig)
