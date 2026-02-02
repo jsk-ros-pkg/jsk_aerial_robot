@@ -118,7 +118,7 @@ def plot_trajectory_parallel(
 
     #######################################################################
     # Simulate intermediate acceleration vector before integration
-    dynamics, _, _ = init_forward_prop(rtnmpc_nominal)
+    dynamics = init_forward_prop(rtnmpc_nominal, return_continuous=True)
     x_dot = np.empty(state_in_nominal.shape)
     for t in range(state_in_nominal.shape[0]):
         x_dot[t, :] = np.array(dynamics(x=state_in_nominal[t, :], u=control_nominal[t, :])["x_dot"]).squeeze()
@@ -244,7 +244,7 @@ def plot_trajectory_parallel(
         # figures.append(fig)
 
         # Simulate intermediate acceleration vector before integration
-        # dynamics, _, _ = init_forward_prop(rtnmpc_minus_neural)
+        # dynamics = init_forward_prop(rtnmpc_minus_neural, return_continuous=True)
         # x_dot = np.empty(state_in_minus_neural.shape)
         # for t in range(state_in_minus_neural.shape[0]):
         #     x_dot[t, :] = np.array(
@@ -256,7 +256,7 @@ def plot_trajectory_parallel(
         # )
 
         # Simulate intermediate acceleration vector before integration
-        dynamics, _, _ = init_forward_prop(rtnmpc_plus_neural)
+        dynamics = init_forward_prop(rtnmpc_plus_neural, return_continuous=True)
         x_dot = np.empty(state_in_plus_neural.shape)
         for t in range(state_in_plus_neural.shape[0]):
             x_dot[t, :] = np.array(

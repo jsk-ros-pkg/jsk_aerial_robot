@@ -274,7 +274,7 @@ def main():
     mpc.phys = phys_omni
 
     # Define nominal model
-    dynamics, _, _ = init_forward_prop(mpc)
+    dynamics = init_forward_prop(mpc, return_continuous=True)
 
     # Compute linear acceleration with nominal model
     x_dot = np.empty(state_in.shape)

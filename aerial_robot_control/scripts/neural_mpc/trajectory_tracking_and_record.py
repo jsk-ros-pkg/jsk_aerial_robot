@@ -34,7 +34,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     #     "name": "test_model"
     # })
     T_sim = 0.005  # or 0.001
-    T_prop_step = 0.001
+    T_prop_step = T_sim  # 0.001
     # ------------------------
 
     # --- Initialize controller ---
@@ -97,7 +97,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         sim_solver = create_acados_sim_solver(rtnmpc, ocp_model, T_sim)
 
     # Undisturbed model for creating labels to train on
-    dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(rtnmpc)
+    discretized_dynamics = init_forward_prop(rtnmpc, T_prop_step=T_prop_step, num_stages=4)
 
     # --- Set initial state ---
     if run_options["initial_state"] is None:
@@ -406,14 +406,11 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
 
                 # Compute next state prediction through more precise and undisturbed integration
                 state_prop = forward_prop(
-                    dynamics_forward_prop,
-                    state_forward_prop,
-                    u_forward_prop,
+                    discretized_dynamics,
                     state_curr[np.newaxis, :],
                     u_cmd[np.newaxis, :],
-                    T_horizon=T_samp,
-                    T_step=T_sim,  # T_prop_step,
-                    num_stages=4,
+                    T_prop_horizon=T_samp,
+                    T_prop_step=T_prop_step,
                 )
                 state_prop = state_prop[-1, :]  # Get last predicted state
                 rec_dict["state_prop"] = np.append(rec_dict["state_prop"], state_prop[np.newaxis, :], axis=0)

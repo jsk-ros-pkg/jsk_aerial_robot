@@ -391,7 +391,7 @@ def plot_comparison(rec_dict, rtnmpc_neural_ctrl):
     mpc.phys = phys_omni
 
     # Define nominal model
-    dynamics, _, _ = init_forward_prop(mpc)
+    dynamics = init_forward_prop(mpc, return_continuous=True)
 
     # Compute linear acceleration with nominal model
     x_dot = np.empty(state_in_nominal.shape)

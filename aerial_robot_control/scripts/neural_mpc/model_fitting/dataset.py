@@ -107,18 +107,24 @@ class TrajectoryDataset(Dataset):
                 # For plotting only
                 self.state_in_filtered = state_in.copy()
                 self.control_filtered = control.copy()
-
-        #### Run forward propagation again        
-        # Prepare mathematical model for forward propagation
+    
         import sys
         sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-        from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
-        from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
-        mpc = NMPCTiltQdServo(phys=phys_omni, build=True)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
-        
-        # Define nominal model
-        dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(mpc)
-
+        from neural_controller import NeuralMPC
+        from config.configurations import EnvConfig
+        model_options = EnvConfig.model_options
+        model_options["only_use_nominal"] = True
+        neural_mpc = NeuralMPC(
+            model_options,
+            EnvConfig.solver_options,
+            EnvConfig.sim_options,
+            EnvConfig.run_options,
+        )
+        T_samp = neural_mpc.params["T_samp"]
+        T_step = neural_mpc.params["T_step"]
+        timestamp = self.df["timestamp"].to_numpy()
+        #### Run forward propagation again       
+        # Prepare mathematical model for forward propagation
         # - Simulation parameters
         # Technically can be chosen arbitrary but it makes a lot of sense to choose it as the frequency of the controller (i.e., T_step)
         # since we want to replicate how the model performs inside the MPC prediction scheme. In acados the solver is set up with total horion time
@@ -127,92 +133,93 @@ class TrajectoryDataset(Dataset):
         # With T_step = 0.1s and T_horizon = 2.0s, we have N = 20 steps.
         # The propagation time step (meaning how fine we discretize the continuous dynamics) can be chosen independently but it also makes 
         # sense to choose T_samp ≈ dt (= 0.01s)
-        T_step = mpc.params["T_step"]  # 0.1s
-        T_prop = mpc.params["T_samp"]  # 0.01s
-        print("Forward propagation step size: ", T_prop)
+        T_prop_horizon = T_step  # 0.1s
+        T_prop_step = T_samp  #T_step / 2 # T_samp  # 0.01s
+        N = int(T_prop_horizon / T_prop_step)
+        num_iter = 1000
+        print("Forward propagation step size: ", T_prop_step)
         print("Average time step dt in dataset: ", np.mean(dt))
         print("Running forward prop...")
         # - Run forward propagation with nominal model based with state_in and control
-        # takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
-        # skip = False
+        discretized_dynamics = init_forward_prop(neural_mpc, T_prop_step=T_prop_step, num_stages=4)
+
+        state_prop_revised = np.zeros((0, state_in.shape[1]))
+        state_prop_trajs = np.zeros((0, int(T_prop_horizon / T_prop_step) + 1, state_in.shape[1]))
+        timestamp_traj = np.zeros((0, int(T_prop_horizon / T_prop_step) + 1))
+
         for t in range(state_in.shape[0]):
-            # for t_rec_start in data["recording_start_idx"]:
-            #     if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
-            #         # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
-            #         state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
-            #         skip = True
-            #         break
-            # if skip:
-            #     skip = False
-            #     continue
             # Get current state and control
             state_curr = state_in[t, :]
-            u_cmd = control[t, :]
+            u_cmd = control[t, :] #:t+N, :]
 
             # Propagate forward
             state_prop_curr = forward_prop(
-                dynamics_forward_prop,
-                state_forward_prop,
-                u_forward_prop,
+                discretized_dynamics,
                 state_curr[np.newaxis, :],
                 u_cmd[np.newaxis, :],
-                T_horizon=T_step,
-                T_step=T_prop,
-                num_stages=4,
+                T_prop_horizon=T_prop_horizon,
+                T_prop_step=T_prop_step,
+                const_input=True,
             )
+            state_prop_trajs = np.append(state_prop_trajs, state_prop_curr[np.newaxis, :, :], axis=0)
+            timestamp_traj = np.append(timestamp_traj, timestamp[t] + np.arange(0, T_prop_horizon + T_prop_step, T_prop_step)[np.newaxis, :], axis=0)
             state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
-            state_prop = np.append(state_prop, state_prop_curr[np.newaxis, :], axis=0)
-
-        # Shift state_prop by one timestep to match timestamps of state_out
-        state_prop = state_prop[1:, :]
-        # NOTE: state_prop is now the propagated state after dt seconds, meaning the state of the system
-        # after T_samp (= dt) seconds. By this time the last input command has been applied for dt seconds
-        # and the state has changed according to the dynamics. This means state_prop now has the same
-        # timestamps as state_out.
-
-
-        #### Choose which state to use to compare with propagated state
-        # This should be the state at time t+T_step, meaning the actual state after applying the last input command for T_step seconds.
-        # Find time index corresponding to t+T_step for each sample
-        timestamps = self.df["timestamp"].to_numpy()
-        next_timestamps = timestamps + T_step
+            state_prop_revised = np.append(state_prop_revised, state_prop_curr[np.newaxis, :], axis=0)
+        
+        next_timestamp = timestamp + T_step
         next_idx = []
-        for t_next in next_timestamps:
-            idx_closest = (np.abs(timestamps - t_next)).argmin()
+        for t_next in next_timestamp:
+            idx_closest = (np.abs(timestamp - t_next)).argmin()
             next_idx.append(idx_closest)
         next_idx = np.array(next_idx)
-        state_out_new = state_out[next_idx, :]
-        state_out = state_out_new
+        state_out_revised = state_out[next_idx, :]
+        
+        ## OVERWRITE ###
+        state_prop = state_prop_revised
+        state_out = state_out_revised
 
+        #### plot
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.subplot(3, 1, 1)
+        # plt.plot(timestamp - timestamp[0], state_out[:,3],label="state_out", marker="x")
+        # plt.ylabel("vx [m]")
+        # plt.grid("on")
+        # ax = plt.gca()
+        # ax.axes.xaxis.set_ticklabels([])
 
+        # plt.subplot(3, 1, 2)
+        # plt.plot(timestamp - timestamp[0], state_out[:,4],label="state_out", marker="x")
+        # plt.ylabel("vy [m]")
+        # plt.grid("on")
+        # ax = plt.gca()
+        # ax.axes.xaxis.set_ticklabels([])
 
-        # 1. Compensate for delay in measurements by
-        # cutoff_dt = 0.014
-        # invalid_idx = np.where(dt>cutoff_dt)
-        # timestamps_comp = timestamps.copy()
-        # timestamps_comp[invalid_idx[0] + 1] = timestamps_comp[invalid_idx] + 0.01  (desired dt)
+        # plt.subplot(3, 1, 3)
+        # plt.plot(timestamp - timestamp[0], state_out[:,5],label="state_out", marker="x")
+        # plt.ylabel("vz [m]")
+        # plt.grid("on")
+        # for t in range(state_in.shape[0]):
+        #     plt.subplot(3, 1, 1)
+        #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,3], label="state_prop_trajs", marker="x")
+        #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],3], color="r")
+        #     if t==0:
+        #         plt.legend()
 
-        # recompute dt and iterate?! -> not really necessary since the corrected timestamps will be finely spaced anyway
+        #     plt.subplot(3, 1, 2)
+        #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,4], label="state_prop_trajs", marker="x")
+        #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],4], color="r")
 
-        # plot:
-            # state_idx = 4
-            # plt.figure()
-            # plt.plot(timestamps_comp, state_in[:,state_idx], marker="x")
-            # plt.plot(timestamps[..., np.where(dt>cutoff_dt)], state_in[np.where(dt>cutoff_dt),state_idx], marker="x", color="red")
+        #     if t==0:
+        #         plt.legend()
 
+        #     plt.subplot(3, 1, 3)
+        #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,5], label="state_prop_trajs", marker="x")
+        #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],5], color="r")
 
-        # 2. Get correct index for state_out! -> should all be 1 apart from each other! Check with assert
-        # next_idx[1:] - next_idx[:-1]
-
-        # plot:
-            # plt.figure()
-            # plt.scatter(next_idx[1:] - next_idx[:-1])
-            # plt.hist(next_idx[1:] - next_idx[:-1])
-
-
-        # 3. warum hat label am anfang so einen offset in ax ay
-        # 4. Make sure that the restructuring of forward prop method is used correctly everywhere
-        # 4. Sichergehen dass state_prop und state_out richtig sind -> es kann ja nicht sein dass das label basically only noise ist!!
+        #     if t==0:
+        #         plt.legend()
+        #     halt = 1
         ##########################
 
 
@@ -242,7 +249,21 @@ class TrajectoryDataset(Dataset):
 
         # =============================================================
         # Compute residual dynamics of actual state and predicted (or "propagated") state
-        y = (state_out - state_prop) / np.expand_dims(dt, 1)
+        # y = (state_out - state_prop) / np.expand_dims(dt, 1)
+        # y = (state_out - state_prop) / T_step
+        y = np.zeros_like(state_in)
+        for t in range(state_in.shape[0]):
+            int_prop = state_prop_trajs.shape[1]  # Number of steps for each propagation
+            y_t = np.zeros((int_prop, state_in.shape[1]))
+            for n in range(int_prop):
+                # Figure out closest state_out to propagation step
+                # TODO CHECK IF CORRECT! JUST FREEBALLED
+                next_timestamp = timestamp[t] + n * T_samp
+                next_idx = (np.abs(timestamp - next_timestamp)).argmin()
+                state_out_n = state_out[next_idx, :]
+                state_prop_n = state_prop_trajs[t, n, :]
+                y_t[n, :] = (state_out_n - state_prop_n) / T_step
+            y[t, :] = np.average(y_t, axis=0)
 
         # Nonlinear quaternion error computation
         # NOTE: The difference between two quaternions can be computed by q_diff = q2 quaternion-multiply inverse(q1)
@@ -287,6 +308,7 @@ class TrajectoryDataset(Dataset):
             y = moving_average_filter(y, window_size=ModelFitConfig.window_size)
             if ModelFitConfig.plot_dataset:
                 self.y_filtered = y[:, y_reg_dims].copy()
+
         if ModelFitConfig.use_low_pass_filter:
             print(f"[DATASET] Applying low-pass filter with cutoff frequency {ModelFitConfig.low_pass_filter_cutoff_input} to network input and labels.")
 
@@ -321,23 +343,14 @@ class TrajectoryDataset(Dataset):
                     state_in[:, dim] = low_pass_filter(state_in[:, dim], cutoff=cutoff_angular_vel, fs=fs)
 
             # Input features
-            if ModelFitConfig.control_averaging:
-                # 4 rotor/servo signals are combined into one
-                if {0, 1, 2, 3}.issubset(set(u_feats)):
-                    # Thrust
-                    control[:, 0] = low_pass_filter(control[:, 0], cutoff=cutoff_thrust, fs=fs)
-                if {4, 5, 6, 7}.issubset(set(u_feats)):
-                    # Servo angle
-                    control[:, 1] = low_pass_filter(control[:, 1], cutoff=cutoff_servo, fs=fs)
-            else:
-                if {0, 1, 2, 3}.issubset(set(u_feats)):
-                    # Thrust
-                    for dim in [0, 1, 2, 3]:
-                        control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_thrust, fs=fs)
-                if {4, 5, 6, 7}.issubset(set(u_feats)):
-                    # Servo angle
-                    for dim in [4, 5, 6, 7]:
-                        control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_servo, fs=fs)
+            if {0, 1, 2, 3}.issubset(set(u_feats)):
+                # Thrust
+                for dim in [0, 1, 2, 3]:
+                    control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_thrust, fs=fs)
+            if {4, 5, 6, 7}.issubset(set(u_feats)):
+                # Servo angle
+                for dim in [4, 5, 6, 7]:
+                    control[:, dim] = low_pass_filter(control[:, dim], cutoff=cutoff_servo, fs=fs)
 
             # Labels
             if {3}.issubset(set(y_reg_dims)):

@@ -428,13 +428,7 @@ class NeuralMPC(RecedingHorizonBase):
                 state_in = state
 
             # Assemble MLP input from selected state and control features
-            if self.mlp_metadata["ModelFitConfig"]["control_averaging"]:
-                if {0, 1, 2, 3}.issubset(self.u_feats):
-                    controls_in = ca.sum(controls[0:4]) / 4.0
-                if {4, 5, 6, 7}.issubset(self.u_feats):
-                    controls_in = ca.vertcat(controls_in, ca.sum(controls[4:8]) / 4.0)
-            else:
-                controls_in = controls[self.u_feats]
+            controls_in = controls[self.u_feats]
             mlp_in = ca.vertcat(state_in[self.state_feats], controls_in)
 
             if "temporal" in self.mlp_metadata["MLPConfig"]["model_name"]:
@@ -1082,12 +1076,12 @@ class NeuralMPC(RecedingHorizonBase):
         xr[:, 0] = target_xyz[0]  # x
         xr[:, 1] = target_xyz[1]  # y
         xr[:, 2] = target_xyz[2]  # z
-        # No reference for vx, vy, vz (idx: 3, 4, 5)
+        # Zero reference for vx, vy, vz (idx: 3, 4, 5)
         xr[:, 6] = target_qwxyz[0]  # qx
         xr[:, 7] = target_qwxyz[1]  # qx
         xr[:, 8] = target_qwxyz[2]  # qy
         xr[:, 9] = target_qwxyz[3]  # qz
-        # No reference for wx, wy, wz (idx: 10, 11, 12)
+        # Zero reference for wx, wy, wz (idx: 10, 11, 12)
         xr[:, 13] = a_ref[0]
         xr[:, 14] = a_ref[1]
         xr[:, 15] = a_ref[2]

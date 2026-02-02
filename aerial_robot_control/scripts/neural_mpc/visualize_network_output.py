@@ -400,10 +400,7 @@ def main():
     }
 
     input_configs = list(np.array(state_configs)[state_feats])
-    if mlp_metadata["ModelFitConfig"]["control_averaging"]:
-        input_configs += [np.array(control_configs)[0]] + [np.array(control_configs)[4]]
-    else:
-        input_configs += list(np.array(control_configs)[u_feats])
+    input_configs += list(np.array(control_configs)[u_feats])
 
     if len(y_reg_dims) == 1:
         output_names = ["az"]

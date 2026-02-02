@@ -5,27 +5,38 @@ import numpy as np
 import pandas as pd
 from config.configurations import DirectoryConfig
 from utils.data_utils import safe_mkdir_recursive, jsonify, safe_mkfile_recursive
-from utils.filter_utils import moving_average_filter
 from sim_environment.forward_prop import init_forward_prop, forward_prop
 
+# Only needed to get T_samp and params for metadata
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from nmpc.nmpc_tilt_mt.tilt_qd import phys_param_beetle_omni as phys_omni
-from nmpc.nmpc_tilt_mt.tilt_qd.tilt_qd_servo import NMPCTiltQdServo
+from neural_controller import NeuralMPC
+from config.configurations import EnvConfig
+model_options = EnvConfig.model_options
+model_options["only_use_nominal"] = True
+neural_mpc = NeuralMPC(
+    model_options,
+    EnvConfig.solver_options,
+    EnvConfig.sim_options,
+    EnvConfig.run_options,
+)
+T_samp = neural_mpc.params["T_samp"]
+T_step = neural_mpc.params["T_step"]
 
-
-def get_synched_data_from_rosbag(
-    file_path: str, apply_temporal_filter: bool, apply_moving_average_filter: bool
-) -> dict:
+def get_synched_data_from_rosbag(file_path: str, apply_temporal_filter: bool) -> dict:
     """
     Load and read rosbags from csv file.
     Remove NaN values and synchronize topics based on timestamp. The guiding time series is the thrust command.
+    Filter out inconsistent timesteps if apply_temporal_filter is set to True. Steps too close together are removed.
+    Steps too far apart are artifically shortened to the ideal time step.
+    ASSUMPTION: the temporal recording data is inconsistent due to process lag on the real-machine but the measurements
+    are in fact accurately time consistent.
     Returns a dictionary with keys as the topic names and messages as values.
     """
 
     ############## Read csv file ##############
     df = pd.read_csv(file_path)
 
-    # --- Position
+    # Position
     data_xyz = df[
         [
             "__time",
@@ -36,7 +47,7 @@ def get_synched_data_from_rosbag(
     ]
     data_xyz = data_xyz.dropna()
 
-    # --- Velocity
+    # Velocity
     data_vel = df[
         [
             "__time",
@@ -47,7 +58,7 @@ def get_synched_data_from_rosbag(
     ]
     data_vel = data_vel.dropna()
 
-    # --- Quaternion
+    # Quaternion
     data_qwxyz = df[
         [
             "__time",
@@ -59,8 +70,8 @@ def get_synched_data_from_rosbag(
     ]
     data_qwxyz = data_qwxyz.dropna()
 
-    # === check the sign of the quaternion, avoid the flip of the quaternion ===
-    # This is quite important because of the continuity of the quaternion
+    # Avoid sign flip of the quaternion
+    # This is quite important to maintain continuity of the quaternion signal
     qw = data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/w"].to_numpy()
     qx = data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/x"].to_numpy()
     qy = data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"].to_numpy()
@@ -87,7 +98,7 @@ def get_synched_data_from_rosbag(
     data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/y"] = qy
     data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"] = qz
 
-    # --- Angular velocity
+    # Angular velocity
     data_ang_vel = df[
         [
             "__time",
@@ -98,7 +109,7 @@ def get_synched_data_from_rosbag(
     ]
     data_ang_vel = data_ang_vel.dropna()
 
-    # --- Thrust command
+    # Thrust command
     data_thrust_cmd = df[
         [
             "__time",
@@ -110,7 +121,7 @@ def get_synched_data_from_rosbag(
     ]
     data_thrust_cmd = data_thrust_cmd.dropna()
 
-    # --- Servo angle command
+    # Servo angle command
     data_servo_angle_cmd = df[
         [
             "__time",
@@ -122,7 +133,7 @@ def get_synched_data_from_rosbag(
     ]
     data_servo_angle_cmd = data_servo_angle_cmd.dropna()
 
-    # --- Reference position
+    # Reference position
     data_xyz_ref = df[
         [
             "__time",
@@ -133,7 +144,7 @@ def get_synched_data_from_rosbag(
     ]
     data_xyz_ref = data_xyz_ref.dropna()
 
-    # --- Reference quaternion
+    # Reference quaternion
     data_qwxyz_ref = df[
         [
             "__time",
@@ -145,8 +156,7 @@ def get_synched_data_from_rosbag(
     ]
     data_qwxyz_ref = data_qwxyz_ref.dropna()
 
-    # === check the sign of the quaternion, avoid the flip of the quaternion ===
-    # This is quite important to ensure continuity of the quaternion
+    # Avoid sign flip of the quaternion
     qwr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/w"].to_numpy()
     qxr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/x"].to_numpy()
     qyr = data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"].to_numpy()
@@ -173,18 +183,17 @@ def get_synched_data_from_rosbag(
     data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/y"] = qyr
     data_qwxyz_ref["/beetle1/nmpc/viz_ref/poses[0]/orientation/z"] = qzr
 
-    ############## SYNCHRONIZE ##############
-    # Interpolate all data to the time series of the thrust command
-    # Using np.interp() [from numpy documentation]:
+    ############## Synchronize ##############
+    # Interpolate all data to synchronize w.r.t. the time series of the thrust command using np.interp() [from numpy documentation]:
     # "
     # - One-dimensional linear interpolation for monotonically increasing sample points.
     # - Returns the one-dimensional piecewise linear interpolant to a function with given discrete data points (xp, fp), evaluated at x.
     # "
 
-    # --- Reference timestamps
+    # Reference timestamps
     t_ref = np.array(data_thrust_cmd["__time"])
 
-    # --- Position
+    # Position
     t = np.array(data_xyz["__time"])
     data_xyz_interp = pd.DataFrame()
     data_xyz_interp["__time"] = t_ref
@@ -198,7 +207,7 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_xyz["/beetle1/uav/cog/odom/pose/pose/position/z"]
     )
 
-    # --- Velocity
+    # Velocity
     t = np.array(data_vel["__time"])
     data_vel_interp = pd.DataFrame()
     data_vel_interp["__time"] = t_ref
@@ -212,7 +221,7 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_vel["/beetle1/uav/cog/odom/twist/twist/linear/z"]
     )
 
-    # --- Quaternion
+    # Quaternion
     t = np.array(data_qwxyz["__time"])
     data_qwxyz_interp = pd.DataFrame()
     data_qwxyz_interp["__time"] = t_ref
@@ -229,7 +238,7 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_qwxyz["/beetle1/uav/cog/odom/pose/pose/orientation/z"]
     )
 
-    # --- Angular velocity
+    # Angular velocity
     t = np.array(data_ang_vel["__time"])
     data_ang_vel_interp = pd.DataFrame()
     data_ang_vel_interp["__time"] = t_ref
@@ -243,10 +252,10 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_ang_vel["/beetle1/uav/cog/odom/twist/twist/angular/z"]
     )
 
-    # --- Thrust command
-    # No need to interpolate since this is the reference time series
+    # Thrust command
+    # NOTE: No need to interpolate since this is the reference time series
 
-    # --- Servo angle command
+    # Servo angle command
     t = np.array(data_servo_angle_cmd["__time"])
     data_servo_angle_cmd_interp = pd.DataFrame()
     data_servo_angle_cmd_interp["__time"] = t_ref
@@ -263,7 +272,7 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_servo_angle_cmd["/beetle1/gimbals_ctrl/gimbal4/position"]
     )
 
-    # --- Reference position
+    # Reference position
     t = np.array(data_xyz_ref["__time"])
     data_xyz_ref_interp = pd.DataFrame()
     data_xyz_ref_interp["__time"] = t_ref
@@ -277,7 +286,7 @@ def get_synched_data_from_rosbag(
         t_ref, t, data_xyz_ref["/beetle1/nmpc/viz_ref/poses[0]/position/z"]
     )
 
-    # --- Reference quaternion
+    # Reference quaternion
     t = np.array(data_qwxyz_ref["__time"])
     data_qwxyz_ref_interp = pd.DataFrame()
     data_qwxyz_ref_interp["__time"] = t_ref
@@ -368,36 +377,53 @@ def get_synched_data_from_rosbag(
 
     ############## Temporal filtering ##############
     # Filter for inconsistent timesteps in dt
-    # This is very important for training neural networks since outliers influence the training significantly
-    # Enforce 0.009s < dt < 0.011s, for T_samp = 0.01s
+    # This is very important for training neural networks since we learn to predict the residual dynamics from temporal 
+    # dependencies in the measurements and outliers with large or small time steps influence the training significantly.
+    # Enforce 0.009s < dt < 0.014s, for T_samp = 0.01s
+    # NOTE: dt is the distance between timestamp[i] and timestamp[i+1] stored at index i
     if apply_temporal_filter:
         mean_dt = np.mean(data["dt"])
         std_dt = np.std(data["dt"])
         print(
-            f"[INFO] Applying temporal filter to data with mean dt = {mean_dt:.6f}s and std dt = {std_dt:.6f}s. ",
-            f"Removing all dt under {mean_dt - std_dt * 2:.6f}s.",
+            f"[INFO] Applying temporal filter to data with mean dt = {mean_dt:.2f}s and std dt = {std_dt:.2f}s. ",
+            f"Removing all dt under {mean_dt - std_dt * 3:.2f}s and over {mean_dt + std_dt * 3:.2f}s.",
         )
 
-        # Note: We do not filter upper bound here to avoid making gaps in the data even larger
-        valid_indices = np.where((data["dt"] >= (mean_dt - std_dt * 2)))[0]
-        print(f"[INFO] Filtered out {len(data['dt']) - len(valid_indices)} invalid timesteps from data.")
+        # 1. Filter out too large timesteps by shortening them to mean_dt
+        # NOTE: This only helps if a time step is delayed and the next time step comes right after it.
+        # For now only do this once, if the time gaps are persistent they would be propogated until the end.
 
-        for key in data.keys():
-            if key not in ["dt", "duration"]:
-                data[key] = data[key][valid_indices, :]
-                data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt since we recompute it later
+        # TODO check if makes sense! (also only for too large dt and not both)
+        # invalid_idx = np.append(np.where(data["dt"] > mean_dt + std_dt*3)[0], np.where(data["dt"] < mean_dt - std_dt*3)[0])
+        # data["timestamp"][invalid_idx + 1] = (data["timestamp"][invalid_idx + 2] + data["timestamp"][invalid_idx]) / 2
 
-        # Recompute dt
-        data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
+        # # Recompute dt
+        # data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
+        # print(f"[INFO] Corrected {len(invalid_idx)} too long timesteps from data.")
 
-    ################ Moving average filter ##############
-    # Smoothen data with moving average filter
-    if apply_moving_average_filter:
-        print("[INFO] Applying moving average filter to data.")
-        for key in data.keys():
-            if key in ["timestamp", "dt", "duration"]:
-                continue
-            data[key] = moving_average_filter(data[key], window_size=5)
+        # Debug plot:
+            # state_idx = 4
+            # plt.figure()
+            # plt.plot(timestamps_comp, state_in[:,state_idx], marker="x")
+            # plt.plot(timestamps[..., np.where(dt>cutoff_dt)], state_in[np.where(dt>cutoff_dt),state_idx], marker="x", color="red")
+    
+
+        # 2. Filter out too small timesteps by removing entries
+        while True:
+            valid_indices = np.where((data["dt"] >= (mean_dt - std_dt*4)))[0]
+
+            if len(data['dt']) - len(valid_indices) == 0:
+                break
+
+            for key in data.keys():
+                if key not in ["dt", "duration"]:
+                    data[key] = data[key][valid_indices + 1, :]
+                    data[key] = data[key][:-1, :]  # Truncate last entry to match size of dt since we recompute it later
+
+            # Recompute dt
+            print(f"[INFO] Filtered out {len(data['dt']) - len(valid_indices)} invalid timesteps from data.")
+            data["dt"] = np.diff(data["timestamp"], axis=0).squeeze()
+
     return data
 
 
@@ -443,11 +469,6 @@ def combine_dicts(data_dicts: dict, T_samp: float):
             continue
         combined_data[key] = np.concatenate([data[key] for data in data_dicts.values()], axis=0)
 
-    # # Correct binding segments in timestamp
-    # combined_data["dt"][len(data_dicts[0]["dt"])-1] = T_samp
-
-    # Timestamps needs to be truncated to match size of state_out
-    combined_data["timestamp"] = combined_data["timestamp"][:-1]
     return combined_data
 
 
@@ -455,18 +476,15 @@ if __name__ == "__main__":
     """
     Create dataset from rosbag
     """
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"  # + "_01"
+    ############## Configuration ##############
+    # Name of the dataset to be created
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_NEW"  # + "_01"
     ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
-    # Apply temporal filter to data
     apply_temporal_filter = True
-    # Apply moving average filter to data
-    apply_moving_average_filter = False
 
-    mpc = NMPCTiltQdServo(phys=phys_omni, build=True)  # JUST FOR PARAMS TO WRITE IN METADATA! AND TO GET T_SAMP
-    T_samp = mpc.params["T_samp"]
-
-    rosbag_dir = "~/ros/rosbag_files/csv"
+    # Select which recordings to process
+    rosbag_dir = "~/ros/rosbag_files/csv/csv_vim_4"
     csv_files = [
         # "2024-09-30-15-58-10_hover.csv",
         # "2024-10-01-15-19-19_new_motor_coeff_hover.csv",
@@ -497,14 +515,10 @@ if __name__ == "__main__":
         # "2025-09-08-23-20-40_hovering_mode_10_success.csv",
         # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
         ### TRAINING ###
-        # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN.csv",
-        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN.csv",
+        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
+        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv",
         ### VALIDATION ###
-        # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL.csv",
-        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_VAL.csv",
-        ### VALIDATION WITH REF ###
         # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL_WITH_REF.csv",
-        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_VAL_WITH_REF.csv",
         ### HOVERING & GROUND EFFECT TRAIN ###
         # NOT THIS SINCE TOO AGGRESSIVE: "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_GROUND_EFFECT_ONLY.csv",
         # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",
@@ -515,7 +529,7 @@ if __name__ == "__main__":
         # "2025-09-08-23-12-12_hovering_mode_3_success_FULL.csv",
         # "2025-09-08-23-20-40_hovering_mode_10_success_FULL.csv",
         ### Debug Recording
-        "2026-01-23-11-37-54_mode_11_circle_crash_instability_from_quick_movement.csv",
+        # "2026-01-23-11-37-54_mode_11_circle_crash_instability_from_quick_movement.csv",
     ]
     csv_files = [os.path.join(rosbag_dir, file) for file in csv_files]
 
@@ -523,19 +537,376 @@ if __name__ == "__main__":
     print(f"Started loading {len(csv_files)} csvs:")
     for i, csv_file in enumerate(csv_files):
         print(f"Loading {csv_file}...")
-        data_dicts[i] = get_synched_data_from_rosbag(csv_file, apply_temporal_filter, apply_moving_average_filter)
+        data_dicts[i] = get_synched_data_from_rosbag(csv_file, apply_temporal_filter)
 
     print(f"Finished loading all csvs!")
     if len(csv_files) > 1:
         # TODO not meaningful for temporal neural networks!!
-        print(f"Combining dicts...")
+        print(f"Combining dicts..."),
         data = combine_dicts(data_dicts, T_samp)
         print(f"{len(csv_files)} dictionaries successfully combined!")
     else:
         data = data_dicts[0]
-        data["timestamp"] = data["timestamp"][:-1]
         data["recording_start_idx"] = [0]
 
+    ############## Prepare data ##############
+    # Time step
+    timestamp = data["timestamp"]
+    dt = data["dt"]
+    # Adjust for dt size
+    data["timestamp"] = data["timestamp"][:-1]
+
+    # State in
+    # NOTE: state_in is the current time step in the time series but needs to be cut short by one at the end to match state_out
+    # TODO here should be the servo angle state but since its not recorded we use the command
+    state_in = np.hstack(
+        (
+            data["position"][:-1, :],
+            data["velocity"][:-1, :],
+            data["quaternion"][:-1, :],
+            data["angular_velocity"][:-1, :],
+            data["servo_angle_cmd"][:-1, :],
+        )
+    )
+
+    # State out
+    # NOTE: State out is the next time step in the time series, meaning the state of the system after T_samp (= dt) seconds
+    # By this time the last input command has been applied for dt seconds and the state has changed according to the dynamics
+    state_out = np.hstack(
+        (
+            data["position"][1:, :],
+            data["velocity"][1:, :],
+            data["quaternion"][1:, :],
+            data["angular_velocity"][1:, :],
+            data["servo_angle_cmd"][1:, :],
+        )
+    )
+
+    # Control input
+    control = np.hstack(
+        (
+            data["thrust_cmd"][:-1, :],
+            data["servo_angle_cmd"][:-1, :],
+        )
+    )
+
+    # Reference
+    # TODO Get full state reference from rosbag and then fix visualize_everything.py
+    pos_ref = data["position_ref"][:-1, :]
+    quat_ref = data["quaternion_ref"][:-1, :]
+
+    # State prop
+    # Propagate state_in and control input through nominal model to get state_prop
+    state_prop = np.zeros((0, state_in.shape[1]))
+
+    # ================= FORWARD PROPAGATION =================
+    # Simulate the inside of the MPC which only assumes the nominal model without disturbances
+    T_prop_horizon = T_samp,  #dt[t]
+    T_prop_step = 0.005  # Basically arbitrary but makes sense to choose as T_sim (or half of T_samp, i.e., half of dt)
+    print("Forward propagation step size: ", T_prop_step)
+    print("Average time step dt in dataset: ", np.mean(dt))
+    print("Running forward prop...")
+
+    discretized_dynamics = init_forward_prop(neural_mpc, T_prop_step=T_prop_step, num_stages=4)
+    num_iter = 10000
+    for t in range(num_iter): #state_in.shape[0]):
+        # Get current state and control
+        state_curr = state_in[t, :]
+        u_cmd = control[t, :]
+
+        # Propogate forward
+        state_prop_curr = forward_prop(
+            discretized_dynamics,
+            state_curr[np.newaxis, :],
+            u_cmd[np.newaxis, :],
+            T_prop_horizon=T_prop_horizon,
+            T_prop_step=T_prop_step,
+        )
+        state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
+        state_prop = np.append(state_prop, state_prop_curr[np.newaxis, :], axis=0)
+
+    # Shift state_prop by one timestep to match timestamps of state_out
+    state_prop = state_prop[1:, :]
+    # NOTE: state_prop is now the propagated state after dt seconds, meaning the state of the system
+    # after T_samp (= dt) seconds. By this time the last input command has been applied for dt seconds
+    # and the state has changed according to the dynamics. This means state_prop now has the same
+    # timestamps as state_out.
+
+    #### Run forward propagation again        
+    # Prepare mathematical model for forward propagation
+    # - Simulation parameters
+    # Technically can be chosen arbitrary but it makes a lot of sense to choose it as the frequency of the controller (i.e., T_step)
+    # since we want to replicate how the model performs inside the MPC prediction scheme. In acados the solver is set up with total horion time
+    # solver_options.tf and the number of steps solver_options.N, leading to a step size of T_step = tf / N. But we define the step size and
+    # the prediction horizon in the robots ROS package under config and compute the corresponding number of steps. 
+    # With T_step = 0.1s and T_horizon = 2.0s, we have N = 20 steps.
+    # The propagation time step (meaning how fine we discretize the continuous dynamics) can be chosen independently but it also makes 
+    # sense to choose T_samp ≈ dt (= 0.01s)
+    T_prop_horizon = T_step  # 0.1s
+    T_prop_step = T_step # T_samp  # 0.01s
+    print("Forward propagation step size: ", T_prop_step)
+    print("Average time step dt in dataset: ", np.mean(dt))
+    print("Running forward prop...")
+    # - Run forward propagation with nominal model based with state_in and control
+    discretized_dynamics = init_forward_prop(neural_mpc, T_prop_step=T_prop_step, num_stages=4)
+
+    state_prop_revised = np.zeros((0, state_in.shape[1]))
+    state_prop_trajs = np.zeros((0, int(T_prop_horizon / T_prop_step) + 1, state_in.shape[1]))
+    timestamp_traj = np.zeros((0, int(T_prop_horizon / T_prop_step) + 1))
+
+    for t in range(num_iter): #state_in.shape[0]):
+        # Get current state and control
+        state_curr = state_in[t, :]
+        u_cmd = control[t, :]
+
+        # Propagate forward
+        state_prop_curr = forward_prop(
+            discretized_dynamics,
+            state_curr[np.newaxis, :],
+            u_cmd[np.newaxis, :],
+            T_prop_horizon=T_prop_horizon,
+            T_prop_step=T_prop_step,
+        )
+        state_prop_trajs = np.append(state_prop_trajs, state_prop_curr[np.newaxis, :, :], axis=0)
+        timestamp_traj = np.append(timestamp_traj, timestamp[t] + np.arange(0, T_prop_horizon + T_prop_step, T_prop_step)[np.newaxis, :], axis=0)
+        state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
+        state_prop_revised = np.append(state_prop_revised, state_prop_curr[np.newaxis, :], axis=0)
+
+    #### plot
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.subplot(3, 1, 1)
+    # plt.plot(timestamp - timestamp[0], state_out[:,3],label="state_out", marker="x")
+    # plt.ylabel("vx [m]")
+    # plt.grid("on")
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_ticklabels([])
+
+    # plt.subplot(3, 1, 2)
+    # plt.plot(timestamp - timestamp[0], state_out[:,4],label="state_out", marker="x")
+    # plt.ylabel("vy [m]")
+    # plt.grid("on")
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_ticklabels([])
+
+    # plt.subplot(3, 1, 3)
+    # plt.plot(timestamp - timestamp[0], state_out[:,5],label="state_out", marker="x")
+    # plt.ylabel("vz [m]")
+    # plt.grid("on")
+    # for t in range(state_in.shape[0]):
+    #     plt.subplot(3, 1, 1)
+    #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,3], label="state_prop_trajs", marker="x")
+    #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],3], color="r")
+    #     if t==0:
+    #         plt.legend()
+
+    #     plt.subplot(3, 1, 2)
+    #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,4], label="state_prop_trajs", marker="x")
+    #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],4], color="r")
+
+    #     if t==0:
+    #         plt.legend()
+
+    #     plt.subplot(3, 1, 3)
+    #     plt.plot(timestamp_traj[t,:] - timestamp[0], state_prop_trajs[t,:,5], label="state_prop_trajs", marker="x")
+    #     plt.scatter(timestamp[next_idx[t]] - timestamp[0], state_out[next_idx[t],5], color="r")
+
+    #     if t==0:
+    #         plt.legend()
+    #     halt = 1
+
+    #### Run MPC scheme for each step and get first state and compare to propagated state
+    ocp_solver = neural_mpc.get_ocp_solver()
+    reference_generator = neural_mpc.get_reference_generator()
+    # --- Warm up solver ---
+    debug = np.zeros(state_in.shape[1])
+    debug[6] = 1.0  # qw = 1
+    for _ in range(5):
+        __ = ocp_solver.solve_for_x0(debug)
+
+    state_ref_trajs = np.empty_like(state_in)
+    u_cmd_solve = np.empty_like(control)
+    state_solve = np.empty_like(state_in)
+    for t in range(num_iter):#state_in.shape[0]):
+
+        # Track reference in solver over horizon
+        state_ref, control_ref = reference_generator.compute_trajectory(
+            target_xyz=pos_ref[t, :], target_rpy=quat_ref[t, :]
+        )
+        state_ref_trajs[t, :] = state_ref[0, :]
+        neural_mpc.track(ocp_solver, state_ref, control_ref)
+        # Get current state and control
+        state_curr = state_in[t, :]
+
+        # Solve OCP for current state
+        u_cmd_solve[t, :] = ocp_solver.solve_for_x0(state_curr)
+        state_solve[t, :] = ocp_solver.get(1, "x")
+
+    # Plot
+
+    next_timestamp = timestamp + T_step
+    next_idx = []
+    for t_next in next_timestamp:
+        idx_closest = (np.abs(timestamp - t_next)).argmin()
+        next_idx.append(idx_closest)
+    next_idx = np.array(next_idx)
+    state_out_revised = state_out[next_idx, :]
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.subplot(4,1,1)
+    plt.title("Comparison of control inputs from MPC solver and dataset")
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,0], label="MPC solved thrust")
+    plt.plot(timestamp[:num_iter], control[:num_iter,0], label="Dataset command thrust")
+    plt.legend()
+    plt.ylabel("Thrust 0")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,2)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,1])
+    plt.plot(timestamp[:num_iter], control[:num_iter,1])
+    plt.ylabel("Thrust 1")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,3)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,2])
+    plt.plot(timestamp[:num_iter], control[:num_iter,2])
+    plt.ylabel("Thrust 2")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,4)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,3])
+    plt.plot(timestamp[:num_iter], control[:num_iter,3])
+    plt.ylabel("Thrust 3")
+    plt.grid("on")
+
+    plt.figure()
+    plt.subplot(4,1,1)
+    plt.title("Comparison of control inputs from MPC solver and dataset")
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,4], label="MPC solved servo")
+    plt.plot(timestamp[:num_iter], control[:num_iter,4], label="Dataset command servo")
+    plt.legend()
+    plt.ylabel("Servo 0")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,2)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,5])
+    plt.plot(timestamp[:num_iter], control[:num_iter,5])
+    plt.ylabel("Servo 1")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,3)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,6])
+    plt.plot(timestamp[:num_iter], control[:num_iter,6])
+    plt.ylabel("Servo 2")
+    plt.grid("on")
+    ax = plt.gca()
+    ax.axes.xaxis.set_ticklabels([])
+    plt.subplot(4,1,4)
+    plt.plot(timestamp[:num_iter], u_cmd_solve[:num_iter,7])
+    plt.plot(timestamp[:num_iter], control[:num_iter,7])
+    plt.ylabel("Servo 3")
+    plt.grid("on")
+
+    plt.figure()
+    state_idx = 5
+    plt.plot(timestamp[:num_iter] - timestamp[0], state_solve[:num_iter,state_idx], label="MPC solved x")
+    plt.plot(timestamp[:num_iter] - timestamp[0], state_in[:num_iter,state_idx], label="state_in")
+    plt.plot(timestamp[:num_iter-1] - timestamp[0], state_prop[:num_iter,state_idx], label="state_prop")
+    plt.plot(timestamp[:num_iter] - timestamp[0], state_out[:num_iter,state_idx], label="state_out")
+    plt.plot(timestamp[next_idx[0]:num_iter] - timestamp[0], state_prop_revised[:num_iter-next_idx[0],state_idx], label="state_prop_revised")
+    plt.plot(timestamp[next_idx[0]:num_iter] - timestamp[0], state_out_revised[:num_iter-next_idx[0],state_idx], label="state_out_revised")
+    plt.legend()
+    plt.grid()
+    plt.title("Comparison of state from MPC solver and dataset")
+
+    plt.figure()
+    plt.plot(timestamp[:num_iter-1], state_out[:num_iter-1,state_idx] - state_prop[:num_iter,state_idx], label="state_out - state_prop")
+    plt.plot(timestamp[:num_iter], state_out_revised[:num_iter,state_idx] - state_prop_revised[:num_iter,state_idx], label="state_out_revised - state_prop_revised")
+    plt.legend()
+    plt.grid()
+
+
+
+    #### Choose which state to use to compare with propagated state
+    # This should be the state at time t+T_step, meaning the actual state after applying the last input command for T_step seconds.
+    # Find time index corresponding to t+T_step for each sample
+    # next_timestamp = timestamp + T_step
+    # next_idx = []
+    # for t_next in next_timestamp:
+    #     idx_closest = (np.abs(timestamp - t_next)).argmin()
+    #     next_idx.append(idx_closest)
+    # next_idx = np.array(next_idx)
+    # state_out_revised = state_out[next_idx, :]
+    # # state_out = state_out_revised
+
+    # Truncate all states except for state_prop to make them equal length
+    timestamp = timestamp[:-1]
+    dt = dt[:-1]
+    state_in = state_in[:-1, :]
+    state_out = state_out[:-1, :]
+    control = control[:-1, :]
+
+
+
+    # 0. Compensate for delay in measurements by
+    # cutoff_dt = 0.014
+    # invalid_idx = np.where(dt>cutoff_dt)
+    # timestamp_comp = timestamp.copy()
+    # timestamp_comp[invalid_idx[0] + 1] = timestamp_comp[invalid_idx] + 0.01  (desired dt)
+
+    # recompute dt and iterate?! -> not really necessary since the corrected timestamp will be finely spaced anyway
+
+    # plot:
+        # state_idx = 4
+        # plt.figure()
+        # plt.plot(timestamp_comp, state_in[:,state_idx], marker="x")
+        # plt.plot(timestamp[..., np.where(dt>cutoff_dt)], state_in[np.where(dt>cutoff_dt),state_idx], marker="x", color="red")
+
+    # -> create new dataset with corrected timestamp and ref values (keep old one)
+
+    # 1. Compare revised propagated state with previous version and make sure that everything runs correctly
+    # plot
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.plot((state_out[:,5] - state_prop[:,5]) / dt , label="state_out - state_prop")
+        # plt.plot((state_out[:1,5] - state_prop_revised[:,5]) / T_step, label="state_out - state_prop_revised")
+        # plt.plot(state_prop[:,5] , label="state_prop")
+        # plt.plot(state_prop_revised[:,5], label="state_prop_revised")
+        # plt.plot(state_out[:,5],label="state_out")
+        # plt.plot(state_out[1:,5],label="state_out_next")
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
+
+    # 1.2 Check that using MPC gives same control sequence as in dataset and make sure that the timings are correct
+
+
+    # 2. Get correct index for state_out! -> should all be 1 apart from each other! Check with assert
+    # next_idx[1:] - next_idx[:-1]
+
+    # plot:
+        # plt.figure()
+        # plt.scatter(next_idx[1:] - next_idx[:-1])
+        # plt.hist(next_idx[1:] - next_idx[:-1])
+
+    # 2.1 Check that when using the input for propagation the control input is used from the correct time step
+    # -> should be the control input at the same time from which the state_in is measured!
+    
+    # WHY IS MPC OUTPUT DIFFERENT FROM PROPAGATION!!!
+
+    # USE NOON CONSTANT INPUT FOR PROPAGATION?!
+
+    # 3. warum hat label am anfang so einen offset in ax ay
+    # 4. Sichergehen dass state_prop und state_out richtig sind -> es kann ja nicht sein dass das label basically only noise ist!!
+    print("Forward propagation finished!")
+    # ========================================================
+
+    ############## Metadata ##############
     # TODO move file naming and creation into data_utils and generalize
     # TODO make smarter!
     outer_fields = {
@@ -543,22 +914,19 @@ if __name__ == "__main__":
         "real_machine": True,
         "rosbag_file": csv_files,
         "duration": data["duration"],
+        "temporal_filtering": apply_temporal_filter,
         "mpc_type": "NMPCTiltQdServo",
-        "state_dim": mpc.get_ocp().dims.nx,
-        "control_dim": mpc.get_ocp().dims.nu,
-        "include_quaternion_constraint": mpc.include_quaternion_constraint,
-        "include_soft_constraints": mpc.include_soft_constraints,
-        "mpc_params": mpc.params,
-        "filtering": {
-            "temporal_filtering": apply_temporal_filter,
-            "moving_average_filter": apply_moving_average_filter,
-        },
+        "state_dim": neural_mpc.get_ocp().dims.nx,
+        "control_dim": neural_mpc.get_ocp().dims.nu,
+        "include_quaternion_constraint": neural_mpc.include_quaternion_constraint,
+        "include_soft_constraints": neural_mpc.include_soft_constraints,
+        "mpc_params": neural_mpc.params,
     }
     inner_fields = {
         "disturbances": {
             "cog_dist": False,  # Disturbance forces and torques on CoG
-            "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.1,
+            "cog_dist_model": "",
+            "cog_dist_factor": 0.0,
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
@@ -606,107 +974,7 @@ if __name__ == "__main__":
             metadata = {ds_name: {**outer_fields, ds_instance_name: inner_fields}}
             json.dump(metadata, json_file, indent=4)
 
-    # Assemble state and control arrays
-    # --- Time step
-    timestamp = data["timestamp"]
-    dt = data["dt"]
-
-    # --- State in
-    # NOTE: state_in is the current time step in the time series but needs to be cut short by one at the end to match state_out
-    # TODO here should be the servo angle state but since its not recorded we use the command
-    state_in = np.hstack(
-        (
-            data["position"][:-1, :],
-            data["velocity"][:-1, :],
-            data["quaternion"][:-1, :],
-            data["angular_velocity"][:-1, :],
-            data["servo_angle_cmd"][:-1, :],
-        )
-    )
-
-    # --- State out
-    # NOTE: State out is the next time step in the time series, meaning the state of the system after T_samp (= dt) seconds
-    # By this time the last input command has been applied for dt seconds and the state has changed according to the dynamics
-    state_out = np.hstack(
-        (
-            data["position"][1:, :],
-            data["velocity"][1:, :],
-            data["quaternion"][1:, :],
-            data["angular_velocity"][1:, :],
-            data["servo_angle_cmd"][1:, :],
-        )
-    )
-
-    # --- Control input
-    control = np.hstack((data["thrust_cmd"][:-1, :], data["servo_angle_cmd"][:-1, :]))
-
-    # --- State prop
-    # Propagate state_in and control input through nominal model to get state_prop
-    state_prop = np.zeros((0, state_in.shape[1]))
-
-    # ================================== FORWARD PROPAGATION ==================================
-    # Simulate the inside of the MPC which only assumes the nominal model without disturbances
-    # - Initialize forward propagation
-    # Define nominal model
-    dynamics_forward_prop, state_forward_prop, u_forward_prop = init_forward_prop(mpc)
-
-    # - Simulation parameters
-    T_prop = 0.005  # Basically arbitrary but makes sense to choose as T_sim (or half of T_samp, i.e., half of dt)
-    print("Forward propagation step size: ", T_prop)
-    print("Average time step dt in dataset: ", np.mean(dt))
-    print("Running forward prop...")
-    # - Run forward propagation with nominal model based with state_in and control
-    # takeoff_steps = 200  # 2s = 200 * 0.01s (T_samp)
-    # skip = False
-    for t in range(state_in.shape[0]):
-        # for t_rec_start in data["recording_start_idx"]:
-        #     if t_rec_start <= t and t <= t_rec_start + takeoff_steps:
-        #         # Set state_prop to state_in at start of each recording to avoid learning from takeoff dynamics
-        #         state_prop = np.append(state_prop, state_in[t, :][np.newaxis, :], axis=0)
-        #         skip = True
-        #         break
-        # if skip:
-        #     skip = False
-        #     continue
-        # Get current state and control
-        state_curr = state_in[t, :]
-        u_cmd = control[t, :]
-
-        # Propogate forward
-        state_prop_curr = forward_prop(
-            dynamics_forward_prop,
-            state_forward_prop,
-            u_forward_prop,
-            state_curr[np.newaxis, :],
-            u_cmd[np.newaxis, :],
-            T_horizon=dt[t],
-            T_step=T_prop,
-            num_stages=4,
-        )
-        state_prop_curr = state_prop_curr[-1, :]  # Get last predicted state
-        state_prop = np.append(state_prop, state_prop_curr[np.newaxis, :], axis=0)
-
-    # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop = state_prop[1:, :]
-    # NOTE: state_prop is now the propagated state after dt seconds, meaning the state of the system
-    # after T_samp (= dt) seconds. By this time the last input command has been applied for dt seconds
-    # and the state has changed according to the dynamics. This means state_prop now has the same
-    # timestamps as state_out.
-
-    # Truncate all states except for state_prop to make them equal length
-    timestamp = timestamp[:-1]
-    dt = dt[:-1]
-    state_in = state_in[:-1, :]
-    state_out = state_out[:-1, :]
-    control = control[:-1, :]
-    print("Forward propagation finished!")
-    # =========================================================================================
-
-    # TODO Get full state reference from rosbag and then fix visualize_everything.py
-    pos_ref = data["position_ref"][:-2, :]
-    quat_ref = data["quaternion_ref"][:-2, :]
-
-    # Create dictionary that will become dataset
+    ############## Save dataset ##############
     dataset_dict = {
         "timestamp": timestamp,
         "dt": dt,

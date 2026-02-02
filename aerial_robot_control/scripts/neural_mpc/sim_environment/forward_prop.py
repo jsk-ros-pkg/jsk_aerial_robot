@@ -7,85 +7,99 @@ from utils.geometry_utils import skew_symmetric
 from neural_controller import NeuralMPC
 
 
-def init_forward_prop(mpc: NeuralMPC):
-    p = ca.MX.sym("p", 3)  # Position
-    v = ca.MX.sym("v", 3)  # Linear velocity in World frame (inertial reference for Newton's laws)
-    q = ca.MX.sym("q", 4)  # Quaternion (representing orientation of the Body frame relative to the World frame)
-    w = ca.MX.sym("w", 3)  # Angular velocity in Body frame (principal axes, diagonal inertia matrix)
+def init_forward_prop(mpc: NeuralMPC, T_prop_step: float = 0.01, num_stages: int = 4, return_continuous: bool = False):
+    """
+    Discretize dynamics for forward propagation given the step size T_prop_step and number of stages for RK4 integration.
+    NOTE: The step size T_prop_step here needs to match the step size used for the forward_prop() method.
+    Careful, this is not necessarily the same as the step size T_step used in the controller!
+    """
+    p = ca.MX.sym("p", 3)
+    v = ca.MX.sym("v", 3)
+    q = ca.MX.sym("q", 4)
+    w = ca.MX.sym("w", 3)
     state = ca.vertcat(p, v, q, w)
 
-    # - Extend state-space by dynamics of servo angles
+    # Extend state-space by dynamics of servo angles
     if mpc.tilt and mpc.include_servo_model:
         a_s = ca.MX.sym("a_s", 4)
         state = ca.vertcat(state, a_s)
 
-    # - Extend state-space by dynamics of rotors
+    # Extend state-space by dynamics of rotors
     if mpc.include_thrust_model:
         ft_s = ca.MX.sym("ft_s", 4)
         state = ca.vertcat(state, ft_s)
 
     ft_c = ca.MX.sym("ft_c", 4)
     a_c = ca.MX.sym("a_c", 4)
-    u = ca.vertcat(ft_c, a_c)
+    control = ca.vertcat(ft_c, a_c)
 
-    # Generate symbolic CasADi function
-    dynamics = full_dynamics(mpc, state, u)
-    return dynamics, state, u
+    # Generate symbolic continuous CasADi function
+    dynamics = full_dynamics(mpc, state, control)
+    if return_continuous:
+        return dynamics
+    
+    # Discretize dynamics
+    discretized_dynamics = discretize_dynamics(dynamics, state, control, T_prop_step, num_stages)
+    return discretized_dynamics
 
 
-def forward_prop(discretized_dynamics, state_0, u_cmd, T_horizon, T_step):
+def forward_prop(discretized_dynamics, state_0, u_cmd, T_prop_horizon, T_prop_step, const_input=True):
     """
     Propagates the state forward given sequence of inputs for the system u_sym. These inputs can either be numerical or symbolic.
+    :param discretized_dynamics: CasADi function that computes the next state x_k+1 based from previous state x_k and
+    control input u_k over time T_prop_step by numerically integrating the continuous dynamics.
     :param u_cmd: Optimized N x nu sequence of control inputs from MPC scheme
-    :param T_horizon: Time span between first and last control input in u_cmd (default is the time horizon of the MPC)
-    :param T_step: Integration time for in between every control input in u_cmd. The number of integration steps N is
+    :param T_prop_horizon: Time span between first and last control input in u_cmd
+    :param T_prop_step: Integration time for in between every control input in u_cmd. The number of integration steps N is
+    computed as T_prop_horizon / T_prop_step.
     :return: An m x n array of propagated state estimates
     """
-    if T_horizon % T_step != 0:
-        # print(f"[Warning] In forward propagation, T_horizon {T_horizon} is not a multiple of T_step {T_step}.")
-        # print(f"Matching T_step to be a multiple of T_horizon.")
-        T_step = T_horizon / 2
+    if round(T_prop_horizon % T_prop_step, 6) != 0:  # round() needed for floating point precision
+        print(f"[Warning] In forward propagation, T_prop_horizon {T_prop_horizon} is not a multiple of T_prop_step {T_prop_step}.")
+        print(f"Matching T_prop_step to be a multiple of T_prop_horizon: T_prop_step = T_prop_horizon / 2 = {T_prop_horizon / 2}.")
+        T_prop_step = T_prop_horizon / 2
 
     # Initialize parameters
-    N = int(T_horizon / T_step)  # Number of integration steps
-    if N != 2:
-        print(f"[Warning] In forward propagation, the number of integration steps N={N} is not 2.")
-        raise NotImplementedError(
-            "Currently, only N=2 is expected. Please be only move on when you know what you are doing."
-        )
+    N = int(T_prop_horizon / T_prop_step)  # Number of integration steps
+    # if N != 2:
+    #     print(f"[Warning] In forward propagation, the number of integration steps N={N} is not 2.")
+    #     raise NotImplementedError(
+    #         "Currently, only N=2 is expected. Please be only move on when you know what you are doing."
+    #     )
 
     # Initialize sequence of propagated states
     state_k = state_0.copy()
     state_prop = state_k.copy()
 
-    # Assume constant input over the propagation time horizon
-    u_cmd = np.tile(u_cmd, (N, 1))  # Repeat the control input for each time step
+    if const_input:
+        # Assume constant input over the propagation time horizon (Can be altered to accept time-varying inputs as function argument)
+        u_cmd = np.tile(u_cmd, (N, 1))  # Repeat the control input for each time step
 
     # Propagate forward
     for k in range(N):
         u_k = u_cmd[k, :]
-        state_k = np.array(discretized_dynamics(state_k, u_k))
+        state_k = np.array(discretized_dynamics(state_k, u_k))  # state_k+1
         state_prop = np.append(state_prop, state_k.T, axis=0)
 
     return state_prop
 
 
-def discretize_dynamics(dynamics, x, u, T_step, num_stages):
+def discretize_dynamics(dynamics, x, u, T_prop_step, num_stages):
     """
     Integrates the symbolic dynamics until the time horizon using a RK4 method.
     :param dynamics: CasADi function representing the continuous system dynamics
     :param x: CasADi symbolic variable representing the state
     :param u: CasADi symbolic variable representing the control inputs
-    :param T_step: Single step size of forward integration in seconds
+    :param T_prop_step: Single step size of forward integration in seconds
     :param num_stages: Number of stages in the Runge-Kutta integrator
-    computed as T_horizon / T_step.
+    computed as T_prop_horizon / T_prop_step.
     :param num_stages: Number of stages in the Runge-Kutta integrator. Default is 1, i.e., the control inputs are
     applied once at the beginning of each integration step.
     :return: CasADi function that computes the next state x_k+1 based from previous state x_k and
-    control input u_k over time T_step
+    control input u_k over time T_prop_step
     """
     x0 = x  # NOTE: SX/MX datatypes are immutable
-    dt = T_step / num_stages
+    dt = T_prop_step / num_stages
 
     # Fixed step Runge-Kutta 4 integrator
     for j in range(num_stages):
@@ -193,7 +207,7 @@ def full_dynamics(mpc: NeuralMPC, state, u):
     ee_pos = mpc.phys.ball_effector_p
     ee_q = mpc.phys.ball_effector_q
 
-    # - Rotor to End-of-arm
+    # [Coordinate Transform] Rotor to End-of-arm
     if mpc.tilt:
         if mpc.include_servo_model:
             a = a_s
@@ -208,14 +222,14 @@ def full_dynamics(mpc: NeuralMPC, state, u):
     #     i < 3
     # u @Dschodscho
 
-    # - End-of-arm to Body
+    # [Coordinate Transform] End-of-arm to Body
     # Vectorized rotation matrices rot_be (3x3x4)
     # We'll compute the rotated forces later directly without storing the full rotation matrices
     norm_xy = ca.sqrt(p_b[:, 0] ** 2 + p_b[:, 1] ** 2)  # Avoid using norm_2()
     sin_theta = p_b[:, 1] / norm_xy
     cos_theta = p_b[:, 0] / norm_xy
 
-    # - Body to World
+    # [Coordinate Transform] Body to World
     row_1 = ca.horzcat(1 - 2 * qy**2 - 2 * qz**2, 2 * qx * qy - 2 * qw * qz, 2 * qx * qz + 2 * qw * qy)
     row_2 = ca.horzcat(2 * qx * qy + 2 * qw * qz, 1 - 2 * qx**2 - 2 * qz**2, 2 * qy * qz - 2 * qw * qx)
     row_3 = ca.horzcat(2 * qx * qz - 2 * qw * qy, 2 * qy * qz + 2 * qw * qx, 1 - 2 * qx**2 - 2 * qy**2)
@@ -229,12 +243,7 @@ def full_dynamics(mpc: NeuralMPC, state, u):
     else:
         ft_r_z = ft_c
 
-    #########################################################################
-    # NO NOISE IN THIS MODEL!
-    #########################################################################
-
-    # Torque in Rotor frame from thrust and coupling factor kq_d_kt
-    # Torque generated by each rotor around its z-axis (reaction torque)
+    # Torque generated by each rotor around its z-axis in Rotor frame from thrust and coupling factor kq_d_kt
     tau_r_z = -dr * ft_r_z * kq_d_kt
 
     # 1. Apply transformation from Rotor to End-of-arm: rot_er @ ft_r:
@@ -262,41 +271,41 @@ def full_dynamics(mpc: NeuralMPC, state, u):
     tau_b_y = cos_theta * tau_e_y
     tau_b_z = tau_e_z
 
-    # 4. Add cross product terms: p_b × f_b for each rotor position
-    # Incorporate gyroscopic effects
+    # 3. Cross product terms (gyroscopic effects) p_b × f_b for each rotor position
     cross_tau_b_x = p_b[:, 1] * ft_b_z - p_b[:, 2] * ft_b_y  # p_y * f_z - p_z * f_y
     cross_tau_b_y = p_b[:, 2] * ft_b_x - p_b[:, 0] * ft_b_z  # p_z * f_x - p_x * f_z
     cross_tau_b_z = p_b[:, 0] * ft_b_y - p_b[:, 1] * ft_b_x  # p_x * f_y - p_y * f_x
 
-    # 5. Sum over all rotor contributions
+    # 4. Sum over all rotor contributions
     fu_b = ca.vertcat(ca.sum1(ft_b_x), ca.sum1(ft_b_y), ca.sum1(ft_b_z))
 
     tau_u_b = ca.vertcat(
         ca.sum1(tau_b_x + cross_tau_b_x), ca.sum1(tau_b_y + cross_tau_b_y), ca.sum1(tau_b_z + cross_tau_b_z)
     )
 
-    # 6. Apply transformation from Body to World: rot_wb @ ft_b:
+    # 5. Apply transformation from Body to World: rot_wb @ ft_b:
     # [1 - 2*qy^2 - 2*qz^2, 2*qx*qy - 2*qw*qz, 2*qx*qz + 2*qw*qy]
     # [2*qx*qy + 2*qw*qz, 1 - 2*qx^2 - 2*qz^2, 2*qy*qz - 2*qw*qx] @ [fu_b] = [fu_w]
     # [2*qx*qz - 2*qw*qy, 2*qy*qz + 2*qw*qx, 1 - 2*qx^2 - 2*qy^2]
     fu_w = rot_wb @ fu_b
 
-    # Assemble dynamical model
+    # 6.1 Assemble dynamical model
     x_dot = ca.vertcat(
         v,
         fu_w / mass + g_w,
         (-w[0] * q[1] - w[1] * q[2] - w[2] * q[3]) / 2,  # Convert angular velocity to rotation in World frame
-        (w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
-        (w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
-        (w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2,
-        ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b)),  # Stay in Body frame
+        ( w[0] * q[0] + w[2] * q[2] - w[1] * q[3]) / 2,
+        ( w[1] * q[0] - w[2] * q[1] + w[0] * q[3]) / 2,
+        ( w[2] * q[0] + w[1] * q[1] - w[0] * q[2]) / 2,
+        ca.mtimes(I_inv, (-ca.cross(w, ca.mtimes(I, w)) + tau_u_b)),  # Stay in Body frame for simpler dynamics
     )
 
-    # - Extend model by servo angle first-order dynamics
+    # 6.2 Extend model by servo angle first-order dynamics
+    # Assumption if not included: a_c = a_s
     if mpc.include_servo_model:
         x_dot = ca.vertcat(x_dot, (a_c - a_s) / t_servo)  # Time constant of servo motor
 
-    # - Extend model by thrust first-order dynamics
+    # 6.3 Extend model by thrust first-order dynamics
     # Assumption if not included: f_tc = f_ts
     if mpc.include_thrust_model:
         x_dot = ca.vertcat(x_dot, (ft_c - ft_s) / t_rotor)  # Time constant of rotor

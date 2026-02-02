@@ -46,7 +46,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_145",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_148",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -114,6 +114,9 @@ class EnvConfig:
             # 143: Same as 142 but no reg loss and higher grad loss & consist
             # 144: Same as 143 but without vel in input (only label transform) and only with reg (no grad, no consist) and with seperate val dataset
             # 145: Same as 144 but with mov avg filter (33 window size) and on vx, vy, vz as labels(!!)
+            # 146: Same as 145 but with revised propagation
+            # 147: Same as 146 but average over propagation steps
+            # 148: Same as 147 but with grad & consist loss
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -248,13 +251,13 @@ class MLPConfig:
     # Weight decay (L2 regularization)
     weight_decay = 1e-3  # Set to 0.0 to disable
     # Zero-output regularization
-    zero_out_lambda = 1e-2  # Set to 0.0 to disable
+    zero_out_lambda = 1e-1  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
     # Penalize gradients
-    gradient_lambda = 0.0  # 1e3  # Set to 0.0 to disable
+    gradient_lambda = 1e3  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 0.0  #1e4 # 5.0  # Set to 0.0 to disable
+    consistency_lambda = 10.0  #1e4 # 5.0  # Set to 0.0 to disable
     consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
     symmetry_lambda = 0.0  # Set to 0.0 to disable
@@ -281,8 +284,8 @@ class ModelFitConfig:
 
     # ------- Moving Average Filter -------
     use_moving_average_filter = True
-    control_filtering = False  # USE WAY SMALLER WINDOW SIZE IF TRUE!
-    window_size = 33  # Must be odd
+    control_filtering = True  # USE WAY SMALLER WINDOW SIZE IF TRUE!
+    window_size = 5 #33  # Must be odd
 
     # ------- Coordinate Transform -------
     input_transform = False
@@ -297,7 +300,7 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = True
+    plot_dataset = False
     save_plots = False
 
     # ------- Dataset loading -------
