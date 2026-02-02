@@ -179,7 +179,7 @@ void BaseNavigator::simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedC
       ROS_DEBUG("traj_generator_ptr_ is null");
     }
   geometry_msgs::PoseStamped target_pose = *msg;
-  target_pose.pose.position.z = getTargetPos().z();
+  // target_pose.pose.position.z = getTargetPos().z();
   std::vector<geometry_msgs::PoseStamped> path;
   path.push_back(target_pose);
   generateNewTrajectory(path);

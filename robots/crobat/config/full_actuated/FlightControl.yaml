@@ -7,7 +7,7 @@ controller:
   gravity_comp_flag_: true
 
   xy:
-    p_gain: 5.0 #5.0
+    p_gain: 10.0 #5.0
     i_gain: 1.0 #0.05
     d_gain: 0.5 #5.0
     limit_sum: 1000 #10
@@ -28,7 +28,7 @@ controller:
     force_landing_descending_rate: -0.03 #-0.6
 
   yaw:
-    p_gain: 10.0 #6.0
+    p_gain: 20.0 #6.0
     i_gain: 1.0 #1.0
     d_gain: 2.0 #4.0
     limit_err_p: 1000 #0.4

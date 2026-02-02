@@ -8,19 +8,19 @@ motor_info:
         vel_ref_num: 1
         ref1:
                 voltage: 8.4
-                max_thrust: 0.7 # N 
-                polynominal2: -0.0026998260695767183 # x10
-                polynominal1: 0.5895661464197593 # x10
-                polynominal0: -2.467776363598049 # x1
+                max_thrust: 0.8 # N 
+                polynominal2: -0.0029378523655137156 # x10
+                polynominal1: 0.6466870337531405 # x10
+                polynominal0: -2.700687530358138 # x1
         ref2:
                 voltage: 7.8
-                max_thrust: 0.625 # N 
-                polynominal2: -0.0020943449646866022 # x10
-                polynominal1: 0.47783340669380725 # x10
-                polynominal0: -2.0176697211197783 # x1
+                max_thrust: 0.7 # N 
+                polynominal2: -0.002872083872834844 # x10
+                polynominal1: 0.6067475831427108 # x10
+                polynominal0: -2.502039479756373 # x1
         ref3:
-                voltage: 7.4
-                max_thrust: 0.5 # N 
-                polynominal2: -0.005210157730975333 # x10
-                polynominal1: 0.9131373731007753 # x10
-                polynominal0: -3.507431551753451 # x1
+                voltage: 7.2
+                max_thrust: 0.7 # N 
+                polynominal2: -0.0011283193016175086 # x10
+                polynominal1: 0.3542768335931359 # x10
+                polynominal0: -1.6495288524866654 # x1

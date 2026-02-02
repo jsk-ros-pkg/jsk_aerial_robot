@@ -23,16 +23,16 @@
     ## link
     <link name="base_link">
       <inertial>
-        <origin xyz="0.0004 0.0001 0.13054" rpy="0 0 0"/>
-        <mass value="0.07884"/>
+        <origin xyz="0.0004 -0.0001 0.13193" rpy="0 0 0"/>
+        <mass value="0.08844"/>
         <inertia
-            ixx="0.0000785" iyy="0.0000785" izz="0.00006374"
-            ixy="-0.00000013" ixz="0.00000028" iyz="0.00000019"/>
+            ixx="0.00008943" iyy="0.00008943" izz="0.00006466"
+            ixy="-0.00000012" ixz="0.00000031" iyz="0.00000020"/>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://crobat/urdf/mesh/base_link.STL"/>
+          <mesh filename="package://crobat/urdf/mesh/body.STL"/>
         </geometry>
       </visual>
       <collision>
@@ -58,7 +58,7 @@
     <joint name="fc_joint" type="fixed">
       <child link="fc"/>
       <parent link="base_link"/>
-      <origin rpy="0 0 0" xyz="-0.01735 0.00115 0.15159"/>
+      <origin rpy="0 0 0" xyz="-0.01735 0.00115 0.15409"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -88,7 +88,7 @@
     <joint name="base_arm_joint${child1}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child1}"/>
-     <origin rpy="0 0 ${pi/4}" xyz="0.05677 0.05677 0.11521"/>
+     <origin rpy="0 0 ${pi/4}" xyz="0.05677 0.05677 0.11771"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -117,7 +117,7 @@
     <joint name="base_arm_joint${child2}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child2}"/>
-      <origin rpy="0 0 ${pi*3.0/4.0}" xyz="-0.05677 0.05677 0.11521"/>
+      <origin rpy="0 0 ${pi*3.0/4.0}" xyz="-0.05677 0.05677 0.11771"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -146,7 +146,7 @@
     <joint name="base_arm_joint${child3}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child3}"/>
-      <origin rpy="0 0 ${5*pi/4}" xyz="-0.05677 -0.05677 0.11521"/>
+      <origin rpy="0 0 ${5*pi/4}" xyz="-0.05677 -0.05677 0.11771"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -175,7 +175,7 @@
     <joint name="base_arm_joint${child4}" type="fixed">
       <parent link="base_link"/>
       <child link="rotor_arm${child4}"/>
-      <origin rpy="0 0 ${-pi/4}" xyz="0.05677 -0.05677 0.11521"/>
+      <origin rpy="0 0 ${-pi/4}" xyz="0.05677 -0.05677 0.11771"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -187,10 +187,10 @@
     #### rotor parent link (virtual) ####
     <link name="gimbal_link${self}">
       <inertial>
-        <origin xyz="0.03339 0.03339 -0.00629" rpy="0 0 0"/>
+        <origin xyz="0.04691 0.00 -0.00138" rpy="0 0 0"/>
         <mass value="0.0286"/>
         <inertia
-            ixx="0.00011158" iyy="0.00008832" izz="0.00002424"
+            ixx="0.00001392" iyy="0.00009886" izz="0.00008593"
             ixy="0.0000" ixz="-0.0000" iyz="0.00001994"/>
       </inertial>
       <collision>
@@ -224,7 +224,7 @@
     <link name="thrust${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="0.001"/>
+        <mass value="0.00001"/>
         <inertia
             ixx="0.001" ixy="0.0" ixz="0.0"
             iyy="0.001" iyz="0.0"
@@ -259,7 +259,7 @@
     <joint name="rotor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
       <child link="rotor_parent${self}"/>
-      <origin rpy="0 0 0" xyz="0.1495352 0.00 -0.04791"/>
+      <origin rpy="0 0 0" xyz="0.200 0.00 0.00"/>
       <axis xyz="0 0 ${rotor_direction}"/>
     </joint>
 

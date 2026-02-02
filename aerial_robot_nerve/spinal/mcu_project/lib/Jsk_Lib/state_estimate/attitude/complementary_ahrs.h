@@ -81,6 +81,12 @@ private:
         est_m_ = (est_m_b_tmp * GYR_CMPFM_FACTOR  + mag_) * INV_GYR_CMPFM_FACTOR;
       }
 
+    /* force to set a normal value if mag_ has problem */
+    if (mag_ == ap::Vector3f())
+      {
+	est_m_ = ap::Vector3f(1, 0, 0);
+      }
+    
     ap::Vector3f wz_b = est_g_.normalized();
     ap::Vector3f wy_b = wz_b % est_m_;
     wy_b.normalize();
