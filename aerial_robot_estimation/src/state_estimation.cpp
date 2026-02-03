@@ -87,6 +87,7 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
 
   baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/baselink/odom", 1);
   cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/cog/odom", 1);
+  root_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("root/pose", 1);
   full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("uav/full_state", 1);
 
   nhp_.param("tf_prefix", tf_prefix_, std::string(""));
@@ -200,11 +201,19 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
       tf::Transform world2baselink_tf;
       tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
       geometry_msgs::TransformStamped transformStamped;
-      tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
+      tf::Transform world2root_tf = world2baselink_tf * root2baselink_tf.inverse();
+      tf::transformStampedTFToMsg(tf::StampedTransform(world2root_tf,
                                                        imu_stamp, "world",
                                                        tf::resolve(tf_prefix_, std::string("root"))),
                                   transformStamped);
       br_.sendTransform(transformStamped);
+      
+      /* Publish root pose */
+      geometry_msgs::PoseStamped root_pose_msg;
+      root_pose_msg.header.stamp = imu_stamp;
+      root_pose_msg.header.frame_id = "world";
+      tf::poseTFToMsg(world2root_tf, root_pose_msg.pose);
+      root_pose_pub_.publish(root_pose_msg);
     }
 
   /* COG */
