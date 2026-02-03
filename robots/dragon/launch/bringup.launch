@@ -1,14 +1,23 @@
 <?xml version="1.0"?>
 <launch>
   ###########  launch config  ###########
-  <arg name="real_machine" default="True" />
-  <arg name="simulation" default="False" />
+  <arg name="rm" default="True" />
+  <arg name="sim" default="False" />
+  <arg name="real_machine" default="$(arg rm)" />
+  <arg name="simulation" default="$(arg sim)" />
+
   <arg name="full_vectoring_mode"  default= "true" />
-  <arg name="type" default="quad" />
-  <arg name="onboards_model" default="euclid_201709" />
+  <arg name="new_model"  default= "true" />
+  <arg name="model_name" value="v1_5_202601" if="$(arg new_model)"/>
+  <arg name="model_name" value="vim4_202311" unless="$(arg new_model)"/>
+  <arg name="link_num" default="quad" />
+  <arg name="battery" default="true" />
+  <arg name="suffix" value="" if="$(arg battery)" />
+  <arg name="suffix" value="_no_bat" unless="$(arg battery)" />
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
-  <arg name="headless" default="True" />
+  <arg name="takeoff_height"  default= "0" />
+
   <arg name="worldtype" default="$(find aerial_robot_simulation)/gazebo_model/world/empty.world" />
   <arg name="launch_gazebo" default="True" />
   <arg name="direct_model" default="False" />
@@ -17,11 +26,13 @@
   <arg name="spawn_y" default="0.0"/>
   <arg name="spawn_z" default="0.0"/>
   <arg name="spawn_yaw" default="0.0"/>
+  <arg name="mujoco" default="False" />
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="dragon$(arg robot_id)" />
-  <arg name="config_dir" default="$(find dragon)/config/$(arg type)" />
-  <arg name="mujoco" default="False" />
+  <arg name="config_dir" default="$(find dragon)/config/$(arg link_num)/$(arg model_name)" />
+
   <arg name="demo" default="True" />
+  <arg name="headless" default="True" />
 
   ###########  UAV Config  ###########
   <group ns="$(arg robot_ns)">
@@ -39,7 +50,7 @@
     <rosparam file="$(arg config_dir)/model/HydrusLikeRobotModel.yaml" command="load" unless="$(arg full_vectoring_mode)" />
 
     ###########  Motor Config  ###########
-    <rosparam file="$(find dragon)/config/MotorInfo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
     <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
@@ -48,8 +59,7 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Sensor Fusion  ###########
-    <rosparam file="$(arg config_dir)/egomotion_estimation/$(arg onboards_model)/FullVectoring.yaml" command="load" if="$(arg full_vectoring_mode)" />
-    <rosparam file="$(arg config_dir)/egomotion_estimation/$(arg onboards_model)/HydrusLike.yaml" command="load" unless="$(arg full_vectoring_mode)" />
+    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
     ###########  Control  ###########
@@ -59,6 +69,7 @@
     ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
+    <param name="navigation/takeoff_height" value="$(arg takeoff_height)" if="$(eval arg('takeoff_height') > 0)"/>
   </group>
 
   ###########  Base Platform  ###########
@@ -73,7 +84,7 @@
   <arg name="description_mode" value="gazebo" if="$(arg simulation)" />
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
-    <arg name="robot_model" value="$(find dragon)/robots/$(arg type)/$(arg onboards_model).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
+    <arg name="robot_model" value="$(find dragon)/robots/$(arg link_num)/$(arg model_name)$(arg suffix).$(arg description_mode).xacro" unless="$(arg direct_model)"/>
     <arg name="robot_model" value="$(arg direct_model_name)" if="$(arg direct_model)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
@@ -82,7 +93,7 @@
   </include >
 
   ###########  Sensors  ###########
-  <include file="$(find dragon)/launch/includes/$(arg onboards_model)/sensors.launch.xml" >
+  <include file="$(find dragon)/launch/includes/$(arg model_name)/sensors.launch.xml" >
     <arg name="real_machine" value="$(arg real_machine)" />
     <arg name="simulation" value="$(arg simulation)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
@@ -105,12 +116,13 @@
     <arg name="spawn_z" value="$(arg spawn_z)" />
     <arg name="spawn_yaw" value="$(arg spawn_yaw)" />
   </include>
+  <node pkg="dragon" type="gazebo_quick_init_pose.py" name="quick_init_pose"  output="screen" ns="$(arg robot_ns)" if = "$(eval arg('simulation') and not arg('real_machine') and not arg('mujoco'))"  />
 
   ########## Simulation in Mujoco #########
   <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" if="$(eval arg('simulation') and not arg('real_machine') and arg('mujoco'))" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)"/>
-    <arg name="mujoco_model" value="$(find dragon)/mujoco/$(arg type)/$(arg onboards_model)/robot.xml"/>
+    <arg name="mujoco_model" value="$(find dragon)/mujoco/$(arg link_num)/$(arg model_name)$(arg suffix)/robot.xml"/>
   </include>
 
   ########## Simple Demo #########

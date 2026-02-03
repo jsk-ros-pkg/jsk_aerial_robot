@@ -5,6 +5,8 @@ project(aerial_robot_msgs)
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
+  nav_msgs
+  sensor_msgs
   message_generation
   )
 
@@ -20,14 +22,17 @@ add_message_files(FILES
   States.msg
   Acc.msg
   WrenchAllocationMatrix.msg
+  ApplyWrench.msg
+  ForceList.msg
+  FullStateTarget.msg
 )
 
 ## Generate added messages and services
-generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+generate_messages(DEPENDENCIES std_msgs geometry_msgs nav_msgs sensor_msgs)
 
 ## Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS std_msgs geometry_msgs nav_msgs sensor_msgs message_runtime
 )
 
 

@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="dragon_common" >
+
+  <!--  model type 1: head-->
+  <!--  model type 2: baselink (attached with imu, pc)-->
+  <!--  model type 3: general -->
+  <!--  model type 4: end -->
+
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <!-- kinematics [m] -->
+  <xacro:property name="link_length" value=".424" />
+  <xacro:property name="inter_joint_x_offset" value=".02575" />
+  <xacro:property name="gimbal_roll_x_offset" value="-0.01" />
+  <xacro:property name="gimbal_pitch_z_offset" value="0.037" />
+
+  <!-- dynamics -->
+  <m_f_rate value="0" /> <!-- drug torque rate -->
+  <xacro:property name="max_force" value="30" /> <!-- [N] -->
+  <xacro:property name="min_force" value="2" /> <!-- [N] -->
+
+  <xacro:macro name="link_model" params="type">
+
+    <!-- box collision geometry does not work well for FCL -->
+    <collision>
+    <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+    <geometry>
+    <box size="${link_length} 0.15 0.1686"/>
+    </geometry>
+    </collision>
+
+    <visual>
+      <origin rpy="0 0 0" xyz="${link_length* 0.5} 0 0"/>
+      <geometry>
+        <mesh filename="package://dragon/urdf/v1/mesh/ducted_fan_${type}.dae"/>
+      </geometry>
+    </visual>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
+  </xacro:macro>
+
+  <!-- friction -->
+  <xacro:macro name="friction" params="self">
+    <gazebo reference="link${self}">
+      <mu1>0.4</mu1>
+      <mu2>0.4</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="${link}">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+</robot>

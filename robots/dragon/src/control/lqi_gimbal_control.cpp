@@ -31,20 +31,18 @@ void DragonLQIGimbalController::initialize(ros::NodeHandle nh, ros::NodeHandle n
 
   /* initialize the gimbal target angles */
   target_gimbal_angles_.resize(motor_num_ * 2, 0);
-  /* additional vectoring force for grasping */
-  extra_vectoring_force_ = Eigen::VectorXd::Zero(3 * motor_num_);
 
   gimbal_control_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
-  gimbal_target_force_pub_ = nh_.advertise<std_msgs::Float32MultiArray>("debug/gimbals_target_force", 1);
+  gimbal_target_force_pub_ = nh_.advertise<aerial_robot_msgs::ForceList>("debug/gimbals_target_force", 1);
 
   att_control_feedback_state_sub_ = nh_.subscribe("rpy/feedback_state", 1, &DragonLQIGimbalController::attControlFeedbackStateCallback, this);
-  extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonLQIGimbalController::extraVectoringForceCallback, this);
 
-  std::string service_name;
-  nh_.param("apply_external_wrench", service_name, std::string("apply_external_wrench"));
-  add_external_wrench_service_ = nh_.advertiseService(service_name, &DragonLQIGimbalController::addExternalWrenchCallback, this);
-  nh_.param("clear_external_wrench", service_name, std::string("clear_external_wrench"));
-  clear_external_wrench_service_ = nh_.advertiseService(service_name, &DragonLQIGimbalController::clearExternalWrenchCallback, this);
+  add_external_wrench_sub_ = nh_.subscribe(std::string("apply_external_wrench"), 1, &DragonLQIGimbalController::addExternalWrenchCallback, this);
+  clear_external_wrench_sub_ = nh_.subscribe(std::string("clear_external_wrench"), 1, &DragonLQIGimbalController::clearExternalWrenchCallback, this);
+
+  extra_vectoring_force_sub_ = nh_.subscribe("extra_vectoring_force", 1, &DragonLQIGimbalController::extraVectoringForceCallback, this);
+  extra_vectoring_forces_.resize(0);
+
 
   //message
   pid_msg_.yaw.total.resize(1);
@@ -211,11 +209,11 @@ void DragonLQIGimbalController::gimbalControl()
   pid_msg_.roll.total.at(0) = target_ang_acc_x;
   pid_msg_.pitch.total.at(0) = target_ang_acc_y;
 
-  std_msgs::Float32MultiArray target_force_msg;
+  aerial_robot_msgs::ForceList target_force_msg;
   for(int i = 0; i < motor_num_; i++)
     {
-      target_force_msg.data.push_back(f_xy(2 * i));
-      target_force_msg.data.push_back(f_xy(2 * i + 1));
+      geometry_msgs::Vector3 f; f.x = f_xy(2 * i); f.y = f_xy(2 * i + 1);
+      target_force_msg.forces.push_back(f);
     }
   gimbal_target_force_pub_.publish(target_force_msg);
 
@@ -226,10 +224,10 @@ void DragonLQIGimbalController::gimbalControl()
     }
 
   /* clear external wrench compensation */
-  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE)
+  if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag())
     {
       dragon_robot_model_->resetExternalStaticWrench(); // clear the external wrench
-      extra_vectoring_force_.setZero(); // clear the extra vectoring force
+      extra_vectoring_forces_.resize(0); // clear the extra vectoring force
     }
 
   Eigen::MatrixXd cog_rot_inv = aerial_robot_model::kdlToEigen(KDL::Rotation::RPY(rpy_.x(), rpy_.y(), rpy_.z()).Inverse());
@@ -251,9 +249,9 @@ void DragonLQIGimbalController::gimbalControl()
   for(int i = 0; i < motor_num_; i++)
     {
       /* vectoring force */
-      tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i) + extra_vectoring_force_(3 * i),
-                      f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1) + extra_vectoring_force_(3 * i + 1),
-                      z_control_terms.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2) + extra_vectoring_force_(3 * i + 2));
+      tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i) + extra_vectoring_forces_.at(i).x(),
+                      f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1) + extra_vectoring_forces_.at(i).y(),
+                      z_control_terms.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2) + extra_vectoring_forces_.at(i).z());
 
 
       /* calculate ||f||, but omit pitch and roll term, which will be added in spinal */
@@ -302,37 +300,36 @@ void DragonLQIGimbalController::sendCmd()
 }
 
 /* external wrench */
-bool DragonLQIGimbalController::addExternalWrenchCallback(gazebo_msgs::ApplyBodyWrench::Request& req, gazebo_msgs::ApplyBodyWrench::Response& res)
+void DragonLQIGimbalController::addExternalWrenchCallback(const aerial_robot_msgs::ApplyWrench::ConstPtr& msg)
 {
-  if(dragon_robot_model_->addExternalStaticWrench(req.body_name, req.reference_frame, req.reference_point, req.wrench))
-    res.success  = true;
-  else
-    res.success  = false;
-
-  return true;
+  dragon_robot_model_->addExternalStaticWrench(msg->name, msg->reference_frame, msg->reference_point, msg->wrench);
 }
 
-bool DragonLQIGimbalController::clearExternalWrenchCallback(gazebo_msgs::BodyRequest::Request& req, gazebo_msgs::BodyRequest::Response& res)
+void DragonLQIGimbalController::clearExternalWrenchCallback(const std_msgs::String::ConstPtr& msg)
 {
-  dragon_robot_model_->removeExternalStaticWrench(req.body_name);
-  return true;
+  dragon_robot_model_->removeExternalStaticWrench(msg->data);
 }
 
 /* extra vectoring force  */
-void DragonLQIGimbalController::extraVectoringForceCallback(const std_msgs::Float32MultiArrayConstPtr& msg)
+void DragonLQIGimbalController::extraVectoringForceCallback(const aerial_robot_msgs::ForceListConstPtr& msg)
 {
   if(navigator_->getNaviState() != aerial_robot_navigation::HOVER_STATE || navigator_->getForceLandingFlag()) return;
 
-  if(extra_vectoring_force_.size() != msg->data.size())
+  if(msg->forces.size() == 0)
     {
-      ROS_ERROR_STREAM("gimbal control: can not assign the extra vectroing force, the size is wrong: " << msg->data.size() << "; reset");
-      extra_vectoring_force_.setZero();
-      return;
+      ROS_INFO_STREAM("gimbal control: clear extra vectoring forces");
+      extra_vectoring_forces_.resize(0);
     }
-
-  extra_vectoring_force_ = (Eigen::Map<const Eigen::VectorXf>(msg->data.data(), msg->data.size())).cast<double>();
-
-  ROS_INFO_STREAM("add extra vectoring force is: \n" << extra_vectoring_force_.transpose());
+  else if(msg->forces.size() != motor_num_)
+    {
+      ROS_WARN_STREAM("gimbal control: can not assign the extra vectroing force, the size is wrong");
+    }
+  else
+    {
+      extra_vectoring_forces_.resize(motor_num_, Eigen::Vector3d::Zero());
+      for (int i = 0; i < motor_num_; i++)
+        tf::vectorMsgToEigen(msg->forces.at(i), extra_vectoring_forces_.at(i));
+    }
 }
 
 void DragonLQIGimbalController::rosParamInit()

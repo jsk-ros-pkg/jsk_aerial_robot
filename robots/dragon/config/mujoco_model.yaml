@@ -2,6 +2,6 @@ package:
   ["dragon"]
 
 dragon:
-  input: ["robots/quad/euclid_201709.urdf.xacro"]
-  filename: ["quad/euclid_201709"]
-  meshdir: urdf/mesh
+  input: ["robots/quad/vim4_202311.urdf.xacro", "robots/quad/v1_5_202601.urdf.xacro", "robots/quad/v1_5_202601_no_bat.urdf.xacro"]
+  filename: ["quad/vim4_202311", "quad/v1_5_202601", "quad/v1_5_202601_no_bat"]
+  meshdir: urdf

@@ -4,7 +4,7 @@ servo_controller:
     angle_sgn: 1
     angle_scale: 0.00076699
     zero_point_offset: 2047
-    torque_scale: 0.01
+    torque_scale:  0.0106 # 0.0036 [A/bit] * (3.4 / 2.3) [Nm/A] * 2 (pulley)
 
     # for low pass filter
     filter_flag: true
@@ -13,7 +13,7 @@ servo_controller:
 
     # for simulation
     simulation:
-      pid: {p: 50.0, i: 0.01, d: 2.0}
+      pid: {p: 50.0, i: 0.01, d: 1.0, i_clamp_min: -6.6, i_clamp_max: 6.6}
       init_value: 0.0
       type: effort_controllers/JointPositionController
 
@@ -54,7 +54,7 @@ servo_controller:
     zero_point_offset: 2047
 
     simulation:
-      pid: {p: 50.0, i: 0.01, d: 0.0}
+      pid: {p: 50.0, i: 0.01, d: 1.0, i_clamp_min: -3.0, i_clamp_max: 3.0}
       init_value: 0.0
       type: effort_controllers/JointPositionController
 

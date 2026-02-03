@@ -459,7 +459,7 @@ namespace aerial_robot_estimation
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
+    ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_, root_pose_pub_;
     tf2_ros::TransformBroadcaster br_;
     ros::Timer state_pub_timer_;
 

@@ -16,9 +16,10 @@ navigation:
   joy_target_z_interval: 0.005
   max_target_yaw_rate: 0.1 #  0.05
   cmd_vel_lev2_gain : 2.0
+  teleop_local_frame: fc
 
   gain_tunning_mode: 0
-  max_target_tilt_angle: 0.2
+  nav_vel_limit: 0.2
   cmd_angle_lev2_gain : 1.5
 
   # gps waypoint
@@ -30,9 +31,4 @@ navigation:
 
   # desire tilt
   baselink_rot_pub_interval: 0.2
-  baselink_rot_change_thresh: 0.04 # 0.2 hz -> 0.04; 0.01 hz-> 0.02
-
-  # trajectory
-  trajectory_min_du: 2.0
-  trajectory_mean_yaw_rate: 0.6
-  enable_latch_yaw_trajectory: false
+  baselink_rot_change_thresh: 0.04 # 0.2 sec (5 hz) -> 0.04; 0.1 sec (10 hz)-> 0.02; 0.05 sec (20 hz) -> 0.01
