@@ -1,0 +1,13 @@
+# Key poses for dragon robot root trajectory
+# Each key pose: [x, y, z, roll, pitch, yaw]
+# Position in meters, orientation in radians
+
+key_poses:
+  - [1.5, 1.5, 1.0, 0.0, 0.0, 3.14]    # Move to (1.5, 1.5, 1.0) with yaw=180 deg
+  - [1.8, 0.0, 1.0, 0.0, 0.0, 1.57]    # Move to (1.8, 0.0, 1.0) with yaw=90 deg
+  - [1.5, -1.5, 1.0, 0.0, 0.0, 0.0]    # Move to (1.5, -1.5, 1.0) with yaw=0 deg
+  - [0.0, 0.0, 1.0, 0.0, 0.0, -0.6]    # Return to center with slight yaw
+  - [-1.5, 1.5, 1.0, 0.0, 0.0, 0.0]    # Move to (-1.5, 1.5, 1.0)
+  - [-1.8, 0.0, 1.0, 0.0, 0.0, 1.57]   # Move to (-1.8, 0.0, 1.0) with yaw=90 deg
+  - [-1.5, -1.5, 1.0, 0.0, 0.0, 3.14]  # Move to (-1.5, -1.5, 1.0) with yaw=180 deg
+  - [0.0, 0.0, 1.0, 0.0, 0.0, 3.94]    # Return to center with yaw=225 deg

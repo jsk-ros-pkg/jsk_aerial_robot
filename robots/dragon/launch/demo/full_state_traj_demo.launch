@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Full State Trajectory Demo for Dragon Robot -->
+  
+  <!-- Demo node parameters -->
+  <arg name="control_frequency" default="40.0" />
+  <arg name="segment_time" default="10.0" />
+  <arg name="joint_num" default="6" />
+  <arg name="config_file" default="$(find dragon)/src/demo/config/full_state_traj_demo.yaml" />
+  
+  <!-- Launch the Full State Trajectory demo node -->
+  <node pkg="dragon" type="full_state_traj_demo" name="full_state_traj_demo" output="screen">
+    <param name="control_frequency" value="$(arg control_frequency)" />
+    <param name="segment_time" value="$(arg segment_time)" />
+    <param name="joint_num" value="$(arg joint_num)" />
+    <rosparam file="$(arg config_file)" command="load" />
+  </node>
+  
+</launch>
