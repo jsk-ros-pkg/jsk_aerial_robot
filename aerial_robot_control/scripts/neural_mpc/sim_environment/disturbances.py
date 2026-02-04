@@ -16,7 +16,7 @@ def apply_cog_disturbance(sim_solver: AcadosSimSolver, rtnmpc: NeuralMPC, cog_di
     # Force values behave in [-thrust_max, thrust_max]
     z = state[2]
     # force_mu_z = min(1 / (z+1)**2, 1) * 0.3 * max_thrust * 4
-    force_mu_z = 1 / (z + 1) ** 2 * cog_dist_factor * max_thrust * 4
+    force_mu_z = 1 / (abs(z) + 1) ** 2 * cog_dist_factor * max_thrust * 4
     force_std_z = 0  # 0.01 * max_thrust
 
     force_mu_x = 0.0

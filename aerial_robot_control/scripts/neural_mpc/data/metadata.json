@@ -998,7 +998,14 @@
                 "neuralmodel_146",
                 "neuralmodel_147",
                 "neuralmodel_147",
-                "neuralmodel_148"
+                "neuralmodel_148",
+                "neuralmodel_149",
+                "neuralmodel_149",
+                "neuralmodel_149",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150"
             ]
         }
     },
@@ -2719,6 +2726,268 @@
             },
             "trained_models": [
                 "neuralmodel_121"
+            ]
+        }
+    },
+    "NMPCTiltQdServo_real_machine_dataset_TRAIN_NEW": {
+        "date": "2026-02-03 07:49:39",
+        "real_machine": true,
+        "rosbag_file": [
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv"
+        ],
+        "duration": [
+            265.5441198348999,
+            484.0976810455322
+        ],
+        "temporal_filtering": true,
+        "mpc_type": "NMPCTiltQdServo",
+        "state_dim": 17,
+        "control_dim": 8,
+        "include_quaternion_constraint": false,
+        "include_soft_constraints": false,
+        "mpc_params": {
+            "T_samp": 0.01,
+            "T_horizon": 2.0,
+            "T_step": 0.1,
+            "w_max": 6,
+            "w_min": -6,
+            "v_max": 1,
+            "v_min": -1,
+            "thrust_max": 30,
+            "thrust_min": 0,
+            "a_max": 3.1416,
+            "a_min": -3.1416,
+            "Qp_xy": 300,
+            "Qp_z": 400,
+            "Qv_xy": 10,
+            "Qv_z": 10,
+            "Qq_xy": 300,
+            "Qq_z": 600,
+            "Qw_xy": 5,
+            "Qw_z": 5,
+            "Qa": 1,
+            "Rt": 1,
+            "Rac_d": 250,
+            "linear_slack_weight": 10,
+            "quadratic_slack_weight": 100,
+            "is_attitude_ctrl": false,
+            "is_body_rate_ctrl": false,
+            "is_print_phys_params": false,
+            "is_debug": false,
+            "N_steps": 20
+        },
+        "model_fit_config": {
+            "window_size": 5,
+            "low_pass_filter_cutoff_input": 1.0
+        },
+        "dataset_001": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
+        }
+    },
+    "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_NO_PROP": {
+        "date": "2026-02-03 11:15:09",
+        "real_machine": true,
+        "rosbag_file": [
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv"
+        ],
+        "duration": [
+            265.5441198348999,
+            484.0976810455322
+        ],
+        "temporal_filtering": true,
+        "mpc_type": "NMPCTiltQdServo",
+        "state_dim": 17,
+        "control_dim": 8,
+        "include_quaternion_constraint": false,
+        "include_soft_constraints": false,
+        "mpc_params": {
+            "T_samp": 0.01,
+            "T_horizon": 2.0,
+            "T_step": 0.1,
+            "w_max": 60,
+            "w_min": -60,
+            "v_max": 100,
+            "v_min": -100,
+            "thrust_max": 30,
+            "thrust_min": 0,
+            "a_max": 3.1416,
+            "a_min": -3.1416,
+            "Qp_xy": 300,
+            "Qp_z": 400,
+            "Qv_xy": 10,
+            "Qv_z": 10,
+            "Qq_xy": 300,
+            "Qq_z": 600,
+            "Qw_xy": 5,
+            "Qw_z": 5,
+            "Qa": 1,
+            "Rt": 1000,
+            "Rac_d": 1000,
+            "linear_slack_weight": 10,
+            "quadratic_slack_weight": 100,
+            "is_attitude_ctrl": false,
+            "is_body_rate_ctrl": false,
+            "is_print_phys_params": false,
+            "is_debug": false,
+            "N_steps": 20
+        },
+        "dataset_001": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
+        },
+        "dataset_002": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
+        },
+        "dataset_003": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "trained_models": [
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_150",
+                "neuralmodel_151",
+                "neuralmodel_152",
+                "neuralmodel_153",
+                "neuralmodel_154",
+                "neuralmodel_155",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_156"
+            ]
+        },
+        "dataset_004": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
+        },
+        "dataset_005": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
+        }
+    },
+    "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP": {
+        "date": "2026-02-04 11:14:00",
+        "real_machine": true,
+        "rosbag_file": [
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv"
+        ],
+        "duration": [
+            265.5441198348999,
+            484.0976810455322
+        ],
+        "temporal_filtering": true,
+        "mpc_type": "NMPCTiltQdServo",
+        "T_step": 0.1,
+        "T_samp": 0.01,
+        "state_dim": 17,
+        "control_dim": 8,
+        "include_quaternion_constraint": false,
+        "include_soft_constraints": true,
+        "mpc_params": {
+            "T_samp": 0.01,
+            "T_horizon": 2.0,
+            "T_step": 0.1,
+            "w_max": 6,
+            "w_min": -6,
+            "v_max": 1,
+            "v_min": -1,
+            "thrust_max": 30,
+            "thrust_min": 0,
+            "a_max": 3.1416,
+            "a_min": -3.1416,
+            "Qp_xy": 300,
+            "Qp_z": 400,
+            "Qv_xy": 10,
+            "Qv_z": 10,
+            "Qq_xy": 300,
+            "Qq_z": 600,
+            "Qw_xy": 5,
+            "Qw_z": 5,
+            "Qa": 1,
+            "Rt": 1,
+            "Rac_d": 250,
+            "linear_slack_weight": 10,
+            "quadratic_slack_weight": 100,
+            "is_attitude_ctrl": false,
+            "is_body_rate_ctrl": false,
+            "is_print_phys_params": false,
+            "is_debug": false,
+            "N_steps": 20
+        },
+        "dataset_001": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "trained_models": [
+                "neuralmodel_156"
             ]
         }
     }

@@ -46,7 +46,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_148",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_155",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -117,6 +117,13 @@ class EnvConfig:
             # 146: Same as 145 but with revised propagation
             # 147: Same as 146 but average over propagation steps
             # 148: Same as 147 but with grad & consist loss
+            # 149: Labels with MPC & T_step=0.01 (no revised out) (ReLU, 32 nodes)
+            # 150 (val loss high): Labels with MPC & T_step=0.01
+            # 151 (no learning): Same as 150 but with zero-out & consist & grad loss (bigger network)
+            # 152 (decent learning): Same as 151 but only consist & zero-out loss & lower lambas (bigger network)
+            # 153 (good learning): Same as 152 but with tiny network (16 nodes) and lower lr
+            # 155 (best learning): Same as 153 but with MultiStepLR (experiment)
+            # TODO repeat experiments with T_horizon = 2.0 instead of 0.2
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -126,8 +133,9 @@ class EnvConfig:
         "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this
         "terminal_cost": True,  # TODO actually implement this
         "include_floor_bounds": False,
-        "include_soft_constraints": False,
+        "include_soft_constraints": True,
         "include_quaternion_constraint": False,
+        "include_delta_u": False,
     }
 
     dataset_options = {"ds_name_suffix": "dataset_neural_sim_nominal_control"}  # "compare_nominal_neural_sim"}
@@ -135,8 +143,8 @@ class EnvConfig:
         # Choice of disturbances modeled in our Simplified Simulator
         "disturbances": {
             "cog_dist": False,  # Disturbance forces and torques on CoG
-            "cog_dist_model": "mu = 1 / (z+1)**2 * cog_dist_factor * max_thrust * 4 / std = 0",
-            "cog_dist_factor": 0.1,
+            "cog_dist_model": "mu = 1 / (abs(z)+1)**2 * cog_dist_factor * max_thrust * 4 | std = 0",
+            "cog_dist_factor": 0.2,  # 0.1
             "motor_noise": False,  # Asymmetric noise in the rotor thrust and servo angles
             "drag": False,  # 2nd order polynomial aerodynamic drag effect
             "payload": False,  # Payload force in the Z axis
@@ -151,7 +159,7 @@ class EnvConfig:
 
     # Run options
     run_options = {
-        "real_machine": False,
+        "real_machine": True,
     }
 
     # Trajectory tracking options
@@ -206,10 +214,10 @@ class EnvConfig:
         for value in sim_options["disturbances"].values():
             if value == True:
                 raise ValueError("Simulated disturbances not meaningful when using real world simulator.")
-    if run_options["real_machine"]:
-        for value in sim_options["disturbances"].values():
-            if value == True:
-                raise ValueError("No simulated disturbances allowed on real machine.")
+    # if run_options["real_machine"]:
+    #     for value in sim_options["disturbances"].values():
+    #         if value == True:
+    #             raise ValueError("No simulated disturbances allowed on real machine.")
 
 
 class MLPConfig:
@@ -221,12 +229,12 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    # hidden_sizes = [32, 32]
-    hidden_sizes = [64, 64]
+    hidden_sizes = [16, 16]
+    # hidden_sizes = [64, 64]
     # hidden_sizes = [128, 256, 128, 64]
 
     # Activation function
-    activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
+    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
     use_batch_norm = False
@@ -237,7 +245,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 100
+    num_epochs = 150
 
     # Batch size
     batch_size = 64
@@ -249,15 +257,15 @@ class MLPConfig:
     # Optimizer
     optimizer = "AdamW"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 1e-3  # Set to 0.0 to disable
+    weight_decay = 1e-1  # Set to 0.0 to disable [1e-2 for AdamW, 1e-4 for Adam]
     # Zero-output regularization
-    zero_out_lambda = 1e-1  # Set to 0.0 to disable
+    zero_out_lambda = 1e-2  # Set to 0.0 to disable
     # L1 regularization
-    l1_lambda = 0.0  # 1e-4  # Set to 0.0 to disable
+    l1_lambda = 0.0  #1e-4  # Set to 0.0 to disable
     # Penalize gradients
-    gradient_lambda = 1e3  # Set to 0.0 to disable
+    gradient_lambda = 0.0  # 1e3  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 10.0  #1e4 # 5.0  # Set to 0.0 to disable
+    consistency_lambda = 1e1 # 10.0  #1e4 # 5.0  # Set to 0.0 to disable
     consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
     symmetry_lambda = 0.0  # Set to 0.0 to disable
@@ -267,7 +275,8 @@ class MLPConfig:
     # learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5  # for temporal
     # learning_rate = 1e-3  # for LR scheduling
-    lr_scheduler = "LambdaLR"  # "ReduceLROnPlateau", "LambdaLR", "LRScheduler", None
+    lr_milestones = [100, 125]
+    lr_scheduler = "MultiStepLR"  # "ReduceLROnPlateau", "LambdaLR", "MultiStepLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
     num_workers = 0
@@ -277,14 +286,17 @@ class MLPConfig:
 
 
 class ModelFitConfig:
+    # ------- Propagation -------
+    prop_long_horizon = True
+
     # ------- Low-Pass Filter -------
     use_low_pass_filter = False
     low_pass_filter_cutoff_input = 1.0
     low_pass_filter_cutoff_label = 0.1
 
     # ------- Moving Average Filter -------
-    use_moving_average_filter = True
-    control_filtering = True  # USE WAY SMALLER WINDOW SIZE IF TRUE!
+    use_moving_average_filter = False
+    control_filtering = False  # USE WAY SMALLER WINDOW SIZE IF TRUE!
     window_size = 5 #33  # Must be odd
 
     # ------- Coordinate Transform -------
@@ -304,8 +316,9 @@ class ModelFitConfig:
     save_plots = False
 
     # ------- Dataset loading -------
+    train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_WITH_REF_ALL_PROP"
     # train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_FULL"
-    train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
+    # train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_FOR_PAPER"
     # train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_GROUND_EFFECT_ONLY"
     # train_ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_neural_sim_nominal_control_07"
     # train_ds_name = "NMPCTiltQdServo" + "_" + "residual_dataset_06"
@@ -325,7 +338,7 @@ class ModelFitConfig:
     # ------- Features used for the model -------
     # State features
     state_feats = [2]  # [z]
-    # state_feats.extend([3, 4, 5])  # [vx, vy, vz]
+    state_feats.extend([3, 4, 5])  # [vx, vy, vz]
     state_feats.extend([6, 7, 8, 9])  # [qw, qx, qy, qz]
     # state_feats.extend([10, 11, 12])  # [roll_rate, pitch_rate, yaw_rate]
     # state_feats.extend([13, 14, 15, 16])  # [servo_angle_1, servo_angle_2, servo_angle_3, servo_angle_4]

@@ -112,6 +112,8 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
             # Divide here since lambda func returns a multiplier for the base lr
             lr_func = lambda epoch: max(0.95**epoch, 1e-5 / 1e-3)
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_func)
+        elif MLPConfig.lr_scheduler == "MultiStepLR":
+            lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=MLPConfig.lr_milestones, gamma=0.1)
         elif MLPConfig.lr_scheduler == "LRScheduler":
             lr_scheduler = torch.optim.lr_scheduler.LRScheduler(optimizer)
         else:
@@ -166,7 +168,7 @@ def main(test: bool = False, plot: bool = False, save: bool = True):
         if MLPConfig.lr_scheduler == "ReduceLROnPlateau":
             # lr_scheduler.step(train_losses)
             lr_scheduler.step(val_losses)
-        elif MLPConfig.lr_scheduler in ["LambdaLR", "LRScheduler"]:
+        elif MLPConfig.lr_scheduler in ["LambdaLR", "LRScheduler", "MultiStepLR"]:
             lr_scheduler.step()
         learning_rates.append(optimizer.param_groups[0]["lr"])
         table["LR"] = f"{Decimal(learning_rates[-1]):.0e}"
