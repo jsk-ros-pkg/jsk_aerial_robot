@@ -113,6 +113,16 @@ void DragonNavigator::targetRotationMotionCallback(const nav_msgs::OdometryConst
     }
 }
 
+bool DragonNavigator::isInflightState()
+{
+  if (BaseNavigator::isInflightState() || getNaviState() == PRE_LAND_STATE)
+    {
+      return true;
+    }
+
+  return false;
+}
+
 void DragonNavigator::baselinkRotationProcess()
 {
   if(curr_target_baselink_rot_ == final_target_baselink_rot_) return;

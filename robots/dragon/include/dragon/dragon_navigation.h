@@ -69,6 +69,8 @@ namespace aerial_robot_navigation
     void halt() override;
     void reset() override;
 
+    bool isInflightState() override;
+
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();
