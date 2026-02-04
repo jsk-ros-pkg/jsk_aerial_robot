@@ -22,7 +22,7 @@ jobs:
             ROS_DISTRO : noetic
             DOCKER_IMAGE : ubuntu:focal
     runs-on: ${{ matrix.runs-on }}
-    name: ros_build_test-${{ matrix.runs-on }}-${{ matrix.ROS_DISTRO }}
+    name: ros_build_test-${{ matrix.runs-on }}-${{ matrix.DOCKER_IMAGE }}
 
     steps:
       - name: Setup OS
