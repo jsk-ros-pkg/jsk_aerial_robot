@@ -189,15 +189,6 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         current_target = targets[current_target_idx]
         current_target_reached = False
 
-        # --- Reference ---
-        # Compute reference for Input u with an allocation matrix - TODO still makes sense if we don't know model in the first place?
-        # Alternative is setting the modular trajectory yref dynamically in control loop
-        state_ref, control_ref = reference_generator.compute_trajectory(
-            target_xyz=current_target[:3], target_rpy=current_target[6:9]
-        )
-        # Track reference in solver over horizon
-        rtnmpc.track(ocp_solver, state_ref, control_ref)
-
         # --------- MPC loop ---------
         global_comp_time = time.time()
         while not current_target_reached:
@@ -220,6 +211,17 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             else:
                 state_curr = sim_solver.get("x")
                 check_state_constraints(ocp_solver, state_curr, i)
+
+            # --- Reference ---
+            # Compute reference for Input u with an allocation matrix - TODO still makes sense if we don't know model in the first place?
+            # Alternative is setting the modular trajectory yref dynamically in control loop
+            state_ref, control_ref = reference_generator.compute_trajectory(
+                target_xyz=current_target[:3], target_rpy=current_target[6:9]
+            )
+            # Track reference in solver over horizon
+            if u_cmd is None:
+                u_cmd = np.zeros((nu,))
+            rtnmpc.track(ocp_solver, state_ref, control_ref, u_cmd)
 
             # --- Initial guess ---
             # TODO set initial guess to prev iteration?

@@ -79,6 +79,7 @@ class NeuralMPC(RecedingHorizonBase):
         self.include_floor_bounds = solver_options["include_floor_bounds"]
         self.include_soft_constraints = solver_options["include_soft_constraints"]
         self.include_quaternion_constraint = solver_options["include_quaternion_constraint"]
+        self.include_delta_u = solver_options["include_delta_u"]
 
         # Load neural network model
         if not model_options["only_use_nominal"]:
@@ -606,6 +607,14 @@ class NeuralMPC(RecedingHorizonBase):
             self.a_c - self.a_s  # a_c_ref must be zero to ensure physical consistency for servo angle state!
         )
 
+        # Extend cost function by delta u (u_k - u_k-1)
+        # Reference needs to be set to u_k-1 in track() method
+        if self.include_delta_u:
+            control_y += ca.vertcat(
+                self.ft_c,
+                self.a_c,
+            )
+
         return state_y, state_y_e, control_y
 
     def get_weights(self):
@@ -996,12 +1005,16 @@ class NeuralMPC(RecedingHorizonBase):
         return solver
     # fmt: on
 
-    def track(self, ocp_solver, xr, ur):
+    def track(self, ocp_solver, xr, ur, u_prev):
         """
         Tracks a trajectory defined by xr and ur, where xr is the reference state and ur is the reference control input.
         :param xr: Reference state trajectory (N+1, state_dim)
         :param ur: Reference control input trajectory (N, control_dim)
         """
+        if self.include_delta_u:
+            delta_u_ref = np.tile(u_prev, (self.N, 1))
+            ur += delta_u_ref
+
         # 0 ~ N-1
         for j in range(ocp_solver.N):
             yr = np.concatenate((xr[j, :], ur[j, :]))
