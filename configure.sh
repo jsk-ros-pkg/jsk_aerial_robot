@@ -10,7 +10,7 @@ if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
     echo "This is Ubuntu ($DISTRO). Install ROS-O"
 
     # Configure ROS One apt repository
-    sudo apt install curl
+    sudo apt install -y curl
     sudo curl -sSL https://ros.packages.techfak.net/gpg.key -o /etc/apt/keyrings/ros-one-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/ros-one-keyring.gpg] https://ros.packages.techfak.net $(lsb_release -cs)-testing main" | sudo tee /etc/apt/sources.list.d/ros1.list
     echo "# deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/ros-one-keyring.gpg] https://ros.packages.techfak.net $(lsb_release -cs)-testing main-dbg" | sudo tee -a /etc/apt/sources.list.d/ros1.list
@@ -18,7 +18,7 @@ if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
     # Install and setup rosdep
     # Do not install python3-rosdep2, which is an outdated version of rosdep shipped via the Ubuntu repositories (instead of ROS)!
     sudo apt update
-    sudo apt install python3-rosdep
+    sudo apt install -y python3-rosdep
     sudo rosdep init
 
     # Define custom rosdep package mapping
@@ -26,9 +26,9 @@ if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
     rosdep update
 
     # Install packages, e.g. ROS desktop
-    sudo apt install ros-one-desktop
+    sudo apt install -y ros-one-desktop
 
 
     # Install other packages
-    sudo apt install python3-catkin-tools python3-vcstool
+    sudo apt install -y python3-catkin-tools python3-vcstool
 fi
