@@ -485,6 +485,7 @@ if __name__ == "__main__":
     """
     ############## Configuration ##############
     # Name of the dataset to be created
+    # ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_WITH_REF_ALL_PROP"  # + "_01"
     ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_WITH_REF_ALL_PROP"  # + "_01"
     ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
@@ -558,7 +559,7 @@ if __name__ == "__main__":
 
     ############## Prepare data ##############
     # Time step
-    timestamp = data["timestamp"]
+    timestamp = data["timestamp"].squeeze()
     dt = data["dt"]
     # Adjust for size of state_out
     timestamp = timestamp[:-1]
@@ -640,14 +641,14 @@ if __name__ == "__main__":
         state_prop_short = np.append(state_prop_short, state_prop_curr[np.newaxis, :], axis=0)
 
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_short = state_prop_short[1:, :]
+    # state_prop_short = state_prop_short[1:, :]
     print("Finished forward propagation!")
 
     #### Short with avg filtered input ####
     print("Running forward prop...")
     state_in_avg_filtered = moving_average_filter(state_in, window_size=ModelFitConfig.window_size)
     control_avg_filtered = moving_average_filter(control, window_size=ModelFitConfig.window_size)
-    
+
     state_prop_short_avg_in = np.zeros((0, state_in.shape[1]))
     for t in range(state_in.shape[0]):
         T_prop_horizon_short = dt[t]
@@ -668,7 +669,7 @@ if __name__ == "__main__":
         state_prop_short_avg_in = np.append(state_prop_short_avg_in, state_prop_curr[np.newaxis, :], axis=0)
 
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_short_avg_in = state_prop_short_avg_in[1:, :]
+    # state_prop_short_avg_in = state_prop_short_avg_in[1:, :]
     print("Finished forward propagation!")
 
     #### Short with low pass filtered input ####
@@ -702,7 +703,7 @@ if __name__ == "__main__":
         state_prop_short_low_pass_in = np.append(state_prop_short_low_pass_in, state_prop_curr[np.newaxis, :], axis=0)
     
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_short_low_pass_in = state_prop_short_low_pass_in[1:, :]
+    # state_prop_short_low_pass_in = state_prop_short_low_pass_in[1:, :]
     print("Finished forward propagation!")
 
     #### Long without filtering ####    
@@ -730,7 +731,7 @@ if __name__ == "__main__":
         state_prop_long = np.append(state_prop_long, state_prop_curr[np.newaxis, :], axis=0)
 
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_long = state_prop_long[10:, :]  # T_step / dt = 10
+    # state_prop_long = state_prop_long[10:, :]  # T_step / dt = 10
     print("Finished forward propagation!")
 
     #### Long with avg filtered input ####
@@ -752,7 +753,7 @@ if __name__ == "__main__":
         state_prop_long_avg_in = np.append(state_prop_long_avg_in, state_prop_curr[np.newaxis, :], axis=0)
 
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_long_avg_in = state_prop_long_avg_in[10:, :]
+    # state_prop_long_avg_in = state_prop_long_avg_in[10:, :]
     print("Finished forward propagation!")
 
     #### Long with low pass filtered input ####
@@ -775,7 +776,7 @@ if __name__ == "__main__":
         state_prop_long_low_pass_in = np.append(state_prop_long_low_pass_in, state_prop_curr[np.newaxis, :], axis=0)
 
     # Shift state_prop by one timestep to match timestamps of state_out
-    state_prop_long_low_pass_in = state_prop_long_low_pass_in[10:, :]
+    # state_prop_long_low_pass_in = state_prop_long_low_pass_in[10:, :]
     print("Finished forward propagation!")
 
     #### MPC propagation without filtering ####
@@ -811,8 +812,8 @@ if __name__ == "__main__":
         u_cmd_solve[t, :] = ocp_solver.solve_for_x0(state_curr)
         state_solve[t, :] = ocp_solver.get(1, "x")
 
-    u_cmd_solve = u_cmd_solve[int(T_step/0.01):, :]
-    state_solve = state_solve[int(T_step/0.01):, :]
+    # u_cmd_solve = u_cmd_solve[int(T_step/0.01):, :]
+    # state_solve = state_solve[int(T_step/0.01):, :]
 
     #### MPC propagation with avg filtered input ####
     model_options = EnvConfig.model_options
@@ -842,8 +843,8 @@ if __name__ == "__main__":
         u_cmd_solve_avg_in[t, :] = ocp_solver.solve_for_x0(state_curr)
         state_solve_avg_in[t, :] = ocp_solver.get(1, "x")
 
-    u_cmd_solve_avg_in = u_cmd_solve_avg_in[int(T_step/0.01):, :]
-    state_solve_avg_in = state_solve_avg_in[int(T_step/0.01):, :]
+    # u_cmd_solve_avg_in = u_cmd_solve_avg_in[int(T_step/0.01):, :]
+    # state_solve_avg_in = state_solve_avg_in[int(T_step/0.01):, :]
 
     #### MPC propagation with low pass filtered input ####
     model_options = EnvConfig.model_options
@@ -873,40 +874,32 @@ if __name__ == "__main__":
         u_cmd_solve_low_pass_in[t, :] = ocp_solver.solve_for_x0(state_curr)
         state_solve_low_pass_in[t, :] = ocp_solver.get(1, "x")
 
-    u_cmd_solve_low_pass_in = u_cmd_solve_low_pass_in[int(T_step/0.01):, :]
-    state_solve_low_pass_in = state_solve_low_pass_in[int(T_step/0.01):, :]
+    # u_cmd_solve_low_pass_in = u_cmd_solve_low_pass_in[int(T_step/0.01):, :]
+    # state_solve_low_pass_in = state_solve_low_pass_in[int(T_step/0.01):, :]
 
     # Truncate all variables to same length
-    timestamp = timestamp[:-10]
-    dt = dt[:-10]
-    state_in = state_in[:-10, :]
-    state_out = state_out[:-10, :]
-    control = control[:-10, :]
-    pos_ref = pos_ref[:-10, :]
-    quat_ref = quat_ref[:-10, :]
+    # timestamp = timestamp[:-10]
+    # dt = dt[:-10]
+    # state_in = state_in[:-10, :]
+    # state_out = state_out[:-10, :]
+    # control = control[:-10, :]
+    # pos_ref = pos_ref[:-10, :]
+    # quat_ref = quat_ref[:-10, :]
 
 
-    state_prop_short = state_prop_short[:-9, :]
-    state_prop_short_avg_in = state_prop_short_avg_in[:-9, :]
-    state_prop_short_low_pass_in = state_prop_short_low_pass_in[:-9, :]
+    # state_prop_short = state_prop_short[:-9, :]
+    # state_prop_short_avg_in = state_prop_short_avg_in[:-9, :]
+    # state_prop_short_low_pass_in = state_prop_short_low_pass_in[:-9, :]
 
-    state_ref_trajs = state_ref_trajs[:-10, :]
-    control_ref_trajs = control_ref_trajs[:-10, :]
-    state_solve = state_solve[:len(state_solve)-10+int(T_step/0.01), :]
-    state_solve_avg_in = state_solve_avg_in[:len(state_solve)-10+int(T_step/0.01), :]
-    state_solve_low_pass_in = state_solve_low_pass_in[:len(state_solve)-10+int(T_step/0.01), :]
-    u_cmd_solve = u_cmd_solve[:len(state_solve)-10+int(T_step/0.01), :]
-    u_cmd_solve_avg_in = u_cmd_solve_avg_in[:len(state_solve)-10+int(T_step/0.01), :]
-    u_cmd_solve_low_pass_in = u_cmd_solve_low_pass_in[:len(state_solve)-10+int(T_step/0.01), :]
+    # state_ref_trajs = state_ref_trajs[:-10, :]
+    # control_ref_trajs = control_ref_trajs[:-10, :]
+    # state_solve = state_solve[:len(state_solve)-10+int(T_step/0.01), :]
+    # state_solve_avg_in = state_solve_avg_in[:len(state_solve)-10+int(T_step/0.01), :]
+    # state_solve_low_pass_in = state_solve_low_pass_in[:len(state_solve)-10+int(T_step/0.01), :]
+    # u_cmd_solve = u_cmd_solve[:len(state_solve)-10+int(T_step/0.01), :]
+    # u_cmd_solve_avg_in = u_cmd_solve_avg_in[:len(state_solve)-10+int(T_step/0.01), :]
+    # u_cmd_solve_low_pass_in = u_cmd_solve_low_pass_in[:len(state_solve)-10+int(T_step/0.01), :]
 
-    # 2.1 Check that when using the input for propagation the control input is used from the correct time step
-    # -> should be the control input at the same time from which the state_in is measured!
-    
-    # WHY IS MPC OUTPUT DIFFERENT FROM PROPAGATION!!!
-
-    # USE Varying INPUT FOR PROPAGATION?!
-
-    # 3. warum hat label am anfang so einen offset in ax ay
     print("Forward propagation finished!")
     # ========================================================
 

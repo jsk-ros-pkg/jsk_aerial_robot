@@ -2987,10 +2987,14 @@
                 "payload": false
             },
             "trained_models": [
-                "neuralmodel_156",
-                "neuralmodel_156",
                 "neuralmodel_157",
-                "neuralmodel_157"
+                "neuralmodel_157",
+                "neuralmodel_157",
+                "neuralmodel_158",
+                "neuralmodel_158",
+                "neuralmodel_158",
+                "neuralmodel_158",
+                "neuralmodel_159"
             ]
         }
     },

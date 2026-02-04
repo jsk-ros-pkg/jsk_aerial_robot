@@ -46,7 +46,7 @@ class EnvConfig:
             "plus_neural": True,
             "minus_neural": False,
             "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_155",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_instance": "neuralmodel_159",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -123,7 +123,7 @@ class EnvConfig:
             # 152 (decent learning): Same as 151 but only consist & zero-out loss & lower lambas (bigger network)
             # 153 (good learning): Same as 152 but with tiny network (16 nodes) and lower lr
             # 155 (best learning): Same as 153 but with MultiStepLR (experiment)
-            # 156: On long prediction horizon propagation dataset
+            # 159: On long prediction horizon propagation dataset (with mov avg on label)
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -135,7 +135,7 @@ class EnvConfig:
         "include_floor_bounds": False,
         "include_soft_constraints": False,
         "include_quaternion_constraint": False,
-        "include_delta_u": False,
+        "include_delta_u": True,
     }
 
     dataset_options = {"ds_name_suffix": "dataset_neural_sim_nominal_control"}  # "compare_nominal_neural_sim"}
@@ -245,7 +245,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 150
+    num_epochs = 200
 
     # Batch size
     batch_size = 64
@@ -275,7 +275,7 @@ class MLPConfig:
     # learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5  # for temporal
     # learning_rate = 1e-3  # for LR scheduling
-    lr_milestones = [100, 125]
+    lr_milestones = [100, 150]
     lr_scheduler = "MultiStepLR"  # "ReduceLROnPlateau", "LambdaLR", "MultiStepLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
@@ -296,6 +296,7 @@ class ModelFitConfig:
 
     # ------- Moving Average Filter -------
     use_moving_average_filter = False
+    use_moving_average_filter_only_label = True
     control_filtering = False  # USE WAY SMALLER WINDOW SIZE IF TRUE!
     window_size = 5 #33  # Must be odd
 
@@ -312,8 +313,8 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = True
-    save_plots = True
+    plot_dataset = False
+    save_plots = False
 
     # ------- Dataset loading -------
     train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_WITH_REF_ALL_PROP"

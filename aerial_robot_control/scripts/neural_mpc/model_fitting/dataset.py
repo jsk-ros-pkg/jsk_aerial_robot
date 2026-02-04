@@ -89,13 +89,25 @@ class TrajectoryDataset(Dataset):
         state_in = undo_jsonify(self.df["state_in"].to_numpy())
         state_raw = state_in.copy()
         state_out = undo_jsonify(self.df["state_out"].to_numpy())
-        if ModelFitConfig.prop_long_horizon:
-            state_prop = undo_jsonify(self.df["state_prop_long"].to_numpy())
-        else:
-            state_prop = undo_jsonify(self.df["state_prop_short"].to_numpy())
         control = undo_jsonify(self.df["control"].to_numpy())
         dt = self.df["dt"].to_numpy()
         timestamp = self.df["timestamp"].to_numpy()
+        if ModelFitConfig.prop_long_horizon:
+            state_prop = undo_jsonify(self.df["state_prop_long"].to_numpy())
+            state_prop = state_prop[10:, :]
+            state_in = state_in[:-10, :]
+            state_out = state_out[:-10, :]
+            control = control[:-10, :]
+            dt = dt[:-10]
+            timestamp = timestamp[:-10]
+        else:
+            state_prop = undo_jsonify(self.df["state_prop_short"].to_numpy())
+            state_prop = state_prop[1:, :]
+            state_in = state_in[:-1, :]
+            state_out = state_out[:-1, :]
+            control = control[:-1, :]
+            dt = dt[:-1]
+            timestamp = timestamp[:-1]
 
         # Remove invalid entries (dt = 0)
         invalid = np.where(dt == 0)
@@ -147,8 +159,6 @@ class TrajectoryDataset(Dataset):
                 next_idx.append(idx_closest)
             next_idx = np.array(next_idx)
             state_out = state_out[next_idx, :]
-            # Truncate to match size of state_prop
-            state_out = state_out[:-10, :]
 
         # =============================================================
         # Compute residual dynamics of actual state and predicted (or "propagated") state
@@ -172,6 +182,16 @@ class TrajectoryDataset(Dataset):
         else:
             y = (state_out - state_prop) / np.expand_dims(dt, 1)
             # y = (state_out - state_prop) / T_samp
+
+        
+        # 2.1 Check that when using the input for propagation the control input is used from the correct time step
+        # -> should be the control input at the same time from which the state_in is measured!
+        
+        # WHY IS MPC OUTPUT DIFFERENT FROM PROPAGATION!!!
+
+        # USE Varying INPUT FOR PROPAGATION?!
+
+        # 3. warum hat label am anfang so einen offset in ax ay
 
         # Nonlinear quaternion error computation
         # NOTE: The difference between two quaternions can be computed by q_diff = q2 quaternion-multiply inverse(q1)
@@ -214,6 +234,12 @@ class TrajectoryDataset(Dataset):
                 self.state_in_filtered = state_in.copy()
                 self.control_filtered = control.copy()
                 self.y_filtered = y[:, y_reg_dims].copy()
+        if ModelFitConfig.use_moving_average_filter and ModelFitConfig.use_moving_average_filter_only_label:
+            raise ValueError("Cannot use moving average filter only on labels when also using it on inputs.")
+        if ModelFitConfig.use_moving_average_filter_only_label:
+            print(f"[DATASET] Applying moving average filter with window size {ModelFitConfig.window_size} to labels only.")
+            y = moving_average_filter(y, window_size=ModelFitConfig.window_size)
+            y = moving_average_filter(y, window_size=ModelFitConfig.window_size)  # Experiment: Apply twice for stronger effect
         if ModelFitConfig.use_low_pass_filter:
             # Sampling frequency
             fs = 1.0 / np.mean(dt)
