@@ -11,6 +11,8 @@ DragonNavigator::DragonNavigator():
 {
   curr_target_baselink_rot_.setRPY(0, 0, 0);
   final_target_baselink_rot_.setRPY(0, 0, 0);
+
+  level_shape_control_stamp_ = 0;
 }
 
 void DragonNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
@@ -166,7 +168,6 @@ void DragonNavigator::landingProcess()
       if(!level_flag_)
         {
           const auto joint_state = robot_model_->kdlJointToMsg(robot_model_->getJointPositions());
-          sensor_msgs::JointState joint_control_msg;
           for(int i = 0; i < joint_state.position.size(); i++)
             {
               if(joint_state.name[i].find("joint") != std::string::npos)
@@ -176,12 +177,11 @@ void DragonNavigator::landingProcess()
                     target_cmd = 0;
                   else target_cmd = joint_state.position[i];
 
-                  joint_control_msg.position.push_back(target_cmd);
+                  level_shape_msg_.name.push_back(joint_state.name[i]);
+                  level_shape_msg_.position.push_back(target_cmd);
 
                 }
             }
-
-          joint_control_pub_.publish(joint_control_msg);
 
           if (!eq_cog_world_)
             {
@@ -264,6 +264,13 @@ void DragonNavigator::landingProcess()
               if(fabs(joint_state.position[i]) > 0.085) already_level = false;
             }
         }
+      /* send the joint angles for level pose periodically (every 2s) to address lost package problem */
+      if (ros::Time::now().toSec() - level_shape_control_stamp_ > 2.0)
+        {
+          joint_control_pub_.publish(level_shape_msg_);
+          level_shape_control_stamp_ = ros::Time::now().toSec();
+          ROS_INFO("send level pose joint angles");
+        }
 
       double r,p,y;
       tf::Matrix3x3(curr_target_baselink_rot_).getRPY(r,p,y);
@@ -328,6 +335,7 @@ void DragonNavigator::reset()
   BaseNavigator::reset();
 
   level_flag_ = false;
+  level_shape_control_stamp_ = 0;
 
   // reset SO3
   eq_cog_world_ = false;
