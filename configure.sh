@@ -7,7 +7,7 @@ DISTRO=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)
 
 # Conditional branching based on distro_codename
 if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
-    echo "This is Ubuntu 22.04 (jammy). Install ROS-O"
+    echo "This is Ubuntu ($DISTRO). Install ROS-O"
 
     sudo apt install -y python3-pip
     pip3 install catkin-tools
