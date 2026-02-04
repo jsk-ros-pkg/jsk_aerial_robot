@@ -64,6 +64,7 @@ class TrajectoryDataset(Dataset):
                 self.x,
                 self.y,
                 self.dt,
+                self.timestamp,
                 self.state_in,
                 self.state_out,
                 self.state_prop,
@@ -94,6 +95,7 @@ class TrajectoryDataset(Dataset):
             state_prop = undo_jsonify(self.df["state_prop_short"].to_numpy())
         control = undo_jsonify(self.df["control"].to_numpy())
         dt = self.df["dt"].to_numpy()
+        timestamp = self.df["timestamp"].to_numpy()
 
         # Remove invalid entries (dt = 0)
         invalid = np.where(dt == 0)
@@ -102,6 +104,7 @@ class TrajectoryDataset(Dataset):
         state_prop = np.delete(state_prop, invalid, axis=0)
         control = np.delete(control, invalid, axis=0)
         dt = np.delete(dt, invalid, axis=0)
+        timestamp = np.delete(timestamp, invalid, axis=0)
 
         # Sanity check
         if (
@@ -137,16 +140,15 @@ class TrajectoryDataset(Dataset):
         
         if ModelFitConfig.prop_long_horizon:
             # Shift output to correspond to state_prop after T_step seconds
-            timestamp = self.df["timestamp"].to_numpy()
             next_timestamp = timestamp + T_step
             next_idx = []
             for t_next in next_timestamp:
                 idx_closest = (np.abs(timestamp - t_next)).argmin()
                 next_idx.append(idx_closest)
             next_idx = np.array(next_idx)
-            state_out_revised = state_out[next_idx, :]
-
-            state_out_revised = state_out_revised[:-10, :]
+            state_out = state_out[next_idx, :]
+            # Truncate to match size of state_prop
+            state_out = state_out[:-10, :]
 
         # =============================================================
         # Compute residual dynamics of actual state and predicted (or "propagated") state
@@ -241,6 +243,7 @@ class TrajectoryDataset(Dataset):
         self.state_prop = state_prop
         self.control = control
         self.dt = dt
+        self.timestamp = timestamp
 
         # Store network input
         self.x = np.concatenate((state_in[:, state_feats], control[:, u_feats]), axis=1, dtype=np.float32)

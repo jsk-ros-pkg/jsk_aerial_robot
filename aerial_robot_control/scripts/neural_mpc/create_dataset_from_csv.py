@@ -485,7 +485,7 @@ if __name__ == "__main__":
     """
     ############## Configuration ##############
     # Name of the dataset to be created
-    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_WITH_REF_ALL_PROP"  # + "_01"
+    ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_WITH_REF_ALL_PROP"  # + "_01"
     ds_dir = os.path.join(DirectoryConfig.DATA_DIR, ds_name)
 
     apply_temporal_filter = True
@@ -522,10 +522,10 @@ if __name__ == "__main__":
         # "2025-09-08-23-20-40_hovering_mode_10_success.csv",
         # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success.csv",
         ### TRAINING ###
-        "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
-        "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv",
+        # "2025-09-10-17-09-30_long_flight_ground_effect_targets_mode_10_success_TRAIN_WITH_REF.csv",
+        # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_TRAIN_WITH_REF_FULL.csv",
         ### VALIDATION ###
-        # "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL_WITH_REF.csv",
+        "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL_WITH_REF.csv",
         ### HOVERING & GROUND EFFECT TRAIN ###
         # NOT THIS SINCE TOO AGGRESSIVE: "2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_GROUND_EFFECT_ONLY.csv",
         # "2025-09-10-18-52-13_multiple_smach_trajs_focus_on_rotation_mode_10_GROUND_EFFECT_ONLY.csv",

@@ -123,7 +123,7 @@ class EnvConfig:
             # 152 (decent learning): Same as 151 but only consist & zero-out loss & lower lambas (bigger network)
             # 153 (good learning): Same as 152 but with tiny network (16 nodes) and lower lr
             # 155 (best learning): Same as 153 but with MultiStepLR (experiment)
-            # TODO repeat experiments with T_horizon = 2.0 instead of 0.2
+            # 156: On long prediction horizon propagation dataset
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
         }
@@ -133,7 +133,7 @@ class EnvConfig:
         "solver_type": "PARTIAL_CONDENSING_HPIPM",  # TODO actually implement this
         "terminal_cost": True,  # TODO actually implement this
         "include_floor_bounds": False,
-        "include_soft_constraints": True,
+        "include_soft_constraints": False,
         "include_quaternion_constraint": False,
         "include_delta_u": False,
     }
@@ -229,7 +229,7 @@ class MLPConfig:
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [16, 16]
+    hidden_sizes = [32, 32]
     # hidden_sizes = [64, 64]
     # hidden_sizes = [128, 256, 128, 64]
 
@@ -259,13 +259,13 @@ class MLPConfig:
     # Weight decay (L2 regularization)
     weight_decay = 1e-1  # Set to 0.0 to disable [1e-2 for AdamW, 1e-4 for Adam]
     # Zero-output regularization
-    zero_out_lambda = 1e-2  # Set to 0.0 to disable
+    zero_out_lambda = 1e-1  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  #1e-4  # Set to 0.0 to disable
     # Penalize gradients
     gradient_lambda = 0.0  # 1e3  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 1e1 # 10.0  #1e4 # 5.0  # Set to 0.0 to disable
+    consistency_lambda = 0.0 #1e1 # 10.0  #1e4 # 5.0  # Set to 0.0 to disable
     consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
     # Output symmetry regularization
     symmetry_lambda = 0.0  # Set to 0.0 to disable
@@ -312,8 +312,8 @@ class ModelFitConfig:
     vel_cap = 16  # Remove datapoints where abs(velocity) > vel_cap
 
     # ------- Plotting -------
-    plot_dataset = False
-    save_plots = False
+    plot_dataset = True
+    save_plots = True
 
     # ------- Dataset loading -------
     train_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_TRAIN_WITH_REF_ALL_PROP"
@@ -331,8 +331,9 @@ class ModelFitConfig:
     # residual neural sim nominal control 05, dataset 001: on simulator as large network trained with L1 regularization
     # residual neural sim nominal control 07, dataset 001: on simulator as large network trained with full state and transforms and L1 regularization
     # real machine GROUND_EFFECT_ONLY: hovering and ground effect data only (48k datapoints)
-    val_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_FOR_PAPER"
-    val_ds_instance = "dataset_003"
+    # val_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_FOR_PAPER"
+    val_ds_name = "NMPCTiltQdServo" + "_" + "real_machine" + "_dataset_VAL_WITH_REF_ALL_PROP"
+    val_ds_instance = "dataset_001"
     # === FROM HERE WITH MOVING AVERAGE FILTER APPLIED ===
     # NMPCTiltQdServo_real_machine_dataset_GROUND_EFFECT_ONLY,  dataset_002
     # ------- Features used for the model -------

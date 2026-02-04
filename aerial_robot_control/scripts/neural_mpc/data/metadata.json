@@ -2987,8 +2987,72 @@
                 "payload": false
             },
             "trained_models": [
-                "neuralmodel_156"
+                "neuralmodel_156",
+                "neuralmodel_156",
+                "neuralmodel_157",
+                "neuralmodel_157"
             ]
+        }
+    },
+    "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP": {
+        "date": "2026-02-04 12:18:07",
+        "real_machine": true,
+        "rosbag_file": [
+            "~/ros/rosbag_files/csv/csv_vim_4/2025-09-10-16-44-59_long_flight_ground_effect_targets_mode_10_solver_error_for_aggressive_target_success_VAL_WITH_REF.csv"
+        ],
+        "duration": 165.27696084976196,
+        "temporal_filtering": true,
+        "mpc_type": "NMPCTiltQdServo",
+        "T_step": 0.1,
+        "T_samp": 0.01,
+        "state_dim": 17,
+        "control_dim": 8,
+        "include_quaternion_constraint": false,
+        "include_soft_constraints": false,
+        "mpc_params": {
+            "T_samp": 0.01,
+            "T_horizon": 2.0,
+            "T_step": 0.1,
+            "w_max": 6,
+            "w_min": -6,
+            "v_max": 1,
+            "v_min": -1,
+            "thrust_max": 30,
+            "thrust_min": 0,
+            "a_max": 3.1416,
+            "a_min": -3.1416,
+            "Qp_xy": 300,
+            "Qp_z": 400,
+            "Qv_xy": 10,
+            "Qv_z": 10,
+            "Qq_xy": 300,
+            "Qq_z": 600,
+            "Qw_xy": 5,
+            "Qw_z": 5,
+            "Qa": 1,
+            "Rt": 1,
+            "Rac_d": 250,
+            "linear_slack_weight": 10,
+            "quadratic_slack_weight": 100,
+            "is_attitude_ctrl": false,
+            "is_body_rate_ctrl": false,
+            "is_print_phys_params": false,
+            "is_debug": false,
+            "N_steps": 20
+        },
+        "filtering": {
+            "window_size": 5,
+            "low_pass_filter_cutoff_input": 1.0
+        },
+        "dataset_001": {
+            "disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            }
         }
     }
 }
