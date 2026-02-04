@@ -285,7 +285,20 @@ def compute_robot_coords(pos, quaternions, rotor_positions):
 def plot_dataset(
         x,
         y,
-        dt, state_in, state_out, state_prop, control, use_moving_average_filter=False, state_in_filtered=None, control_in_filtered=None, y_raw=None, y_filtered=None, save_file_path=None, save_file_name=None, mode=None):
+        dt,
+        state_in,
+        state_out,
+        state_prop,
+        control,
+        use_moving_average_filter=False,
+        state_in_filtered=None,
+        control_in_filtered=None,
+        y_raw=None,
+        y_filtered=None,
+        save_file_path=None,
+        save_file_name=None,
+        mode=None
+    ):
     """
     Plot the dataset features and labels.
     :param x: Input features to the network.
