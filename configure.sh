@@ -9,14 +9,12 @@ DISTRO=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)
 if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
     echo "This is Ubuntu ($DISTRO). Install ROS-O"
 
-    sudo apt install -y python3-pip
-    pip3 install catkin-tools
+    sudo apt install -y python3-pip python3-catkin-tools
     echo "deb [trusted=yes] https://raw.githubusercontent.com/v4hn/ros-o-builder/$DISTRO-one-unstable/repository ./" | sudo tee /etc/apt/sources.list.d/ros-o-builder.list
     sudo apt update
     sudo apt install -y python3-rosdep2
     echo "yaml https://raw.githubusercontent.com/v4hn/ros-o-builder/$DISTRO-one-unstable/repository/local.yaml debian" | sudo tee /etc/ros/rosdep/sources.list.d/1-ros-o-builder.list
     rosdep update
     sudo apt install -y ros-one-desktop-full
-    sudo apt install -y python3-wstool
-    sudo pip3 install -U catkin_tools
+    sudo apt install -y python3-vcstool
 fi
