@@ -30,5 +30,5 @@ if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
 
 
     # Install other packages
-    sudo apt install -y python3-catkin-tools python3-vcstool
+    sudo apt install -y python3-catkin-tools python3-vcstool python-is-python3
 fi
