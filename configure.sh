@@ -10,7 +10,7 @@ if [ "$DISTRO" = "jammy" ] || [ "$DISTRO" == "noble" ]; then
     echo "This is Ubuntu ($DISTRO). Install ROS-O"
 
     # Configure ROS One apt repository
-    sudo apt install cur
+    sudo apt install curl
     sudo curl -sSL https://ros.packages.techfak.net/gpg.key -o /etc/apt/keyrings/ros-one-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/ros-one-keyring.gpg] https://ros.packages.techfak.net $(lsb_release -cs)-testing main" | sudo tee /etc/apt/sources.list.d/ros1.list
     echo "# deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/ros-one-keyring.gpg] https://ros.packages.techfak.net $(lsb_release -cs)-testing main-dbg" | sudo tee -a /etc/apt/sources.list.d/ros1.list
