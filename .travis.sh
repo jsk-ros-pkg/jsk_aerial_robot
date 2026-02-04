@@ -36,7 +36,7 @@ cd ~/catkin_ws
 cp -r ${CI_SOURCE_PATH} src/${REPOSITORY_NAME} # copy the whole contents instead of create symbolic link
 
 if [[ "$ROS_DISTRO" ==  "one" ]]; then
-    vcs import src < src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall
+    vcs import src < src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall --recursive
 else
     wstool init src
     wstool merge -t src src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall

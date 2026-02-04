@@ -38,7 +38,7 @@ cd ~/ros/jsk_aerial_robot_ws/src
 git clone https://github.com/jsk-ros-pkg/jsk_aerial_robot.git
 ./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o
 source /opt/ros/one/setup.bash
-vcs import src < src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
+vcs import src < src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall --recursive
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
