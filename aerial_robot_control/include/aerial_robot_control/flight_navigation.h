@@ -63,6 +63,7 @@ namespace aerial_robot_navigation
 
     inline uint8_t getNaviState(){  return navi_state_;}
     inline void setNaviState(const uint8_t  state){ navi_state_ = state;}
+    virtual bool isInflightState();
 
     inline uint8_t getXyControlMode(){  return (uint8_t)xy_control_mode_;}
     inline void setXyControlMode(uint8_t mode){  xy_control_mode_ = mode;}
