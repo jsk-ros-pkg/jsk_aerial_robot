@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from ml_casadi.torch.modules import TorchMLCasadiModule
 from ml_casadi.torch.modules.nn import Linear as mcLinear
@@ -87,3 +88,94 @@ class MLP(TorchMLCasadiModule):
             x = layer(x)
         # Output denormalization
         return (x * self.y_std.cpu().numpy()) + self.y_mean.cpu().numpy()
+
+    def compute_jacobian(self, x):
+        """
+        Compute the Jacobian of the network output with respect to the input at point x.
+        
+        Args:
+            x: Input tensor of shape (batch_size, input_size) or (input_size,)
+            
+        Returns:
+            Jacobian matrix of shape (batch_size, output_size, input_size) or (output_size, input_size)
+        """
+        x = x.clone().detach().requires_grad_(True)
+        y = self.forward(x)
+        
+        # Handle both single sample and batch
+        is_single = x.dim() == 1
+        if is_single:
+            x = x.unsqueeze(0)
+            y = y.unsqueeze(0)
+        
+        batch_size = x.shape[0]
+        jacobian = torch.zeros(batch_size, self.output_size, self.input_size, device=x.device)
+        
+        for i in range(self.output_size):
+            # Compute gradient of output i with respect to input
+            grad_outputs = torch.zeros_like(y)
+            grad_outputs[:, i] = 1.0
+            grads = torch.autograd.grad(
+                outputs=y,
+                inputs=x,
+                grad_outputs=grad_outputs,
+                create_graph=False,
+                retain_graph=True
+            )[0]
+            jacobian[:, i, :] = grads
+        
+        if is_single:
+            jacobian = jacobian.squeeze(0)
+            
+        return jacobian
+
+    def linearize_at_point(self, x0):
+        """
+        Linearize the network around the working point x0.
+        Returns the linear approximation: y ≈ y0 + J @ (x - x0)
+        
+        Args:
+            x0: Working point tensor of shape (input_size,) or (batch_size, input_size)
+            
+        Returns:
+            dict with:
+                - 'y0': Output at the working point
+                - 'J': Jacobian matrix at the working point
+                - 'x0': The working point (for reference)
+        """
+        with torch.no_grad():
+            y0 = self.forward(x0)
+        
+        J = self.compute_jacobian(x0)
+        
+        return {
+            'y0': y0,
+            'J': J,
+            'x0': x0.clone()
+        }
+    
+    def evaluate_linearized(self, x, linearization):
+        """
+        Evaluate the linearized model at point x.
+        
+        Args:
+            x: Input point(s) where to evaluate
+            linearization: Dict returned by linearize_at_point()
+            
+        Returns:
+            Linearized output: y ≈ y0 + J @ (x - x0)
+        """
+        y0 = linearization['y0']
+        J = linearization['J']
+        x0 = linearization['x0']
+        
+        dx = x - x0
+        
+        # Handle both single sample and batch
+        if dx.dim() == 1:
+            dy = J @ dx
+        else:
+            # Batch matrix multiplication
+            dy = torch.einsum('bij,bj->bi', J, dx)
+        
+        return y0 + dy
