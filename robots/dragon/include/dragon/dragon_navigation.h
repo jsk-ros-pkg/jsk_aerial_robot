@@ -69,6 +69,8 @@ namespace aerial_robot_navigation
     void halt() override;
     void reset() override;
 
+    bool isInflightState() override;
+
     void servoTorqueProcess();
     void landingProcess();
     void gimbalControl();
@@ -88,6 +90,8 @@ namespace aerial_robot_navigation
     /* landing process */
     bool level_flag_;
     bool servo_torque_;
+    double level_shape_control_stamp_;
+    sensor_msgs::JointState level_shape_msg_;
 
     /* rosparam */
     double height_thresh_;
