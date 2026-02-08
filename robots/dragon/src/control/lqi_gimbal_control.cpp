@@ -249,10 +249,13 @@ void DragonLQIGimbalController::gimbalControl()
   for(int i = 0; i < motor_num_; i++)
     {
       /* vectoring force */
-      tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i) + extra_vectoring_forces_.at(i).x(),
-                      f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1) + extra_vectoring_forces_.at(i).y(),
-                      z_control_terms.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2) + extra_vectoring_forces_.at(i).z());
+      tf::Vector3 f_i(f_xy(2 * i) + wrench_comp_thrust(3 * i), f_xy(2 * i + 1) + wrench_comp_thrust(3 * i + 1),
+                      z_control_terms.at(i) + lqi_att_terms_.at(i) + wrench_comp_thrust(3 * i + 2));
 
+      /* extra vectoring part */
+      tf::Vector3 f_ex(0,0,0);
+      if (extra_vectoring_forces_.size() == motor_num_) tf::vectorEigenToTF(extra_vectoring_forces_.at(i), f_ex);
+      f_i += f_ex;
 
       /* calculate ||f||, but omit pitch and roll term, which will be added in spinal */
       target_base_thrust_.at(i) = (f_i - tf::Vector3(0, 0, lqi_att_terms_.at(i))).length();
