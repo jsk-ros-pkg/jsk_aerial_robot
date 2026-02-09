@@ -210,7 +210,7 @@
     0.00046969022820300113
   ],
   "model_config": {
-    "MLPConfig": {
+    "NetworkConfig": {
       "model_name": "residual_mlp",
       "delay_horizon": 0,
       "hidden_sizes": [

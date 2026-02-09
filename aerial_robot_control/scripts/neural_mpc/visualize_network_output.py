@@ -101,7 +101,11 @@ def visualize_network_output_per_dimension(
 
             with torch.no_grad():
                 input_tensor = torch.tensor(current_input, dtype=torch.float32)
-                output_array = neural_model(input_tensor).numpy()
+                if mlp_metadata["NetworkConfig"]["model_type"] == "MLP":
+                    output_array = neural_model(input_tensor).numpy()
+                elif mlp_metadata["NetworkConfig"]["model_type"] == "VAE":
+                    output_array, _, _ = neural_model(input_tensor)
+                    output_array = output_array.numpy()
                 if mlp_metadata["ModelFitConfig"]["label_transform"]:
                     y_reg_dims = np.array(eval(mlp_metadata["ModelFitConfig"]["y_reg_dims"]))
                     if set([3, 4, 5]).issubset(set(y_reg_dims)):
@@ -116,7 +120,7 @@ def visualize_network_output_per_dimension(
                         a_idx = np.where(y_reg_dims == 5)[0][0]
                         a_b = np.array([0, 0, output_array[a_idx]])
                         a_w = v_dot_q(a_b, current_input[q_idx])
-                        output_array = np.hstack([output_array[:a_idx], a_w, output_array[a_idx + 1]])
+                        output_array = np.hstack([output_array[:a_idx], a_w, output_array[a_idx + 1 :]])
                     else:
                         raise KeyError("Selected regression dimensions not expected.")
                 output_value = output_array[output_dim]
@@ -229,7 +233,11 @@ def visualize_2d_output_heatmap(neural_model, mlp_metadata, actual_data_ranges, 
 
                 with torch.no_grad():
                     input_tensor = torch.tensor(current_input, dtype=torch.float32)
-                    output_array = neural_model(input_tensor).numpy()
+                    if mlp_metadata["NetworkConfig"]["model_type"] == "MLP":
+                        output_array = neural_model(input_tensor).numpy()
+                    elif mlp_metadata["NetworkConfig"]["model_type"] == "VAE":
+                        output_array, _, _ = neural_model(input_tensor)
+                        output_array = output_array.numpy()
                     if mlp_metadata["ModelFitConfig"]["label_transform"]:
                         y_reg_dims = np.array(eval(mlp_metadata["ModelFitConfig"]["y_reg_dims"]))
                         if set([3, 4, 5]).issubset(set(y_reg_dims)):

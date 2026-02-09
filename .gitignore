@@ -123,6 +123,7 @@ tags
 # Trained torch models
 **/results/model_fitting/residual_mlp/archive/
 **/results/model_fitting/residual_mlp/plot/
+**/results/model_fitting/residual_vae/plot/
 
 # Simulation results
 **/sim_plots/

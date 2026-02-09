@@ -45,7 +45,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "approximated_mlp": false,
                 "hidden_sizes": [
@@ -116,7 +116,7 @@
                 "payload": false,
                 "motor_noise": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -183,7 +183,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     256,
@@ -251,7 +251,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     256,
@@ -319,7 +319,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     256,
@@ -387,7 +387,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -453,7 +453,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -519,7 +519,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -585,7 +585,7 @@
             "state_feats": "[3, 4, 5]",
             "u_feats": "[]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -651,7 +651,7 @@
             "state_feats": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -718,7 +718,7 @@
             "state_feats": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -785,7 +785,7 @@
             "state_feats": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -852,7 +852,7 @@
             "state_feats": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -919,7 +919,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     128,
@@ -986,7 +986,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -1053,7 +1053,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     128,
@@ -1120,7 +1120,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -1187,7 +1187,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -1254,7 +1254,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -1321,7 +1321,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "hidden_sizes": [
                     64,
@@ -1388,7 +1388,7 @@
             "state_feats": "[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1458,7 +1458,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1528,7 +1528,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1598,7 +1598,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1668,7 +1668,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1738,7 +1738,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1808,7 +1808,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1878,7 +1878,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -1948,7 +1948,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2018,7 +2018,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2088,7 +2088,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2158,7 +2158,7 @@
             "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]",
             "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
             "y_reg_dims": "[3, 4, 5]",
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2232,7 +2232,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2311,7 +2311,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2387,7 +2387,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2463,7 +2463,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2539,7 +2539,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2615,7 +2615,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2691,7 +2691,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2767,7 +2767,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2843,7 +2843,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2919,7 +2919,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -2995,7 +2995,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3072,7 +3072,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3149,7 +3149,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3230,7 +3230,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3308,7 +3308,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3386,7 +3386,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3464,7 +3464,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3542,7 +3542,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3620,7 +3620,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3696,7 +3696,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3772,7 +3772,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3848,7 +3848,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -3924,7 +3924,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4000,7 +4000,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4076,7 +4076,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4154,7 +4154,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4232,7 +4232,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4308,7 +4308,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4386,7 +4386,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4464,7 +4464,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4542,7 +4542,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4619,7 +4619,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4696,7 +4696,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4776,7 +4776,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4859,7 +4859,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -4940,7 +4940,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5025,7 +5025,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5110,7 +5110,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5195,7 +5195,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5277,7 +5277,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5359,7 +5359,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5438,7 +5438,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5517,7 +5517,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5596,7 +5596,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5675,7 +5675,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5759,7 +5759,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5841,7 +5841,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -5924,7 +5924,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6006,7 +6006,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6088,7 +6088,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6171,7 +6171,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6250,7 +6250,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6330,7 +6330,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6410,7 +6410,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6490,7 +6490,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6572,7 +6572,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6655,7 +6655,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6740,7 +6740,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6825,7 +6825,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6907,7 +6907,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -6989,7 +6989,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7074,7 +7074,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7159,7 +7159,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7244,7 +7244,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7329,7 +7329,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7418,7 +7418,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7505,7 +7505,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7593,7 +7593,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7681,7 +7681,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7771,7 +7771,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7861,7 +7861,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -7951,7 +7951,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8041,7 +8041,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8131,7 +8131,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8221,7 +8221,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8311,7 +8311,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8401,7 +8401,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8492,7 +8492,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8583,7 +8583,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8674,7 +8674,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8765,7 +8765,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8856,7 +8856,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -8947,7 +8947,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9038,7 +9038,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9129,7 +9129,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9220,7 +9220,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9311,7 +9311,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9402,7 +9402,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9493,7 +9493,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9584,7 +9584,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9676,7 +9676,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9768,7 +9768,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9860,7 +9860,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -9952,7 +9952,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10044,7 +10044,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10136,7 +10136,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10228,7 +10228,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10320,7 +10320,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10412,7 +10412,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10504,7 +10504,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10596,7 +10596,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10688,7 +10688,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10780,7 +10780,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10872,7 +10872,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -10965,7 +10965,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11058,7 +11058,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11151,7 +11151,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11244,7 +11244,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11337,7 +11337,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11430,7 +11430,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11523,7 +11523,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11618,7 +11618,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11714,7 +11714,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11809,7 +11809,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11904,7 +11904,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -11999,7 +11999,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12094,7 +12094,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12189,7 +12189,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12284,7 +12284,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12379,7 +12379,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12474,7 +12474,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12569,7 +12569,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12668,7 +12668,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12768,7 +12768,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12868,7 +12868,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -12969,7 +12969,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -13070,7 +13070,7 @@
                 "drag": false,
                 "payload": false
             },
-            "MLPConfig": {
+            "NetworkConfig": {
                 "model_name": "residual_mlp",
                 "delay_horizon": 0,
                 "hidden_sizes": [
@@ -13099,6 +13099,1622 @@
                 "lr_milestones": [
                     100,
                     125
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_160": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-06 10:54:36",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_name": "residual_mlp",
+                "delay_horizon": 0,
+                "hidden_sizes": [
+                    32,
+                    32
+                ],
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.1,
+                "zero_out_lambda": 0.1,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 1.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 100,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_161": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-06 10:56:55",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_name": "residual_mlp",
+                "delay_horizon": 0,
+                "hidden_sizes": [
+                    32,
+                    32
+                ],
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.1,
+                "zero_out_lambda": 0.1,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.1,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_162": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-06 15:29:16",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_name": "residual_mlp",
+                "delay_horizon": 0,
+                "hidden_sizes": [
+                    32,
+                    32
+                ],
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_163": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-06 15:33:30",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_name": "residual_mlp",
+                "delay_horizon": 0,
+                "hidden_sizes": [
+                    32,
+                    32
+                ],
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 30,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    15,
+                    25
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        }
+    },
+    "residual_vae": {
+        "neuralmodel_001": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 07:25:56",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_002": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 07:45:17",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_003": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 07:50:33",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 10000.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_004": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:18:13",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 200,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "Adam",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    100,
+                    150
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_005": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:19:28",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "Adam",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_006": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:20:36",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "ReLU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "Adam",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_007": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:24:43",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 0.1,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "ReLU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "Adam",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_008": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:26:12",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 0.001,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "ReLU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "Adam",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_009": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:29:40",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 0.0001,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_010": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:32:26",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 1e-05,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
+                ],
+                "lr_scheduler": "MultiStepLR",
+                "num_workers": 0
+            }
+        },
+        "neuralmodel_011": {
+            "ModelFitConfig": {
+                "prop_long_horizon": true,
+                "use_low_pass_filter": false,
+                "low_pass_filter_cutoff_input": 1.0,
+                "low_pass_filter_cutoff_label": 0.1,
+                "use_moving_average_filter": false,
+                "use_moving_average_filter_only_label": true,
+                "control_filtering": false,
+                "window_size": 5,
+                "input_transform": false,
+                "label_transform": false,
+                "prune": false,
+                "histogram_n_bins": 10,
+                "histogram_thresh": 0.001,
+                "vel_cap": 16,
+                "plot_dataset": false,
+                "save_plots": false,
+                "train_ds_name": "NMPCTiltQdServo_real_machine_dataset_TRAIN_WITH_REF_ALL_PROP",
+                "train_ds_instance": "dataset_001",
+                "val_ds_name": "NMPCTiltQdServo_real_machine_dataset_VAL_WITH_REF_ALL_PROP",
+                "val_ds_instance": "dataset_001",
+                "state_feats": "[2, 3, 4, 5, 6, 7, 8, 9]",
+                "u_feats": "[0, 1, 2, 3, 4, 5, 6, 7]",
+                "y_reg_dims": "[3, 4, 5]"
+            },
+            "date": "2026-02-09 08:35:56",
+            "ds_mpc_type": "NMPCTiltQdServo",
+            "ds_mpc_params": {
+                "T_samp": 0.01,
+                "T_horizon": 2.0,
+                "T_step": 0.1,
+                "w_max": 6,
+                "w_min": -6,
+                "v_max": 1,
+                "v_min": -1,
+                "thrust_max": 30,
+                "thrust_min": 0,
+                "a_max": 3.1416,
+                "a_min": -3.1416,
+                "Qp_xy": 300,
+                "Qp_z": 400,
+                "Qv_xy": 10,
+                "Qv_z": 10,
+                "Qq_xy": 300,
+                "Qq_z": 600,
+                "Qw_xy": 5,
+                "Qw_z": 5,
+                "Qa": 1,
+                "Rt": 1,
+                "Rac_d": 250,
+                "linear_slack_weight": 10,
+                "quadratic_slack_weight": 100,
+                "is_attitude_ctrl": false,
+                "is_body_rate_ctrl": false,
+                "is_print_phys_params": false,
+                "is_debug": false,
+                "N_steps": 20
+            },
+            "ds_disturbances": {
+                "cog_dist": false,
+                "cog_dist_model": "",
+                "cog_dist_factor": 0.0,
+                "motor_noise": false,
+                "drag": false,
+                "payload": false
+            },
+            "NetworkConfig": {
+                "model_type": "VAE",
+                "model_name": "residual_vae",
+                "delay_horizon": 0,
+                "encoder_hidden_sizes": [
+                    32,
+                    16
+                ],
+                "latent_dim": 8,
+                "decoder_hidden_sizes": [
+                    16,
+                    32
+                ],
+                "beta": 0.0,
+                "use_kl_annealing": false,
+                "kl_annealing_epochs": 10,
+                "activation": "GELU",
+                "use_batch_norm": false,
+                "dropout_p": 0.0,
+                "num_epochs": 100,
+                "batch_size": 64,
+                "loss_weight": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "optimizer": "AdamW",
+                "weight_decay": 0.0,
+                "zero_out_lambda": 0.0,
+                "l1_lambda": 0.0,
+                "gradient_lambda": 0.0,
+                "consistency_lambda": 0.0,
+                "consistency_epsilon": 0.2,
+                "consistency_num_samples": 10,
+                "learning_rate": 0.001,
+                "lr_milestones": [
+                    30,
+                    60
                 ],
                 "lr_scheduler": "MultiStepLR",
                 "num_workers": 0

@@ -885,7 +885,11 @@ def plot_trajectory(model_options, sim_options, rec_dict, rtnmpc: NeuralMPC, dis
         mlp_in = torch.cat((state_b_torch, control_torch), dim=1)
         # Forward call MLP
         rtnmpc.neural_model.eval()
-        mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
+        if rtnmpc.mlp_metadata["NetworkConfig"]["model_type"] == "MLP":
+            mlp_out = rtnmpc.neural_model(mlp_in).cpu().detach().numpy()
+        elif rtnmpc.mlp_metadata["NetworkConfig"]["model_type"] == "VAE":
+            mlp_out, _, std = rtnmpc.neural_model(mlp_in)
+            mlp_out = mlp_out.cpu().detach().numpy()
 
         # Transform velocity back to world frame
         if rtnmpc.mlp_metadata["ModelFitConfig"]["label_transform"]:

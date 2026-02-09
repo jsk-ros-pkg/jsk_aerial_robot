@@ -9,6 +9,8 @@ from utils.geometry_utils import quaternion_inverse, v_dot_q
 from utils.model_utils import load_model, get_output_mapping
 from utils.model_utils import cross_check_params
 
+import l4casadi as l4c
+
 # Tiltable-Quadrotor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nmpc.nmpc_tilt_mt.rh_base import RecedingHorizonBase
@@ -52,7 +54,13 @@ class NeuralMPC(RecedingHorizonBase):
         self.model_name = f"tilt_qd_{identifier}_servo{identifier2}{identifier3}_mdl"
 
         # Read controller parameters from configuration file in the robot's package
-        self.read_params("controller", "nmpc", "beetle_omni", "BeetleNMPCFull.yaml")
+        if model_options["only_use_nominal"]:
+            yaml_file_name = "BeetleOmniNMPCNominalServo"
+        elif model_options["plus_neural"]:
+            yaml_file_name = "BeetleOmniNMPCNeuralServoPlus"
+        else:
+            yaml_file_name = "BeetleOmniNMPCNeuralServoMinus"
+        self.read_params("controller", "nmpc", "beetle_omni", f"{yaml_file_name}.yaml")
         self.T_samp = self.params["T_samp"]  # Sampling time for the MPC controller, time step between two steps
         self.T_horizon = self.params["T_horizon"]  # Time horizon for optimization loop in MPC controller
         self.N = self.params["N_steps"]  # Number of MPC nodes
@@ -429,12 +437,11 @@ class NeuralMPC(RecedingHorizonBase):
                 state_in = state
 
             # Assemble MLP input from selected state and control features
-            controls_in = controls[self.u_feats]
-            mlp_in = ca.vertcat(state_in[self.state_feats], controls_in)
+            mlp_in = ca.vertcat(state_in[self.state_feats], controls[self.u_feats])
 
-            if "temporal" in self.mlp_metadata["MLPConfig"]["model_name"]:
+            if "temporal" in self.mlp_metadata["NetworkConfig"]["model_name"]:
                 # Use previous (i.e. delayed) states and controls time steps as input to the MLP
-                delay = self.mlp_metadata["MLPConfig"]["delay_horizon"]  # Delay as number of previous time steps
+                delay = self.mlp_metadata["NetworkConfig"]["delay_horizon"]  # Delay as number of previous time steps
                 state_prev, controls_prev = self.append_delay(delay)
 
                 # Append each previous state and control to MLP input
@@ -451,16 +458,35 @@ class NeuralMPC(RecedingHorizonBase):
 
             # === MLP forward pass ===
             with torch.no_grad():
-                if self.model_options["approximate_mlp"]:
-                    # TODO investigate this function and parallel Flag!
-                    # Parallel flag only active for order == 2
-                    mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
-                    approx_params = self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True)
-                    self.approx_start_idx = parameters.size()[0]
-                    parameters = ca.vertcat(parameters, approx_params)
-                    self.approx_end_idx = parameters.size()[0]
-                else:
-                    mlp_out = self.neural_model(mlp_in)
+                if self.mlp_metadata["NetworkConfig"]["model_type"] == "MLP":
+                    if self.model_options["approximate_mlp"]:
+                        # TODO investigate this function and parallel Flag!
+                        # Parallel flag only active for order == 2
+                        mlp_out = self.neural_model.approx(mlp_in, order=self.model_options["approx_order"], parallel=False)
+                        approx_params = self.neural_model.sym_approx_params(order=self.model_options["approx_order"], flat=True)
+                        self.approx_start_idx = parameters.size()[0]
+                        parameters = ca.vertcat(parameters, approx_params)
+                        self.approx_end_idx = parameters.size()[0]
+                    elif self.model_options["linearize_mlp"]:
+                        # Linearize MLP around current operating point
+                        # state0 needs to be updated as acados parameters
+                        state0 = ca.MX.sym("x0", mlp_in.size()[0])
+                        self.linearize_start_idx = parameters.size()[0]
+                        parameters = ca.vertcat(parameters, state0)
+                        self.linearize_end_idx = parameters.size()[0]
+                        mlp_out = self.neural_model.sym_linearize(mlp_in, state0)
+                    elif self.model_options["use_l4casadi"]:
+                        self.learned_dyn_model = l4c.realtime.RealTimeL4CasADi(self.neural_model, approximation_order=1)
+                        mlp_out = self.learned_dyn_model(mlp_in)
+
+                        self.l4casadi_start_idx = parameters.size()[0]
+                        parameters = ca.vertcat(parameters, self.learned_dyn_model.get_sym_params())
+                        self.l4casadi_end_idx = parameters.size()[0]
+                    else:
+                        mlp_out = self.neural_model(mlp_in)
+                elif self.mlp_metadata["NetworkConfig"]["model_type"] == "VAE":
+                    # TODO regularize output by confidence (std)
+                    mlp_out, std = self.neural_model(mlp_in)
 
             if label_transform:
                 # Network is trained to predict the velocity in Body frame

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import rospkg
-from config.configurations import DirectoryConfig, MLPConfig, ModelFitConfig
+from config.configurations import DirectoryConfig, NetworkConfig, ModelFitConfig
 
 
 def safe_mkdir_recursive(directory, overwrite: bool = False):
@@ -241,7 +241,7 @@ def get_model_dir_and_file(ds_name, ds_instance, model_name):
         "ds_mpc_type": metadata_dataset[ds_name]["mpc_type"],
         "ds_mpc_params": metadata_dataset[ds_name]["mpc_params"],
         "ds_disturbances": metadata_dataset[ds_name][ds_instance]["disturbances"],
-        "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
+        "NetworkConfig": {key: value for (key, value) in vars(NetworkConfig).items() if not key.startswith("__")},
     }
     metadata[model_name][model_instance]["ModelFitConfig"].update(
         {
@@ -349,7 +349,7 @@ def log_metrics(total_losses, inference_times, learning_rates, save_file_path, s
         "inference_times": inference_times,
         "learning_rates": learning_rates,
         "model_config": {
-            "MLPConfig": {key: value for (key, value) in vars(MLPConfig).items() if not key.startswith("__")},
+            "NetworkConfig": {key: value for (key, value) in vars(NetworkConfig).items() if not key.startswith("__")},
             "ModelFitConfig": {key: value for (key, value) in vars(ModelFitConfig).items() if not key.startswith("__")},
         },
     }

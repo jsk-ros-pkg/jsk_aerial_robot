@@ -4,8 +4,9 @@ import numpy as np
 import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.configurations import DirectoryConfig, ModelFitConfig
+from config.configurations import DirectoryConfig
 from network_architecture.mlp import MLP
+from network_architecture.vae import VAE
 
 
 def set_approximation_params(rtnmpc, ocp_solver):
@@ -16,6 +17,39 @@ def set_approximation_params(rtnmpc, ocp_solver):
     #     rtnmpc.acados_parameters[j, rtnmpc.approx_start_idx : rtnmpc.approx_end_idx] = 1
     pass
 
+def set_linearization_params(rtnmpc, ocp_solver):
+    # Set linearization point as parameters
+    for j in range(ocp_solver.N + 1):
+        state_j = ocp_solver.get(j, "x")
+        u_cmd_j = ocp_solver.get(j, "u") if j < ocp_solver.N else ocp_solver.get(ocp_solver.N - 1, "u")
+        mlp_in_at_0 = np.concatenate([state_j[rtnmpc.state_feats], u_cmd_j[rtnmpc.u_feats]])
+        rtnmpc.acados_parameters[j, rtnmpc.linearize_start_idx : rtnmpc.linearize_end_idx] = mlp_in_at_0.flatten()
+
+def set_l4casadi_params(rtnmpc, ocp_solver):
+    # Set l4casadi parameters
+    state_over_horizon = np.zeros((0, rtnmpc.state.shape[0]))
+    u_cmd_over_horizon = np.zeros((0, rtnmpc.controls.shape[0]))
+    for j in range(ocp_solver.N + 1):
+        state_over_horizon = np.append(state_over_horizon, ocp_solver.get(j, "x")[np.newaxis, :], axis=0)
+        u_cmd_over_horizon = np.append(u_cmd_over_horizon, ocp_solver.get(j, "u")[np.newaxis, :] if j < ocp_solver.N else ocp_solver.get(ocp_solver.N - 1, "u")[np.newaxis, :], axis=0)
+
+    mlp_in_over_horizon = np.concatenate([state_over_horizon[:, rtnmpc.state_feats], u_cmd_over_horizon[:, rtnmpc.u_feats]], axis=1)
+    
+    l4casadi_params = rtnmpc.learned_dyn_model.get_params(mlp_in_over_horizon)
+
+    for j in range(ocp_solver.N + 1):
+        rtnmpc.acados_parameters[j, rtnmpc.l4casadi_start_idx : rtnmpc.l4casadi_end_idx] = l4casadi_params[j].flatten()
+
+def set_l4casadi_params_sim(sim_rtnmpc, sim_solver, u_cmd):
+    # Set l4casadi parameters
+    state_over_horizon = sim_solver.get("x")[np.newaxis, :]
+    u_cmd_over_horizon = u_cmd[np.newaxis, :]
+
+    mlp_in_over_horizon = np.concatenate([state_over_horizon[:, sim_rtnmpc.state_feats], u_cmd_over_horizon[:, sim_rtnmpc.u_feats]], axis=1)
+    
+    l4casadi_params = sim_rtnmpc.learned_dyn_model.get_params(mlp_in_over_horizon)
+
+    sim_rtnmpc.acados_parameters[:, sim_rtnmpc.l4casadi_start_idx : sim_rtnmpc.l4casadi_end_idx] = l4casadi_params.flatten()
 
 def set_temporal_states_as_params(rtnmpc, ocp_solver, history_y, u_cmd):
     # Set previous state and control as parameters
@@ -100,18 +134,35 @@ def load_model(model_options, sim_options, run_options):
     file_name = os.path.join(DirectoryConfig.SAVE_DIR, neural_model_name, f"{neural_model_instance}.pt")
     saved_dict = torch.load(file_name, map_location=device)
 
-    neural_model = MLP(
-        saved_dict["input_size"],
-        saved_dict["hidden_sizes"],
-        saved_dict["output_size"],
-        activation=saved_dict["activation"],
-        use_batch_norm=saved_dict["use_batch_norm"],
-        dropout_p=saved_dict["dropout_p"],
-        x_mean=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-        x_std=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
-        y_mean=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-        y_std=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
-    ).to(device)
+    if metadata["NetworkConfig"]["model_type"] == "MLP":
+        neural_model = MLP(
+            saved_dict["input_size"],
+            saved_dict["hidden_sizes"],
+            saved_dict["output_size"],
+            activation=saved_dict["activation"],
+            use_batch_norm=saved_dict["use_batch_norm"],
+            dropout_p=saved_dict["dropout_p"],
+            x_mean=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+            x_std=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+            y_mean=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+            y_std=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+        ).to(device)
+
+    elif metadata["NetworkConfig"]["model_type"] == "VAE":
+        neural_model = VAE(
+            saved_dict["input_size"],
+            saved_dict["encoder_hidden_sizes"],
+            saved_dict["latent_dim"],
+            saved_dict["decoder_hidden_sizes"],
+            saved_dict["output_size"],
+            activation=saved_dict["activation"],
+            use_batch_norm=saved_dict["use_batch_norm"],
+            dropout_p=saved_dict["dropout_p"],
+            x_mean=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+            x_std=torch.tensor(np.zeros((saved_dict["input_size"],))).float(),
+            y_mean=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+            y_std=torch.tensor(np.zeros((saved_dict["output_size"],))).float(),
+        ).to(device)
 
     # Load weights and biases from saved model
     neural_model.load_state_dict(saved_dict["state_dict"])

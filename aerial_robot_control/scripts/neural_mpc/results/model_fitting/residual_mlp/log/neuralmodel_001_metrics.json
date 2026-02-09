@@ -2011,7 +2011,7 @@
     7.8125e-05
   ],
   "model_config": {
-    "MLPConfig": {
+    "NetworkConfig": {
       "model_name": "residual_mlp",
       "approximated_mlp": false,
       "hidden_sizes": [

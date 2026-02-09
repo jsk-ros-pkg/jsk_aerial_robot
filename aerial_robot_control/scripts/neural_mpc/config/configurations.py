@@ -45,8 +45,10 @@ class EnvConfig:
             "only_use_nominal": False,
             "plus_neural": True,
             "minus_neural": False,
-            "neural_model_name": "residual_mlp",  # "residual_mlp" or "temporal_mlp"
-            "neural_model_instance": "neuralmodel_159",  # 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            # "neural_model_name": "residual_mlp",  # "residual_mlp" or "residual_vae" or "temporal_mlp"
+            # "neural_model_instance": "neuralmodel_120",  # 161, 129, 120, 113, 90, 88, 87, 63, 58, 60, 29, 31, 35
+            "neural_model_name": "residual_vae",
+            "neural_model_instance": "neuralmodel_009",
             # ---- all before dont have standalone solver ----
             # 62: trained on residual_06 (first on standalone controller) (with 0.1 dist) (vx,vy,vz, no transform) -> good results
             # 63: trained on residual_neural_sim_nominal_control_03 -> WITH standalone SOLVER BUILDING
@@ -124,8 +126,23 @@ class EnvConfig:
             # 153 (good learning): Same as 152 but with tiny network (16 nodes) and lower lr
             # 155 (best learning): Same as 153 but with MultiStepLR (experiment)
             # 159: On long prediction horizon propagation dataset (with mov avg on label)
+            # 161 (decent learning, great closed-loop performance): Same as 159 but with larger num samples for consistency loss (& GELU)
+            # 162 (overfitted but early learning looked good): Pure learning without additional losses on long pred labels
+            # 163 (decent learning, decent cl results): Same as 162 but with less epochs (early stopping)
+            
+            # ---- VAE ----
+            # 1 (bad learning & stepwise output): Use VAE! NOT LEARNING LOGVAR
+            # 2 (no learning & very low KL Loss): Learning logvar
+            # 3 (slightly better learning): Higher beta (1e4)
+            # 6 (no learning): Beta = 0.1, Adam, ReLU
+            # 8 (decent learning): Beta = 1e-3, Adam, ReLU
+            # 9 (better learning, but same generalization, NOT VERY GOOD OUT PLOTS): Beta = 1e-4, AdamW, GELU
+            # 10 (better learning, but same generalization): Beta = 1e-5
+            # 11 (same learning but DOESNT MAKE SENSE): Beta = 0.0
             "approximate_mlp": False,  # TODO implement!; Approximation using first or second order Taylor Expansion
             "approx_order": 1,  # Order of Taylor Expansion (first or second)
+            "linearize_mlp": False,  # Linearize MLP at each control step in the MPC
+            "use_l4casadi": False,
         }
     )
 
@@ -220,21 +237,48 @@ class EnvConfig:
     #             raise ValueError("No simulated disturbances allowed on real machine.")
 
 
-class MLPConfig:
+class NetworkConfig:
+    # ============================= MODEL SELECTION =============================
+    # Choose between "MLP" or "VAE" for the neural network architecture
+    model_type = "VAE"  # Options: "MLP", "VAE"
+    
     # Define characteristics of the MLP model with its name
-    model_name = "residual_mlp"
+    if model_type == "MLP":
+        model_name = "residual_mlp"
+    elif model_type == "VAE":
+        model_name = "residual_vae"
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
     # model_name = "temporal_mlp"
 
     # Delay horizon for temporal networks
     delay_horizon = 0  # Number of time steps into the past to consider (set to 0 to only use current state)
 
     # Number of neurons in each hidden layer
-    hidden_sizes = [32, 32]
-    # hidden_sizes = [64, 64]
-    # hidden_sizes = [128, 256, 128, 64]
+    if model_type == "MLP":
+        hidden_sizes = [32, 32]
+        # hidden_sizes = [64, 64]
+        # hidden_sizes = [128, 256, 128, 64]
+    elif model_type == "VAE":
+        encoder_hidden_sizes = [16, 8]
+        latent_dim = 8  # Daumenregel: (input_dim + output_dim) / 2
+        decoder_hidden_sizes = [8, 16]
+
+        # KL divergence weight (beta in beta-VAE)
+        # Higher beta encourages better disentanglement but may reduce reconstruction quality
+        beta = 1e-4
+        # Guidance:
+            # beta = 0: No KL regularization (becomes autoencoder)
+            # beta = 1: Standard VAE
+            # beta > 1: Stronger disentanglement, may reduce reconstruction quality
+            # beta < 1: Better reconstruction, less regularization
+
+        # KL annealing: gradually increase beta during training
+        use_kl_annealing = False
+        kl_annealing_epochs = 10  # Number of epochs to anneal from 0 to full beta
 
     # Activation function
-    activation = "ReLU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
+    activation = "GELU"  # Options: "ReLU", "LeakyReLU", "GELU", "Tanh", "Sigmoid"
 
     # Use batch normalization after each layer
     use_batch_norm = False
@@ -245,7 +289,7 @@ class MLPConfig:
     # -----------------------------------------------------------------------------------------
 
     # Number of epochs
-    num_epochs = 200
+    num_epochs = 100  # 200
 
     # Batch size
     batch_size = 64
@@ -257,25 +301,24 @@ class MLPConfig:
     # Optimizer
     optimizer = "AdamW"  # Options: "Adam", "SGD", "RMSprop", "Adagrad", "AdamW"
     # Weight decay (L2 regularization)
-    weight_decay = 1e-1  # Set to 0.0 to disable [1e-2 for AdamW, 1e-4 for Adam]
+    weight_decay = 0.0  # 1e-1  # Set to 0.0 to disable [1e-2 for AdamW, 1e-4 for Adam]
     # Zero-output regularization
-    zero_out_lambda = 1e-1  # Set to 0.0 to disable
+    zero_out_lambda = 0.0 # 1e0  # Set to 0.0 to disable
     # L1 regularization
     l1_lambda = 0.0  #1e-4  # Set to 0.0 to disable
     # Penalize gradients
     gradient_lambda = 0.0  # 1e3  # Set to 0.0 to disable
     # Output consistency regularization epsilon
-    consistency_lambda = 0.0 #1e1 # 10.0  #1e4 # 5.0  # Set to 0.0 to disable
-    consistency_epsilon = 0.3  # Relative noise to input; Set to 0.0 to disable
-    # Output symmetry regularization
-    symmetry_lambda = 0.0  # Set to 0.0 to disable
+    consistency_lambda = 0.0  #1e-2 # 10.0  #1e4 # 5.0  # Set to 0.0 to disable
+    consistency_epsilon = 0.2  # Relative noise to input; Set to 0.0 to disable
+    consistency_num_samples = 10
 
     # Learning rate
     learning_rate = 1e-3  # for residual
     # learning_rate = 1e-2  # for residual
     # learning_rate = 1e-5  # for temporal
     # learning_rate = 1e-3  # for LR scheduling
-    lr_milestones = [100, 150]
+    lr_milestones = [30, 60] #[100, 150]
     lr_scheduler = "MultiStepLR"  # "ReduceLROnPlateau", "LambdaLR", "MultiStepLR", "LRScheduler", None
 
     # Number of workers, i.e., number of threads for loading data
@@ -296,7 +339,7 @@ class ModelFitConfig:
 
     # ------- Moving Average Filter -------
     use_moving_average_filter = False
-    use_moving_average_filter_only_label = True
+    use_moving_average_filter_only_label = True  # VERY IMPORTANT!
     control_filtering = False  # USE WAY SMALLER WINDOW SIZE IF TRUE!
     window_size = 5 #33  # Must be odd
 

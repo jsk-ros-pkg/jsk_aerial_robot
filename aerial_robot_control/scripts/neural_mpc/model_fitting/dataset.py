@@ -3,7 +3,7 @@ import yaml
 import rospkg
 import numpy as np
 from torch.utils.data import Dataset
-from config.configurations import ModelFitConfig, MLPConfig, EnvConfig
+from config.configurations import ModelFitConfig, NetworkConfig, EnvConfig
 from utils.statistics_utils import prune_dataset
 from utils.geometry_utils import v_dot_q, quaternion_inverse
 from utils.data_utils import undo_jsonify
@@ -43,7 +43,7 @@ class TrajectoryDataset(Dataset):
         self.df = dataframe
 
         self.prepare_data(state_feats, u_feats, y_reg_dims)
-        if ModelFitConfig.prune and MLPConfig.delay_horizon == 0:
+        if ModelFitConfig.prune and NetworkConfig.delay_horizon == 0:
             # Don't prune when using temporal networks with history since pruning causes incontinuities
             self.prune(
                 state_feats,
@@ -53,8 +53,8 @@ class TrajectoryDataset(Dataset):
                 ModelFitConfig.vel_cap,
                 ModelFitConfig.plot_dataset,
             )
-        if MLPConfig.delay_horizon > 0:
-            self.append_history(MLPConfig.delay_horizon, state_feats, u_feats)
+        if NetworkConfig.delay_horizon > 0:
+            self.append_history(NetworkConfig.delay_horizon, state_feats, u_feats)
         self.calculate_statistics()
         if ModelFitConfig.plot_dataset:
             if not ModelFitConfig.save_plots:
@@ -239,7 +239,6 @@ class TrajectoryDataset(Dataset):
         if ModelFitConfig.use_moving_average_filter_only_label:
             print(f"[DATASET] Applying moving average filter with window size {ModelFitConfig.window_size} to labels only.")
             y = moving_average_filter(y, window_size=ModelFitConfig.window_size)
-            y = moving_average_filter(y, window_size=ModelFitConfig.window_size)  # Experiment: Apply twice for stronger effect
         if ModelFitConfig.use_low_pass_filter:
             # Sampling frequency
             fs = 1.0 / np.mean(dt)

@@ -112,8 +112,8 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
     traj_list = run_options["trajectories"]
 
     # --- Set up running history for temporal neural networks ---
-    if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
-        delay = rtnmpc.mlp_metadata["MLPConfig"]["delay_horizon"]  # Delay as number of time steps into the past
+    if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["NetworkConfig"]["model_name"]:
+        delay = rtnmpc.mlp_metadata["NetworkConfig"]["delay_horizon"]  # Delay as number of time steps into the past
         history = np.tile(np.append(state_curr, np.zeros((nu,))), (delay, 1))
 
     # --- Prepare recording ---
@@ -127,7 +127,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
         model_options["include_soft_constraints"] = rtnmpc.include_soft_constraints
         model_options["mpc_params"] = rtnmpc.params
         if rtnmpc.use_mlp:
-            model_options["delay_horizon"] = rtnmpc.mlp_metadata["MLPConfig"]["delay_horizon"]
+            model_options["delay_horizon"] = rtnmpc.mlp_metadata["NetworkConfig"]["delay_horizon"]
         else:
             model_options["delay_horizon"] = 0
         ds_name = model_options["mpc_type"] + "_" + dataset_options["ds_name_suffix"]
@@ -270,7 +270,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
                 set_approximation_params(rtnmpc, ocp_solver)
 
             # --- Prepare temporal neural network input ---
-            if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
+            if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["NetworkConfig"]["model_name"]:
                 set_temporal_states_as_params(rtnmpc, ocp_solver, history, u_cmd)
 
             # --- Set parameters in OCP solver ---
@@ -290,7 +290,7 @@ def main(model_options, solver_options, dataset_options, sim_options, run_option
             ############################################################################################
 
             # --- Running history for temporal neural networks ---
-            if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["MLPConfig"]["model_name"]:
+            if rtnmpc.use_mlp and "temporal" in rtnmpc.mlp_metadata["NetworkConfig"]["model_name"]:
                 # Append current state and control to history for next iteration
                 # Sorted from newest to oldest
                 history = history[:-1, :]

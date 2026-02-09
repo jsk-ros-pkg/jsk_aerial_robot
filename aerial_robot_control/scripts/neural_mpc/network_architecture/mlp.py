@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import casadi as ca
 from ml_casadi.torch.modules import TorchMLCasadiModule
 from ml_casadi.torch.modules.nn import Linear as mcLinear
 from ml_casadi.torch.modules.nn import activation as mcActivations
@@ -14,7 +15,7 @@ class MLP(TorchMLCasadiModule):
         hidden_sizes,
         out_size,
         activation="relu",
-        use_batch_norm=True,
+        use_batch_norm=False,
         dropout_p=0.0,
         x_mean=None,
         x_std=None,
@@ -70,6 +71,12 @@ class MLP(TorchMLCasadiModule):
         # For ML Casadi library
         self.input_size = in_size
         self.output_size = out_size
+
+    def sym_linearize(self, x, x0):
+        # Linearized evaluation: y0 + J @ (x - x0)
+        y0 = self.cs_forward(x0)
+        J_at_x0 = ca.jacobian(y0, x0)
+        return y0 + J_at_x0 @ (x - x0)
 
     def forward(self, x):
         # Input normalization
