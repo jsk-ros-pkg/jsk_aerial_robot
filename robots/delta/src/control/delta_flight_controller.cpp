@@ -146,7 +146,7 @@ void DeltaController::linearWrenchAllocation()
   {
     lb(6 + 2 * i + 0) = -robot_model_->getThrustUpperLimit(i);
     ub(6 + 2 * i + 0) = robot_model_->getThrustUpperLimit(i);
-    lb(6 + 2 * i + 1) = -robot_model_->getThrustUpperLimit(i);
+    lb(6 + 2 * i + 1) = robot_model_->getThrustLowerLimit(i);
     ub(6 + 2 * i + 1) = robot_model_->getThrustUpperLimit(i);
   }
 
@@ -189,13 +189,10 @@ void DeltaController::linearWrenchAllocation()
   if(solved){
     full_lambda = target_vectoring_qp_solver_.getSolution();
   } else {
+    std::cout << "Warning: QP solver failed to solve!" << std::endl;
     full_lambda = full_q_mat_inv_ * target_wrench_cog;
     full_lambda.noalias() += prev_target_vectoring_f_;
     full_lambda.noalias() -= full_q_mat_inv_ * (full_q_mat_ * prev_target_vectoring_f_);
-    ROS_WARN_STREAM(
-      "[DeltaController] QP solver failed to solve! use pseudo-inverse result, "
-      << full_lambda.transpose()
-    );
   }
   prev_target_vectoring_f_ = full_lambda;
 
@@ -208,11 +205,7 @@ void DeltaController::linearWrenchAllocation()
   }
 
   // fail_safe
-  if (target_gimbal_angles_.at(1) < -1.0 || target_gimbal_angles_.at(1) > 3.14)
-  {
-    ROS_WARN_STREAM("[DeltaController] gimbal angle 1 is out of range, clamped to -1.0 ~ 3.14");
-    target_gimbal_angles_.at(1) = std::clamp(target_gimbal_angles_.at(1), -1.0, 3.14);
-  }
+  target_gimbal_angles_.at(1) = std::clamp(target_gimbal_angles_.at(1), -1.0, 3.14);
 
   for (int i = 0; i < motor_on_soft_frame_num_; i++)
   {

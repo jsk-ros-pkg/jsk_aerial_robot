@@ -323,15 +323,15 @@
 
 
   <!-- rotor -->
-  <joint name="rt5" type="continuous">
+  <joint name="rotor5" type="continuous">
     <limit effort="0.0064" lower="0.0" upper="20.0" velocity="0.5"/>
     <parent link="gimbal_link5"/>
-    <child link="th5"/>
+    <child link="thrust5"/>
     <origin rpy="0 0 0" xyz="0.0735 0 0"/>
     <axis xyz="0 0 -1"/>
   </joint>
 
-  <link name="th5">
+  <link name="thrust5">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.0001"/>
@@ -347,18 +347,18 @@
       </geometry>
     </visual>
   </link>
-  <xacro:damping_factor link ="th5"/>
+  <xacro:damping_factor link ="thrust5"/>
 
-  <!-- <transmission name="rotor_tran5">
+  <transmission name="rotor_tran5">
     <type>transmission_interface/SimpleTransmission</type>
-    <joint name="rt5">
+    <joint name="rotor5">
       <hardwareInterface>RotorInterface</hardwareInterface>
     </joint>
-    <actuator name="rt5">
+    <actuator name="rotor5">
       <hardwareInterface>RotorInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
-  </transmission> -->
+  </transmission>
 
 
   <!-- 3 soft_airframe_2 -->

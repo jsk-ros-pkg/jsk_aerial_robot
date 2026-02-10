@@ -22,7 +22,6 @@
 #include <sensor_msgs/JointState.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <OsqpEigen/OsqpEigen.h>
-#include <ros/ros.h>
 
 namespace aerial_robot_control
 {
