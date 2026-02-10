@@ -283,19 +283,19 @@
 
 
   <!-- gimbal -->
-  <!-- <joint name="gimbal_joint5" type="fixed">
+  <joint name="gimbal_joint5" type="fixed">
     <limit effort="5.0" lower="${-pi}" upper="${pi}" velocity="0.5"/>
     <parent link="soft_link3"/>
     <child link="gimbal_link5"/>
     <origin rpy="0 0 0" xyz="0.128 0 0"/>
     <axis xyz="1 0 0"/>
     <dynamics damping="0.9" friction="0.1"/>
-  </joint> -->
+  </joint>
 
-  <!-- <link name="gimbal_link5">
+  <link name="gimbal_link5">
     <inertial>
       <origin xyz="0.0815 0 0" rpy="0 0 0"/>
-      <mass value="${0.222}"/> -->
+      <mass value="${0.222}"/>
       <!-- this inertia value is 10 times bigger than the real one -->
       <!-- to avoid the instability in gazebo -->
       <!-- <inertia
@@ -303,7 +303,7 @@
           iyy="0.0015451" iyz="0.0"
           izz="0.00032533"/> -->
       <!-- original one -->
-      <!-- <inertia
+      <inertia
           ixx="0.00022661" ixy="0.0" ixz="0.0"
           iyy="0.00015451" iyz="0.0"
           izz="0.000032533"/>
@@ -319,19 +319,19 @@
     <mu1>0.1</mu1>
     <mu2>0.1</mu2>
   </gazebo>
-  <xacro:damping_factor link ="gimbal_link5"/> -->
+  <xacro:damping_factor link ="gimbal_link5"/>
 
 
   <!-- rotor -->
-  <!-- <joint name="rt5" type="continuous">
+  <joint name="rt5" type="continuous">
     <limit effort="0.0064" lower="0.0" upper="20.0" velocity="0.5"/>
     <parent link="gimbal_link5"/>
     <child link="th5"/>
     <origin rpy="0 0 0" xyz="0.0735 0 0"/>
     <axis xyz="0 0 -1"/>
-  </joint> -->
+  </joint>
 
-  <!-- <link name="th5">
+  <link name="th5">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.0001"/>
@@ -347,7 +347,7 @@
       </geometry>
     </visual>
   </link>
-  <xacro:damping_factor link ="th5"/> -->
+  <xacro:damping_factor link ="th5"/>
 
   <!-- <transmission name="rotor_tran5">
     <type>transmission_interface/SimpleTransmission</type>
@@ -364,7 +364,7 @@
   <!-- 3 soft_airframe_2 -->
   <!-- soft_link -->
   <joint name="soft_joint4" type="fixed">
-    <parent link="soft_link3"/>
+    <parent link="gimbal_link5"/>
     <child link="soft_link4"/>
     <origin xyz="0.147 0 0" rpy="0 0 0"/>
   </joint>
