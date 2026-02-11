@@ -368,7 +368,7 @@ void BaseNavigator::joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg)
   if(joy_cmd.buttons[JOY_BUTTON_STOP] == 1)
     {
       /* Force Landing in inflight mode: TAKEOFF_STATE/LAND_STATE/HOVER_STATE */
-      if(!force_landing_flag_ && (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE))
+      if(!force_landing_flag_ && isInflightState())
         {
           ROS_WARN("Joy Control: force landing state");
           spinal::FlightConfigCmd flight_config_cmd;
@@ -621,7 +621,7 @@ void BaseNavigator::update()
   /* sensor health check */
   if(estimator_->getUnhealthLevel() == Sensor::UNHEALTH_LEVEL3 && !force_landing_flag_)
     {
-      if(getNaviState() == TAKEOFF_STATE || getNaviState() == HOVER_STATE  || getNaviState() == LAND_STATE)
+      if(isInflightState())
         ROS_WARN("Sensor Unhealth Level%d: force landing state", estimator_->getUnhealthLevel());
       spinal::FlightConfigCmd flight_config_cmd;
       flight_config_cmd.cmd = spinal::FlightConfigCmd::FORCE_LANDING_CMD;
@@ -860,6 +860,16 @@ void BaseNavigator::update()
   if(force_landing_flag_) state_msg.data = FORCE_LANDING_STATE;
   else if(low_voltage_flag_) state_msg.data = LOW_BATTERY_STATE;
   flight_state_pub_.publish(state_msg);
+}
+
+bool BaseNavigator::isInflightState()
+{
+  if (getNaviState() == TAKEOFF_STATE || getNaviState() == LAND_STATE || getNaviState() == HOVER_STATE)
+    {
+      return true;
+    }
+
+  return false;
 }
 
 void BaseNavigator::updateLandCommand()

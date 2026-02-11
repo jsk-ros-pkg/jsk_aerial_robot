@@ -441,6 +441,7 @@ namespace aerial_robot_estimation
     }
 
     inline uint8_t getUnhealthLevel() { return unhealth_level_; }
+    std::string getTFPrefix() {return tf_prefix_;}
 
     const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getImuHandlers() const { return imu_handlers_;}
     const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getAltHandlers() const { return alt_handlers_;}

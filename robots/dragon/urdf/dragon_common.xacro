@@ -20,7 +20,7 @@
 
   <!-- dynamics -->
   <m_f_rate value="0" /> <!-- drug torque rate -->
-  <xacro:property name="max_force" value="30" /> <!-- [N] -->
+  <xacro:property name="max_force" value="36" /> <!-- [N] -->
   <xacro:property name="min_force" value="2" /> <!-- [N] -->
 
   <xacro:macro name="link_model" params="type">
@@ -47,6 +47,25 @@
         <mesh filename="package://dragon/urdf/mesh/ducted_fan_${type}.dae"/>
       </geometry>
     </visual>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="${model_url}" scale= "${scale} ${scale} ${scale}"/>
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
   </xacro:macro>
 
   <!-- friction -->
