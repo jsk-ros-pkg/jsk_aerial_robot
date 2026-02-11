@@ -46,8 +46,6 @@ public:
 
   void init(UART_HandleTypeDef* huart);
   void update(spinal::ESCTelemetry& esc_msg);
-  bool available();
-  int readOneByte();
 
   bool is_update_all_msg_ = false;
 
