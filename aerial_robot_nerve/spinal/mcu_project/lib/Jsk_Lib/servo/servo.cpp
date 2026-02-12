@@ -14,7 +14,7 @@
 bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
   /*setup pin configuration*/
-#if !STM32H7_V2
+#if !STM32H7_V2 && !STM32H7_KASANE
 #ifdef STM32H7
   uint32_t raw_baudrate = huart->Init.BaudRate;
   HAL_UART_DeInit(huart);
