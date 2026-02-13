@@ -11,17 +11,34 @@
 #define  SERVO_PUB_INTERVAL 20 // 50Hz
 #define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
 
-void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
+bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
   /*setup pin configuration*/
 #if !STM32H7_V2
 #ifdef STM32H7
+  uint32_t raw_baudrate = huart->Init.BaudRate;
   HAL_UART_DeInit(huart);
   huart->Init.BaudRate = 1000000;
   HAL_UART_Init(huart);
 #endif
 #endif
-  
+
+  /* initialize */
+  servo_handler_.init(huart, mutex);
+  unsigned int actual_servo_num = servo_handler_.getServoNum();
+
+  if (actual_servo_num == 0) {
+#if !STM32H7_V2
+#ifdef STM32H7
+    HAL_UART_DeInit(huart);
+    huart->Init.BaudRate = raw_baudrate;
+    HAL_UART_Init(huart);
+#endif
+#endif
+    connected_ = false;
+    return false;
+  }
+
   nh_ = nh;
   nh_->subscribe(servo_ctrl_sub_);
   nh_->subscribe(servo_torque_ctrl_sub_);
@@ -30,11 +47,6 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   nh_->advertise(servo_torque_state_pub_);
   nh_->advertiseService(servo_config_srv_);
   nh_->advertiseService(board_info_srv_);
-
-  //temp
-  servo_handler_.init(huart, mutex);
-
-  unsigned int actual_servo_num = servo_handler_.getServoNum();
 
   servo_state_msg_.servos_length = actual_servo_num;
   servo_state_msg_.servos = new spinal::ServoState[actual_servo_num];
@@ -48,6 +60,9 @@ void DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   board_info_res_.boards = new spinal::BoardInfo[1];
   board_info_res_.boards[0].servos_length = servo_handler_.getServoNum();
   board_info_res_.boards[0].servos = new spinal::ServoInfo[servo_handler_.getServoNum()];
+
+  connected_ = true;
+  return true;
 }
 
 void DirectServo::update()
@@ -144,9 +159,9 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
     {
       JointProf joint_prof = joint_profiles_[servo.first];
       int32_t goal_pos;
-      if(value_type = ValueType::BIT){
+      if(value_type == ValueType::BIT){
         goal_pos = static_cast<int32_t>(servo.second);
-      }else if(value_type = ValueType::RADIAN){
+      }else if(value_type == ValueType::RADIAN){
         goal_pos = static_cast<int32_t>(servo.second*joint_prof.angle_sgn/joint_prof.angle_scale + joint_prof.zero_point_offset);
       }
 
@@ -198,7 +213,7 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
       }
     ServoData& s = servo_handler_.getServo()[index];
     s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
-    servo_handler_.setTorque(index);
+    servo_handler_.setTorqueFromPresetnPos(index);
 
   }
 }
@@ -211,7 +226,7 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
   /* special case : data[0] is flag value */
   if(command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED)
     {
-      servo_handler_.setTTLRS485Mixed(req.data[0]);
+      // servo_handler_.setTTLRS485Mixed(req.data[0]);
       FlashMemory::erase();
       FlashMemory::write();
       res.success = true;
@@ -335,7 +350,9 @@ void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, sp
   //TODO: Bad implementation. This features should not be located in servo interface.
   spinal::BoardInfo& board = board_info_res_.boards[0];
   board.imu_send_data_flag = 1;
+#if DYNAMIXEL
   board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+#endif
   board.slave_id = 0;
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];

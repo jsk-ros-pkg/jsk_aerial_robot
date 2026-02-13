@@ -422,6 +422,7 @@ namespace sensor_plugin
   {
     sensor_msgs::Imu imu_data;
     imu_data.header.stamp = imu_stamp_;
+    imu_data.header.frame_id = tf::resolve(estimator_->getTFPrefix(), robot_model_->getBaselinkName());
     tf::Quaternion q;
     raw_rot_.getRotation(q);
     tf::quaternionTFToMsg(q, imu_data.orientation);

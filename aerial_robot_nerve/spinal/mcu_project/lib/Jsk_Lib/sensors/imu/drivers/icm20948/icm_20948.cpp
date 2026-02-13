@@ -96,6 +96,11 @@ void ICM20948::magInit(void)
       magSoftReset();
       /* 6.4 Wakeup and set operation mode to magnetometer */
       setMagOperationMode(continuous_measurement_100hz);
+
+      /* 6.5 Set the data to transer from Ak09916 via internal i2c */
+      writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+      writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, MAG_HXL);
+      writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | 8); // 6bit for mag adc data; 1bit reversed; 1bit for ST2
     }
 }
 
@@ -129,7 +134,7 @@ void ICM20948::accelRead(Vector3f* data)
 
 bool ICM20948::magRead(Vector3f* data)
 {
-  static uint32_t pre_mag_read;
+  static uint32_t pre_mag_read = 0;
 
   /* following AK09916's update frequency*/
   if(HAL_GetTick() - pre_mag_read > MAG_READ_INTERVAL)
@@ -137,22 +142,22 @@ bool ICM20948::magRead(Vector3f* data)
   else
     return false;
 
-  uint8_t* temp;
-  uint8_t drdy, hofl;	// data ready, overflow
+  uint8_t read_reg = READ | B0_EXT_SLV_SENS_DATA_00;
+  uint8_t len = 8;
+  selectUserBank(ub_0);
 
-  readSingleAk09916(MAG_ST1);
-  drdy = single_adc_ & 0x01;
-  if(!drdy) return false;
+  uint8_t raw_data[8];
+  GPIO_L(spi_cs_port_, spi_cs_pin_);
+  HAL_SPI_Transmit(hspi_, &read_reg, 1, 1000);
+  HAL_SPI_Receive(hspi_, raw_data, len, 1000);
+  GPIO_H(spi_cs_port_, spi_cs_pin_);
 
-  readMultipleAk09916(MAG_HXL);
-
-  readSingleAk09916(MAG_ST2);  
-  hofl = single_adc_ & 0x08;
+  uint8_t hofl = raw_data[7] & 0x08; // check overflow
   if(hofl) return false;
 
-  data->x = (int16_t)(multi_adc_[1] << 8 | multi_adc_[0]);
-  data->y = (int16_t)(multi_adc_[3] << 8 | multi_adc_[2]);
-  data->z = (int16_t)(multi_adc_[5] << 8 | multi_adc_[4]);
+  data->x = (int16_t)(raw_data[1] << 8 | raw_data[0]);
+  data->y = (int16_t)(raw_data[3] << 8 | raw_data[2]);
+  data->z = (int16_t)(raw_data[5] << 8 | raw_data[4]);
   return true;
 }
 
@@ -498,14 +503,4 @@ void ICM20948::writeSingleAk09916(uint8_t reg, uint8_t val)
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_DO, val);
   HAL_Delay(1);
   writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x81);
-}
-
-void ICM20948::readMultipleAk09916(uint8_t reg)
-{
-  uint8_t len = (uint8_t)(sizeof(multi_adc_)/sizeof(multi_adc_[0]));
-  writeSingleIcm20948(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
-  writeSingleIcm20948(ub_3, B3_I2C_SLV0_REG, reg);
-  writeSingleIcm20948(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
-  HAL_Delay(1);
-  readMultipleIcm20948(ub_0, B0_EXT_SLV_SENS_DATA_00);
 }

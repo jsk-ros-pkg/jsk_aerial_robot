@@ -9,7 +9,8 @@ includes ------------------------------------------------------------------*/
 #ifndef APPLICATION_SERVO_TEMP_SERVO_H_
 #define APPLICATION_SERVO_TEMP_SERVO_H_
 
-#include "Dynamixel/dynamixel_serial.h"
+#include "drivers/Dynamixel/dynamixel_serial.h"
+#include "drivers/kondo_servo/kondo_servo.h"
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
@@ -43,15 +44,21 @@ public:
     servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this),
     board_info_srv_("get_board_info", &DirectServo::boardInfoCallback,this)
   {
+    connected_ = false;
   }
   ~DirectServo(){}
 
-  void init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
+  bool init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
   void update();
+  bool connected() {return connected_;}
   void sendData(bool flag_send_asap);
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
-  DynamixelSerial& getServoHnadler() {return servo_handler_;}
+#if KONDO
+  KondoServo& getServoHnadler() {return servo_handler_;}
+#else DYNAMIXEL
+  DynamixelSerial& getServoHnadler() {return servo_handler_;}  
+#endif
 
   uint32_t rad2Pos(float angle, float scale, uint32_t zero_point_pos){
     return static_cast<uint32_t>(angle /scale + zero_point_pos);
@@ -103,9 +110,14 @@ private:
 
   JointProf joint_profiles_[MAX_SERVO_NUM];
 
-    
-
+#if KONDO
+  KondoServo servo_handler_;
+#else DYNAMIXEL
   DynamixelSerial servo_handler_;
+#endif
+
+  bool connected_;
+
   friend class Initializer;
 };
 

@@ -441,6 +441,7 @@ namespace aerial_robot_estimation
     }
 
     inline uint8_t getUnhealthLevel() { return unhealth_level_; }
+    std::string getTFPrefix() {return tf_prefix_;}
 
     const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getImuHandlers() const { return imu_handlers_;}
     const vector<boost::shared_ptr<sensor_plugin::SensorBase> >& getAltHandlers() const { return alt_handlers_;}
@@ -483,10 +484,10 @@ namespace aerial_robot_estimation
 
     /* 6: x_w, y_w, z_w, x_b, y_b */
     /* TODO: check to vector3 */
-    array<AxisState, 6> state_;
-    array<tf::Matrix3x3, 3> base_rots_, cog_rots_; // TODO: should abolish the different between orientation of baselink and that of CoG
-    array<tf::Vector3, 3> base_omegas_, cog_omegas_; // TODO: should abolish the different between orientation of baselink and that of CoG
-    array<int, 3> base_rot_status_, cog_rot_status_;
+    std::array<AxisState, 6> state_;
+    std::array<tf::Matrix3x3, 3> base_rots_, cog_rots_; // TODO: should abolish the different between orientation of baselink and that of CoG
+    std::array<tf::Vector3, 3> base_omegas_, cog_omegas_; // TODO: should abolish the different between orientation of baselink and that of CoG
+    std::array<int, 3> base_rot_status_, cog_rot_status_;
 
     bool has_groundtruth_odom_; // whether receive entire groundthtruth odometry (e.g., for simulation mode)
 
@@ -501,7 +502,7 @@ namespace aerial_robot_estimation
     /* sensor fusion */
     boost::shared_ptr< pluginlib::ClassLoader<kf_plugin::KalmanFilter> > sensor_fusion_loader_ptr_;
     bool sensor_fusion_flag_;
-    array<SensorFuser, 2> fuser_; //0: egomotion; 1: experiment
+    std::array<SensorFuser, 2> fuser_; //0: egomotion; 1: experiment
 
     /* sensor (un)health level */
     uint8_t unhealth_level_;

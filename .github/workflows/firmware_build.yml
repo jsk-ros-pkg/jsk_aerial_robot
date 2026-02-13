@@ -21,7 +21,7 @@ jobs:
           source /opt/ros/noetic/setup.bash
           rm /etc/ros/rosdep/sources.list.d/20-default.list
           sudo rosdep init
-          rosdep update
+          rosdep update --include-eol-distros
           mkdir -p ~/catkin_ws/src
           ln -s $GITHUB_WORKSPACE ~/catkin_ws/src/jsk_aerial_robot
           cd ~/catkin_ws

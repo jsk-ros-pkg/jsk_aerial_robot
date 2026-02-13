@@ -25,7 +25,7 @@ jobs:
           apt-get install -y -q python3-pip python3-wstool
           pip3 install catkin_lint rosdep
           rosdep init
-          rosdep update
+          rosdep update --include-eol-distros
       - name: catkin lint test
         run: |
           wstool init
