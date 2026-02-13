@@ -355,7 +355,7 @@ namespace aerial_robot_navigation
     void singleGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void pathCallback(const nav_msgs::PathConstPtr & msg);
     virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
-    void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
+    virtual void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
 
     virtual void halt() {}
