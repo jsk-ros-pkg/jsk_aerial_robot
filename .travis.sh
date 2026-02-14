@@ -34,9 +34,14 @@ source /opt/ros/${ROS_DISTRO}/setup.bash
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws
 cp -r ${CI_SOURCE_PATH} src/${REPOSITORY_NAME} # copy the whole contents instead of create symbolic link
-wstool init src
-wstool merge -t src src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall
-wstool update -t src
+
+if [[ "$ROS_DISTRO" ==  "one" ]]; then
+    vcs import src < src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall --recursive
+else
+    wstool init src
+    wstool merge -t src src/${REPOSITORY_NAME}/aerial_robot_${ROS_DISTRO}.rosinstall
+    wstool update -t src
+fi
 rosdep install --from-paths src -y -q -r --ignore-src --rosdistro ${ROS_DISTRO} # -r is indisapensible
 
 # Build

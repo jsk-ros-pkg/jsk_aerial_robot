@@ -30,18 +30,15 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
 
-### Ubuntu 22.04 (ROS-O)
+### Ubuntu 22.04, 24.04 (ROS-O)
 
 ```bash
-sudo apt install -y python3-wstool
 mkdir -p ~/ros/jsk_aerial_robot_ws/src
-cd ~/ros/jsk_aerial_robot_ws
-wstool init src
-wstool set -u -t src jsk_aerial_robot http://github.com/jsk-ros-pkg/jsk_aerial_robot --git
-./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o in jammy
+cd ~/ros/jsk_aerial_robot_ws/src
+git clone https://github.com/jsk-ros-pkg/jsk_aerial_robot.git
+./src/jsk_aerial_robot/configure.sh # for configuration especially for ros-o
 source /opt/ros/one/setup.bash
-wstool merge -t src src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall
-wstool update -t src
+vcs import src < src/jsk_aerial_robot/aerial_robot_${ROS_DISTRO}.rosinstall --recursive
 rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
