@@ -121,8 +121,8 @@
           <origin xyz="0.313051 0.000071 0.011024" rpy="0 0 0"/>
           <mass value="0.535052"/>
           <inertia
-              ixx="0.000808" iyy="0.014148" izz="0.013428"
-              ixy="0.000030" ixz="0.005073" iyz="0.000002"/>
+              ixx="0.005073" iyy="0.014148" izz="0.013428"
+              ixy="0.000030" ixz="0.000808" iyz="0.000002"/>
         </inertial>
         <xacro:mesh_model type="link/middle_link">
           <origin xyz="0.6 0 0" rpy="0 0 ${pi}"/>
