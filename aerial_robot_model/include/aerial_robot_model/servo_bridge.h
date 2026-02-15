@@ -221,7 +221,6 @@ protected:
   ros::NodeHandle nhp_;
 
   ros::Publisher servo_states_pub_;
-  ros::Publisher mujoco_control_input_pub_;
   ros::Publisher joint_profile_pub_;
   ros::Subscriber uav_info_sub_;
   map<string, ros::Subscriber> servo_states_subs_;
@@ -240,7 +239,6 @@ protected:
   double moving_angle_thresh_;
   bool send_init_joint_pose_;
   bool simulation_mode_;
-  bool use_mujoco_;
   int send_init_joint_pose_cnt_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
