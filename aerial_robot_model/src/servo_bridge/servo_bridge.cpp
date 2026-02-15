@@ -39,13 +39,6 @@
 ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(nhp)
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
-  nhp_.param("use_mujoco", use_mujoco_, false);
-  if(use_mujoco_)
-    {
-      ROS_WARN("use mujoco simulator");
-      simulation_mode_ = false;
-    }
-
   if(simulation_mode_)
     {
       if(!ros::service::waitForService(nh_.getNamespace() + std::string("/controller_manager/load_controller")))
@@ -71,7 +64,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
   servo_states_subs_.insert(make_pair("common", nh_.subscribe<spinal::ServoStates>(state_sub_topic, 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, "common"))));
   /* common publisher: target servo position to real machine (spinal_ros_bridge) */
   servo_target_pos_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoControlCmd>(pos_pub_topic, 1)));
-  mujoco_control_input_pub_ = nh_.advertise<sensor_msgs::JointState>("mujoco/ctrl_input", 1);
   /* common publisher: target servo torque to real machine (spinal_ros_bridge) */
   servo_target_torque_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoControlCmd>(torque_pub_topic, 1)));
   /* common publisher: servo on/off flag to real machine (spinal_ros_bridge) */
@@ -315,7 +307,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
 {
   spinal::ServoControlCmd target_angle_msg;
   spinal::ServoControlCmd target_torque_msg;
-  sensor_msgs::JointState mujoco_control_input_msg;
 
   if(servo_ctrl_msg->name.size() > 0)
     {
@@ -327,9 +318,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
                         (int)servo_ctrl_msg->position.size(), (int)servo_ctrl_msg->name.size());
               return;
             }
-
-          mujoco_control_input_msg.name.push_back(servo_ctrl_msg->name.at(i));
-          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position.at(i));
 
           // use servo_name to search the servo_handler
           auto servo_handler = find_if(servos_handler_[servo_group_name].begin(), servos_handler_[servo_group_name].end(),
@@ -389,9 +377,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
               target_torque_msg.angles.push_back(servo_handler->getTargetTorqueVal(ValueType::BIT));
             }
 
-          mujoco_control_input_msg.name.push_back(servo_handler->getName());
-          mujoco_control_input_msg.position.push_back(servo_ctrl_msg->position.at(i));
-
           if(simulation_mode_)
             {
               std_msgs::Float64 msg;
@@ -400,8 +385,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
             }
         }
     }
-
-  mujoco_control_input_pub_.publish(mujoco_control_input_msg);
 
   if (servo_target_pos_pubs_.find(servo_group_name) != servo_target_pos_pubs_.end())
     servo_target_pos_pubs_[servo_group_name].publish(target_angle_msg);

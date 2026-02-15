@@ -2,7 +2,7 @@
   <class
       name="mujoco_ros_control/AerialRobotHWSim"
       type="mujoco_ros_control::AerialRobotHWSim"
-      base_class_type="mujoco_ros_control::RobotHWSim">
+      base_class_type="mujoco_ros::control::RobotHWSim">
     <description>
        simulation interface for aerial robot in MuJoCo.
     </description>

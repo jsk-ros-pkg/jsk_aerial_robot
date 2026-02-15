@@ -4,17 +4,30 @@
   <arg name="headless" default="false" />
   <arg name="mujoco_model" default="" />
 
-  <!-- mujoco ros control -->
-  <include file="$(find mujoco_ros_control)/launch/mujoco.launch" >
-    <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="headless" value="$(arg headless)"/>
-    <arg name="mujoco_model" value="$(arg mujoco_model)"/>
-  </include>
+  <group ns="$(arg robot_ns)">
+    <include file="$(find mujoco_ros)/launch/launch_server.launch" >
+      <arg name="ns" value="$(arg robot_ns)" />
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="modelfile" value="$(arg mujoco_model)"/>
+      <arg name="use_sim_time" value="true"/>
+      <arg name="unpause" value="true"/>
+    </include>
+
+    <rosparam subst_value="true">
+      MujocoPlugins:
+        - type: mujoco_ros_control/MujocoRosControlPlugin
+          robot_namespace: $(arg robot_ns)
+          hardware:
+            type: mujoco_ros_control/AerialRobotHWSim
+            control_period: 0.001
+    </rosparam>
+
+  </group>
 
   <!-- basic parameter -->
   <rosparam file="$(find aerial_robot_simulation)/config/Mujoco.yaml" command="load" ns="$(arg robot_ns)" />
 
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-        output="screen" ns="$(arg robot_ns)" args="attitude_controller" />
+        output="screen" ns="$(arg robot_ns)" args="joint_state_controller attitude_controller" />
 
 </launch>

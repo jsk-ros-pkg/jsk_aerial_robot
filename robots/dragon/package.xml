@@ -16,7 +16,7 @@
   <build_depend>aerial_robot_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>hydrus</build_depend>
-  <build_depend>mujoco_ros_control</build_depend>
+  <build_depend>mujoco_ros_utils</build_depend>
   <build_depend>nlopt</build_depend>
   <build_depend>pluginlib</build_depend>
 
