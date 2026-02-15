@@ -2,32 +2,56 @@
 
 namespace mujoco_ros_control
 {
-
-  bool AerialRobotHWSim::init(const std::string& robot_namespace,
-                              ros::NodeHandle model_nh,
-                              mjModel* mujoco_model,
-                              mjData* mujoco_data
-                              )
+  bool AerialRobotHWSim::initSim(const mjModel* m_ptr, mjData* d_ptr, mujoco_ros::MujocoEnv* mujoco_env_ptr,
+                                 const std::string& robot_namespace, ros::NodeHandle model_nh,
+                                 const urdf::Model* const urdf_model,
+                                 std::vector<transmission_interface::TransmissionInfo> transmissions)
   {
-    DefaultRobotHWSim::init(robot_namespace, model_nh, mujoco_model, mujoco_data);
+    // separate rotor transmissions and standard transmissions
+    std::vector<transmission_interface::TransmissionInfo> standard_transmissions;
+    std::vector<transmission_interface::TransmissionInfo> rotor_transmissions;
+
+    for (const auto& trans : transmissions)
+      {
+        bool is_rotor = false;
+        for (const auto& hw_iface : trans.actuators_[0].hardware_interfaces_)
+          {
+            if (hw_iface == "RotorInterface")
+              {
+                is_rotor = true;
+                break;
+              }
+          }
+        if (is_rotor)
+          {
+            rotor_transmissions.push_back(trans);
+          }
+        else
+          {
+            standard_transmissions.push_back(trans);
+          }
+      }
+
+    DefaultRobotHWSim::initSim(m_ptr, d_ptr, mujoco_env_ptr, robot_namespace, model_nh, urdf_model,
+                               standard_transmissions);
 
     rotor_list_.resize(0);
 
     // get entire mass
     float mass = 0.0;
-    for(int i = 0; i < mujoco_model_->nbody; i++)
+    for (int i = 0; i < m_ptr_->nbody; i++)
       {
-       mass += mujoco_model_->body_mass[i];
+        mass += m_ptr_->body_mass[i];
       }
     ROS_INFO_STREAM("[mujoco] robot mass is " << mass);
 
 
     // get rotor names from mujoco model
     int motor_num = 0;
-    for(int i = 0; i < mujoco_model_->nu; i++)
+    for (int i = 0; i < m_ptr_->nu; i++)
       {
-        std::string actuator_name = mj_id2name(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, i);
-        if(actuator_name.find("rotor") != std::string::npos)
+        std::string actuator_name = mj_id2name(m_ptr_, mjtObj_::mjOBJ_ACTUATOR, i);
+        if (actuator_name.find("rotor") != std::string::npos)
           {
             rotor_list_.push_back(actuator_name);
             motor_num++;
@@ -64,7 +88,7 @@ namespace mujoco_ros_control
                     // search init_value in servo group params
                     if(!servo_group_params.second["simulation"].hasMember(init_value_param_name))
                       {
-                        ROS_ERROR("can not find '%s' gazebo paramter for servo %s", init_value_param_name.c_str(),  string(servo_params.second["name"]).c_str());
+                        ROS_ERROR("can not find '%s' servo paramter for servo %s", init_value_param_name.c_str(), string(servo_params.second["name"]).c_str());
                         return false;
                       }
                     // use param of servo group
@@ -75,7 +99,9 @@ namespace mujoco_ros_control
                     // use param of servo
                     init_value = static_cast<double>(servo_params.second["simulation"][init_value_param_name]);
                   }
-                control_input_.at((mj_name2id(mujoco_model_, mjtObj_::mjOBJ_ACTUATOR, servo_name.c_str()))) = init_value;
+                d_ptr_->qpos[m_ptr_->jnt_qposadr[mj_name2id(m_ptr_, mjtObj_::mjOBJ_JOINT, servo_name.c_str())]] = init_value;
+                d_ptr_->qvel[m_ptr_->jnt_dofadr[mj_name2id(m_ptr_, mjtObj_::mjOBJ_JOINT, servo_name.c_str())]] = 0.0;
+                d_ptr_->qfrc_applied[m_ptr_->jnt_dofadr[mj_name2id(m_ptr_, mjtObj_::mjOBJ_JOINT, servo_name.c_str())]] = 0.0;
               }
           }
       }
@@ -106,39 +132,41 @@ namespace mujoco_ros_control
     return true;
   }
 
-  void AerialRobotHWSim::read(const ros::Time& time, const ros::Duration& period)
+  void AerialRobotHWSim::readSim(ros::Time time, ros::Duration period)
   {
-    int fc_id = mj_name2id(mujoco_model_, mjtObj_::mjOBJ_SITE, "fc");
-    mjtNum* site_xpos = mujoco_data_->site_xpos;
-    mjtNum* site_xmat = mujoco_data_->site_xmat;
+    /* get the pose of the fc site in mujoco, and set it as the ground truth value for spinal interface */
+    int fc_id = mj_name2id(m_ptr_, mjtObj_::mjOBJ_SITE, "fc");
+    mjtNum* site_xpos = d_ptr_->site_xpos;
+    mjtNum* site_xmat = d_ptr_->site_xmat;
     tf::Matrix3x3 fc_rot_mat = tf::Matrix3x3(site_xmat[9 * fc_id + 0], site_xmat[9 * fc_id + 1], site_xmat[9 * fc_id + 2],
                                              site_xmat[9 * fc_id + 3], site_xmat[9 * fc_id + 4], site_xmat[9 * fc_id + 5],
                                              site_xmat[9 * fc_id + 6], site_xmat[9 * fc_id + 7], site_xmat[9 * fc_id + 8]);
     tf::Quaternion fc_quat;
     fc_rot_mat.getRotation(fc_quat);
 
+    /* get the imu sensor data in mujoco, and set it as the input for spinal interface */
     tf::Vector3 acc, gyro, mag;
-    for(int i = 0; i < mujoco_model_->nsensor; i++)
+    for (int i = 0; i < m_ptr_->nsensor; i++)
       {
-        if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "acc")
+        if (std::string(mj_id2name(m_ptr_, mjtObj_::mjOBJ_SENSOR, i)) == "acc")
           {
-            for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            for (int j = 0; j < m_ptr_->sensor_dim[i]; j++)
               {
-                acc[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                acc[j] = d_ptr_->sensordata[m_ptr_->sensor_adr[i] + j];
               }
           }
-        if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "gyro")
+        if (std::string(mj_id2name(m_ptr_, mjtObj_::mjOBJ_SENSOR, i)) == "gyro")
           {
-            for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            for (int j = 0; j < m_ptr_->sensor_dim[i]; j++)
               {
-                gyro[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                gyro[j] = d_ptr_->sensordata[m_ptr_->sensor_adr[i] + j];
               }
           }
-        if(std::string(mj_id2name(mujoco_model_, mjtObj_::mjOBJ_SENSOR, i)) == "mag")
+        if (std::string(mj_id2name(m_ptr_, mjtObj_::mjOBJ_SENSOR, i)) == "mag")
           {
-            for(int j = 0; j < mujoco_model_->sensor_dim[i]; j++)
+            for (int j = 0; j < m_ptr_->sensor_dim[i]; j++)
               {
-                mag[j] = mujoco_data_->sensordata[mujoco_model_->sensor_adr[i] + j];
+                mag[j] = d_ptr_->sensordata[m_ptr_->sensor_adr[i] + j];
               }
           }
       }
@@ -186,21 +214,23 @@ namespace mujoco_ros_control
         last_mocap_time_ = time;
       }
 
-    DefaultRobotHWSim::read(time, period);
+    DefaultRobotHWSim::readSim(time, period);
   }
 
-  void AerialRobotHWSim::write(const ros::Time& time, const ros::Duration& period)
+  void AerialRobotHWSim::writeSim(ros::Time time, ros::Duration period)
   {
-    for(int i = 0; i < spinal_interface_.getMotorNum(); i++)
-      {
-        int rotor_id = mj_name2id(mujoco_model_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());
-        double rotor_force = spinal_interface_.getForce(i);
-        control_input_.at(rotor_id) = rotor_force;
-      }
+    // normal joints control by default robot hw sim
+    DefaultRobotHWSim::writeSim(time, period);
 
-      DefaultRobotHWSim::write(time, period);
+    // set rotor force got from spinal interface to mujoco actuator
+    for (int i = 0; i < spinal_interface_.getMotorNum(); i++)
+      {
+        int rotor_id = mj_name2id(m_ptr_, mjOBJ_ACTUATOR, rotor_list_.at(i).c_str());
+        double rotor_force = spinal_interface_.getForce(i);
+        d_ptr_->ctrl[rotor_id] = rotor_force;
+      }
   }
 
-}
+}  // namespace mujoco_ros_control
 
-PLUGINLIB_EXPORT_CLASS(mujoco_ros_control::AerialRobotHWSim, mujoco_ros_control::RobotHWSim)
+PLUGINLIB_EXPORT_CLASS(mujoco_ros_control::AerialRobotHWSim, mujoco_ros::control::RobotHWSim)
