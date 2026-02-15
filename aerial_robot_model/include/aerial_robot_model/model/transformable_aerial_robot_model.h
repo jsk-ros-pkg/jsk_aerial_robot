@@ -54,7 +54,6 @@ namespace aerial_robot_model {
       const std::vector<int>& getLinkJointIndices() const { return link_joint_indices_; }
       const std::vector<double>& getLinkJointLowerLimits() const { return link_joint_lower_limits_; }
       const std::vector<double>& getLinkJointUpperLimits() const { return link_joint_upper_limits_; }
-      const double getLinkLength() const { return link_length_; }
 
       // statics (static thrust, joint torque)
       virtual void calcJointTorque(const bool update_jacobian = true);
@@ -96,7 +95,6 @@ namespace aerial_robot_model {
       std::vector<std::string> link_joint_names_; // index in KDL::JntArray
       std::vector<int> link_joint_indices_; // index in KDL::JntArray
       std::vector<double> link_joint_lower_limits_, link_joint_upper_limits_;
-      double link_length_;
 
       // statics
       Eigen::VectorXd joint_torque_;
@@ -116,9 +114,6 @@ namespace aerial_robot_model {
       std::vector<Eigen::MatrixXd> thrust_coord_jacobians_;
       Eigen::MatrixXd fc_f_dists_jacobian_;
       Eigen::MatrixXd fc_t_dists_jacobian_;
-
-      //private functions
-      void resolveLinkLength();
 
     protected:
 
