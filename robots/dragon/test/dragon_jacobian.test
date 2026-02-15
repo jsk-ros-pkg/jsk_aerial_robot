@@ -2,15 +2,15 @@
   <arg name="headless" default="False"/>
   <arg name="rostest" default="True"/>
   <arg name="robot_ns" default="dragon"/>
-  <arg name="onboards_model" default="euclid_201709" />
+  <arg name="model_name" default="vim4_202311" />
 
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="need_joint_state" value="$(eval not rostest)"/>
-    <arg name="robot_model" value="$(find dragon)/robots/quad/$(arg onboards_model).urdf.xacro" />
+    <arg name="robot_model" value="$(find dragon)/robots/quad/$(arg model_name).urdf.xacro" />
     <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
-    <arg name="rviz_init_pose" value="$(find dragon)/config/quad/RvizInit.yaml" />
+    <arg name="rviz_init_pose" value="$(find dragon)/config/quad/$(arg model_name)/RvizInit.yaml" />
   </include>
 
   <!-- test codes -->

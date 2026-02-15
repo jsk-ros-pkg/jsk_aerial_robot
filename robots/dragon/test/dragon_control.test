@@ -2,7 +2,8 @@
   <arg name="headless" default="False"/>
   <arg name="robot_id" default=""/>
   <arg name="robot_ns" value="dragon$(arg robot_id)"/>
-  <arg name="full_vectoring_mode"  default= "false" />
+  <arg name="new_model"  default= "true" />
+  <arg name="full_vectoring_mode"  default= "false" />  
   <arg name="mujoco"  default= "false" />
 
   <include file="$(find dragon)/launch/bringup.launch">
@@ -12,6 +13,7 @@
     <arg name="full_vectoring_mode"  value= "$(arg full_vectoring_mode)" />
     <arg name="headless" value="$(arg headless)" />
     <arg name="mujoco" value="$(arg mujoco)" />
+    <arg name="new_model"  default= "$(arg new_model)" />
     <arg name="demo" value="False" />
   </include>
 

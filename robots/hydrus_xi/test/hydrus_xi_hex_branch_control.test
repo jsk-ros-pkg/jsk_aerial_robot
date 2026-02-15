@@ -1,6 +1,7 @@
 <launch>
   <arg name="headless" default="False"/>
   <arg name="robot_id" default=""/>
+  <arg name="mujoco" default="True"/>
   <arg name="robot_ns" value="hydrus_xi$(arg robot_id)"/>
 
   <include file="$(find hydrus_xi)/launch/bringup.launch">
@@ -9,6 +10,7 @@
     <arg name="robot_id" value="$(arg robot_id)"/>
     <arg name="type" value="hex_branch" />
     <arg name="headless" value="$(arg headless)" />
+    <arg name="mujoco" value="$(arg mujoco)" />
     <arg name="demo" value="False" />
   </include>
 
