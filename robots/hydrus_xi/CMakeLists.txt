@@ -6,7 +6,7 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
   angles
   hydrus
-  mujoco_ros_control
+  mujoco_ros_utils
   roscpp
   )
 

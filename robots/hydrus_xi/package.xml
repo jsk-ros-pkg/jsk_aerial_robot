@@ -11,7 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>angles</depend>
   <depend>hydrus</depend>
-  <depend>mujoco_ros_control</depend>
+  <depend>mujoco_ros_utils</depend>
   <depend>nlopt</depend>
   <depend>osqp-eigen</depend>
   <depend>roscpp</depend>
