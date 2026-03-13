@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="sim" default="false" />
+  <arg name="debug" default="false" />
+    
+  <!--The planning and execution components of MoveIt! configured to 
+      publish the current configuration of the robot (simulated or real) 
+      and the current state of the world as seen by the planner-->
+  <include file="$(find cr16_moveit)/launch/move_group.launch">
+    <arg name="publish_monitored_planning_scene" value="true" />
+    <arg name="debug" default="$(arg debug)" />
+  </include>
+
+  <!-- Remap follow_joint_trajectory -->
+  <remap if="$(arg sim)" from="/follow_joint_trajectory" to="/cr16_robot/joint_controller/follow_joint_trajectory"/>
+
+
+
+</launch>

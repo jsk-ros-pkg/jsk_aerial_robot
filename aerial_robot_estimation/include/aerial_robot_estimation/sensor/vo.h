@@ -37,14 +37,12 @@
 
 #include <aerial_robot_estimation/sensor/base_plugin.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <geometry_msgs/TransformStamped.h>
 #include <kalman_filter/kf_pos_vel_acc_plugin.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
 #include <spinal/ServoControlCmd.h>
 #include <std_msgs/Empty.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-
 
 namespace sensor_plugin
 {
@@ -90,7 +88,6 @@ namespace sensor_plugin
     int fusion_mode_;
     bool vio_mode_; // visual + inertial mode
     bool z_vel_mode_;
-    bool local_vel_mode_;
     bool outdoor_no_vel_time_sync_; // very special flag for stereo cam such as zed mini, which has tricky behavier in outdoor mode
     /* heuristic sepecial flag for fusion */
     bool outdoor_;

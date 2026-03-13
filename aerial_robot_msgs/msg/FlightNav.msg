@@ -1,3 +1,4 @@
+
 uint8 NO_NAVIGATION = 0
 uint8 VEL_MODE = 1
 uint8 POS_MODE = 2
@@ -44,4 +45,3 @@ uint8 pos_z_nav_mode
 float32 target_pos_z
 float32 target_vel_z
 float32 target_pos_diff_z
-

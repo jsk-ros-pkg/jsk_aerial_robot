@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>rosdemo_v4</name>
+    <version>1.0.0</version>
+    <description>CRV4_Demo</description>
+    <maintainer email="wuyongfeng@tdobot.cc">zhangran</maintainer>
+
+    <license>MIT</license>
+    <depend>std_msgs</depend>
+    <build_depend>roscpp</build_depend>
+    <exec_depend>roscpp</exec_depend>
+
+    <build_depend>message_generation</build_depend>
+    <exec_depend>message_generation</exec_depend>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+
+</package>
+

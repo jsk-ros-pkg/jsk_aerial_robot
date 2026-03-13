@@ -14,11 +14,6 @@ install(DIRECTORY config launch
   USE_SOURCE_PERMISSIONS
 )
 
-install(DIRECTORY bin
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  USE_SOURCE_PERMISSIONS
-)
-
 mujoco_model_convert(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/config/mujoco_model.yaml)

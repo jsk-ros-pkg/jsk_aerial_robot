@@ -1,0 +1,11 @@
+float64 offset1
+float64 offset2
+float64 offset3
+float64 offset4
+float64 offset5
+float64 offset6
+float64[] t
+float64[] lookahead_time
+float64[] gain
+---
+int32 res

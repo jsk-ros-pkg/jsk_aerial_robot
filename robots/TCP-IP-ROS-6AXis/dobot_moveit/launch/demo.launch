@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+  Usage:
+    roslaunch cr5_bringup cr5_bringup.launch robot_ip:=<value>
+-->
+<launch>
+  <arg name="DOBOT_TYPE" default="$(env DOBOT_TYPE)" />
+  <include file="$(dirname)/../../$(arg DOBOT_TYPE)_moveit/launch/demo.launch"/>
+</launch>
+
+<!-- <launch>
+  <arg name="DOBOT_TYPE" default="$(env DOBOT_TYPE)" />
+ 
+  <export DOBOT_MOVEIT_PARENT_PATH=$(dirname $(rospack find dobot_moveit)) >
+  <arg name="Dobot_parent_path" value="$(env DOBOT_MOVEIT_PARENT_PATH)" />
+  <arg name="Dobot_path" default="$(env DOBOT_TYPE)_moveit" />
+  <arg name="Target_path" value="$(arg Dobot_parent_path)/$(arg Dobot_path)/launch" />
+  <include file="$(arg Target_path)/demo.launch"/>
+</launch> -->

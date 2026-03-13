@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dobot_gazebo</name>
+  <version>1.0.0</version>
+  <description>
+      Gazebo wrapper for the CR3/5/10/16 robot arms.
+  </description>
+  <maintainer email="dobot@todo.todo">dobot</maintainer>
+
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>joint_state_controller</exec_depend>
+  <exec_depend>joint_trajectory_controller</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_ros_control</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <export>
+
+  </export>
+</package>

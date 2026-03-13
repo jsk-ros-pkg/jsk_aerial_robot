@@ -1,0 +1,10 @@
+<library path="lib/libtwin_hammer_controllib">
+
+  <class name="aerial_robot_control/twin_hammer_controller" type="aerial_robot_control::TwinHammerController" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for twin_hammer</description>
+  </class>
+  <class name="aerial_robot_control/twin_hammer_optimizer" type="aerial_robot_control::TwinHammerOptimizer" base_class_type="aerial_robot_control::ControlBase">
+    <description>plugin for twin_hammer</description>
+  </class>
+  
+</library>

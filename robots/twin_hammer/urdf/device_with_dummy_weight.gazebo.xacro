@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="twin_hammer" >
+
+  <xacro:arg name="robot_name" default="twin_hammer" />
+
+  <!-- robot urdf -->
+  <xacro:include filename="$(find twin_hammer)/urdf/device_with_dummy_weight.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" />
+
+  <gazebo reference="main_body">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+  </gazebo>
+
+  <!-- <gazebo reference="root_to_dummyweight_joint">
+    <plugin name="force_torque_plugin" filename="libgazebo_ros_ft_sensor.so">
+      <always_on>true</always_on>
+      <update_rate>100.0</update_rate>
+      <sensor_type>force_torque</sensor_type>
+      <jointName>root_to_dummyweight_joint</jointName>
+      <topicName>/twin_hammer/ftsensor_gazebo</topicName>
+    </plugin>
+  </gazebo> -->
+
+</robot>

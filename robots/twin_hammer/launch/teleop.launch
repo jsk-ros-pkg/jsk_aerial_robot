@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_name" default="gimbalrotor" />   <!-- "gimbalrotor" or "me6" -->
+  <arg name="control_mode" default="pos" />
+  <arg name="mocap_debug_mode" default="false" />
+  <arg name="touch_feedback" default="false" />
+  <arg name="obstacle_feedback" default="false" />
+  <arg name="energy_tank" default="false" />
+
+  <include file="$(find twin_hammer)/launch/include/mocap.launch" if="$(arg mocap_debug_mode)" /> 
+
+  <node name="teleop_from_mocap" pkg="twin_hammer" type="teleop_from_mocap_fpv.py" output="screen" if="$(eval arg('robot_name') == 'gimbalrotor')">
+    <param name="robot_name" value="$(arg robot_name)" />
+    <param name="control_mode" value="$(arg control_mode)" />
+  </node>
+
+  <node name="me6_teleop" pkg="twin_hammer" type="me6_teleop.py" output="screen" if="$(eval arg('robot_name') == 'me6')" />
+
+  <!-- feedback from force sensor on robot -->
+  <group if="$(arg touch_feedback)">
+    <node name="lpf_for_FTsensor" pkg="twin_hammer" type="lpf_for_FTsensor.py" output="screen" />
+    <node name="force_feedback_from_robot" pkg="twin_hammer" type="force_feedback_from_robot_fpv.py" output="screen" unless="$(arg energy_tank)" />
+    <node name="energy_base_haptics_feedback" pkg="twin_hammer" type="energy_base_haptics_feedback.py" output="screen" if="$(arg energy_tank)" />
+  </group>
+
+  <!-- feedback from obstacle -->
+  <node name="force_feedback_from_obstacle" pkg="twin_hammer" type="haptics_feedback_from_potential.py" output="screen" if="$(arg obstacle_feedback)" />  
+
+  <!-- feedback sum -->
+  <node name="force_feedback_integrator" pkg="twin_hammer" type="force_feedback_integrator.py" output="screen" />  
+
+</launch>

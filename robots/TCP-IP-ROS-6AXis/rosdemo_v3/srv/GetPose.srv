@@ -1,0 +1,4 @@
+int32[] user
+int32[] tool
+---
+int32 res

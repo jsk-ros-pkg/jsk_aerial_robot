@@ -1,0 +1,8 @@
+
+int32 index
+int32 addr
+int32 count
+string valTab
+string[]  valtype
+---
+int32 res

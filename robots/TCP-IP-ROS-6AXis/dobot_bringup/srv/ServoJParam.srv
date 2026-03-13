@@ -1,0 +1,6 @@
+float64 trajectory_duration
+float64 t
+float64 lookahead_time
+float64 gain
+---
+int32 res

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="false" />
+  <arg name="robot_ns" default="twin_hammer" />
+  <arg name="use_mocap" default="false" />
+
+  <group ns="$(arg robot_ns)">
+
+    <group if="$(arg real_machine)">
+      <group unless="$(arg simulation)">
+        <!-- fc & IMU & GPS -->
+        <include file="$(find spinal)/launch/bridge.launch" >
+          <arg name="mode" value="serial" />
+          <arg name="serial_port" value="/dev/flight_controller" />
+          <arg name="serial_baud" value="921600" />
+        </include>
+
+        <!-- mocap -->
+        <!-- <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" /> -->
+        <include file="$(find twin_hammer)/launch/include/mocap.launch" if="$(arg use_mocap)" />
+        ########## dummy mocap node when not use device position #########
+        <node pkg="twin_hammer" type="dummy_mocap_node.py" name="dummy_mocap" output="screen" if="$(eval not arg('simulation') and arg('real_machine') and not arg ('use_mocap'))" />
+
+
+        <!-- joint rough calib -->
+        <!--
+        <node pkg="spinal" type="servo_rough_calib.py" name="servo_rough_calib" output="screen">
+          <param name="robot_ns" value="$(arg robot_ns)" />
+        </node>
+        -->
+      </group>
+    </group>
+
+    <!-- basic configuration for sensors (e.g. noise sigma) -->
+    <rosparam file="$(find aerial_robot_base)/config/sensors/imu/spinal.yaml" command="load" />
+    <!-- <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" /> -->
+    <rosparam file="$(find twin_hammer)/config/mocap.yaml" command="load" />
+  </group>
+</launch>

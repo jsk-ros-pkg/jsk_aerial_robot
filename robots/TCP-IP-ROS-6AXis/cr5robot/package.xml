@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>cr5robot</name>
+    <version>1.0.0</version>
+    <description>The cr5robot package</description>
+
+    <maintainer email="zhangran@tdobot.cc">zhangran</maintainer>
+
+    <license>MIT</license>
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <exec_depend>dobot_bringup</exec_depend>
+    <exec_depend>dobot_description</exec_depend>
+    <exec_depend>dobot_moveit</exec_depend>
+    <exec_depend>rviz_dobot_control</exec_depend>
+
+    <export>
+        <metapackage/>
+    </export>
+</package>

@@ -1,0 +1,33 @@
+<launch>
+  <arg name="use_gui" default="false"/>
+  <arg name="need_state_publisher" default="true"/>
+  <arg name="robot_description_param" default="robot_description"/>
+  <arg name="urdf_file" default="$(find dobot_description)/urdf/me6_robot.urdf"/>
+  <arg name="srdf_file" default="$(find me6_moveit)/config/me6_robot.srdf"/>
+  <arg name="joint_limits_file" default="$(find me6_moveit)/config/joint_limits.yaml"/>
+  <arg name="cartesian_limits_file" default="$(find me6_moveit)/config/cartesian_limits.yaml"/>
+  <arg name="kinematics_file" default="$(find me6_moveit)/config/kinematics.yaml"/>
+  <arg name="rvizconfig" default="$(find me6_bringup)/launch/visualize.rviz"/>
+
+  <param name="$(arg robot_description_param)" textfile="$(arg urdf_file)"/>
+
+  <param name="$(arg robot_description_param)_semantic" textfile="$(arg srdf_file)"/>
+
+  <rosparam command="load" file="$(arg joint_limits_file)" />
+  <rosparam command="load" file="$(arg cartesian_limits_file)" />
+  <rosparam command="load" file="$(arg kinematics_file)" />
+
+  <group if="$(arg need_state_publisher)">
+    <node if="$(arg use_gui)" name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui">
+      <remap from="/joint_states" to="/me6_robot/joint_states"/>
+    </node>
+
+    <node unless="$(arg use_gui)" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+      <remap from="/joint_states" to="/me6_robot/joint_states"/>
+    </node>
+  </group>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
+</launch>

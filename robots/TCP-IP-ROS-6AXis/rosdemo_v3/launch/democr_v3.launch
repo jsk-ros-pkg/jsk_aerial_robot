@@ -1,0 +1,11 @@
+<launch>
+   
+    <!-- 启动一个节点 -->
+    <node name="rosdemo_v3" pkg="rosdemo_v3" type="rosdemo_v3" output="screen">
+        <!-- 添加节点的参数，如果需要的话 -->
+        <!-- <param name="pointA" type="double" value="10"/>
+        <param name="pointB" type="double" value="10" /> -->
+       <rosparam param="pointA">[2.5, 2.3, -2.7, 1.5,-1.5,0.9]</rosparam>
+       <rosparam param="pointB">[27.50,48.34,0.16,4.15,0.95,12.95]</rosparam>
+    </node>
+</launch>

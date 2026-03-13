@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="mocap_debug_mode" default="false" />
+  <arg name="force_feedback" default="false" />
+  <arg name="energy_tank" default="false" />
+
+  <include file="$(find twin_hammer)/launch/include/mocap.launch" if="$(arg mocap_debug_mode)" /> 
+
+  <!-- <include file="$(find cfs_sensor)/launch/cfs_sensor.launch">
+    <arg name="type" value="PFS055YA501U6"/>
+  </include> -->
+
+  <group if="$(arg force_feedback)">
+    <node name="force_feedback_from_robot" pkg="twin_hammer" type="force_feedback_from_robot.py" output="screen" unless="$(arg energy_tank)" />
+    <node name="energy_base_haptics_feedback" pkg="twin_hammer" type="energy_base_haptics_feedback.py" output="screen" if="$(arg energy_tank)" />
+  </group>
+
+  <node name="me6_teleop" pkg="twin_hammer" type="me6_teleop.py" output="screen" />
+
+</launch>

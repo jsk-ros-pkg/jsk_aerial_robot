@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: dobot_description
+    relative_path: urdf/cr5_robot.urdf
+    xacro_args: "--inorder "
+  SRDF:
+    relative_path: config/cr5_robot.srdf
+  CONFIG:
+    author_name: dobot
+    author_email: zhangran@dobot.cc
+    generated_timestamp: 1628575410

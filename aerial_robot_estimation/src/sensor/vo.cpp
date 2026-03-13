@@ -94,8 +94,6 @@ namespace sensor_plugin
 
         servo_control_timer_ = indexed_nhp_.createTimer(ros::Duration(servo_control_rate_), &VisualOdometry::servoControl,this); // 10 Hz
       }
-
-    prev_timestamp_ = 0;
   }
 
   void VisualOdometry::voCallback(const nav_msgs::Odometry::ConstPtr & vo_msg)
@@ -361,8 +359,8 @@ namespace sensor_plugin
     tf::quaternionMsgToTF(vo_msg->pose.pose.orientation, raw_q);
 
     // velocity:
-    tf::Vector3 raw_vel;
-    tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_vel);
+    tf::Vector3 raw_local_vel;
+    tf::vector3MsgToTF(vo_msg->twist.twist.linear, raw_local_vel);
     /* get the latest orientation and omega */
     baselink_r = estimator_->getOrientation(Frame::BASELINK, EGOMOTION_ESTIMATE);
     baselink_omega = estimator_->getAngularVel(Frame::BASELINK, EGOMOTION_ESTIMATE);
@@ -372,11 +370,11 @@ namespace sensor_plugin
         // TODO: what is the following previous tricky code?
         int mode = EGOMOTION_ESTIMATE;
 
-        if (raw_vel == tf::Vector3(0.0,0.0,0.0))
+        if (raw_local_vel == tf::Vector3(0.0,0.0,0.0))
           {
             /* the odometry message does not contain velocity information, we have to calulcate by ourselves. */
             tf::Transform delta_tf = prev_sensor_tf.inverse() * raw_sensor_tf;
-            raw_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
+            raw_local_vel = delta_tf.getOrigin() / (curr_timestamp_ - prev_timestamp_);
 
             reference_timestamp_ = (curr_timestamp_ + prev_timestamp_) / 2;
             estimator_->findRotOmega(reference_timestamp_, mode, baselink_r, baselink_omega);
@@ -391,16 +389,7 @@ namespace sensor_plugin
           }
       }
 
-    raw_global_vel_ = world_offset_tf_.getBasis() * raw_vel;
-    if (local_vel_mode_)
-      {
-        // if the velocity is described in local frame (i.e., the sensor frame),
-        // we need to convert to global one
-        raw_global_vel_ = baselink_r * sensor_tf_.getBasis() * raw_vel;
-      }
-    // consider the offset between baselink and sensor frames
-    raw_global_vel_ -= baselink_r * baselink_omega.cross(sensor_tf_.getOrigin());
-
+    raw_global_vel_ = baselink_r * ( sensor_tf_.getBasis() * raw_local_vel - baselink_omega.cross(sensor_tf_.getOrigin()));
 
     if(debug_verbose_)
       {
@@ -627,7 +616,6 @@ namespace sensor_plugin
   {
     getParam<int>("fusion_mode", fusion_mode_, (int)ONLY_POS_MODE);
     getParam<bool>("vio_mode", vio_mode_, false);
-    getParam<bool>("local_vel_mode", local_vel_mode_, true);
     getParam<bool>("z_vel_mode", z_vel_mode_, false);
     getParam<bool>("z_no_delay", z_no_delay_, false);
     getParam<bool>("outdoor_no_vel_time_sync", outdoor_no_vel_time_sync_, false);

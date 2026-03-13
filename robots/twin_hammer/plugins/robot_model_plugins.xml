@@ -1,0 +1,7 @@
+<library path="lib/libtwin_hammer_model">
+
+  <class name="twin_hammer_model" type="TwinHammerModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for twin_hammer model </description>
+  </class>
+
+</library>

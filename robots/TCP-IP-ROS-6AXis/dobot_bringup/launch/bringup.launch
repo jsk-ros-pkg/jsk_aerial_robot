@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+  Usage:
+    roslaunch cr5_bringup cr5_bringup.launch robot_ip:=<value>
+-->
+<launch>
+
+  <!-- robot_ip: IP-address of the robot's socket-messaging server -->
+  <arg name="robot_ip" doc="IP of the controller" default="192.168.5.1"/>
+
+  <node name="$(env DOBOT_TYPE)_robot" pkg="dobot_bringup" type="dobot_bringup" output="screen" >
+    <param name="joint_publish_rate" type="double" value="10" />
+    <param name="trajectory_duration" type="double" value="0.1" />
+    <param name="robot_ip_address" type="str" value="$(arg robot_ip)"/>
+  </node>
+
+</launch>

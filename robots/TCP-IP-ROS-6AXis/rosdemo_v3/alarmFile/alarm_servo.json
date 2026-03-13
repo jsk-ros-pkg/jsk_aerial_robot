@@ -1,0 +1,1234 @@
+[
+    {
+        "id": 2,
+        "level": 0,
+        "en": {
+            "description": "SoftMotion axis is wrong",
+            "cause": "",
+            "solution": "Check whether the communication of joints is working properly, then clear the alarm， or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴错误",
+            "cause": "",
+            "solution": "检查关节通信是否正常，再清除告警，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 3,
+        "level": 0,
+        "en": {
+            "description": "Bus synchoronic mode is abnormal",
+            "cause": "",
+            "solution": "Check whether the communication of joints is working properly, clear the alarm， or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "总线同步模式失效",
+            "cause": "",
+            "solution": "检查关节通信是否正常，再清除告警，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 10,
+        "level": 5,
+        "en": {
+            "description": "The current position is out of Software limit",
+            "cause": "",
+            "solution": "Jog the right joints towards the opposite direction"
+        },
+        "zh_CN": {
+            "description": "当前位置已超出软限位",
+            "cause": "",
+            "solution": "反向点动脱离限位"
+        }
+    },
+    {
+        "id": 11,
+        "level": 5,
+        "en": {
+            "description": "The current position is out of Hardware limit",
+            "cause": "",
+            "solution": "Jog the right joints towards the opposite direction"
+        },
+        "zh_CN": {
+            "description": "当前位置已达硬限位",
+            "cause": "",
+            "solution": "反向点动脱离限位"
+        }
+    },
+    {
+        "id": 12,
+        "level": 5,
+        "en": {
+            "description": "The parameters of SoftMotion command are out of range",
+            "cause": "",
+            "solution": "Enter the correct parameters"
+        },
+        "zh_CN": {
+            "description": "SoftMotion指令的输入参数超出范围",
+            "cause": "",
+            "solution": "输入正确的参数"
+        }
+    },
+    {
+        "id": 13,
+        "level": 0,
+        "en": {
+            "description": "The servo does not support emergency stop or fast stop",
+            "cause": "",
+            "solution": "Please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "该伺服不支持急停/快停",
+            "cause": "",
+            "solution": "请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 14,
+        "level": 0,
+        "en": {
+            "description": "The servo dose not power on",
+            "cause": "",
+            "solution": "Check  whether the hardware is working properly, and power on again， or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "伺服未上电",
+            "cause": "",
+            "solution": "检查硬件是否正常，再重新上电，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 16,
+        "level": 0,
+        "en": {
+            "description": "Difference between the set position and current position exceeds the range",
+            "cause": "",
+            "solution": "Check whether the motor and circuit are working properly, and adjust the servo parameters"
+        },
+        "zh_CN": {
+            "description": "位置预设值与当前位置出现超差",
+            "cause": "",
+            "solution": "检测电机和线路是否正常，并调整伺服参数"
+        }
+    },
+    {
+        "id": 17,
+        "level": 0,
+        "en": {
+            "description": "Homing error",
+            "cause": "",
+            "solution": "Please operate homing procedure  again"
+        },
+        "zh_CN": {
+            "description": "回零错误",
+            "cause": "",
+            "solution": "重新回零"
+        }
+    },
+    {
+        "id": 18,
+        "level": 0,
+        "en": {
+            "description": "The license is lost",
+            "cause": "",
+            "solution": "Re-acquire license"
+        },
+        "zh_CN": {
+            "description": "许可证缺失",
+            "cause": "",
+            "solution": "重新获取许可证"
+        }
+    },
+    {
+        "id": 20,
+        "level": 0,
+        "en": {
+            "description": "The sevo is disabled",
+            "cause": "",
+            "solution": "Enable the servo"
+        },
+        "zh_CN": {
+            "description": "运动前尚未使能伺服",
+            "cause": "",
+            "solution": "使能伺服"
+        }
+    },
+    {
+        "id": 21,
+        "level": 0,
+        "en": {
+            "description": "Control mode of SoftMotion axis is wrong",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴控制模式错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 25,
+        "level": 0,
+        "en": {
+            "description": "Invalid action at logical axis",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "当前SoftMotion轴为逻辑轴，不支持该操作",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 30,
+        "level": 0,
+        "en": {
+            "description": "Interpolation module is not called again before the motion is over",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "运动过程结束前，插补模块未被再次调用",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 31,
+        "level": 0,
+        "en": {
+            "description": "AXIS_REF variable has been replaced when the SoftMotion module was called",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion模块输入并非AXIS_REF类型",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 32,
+        "level": 0,
+        "en": {
+            "description": "AXIS_REF variable has been replaced when the SoftMotion module was called",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion模块调用中AXIS_REF变量被替换",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 33,
+        "level": 0,
+        "en": {
+            "description": "The SoftMotion axis is disabled when it is running",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴运行中，被下使能",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 34,
+        "level": 0,
+        "en": {
+            "description": "CAN NOT execute motion commands when the SoftMotion axis is in the current state",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴当前状态不能执行运动命令",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 35,
+        "level": 0,
+        "en": {
+            "description": "The servo drive is abnormal when the SoftMotion is running",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SoftMotion运行中，伺服驱动器报错",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 40,
+        "level": 0,
+        "en": {
+            "description": "Working speed is higher than the expected speed",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "运行速度超过SoftMotion轴限制",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 41,
+        "level": 0,
+        "en": {
+            "description": "Working acceleration is higher than the expected acceleration",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "运行加速度超过SoftMotion轴限制",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 42,
+        "level": 0,
+        "en": {
+            "description": "Working deceleration is higher than the expected deceleration",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "运行减速度超过SoftMotion轴限制",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 50,
+        "level": 0,
+        "en": {
+            "description": "Invalid velocity or acceleration values",
+            "cause": "",
+            "solution": "Reset speed or acceleration"
+        },
+        "zh_CN": {
+            "description": "速度或加速度不合适",
+            "cause": "",
+            "solution": "重新设置速度或加速度"
+        }
+    },
+    {
+        "id": 51,
+        "level": 0,
+        "en": {
+            "description": "In this mode, the hardware limit is required, please set it",
+            "cause": "",
+            "solution": "Please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "为安全考虑，本模式需使用硬限位，请在SoftMotion轴中进行配置",
+            "cause": "",
+            "solution": "请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 60,
+        "level": 0,
+        "en": {
+            "description": "Failed to open CNC file",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "无法打开CNC文件",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 70,
+        "level": 0,
+        "en": {
+            "description": "Invalid control mode",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "不支持当前的控制模式",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 71,
+        "level": 0,
+        "en": {
+            "description": "In current mode, controller mode CAN NOT be modified",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "当前模式下，控制器模式不可改变",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 72,
+        "level": 0,
+        "en": {
+            "description": "SMC_SetControllerMode has been interrupted by MC_Stop or errorstop",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "SMC_SetControllerMode的执行被MC_Stop或errorstop状态打断",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 80,
+        "level": 0,
+        "en": {
+            "description": "SoftMotion axes Initialization is wrong",
+            "cause": "",
+            "solution": "Power on again"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴组初始化错误",
+            "cause": "",
+            "solution": "重新上电"
+        }
+    },
+    {
+        "id": 81,
+        "level": 0,
+        "en": {
+            "description": "The SoftMotion axis is not in the required state",
+            "cause": "",
+            "solution": "The SoftMotion axis switches to the corresponding state"
+        },
+        "zh_CN": {
+            "description": "SoftMotion轴尚未切换到对应状态",
+            "cause": "",
+            "solution": "SoftMotion轴切换到对应状态"
+        }
+    },
+    {
+        "id": 85,
+        "level": 0,
+        "en": {
+            "description": "The function does not support virtual or logical mode",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "调用的功能块不支持虚拟或者逻辑模式",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 86,
+        "level": 0,
+        "en": {
+            "description": "The bit width is invalid",
+            "cause": "",
+            "solution": "Reset the bit width, volue ranges from 8 to 32"
+        },
+        "zh_CN": {
+            "description": "绝对位宽不合适",
+            "cause": "",
+            "solution": "重新设置绝对位宽，取值范围[8，32]"
+        }
+    },
+    {
+        "id": 91,
+        "level": 0,
+        "en": {
+            "description": "Reduction ratio parameters does not be modified when the servo is working",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "在控制伺服过程中，减速比参数不可改变",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 92,
+        "level": 0,
+        "en": {
+            "description": "Invalid module period",
+            "cause": "",
+            "solution": "Reset module period, it is lower than 0 or greater than half of the bandwidth, or please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "无效的模数周期",
+            "cause": "",
+            "solution": "重新配置模数周期，模数周期小于等于零或大于带宽的一半，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 93,
+        "level": 0,
+        "en": {
+            "description": "The pulse value of module period is not an integer",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "模数配置换算到脉冲值，并非整型",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 110,
+        "level": 0,
+        "en": {
+            "description": "The fTaskCycle is set to 0",
+            "cause": "",
+            "solution": "Reset the fTaskCycle "
+        },
+        "zh_CN": {
+            "description": "fTaskCycle被设置为0",
+            "cause": "",
+            "solution": "正确设置fTaskCycle"
+        }
+    },
+    {
+        "id": 121,
+        "level": 0,
+        "en": {
+            "description": "Servo has no response to the reset command",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "伺服对复位命令无响应",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 122,
+        "level": 0,
+        "en": {
+            "description": "Unable to reset",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "无法复位",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 123,
+        "level": 0,
+        "en": {
+            "description": "The servo communication is abnormal",
+            "cause": "",
+            "solution": "Check the EtheCAT node connection, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "伺服通讯未工作",
+            "cause": "",
+            "solution": "检查EtheCAT节点连接是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 170,
+        "level": 0,
+        "en": {
+            "description": "Axis is not enabled",
+            "cause": "",
+            "solution": "Enable axis"
+        },
+        "zh_CN": {
+            "description": "轴尚未在使能状态",
+            "cause": "",
+            "solution": "使能轴"
+        }
+    },
+    {
+        "id": 171,
+        "level": 0,
+        "en": {
+            "description": "Homing operation is wrong. The SofotMotion axis is not operated homing procedure",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "回零操作出错，SoftMotion轴未开始回零",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 172,
+        "level": 0,
+        "en": {
+            "description": "Homing operation is wrong. The SofotMotion has no response to the Homing operation",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "回零操作出错，SoftMotion轴未响应",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 173,
+        "level": 0,
+        "en": {
+            "description": "Homing operation is wrong. The deceleration is not set",
+            "cause": "",
+            "solution": "Set deceleration"
+        },
+        "zh_CN": {
+            "description": "回零操作出错，回零停止错误，减速度未配置",
+            "cause": "",
+            "solution": "配置减加速度"
+        }
+    },
+    {
+        "id": 174,
+        "level": 0,
+        "en": {
+            "description": "Homing operation is wrong. The servo is in the error status",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "回零操作出错，伺服在错误状态，无法回零",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 1000,
+        "level": 0,
+        "en": {
+            "description": "CNC license is lost",
+            "cause": "",
+            "solution": "Add CNC license"
+        },
+        "zh_CN": {
+            "description": "CNC许可证缺失",
+            "cause": "",
+            "solution": "添加CNC许可证"
+        }
+    },
+    {
+        "id": 5000,
+        "level": 0,
+        "en": {
+            "description": "Denominator of reduction ratio is 0",
+            "cause": "",
+            "solution": "Reset the denominator of reduction ratio"
+        },
+        "zh_CN": {
+            "description": "减速比分母为零",
+            "cause": "",
+            "solution": "重新设置减速比分母"
+        }
+    },
+    {
+        "id": 60929,
+        "level": 0,
+        "en": {
+            "description": "Communication error",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, restart controller, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "通讯错误",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 8752,
+        "level": 0,
+        "en": {
+            "description": "IPM abnormality",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "IPM异常保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 8992,
+        "level": 0,
+        "en": {
+            "description": "Software over-current",
+            "cause": "",
+            "solution": "Power off and restart controller, or please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "软件过流保护",
+            "cause": "",
+            "solution": "断电重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 9088,
+        "level": 0,
+        "en": {
+            "description": "The current offset of homing point is too high",
+            "cause": "",
+            "solution": "Reset the Zero point current offset"
+        },
+        "zh_CN": {
+            "description": "零点电流偏置过大保护",
+            "cause": "",
+            "solution": "重新设置零点电流偏置"
+        }
+    },
+    {
+        "id": 30080,
+        "level": 0,
+        "en": {
+            "description": "EtherCAT communication is abnormal",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "EtherCAT通讯异常保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 33920,
+        "level": 0,
+        "en": {
+            "description": "Output speed is higher than the expected speed",
+            "cause": "",
+            "solution": "Reduce the output speed"
+        },
+        "zh_CN": {
+            "description": "超过最大转速保护",
+            "cause": "",
+            "solution": "减小输出转速"
+        }
+    },
+    {
+        "id": 33921,
+        "level": 0,
+        "en": {
+            "description": "Difference between the set speed and current speed exceeds the range",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, restart the controller, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "速度偏差过大保护",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 33922,
+        "level": 0,
+        "en": {
+            "description": "Motor is stalled ",
+            "cause": "",
+            "solution": "Check whether the motor is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "电机失速保护",
+            "cause": "",
+            "solution": "检查电机是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29568,
+        "level": 0,
+        "en": {
+            "description": "Encoder communication is abnormal",
+            "cause": "",
+            "solution": "Check whether the communication of encoder is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "编码器通信断线异常保护",
+            "cause": "",
+            "solution": "检查编码器通信线路是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29569,
+        "level": 0,
+        "en": {
+            "description": "Encoder is abnormal",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "编码器异常故障",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29570,
+        "level": 0,
+        "en": {
+            "description": "Encoder battery is abnormal",
+            "cause": "",
+            "solution": "Please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "编码器电池异常保护",
+            "cause": "",
+            "solution": "请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29571,
+        "level": 0,
+        "en": {
+            "description": "Encoder internal error",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "主编码器内部错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29572,
+        "level": 0,
+        "en": {
+            "description": "Encoder CRC check error",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "主编码器CRC校验错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29573,
+        "level": 0,
+        "en": {
+            "description": "Auxiliary Encoder is disconnected",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "辅助编码器断线错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29574,
+        "level": 0,
+        "en": {
+            "description": "Auxiliary Encoder internal error",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "辅助编码器内部错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29575,
+        "level": 0,
+        "en": {
+            "description": "Auxiliary Encoder CRC check error",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "辅助编码器CRC校验错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 34321,
+        "level": 0,
+        "en": {
+            "description": "Difference between the set positon and current position exceeds the range",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "位置偏差过大保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 34322,
+        "level": 0,
+        "en": {
+            "description": "Postion is out of range",
+            "cause": "",
+            "solution": "Enter the correct parameters"
+        },
+        "zh_CN": {
+            "description": "位置给定超限保护",
+            "cause": "",
+            "solution": "请输入正确参数"
+        }
+    },
+    {
+        "id": 12832,
+        "level": 0,
+        "en": {
+            "description": "Voltage between PN is too low",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "PN间电压不足保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 12816,
+        "level": 0,
+        "en": {
+            "description": "Voltage between PN is too high",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "PN间过电压保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 17168,
+        "level": 0,
+        "en": {
+            "description": "Driver temperature is too high",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "驱动器过热保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 9040,
+        "level": 0,
+        "en": {
+            "description": "Module in overload status",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "模块过载保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 13184,
+        "level": 0,
+        "en": {
+            "description": "Driver output phase is wrong",
+            "cause": "",
+            "solution": "Wire as the correct phase sequence"
+        },
+        "zh_CN": {
+            "description": "驱动器输出相序错误保护",
+            "cause": "",
+            "solution": "按正确相序接线"
+        }
+    },
+    {
+        "id": 13185,
+        "level": 0,
+        "en": {
+            "description": "Driver output phase is lost",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "驱动器输出缺相保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 12592,
+        "level": 0,
+        "en": {
+            "description": "Driver input phase is lost",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "驱动器输入缺相保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 21569,
+        "level": 0,
+        "en": {
+            "description": "Dirver connection is abnormal",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "驱动板连接异常保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 21008,
+        "level": 0,
+        "en": {
+            "description": "Driver recognition is abnormal",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "驱动板辨识异常保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 21120,
+        "level": 0,
+        "en": {
+            "description": "FPGA configuration is wrong",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "FPGA配置错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 21121,
+        "level": 0,
+        "en": {
+            "description": "System error",
+            "cause": "",
+            "solution": "Please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "内部错误",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 21122,
+        "level": 0,
+        "en": {
+            "description": "STO safety wiring is fault",
+            "cause": "",
+            "solution": "System error, please contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "STO安全接线故障保护",
+            "cause": "",
+            "solution": "系统错误，请联系技术支持工程师"
+        }
+    },
+    {
+        "id": 28961,
+        "level": 0,
+        "en": {
+            "description": "Motor is in Locked-Rotor status",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "电机堵转保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29056,
+        "level": 0,
+        "en": {
+            "description": "Motor is in overload status",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "电机过载保护",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 16912,
+        "level": 0,
+        "en": {
+            "description": "Motor temperature is too high",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "电机温度过高",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29057,
+        "level": 0,
+        "en": {
+            "description": "Brake malfunction",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, or contact technical support engineer"
+        },
+        "zh_CN": {
+            "description": "抱闸故障",
+            "cause": "",
+            "solution": "检查硬件是否正常，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29058,
+        "level": 0,
+        "en": {
+            "description": "External brake resistor is in overload status",
+            "cause": "",
+            "solution": "Check the cable connection, and set an appropriate resistance value, reduce the load"
+        },
+        "zh_CN": {
+            "description": "外接制动电阻过载保护",
+            "cause": "",
+            "solution": "检查线路连接，设合适阻值，减低负载"
+        }
+    },
+    {
+        "id": 29059,
+        "level": 0,
+        "en": {
+            "description": "Failed to enable",
+            "cause": "",
+            "solution": "Check the cable connection, and enable again"
+        },
+        "zh_CN": {
+            "description": "上使能失败",
+            "cause": "",
+            "solution": "检查线路连接，重新上使能"
+        }
+    },
+    {
+        "id": 60944,
+        "level": 0,
+        "en": {
+            "description": "Not in OP state, in boot state, the system will try to switch from station to Op.",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, and restart the controller， or contact technical support engineer."
+        },
+        "zh_CN": {
+            "description": "不在OP模式，在BOOT状态，系统将尝试切换从站到OP",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 60945,
+        "level": 0,
+        "en": {
+            "description": "Not in OP state, in Init state, the system will try to switch from station to Op.",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, and restart the controller， or contact technical support engineer."
+        },
+        "zh_CN": {
+            "description": "不在OP状态，在Init状态，系统将尝试切换从站到OP",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 60946,
+        "level": 0,
+        "en": {
+            "description": "Not in OP state, in PREOP state, the system will try to switch from station to Op.",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, and restart the controller， or contact technical support engineer."
+        },
+        "zh_CN": {
+            "description": "不在OP状态，在PREOP状态，系统将尝试切换从站到OP",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 60948,
+        "level": 0,
+        "en": {
+            "description": "Not in OP state, in SAFEOP state, the system will try to switch from station to Op.",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, and restart the controller， or contact technical support engineer."
+        },
+        "zh_CN": {
+            "description": "不在OP状态，在SAFEOP状态，系统将尝试切换从站到OP",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 60949,
+        "level": 0,
+        "en": {
+            "description": "Not in OP state, but may be offline.",
+            "cause": "",
+            "solution": "Check whether the hardware is working properly, and restart the controller， or contact technical support engineer."
+        },
+        "zh_CN": {
+            "description": "不在OP状态,可能在离线状态",
+            "cause": "",
+            "solution": "检查硬件是否正常并重新启动，或联系技术支持工程师"
+        }
+    },
+    {
+        "id": 29584,
+        "level": 1,
+        "en": {
+            "description": "Large deviation of joint position",
+            "cause": "",
+            "solution": "1. Check production parameters; 2. Check encoder installation; 3. Check transmission structure"
+        },
+        "zh_CN": {
+            "description": "关节位置偏差大",
+            "cause": "",
+            "solution": "1.检查生产参数 2.检查编码器安装 3.检查传动结构"
+        }
+    }
+]

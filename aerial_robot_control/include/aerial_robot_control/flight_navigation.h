@@ -491,6 +491,9 @@ namespace aerial_robot_navigation
       if(!teleop_flag_) return;
 
       setNaviState(LAND_STATE);
+
+      setTargetXyFromCurrentState();
+      setTargetYawFromCurrentState();
       ROS_INFO("Land state");
     }
 

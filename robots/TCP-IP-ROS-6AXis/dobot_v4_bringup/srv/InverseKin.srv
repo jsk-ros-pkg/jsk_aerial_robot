@@ -1,0 +1,12 @@
+float64 X
+float64 Y
+float64 Z
+float64 Rx
+float64 Ry
+float64 Rz
+string  useJointNear 
+string  jointNear
+string  user
+string  tool
+---
+int32 res

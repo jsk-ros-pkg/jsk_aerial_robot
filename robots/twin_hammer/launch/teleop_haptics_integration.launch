@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_name" default="gimbalrotor" />
+  <arg name="control_mode" default="pos" />
+  <arg name="mocap_debug_mode" default="false" />
+
+  <node name="teleop_haptics_integration" pkg="twin_hammer" type="teleop_haptics_integration.py" output="screen" >
+    <param name="robot_name" value="$(arg robot_name)" />
+    <param name="control_mode" value="$(arg control_mode)" />
+  </node>
+
+  <include file="$(find twin_hammer)/launch/include/mocap.launch" if="$(arg mocap_debug_mode)" /> 
+
+</launch>

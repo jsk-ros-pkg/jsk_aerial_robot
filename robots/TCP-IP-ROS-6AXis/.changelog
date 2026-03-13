@@ -1,0 +1,3 @@
+1/31  新增/dobot_bringup/srv/ServoJParam服务, 设置moveit-servoj的可选参数t,lookahead_time,gain
+1/15  添加话题/msg/FeedInfo,发布30004端口所有机器反馈信息
+2024/1/09  新增cr7和cr12 moveit和仿真

@@ -1,0 +1,62 @@
+# haptics_params.yaml
+# Put this file in the same directory as haptics_feedback_node.py
+# Tweak these values according to your device and safety needs.
+
+# timing
+dt: 0.01  # s, 100 Hz
+
+##########
+# for gimbalrotor
+# energy tank
+Etank_0: 1.0
+Etank_max: 2.0
+
+# scaling gains
+kscale_trans: 2.0
+kscale_rot: 1.0
+
+# feedback wrench limit
+force_limit: 15
+force_diff_limit: 0.1
+torque_limit: 3
+torque_diff_thre: 0.01
+
+# for me6 
+Etank_0: 0.5
+Etank_max: 1.0
+
+# scaling gains
+kscale_trans: 0.5
+kscale_rot: 0.5
+
+# feedback wrench limit
+force_limit: 15
+force_diff_limit: 0.5
+torque_limit: 3
+torque_diff_thre: 0.1
+##########
+
+# RLS
+lambda_r: 0.995
+Q0_diag: [100.0, 100.0, 100.0]
+
+# initial estimated dynamics (per-axis)
+M0_trans: 1.0
+B0_trans: 1.0
+K0_trans: 100.0
+
+M0_rot: 0.001
+B0_rot: 0.01
+K0_rot: 1.0
+
+# thresholds and constants
+P_thre: 0.001
+alpha_const: 0.1
+eps_v: 0.000001
+dconst: 1.0
+dmax: 1000.0
+
+# filters
+ema_vel: 0.9
+ema_acc: 0.9
+est_medfilt_window : 7

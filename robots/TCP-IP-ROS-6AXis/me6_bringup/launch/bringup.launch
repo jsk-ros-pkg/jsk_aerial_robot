@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="real_machine" default="true" />
+  <arg name="simulation" default="false" />
+  <arg name="moveit" default="false" />
+
+  <include file="$(find me6_bringup)/launch/rviz.launch" unless="$(arg moveit)" >
+    <arg name="need_state_publisher" value="false" if="$(eval arg('simulation') and not arg('real_machine'))" />
+    <arg name="use_gui" value="true" if="$(eval not arg('simulation') and not arg('real_machine'))" />
+  </include>
+
+  <group if="$(eval not arg('simulation') and arg('real_machine'))" >
+    <include file="$(find dobot_v4_bringup)/launch/bringup_v4.launch" />
+    <node name="me6_init" pkg="me6_bringup" type="me6_init.py" output="screen" />
+    <include file="$(find me6_moveit)/launch/demo.launch" if="$(arg moveit)" />
+  </group>
+
+  <group if="$(eval arg('simulation') and not arg('real_machine'))" >
+    <group if="$(arg moveit)">
+      <include file="$(find me6_moveit)/launch/demo_gazebo.launch" />
+    </group>
+    <group unless="$(arg moveit)">
+      <include file="$(find dobot_gazebo)/launch/gazebo.launch" />
+    </group>
+  </group>
+
+  <group if="$(eval not arg('simulation') and not arg('real_machine') and arg('moveit'))" >
+    <include file="$(find dobot_moveit)/launch/demo.launch" />
+  </group>
+
+</launch>

@@ -1,0 +1,22 @@
+{
+  "map_json": "wall_map.json",
+  "out_npz": "sdf_potential.npz",
+  "out_meta": "sdf_potential_meta.json",
+  "grid": {
+    "nx": 401,
+    "ny": 401,
+    "nz": 201,
+    "res": 0.01,
+    "xmin": -2.0,
+    "xmax": 2.0000000000000036,
+    "ymin": -2.0,
+    "ymax": 2.0000000000000036,
+    "zmin": 0.0,
+    "zmax": 2.0
+  },
+  "sample_res": 0.006,
+  "decay_mode": "rational",
+  "max_potential": 1.0,
+  "cutoff_distance": 2.0,
+  "num_walls": 10
+}

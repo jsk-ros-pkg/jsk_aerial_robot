@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: dobot_description
+    relative_path: urdf/cr12_robot.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/cr12_robot.srdf
+  CONFIG:
+    author_name: wuyongfeng
+    author_email: wuyongfeng@dobot-robots.com
+    generated_timestamp: 1704790525

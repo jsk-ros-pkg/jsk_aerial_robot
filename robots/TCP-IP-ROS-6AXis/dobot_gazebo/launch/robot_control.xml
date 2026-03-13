@@ -1,0 +1,11 @@
+<launch>
+  <!--Load the joint controllers to param server-->
+  <arg name="DOBOT_TYPE" default="$(env DOBOT_TYPE)" />
+  <rosparam file="$(find dobot_gazebo)/config/$(arg DOBOT_TYPE)_moveit_controllers.yaml" command="load"/>
+
+  <!--Load controllers-->
+  <node name="spawner" pkg="controller_manager" type="spawner" respawn="false"
+    output="screen" ns="/$(arg DOBOT_TYPE)_robot" args="
+joint_controller
+joint_state_controller"/>
+</launch>

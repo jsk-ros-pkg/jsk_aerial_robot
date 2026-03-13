@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="image_width" default="1280" />
+  <arg name="image_height" default="720" />
+  <arg name="robot_ns" default="gimbalrotor" />
+    
+  <!-- USB camera -->
+  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video4" />
+    <param name="image_width" value="$(arg image_width)" />
+    <param name="image_height" value="$(arg image_height)" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="color_format" value="yuv422p" />
+    <param name="framerate" value="10"/>
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="io_method" value="mmap"/>
+    <param name="camera_info_url" value="file://$(find twin_hammer)/config/ost.yaml" />
+  </node>
+
+  <!-- image proc -->
+  <!-- <node name="image_proc" pkg="image_proc" type="image_proc" output="screen">
+    <remap from="image_raw" to="/$(arg robot_ns)/usb_cam/image_raw"/>
+    <remap from="camera_info" to="/$(arg robot_ns)/usb_cam/camera_info"/>
+    <remap from="image_rect_color" to="/$(arg robot_ns)/usb_cam/image_rect_color" />
+  </node> -->
+
+
+</launch>

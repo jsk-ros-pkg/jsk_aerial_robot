@@ -1,0 +1,9 @@
+<library path="lib/librviz_dobot_control">
+    <class name="rviz_dobot_control/DobotControl"
+           type="rviz_dobot_control::DobotControl"
+           base_class_type="rviz::Panel">
+        <description>
+            Dobot simple control
+        </description>
+    </class>
+</library>

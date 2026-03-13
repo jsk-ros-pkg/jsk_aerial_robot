@@ -1,0 +1,6 @@
+int32 baudRate
+int32 dataLen
+string parityBit
+int32 stopBit
+---
+int32 res

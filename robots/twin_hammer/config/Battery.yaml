@@ -1,0 +1,6 @@
+bat_info:
+        bat_cell: 6
+        bat_resistance: 0.33 # (offset, b) [Ohm]
+        bat_resistance_voltage_rate: -0.01
+        hovering_current: 22 #[A]
+        low_voltage_thre: 5 #[100%]

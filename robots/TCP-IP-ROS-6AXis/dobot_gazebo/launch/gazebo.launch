@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="DOBOT_TYPE" default="$(env DOBOT_TYPE)" />
+  <include file="$(find dobot_gazebo)/launch/$(arg DOBOT_TYPE)_robot_description.xml"/>
+  <include file="$(find dobot_gazebo)/launch/robot_control.xml"/>
+
+  <!--Launch a gazebo world-->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+    <arg name="world_name" value="$(find dobot_gazebo)/worlds/willow_garage.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  <node 
+     name="urdf_spawner" 
+     pkg="gazebo_ros" 
+     type="spawn_model" 
+     respawn="false" output="screen"
+     args="-urdf -param robot_description -model $(arg DOBOT_TYPE)_robot"/>
+
+</launch>

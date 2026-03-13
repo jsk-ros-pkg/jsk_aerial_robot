@@ -1,0 +1,367 @@
+<?xml version="1.0"?>
+<robot
+   xmlns:xacro="http://www.ros.org/wiki/xacro" name="twin_hammer" >
+  
+ <baselink name="fc" />
+ <thrust_link name="thrust" />
+ <xacro:property name="pi" value="3.1415926535897931" />
+
+
+ <!-- kinematics [m] -->
+ <xacro:property name="rod_length" value="1.0" />
+ <xacro:property name="link_length" value=".424" />
+ <xacro:property name="gimbal_roll_x_offset" value="0.0362" />
+ <xacro:property name="gimbal_pitch_x_offset" value="0.0065" />
+ <xacro:property name="gimbal_pitch_z_offset" value="0.0265" />
+
+
+ <!-- dynamics -->
+ <m_f_rate value="0" /> <!-- drug torque rate -->
+ <xacro:property name="max_force" value="30" /> <!-- [N] -->
+ <xacro:property name="min_force" value="2" /> <!-- [N] -->
+
+
+ <!-- friction -->
+ <xacro:macro name="friction" params="self">
+   <gazebo reference="link${self}">
+     <mu1>0.4</mu1>
+     <mu2>0.4</mu2>
+   </gazebo>
+ </xacro:macro>
+
+ <xacro:macro name="damping_factor" params="link">
+   <gazebo reference="main_body">
+     <dampingFactor>0.00</dampingFactor>
+   </gazebo>
+ </xacro:macro>
+
+ <!-- ft_sensor -->
+ <xacro:macro name="add_ft_sensor" params="joint_name sensor_topic_name">
+  <gazebo reference="${joint_name}">
+    <sensor type="force_torque" name="${joint_name}_sensor">
+      <always_on>true</always_on>
+      <update_rate>100.0</update_rate>
+      <joint_name>${joint_name}</joint_name>
+      <plugin name="${joint_name}_gazebo_ros_ft_sensor" filename="libgazebo_ros_force_torque.so">
+        <ros>
+          <namespace>/twin_hammer</namespace>
+          <remapping>sensor_data:=${sensor_topic_name}</remapping>
+        </ros>
+      </plugin>
+    </sensor>
+  </gazebo>
+ </xacro:macro>
+ <!-- <xacro:macro name="rotor" params="number"> -->
+ 
+
+ <!-- gimbal unit with rotor -->
+ <xacro:macro name="gimbal_unit" params="id"> <!-- id:1 is spinal side, id:2 is another side-->
+    <!-- gimbal roll -->
+   <joint name="gimbal${id}_roll" type="revolute">
+     <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+     <parent link="main_body"/>
+     <child link="gimbal${id}_roll_module"/>
+     <xacro:if value="${id == 1}" >
+       <origin rpy="0 0 0" xyz="${rod_length*0.5 - gimbal_roll_x_offset} 0 0"/>
+     </xacro:if>
+     <xacro:if value="${id == 2}" >
+       <origin rpy="0 0 ${pi}" xyz="${gimbal_roll_x_offset - rod_length*0.5} 0 0"/>
+     </xacro:if>
+     <axis xyz="1 0 0"/>
+     <dynamics damping="0.1" friction="0.0"/>
+   </joint>
+   <link name="gimbal${id}_roll_module">
+     <inertial>
+       <origin xyz="-0.0151 0.0012 0.0233" rpy="0 0 0"/>
+       <mass value="0.3335" />
+       <inertia
+           ixx="0.0008" iyy="0.0009" izz="0.0003"
+           ixy="0" ixz="-0.0002" iyz="0"/>
+     </inertial>
+     <visual>
+       <xacro:if value="${id == 1}">
+         <origin xyz="0 0 0" rpy="0 0 0"/>
+       </xacro:if>
+       <xacro:if value="${id == 2}">
+         <origin xyz="0 0 0" rpy="0 0 ${pi}"/>
+       </xacro:if>
+       <geometry>
+         <mesh filename="package://twin_hammer/urdf/mesh/gimbal_roll_module.dae" scale="0.001 0.001 0.001"/>
+       </geometry>
+     </visual>
+     <!-- box collision not work good for FCL
+     <collision>
+       <origin rpy="0 0 0" xyz="${gimbal_roll_x_offset}  0 0"/>
+       <geometry>
+         <box size="0.103 0.064 0.156"/>
+       </geometry>
+     </collision>
+     -->
+     <!-- cylinder collision geometry works well for FCL -->
+     <collision>
+       <origin rpy="${pi/2} 0 0" xyz="0 0 0"/>
+       <geometry>
+         <cylinder length="0.3" radius="0.10" />
+       </geometry>
+     </collision>
+   </link>
+
+
+   <!-- gimbal pitch -->
+   <joint name="gimbal${id}_pitch" type="revolute">
+     <limit effort="3" lower="-3.14" upper="3.14" velocity="12.5"/>
+     <parent link="gimbal${id}_roll_module"/>
+     <child link="gimbal${id}_pitch_module"/>
+     <xacro:if value="${id == 1}" >
+       <origin rpy="0 0 0" xyz="${gimbal_pitch_x_offset} 0 ${gimbal_pitch_z_offset}"/>
+     </xacro:if>
+     <xacro:if value="${id == 2}" >
+       <origin rpy="0 0 0" xyz="${-gimbal_pitch_x_offset} 0 ${gimbal_pitch_z_offset}"/>
+     </xacro:if>
+     <axis xyz="0 1 0"/>
+     <dynamics damping="0.1" friction="0.0"/>
+   </joint>
+   <link name="gimbal${id}_pitch_module">
+     <inertial>
+       <origin xyz="0 0.0005 -0.0092" rpy="0 0 0"/>
+       <mass value="0.5276" />
+       <inertia
+           ixx="0.0063" iyy="0.0004" izz="0.0062"
+           ixy="0.0" ixz="0.0" iyz="0.0"/>
+     </inertial>
+     <visual>
+       <xacro:if value="${id == 1}" >
+         <origin xyz="0 0 0" rpy="0 0 0"/>
+       </xacro:if>
+       <xacro:if value="${id == 2}" >
+         <origin xyz="0 0 0" rpy="0 0 ${pi}"/>
+       </xacro:if>
+       <geometry>
+         <mesh filename="package://twin_hammer/urdf/mesh/gimbal_pitch_module.dae" scale="0.001 0.001 0.001"/>
+       </geometry>
+     </visual>
+   </link>
+
+
+   <!-- rotor -->
+   <joint name="rotor${id}" type="continuous">
+     <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+     <parent link="gimbal${id}_pitch_module"/>
+     <child link="thrust${id}"/>
+     <origin rpy="0 0 0" xyz="0 0.1115 0"/>
+     <axis xyz="0 0 1"/>
+   </joint>
+   <link name="thrust${id}">
+     <inertial>
+       <origin xyz="0 0 0" rpy="0 0 0"/>
+       <mass value="0.0001"/>
+       <inertia
+           ixx="0.00001" ixy="0.0" ixz="0.0"
+           iyy="0.00001" iyz="0.0"
+           izz="0.00002"/>
+     </inertial>
+   </link>
+
+   <joint name="rotor${id+2}" type="continuous">
+     <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+     <parent link="gimbal${id}_pitch_module"/>
+     <child link="thrust${id+2}"/>
+     <origin rpy="0 0 0" xyz="0 -0.1115 0"/>
+     <axis xyz="0 0 1"/>
+   </joint>
+   <link name="thrust${id+2}">
+     <inertial>
+       <origin xyz="0 0 0" rpy="0 0 0"/>
+       <mass value="0.0001"/>
+       <inertia
+           ixx="0.00001" ixy="0.0" ixz="0.0"
+           iyy="0.00001" iyz="0.0"
+           izz="0.00002"/>
+     </inertial>
+   </link>
+
+   <!-- special part of duct fun -->
+   <joint name="edf${id}_left_mount" type="fixed">
+     <child link="edf${id}_left"/>
+     <parent link="gimbal${id}_pitch_module"/>
+     <origin rpy="0 0 0" xyz="0 0.1115 0 "/>
+     <axis xyz="0 0 1"/>
+   </joint>
+   <link name="edf${id}_left">
+     <inertial>
+       <origin xyz="0 0 0" rpy="0 0 0"/>
+       <mass value="0.00001"/>
+       <inertia
+           ixx="0.000001" ixy="0.0" ixz="0.0"
+           iyy="0.000001" iyz="0.0"
+           izz="0.000002"/>
+     </inertial>
+   </link>
+   <joint name="edf${id}_right_mount" type="fixed">
+     <child link="edf${id}_right"/>
+     <parent link="gimbal${id}_pitch_module"/>
+     <origin rpy="0 0 0" xyz="0 -0.1115 0 "/>
+     <axis xyz="0 0 1"/>
+   </joint>
+   <link name="edf${id}_right">
+     <inertial>
+       <origin xyz="0 0 0" rpy="0 0 0"/>
+       <mass value="0.00001"/>
+       <inertia
+           ixx="0.000001" ixy="0.0" ixz="0.0"
+           iyy="0.000001" iyz="0.0"
+           izz="0.000002"/>
+     </inertial>
+   </link>
+   <xacro:damping_factor link ="thrust${id}"/>
+   <xacro:damping_factor link ="thrust${id+2}"/>
+
+   <!-- hardware interface -->
+   <transmission name="gimbal${id}_roll_tran">
+     <type>transmission_interface/SimpleTransmission</type>
+     <joint name="gimbal${id}_roll">
+       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+     </joint>
+     <actuator name="gimbal_servo{id}_roll">
+       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+       <mechanicalReduction>1</mechanicalReduction>
+     </actuator>
+   </transmission>
+   <transmission name="gimbal${id}_pitch_tran">
+     <type>transmission_interface/SimpleTransmission</type>
+     <joint name="gimbal${id}_pitch">
+       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+     </joint>
+     <actuator name="gimbal_servo{id}_pitch">
+       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+       <mechanicalReduction>1</mechanicalReduction>
+     </actuator>
+   </transmission>
+
+   <transmission name="rotor${id}_tran">
+     <type>transmission_interface/SimpleTransmission</type>
+     <joint name="rotor${id}">
+       <hardwareInterface>RotorInterface</hardwareInterface>
+     </joint>
+     <actuator name="rotor${id}">
+       <hardwareInterface>RotorInterface</hardwareInterface>
+       <mechanicalReduction>1</mechanicalReduction>
+     </actuator>
+     </transmission>
+   <transmission name="rotor${id+2}_tran">
+     <type>transmission_interface/SimpleTransmission</type>
+     <joint name="rotor${id+2}">
+       <hardwareInterface>RotorInterface</hardwareInterface>
+     </joint>
+     <actuator name="rotor${id+2}">
+       <hardwareInterface>RotorInterface</hardwareInterface>
+       <mechanicalReduction>1</mechanicalReduction>
+     </actuator>
+     </transmission>
+   <!-- <xacro:friction self ="${self}"/> -->
+
+ </xacro:macro>
+
+
+ <!-- dummy root link for KDL -->
+ <link name="root">
+   <inertial>
+     <origin xyz="0 0 0" rpy="0 0 0"/>
+     <mass value="0.00001"/>
+     <inertia
+         ixx="0.000001" ixy="0.0" ixz="0.0"
+         iyy="0.000001" iyz="0.0"
+         izz="0.000002"/>
+   </inertial>
+ </link>
+ <joint name="root_joint" type="fixed">
+   <parent link="root"/>
+   <child link="main_body"/>
+   <origin rpy="0 0 0" xyz="0 0 0"/>
+   <axis xyz="0 0 1"/>
+ </joint>
+
+ <!-- when fix main body  -->
+ <!-- <link name="dummy_weight">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="100"/>
+      <inertia
+          ixx="100" ixy="100" ixz="100"
+          iyy="100" iyz="100"
+          izz="100"/>
+    </inertial>
+    <collision>
+     <origin rpy="0 0 0" xyz="0 0 0"/>
+     <geometry>
+        <box size="0.5 0.5 1.0"/>
+     </geometry>
+   </collision>
+ </link>
+ <joint name="dummy_weight_joint" type="fixed">
+    <parent link="dummy_weight"/>
+    <child link="root"/>
+    <origin rpy="0 0 0" xyz="0 0 1.0"/>
+  </joint> -->
+  <!-- ft_sensor_gazebo joint -->
+  <!-- <joint name="root_to_dummyweight_joint" type="fixed">
+    <parent link="dummy_weight"/>
+    <child link="root"/>
+    <origin xyz="0 0 1.0" rpy="0 0 0"/>
+    <xacro:add_ft_sensor joint_name="root_to_dummyweight_joint" sensor_topic_name="/gazebo_ft_sensor"/>
+  </joint> -->
+
+ <!-- main_body -->
+ <link name="main_body">
+   <inertial>
+     <mass value = "1.2" />
+     <origin xyz="0.1356 -0.0001 -0.0139" rpy="0 0 0"/>
+     <inertia
+         ixx="0.0002" ixy="0" ixz="-0.0007"
+         iyy="0.0175" iyz="0"
+         izz="0.0174"/>
+   </inertial>
+   <visual>
+     <origin rpy="${pi/2} 0 ${pi/2}" xyz="-0.8 0 0"/>
+     <geometry>
+       <mesh filename="package://twin_hammer/urdf/mesh/main_body.dae" scale="0.001 0.001 0.001"/>
+     </geometry>
+   </visual>
+   <collision>
+    <!--
+     <origin rpy="0 ${pi/2} 0" xyz="0 0 0"/>
+     <geometry>
+       <cylinder length="${rod_length}" radius="0.125" />
+     </geometry>
+     -->
+     <origin rpy="0 0 0" xyz="0 0 0"/>
+     <geometry>
+         <box size="${rod_length} 0.15 0.15"/>
+     </geometry>
+   </collision>
+ </link>
+
+ <!-- spinal -->
+ <link name="fc">
+ <inertial>
+   <origin xyz="0 0 0" rpy="0 0 0"/>
+   <mass value="0.00001"/>
+   <inertia
+       ixx="0.000001" ixy="0.0" ixz="0.0"
+       iyy="0.000001" iyz="0.0"
+       izz="0.000002"/>
+ </inertial>
+ </link>
+ <joint name="fc_joint" type="fixed">
+   <child link="fc"/>
+   <parent link="main_body"/>
+   <origin rpy="0 0 0" xyz="0.2341 0 0.0292"/>
+   <axis xyz="0 0 1"/>
+ </joint>
+
+
+ <xacro:gimbal_unit id="1" />
+ <xacro:gimbal_unit id="2" />
+
+</robot>
+

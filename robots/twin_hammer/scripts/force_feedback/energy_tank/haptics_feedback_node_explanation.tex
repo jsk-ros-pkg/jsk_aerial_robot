@@ -1,0 +1,432 @@
+% \documentclass[a4paper,12pt]{article}
+\documentclass[uplatex]{jsarticle}
+\usepackage{otf}
+
+\usepackage{amsmath, amssymb, bm}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{physics}
+\usepackage{booktabs}
+\geometry{margin=25mm}
+\title{オペレータモデルを含むエネルギー保存則によるハプティクスフィードバック生成法}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+% \section{Overview}
+
+
+\section{テレオペレーションシステムにおけるエネルギー収支}
+
+\begin{itemize}
+  \item $\bm{w}\in\mathbb{R}^6$ はそのポートが\textbf{対象に対して作用するレンチ}を表す。
+  \item $\bm{v}\in\mathbb{R}^6$ はそのポートのツイスト(並進速度・角速度)を表す(並進は \si{m}, 並進速度は \si{m/s}、回転は \si{rad}, 角速度は \si{rad/s})。
+  \item ポートから対象へ移動するパワーは
+  \[
+    P_{\text{port}} \;=\; \bm{w}^\top \bm{v}.
+  \]
+\end{itemize}
+
+ロボットとデバイスからなるシステムのエネルギーの総量を考える。
+ロボットが環境物体と、デバイスがオペレータと、それぞれ力を及ぼし合うことで、1サイクル(ステップ$i\to i+1$)の間に以下のようにエネルギーが流れる。
+ただしシステムからの流出を正とする。
+
+・ロボットと環境物体とのエネルギー収支
+\begin{equation}
+  P_{\text{env}}(i) = \bm{w}_{\text{robot}}^\top(i) \bm{v}_{\text{robot}}(i) - \bm{w}_{\text{env}}^\top(i) \bm{v}_{\text{robot}}(i)
+\end{equation}
+環境物体が静止しているとき、$\bm{w}_{\text{robot}}(i) = \bm{w}_{\text{env}}(i)$なので、
+\begin{equation}
+  P_{\text{env}}(i) = 0
+\end{equation}
+である。
+
+・デバイスとオペレータとのエネルギー収支
+\begin{equation}
+  P_{\text{op}}(i) = \bm{w}_{\text{feedback}}^\top(i+1) \bm{v}_{\text{hand}}(i+1) - \bm{w}_{\text{hand}}^\top(i) \bm{v}_{\text{hand}}(i)
+\end{equation}
+今回はオペレータへのフィードバックレンチ$\bm{w}_{\text{feedback}}^\top(i+1)$を決定するため、$\bm{v}_{\text{hand}}(i+1)$を予測する必要がある。
+(デバイスからオペレータへのパワーのみステップ$i+1$を考えているが、離散時間でのエネルギーを考える際には、1ステップ間でパワーが変化しない矩形近似として考えるため、1つ先のステップでのパワーを予測して用いることができる。)
+また、$\bm{w}_{\text{hand}}^\top(i)$は直接計測できないため、推定する必要がある。
+これらの値は以下で示すオペレータモデルから求める。
+$\bm{v}_{\text{hand}}(i)$はMocapから計測できる。
+ただし計測値のノイズへの対処が必要である。
+
+
+\section{オペレータのインピーダンスモデル}
+\subsection{オペレータのモデル化}
+オペレータのインピーダンスモデルは以下で与えられる。
+\begin{equation}\label{operator_model_eq}
+  F(t) = M \ddot{x}(t) + B \dot{x}(t) + K (x(t) - x_{\text{ref}})
+\end{equation}
+ここで、$F(t)$はオペレータの手に与えられる力で、$M, B, K$ はそれぞれ等価質量、粘性、剛性であり、時間に依存して変化する。
+また$x_{\text{ref}}$はオペレータの参照原点であり、テレオペ開始時の脱力した状態での位置、すなわちテレオペの指令送信で用いるオペレータ系の初期位置を用いる。
+このモデルが6次元のレンチの各要素についてそれぞれ成立すると仮定する。(並進と回転では各物理量の単位が異なることに注意)
+
+離散時間表現により、次の線形回帰式に変換できる。
+\begin{equation}
+  F_i \approx \bm{\phi}_i^\top \bm{\theta}_i \quad 
+  \bm{\phi}_i = \begin{bmatrix} \ddot{x}_i & \dot{x}_i & x_i - x_{\text{ref}} \end{bmatrix}^\top
+  \quad \bm{\theta}_i = \begin{bmatrix} M_i & B_i & K_i \end{bmatrix}^\top
+\end{equation}
+
+\subsection{オペレータのインピーダンス推定}
+先の離散時間表現は最小二乗法に適しており、逐次最小二乗法(RLS)によってオンライン推定できる。
+オペレータのインピーダンス$\bm{\theta}_i = \begin{bmatrix} M_i & B_i & K_i \end{bmatrix}^\top$を$\bm{\theta}_{i-1}$から推定する。
+RLSによる更新式は以下の通り(詳しくは\url{https://manabitimes.jp/math/2084}を参照)
+\begin{equation}
+  Q_i = \frac{1}{\lambda} (Q_{i-1} - \frac{Q_{i-1} \bm{\phi}_i \bm{\phi}_i^\top Q_{i-1}}{\lambda + \bm{\phi}_i^\top Q_{i-1} \bm{\phi}_i})
+\end{equation}
+\begin{equation}
+  \bm{\theta}_i = \bm{\theta}_{i-1} + Q_i \bm{\phi}_i (y_i - \bm{\phi}_i^\top \bm{\theta}_{i-1})
+\end{equation}
+ただし$\bm{\phi}_i = \begin{bmatrix} \ddot{x}_i & \dot{x}_i & {x}_i \end{bmatrix}^\top$で、$y_i = f_{\text{feedback}}(i-1)$は前ステップにオペレータに提示したレンチ成分である。
+本来この$y_i$は実測値を用いるべきだが、現在のデバイスにはセンサがないため、前ステップでのコマンド値を利用する。
+また、$\lambda \in (0,1]$は忘却因子であり、古いデータの影響度を決めるものである。
+$Q_0$は初期共分散行列である。
+
+\subsection{オペレータがフィードバックレンチを受けた際の手のツイストの予測}
+ロボットで計測されたレンチをスケールしたもの$\bm{w}_{\text{cand}}(i+1) = \bm{k}_{\text{scale}} \odot \bm{w}_{\text{robot,measured}}(i)$をオペレータに提示したと仮定する。
+($\odot$はアダマール積で、各要素ごとの積である)
+
+式(\ref{operator_model_eq})よりオペレータの手の加速度は以下のように求められる。
+(位置、姿勢の各要素について)
+\begin{equation}
+  \ddot{x}(i) = \frac{1}{M_i} (w_{\text{cand},j}(i) - B_i \dot{x}(i) - K_i x(i))
+\end{equation}
+これよりオペレータの手の応答ツイスト$\bm{v}_{\text{hand}}(i+1)$の各要素は以下のように予測できる。
+\begin{equation}
+  \dot{x}(i+1) \approx \dot{x}(i) + \ddot{x}(i) \Delta t = \dot{x}(i) + \frac{\Delta t}{M_i} (w_{\text{cand},j}(i) - B_i \dot{x}(i) - K_i x(i))
+\end{equation}
+予測値はモーションキャプチャでの測定値に基づくものであるため、ノイズが多く乗っている。
+このノイズ対策のため中央値フィルタを用いる。
+
+\subsection{オペレータの応答レンチの推定}
+提示力を受けたオペレータは、それに対して押し返すように手を動かす。
+オペレータが発揮するレンチは、先のオペレータのモデルを用いて推定する。
+ステップ$i$でのオペレータの手の位置、速度、加速度はMocapから測定可能である。
+(ただしノイズの考慮が必要)
+この測定値からオペレータの発揮レンチ$\bm{w}_{\text{hand}}(i)$の各成分は以下のように推定できる。
+\begin{equation}
+  F_{\text{hand}}(i) = M_i \ddot{x}(i) + B_i \dot{x}(i) + K_i x(i)
+\end{equation}
+
+
+\section{システムのエネルギー収支と受動性保持のためのフィードバックレンチの決定法}
+以上までの議論から１サイクルでシステムから流出するエネルギー量は以下のようになる。
+\begin{equation}
+\begin{split}
+  \Delta E_{\text{pred}} &= P_{\text{op}}(i) \Delta t \\
+  &= \{ \bm{w}_{\text{cand}}^\top(i+1) \bm{v}_{\text{hand}}(i+1) - \bm{w}_{\text{hand}}^\top(i) \bm{v}_{\text{hand}}(i) \} \Delta t \\
+  &= \{ \bm{w}_{\text{cand}}^\top(i+1) \bm{v}_{\text{hand}}(i+1) - P_{\text{in}} \} \Delta t
+  \label{eq:energy_flow}
+\end{split}
+\end{equation}
+また、システムが蓄えているエネルギーを$E_{\text{tank}}$、その上限を$E_{\text{tank}}^{\text{max}}$、下限を$0$とする。
+このときシステムの蓄えたエネルギーは以下のように更新される。
+\begin{equation}
+  E_{\text{tank}}(i+1) = E_{\text{tank}}(i) - \Delta E_{\text{pred}}
+\end{equation}
+
+・$0 < E_{\text{tank}}(i+1) < E_{\text{tank}}^{\text{max}}$のとき、フィードバックレンチはスケーリングされたものをそのまま利用する。
+\begin{equation}
+  \bm{w}_{\text{feedback}} = \bm{w}_{\text{cand}}
+\end{equation}
+
+・$E_{\text{tank}}(i+1) < 0$のとき、システムに蓄えられたエネルギー以上をオペレータに流出させるために、システムが新たにエネルギーを生み出すことになり受動性を破る。
+そのため$E_{\text{tank}}(i+1) = 0$となるように流出エネルギーを減少させる必要がある。(簡単のため、下限までのエネルギー流出を許容する)
+これはQP(二次計画法)ベースで速度方向へフィードバックレンチを減少させることで実現する。
+詳細は次項で述べる。
+
+・$E_{\text{tank}}(i+1) > E_{\text{tank}}^{\text{max}}$のとき、システムのエネルギーが上限を超えるために受動性を破る。
+そのため$E_{\text{tank}}(i+1) = E_{\text{tank}}^{\text{max}}$となるようにシステムの蓄えるエネルギーを減少させる必要がある。(簡単のため、上限までのエネルギー流入を許容する)
+これはフィードバックレンチにダンパ項を加えることで、エネルギーを散逸させ実現する。
+ダンパ項の決定方法は次々項で述べる。
+
+\subsection{QPベースでのフィードバックレンチ減少による流出エネルギーの縮小}
+フィードバックレンチを減少させるためにスケーリングを行う。
+修正方向を速度ベクトル$\bm{v}_{\text{hand}}(i+1)$に沿わせることで、オペレータが感じる力覚の方向性は変化せず、直感的な操作感を保ったまま受動性を保証できる。  
+
+「$\bm{w}_{\text{cand}}$に最も近い$\bm{w}_{\text{feedback}}$を選択しつつ、タンクエネルギーが負にならないようにする」ことを目的とし、最適化により$\bm{w}_{\text{feedback}}$を決定する。
+最適化問題は以下のように定義できる。
+\begin{align}
+  \min_{\bm{w}_{\text{feedback}}} \quad & \frac{1}{2} \left\| \bm{w}_{\text{feedback}} - \bm{w}_{\text{cand}} \right\|^2 \label{eq:qp_obj}\\
+  \mathrm{s.t.} \quad &
+  E_{\text{tank}}(i) - \left( \bm{w}_{\text{feedback}}^{\text{T}} \bm{v}_{\text{hand}} - P_{\text{in}} \right) \Delta t \ge 0 \label{eq:qp_const}
+\end{align}
+ただし、$\bm{w}_{\text{feedback}}^{\text{T}}$と$\bm{v}_{\text{hand}}$は式(\ref{eq:energy_flow})と同様にステップ$i+1$の値である。
+
+制約式(\ref{eq:qp_const})は$\bm{w}_{\text{feedback}}$に対して線形であるため、問題(\ref{eq:qp_obj})--(\ref{eq:qp_const})は凸二次計画問題として定式化される。
+このような問題は、ラグランジュの未定乗数法のKKT条件によって解くことができ、ソルバーによる重い計算は不要となる。
+ラグランジュ乗数$\lambda \ge 0$を導入すると、ラグランジュ関数は
+\begin{equation}
+  \mathcal{L} = \frac{1}{2}\|\bm{w}_{\text{feedback}} - \bm{w}_{\text{cand}}\|^2 
+  + \lambda \left[ -E_{\text{tank}}(i) + \Delta t \left( \bm{w}_{\text{feedback}}^{\top} \bm{v}_{\text{hand}} - P_{\text{in}} \right) \right]
+\end{equation}
+となる。KKT条件から最適解は次式で得られる。
+\begin{equation}
+  \bm{w}_{\text{feedback}} = \bm{w}_{\text{cand}} - \lambda^\ast \Delta t \, \bm{v}_{\text{hand}}
+\end{equation}
+ここで$\lambda^\ast$はエネルギー制約が等号で成立する点を満たすように決定されるスカラーである。  
+すなわち、
+\begin{equation}
+  E_{\text{tank}}(i) - \Delta t \left( (\bm{w}_{\text{cand}} - \lambda^\ast \Delta t \bm{v}_{\text{hand}})^{\top} \bm{v}_{\text{hand}} - \bm{w}_{\text{hand}}^{\top} \bm{v}_{\text{hand}} \right) = 0
+\end{equation}
+を満たす$\lambda^\ast$を求めればよい。
+
+解法の詳細は\ref{sec:KKT}章を参照。$\lambda^\ast$は以下のようである。
+\begin{equation}
+  \lambda^\ast = \max\!\left(0,\; \frac{\bm{v}_{\text{hand}}^\top \bm{w}_{\text{cand}} - (\frac{E_{\text{tank}}(i)}{\Delta t} + P_{\text{in}})}{\bm{v}_{\text{hand}}^\top \bm{v}_{\text{hand}}} \right).
+\end{equation}
+このときのフィードバックレンチは
+\begin{equation}
+  \bm{w}_{\text{feedback}} = \bm{w}_{\text{cand}} - \lambda^\ast \bm{v}_{\text{hand}}.
+\end{equation}
+
+
+\subsection{ダンパ追加によるエネルギー散逸}
+ダンパを加えた場合のフィードバックレンチは以下のようである。
+\begin{equation}
+  \bm{w}_{\text{feedback}}(i+1) = \bm{w}_{\text{cand}}(i+1) + D_{\text{add}} \bm{v}_{\text{hand}}(i+1)
+\end{equation}
+ダンパを加えることでシステムからのエネルギー流出量は以下のように書き直せる。
+\begin{equation}
+\begin{split}
+  \frac {\Delta E_{\text{pred}}}{\Delta t} &= \{(\bm{w}_{\text{cand}}(i+1) + D_{\text{add}} \bm{v}_{\text{hand}}(i+1))^\top \bm{v}_{\text{hand}}(i+1) - P_{\text{in}}\} \\
+  &= \bm{w}_{\text{cand}}^\top(i+1) \bm{v}_{\text{hand}}(i+1) + \bm{v}_{\text{hand}}^\top(i+1) D_{\text{add}} \bm{v}_{\text{hand}}(i+1) - P_{\text{in}}
+\end{split}
+\end{equation}
+このとき、$E_{\text{tank}}(i+1) = E_{\text{tank}}^{\text{max}}$としたい。(簡単のため、上限までのエネルギー貯蓄を許容する)
+\begin{equation}
+  \bm{v}_{\text{hand}}^\top(i+1) D_{\text{add}} \bm{v}_{\text{hand}}(i+1) = \frac{E_{\text{tank}}(i) - E_{\text{tank}}^{\text{max}}}{\Delta t} - \bm{w}_{\text{cand}}^\top(i+1) \bm{v}_{\text{hand}}(i+1) + P_{\text{in}} := P_{\text{req}}
+\end{equation}
+これを満たす$D_{\text{add}}$を求める。
+
+$D_{\text{add}}$は各軸についてのダンピング係数を持つ対角行列$D_{\text{add}} = \text{diag}(d_1, \ldots, d_6) (d_j > 0)$とする。
+上式は以下のように書き換えられる。($\bm{v}_{\text{hand}}(i+1)$の各成分を$v_j$とおく)
+\begin{equation}
+  \sum_{j=1}^{6} d_j v_j^2 = P_{\text{req}}
+\end{equation}
+
+各軸ごとのパワーへの寄与からダンピング係数を決定する。
+\begin{equation}
+  p_j = \text{max}(0, w_{\text{cand},j} v_j)
+\end{equation}
+
+並進ブロック($j=1,2,3$)と回転ブロック($j=4,5,6$)に分割して考える。
+$P_{\text{req}}$のブロックごとの割当は
+\begin{equation}
+  P_{\text{req,trans}} = P_{\text{req}} \cdot \frac{\sum_{j=1}^{3} \text{max}(0,p_j)}{\sum_{j=1}^{6} \text{max}(0,p_j)}
+\end{equation}
+\begin{equation}
+  P_{\text{req,rot}} = P_{\text{req}} - P_{\text{req,trans}}
+\end{equation}
+
+各軸ごとの重みをパワーを元に正規化して考える。
+\begin{equation}
+  \hat{q}_j = \frac{p_j}{\sum_{k \in \text{block}} p_k}
+\end{equation}
+ただし$\sum_{k \in \text{block}} p_k \approx 0$のときは、$\hat{q}_j$が定義できないため、
+\begin{equation}
+  d_j = d_{\text{const}}
+\end{equation}
+と各ダンピング係数を予め決めた固定値とする。
+
+この重みを元に、以下のようにダンピング係数を仮定する。
+\begin{equation}
+  d_j = \kappa \frac{\hat{q}_j}{v_j^2 + \epsilon}
+\end{equation}
+$\epsilon$は、速度が小さいときにダンピング係数が過大になることを避けるための項である。
+
+\begin{equation}
+  P_{\text{req,block}} = \sum_{j \in \text{block}} d_j v_j^2 = \kappa \sum_{j \in \text{block}} \hat{q}_j \frac{v_j^2}{v_j^2+\epsilon}
+\end{equation}
+したがって、
+\begin{equation}
+  \kappa = \frac{P_{\text{req,block}}}{\sum_{j \in \text{block}} \hat{q}_j \frac{v_j^2}{v_j^2+\epsilon}}
+\end{equation}
+\begin{equation}
+  d_j = \frac{P_{\text{req,block}}}{\sum_{j \in \text{block}} \hat{q}_j \frac{v_j^2}{v_j^2+\epsilon}} \cdot \frac{\hat{q}_j}{v_j^2 + \epsilon}
+\end{equation}
+\begin{equation}
+  d_j = \text{min}(d_j, d_{\text{max}})
+\end{equation}
+
+フィードバックレンチは
+\begin{equation}
+  \bm{w}_{\text{feedback}}(i+1) = \bm{w}_{\text{cand}}(i+1) + D_{\text{add}} \bm{v}_{\text{hand}}(i+1), ~~ D_{\text{add}} = \text{diag}(d_1, \ldots, d_6)
+\end{equation}
+
+
+\section{ノード内での処理}
+rospyで実装する。
+以下の内容をメイン関数のループ内で行う。
+\begin{enumerate}
+  \item RLSによるオペレータのインピーダンス推定
+  \item オペレータがフィードバックレンチを受けた際の手のツイストの予測
+  \item オペレータが応答するレンチの推定
+  \item 1サイクルでのエネルギー流出量の計算とエネルギータンクの更新
+  \item エネルギータンク上限を超えた場合にはQPベースでフィードバックレンチのスケーリング
+  \item エネルギータンク下限を下回った場合にはフィードバックレンチにダンピングを追加
+\end{enumerate}
+
+
+\section{ラグランジュの未定乗数法とKKT条件}\label{sec:KKT}
+ここでは，式(\ref{eq:qp_obj})--(\ref{eq:qp_const})で定式化した二次計画問題の解析解を丁寧に導出する．
+特に最適性条件（Karush--Kuhn--Tucker，以下KKT条件）について一つ一つ示し，なぜ閉形式解
+\(\boldsymbol{w}_{\mathrm{fb}} = \boldsymbol{w}_{\mathrm{cand}} - \lambda^\ast \boldsymbol{v}_{\mathrm{pred}}\)
+という形になるかを明確にする。
+
+\subsection{最適化問題の再掲}
+以下を最小化する。
+\begin{align}
+ \min_{\boldsymbol{w}} \quad & \tfrac{1}{2}\|\boldsymbol{w}-\boldsymbol{w}_{\mathrm{cand}}\|^2 \label{eq:qp_obj_re}\\
+ \text{s.t.}\quad & \boldsymbol{a}^\top \boldsymbol{w} \le r, \label{eq:lin_const}
+\end{align}
+ここで簡明のために \(\boldsymbol{a} := \boldsymbol{v}_{\mathrm{pred}}\)，
+\(r := \dfrac{E_{\mathrm{tank}}}{\Delta t} + P_{\mathrm{in}}\) と置く．
+（元の不等式 \( \boldsymbol{v}_{\mathrm{pred}}^\top \boldsymbol{w} \le \dfrac{E_{\mathrm{tank}}}{\Delta t} + P_{\mathrm{in}} \) の記法を簡略化したものである．）
+
+\subsection{考え方（幾何学的直観）}
+目的関数はユークリッドノルムの二乗であり，したがって問題は「点 \(\boldsymbol{w}_{\mathrm{cand}}\) から最も近い，半空間 \(\{\boldsymbol{w}\mid \boldsymbol{a}^\top\boldsymbol{w}\le r\}\) 上の点を求める」問題と同値である．
+この観点からは，解は以下のいずれかであることが直観的に分かる：
+\begin{itemize}
+ \item \(\boldsymbol{w}_{\mathrm{cand}}\) が既に半空間内にある（制約非活性）場合はそのまま解である．
+ \item そうでない場合，\(\boldsymbol{w}_{\mathrm{cand}}\) を半空間に直交方向に投影した点が解である．
+\end{itemize}
+以下ではこの直観を KKT 条件によって厳密に導出する．
+
+\subsection{ラグランジュ関数}
+不等式制約 \(g(\boldsymbol{w}) = \boldsymbol{a}^\top \boldsymbol{w} - r \le 0\) に対してラグランジュ乗数 \(\lambda \ge 0\) を導入し，ラグランジュ関数を定義する：
+\begin{equation}
+ \mathcal{L}(\boldsymbol{w},\lambda) = \tfrac{1}{2}\|\boldsymbol{w}-\boldsymbol{w}_{\mathrm{cand}}\|^2 + \lambda\big(\boldsymbol{a}^\top\boldsymbol{w} - r\big).
+\end{equation}
+
+\subsection{KKT 条件}
+凸最適化における KKT 条件は次の4つである（ここでは凸性により必要十分条件となる）：
+
+\begin{enumerate}
+ \item \textbf{停留条件（Stationarity）}：
+       \[
+         \nabla_{\boldsymbol{w}}\mathcal{L} = \boldsymbol{0}
+         \quad\Longrightarrow\quad
+         \boldsymbol{w} - \boldsymbol{w}_{\mathrm{cand}} + \lambda \boldsymbol{a} = \boldsymbol{0}.
+       \]
+       すなわち
+       \begin{equation}\label{eq:stationarity}
+         \boldsymbol{w} = \boldsymbol{w}_{\mathrm{cand}} - \lambda \boldsymbol{a}.
+       \end{equation}
+
+ \item \textbf{実行可能性（Primal feasibility）}：
+       \[
+         \boldsymbol{a}^\top\boldsymbol{w} - r \le 0.
+       \]
+
+ \item \textbf{双対実行可能性（Dual feasibility）}：
+       \[
+         \lambda \ge 0.
+       \]
+
+ \item \textbf{相補性スラックネス（Complementary slackness）}：
+       \[
+         \lambda\big(\boldsymbol{a}^\top\boldsymbol{w} - r\big) = 0.
+       \]
+       すなわち \(\lambda>0\) のときは制約が等号で成り立ち，\(\lambda=0\) のときは制約は厳密不等号（非活性）でよい．
+\end{enumerate}
+
+\subsection{KKT からの解の導出}
+停留条件(\ref{eq:stationarity})より，任意の \(\lambda\) に対して \(\boldsymbol{w}\) は
+\(\boldsymbol{w}(\lambda)=\boldsymbol{w}_{\mathrm{cand}}-\lambda\boldsymbol{a}\) と表される．
+これを実行可能性条件に代入すると
+\[
+\boldsymbol{a}^\top\big(\boldsymbol{w}_{\mathrm{cand}} - \lambda\boldsymbol{a}\big) \le r
+\quad\Longrightarrow\quad
+\boldsymbol{a}^\top\boldsymbol{w}_{\mathrm{cand}} - \lambda \,\boldsymbol{a}^\top\boldsymbol{a} \le r.
+\]
+相補性スラックネスの観点から2通りのケースを分けて考える。
+
+\medskip\noindent
+\textbf{(A) 制約非活性（\(\lambda=0\)）の場合}：
+\[
+\lambda=0 \Rightarrow \boldsymbol{w}=\boldsymbol{w}_{\mathrm{cand}}.
+\]
+この場合は \(\boldsymbol{a}^\top\boldsymbol{w}_{\mathrm{cand}}\le r\) が成り立つ（元の $\boldsymbol{w}_{\mathrm{cand}}$ が既に半空間内）。
+
+\medskip\noindent
+\textbf{(B) 制約活性（\(\lambda>0\)）の場合}：
+相補性より \(\boldsymbol{a}^\top\boldsymbol{w}=r\) が成り立つ．ここに(\ref{eq:stationarity})を代入して
+\[
+\boldsymbol{a}^\top\big(\boldsymbol{w}_{\mathrm{cand}} - \lambda\boldsymbol{a}\big) = r
+\]
+を得る．これを \(\lambda\) について解くと，
+\begin{equation}\label{eq:lambda_closed}
+ \lambda^\ast = \frac{\boldsymbol{a}^\top\boldsymbol{w}_{\mathrm{cand}} - r}{\boldsymbol{a}^\top\boldsymbol{a}}.
+\end{equation}
+右辺が負ならば \(\lambda^\ast<0\) となるが，KKT の双対実行可能性 \(\lambda\ge 0\) より許されない．したがって実際の最適 \(\lambda\) は
+\begin{equation}\label{eq:lambda_proj}
+ \lambda^\ast = \max\!\left(0,\; \frac{\boldsymbol{a}^\top\boldsymbol{w}_{\mathrm{cand}} - r}{\boldsymbol{a}^\top\boldsymbol{a}} \right).
+\end{equation}
+そして最終的な最適解は停留条件により
+\begin{equation}\label{eq:w_opt}
+ \boldsymbol{w}_{\mathrm{fb}} = \boldsymbol{w}_{\mathrm{cand}} - \lambda^\ast \boldsymbol{a}.
+\end{equation}
+
+\subsection{解の解釈}
+式(\ref{eq:lambda_proj})は非常に直感的である．分子 \(\boldsymbol{a}^\top\boldsymbol{w}_{\mathrm{cand}} - r\) は「候補レンチを用いた場合の制約違反度（超過エネルギー流出量に比例）」を表し，分母 \(\boldsymbol{a}^\top\boldsymbol{a}=\|\boldsymbol{a}\|^2\) は速度ベクトルの大きさに比例する正規化項である．
+従って \(\lambda^\ast\) は「違反量を速度ノルムで割った値（＝修正の大きさ）」と解釈できる．
+また(\ref{eq:w_opt})より修正方向は常に \(\boldsymbol{a}=\boldsymbol{v}_{\mathrm{pred}}\) に一致するため，力の方向そのものは保存され，ユーザが感じる力覚の方向性は保持される。
+
+\subsection{数値実装上の注意}
+\begin{itemize}
+ \item 分母 \(\boldsymbol{a}^\top\boldsymbol{a}\) が極めて小さい（手がほぼ静止している）場合，数値不安定となるため小さな正の値 \(\varepsilon\) を加える（例：\(\|\boldsymbol{a}\|^2+\varepsilon\)）ことで安定化する．
+ \item デバイスの実効トルク・力制限（箱制約）を同時に考慮する場合，単一の線形制約だけでなく複数の不等式制約が生じ，解析的な閉形式解は一般には得られない．その場合は軽量QPソルバ（例：OSQP, qpOASES 等）の利用を検討する．
+ \item 実システムでは \(\boldsymbol{a}\)（速度予測）や \(r\)（エネルギー右辺）が推定誤差を含むため，\(\lambda^\ast\) の計算後に小さな余裕（安全マージン）を掛ける運用も検討すると良い（例：\(r \leftarrow \beta r\) , \(\beta\in(0,1)\)）。
+\end{itemize}
+
+\subsection{関係式の簡易実装（コード対応）}
+実際のコード中では次のような簡易式で実装している：
+\[
+\lambda^\ast=\max\!\left(0,\; \frac{\boldsymbol{v}_{\mathrm{pred}}^\top\boldsymbol{w}_{\mathrm{cand}} - \big(\dfrac{E_{\mathrm{tank}}}{\Delta t} + P_{\mathrm{in}}\big)}{\boldsymbol{v}_{\mathrm{pred}}^\top\boldsymbol{v}_{\mathrm{pred}} + \varepsilon}\right),
+\]
+\[
+\boldsymbol{w}_{\mathrm{fb}} = \boldsymbol{w}_{\mathrm{cand}} - \lambda^\ast \boldsymbol{v}_{\mathrm{pred}}.
+\]
+この実装は，解析的に導出したKKT解と一致し，計算コストが非常に小さいためハプティクス周期での運用に適している．
+
+
+\section{設計時の決定すべき変数}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l l}
+  \toprule
+  変数 & 単位 & 推奨オーダー／備考 \\
+  \midrule
+  $\Delta t$ & s & 0.001--0.01 (ハプティクスなら1~\si{ms}推奨) \\
+  $E_{\max}^{\text{tank}}$ & J & 1--50 (デスクトップ:1--10 \si{J}, 産業:10--50 \si{J}) \\
+  $E_{\text{tank}}(0)$ & J & 0--$E_{\max}$（安全優先なら小さめ） \\
+  $k_{\text{scale,trans}}$ & - & 0.3--0.5 (並進) \\
+  $k_{\text{scale,rot}}$ & - & 0.05--0.3 (回転) \\
+  $M_{0,\text{trans}}$ & kg & 0.1--5 (典型 0.5--2) \\
+  $M_{0,\text{rot}}$ & kg$\cdot$m$^2$ & $10^{-4}$ -- $10^{-1}$ (典型 $10^{-3}$) \\
+  $B_{0,\text{trans}}$ & Ns/m & 0.1--50 (典型 1--20) \\
+  $B_{0,\text{rot}}$ & Nms/rad & $10^{-3}$ -- 1 (典型 0.01--0.5) \\
+  $K_{0,\text{trans}}$ & N/m & 10--1000 (典型 50--500) \\
+  $K_{0,\text{rot}}$ & Nm/rad & 0.1--100 (典型 1--20) \\
+  $\lambda$ (RLS) & - & 0.98--0.9999 ($\Delta t$ に依存。1~\si{ms}で0.999なら有効記憶約1s) \\
+  $Q_0$ & - & 対角（大きめ）：例 diag(100,100,100)（スケール依存） \\
+  $\varepsilon_j$ & (速度)$^2$ & $v_{\text{scale}}^2$ (例 $v_{\text{scale}}=10^{-2}$ $\Rightarrow \varepsilon=10^{-4}$) \\
+  $\delta_{\text{denom}}$ & W & small positive (例 $10^{-6}$--$10^{-3}$) \\
+  $\delta_q$ & W & small positive (分母回避。例 $10^{-6}$--$10^{-3}$) \\
+  $d_{j,\max}$ & Ns/m または Nms/rad & デバイスの $F_{j,\max}/v_{j,\min}$ を基に決定、さらに安全余裕を取る \\
+  $F_{j,\max},\;T_{j,\max}$ & N, Nm & デバイス性能に依存（必須） \\
+  \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\end{document}

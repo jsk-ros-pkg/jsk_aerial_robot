@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: dobot_description
+    relative_path: urdf/nova2_robot.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/nova2_robot.srdf
+  CONFIG:
+    author_name: dobot
+    author_email: libobo@dobot.cc
+    generated_timestamp: 1676544319

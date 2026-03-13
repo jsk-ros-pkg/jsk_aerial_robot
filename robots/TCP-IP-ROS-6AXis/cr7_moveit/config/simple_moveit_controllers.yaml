@@ -1,0 +1,7 @@
+controller_list:
+  - name: cr7_robot
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      []

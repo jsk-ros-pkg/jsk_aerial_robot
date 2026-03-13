@@ -1,0 +1,4 @@
+string traceName
+string[] paramValue
+---
+int32 res
