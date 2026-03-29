@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="debug" default="false" />
+  <arg name="mocap" default="true" />
+  <arg name="headless" default="true" />
+  <arg name="real_machine" default="true" />
+  <arg name="simulation" default="false" />
+  <arg name="type" default="quad" />
+  <arg name="onboards_model" default="euclid_201709" />
+  <arg name="config_dir" default="$(find dragon)/config"/>
+  <arg name="robot_ns" value="dragon" />
+
+  ###### visualize ####
+  <group if = "$(arg debug)">
+    <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch"  >
+      <arg name="headless" value="false" />
+      <arg name="robot_model" value="$(find dragon)/robots/$(arg type)/$(arg onboards_model).urdf.xacro"/>
+      <arg name="robot_ns" value="dragon" />
+      <arg name="rviz_config" value="$(find dragon)/config/rviz_config" />
+      <arg name="rviz_init_pose" value="$(find dragon)/config/$(arg type)/RvizInit.yaml" />
+      <arg name="need_joint_state" value="false" />
+    </include >
+    <node pkg="tf" type="static_transform_publisher" name="static_cast" args="0 0 0 0 0 0 world dragon/root 100" />
+  </group>
+
+  ###### simulation ####
+  <group unless = "$(arg debug)">
+    <group if = "$(arg simulation)" >
+      <include file="$(find dragon)/launch/bringup.launch"  >
+        <arg name="headless" value="false" /> 
+        <arg name="real_machine" value="false" /> 
+        <arg name="simulation" value="true" /> 
+      </include >
+    </group>
+  </group>
+
+
+  ###### base position from mocap of real_avatar ####
+  <group if = "$(arg mocap)">
+    <group if = "$(arg real_machine)">
+      <node pkg="mocap_optitrack" type="mocap_node" name="avatar_mocap_node" respawn="false" >
+        <rosparam subst_value="true">
+          rigid_bodies:
+              '7':
+                pose: avatar/pose
+                pose2d: avatar/ground_pose
+                child_frame_id: baselink
+                parent_frame_id: world
+          optitrack_config:
+            multicast_address: 239.255.42.99
+            command_port: 1510
+            data_port: 1511
+        </rosparam>
+      </node>
+      <!--
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+      </node>
+      -->
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+        <param name="debug" value="$(arg debug)" />
+        <param name="robot_ns" value="$(arg robot_ns)" />
+      </node>
+
+    </group>
+
+    <group unless = "$(arg real_machine)">
+      <include file="$(find avatar)/launch/includes/mocap.launch" />
+      <!--
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+      </node>
+      -->
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+        <param name="debug" value="$(arg debug)" />
+        <param name="robot_ns" value="$(arg robot_ns)" />
+      </node>
+
+    </group>
+
+  </group>
+      
+
+  ###### joint angles from real avator ####
+  <include file="$(find avatar)/launch/includes/dynamixel_controllers.launch" />
+  <node pkg="avatar" type="real_avatar_position_control.py" name="real_avatar_position_control" output="screen">
+    <param name="robot_ns" value="$(arg robot_ns)" />
+    <param name="debug" value="$(arg debug)" />
+  </node>
+    
+</launch>
+

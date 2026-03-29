@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="debug" default="false" />
+  <arg name="mocap" default="false" />
+  <arg name="headless" default="false" />
+  <arg name="real_machine" default="false" />
+  <arg name="simulation" default="true" />
+  <arg name="gripper" default="false" />
+  <arg name="torque_control" default="false" />
+  <arg name="fusion" default="true" />
+  <arg name="type" default="quad" />
+  <arg name="onboards_model" default="default_mode_201907" />
+  <arg name="optimize_RollPitchDist" default="true" />
+  <arg name="robot_ns" value="hydrus" />
+
+  ###### visualize ####
+  <group if = "$(arg debug)">
+    <group if = "$(arg gripper)">
+      <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch"  >
+        <arg name="headless" value="false" />
+        <arg name="robot_model" value="$(find hydrus_gripper)/robots/robot.urdf.xacro"/>
+        <arg name="robot_ns" value="hydrus" />
+        <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
+        <arg name="rviz_init_pose" value="$(find hydrus_gripper)/config/RvizInit.yaml" />
+        <arg name="need_joint_state" value="false" />
+      </include >
+    </group>
+    <group unless = "$(arg gripper)">
+      <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch"  >
+        <arg name="headless" value="false" />
+        <arg name="robot_model" value="$(find hydrus)/robots/$(arg type)/$(arg onboards_model)/robot.urdf.xacro"/>
+        <arg name="robot_ns" value="hydrus" />
+        <arg name="rviz_config" value="$(find hydrus)/config/rviz_config" />
+        <arg name="rviz_init_pose" value="$(find hydrus)/config/$(arg type)/RvizInit.yaml" />
+        <arg name="need_joint_state" value="false" />
+      </include >
+    </group>
+    <node pkg="tf" type="static_transform_publisher" name="static_cast" args="0 0 0 0 0 0 world hydrus/root 100" />
+  </group>
+
+  ###### simulation ####
+  <group unless = "$(arg debug)">
+    <group unless = "$(arg real_machine)">
+      <group if = "$(arg gripper)"> 
+        <include file="$(find hydrus_gripper)/launch/bringup.launch"  > 
+          <arg name="headless" value="$(arg headless)" /> 
+          <arg name="real_machine" value="$(arg real_machine)" /> 
+          <arg name="simulation" value="$(arg simulation)" /> 
+        </include > 
+      </group> 
+      <group unless = "$(arg gripper)"> 
+        <include file="$(find hydrus)/launch/bringup.launch"> 
+          <arg name="headless" value="$(arg headless)" /> 
+          <arg name="real_machine" value="$(arg real_machine)" /> 
+          <arg name="simulation" value="$(arg simulation)" /> 
+        </include > 
+      </group> 
+    </group>
+  </group>
+  
+  ###### base position from mocap of real_avatar ####
+  <group if = "$(arg mocap)">
+    <group if = "$(arg real_machine)">
+      <node pkg="mocap_optitrack" type="mocap_node" name="avator_mocap_node" respawn="false" >
+        <rosparam subst_value="true">
+          rigid_bodies:
+              '6':
+                pose: avatar/pose
+                pose2d: avatar/ground_pose
+                child_frame_id: baselink
+                parent_frame_id: world
+          optitrack_config:
+            multicast_address: 239.255.42.99
+            command_port: 1510
+            data_port: 1511
+        </rosparam>
+      </node>
+      <node pkg="hydrus" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+      </node>
+    </group>
+    <group unless = "$(arg real_machine)">
+      <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
+      <node pkg="hydrus" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <arg name="real_machine" value="$(arg real_machine)" />
+      </node>
+    </group>
+  </group>
+
+  ###### joint angles from real avator ####
+  <include file="$(find hydrus)/launch/includes/dynamixel_controllers.launch" />
+  <group unless = "$(arg torque_control)">
+    <node pkg="hydrus" type="real_avatar_position_control.py" name="real_avatar_position_control" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="gripper" value="$(arg gripper)" />
+    </node>
+  </group>
+  <group if = "$(arg torque_control)">
+    <node pkg="avatar" type="real_avatar_torque_control.py" name="real_avatar_torque_control" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="gripper" value="$(arg gripper)" />
+      <param name="robot_ns" value="$(arg robot_ns)" />
+    </node>
+  </group>
+
+  ###### optimize pose ####
+  
+  <group if = "$(arg torque_control)" >
+    <node pkg="avatar" type="optimize_pose_sample" name="optimize_pose_sample" ns="hydrus"  >
+      <param name="fc_t_min_thresh" value="0.5"/>
+      <param name="delta_angle_range" value="0.4"/>
+      <param name="robot_model" value="hydrus_tilted_robot_model"/>
+      <param name="optimize_RollPitchDist" value="$(arg optimize_RollPitchDist)" />
+    </node>
+  </group>
+  
+  ###### fusion avatar_pos and optimized pose ####
+  <group if = "$(arg fusion)" >
+    <node pkg="avatar" type="real_avatar_fusion_avatar_optimize.py" name="real_avatar_fusion_avatar_optimize" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="robot_ns" value="$(arg robot_ns)" />
+    </node>
+  </group>
+  
+</launch>

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<package format="1">
+  <name>avatar</name>
+  <version>0.0.0</version>
+  <description>The avatar package</description>
+
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</maintainer>
+  <license>BSD</license>
+  <url type="website">https://github.com/JSKAerialRobot/aerial_robot</url>
+  <author email="chou@jsk.imi.i.u-tokyo.ac.jp">Bakui Chou</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>aerial_robot_control</build_depend>
+  <build_depend>aerial_robot_model</build_depend>
+  <build_depend>aerial_robot_msgs</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>spinal</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>hydrus</build_depend>
+  <build_depend>dragon</build_depend>
+
+  <run_depend>aerial_robot_base</run_depend>
+  <run_depend>aerial_robot_control</run_depend>
+  <run_depend>aerial_robot_model</run_depend>
+  <run_depend>aerial_robot_msgs</run_depend>
+  <run_depend>aerial_robot_simulation</run_depend>
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>spinal</run_depend>
+  <run_depend>std_srvs</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>hydrus</run_depend>
+  <run_depend>dragon</run_depend>
+
+  <test_depend>rostest</test_depend>
+
+  <export>
+    <aerial_robot_control plugin="${prefix}/plugins/flight_control_plugins.xml" />
+    <aerial_robot_model plugin="${prefix}/plugins/robot_model_plugins.xml"/>
+  </export>
+
+</package>

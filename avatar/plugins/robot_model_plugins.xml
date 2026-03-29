@@ -1,0 +1,11 @@
+<library path="lib/libhydrus_robot_model">
+
+  <class name="hydrus_robot_model" type="HydrusRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for hydrus robot model </description>
+  </class>
+
+  <class name="hydrus_tilted_robot_model" type="HydrusTiltedRobotModel" base_class_type="aerial_robot_model::RobotModel">
+    <description>plugin for hydrus tilted robot model </description>
+  </class>
+
+</library>
