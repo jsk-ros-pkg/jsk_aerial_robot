@@ -249,6 +249,7 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
         neuron_[index].can_motor_ = CANMotor(slave_id);
         neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false, (data[4] << 8) | data[3]);
         neuron_[index].can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
+        neuron_[index].can_encoder_ = CANEncoder(slave_id);
         neuron_[index].setInitialized();
         break;
       }

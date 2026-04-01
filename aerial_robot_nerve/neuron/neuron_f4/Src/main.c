@@ -32,6 +32,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
 #include "CAN/can_device_manager.h"
+#include "Encoder/encoder.h"
 #include "IMU/imu_mpu9250.h"
 #include "Servo/servo.h"
 #include "Motor/motor.h"
@@ -65,6 +66,7 @@ extern osMutexId servoMutexHandle;
 bool start_process_flag_ = false;
 bool receive_flag_ = false;
 Motor motor_;
+Encoder encoder_;
 IMU imu_;
 Servo servo_;
 
@@ -109,6 +111,7 @@ void coreTaskCallback(void const * argument)
     CANDeviceManager::tick(1);
     motor_.update();
     imu_.update();
+    encoder_.update();
   }
 }
 
@@ -121,6 +124,7 @@ void canTxCallback(void const * argument)
 
       servo_.sendData();
       imu_.sendData();
+      encoder_.sendData();
     }
 }
 
@@ -209,16 +213,19 @@ int main(void)
   motor_ = Motor(slave_id);
   imu_ = IMU(slave_id);
   servo_ = Servo(slave_id);
+  encoder_ = Encoder(slave_id);
 
   Initializer initializer(slave_id, servo_, imu_);
   motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
   servo_.init(&huart2, &hi2c1, &servoMutexHandle);
   imu_.init(&hspi1);
+  encoder_.init(&hi2c1);
   CANDeviceManager::init(&hcan1, slave_id, GPIOC, GPIO_PIN_13);
   CANDeviceManager::addDevice(&motor_);
   CANDeviceManager::addDevice(&imu_);
   CANDeviceManager::addDevice(&servo_);
+  CANDeviceManager::addDevice(&encoder_);
   CANDeviceManager::addDevice(&initializer);
   CANDeviceManager::useRTOS(&canMsgMailHandle);
 
