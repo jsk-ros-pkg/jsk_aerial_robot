@@ -1,0 +1,422 @@
+<?xml version="1.0"?>
+<robot
+  xmlns:xacro="http://www.ros.org/wiki/xacro" name="module_quadrotor">
+
+  <!-- general attribute -->
+  <baselink name="fc" />
+  <thrust_link name="thrust" />
+
+  <!-- kinematics [m] -->
+  <xacro:property name="rotor_x" value="0.160" />
+  <xacro:property name="rotor_y" value="0.160" />
+  <xacro:property name="rotor_z" value="0.030" />
+
+  <!-- dynamics -->
+  <m_f_rate value="-0.011" /> <!-- drag torque rate -->
+  <xacro:property name="max_force" value="8.0" /> <!-- [N] -->
+  <xacro:property name="min_force" value="0.0" /> <!-- [N] -->
+
+  <!-- friction -->
+  <xacro:macro name="damping_factor" params="link">
+    <gazebo reference="main_body">
+      <dampingFactor>0.00</dampingFactor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="extra_module"
+    params="name parent *origin *inertial visible:=0 model_url:=1 scale:=1">
+    <joint name="${parent}2${name}" type="fixed">
+      <parent link="${parent}" />
+      <child link="${name}" />
+      <xacro:insert_block name="origin" />
+    </joint>
+    <link name="${name}">
+      <xacro:insert_block name="inertial" />
+      <xacro:if value="${visible == 1}">
+        <visual>
+          <origin rpy="0 0 0" xyz="0 0 0" />
+          <geometry>
+            <mesh filename="${model_url}" scale="${scale} ${scale} ${scale}" />
+          </geometry>
+        </visual>
+      </xacro:if>
+    </link>
+  </xacro:macro>
+
+
+  <!-- dummy root link for KDL -->
+  <link name="root">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.00001" />
+      <inertia
+        ixx="0.000001" ixy="0.0" ixz="0.0"
+        iyy="0.000001" iyz="0.0"
+        izz="0.000002" />
+    </inertial>
+  </link>
+  <joint name="root_joint" type="fixed">
+    <parent link="root" />
+    <child link="main_body" />
+    <origin rpy="0 0 0" xyz="0 0 0" />
+    <axis xyz="0 0 1" />
+  </joint>
+
+  <!-- main_body -->
+  <link name="main_body">
+    <inertial>
+      <mass value="0.47035" />
+      <origin xyz="0 0 0.06462" rpy="0 0 0" />
+      <inertia
+        ixx="0.0021" ixy="0" ixz="0"
+        iyy="0.0015" iyz="0"
+        izz="0.0032"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.06462" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/kinikun2/main_body.dae" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.064" />
+      <geometry>
+        <box size="0.1 0.1 0.128" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- spinal -->
+  <xacro:extra_module name="fc" parent="main_body" visible="0">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <inertial>
+      <mass value="0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia
+        ixx="0.0" ixy="0.0" ixz="0.0"
+        iyy="0.0" iyz="0.0" izz="0.0" />
+    </inertial>
+  </xacro:extra_module>
+
+  <!-- battery
+  <xacro:extra_module name="battery" parent="main_body" visible="1"
+    model_url="package://kinikun/urdf/mesh/turnigy_3S_2200mAh.dae">
+    <origin xyz="0.0105 0 -0.012" rpy="0 0 0" />
+    <inertial>
+      <mass value="0.188" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia
+        ixx="0.0002" ixy="0.0" ixz="0.0"
+        iyy="0.0002" iyz="0.0" izz="0.0002" />
+    </inertial>
+  </xacro:extra_module> -->
+
+  <joint name="arm1_joint" type="revolute">
+    <limit lower="${-pi/4}" upper="${pi/4}" effort="1.0" velocity="0.5"/>
+    <parent link="main_body" />
+    <child link="arm1_link" />
+    <origin xyz="-0.03023 -0.03023 0.070" rpy="0 0 ${ -3*pi / 4}" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.9" friction="0.05" />
+  </joint>
+
+  <link name="arm1_link">
+    <inertial>
+      <origin xyz="0.12795 -0 -0.00372" rpy="0 0 0" />
+      <mass value="0.128" />
+      <inertia
+        ixx="0.001804" iyy="0.017972" izz="0.019248"
+        ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.12795 0 -0.00772" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/kinikun2/down_arm.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="rotor1" type="continuous">
+    <parent link="arm1_link" />
+    <child link="thrust1" />
+    <origin xyz="0.1765 0 -0.034" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" lower="${min_force}" upper="${max_force}" velocity="0.5" />
+  </joint>
+
+  <link name="thrust1">
+    <!-- visual & collisiont -->
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.0091" />
+      <inertia
+        ixx="0.00000807" ixy="0.0" ixz="0.0"
+        iyy="0.00000807" iyz="0.0"
+        izz="0.00001612" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/prop_5inch.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <xacro:damping_factor link="thrust1" />
+  <transmission name="rotor_tran1">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor1">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor1">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+      <transmission name="joint_tran1">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm1_joint">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo1">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+
+  <joint name="arm2_joint" type="revolute">
+    <limit lower="${-pi/4}" upper="${pi/4}" effort="1.0" velocity="0.5" />
+    <parent link="main_body" />
+    <child link="arm2_link" />
+    <origin xyz="0.03023 -0.03023 0.070" rpy="0 0 ${- pi / 4}" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.9" friction="0.05" />
+  </joint>
+
+  <link name="arm2_link">
+    <inertial>
+      <origin xyz="0.12795 0 -0.00372" rpy="0 0 0" />
+      <mass value="0.128" />
+      <inertia
+        ixx="0.001804" iyy="0.017972" izz="0.019248"
+        ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.12795 0 -0.00772" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/kinikun2/down_arm.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="rotor2" type="continuous">
+    <parent link="arm2_link" />
+    <child link="thrust2" />
+    <origin xyz="0.1765 0 -0.034" rpy="0 0 0" />
+    <axis xyz="0 0 -1" />
+    <limit effort="100" lower="${min_force}" upper="${max_force}" velocity="0.5" />
+  </joint>
+
+  <link name="thrust2">
+    <!-- visual & collisiont -->
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.0091" />
+      <inertia
+        ixx="0.00000807" ixy="0.0" ixz="0.0"
+        iyy="0.00000807" iyz="0.0"
+        izz="0.00001612" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/prop_5inch.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <xacro:damping_factor link ="thrust2"/>
+  <transmission name="rotor_tran2">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor2">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor2">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="joint_tran2">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm2_joint">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo2">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+
+  <joint name="arm3_joint" type="revolute">
+    <limit lower="${-pi/3}" upper="${pi/3}" effort="1.0" velocity="0.5" />
+    <parent link="main_body" />
+    <child link="arm3_link" />
+    <origin xyz="0.03023 0.03023 0.070" rpy="0 0 ${ pi / 4}" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.9" friction="0.05" />
+  </joint>
+
+  <link name="arm3_link">
+    <inertial>
+      <origin xyz="0.12795 0 -0.00372" rpy="0 0 0" />
+      <mass value="0.128" />
+      <inertia
+        ixx="0.001804" iyy="0.017972" izz="0.019248"
+        ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.12795 0 -0.00772" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/kinikun2/down_arm.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="rotor3" type="continuous">
+    <parent link="arm3_link" />
+    <child link="thrust3" />
+    <origin xyz="0.1765 0 -0.034" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" lower="${min_force}" upper="${max_force}" velocity="0.5" />
+  </joint>
+
+  <link name="thrust3">
+    <!-- visual & collisiont -->
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.0091" />
+      <inertia
+        ixx="0.00000807" ixy="0.0" ixz="0.0"
+        iyy="0.00000807" iyz="0.0"
+        izz="0.00001612" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/prop_5inch.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <xacro:damping_factor link ="thrust3"/>
+  <transmission name="rotor_tran3">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor3">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor3">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+      <transmission name="joint_tran3">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm3_joint">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo3">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+
+  <joint name="arm4_joint" type="revolute">
+    <limit lower="${-pi/4}" upper="${pi/4}" effort="1.0" velocity="0.5"/>
+    <parent link="main_body" />
+    <child link="arm4_link" />
+    <origin xyz="-0.03023 0.03023 0.070" rpy="0 0 ${pi * 3 / 4}" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.9" friction="0.05" />
+  </joint>
+  
+  <link name="arm4_link">
+    <inertial>
+      <origin xyz="0.12795 0 -0.00372" rpy="0 0 0" />
+      <mass value="0.128" />
+      <inertia
+        ixx="0.001804" iyy="0.017972" izz="0.019248"
+        ixy="0.000021" ixz="0.000372" iyz="0.000000"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.12795 0 -0.00772" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/kinikun2/down_arm.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="rotor4" type="continuous">
+    <parent link="arm4_link" />
+    <child link="thrust4" />
+    <origin xyz="0.1765 0 -0.034" rpy="0 0 0" />
+    <axis xyz="0 0 -1" />
+    <limit effort="100" lower="${min_force}" upper="${max_force}" velocity="0.5" />
+  </joint>
+  
+  <link name="thrust4">
+    <!-- visual & collisiont -->
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.0091" />
+      <inertia
+        ixx="0.00000807" ixy="0.0" ixz="0.0"
+        iyy="0.00000807" iyz="0.0"
+        izz="0.00001612" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://kinikun/urdf/mesh/prop_5inch.dae" />
+      </geometry>
+    </visual>
+  </link>
+  
+  <xacro:damping_factor link ="thrust4"/>
+  <transmission name="rotor_tran4">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotor4">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotor4">
+      <!-- TODO: effort is torque, maybe position is enough -->
+      <hardwareInterface>RotorInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+      <transmission name="joint_tran4">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm4_joint">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo4">
+        <!-- TODO: effort is torque, maybe position is enough -->
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+
+</robot>

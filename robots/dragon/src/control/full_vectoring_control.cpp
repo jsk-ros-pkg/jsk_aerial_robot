@@ -395,10 +395,6 @@ void DragonFullVectoringController::initialize(ros::NodeHandle nh, ros::NodeHand
   extra_vectoring_forces_.resize(0);
 
   rotor_interfere_comp_wrench_ = Eigen::VectorXd::Zero(6); // reset
-  est_external_wrench_ = Eigen::VectorXd::Zero(6);
-  init_sum_momentum_ = Eigen::VectorXd::Zero(6);
-  integrate_term_ = Eigen::VectorXd::Zero(6);
-  prev_est_wrench_timestamp_ = 0;
   fz_bias_ = 0;
   tx_bias_ = 0;
   ty_bias_ = 0;
@@ -2059,13 +2055,6 @@ void DragonFullVectoringController::rosParamInit()
   getParam<bool>(control_nh, "enable_gradient_allocation_method", enable_gradient_allocation_method_, false);
   getParam<double>(control_nh, "allocation_refine_threshold", allocation_refine_threshold_, 0.01);
   getParam<int>(control_nh, "allocation_refine_max_iteration", allocation_refine_max_iteration_, 1);
-
-  momentum_observer_matrix_ = Eigen::MatrixXd::Identity(6,6);
-  double force_weight, torque_weight;
-  getParam<double>(control_nh, "momentum_observer_force_weight", force_weight, 10.0);
-  getParam<double>(control_nh, "momentum_observer_torque_weight", torque_weight, 10.0);
-  momentum_observer_matrix_.topRows(3) *= force_weight;
-  momentum_observer_matrix_.bottomRows(3) *= torque_weight;
 
   getParam<bool>(control_nh, "rotor_interfere_compensate", rotor_interfere_compensate_, true);
   getParam<bool>(control_nh, "disable_torque_compensate", disable_torque_compensate_, false);

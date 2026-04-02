@@ -1,0 +1,159 @@
+{
+  "best_parameters": {
+    "rate_hz": 100,
+    "frame_skip": 2,
+    "dt": 0.02,
+    "K": 16,
+    "horizon": 14,
+    "temperature": 3.0,
+    "sigma_u": 0.12,
+    "w_tracking": 50.0,
+    "w_smooth": 0.35,
+    "w_effort": 0.03,
+    "w_constraint": 500.0,
+    "p_max": 0.7,
+    "dp_max": 3.5
+  },
+  "all_results": [
+    {
+      "stage": 1,
+      "K": 16,
+      "rmse": 10.68679787831922,
+      "max_error": 20.458493940207383,
+      "mean_error": 9.071880100289066,
+      "settling_ratio": 0.1993548387096774,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 32,
+      "rmse": 11.596188909414206,
+      "max_error": 19.86099745860085,
+      "mean_error": 9.83885233854925,
+      "settling_ratio": 0.1676470588235294,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 64,
+      "rmse": 13.59216041547905,
+      "max_error": 25.550969671920086,
+      "mean_error": 11.094684633785382,
+      "settling_ratio": 0.18213866039952997,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 10,
+      "rmse": 13.548228696780217,
+      "max_error": 31.309109443503946,
+      "mean_error": 10.222070060764857,
+      "settling_ratio": 0.17588235294117646,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 14,
+      "rmse": 11.32452965613891,
+      "max_error": 23.15682486911123,
+      "mean_error": 9.212405693592952,
+      "settling_ratio": 0.164021164021164,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 20,
+      "rmse": 11.751107377362352,
+      "max_error": 26.900825712050654,
+      "mean_error": 9.250665459564035,
+      "settling_ratio": 0.1781305114638448,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.02,
+      "rmse": 12.927282365109285,
+      "max_error": 32.24131874521623,
+      "mean_error": 9.322198434259144,
+      "settling_ratio": 0.22603019175846592,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.04,
+      "rmse": 11.559858051177885,
+      "max_error": 32.388358956133644,
+      "mean_error": 8.211822323642604,
+      "settling_ratio": 0.2688698490412077,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.08,
+      "rmse": 11.220421917555797,
+      "max_error": 30.181895697058852,
+      "mean_error": 7.95937874212838,
+      "settling_ratio": 0.3551020408163265,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.12,
+      "rmse": 9.639155123083519,
+      "max_error": 26.90168356632118,
+      "mean_error": 6.896978845604649,
+      "settling_ratio": 0.3342857142857143,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 25.0,
+      "w_smooth": 0.15,
+      "w_effort": 0.01,
+      "rmse": 11.090343736385448,
+      "max_error": 26.191046712683928,
+      "mean_error": 8.100502627935606,
+      "settling_ratio": 0.4096296296296296,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 35.0,
+      "w_smooth": 0.25,
+      "w_effort": 0.02,
+      "rmse": 11.782359993894449,
+      "max_error": 30.69707570875156,
+      "mean_error": 9.07114424274888,
+      "settling_ratio": 0.24592592592592594,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 50.0,
+      "w_smooth": 0.35,
+      "w_effort": 0.03,
+      "rmse": 10.543433389406164,
+      "max_error": 28.338994468163108,
+      "mean_error": 8.085726499541535,
+      "settling_ratio": 0.25472047389855607,
+      "success": true
+    },
+    {
+      "stage": "final_stepwise",
+      "rmse": 7.267307063717778,
+      "max_error": 20.636393126503993,
+      "mean_error": 5.904295336945966,
+      "settling_ratio": 0.23723318022156173,
+      "success": true
+    },
+    {
+      "stage": "final_continuous",
+      "rmse": 9.277598842274099,
+      "max_error": 26.241316214007306,
+      "mean_error": 6.625967751427843,
+      "settling_ratio": 0.24037037037037037,
+      "success": true
+    }
+  ],
+  "timestamp": "2025-11-27T17:38:40.261483"
+}

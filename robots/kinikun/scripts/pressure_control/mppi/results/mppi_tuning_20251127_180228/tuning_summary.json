@@ -1,0 +1,263 @@
+{
+  "best_parameters": {
+    "rate_hz": 100,
+    "frame_skip": 2,
+    "dt": 0.02,
+    "K": 24,
+    "horizon": 14,
+    "temperature": 3.0,
+    "sigma_u": 0.14,
+    "w_tracking": 55.0,
+    "w_smooth": 0.35,
+    "w_effort": 0.035,
+    "w_constraint": 500.0,
+    "p_max": 0.7,
+    "dp_max": 3.5
+  },
+  "all_results": [
+    {
+      "stage": 1,
+      "K": 12,
+      "rmse": 7.09520142162437,
+      "max_error": 16.190236488866788,
+      "mean_error": 6.180505113737507,
+      "settling_ratio": 0.16521739130434782,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 14,
+      "rmse": 7.577171799976855,
+      "max_error": 17.95027364191473,
+      "mean_error": 6.363475594365257,
+      "settling_ratio": 0.23510204081632652,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 16,
+      "rmse": 7.0542853891169575,
+      "max_error": 17.161187683185993,
+      "mean_error": 6.110664547625278,
+      "settling_ratio": 0.09751121991024071,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 18,
+      "rmse": 5.776970825485869,
+      "max_error": 13.522701838248238,
+      "mean_error": 4.744665753665623,
+      "settling_ratio": 0.23092615259077928,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 20,
+      "rmse": 6.580013282785073,
+      "max_error": 13.193915035292486,
+      "mean_error": 5.192670845916097,
+      "settling_ratio": 0.34530612244897957,
+      "success": true
+    },
+    {
+      "stage": 1,
+      "K": 24,
+      "rmse": 5.559168261495737,
+      "max_error": 13.996806490681282,
+      "mean_error": 4.522138036546028,
+      "settling_ratio": 0.28408163265306124,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 10,
+      "rmse": 7.61274339285246,
+      "max_error": 23.05425353738207,
+      "mean_error": 6.147987099881217,
+      "settling_ratio": 0.24316605467156263,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 12,
+      "rmse": 7.777910945578063,
+      "max_error": 19.874880922389806,
+      "mean_error": 5.672695888579278,
+      "settling_ratio": 0.3681632653061224,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 14,
+      "rmse": 6.371520265760882,
+      "max_error": 15.649031643303466,
+      "mean_error": 5.0577753908827185,
+      "settling_ratio": 0.29661362709098327,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 16,
+      "rmse": 7.011619369742129,
+      "max_error": 16.547681716170935,
+      "mean_error": 5.883165014500494,
+      "settling_ratio": 0.18808649530803753,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 18,
+      "rmse": 6.579202664319331,
+      "max_error": 17.117502738480724,
+      "mean_error": 5.191853316626954,
+      "settling_ratio": 0.3108935128518972,
+      "success": true
+    },
+    {
+      "stage": 2,
+      "H": 20,
+      "rmse": 8.069900761637951,
+      "max_error": 25.45463671894412,
+      "mean_error": 6.388589836413802,
+      "settling_ratio": 0.19224489795918367,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.08,
+      "rmse": 8.342280572362693,
+      "max_error": 22.22326994738445,
+      "mean_error": 5.92295818826533,
+      "settling_ratio": 0.3674297305128948,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.1,
+      "rmse": 8.565549136279335,
+      "max_error": 24.921442523633186,
+      "mean_error": 5.900063283553016,
+      "settling_ratio": 0.42683280208635177,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.12,
+      "rmse": 7.396406347712858,
+      "max_error": 19.229864794677855,
+      "mean_error": 5.106246171913595,
+      "settling_ratio": 0.51086641553173,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.14,
+      "rmse": 7.0924969148967145,
+      "max_error": 17.606997166931123,
+      "mean_error": 5.284203015442208,
+      "settling_ratio": 0.2946971892205158,
+      "success": true
+    },
+    {
+      "stage": 3,
+      "sigma_u": 0.16,
+      "rmse": 7.8340225048351275,
+      "max_error": 21.581981668505442,
+      "mean_error": 5.6615483358049925,
+      "settling_ratio": 0.2909301651695161,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 45.0,
+      "w_smooth": 0.3,
+      "w_effort": 0.025,
+      "rmse": 10.181003154522932,
+      "max_error": 26.97690827912664,
+      "mean_error": 7.346317426165109,
+      "settling_ratio": 0.3680080992153885,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 50.0,
+      "w_smooth": 0.3,
+      "w_effort": 0.03,
+      "rmse": 10.208945549746495,
+      "max_error": 26.056150070809267,
+      "mean_error": 8.156776168187093,
+      "settling_ratio": 0.2457605669450772,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 50.0,
+      "w_smooth": 0.35,
+      "w_effort": 0.03,
+      "rmse": 9.94594711357127,
+      "max_error": 27.801246072226853,
+      "mean_error": 7.681593447327555,
+      "settling_ratio": 0.26322450012655024,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 50.0,
+      "w_smooth": 0.4,
+      "w_effort": 0.03,
+      "rmse": 9.46583810714387,
+      "max_error": 26.73552177046706,
+      "mean_error": 7.350160690536076,
+      "settling_ratio": 0.2495570741584409,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 55.0,
+      "w_smooth": 0.35,
+      "w_effort": 0.03,
+      "rmse": 9.088849009257713,
+      "max_error": 23.868602911181355,
+      "mean_error": 6.832365248327078,
+      "settling_ratio": 0.2920779549481144,
+      "success": true
+    },
+    {
+      "stage": 4,
+      "w_tracking": 55.0,
+      "w_smooth": 0.35,
+      "w_effort": 0.035,
+      "rmse": 8.822213067533339,
+      "max_error": 23.18256998409575,
+      "mean_error": 6.944980625571011,
+      "settling_ratio": 0.2644900025310048,
+      "success": true
+    },
+    {
+      "stage": "final_stepwise",
+      "rmse": 6.531419443001161,
+      "max_error": 22.33919069151864,
+      "mean_error": 5.367619895061774,
+      "settling_ratio": 0.27126347227632774,
+      "success": true
+    },
+    {
+      "stage": "final_continuous",
+      "rmse": 9.04499043698032,
+      "max_error": 33.20910820184657,
+      "mean_error": 7.203343414423164,
+      "settling_ratio": 0.1634301095943088,
+      "success": true
+    },
+    {
+      "stage": "final_random",
+      "rmse": 7.206764669303269,
+      "max_error": 17.853164118750026,
+      "mean_error": 5.510643949553279,
+      "settling_ratio": 0.29322899684816867,
+      "success": true
+    }
+  ],
+  "timestamp": "2025-11-27T18:34:20.536463"
+}

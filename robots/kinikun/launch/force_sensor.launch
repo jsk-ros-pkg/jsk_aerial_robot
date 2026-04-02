@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="force_sensor" default="PFS055YA501U6" /> <!-- other sensor: CFS034CA301U -->
+
+  <node name="force_node" pkg="cfs_sensor" type="cfs_node" output="screen" >
+    <rosparam file="$(find cfs_sensor)/config/$(arg force_sensor).yaml" command="load" />
+    <param name="cfs_default_device_name" value="/dev/ttyACM0" />
+  </node>
+
+  <node name="lpf_FTsensor" pkg="kinikun" type="lpf_for_FTsensor.py" output="screen" />
+  
+</launch>

@@ -1,0 +1,6 @@
+<library path="lib/libkinikun_controller_pluginlib">
+  <class name="aerial_robot_control/kinikun_tilted_lqi_controller" type="aerial_robot_control::KinikunTiltedLQIController" base_class_type="aerial_robot_control::ControlBase">
+    <description>LQI based controller for under-actuated tilted kinikun</description>
+  </class>
+
+</library>

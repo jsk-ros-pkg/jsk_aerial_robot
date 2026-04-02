@@ -41,6 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
+#include "sensors/i2c_multiplexer/switcher.h"
 
 #include "battery_status/battery_status.h"
 
@@ -101,6 +102,13 @@ osSemaphoreId uartTxSemHandle;
 /* USER CODE BEGIN PV */
 osMailQId canMsgMailHandle;
 
+osThreadId multiEncoderHandle;
+MagEncoder encoder1_("encoder_angle1");
+MagEncoder encoder2_("encoder_angle2");
+MagEncoder encoder3_("encoder_angle3");
+MagEncoder encoder4_("encoder_angle4");
+std::array<MagEncoder, 4> encoders_ = {encoder1_, encoder2_, encoder3_, encoder4_};
+
 ros::NodeHandle nh_;
 
 /* sensor instances */
@@ -146,7 +154,7 @@ void servoTaskCallback(void const * argument);
 void coreTaskEvokeCb(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void encoderTaskCallback(void const * argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -346,6 +354,11 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+  /* definition and creation of task to read from multiple encoders  */
+  osThreadDef(multiEncoder, encoderTaskCallback, osPriorityLow, 0, 256);
+  multiEncoderHandle = osThreadCreate(osThread(multiEncoder), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -934,7 +947,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 19200;
+  huart3.Init.BaudRate = 1000000;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -1042,6 +1055,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void encoderTaskCallback(void const * argument)
+{
+  /* USER CODE BEGIN rosPublishTask */
+  for(;;)
+    {
+      for (int i = 0; i < encoders_.size(); i++) {
+        int i2c_status = I2C_MultiPlexer::changeChannel(i);
+        if(i2c_status == HAL_OK) encoders_.at(i).update();
+      }
+
+      osDelay(1); // timer is controlled inside each `update` function
+
+  }
+  /* USER CODE END rosPublishTask */
+}
 
 /* USER CODE END 4 */
 

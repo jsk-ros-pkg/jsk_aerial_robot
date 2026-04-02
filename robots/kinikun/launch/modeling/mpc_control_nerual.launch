@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- ========= User-facing args ========= -->
+  <arg name="robot_id" default="1" />
+  <arg name="robot_ns" default="kinikun$(arg robot_id)" />
+
+  <!-- トピック既定 -->
+  <arg name="joint_topic"  default="/$(arg robot_ns)/joint_states" />
+  <arg name="joint_name"   default="arm1_joint" />
+  <arg name="target_topic" default="/target_angle" />
+  <arg name="pub_topic_p12" default="/$(arg robot_ns)/p1p2_cmd" />
+
+  <!-- 目標角度は[deg] -->
+  <arg name="target_in_deg" default="true" />
+
+  <!-- NNモデル -->
+  <arg name="model_pt"   default="/home/kan/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/kinikun/models/model_k4b_nh.pt" />
+  <arg name="model_meta" default="/home/kan/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/kinikun/models/model_k4b_nh_meta.npz" />
+
+  <!-- コントローラ固定系（引数で保持してOK） -->
+  <arg name="ctrl_rate_hz" default="200" />
+  <arg name="plan_dt"      default="0.02" />
+  <arg name="plan_horizon" default="30" />
+  <arg name="block"        default="3" />
+
+  <!-- PID 併用 -->
+  <arg name="use_pid"   default="true" />
+  <arg name="tau_theta" default="0.10" />
+
+  <!-- 成功判定＆スタック検知（固定） -->
+  <arg name="stagnation_window_s" default="1.2" />
+  <arg name="stagnation_slope_thresh_deg_per_s" default="-0.02" />
+  <arg name="stagnation_min_err_deg" default="1.0" />
+  <arg name="oscill_amp_window_s" default="1.0" />
+  <arg name="oscill_amp_thresh_deg" default="1.2" />
+  <arg name="replan_cooldown_s" default="0.8" />
+
+  <!-- ★ YAML をノードのプライベートNSにロード（ここがポイント） -->
+  <rosparam ns="$(arg robot_ns)/neural_D_hammerstein_mpc"
+            file="/home/kan/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/kinikun/scripts/pressure_control/neural/next_params.yaml" command="load"/>
+
+  <!-- ========= Node ========= -->
+  <group ns="$(arg robot_ns)">
+    <node pkg="kinikun"
+          type="neural_D_hammerstein_mpc.py"
+          name="neural_D_hammerstein_mpc"
+          output="screen"
+          respawn="true">
+
+      <!-- 基本/トピック -->
+      <param name="target_in_deg" value="$(arg target_in_deg)" />
+      <param name="joint_topic"   value="$(arg joint_topic)" />
+      <param name="joint_name"    value="$(arg joint_name)" />
+      <param name="target_topic"  value="$(arg target_topic)" />
+      <param name="pub_topic_p12" value="$(arg pub_topic_p12)" />
+
+      <!-- モデル -->
+      <param name="model_pt"      value="$(arg model_pt)" />
+      <param name="model_meta"    value="$(arg model_meta)" />
+
+      <!-- 実行周期/計画（※ここは引数で上書きしたいなら残す） -->
+      <param name="ctrl_rate_hz"  value="$(arg ctrl_rate_hz)" />
+      <param name="plan_dt"       value="$(arg plan_dt)" />
+      <param name="plan_horizon"  value="$(arg plan_horizon)" />
+      <param name="block"         value="$(arg block)" />
+
+      <!-- PIDの有無/θフィルタ -->
+      <param name="use_pid"       value="$(arg use_pid)" />
+      <param name="tau_theta"     value="$(arg tau_theta)" />
+
+      <!-- 成功/停滞/振動監視＆再計画（固定ならこのまま） -->
+      <param name="stagnation_window_s" value="$(arg stagnation_window_s)" />
+      <param name="stagnation_slope_thresh_deg_per_s" value="$(arg stagnation_slope_thresh_deg_per_s)" />
+      <param name="stagnation_min_err_deg" value="$(arg stagnation_min_err_deg)" />
+      <param name="oscill_amp_window_s" value="$(arg oscill_amp_window_s)" />
+      <param name="oscill_amp_thresh_deg" value="$(arg oscill_amp_thresh_deg)" />
+      <param name="replan_cooldown_s" value="$(arg replan_cooldown_s)" />
+    </node>
+  </group>
+</launch>

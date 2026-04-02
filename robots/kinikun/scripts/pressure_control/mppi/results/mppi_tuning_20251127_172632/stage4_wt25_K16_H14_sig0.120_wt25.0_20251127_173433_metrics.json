@@ -1,0 +1,25 @@
+{
+  "parameters": {
+    "rate_hz": 100,
+    "frame_skip": 2,
+    "dt": 0.02,
+    "K": 16,
+    "horizon": 14,
+    "temperature": 3.0,
+    "sigma_u": 0.12,
+    "w_tracking": 25.0,
+    "w_smooth": 0.15,
+    "w_effort": 0.01,
+    "w_constraint": 500.0,
+    "p_max": 0.7,
+    "dp_max": 3.5
+  },
+  "metrics": {
+    "rmse": 11.090343736385448,
+    "max_error": 26.191046712683928,
+    "mean_error": 8.100502627935606,
+    "settling_ratio": 0.4096296296296296,
+    "success": true
+  },
+  "timestamp": "20251127_173433"
+}

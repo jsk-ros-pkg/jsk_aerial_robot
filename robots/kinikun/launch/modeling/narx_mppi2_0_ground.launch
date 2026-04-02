@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- NARX-MPPI Controller for Production2 Model -->
+  
+  <!-- Model Configuration -->
+  <arg name="model_dir" default="$(find kinikun)/models/out_narx2"/>
+  
+  <!-- Control Rate -->
+  <arg name="rate" default="100"/>  <!-- Hz -->
+  <arg name="frame_skip" default="2"/>  <!-- Effective 50Hz -->
+  
+  <!-- MPPI Parameters -->
+  <arg name="K" default="32"/>  <!-- Population size -->
+  <arg name="horizon" default="14"/>  <!-- Prediction horizon -->
+  <arg name="lambda" default="3.0"/>  <!-- Temperature -->
+  <arg name="sigma_u" default="0.04"/>  <!-- Control noise std [MPa] -->
+  
+  <!-- Cost Weights -->
+  <arg name="w_tracking" default="35.0"/>
+  <arg name="w_smooth" default="0.25"/>
+  <arg name="w_effort" default="0.02"/>
+  <arg name="w_constraint" default="500.0"/>
+  
+  <!-- Physical Limits -->
+  <arg name="p_max" default="0.70"/>  <!-- Max pressure [MPa] -->
+  <arg name="dp_max" default="3.5"/>  <!-- Max pressure rate [MPa/s] -->
+  <arg name="pressure_delay_s" default="0.084"/>  <!-- Measured delay [s] -->
+
+  
+  <!-- Topics -->
+  <arg name="theta_topic" default="/kinikun1/joint_states"/>
+  <arg name="theta_index" default="3"/>
+  <arg name="theta_index_2" default="0"/>    <!-- 新規: 2つ目のセンサー -->
+  <arg name="theta_index_3" default="1"/>    <!-- 新規: 3つ目のセンサー -->
+  <arg name="theta_index_4" default="2"/>    <!-- 新規: 4つ目のセンサー -->
+  <arg name="target_topic" default="/mppi/theta_target_deg"/>
+  <arg name="target_topic_2" default="/mppi/theta_target_deg_2"/>  <!-- 新規: 2つ目のターゲット -->
+  <arg name="pressure_topic" default="/mpa_pressure"/>
+  <arg name="cmd_topic" default="/mpa_cmd"/>
+  <arg name="theta_diff_threshold" default="0.25"/>  <!-- 新規: 異常検知閾値 [rad] -->
+  
+  <!-- Logging -->
+  <arg name="log_csv" default="$(find kinikun)/robots/kinikun/scripts/pressure_control/mppi/logs/mppi_log.csv"/>
+  
+  <!-- Optional: publish target for testing -->
+  
+  <!-- Node -->
+  <node name="narx_mppi_controller" pkg="kinikun" type="narx_mppi_control5_2_4p4a.py"
+        output="screen" respawn="false">
+    
+    <!-- Model -->
+    <param name="model_dir" value="$(arg model_dir)"/>
+    
+    <!-- Control -->
+    <param name="rate" value="$(arg rate)"/>
+    <param name="frame_skip" value="$(arg frame_skip)"/>
+    
+    <!-- MPPI -->
+    <param name="K" value="$(arg K)"/>
+    <param name="horizon" value="$(arg horizon)"/>
+    <param name="lambda" value="$(arg lambda)"/>
+    <param name="sigma_u" value="$(arg sigma_u)"/>
+    
+    <!-- Costs -->
+    <param name="w_tracking" value="$(arg w_tracking)"/>
+    <param name="w_smooth" value="$(arg w_smooth)"/>
+    <param name="w_effort" value="$(arg w_effort)"/>
+    <param name="w_constraint" value="$(arg w_constraint)"/>
+    
+    <!-- Limits -->
+    <param name="p_max" value="$(arg p_max)"/>
+    <param name="dp_max" value="$(arg dp_max)"/>
+    <param name="pressure_delay_s" value="$(arg pressure_delay_s)"/>
+    
+    <!-- Topics -->
+    <param name="theta_topic" value="$(arg theta_topic)"/>
+    <param name="theta_index" value="$(arg theta_index)"/>
+    <param name="theta_index_2" value="$(arg theta_index_2)"/>
+    <param name="theta_index_3" value="$(arg theta_index_3)"/>
+    <param name="theta_index_4" value="$(arg theta_index_4)"/>
+    <param name="theta_diff_threshold" value="$(arg theta_diff_threshold)"/>
+    <param name="target_topic" value="$(arg target_topic)"/>
+    <param name="target_topic_2" value="$(arg target_topic_2)"/>
+    <param name="pressure_topic" value="$(arg pressure_topic)"/>
+    <param name="cmd_topic" value="$(arg cmd_topic)"/>
+    
+    <!-- Logging -->
+    <param name="log_csv" value="$(arg log_csv)"/>
+  </node>
+
+
+  <node name="theta_target_bspline_node" pkg="kinikun" type="theta_target_bspline_node.py"
+        output="screen" respawn="false">
+    <param name="rate2" value="100"/>
+    <param name="duration" value="3.0"/>  <!-- Duration of one B-spline cycle [s] -->
+  </node>
+
+  
+</launch>
