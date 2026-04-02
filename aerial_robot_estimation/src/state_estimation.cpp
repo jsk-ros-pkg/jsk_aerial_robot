@@ -106,6 +106,9 @@ void StateEstimator::setOrientationWxB(int frame, int estimate_mode, tf::Vector3
   tf::Vector3 wy_b = wz_b.cross(wx_b);
   wy_b.normalize();
 
+  wx_b = wy_b.cross(wz_b);
+  wx_b.normalize();
+
   rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
 
   setOrientation(frame, estimate_mode, rot);
@@ -119,6 +122,9 @@ void StateEstimator::setOrientationWzB(int frame, int estimate_mode, tf::Vector3
   tf::Vector3 wx_b = rot.getRow(0);
   tf::Vector3 wy_b = wz_b.cross(wx_b);
   wy_b.normalize();
+
+  wx_b = wy_b.cross(wz_b);
+  wx_b.normalize();
 
   rot[0] = wx_b; rot[1] = wy_b; rot[2] = wz_b;
 
