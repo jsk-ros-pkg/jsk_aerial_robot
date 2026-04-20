@@ -22,12 +22,15 @@ public:
 	uint8_t id_;
   	int32_t present_position_;
 	int32_t goal_position_;
+        int16_t goal_current_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
         uint8_t present_temp_;
 	int16_t present_current_;
 	uint8_t moving_;
+        uint16_t model_number_;
+        uint8_t operating_mode_;
 	uint8_t hardware_error_status_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	uint16_t profile_velocity_;
@@ -49,9 +52,10 @@ public:
 	int32_t getPresentPosition() const {return present_position_;}
 	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
         int32_t getGoalPosition() const {return goal_position_;}
+        void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
+        int16_t getGoalCurrent() const { return goal_current_;}
         float getAngleScale() const {return angle_scale_;}
         uint16_t getZeroPointOffset() const {return zero_point_offset_;}
-  
 
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
 };
