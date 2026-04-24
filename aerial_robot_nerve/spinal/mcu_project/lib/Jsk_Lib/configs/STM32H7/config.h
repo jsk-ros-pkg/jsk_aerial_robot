@@ -28,6 +28,9 @@
 #define GPIO_H(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET)
 #define GPIO_L(port, pin) HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET)
 
+//0. Comm type
+#define NERVE_COMM 0
+
 //1. Specials board options
 #define STM32H7_V2 0
 
@@ -89,6 +92,8 @@
 #endif
 ///////////////////////////////////
 
+//2.4 CAN based Actuator
+#define DJI_CAN_SERVO 1
 
 
 #endif //__CONFIG_H

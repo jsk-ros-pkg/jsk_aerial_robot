@@ -41,7 +41,7 @@
 #include "sensors/baro/baro_ms5611.h"
 #include "sensors/gps/gps_ublox.h"
 #include "sensors/encoder/mag_encoder.h"
-
+#include "actuators/DJI_M2006/servo.h"
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
@@ -109,13 +109,16 @@ IMUOnboard imu_;
 #elif IMU_ICM
 ICM20948 imu_;
 #endif
-
 Baro baro_;
 GPS gps_;
 BatteryStatus battery_status_;
 
 /* servo instance */
 DirectServo servo_;
+/* actuators */
+#if DJI_CAN_SERVO
+DJI_M2006::Interface dji_servo_;
+#endif
 
 StateEstimate estimator_;
 FlightControl controller_;
@@ -263,11 +266,17 @@ int main(void)
 
   if(servo_connect) servoptr = &servo_;
 
+#if DJI_CAN_SERVO
+  dji_servo_.init(&hfdcan1, &canMsgMailHandle, &nh_, LED1_GPIO_Port, LED1_Pin);
+#endif
+
   controller_.init(&htim1, &htim4, &estimator_, NULL, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 
+#if NERVE_COMM        
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
   if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
-
+#endif
+  
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -1094,7 +1103,9 @@ void coreTaskFunc(void const * argument)
       if (!servo_.connected()) gps_.update();
       estimator_.update();
       controller_.update();
-
+#if DJI_CAN_SERVO
+      dji_servo_.update();
+#endif
       Spine::update();
 
       // Workaround to handle the BUSY->TIMEOUT Error problem of ETH handler in STM32H7
