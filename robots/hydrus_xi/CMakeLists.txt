@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   hydrus
   mujoco_ros_control
   roscpp
+  std_msgs       # 追加：内部モーメント指令用
+  sensor_msgs    # 追加：関節状態・指令用
   )
 
 find_package(NLopt REQUIRED)
@@ -16,7 +18,7 @@ find_package(OsqpEigen REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES  hydrus_xi_fully_actuated_robot_model
-  CATKIN_DEPENDS  angles hydrus roscpp
+  CATKIN_DEPENDS  angles hydrus roscpp std_msgs sensor_msgs # 追加：依存関係の解消
   )
 
 if(NOT CMAKE_BUILD_TYPE)
