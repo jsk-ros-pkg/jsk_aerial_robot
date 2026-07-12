@@ -31,4 +31,18 @@ public:
 };
 
 
+
+class CANDirectDevice
+{
+protected:
+	uint32_t m_identifier;
+public:
+	CANDirectDevice(){}
+	CANDirectDevice(uint32_t identifier):m_identifier(identifier){}
+	void sendMessage(uint32_t identifier, uint32_t dlc, uint8_t* data, uint32_t timeout){CAN::sendMessage(identifier, dlc, data, timeout);}
+	virtual void sendData() = 0;
+	virtual void receiveDataCallback(uint32_t identifier, uint32_t dlc, uint8_t* data) = 0;
+};
+
+
 #endif /* APPLICATION_CAN_CAN_DEVICE_H_ */

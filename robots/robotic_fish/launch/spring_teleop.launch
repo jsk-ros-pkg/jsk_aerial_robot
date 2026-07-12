@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="dev" default="vim4" doc="choose between [pc, vim4]"/>
+
+  <include file="$(find spinal)/launch/bridge.launch" if = "$(eval arg('dev') == 'pc')" >
+    <arg name="dev" value="$(arg dev)" />
+  </include>
+
+  <node pkg="robotic_fish" type="spring_teleop.py" name="spring_teleop_node" output="screen">
+    <param name="vel_rate" value="250"/>
+    <param name="max_val" value="250.0"/>
+  </node>
+
+  <node pkg="joy" type="joy_node" name="joy_node" output="screen" >
+
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="coalesce_interval" value="0.025"/>
+  </node>
+</launch>

@@ -27,6 +27,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 	get_error_tick_ = 0;
 
   direct_ttl_mode_ = false;
+  mixed_goal_command_mode_ = false;
 
         /* rx */
   rd_ptr_ = 0;
@@ -105,6 +106,15 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
         for (int i = 0; i < MAX_SERVO_NUM; i++){
           servo_[i].zero_point_offset_ = 2047;
           servo_[i].angle_scale_ = 3.1416 / 2047;
+        }
+
+        getOperatingMode();
+
+        for (unsigned int i = 0; i < servo_num_; ++i) {
+          if (servo_[i].operating_mode_ == VELOCITY_CONTROL_MODE) {
+            mixed_goal_command_mode_ = true;
+            break;
+          }
         }
 }
 
@@ -348,7 +358,18 @@ void DynamixelSerial::update()
     if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
     else set_pos_tick_ = current_time;
 
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
+    if (mixed_goal_command_mode_) {
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        uint8_t operating_mode = servo_[i].operating_mode_;
+        if (operating_mode == VELOCITY_CONTROL_MODE) {
+          instruction_buffer_.push(std::make_pair(INST_SET_GOAL_VEL, i));
+        } else {
+          instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, i));
+        }
+      }
+    } else {
+      instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
+    }
   }
 
   /* read servo position(angle) */
@@ -435,7 +456,11 @@ void DynamixelSerial::update()
       /* set command */
       switch (instruction.first) {
       case INST_SET_GOAL_POS: /* send angle command to servo */
-        cmdSyncWriteGoalPosition();
+        if (mixed_goal_command_mode_) cmdWriteGoalPosition(servo_index);
+        else cmdSyncWriteGoalPosition();
+        break;
+      case INST_SET_GOAL_VEL: /* send velocity command to servo */
+        cmdWriteGoalVelocity(servo_index);
         break;
       case INST_SET_TORQUE: /* send torque enable flag */
         cmdWriteTorqueEnable(servo_index);
@@ -502,6 +527,12 @@ void DynamixelSerial::update()
             readStatusPacket(instruction.first);
           }
           break;
+        case INST_GET_OPERATING_MODE:
+          for (unsigned int i = 0; i < servo_num_; ++i) {
+            cmdReadOperatingMode(i);
+            readStatusPacket(instruction.first);
+          }
+          break;
         case INST_GET_CURRENT_LIMIT:
           for (unsigned int i = 0; i < servo_num_; ++i) {
             cmdReadCurrentLimit(i);
@@ -543,6 +574,10 @@ void DynamixelSerial::update()
           break;
         case INST_GET_PROFILE_VELOCITY:
           cmdSyncReadProfileVelocity(false);
+          read_status_packet_flag_ = true;
+          break;
+        case INST_GET_OPERATING_MODE:
+          cmdSyncReadOperatingMode(false);
           read_status_packet_flag_ = true;
           break;
         case INST_GET_CURRENT_LIMIT:
@@ -845,6 +880,11 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			s->profile_velocity_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
+	case INST_GET_OPERATING_MODE:
+		if (s != servo_.end()) {
+			s->operating_mode_ = parameters[0];
+		}
+		return 0;
 	default:
 		return -1;
 	}
@@ -959,6 +999,33 @@ void DynamixelSerial::cmdReadProfileVelocity(uint8_t servo_index)
 	cmdRead(servo_[servo_index].id_, CTRL_PROFILE_VELOCITY, PROFILE_VELOCITY_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdReadOperatingMode(uint8_t servo_index)
+{
+	cmdRead(servo_[servo_index].id_, CTRL_OPERATING_MODE, OPERATING_MODE_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdWriteGoalPosition(uint8_t servo_index)
+{
+	int32_t goal_position  = servo_[servo_index].goal_position_;
+	uint8_t parameters[GOAL_POSITION_BYTE_LEN];
+	parameters[0] = (uint8_t)((int32_t)(goal_position) & 0xFF);
+	parameters[1] = (uint8_t)(((int32_t)(goal_position) >> 8) & 0xFF);
+	parameters[2] = (uint8_t)(((int32_t)(goal_position) >> 16) & 0xFF);
+	parameters[3] = (uint8_t)(((int32_t)(goal_position) >> 24) & 0xFF);
+	cmdWrite(servo_[servo_index].id_, CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdWriteGoalVelocity(uint8_t servo_index)
+{
+	int32_t goal_velocity  = servo_[servo_index].goal_velocity_;
+	uint8_t parameters[GOAL_VELOCITY_BYTE_LEN];
+	parameters[0] = (uint8_t)((int32_t)(goal_velocity) & 0xFF);
+	parameters[1] = (uint8_t)(((int32_t)(goal_velocity) >> 8) & 0xFF);
+	parameters[2] = (uint8_t)(((int32_t)(goal_velocity) >> 16) & 0xFF);
+	parameters[3] = (uint8_t)(((int32_t)(goal_velocity) >> 24) & 0xFF);
+	cmdWrite(servo_[servo_index].id_, CTRL_GOAL_VELOCITY, parameters, GOAL_VELOCITY_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdWriteCurrentLimit(uint8_t servo_index)
 {
 	uint16_t current_limit = servo_[servo_index].current_limit_;
@@ -1061,6 +1128,11 @@ void DynamixelSerial::cmdSyncReadPresentTemperature(bool send_all)
 void DynamixelSerial::cmdSyncReadProfileVelocity(bool send_all)
 {
 	cmdSyncRead(CTRL_PROFILE_VELOCITY, PROFILE_VELOCITY_BYTE_LEN, send_all);
+}
+
+void DynamixelSerial::cmdSyncReadOperatingMode(bool send_all)
+{
+	cmdSyncRead(CTRL_OPERATING_MODE, OPERATING_MODE_BYTE_LEN, send_all);
 }
 
 void DynamixelSerial::cmdSyncWriteGoalPosition()
@@ -1200,6 +1272,21 @@ void DynamixelSerial::getProfileVelocity()
 		cmdSyncReadProfileVelocity();
 		for (unsigned int i = 0; i < servo_num_; i++) {
 			readStatusPacket(INST_GET_PROFILE_VELOCITY);
+		}
+	}
+}
+
+void DynamixelSerial::getOperatingMode()
+{
+	if (ttl_rs485_mixed_ != 0) {
+		for (unsigned int i = 0; i < servo_num_; ++i) {
+			cmdReadOperatingMode(i);
+			readStatusPacket(INST_GET_OPERATING_MODE);
+		}
+	} else {
+		cmdSyncReadOperatingMode();
+		for (unsigned int i = 0; i < servo_num_; i++) {
+			readStatusPacket(INST_GET_OPERATING_MODE);
 		}
 	}
 }
