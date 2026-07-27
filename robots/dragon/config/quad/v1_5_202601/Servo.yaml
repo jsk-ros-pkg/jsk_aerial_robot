@@ -3,6 +3,7 @@ servo_controller:
   joints:
     angle_sgn: 1
     angle_scale: 0.00076699
+    velocity_scale: 0.01199041 # 0.229 [rev/min] -> rad/s, scaled by 2:1 pulley
     zero_point_offset: 2047
     torque_scale:  0.0106 # 0.0036 [A/bit] * (3.4 / 2.3) [Nm/A] * 2 (pulley)
 
@@ -51,6 +52,7 @@ servo_controller:
 
     angle_sgn: 1
     angle_scale: 0.001534
+    velocity_scale: 0.02398082 # 0.229 [rev/min] -> rad/s
     zero_point_offset: 2047
 
     simulation:

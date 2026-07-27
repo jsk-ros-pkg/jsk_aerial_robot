@@ -8,7 +8,7 @@
 
 #include "servo.h"
 
-#define  SERVO_PUB_INTERVAL 20 // 50Hz
+#define SERVO_PUB_INTERVAL 20 // 50Hz
 #define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
 
 bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
@@ -84,6 +84,7 @@ void DirectServo::sendData(bool flag_send_asap)
           spinal::ServoState servo;
           servo.index = i;
           servo.angle = s.present_position_;
+          servo.velocity = s.present_velocity;
           servo.temp = s.present_temp_;
           servo.load = s.present_current_;
           servo.error = s.hardware_error_status_;
@@ -106,6 +107,7 @@ void DirectServo::sendData(bool flag_send_asap)
           spinal::ServoState servo;
           servo.index = i;
           servo.angle = s.present_position_;
+          servo.velocity = s.present_velocity;
           servo.temp = s.present_temp_;
           servo.load = s.present_current_;
           servo.error = s.hardware_error_status_;
@@ -226,10 +228,15 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
   /* special case : data[0] is flag value */
   if(command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED)
     {
-      // servo_handler_.setTTLRS485Mixed(req.data[0]);
+#if DYNAMIXEL
+      servo_handler_.setTTLRS485Mixed(req.data[0] ? 1 : 0);
       FlashMemory::erase();
       FlashMemory::write();
       res.success = true;
+#else
+      nh_->logerror("SET_DYNAMIXEL_TTL_RS485_MIXED is only supported by Dynamixel driver.");
+      res.success = false;
+#endif
       return;
     }
 

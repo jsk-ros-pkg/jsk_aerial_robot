@@ -111,3 +111,5 @@ tags
 # mujoco
 MUJOCO_LOG.txt
 robots/**/mujoco
+
+*.onnx

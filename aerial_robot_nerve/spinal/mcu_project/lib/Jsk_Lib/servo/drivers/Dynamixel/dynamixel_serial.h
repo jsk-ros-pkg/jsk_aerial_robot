@@ -111,6 +111,7 @@
 #define COMMAND_FACTORY_RESET           0x06
 #define COMMAND_REBOOT					0x08
 #define COMMAND_SYNC_READ				0x82
+#define COMMAND_FAST_SYNC_READ			0x8A
 #define COMMAND_SYNC_WRITE          	0x83
 #define COMMAND_BULK_READ				0x92
 #define COMMAND_BULK_WRITE				0x93
@@ -125,8 +126,11 @@
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_VELOCITY_BYTE_LEN			4
+#define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
+#define PRESENT_CUR_VEL_POS_BYTE_LEN	10
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
 #define MOVING_BYTE_LEN 				1
 #define HARDWARE_ERROR_STATUS_BYTE_LEN	1
@@ -150,7 +154,12 @@
 #define EXCEPTION_ADDITIONAL_BYTE 0xFD
 
 #define INSTRUCTION_PACKET_SIZE 64
-#define STATUS_PACKET_SIZE 		64
+#define STATUS_PACKET_SIZE 		160
+
+#ifndef DYNAMIXEL_USE_FAST_SYNC_READ
+#define DYNAMIXEL_USE_FAST_SYNC_READ 1
+#endif
+
 #define PING_TRIAL_NUM			100
 
 //read status packet
@@ -199,6 +208,7 @@
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
+#define INST_GET_CUR_VEL_POS			16
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -320,13 +330,16 @@ private:
   void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
   void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
   void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
+  void cmdFastSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
+  int8_t readFastSyncStatusPacket(uint8_t status_packet_instruction);
 
   inline void cmdReadCurrentLimit(uint8_t servo_index);
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
   inline void cmdReadHomingOffset(uint8_t servo_index);
   inline void cmdReadMoving(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
+  inline void cmdReadPresentCurVelPos(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
   inline void cmdReadPresentTemperature(uint8_t servo_index);
@@ -338,15 +351,22 @@ private:
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
+  inline void cmdFastSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHomingOffset(bool send_all = true);
+  inline void cmdFastSyncReadMoving(bool send_all = true);
   inline void cmdSyncReadMoving(bool send_all = true);
+  inline void cmdFastSyncReadPresentCurVelPos(bool send_all = true);
+  inline void cmdFastSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadPositionGains(bool send_all = true);
+  inline void cmdSyncReadPresentCurVelPos(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
+  inline void cmdSyncWriteGoalVelocity();
+  inline void cmdSyncWriteGoalCurrent();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();
