@@ -5,8 +5,8 @@
   <arg name="sim" default="False" />
   <arg name="real_machine" default="$(arg rm)" />
   <arg name="simulation" default="$(arg sim)" />
-
   <arg name="full_vectoring_mode"  default= "true" />
+  <arg name="mpc" default="False" />
   <arg name="new_model"  default= "true" />
   <arg name="model_name" value="v1_5_202601" if="$(arg new_model)"/>
   <arg name="model_name" value="vim4_202311" unless="$(arg new_model)"/>
@@ -53,7 +53,8 @@
     <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/Servo.yaml" command="load" unless="$(arg mpc)"/>
+    <rosparam file="$(arg config_dir)/Servo_sim.yaml" command="load" if="$(arg mpc)"/>
 
     ###########  Battery Config  ###########
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
@@ -63,14 +64,26 @@
     <rosparam file="$(arg config_dir)/Simulation.yaml" command="load" if="$(eval arg('simulation') and not arg('real_machine'))"/>
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
-    <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
-    <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
+    <group unless="$(arg mpc)">
+      <rosparam file="$(arg config_dir)/control/FullVectoringControlConfig.yaml" command="load" if="$(arg full_vectoring_mode)"/>
+      <param name = "controller/rotor_interfere_compensate" value = "false" if = "$(eval not arg('real_machine') and arg('simulation'))" /> <!-- ignore rotor interfer compensate in simulation mode -->
+      <rosparam file="$(arg config_dir)/control/LQIGimbalControlConfig.yaml" command="load" unless="$(arg full_vectoring_mode)"/>
+    </group>
+    <rosparam file="$(arg config_dir)/DragonMpcControl_sim.yaml" command="load" if="$(arg mpc)"/>
+
     ###########  Navigation ###########
     <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/dragon_navigation" />
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
     <param name="navigation/takeoff_height" value="$(arg takeoff_height)" if="$(eval arg('takeoff_height') > 0)"/>
+
+    ###########  PinocchioRobotModel ###########
+    <node name="pinocchio_robot_description_generator"
+          pkg="aerial_robot_dynamics"
+          type="pinocchio_robot_description_generator.py"
+          output="screen" />
+
   </group>
+
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen">
@@ -129,6 +142,3 @@
   <node pkg="dragon" type="simple_demo.py" name="simple_demo" ns="$(arg robot_ns)" output="screen" if="$(arg demo)"/>
 
 </launch>
-
-
-

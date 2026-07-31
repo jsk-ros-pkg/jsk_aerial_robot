@@ -62,17 +62,18 @@ class InitPose(object):
                 rospy.logerr("Service call failed: %s"%e)
 
 
-            if  max_diff_angle < self.angle_thresh:
-                rospy.loginfo("the init pose of robot reach the target init pose!!")
-                for j in joint_list:
-                    try:
-                        clear_joint_torque = rospy.ServiceProxy('/gazebo/clear_joint_forces', JointRequest)
-                        clear_joint_torque(j)
-                    except rospy.ServiceException as e:
-                        rospy.logerr("Service call failed: %s"%e)
+            # if  max_diff_angle < self.angle_thresh:
+            #     rospy.loginfo("the init pose of robot reach the target init pose!!")
+            #     for j in joint_list:
+            #         try:
+            #             clear_joint_torque = rospy.ServiceProxy('/gazebo/clear_joint_forces', JointRequest)
+            #             clear_joint_torque(j)
+            #         except rospy.ServiceException as e:
+            #             rospy.logerr("Service call failed: %s"%e)
 
-                break
+            #     break
 
+            break
             r.sleep()
 
 

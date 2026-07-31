@@ -214,6 +214,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp): nh_(nh),nhp_(
 
                   /* init the servo command publisher to the controller */
                   servo_target_pos_sim_pubs_[servo_group_params.first].push_back(nh_.advertise<std_msgs::Float64>(load_srv.request.name + string("/command"), 1));
+                  servo_target_commands_sim_pubs_[servo_group_params.first].push_back(nh_.advertise<std_msgs::Float64MultiArray>(load_srv.request.name + string("/commands"), 1));
                   // wait for the publisher initialization
                   while(servo_target_pos_sim_pubs_[servo_group_params.first].back().getNumSubscribers() == 0 && ros::ok())
                     ros::Duration(0.1).sleep();
@@ -359,6 +360,16 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
               std_msgs::Float64 msg;
               msg.data = servo_ctrl_msg->position[i];
               servo_target_pos_sim_pubs_[servo_group_name].at(distance(servos_handler_[servo_group_name].begin(), servo_handler)).publish(msg);
+
+              // pos, vel, ff_torque
+              if((servo_ctrl_msg->position.size() == servo_ctrl_msg->velocity.size()) && (servo_ctrl_msg->position.size() == servo_ctrl_msg->effort.size()))
+                {
+                  std_msgs::Float64MultiArray pos_vel_torque_msg;
+                  pos_vel_torque_msg.data.push_back(servo_ctrl_msg->position.at(i));
+                  pos_vel_torque_msg.data.push_back(servo_ctrl_msg->velocity.at(i));
+                  pos_vel_torque_msg.data.push_back(servo_ctrl_msg->effort.at(i));
+                  servo_target_commands_sim_pubs_[servo_group_name].at(distance(servos_handler_[servo_group_name].begin(), servo_handler)).publish(pos_vel_torque_msg);
+                }
             }
         }
     }

@@ -40,7 +40,7 @@
     <xacro:damping_factor link="base_link"/>
 
     #### rotor coord link (virtual)####
-    <link name="rotor_arm${child1}">
+    <link name="motor_arm${child1}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.00001"/>
@@ -50,7 +50,7 @@
       </inertial>
     </link>
 
-    <link name="rotor_arm${child2}">
+    <link name="motor_arm${child2}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.00001"/>
@@ -88,16 +88,16 @@
     </joint>
 
     #### rotor coord link joint (virtual) ####
-    <joint name="rotor_coord_joint${child1}" type="fixed">
+    <joint name="motor_coord_joint${child1}" type="fixed">
       <parent link="base_link" />
-      <child link="rotor_arm${child1}"/>
+      <child link="motor_arm${child1}"/>
       <origin xyz="0 0.154 0.051" rpy="0 0 ${pi/2}"/>
       <axis xyz="0 0 1"/>
     </joint>
 
-    <joint name="rotor_coord_joint${child2}" type="fixed">
+    <joint name="motor_coord_joint${child2}" type="fixed">
       <parent link="base_link"/>
-      <child link="rotor_arm${child2}"/>
+      <child link="motor_arm${child2}"/>
       <origin xyz="0 -0.154 0.051" rpy="0 0 ${-pi/2}"/>
       <axis xyz="0 0 1"/>
     </joint>
@@ -105,7 +105,7 @@
     #### gimbal link joint ####
     <joint name="gimbal${child1}" type="revolute">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
-      <parent link="rotor_arm${child1}"/>
+      <parent link="motor_arm${child1}"/>
       <child link="gimbal_link${child1}"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <axis xyz="1 0 0"/>
@@ -114,7 +114,7 @@
 
     <joint name="gimbal${child2}" type="revolute">
       <limit effort="6.6" lower="-1.57" upper="1.57" velocity="3.0"/>
-      <parent link="rotor_arm${child2}"/>
+      <parent link="motor_arm${child2}"/>
       <child link="gimbal_link${child2}"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <axis xyz="1 0 0"/>
@@ -174,7 +174,7 @@
     <xacro:damping_factor link="gimbal_link${self}"/>
 
     #### rotor parent link (virtual) ####
-    <link name="rotor_parent${self}">
+    <link name="motor_parent${self}">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <mass value="0.00001"/>
@@ -198,9 +198,9 @@
 
     ## joints ##
     #### rotor parent link joint (virtual) ####
-    <joint name="rotor_parent_link_joint${self}" type="fixed">
+    <joint name="motor_parent_link_joint${self}" type="fixed">
       <parent link="gimbal_link${self}"/>
-      <child link="rotor_parent${self}"/>
+      <child link="motor_parent${self}"/>
       <origin xyz="0.0835 0 0" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
     </joint>
@@ -208,7 +208,7 @@
     #### rotor joint (virtual) ####
     <joint name="rotor${self}" type="continuous">
       <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
-      <parent link="rotor_parent${self}"/>
+      <parent link="motor_parent${self}"/>
       <child link="thrust${self}"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <axis xyz="0 0 ${rotor_direction}"/>

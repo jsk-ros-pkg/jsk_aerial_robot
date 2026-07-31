@@ -16,4 +16,9 @@
     <description>controller for under actuated model (e.g., quad) with LQI Tilted controller </description>
   </class>
 
+
+  <class name="aerial_robot_control/fwddyn_mpc_controller" type="aerial_robot_control::FwddynMpcController" base_class_type="aerial_robot_control::ControlBase">
+    <description>MPC controller using crocoddyl DifferentialActionModelContactFwdDynamicsWithThrusts for CoM tracking</description>
+  </class>
+
 </library>

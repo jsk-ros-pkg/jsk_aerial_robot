@@ -1,0 +1,52 @@
+servo_controller:
+
+  joints:
+    # for low pass filter
+    filter_flag: true
+    sample_freq: 50.0 # 50Hz
+    cutoff_freq: 10.0 # 10Hz, test
+
+    # for simulation
+    simulation:
+      pid: {p: 50.0, i: 0.01, d: 1.0, i_clamp_min: -6.6, i_clamp_max: 6.6}
+      init_value: 0.0
+      type: effort_controllers/JointPositionController
+
+    # should be in order in terms of kinematics model
+    # e.g. joint1 -> jointN; gimbal1_roll -> gimbal1_pitch
+    controller1:
+      name: joint1_pitch
+      # angle_max: 1.58 # you can specify for each controller
+    controller2:
+      name: joint1_yaw
+      simulation:
+        init_value: 1.57
+    controller3:
+      name: joint2_pitch
+    controller4:
+      name: joint2_yaw
+      simulation:
+        init_value: 1.57
+    controller5:
+      name: joint3_pitch
+    controller6:
+      name: joint3_yaw
+      simulation:
+        init_value: 1.57
+
+    controller7:
+      name: gimbal1_roll
+    controller8:
+      name: gimbal1_pitch
+    controller9:
+      name: gimbal2_roll
+    controller10:
+      name: gimbal2_pitch
+    controller11:
+      name: gimbal3_roll
+    controller12:
+      name: gimbal3_pitch
+    controller13:
+      name: gimbal4_roll
+    controller14:
+      name: gimbal4_pitch

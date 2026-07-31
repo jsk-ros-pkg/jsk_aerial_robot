@@ -56,6 +56,7 @@ public:
   virtual void calcStaticThrust() override;
 
   inline const uint8_t getWrenchDof() const { return wrench_dof_; }
+  inline const double getLinkLength() const { return link_length_; }
   inline const double getRollPitchPositionMargin() const { return rp_position_margin_; }
   inline const double getRollPitchPositionMarginThresh() const { return rp_position_margin_thre_; }
   inline const double getWrenchMatDeterminant() const { return wrench_mat_det_; }
@@ -80,6 +81,9 @@ private:
   // private attributes
   int wrench_dof_;
 
+  // kinematics
+  double link_length_;
+
   Eigen::VectorXd approx_fc_rp_dists_;
   Eigen::VectorXd fc_rp_dists_;
   double fc_rp_min_;
@@ -94,6 +98,7 @@ private:
 
   // private functions
   void getParamFromRos();
+  void resolveLinkLength();
 
 protected:
 

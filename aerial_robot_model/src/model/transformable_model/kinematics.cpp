@@ -2,16 +2,6 @@
 
 using namespace aerial_robot_model::transformable;
 
-void RobotModel::resolveLinkLength()
-{
-  KDL::JntArray joint_positions(getTree().getNrOfJoints());
-  //hard coding
-  KDL::Frame f_link2 = forwardKinematics<KDL::Frame>("link2", joint_positions);
-  KDL::Frame f_link3 = forwardKinematics<KDL::Frame>("link3", joint_positions);
-  link_length_ = (f_link3.p - f_link2.p).Norm();
-}
-
-
 void RobotModel::calcBasicKinematicsJacobian()
 {
   const std::vector<Eigen::Vector3d> p = getRotorsOriginFromCog<Eigen::Vector3d>();

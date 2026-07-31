@@ -14,6 +14,7 @@
 
   <exec_depend>aerial_robot_base</exec_depend>
   <exec_depend>aerial_robot_control</exec_depend>
+  <exec_depend>aerial_robot_dynamics</exec_depend>
   <exec_depend>aerial_robot_model</exec_depend>
   <exec_depend>aerial_robot_msgs</exec_depend>
   <exec_depend>aerial_robot_simulation</exec_depend>

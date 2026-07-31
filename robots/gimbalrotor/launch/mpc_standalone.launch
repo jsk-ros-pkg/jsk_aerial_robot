@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="airframe"     default="tri_omni"/>
+  <arg name="robot_ns"     value="gimbalrotor"/>
+  <arg name="config_dir"   default="$(find gimbalrotor)/config"/>
+  <arg name="noise_enable" default="false"/>
+  <arg name="headless" default="False" />
+
+  <group ns="$(arg robot_ns)">
+
+    <!-- robot description -->
+    <param name="robot_description" command="$(find xacro)/xacro $(find gimbalrotor)/robots/$(arg airframe)/gimbalrotor.urdf.xacro"/>
+
+    <node name="pinocchio_robot_description_generator" pkg="aerial_robot_dynamics" type="pinocchio_robot_description_generator.py" output="screen"/>
+
+
+    <!--  Control -->
+    <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorMpc.yaml" command="load"/>
+
+
+    <!-- MPC test node -->
+    <node name="mpc_standalone_node" pkg="aerial_robot_control" type="mpc_standalone_node" output="screen"/>
+    <param name="mpc_standalone/noise/enable" value="$(arg noise_enable)"/>
+
+
+    <!-- Visualization -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+      <param name="tf_prefix" value="$(arg robot_ns)"/>
+    </node>
+
+    <node name="rotor_tf_publisher" pkg="aerial_robot_model" type="rotor_tf_publisher" output="screen">
+      <param name="tf_prefix" value="$(arg robot_ns)"/>
+    </node>
+  </group>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg config_dir)/rviz_config" output="screen" unless="$(arg headless)"/>
+
+</launch>

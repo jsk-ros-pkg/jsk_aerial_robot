@@ -45,6 +45,7 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/JointState.h>
 #include <spinal/ServoStates.h>
@@ -234,6 +235,7 @@ protected:
   map<string, ros::ServiceServer> servo_enable_srvs_;
   map<string, ros::Publisher> servo_enable_pubs_;
   map<string, vector<ros::Publisher> > servo_target_pos_sim_pubs_; // TODO: should be actionlib, trajectory controller
+  map<string, vector<ros::Publisher> > servo_target_commands_sim_pubs_;
 
   map<string, ServoGroupHandler> servos_handler_;
   double moving_check_rate_;

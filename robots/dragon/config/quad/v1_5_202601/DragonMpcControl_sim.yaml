@@ -1,0 +1,40 @@
+aerial_robot_control_name: aerial_robot_control/fwddyn_mpc_controller
+
+# Crocoddyl FDDP-based MPC (used by fwddyn_mpc_controller and mpc_standalone_node)
+mpc:
+  num_nodes: 50
+  max_iter: 2
+  max_init_iter: 400
+  dt: 0.025
+  num_threads: 4
+  com_track_weight: [5000.0, 5000.0, 1000000.0]
+  centroidal_momentum_weight: [1000, 1000, 1000, 10000, 10000, 10000]
+  control_weight: 1.0
+  thrust_reg_weight: 1.0
+  thrust_barrier_weight: 10.0
+  delta_thrust_max: 100000.0
+  verbose: true
+  verbose_log_duration: 1.0
+  diag_pub_duration: 0.1
+
+  x_state_weight: [0, 0, 0, 10000, 10000, 10000,
+                   10.0, 10.0, 10000.0, 10000.0,      # gimbal1, joint1
+                   10.0, 10.0, 10000.0, 10000.0,      # gimbal2, joint2
+                   10.0, 10.0, 10000.0, 10000.0,      # gimbal3, joint3
+                   10.0, 10.0,                        # gimbal4
+                   0, 0, 0, 0, 0, 0,                  # linvel, angvel
+                   100.0, 100.0, 1000.0, 1000.0,      # gimbal1 vel, joint1 vel
+                   100.0, 100.0, 1000.0, 1000.0,      # gimbal2 vel, joint2 vel
+                   100.0, 100.0, 1000.0, 1000.0,      # gimbal3 vel, joint3 vel
+                   100.0, 100.0]                      # gimbal4 vel
+
+  x_ref: [0, 0, 0, 0, 0, 0, 1,
+          0, 0, 0, 1.57,              # gimbal1, joint1
+          0, 0, 0, 1.57,              # gimbal2, joint2
+          0, 0, 0, 1.57,              # gimbal3, joint3
+          0, 0,                    # gimbal4
+          0, 0, 0, 0, 0, 0,        # linvel, angvel
+          0, 0, 0, 0,              # gimbal1 vel, joint1 vel
+          0, 0, 0, 0,              # gimbal2 vel, joint2 vel
+          0, 0, 0, 0,              # gimbal3 vel, joint3 vel
+          0, 0]                    # gimbal4 vel
