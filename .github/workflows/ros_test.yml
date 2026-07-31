@@ -7,17 +7,14 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            ROS_DISTRO : noetic
-            DOCKER_IMAGE : ubuntu:focal
-          - runs-on: ubuntu-latest
             ROS_DISTRO : one
             DOCKER_IMAGE : ubuntu:jammy
           - runs-on: ubuntu-latest
             ROS_DISTRO : one
             DOCKER_IMAGE : ubuntu:noble
           - runs-on: ubuntu-22.04-arm
-            ROS_DISTRO : noetic
-            DOCKER_IMAGE : ubuntu:focal
+            ROS_DISTRO : one
+            DOCKER_IMAGE : ubuntu:jammy
     runs-on: ${{ matrix.runs-on }}
     name: ros_build_test-${{ matrix.runs-on }}-${{ matrix.DOCKER_IMAGE }}
 

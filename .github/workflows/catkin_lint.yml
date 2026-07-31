@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     name: catkin_lint
 
-    container: ubuntu:20.04
+    container: ubuntu:22.04
 
     steps:
       - name: Setup OS
@@ -29,6 +29,6 @@ jobs:
       - name: catkin lint test
         run: |
           wstool init
-          wstool merge aerial_robot_noetic.rosinstall
+          wstool merge aerial_robot_debian.rosinstall
           wstool update
           ROS_DISTRO=noetic catkin_lint --resolve-env --strict $PWD --skip-path kalman_filter --skip-path ublox_gps --skip-path aerial_robot_3rdparty  --skip-path rosserial --skip-path livox_ros_driver2 --skip-path fast_lio --skip-path mocap_optitrack --skip-path aerial_robot_base

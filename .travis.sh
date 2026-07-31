@@ -8,25 +8,7 @@ echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selecti
 echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
 
 # Install ROS
-if [[ "$ROS_DISTRO" ==  "one" ]]; then
-    ${CI_SOURCE_PATH}/configure.sh
-else
-    sudo sh -c "echo \"deb ${REPOSITORY} `lsb_release -cs` main\" > /etc/apt/sources.list.d/ros-latest.list"
-    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-    sudo apt-get update -qq
-
-    if [[ "$ROS_DISTRO" ==  "noetic" ]]; then
-        sudo apt-get install -y -q python3-catkin-pkg python3-catkin-tools python3-rosdep python3-wstool python3-rosinstall-generator python3-osrf-pycommon python-is-python3
-    else
-        sudo apt-get install -y -q python-catkin-pkg python-catkin-tools python-rosdep python-wstool python-rosinstall-generator
-    fi
-    sudo apt-get install -y -q ros-$ROS_DISTRO-catkin
-
-    # Setup for rosdep
-    sudo rosdep init
-    rosdep update --include-eol-distros
-fi
-
+${CI_SOURCE_PATH}/configure.sh
 
 source /opt/ros/${ROS_DISTRO}/setup.bash
 
