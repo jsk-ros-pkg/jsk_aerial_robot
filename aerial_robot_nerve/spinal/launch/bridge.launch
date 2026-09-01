@@ -1,5 +1,5 @@
 <launch>
-  <arg name="mode" default="serial" />
+  <arg name="mode" default="udp" />
 
   <arg name="serial_port" default="/dev/ttyUSB0" />
   <arg name="serial_baud" default="921600" />

@@ -11,25 +11,55 @@ import math
 class JointRoughCalib:
     def __init__(self):
 
-        robot_ns = rospy.get_param("robot_ns", "")
+        # roslaunch parameters declared inside a <node> are private parameters.
+        # Normalize the configured namespace so topic and parameter names are
+        # absolute (for example, "dragon" becomes "/dragon").
+        robot_ns = rospy.get_param("~robot_ns", "")
+        robot_ns = robot_ns.strip('/')
+        robot_ns = '/' + robot_ns if robot_ns else ''
+
         if not robot_ns:
-            master = rosgraph.Master('/rostopic')
-            try:
-                _, _, srvs = master.getSystemState()
-            except socket.error:
-                raise ROSTopicIOException('Unable to communicate with master!')
-            board_info_srvs = [srv[0] for srv in srvs if '/get_board_info' in srv[0]]
-            # choose the first robot name
-            robot_ns = board_info_srvs[0].split('/get_board_info')[0]
+            # Fall back to discovering the namespace from get_board_info. The
+            # rosserial bridge may still be registering when this node starts,
+            # so wait without busy-looping and remain responsive to Ctrl+C.
+            master = rosgraph.Master(rospy.get_name())
+            board_info_srvs = []
+            while not board_info_srvs and not rospy.is_shutdown():
+                try:
+                    _, _, srvs = master.getSystemState()
+                    board_info_srvs = sorted(
+                        srv[0] for srv in srvs
+                        if srv[0].endswith('/get_board_info'))
+                except socket.error as error:
+                    rospy.logwarn_throttle(
+                        5.0, "unable to communicate with ROS master: %s", error)
+
+                if not board_info_srvs:
+                    rospy.loginfo_throttle(
+                        5.0, "wait for rosserial get_board_info service...")
+                    rospy.sleep(0.2)
+
+            if rospy.is_shutdown():
+                return
+
+            # Choose the first robot namespace. A root-level service produces
+            # an empty namespace, which correctly resolves to /joint_states.
+            robot_ns = board_info_srvs[0][:-len('/get_board_info')]
 
         rospy.loginfo('robot name is {}'.format(robot_ns))
 
         # capture the joint angles
         self.joint_states = None
-        self.joint_sub = rospy.Subscriber(robot_ns + '/joint_states', JointState, self.cb)
-        while self.joint_states is None:
-            rospy.loginfo("wait for joint states...")
-            rospy.sleep(1.0)
+        joint_states_topic = robot_ns + '/joint_states'
+        self.joint_sub = rospy.Subscriber(
+            joint_states_topic, JointState, self.cb, queue_size=1)
+        while self.joint_states is None and not rospy.is_shutdown():
+            rospy.loginfo_throttle(
+                5.0, "wait for joint states on %s...", joint_states_topic)
+            rospy.sleep(0.2)
+
+        if rospy.is_shutdown():
+            return
 
         config = rospy.get_param(robot_ns + '/servo_controller/joints')
         angle_scale = config['angle_scale']
