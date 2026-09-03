@@ -10,11 +10,13 @@
   <node pkg="rosserial_server" type="serial_node" name="rosserial_server" output="screen" if="$(eval arg('mode') == 'serial')">
     <param name="port" value="$(arg serial_port)" />
     <param name="baud" value="$(arg serial_baud)" />
+    <param name="unrecognised_topic_retry_threshold" value="5" />
   </node>
 
   <node pkg="rosserial_server" type="udp_socket_node" name="rosserial_server" output="screen" if="$(eval arg('mode') == 'udp')">
     <param name="client_port" value="$(arg udp_port)" />
     <param name="server_port" value="$(arg udp_port)" />
     <param name="client_addr" value="$(arg udp_addr)" />
+    <param name="unrecognised_topic_retry_threshold" value="5" />
   </node>
 </launch>

@@ -3,6 +3,17 @@
 
 namespace
 {
+  constexpr uint8_t CONFIG_SET_HOMING_OFFSET = 1;
+  constexpr uint8_t CONFIG_SET_PID_GAIN = 2;
+  constexpr uint8_t CONFIG_SET_PROFILE_VELOCITY = 3;
+  constexpr uint8_t CONFIG_SET_SEND_DATA_FLAG = 4;
+  constexpr uint8_t CONFIG_SET_CURRENT_LIMIT = 5;
+  constexpr uint8_t CONFIG_SET_TTL_RS485_MIXED = 6;
+  constexpr uint8_t CONFIG_SET_EXTERNAL_ENCODER_FLAG = 7;
+  constexpr uint8_t CONFIG_SET_RESOLUTION_RATIO = 8;
+
+  osMutexDef(DynamixelInstructionQueueMutex);
+  osSemaphoreDef(DynamixelServiceCompletion);
 
 #if STM32H7_V2
   uint8_t rx_buf_[RX_BUFFER_SIZE] __attribute__((section(".ServoRxBufferSection")));
@@ -17,7 +28,19 @@ namespace
 void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 {
 	huart_ = huart;
-  mutex_ = mutex;
+  mutex_ = mutex;  // Kept for API compatibility; runtime UART ownership is task-local.
+  queue_mutex_ = osMutexCreate(osMutex(DynamixelInstructionQueueMutex));
+  service_completion_ = osSemaphoreCreate(osSemaphore(DynamixelServiceCompletion), 1);
+  if (service_completion_ != nullptr) {
+    osSemaphoreWait(service_completion_, 0);
+  }
+  pending_transaction_ = PendingTransaction();
+  service_request_ = ServoServiceRequest();
+  torque_off_pending_mask_ = 0;
+  next_service_generation_ = 0;
+  last_tx_status_ = HAL_OK;
+  comm_counters_ = ServoCommCounters();
+
 	servo_num_ = 0;
 	set_pos_tick_ = 0;
 	get_pos_tick_ = 0;
@@ -28,14 +51,14 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 
   direct_ttl_mode_ = false;
 
-        /* rx */
+  /* rx */
   rd_ptr_ = 0;
   memset(rx_buf_, 0, sizeof(rx_buf_));
 
 	std::fill(servo_.begin(), servo_.end(), ServoData(255));
 
-        // scan to decide the comm (UART/ Half-duplex) mode
-        pinReconfig();
+  // scan to decide the comm (UART/ Half-duplex) mode
+  pinReconfig();
 
 	//initialize servo motors
   cmdReboot(DX_BROADCAST_ID);
@@ -106,6 +129,8 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
           servo_[i].zero_point_offset_ = 2047;
           servo_[i].angle_scale_ = 3.1416 / 2047;
         }
+
+  comm_counters_ = ServoCommCounters();
 }
 
 void DynamixelSerial::pinReconfig()
@@ -123,7 +148,7 @@ void DynamixelSerial::pinReconfig()
   __HAL_UART_DISABLE_IT(huart_, UART_IT_ERR);
   HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
 
-  HAL_Delay(500);
+  HAL_Delay(1000);
 
   ping();
 
@@ -164,7 +189,7 @@ void DynamixelSerial::pinReconfig()
   __HAL_UART_DISABLE_IT(huart_, UART_IT_ERR);
   HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
 
-  HAL_Delay(500);
+  HAL_Delay(1000);
 
   ping();
 
@@ -197,28 +222,55 @@ void DynamixelSerial::pinReconfig()
 
 void DynamixelSerial::ping()
 {
-	cmdPing(DX_BROADCAST_ID);
-	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
-		readStatusPacket(INST_PING);
-	}
+  cmdPing(DX_BROADCAST_ID);
+  const uint32_t deadline_ms =
+    HAL_GetTick() + SERVO_BROADCAST_PING_TIMEOUT_MS;
+
+  while (servo_num_ < MAX_SERVO_NUM &&
+         !deadlineExpired(HAL_GetTick(), deadline_ms)) {
+    const ServoResult result =
+      readStatusPacket(INST_PING, deadline_ms);
+
+    if (result == SERVO_RESULT_TIMEOUT ||
+        result == SERVO_RESULT_UART_ERROR) {
+      break;
+    }
+  }
+
+  // Broadcast Ping response order is not deterministic.
+  std::sort(servo_.begin(), servo_.begin() + servo_num_,
+            [](const ServoData& lhs, const ServoData& rhs) {
+              return lhs.id_ < rhs.id_;
+            });
 }
 
 
 void DynamixelSerial::reboot(uint8_t servo_index)
 {
-	cmdReboot(servo_[servo_index].id_);
+	enqueueInstruction(INST_REBOOT, servo_index);
 }
 
 void DynamixelSerial::setTorque(uint8_t servo_index)
 {
-  instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+  if (servo_index < servo_num_ &&
+      !servo_[servo_index].torque_enable_) {
+    __atomic_fetch_or(&torque_off_pending_mask_, 1UL << servo_index,
+                      __ATOMIC_RELEASE);
+    return;
+  }
+  enqueueInstruction(INST_SET_TORQUE, servo_index);
 }
 
 void DynamixelSerial::setTorqueFromPresetnPos(uint8_t servo_index)
 {
   ServoData& s = servo_[servo_index];
   if(s.torque_enable_) s.goal_position_ = s.present_position_;
-  instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+  if (!s.torque_enable_) {
+    __atomic_fetch_or(&torque_off_pending_mask_, 1UL << servo_index,
+                      __ATOMIC_RELEASE);
+    return;
+  }
+  enqueueInstruction(INST_SET_TORQUE, servo_index);
 }
 
 void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
@@ -234,72 +286,201 @@ void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
 
 void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
-  if(servo_[servo_index].external_encoder_flag_){
-	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
-#ifndef SPINAL
-	servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
-	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
-#endif
-	servo_[servo_index].first_get_pos_flag_ = true;
-	FlashMemory::erase();
-	FlashMemory::write();
-  }
-  else{
-    if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
-
-    // reset homing offset and internal offset
-    servo_[servo_index].homing_offset_ = 0;
-    servo_[servo_index].internal_offset_ = 0;
-    cmdWriteHomingOffset(servo_index);
-    cmdReadHomingOffset(servo_index);
-    readStatusPacket(INST_GET_HOMING_OFFSET);
-
-    // read updated position
-    cmdReadPresentPosition(servo_index);
-    readStatusPacket(INST_GET_PRESENT_POS);
-
-    // set new homing offset
-    servo_[servo_index].updateHomingOffset();
-    cmdWriteHomingOffset(servo_index);
-    cmdReadHomingOffset(servo_index);
-    readStatusPacket(INST_GET_HOMING_OFFSET);
-
-    // read updated position
-    cmdReadPresentPosition(servo_index);
-    readStatusPacket(INST_GET_PRESENT_POS);
-
-    if (mutex_ != NULL) osMutexRelease(*mutex_);
-  }
+  enqueueInstruction(INST_SET_HOMING_OFFSET, servo_index);
 }
 
 void DynamixelSerial::setPositionGains(uint8_t servo_index)
 {
-  if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
-
-  cmdWritePositionGains(servo_index);
-  getPositionGains();
-
-  if (mutex_ != NULL) osMutexRelease(*mutex_);
+  enqueueInstruction(INST_SET_POSITION_GAINS, servo_index);
 }
 
 void DynamixelSerial::setProfileVelocity(uint8_t servo_index)
 {
-  if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
-
-  cmdWriteProfileVelocity(servo_index);
-  getProfileVelocity();
-
-  if (mutex_ != NULL) osMutexRelease(*mutex_);
+  enqueueInstruction(INST_SET_PROFILE_VELOCITY, servo_index);
 }
 
 void DynamixelSerial::setCurrentLimit(uint8_t servo_index)
 {
-  if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
+  enqueueInstruction(INST_SET_CURRENT_LIMIT, servo_index);
+}
 
-  cmdWriteCurrentLimit(servo_index);
-  getCurrentLimit();
+bool DynamixelSerial::enqueueInstruction(uint8_t command, uint8_t servo_index)
+{
+  if (queue_mutex_ == nullptr ||
+      osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
+    ++comm_counters_.queue_overflow_count;
+    return false;
+  }
 
-  if (mutex_ != NULL) osMutexRelease(*mutex_);
+  const bool queued = instruction_buffer_.push({command, servo_index});
+  if (queued) {
+    updateQueueHighWaterMark();
+  } else {
+    ++comm_counters_.queue_overflow_count;
+  }
+  osMutexRelease(queue_mutex_);
+  return queued;
+}
+
+bool DynamixelSerial::popInstruction(ServoInstruction& instruction)
+{
+  if (queue_mutex_ == nullptr ||
+      osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
+    return false;
+  }
+
+  const bool popped = instruction_buffer_.pop(instruction);
+  osMutexRelease(queue_mutex_);
+  return popped;
+}
+
+
+void DynamixelSerial::updateQueueHighWaterMark()
+{
+  const uint16_t depth = instruction_buffer_.length();
+  if (depth > comm_counters_.queue_high_water_mark) {
+    comm_counters_.queue_high_water_mark = depth;
+  }
+}
+
+uint8_t DynamixelSerial::activeServoCount(bool send_all) const
+{
+  uint8_t count = 0;
+  for (unsigned int i = 0; i < servo_num_; ++i) {
+    if (!send_all && !servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) {
+      continue;
+    }
+    ++count;
+  }
+  return count;
+}
+
+bool DynamixelSerial::validateServiceRequest(uint8_t command, const int32_t* data,
+                                             uint8_t data_length) const
+{
+  if (data == nullptr || data_length > SERVO_SERVICE_DATA_CAPACITY) {
+    return false;
+  }
+
+  uint8_t expected_length = 0;
+  switch (command) {
+  case CONFIG_SET_TTL_RS485_MIXED:
+    expected_length = 1;
+    break;
+  case CONFIG_SET_HOMING_OFFSET:
+  case CONFIG_SET_PROFILE_VELOCITY:
+  case CONFIG_SET_SEND_DATA_FLAG:
+  case CONFIG_SET_CURRENT_LIMIT:
+  case CONFIG_SET_EXTERNAL_ENCODER_FLAG:
+    expected_length = 2;
+    break;
+  case CONFIG_SET_RESOLUTION_RATIO:
+    expected_length = 3;
+    break;
+  case CONFIG_SET_PID_GAIN:
+    expected_length = 4;
+    break;
+  default:
+    return false;
+  }
+
+  if (data_length != expected_length) {
+    return false;
+  }
+  return command == CONFIG_SET_TTL_RS485_MIXED ||
+         (data[0] >= 0 && static_cast<uint32_t>(data[0]) < servo_num_);
+}
+
+ServoResult DynamixelSerial::requestConfig(uint8_t command, const int32_t* data,
+                                           uint8_t data_length, uint32_t timeout_ms)
+{
+  if (!validateServiceRequest(command, data, data_length)) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  if (queue_mutex_ == nullptr || service_completion_ == nullptr) {
+    return SERVO_RESULT_BUSY;
+  }
+
+  const uint32_t wait_timeout_ms = timeout_ms == 0 ? SERVO_SERVICE_TIMEOUT_MS : timeout_ms;
+  if (osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
+    ++comm_counters_.queue_overflow_count;
+    return SERVO_RESULT_BUSY;
+  }
+  if (service_request_.active) {
+    osMutexRelease(queue_mutex_);
+    return SERVO_RESULT_BUSY;
+  }
+
+  while (osSemaphoreWait(service_completion_, 0) == osOK) {}
+
+  ++next_service_generation_;
+  if (next_service_generation_ == 0) {
+    ++next_service_generation_;
+  }
+
+  service_request_ = ServoServiceRequest();
+  service_request_.command = command;
+  service_request_.data_length = data_length;
+  for (uint8_t i = 0; i < data_length; ++i) {
+    service_request_.data[i] = data[i];
+  }
+  service_request_.generation = next_service_generation_;
+  service_request_.deadline_ms = HAL_GetTick() + wait_timeout_ms;
+  service_request_.result = SERVO_RESULT_BUSY;
+  service_request_.active = true;
+  service_request_.callback_waiting = true;
+
+  const uint32_t generation = service_request_.generation;
+  const bool queued = instruction_buffer_.push({INST_SERVICE_REQUEST, 0});
+  if (!queued) {
+    service_request_.active = false;
+    service_request_.callback_waiting = false;
+    ++comm_counters_.queue_overflow_count;
+    osMutexRelease(queue_mutex_);
+    return SERVO_RESULT_QUEUE_FULL;
+  }
+  updateQueueHighWaterMark();
+  osMutexRelease(queue_mutex_);
+
+  const int32_t wait_result = osSemaphoreWait(service_completion_, wait_timeout_ms);
+  if (osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
+    return SERVO_RESULT_BUSY;
+  }
+
+  ServoResult result = SERVO_RESULT_TIMEOUT;
+  if (service_request_.generation != generation) {
+    ++comm_counters_.unexpected_completion_count;
+  } else if (wait_result == osOK && !service_request_.active) {
+    result = service_request_.result;
+  } else if (service_request_.active) {
+    service_request_.callback_waiting = false;
+  }
+  osMutexRelease(queue_mutex_);
+  return result;
+}
+
+void DynamixelSerial::completeServiceRequest(uint32_t generation, ServoResult result)
+{
+  if (queue_mutex_ == nullptr ||
+      osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
+    ++comm_counters_.unexpected_completion_count;
+    return;
+  }
+
+  bool notify_callback = false;
+  if (!service_request_.active || service_request_.generation != generation) {
+    ++comm_counters_.unexpected_completion_count;
+  } else {
+    service_request_.result = result;
+    service_request_.active = false;
+    notify_callback = service_request_.callback_waiting;
+    service_request_.callback_waiting = false;
+  }
+  osMutexRelease(queue_mutex_);
+
+  if (notify_callback && service_completion_ != nullptr) {
+    osSemaphoreRelease(service_completion_);
+  }
 }
 
 ServoData& DynamixelSerial::getOneServo(uint8_t id)
@@ -321,292 +502,454 @@ uint8_t DynamixelSerial::getServoIndex(uint8_t id)
   return 0;
 }
 
-void DynamixelSerial::update()
+bool DynamixelSerial::deadlineExpired(uint32_t now_ms, uint32_t deadline_ms)
 {
-  /* skip if no servo is detected */
-  if (servo_num_ == 0) return;
+  return static_cast<int32_t>(now_ms - deadline_ms) >= 0;
+}
 
-  /* receive data process */
-  /* For one round, change from "send -> receive" to " receive -> send" */
-  /* This setting can accelerate the receiving process */
-  if(read_status_packet_flag_) {
-    bool read_success = true;
-#if DYNAMIXEL_USE_FAST_SYNC_READ
-    if (instruction_last_.first == INST_GET_CUR_VEL_POS ||
-        instruction_last_.first == INST_GET_PRESENT_TEMPERATURE ||
-        instruction_last_.first == INST_GET_PRESENT_MOVING ||
-        instruction_last_.first == INST_GET_HARDWARE_ERROR_STATUS) {
-      read_success = (readFastSyncStatusPacket(instruction_last_.first) == 0);
-    } else
-#endif
-    {
-      for (unsigned int i = 0; i < servo_num_; i++) {
-        if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
-        if (readStatusPacket(instruction_last_.first) != 0) {
-          read_success = false;
-          break;
-        }
+bool DynamixelSerial::startPendingTransaction(const ServoInstruction& instruction,
+                                              uint8_t expected_response_count,
+                                              bool fast_sync,
+                                              uint32_t timeout_ms)
+{
+  if (pending_transaction_.active) {
+    ++comm_counters_.unexpected_completion_count;
+    return false;
+  }
+  if (expected_response_count == 0) {
+    ++comm_counters_.invalid_packet_count;
+    return false;
+  }
+
+  pending_transaction_.active = true;
+  pending_transaction_.instruction = instruction;
+  pending_transaction_.expected_response_count = expected_response_count;
+  pending_transaction_.fast_sync = fast_sync;
+  pending_transaction_.deadline_ms = HAL_GetTick() + timeout_ms;
+  return true;
+}
+
+ServoResult DynamixelSerial::completePendingTransaction()
+{
+  if (!pending_transaction_.active) {
+    ++comm_counters_.unexpected_completion_count;
+    return SERVO_RESULT_BUSY;
+  }
+
+  const PendingTransaction transaction = pending_transaction_;
+  ServoResult result = SERVO_RESULT_OK;
+  if (deadlineExpired(HAL_GetTick(), transaction.deadline_ms)) {
+    ++comm_counters_.deadline_miss_count;
+    result = SERVO_RESULT_TIMEOUT;
+  } else if (transaction.fast_sync) {
+    result = readFastSyncStatusPacket(transaction.instruction.command,
+                                      transaction.deadline_ms);
+  } else {
+    for (uint8_t i = 0; i < transaction.expected_response_count; ++i) {
+      result = readStatusPacket(transaction.instruction.command,
+                                transaction.deadline_ms);
+      if (result != SERVO_RESULT_OK) {
+        break;
       }
     }
-    if (read_success && instruction_last_.first == INST_GET_CUR_VEL_POS)
+  }
+
+  pending_transaction_ = PendingTransaction();
+  recordTransactionResult(result);
+  if (result != SERVO_RESULT_OK) {
+    recoverRx();
+  }
+  return result;
+}
+
+ServoResult DynamixelSerial::executeBlockingRead(const ServoInstruction& instruction,
+                                                 uint8_t expected_response_count,
+                                                 bool fast_sync,
+                                                 uint32_t timeout_ms)
+{
+  ServoResult result = lastTransmitResult();
+  if (result != SERVO_RESULT_OK) {
+    return result;
+  }
+  if (!startPendingTransaction(instruction, expected_response_count,
+                               fast_sync, timeout_ms)) {
+    return SERVO_RESULT_BUSY;
+  }
+  return completePendingTransaction();
+}
+
+void DynamixelSerial::recordTransactionResult(ServoResult result)
+{
+  switch (result) {
+  case SERVO_RESULT_OK:
+    ++comm_counters_.transaction_success_count;
+    break;
+  case SERVO_RESULT_TIMEOUT:
+    ++comm_counters_.timeout_count;
+    break;
+  case SERVO_RESULT_CRC_ERROR:
+    ++comm_counters_.crc_error_count;
+    break;
+  case SERVO_RESULT_INVALID_RESPONSE:
+  case SERVO_RESULT_UART_ERROR:
+  case SERVO_RESULT_INVALID_ARGUMENT:
+    ++comm_counters_.invalid_packet_count;
+    break;
+  default:
+    break;
+  }
+}
+
+ServoResult DynamixelSerial::lastTransmitResult()
+{
+  if (last_tx_status_ == HAL_OK) {
+    return SERVO_RESULT_OK;
+  }
+
+  const ServoResult result = last_tx_status_ == HAL_TIMEOUT
+    ? SERVO_RESULT_TIMEOUT : SERVO_RESULT_UART_ERROR;
+  recordTransactionResult(result);
+  recoverRx();
+  return result;
+}
+
+void DynamixelSerial::recoverRx()
+{
+  ++comm_counters_.recovery_count;
+
+  HAL_UART_AbortReceive(huart_);
+  __HAL_UART_CLEAR_FLAG(huart_, UART_CLEAR_PEF | UART_CLEAR_FEF |
+                                UART_CLEAR_NEF | UART_CLEAR_OREF);
+  rd_ptr_ = 0;
+  memset(rx_buf_, 0, sizeof(rx_buf_));
+
+  if (direct_ttl_mode_) {
+    HAL_HalfDuplex_EnableReceiver(huart_);
+  }
+  if (HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE) != HAL_OK) {
+    HAL_UART_DMAStop(huart_);
+    HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+  }
+  rd_ptr_ = (RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) %
+            RX_BUFFER_SIZE;
+}
+
+void DynamixelSerial::schedulePeriodicCommands()
+{
+  const uint32_t current_time = HAL_GetTick();
+
+  if (set_pos_tick_ == 0U) set_pos_tick_ = current_time + SET_POS_OFFSET;
+  if (get_pos_tick_ == 0U) get_pos_tick_ = current_time + GET_POS_OFFSET;
+  if (get_temp_tick_ == 0U) get_temp_tick_ = current_time + GET_TEMP_OFFSET;
+  if (get_move_tick_ == 0U) get_move_tick_ = current_time + GET_MOVE_OFFSET;
+  if (get_error_tick_ == 0U) {
+    get_error_tick_ = current_time + GET_HARDWARE_ERROR_STATUS_OFFSET;
+  }
+
+  auto advance_deadline = [current_time](uint32_t& deadline, uint32_t period) {
+    do {
+      deadline += period;
+    } while (deadlineExpired(current_time, deadline));
+  };
+
+  auto enqueue_read = [this](uint8_t command) {
+    if (ttl_rs485_mixed_ == 0) {
+      return enqueueInstruction(command, 0);
+    }
+
+    bool queued = false;
+    for (unsigned int i = 0; i < servo_num_; ++i) {
+      queued = enqueueInstruction(command, i) || queued;
+    }
+    return queued;
+  };
+
+  // Select at most one periodic command group per servo-task iteration.
+  if (SET_POS_DU > 0 && deadlineExpired(current_time, set_pos_tick_)) {
+    if (enqueueInstruction(INST_SET_GOAL_POS, 0)) {
+      advance_deadline(set_pos_tick_, SET_POS_DU);
+    }
+    return;
+  }
+
+  if (GET_POS_DU > 0 && deadlineExpired(current_time, get_pos_tick_)) {
+    if (enqueue_read(INST_GET_CUR_VEL_POS)) {
+      advance_deadline(get_pos_tick_, GET_POS_DU);
+    }
+    return;
+  }
+
+  if (GET_TEMP_DU > 0 && deadlineExpired(current_time, get_temp_tick_)) {
+    if (enqueue_read(INST_GET_PRESENT_TEMPERATURE)) {
+      advance_deadline(get_temp_tick_, GET_TEMP_DU);
+    }
+    return;
+  }
+
+  if (GET_MOVE_DU > 0 && deadlineExpired(current_time, get_move_tick_)) {
+    if (enqueue_read(INST_GET_PRESENT_MOVING)) {
+      advance_deadline(get_move_tick_, GET_MOVE_DU);
+    }
+    return;
+  }
+
+  if (GET_HARDWARE_ERROR_STATUS_DU > 0 &&
+      deadlineExpired(current_time, get_error_tick_)) {
+    if (enqueue_read(INST_GET_HARDWARE_ERROR_STATUS)) {
+      advance_deadline(get_error_tick_, GET_HARDWARE_ERROR_STATUS_DU);
+    }
+  }
+}
+
+void DynamixelSerial::processInstructionQueue()
+{
+  ServoInstruction instruction;
+  while (popInstruction(instruction)) {
+    const uint8_t servo_index = instruction.servo_index;
+
+    switch (instruction.command) {
+    case INST_SET_GOAL_POS:
+      cmdSyncWriteGoalPosition();
+      (void)lastTransmitResult();
+      return;
+    case INST_SET_TORQUE:
+      if (servo_index < servo_num_) {
+        cmdWriteTorqueEnableWithLED(servo_index,
+                                    servo_[servo_index].torque_enable_);
+        (void)lastTransmitResult();
+        return;
+      }
+      continue;
+    case INST_REBOOT:
+      if (servo_index < servo_num_) {
+        cmdReboot(servo_[servo_index].id_);
+        (void)lastTransmitResult();
+        return;
+      }
+      continue;
+    case INST_SET_HOMING_OFFSET:
+      if (servo_index < servo_num_) {
+        (void)applyHomingOffset(servo_index);
+        return;
+      }
+      continue;
+    case INST_SET_POSITION_GAINS:
+      if (servo_index < servo_num_) {
+        (void)applyPositionGains(servo_index);
+        return;
+      }
+      continue;
+    case INST_SET_CURRENT_LIMIT:
+      if (servo_index < servo_num_) {
+        (void)applyCurrentLimit(servo_index);
+        return;
+      }
+      continue;
+    case INST_SET_PROFILE_VELOCITY:
+      if (servo_index < servo_num_) {
+        (void)applyProfileVelocity(servo_index);
+        return;
+      }
+      continue;
+    case INST_SERVICE_REQUEST:
     {
+      ServoServiceRequest request;
+      bool request_valid = false;
+      if (queue_mutex_ != nullptr &&
+          osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) == osOK) {
+        if (service_request_.active) {
+          request = service_request_;
+          request_valid = true;
+        }
+        osMutexRelease(queue_mutex_);
+      }
+
+      if (!request_valid) {
+        ++comm_counters_.unexpected_completion_count;
+        continue;
+      }
+
+      ServoResult result = SERVO_RESULT_TIMEOUT;
+      if (deadlineExpired(HAL_GetTick(), request.deadline_ms)) {
+        ++comm_counters_.deadline_miss_count;
+      } else {
+        result = executeServiceRequest(request);
+      }
+      completeServiceRequest(request.generation, result);
+      return;
+    }
+    default:
+      break;
+    }
+
+    if (ttl_rs485_mixed_ != 0) {
+      if (servo_index >= servo_num_) {
+        ++comm_counters_.invalid_packet_count;
+        continue;
+      }
+
+      bool should_read = true;
+      switch (instruction.command) {
+      case INST_GET_PRESENT_POS:
+        should_read = servo_[servo_index].send_data_flag_ ||
+                      servo_[servo_index].first_get_pos_flag_;
+        if (should_read) cmdReadPresentPosition(servo_index);
+        break;
+      case INST_GET_PRESENT_CURRENT:
+        should_read = servo_[servo_index].send_data_flag_;
+        if (should_read) cmdReadPresentCurrent(servo_index);
+        break;
+      case INST_GET_CUR_VEL_POS:
+        should_read = servo_[servo_index].send_data_flag_ ||
+                      servo_[servo_index].first_get_pos_flag_;
+        if (should_read) cmdReadPresentCurVelPos(servo_index);
+        break;
+      case INST_GET_PRESENT_TEMPERATURE:
+        should_read = servo_[servo_index].send_data_flag_;
+        if (should_read) cmdReadPresentTemperature(servo_index);
+        break;
+      case INST_GET_PRESENT_MOVING:
+        should_read = servo_[servo_index].send_data_flag_;
+        if (should_read) cmdReadMoving(servo_index);
+        break;
+      case INST_GET_HARDWARE_ERROR_STATUS:
+        should_read = servo_[servo_index].send_data_flag_;
+        if (should_read) cmdReadHardwareErrorStatus(servo_index);
+        break;
+      case INST_GET_HOMING_OFFSET:
+      case INST_GET_POSITION_GAINS:
+      case INST_GET_PROFILE_VELOCITY:
+      case INST_GET_CURRENT_LIMIT:
+        (void)readAllServoRegister(instruction.command);
+        return;
+      default:
+        should_read = false;
+        break;
+      }
+
+      if (should_read) {
+        if (lastTransmitResult() != SERVO_RESULT_OK) {
+          return;
+        }
+        if (!startPendingTransaction(instruction, 1, false,
+                                     SERVO_RESPONSE_TIMEOUT_MS)) {
+          recoverRx();
+        }
+        return;
+      }
+      continue;
+    }
+
+    const uint8_t selected_servo_count = activeServoCount(false);
+    if (selected_servo_count == 0) {
+      continue;
+    }
+
+    bool fast_sync = false;
+    switch (instruction.command) {
+    case INST_GET_PRESENT_POS:
+      cmdSyncReadPresentPosition(false);
+      break;
+    case INST_GET_PRESENT_CURRENT:
+      cmdSyncReadPresentCurrent(false);
+      break;
+    case INST_GET_CUR_VEL_POS:
+#if DYNAMIXEL_USE_FAST_SYNC_READ
+      cmdFastSyncReadPresentCurVelPos(false);
+      fast_sync = true;
+#else
+      cmdSyncReadPresentCurVelPos(false);
+#endif
+      break;
+    case INST_GET_PRESENT_TEMPERATURE:
+#if DYNAMIXEL_USE_FAST_SYNC_READ
+      cmdFastSyncReadPresentTemperature(false);
+      fast_sync = true;
+#else
+      cmdSyncReadPresentTemperature(false);
+#endif
+      break;
+    case INST_GET_PRESENT_MOVING:
+#if DYNAMIXEL_USE_FAST_SYNC_READ
+      cmdFastSyncReadMoving(false);
+      fast_sync = true;
+#else
+      cmdSyncReadMoving(false);
+#endif
+      break;
+    case INST_GET_HARDWARE_ERROR_STATUS:
+#if DYNAMIXEL_USE_FAST_SYNC_READ
+      cmdFastSyncReadHardwareErrorStatus(false);
+      fast_sync = true;
+#else
+      cmdSyncReadHardwareErrorStatus(false);
+#endif
+      break;
+    case INST_GET_HOMING_OFFSET:
+    case INST_GET_POSITION_GAINS:
+    case INST_GET_PROFILE_VELOCITY:
+    case INST_GET_CURRENT_LIMIT:
+      (void)readAllServoRegister(instruction.command);
+      return;
+    default:
+      continue;
+    }
+
+    if (lastTransmitResult() != SERVO_RESULT_OK) {
+      return;
+    }
+    const uint8_t expected_response_count = fast_sync ? 1 : selected_servo_count;
+    if (!startPendingTransaction(instruction, expected_response_count, fast_sync,
+                                 SERVO_RESPONSE_TIMEOUT_MS)) {
+      recoverRx();
+    }
+    return;
+  }
+}
+
+void DynamixelSerial::update()
+{
+  if (servo_num_ == 0) return;
+
+  if (pending_transaction_.active) {
+    const ServoInstruction completed_instruction = pending_transaction_.instruction;
+    const ServoResult result = completePendingTransaction();
+    const bool feedback_cycle_complete =
+      ttl_rs485_mixed_ == 0 ||
+      static_cast<unsigned int>(completed_instruction.servo_index) + 1U ==
+        servo_num_;
+    if (result == SERVO_RESULT_OK &&
+        completed_instruction.command == INST_GET_CUR_VEL_POS &&
+        feedback_cycle_complete) {
       setROSCommFlag(true);
     }
   }
-  read_status_packet_flag_ = false;
 
-  uint32_t current_time = HAL_GetTick();
-  bool read_scheduled = false;
+  const uint32_t torque_off_mask =
+    __atomic_load_n(&torque_off_pending_mask_, __ATOMIC_ACQUIRE);
+  if (torque_off_mask != 0U) {
+    for (uint8_t servo_index = 0; servo_index < servo_num_; ++servo_index) {
+      const uint32_t servo_mask = 1UL << servo_index;
+      if ((torque_off_mask & servo_mask) == 0U) continue;
 
-  /* send position command to servo */
-  if(current_time >= set_pos_tick_ && SET_POS_DU > 0) {
-    if (set_pos_tick_ == 0) set_pos_tick_ = current_time + SET_POS_OFFSET; // init
-    else set_pos_tick_ += SET_POS_DU;
-
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_POS, 0));
-  }
-
-  /* read servo position(angle) */
-  if(current_time >= get_pos_tick_ && GET_POS_DU > 0) {
-    if (get_pos_tick_ == 0) get_pos_tick_ = current_time + GET_POS_OFFSET; // init
-    else get_pos_tick_ += GET_POS_DU;
-
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_CUR_VEL_POS, i));
+      __atomic_fetch_and(&torque_off_pending_mask_, ~servo_mask,
+                         __ATOMIC_ACQ_REL);
+      cmdWriteTorqueEnableWithLED(servo_index, false);
+      if (lastTransmitResult() != SERVO_RESULT_OK) {
+        __atomic_fetch_or(&torque_off_pending_mask_, servo_mask,
+                          __ATOMIC_RELEASE);
       }
-    } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_CUR_VEL_POS, 0));
-      read_scheduled = true;
+      return;
     }
   }
 
-  /* read servo temperature */
-  if(current_time >= get_temp_tick_ && GET_TEMP_DU > 0) {
-    if (get_temp_tick_ == 0) get_temp_tick_ = current_time + GET_TEMP_OFFSET;  // init
-    else get_temp_tick_ += GET_TEMP_DU;
-
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_TEMPERATURE, i));
-      }
-    } else {
-      if (!read_scheduled) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_TEMPERATURE, 0));
-        read_scheduled = true;
-      }
-    }
-  }
-
-  /* read servo movement */
-  if(current_time >= get_move_tick_ && GET_MOVE_DU > 0) {
-    if (get_move_tick_ == 0) get_move_tick_ = current_time + GET_MOVE_OFFSET; // init
-    else get_move_tick_ += GET_MOVE_DU;
-
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_MOVING, i));
-      }
-    } else {
-      if (!read_scheduled) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_MOVING, 0));
-        read_scheduled = true;
-      }
-    }
-  }
-
-  /* read hardware error status */
-  if(current_time >= get_error_tick_ && GET_HARDWARE_ERROR_STATUS_DU > 0) {
-    if (get_error_tick_ == 0) get_error_tick_ = current_time + GET_HARDWARE_ERROR_STATUS_OFFSET; // init
-    else get_error_tick_ += GET_HARDWARE_ERROR_STATUS_DU;
-
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, i));
-      }
-    } else {
-      if (!read_scheduled) {
-        instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, 0));
-        read_scheduled = true;
-      }
-    }
-  }
-
-
-  /* process the instruction from the instruction buffer */
-  std::pair<uint8_t, uint8_t> instruction;
-  while(instruction_buffer_.pop(instruction))
-    {
-      uint8_t servo_index = instruction.second;
-
-      if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
-
-      /* set command */
-      switch (instruction.first) {
-      case INST_SET_GOAL_POS: /* send angle command to servo */
-        cmdSyncWriteGoalPosition();
-        break;
-      case INST_SET_TORQUE: /* send torque enable flag */
-        cmdWriteTorqueEnable(servo_index);
-        break;
-      case INST_SET_HOMING_OFFSET:
-        cmdWriteHomingOffset(servo_index);
-        break;
-      case INST_SET_POSITION_GAINS:
-        cmdWritePositionGains(servo_index);
-        break;
-      case INST_SET_CURRENT_LIMIT:
-        cmdWriteCurrentLimit(servo_index);
-        break;
-      case INST_SET_PROFILE_VELOCITY:
-        cmdWriteProfileVelocity(servo_index);
-        break;
-      default:
-        break;
-      }
-
-      /* get command */
-      if (ttl_rs485_mixed_ != 0) {
-        switch (instruction.first) {
-        case INST_GET_PRESENT_POS: /* read servo position(angle) */
-          if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
-          cmdReadPresentPosition(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_PRESENT_CURRENT: /* read servo load */
-          if(!servo_[servo_index].send_data_flag_) break;
-          cmdReadPresentCurrent(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_CUR_VEL_POS: /* read servo current, velocity and position */
-          if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
-          cmdReadPresentCurVelPos(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
-          if(!servo_[servo_index].send_data_flag_) break;
-          cmdReadPresentTemperature(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_PRESENT_MOVING: /* read servo movement */
-          if(!servo_[servo_index].send_data_flag_) break;
-          cmdReadMoving(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_HARDWARE_ERROR_STATUS:
-          if(!servo_[servo_index].send_data_flag_) break;
-          cmdReadHardwareErrorStatus(servo_index);
-          readStatusPacket(instruction.first);
-          break;
-        case INST_GET_HOMING_OFFSET:
-          for (unsigned int i = 0; i < servo_num_; ++i) {
-            cmdReadHomingOffset(i);
-            readStatusPacket(instruction.first);
-          }
-          break;
-        case INST_GET_POSITION_GAINS:
-          for (unsigned int i = 0; i < servo_num_; ++i) {
-            cmdReadPositionGains(i);
-            readStatusPacket(instruction.first);
-          }
-          break;
-        case INST_GET_PROFILE_VELOCITY:
-          for (unsigned int i = 0; i < servo_num_; ++i) {
-            cmdReadProfileVelocity(i);
-            readStatusPacket(instruction.first);
-          }
-          break;
-        case INST_GET_CURRENT_LIMIT:
-          for (unsigned int i = 0; i < servo_num_; ++i) {
-            cmdReadCurrentLimit(i);
-            readStatusPacket(instruction.first);
-          }
-          break;
-        default:
-          break;
-        }
-      } else {
-        switch (instruction.first) {
-        case INST_GET_PRESENT_POS: /* read servo position(angle) */
-          cmdSyncReadPresentPosition(false);
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_PRESENT_CURRENT: /* read servo load */
-          cmdSyncReadPresentCurrent(false);
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_CUR_VEL_POS: /* read servo current, velocity and position */
-        case INST_GET_PRESENT_TEMPERATURE: /* read servo temp */
-        case INST_GET_PRESENT_MOVING: /* read servo movement */
-        case INST_GET_HARDWARE_ERROR_STATUS:
-#if DYNAMIXEL_USE_FAST_SYNC_READ
-          switch (instruction.first) {
-          case INST_GET_CUR_VEL_POS:
-            cmdFastSyncReadPresentCurVelPos(false);
-            break;
-          case INST_GET_PRESENT_TEMPERATURE:
-            cmdFastSyncReadPresentTemperature(false);
-            break;
-          case INST_GET_PRESENT_MOVING:
-            cmdFastSyncReadMoving(false);
-            break;
-          case INST_GET_HARDWARE_ERROR_STATUS:
-            cmdFastSyncReadHardwareErrorStatus(false);
-            break;
-          default:
-            break;
-          }
-#else
-          switch (instruction.first) {
-          case INST_GET_CUR_VEL_POS:
-            cmdSyncReadPresentCurVelPos(false);
-            break;
-          case INST_GET_PRESENT_TEMPERATURE:
-            cmdSyncReadPresentTemperature(false);
-            break;
-          case INST_GET_PRESENT_MOVING:
-            cmdSyncReadMoving(false);
-            break;
-          case INST_GET_HARDWARE_ERROR_STATUS:
-            cmdSyncReadHardwareErrorStatus(false);
-            break;
-          default:
-            break;
-          }
-#endif
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_HOMING_OFFSET:
-          cmdSyncReadHomingOffset(false);
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_POSITION_GAINS:
-          cmdSyncReadPositionGains(false);
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_PROFILE_VELOCITY:
-          cmdSyncReadProfileVelocity(false);
-          read_status_packet_flag_ = true;
-          break;
-        case INST_GET_CURRENT_LIMIT:
-          cmdSyncReadCurrentLimit(false);
-          read_status_packet_flag_ = true;
-          break;
-        default:
-          break;
-        }
-
-        if (read_status_packet_flag_) {
-          instruction_last_ = instruction;
-        }
-      }
-
-      if (mutex_ != NULL) osMutexRelease(*mutex_);
-    }
+  schedulePeriodicCommands();
+  processInstructionQueue();
 }
 
 /* Transmit instruction packet to Dynamixel */
-void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters)
+HAL_StatusTypeDef DynamixelSerial::transmitInstructionPacket(
+  uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters)
 {
   uint8_t transmit_data[INSTRUCTION_PACKET_SIZE];
   /* headers */
@@ -663,10 +1006,13 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   /* send data */
   if(direct_ttl_mode_)  HAL_HalfDuplex_EnableTransmitter(huart_);
 
-  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS.
+  last_tx_status_ = HAL_UART_Transmit(huart_, transmit_data,
+                                      transmit_data_index, 10);
+  return last_tx_status_;
 }
 
-int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instruction)
+ServoResult DynamixelSerial::readFastSyncStatusPacket(
+  uint8_t status_packet_instruction, uint32_t deadline_ms)
 {
   int status_stage = READ_HEADER0;
   uint8_t rx_data;
@@ -680,14 +1026,19 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
   int loop_count = 0;
 
   if(direct_ttl_mode_) {
-    while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
+    while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {
+      if (deadlineExpired(HAL_GetTick(), deadline_ms)) {
+        return SERVO_RESULT_TIMEOUT;
+      }
+    }
     HAL_HalfDuplex_EnableReceiver(huart_);
   }
 
   while(!read_end_flag) {
-    HAL_StatusTypeDef receive_status = read(&rx_data, 1);
-    if(receive_status == HAL_TIMEOUT) {
-      return -1;
+    HAL_StatusTypeDef receive_status = readUntil(&rx_data, deadline_ms);
+    if (receive_status != HAL_OK) {
+      return receive_status == HAL_TIMEOUT
+        ? SERVO_RESULT_TIMEOUT : SERVO_RESULT_UART_ERROR;
     }
 
     switch (status_stage) {
@@ -696,18 +1047,18 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
       break;
     case READ_HEADER1:
       if (rx_data == HEADER1) status_stage++;
-      else return -1;
+      else return SERVO_RESULT_INVALID_RESPONSE;
       break;
     case READ_HEADER2:
       if (rx_data == HEADER2) status_stage++;
-      else return -1;
+      else return SERVO_RESULT_INVALID_RESPONSE;
       break;
     case READ_HEADER3:
       if (rx_data == HEADER3) status_stage++;
-      else return -1;
+      else return SERVO_RESULT_INVALID_RESPONSE;
       break;
     case READ_SERVOID:
-      if (rx_data != DX_BROADCAST_ID) return -1;
+      if (rx_data != DX_BROADCAST_ID) return SERVO_RESULT_INVALID_RESPONSE;
       status_stage++;
       break;
     case READ_LENL:
@@ -716,18 +1067,21 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
       break;
     case READ_LENH:
       parameter_len |= ((rx_data << 8) & 0xFF00);
+      if (parameter_len < 4 || parameter_len > STATUS_PACKET_SIZE) {
+        return SERVO_RESULT_INVALID_RESPONSE;
+      }
       status_stage++;
       break;
     case READ_INSTRUCTION:
       if (rx_data == STATUS_PACKET_INSTRUCTION) status_stage++;
-      else return -1;
+      else return SERVO_RESULT_INVALID_RESPONSE;
       break;
     case READ_ERROR:
       if ((rx_data & 0x7F) == ERROR_NO_ERROR) status_stage++;
-      else return -1;
+      else return SERVO_RESULT_INVALID_RESPONSE;
       break;
     case READ_PARAMETER:
-      if (parameter_index >= STATUS_PACKET_SIZE) return -1;
+      if (parameter_index >= STATUS_PACKET_SIZE) return SERVO_RESULT_INVALID_RESPONSE;
       parameters[parameter_index++] = rx_data;
       parameter_loop_count++;
       if (parameter_loop_count == parameter_len - 4) status_stage++;
@@ -739,14 +1093,14 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
     case READ_CHECKSUMH:
       checksum |= ((rx_data << 8) & 0xFF00);
       if (checksum == calcCRC16(0, receive_data, loop_count)) read_end_flag = true;
-      else return -1;
+      else return SERVO_RESULT_CRC_ERROR;
       break;
     default:
-      return -1;
+      return SERVO_RESULT_INVALID_RESPONSE;
     }
 
     if (status_stage > READ_HEADER0 && status_stage != READ_CHECKSUMH) {
-      if (loop_count >= STATUS_PACKET_SIZE) return -1;
+      if (loop_count >= STATUS_PACKET_SIZE) return SERVO_RESULT_INVALID_RESPONSE;
       receive_data[loop_count++] = rx_data;
     }
   }
@@ -761,7 +1115,7 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
     if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
     active_servo_count++;
   }
-  if (active_servo_count <= 0) return -1;
+  if (active_servo_count <= 0) return SERVO_RESULT_INVALID_RESPONSE;
 
   int servo_data_byte_len = 0;
   switch (status_packet_instruction) {
@@ -778,11 +1132,11 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
     servo_data_byte_len = HARDWARE_ERROR_STATUS_BYTE_LEN;
     break;
   default:
-    return -1;
+    return SERVO_RESULT_INVALID_RESPONSE;
   }
 
   const int expected_parameter_bytes = active_servo_count * (servo_data_byte_len + 4) - 3;
-  if (parameter_index != expected_parameter_bytes) return -1;
+  if (parameter_index != expected_parameter_bytes) return SERVO_RESULT_INVALID_RESPONSE;
 
   int offset = 0;
   int parsed_servo_count = 0;
@@ -790,11 +1144,11 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
     if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
 
     if (parsed_servo_count > 0) {
-      if ((parameters[offset] & 0x7F) != ERROR_NO_ERROR) return -1;
+      if ((parameters[offset] & 0x7F) != ERROR_NO_ERROR) return SERVO_RESULT_INVALID_RESPONSE;
       offset++;
     }
 
-    if (parameters[offset] != servo_[i].id_) return -1;
+    if (parameters[offset] != servo_[i].id_) return SERVO_RESULT_INVALID_RESPONSE;
     offset++;
 
     switch (status_packet_instruction) {
@@ -844,7 +1198,7 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
       servo_[i].hardware_error_status_ |= parameters[offset];
       break;
     default:
-      return -1;
+      return SERVO_RESULT_INVALID_RESPONSE;
     }
 
     offset += servo_data_byte_len;
@@ -852,11 +1206,13 @@ int8_t DynamixelSerial::readFastSyncStatusPacket(uint8_t status_packet_instructi
     if (parsed_servo_count < active_servo_count) offset += 2;
   }
 
-  return (offset == parameter_index) ? 0 : -1;
+  return (offset == parameter_index)
+    ? SERVO_RESULT_OK : SERVO_RESULT_INVALID_RESPONSE;
 }
 
 /* Receive status packet to Dynamixel */
-int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
+ServoResult DynamixelSerial::readStatusPacket(
+  uint8_t status_packet_instruction, uint32_t deadline_ms)
 {
 	int status_stage = READ_HEADER0;
 	uint8_t rx_data;
@@ -871,17 +1227,21 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	int loop_count = 0;
 	uint8_t servo_id;
 
-        if(direct_ttl_mode_) {
-          while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {}
-          // After transmitting, enable the receiver
-          HAL_HalfDuplex_EnableReceiver(huart_);
-        }
+  if(direct_ttl_mode_) {
+    while (__HAL_UART_GET_FLAG(huart_, UART_FLAG_TC) == RESET) {
+      if (deadlineExpired(HAL_GetTick(), deadline_ms)) {
+        return SERVO_RESULT_TIMEOUT;
+      }
+    }
+    // After transmitting, enable the receiver
+    HAL_HalfDuplex_EnableReceiver(huart_);
+  }
 
 	while(!read_end_flag) {
-		HAL_StatusTypeDef receive_status = read(&rx_data, 1);
-		if(receive_status == HAL_TIMEOUT)
-			{
-				return -1;
+		HAL_StatusTypeDef receive_status = readUntil(&rx_data, deadline_ms);
+			if (receive_status != HAL_OK) {
+				return receive_status == HAL_TIMEOUT
+				  ? SERVO_RESULT_TIMEOUT : SERVO_RESULT_UART_ERROR;
 			}
 
 		switch (status_stage) {
@@ -894,21 +1254,21 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			if (rx_data == HEADER1) {
 				status_stage++;
 			} else {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_HEADER2:
 			if (rx_data == HEADER2) {
 				status_stage++;
 			} else {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_HEADER3:
 			if (rx_data == HEADER3) {
 				status_stage++;
 			} else {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_SERVOID:
@@ -921,26 +1281,29 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			break;
 		case READ_LENH:
 			parameter_len |= ((rx_data << 8) & 0xFF00);
-			status_stage++;
+				if (parameter_len < 4 || parameter_len > STATUS_PACKET_SIZE) {
+					return SERVO_RESULT_INVALID_RESPONSE;
+				}
+				status_stage++;
 			break;
 		case READ_INSTRUCTION:
 			if (rx_data == STATUS_PACKET_INSTRUCTION) {
 				status_stage++;
 			} else {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_ERROR:
 			if ((rx_data & 0x7F) == ERROR_NO_ERROR) {
 				status_stage++;
 			} else {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_PARAMETER:
 			//process for exception
 			if (parameter_index >= STATUS_PACKET_SIZE) {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			if (header_match_count == 0) {
 				if (rx_data == HEADER0) header_match_count++;
@@ -961,7 +1324,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 				if (rx_data == EXCEPTION_ADDITIONAL_BYTE) {
 					header_match_count = 0;
 				} else {
-					return -1;
+					return SERVO_RESULT_INVALID_RESPONSE;
 				}
 			}
 			parameter_loop_count++;
@@ -978,15 +1341,15 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			if (checksum == calcCRC16(0, receive_data, loop_count)) {
 				read_end_flag = true;
 			} else {
-				return -1;
-			}
-			break;
-		default:
-			return -1;
+					return SERVO_RESULT_CRC_ERROR;
+				}
+				break;
+			default:
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (status_stage > READ_HEADER0 && status_stage != READ_CHECKSUMH) {
 			if (loop_count >= STATUS_PACKET_SIZE) {
-				return -1;
+				return SERVO_RESULT_INVALID_RESPONSE;
 			}
 			receive_data[loop_count] = rx_data;
 			loop_count++;
@@ -994,6 +1357,9 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	}
 
 	auto s = std::find(servo_.begin(), servo_.end(), ServoData(servo_id));
+	if (status_packet_instruction != INST_PING && s == servo_.end()) {
+		return SERVO_RESULT_INVALID_RESPONSE;
+	}
 
         /* clear UART RX */
         __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
@@ -1033,25 +1399,28 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	switch (status_packet_instruction) {
 	case INST_PING:
 		if (parameter_index != PING_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
-		servo_[servo_num_++].id_ = servo_id;
-	    return 0;
+		if (servo_num_ >= MAX_SERVO_NUM) {
+				return SERVO_RESULT_INVALID_RESPONSE;
+			}
+			servo_[servo_num_++].id_ = servo_id;
+	    return SERVO_RESULT_OK;
 	case INST_GET_PRESENT_POS:
 	{
 		if (parameter_index != PRESENT_POSITION_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		if (s != servo_.end()) {
 			update_present_position(&(*s), present_position);
 		}
-                return 0;
+                return SERVO_RESULT_OK;
 	}
 	case INST_GET_CUR_VEL_POS:
 	{
 		if (parameter_index != PRESENT_CUR_VEL_POS_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		int16_t present_current = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		int32_t present_velocity = ((parameters[5] << 24) & 0xFF000000) | ((parameters[4] << 16) & 0xFF0000) |
@@ -1063,77 +1432,77 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			s->present_velocity = present_velocity;
 			update_present_position(&(*s), present_position);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	}
 	case INST_GET_PRESENT_CURRENT:
 		if (parameter_index != PRESENT_CURRENT_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->present_current_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_PRESENT_TEMPERATURE:
 		if (parameter_index != PRESENT_TEMPERATURE_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->present_temp_ = parameters[0];
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_PRESENT_MOVING:
 		if (parameter_index != MOVING_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->moving_ = parameters[0];
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_HOMING_OFFSET:
 		if (parameter_index != HOMING_OFFSET_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->homing_offset_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_HARDWARE_ERROR_STATUS:
 		if (parameter_index != HARDWARE_ERROR_STATUS_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
                   s->hardware_error_status_ &=  ((1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000000;
                   s->hardware_error_status_ |= parameters[0];
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_CURRENT_LIMIT:
 		if (parameter_index != CURRENT_LIMIT_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->current_limit_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_POSITION_GAINS:
 		if (parameter_index != POSITION_GAINS_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->d_gain_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 			s->i_gain_ = ((parameters[3] << 8) & 0xFF00) | (parameters[2] & 0xFF);
 			s->p_gain_ = ((parameters[5] << 8) & 0xFF00) | (parameters[4] & 0xFF);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	case INST_GET_PROFILE_VELOCITY:
 		if (parameter_index != PROFILE_VELOCITY_BYTE_LEN) {
-			return -1;
+			return SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (s != servo_.end()) {
 			s->profile_velocity_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return SERVO_RESULT_OK;
 	default:
-		return -1;
+		return SERVO_RESULT_INVALID_RESPONSE;
 	}
 }
 
@@ -1319,10 +1688,19 @@ void DynamixelSerial::cmdWriteStatusReturnLevel(uint8_t id, uint8_t set)
 
 void DynamixelSerial::cmdWriteTorqueEnable(uint8_t servo_index)
 {
+	uint8_t parameter = servo_[servo_index].torque_enable_ ? 1U : 0U;
+	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, &parameter,
+	         TORQUE_ENABLE_BYTE_LEN);
+}
 
-	uint8_t	parameter = (uint8_t)((servo_[servo_index].torque_enable_) ? 1 : 0);
-
-	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, &parameter, TORQUE_ENABLE_BYTE_LEN);
+void DynamixelSerial::cmdWriteTorqueEnableWithLED(uint8_t servo_index,
+                                                  bool torque_enable)
+{
+	const uint8_t enable_value = torque_enable ? 1U : 0U;
+	uint8_t parameters[TORQUE_LED_BYTE_LEN] = {enable_value, enable_value};
+	servo_[servo_index].led_ = torque_enable;
+	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, parameters,
+	         TORQUE_LED_BYTE_LEN);
 }
 
 void DynamixelSerial::cmdSyncReadCurrentLimit(bool send_all)
@@ -1492,10 +1870,238 @@ void DynamixelSerial::cmdSyncWriteTorqueEnable()
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 
 	for (unsigned int i = 0; i < servo_num_; i++) {
-		parameters[i] = (uint8_t)((servo_[i].torque_enable_) ? 1 : 0);
+		parameters[i] = servo_[i].torque_enable_ ? 1U : 0U;
 	}
 
 	cmdSyncWrite(CTRL_TORQUE_ENABLE, parameters, TORQUE_ENABLE_BYTE_LEN);
+}
+
+ServoResult DynamixelSerial::readAllServoRegister(uint8_t instruction)
+{
+  if (servo_num_ == 0 || pending_transaction_.active) {
+    return SERVO_RESULT_BUSY;
+  }
+
+  if (ttl_rs485_mixed_ != 0) {
+    for (uint8_t i = 0; i < servo_num_; ++i) {
+      switch (instruction) {
+      case INST_GET_HOMING_OFFSET:
+        cmdReadHomingOffset(i);
+        break;
+      case INST_GET_POSITION_GAINS:
+        cmdReadPositionGains(i);
+        break;
+      case INST_GET_PROFILE_VELOCITY:
+        cmdReadProfileVelocity(i);
+        break;
+      case INST_GET_CURRENT_LIMIT:
+        cmdReadCurrentLimit(i);
+        break;
+      default:
+        return SERVO_RESULT_INVALID_ARGUMENT;
+      }
+
+      const ServoResult result = executeBlockingRead({instruction, i}, 1, false);
+      if (result != SERVO_RESULT_OK) {
+        return result;
+      }
+    }
+    return SERVO_RESULT_OK;
+  }
+
+  switch (instruction) {
+  case INST_GET_HOMING_OFFSET:
+    cmdSyncReadHomingOffset(true);
+    break;
+  case INST_GET_POSITION_GAINS:
+    cmdSyncReadPositionGains(true);
+    break;
+  case INST_GET_PROFILE_VELOCITY:
+    cmdSyncReadProfileVelocity(true);
+    break;
+  case INST_GET_CURRENT_LIMIT:
+    cmdSyncReadCurrentLimit(true);
+    break;
+  default:
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  return executeBlockingRead({instruction, 0}, servo_num_, false);
+}
+
+ServoResult DynamixelSerial::applyHomingOffset(uint8_t servo_index)
+{
+  if (servo_index >= servo_num_) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+
+  ServoData& servo = servo_[servo_index];
+  if (servo.external_encoder_flag_) {
+    servo.joint_offset_ = servo.calib_value_ + servo.joint_offset_ -
+                          servo.present_position_;
+#ifndef SPINAL
+    servo.joint_offset_ = servo.calib_value_;
+    encoder_handler_.setOffset(servo.joint_offset_);
+#endif
+    servo.first_get_pos_flag_ = true;
+    FlashMemory::erase();
+    FlashMemory::write();
+    return SERVO_RESULT_OK;
+  }
+
+  servo.homing_offset_ = 0;
+  servo.internal_offset_ = 0;
+  cmdWriteHomingOffset(servo_index);
+  ServoResult result = lastTransmitResult();
+  if (result != SERVO_RESULT_OK) return result;
+
+  cmdReadHomingOffset(servo_index);
+  result = executeBlockingRead({INST_GET_HOMING_OFFSET, servo_index}, 1, false);
+  if (result != SERVO_RESULT_OK) return result;
+
+  cmdReadPresentPosition(servo_index);
+  result = executeBlockingRead({INST_GET_PRESENT_POS, servo_index}, 1, false);
+  if (result != SERVO_RESULT_OK) return result;
+
+  servo.updateHomingOffset();
+  cmdWriteHomingOffset(servo_index);
+  result = lastTransmitResult();
+  if (result != SERVO_RESULT_OK) return result;
+
+  cmdReadHomingOffset(servo_index);
+  result = executeBlockingRead({INST_GET_HOMING_OFFSET, servo_index}, 1, false);
+  if (result != SERVO_RESULT_OK) return result;
+
+  cmdReadPresentPosition(servo_index);
+  return executeBlockingRead({INST_GET_PRESENT_POS, servo_index}, 1, false);
+}
+
+ServoResult DynamixelSerial::applyPositionGains(uint8_t servo_index)
+{
+  if (servo_index >= servo_num_) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  cmdWritePositionGains(servo_index);
+  const ServoResult result = lastTransmitResult();
+  return result == SERVO_RESULT_OK
+    ? readAllServoRegister(INST_GET_POSITION_GAINS) : result;
+}
+
+ServoResult DynamixelSerial::applyProfileVelocity(uint8_t servo_index)
+{
+  if (servo_index >= servo_num_) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  cmdWriteProfileVelocity(servo_index);
+  const ServoResult result = lastTransmitResult();
+  return result == SERVO_RESULT_OK
+    ? readAllServoRegister(INST_GET_PROFILE_VELOCITY) : result;
+}
+
+ServoResult DynamixelSerial::applyCurrentLimit(uint8_t servo_index)
+{
+  if (servo_index >= servo_num_) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  cmdWriteCurrentLimit(servo_index);
+  const ServoResult result = lastTransmitResult();
+  return result == SERVO_RESULT_OK
+    ? readAllServoRegister(INST_GET_CURRENT_LIMIT) : result;
+}
+
+ServoResult DynamixelSerial::executeServiceRequest(
+  const ServoServiceRequest& request)
+{
+  if (!validateServiceRequest(request.command, request.data,
+                              request.data_length)) {
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
+
+  if (request.command == CONFIG_SET_TTL_RS485_MIXED) {
+    ttl_rs485_mixed_ = request.data[0] ? 1 : 0;
+    FlashMemory::erase();
+    FlashMemory::write();
+    return SERVO_RESULT_OK;
+  }
+
+  const uint8_t servo_index = static_cast<uint8_t>(request.data[0]);
+  ServoData& servo = servo_[servo_index];
+
+  switch (request.command) {
+  case CONFIG_SET_HOMING_OFFSET:
+    if (servo.torque_enable_) return SERVO_RESULT_BUSY;
+    servo.calib_value_ = request.data[1];
+    return applyHomingOffset(servo_index);
+
+  case CONFIG_SET_PID_GAIN:
+  {
+    if (servo.torque_enable_) return SERVO_RESULT_BUSY;
+    servo.p_gain_ = request.data[1];
+    servo.i_gain_ = request.data[2];
+    servo.d_gain_ = request.data[3];
+    const ServoResult result = applyPositionGains(servo_index);
+    if (result == SERVO_RESULT_OK) {
+      FlashMemory::erase();
+      FlashMemory::write();
+    }
+    return result;
+  }
+
+  case CONFIG_SET_PROFILE_VELOCITY:
+  {
+    servo.profile_velocity_ = request.data[1];
+    const ServoResult result = applyProfileVelocity(servo_index);
+    if (result == SERVO_RESULT_OK) {
+      FlashMemory::erase();
+      FlashMemory::write();
+    }
+    return result;
+  }
+
+  case CONFIG_SET_SEND_DATA_FLAG:
+    servo.send_data_flag_ = request.data[1];
+    FlashMemory::erase();
+    FlashMemory::write();
+    return SERVO_RESULT_OK;
+
+  case CONFIG_SET_CURRENT_LIMIT:
+    servo.current_limit_ = request.data[1];
+    return applyCurrentLimit(servo_index);
+
+  case CONFIG_SET_EXTERNAL_ENCODER_FLAG:
+    if (servo.torque_enable_) return SERVO_RESULT_BUSY;
+    servo.external_encoder_flag_ = request.data[1];
+    servo.first_get_pos_flag_ = true;
+    if (!servo.external_encoder_flag_) {
+      servo.servo_resolution_ = 1;
+      servo.joint_resolution_ = 1;
+      servo.resolution_ratio_ = 1;
+    }
+    FlashMemory::erase();
+    FlashMemory::write();
+    return SERVO_RESULT_OK;
+
+  case CONFIG_SET_RESOLUTION_RATIO:
+    if (servo.torque_enable_) return SERVO_RESULT_BUSY;
+    servo.joint_resolution_ = request.data[1];
+    servo.servo_resolution_ = request.data[2];
+    servo.hardware_error_status_ &= ((1 << RESOLUTION_RATIO_ERROR) - 1);
+    if (servo.servo_resolution_ == 65535 || servo.joint_resolution_ == 65535) {
+      servo.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);
+      servo.resolution_ratio_ = 1;
+    } else if (servo.joint_resolution_ == 0) {
+      return SERVO_RESULT_INVALID_ARGUMENT;
+    } else {
+      servo.resolution_ratio_ = static_cast<float>(servo.servo_resolution_) /
+                                static_cast<float>(servo.joint_resolution_);
+      servo.first_get_pos_flag_ = true;
+      FlashMemory::erase();
+      FlashMemory::write();
+    }
+    return SERVO_RESULT_OK;
+
+  default:
+    return SERVO_RESULT_INVALID_ARGUMENT;
+  }
 }
 
 
@@ -1506,62 +2112,22 @@ void DynamixelSerial::setStatusReturnLevel()
 
 void DynamixelSerial::getHomingOffset()
 {
-	if (ttl_rs485_mixed_ != 0) {
-		for (unsigned int i = 0; i < servo_num_; ++i) {
-			cmdReadHomingOffset(i);
-			readStatusPacket(INST_GET_HOMING_OFFSET);
-		}
-	} else {
-		cmdSyncReadHomingOffset();
-		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_HOMING_OFFSET);
-		}
-	}
+	(void)readAllServoRegister(INST_GET_HOMING_OFFSET);
 }
 
 void DynamixelSerial::getCurrentLimit()
 {
-	if (ttl_rs485_mixed_ != 0) {
-		for (unsigned int i = 0; i < servo_num_; ++i) {
-			cmdReadCurrentLimit(i);
-			readStatusPacket(INST_GET_CURRENT_LIMIT);
-		}
-	} else {
-		cmdSyncReadCurrentLimit();
-		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_CURRENT_LIMIT);
-		}
-	}
+	(void)readAllServoRegister(INST_GET_CURRENT_LIMIT);
 }
 
 void DynamixelSerial::getPositionGains()
 {
-	if (ttl_rs485_mixed_ != 0) {
-		for (unsigned int i = 0; i < servo_num_; ++i) {
-			cmdReadPositionGains(i);
-			readStatusPacket(INST_GET_POSITION_GAINS);
-		}
-	} else {
-		cmdSyncReadPositionGains();
-		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_POSITION_GAINS);
-		}
-	}
+	(void)readAllServoRegister(INST_GET_POSITION_GAINS);
 }
 
 void DynamixelSerial::getProfileVelocity()
 {
-	if (ttl_rs485_mixed_ != 0) {
-		for (unsigned int i = 0; i < servo_num_; ++i) {
-			cmdReadProfileVelocity(i);
-			readStatusPacket(INST_GET_PROFILE_VELOCITY);
-		}
-	} else {
-		cmdSyncReadProfileVelocity();
-		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_PROFILE_VELOCITY);
-		}
-	}
+	(void)readAllServoRegister(INST_GET_PROFILE_VELOCITY);
 }
 
 static const uint16_t crc_table[256] = {
@@ -1608,35 +2174,31 @@ uint16_t DynamixelSerial::calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, i
 	return crc_accum;
 }
 
-HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
+HAL_StatusTypeDef DynamixelSerial::readUntil(uint8_t* data, uint32_t deadline_ms)
 {
-  /* handle RX Overrun Error */
-  if ( __HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE) )
-    {
-      __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
-      __HAL_UART_CLEAR_PEFLAG(huart_);
-      __HAL_UART_CLEAR_OREFLAG(huart_);
-      __HAL_UART_CLEAR_FEFLAG(huart_);
+  if (__HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE)) {
+    return HAL_ERROR;
+  }
 
-      HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+  while (true) {
+    const uint32_t dma_write_ptr =
+      (RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % RX_BUFFER_SIZE;
+    if (rd_ptr_ != dma_write_ptr) {
+      *data = rx_buf_[rd_ptr_++];
+      rd_ptr_ %= RX_BUFFER_SIZE;
+      return HAL_OK;
     }
 
-  uint32_t tick_start = HAL_GetTick();
-
-  while (true)
-    {
-      // uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - huart_->hdmarx->Instance->NDTR) % (RX_BUFFER_SIZE);
-      uint32_t dma_write_ptr =  (RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) % (RX_BUFFER_SIZE);
-      if(rd_ptr_ != dma_write_ptr)
-        {
-          *data = (int)rx_buf_[rd_ptr_++];
-          rd_ptr_ %= RX_BUFFER_SIZE;
-          return HAL_OK;
-        }
-
-      if (((HAL_GetTick() - tick_start) > timeout) || (timeout == 0U))
-        {
-          return HAL_TIMEOUT;
-        }
+    if (deadlineExpired(HAL_GetTick(), deadline_ms)) {
+      return HAL_TIMEOUT;
     }
+  }
+}
+
+HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data, uint32_t timeout)
+{
+  if (timeout == 0U) {
+    return HAL_TIMEOUT;
+  }
+  return readUntil(data, HAL_GetTick() + timeout);
 }

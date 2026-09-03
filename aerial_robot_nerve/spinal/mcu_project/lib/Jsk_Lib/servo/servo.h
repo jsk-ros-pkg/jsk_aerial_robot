@@ -14,6 +14,7 @@ includes ------------------------------------------------------------------*/
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
+#include <spinal/ServoCommStatus.h>
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/SetDirectServoConfig.h>
@@ -41,6 +42,7 @@ public:
     joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
     servo_state_pub_("servo/states", &servo_state_msg_),
     servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_),
+    servo_comm_status_pub_("servo/comm_status", &servo_comm_status_msg_),
     servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this),
     board_info_srv_("get_board_info", &DirectServo::boardInfoCallback,this)
   {
@@ -72,6 +74,7 @@ private:
   ros::Subscriber<spinal::JointProfiles, DirectServo> joint_profiles_sub_;
   ros::Publisher servo_state_pub_;
   ros::Publisher servo_torque_state_pub_;
+  ros::Publisher servo_comm_status_pub_;
 
   ros::ServiceServer<spinal::SetDirectServoConfig::Request, spinal::SetDirectServoConfig::Response, DirectServo> servo_config_srv_;
   ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response, DirectServo> board_info_srv_;
@@ -79,9 +82,11 @@ private:
   spinal::ServoStates servo_state_msg_;
   spinal::ServoTorqueStates servo_torque_state_msg_;
   spinal::GetBoardInfo::Response board_info_res_;
+  spinal::ServoCommStatus servo_comm_status_msg_;
 
   uint32_t servo_last_pub_time_;
   uint32_t servo_torque_last_pub_time_;
+  uint32_t servo_comm_status_last_pub_time_;
 
   void servoControlCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);

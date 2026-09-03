@@ -124,6 +124,7 @@
 #define REBOOT_LEN						3
 #define TORQUE_ENABLE_BYTE_LEN			1
 #define LED_BYTE_LEN					1
+#define TORQUE_LED_BYTE_LEN				(TORQUE_ENABLE_BYTE_LEN + LED_BYTE_LEN)
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
 #define GOAL_POSITION_BYTE_LEN			4
 #define GOAL_VELOCITY_BYTE_LEN			4
@@ -160,7 +161,7 @@
 #define DYNAMIXEL_USE_FAST_SYNC_READ 1
 #endif
 
-#define PING_TRIAL_NUM			100
+#define SERVO_BROADCAST_PING_TIMEOUT_MS 1000U
 
 //read status packet
 #define READ_HEADER0					0
@@ -209,20 +210,27 @@
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
 #define INST_GET_CUR_VEL_POS			16
+#define INST_SERVICE_REQUEST			17
+#define INST_REBOOT						18
 
 //instruction frequency: 0 means no process
-#define SET_POS_DU 20 //[msec], 20ms => 50Hz
-#define SET_POS_OFFSET 0 // offset from SET_POS
-#define GET_POS_DU 20 //[msec], 20ms => 50Hz
-#define GET_POS_OFFSET 10 //offset from GET_POS
-#define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
+#define SET_POS_DU 5 //[msec], 20ms => 50Hz
+#define SET_POS_OFFSET 2 // offset from SET_POS
+#define GET_POS_DU 5 //[msec], 20ms => 50Hz
+#define GET_POS_OFFSET 0 //offset from GET_POS
+#define GET_LOAD_DU 0 //[msec], 200ms => 5Hz
 #define GET_LOAD_OFFSET 0 //offset from GET_LOAD
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 50 //offset from GET_TEMP
+#define GET_TEMP_OFFSET 49 //avoid the 20ms position-read phase
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 100 //offset from GET_MOVE
+#define GET_MOVE_OFFSET 99 //avoid the 20ms goal-write phase
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 150
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 149 //avoid the 20ms position-read phase
+
+#define SERVO_RESPONSE_TIMEOUT_MS 5U
+#define SERVO_SERVICE_TIMEOUT_MS 250U
+#define SERVO_QUEUE_LOCK_TIMEOUT_MS 2U
+#define SERVO_SERVICE_DATA_CAPACITY 4U
 
 /* please define the gpio which control the IO direction */
 // #define WE HAL_GPIO_WritePin(RS485EN_GPIO_Port, RS485EN_Pin, GPIO_PIN_SET);
@@ -274,7 +282,7 @@ public:
     return true;
   }
 
-  uint16_t length()
+  uint16_t length() const
   {
     if(byte_to_add_ - byte_in_progress_ >= 0)
       return (byte_to_add_ - byte_in_progress_);
@@ -306,6 +314,8 @@ public:
   void setProfileVelocity(uint8_t servo_index) override;
   void setCurrentLimit(uint8_t servo_index) override;
   void update() override;
+  ServoResult requestConfig(uint8_t command, const int32_t* data,
+                            uint8_t data_length, uint32_t timeout_ms) override;
   
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
@@ -315,15 +325,78 @@ public:
 private:
   bool direct_ttl_mode_;
 
-  RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
+  struct ServoInstruction
+  {
+    uint8_t command;
+    uint8_t servo_index;
+  };
 
-  // a new and quicker method to read servo data
-  bool read_status_packet_flag_ = false;
-  std::pair<uint8_t, uint8_t> instruction_last_ = std::make_pair(255, 255);
+  struct PendingTransaction
+  {
+    bool active = false;
+    ServoInstruction instruction = {255, 255};
+    uint8_t expected_response_count = 0;
+    bool fast_sync = false;
+    uint32_t deadline_ms = 0;
+  };
 
+  struct ServoServiceRequest
+  {
+    uint8_t command = 0;
+    uint8_t data_length = 0;
+    int32_t data[SERVO_SERVICE_DATA_CAPACITY] = {0};
+    uint32_t generation = 0;
+    uint32_t deadline_ms = 0;
+    ServoResult result = SERVO_RESULT_BUSY;
+    bool active = false;
+    bool callback_waiting = false;
+  };
 
-  void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
-  int8_t readStatusPacket(uint8_t status_packet_instruction);
+  RingBufferDx<ServoInstruction, 64> instruction_buffer_;
+  PendingTransaction pending_transaction_;
+  ServoServiceRequest service_request_;
+  uint32_t torque_off_pending_mask_ = 0;  // ROS task sets, servo task consumes.
+  osMutexId queue_mutex_ = nullptr;
+  osSemaphoreId service_completion_ = nullptr;
+  uint32_t next_service_generation_ = 0;
+  HAL_StatusTypeDef last_tx_status_ = HAL_OK;
+
+  bool enqueueInstruction(uint8_t command, uint8_t servo_index);
+  bool popInstruction(ServoInstruction& instruction);
+  void updateQueueHighWaterMark();
+  void schedulePeriodicCommands();
+  void processInstructionQueue();
+  uint8_t activeServoCount(bool send_all) const;
+
+  bool startPendingTransaction(const ServoInstruction& instruction,
+                               uint8_t expected_response_count,
+                               bool fast_sync,
+                               uint32_t timeout_ms);
+  ServoResult completePendingTransaction();
+  ServoResult executeBlockingRead(const ServoInstruction& instruction,
+                                  uint8_t expected_response_count,
+                                  bool fast_sync,
+                                  uint32_t timeout_ms = SERVO_RESPONSE_TIMEOUT_MS);
+  void recordTransactionResult(ServoResult result);
+  ServoResult lastTransmitResult();
+  void recoverRx();
+  static bool deadlineExpired(uint32_t now_ms, uint32_t deadline_ms);
+
+  bool validateServiceRequest(uint8_t command, const int32_t* data,
+                              uint8_t data_length) const;
+  ServoResult executeServiceRequest(const ServoServiceRequest& request);
+  void completeServiceRequest(uint32_t generation, ServoResult result);
+  ServoResult readAllServoRegister(uint8_t instruction);
+  ServoResult applyHomingOffset(uint8_t servo_index);
+  ServoResult applyPositionGains(uint8_t servo_index);
+  ServoResult applyProfileVelocity(uint8_t servo_index);
+  ServoResult applyCurrentLimit(uint8_t servo_index);
+
+  HAL_StatusTypeDef transmitInstructionPacket(uint8_t id, uint16_t len,
+                                              uint8_t instruction, uint8_t* parameters);
+  HAL_StatusTypeDef readUntil(uint8_t* data, uint32_t deadline_ms);
+  ServoResult readStatusPacket(uint8_t status_packet_instruction,
+                               uint32_t deadline_ms);
 
   void cmdPing(uint8_t id);
   void cmdReboot(uint8_t id);
@@ -332,7 +405,8 @@ private:
   void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
   void cmdFastSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
-  int8_t readFastSyncStatusPacket(uint8_t status_packet_instruction);
+  ServoResult readFastSyncStatusPacket(uint8_t status_packet_instruction,
+                                       uint32_t deadline_ms);
 
   inline void cmdReadCurrentLimit(uint8_t servo_index);
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
@@ -350,6 +424,8 @@ private:
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
+  inline void cmdWriteTorqueEnableWithLED(uint8_t servo_index,
+                                          bool torque_enable);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
   inline void cmdFastSyncReadHardwareErrorStatus(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);

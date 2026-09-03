@@ -10,6 +10,7 @@
 
 #define SERVO_PUB_INTERVAL 20 // 50Hz
 #define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
+#define SERVO_COMM_STATUS_PUB_INTERVAL 1000 // 1Hz
 
 bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
@@ -45,6 +46,7 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   nh_->subscribe(joint_profiles_sub_);
   nh_->advertise(servo_state_pub_);
   nh_->advertise(servo_torque_state_pub_);
+  nh_->advertise(servo_comm_status_pub_);
   nh_->advertiseService(servo_config_srv_);
   nh_->advertiseService(board_info_srv_);
 
@@ -55,6 +57,7 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
 
   servo_last_pub_time_ = 0;
   servo_torque_last_pub_time_ = 0;
+  servo_comm_status_last_pub_time_ = 0;
 
   board_info_res_.boards_length = 1;
   board_info_res_.boards = new spinal::BoardInfo[1];
@@ -130,6 +133,23 @@ void DirectServo::sendData(bool flag_send_asap)
       servo_torque_state_pub_.publish(&servo_torque_state_msg_);
       servo_torque_last_pub_time_= now_time;
     }  
+
+  if (now_time - servo_comm_status_last_pub_time_ >= SERVO_COMM_STATUS_PUB_INTERVAL)
+    {
+      const ServoCommCounters& counters = servo_handler_.getCommCounters();
+      servo_comm_status_msg_.stamp = nh_->now();
+      servo_comm_status_msg_.transaction_success_count = counters.transaction_success_count;
+      servo_comm_status_msg_.timeout_count = counters.timeout_count;
+      servo_comm_status_msg_.crc_error_count = counters.crc_error_count;
+      servo_comm_status_msg_.invalid_packet_count = counters.invalid_packet_count;
+      servo_comm_status_msg_.recovery_count = counters.recovery_count;
+      servo_comm_status_msg_.deadline_miss_count = counters.deadline_miss_count;
+      servo_comm_status_msg_.queue_overflow_count = counters.queue_overflow_count;
+      servo_comm_status_msg_.unexpected_completion_count = counters.unexpected_completion_count;
+      servo_comm_status_msg_.queue_high_water_mark = counters.queue_high_water_mark;
+      servo_comm_status_pub_.publish(&servo_comm_status_msg_);
+      servo_comm_status_last_pub_time_ = now_time;
+    }
 }
 
 void DirectServo::torqueEnable(const std::map<uint8_t, float>& servo_map)
@@ -222,134 +242,15 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
 
 void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res)
 {
-  //TODO: using boardConfigCallback in spine.cpp
-  uint8_t command = req.command;
-
-  /* special case : data[0] is flag value */
-  if(command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED)
-    {
-#if DYNAMIXEL
-      servo_handler_.setTTLRS485Mixed(req.data[0] ? 1 : 0);
-      FlashMemory::erase();
-      FlashMemory::write();
-      res.success = true;
-#else
-      nh_->logerror("SET_DYNAMIXEL_TTL_RS485_MIXED is only supported by Dynamixel driver.");
-      res.success = false;
-#endif
-      return;
-    }
-
-  uint8_t servo_index = req.data[0];
-  if(servo_index >= servo_handler_.getServoNum())
-    {
-      nh_->logerror("Invalid Servo ID!");
-      return;
-    }
-  ServoData& s = servo_handler_.getServo()[servo_index];
-  switch (command) {
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_HOMING_OFFSET:
-    {
-      if(!s.torque_enable_){
-        int32_t calib_value = req.data[1];
-        s.calib_value_ = calib_value;
-        servo_handler_.setHomingOffset(servo_index);
-        res.success = true;
-      }else{
-        nh_->logerror("Cannot set homing offset during torque on state.");
-        res.success = false;
-      }
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_PID_GAIN:
-    {
-      if(!s.torque_enable_){
-        s.p_gain_ = req.data[1];
-        s.i_gain_ = req.data[2];
-        s.d_gain_ = req.data[3];
-        servo_handler_.setPositionGains(servo_index);
-        FlashMemory::erase();
-        FlashMemory::write();
-        res.success = true;
-      }else{
-        nh_->logerror("Cannot set PID gains during torque on state.");
-        res.success = false;
-      }
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_PROFILE_VEL:
-    {
-      s.profile_velocity_ = req.data[1];
-      servo_handler_.setProfileVelocity(servo_index);
-      FlashMemory::erase();
-      FlashMemory::write();
-      res.success = true;
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_SEND_DATA_FLAG:
-    {
-      s.send_data_flag_ = req.data[1];
-      FlashMemory::erase();
-      FlashMemory::write();
-      res.success = true;
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_CURRENT_LIMIT:
-    {
-      s.current_limit_ = req.data[1];
-      servo_handler_.setCurrentLimit(servo_index);
-      res.success = true;
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_EXTERNAL_ENCODER_FLAG:
-    {
-      if(!s.torque_enable_){
-        s.external_encoder_flag_ = req.data[1];
-        s.first_get_pos_flag_ = true;
-        if(!s.external_encoder_flag_)
-          { // if use the servo internal encoder, we directly output the encoder value without scaling by resolution_ratio.
-            s.servo_resolution_ = 1;
-            s.joint_resolution_ = 1;
-            s.resolution_ratio_ = 1;
-          }
-        FlashMemory::erase();
-        FlashMemory::write();
-        res.success = true;
-      }else{
-        nh_->logerror("Cannot set ex encoder falg during torque on state.");
-        res.success = false;
-      }
-      break;
-    }
-  case spinal::SetDirectServoConfig::Request::SET_SERVO_RESOLUTION_RATIO:
-    {
-      if(!s.torque_enable_){
-        s.joint_resolution_ = req.data[1];
-        s.servo_resolution_ = req.data[2];
-        s.hardware_error_status_ &= ((1 << RESOLUTION_RATIO_ERROR) - 1); // 0b00111111: reset
-
-        if(s.servo_resolution_ == 65535 || s.joint_resolution_ == 65535){
-          s.hardware_error_status_ |= (1 << RESOLUTION_RATIO_ERROR);  // 0b01000000;
-          s.resolution_ratio_ = 1;
-        }
-        else{
-          s.resolution_ratio_ = (float)s.servo_resolution_ / (float)s.joint_resolution_;
-          s.first_get_pos_flag_ = true;
-          FlashMemory::erase();
-          FlashMemory::write();
-        }
-        res.success = true;
-      }else{
-        nh_->logerror("Cannot set resolution rate during torque on state.");
-        res.success = false;
-      }
-      
-      break;
-    }
-  default:
-    break;
+  res.success = false;
+  res.data_length = 0;
+  if (req.data_length > SERVO_SERVICE_DATA_CAPACITY) {
+    return;
   }
-  // res.success = true;
+
+  res.success = servo_handler_.requestConfig(
+    req.command, req.data, static_cast<uint8_t>(req.data_length),
+    SERVO_SERVICE_TIMEOUT_MS) == SERVO_RESULT_OK;
 }
 
 void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
