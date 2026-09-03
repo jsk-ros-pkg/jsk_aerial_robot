@@ -74,6 +74,8 @@ public:
 	bool first_get_pos_flag_ = true;
   float angle_scale_ = 3.1416f / 2047.0f;
   uint16_t zero_point_offset_ = 2047;
+  uint32_t cur_vel_pos_update_count_ = 0;
+  uint32_t goal_write_count_ = 0;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}

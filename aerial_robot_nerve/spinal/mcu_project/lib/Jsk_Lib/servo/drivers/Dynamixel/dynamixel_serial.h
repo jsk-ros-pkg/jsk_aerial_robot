@@ -214,9 +214,9 @@
 #define INST_REBOOT						18
 
 //instruction frequency: 0 means no process
-#define SET_POS_DU 5 //[msec], 20ms => 50Hz
-#define SET_POS_OFFSET 2 // offset from SET_POS
-#define GET_POS_DU 5 //[msec], 20ms => 50Hz
+#define SET_POS_DU 5 //[msec], 5ms => 200Hz
+#define SET_POS_OFFSET 1 // offset from SET_POS
+#define GET_POS_DU 5 //[msec], 5ms => 200Hz
 #define GET_POS_OFFSET 0 //offset from GET_POS
 #define GET_LOAD_DU 0 //[msec], 200ms => 5Hz
 #define GET_LOAD_OFFSET 0 //offset from GET_LOAD
@@ -325,16 +325,18 @@ public:
 private:
   bool direct_ttl_mode_;
 
+  using ServoMask = uint16_t;
+
   struct ServoInstruction
   {
     uint8_t command;
-    uint8_t servo_index;
+    ServoMask servo_mask;
   };
 
   struct PendingTransaction
   {
     bool active = false;
-    ServoInstruction instruction = {255, 255};
+    ServoInstruction instruction = {255, 0};
     uint8_t expected_response_count = 0;
     bool fast_sync = false;
     uint32_t deadline_ms = 0;
@@ -361,12 +363,16 @@ private:
   uint32_t next_service_generation_ = 0;
   HAL_StatusTypeDef last_tx_status_ = HAL_OK;
 
-  bool enqueueInstruction(uint8_t command, uint8_t servo_index);
+  bool enqueueInstruction(uint8_t command, ServoMask servo_mask);
   bool popInstruction(ServoInstruction& instruction);
   void updateQueueHighWaterMark();
   void schedulePeriodicCommands();
   void processInstructionQueue();
-  uint8_t activeServoCount(bool send_all) const;
+  static ServoMask servoBit(uint8_t servo_index);
+  ServoMask allServoMask() const;
+  ServoMask activeServoMask() const;
+  uint8_t servoCount(ServoMask servo_mask) const;
+  bool singleServoIndex(ServoMask servo_mask, uint8_t& servo_index) const;
 
   bool startPendingTransaction(const ServoInstruction& instruction,
                                uint8_t expected_response_count,
@@ -386,6 +392,8 @@ private:
                               uint8_t data_length) const;
   ServoResult executeServiceRequest(const ServoServiceRequest& request);
   void completeServiceRequest(uint32_t generation, ServoResult result);
+  ServoResult readOneServoRegister(uint8_t instruction,
+                                   uint8_t servo_index);
   ServoResult readAllServoRegister(uint8_t instruction);
   ServoResult applyHomingOffset(uint8_t servo_index);
   ServoResult applyPositionGains(uint8_t servo_index);
@@ -402,11 +410,15 @@ private:
   void cmdReboot(uint8_t id);
   void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
   void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
-  void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
-  void cmdFastSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
-  void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
+  void cmdSyncRead(uint16_t address, uint16_t byte_size, ServoMask servo_mask);
+  void cmdFastSyncRead(uint16_t address, uint16_t byte_size,
+                       ServoMask servo_mask);
+  void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len,
+                    ServoMask servo_mask);
   ServoResult readFastSyncStatusPacket(uint8_t status_packet_instruction,
-                                       uint32_t deadline_ms);
+                                       uint32_t deadline_ms,
+                                       ServoMask expected_servo_mask);
+  void recordGoalWrite(ServoMask servo_mask);
 
   inline void cmdReadCurrentLimit(uint8_t servo_index);
   inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
@@ -426,23 +438,23 @@ private:
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
   inline void cmdWriteTorqueEnableWithLED(uint8_t servo_index,
                                           bool torque_enable);
-  inline void cmdSyncReadCurrentLimit(bool send_all = true);
-  inline void cmdFastSyncReadHardwareErrorStatus(bool send_all = true);
-  inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
-  inline void cmdSyncReadHomingOffset(bool send_all = true);
-  inline void cmdFastSyncReadMoving(bool send_all = true);
-  inline void cmdSyncReadMoving(bool send_all = true);
-  inline void cmdFastSyncReadPresentCurVelPos(bool send_all = true);
-  inline void cmdFastSyncReadPresentTemperature(bool send_all = true);
-  inline void cmdSyncReadPositionGains(bool send_all = true);
-  inline void cmdSyncReadPresentCurVelPos(bool send_all = true);
-  inline void cmdSyncReadPresentCurrent(bool send_all = true);
-  inline void cmdSyncReadPresentPosition(bool send_all = true);
-  inline void cmdSyncReadPresentTemperature(bool send_all = true);
-  inline void cmdSyncReadProfileVelocity(bool send_all = true);
-  inline void cmdSyncWriteGoalPosition();
-  inline void cmdSyncWriteGoalVelocity();
-  inline void cmdSyncWriteGoalCurrent();
+  inline void cmdSyncReadCurrentLimit(ServoMask servo_mask);
+  inline void cmdFastSyncReadHardwareErrorStatus(ServoMask servo_mask);
+  inline void cmdSyncReadHardwareErrorStatus(ServoMask servo_mask);
+  inline void cmdSyncReadHomingOffset(ServoMask servo_mask);
+  inline void cmdFastSyncReadMoving(ServoMask servo_mask);
+  inline void cmdSyncReadMoving(ServoMask servo_mask);
+  inline void cmdFastSyncReadPresentCurVelPos(ServoMask servo_mask);
+  inline void cmdFastSyncReadPresentTemperature(ServoMask servo_mask);
+  inline void cmdSyncReadPositionGains(ServoMask servo_mask);
+  inline void cmdSyncReadPresentCurVelPos(ServoMask servo_mask);
+  inline void cmdSyncReadPresentCurrent(ServoMask servo_mask);
+  inline void cmdSyncReadPresentPosition(ServoMask servo_mask);
+  inline void cmdSyncReadPresentTemperature(ServoMask servo_mask);
+  inline void cmdSyncReadProfileVelocity(ServoMask servo_mask);
+  inline void cmdSyncWriteGoalPosition(ServoMask servo_mask);
+  inline void cmdSyncWriteGoalVelocity(ServoMask servo_mask);
+  inline void cmdSyncWriteGoalCurrent(ServoMask servo_mask);
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
   inline void cmdSyncWriteProfileVelocity();

@@ -14,3 +14,10 @@ uint32 queue_overflow_count
 uint32 unexpected_completion_count
 
 uint16 queue_high_water_mark
+
+# Per-servo cumulative counters. Arrays share the same index.
+uint8[] servo_ids
+# Accepted combined Current/Velocity/Position feedback blocks.
+uint32[] cur_vel_pos_update_count
+# Goal Sync Writes successfully transmitted by the MCU; not servo acknowledgments.
+uint32[] goal_write_count

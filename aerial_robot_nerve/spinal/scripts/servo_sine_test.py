@@ -33,7 +33,7 @@ SERVO_TARGETS = [
     {
         "index": index,
         "center": 2048,
-        "amplitude": 1000,
+        "amplitude": 2000,
         "phase_deg": 0.0,
     }
     for index in range(4)

@@ -54,6 +54,12 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   servo_state_msg_.servos = new spinal::ServoState[actual_servo_num];
   servo_torque_state_msg_.torque_enable_length = actual_servo_num;
   servo_torque_state_msg_.torque_enable = new uint8_t[actual_servo_num];
+  servo_comm_status_msg_.servo_ids_length = actual_servo_num;
+  servo_comm_status_msg_.servo_ids = new uint8_t[actual_servo_num];
+  servo_comm_status_msg_.cur_vel_pos_update_count_length = actual_servo_num;
+  servo_comm_status_msg_.cur_vel_pos_update_count = new uint32_t[actual_servo_num];
+  servo_comm_status_msg_.goal_write_count_length = actual_servo_num;
+  servo_comm_status_msg_.goal_write_count = new uint32_t[actual_servo_num];
 
   servo_last_pub_time_ = 0;
   servo_torque_last_pub_time_ = 0;
@@ -147,6 +153,13 @@ void DirectServo::sendData(bool flag_send_asap)
       servo_comm_status_msg_.queue_overflow_count = counters.queue_overflow_count;
       servo_comm_status_msg_.unexpected_completion_count = counters.unexpected_completion_count;
       servo_comm_status_msg_.queue_high_water_mark = counters.queue_high_water_mark;
+      for (unsigned int i = 0; i < servo_handler_.getServoNum(); ++i) {
+        const ServoData& servo = servo_handler_.getServo()[i];
+        servo_comm_status_msg_.servo_ids[i] = servo.id_;
+        servo_comm_status_msg_.cur_vel_pos_update_count[i] =
+          servo.cur_vel_pos_update_count_;
+        servo_comm_status_msg_.goal_write_count[i] = servo.goal_write_count_;
+      }
       servo_comm_status_pub_.publish(&servo_comm_status_msg_);
       servo_comm_status_last_pub_time_ = now_time;
     }
