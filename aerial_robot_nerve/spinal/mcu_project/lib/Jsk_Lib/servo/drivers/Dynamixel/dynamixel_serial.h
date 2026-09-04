@@ -110,7 +110,6 @@
 #define COMMAND_ACTION              	0x05
 #define COMMAND_FACTORY_RESET           0x06
 #define COMMAND_REBOOT					0x08
-#define COMMAND_SYNC_READ				0x82
 #define COMMAND_FAST_SYNC_READ			0x8A
 #define COMMAND_SYNC_WRITE          	0x83
 #define COMMAND_BULK_READ				0x92
@@ -130,7 +129,6 @@
 #define GOAL_VELOCITY_BYTE_LEN			4
 #define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
-#define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_CUR_VEL_POS_BYTE_LEN	10
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
 #define MOVING_BYTE_LEN 				1
@@ -156,10 +154,6 @@
 
 #define INSTRUCTION_PACKET_SIZE 64
 #define STATUS_PACKET_SIZE 		160
-
-#ifndef DYNAMIXEL_USE_FAST_SYNC_READ
-#define DYNAMIXEL_USE_FAST_SYNC_READ 1
-#endif
 
 #define SERVO_BROADCAST_PING_TIMEOUT_MS 1000U
 
@@ -197,7 +191,6 @@
 #define INST_GET_HARDWARE_ERROR_STATUS  1
 #define INST_GET_HOMING_OFFSET			2
 #define INST_GET_POSITION_GAINS			3
-#define INST_GET_PRESENT_CURRENT		4
 #define INST_GET_PRESENT_MOVING			5
 #define INST_GET_PRESENT_POS			6
 #define INST_GET_PRESENT_TEMPERATURE	7
@@ -212,14 +205,12 @@
 #define INST_GET_CUR_VEL_POS			16
 #define INST_SERVICE_REQUEST			17
 #define INST_REBOOT						18
+#define INST_SET_GOAL_VEL				19
+#define INST_SET_GOAL_CUR				20
 
 //instruction frequency: 0 means no process
-#define SET_POS_DU 5 //[msec], 5ms => 200Hz
-#define SET_POS_OFFSET 1 // offset from SET_POS
-#define GET_POS_DU 5 //[msec], 5ms => 200Hz
-#define GET_POS_OFFSET 0 //offset from GET_POS
-#define GET_LOAD_DU 0 //[msec], 200ms => 5Hz
-#define GET_LOAD_OFFSET 0 //offset from GET_LOAD
+#define CONTROL_CYCLE_DU 5 //[msec], 5ms => 200Hz
+#define CONTROL_CYCLE_OFFSET 0
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
 #define GET_TEMP_OFFSET 49 //avoid the 20ms position-read phase
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
@@ -290,6 +281,11 @@ public:
       return (byte_to_add_ + (buffer_length_ - byte_in_progress_));
   }
 
+  uint16_t capacity() const
+  {
+    return buffer_length_ > 0 ? buffer_length_ - 1U : 0U;
+  }
+
 private:
   T buf_[SIZE];
   int16_t byte_in_progress_, byte_to_add_;
@@ -331,13 +327,14 @@ private:
   {
     uint8_t command;
     ServoMask servo_mask;
+    // Nonzero only for the final CVP read in a control cycle.
+    ServoMask feedback_cycle_mask;
   };
 
   struct PendingTransaction
   {
     bool active = false;
-    ServoInstruction instruction = {255, 0};
-    uint8_t expected_response_count = 0;
+    ServoInstruction instruction = {255, 0, 0};
     bool fast_sync = false;
     uint32_t deadline_ms = 0;
   };
@@ -362,8 +359,11 @@ private:
   osSemaphoreId service_completion_ = nullptr;
   uint32_t next_service_generation_ = 0;
   HAL_StatusTypeDef last_tx_status_ = HAL_OK;
+  ServoMask feedback_received_mask_ = 0;
 
   bool enqueueInstruction(uint8_t command, ServoMask servo_mask);
+  bool enqueueInstructionBatch(const ServoInstruction* instructions,
+                               uint8_t instruction_count);
   bool popInstruction(ServoInstruction& instruction);
   void updateQueueHighWaterMark();
   void schedulePeriodicCommands();
@@ -375,12 +375,10 @@ private:
   bool singleServoIndex(ServoMask servo_mask, uint8_t& servo_index) const;
 
   bool startPendingTransaction(const ServoInstruction& instruction,
-                               uint8_t expected_response_count,
                                bool fast_sync,
                                uint32_t timeout_ms);
   ServoResult completePendingTransaction();
   ServoResult executeBlockingRead(const ServoInstruction& instruction,
-                                  uint8_t expected_response_count,
                                   bool fast_sync,
                                   uint32_t timeout_ms = SERVO_RESPONSE_TIMEOUT_MS);
   void recordTransactionResult(ServoResult result);
@@ -410,7 +408,6 @@ private:
   void cmdReboot(uint8_t id);
   void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
   void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
-  void cmdSyncRead(uint16_t address, uint16_t byte_size, ServoMask servo_mask);
   void cmdFastSyncRead(uint16_t address, uint16_t byte_size,
                        ServoMask servo_mask);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len,
@@ -421,14 +418,9 @@ private:
   void recordGoalWrite(ServoMask servo_mask);
 
   inline void cmdReadCurrentLimit(uint8_t servo_index);
-  inline void cmdReadHardwareErrorStatus(uint8_t servo_index);
   inline void cmdReadHomingOffset(uint8_t servo_index);
-  inline void cmdReadMoving(uint8_t servo_index);
   inline void cmdReadPositionGains(uint8_t servo_index);
-  inline void cmdReadPresentCurVelPos(uint8_t servo_index);
-  inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
-  inline void cmdReadPresentTemperature(uint8_t servo_index);
   inline void cmdReadProfileVelocity(uint8_t servo_index);
   inline void cmdWriteCurrentLimit(uint8_t servo_index);
   inline void cmdWriteHomingOffset(uint8_t servo_index);
@@ -438,20 +430,10 @@ private:
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
   inline void cmdWriteTorqueEnableWithLED(uint8_t servo_index,
                                           bool torque_enable);
-  inline void cmdSyncReadCurrentLimit(ServoMask servo_mask);
   inline void cmdFastSyncReadHardwareErrorStatus(ServoMask servo_mask);
-  inline void cmdSyncReadHardwareErrorStatus(ServoMask servo_mask);
-  inline void cmdSyncReadHomingOffset(ServoMask servo_mask);
   inline void cmdFastSyncReadMoving(ServoMask servo_mask);
-  inline void cmdSyncReadMoving(ServoMask servo_mask);
   inline void cmdFastSyncReadPresentCurVelPos(ServoMask servo_mask);
   inline void cmdFastSyncReadPresentTemperature(ServoMask servo_mask);
-  inline void cmdSyncReadPositionGains(ServoMask servo_mask);
-  inline void cmdSyncReadPresentCurVelPos(ServoMask servo_mask);
-  inline void cmdSyncReadPresentCurrent(ServoMask servo_mask);
-  inline void cmdSyncReadPresentPosition(ServoMask servo_mask);
-  inline void cmdSyncReadPresentTemperature(ServoMask servo_mask);
-  inline void cmdSyncReadProfileVelocity(ServoMask servo_mask);
   inline void cmdSyncWriteGoalPosition(ServoMask servo_mask);
   inline void cmdSyncWriteGoalVelocity(ServoMask servo_mask);
   inline void cmdSyncWriteGoalCurrent(ServoMask servo_mask);
